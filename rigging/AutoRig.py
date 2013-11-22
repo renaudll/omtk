@@ -50,11 +50,11 @@ class NameMap(object):
 					if iNumTokens > 2:
 						pass # TODO: Implement
 
-	def Serialize(self, _sType=None, _sName=None, _sSide=None, _iIter=None, *args):
-		sType = self.type if _sType is None else _sType
-		sName = self.name if _sName is None else _sName
-		sSide = self.side if _sSide is None else _sSide
-		sIter = self.iter if _iIter is None else _iIter
+	def Serialize(self, *args, **kwargs):
+		sType = self.type if '_sType' not in kwargs else kwargs['_sType']
+		sName = self.name if '_sName' not in kwargs else kwargs['_sName']
+		sSide = self.side if '_sSide' not in kwargs else kwargs['_sSide']
+		sIter = self.iter if '_iIter' not in kwargs else kwargs['_iIter']
 		if sIter is not None: sIter = str(sIter)
 		return self.m_sSeparator.join(filter(None, [sType, sName, sSide, sIter] + self.aOthers + list(args)))
 
@@ -100,8 +100,14 @@ class RigPart(Serializable):
 		self.SetAttrPublic('pNameMapRig', NameMap(oRef, _sType='rig'))
 
 	def Build(self, *args, **kwargs):
-		self.oGrpAnm = pymel.createNode('transform', name='anm')
-		self.oGrpRig = pymel.createNode('transform', name='rig')
+		self.oGrpAnm = pymel.createNode('transform', name=self.pNameMapAnm.Serialize(_sType='anm'))
+		self.oGrpRig = pymel.createNode('transform', name=self.pNameMapRig.Serialize(_sType='rig'))
+
+	def Unbuild(self):
+		if self.oGrpAnm is not None:
+			pymel.delete(self.oGrpAnm)
+		if self.oGrpRig is not None:
+			pymel.delete(self.oGrpRig)
 
 class IK(RigPart):
 	def __init__(self, *args, **kwargs):
@@ -114,7 +120,7 @@ class IK(RigPart):
 		# Create ikChain
 		oChainS = self.aInput[0]
 		oChainE = self.aInput[self.iCtrlIndex]
-		oChainRoot = pymel.createNode('transform', name=self.pNameMapRig.Serialize('ikChain'))
+		oChainRoot = pymel.createNode('transform', name=self.pNameMapRig.Serialize('ikChain'), parent=self.oGrpRig)
 		oChainRoot.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
 		oChainS.setParent(oChainRoot)
 		
@@ -144,7 +150,6 @@ class IK(RigPart):
 			# Compute safeDistance (maximum chain length without stretch)
 			fSafeDistance = 0
 			for oInput in self.aInput[1:self.iCtrlIndex+1]:
-				print oInput.t.get().length()
 				fSafeDistance += oInput.t.get().length()
 
 			attChainDistance = CreateUtilityNode('distanceBetween', inMatrix1=oChainRoot.worldMatrix, inMatrix2=oCtrlIK.worldMatrix).distance
@@ -154,4 +159,59 @@ class IK(RigPart):
 				attNewPos = CreateUtilityNode('multiplyDivide', input1=oInput.t.get(), input2X=attStretch, input2Y=attStretch, input2Z=attStretch).output
 				pymel.connectAttr(attNewPos, oInput.t)
 
+class FK(RigPart):
+	def Build(self, *args, **kwargs):
+		super(FK, self).Build(*args, **kwargs)
 
+		# Create ctrl chain
+		aCtrls = []
+		for oInput in self.aInput:
+			oCtrl = pymel.circle(name=NameMap(oInput).Serialize('fk', _sType='anm'))[0]
+			oCtrl.setMatrix(oInput.getMatrix(worldSpace=True), worldSpace=True)
+			aCtrls.append(oCtrl)
+
+		aCtrls[0].setParent(self.oGrpAnm)
+		for i in range(1, len(aCtrls)):
+			aCtrls[i].setParent(aCtrls[i-1])
+
+		# Connect jnt -> anm
+		for oInput, oCtrl in zip(self.aInput, aCtrls):
+			pymel.parentConstraint(oCtrl, oInput)
+			pymel.connectAttr(oCtrl.s, oInput.s)
+
+class Arm(RigPart):
+	kAttrName_State = 'fkIk' # The name of the IK/FK attribute
+
+	def Build(self, *args, **kwargs):
+		super(Arm, self).Build(*args, **kwargs)
+
+		# Create attribute holder (this is where the IK/FK attribute will be stored)
+		oAttHolder = pymel.circle(name=self.pNameMapAnm.Serialize('atts'))[0]
+		oAttHolder.setParent(self.oGrpAnm)
+		pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
+		attState = oAttHolder.attr(self.kAttrName_State)
+
+		# Create ikChain and fkChain
+		aIkChain = pymel.duplicate(self.aInput, renameChildren=True)
+		aFkChain = pymel.duplicate(self.aInput, renameChildren=True)
+		for oInput, oIk, oFk, in zip(self.aInput, aIkChain, aFkChain):
+			pNameMap = NameMap(oInput, _sType='rig')
+			oIk.rename(pNameMap.Serialize('ik'))
+			oFk.rename(pNameMap.Serialize('fk'))
+		aIkChain[0].setParent(self.oGrpRig)
+		aFkChain[0].setParent(self.oGrpRig)
+
+		# Rig ikChain and fkChain
+		self.sysIK = IK(aIkChain); self.sysIK.Build()
+		self.sysFK = FK(aFkChain); self.sysFK.Build()
+		self.sysIK.oGrpAnm.setParent(self.oGrpAnm)
+		self.sysIK.oGrpRig.setParent(self.oGrpRig)
+		self.sysFK.oGrpAnm.setParent(self.oGrpAnm)
+		self.sysFK.oGrpRig.setParent(self.oGrpRig)
+
+		# Blend ikChain with fkChain
+		for oInput, oIk, oFk in zip(self.aInput, aIkChain, aFkChain):
+			oConstraint = pymel.parentConstraint(oIk, oFk, oInput)
+			attIkWeight, attFkWeight = oConstraint.getWeightAliasList()
+			pymel.connectAttr(attState, attIkWeight)
+			pymel.connectAttr(CreateUtilityNode('reverse', inputX=attIkWeight).outputX, attFkWeight)

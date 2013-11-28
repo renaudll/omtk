@@ -122,7 +122,11 @@ class RigCtrl(RigNode):
 			self.node.setParent(self.offset)
 
 	def __createNode__(self, *args, **kwargs):
-		return pymel.circle(*args, **kwargs)[0]
+		n = pymel.circle(*args, **kwargs)[0]
+		oMake = n.getShape().create.inputs()[0]
+		oMake.radius.set(0.5) # HARDCODED
+		oMake.normal.set((1,0,0))
+		return n
 
 	def rename(self, _sName, *args, **kwargs):
 		self.node.rename(_sName, *args, **kwargs)
@@ -130,6 +134,30 @@ class RigCtrl(RigNode):
 
 	def setParent(self, *args, **kwargs):
 		return self.offset.setParent(*args, **kwargs)
+
+	# TODO: Make sure it work
+	def CreateSpaceSwitch(self, _aSpaces, _aLabels, _bUseDefault=True):
+		oConstraint = pymel.parentConstraint(_aSpaces, self.offset, maintainOffset=True)
+		pymel.addAttr(self.offset, longName='space', at='enum', enumName=_aLabels)
+		attSpace = self.offset.getAttr('space')
+		aWeightAtts = oConstraint.getWeightAliasList()
+		for i, attWeight in enumerate(aWeightAtts):
+			iIndexToMatch = i if not _bUseDefault else i + 1
+			attSpaceIsActive = CreateUtilityNode('condition', firstTerm=attSpace, secondTerm=iIndexToMatch, colorIfTrueR=1, colorIfFalseR=0).outColorR #Equal
+			pymel.connectAttr(attSpaceIsActive, attWeight)
+
+class RigAttHolder(RigNode):
+	def __init__(self, *args, **kwargs):
+		super(RigAttHolder, self).__init__(*args, **kwargs)
+		self.node.t.set(channelBox=False)
+		self.node.r.set(channelBox=False)
+		self.node.s.set(channelBox=False)
+	def __createNode__(self, name=None, *args, **kwargs):
+		s1 = 0.1
+		s2 = s1 * 0.7
+		n =  pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)
+		if isinstance(name, basestring): n.rename(name)
+		return n
 
 '''
 This is the baseclass for anything that can be Build/Unbuild
@@ -149,9 +177,9 @@ class RigPart(Serializable):
 
 	def Build(self, _bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs):
 		if _bCreateGrpAnm:
-			self.oGrpAnm = pymel.createNode('transform', name=self.pNameMapAnm.Serialize(self.__class__.__name__.lower(), _sType='anm'))
+			self.oGrpAnm = pymel.createNode('transform', name=self.pNameMapAnm.Serialize(self.__class__.__name__.lower(), _sType='anms'))
 		if _bCreateGrpRig:
-			self.oGrpRig = pymel.createNode('transform', name=self.pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rig'))
+			self.oGrpRig = pymel.createNode('transform', name=self.pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rigs'))
 
 	def Unbuild(self):
 		if self.oGrpAnm is not None:
@@ -162,6 +190,7 @@ class RigPart(Serializable):
 #
 # IK system
 #
+
 class CtrlIk(RigCtrl):
 	kAttrName_State = 'ikFk'
 	def __init__(self, *args, **kwargs):
@@ -171,19 +200,49 @@ class CtrlIk(RigCtrl):
 		self.m_attState = getattr(self.node, self.kAttrName_State)
 
 class CtrlIkSwivel(RigCtrl):
-	pass # Todo: Implement custom shape
+	def __init__(self, _oLineTarget, *args, **kwargs):
+		super(CtrlIkSwivel, self).__init__(*args, **kwargs)
 
+		oCtrlShape = self.node.getShape()
+		oLineShape = pymel.createNode('annotationShape')
+		oLineTransform = oLineShape.getParent()
+		oLineShape.setParent(_oLineTarget, relative=True, shape=True)
+		pymel.delete(oLineTransform)
+		pymel.connectAttr(oCtrlShape.worldMatrix, oLineShape.dagObjectMatrix[0], force=True)
+
+	def __createNode__(self, *args, **kwargs):
+		n = super(CtrlIkSwivel, self).__createNode__(*args, **kwargs)
+		oMake = n.getShape().create.inputs()[0]
+		oMake.radius.set(oMake.radius.get() * 0.5)
+		oMake.degree.set(1)
+		oMake.sections.set(4)
+		return n
+
+# Todo: Support more complex IK limbs (ex: 2 knees)
 class IK(RigPart):
 	def __init__(self, *args, **kwargs):
 		super(IK, self).__init__(*args, **kwargs)
 		self.SetAttrPublic('bStretch', True)
 
-	def Build(self, *args, **kwargs):
+	def Build(self, _bOrientIkCtrl=True, *args, **kwargs):
 		super(IK, self).Build(*args, **kwargs)
-
-		# Create ikChain
 		oChainS = self.aInput[0]
 		oChainE = self.aInput[self.iCtrlIndex]
+
+		# Compute chainLength
+		fChainLength = 0
+		for oInput in self.aInput[1:self.iCtrlIndex+1]:
+			fChainLength += oInput.t.get().length()
+
+		# Compute swivel position
+		p3ChainS = oChainS.getTranslation(space='world')
+		p3ChainE = oChainE.getTranslation(space='world')
+		fRatio = self.aInput[1].t.get().length() / fChainLength
+		p3SwivelBase = (p3ChainE - p3ChainS) * fRatio + p3ChainS 
+		p3SwivelDir = (self.aInput[1].getTranslation(space='world') - p3SwivelBase).normal()
+		p3SwivelPos = p3SwivelBase + p3SwivelDir * fChainLength
+
+		# Create ikChain
 		oChainRoot = pymel.createNode('transform', name=self.pNameMapRig.Serialize('ikChain'), parent=self.oGrpRig)
 		oChainRoot.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
 		oChainS.setParent(oChainRoot)
@@ -197,27 +256,25 @@ class IK(RigPart):
 		self.oCtrlIK = CtrlIk()
 		self.oCtrlIK.setParent(self.oGrpAnm)
 		self.oCtrlIK.rename(self.pNameMapAnm.Serialize('ik'))
-		self.oCtrlIK.setMatrix(oChainE.getMatrix(worldSpace=True), worldSpace=True)
+		self.oCtrlIK.offset.setTranslation(oChainE.getTranslation(space='world'), space='world')
+		if _bOrientIkCtrl is True:
+			self.oCtrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
 
-		self.oCtrlSwivel = CtrlIkSwivel()
+		self.oCtrlSwivel = CtrlIkSwivel(self.aInput[1])
 		self.oCtrlSwivel.setParent(self.oGrpAnm)
 		self.oCtrlSwivel.rename(self.pNameMapAnm.Serialize('ikSwivel'))
-		self.oCtrlSwivel.setMatrix(self.aInput[self.iCtrlIndex-1].getMatrix(worldSpace=True), worldSpace=True)
+		self.oCtrlSwivel.offset.setTranslation(p3SwivelPos, space='world')
+		self.oCtrlSwivel.offset.setRotation(self.aInput[self.iCtrlIndex-1].getRotation(space='world'), space='world')
 
 		# Connect rig -> anm
 		pymel.pointConstraint(self.oCtrlIK, self.oIkHandle)
-		pymel.orientConstraint(self.oCtrlIK, oChainE)
+		pymel.orientConstraint(self.oCtrlIK, oChainE, maintainOffset=True)
 		pymel.poleVectorConstraint(self.oCtrlSwivel, self.oIkHandle)
 
 		# Connect stretch
 		if self.bStretch is True:
-			# Compute safeDistance (maximum chain length without stretch)
-			fSafeDistance = 0
-			for oInput in self.aInput[1:self.iCtrlIndex+1]:
-				fSafeDistance += oInput.t.get().length()
-
 			attChainDistance = CreateUtilityNode('distanceBetween', inMatrix1=oChainRoot.worldMatrix, inMatrix2=self.oCtrlIK.worldMatrix).distance
-			attStretch = CreateUtilityNode('multiplyDivide', operation=2, input1X=attChainDistance, input2X=fSafeDistance).outputX
+			attStretch = CreateUtilityNode('multiplyDivide', operation=2, input1X=attChainDistance, input2X=fChainLength).outputX
 			attStretch = CreateUtilityNode('condition', operation=2, firstTerm=attStretch, secondTerm=1.0, colorIfTrueR=attStretch, colorIfFalseR=1.0).outColorR # GreaterThan
 			for oInput in self.aInput[1:self.iCtrlIndex+1]:
 				attNewPos = CreateUtilityNode('multiplyDivide', input1=oInput.t.get(), input2X=attStretch, input2Y=attStretch, input2Z=attStretch).output
@@ -232,11 +289,10 @@ class IK(RigPart):
 #
 class CtrlFk(RigCtrl):
 	def __createNode__(self, *args, **kwargs):
-		n = pymel.circle(*args, **kwargs)[0]
+		n = super(CtrlFk, self).__createNode__(*args, **kwargs)
 		oMake = n.getShape().create.inputs()[0]
 		oMake.degree.set(1)
-		oMake.sections.set(4)
-		oMake.normalX.set(1); oMake.normalY.set(0); oMake.normalZ.set(0)
+		oMake.sections.set(6)
 		return n
 
 class FK(RigPart):
@@ -267,43 +323,64 @@ class FK(RigPart):
 #
 # Arm system
 #
+
+class IkFkNetwork(Serializable):
+	def __init__(self):
+		self.SetAttrPublic('ctrlIk')
+		self.SetAttrPublic('ctrlSwivel')
+		self.SetAttrPublic('ctrlsFk')
+		self.SetAttrPublic('state')
+		self.SetAttrPublic('ctrlsOthers')
+		self.SetAttrPublic('jnts')
+	def SnapIKToFK(self):
+		pass
+	def SnapFKToIK(self):
+		pass
+
 class Arm(RigPart):
 	kAttrName_State = 'fkIk' # The name of the IK/FK attribute
 
 	def Build(self, *args, **kwargs):
 		super(Arm, self).Build(*args, **kwargs)
 
-		# Create attribute holder (this is where the IK/FK attribute will be stored)
-		oAttHolder = RigCtrl(name=self.pNameMapAnm.Serialize('atts'))
-		oAttHolder.setParent(self.oGrpAnm)
-		pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
-		attState = oAttHolder.attr(self.kAttrName_State)
-
 		# Create ikChain and fkChain
 		aIkChain = pymel.duplicate(self.aInput, renameChildren=True)
-		for oInput, oIk, in enumerate(aIkChain):
+		for oInput, oIk, in zip(self.aInput, aIkChain):
 			pNameMap = NameMap(oInput, _sType='rig')
 			oIk.rename(pNameMap.Serialize('ik'))
 		aIkChain[0].setParent(self.oParent) # Trick the IK system (temporary solution)
 
 		# Rig ikChain and fkChain
-		self.sysIK = IK(aIkChain); self.sysIK.Build()
-		self.sysFK = FK(self.aInput); self.sysFK.Build(_bConstraint=False)
+		self.sysIK = IK(aIkChain); self.sysIK.Build(**kwargs)
+		self.sysFK = FK(self.aInput); self.sysFK.Build(_bConstraint=False, **kwargs)
 		self.sysIK.oGrpAnm.setParent(self.oGrpAnm)
 		self.sysIK.oGrpRig.setParent(self.oGrpRig)
 		self.sysFK.oGrpAnm.setParent(self.oGrpAnm)
 		#self.sysFK.oGrpRig.setParent(self.oGrpRig)
 
+		# Create attribute holder (this is where the IK/FK attribute will be stored)
+		oAttHolder = RigAttHolder(name=self.pNameMapAnm.Serialize('atts'))
+		oAttHolder.setParent(self.oGrpAnm)
+		pymel.parentConstraint(self.aInput[self.sysIK.iCtrlIndex], oAttHolder)
+		pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
+		attIkWeight = oAttHolder.attr(self.kAttrName_State)
+		attFkWeight = CreateUtilityNode('reverse', inputX=attIkWeight).outputX
+
 		# Blend ikChain with fkChain
 		for oInput, oIk, oFk in zip(self.aInput, aIkChain, self.sysFK.aCtrls):
 			oConstraint = pymel.parentConstraint(oIk, oFk, oInput)
-			attIkWeight, attFkWeight = oConstraint.getWeightAliasList()
-			pymel.connectAttr(attState, attIkWeight)
-			pymel.connectAttr(CreateUtilityNode('reverse', inputX=attIkWeight).outputX, attFkWeight)
+			attCurIkWeight, attCurFkWeight = oConstraint.getWeightAliasList()
+			pymel.connectAttr(attIkWeight, attCurIkWeight)
+			pymel.connectAttr(attFkWeight, attCurFkWeight)
+
+		# Connect visibility
+		pymel.connectAttr(attIkWeight, self.sysIK.oGrpAnm.visibility)
+		pymel.connectAttr(attFkWeight, self.sysFK.oGrpAnm.visibility)
 
 		# Create ikFkNetwork
 		self.CreateIkFkNetwork()
 
+	# TODO: Move functionnality in ikFkNetwork class
 	def CreateIkFkNetwork(self):
 		# Create ikFkNetwork (used for the ikFkSwitch script)
 		oIkFkNetwork = pymel.createNode('network')
@@ -320,7 +397,7 @@ class Arm(RigPart):
 			pymel.connectAttr(oCtrlFk.message, attNetwork)
 		pymel.connectAttr(self.sysIK.oCtrlIK.m_attState, oIkFkNetwork.state)
 		for oJnt, attNetwork in zip(self.aInput, oIkFkNetwork.ctrlsOthers):
-			pymel.connectAttr(oJnt.message, )
+			pymel.connectAttr(oJnt.message, attNetwork)
 
 #
 # Leg system
@@ -331,7 +408,12 @@ class Leg(Arm):
 		super(Leg, self).__init__(*args, **kwargs)
 
 	def Build(self, *args, **kwargs):
-		super(Leg, self).Build(*args, **kwargs)
+		super(Leg, self).Build(_bOrientIkCtrl=False, *args, **kwargs)
+
+		# Hack: Ensure the ctrlIK is looking in the right direction
+		oMake = self.sysIK.oCtrlIK.getShape().create.inputs()[0]
+		oMake.normal.set((0,1,0))
+
 		self.CreateFootRoll()
 
 	def CreateFootRoll(self):
@@ -357,12 +439,14 @@ class Leg(Arm):
 		oPivotT.setParent(oPivotB)
 		oPivotB.setParent(self.oGrpRig)
 		pymel.parentConstraint(self.sysIK.oCtrlIK, oPivotB, maintainOffset=True)
-		pymel.delete([o for o in self.sysIK.oIkHandle.getChildren() if isinstance(o, pymel.nodetypes.Constraint)])
+		pymel.delete([o for o in self.sysIK.oIkHandle.getChildren() if isinstance(o, pymel.nodetypes.Constraint) and not isinstance(o, pymel.nodetypes.PoleVectorConstraint)])
 		pymel.pointConstraint(oPivotM, self.sysIK.oIkHandle, maintainOffset=True)
 		
 		# Create attributes
 		pymel.addAttr(self.sysIK.oCtrlIK, longName='footRoll')
 		pymel.connectAttr(self.sysIK.oCtrlIK.footRoll, oPivotM.rotateX)
+
+		pymel.parentConstraint(self.sysIK.oCtrlIK, self.sysIK.oCtrlSwivel, maintainOffset=True) # TODO: Implement SpaceSwitch
 
 #
 # Pre/Post Rigging
@@ -377,31 +461,53 @@ class CtrlRoot(RigCtrl):
 
 	def __createNode__(self, *args, **kwargs):
 		uNode = pymel.circle(*args, **kwargs)[0]
+		oMake = uNode.getShape().create.inputs()[0]
+		oMake.normal.set((0,1,0))
 
 		# Add a globalScale attribute to replace the sx, sy and sz.
-		pymel.addAttr(uNode, longName='globalScale')
+		pymel.addAttr(uNode, longName='globalScale', k=True, defaultValue=1.0)
 		pymel.connectAttr(uNode.globalScale, uNode.sx)
 		pymel.connectAttr(uNode.globalScale, uNode.sy)
 		pymel.connectAttr(uNode.globalScale, uNode.sz)
-		uNode.s.set(channelBox=False)
+		uNode.s.set(lock=True, channelBox=False)
 
 		return uNode
 
 def PostRigging():
-	aAllCtrls = filter(lambda x: x.getParent() is None, iter(pymel.ls('anm_*')))
-	oGrpCtrls = CtrlRoot(name='anm_root')
+	# Group everything
+	aAllCtrls = filter(lambda x: x.getParent() is None, iter(pymel.ls('anm*')))
+	oGrpAnms = CtrlRoot(name='anm_root')
 	for oCtrl in aAllCtrls: 
-		oCtrl.setParent(oGrpCtrls)
+		oCtrl.setParent(oGrpAnms)
 
-	aAllJnts = filter(lambda x: x.getParent() is None, iter(pymel.ls('jnt_*')))
-	oGrpJnts = RigNode(name='jnt_ALL')
-	for oJnt in aAllJnts:
-		oJnt.setParent(oGrpJnts)
-
-	aAllRigs = filter(lambda x: x.getParent() is None, iter(pymel.ls('rig_*')))
+	aAllRigs = filter(lambda x: x.getParent() is None, iter(pymel.ls('rig*')))
 	oGrpRigs = RigNode(name='rig_ALL')
 	for oRig in aAllRigs:
 		oRig.setParent(oGrpRigs)
-	
-	#oGrpCtrls.setParent(oCtrlRoot)
-	#oGrpJnts.setParent(oCtrlRoot)
+
+	aAllJnts = filter(lambda x: x.getParent() is None, iter(pymel.ls('jnt*')))
+	oGrpJnts = RigNode(name='jnt_ALL')
+	oGrpJnts.setParent(oGrpRigs)
+	for oJnt in aAllJnts:
+		oJnt.setParent(oGrpJnts)
+
+	aAllGeos = filter(lambda x: x.getParent() is None, iter(pymel.ls('geo*')))
+	oGrpGeos = RigNode(name='geo_ALL')
+	for oGeo in aAllGeos:
+		oGeo.setParent(oGrpGeos)
+
+	# Setup displayLayers
+	oLayerAnm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
+	pymel.editDisplayLayerMembers(oLayerAnm, oGrpAnms)
+	oLayerAnm.color.set(17) # Yellow
+
+	oLayerRig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
+	pymel.editDisplayLayerMembers(oLayerRig, oGrpRigs)
+	oLayerRig.color.set(13) # Red
+	oLayerRig.visibility.set(0) # Hidden
+	oLayerRig.displayType.set(2) # Frozen
+
+	oLayerGeo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)
+	pymel.editDisplayLayerMembers(oLayerGeo, oGrpGeos)
+	oLayerGeo.color.set(12) # Green?
+	oLayerGeo.displayType.set(2) # Frozen

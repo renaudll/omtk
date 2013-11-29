@@ -18,20 +18,28 @@ AutoRig.FK(pymel.ls('jnt_head')).Build()
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
 '''
-def CreateUtilityNode(_sClass, *args, **kwargs):
+def ConnectOrSetAttr(_pAttr, _pValue):
 	aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector]
+	if isinstance(_pValue, list) or isinstance(_pValue, tuple):
+		print '{0} is iterable! {0}'.format(_pAttr)
+		for i, pSubValue in enumerate(_pValue):
+			ConnectOrSetAttr(_pAttr[i], pSubValue)
+	else:
+		if isinstance(_pValue, pymel.Attribute):
+			pymel.connectAttr(_pValue, _pAttr, force=True)
+		elif any(kType for kType in aBasicTypes if isinstance(_pValue, kType)):
+			_pAttr.set(_pValue)
+		else:
+			logging.error('[ConnectOrSetAttr] Invalid argument {0} of type {1} and value {2}'.format(_pAttr.name(), type(_pValue), _pValue))
+			raise TypeError
+
+def CreateUtilityNode(_sClass, *args, **kwargs):
 	uNode = pymel.shadingNode(_sClass, asUtility=True)
 	for sAttrName, pAttrValue in kwargs.items():
 		if not uNode.hasAttr(sAttrName):
 			logging.warning('[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass, sAttrName))
 		else:
-			if isinstance(pAttrValue, pymel.Attribute):
-				pymel.connectAttr(pAttrValue, uNode.attr(sAttrName), force=True)
-			elif any(kType for kType in aBasicTypes if isinstance(pAttrValue, kType)):
-				uNode.attr(sAttrName).set(pAttrValue)
-			else:
-				logging.error('[CreateUtilityNode] Invalid argument {0} of type {1} and value {2}'.format(sAttrName, type(pAttrValue), pAttrValue))
-				raise TypeError
+			ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)	
 	return uNode
 
 '''
@@ -118,7 +126,7 @@ class RigCtrl(RigNode):
 		# Create offset node to ensure that the transforma attributes starts at zero
 		if _bOffset is True:
 			self.offset = pymel.createNode('transform', name=(self.node.name() + '_offset'))
-			self.offset.setMatrix(self.node.getMatrix(worldSpace=True), worldSpace=True)
+			self.setMatrix(self.node.getMatrix(worldSpace=True), worldSpace=True)
 			self.node.setParent(self.offset)
 
 	def __createNode__(self, *args, **kwargs):
@@ -132,8 +140,11 @@ class RigCtrl(RigNode):
 		self.node.rename(_sName, *args, **kwargs)
 		self.offset.rename(_sName + '_offset')
 
-	def setParent(self, *args, **kwargs):
-		return self.offset.setParent(*args, **kwargs)
+	# Overwrite common pymel methods
+	def setMatrix(self, *args, **kwargs): self.offset.setMatrix(*args, **kwargs)
+	def setTranslation(self, *args, **kwargs): self.offset.setTranslation(*args, **kwargs)
+	def setRotation(self, *args, **kwargs): self.offset.setRotation(*args, **kwargs)
+	def setParent(self, *args, **kwargs): return self.offset.setParent(*args, **kwargs)
 
 	# TODO: Make sure it work
 	def CreateSpaceSwitch(self, _aSpaces, _aLabels, _bUseDefault=True):
@@ -203,12 +214,13 @@ class CtrlIkSwivel(RigCtrl):
 	def __init__(self, _oLineTarget, *args, **kwargs):
 		super(CtrlIkSwivel, self).__init__(*args, **kwargs)
 
+		# Create line
 		oCtrlShape = self.node.getShape()
 		oLineShape = pymel.createNode('annotationShape')
 		oLineTransform = oLineShape.getParent()
-		oLineShape.setParent(_oLineTarget, relative=True, shape=True)
-		pymel.delete(oLineTransform)
 		pymel.connectAttr(oCtrlShape.worldMatrix, oLineShape.dagObjectMatrix[0], force=True)
+		oLineTransform.setParent(self.offset)
+		pymel.pointConstraint(_oLineTarget, oLineTransform)
 
 	def __createNode__(self, *args, **kwargs):
 		n = super(CtrlIkSwivel, self).__createNode__(*args, **kwargs)
@@ -344,14 +356,14 @@ class Arm(RigPart):
 		super(Arm, self).Build(*args, **kwargs)
 
 		# Create ikChain and fkChain
-		aIkChain = pymel.duplicate(self.aInput, renameChildren=True)
-		for oInput, oIk, in zip(self.aInput, aIkChain):
+		self.aIkChain = pymel.duplicate(self.aInput, renameChildren=True)
+		for oInput, oIk, in zip(self.aInput, self.aIkChain):
 			pNameMap = NameMap(oInput, _sType='rig')
 			oIk.rename(pNameMap.Serialize('ik'))
-		aIkChain[0].setParent(self.oParent) # Trick the IK system (temporary solution)
+		self.aIkChain[0].setParent(self.oParent) # Trick the IK system (temporary solution)
 
 		# Rig ikChain and fkChain
-		self.sysIK = IK(aIkChain); self.sysIK.Build(**kwargs)
+		self.sysIK = IK(self.aIkChain); self.sysIK.Build(**kwargs)
 		self.sysFK = FK(self.aInput); self.sysFK.Build(_bConstraint=False, **kwargs)
 		self.sysIK.oGrpAnm.setParent(self.oGrpAnm)
 		self.sysIK.oGrpRig.setParent(self.oGrpRig)
@@ -367,7 +379,7 @@ class Arm(RigPart):
 		attFkWeight = CreateUtilityNode('reverse', inputX=attIkWeight).outputX
 
 		# Blend ikChain with fkChain
-		for oInput, oIk, oFk in zip(self.aInput, aIkChain, self.sysFK.aCtrls):
+		for oInput, oIk, oFk in zip(self.aInput, self.aIkChain, self.sysFK.aCtrls):
 			oConstraint = pymel.parentConstraint(oIk, oFk, oInput)
 			attCurIkWeight, attCurFkWeight = oConstraint.getWeightAliasList()
 			pymel.connectAttr(attIkWeight, attCurIkWeight)
@@ -416,37 +428,74 @@ class Leg(Arm):
 
 		self.CreateFootRoll()
 
+	# TODO: Support foot that is not aligned to world plane
 	def CreateFootRoll(self):
-		# Create FootRoll
-		tmFoot = self.aInput[self.iCtrlIndex].getMatrix(worldSpace=True)
-		tmToes = self.aInput[self.iCtrlIndex+1].getMatrix(worldSpace=True)
+		oFoot = self.aIkChain[self.iCtrlIndex]
+		oToes = self.aIkChain[self.iCtrlIndex+1]
+		oTips = self.aIkChain[self.iCtrlIndex+2]
 
-		fOffsetF = 10
-		fOffsetB = 2.5
+		# Create FootRoll
+		p3Foot = oFoot.getTranslation(space='world')
+		tmFoot = pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, p3Foot[0], 0, p3Foot[2], 1)
+		p3Toes = oToes.getTranslation(space='world')
+		tmToes = pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, p3Toes[0], p3Toes[1], p3Toes[2], 1)
+
+		fOffsetF = .5
+		fOffsetB = fOffsetF * 0.25
 
 		# Create pivots; TODO: Create side pivots
 		oPivotM = RigNode(name=self.pNameMapRig.Serialize('pivotM'))
 		oPivotM.setMatrix(tmToes)
+		oPivotM.r.set((0,0,0))
 
-		oPivotT = RigNode(name=self.pNameMapRig.Serialize('pivotF'))
-		oPivotT.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, fOffsetF,0,0, 1) * tmFoot)
+		oPivotF = RigNode(name=self.pNameMapRig.Serialize('pivotF'))
+		oPivotF.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,fOffsetF, 1) * tmFoot)
+		oPivotF.r.set((0,0,0))
 
 		oPivotB = RigNode(name=self.pNameMapRig.Serialize('pivotB'))
-		oPivotB.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, -fOffsetB,0,0, 1) * tmFoot)
+		oPivotB.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,-fOffsetB, 1) * tmFoot)
+		oPivotB.r.set((0,0,0))
+
+		oFootRollRoot = RigNode(name=self.pNameMapRig.Serialize('footroll'))
 
 		# Create hyerarchy
-		oPivotM.setParent(oPivotT)
-		oPivotT.setParent(oPivotB)
-		oPivotB.setParent(self.oGrpRig)
-		pymel.parentConstraint(self.sysIK.oCtrlIK, oPivotB, maintainOffset=True)
-		pymel.delete([o for o in self.sysIK.oIkHandle.getChildren() if isinstance(o, pymel.nodetypes.Constraint) and not isinstance(o, pymel.nodetypes.PoleVectorConstraint)])
-		pymel.pointConstraint(oPivotM, self.sysIK.oIkHandle, maintainOffset=True)
+		oPivotM.setParent(oPivotF)
+		oPivotF.setParent(oPivotB)
+		oPivotB.setParent(oFootRollRoot)
+		oFootRollRoot.setParent(self.oGrpRig)
+		pymel.parentConstraint(self.sysIK.oCtrlIK, oFootRollRoot, maintainOffset=True)
 		
 		# Create attributes
-		pymel.addAttr(self.sysIK.oCtrlIK, longName='footRoll')
-		pymel.connectAttr(self.sysIK.oCtrlIK.footRoll, oPivotM.rotateX)
+		oAttHolder = self.sysIK.oCtrlIK
+		pymel.addAttr(oAttHolder, longName='footRoll', k=True)
+		pymel.addAttr(oAttHolder, longName='footRollThreshold', k=True, defaultValue=45)
+		attFootRoll = oAttHolder.attr('footRoll')
+		attFootRollThreshold = oAttHolder.attr('footRollThreshold')
+
+		attRollF = CreateUtilityNode('condition', operation=2, 
+			firstTerm=attFootRoll, secondTerm=attFootRollThreshold, colorIfFalseR=0,
+			colorIfTrueR=(CreateUtilityNode('plusMinusAverage', operation=2, input1D=[attFootRoll, attFootRollThreshold]).output1D)).outColorR # Substract
+		attRollM = CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll, secondTerm=attFootRollThreshold, colorIfTrueR=attFootRollThreshold, colorIfFalseR=attFootRoll).outColorR # Less
+		attRollB = CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll, secondTerm=0.0, colorIfTrueR=0, colorIfFalseR=attFootRoll).outColorR # Greater
+		pymel.connectAttr(attRollM, oPivotM.rotateX)
+		pymel.connectAttr(attRollF, oPivotF.rotateX)
+		pymel.connectAttr(attRollB, oPivotB.rotateX)
 
 		pymel.parentConstraint(self.sysIK.oCtrlIK, self.sysIK.oCtrlSwivel, maintainOffset=True) # TODO: Implement SpaceSwitch
+
+		# Create ikHandles
+		oIkHandleFoot, oIkEffectorFoot = pymel.ikHandle(startJoint=oFoot, endEffector=oToes, solver='ikSCsolver')
+		oIkHandleFoot.rename(self.pNameMapRig.Serialize('ikHandle', 'foot'))
+		oIkHandleFoot.setParent(oFootRollRoot)
+		oIkHandleToes, oIkEffectorToes = pymel.ikHandle(startJoint=oToes, endEffector=oTips, solver='ikSCsolver')
+		oIkHandleToes.rename(self.pNameMapRig.Serialize('ikHandle', 'ties'))
+		oIkHandleToes.setParent(oFootRollRoot)
+
+		# Connect ikHandles
+		pymel.delete([o for o in self.sysIK.oIkHandle.getChildren() if isinstance(o, pymel.nodetypes.Constraint) and not isinstance(o, pymel.nodetypes.PoleVectorConstraint)])
+		pymel.parentConstraint(oPivotM, self.sysIK.oIkHandle, maintainOffset=True)
+		pymel.parentConstraint(oPivotF, oIkHandleFoot, maintainOffset=True)
+		pymel.parentConstraint(oPivotB, oIkHandleToes, maintainOffset=True)
 
 #
 # Pre/Post Rigging

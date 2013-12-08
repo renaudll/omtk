@@ -1,6 +1,28 @@
 import pymel.core as pymel
 import logging
 
+def CreateSerializableClass():
+	aSerializableClasses = [cls for cls in object.__subclasses__() if cls.__name__ == 'Serializable']
+	if len(aSerializableClasses) > 0:
+		return aSerializableClasses[-1]
+	return None
+
+def CreateClassInstanceByName(_name, _baseclass=None):
+	if _baseclass is None: 
+		_baseclass = CreateSerializableClass()
+
+	if _baseclass is None:
+		logging.error("[CreateClassInstanceByName] Can't find Serializable class"); return None
+
+	for cls in _baseclass.__subclasses__():
+		if cls.__name__ == _name:
+			return cls()
+		else:
+			t = CreateClassInstanceByName(cls, _name)
+			if t is not None:
+				return t()
+	return None
+
 '''
 This class handle the serialization of it's subclasses in multiples formats (ex: json, xml, maya nodes, etc)
 '''
@@ -12,11 +34,29 @@ class Serializable(object):
 	def SetAttrPrivate(self, _sAttrName, _pAttrValue=None):
 		setattr(self, _sAttrName, _pAttrValue)
 
-	def Serialize(self):
-		pass
+	# Serialize self to a dictionary of basic values
+	def __serialize__(self, _recursive=True):
+		dicReturn = {}
+		dicReturn[self.gClassToken] = self.__class__.__name__
+		for key, val in self.__dict__.items():
+			if hasattr(val, '__serialize__'): # Monkey patching
+				subval = val.__serialize__() # Recursive call
+				dicReturn[key] = subval
+			elif key != self.gClassToken:
+				dicReturn[key] = val
+		return dicReturn
 
-	def Deserialize(self):
-		pass
+	# Serialize a dictionary of basic values to a dictionary
+	def __deserialize__(self, _dic, _recursive=True):
+		for key, val in _dic.items():
+			if isinstance(val, dict) and self.gClassToken in val:
+				pInstance = CreateClassInstanceByName(_dic[self.gClassToken])
+				if pInstance is not None:
+					pInstance = pInstance.__deserialize__(val)
+					self.__dict__[key] = pInstance
+			else: 
+				self.__dict__[key] =  val
+		return self
 
 	def __createMayaNetwork__(self):
 		return pymel.createNode('network', name=self.__class__.__name__)
@@ -54,17 +94,22 @@ class Serializable(object):
 			if attName in self.__dict__(self):
 		'''
 
+	'''
 	# Return a filtered version of self.__dict__ that contain only basic values
 	def __repr__(self, _recursive=True):
-		dicReturn = {}
-		for key, val in self.__dict__.items():
-			if isinstance(val, Serializable):
-				subval = val.__repr__() # Recursive call
-				subval[self.gClassToken, self.__class__.__name__]
-				dicReturn[key] = subval
-			else:
-				dicReturn[key] = val
-		return dicReturn
+		return self.__serialize(_recursive=_recursive)
 
 	def __str__(self):
 		return '<{0} serializable object>'.format(self.__class__.__name__)
+	'''
+
+'''
+TODO: Find a solution for seamless pymel integration
+def PymelSerialize(self, *args, **kwargs):
+
+def PymelDeserialize(self, _pData, *args, **kwargs):
+	return pymel.PyNode(_pData)
+
+pymel.PyNode.__serialize__ = PymelSerialize
+pymel.PyNode.__deserialize__ = PymelDeserialize
+'''

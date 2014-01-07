@@ -12,7 +12,7 @@ class Leg(Arm):
 		super(Leg, self).Build(_bOrientIkCtrl=False, *args, **kwargs)
 
 		# Hack: Ensure the ctrlIK is looking in the right direction
-		oMake = self.sysIK.oCtrlIK.getShape().create.inputs()[0]
+		oMake = self.sysIK._oCtrlIK.getShape().create.inputs()[0]
 		oMake.normal.set((0,1,0))
 
 		self.CreateFootRoll()
@@ -52,10 +52,10 @@ class Leg(Arm):
 		oPivotF.setParent(oPivotB)
 		oPivotB.setParent(oFootRollRoot)
 		oFootRollRoot.setParent(self.oGrpRig)
-		pymel.parentConstraint(self.sysIK.oCtrlIK, oFootRollRoot, maintainOffset=True)
+		pymel.parentConstraint(self.sysIK._oCtrlIK, oFootRollRoot, maintainOffset=True)
 		
 		# Create attributes
-		oAttHolder = self.sysIK.oCtrlIK
+		oAttHolder = self.sysIK._oCtrlIK
 		pymel.addAttr(oAttHolder, longName='footRoll', k=True)
 		pymel.addAttr(oAttHolder, longName='footRollThreshold', k=True, defaultValue=45)
 		attFootRoll = oAttHolder.attr('footRoll')
@@ -70,7 +70,7 @@ class Leg(Arm):
 		pymel.connectAttr(attRollF, oPivotF.rotateX)
 		pymel.connectAttr(attRollB, oPivotB.rotateX)
 
-		pymel.parentConstraint(self.sysIK.oCtrlIK, self.sysIK.oCtrlSwivel, maintainOffset=True) # TODO: Implement SpaceSwitch
+		pymel.parentConstraint(self.sysIK._oCtrlIK, self.sysIK._oCtrlSwivel, maintainOffset=True) # TODO: Implement SpaceSwitch
 
 		# Create ikHandles
 		oIkHandleFoot, oIkEffectorFoot = pymel.ikHandle(startJoint=oFoot, endEffector=oToes, solver='ikSCsolver')
@@ -81,7 +81,7 @@ class Leg(Arm):
 		oIkHandleToes.setParent(oFootRollRoot)
 
 		# Connect ikHandles
-		pymel.delete([o for o in self.sysIK.oIkHandle.getChildren() if isinstance(o, pymel.nodetypes.Constraint) and not isinstance(o, pymel.nodetypes.PoleVectorConstraint)])
-		pymel.parentConstraint(oPivotM, self.sysIK.oIkHandle, maintainOffset=True)
+		pymel.delete([o for o in self.sysIK._oIkHandle.getChildren() if isinstance(o, pymel.nodetypes.Constraint) and not isinstance(o, pymel.nodetypes.PoleVectorConstraint)])
+		pymel.parentConstraint(oPivotM, self.sysIK._oIkHandle, maintainOffset=True)
 		pymel.parentConstraint(oPivotF, oIkHandleFoot, maintainOffset=True)
 		pymel.parentConstraint(oPivotB, oIkHandleToes, maintainOffset=True)

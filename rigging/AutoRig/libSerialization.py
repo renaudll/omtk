@@ -24,7 +24,7 @@ def _createClassInstance(_clsName):
         return None
 
     try:
-        return getattr(sys.modules[cls.__module__], cls.__name__)
+        return getattr(sys.modules[cls.__module__], cls.__name__)()
     except Exception, e:
         logging.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
         return None
@@ -50,8 +50,6 @@ def _isDataDagNode(_data):
 #
 
 def _getAttArgs(_val):
-    if _isDataComplex(_val):
-        return {'at':'message'}
     if isinstance(_val, basestring):
         return {'dt':'string'}
     kType = type(_val)
@@ -69,7 +67,9 @@ def _getAttArgs(_val):
         return {'dt':'matrix'}
     if issubclass(kType, pymel.Attribute):
         return _getAttArgs(_val.get())
-    if hasattr(_val, '__melobject__'): # TODO: Really usefull
+    if hasattr(_val, '__melobject__'): # TODO: Really usefull?
+        return {'at':'message'}
+    if _isDataComplex(_val):
         return {'at':'message'}
     return None
 
@@ -203,10 +203,10 @@ def exportToNetwork(_data, _network=None, **kwargs):
     if not isinstance(dicData, dict):
         logging.error("[createNetwork] Invalid data, excepted class instance, got {0}".format(type(_data))); return False
 
-    network = pymel.createNode('transform', name=_data.__class__.__name__)
+    network = pymel.createNode('network', name=_data.__class__.__name__)
 
     for key, val in dicData.items():
-        if key != '_class' and key[0] != '_': # Attributes starting with '_' are protected or private
+        if key == '_class' or key[0] != '_': # Attributes starting with '_' are protected or private
             if val is not None:
                 _addNetworkAttr(network, key, val)
 

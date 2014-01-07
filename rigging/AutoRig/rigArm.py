@@ -27,13 +27,24 @@ class IkFkNetwork(object):
         self.ctrlsFk = []
         self.attState = None
         self.jnts = []
+        self.ctrlIndex = 2
         self.__dict__.update(kwargs)
 
     def snapIkToFk(self):
-        raise NotImplementedError
+        self.ctrlIk.setMatrix(self.jnts[self.ctrlIndex].getMatrix(worldSpace=True), worldSpace=True)
+        self.ctrlSwivel.setMatrix(self.jnts[self.ctrlIndex-1].getMatrix(worldSpace=True), worldSpace=True)
 
     def snapFkToIk(self):
-        raise NotImplementedError
+        for ctrl, jnt in zip(self.ctrlsFk, self.jnts):
+            ctrl.setMatrix(jnt.getMatrix(worldSpace=True), worldSpace=True)
+
+    def switchToIk(self):
+        self.snapIkToFk()
+        self.attState.set(1.0)
+
+    def switchToFk(self):
+        self.snapFkToIk()
+        self.attState.set(0.0)
 
 class Arm(RigPart):
     kAttrName_State = 'fkIk' # The name of the IK/FK attribute
@@ -76,11 +87,11 @@ class Arm(RigPart):
         pymel.connectAttr(attFkWeight, self.sysFK.oGrpAnm.visibility)
 
         # Create ikFkNetwork
-        ikFkNetwork = IkFkNetwork(
-            ctrlIk=self.sysIK.oCtrlIK,
-            ctrlSwivel=self.sysIK.oCtrlSwivel,
+        self.network = ikFkNetwork = IkFkNetwork(
+            ctrlIk=self.sysIK._oCtrlIK,
+            ctrlSwivel=self.sysIK._oCtrlSwivel,
             ctrlsFk=self.sysFK.aCtrls,
-            attState=self.sysIK.oCtrlIK.m_attState,
+            attState=attIkWeight,
             jnts=self.aInput
         )
-        network = libSerialization.exportToNetwork(ikFkNetwork)
+        #network = libSerialization.exportToNetwork(ikFkNetwork)

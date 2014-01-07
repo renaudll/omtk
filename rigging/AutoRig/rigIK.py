@@ -63,35 +63,35 @@ class IK(RigPart):
         oChainRoot.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
         oChainS.setParent(oChainRoot)
 
-        self.oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
-        self.oIkHandle.rename(self._pNameMapRig.Serialize('ikHandle'))
-        self.oIkHandle.setParent(oChainRoot)
+        self._oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
+        self._oIkHandle.rename(self._pNameMapRig.Serialize('ikHandle'))
+        self._oIkHandle.setParent(oChainRoot)
         oIkEffector.rename(self._pNameMapRig.Serialize('ikEffector'))
 
         # Create ctrls
-        self.oCtrlIK = CtrlIk()
-        self.oCtrlIK.setParent(self.oGrpAnm)
-        self.oCtrlIK.rename(self._pNameMapAnm.Serialize('ik'))
-        self.oCtrlIK.offset.setTranslation(oChainE.getTranslation(space='world'), space='world')
+        self._oCtrlIK = CtrlIk()
+        self._oCtrlIK.setParent(self.oGrpAnm)
+        self._oCtrlIK.rename(self._pNameMapAnm.Serialize('ik'))
+        self._oCtrlIK.offset.setTranslation(oChainE.getTranslation(space='world'), space='world')
         if _bOrientIkCtrl is True:
             print _bOrientIkCtrl
-            self.oCtrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
+            self._oCtrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
 
-        self.oCtrlSwivel = CtrlIkSwivel(self.aInput[1])
-        self.oCtrlSwivel.setParent(self.oGrpAnm)
-        self.oCtrlSwivel.rename(self._pNameMapAnm.Serialize('ikSwivel'))
-        self.oCtrlSwivel.offset.setTranslation(p3SwivelPos, space='world')
-        self.oCtrlSwivel.offset.setRotation(self.aInput[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
+        self._oCtrlSwivel = CtrlIkSwivel(self.aInput[1])
+        self._oCtrlSwivel.setParent(self.oGrpAnm)
+        self._oCtrlSwivel.rename(self._pNameMapAnm.Serialize('ikSwivel'))
+        self._oCtrlSwivel.offset.setTranslation(p3SwivelPos, space='world')
+        self._oCtrlSwivel.offset.setRotation(self.aInput[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
 
         # Connect rig -> anm
-        pymel.pointConstraint(self.oCtrlIK, self.oIkHandle)
-        pymel.orientConstraint(self.oCtrlIK, oChainE, maintainOffset=True)
-        pymel.poleVectorConstraint(self.oCtrlSwivel, self.oIkHandle)
+        pymel.pointConstraint(self._oCtrlIK, self._oIkHandle)
+        pymel.orientConstraint(self._oCtrlIK, oChainE, maintainOffset=True)
+        pymel.poleVectorConstraint(self._oCtrlSwivel, self._oIkHandle)
 
         # Connect stretch
         if self.bStretch is True:
             attChainDistance = Utils.CreateUtilityNode('distanceBetween', inMatrix1=oChainRoot.worldMatrix,
-                                                       inMatrix2=self.oCtrlIK.worldMatrix).distance
+                                                       inMatrix2=self._oCtrlIK.worldMatrix).distance
             attStretch = Utils.CreateUtilityNode('multiplyDivide', operation=2, input1X=attChainDistance,
                                                  input2X=fChainLength).outputX
             attStretch = Utils.CreateUtilityNode('condition', operation=2, firstTerm=attStretch, secondTerm=1.0,

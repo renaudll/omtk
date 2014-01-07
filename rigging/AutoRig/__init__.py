@@ -1,4 +1,3 @@
-import classSerializable; Serializable = classSerializable.Serializable
 import classNameMap; NameMap = classNameMap.NameMap
 
 import classRigNode; RigNode = classRigNode.RigNode
@@ -6,27 +5,41 @@ import classRigCtrl; RigCtrl = classRigCtrl.RigCtrl
 import classRigPart; RigPart = classRigPart.RigPart
 import classRigRoot; RigRoot = classRigRoot.RigRoot
 
+#import classPoint
+#HelperPoint = classPoint.HelperPoint
+#HelperDeformer = classPoint.HelperDeformer
+
 import rigFK; FK = rigFK.FK
 import rigIK; IK = rigIK.IK
 import rigArm; Arm = rigArm.Arm
 import rigLeg; Leg = rigLeg.Leg
 
+import libSerialization
+import libUtils
+
 def _reload():
-	#reload(classSerializable) # TODO: Fix reload bug
-	reload(classNameMap)
+    #reload(classSerializable) # TODO: Fix reload bug
+    reload(classNameMap)
 
-	reload(classRigNode)
-	reload(classRigCtrl)
-	reload(classRigPart)
-	reload(classRigRoot)
+    reload(classRigNode); RigNode = classRigNode.RigNode
+    reload(classRigCtrl); RigCtrl = classRigCtrl.RigCtrl
+    reload(classRigPart); RigPart = classRigPart.RigPart
+    reload(classRigRoot); RigRoot = classRigRoot.RigRoot
 
-	reload(rigFK)
-	reload(rigIK)
-	reload(rigArm)
-	reload(rigLeg)
+    #reload(classPoint);
+    #HelperPoint = classPoint.HelperPoint
+    #HelperDeformer = classPoint.HelperDeformer
+
+    reload(rigFK); FK = rigFK.FK
+    reload(rigIK); IK = rigIK.IK
+    reload(rigArm); Arm = rigArm.Arm
+    reload(rigLeg); Leg = rigLeg.Leg
+
+    reload(libSerialization)
+    reload(libUtils)
 
 def Create(*args, **kwargs):
-	return RigRoot(*args, **kwargs)
+    return RigRoot(*args, **kwargs)
 
 '''
 Usage example:
@@ -42,3 +55,5 @@ rig.AddPart(AutoRig.FK(pymel.ls('jnt_neck')))
 rig.AddPart(AutoRig.FK(pymel.ls('jnt_head')))
 rig.Build()
 '''
+
+

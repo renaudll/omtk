@@ -19,9 +19,9 @@ class Leg(Arm):
 
 	# TODO: Support foot that is not aligned to world plane
 	def CreateFootRoll(self):
-		oFoot = self.aIkChain[self.iCtrlIndex]
-		oToes = self.aIkChain[self.iCtrlIndex+1]
-		oTips = self.aIkChain[self.iCtrlIndex+2]
+		oFoot = self._aIkChain[self.iCtrlIndex]
+		oToes = self._aIkChain[self.iCtrlIndex+1]
+		oTips = self._aIkChain[self.iCtrlIndex+2]
 
 		# Create FootRoll
 		p3Foot = oFoot.getTranslation(space='world')
@@ -33,19 +33,19 @@ class Leg(Arm):
 		fOffsetB = fOffsetF * 0.25
 
 		# Create pivots; TODO: Create side pivots
-		oPivotM = RigNode(name=self.pNameMapRig.Serialize('pivotM'))
+		oPivotM = RigNode(name=self._pNameMapRig.Serialize('pivotM'))
 		oPivotM.setMatrix(tmToes)
 		oPivotM.r.set((0,0,0))
 
-		oPivotF = RigNode(name=self.pNameMapRig.Serialize('pivotF'))
+		oPivotF = RigNode(name=self._pNameMapRig.Serialize('pivotF'))
 		oPivotF.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,fOffsetF, 1) * tmFoot)
 		oPivotF.r.set((0,0,0))
 
-		oPivotB = RigNode(name=self.pNameMapRig.Serialize('pivotB'))
+		oPivotB = RigNode(name=self._pNameMapRig.Serialize('pivotB'))
 		oPivotB.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,-fOffsetB, 1) * tmFoot)
 		oPivotB.r.set((0,0,0))
 
-		oFootRollRoot = RigNode(name=self.pNameMapRig.Serialize('footroll'))
+		oFootRollRoot = RigNode(name=self._pNameMapRig.Serialize('footroll'))
 
 		# Create hyerarchy
 		oPivotM.setParent(oPivotF)
@@ -74,10 +74,10 @@ class Leg(Arm):
 
 		# Create ikHandles
 		oIkHandleFoot, oIkEffectorFoot = pymel.ikHandle(startJoint=oFoot, endEffector=oToes, solver='ikSCsolver')
-		oIkHandleFoot.rename(self.pNameMapRig.Serialize('ikHandle', 'foot'))
+		oIkHandleFoot.rename(self._pNameMapRig.Serialize('ikHandle', 'foot'))
 		oIkHandleFoot.setParent(oFootRollRoot)
 		oIkHandleToes, oIkEffectorToes = pymel.ikHandle(startJoint=oToes, endEffector=oTips, solver='ikSCsolver')
-		oIkHandleToes.rename(self.pNameMapRig.Serialize('ikHandle', 'ties'))
+		oIkHandleToes.rename(self._pNameMapRig.Serialize('ikHandle', 'ties'))
 		oIkHandleToes.setParent(oFootRollRoot)
 
 		# Connect ikHandles

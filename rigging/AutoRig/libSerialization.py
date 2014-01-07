@@ -1,0 +1,235 @@
+import pymel.core as pymel
+import logging
+import sys
+
+def _getClassDef(_clsName, _baseclass=object):
+    try:
+        for cls in _baseclass.__subclasses__():
+            if cls.__name__ == _clsName:
+                return cls
+            else:
+                t = _getClassDef(_clsName, _baseclass=cls)
+                if t is not None:
+                    return t
+    except Exception, e:
+        logging.error(str(e))
+    return None
+
+
+def _createClassInstance(_clsName):
+    cls = _getClassDef(_clsName)
+
+    if cls is None:
+        logging.warning("Can't find class definition '{0}'".format(_clsName));
+        return None
+
+    try:
+        return getattr(sys.modules[cls.__module__], cls.__name__)
+    except Exception, e:
+        logging.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
+        return None
+
+# We consider a data complex if it's a class instance.
+# Note: We check for __dict__ because isinstance(_data, object) return True for basic types.
+def _isDataComplex(_data):
+    return hasattr(_data, '__dict__')
+
+def _isDataBasic(_data):
+    aTypes = [int, float, basestring, bool, pymel.datatypes.Matrix]
+    return any(filter(lambda x: isinstance(_data, x), (iter(aTypes))))
+
+def _isDataList(_data):
+    aTypes = [list, tuple]
+    return any(filter(lambda x: isinstance(_data, x), (iter(aTypes))))
+
+def _isDataDagNode(_data):
+    return hasattr(_data, '__melobject__')
+
+#
+# Maya Metanetwork Serialization
+#
+
+def _getAttArgs(_val):
+    if _isDataComplex(_val):
+        return {'at':'message'}
+    if isinstance(_val, basestring):
+        return {'dt':'string'}
+    kType = type(_val)
+    if issubclass(kType, bool):
+        return {'at':'bool'}
+    if issubclass(kType, int):
+        return {'at':'long'}
+    if issubclass(kType, float):
+        return {'at':'double'}
+    if isinstance(kType, dict):
+        return {'at':'message'}
+    if isinstance(kType, list) or isinstance(type, tuple):
+        return {'at':'message'}
+    if isinstance(kType, pymel.datatypes.Matrix):
+        return {'dt':'matrix'}
+    if issubclass(kType, pymel.Attribute):
+        return _getAttArgs(_val.get())
+    if hasattr(_val, '__melobject__'): # TODO: Really usefull
+        return {'at':'message'}
+    return None
+
+def _addNetworkAttr(_oNode, _sName, _pValue):
+    logging.debug('AddNetworkAttribute {0} {1}'.format(_sName, _pValue))
+
+    # Skip empty list
+    bIsMulti = _isDataList(_pValue)
+    if bIsMulti and len(_pValue) == 0:
+        return
+
+    # Get attribute arguments
+    _sType = _getAttArgs(_pValue) if not bIsMulti else _getAttArgs(_pValue[0])
+    if _sType is None:
+        logging.error("Can't add attribute {0} '{1}', unreconised type for value {2} {3}".format(_oNode, _sName, _pValue, str(type(_pValue))))
+        return
+
+    # Add attribute
+    pymel.addAttr(_oNode, longName=_sName, niceName=_sName, multi=bIsMulti, keyable=True, **_sType)
+    pAttribute = _oNode.attr(_sName)
+    _setNetworkAttribute(pAttribute, _pValue)
+
+    return pAttribute
+
+def _setNetworkAttribute(_att, _val):
+    # Recursivity
+    if _isDataList(_val):
+        for i in range(len(_val)):
+            if _val[i] is not None:
+                _setNetworkAttribute(_att[i], _val[i])
+
+    # Node
+    elif _isDataDagNode(_val):
+        # pymel.Attribute
+        if isinstance(_val, pymel.Attribute):
+            pymel.connectAttr(_val, _att)
+        # pymel.PyNode
+        elif hasattr(_val, 'exists'):
+            if _val.exists():
+                pymel.connectAttr(_val.message, _att)
+        # other pymel types, matrix and shitz
+        else:
+            _att.set(_val)
+
+    # New Network
+    elif _isDataComplex(_val):
+        uSubNode = exportToNetwork(_val)
+        pymel.connectAttr(uSubNode.message, _att)
+
+    # Basic value
+    elif _isDataBasic(_val):
+        _att.set(_val)
+
+    else:
+        logging.exception('Unreconised data {0}'.format(_val))
+        raise AttributeError
+
+def _getNetworkAttr(_att):
+    # Recursive
+    if _att.isMulti():
+        return [_getNetworkAttr(_att.elementByPhysicalIndex(i)) for i in range(_att.numElements())]
+
+    if _att.type() == 'message':
+        if not _att.isConnected():
+            logging.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(_att))
+            return None
+        oInput = _att.inputs()[0]
+        # Network
+        if hasattr(oInput, '_class'):
+            return importFromNetwork(oInput)
+        # Node
+        else:
+            return oInput
+
+    # pymel.Attribute
+    if _att.isConnected():
+        return _att.inputs(plugs=True)[0]
+
+    # Basic type
+    return _att.get()
+#
+# Pubic methods
+#
+
+def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
+    # object instance
+    if _isDataComplex(_data):
+        dicReturn = {}
+        dicReturn['_class'] = _data.__class__.__name__
+        for key, val in _data.__dict__.items():
+            if not _bSkipNone or val is not None:
+                if _isDataComplex(val) and _bRecursive is True:
+                    val = exportToBasicData(val, _bSkipNone=_bSkipNone, _bRecursive=_bRecursive, **args)
+                if not _bSkipNone or val is not None:
+                    dicReturn[key] = val
+        return dicReturn
+
+    # Handle other types of data
+    if _isDataBasic(_data):
+        return _data
+
+    # Handle iterable
+    if _isDataList(_data):
+        return [exportToBasicData(v, _bSkipNone=_bSkipNone, **args) for v in _data if not _bSkipNone or v is not None]
+
+    logging.warning("[exportToBasicData] Unsupported type {0} for {1}".format(type(_data), _data))
+    return None
+
+def importToBasicData(_data, **args):
+    if isinstance(_data, dict) and '_class' in _data:
+        # Handle Serializable object
+        instance = _createClassInstance(_data['_class'])
+        if not isinstance(instance, object):
+            # TODO: Log error
+            return None
+        for key, val in _data.items():
+            if key != '_class':
+                instance.__dict__[key] = importToBasicData(val, **args)
+        return instance
+    # Handle array
+    elif _isDataList(_data):
+        return [importToBasicData(v, **args) for v in _data]
+    # Handle other types of data
+    else:
+        return _data
+
+def exportToNetwork(_data, _network=None, **kwargs):
+    logging.debug('CreateNetwork {0}'.format(_data))
+    # Convert _pData to basic data dictionary (recursive for now)
+    dicData = exportToBasicData(_data, _bRecursive=False, **kwargs)
+    if not isinstance(dicData, dict):
+        logging.error("[createNetwork] Invalid data, excepted class instance, got {0}".format(type(_data))); return False
+
+    network = pymel.createNode('transform', name=_data.__class__.__name__)
+
+    for key, val in dicData.items():
+        if key != '_class' and key[0] != '_': # Attributes starting with '_' are protected or private
+            if val is not None:
+                _addNetworkAttr(network, key, val)
+
+    return network
+
+def importFromNetwork(_network):
+    if not _network.hasAttr('_class'):
+        logging.error('[importFromNetwork] Network dont have mandatory attribute _class')
+        raise AttributeError
+
+    cls = _network.getAttr('_class')
+    obj = _createClassInstance(cls)
+    if obj is None:
+        return None
+
+    for key in pymel.listAttr(_network, userDefined=True):
+        logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
+        val = _getNetworkAttr(_network.attr(key))
+        setattr(obj, key, val)
+        #obj.__dict__[key] = val
+
+    return obj
+
+def getNetworkByClass(_cls):
+    return (oNetwork for oNetwork in pymel.ls(type='network') if hasattr(oNetwork, '_class') and oNetwork._class.get() == _cls)
+

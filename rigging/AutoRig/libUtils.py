@@ -27,3 +27,29 @@ def CreateUtilityNode(_sClass, *args, **kwargs):
 		else:
 			ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)	
 	return uNode
+
+#
+# CtrlShapes Backup
+#
+def BackupCtrlShape(_oCtrl):
+    aShapes = filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), _oCtrl.getShapes())
+    oSnapshot = pymel.duplicate(_oCtrl, parentOnly=True, returnRootsOnly=True)[0]
+    for oShape in aShapes:
+        oShape.setParent(oSnapshot, s=True, r=True)
+    oSnapshot.setParent(world=True)
+    oSnapshot.rename('_{0}'.format(_oCtrl.name()))
+    return oSnapshot
+
+def BackupCtrlShapes():
+    aCtrls = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
+    return [BackupCtrlShape(oCtrl) for oCtrl in aCtrls]
+
+def RestoreCtrlShapes():
+    aSources = [o.getParent() for o in pymel.ls('_anm_*', type='nurbsCurve')]
+    aTargets = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
+
+    for oSource, oTarget in zip(aSources, aTargets):
+    	pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), oTarget.getShapes()))
+    	for oShape in oSource.getShapes():
+    		oShape.setParent(oTarget, r=True, s=True)
+    pymel.delete(aSources)

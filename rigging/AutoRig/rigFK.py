@@ -34,5 +34,5 @@ class FK(RigPart):
 				pymel.connectAttr(oCtrl.s, oInput.s)
 
 		# Connect to parent
-		if self.oParent is not None:
-			pymel.parentConstraint(self.oParent, self.oGrpAnm, maintainOffset=True)
+		if self._oParent is not None:
+			pymel.parentConstraint(self._oParent, self.oGrpAnm, maintainOffset=True)

@@ -1,18 +1,18 @@
 import pymel.core as pymel
 from classRigNode import RigNode
 from rigArm import Arm
-import libUtils as Utils
-
+from omtk.libs import libRigging
 
 class Leg(Arm):
 	def __init__(self, *args, **kwargs):
 		super(Leg, self).__init__(*args, **kwargs)
+		#Arm.__init__(self, *args, **kwargs)
 
 	def Build(self, *args, **kwargs):
 		super(Leg, self).Build(_bOrientIkCtrl=False, *args, **kwargs)
 
 		# Hack: Ensure the ctrlIK is looking in the right direction
-		oMake = self.sysIK._oCtrlIK.getShape().create.inputs()[0]
+		oMake = self.sysIK.ctrlIK.getShape().create.inputs()[0]
 		oMake.normal.set((0,1,0))
 
 		self.CreateFootRoll()
@@ -52,25 +52,25 @@ class Leg(Arm):
 		oPivotF.setParent(oPivotB)
 		oPivotB.setParent(oFootRollRoot)
 		oFootRollRoot.setParent(self.oGrpRig)
-		pymel.parentConstraint(self.sysIK._oCtrlIK, oFootRollRoot, maintainOffset=True)
+		pymel.parentConstraint(self.sysIK.ctrlIK, oFootRollRoot, maintainOffset=True)
 		
 		# Create attributes
-		oAttHolder = self.sysIK._oCtrlIK
+		oAttHolder = self.sysIK.ctrlIK
 		pymel.addAttr(oAttHolder, longName='footRoll', k=True)
 		pymel.addAttr(oAttHolder, longName='footRollThreshold', k=True, defaultValue=45)
 		attFootRoll = oAttHolder.attr('footRoll')
 		attFootRollThreshold = oAttHolder.attr('footRollThreshold')
 
-		attRollF = Utils.CreateUtilityNode('condition', operation=2, 
+		attRollF = libRigging.CreateUtilityNode('condition', operation=2, 
 			firstTerm=attFootRoll, secondTerm=attFootRollThreshold, colorIfFalseR=0,
-			colorIfTrueR=(Utils.CreateUtilityNode('plusMinusAverage', operation=2, input1D=[attFootRoll, attFootRollThreshold]).output1D)).outColorR # Substract
-		attRollM = Utils.CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll, secondTerm=attFootRollThreshold, colorIfTrueR=attFootRollThreshold, colorIfFalseR=attFootRoll).outColorR # Less
-		attRollB = Utils.CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll, secondTerm=0.0, colorIfTrueR=0, colorIfFalseR=attFootRoll).outColorR # Greater
+			colorIfTrueR=(libRigging.CreateUtilityNode('plusMinusAverage', operation=2, input1D=[attFootRoll, attFootRollThreshold]).output1D)).outColorR # Substract
+		attRollM = libRigging.CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll, secondTerm=attFootRollThreshold, colorIfTrueR=attFootRollThreshold, colorIfFalseR=attFootRoll).outColorR # Less
+		attRollB = libRigging.CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll, secondTerm=0.0, colorIfTrueR=0, colorIfFalseR=attFootRoll).outColorR # Greater
 		pymel.connectAttr(attRollM, oPivotM.rotateX)
 		pymel.connectAttr(attRollF, oPivotF.rotateX)
 		pymel.connectAttr(attRollB, oPivotB.rotateX)
 
-		pymel.parentConstraint(self.sysIK._oCtrlIK, self.sysIK._oCtrlSwivel, maintainOffset=True) # TODO: Implement SpaceSwitch
+		pymel.parentConstraint(self.sysIK.ctrlIK, self.sysIK.ctrlSwivel, maintainOffset=True) # TODO: Implement SpaceSwitch
 
 		# Create ikHandles
 		oIkHandleFoot, oIkEffectorFoot = pymel.ikHandle(startJoint=oFoot, endEffector=oToes, solver='ikSCsolver')

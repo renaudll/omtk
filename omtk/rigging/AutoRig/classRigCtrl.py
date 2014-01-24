@@ -1,6 +1,6 @@
 import pymel.core as pymel
 from classRigNode import RigNode
-import libUtils as Utils
+from omtk.libs import libRigging
 
 class RigCtrl(RigNode):
 	def __init__(self, _bOffset=True, *args, **kwargs):
@@ -37,5 +37,5 @@ class RigCtrl(RigNode):
 		aWeightAtts = oConstraint.getWeightAliasList()
 		for i, attWeight in enumerate(aWeightAtts):
 			iIndexToMatch = i if not _bUseDefault else i + 1
-			attSpaceIsActive = Utils.CreateUtilityNode('condition', firstTerm=attSpace, secondTerm=iIndexToMatch, colorIfTrueR=1, colorIfFalseR=0).outColorR #Equal
+			attSpaceIsActive = libRigging.CreateUtilityNode('condition', firstTerm=attSpace, secondTerm=iIndexToMatch, colorIfTrueR=1, colorIfFalseR=0).outColorR #Equal
 			pymel.connectAttr(attSpaceIsActive, attWeight)

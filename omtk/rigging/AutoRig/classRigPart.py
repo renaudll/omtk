@@ -1,6 +1,5 @@
 import pymel.core as pymel
 import logging
-import libSerialization
 from classNameMap import NameMap
 
 '''
@@ -13,12 +12,12 @@ class RigPart(object):
         self.oGrpAnm = None
         self.oGrpRig = None
 
-        oRef = next(iter(_aInput), None)
+    def Build(self, _bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs):
+        oRef = next(iter(self.aInput), None)
         self._pNameMapAnm = NameMap(oRef, _sType='anm')
         self._pNameMapRig = NameMap(oRef, _sType='rig')
         self._oParent = oRef.getParent() if oRef is not None else None
 
-    def Build(self, _bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs):
         logging.info('Building {0}'.format(self._pNameMapRig.Serialize()))
 
         if len(self.aInput) == 0:
@@ -34,6 +33,9 @@ class RigPart(object):
             pymel.delete(self.oGrpAnm)
         if self.oGrpRig is not None:
             pymel.delete(self.oGrpRig)
+
+    def __getNetworkName__(self):
+        return self._pNameMapRig.Serialize(self.__class__.__name__, _sType='net', )
 
     # Overwritten from Serializable
     def __createMayaNetwork__(self):

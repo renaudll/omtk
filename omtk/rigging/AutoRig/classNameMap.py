@@ -41,4 +41,11 @@ class NameMap(object):
 		sSide = self.side if '_sSide' not in kwargs else kwargs['_sSide']
 		sIter = self.iter if '_iIter' not in kwargs else kwargs['_iIter']
 		if sIter is not None: sIter = str(sIter)
-		return self.m_sSeparator.join(filter(None, [sType, sName, sSide, sIter] + self.aOthers + list(args)))
+
+		sReturn = self.m_sSeparator.join(filter(None, [sType, sName, sSide, sIter] + self.aOthers + list(args)))
+
+		return sReturn
+
+	def _debug(self):
+		print self.type, self.name, self.side, self.iter
+

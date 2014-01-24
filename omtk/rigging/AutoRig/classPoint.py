@@ -1,10 +1,6 @@
 import pymel.core as pymel
 from classRigNode import RigNode
 from rigFK import FK
-from rigIK import IK
-from rigArm import Arm
-
-import logging
 
 '''
 This class is a pymel.PyNode wrapper that extent it's functionnality.
@@ -19,7 +15,7 @@ class BaseHelper(RigNode):
         pymel.delete(self.node)
 
     def __build__(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __update__(self):
         self.__deleteNode__()
@@ -27,8 +23,13 @@ class BaseHelper(RigNode):
         self.rig = self.__build__()
 
 class HelperPoint(BaseHelper):
-	def __createNode__(self, *args, **kwargs):
-		return pymel.joint(*args, **kwargs)
+    def __createNode__(self, *args, **kwargs):
+        return pymel.joint(*args, **kwargs)
+
+    def __build__(self):
+        rig = FK([self.node])
+        rig.Build()
+        return rig
 
 class HelperDeformer(BaseHelper):
     def __init__(self, _numJnts, *args, **kwargs):
@@ -39,10 +40,11 @@ class HelperDeformer(BaseHelper):
         return [pymel.joint(pos=offset * i) for i in self.numJnts]
 
     def __build__(self):
-        rig = FK([self.node])
+        rig = FK(self.node)
         rig.Build()
         return rig
 
     def setNumJnts(self, _numJnts, *args, **kwargs):
         self.numJnts = _numJnts
         self.__update__()
+

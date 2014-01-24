@@ -7,7 +7,6 @@ This method facilitate the creation of utility nodes by connecting/settings auto
 def ConnectOrSetAttr(_pAttr, _pValue):
 	aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector]
 	if isinstance(_pValue, list) or isinstance(_pValue, tuple):
-		print '{0} is iterable! {0}'.format(_pAttr)
 		for i, pSubValue in enumerate(_pValue):
 			ConnectOrSetAttr(_pAttr[i], pSubValue)
 	else:
@@ -46,10 +45,16 @@ def BackupCtrlShapes():
 
 def RestoreCtrlShapes():
     aSources = [o.getParent() for o in pymel.ls('_anm_*', type='nurbsCurve')]
-    aTargets = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
 
-    for oSource, oTarget in zip(aSources, aTargets):
-    	pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), oTarget.getShapes()))
-    	for oShape in oSource.getShapes():
-    		oShape.setParent(oTarget, r=True, s=True)
-    pymel.delete(aSources)
+    for oSource in aSources:
+    	sTargetName = oSource.name()[1:]
+    	if pymel.objExists(sTargetName):
+    		oTarget = pymel.PyNode(sTargetName)
+
+    		pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), oTarget.getShapes()))
+	    	for oShape in oSource.getShapes():
+	    		oShape.setParent(oTarget, r=True, s=True)
+
+	    	# TODO: Restore AnnotationShapes
+
+	    	pymel.delete(oSource)

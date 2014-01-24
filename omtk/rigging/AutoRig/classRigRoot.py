@@ -1,9 +1,6 @@
 import pymel.core as pymel
-import logging
-from classRigPart import RigPart
 from classRigCtrl import RigCtrl
 from classRigNode import RigNode
-import libSerialization
 
 class CtrlRoot(RigCtrl):
     def __init__(self, *args, **kwargs):
@@ -33,14 +30,16 @@ class RigRoot(object):
         #    logging.error("[RigRoot:AddPart] Invalid RigPart '{0}' provided".format(_part))
         self.aChildrens.append(_part)
 
-    def Build(self, *args, **kwargs):
-        self.PreBuild()
-        for children in self.aChildrens:
-            children.Build(*args, **kwargs)
-        self.PostBuild()
-
     def PreBuild(self):
         pass
+
+    def Build(self, **kwargs):
+        self.PreBuild()
+
+        for children in self.aChildrens:
+            children.Build(**kwargs)
+
+        self.PostBuild()
 
     def PostBuild(self):
         # Group everything
@@ -67,16 +66,20 @@ class RigRoot(object):
 
         # Setup displayLayers
         oLayerAnm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerAnm, oGrpAnms)
+        pymel.editDisplayLayerMembers(oLayerAnm, oGrpAnms, noRecurse=True)
         oLayerAnm.color.set(17) # Yellow
 
         oLayerRig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerRig, oGrpRigs)
+        pymel.editDisplayLayerMembers(oLayerRig, oGrpRigs, noRecurse=True)
         oLayerRig.color.set(13) # Red
         oLayerRig.visibility.set(0) # Hidden
         oLayerRig.displayType.set(2) # Frozen
 
         oLayerGeo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerGeo, oGrpGeos)
+        pymel.editDisplayLayerMembers(oLayerGeo, oGrpGeos, noRecurse=True)
         oLayerGeo.color.set(12) # Green?
         oLayerGeo.displayType.set(2) # Frozen
+
+    def Unbuild(self, **kwargs):
+        for child in self.aChildrens:
+            child.Unbuild(**kwargs)

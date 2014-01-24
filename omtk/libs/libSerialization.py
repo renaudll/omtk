@@ -1,5 +1,7 @@
 import pymel.core as pymel
-import logging
+import logging as _logging
+logging = _logging.getLogger()
+logging.setLevel(_logging.WARNING)
 import sys
 
 def _getClassDef(_clsName, _baseclass=object):
@@ -15,7 +17,6 @@ def _getClassDef(_clsName, _baseclass=object):
         logging.error(str(e))
     return None
 
-
 def _createClassInstance(_clsName):
     cls = _getClassDef(_clsName)
 
@@ -28,6 +29,15 @@ def _createClassInstance(_clsName):
     except Exception, e:
         logging.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
         return None
+
+def _getClassNamespace(_cls):
+    if not isinstance(_cls, object):
+        return None # Todo: throw exception
+    tokens = []
+    while not _cls is object:
+        tokens.append(_cls.__name__)
+        _cls = _cls.__bases__[0]
+    return '.'.join(reversed(tokens))
 
 # We consider a data complex if it's a class instance.
 # Note: We check for __dict__ because isinstance(_data, object) return True for basic types.
@@ -158,7 +168,7 @@ def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
     # object instance
     if _isDataComplex(_data):
         dicReturn = {}
-        dicReturn['_class'] = _data.__class__.__name__
+        dicReturn['_class'] = _getClassNamespace(_data.__class__)
         for key, val in _data.__dict__.items():
             if not _bSkipNone or val is not None:
                 if _isDataComplex(val) and _bRecursive is True:
@@ -181,7 +191,8 @@ def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
 def importToBasicData(_data, **args):
     if isinstance(_data, dict) and '_class' in _data:
         # Handle Serializable object
-        instance = _createClassInstance(_data['_class'])
+        clsName = _data['_class'].split('.')[-1]
+        instance = _createClassInstance(clsName)
         if not isinstance(instance, object):
             # TODO: Log error
             return None
@@ -203,7 +214,8 @@ def exportToNetwork(_data, _network=None, **kwargs):
     if not isinstance(dicData, dict):
         logging.error("[createNetwork] Invalid data, excepted class instance, got {0}".format(type(_data))); return False
 
-    network = pymel.createNode('network', name=_data.__class__.__name__)
+    networkName = _data.__getNetworkName__() if hasattr(_data, '__getNetworkName__') else _data.__class__.__name__
+    network = pymel.createNode('network', name=networkName)
 
     for key, val in dicData.items():
         if key == '_class' or key[0] != '_': # Attributes starting with '_' are protected or private
@@ -217,7 +229,7 @@ def importFromNetwork(_network):
         logging.error('[importFromNetwork] Network dont have mandatory attribute _class')
         raise AttributeError
 
-    cls = _network.getAttr('_class')
+    cls = _network.getAttr('_class').split('.')[-1]
     obj = _createClassInstance(cls)
     if obj is None:
         return None
@@ -226,10 +238,28 @@ def importFromNetwork(_network):
         logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
         val = _getNetworkAttr(_network.attr(key))
         setattr(obj, key, val)
-        #obj.__dict__[key] = val
 
     return obj
 
-def getNetworkByClass(_cls):
-    return (oNetwork for oNetwork in pymel.ls(type='network') if hasattr(oNetwork, '_class') and oNetwork._class.get() == _cls)
 
+def isNetworkInstanceOfClass(_network, _clsName):
+    return hasattr(_network, '_class') and _clsName in _network._class.get().split('.')
+
+def getNetworksByClass(_clsName):
+    return [network for network in pymel.ls(type='network') if isNetworkInstanceOfClass(network, _clsName)]
+
+# TODO: benchmark with sets
+def getConnectedNetworks(_objs, key=None, recursive=True, inArray=[]):
+    if not hasattr(_objs, '__iter__'):
+        _objs = [_objs]
+
+    for obj in _objs:
+        if hasattr(obj, 'message'):
+            for output in obj.message.outputs():
+                if isinstance(output, pymel.nodetypes.Network):
+                    if output not in inArray:
+                        if key is None or key(output):
+                            inArray.append(output)
+                        if recursive:
+                            getConnectedNetworks(output, key=key, recursive=recursive, inArray=inArray)
+    return inArray

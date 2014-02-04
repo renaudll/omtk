@@ -1,0 +1,138 @@
+global proc shelf_omtk () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.getNetworksByClass('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n" 
+        -enableBackground 0
+        -align "center" 
+        -label "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import ..." 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Build" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "# Build Rig\nfrom omtk.rigging import autorig\nreload(autorig)\nautorig._reload()\nautorig.BuildAll()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "networks = libSerialization.getNetworksByClass('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Unbuild()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)" 
+        -enableBackground 0
+        -align "center" 
+        -label "networks = libSerialization.getNetworksByClass('RigRoot')\nfor ne..." 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Unbuild" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from omtk.rigging import autorig\nreload(autorig)\nautorig._reload()\nautorig.UnbuildAll()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "from omtk.animation import ikfkTools\nikfkTools.switchToIk()" 
+        -enableBackground 0
+        -align "center" 
+        -label "from omtk.animation import ikfkTools\nikfkTools.switchToIk()" 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "toIK" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk\nreload(omtk)\nomtk._reload()\nomtk.animationikfkTools.switchToIk()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "from omtk.animation import ikfkTools\nikfkTools.switchToFk()" 
+        -enableBackground 0
+        -align "center" 
+        -label "from omtk.animation import ikfkTools\nikfkTools.switchToFk()" 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "toFK" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk\nreload(omtk)\nomtk._reload()\nomtk.animation.ikfkTools.switchToFk()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
+        -enableBackground 0
+        -align "center" 
+        -label "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True..." 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "reload" 
+        -overlayLabelColor 1 0 0 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
+        -sourceType "python" 
+        -commandRepeatable 1
+    ;
+
+} 

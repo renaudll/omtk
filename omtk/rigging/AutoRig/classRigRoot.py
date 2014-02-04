@@ -1,25 +1,26 @@
 import pymel.core as pymel
 from classRigCtrl import RigCtrl
 from classRigNode import RigNode
+from omtk.libs import libRigging
+import logging
+import time
 
 class CtrlRoot(RigCtrl):
     def __init__(self, *args, **kwargs):
-        super(CtrlRoot, self).__init__(_bOffset=False, *args, **kwargs)
+        super(CtrlRoot, self).__init__(*args, **kwargs)
 
     def __createNode__(self, *args, **kwargs):
-        uNode = pymel.circle(*args, **kwargs)[0]
-        oMake = uNode.getShape().create.inputs()[0]
+        self.node = pymel.circle(*args, **kwargs)[0]
+        oMake = self.node.getShape().create.inputs()[0]
         oMake.radius.set(10)
         oMake.normal.set((0,1,0))
 
         # Add a globalScale attribute to replace the sx, sy and sz.
-        pymel.addAttr(uNode, longName='globalScale', k=True, defaultValue=1.0)
-        pymel.connectAttr(uNode.globalScale, uNode.sx)
-        pymel.connectAttr(uNode.globalScale, uNode.sy)
-        pymel.connectAttr(uNode.globalScale, uNode.sz)
-        uNode.s.set(lock=True, channelBox=False)
-
-        return uNode
+        pymel.addAttr(self.node, longName='globalScale', k=True, defaultValue=1.0)
+        pymel.connectAttr(self.node.globalScale, self.node.sx)
+        pymel.connectAttr(self.node.globalScale, self.node.sy)
+        pymel.connectAttr(self.node.globalScale, self.node.sz)
+        self.node.s.set(lock=True, channelBox=False)
 
 class RigRoot(object):
     def __init__(self):
@@ -34,33 +35,45 @@ class RigRoot(object):
         pass
 
     def Build(self, **kwargs):
+        sTime = time.time()
+
         self.PreBuild()
 
-        for children in self.aChildrens:
-            children.Build(**kwargs)
+        aObjsBefore = pymel.ls('*')
+        try:
+            for children in self.aChildrens:
+                children.Build(**kwargs)
+            self.PostBuild()
+        except Exception, e:
+            logging.error("AUTORIG BUILD FAIL! (see log)")
+            logging.error(str(e))
+            aNewObjs = [o for o in pymel.ls('*') if o not in aObjsBefore]
+            logging.info("Deleting {0} nodes...".format(len(aNewObjs)))
+            pymel.delete(aNewObjs)
+            pymel.error()
 
-        self.PostBuild()
+        print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
     def PostBuild(self):
         # Group everything
         aAllCtrls = filter(lambda x: x.getParent() is None, iter(pymel.ls('anm*')))
-        oGrpAnms = CtrlRoot(name='anm_root')
+        oGrpAnms = CtrlRoot(name='anm_root', _create=True)
         for oCtrl in aAllCtrls: 
             oCtrl.setParent(oGrpAnms)
 
         aAllRigs = filter(lambda x: x.getParent() is None, iter(pymel.ls('rig*')))
-        oGrpRigs = RigNode(name='rigs')
+        oGrpRigs = RigNode(name='rigs', _create=True)
         for oRig in aAllRigs:
             oRig.setParent(oGrpRigs)
 
         aAllJnts = filter(lambda x: x.getParent() is None, iter(pymel.ls('jnt*')))
-        oGrpJnts = RigNode(name='jnts')
+        oGrpJnts = RigNode(name='jnts', _create=True)
         oGrpJnts.setParent(oGrpRigs)
         for oJnt in aAllJnts:
             oJnt.setParent(oGrpJnts)
 
         aAllGeos = filter(lambda x: x.getParent() is None, iter(pymel.ls('geo*')))
-        oGrpGeos = RigNode(name='geos')
+        oGrpGeos = RigNode(name='geos', _create=True)
         for oGeo in aAllGeos:
             oGeo.setParent(oGrpGeos)
 
@@ -80,6 +93,12 @@ class RigRoot(object):
         oLayerGeo.color.set(12) # Green?
         oLayerGeo.displayType.set(2) # Frozen
 
+        # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
+        libRigging.RestoreCtrlShapes()
+
     def Unbuild(self, **kwargs):
+        # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
+        libRigging.BackupCtrlShapes()
+
         for child in self.aChildrens:
             child.Unbuild(**kwargs)

@@ -5,12 +5,11 @@ from classRigPart import RigPart
 
 class CtrlFk(RigCtrl):
 	def __createNode__(self, *args, **kwargs):
-		n = super(CtrlFk, self).__createNode__(*args, **kwargs)
-		oMake = n.getShape().create.inputs()[0]
+		super(CtrlFk, self).__createNode__(*args, **kwargs)
+		oMake = self.node.getShape().create.inputs()[0]
 		oMake.radius.set(5)
 		oMake.degree.set(1)
 		oMake.sections.set(6)
-		return n
 
 class FK(RigPart):
 	def Build(self, _bConstraint=True, *args, **kwargs):
@@ -19,8 +18,10 @@ class FK(RigPart):
 		# Create ctrl chain
 		self.aCtrls = []
 		for oInput in self.aInput:
-			oCtrl = CtrlFk(name=NameMap(oInput).Serialize('fk', _sType='anm'))
-			oCtrl.setMatrix(oInput.getMatrix(worldSpace=True), worldSpace=True)
+			#sCtrlName = self._pNameMapAnm.Serialize('fk')
+			sCtrlName = NameMap(oInput).Serialize('fk', _sType='anm')
+			oCtrl = CtrlFk(name=sCtrlName, _create=True)
+			oCtrl.setMatrix(oInput.getMatrix(worldSpace=True))
 			self.aCtrls.append(oCtrl)
 
 		self.aCtrls[0].setParent(self.oGrpAnm)
@@ -36,3 +37,8 @@ class FK(RigPart):
 		# Connect to parent
 		if self._oParent is not None:
 			pymel.parentConstraint(self._oParent, self.oGrpAnm, maintainOffset=True)
+
+	def Unbuild(self, *args, **kwargs):
+		super(FK, self).Unbuild(*args, **kwargs)
+
+		self.aCtrls = None

@@ -1,4 +1,4 @@
-import AutoRig
+import autorig
 
 def _reload():
-	reload(AutoRig); AutoRig._reload()
+	reload(autorig); autorig._reload()

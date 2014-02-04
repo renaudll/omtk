@@ -4,18 +4,22 @@ import logging
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
 '''
-def ConnectOrSetAttr(_pAttr, _pValue):
-	aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector]
-	if isinstance(_pValue, list) or isinstance(_pValue, tuple):
-		for i, pSubValue in enumerate(_pValue):
-			ConnectOrSetAttr(_pAttr[i], pSubValue)
+__aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector]
+def _isBasicType(_val):
+	global __aBasicTypes
+	return type(_val) in __aBasicTypes
+
+def ConnectOrSetAttr(_attr, _val):
+	if isinstance(_val, list) or isinstance(_val, tuple):
+		for i, pSubValue in enumerate(_val):
+			ConnectOrSetAttr(_attr[i], pSubValue)
 	else:
-		if isinstance(_pValue, pymel.Attribute):
-			pymel.connectAttr(_pValue, _pAttr, force=True)
-		elif any(kType for kType in aBasicTypes if isinstance(_pValue, kType)):
-			_pAttr.set(_pValue)
+		if isinstance(_val, pymel.Attribute):
+			pymel.connectAttr(_val, _attr, force=True)
+		elif _isBasicType(_val):
+			_attr.set(_val)
 		else:
-			logging.error('[ConnectOrSetAttr] Invalid argument {0} of type {1} and value {2}'.format(_pAttr.name(), type(_pValue), _pValue))
+			logging.error('[ConnectOrSetAttr] Invalid argument {0} of type {1} and value {2}'.format(_attr.name(), type(_val), _val))
 			raise TypeError
 
 def CreateUtilityNode(_sClass, *args, **kwargs):
@@ -26,6 +30,26 @@ def CreateUtilityNode(_sClass, *args, **kwargs):
 		else:
 			ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)	
 	return uNode
+
+'''
+# TODO: Add attribute delete callback
+def _defaultNode():
+	return pymel.createNode('transform')
+
+def CreateConstantNode(_val):
+	dicAttrByType = {
+		float:{'at':'float'},
+		int:{'at':'int'}
+		# TODO: Implement the rest
+	}
+	tmp = _defaultNode()
+	
+	kType = type(_val)
+	assert(kType in dicAttrByType)
+	pymel.addAttr(tmp, longName='value', k=True, **dicAttrByType[kType])
+
+	return tmp
+'''
 
 #
 # CtrlShapes Backup
@@ -43,18 +67,19 @@ def BackupCtrlShapes():
     aCtrls = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
     return [BackupCtrlShape(oCtrl) for oCtrl in aCtrls]
 
+# TODO: Fix bug when two objects have the same name.
 def RestoreCtrlShapes():
     aSources = [o.getParent() for o in pymel.ls('_anm_*', type='nurbsCurve')]
 
     for oSource in aSources:
     	sTargetName = oSource.name()[1:]
     	if pymel.objExists(sTargetName):
-    		oTarget = pymel.PyNode(sTargetName)
+    		oTarget = pymel.PyNode(str(sTargetName))
 
     		pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), oTarget.getShapes()))
 	    	for oShape in oSource.getShapes():
 	    		oShape.setParent(oTarget, r=True, s=True)
+	    		oShape.rename(oTarget.name() + 'Shape')
 
 	    	# TODO: Restore AnnotationShapes
-
 	    	pymel.delete(oSource)

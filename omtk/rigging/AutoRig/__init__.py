@@ -3,6 +3,7 @@ import classRigNode
 import classRigCtrl
 import classRigPart
 import classRigRoot
+import classPoint
 
 import rigFK
 import rigIK
@@ -15,6 +16,7 @@ def _reload():
     reload(classRigCtrl)
     reload(classRigPart)
     reload(classRigRoot)
+    reload(classPoint)
 
     reload(rigFK)
     reload(rigIK)
@@ -23,6 +25,28 @@ def _reload():
 
 def Create(*args, **kwargs):
     return classRigRoot.RigRoot(*args, **kwargs)
+
+def BuildAll():
+    from omtk.libs import libSerialization
+    import pymel.core as pymel
+
+    networks = libSerialization.getNetworksByClass('RigRoot')
+    for network in networks:
+        rigroot = libSerialization.importFromNetwork(network)
+        rigroot.Build()
+        pymel.delete(network)
+        libSerialization.exportToNetwork(rigroot)
+
+def UnbuildAll():
+    from omtk.libs import libSerialization
+    import pymel.core as pymel
+
+    networks = libSerialization.getNetworksByClass('RigRoot')
+    for network in networks:
+        rigroot = libSerialization.importFromNetwork(network)
+        rigroot.Unbuild()
+        pymel.delete(network)
+        pymel.select(libSerialization.exportToNetwork(rigroot))
 
 '''
 Usage example:

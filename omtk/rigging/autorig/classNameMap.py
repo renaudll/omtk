@@ -1,4 +1,5 @@
 import pymel.core as pymel
+import re
 
 '''
 This class handle the naming of object.
@@ -40,7 +41,7 @@ class NameMap(object):
 		sName = self.name if '_sName' not in kwargs else kwargs['_sName']
 		sSide = self.side if '_sSide' not in kwargs else kwargs['_sSide']
 		sIter = self.iter if '_iIter' not in kwargs else kwargs['_iIter']
-		if sIter is not None: sIter = str(sIter)
+		if sIter is not None: sIter = str(sIter).zfill(2)
 
 		sReturn = self.m_sSeparator.join(filter(None, [sType, sName, sSide, sIter] + self.aOthers + list(args)))
 

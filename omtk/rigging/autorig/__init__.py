@@ -4,6 +4,7 @@ import classRigCtrl
 import classRigPart
 import classRigRoot
 import classPoint
+import classCurveDeformer
 
 import rigFK
 import rigIK
@@ -17,6 +18,7 @@ def _reload():
     reload(classRigPart)
     reload(classRigRoot)
     reload(classPoint)
+    reload(classCurveDeformer)
 
     reload(rigFK)
     reload(rigIK)

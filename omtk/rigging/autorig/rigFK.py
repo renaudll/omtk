@@ -10,6 +10,7 @@ class CtrlFk(RigCtrl):
 		oMake.radius.set(5)
 		oMake.degree.set(1)
 		oMake.sections.set(6)
+		return self.node
 
 class FK(RigPart):
 	def Build(self, _bConstraint=True, *args, **kwargs):

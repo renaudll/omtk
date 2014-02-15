@@ -20,6 +20,8 @@ class RigAttHolder(RigNode):
         self.node.r.set(channelBox=False)
         self.node.s.set(channelBox=False)
 
+        return self.node
+
 class Arm(RigPart):
     kAttrName_State = 'fkIk' # The name of the IK/FK attribute
 

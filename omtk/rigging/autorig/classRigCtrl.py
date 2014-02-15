@@ -16,8 +16,10 @@ class RigCtrl(RigNode):
 			#self.node.setParent(self.offset)
 
 	def rename(self, _sName, *args, **kwargs):
-		self.node.rename(_sName, *args, **kwargs)
-		self.offset.rename(_sName + '_offset')
+		if self.node is not None:
+			self.node.rename(_sName, *args, **kwargs)
+		if self.offset is not None:
+			self.offset.rename(_sName + '_offset')
 
 	# Overwrite common pymel methods
 	def setMatrix(self, *args, **kwargs): 

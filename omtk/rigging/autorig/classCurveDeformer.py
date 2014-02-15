@@ -32,14 +32,12 @@ def _createNurbsSurfaceFromNurbsCurve(_curve, _width=0.1):
     pymel.connectAttr(nurbsMax.worldSpace, loft.inputCurve[1])
 
     surface = pymel.createNode('nurbsSurface')
-    print surface.create
     pymel.connectAttr(loft.outputSurface, surface.create)
 
     pymel.disconnectAttr(loft.outputSurface, surface.create)
     pymel.delete(loft)
     pymel.delete(nurbsMin)
     pymel.delete(nurbsMax)
-    return surface.getParent()
 
 def _createSurfaceJnts(_surface, _numJnts=19):
     #minU, maxU = _surface.getMinMaxU()
@@ -76,8 +74,7 @@ class CurveDeformer(RigPart):
             oSurface.setParent(self.oGrpRig)
 
             for i in range(oSurface.numKnotsInV()-1):
-                pymel.select(oSurface.cv[0:3][i])
-                cluster, clusterHandle = pymel.cluster()
+                cluster, clusterHandle = pymel.cluster(oSurface.cv[0:3][i])
                 cluster.rename(self._pNameMapRig.Serialize('cluster', _iIter=i))
                 clusterHandle.rename(self._pNameMapRig.Serialize('clusterHandle', _iIter=i))
                 clusterHandle.setParent(self.oGrpRig)

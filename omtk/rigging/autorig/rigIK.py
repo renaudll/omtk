@@ -12,6 +12,7 @@ class CtrlIk(RigCtrl):
         assert(self.node is not None)
         pymel.addAttr(self.node, longName=self.kAttrName_State)
         self.m_attState = getattr(self.node, self.kAttrName_State)
+        return self.node
 
 
 class CtrlIkSwivel(RigCtrl):
@@ -31,6 +32,8 @@ class CtrlIkSwivel(RigCtrl):
             pymel.connectAttr(oCtrlShape.worldMatrix, oLineShape.dagObjectMatrix[0], force=True)
             oLineTransform.setParent(self.offset)
             pymel.pointConstraint(_oLineTarget, oLineTransform)
+
+        return self.node
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class IK(RigPart):
@@ -63,6 +66,7 @@ class IK(RigPart):
         oChainS.setParent(oChainRoot)
 
         self._oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
+
         self._oIkHandle.rename(self._pNameMapRig.Serialize('ikHandle'))
         self._oIkHandle.setParent(oChainRoot)
         oIkEffector.rename(self._pNameMapRig.Serialize('ikEffector'))

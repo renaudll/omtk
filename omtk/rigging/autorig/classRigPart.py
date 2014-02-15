@@ -1,11 +1,16 @@
 import pymel.core as pymel
 import logging
 from classNameMap import NameMap
+from classRigElement import RigElement
 
 '''
 This is the baseclass for anything that can be Build/Unbuild
 '''
-class RigPart(object):
+class RigPart(RigElement):
+
+    # RigElement overrides
+    def isBuilt(self):
+        return self.oGrpAnm is not None or self.oGrpRig is not None
 
     # Allow self.PostInputSet() to be called automaticly when self.aInput is set.
     @property
@@ -18,10 +23,14 @@ class RigPart(object):
         self.PostInputSet()
 
     def __init__(self, _aInput=[], *args, **kwargs):
+        super(RigPart, self).__init__(*args, **kwargs)
         self.aInput = _aInput
         self.iCtrlIndex = 2
         self.oGrpAnm = None
         self.oGrpRig = None
+
+    def __repr__(self):
+        return '{0} ({1})'.format(str(self._pNameMapAnm), self.__class__.__name__ )
 
     # Even when nothing is build, it's usefull to access properties like namemaps.
     # This method is called automaticly when self.aInput is changed. 

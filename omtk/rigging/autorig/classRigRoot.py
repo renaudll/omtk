@@ -1,6 +1,7 @@
 import pymel.core as pymel
 from classRigCtrl import RigCtrl
 from classRigNode import RigNode
+from classRigElement import RigElement
 from omtk.libs import libRigging
 import logging
 import time
@@ -22,9 +23,11 @@ class CtrlRoot(RigCtrl):
         pymel.connectAttr(self.node.globalScale, self.node.sz)
         self.node.s.set(lock=True, channelBox=False)
 
-class RigRoot(object):
-    def __init__(self):
-        self.aChildrens = []
+        return self.node
+
+class RigRoot(RigElement):
+    def __str__(self):
+        return '<rig {0}/>'.format('???')
 
     def AddPart(self, _part):
         #if not isinstance(_part, RigPart):

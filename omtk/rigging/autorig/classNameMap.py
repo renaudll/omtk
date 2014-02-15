@@ -15,6 +15,9 @@ class NameMap(object):
 		self.aOthers = []
 		self.Deserialize(*args, **kwargs)
 
+	def __str__(self, *args, **kwargs):
+		return self.Serialize(*args, **kwargs)
+
 	def Deserialize(self, _pData, _sName=None, _sType=None, _sSide=None, _iIter=None):
 		if isinstance(_pData, pymel.PyNode):
 			_pData = _pData.nodeName()

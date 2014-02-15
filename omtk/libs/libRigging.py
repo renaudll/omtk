@@ -31,26 +31,6 @@ def CreateUtilityNode(_sClass, *args, **kwargs):
 			ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)	
 	return uNode
 
-'''
-# TODO: Add attribute delete callback
-def _defaultNode():
-	return pymel.createNode('transform')
-
-def CreateConstantNode(_val):
-	dicAttrByType = {
-		float:{'at':'float'},
-		int:{'at':'int'}
-		# TODO: Implement the rest
-	}
-	tmp = _defaultNode()
-	
-	kType = type(_val)
-	assert(kType in dicAttrByType)
-	pymel.addAttr(tmp, longName='value', k=True, **dicAttrByType[kType])
-
-	return tmp
-'''
-
 #
 # CtrlShapes Backup
 #

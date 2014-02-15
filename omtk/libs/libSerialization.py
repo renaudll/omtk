@@ -77,30 +77,6 @@ def getDataType(_data, *args, **kwargs):
 # Maya Metanetwork Serialization
 #
 
-def _getAttArgs(_val):
-    if isinstance(_val, basestring):
-        return {'dt':'string'}
-    kType = type(_val)
-    if issubclass(kType, bool):
-        return {'at':'bool'}
-    if issubclass(kType, int):
-        return {'at':'long'}
-    if issubclass(kType, float):
-        return {'at':'double'}
-    if isinstance(_val, dict):
-        return {'at':'message'}
-    if isinstance(kType, list) or isinstance(type, tuple):
-        return {'at':'message'}
-    if isinstance(kType, pymel.datatypes.Matrix):
-        return {'dt':'matrix'}
-    if issubclass(kType, pymel.Attribute):
-        return _getAttArgs(_val.get())
-    if hasattr(_val, '__melobject__'): # TODO: Really usefull?
-        return {'at':'message'}    
-    if hasattr(_val, '__dict__'):
-        return {'at':'message'}
-    return None
-
 def _createAttribute(_name, _val):
     if isinstance(_val, basestring):
         fn = OpenMaya.MFnTypedAttribute()
@@ -158,28 +134,23 @@ def _addAttr(_fnDependNode, _sName, _pValue):
     if bIsMulti and len(_pValue) == 0:
         return
 
+    plug = None
     # Get attribute arguments
-    fnAtt = _createAttribute(_sName, _pValue)
-    fnAtt.setNiceNameOverride(_sName)
-    moAtt = fnAtt.object()
-    if moAtt is not None:
-        _fnDependNode.addAttribute(moAtt)
-        plug = OpenMaya.MPlug(_fnDependNode.object(), moAtt)
+    try: # TODO: Is a try/catch really the best way to know if the plug exists?
+        plug = _fnDependNode.findPlug(_sName)
+    except:
+        pass
+
+    if plug is None:
+        fnAtt = _createAttribute(_sName, _pValue)
+        fnAtt.setNiceNameOverride(_sName)
+        moAtt = fnAtt.object()
+        if moAtt is not None:
+            _fnDependNode.addAttribute(moAtt)
+            plug = OpenMaya.MPlug(_fnDependNode.object(), moAtt)
+
+    if plug is not None:
         _setAttr(plug, _pValue)
-
-    '''
-    _sType = _getAttArgs(_pValue) if not bIsMulti else _getAttArgs(_pValue[0])
-    if _sType is None:
-        logging.error("Can't add attribute {0} '{1}', unreconised attr type {3} for value {2}".format(_oNode, _sName, _pValue, type(_pValue)))
-        return
-
-    # Add attribute
-    pymel.addAttr(_oNode, longName=_sName, niceName=_sName, multi=bIsMulti, keyable=True, **_sType)
-    pAttribute = _oNode.attr(_sName)
-    _setAttr(pAttribute, _pValue)
-    '''
-
-    #return pAttribute
 
 def _setAttr(_plug, _val):
     sType = getDataType(_val)
@@ -228,40 +199,6 @@ def _setAttr(_plug, _val):
     else:
         print _val, sType
         raise NotImplementedError
-
-'''
-def _setAttr(_att, _val):
-    logging.debug('setNetworkAttribute', _att, _val)
-    sType = getDataType(_val)
-    if sType == 'list':
-        for i in range(len(_val)):
-            if _val[i] is not None:
-                _setAttr(_att[i], _val[i])
-
-    elif sType == 'dagNode':
-        # pymel.Attribute
-        if isinstance(_val, pymel.Attribute):
-            pymel.connectAttr(_val, _att)
-        # pymel.PyNode
-        elif hasattr(_val, 'exists'):
-            if _val.exists():
-                pymel.connectAttr(_val.message, _att)
-        # other pymel types, matrix and shitz
-        else:
-            _att.set(_val)
-
-    elif sType == 'complex':
-        uSubNode = exportToNetwork(_val)
-        pymel.connectAttr(uSubNode.message, _att)
-
-    elif sType == 'basic':
-        _att.set(_val)
-
-    else:
-        pass
-        #logging.exception('Unreconised data type {0} {1}'.format(sType, _val))
-        #raise AttributeError
-'''
 
 def _getNetworkAttr(_att):
     # Recursive
@@ -342,26 +279,46 @@ def importToBasicData(_data, **args):
     else:
         return _data
 
-def exportToNetwork(_data, _network=None, **kwargs):
+def exportToNetwork(_data, **kwargs):
     logging.debug('CreateNetwork {0}'.format(_data))
+
+    if hasattr(_data, '_network') and isinstance(_data._network, pymel.PyNode) and _data._network.exists():
+        network = _data._network
+    else:
+        # Automaticly name network whenever possible
+        if hasattr(_data, '__getNetworkName__') and _data.__getNetworkName__ is None: 
+            networkName = _data.__class__.__name__
+        else:
+            networkName = _data.__getNetworkName__() if hasattr(_data, '__getNetworkName__') else _data.__class__.__name__
+            _data._network = networkName
+        
+        network = pymel.createNode('network', name=networkName)
+
     # Convert _pData to basic data dictionary (recursive for now)
     dicData = exportToBasicData(_data, _bRecursive=False, **kwargs)
+    assert(isinstance(dicData, dict))
 
-    if not isinstance(dicData, dict):
-        logging.error("[createNetwork] Invalid data, excepted dict, got {0}".format(type(_data))); return False
-
-    # Automaticly name network whenever possible
-    if hasattr(_data, '__getNetworkName__') and _data.__getNetworkName__ is None: 
-        networkName = _data.__class__.__name__
-    else:
-        networkName = _data.__getNetworkName__() if hasattr(_data, '__getNetworkName__') else _data.__class__.__name__
-    
-    network = pymel.createNode('network', name=networkName)
     fnNet = network.__apimfn__()
     for key, val in dicData.items():
         if val is not None:
             if key == '_class' or key[0] != '_': # Attributes starting with '_' are protected or private
                 _addAttr(fnNet, key, val)
+
+    '''
+    # If we're exporting part of an already-exported, connect it to the already-exported network
+    if hasattr(_data, '_parent'):
+        if hasattr(_data._parent, '_network'):     
+            if hasattr(_data._parent, 'aChildrens'):
+                plugMessage = fnNet.findPlug('message')
+                plugSource = _data._parent._network.findPlug('aChildrens') # TODO: DON'T HARDCODE
+                print plugMessage
+                print plugSource
+                pymel.warning("TODO: Connect {0} to parent {1}".format(_data, _data._parent))
+            else:
+                pymel.warning("{0} parent {1} doesnt support parenting", _data, _data._parent)
+        else:
+            pymel.warning("Can't connect to parent, {0} have to network, maybe re-export?".format(_data._parent))
+    '''
 
     return network
 
@@ -374,6 +331,7 @@ def importFromNetwork(_network):
     obj = _createClassInstance(cls)
     if obj is None:
         return None
+    obj._network = _network
 
     for key in pymel.listAttr(_network, userDefined=True):
         if '_' != key[0]: # Variables starting with '_' are private

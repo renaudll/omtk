@@ -1,11 +1,5 @@
 *.pyc
-<<<<<<< HEAD
 build/*
 dist/*
 *.egg-info/*
 build/*
-=======
-.build
-.dist
-.*.egg.info
->>>>>>> 2a2e7ba53e7ed6e5bcba5fa4927033daa1bedc0c

@@ -8,7 +8,7 @@ import time
 
 class CtrlRoot(RigCtrl):
     def __init__(self, *args, **kwargs):
-        super(CtrlRoot, self).__init__(*args, **kwargs)
+        super(CtrlRoot, self).__init__(_bOffset=False, *args, **kwargs)
 
     def __createNode__(self, *args, **kwargs):
         self.node = pymel.circle(*args, **kwargs)[0]
@@ -49,6 +49,8 @@ class RigRoot(RigElement):
             self.PostBuild()
         except Exception, e:
             logging.error("AUTORIG BUILD FAIL! (see log)")
+            #import traceback
+            #traceback.print_stack()
             logging.error(str(e))
             aNewObjs = [o for o in pymel.ls('*') if o not in aObjsBefore]
             logging.info("Deleting {0} nodes...".format(len(aNewObjs)))

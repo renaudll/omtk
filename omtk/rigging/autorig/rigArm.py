@@ -1,15 +1,12 @@
 import pymel.core as pymel
 from classNameMap import NameMap
 from classRigPart import RigPart
-from classRigNode import RigNode
+from classRigCtrl import RigCtrl
 from rigIK import IK
 from rigFK import FK
 from omtk.libs import libRigging
 
-class RigAttHolder(RigNode):
-    def __init__(self, *args, **kwargs):
-        super(RigAttHolder, self).__init__(*args, **kwargs)
-        
+class RigAttHolder(RigCtrl):
     def __createNode__(self, name=None, *args, **kwargs):
         s1 = 1.0
         s2 = s1 * 0.7
@@ -46,7 +43,7 @@ class Arm(RigPart):
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         oAttHolder = RigAttHolder(name=self._pNameMapAnm.Serialize('atts'), _create=True)
         oAttHolder.setParent(self.oGrpAnm)
-        pymel.parentConstraint(self.aInput[self.sysIK.iCtrlIndex], oAttHolder)
+        pymel.parentConstraint(self.aInput[self.sysIK.iCtrlIndex], oAttHolder.offset)
         pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
         attIkWeight = oAttHolder.attr(self.kAttrName_State)
         attFkWeight = libRigging.CreateUtilityNode('reverse', inputX=attIkWeight).outputX
@@ -76,10 +73,11 @@ class Arm(RigPart):
     #
 
     def snapIkToFk(self):
-        self.sysIK.ctrlIK.setMatrix(self.aInput[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True), worldSpace=True)
-        self.sysIK.ctrlSwivel.setMatrix(self.aInput[self.sysIK.iCtrlIndex-1].getMatrix(worldSpace=True), worldSpace=True)
+        # Position ikCtrl
+        tmCtrlIk = self.aInput[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
+        self.sysIK.ctrlIK.setMatrix(tmCtrlIk, worldSpace=True)
 
-        # Compute the position of the swivel
+        # Position swivel
         posRef = self.sysFK.aCtrls[self.sysIK.iCtrlIndex-1].getTranslation(space='world')
         posS = self.sysFK.aCtrls[0].getTranslation(space='world')
         posM = self.sysFK.aCtrls[self.sysIK.iCtrlIndex-1].getTranslation(space='world')
@@ -91,9 +89,8 @@ class Arm(RigPart):
         posDir = posM - posRefPos
         posDir.normalize()
         posSwivel = posDir * self.sysIK.swivelDistance + posRef
-
-        self.sysIK.ctrlSwivel.setTranslation(posSwivel, space=True)
-
+        #self.sysIK.ctrlSwivel.setMatrix(self.aInput[self.sysIK.iCtrlIndex-1].getMatrix(worldSpace=True), worldSpace=True)
+        self.sysIK.ctrlSwivel.setTranslation(posSwivel, space='world')
 
     def snapFkToIk(self):
         for ctrl, jnt in zip(self.sysFK.aCtrls, self.aInput):

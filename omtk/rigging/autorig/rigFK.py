@@ -22,7 +22,7 @@ class FK(RigPart):
 			#sCtrlName = self._pNameMapAnm.Serialize('fk')
 			sCtrlName = NameMap(oInput).Serialize('fk', _sType='anm')
 			oCtrl = CtrlFk(name=sCtrlName, _create=True)
-			oCtrl.setMatrix(oInput.getMatrix(worldSpace=True))
+			oCtrl.offset.setMatrix(oInput.getMatrix(worldSpace=True))
 			self.aCtrls.append(oCtrl)
 
 		self.aCtrls[0].setParent(self.oGrpAnm)

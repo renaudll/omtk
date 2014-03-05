@@ -10,6 +10,7 @@ An node-base autorig that store itself in a network of maya nodes.
 ### omtk.libs.libSerialization
 A set of tools that serialize/deserialize python objects in various formats (maya nodes, json, yaml, xml, etc)
 * todo: Implement MMatrix import/export
+* todo: When exporting the same python object (same _uid), ensure that the network is not created twice.
 * todo: Add export method for json, yaml and xml
 * todo: Implement unique id to link to original python object.
 * todo: Implement 'update' method to prevent re-serializing everything (dirtybit?)

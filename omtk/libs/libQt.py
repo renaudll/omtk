@@ -1,4 +1,5 @@
 import imp
+from maya import OpenMayaUI
 
 def _does_module_exist(_name):
 	try:
@@ -10,17 +11,19 @@ def _does_module_exist(_name):
 use_pyqt4 = _does_module_exist('PyQt4')
 use_pyside = _does_module_exist('PySide')
 
+print 'pyqt4' if use_pyqt4 else 'pyside'
+
 # Import QtCore, QtGui & uic
 if use_pyqt4:
-	import PyQt4
-	import uic
-	QtCore = PyQt4.QtCore
-	QtGui = PyQt4.QtGui
+	import sip
+	from PyQt4 import QtCore, QtGui
+	getMayaWindow = lambda: sip.wrapinstance(long(OpenMayaUI.MQtUtil.mainWindow()), QtCore.QObject)
+
 elif use_pyside:
 	import PySide
 	import shiboken
 	QtCore = PySide.QtCore
 	QtGui = PySide.QtGui
 	uic = shiboken
-else:
+	getMayaWindow = lambda: shiboken.wrapInstance(long(OpenMayaUI.MQtUtil.mainWindow()), QtGui.QWidget)
 	raise Exception

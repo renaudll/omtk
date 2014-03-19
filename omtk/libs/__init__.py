@@ -1,6 +1,12 @@
+import imp
+def _does_module_exist(_name):
+    try:
+        imp.find_module(_name)
+        return True
+    except ImportError:
+        return False
+       
 import libSerialization
-import libRigging
 
-def _reload():
-	reload(libSerialization)
-	reload(libRigging)
+if _does_module_exist("maya"):
+	import libRigging

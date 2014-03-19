@@ -1,6 +1,17 @@
-import animation
-import rigging
+import imp
+
+def _does_module_exist(_name):
+    try:
+        imp.find_module(_name)
+        return True
+    except ImportError:
+        return False
+
 import libs
+
+if _does_module_exist("maya"):
+	import animation
+	import rigging
 
 def _reload():
 	# uncomment this when debugging

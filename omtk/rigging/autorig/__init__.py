@@ -74,22 +74,10 @@ rig.Build()
 
 #################
 
-from PyQt4 import uic, QtCore, QtGui
+from omtk.libs.libQt import QtGui, getMayaWindow
 
-def getMayaWindow():
-    #Get the maya main window as a QMainWindow instance
-    ptr = OpenMayaUI.MQtUtil.mainWindow()
-    return sip.wrapinstance(long(ptr), QtCore.QObject)
-
-sBasePath = 'Users/renaudlessardlarouche/GitHub/omtk/omtk/rigging/autorig'
-
-with open(os.path.join(sBasePath, 'ui.ui'), 'rb') as ui_file:
-        with open(os.path.join(sBasePath, 'ui.py'), 'wb') as out_file:
-            uic.compileUi(ui_file, out_file)
-
-
-AutoRig_form, AutoRig_base = uic.loadUiType(os.path.join(sBasePath, 'ui.ui'))
-class AutoRig(AutoRig_form, AutoRig_base):
+import ui
+class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def __init__(self, parent=getMayaWindow()):
         super(AutoRig, self).__init__(parent)
         self.setupUi(self)

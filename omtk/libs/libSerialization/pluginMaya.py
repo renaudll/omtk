@@ -1,83 +1,21 @@
 import pymel.core as pymel
-from maya import OpenMaya, mel
+from maya import OpenMaya
 import logging as _logging
 logging = _logging.getLogger()
 logging.setLevel(_logging.WARNING)
-import sys
 
-def _getClassDef(_clsName, _baseclass=object):
-    try:
-        for cls in _baseclass.__subclasses__():
-            if cls.__name__ == _clsName:
-                return cls
-            else:
-                t = _getClassDef(_clsName, _baseclass=cls)
-                if t is not None:
-                    return t
-    except Exception, e:
-        logging.info(str(e)) # TODO: FIX
-    return None
+import core
 
-def _createClassInstance(_clsName):
-    cls = _getClassDef(_clsName)
+# Pymel compatibility implementation
+core._basic_types.append(pymel.datatypes.Matrix)
+core._dag_types.append(pymel.general.PyNode)
 
-    if cls is None:
-        logging.warning("Can't find class definition '{0}'".format(_clsName));
-        return None
-
-    try:
-        return getattr(sys.modules[cls.__module__], cls.__name__)()
-    except Exception, e:
-        logging.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
-        return None
-
-def _getClassNamespace(_cls):
-    if not isinstance(_cls, object):
-        return None # Todo: throw exception
-    tokens = []
-    while (not _cls is object):
-        tokens.append(_cls.__name__)
-        _cls = _cls.__bases__[0]
-    return '.'.join(reversed(tokens))
-
-# We consider a data complex if it's a class instance.
-# Note: We check for __dict__ because isinstance(_data, object) return True for basic types.
-def _isDataComplex(_data):
-    return hasattr(_data, '__dict__') or isinstance(_data, dict)
-
-def _isDataBasic(_data):
-    aTypes = [int, float, basestring, bool]#, pymel.datatypes.Matrix]
-    return any(filter(lambda x: isinstance(_data, x), (iter(aTypes))))
-
-def _isDataList(_data):
-    aTypes = [list, tuple]
-    return any(filter(lambda x: isinstance(_data, x), (iter(aTypes))))
-
-def _isDataDagNode(_data):
-    return isinstance(_data, pymel.general.PyNode)
-    #return hasattr(_data, '__melobject__')
-
-def getDataType(_data, *args, **kwargs):
-    if _isDataList(_data, *args, **kwargs):
-        logging.debug('{0} is a list'.format(_data))
-        return 'list'
-    elif _isDataDagNode(_data, *args, **kwargs):
-        logging.debug('{0} is a dagNode'.format(_data))
-        return 'dagNode'
-    elif _isDataComplex(_data, *args, **kwargs):
-        logging.debug('{0} is complex'.format(_data))
-        return 'complex'
-    elif _isDataBasic(_data, *args, **kwargs):
-        logging.debug('{0} is basic'.format(_data))
-        return 'basic'
-    else:
-        logging.warning('{0} is unknow type'.format(_data))
-        return None
 #
 # Maya Metanetwork Serialization
 #
 
 def _createAttribute(_name, _val):
+    print '_createAttribute', _name, _val
     if isinstance(_val, basestring):
         fn = OpenMaya.MFnTypedAttribute()
         fn.create(_name, _name, OpenMaya. MFnData.kString)
@@ -107,7 +45,8 @@ def _createAttribute(_name, _val):
         fn = _createAttribute(_name, _val[0])
         fn.setArray(True)
         return fn
-    if isinstance(kType, pymel.datatypes.Matrix):
+    if isinstance(kType, pymel.datatypes.Matrix): # HACK
+        print '!!!!!'
         fn = OpenMaya.MFnMatrixAttribute()
         fn.create(_name, _name)
         return fn
@@ -121,16 +60,15 @@ def _createAttribute(_name, _val):
         fn = OpenMaya.MFnMessageAttribute()
         fn.create(_name, _name)
         return fn
-
     pymel.error("Can't create MFnAttribute for {0} {1} {2}".format(_name, _val, kType))
 
 def _addAttr(_fnDependNode, _sName, _pValue):
-    logging.debug('AddNetworkAttribute {0} {1}'.format(_sName, _pValue))
+    print type(_pValue)
 
-    sType = getDataType(_pValue)
+    sType = core.getDataType(_pValue)
 
     # Skip empty list
-    bIsMulti = sType == 'list'
+    bIsMulti = sType == core.TYPE_LIST
     if bIsMulti and len(_pValue) == 0:
         return
 
@@ -153,8 +91,8 @@ def _addAttr(_fnDependNode, _sName, _pValue):
         _setAttr(plug, _pValue)
 
 def _setAttr(_plug, _val):
-    sType = getDataType(_val)
-    if sType == 'list':
+    sType = core.getDataType(_val)
+    if sType == core.TYPE_LIST:
         iNumElements = len(_val)
 
         _plug.setNumElements(iNumElements) # TODO: MAKE IT WORK # TODO: NECESSARY???
@@ -162,7 +100,7 @@ def _setAttr(_plug, _val):
         for i in range(iNumElements):
             _setAttr(_plug.elementByLogicalIndex(i), _val[i])
 
-    elif sType == 'basic':
+    elif sType == core.TYPE_BASIC:
         # Basic types
         if isinstance(_val, bool):
             _plug.setBool(_val)
@@ -172,8 +110,20 @@ def _setAttr(_plug, _val):
             _plug.setFloat(_val)
         elif isinstance(_val, basestring):
             _plug.setString(_val)
+        elif isinstance(_val, pymel.datatypes.Matrix):
+            # TODO: Make it work
+            fn = OpenMaya.MFnMatrixData()
+            obj = fn.create()
+            print obj
+            _plug.setMObject(obj)
+            '''
+            fn = OpenMaya.MFnMatrixData()
+            fn.create()
+            print fn.object()
+            _plug.setMObject(fn.object())
+            '''
 
-    elif sType == 'complex':
+    elif sType == core.TYPE_COMPLEX:
         network = exportToNetwork(_val)
         plugMessage = network.__apimfn__().findPlug('message')
 
@@ -182,7 +132,7 @@ def _setAttr(_plug, _val):
         dagM.connect(plugMessage, _plug)
         dagM.doIt()
 
-    elif sType == 'dagNode':
+    elif sType == core.TYPE_DAGNODE:
         plug = None
         if isinstance(_val, pymel.Attribute): # pymel.Attribute
             plug = _val.__apimfn__()
@@ -194,7 +144,7 @@ def _setAttr(_plug, _val):
             dagM.connect(plug, _plug)
             dagM.doIt()
         else:
-            pymel.error("Unknow 'dagNode' {0}".format(_val))
+            pymel.error("Unknow TYPE_DAGNODE {0}".format(_val))
 
     else:
         print _val, sType
@@ -223,64 +173,9 @@ def _getNetworkAttr(_att):
 
     # Basic type
     return _att.get()
-#
-# Pubic methods
-#
-
-def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
-    #logging.debug('[exportToBasicData]', _data)
-
-    sType = getDataType(_data)
-    # object instance
-    if sType == 'complex':
-        dicReturn = {}
-        dicReturn['_class'] = _getClassNamespace(_data.__class__)
-        dicReturn['_uid'] = id(_data)
-        for key, val in (_data.items() if isinstance(_data, dict) else _data.__dict__.items()): # TODO: Clean
-            if '_' not in key[0]:
-                if not _bSkipNone or val is not None:
-                    if (sType == 'complex' and _bRecursive is True) or sType == 'list':
-                        val = exportToBasicData(val, _bSkipNone=_bSkipNone, _bRecursive=_bRecursive, **args)
-                    if not _bSkipNone or val is not None:
-                        dicReturn[key] = val
-
-        return dicReturn
-
-    # Handle other types of data
-    elif sType == 'basic':
-        return _data
-
-    # Handle iterable
-    elif sType == 'list':
-        return [exportToBasicData(v, _bSkipNone=_bSkipNone, **args) for v in _data if not _bSkipNone or v is not None]
-
-    elif sType == 'dagNode':
-        return _data
-
-    logging.warning("[exportToBasicData] Unsupported type {0} for {1}".format(sType, _data))
-    return None
-
-def importToBasicData(_data, **args):
-    if isinstance(_data, dict) and '_class' in _data:
-        # Handle Serializable object
-        clsName = _data['_class'].split('.')[-1]
-        instance = _createClassInstance(clsName)
-        if not isinstance(instance, object):
-            # TODO: Log error
-            return None
-        for key, val in _data.items():
-            if key != '_class':
-                instance.__dict__[key] = importToBasicData(val, **args)
-        return instance
-    # Handle array
-    elif _isDataList(_data):
-        return [importToBasicData(v, **args) for v in _data]
-    # Handle other types of data
-    else:
-        return _data
 
 def exportToNetwork(_data, **kwargs):
-    logging.debug('CreateNetwork {0}'.format(_data))
+    #logging.debug('CreateNetwork {0}'.format(_data))
 
     if hasattr(_data, '_network') and isinstance(_data._network, pymel.PyNode) and _data._network.exists():
         network = _data._network
@@ -295,7 +190,7 @@ def exportToNetwork(_data, **kwargs):
         network = pymel.createNode('network', name=networkName)
 
     # Convert _pData to basic data dictionary (recursive for now)
-    dicData = exportToBasicData(_data, _bRecursive=False, **kwargs)
+    dicData = core.exportToBasicData(_data, _bRecursive=False, **kwargs)
     assert(isinstance(dicData, dict))
 
     fnNet = network.__apimfn__()
@@ -303,22 +198,6 @@ def exportToNetwork(_data, **kwargs):
         if val is not None:
             if key == '_class' or key[0] != '_': # Attributes starting with '_' are protected or private
                 _addAttr(fnNet, key, val)
-
-    '''
-    # If we're exporting part of an already-exported, connect it to the already-exported network
-    if hasattr(_data, '_parent'):
-        if hasattr(_data._parent, '_network'):     
-            if hasattr(_data._parent, 'aChildrens'):
-                plugMessage = fnNet.findPlug('message')
-                plugSource = _data._parent._network.findPlug('aChildrens') # TODO: DON'T HARDCODE
-                print plugMessage
-                print plugSource
-                pymel.warning("TODO: Connect {0} to parent {1}".format(_data, _data._parent))
-            else:
-                pymel.warning("{0} parent {1} doesnt support parenting", _data, _data._parent)
-        else:
-            pymel.warning("Can't connect to parent, {0} have to network, maybe re-export?".format(_data._parent))
-    '''
 
     return network
 
@@ -328,22 +207,21 @@ def importFromNetwork(_network):
         raise AttributeError
 
     cls = _network.getAttr('_class').split('.')[-1]
-    obj = _createClassInstance(cls)
+    obj = core._createClassInstance(cls)
     if obj is None:
         return None
     obj._network = _network
 
     for key in pymel.listAttr(_network, userDefined=True):
         if '_' != key[0]: # Variables starting with '_' are private
-            logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
+            #logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
             val = _getNetworkAttr(_network.attr(key))
             #if hasattr(obj, key):
             setattr(obj, key, val)
             #else:
-            #    logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
+            #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
 
     return obj
-
 
 def isNetworkInstanceOfClass(_network, _clsName):
     return hasattr(_network, '_class') and _clsName in _network._class.get().split('.')

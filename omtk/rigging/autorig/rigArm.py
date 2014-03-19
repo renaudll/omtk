@@ -48,6 +48,9 @@ class Arm(RigPart):
         attIkWeight = oAttHolder.attr(self.kAttrName_State)
         attFkWeight = libRigging.CreateUtilityNode('reverse', inputX=attIkWeight).outputX
 
+        # Store the offset between the end fk ctrl and the end ik ctrl
+        self.offsetCtrlIK = self.sysIK.ctrlIK.getMatrix(worldSpace=True) * self.sysFK.aCtrls[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True).inverse()
+
         # Hold swivelSkinPose
         #self.swivelSkinPose = self.sysIK.ctrlSwivel.getMatrix() * self.aInput[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
@@ -75,7 +78,7 @@ class Arm(RigPart):
     def snapIkToFk(self):
         # Position ikCtrl
         tmCtrlIk = self.aInput[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
-        self.sysIK.ctrlIK.setMatrix(tmCtrlIk, worldSpace=True)
+        self.sysIK.ctrlIK.setMatrix(self.ctrlIkOffset * tmCtrlIk, worldSpace=True)
 
         # Position swivel
         posRef = self.sysFK.aCtrls[self.sysIK.iCtrlIndex-1].getTranslation(space='world')

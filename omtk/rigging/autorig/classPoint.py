@@ -1,5 +1,5 @@
 import pymel.core as pymel
-from classRigNode import RigNode
+from omtk.rigging.autorig.classRigNode import RigNode
 
 '''
 This class is a pymel.PyNode wrapper that extent it's functionnality.

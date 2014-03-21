@@ -1,5 +1,5 @@
 import pymel.core as pymel
-from classRigNode import RigNode
+from omtk.rigging.autorig.classRigNode import RigNode
 from omtk.libs import libRigging
 
 class RigCtrl(RigNode):

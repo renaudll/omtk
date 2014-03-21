@@ -7,6 +7,7 @@ def _does_module_exist(_name):
         return False
        
 import libSerialization
+import libPython
 
 if _does_module_exist("maya"):
 	import libRigging

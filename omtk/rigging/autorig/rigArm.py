@@ -1,9 +1,9 @@
 import pymel.core as pymel
-from classNameMap import NameMap
-from classRigPart import RigPart
-from classRigCtrl import RigCtrl
-from rigIK import IK
-from rigFK import FK
+from omtk.rigging.autorig.classNameMap import NameMap
+from omtk.rigging.autorig.classRigPart import RigPart
+from omtk.rigging.autorig.classRigCtrl import RigCtrl
+from omtk.rigging.autorig.rigIK import IK
+from omtk.rigging.autorig.rigFK import FK
 from omtk.libs import libRigging
 
 class RigAttHolder(RigCtrl):

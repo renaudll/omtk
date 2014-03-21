@@ -20,3 +20,11 @@ def _reload():
 	reload(libs); libs._reload()
 	reload(rigging); rigging._reload()
 	'''
+
+'''
+# Here's how to reload for now:
+import omtk
+from omtk.libs import libPython
+reload libPython
+libPython.reload_module_recursive(omtk)
+'''

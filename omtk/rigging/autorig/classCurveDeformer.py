@@ -1,6 +1,6 @@
 import pymel.core as pymel
-from classRigNode import RigNode
-from classRigPart import RigPart
+from omtk.rigging.autorig.classRigNode import RigNode
+from omtk.rigging.autorig.classRigPart import RigPart
 
 '''
 A follice is constrained to the surface of a nurbsSurface. (see NurbsPlane class)

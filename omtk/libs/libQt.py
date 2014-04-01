@@ -1,15 +1,10 @@
-import imp
+import time
+import os
 from maya import OpenMayaUI
+from omtk.libs import libPython
 
-def _does_module_exist(_name):
-	try:
-		imp.find_module(_name)
-		return True
-	except ImportError:
-		return False
-
-use_pyqt4 = _does_module_exist('PyQt4')
-use_pyside = _does_module_exist('PySide')
+use_pyside = libPython.does_module_exist('PySide')
+use_pyqt4 = libPython.does_module_exist('PyQt4')
 
 print 'pyqt4' if use_pyqt4 else 'pyside'
 
@@ -27,3 +22,22 @@ elif use_pyside:
 	uic = shiboken
 	getMayaWindow = lambda: shiboken.wrapInstance(long(OpenMayaUI.MQtUtil.mainWindow()), QtGui.QWidget)
 	raise Exception
+
+# Return true if the .py associated with a .ui file is older or doesn't exist.
+def _can_compile_ui(path):
+	ui_dir = os.path.basedir(path)
+	ui_name, ui_ext = os.path.splitext(path)
+	assert(ui_ext == '.ui')
+
+	uic_path = os.path.join(ui_dir, '{0}.py'.format(ui_name))
+	if not os.path.exist(uic_path): return True
+
+	# Compile .ui only if more recent than the .py
+	timestamp_ui  = time.ctime(os.path.getmtime(path))
+	timestamp_uic = time.ctime(os.path.getmtime(uic_path))
+
+	return timestamp_ui > timestamp_uic
+
+def compile_ui(path):
+	if _can_compile_ui(path):
+		print 'Compile ui!'

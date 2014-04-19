@@ -25,12 +25,40 @@ def divide(arg1, arg2):
 def pow(arg1, arg2):
     return libRigging.CreateUtilityNode('multiplyDivide', operation=3, input1X=arg1, input2X=arg2).outputX
 
+def distance(arg1, arg2):
+    return libRigging.CreateUtilityNode('distance', inMatrix1=arg1, inMatrix2=arg2).distance
+
+def equal(arg1, arg2):
+    return libRigging.CreateUtilityNode('condition', operation=0, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
+
+def not_equal(*args, **kwargs):
+    return equal(operation=1, *args, **kwargs).outColorR
+
+def bigger(*args, **kwargs):
+    return equal(operation=2, *args, **kwargs).outColorR
+
+def bigger_or_equal(*args, **kwargs):
+    return equal(operation=3, *args, **kwargs).outColorR
+
+def smaller(*args, **kwargs):
+    return equal(operation=4, *args, **kwargs).outColorR
+
+def smaller_or_equal(*args, **kwargs):
+    return equal(operation=5, *args, **kwargs).outColorR
+
 dicOperator = {
     '+': add,
     '-': substract,
     '*': multiply,
     '/': divide,
-    '^': pow
+    '^': pow,
+    '~': distance,
+    '=': equal,
+    '!=': not_equal,
+    '>': bigger,
+    '>=' : bigger_or_equal,
+    '<': smaller,
+    '<=': smaller_or_equal
 }
 
 _varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')'] + dicOperator.keys()

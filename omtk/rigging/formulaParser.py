@@ -46,7 +46,7 @@ def smaller(*args, **kwargs):
 def smaller_or_equal(*args, **kwargs):
     return equal(operation=5, *args, **kwargs).outColorR
 
-dicOperator = {
+operators = {
     '+': add,
     '-': substract,
     '*': multiply,
@@ -61,7 +61,7 @@ dicOperator = {
     '<=': smaller_or_equal
 }
 
-_varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')'] + dicOperator.keys()
+_varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')', '.'] + operators.keys()
 regex_splitVariables = '|'.join(re.escape(str) for str in _varDelimiters)
 
 dicVariables = {}
@@ -70,6 +70,11 @@ def convert_basic_value(str):
     # handle parenthesis
     if isinstance(str, list):
         return create_utilityNodes(*str)
+
+    # try float conversion
+    try:
+        return float(str)
+    except: pass
 
     # try int conversion
     try:
@@ -89,11 +94,10 @@ def create_utilityNodes(*args):
     return_val = None
     for i in range(1, num_args-1):
         perArg = args[i]
-        if perArg in dicOperator:
+        if perArg in operators:
             preArg = convert_basic_value(args[i-1])
             posArg = convert_basic_value(args[i+1])
-            fn = dicOperator[perArg]
-            print fn
+            fn = operators[perArg]
             return_val = args[i+1] = fn(preArg, posArg)
             args[i-1] = None
             args[i] = None
@@ -103,6 +107,7 @@ def parse(str, **kwargs):
     # step 1: identify variables
     vars = (var.strip() for var in re.split(regex_splitVariables, str))
     vars = filter(lambda x: x, vars)
+    #print 'found vars:', vars
 
     # step 2: ensure all variables are defined
     # todo: validate vars types
@@ -112,16 +117,26 @@ def parse(str, **kwargs):
         if not var in kwargs:
             raise KeyError("Variable '{0}' is not defined".format(var))
         dicVariables[var] = kwargs[var]
-    print 'defined variables are:', dicVariables
+    #print 'defined variables are:', dicVariables
 
     # Convert parenthesis and operators to nested string lists
     # src: http://stackoverflow.com/questions/5454322/python-how-to-match-nested-parentheses-with-regex
     from omtk.deps import pyparsing # make sure you have this installed
-    thecontent = pyparsing.Word(pyparsing.alphanums) | '+' | '-' | '*' | '/' | '%'
-    parens     = pyparsing.nestedExpr( '(', ')', content=thecontent)
-    res = parens.parseString('({0})'.format(str)) # wrap all string in parenthesis, or it won't work
+    content = pyparsing.Word(pyparsing.alphanums + '.')
+    for op in operators.keys(): content |= op # defined operators
+    nestedExpr = pyparsing.nestedExpr( opener='(', closer=')', content=content)
+    #print 'parsing:', str
+    res = nestedExpr.parseString('({0})'.format(str)) # wrap all string in parenthesis, or it won't work
     nested_tokens = res.asList()[0]
 
-    print 'tokens', nested_tokens
+    #print 'tokens', nested_tokens
 
     return create_utilityNodes(*nested_tokens)
+
+'''
+ex: basic_squash
+parse("1 / x", stretch=xstretch)
+
+ex: complex squash
+parse("1 / (e^(x^2))", e=math.e, x=stretch)
+'''

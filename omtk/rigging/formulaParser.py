@@ -135,8 +135,9 @@ def parse(str, **kwargs):
 
 '''
 ex: basic_squash
-parse("1 / x", stretch=xstretch)
+parse("1 / stretch", stretch=xstretch)
 
-ex: complex squash
-parse("1 / (e^(x^2))", e=math.e, x=stretch)
+ex: complex squash (f=[0.0-1.0])
+parse("1 / stretch ^ (1 / (e^(x^2)))", e=math.e, x=f, stretch=stretch)
+
 '''

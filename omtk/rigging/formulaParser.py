@@ -7,58 +7,103 @@ Ex:
 '''
 # TODO: Implement operators priotity
 
-import re
+import re, math
 from omtk.libs import libRigging
+import pymel.core as pymel
 
-def add(arg1, arg2):
-    return libRigging.CreateUtilityNode('plusMinusAverage', operation=1, input1D=[arg1, arg2]).output1D
+class operator(object):
+    @classmethod
+    def execute(self, *args, **kwargs):
+        raise NotImplementedError
+    @classmethod
+    def create(self, *args, **kwargs):
+        raise NotImplementedError
 
-def substract(arg1, arg2):
-    return libRigging.CreateUtilityNode('plusMinusAverage', operation=2, input1D=[arg1, arg2]).output1D
+class add(operator):
+    def execute(self, arg1, arg2):
+        return arg1 + arg2
+    def create(self, arg1, arg2):
+        return libRigging.CreateUtilityNode('plusMinusAverage', operation=1, input1D=[arg1, arg2]).output1D
 
-def multiply(arg1, arg2):
-    return libRigging.CreateUtilityNode('multiplyDivide', operation=1, input1X=arg1, input2X=arg2).outputX
+class substract(operator):
+    def execute(self, arg1, arg2):
+        return arg1 - arg2
+    def create(self, arg1, arg2):
+        return libRigging.CreateUtilityNode('plusMinusAverage', operation=2, input1D=[arg1, arg2]).output1D
 
-def divide(arg1, arg2):
-    return libRigging.CreateUtilityNode('multiplyDivide', operation=2, input1X=arg1, input2X=arg2).outputX
+class multiply(operator):
+    def execute(arg1, arg2):
+        return arg1 * arg2;
+    def create(self, arg1, arg2):
+        return libRigging.CreateUtilityNode('multiplyDivide', operation=1, input1X=arg1, input2X=arg2).outputX
 
-def pow(arg1, arg2):
-    return libRigging.CreateUtilityNode('multiplyDivide', operation=3, input1X=arg1, input2X=arg2).outputX
+class divide(operator):
+    def execute(self, arg1, arg2):
+        return arg1 / arg2;
+    def create(self, arg1, arg2):
+        return libRigging.CreateUtilityNode('multiplyDivide', operation=2, input1X=arg1, input2X=arg2).outputX
 
-def distance(arg1, arg2):
-    return libRigging.CreateUtilityNode('distance', inMatrix1=arg1, inMatrix2=arg2).distance
+class pow(operator):
+    def execute(self, arg1, arg2):
+        return math.pow(arg1, arg2);
+    def create(self, arg1, arg2):
+        return libRigging.CreateUtilityNode('multiplyDivide', operation=3, input1X=arg1, input2X=arg2).outputX
 
-def equal(arg1, arg2):
-    return libRigging.CreateUtilityNode('condition', operation=0, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
+class distance(operator):
+    def execute(self, arg1, arg2):
+        return arg1 * arg2;
+    def create(self, arg1, arg2):
+        return libRigging.CreateUtilityNode('distance', inMatrix1=arg1, inMatrix2=arg2).distance
 
-def not_equal(*args, **kwargs):
-    return equal(operation=1, *args, **kwargs).outColorR
+class equal(operator):
+    def execute(self, arg1, arg2):
+        return arg1 == arg2;
+    def create(self, arg1, arg2):
+        return libRigging.CreateUtilityNode('condition', operation=0, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
-def bigger(*args, **kwargs):
-    return equal(operation=2, *args, **kwargs).outColorR
+class not_equal(operator):
+    def execute(self, arg1, arg2):
+        return arg1 != arg2;
+    def create(self, *args, **kwargs):
+        return equal(operation=1).outColorR
 
-def bigger_or_equal(*args, **kwargs):
-    return equal(operation=3, *args, **kwargs).outColorR
+class bigger(operator):
+    def execute(self, arg1, arg2):
+        return arg1 > arg2
+    def create(self, *args, **kwargs):
+        return equal(operation=2, *args, **kwargs).outColorR
 
-def smaller(*args, **kwargs):
-    return equal(operation=4, *args, **kwargs).outColorR
+class bigger_or_equal(operator):
+    def execute(self, arg1, arg2):
+        return arg1 >= arg2;
+    def create(self, *args, **kwargs):
+        return equal(operation=3, *args, **kwargs).outColorR
 
-def smaller_or_equal(*args, **kwargs):
-    return equal(operation=5, *args, **kwargs).outColorR
+class smaller(operator):
+    def execute(self, arg1, arg2):
+        return arg1 < arg2;
+    def create(self, *args, **kwargs):
+        return equal(operation=4, *args, **kwargs).outColorR
+
+class smaller_or_equal(operator):
+    def execute(self, arg1, arg2):
+        return arg1 <= arg2;
+    def create(self, *args, **kwargs):
+        return equal(operation=5, *args, **kwargs).outColorR
 
 operators = {
-    '+': add,
-    '-': substract,
-    '*': multiply,
-    '/': divide,
-    '^': pow,
-    '~': distance,
-    '=': equal,
-    '!=': not_equal,
-    '>': bigger,
-    '>=' : bigger_or_equal,
-    '<': smaller,
-    '<=': smaller_or_equal
+    '+': add(),
+    '-': substract(),
+    '*': multiply(),
+    '/': divide(),
+    '^': pow(),
+    '~': distance(),
+    '=': equal(),
+    '!=': not_equal(),
+    '>': bigger(),
+    '>=' : bigger_or_equal(),
+    '<': smaller(),
+    '<=': smaller_or_equal()
 }
 
 _varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')', '.'] + operators.keys()
@@ -88,6 +133,12 @@ def convert_basic_value(str):
 
     return str
 
+def can_optimise(*args):
+    for arg in args:
+        if isinstance(arg, pymel.Attribute):
+            return False
+    return True
+
 def create_utilityNodes(*args):
     args = list(args) # cast tuple to list
     num_args = len(args)
@@ -97,7 +148,8 @@ def create_utilityNodes(*args):
         if perArg in operators:
             preArg = convert_basic_value(args[i-1])
             posArg = convert_basic_value(args[i+1])
-            fn = operators[perArg]
+            cls = operators[perArg]
+            fn = cls.execute if can_optimise(preArg, posArg) else cls.create
             return_val = args[i+1] = fn(preArg, posArg)
             args[i-1] = None
             args[i] = None

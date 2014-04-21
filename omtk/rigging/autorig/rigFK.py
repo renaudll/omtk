@@ -13,33 +13,33 @@ class CtrlFk(RigCtrl):
 		return self.node
 
 class FK(RigPart):
-	def Build(self, _bConstraint=True, *args, **kwargs):
-		super(FK, self).Build(_bCreateGrpRig=False, *args, **kwargs)
+	def build(self, _bConstraint=True, *args, **kwargs):
+		super(FK, self).build(_bCreateGrpRig=False, *args, **kwargs)
 
 		# Create ctrl chain
 		self.aCtrls = []
-		for oInput in self.aInput:
+		for oInput in self.inputs:
 			#sCtrlName = self._pNameMapAnm.Serialize('fk')
 			sCtrlName = NameMap(oInput).Serialize('fk', _sType='anm')
 			oCtrl = CtrlFk(name=sCtrlName, _create=True)
 			oCtrl.offset.setMatrix(oInput.getMatrix(worldSpace=True))
 			self.aCtrls.append(oCtrl)
 
-		self.aCtrls[0].setParent(self.oGrpAnm)
+		self.aCtrls[0].setParent(self.grp_anm)
 		for i in range(1, len(self.aCtrls)):
 			self.aCtrls[i].setParent(self.aCtrls[i-1])
 
 		# Connect jnt -> anm
 		if _bConstraint is True:
-			for oInput, oCtrl in zip(self.aInput, self.aCtrls):
+			for oInput, oCtrl in zip(self.inputs, self.aCtrls):
 				pymel.parentConstraint(oCtrl, oInput)
 				pymel.connectAttr(oCtrl.s, oInput.s)
 
 		# Connect to parent
 		if self._oParent is not None:
-			pymel.parentConstraint(self._oParent, self.oGrpAnm, maintainOffset=True)
+			pymel.parentConstraint(self._oParent, self.grp_anm, maintainOffset=True)
 
-	def Unbuild(self, *args, **kwargs):
-		super(FK, self).Unbuild(*args, **kwargs)
+	def unbuild(self, *args, **kwargs):
+		super(FK, self).unbuild(*args, **kwargs)
 
 		self.aCtrls = None

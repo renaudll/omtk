@@ -27,8 +27,11 @@ def _createClassInstance(_clsName):
         logging.warning("Can't find class definition '{0}'".format(_clsName));
         return None
 
+    clsDef = getattr(sys.modules[cls.__module__], cls.__name__)
+    assert(clsDef is not None)
+
     try:
-        return getattr(sys.modules[cls.__module__], cls.__name__)()
+        return clsDef()
     except Exception, e:
         logging.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
         return None
@@ -69,7 +72,19 @@ def _isDataDagNode(_data):
     global _dag_types
     return any(filter(lambda x: isinstance(_data, x), iter(_dag_types)))
 
+
+__types__ = {
+    TYPE_LIST: _isDataList,
+    TYPE_BASIC: _isDataBasic,
+    TYPE_DAGNODE: _isDataDagNode,
+    TYPE_COMPLEX: _isDataComplex
+}
 def getDataType(_data, *args, **kwargs):
+    for type_id, type_fn in __types__.iteritems():
+        if type_fn(_data):
+            return type_id
+
+    '''
     if _isDataList(_data, *args, **kwargs):
         return TYPE_LIST
     elif _isDataBasic(_data, *args, **kwargs):
@@ -80,6 +95,11 @@ def getDataType(_data, *args, **kwargs):
         return TYPE_COMPLEX
     else:
         logging.warning('{0} is unknow type'.format(_data))
+    '''
+
+    logging.warning('{0} is unknow type'.format(_data))
+
+
 
 def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
     ##logging.debug('[exportToBasicData]', _data)
@@ -116,11 +136,14 @@ def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
 
 
 def importToBasicData(_data, **args):
+    assert(_data is not None)
     if isinstance(_data, dict) and '_class' in _data:
         # Handle Serializable object
-        clsName = _data['_class'].split('.')[-1]
+        clsPath = _data['_class']
+        clsName = clsPath.split('.')[-1]
         instance = core._createClassInstance(clsName)
-        if not isinstance(instance, object):
+        if instance is None or not isinstance(instance, object):
+            logging.error("Can't create class instance for {0}, did you import to module?".format(clsPath))
             # TODO: Log error
             return None
         for key, val in _data.items():

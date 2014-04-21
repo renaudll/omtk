@@ -8,7 +8,6 @@ from rigFK import FK
 class FacePnt(RigNode):
     def __init__(self, _ref, *args, **kwargs):
 
-
         super(FacePnt, self).__init__(*args, **kwargs)
 
 class Nurbs(RigPart):

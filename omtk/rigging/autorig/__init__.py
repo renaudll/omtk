@@ -45,7 +45,7 @@ def BuildAll():
     networks = libSerialization.getNetworksByClass('RigRoot')
     for network in networks:
         rigroot = libSerialization.importFromNetwork(network)
-        rigroot.Build()
+        rigroot.build()
         pymel.delete(network)
         libSerialization.exportToNetwork(rigroot)
 
@@ -53,7 +53,7 @@ def UnbuildAll():
     networks = libSerialization.getNetworksByClass('RigRoot')
     for network in networks:
         rigroot = libSerialization.importFromNetwork(network)
-        rigroot.Unbuild()
+        rigroot.unbuild()
         pymel.delete(network)
         pymel.select(libSerialization.exportToNetwork(rigroot))
 
@@ -96,6 +96,18 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.updateData()
         self.updateUi()
 
+    #
+    # root property
+    #
+    @property
+    def root(self):
+        return self.__dict__['_root']
+    @root.getter
+    def root(self):
+        if not '_root' in self.__dict__:
+            self.__dict__['_root'] = Create()
+        return self.__dict__['_root']
+
     def _rigRootToQTreeWidget(self, _rig):
         qItem = QtGui.QTreeWidgetItem(0)
         if hasattr(_rig, '_network'):
@@ -129,7 +141,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if not rig.isBuilt():
-                rig.Build()
+                rig.build()
             else:
                 pymel.warning("Can't build {0}, already built.".format(rig))
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE
@@ -139,7 +151,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if rig.isBuilt():
-                rig.Unbuild()
+                rig.unbuild()
             else:
                 pymel.warning("Can't unbuild {0}, already unbuilt.".format(rig))
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE
@@ -149,17 +161,15 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if rig.isBuilt():
-                rig.Unbuild()
-            rig.Build()
+                rig.unbuild()
+            rig.build()
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE
             libSerialization.exportToNetwork(rig)
 
     def _actionImport(self):
-        print 'import'
         raise NotImplementedError
 
     def _actionExport(self):
-        print 'export'
         raise NotImplementedError
 
     def _actionUpdate(self):
@@ -170,10 +180,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         pymel.select([item.net for item in self.treeWidget.selectedItems()])
 
     def _actionAddPart(self, _cls):
-        root = next(iter(self.m_rigs), None)
-        if root is None: return
-        part = _cls(_aInput=pymel.selected())
-        root.append(part)
+        part = _cls(_inputs=pymel.selected())
+        self.root.append(part)
         libSerialization.exportToNetwork(part) # Export part and only part
         self.updateUi()
 

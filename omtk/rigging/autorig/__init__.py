@@ -41,7 +41,14 @@ def _reload():
 def Create(*args, **kwargs):
     return classRigRoot.RigRoot(*args, **kwargs)
 
-def BuildAll():
+def find():
+    networks = libSerialization.getNetworksByClass('RigRoot')
+    return [libSerialization.importFromNetwork(network) for network in networks]
+
+def find_one(*args, **kwargs):
+    return next(iter(find(*args, **kwargs)), None)
+
+def build_all():
     networks = libSerialization.getNetworksByClass('RigRoot')
     for network in networks:
         rigroot = libSerialization.importFromNetwork(network)
@@ -49,7 +56,7 @@ def BuildAll():
         pymel.delete(network)
         libSerialization.exportToNetwork(rigroot)
 
-def UnbuildAll():
+def unbuild_all():
     networks = libSerialization.getNetworksByClass('RigRoot')
     for network in networks:
         rigroot = libSerialization.importFromNetwork(network)

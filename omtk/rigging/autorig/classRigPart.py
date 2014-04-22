@@ -61,7 +61,8 @@ class RigPart(RigElement):
             self._oParent = oRef.getParent() if oRef is not None else None
 
     def build(self, _bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs):
-        assert(len(self.inputs) != 0)
+        if len(self.inputs) == 0:
+            raise Exception("No inputs defined for {0}".format(self))
         assert(hasattr(self, '_pNameMapAnm'))
         assert(self._pNameMapAnm is not None)
         assert(hasattr(self, '_pNameMapRig'))

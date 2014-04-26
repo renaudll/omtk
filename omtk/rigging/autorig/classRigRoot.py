@@ -2,7 +2,7 @@ import pymel.core as pymel
 from classRigCtrl import RigCtrl
 from classRigNode import RigNode
 from classRigElement import RigElement
-from omtk.libs import libRigging
+from omtk.libs import libRigging, libPymel
 import logging
 import time
 
@@ -34,19 +34,21 @@ class RigRoot(RigElement):
         #    logging.error("[RigRoot:AddPart] Invalid RigPart '{0}' provided".format(_part))
         self.aChildrens.append(_part)
 
-    def PreBuild(self):
+    def prebuild(self):
         pass
 
-    def Build(self, **kwargs):
+    def build(self, **kwargs):
         sTime = time.time()
 
-        self.PreBuild()
+        self.prebuild()
 
         aObjsBefore = pymel.ls('*')
-        try:
-            for children in self.aChildrens:
-                children.Build(**kwargs)
-            self.PostBuild()
+
+        #try:
+        for children in self.aChildrens:
+            children.build(**kwargs)
+        self.postbuild()
+        '''
         except Exception, e:
             logging.error("AUTORIG BUILD FAIL! (see log)")
             #import traceback
@@ -55,54 +57,51 @@ class RigRoot(RigElement):
             aNewObjs = [o for o in pymel.ls('*') if o not in aObjsBefore]
             logging.info("Deleting {0} nodes...".format(len(aNewObjs)))
             pymel.delete(aNewObjs)
-            pymel.error()
+            raise e
+        '''
 
         print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
-    def PostBuild(self):
+    def postbuild(self):
         # Group everything
-        aAllCtrls = filter(lambda x: x.getParent() is None, iter(pymel.ls('anm*')))
-        oGrpAnms = CtrlRoot(name='anm_root', _create=True)
-        for oCtrl in aAllCtrls: 
-            oCtrl.setParent(oGrpAnms)
+        all_anms = libPymel.ls_root_anms()
+        grp_anms = CtrlRoot(name='anm_root', _create=True)
+        all_anms.setParent(grp_anms)
 
-        aAllRigs = filter(lambda x: x.getParent() is None, iter(pymel.ls('rig*')))
-        oGrpRigs = RigNode(name='rigs', _create=True)
-        for oRig in aAllRigs:
-            oRig.setParent(oGrpRigs)
+        all_rigs = libPymel.ls_root_rigs()
+        grp_rigs = RigNode(name='rigs', _create=True)
+        all_rigs.setParent(grp_rigs)
 
-        aAllJnts = filter(lambda x: x.getParent() is None, iter(pymel.ls('jnt*')))
-        oGrpJnts = RigNode(name='jnts', _create=True)
-        for oJnt in aAllJnts:
-            oJnt.setParent(oGrpJnts)
+        all_jnts = libPymel.ls_root_jnts()
+        grp_jnts = RigNode(name='jnts', _create=True)
+        all_jnts.setParent(grp_jnts)
 
-        aAllGeos = filter(lambda x: x.getParent() is None, iter(pymel.ls('geo*')))
-        oGrpGeos = RigNode(name='geos', _create=True)
-        for oGeo in aAllGeos:
-            oGeo.setParent(oGrpGeos)
+        all_geos = libPymel.ls_root_geos()
+        grp_geos = RigNode(name='geos', _create=True)
+        all_geos.setParent(grp_geos)
 
         # Setup displayLayers
         oLayerAnm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerAnm, oGrpAnms, noRecurse=True)
+        pymel.editDisplayLayerMembers(oLayerAnm, grp_anms, noRecurse=True)
         oLayerAnm.color.set(17) # Yellow
 
         oLayerRig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerRig, oGrpRigs, noRecurse=True)
+        pymel.editDisplayLayerMembers(oLayerRig, grp_rigs, noRecurse=True)
         oLayerRig.color.set(13) # Red
         oLayerRig.visibility.set(0) # Hidden
         oLayerRig.displayType.set(2) # Frozen
 
         oLayerGeo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerGeo, oGrpGeos, noRecurse=True)
+        pymel.editDisplayLayerMembers(oLayerGeo, grp_geos, noRecurse=True)
         oLayerGeo.color.set(12) # Green?
         oLayerGeo.displayType.set(2) # Frozen
 
         # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
         libRigging.RestoreCtrlShapes()
 
-    def Unbuild(self, **kwargs):
+    def unbuild(self, **kwargs):
         # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
         libRigging.BackupCtrlShapes()
 
         for child in self.aChildrens:
-            child.Unbuild(**kwargs)
+            child.unbuild(**kwargs)

@@ -8,17 +8,17 @@ class Leg(Arm):
 		super(Leg, self).__init__(*args, **kwargs)
 		#Arm.__init__(self, *args, **kwargs)
 
-	def Build(self, *args, **kwargs):
-		super(Leg, self).Build(_bOrientIkCtrl=False, *args, **kwargs)
+	def build(self, *args, **kwargs):
+		super(Leg, self).build(_bOrientIkCtrl=False, *args, **kwargs)
 
 		# Hack: Ensure the ctrlIK is looking in the right direction
 		oMake = self.sysIK.ctrlIK.getShape().create.inputs()[0]
 		oMake.normal.set((0,1,0))
 
-		self.CreateFootRoll()
+		self.create_footroll()
 
 	# TODO: Support foot that is not aligned to world plane
-	def CreateFootRoll(self):
+	def create_footroll(self):
 		oFoot = self._aIkChain[self.iCtrlIndex]
 		oToes = self._aIkChain[self.iCtrlIndex+1]
 		oTips = self._aIkChain[self.iCtrlIndex+2]
@@ -58,7 +58,7 @@ class Leg(Arm):
 		oPivotM.setParent(oPivotF)
 		oPivotF.setParent(oPivotB)
 		oPivotB.setParent(oFootRollRoot)
-		oFootRollRoot.setParent(self.oGrpRig)
+		oFootRollRoot.setParent(self.grp_rig)
 		pymel.parentConstraint(self.sysIK.ctrlIK, oFootRollRoot, maintainOffset=True)
 		
 		# Create attributes

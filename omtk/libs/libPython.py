@@ -2,6 +2,8 @@ import os
 import types
 import imp
 import logging
+logging = logging.getLogger('libPython')
+logging.setLevel(0)
 
 def does_module_exist(module_name):
     try:

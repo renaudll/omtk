@@ -15,3 +15,20 @@ A set of tools that serialize/deserialize python objects in various formats (may
 * todo: Implement unique id to link to original python object.
 * todo: Implement 'update' method to prevent re-serializing everything (dirtybit?)
 
+### omtk.rigging.formulaParser
+A lightweight programming language that parse math formulas to utility nodes.
+This is done by defining lots of new operators.
+Currently, supported operators are: add (+), substract (-), multiply (*), divide (/), pow (^), distance (~), equal (=), not_equal (!=), bigger (>), bigger_or_equal (>=), smaller (<) and smaller_or_equal (<=).
+```
+# ex:creating a bell-curve type squash
+import math
+from omtk.rigging import formulaParser
+loc, locs = pymel.polysphere()
+stretch = loc.sy
+squash = formulaParser.parse("1 / (e^(x^2))", e=math.e, x=stretch)
+pymel.connectAttr(squash, loc.sx)
+pymel.connectAttr(squash, loc.sz)
+```
+* todo: Add support for operators priority
+* todo: Add support for vector2 and vector3 values without additional syntax.
+

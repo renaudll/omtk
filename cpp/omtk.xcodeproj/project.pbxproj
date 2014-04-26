@@ -131,6 +131,11 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_MASTER_OBJECT_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					.,
+					"$(MAYA_DIRECTORY)/devkit/include/",
+					/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6,
+				);
 				INSTALL_PATH = /usr/local/lib;
 				LIBRARY_STYLE = BUNDLE;
 				MACH_O_TYPE = mh_bundle;
@@ -153,6 +158,11 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_MASTER_OBJECT_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					.,
+					"$(MAYA_DIRECTORY)/devkit/include/",
+					/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6,
+				);
 				INSTALL_PATH = /usr/local/lib;
 				LIBRARY_STYLE = BUNDLE;
 				MACH_O_TYPE = mh_bundle;
@@ -174,8 +184,9 @@
 					REQUIRE_IOSTREAM,
 				);
 				HEADER_SEARCH_PATHS = (
-					.,
 					"$(MAYA_DIRECTORY)/devkit/include/",
+					/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6,
+					/Users/renaudlessardlarouche/GitHub/omtk/cpp/includes,
 				);
 				LIBRARY_SEARCH_PATHS = "$(MAYA_DIRECTORY)/Maya.app/Contents/MacOS";
 				LIBRARY_STYLE = BUNDLE;
@@ -202,8 +213,9 @@
 					REQUIRE_IOSTREAM,
 				);
 				HEADER_SEARCH_PATHS = (
-					.,
 					"$(MAYA_DIRECTORY)/devkit/include/",
+					/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6,
+					/Users/renaudlessardlarouche/GitHub/omtk/cpp/includes,
 				);
 				LIBRARY_SEARCH_PATHS = "$(MAYA_DIRECTORY)/Maya.app/Contents/MacOS";
 				LIBRARY_STYLE = BUNDLE;

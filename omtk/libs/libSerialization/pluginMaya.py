@@ -15,7 +15,6 @@ core._dag_types.append(pymel.general.PyNode)
 #
 
 def _createAttribute(_name, _val):
-    print '_createAttribute', _name, _val
     if isinstance(_val, basestring):
         fn = OpenMaya.MFnTypedAttribute()
         fn.create(_name, _name, OpenMaya. MFnData.kString)
@@ -63,8 +62,6 @@ def _createAttribute(_name, _val):
     pymel.error("Can't create MFnAttribute for {0} {1} {2}".format(_name, _val, kType))
 
 def _addAttr(_fnDependNode, _sName, _pValue):
-    print type(_pValue)
-
     sType = core.getDataType(_pValue)
 
     # Skip empty list
@@ -111,17 +108,9 @@ def _setAttr(_plug, _val):
         elif isinstance(_val, basestring):
             _plug.setString(_val)
         elif isinstance(_val, pymel.datatypes.Matrix):
-            # TODO: Make it work
             fn = OpenMaya.MFnMatrixData()
-            obj = fn.create()
-            print obj
-            _plug.setMObject(obj)
-            '''
-            fn = OpenMaya.MFnMatrixData()
-            fn.create()
-            print fn.object()
-            _plug.setMObject(fn.object())
-            '''
+            mo = fn.create(_val.apicls(_val))
+            _plug.setMObject(mo)
 
     elif sType == core.TYPE_COMPLEX:
         network = exportToNetwork(_val)

@@ -1,4 +1,5 @@
 *.egg-info/*
+cpp/includes/
 
 /*cpp-related exclude*/
 cpp/build/*

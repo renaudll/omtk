@@ -17,11 +17,10 @@ if use_pyqt4:
 elif use_pyside:
 	import PySide
 	import shiboken
-	QtCore = PySide.QtCore
-	QtGui = PySide.QtGui
+	from PySide import QtCore
+	from PySide import QtGui
 	uic = shiboken
 	getMayaWindow = lambda: shiboken.wrapInstance(long(OpenMayaUI.MQtUtil.mainWindow()), QtGui.QWidget)
-	raise Exception
 
 # Return true if the .py associated with a .ui file is older or doesn't exist.
 def _can_compile_ui(path):

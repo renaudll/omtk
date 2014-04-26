@@ -73,7 +73,6 @@ class RigRoot(RigElement):
 
         aAllJnts = filter(lambda x: x.getParent() is None, iter(pymel.ls('jnt*')))
         oGrpJnts = RigNode(name='jnts', _create=True)
-        oGrpJnts.setParent(oGrpRigs)
         for oJnt in aAllJnts:
             oJnt.setParent(oGrpJnts)
 

@@ -1,5 +1,4 @@
 import os
-import sip
 import functools
 from maya import OpenMayaUI
 import pymel.core as pymel

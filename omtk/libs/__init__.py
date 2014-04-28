@@ -5,4 +5,5 @@ import libAttr
 import libPymel
 
 if libPython.does_module_exist("maya"):
-	import libRigging
+    import libRigging
+    import libUtils

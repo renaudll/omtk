@@ -4,10 +4,6 @@ from rigArm import Arm
 from omtk.libs import libRigging
 
 class Leg(Arm):
-	def __init__(self, *args, **kwargs):
-		super(Leg, self).__init__(*args, **kwargs)
-		#Arm.__init__(self, *args, **kwargs)
-
 	def build(self, *args, **kwargs):
 		super(Leg, self).build(_bOrientIkCtrl=False, *args, **kwargs)
 

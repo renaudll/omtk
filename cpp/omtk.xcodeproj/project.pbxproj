@@ -12,6 +12,9 @@
 
 /* Begin PBXFileReference section */
 		100000000000000000000001 /* omtk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = omtk.cpp; sourceTree = "<group>"; };
+		3125038D1908A09B00A51BA0 /* Maya.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; name = Maya.app; path = ../../../../../Applications/Autodesk/maya2013/Maya.app; sourceTree = "<group>"; };
+		3125038F1909F90800A51BA0 /* Python */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = Python; path = ../../../../../System/Library/Frameworks/Python.framework/Versions/2.6/Python; sourceTree = "<group>"; };
+		312503921909F97900A51BA0 /* python2.6 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = python2.6; path = ../../../../../System/Library/Frameworks/Python.framework/Versions/2.6/bin/python2.6; sourceTree = "<group>"; };
 		D2AAC0630554660B00DB518D /* omtk.bundle */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = omtk.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -29,6 +32,9 @@
 		08FB7794FE84155DC02AAC07 /* circleNodePlugin */ = {
 			isa = PBXGroup;
 			children = (
+				312503921909F97900A51BA0 /* python2.6 */,
+				3125038F1909F90800A51BA0 /* Python */,
+				3125038D1908A09B00A51BA0 /* Maya.app */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
 			);
@@ -137,6 +143,10 @@
 					/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6,
 				);
 				INSTALL_PATH = /usr/local/lib;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/Frameworks/Python.framework/Versions/2.6",
+				);
 				LIBRARY_STYLE = BUNDLE;
 				MACH_O_TYPE = mh_bundle;
 				PREBINDING = NO;
@@ -164,6 +174,10 @@
 					/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6,
 				);
 				INSTALL_PATH = /usr/local/lib;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/Frameworks/Python.framework/Versions/2.6",
+				);
 				LIBRARY_STYLE = BUNDLE;
 				MACH_O_TYPE = mh_bundle;
 				PREBINDING = NO;
@@ -197,6 +211,7 @@
 					"-Wl,-exported_symbol,__Z18uninitializePlugin7MObject",
 					"-lOpenMaya",
 					"-lFoundation",
+					"-lpython2.6",
 				);
 			};
 			name = Debug;
@@ -226,6 +241,7 @@
 					"-Wl,-exported_symbol,__Z18uninitializePlugin7MObject",
 					"-lOpenMaya",
 					"-lFoundation",
+					"-lpython2.6",
 				);
 			};
 			name = Release;

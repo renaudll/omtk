@@ -1,9 +1,9 @@
 #include <string.h>
 #include <maya/MGlobal.h>
 #include <maya/MPxCommand.h>
-#include <maya/MPxNode.h> 
-#include <maya/MString.h> 
-#include <maya/MTypeId.h> 
+#include <maya/MPxNode.h>
+#include <maya/MString.h>
+#include <maya/MTypeId.h>
 #include <maya/MPlug.h>
 #include <maya/MFnPlugin.h>
 
@@ -11,7 +11,7 @@
 
 
 // Export command
-class cmd_exportToNetwork : public MPxCommand 
+class cmd_exportToNetwork : public MPxCommand
 {
 	public:
 		cmd_exportToNetwork() {};
@@ -27,7 +27,7 @@ class cmd_exportToNetwork : public MPxCommand
 };
 
 // Import command
-class cmd_importFromNetwork : public MPxCommand 
+class cmd_importFromNetwork : public MPxCommand
 {
 	public:
 		cmd_importFromNetwork() {};
@@ -40,8 +40,8 @@ class cmd_importFromNetwork : public MPxCommand
 };
 
 
-MStatus initializePlugin ( MObject obj )
-{ 
+MStatus initializePlugin (MObject obj)
+{
 	MStatus   status;
 	MFnPlugin plugin( obj, PLUGIN_COMPANY, "4.5", "Any");
 
@@ -52,7 +52,7 @@ MStatus initializePlugin ( MObject obj )
 	return status;
 }
 
-MStatus uninitializePlugin( MObject obj)
+MStatus uninitializePlugin(MObject obj)
 {
 	MStatus   status;
 	MFnPlugin plugin( obj );
@@ -65,8 +65,29 @@ MStatus uninitializePlugin( MObject obj)
 	return status;
 }
 
+/*
+void createAttr(MFnDependNode& _fnDependNode, MString& _sName, PyObject& _pyObj)
+{
+	// TODO: Implement
+}
+
+void addAttr(MFnDependNode& _fnDependNode, MString& _sName, PyObject& _pyObj)
+{
+	MStatus status;
+
+	// Find MPlug or create it
+	MPlug plug = _fnDependNode.findPlug(_sName, status);
+	CHECK_MSTATUS(status)
+	if (!plug)
+	{
+		createAttr(_fnDependNode, _sName, _pyObj);
+	}
+}
+*/
+
 ////////////////////////////////////////////////////////////////////////////////
 /* Example of embedding Python in another program */
+
 
 #include "Python.h"
 
@@ -76,35 +97,35 @@ int main(int argc, char **argv)
 {
     /* Pass argv[0] to the Python interpreter */
     Py_SetProgramName(argv[0]);
-    
+
     /* Initialize the Python interpreter.  Required. */
     Py_Initialize();
-    
+
     /* Add a static module */
     init_libSerialization();
-    
+
     /* Define sys.argv.  It is up to the application if you
      want this; you can also let it undefined (since the Python
      code is generally not a main program it has no business
      touching sys.argv...) */
     PySys_SetArgv(argc, argv);
-    
+
     /* Do some application specific code */
     printf("Hello, brave new world\n\n");
-    
+
     /* Execute some Python statements (in module __main__) */
     PyRun_SimpleString("import sys\n");
     PyRun_SimpleString("print sys.builtin_module_names\n");
     PyRun_SimpleString("print sys.modules.keys()\n");
     PyRun_SimpleString("print sys.executable\n");
     PyRun_SimpleString("print sys.argv\n");
-    
+
     /* Note that you can call any public function of the Python
      interpreter here, e.g. call_object(). */
-    
+
     /* Some more application specific code */
     printf("\nGoodbye, cruel world\n");
-    
+
     /* Exit, cleaning up the interpreter */
     Py_Exit(0);
     /*NOTREACHED*/
@@ -113,8 +134,7 @@ int main(int argc, char **argv)
 /* A static module */
 
 /* 'self' is not used */
-static PyObject *
-libSerialization_foo(PyObject *self, PyObject* args)
+static PyObject * libSerialization_foo(PyObject *self, PyObject* args)
 {
     return PyInt_FromLong(42L);
 }

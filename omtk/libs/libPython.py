@@ -1,7 +1,4 @@
-import os
-import types
-import imp
-import logging
+import os, types, imp, logging, re
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
 
@@ -37,3 +34,41 @@ def reload_module_recursive(module, namespace=''):
             if hasattr(module, cur_file) and isinstance(getattr(module, cur_file), types.ModuleType):
                 logging.debug('Found folder {0}'.format(cur_file))
                 reload_module_recursive(getattr(module, cur_file))
+
+# Another potential solution (maybe more efficient than reload_module_recursive)
+# src: http://stackoverflow.com/questions/15506971/recursive-version-of-reload/17194836#17194836
+from types import ModuleType
+def rreload(module, exceptions=['_.*', 'sys', 'os', 'imp', 're', 'logging', 'OpenMaya.*', 'pymel', 'Qt.*']):
+    for attribute_name in dir(module):
+        attribute = getattr(module, attribute_name)
+        if type(attribute) is ModuleType:
+            is_blacklisted = any((exception for exception in exceptions if re.match(exception, attribute_name)))
+            if not is_blacklisted:
+                print attribute_name
+                rreload(attribute)
+    try:
+        reload(module)
+    except ImportError, e:
+        logging.info(str(e))
+
+# src: http://code.activestate.com/recipes/66472/
+def frange(start, end=None, inc=None):
+    "A range function, that does accept float increments..."
+
+    if end == None:
+        end = start + 0.0
+        start = 0.0
+
+    if inc == None:
+        inc = 1.0
+
+    L = []
+    while 1:
+        next = start + len(L) * inc
+        if inc > 0 and next >= end:
+            break
+        elif inc < 0 and next <= end:
+            break
+        L.append(next)
+
+    return L

@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide import QtCore, QtGui
+from omtk.libs.libQt import QtCore, QtGui
 
 try:
     _fromUtf8 = lambda s: s

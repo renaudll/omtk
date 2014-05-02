@@ -136,10 +136,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def updateUi(self):
         self.treeWidget.clear()
-        for rig in self.m_rigs:
-            qItem = self._rigRootToQTreeWidget(rig)
-            self.treeWidget.addTopLevelItem(qItem)
-            self.treeWidget.expandItem(qItem)
+        qItem = self._rigRootToQTreeWidget(self.root)
+        self.treeWidget.addTopLevelItem(qItem)
+        self.treeWidget.expandItem(qItem)
 
     #
     # Events

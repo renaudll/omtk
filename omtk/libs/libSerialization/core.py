@@ -2,7 +2,6 @@ import logging as _logging
 logging = _logging.getLogger()
 logging.setLevel(_logging.WARNING)
 import sys
-import core
 
 # constants
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX = range(4)
@@ -141,7 +140,7 @@ def importToBasicData(_data, **args):
         # Handle Serializable object
         clsPath = _data['_class']
         clsName = clsPath.split('.')[-1]
-        instance = core._createClassInstance(clsName)
+        instance = _createClassInstance(clsName)
         if instance is None or not isinstance(instance, object):
             logging.error("Can't create class instance for {0}, did you import to module?".format(clsPath))
             # TODO: Log error
@@ -151,7 +150,7 @@ def importToBasicData(_data, **args):
                 instance.__dict__[key] = importToBasicData(val, **args)
         return instance
     # Handle array
-    elif core._isDataList(_data):
+    elif _isDataList(_data):
         return [importToBasicData(v, **args) for v in _data]
     # Handle other types of data
     else:

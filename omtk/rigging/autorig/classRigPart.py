@@ -21,15 +21,6 @@ class RigPart(RigElement):
     def isBuilt(self):
         return self.grp_anm is not None or self.grp_rig is not None
 
-    # Allow self.PostInputSet() to be called automaticly when self.inputs is set.
-    @property
-    def inputs(self):
-        return self.__dict__['_inputs']
-
-    @inputs.setter
-    def inputs(self, val):
-        self.__dict__['_inputs'] = val
-        self._post_setattr_inputs()
 
     @property
     def outputs(self):
@@ -44,12 +35,20 @@ class RigPart(RigElement):
         self._pNameMapAnm = None
         self._pNameMapRig = None
 
-        self.inputs = _inputs # since we're using hook on inputs, assign it last!
+        #  since we're using hook on inputs, assign it last!
+        self.inputs = _inputs
 
     def __repr__(self):
         # TODO: Never crash on __repr__
         assert(hasattr(self, '_pNameMapAnm'))
         return '{0} ({1})'.format(str(self._pNameMapAnm), self.__class__.__name__ )
+
+    def __setattr__(self, key, val):
+        self.__dict__[key] = val
+        # todo: find a faster way? (properties don't work since we need access via libSerialization)
+        if key == 'inputs':
+            self._post_setattr_inputs()
+
 
     # Even when nothing is build, it's usefull to access properties like namemaps.
     # This method is called automaticly when self.inputs is changed.
@@ -89,7 +88,7 @@ class RigPart(RigElement):
     # Used in libSerialization
     def __getNetworkName__(self):
         assert(hasattr(self, '_pNameMapRig'))
-        assert(self._pNameMapRig)
+        if (not self._pNameMapRig): pymel.error('self._pNameMapRig is None, inputs: {0}'.format(self.inputs))
         return self._pNameMapRig.Serialize(self.__class__.__name__, _sType='net')
 
     # Overwritten from Serializable

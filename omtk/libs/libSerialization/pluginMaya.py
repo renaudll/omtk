@@ -164,7 +164,7 @@ def _getNetworkAttr(_att):
     return _att.get()
 
 def exportToNetwork(_data, **kwargs):
-    #logging.debug('CreateNetwork {0}'.format(_data))
+    logging.debug('CreateNetwork {0}'.format(_data))
 
     if hasattr(_data, '_network') and isinstance(_data._network, pymel.PyNode) and _data._network.exists():
         network = _data._network
@@ -188,6 +188,7 @@ def exportToNetwork(_data, **kwargs):
             if key == '_class' or key[0] != '_': # Attributes starting with '_' are protected or private
                 _addAttr(fnNet, key, val)
 
+    print network.name()
     return network
 
 def importFromNetwork(_network):

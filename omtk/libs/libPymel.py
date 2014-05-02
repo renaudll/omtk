@@ -74,4 +74,15 @@ def ls_root_rigs(**kwargs):
 def ls_root_jnts(**kwargs):
     return ls_root('jnt*', **kwargs)
 
+#
+# isinstance() reimplementation
+#
 
+# Class check for transform PyNodes
+def isinstance_of_transform(obj, cls=pymel.nodetypes.Transform):
+    return isinstance(obj, cls)
+
+# Class check for shape PyNodes
+def isinstance_of_shape(obj, cls=pymel.nodetypes.Shape):
+    if isinstance(obj, pymel.nodetypes.Transform):
+        return any((shape for shape in obj.getShapes() if isinstance(shape, cls)))

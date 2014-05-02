@@ -13,6 +13,7 @@ import classPoint
 
 import rigFK
 import rigIK
+import rigSplineIK
 import rigArm
 import rigLeg
 import classCurveDeformer
@@ -32,6 +33,7 @@ def _reload():
 
     reload(rigFK)
     reload(rigIK)
+    reload(rigSplineIK)
     reload(rigArm)
     reload(rigLeg)
 
@@ -188,7 +190,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def _actionAddPart(self, _cls):
         part = _cls(_inputs=pymel.selected())
         self.root.append(part)
-        libSerialization.exportToNetwork(part) # Export part and only part
+        net = libSerialization.exportToNetwork(self.root) # Export part and only part
+        pymel.select(net)
         self.updateUi()
 
     # TODO: Move to lib

@@ -57,15 +57,15 @@ class CurveDeformer(RigPart):
     def __init__(self, _line, _numJnts=19, *args, **kwargs):
         super(CurveDeformer, self).__init__(*args, **kwargs)
 
-        self.inputs = [_line]
+        self.input = [_line]
         self.type = self.kType_NurbsSurface
         self.numJnts = _numJnts
 
     def build(self):
         super(CurveDeformer, self).build()
 
-        oCurve = next((o for o in self.inputs if any (s for s in o.getShapes() if isinstance(s, pymel.nodetypes.NurbsCurve))), None)
-        oSurface = next((o for o in self.inputs if any (s for s in o.getShapes() if isinstance(s, pymel.nodetypes.NurbsSurface))), None)
+        oCurve = next((o for o in self.input if any (s for s in o.getShapes() if isinstance(s, pymel.nodetypes.NurbsCurve))), None)
+        oSurface = next((o for o in self.input if any (s for s in o.getShapes() if isinstance(s, pymel.nodetypes.NurbsSurface))), None)
 
         if self.type == self.kType_NurbsSurface:
             oSurface = _createNurbsSurfaceFromNurbsCurve(oCurve)

@@ -14,8 +14,8 @@ class SplineIK(RigPart):
 
     def _post_setattr_inputs(self):
         super(SplineIK, self)._post_setattr_inputs()
-        self._joints = [input for input in self.inputs if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
-        self._curves = [input for input in self.inputs if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
+        self._joints = [input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
+        self._curves = [input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
 
     def build(self,  *args, **kwargs):
         assert(len(self._joints) > 1) # need at least 2 jnts
@@ -26,7 +26,6 @@ class SplineIK(RigPart):
         # todo: handle multiple curves?
         curve = self._curves[0]
         curveShape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)), None)
-        print curve, type(curve)
 
         # create splineik effector
         # todo: search for additional options

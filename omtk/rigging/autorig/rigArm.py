@@ -26,15 +26,15 @@ class Arm(RigPart):
         super(Arm, self).build(*args, **kwargs)
 
         # Create ikChain and fkChain
-        self._aIkChain = pymel.duplicate(self.inputs, renameChildren=True, parentOnly=True)
-        for oInput, oIk, in zip(self.inputs, self._aIkChain):
+        self._aIkChain = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
+        for oInput, oIk, in zip(self.input, self._aIkChain):
             pNameMap = NameMap(oInput, _sType='rig')
             oIk.rename(pNameMap.Serialize('ik'))
         self._aIkChain[0].setParent(self._oParent) # Trick the IK system (temporary solution)
 
         # Rig ikChain and fkChain
         self.sysIK = IK(self._aIkChain); self.sysIK.build(**kwargs)
-        self.sysFK = FK(self.inputs); self.sysFK.build(_bConstraint=False, **kwargs)
+        self.sysFK = FK(self.input); self.sysFK.build(_bConstraint=False, **kwargs)
         self.sysIK.grp_anm.setParent(self.grp_anm)
         self.sysIK.grp_rig.setParent(self.grp_rig)
         self.sysFK.grp_anm.setParent(self.grp_anm)
@@ -43,7 +43,7 @@ class Arm(RigPart):
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         oAttHolder = RigAttHolder(name=self._pNameMapAnm.Serialize('atts'), _create=True)
         oAttHolder.setParent(self.grp_anm)
-        pymel.parentConstraint(self.inputs[self.sysIK.iCtrlIndex], oAttHolder.offset)
+        pymel.parentConstraint(self.input[self.sysIK.iCtrlIndex], oAttHolder.offset)
         pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
         attIkWeight = oAttHolder.attr(self.kAttrName_State)
         attFkWeight = libRigging.CreateUtilityNode('reverse', inputX=attIkWeight).outputX
@@ -56,7 +56,7 @@ class Arm(RigPart):
         #self.swivelSkinPose = self.sysIK.ctrlSwivel.getMatrix() * self.aInput[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
         # Blend ikChain with fkChain
-        for oInput, oIk, oFk in zip(self.inputs, self._aIkChain, self.sysFK.aCtrls):
+        for oInput, oIk, oFk in zip(self.input, self._aIkChain, self.sysFK.aCtrls):
             oConstraint = pymel.parentConstraint(oIk, oFk, oInput)
             attCurIkWeight, attCurFkWeight = oConstraint.getWeightAliasList()
             pymel.connectAttr(attIkWeight, attCurIkWeight)
@@ -78,7 +78,7 @@ class Arm(RigPart):
 
     def snapIkToFk(self):
         # Position ikCtrl
-        tmCtrlIk = self.inputs[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
+        tmCtrlIk = self.input[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
         self.sysIK.ctrlIK.setMatrix(self.ctrlIkOffset * tmCtrlIk, worldSpace=True)
 
         # Position swivel
@@ -97,7 +97,7 @@ class Arm(RigPart):
         self.sysIK.ctrlSwivel.setTranslation(posSwivel, space='world')
 
     def snapFkToIk(self):
-        for ctrl, jnt in zip(self.sysFK.aCtrls, self.inputs):
+        for ctrl, jnt in zip(self.sysFK.aCtrls, self.input):
             ctrl.setMatrix(jnt.getMatrix(worldSpace=True), worldSpace=True)
 
     def switchToIk(self):

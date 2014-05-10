@@ -45,20 +45,20 @@ class IK(RigPart):
 
     def build(self, _bOrientIkCtrl=True, softik=True, *args, **kwargs):
         super(IK, self).build(*args, **kwargs)
-        oChainS = self.inputs[0]
-        oChainE = self.inputs[self.iCtrlIndex]
+        oChainS = self.input[0]
+        oChainE = self.input[self.iCtrlIndex]
 
         # Compute chainLength
         fChainLength = 0
-        for oInput in self.inputs[1:self.iCtrlIndex + 1]:
+        for oInput in self.input[1:self.iCtrlIndex + 1]:
             fChainLength += oInput.t.get().length()
 
         # Compute swivel position
         p3ChainS = oChainS.getTranslation(space='world')
         p3ChainE = oChainE.getTranslation(space='world')
-        fRatio = self.inputs[1].t.get().length() / fChainLength
+        fRatio = self.input[1].t.get().length() / fChainLength
         p3SwivelBase = (p3ChainE - p3ChainS) * fRatio + p3ChainS
-        p3SwivelDir = (self.inputs[1].getTranslation(space='world') - p3SwivelBase).normal()
+        p3SwivelDir = (self.input[1].getTranslation(space='world') - p3SwivelBase).normal()
         p3SwivelPos = p3SwivelBase + p3SwivelDir * fChainLength
 
         # Create ikChain
@@ -80,11 +80,11 @@ class IK(RigPart):
         if _bOrientIkCtrl is True:
             self.ctrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
 
-        self.ctrlSwivel = CtrlIkSwivel(_oLineTarget=self.inputs[1], _create=True)
+        self.ctrlSwivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrlSwivel.setParent(self.grp_anm)
         self.ctrlSwivel.rename(self._pNameMapAnm.Serialize('ikSwivel'))
         self.ctrlSwivel.offset.setTranslation(p3SwivelPos, space='world')
-        self.ctrlSwivel.offset.setRotation(self.inputs[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
+        self.ctrlSwivel.offset.setRotation(self.input[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
         self.swivelDistance = fChainLength # Used in ik/fk switch
 
         # Create softIk
@@ -191,7 +191,7 @@ class IK(RigPart):
             attStretch = libRigging.CreateUtilityNode('condition', operation=2, firstTerm=attStretch, secondTerm=1.0,
                                                       colorIfTrueR=attStretch,
                                                       colorIfFalseR=1.0).outColorR  # GreaterThan
-            for oInput in self.inputs[1:self.iCtrlIndex + 1]:
+            for oInput in self.input[1:self.iCtrlIndex + 1]:
                 attNewPos = libRigging.CreateUtilityNode('multiplyDivide', input1=oInput.t.get(), input2X=attStretch,
                                                          input2Y=attStretch, input2Z=attStretch).output
                 pymel.connectAttr(attNewPos, oInput.t)

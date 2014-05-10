@@ -18,7 +18,7 @@ class FK(RigPart):
 
 		# Create ctrl chain
 		self.aCtrls = []
-		for oInput in self.inputs:
+		for oInput in self.input:
 			#sCtrlName = self._pNameMapAnm.Serialize('fk')
 			sCtrlName = NameMap(oInput).Serialize('fk', _sType='anm')
 			oCtrl = CtrlFk(name=sCtrlName, _create=True)
@@ -31,7 +31,7 @@ class FK(RigPart):
 
 		# Connect jnt -> anm
 		if _bConstraint is True:
-			for oInput, oCtrl in zip(self.inputs, self.aCtrls):
+			for oInput, oCtrl in zip(self.input, self.aCtrls):
 				pymel.parentConstraint(oCtrl, oInput)
 				pymel.connectAttr(oCtrl.s, oInput.s)
 

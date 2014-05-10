@@ -27,7 +27,7 @@ class RigPart(RigElement):
         return self.__dict__['_outputs']
 
 
-    def __init__(self, _inputs=[], *args, **kwargs):
+    def __init__(self, _input=[], *args, **kwargs):
         super(RigPart, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
         self.grp_anm = None
@@ -36,7 +36,7 @@ class RigPart(RigElement):
         self._pNameMapRig = None
 
         #  since we're using hook on inputs, assign it last!
-        self.inputs = _inputs
+        self.input = _input
 
     def __repr__(self):
         # TODO: Never crash on __repr__
@@ -46,21 +46,21 @@ class RigPart(RigElement):
     def __setattr__(self, key, val):
         self.__dict__[key] = val
         # todo: find a faster way? (properties don't work since we need access via libSerialization)
-        if key == 'inputs':
+        if key == 'input':
             self._post_setattr_inputs()
 
 
     # Even when nothing is build, it's usefull to access properties like namemaps.
     # This method is called automaticly when self.inputs is changed.
     def _post_setattr_inputs(self):
-        oRef = next(iter(self.inputs), None)
+        oRef = next(iter(self.input), None)
         if oRef is not None:
             self._pNameMapAnm = NameMap(oRef, _sType='anm')
             self._pNameMapRig = NameMap(oRef, _sType='rig')
             self._oParent = oRef.getParent() if oRef is not None else None
 
     def build(self, _bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs):
-        if len(self.inputs) == 0:
+        if len(self.input) == 0:
             raise Exception("No inputs defined for {0}".format(self))
         assert(hasattr(self, '_pNameMapAnm'))
         assert(self._pNameMapAnm is not None)
@@ -69,7 +69,7 @@ class RigPart(RigElement):
 
         logging.info('Building {0}'.format(self._pNameMapRig.Serialize()))
 
-        if len(self.inputs) == 0:
+        if len(self.input) == 0:
             logging.error("[RigPart:Build] Can't build, inputs is empty"); return False
 
         if _bCreateGrpAnm:
@@ -88,7 +88,7 @@ class RigPart(RigElement):
     # Used in libSerialization
     def __getNetworkName__(self):
         assert(hasattr(self, '_pNameMapRig'))
-        if (not self._pNameMapRig): pymel.error('self._pNameMapRig is None, inputs: {0}'.format(self.inputs))
+        if (not self._pNameMapRig): pymel.error('self._pNameMapRig is None, inputs: {0}'.format(self.input))
         return self._pNameMapRig.Serialize(self.__class__.__name__, _sType='net')
 
     # Overwritten from Serializable

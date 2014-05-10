@@ -1,42 +1,41 @@
 import pymel.core as pymel
+import logging
 
 '''
 This method will create a locator at the center of the selection.
 Support : Transform objects, vertices, faces and edges selection
 '''
-def createLocToCenter():
-    aSels = pymel.selected()
-    p3FinalPos = pymel.datatypes.Point()
-    iNumSel = 0
 
-    for oSel in aSels:
-        sNodeType = oSel.__class__.__name__ # Get pymel class name to know what to do with the selection
-        if sNodeType == "MeshVertex":
-            if len(oSel) == 1:
-                p3FinalPos += oSel.getPosition()
-                iNumSel += 1
-            else:
-                for oVert in oSel:
-                    p3FinalPos += oVert.getPosition()
-                    iNumSel += 1
-        elif sNodeType == "Transform":
-            p3FinalPos += oSel.getTranslation(space="world")
-            iNumSel += 1
-        elif sNodeType == "MeshEdge":
-            p3FinalPos += oSel.getPoint(0, space="world")
-            p3FinalPos += oSel.getPoint(1, space="world")
-            iNumSel += 2
-        elif sNodeType == "MeshFace":
-            aPointVtx = oSel.getPoints()
+def get_center(objs):
+    pos = pymel.datatypes.Point()
+    count = 0
+    for obj in objs:
+        if isinstance(obj, pymel.general.MeshVertex):
+            for vert in obj:
+                pos += vert.getPosition(space='world')
+                count += 1
+        elif isinstance(obj, pymel.nodetypes.Transform):
+            pos += obj.getTranslation(space="world")
+            count += 1
+        elif isinstance(obj, pymel.general.MeshEdge):
+            pos += obj.getPoint(0, space="world")
+            pos += obj.getPoint(1, space="world")
+            count += 2
+        elif isinstance(obj, pymel.general.MeshFace):
+            aPointVtx = obj.getPoints(space="world")
             for oPointVtx in aPointVtx:
-                p3FinalPos += oPointVtx
-                iNumSel += 1
+                pos += oPointVtx
+                count += 1
         else:
-            print "New data type. Need some code for this one. \n"
-    if iNumSel != 0:
-        p3FinalPos /= iNumSel
+            logging.warning("Unsupported data type ({0}), will be skipped".format(type(obj)))
+    if count != 0:
+        pos /= count
+    return pos
+
+def createLocToCenter():
+    p3Pos = get_center(pymel.selected(flatten=True))
     pPoint = pymel.general.spaceLocator()
-    pPoint.setPosition(p3FinalPos)
+    pPoint.setTranslation(p3Pos, space='world')
 
 '''Snap two or more objects with the last selected using their world matrix'''
 def snapObj():

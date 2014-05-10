@@ -1,8 +1,12 @@
+# Add dependencies to sys paths
+import sys, os, inspect
+module_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+sys.path.append(os.path.abspath(os.path.join(module_dir, 'deps')))
+
 from libs import libPython
 
-if libPython.does_module_exist("maya"):
-	import animation
-	import rigging
+import animation
+import rigging
 
 '''
 # Here's how to reload:

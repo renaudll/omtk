@@ -26,9 +26,10 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "# Build Rig\nfrom omtk.rigging import autorig\nreload(autorig)\nautorig._reload()\nautorig.BuildAll()" 
+        -command "# Build Rig\nfrom omtk.rigging import autorig\nimport reimport\nreimport.reimport(autorig)\nautorig.build_all()" 
         -sourceType "python" 
         -commandRepeatable 1
+        -flat 1
     ;
     shelfButton
         -enableCommandRepeat 1
@@ -52,9 +53,10 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "from omtk.rigging import autorig\nreload(autorig)\nautorig._reload()\nautorig.UnbuildAll()" 
+        -command "from omtk.rigging import autorig\nimport reimport\nreimport.reimport(autorig)\nautorig.unbuild_all()" 
         -sourceType "python" 
         -commandRepeatable 1
+        -flat 1
     ;
     shelfButton
         -enableCommandRepeat 1
@@ -78,9 +80,10 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\nreload(omtk)\nomtk._reload()\nomtk.animationikfkTools.switchToIk()" 
+        -command "import omtk\nimport reimport\nreimport.reimport(omtk)\nomtk.animationikfkTools.switchToIk()" 
         -sourceType "python" 
         -commandRepeatable 1
+        -flat 1
     ;
     shelfButton
         -enableCommandRepeat 1
@@ -104,9 +107,10 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\nreload(omtk)\nomtk._reload()\nomtk.animation.ikfkTools.switchToFk()" 
+        -command "import omtk\nimporet reimport\nreimport.reimport(omtk)\nomtk.animation.ikfkTools.switchToFk()" 
         -sourceType "python" 
         -commandRepeatable 1
+        -flat 1
     ;
     shelfButton
         -enableCommandRepeat 1
@@ -133,6 +137,115 @@ global proc shelf_omtk () {
         -command "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
         -sourceType "python" 
         -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import omtk\nomtk._reload()\nimport pymel.core as pymel\np = omtk.rigging.autorig.classPoint.LineDeformer(pymel.PyNode('curve1'))\np.Build()\n\n" 
+        -enableBackground 0
+        -align "center" 
+        -label "import omtk\nomtk._reload()\nimport pymel.core as pymel\np = omtk.r..." 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "reload" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk\nimport reimport\nreimport.reimport(omtk)\n\n\n\n\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import omtk\nomtk._reload()\nomtk.rigging.autorig.show()" 
+        -enableBackground 0
+        -align "center" 
+        -label "import omtk\nomtk._reload()\nomtk.rigging.autorig.show()" 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "RIG" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from omtk.rigging import autorig\nimport reimport\nreimport.reimport(autorig)\nautorig.show()\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import pydevd\npydevd.settrace('localhost', port=61428, stdoutToServer=True, stderrToServer=True)" 
+        -enableBackground 0
+        -align "center" 
+        -label "import pydevd\npydevd.settrace('localhost', port=61428, stdoutToS..." 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "pcm" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "sys.path.append(\"/Applications/PyCharm.app/helpers/pydev\")\nimport pydevd\npydevd.settrace('localhost', port=64304, stdoutToServer=True, stderrToServer=True, suspend=False)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Display relationships among nodes in your scene graphically" 
+        -enableBackground 0
+        -align "center" 
+        -label "Node Editor" 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "NE" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.25 
+        -image "menuIconWindow.png" 
+        -image1 "menuIconWindow.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "NodeEditorWindow" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
     ;
 
 } 

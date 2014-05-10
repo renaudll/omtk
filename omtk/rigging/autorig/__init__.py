@@ -1,6 +1,4 @@
-import os
 import functools
-from maya import OpenMayaUI
 import pymel.core as pymel
 
 import classNameMap
@@ -18,26 +16,7 @@ import rigArm
 import rigLeg
 import classCurveDeformer
 
-
 from omtk.libs import libSerialization
-
-def _reload():
-    reload(classNameMap)
-    reload(classRigNode)
-    reload(classRigCtrl)
-    reload(classRigElement)
-    reload(classRigPart)
-    reload(classRigRoot)
-    reload(classPoint)
-    reload(classCurveDeformer)
-
-    reload(rigFK)
-    reload(rigIK)
-    reload(rigSplineIK)
-    reload(rigArm)
-    reload(rigLeg)
-
-    reload(libSerialization)
 
 def Create(*args, **kwargs):
     return classRigRoot.RigRoot(*args, **kwargs)
@@ -63,7 +42,9 @@ def unbuild_all():
         rigroot = libSerialization.importFromNetwork(network)
         rigroot.unbuild()
         pymel.delete(network)
-        pymel.select(libSerialization.exportToNetwork(rigroot))
+        # Write changes to scene
+        network = libSerialization.exportToNetwork(rigroot)
+        pymel.select(network)
 
 '''
 Usage example:
@@ -132,13 +113,14 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def updateData(self):
         networks = libSerialization.getNetworksByClass('RigRoot')
-        self.m_rigs = [libSerialization.importFromNetwork(network) for network in networks]
+        self.roots = [libSerialization.importFromNetwork(network) for network in networks]
 
     def updateUi(self):
         self.treeWidget.clear()
-        qItem = self._rigRootToQTreeWidget(self.root)
-        self.treeWidget.addTopLevelItem(qItem)
-        self.treeWidget.expandItem(qItem)
+        for root in self.roots:
+            qItem = self._rigRootToQTreeWidget(root)
+            self.treeWidget.addTopLevelItem(qItem)
+            self.treeWidget.expandItem(qItem)
 
     #
     # Events
@@ -184,7 +166,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.updateUi()
 
     def _itemSelectionChanged(self):
-        pymel.select([item.net for item in self.treeWidget.selectedItems()])
+        pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
 
     def _actionAddPart(self, _cls):
         part = _cls(_inputs=pymel.selected())
@@ -208,6 +190,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         menu.exec_(QtGui.QCursor.pos())             
 
+gui = None
 def show():
-    p = AutoRig()
-    p.show()
+    global gui
+    gui = AutoRig()
+    gui.show()

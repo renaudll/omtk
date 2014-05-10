@@ -2,7 +2,7 @@ import pymel.core as pymel
 from maya import OpenMaya
 import logging as _logging
 logging = _logging.getLogger()
-logging.setLevel(_logging.WARNING)
+logging.setLevel(_logging.DEBUG)
 
 import core
 
@@ -188,7 +188,6 @@ def exportToNetwork(_data, **kwargs):
             if key == '_class' or key[0] != '_': # Attributes starting with '_' are protected or private
                 _addAttr(fnNet, key, val)
 
-    print network.name()
     return network
 
 def importFromNetwork(_network):

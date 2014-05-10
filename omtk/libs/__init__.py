@@ -1,9 +1,9 @@
 import libSerialization
 import libPython
-import libRigging
-import libAttr
-import libPymel
 
-if libPython.does_module_exist("maya"):
+import os, sys, re
+if re.match('maya.*', os.path.basename(sys.executable), re.IGNORECASE):
+    import libAttr
+    import libPymel
     import libRigging
     import libUtils

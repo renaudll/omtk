@@ -73,7 +73,7 @@ class RigRoot(RigElement):
         all_rigs.setParent(grp_rigs)
 
         all_jnts = libPymel.ls_root_jnts()
-        grp_jnts = pymel.joint(name='jnts')
+        grp_jnts = RigNode(name='jnts', _create=True)
         all_jnts.setParent(grp_jnts)
 
         all_geos = libPymel.ls_root_geos()
@@ -87,7 +87,6 @@ class RigRoot(RigElement):
 
         oLayerRig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
         pymel.editDisplayLayerMembers(oLayerRig, grp_rigs, noRecurse=True)
-        pymel.editDisplayLayerMembers(oLayerRig, grp_jnts, noRecurse=True)
         oLayerRig.color.set(13) # Red
         oLayerRig.visibility.set(0) # Hidden
         oLayerRig.displayType.set(2) # Frozen

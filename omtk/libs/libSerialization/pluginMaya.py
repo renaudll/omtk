@@ -124,8 +124,16 @@ def _setAttr(_plug, _val):
     elif sType == core.TYPE_DAGNODE:
         plug = None
         if isinstance(_val, pymel.Attribute): # pymel.Attribute
+            # Hack: Don't crash with non-existent pymel.Attribute
+            if not _val.exists():
+                logging.warning("Can't setAttr, Attribute {0} don't exist".format(_val))
+                return
             plug = _val.__apimfn__()
         elif hasattr(_val, 'exists'): # pymel.PyNode
+            # Hack: Don't crash with non-existent pymel.Attribute
+            if not pymel.objExists(_val.__melobject__()):
+                logging.warning("Can't setAttr, PyNode {0} don't exist".format(_val))
+                return
             plug = _val.__apimfn__().findPlug('message')
 
         if plug is not None:

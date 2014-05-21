@@ -19,6 +19,10 @@ import os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
+
+# todo: find a generic way to import maya module
+sys.path.append('/Applications/Autodesk/maya2014/Maya.app/Contents/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages')
+
 sys.path.append(os.path.abspath(os.path.join('..', '..')))
 import omtk
 print dir(omtk)

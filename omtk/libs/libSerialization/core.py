@@ -3,6 +3,30 @@ logging = _logging.getLogger()
 logging.setLevel(_logging.WARNING)
 import sys
 
+
+
+
+
+_complex_types = [dict]
+def _isDataComplex(_data):
+    return any(filter(lambda x: isinstance(_data, x), (iter(_basic_types)))) or hasattr(_data, '__dict__')
+
+_basic_types = [int, float, basestring, bool]
+def _isDataBasic(_data):
+    global _basic_types
+    return any(filter(lambda x: isinstance(_data, x), (iter(_basic_types))))
+
+_list_types = [list, tuple]
+def _isDataList(_data):
+    global _list_types
+    return any(filter(lambda x: isinstance(_data, x), (iter(_list_types))))
+
+_dag_types = []
+def _isDataDagNode(_data):
+    global _dag_types
+    return any(filter(lambda x: isinstance(_data, x), iter(_dag_types)))
+
+
 # constants
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX = range(4)
 

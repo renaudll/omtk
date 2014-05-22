@@ -1,10 +1,25 @@
-'''
+"""
 A module that convert mathematical formulas to utility nodes.
-Ex:
+
+A lightweight programming language that parse math formulas to utility nodes.
+This is done by defining lots of new operators.
+Currently, supported operators are: add (+), substract (-), multiply (*), divide (/), pow (^), distance (~), equal (=), not_equal (!=), bigger (>), bigger_or_equal (>=), smaller (<) and smaller_or_equal (<=).
+
+ex01 :creating a bell-curve type squash
+import math
+from omtk.rigging import formulaParser
+loc, locs = pymel.polysphere()
+stretch = loc.sy
+squash = formulaParser.parse("1 / (e^(x^2))", e=math.e, x=stretch)
+pymel.connectAttr(squash, loc.sx)
+pymel.connectAttr(squash, loc.sz)
+
+ex02:
     from omtk.rigging import formulaParser
     grp = pymel.createNode('transform')
     formulaParser.parse('(tx*rx)+(ty*ry)+(tz*rz)', tx=loc.tx, ty=loc.ty, tz=loc.tz, rx=loc.rx, ry=loc.ry, rz=loc.rz)
-'''
+"""
+
 # TODO: Implement operators priotity
 
 import re, math

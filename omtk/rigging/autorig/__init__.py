@@ -169,7 +169,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
 
     def _actionAddPart(self, _cls):
-        part = _cls(_inputs=pymel.selected())
+        part = _cls(_input=pymel.selected())
         self.root.append(part)
         net = libSerialization.exportToNetwork(self.root) # Export part and only part
         pymel.select(net)

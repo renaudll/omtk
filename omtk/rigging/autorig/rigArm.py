@@ -70,6 +70,8 @@ class Arm(RigPart):
 
     def unbuild(self, *args, **kwargs):
         super(Arm, self).unbuild(*args, **kwargs)
+        self.sysIK = None # hack
+        self.sysFK = None # hack
         self.attState = None
 
     #

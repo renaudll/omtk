@@ -91,6 +91,7 @@ class JointData(object):
             self.length = math_distance(sp, ep)
 
 def create_boxes():
+    boxes = []
     for jnt in pymel.ls(type='joint'):
         joint_data = JointData(jnt)
         if joint_data.is_valid():
@@ -105,6 +106,8 @@ def create_boxes():
             cylinder_tm = r_offset
             transform.setParent(jnt)
             transform.setMatrix(cylinder_tm)
+            boxes.append(transform)
+    return boxes
 
 def collect_proxy_boxes():
     return_values = []

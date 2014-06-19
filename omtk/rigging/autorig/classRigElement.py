@@ -30,5 +30,7 @@ class RigElement(collections.MutableSequence):
     #
 
     def isBuilt(self):
-        if any(o for o in self if o.isBuilt()):
-            return True
+        for child in self:
+            if child.isBuilt():
+                return True
+        return False

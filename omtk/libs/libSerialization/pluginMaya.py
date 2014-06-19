@@ -138,10 +138,16 @@ def _setAttr(_plug, _val):
 
         if plug is not None:
             dagM = OpenMaya.MDagModifier()
+            #if pymel.attributeQuery(pymel.Attribute(_val), writable=True):
+            dagM.connect(plug, _plug)
+            '''
+            else:
+                dagM.connect(_plug, plug)
+            '''
             dagM.connect(plug, _plug)
             dagM.doIt()
         else:
-            pymel.error("Unknow TYPE_DAGNODE {0}".format(_val))
+            raise Exception("Unknow TYPE_DAGNODE {0}".format(_val))
 
     else:
         print _val, sType

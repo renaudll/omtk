@@ -9,7 +9,7 @@ def does_module_exist(module_name):
     except ImportError:
         return False
 
-# OMW IT WORK!
+# @deprecated, use the reimport module instead
 def reload_module_recursive(module, namespace=''):
     assert(hasattr(module, '__path__'))
     assert(isinstance(module.__path__, list))
@@ -37,6 +37,7 @@ def reload_module_recursive(module, namespace=''):
 
 # Another potential solution (maybe more efficient than reload_module_recursive)
 # src: http://stackoverflow.com/questions/15506971/recursive-version-of-reload/17194836#17194836
+# @deprecated, use the reimport module instead
 from types import ModuleType
 def rreload(module, exceptions=['_.*', 'sys', 'os', 'imp', 're', 'logging', 'OpenMaya.*', 'pymel', 'Qt.*']):
     for attribute_name in dir(module):

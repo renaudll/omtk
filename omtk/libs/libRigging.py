@@ -34,18 +34,21 @@ def CreateUtilityNode(_sClass, *args, **kwargs):
 #
 # CtrlShapes Backup
 #
-def BackupCtrlShape(_oCtrl):
+def BackupCtrlShape(_oCtrl, parent=None):
     aShapes = filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), _oCtrl.getShapes())
     oSnapshot = pymel.duplicate(_oCtrl, parentOnly=True, returnRootsOnly=True)[0]
     for oShape in aShapes:
         oShape.setParent(oSnapshot, s=True, r=True)
-    oSnapshot.setParent(world=True)
+    if parent:
+        oSnapshot.setParent(parent)
+    else:
+        oSnapshot.setParent(world=True)
     oSnapshot.rename('_{0}'.format(_oCtrl.name()))
     return oSnapshot
 
-def BackupCtrlShapes():
+def BackupCtrlShapes(**kwargs):
     aCtrls = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
-    return [BackupCtrlShape(oCtrl) for oCtrl in aCtrls]
+    return [BackupCtrlShape(oCtrl, **kwargs) for oCtrl in aCtrls]
 
 # TODO: Fix bug when two objects have the same name.
 def RestoreCtrlShapes():

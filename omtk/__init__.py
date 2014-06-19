@@ -6,7 +6,9 @@ sys.path.append(os.path.abspath(os.path.join(module_dir, 'deps')))
 from libs import libPython
 
 import animation
+import managing
 import rigging
+
 
 '''
 # Here's how to reload:

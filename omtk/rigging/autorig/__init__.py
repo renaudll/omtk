@@ -14,7 +14,13 @@ import rigIK
 import rigSplineIK
 import rigArm
 import rigLeg
-import classCurveDeformer
+#import classCurveDeformer
+
+from rigFK import FK
+from rigIK import IK
+from rigSplineIK import SplineIK
+from rigArm import Arm
+from rigLeg import Leg
 
 from omtk.libs import libSerialization
 
@@ -32,9 +38,9 @@ def build_all():
     networks = libSerialization.getNetworksByClass('RigRoot')
     for network in networks:
         rigroot = libSerialization.importFromNetwork(network)
-        rigroot.build()
-        pymel.delete(network)
-        libSerialization.exportToNetwork(rigroot)
+        if rigroot.build():
+            pymel.delete(network)
+            libSerialization.exportToNetwork(rigroot)
 
 def unbuild_all():
     networks = libSerialization.getNetworksByClass('RigRoot')

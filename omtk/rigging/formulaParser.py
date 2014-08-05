@@ -361,7 +361,7 @@ def parse(str, **inkwargs):
     log.debug("ALL DONE!")
 
 
-def parse2(name, formula, vars):
+def parseToVar(name, formula, vars):
     attr = parse(formula, **vars)
     attr.node().rename(name)
     vars[name] = attr

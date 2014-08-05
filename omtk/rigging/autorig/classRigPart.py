@@ -2,6 +2,7 @@ import pymel.core as pymel
 import logging
 from classNameMap import NameMap
 from classRigElement import RigElement
+from omtk.libs import libPymel
 
 '''
 This is the baseclass for anything that can be Build/Unbuild
@@ -48,6 +49,7 @@ class RigPart(RigElement):
         # todo: find a faster way? (properties don't work since we need access via libSerialization)
         if key == 'input':
             self._post_setattr_inputs()
+            self._chain = libPymel.PyNodeChain(self.input) # todo: approve PyNodeChain class
 
 
     # Even when nothing is build, it's usefull to access properties like namemaps.

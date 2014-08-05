@@ -15,7 +15,7 @@ class RigCtrl(RigNode):
 		#self.node.setParent(self.offset)
 		return self.offset
 
-	def __createNode__(self, *args, **kwargs):
+	def build(self, *args, **kwargs):
 		self.node = pymel.circle(*args, **kwargs)[0]
 		oMake = self.node.getShape().create.inputs()[0]
 		oMake.radius.set(5) # HARDCODED

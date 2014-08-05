@@ -6,30 +6,47 @@ This method facilitate the creation of utility nodes by connecting/settings auto
 '''
 __aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector]
 def _isBasicType(_val):
-	global __aBasicTypes
-	return type(_val) in __aBasicTypes
+    global __aBasicTypes
+    return type(_val) in __aBasicTypes
 
 def ConnectOrSetAttr(_attr, _val):
-	if isinstance(_val, list) or isinstance(_val, tuple):
-		for i, pSubValue in enumerate(_val):
-			ConnectOrSetAttr(_attr[i], pSubValue)
-	else:
-		if isinstance(_val, pymel.Attribute):
-			pymel.connectAttr(_val, _attr, force=True)
-		elif _isBasicType(_val):
-			_attr.set(_val)
-		else:
-			logging.error('[ConnectOrSetAttr] Invalid argument {0} of type {1} and value {2}'.format(_attr.name(), type(_val), _val))
-			raise TypeError
+    if isinstance(_val, list) or isinstance(_val, tuple):
+
+        # Note: List attribute and compound attribute don't have the same way of iterating.
+        if _attr.isArray():
+            for i, val in enumerate(_val):
+                ConnectOrSetAttr(_attr.elementByLogicalIndex(i), val)
+        elif _attr.isCompound():
+            children = _attr.getChildren()
+            for child, val in zip(children, _val):
+                ConnectOrSetAttr(child, val)
+        else:
+            raise Exception("Can't apply value {0} on attribute {1}, need an array or compound".format(_val, _attr))
+
+        '''
+        for i, pSubValue in enumerate(_val):
+            ConnectOrSetAttr(_attr.elementByLogicalIndex(i), pSubValue)
+        '''
+    else:
+        if isinstance(_val, pymel.Attribute):
+            pymel.connectAttr(_val, _attr, force=True)
+        elif _isBasicType(_val):
+            _attr.set(_val)
+        else:
+            logging.error(
+                '[ConnectOrSetAttr] Invalid value for attribute {0} of type {1} and value {2}'.format(_attr.name(),
+                                                                                                      type(_val),
+                                                                                                      _val))
+            raise TypeError
 
 def CreateUtilityNode(_sClass, *args, **kwargs):
-	uNode = pymel.shadingNode(_sClass, asUtility=True)
-	for sAttrName, pAttrValue in kwargs.items():
-		if not uNode.hasAttr(sAttrName):
-			logging.warning('[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass, sAttrName))
-		else:
-			ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)	
-	return uNode
+    uNode = pymel.shadingNode(_sClass, asUtility=True)
+    for sAttrName, pAttrValue in kwargs.items():
+        if not uNode.hasAttr(sAttrName):
+            logging.warning('[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass, sAttrName))
+        else:
+            ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)
+    return uNode
 
 #
 # CtrlShapes Backup
@@ -55,14 +72,14 @@ def RestoreCtrlShapes():
     aSources = [o.getParent() for o in pymel.ls('_anm_*', type='nurbsCurve')]
 
     for oSource in aSources:
-    	sTargetName = oSource.name()[1:]
-    	if pymel.objExists(sTargetName):
-    		oTarget = pymel.PyNode(str(sTargetName))
+        sTargetName = oSource.name()[1:]
+        if pymel.objExists(sTargetName):
+            oTarget = pymel.PyNode(str(sTargetName))
 
-    		pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), oTarget.getShapes()))
-	    	for oShape in oSource.getShapes():
-	    		oShape.setParent(oTarget, r=True, s=True)
-	    		oShape.rename(oTarget.name() + 'Shape')
+            pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), oTarget.getShapes()))
+            for oShape in oSource.getShapes():
+                oShape.setParent(oTarget, r=True, s=True)
+                oShape.rename(oTarget.name() + 'Shape')
 
-	    	# TODO: Restore AnnotationShapes
-	    	pymel.delete(oSource)
+            # TODO: Restore AnnotationShapes
+            pymel.delete(oSource)

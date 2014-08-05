@@ -9,24 +9,19 @@ class RigNode(object):
 	def __init__(self, _pData=None, _create=False, *args, **kwargs):
 		self.__dict__['node'] = _pData
 		if _create is True:
-			self.__createNode__(*args, **kwargs)
+			self.build(*args, **kwargs)
 			assert(isinstance(self.node, pymel.PyNode))
-		#self.__dict__['node'] = self.__createNode__(*args, **kwargs) if _pData is None else pymel.PyNode(_pData, *args, **kwargs) # Prevent call to __setattr__
-
-	#def __melobject__(self): # Mirror PyNode behavior
-	#	return self.node.__melobject__()
-	# Allow the programmer to manipulate a RigNode instance like a pymel.PyNode instance.
 
 	def __getattr__(self, _sAttrName):
 		assert(isinstance(self.__dict__['node'], pymel.PyNode))
 		if hasattr(self.__dict__['node'], _sAttrName):
 			return getattr(self.__dict__['node'], _sAttrName)
 
-	def __createNode__(self, *args, **kwargs):
+	def build(self, *args, **kwargs):
 		self.node = pymel.createNode('transform', *args, **kwargs)
 		#self.fetchAttrs()
 
-	def __deleteNode__(self, *args, **kwargs):
+	def unbuild(self, *args, **kwargs):
 		self.holdAttrs()
 		pymel.delete(self.node)
 		self.node = None

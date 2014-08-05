@@ -35,6 +35,19 @@ class PyNodeChain(collections.MutableSequence):
         for node in self._list:
             node.setParent(*args, **kwargs)
 
+    def __pymel_distance(self, x, y):
+        Ax, Ay, Az = x.getTranslation(space="world")
+        Bx, By, Bz = y.getTranslation(space="world")
+        return (  (Ax-Bx)**2 + (Ay-By)**2 + (Az-Bz)**2  )**0.5
+
+    def getLength(self):
+        length = 0
+        for i in range(len(self._list)-1):
+            head = self._list[i]
+            tail = self._list[i+1]
+            length += self.__pymel_distance(head, tail)
+        return length
+
     # get the first pynode that have the attr
     def __getattr__(self, key):
         logging.warning("Searching unknow attribute {key} in {self}", key=key, self=self)

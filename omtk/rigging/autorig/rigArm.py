@@ -7,7 +7,7 @@ from omtk.rigging.autorig.rigFK import FK
 from omtk.libs import libRigging
 
 class RigAttHolder(RigCtrl):
-    def __createNode__(self, name=None, *args, **kwargs):
+    def build(self, name=None, *args, **kwargs):
         s1 = 1.0
         s2 = s1 * 0.7
         self.node =  pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)

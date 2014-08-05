@@ -4,8 +4,8 @@ from classRigCtrl import RigCtrl
 from classRigPart import RigPart
 
 class CtrlFk(RigCtrl):
-	def __createNode__(self, *args, **kwargs):
-		super(CtrlFk, self).__createNode__(*args, **kwargs)
+	def build(self, *args, **kwargs):
+		super(CtrlFk, self).build(*args, **kwargs)
 		oMake = self.node.getShape().create.inputs()[0]
 		oMake.radius.set(5)
 		oMake.degree.set(1)

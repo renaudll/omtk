@@ -11,7 +11,7 @@ class CtrlRoot(RigCtrl):
     def __init__(self, *args, **kwargs):
         super(CtrlRoot, self).__init__(_bOffset=False, *args, **kwargs)
 
-    def __createNode__(self, *args, **kwargs):
+    def build(self, *args, **kwargs):
         self.node = pymel.circle(*args, **kwargs)[0]
         oMake = self.node.getShape().create.inputs()[0]
         oMake.radius.set(10)
@@ -28,6 +28,7 @@ class CtrlRoot(RigCtrl):
 
 class RigRoot(RigElement):
     def __init__(self):
+        self.aChildrens = []
         self.grp_anms = None
         self.grp_geos = None
         self.grp_jnts = None
@@ -55,13 +56,13 @@ class RigRoot(RigElement):
 
         #try:
         for children in self.aChildrens:
-            try:
-                children.build(**kwargs)
-            except Exception, e:
-                logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
-                traceback.print_stack()
-                logging.error(str(e))
-                raise e
+            #try:
+            children.build(**kwargs)
+            #except Exception, e:
+            #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
+            #    traceback.print_stack()
+            #    logging.error(str(e))
+            #    raise e
         self.postbuild()
 
 
@@ -96,7 +97,7 @@ class RigRoot(RigElement):
         pymel.editDisplayLayerMembers(oLayerRig, self.grp_rigs, noRecurse=True)
         pymel.editDisplayLayerMembers(oLayerRig, self.grp_jnts, noRecurse=True)
         oLayerRig.color.set(13) # Red
-        oLayerRig.visibility.set(0) # Hidden
+        #oLayerRig.visibility.set(0) # Hidden
         oLayerRig.displayType.set(2) # Frozen
 
         oLayerGeo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)

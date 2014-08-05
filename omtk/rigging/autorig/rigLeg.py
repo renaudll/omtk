@@ -30,25 +30,25 @@ class Leg(Arm):
 
 		# Create pivots; TODO: Create side pivots
 		oPivotM = RigNode(name=self._pNameMapRig.Serialize('pivotM'))
-		oPivotM.__createNode__()
+		oPivotM.build()
 		oPivotM.t.set(p3Toes) # Optimisation: t.set is faster than setMatrix
 		#oPivotM.setMatrix(tmToes)
 		#oPivotM.r.set((0,0,0))
 
 		oPivotF = RigNode(name=self._pNameMapRig.Serialize('pivotF'))
-		oPivotF.__createNode__()
+		oPivotF.build()
 		oPivotF.t.set(p3Foot + [0,0,fOffsetF]) # Optimisation: t.set is faster than setMatrix
 		#oPivotF.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,fOffsetF, 1) * tmFoot)
 		#oPivotF.r.set((0,0,0))
 
 		oPivotB = RigNode(name=self._pNameMapRig.Serialize('pivotB'))
-		oPivotB.__createNode__()
+		oPivotB.build()
 		oPivotB.t.set(p3Foot + [0,0,-fOffsetB]) # Optimisation: t.set is faster than setMatrix
 		#oPivotB.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,-fOffsetB, 1) * tmFoot)
 		#oPivotB.r.set((0,0,0))
 
 		oFootRollRoot = RigNode(name=self._pNameMapRig.Serialize('footroll'))
-		oFootRollRoot.__createNode__()
+		oFootRollRoot.build()
 
 		# Create hyerarchy
 		oPivotM.setParent(oPivotF)

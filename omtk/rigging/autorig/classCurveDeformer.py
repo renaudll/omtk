@@ -11,7 +11,7 @@ class Follicle(RigNode):
 
         pymel.connectAttr(_parent.worldSpace, self.node.inputSurface)
 
-    def __createNode__(self, *args, **kwargs):
+    def build(self, *args, **kwargs):
         joint = pymel.createNode('joint')
         follicle = pymel.createNode('follicle')
         follicleTransform = follicle.getParent()
@@ -19,7 +19,8 @@ class Follicle(RigNode):
         pymel.connectAttr(follicle.outTranslate, joint.t)
         pymel.connectAttr(follicle.outRotate, joint.r)
         pymel.delete(follicleTransform)
-        return joint
+        self.node = joint
+        return self.node
 
 def _createNurbsSurfaceFromNurbsCurve(_curve, _width=0.1):
     nurbsMin = pymel.duplicate(_curve)[0]
@@ -38,6 +39,8 @@ def _createNurbsSurfaceFromNurbsCurve(_curve, _width=0.1):
     pymel.delete(loft)
     pymel.delete(nurbsMin)
     pymel.delete(nurbsMax)
+
+    return surface
 
 def _createSurfaceJnts(_surface, _numJnts=19):
     #minU, maxU = _surface.getMinMaxU()

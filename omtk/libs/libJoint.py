@@ -142,3 +142,54 @@ def finalize_boxes():
     skinCluster = next((hist for hist in outputMesh.listHistory() if isinstance(hist, pymel.nodetypes.SkinCluster)), None)
     for vtx, inf in zip(iter(outputMesh.vtx), weights):
         skinCluster.setWeights(vtx, [inf], [1])
+
+# src: http://tech-artists.org/forum/showthread.php?4384-Vector-math-and-Maya
+from pymel.core.datatypes import Vector, Matrix, Point
+def matrix_from_normal(up_vect, front_vect):
+    # normalize first!
+    up_vect.normalize()
+    front_vect.normalize()
+
+    #get the third axis with the cross vector
+    side_vect = Vector.cross(up_vect, front_vect)
+    #recross in case up and front were not originally orthoganl:
+    front_vect = Vector.cross(side_vect, up_vect )
+
+    #the new matrix is
+    return Matrix (
+        side_vect.x, side_vect.y, side_vect.z, 0,
+        up_vect.x, up_vect.y, up_vect.z, 0,
+        front_vect.x, front_vect.y, front_vect.z, 0,
+        0,0,0,1)
+
+def align_joints_to_view(joints, cam):
+    cam_tm = cam.getMatrix()
+    sel = pymel.selected()
+
+    transforms = []
+    parentdir = pymel.datatypes.Matrix()
+    for i in range(len(sel)-1):
+        s = sel[i].getTranslation(space='world')
+        e = sel[i+1].getTranslation(space='world')
+        x_axis = pymel.datatypes.Vector(s[0]-e[0], s[1]-e[1], s[2]-e[2])
+        x_axis.normalize()
+        #cam_tm = cam_tm * parentdir
+        y_axis = pymel.datatypes.Vector(cam_tm.data[2][0], cam_tm.data[2][1], cam_tm.data[2][2]).normal()
+        z_axis = pymel.datatypes.Vector(x_axis).cross(y_axis)
+        y_axis = x_axis.cross(z_axis)
+
+        transforms.append(matrix_from_normal(
+            (e - s),
+            y_axis
+        ))
+
+    for transform, node in zip(transforms, pymel.selected()):
+        node.setParent(world=True)
+        node.setMatrix(transform, worldSpace=True)
+
+def align_selected_joints_to_persp ():
+    sel = pymel.selected()
+    cam = pymel.PyNode('persp')
+    align_joints_to_view(sel, cam)
+
+

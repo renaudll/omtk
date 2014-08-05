@@ -26,10 +26,10 @@ def RestoreAttr(_attOld, _attNew):
 PointDeformer represent the smallest unit of deformation in a rig.
 '''
 class PointDeformer(RigNode):
-    def __createNode__(self, *args, **kwargs):
+    def build(self, *args, **kwargs):
         return pymel.joint(*args, **kwargs)
 
-    def __deleteNode__(self):
+    def unbuild(self):
         # Backup keyable attributes connections
         for att in self.node.listAttr(keyable=True):
             setattr(self, att.shortName(), BackupAttr(att))

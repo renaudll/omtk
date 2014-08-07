@@ -1,29 +1,6 @@
-"""
-A module that convert mathematical formulas to utility nodes.
-
-A lightweight programming language that parse math formulas to utility nodes.
-This is done by defining lots of new operators.
-Currently, supported operators are: add (+), substract (-), multiply (*), divide (/), pow (^), distance (~), equal (=), not_equal (!=), bigger (>), bigger_or_equal (>=), smaller (<) and smaller_or_equal (<=).
-
-ex01 :creating a bell-curve type squash
-import math
-from omtk.rigging import libFormula
-loc, locs = pymel.polysphere()
-stretch = loc.sy
-squash = libFormula.parse("1 / (e^(x^2))", e=math.e, x=stretch)
-pymel.connectAttr(squash, loc.sx)
-pymel.connectAttr(squash, loc.sz)
-
-ex02:
-    from omtk.rigging import libFormula
-    grp = pymel.createNode('transform')
-    libFormula.parse('(tx*rx)+(ty*ry)+(tz*rz)', tx=loc.tx, ty=loc.ty, tz=loc.tz, rx=loc.rx, ry=loc.ry, rz=loc.rz)
-"""
-
-# TODO: Implement operators priotity
-
 import re, math, collections
 from omtk.libs import libRigging
+from maya import cmds
 import pymel.core as pymel
 import logging as log
 
@@ -31,7 +8,7 @@ class operator(object):
     @staticmethod
     def can_optimise(*args):
         for arg in args:
-            if isinstance(arg, pymel.Attribute):
+            if not isinstance(arg, (int, float, long)):
                 return False
         return True
     @staticmethod
@@ -44,41 +21,33 @@ class operator(object):
 class addition(operator):
     @staticmethod
     def execute(arg1, arg2):
-        log.debug('[add:execute] {0} + {1}'.format(arg1, arg2))
         return arg1 + arg2
     @staticmethod
     def create(arg1, arg2):
-        log.debug('[add:create] {0} + {1}'.format(arg1, arg2))
         return libRigging.CreateUtilityNode('plusMinusAverage', operation=1, input1D=[arg1, arg2]).output1D
 
 class substraction(operator):
     @staticmethod
     def execute(arg1, arg2):
-        log.debug('[substract:execute] {0} - {1}'.format(arg1, arg2))
         return arg1 - arg2
     @staticmethod
     def create(arg1, arg2):
-        log.debug('[substract:create] {0} - {1}'.format(arg1, arg2))
         return libRigging.CreateUtilityNode('plusMinusAverage', operation=2, input1D=[arg1, arg2]).output1D
 
 class multiplication(operator):
     @staticmethod
     def execute(arg1, arg2):
-        log.debug('[multiply:execute] {0} * {1}'.format(arg1, arg2))
         return arg1 * arg2;
     @staticmethod
     def create(arg1, arg2):
-        log.debug('[multiply:create] {0} * {1}'.format(arg1, arg2))
         return libRigging.CreateUtilityNode('multiplyDivide', operation=1, input1X=arg1, input2X=arg2).outputX
 
 class division(operator):
     @staticmethod
     def execute(arg1, arg2):
-        log.debug('[divide:execute] {0} * {1}'.format(arg1, arg2))
         return arg1 / arg2;
     @staticmethod
     def create(arg1, arg2):
-        log.debug('[divide:create] {0} * {1}'.format(arg1, arg2))
         u = libRigging.CreateUtilityNode('multiplyDivide', input1X=arg1, input2X=arg2)
         u.operation.set(2) # HACK: Prevent division by zero by changing the operator at the last second.
         return u.outputX
@@ -86,11 +55,14 @@ class division(operator):
 class pow(operator):
     @staticmethod
     def execute(arg1, arg2):
-        log.debug('[pow:execute] {0} * {1}'.format(arg1, arg2))
-        return math.pow(arg1, arg2);
+        try:
+            return math.pow(arg1, arg2)
+        except Exception, e:
+            log.error("Can't execute {0} ^ {1}: {2}".format(arg1, arg2, e)),
+
+        return math.pow(arg1, arg2)
     @staticmethod
     def create(arg1, arg2):
-        log.debug('[pow:create] {0} * {1}'.format(arg1, arg2))
         return libRigging.CreateUtilityNode('multiplyDivide', operation=3, input1X=arg1, input2X=arg2).outputX
 
 class distance(operator):
@@ -109,11 +81,15 @@ class distance(operator):
 
         if isinstance(arg1, pymel.datatypes.Matrix) or (isinstance(arg1, pymel.Attribute) or arg1.type() == 'matrix'):
             kwargs['inMatrix1'] = arg1
+        elif isinstance(arg1, pymel.nodetypes.Transform):
+            kwargs['inMatrix1'] = arg1.worldMatrix
         else:
             kwargs['point1'] = arg1
 
         if isinstance(arg2, pymel.datatypes.Matrix) or (isinstance(arg2, pymel.Attribute) or arg2.type() == 'matrix'):
             kwargs['inMatrix2'] = arg2
+        elif isinstance(arg2, pymel.nodetypes.Transform):
+            kwargs['inMatrix2'] = arg2.worldMatrix
         else:
             kwargs['point2'] = arg2
 
@@ -169,37 +145,8 @@ class smaller_or_equal(operator):
     def create(*args, **kwargs):
         return equal(operation=5, *args, **kwargs).outColorR
 
-_operators = {
-    '+'  : addition,
-    '-'  : substraction,
-    '*'  : multiplication,
-    '/'  : division,
-    '^'  : pow,
-    '~'  : distance,
-    '='  : equal,
-    '!=' : not_equal,
-    '>'  : bigger,
-    '>=' : bigger_or_equal,
-    '<'  : smaller,
-    '<=' : smaller_or_equal
-}
-'''
-1   ()   []   ->   .   ::	Grouping, scope, array/member access
-2	 !   ~   -   +   *   &   sizeof   type cast ++x   --x  	(most) unary operations, sizeof and type casts
-3	*   /   % MOD	Multiplication, division, modulo
-4	+   -	Addition and subtraction
-5	<<   >>	Bitwise shift left and right
-6	<   <=   >   >=	Comparisons: less-than, ...
-7	==   !=	Comparisons: equal and not equal
-8	&	Bitwise AND
-9	^	Bitwise exclusive OR
-10	|	Bitwise inclusive (normal) OR
-11	&&	Logical AND
-12	||	Logical OR
-13	 ?:   =   +=   -=   *=   /=   %=   &=   |=   ^=   <<=   >>=	Conditional expression (ternary) and assignment operators
-14	,	Comma operator
-'''
-__operators = [
+# src: http://www.mathcentre.ac.uk/resources/workbooks/mathcentre/rules.pdf
+_sorted_operators = [
     {
         '~'  : distance,
     },
@@ -223,14 +170,6 @@ __operators = [
         '<=' : smaller_or_equal
     }
 ]
-
-
-    ('*', multiplication),
-    ('/', division),
-    ('+', addition),
-    ('-', substraction)
-]
-
 
 
 _varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')', '.'] + _operators.keys()
@@ -324,70 +263,44 @@ def optimise_replaceVariables(args):
         out.append(arg)
     return out
 
+# Generic method to optimize a formula via a suite of operators
+# For now only 'sandwitched' operators are supported
+def _optimise_formula_with_operators(args, fnName, fnFilterName=None):
+    if len(args) < 3:
+        raise Exception("A minimum of 3 arguments are necessary! Got: {0}".format(args))
+    fnRecursive_call = lambda x: _optimise_formula_with_operators(x, fnName, fnFilterName=fnFilterName) if isinstance(x, list) else x
+    for operators in _sorted_operators:
+        args[0] = fnRecursive_call(args[0])
+        i=1
+        imax = len(args)
+        while i < imax-1:
+            preArg = args[i-1]
+            perArg = args[i]
+            posArg = args[i+1] = fnRecursive_call(args[i+1])
+            # Ensure we're working with operators
+            if not isinstance(perArg, basestring):
+                raise IOError("Invalid operator '{0}', expected a string".format(perArg))
+            cls = operators.get(perArg, None)
+            if cls and (not fnFilterName or getattr(cls, fnFilterName)(preArg, posArg)):
+                fn = getattr(cls, fnName)
+                result = fn(preArg, posArg)
+                # Inject result in args
+                args[i-1] = result
+                del args[i]
+                del args[i]
+                imax -= 2
+            else:
+                i+=2
+    return args if len(args) > 1 else args[0] # never return a single array
+
 # This minimise the weight of the formula, we make sure we're not applying operator on constants.
 # ex: "2 + 3 * a"   ->   "5 * a"
 # ex: "a ^ (2 + 3)" ->   "a ^ 5"
 def _optimise_cleanConstants(args):
-    fnRecursive_call = lambda x: _optimise_cleanConstants(x) if isinstance(x, list) else x
-
-    args[0] = fnRecursive_call(args[0])
-    i=1
-    imax = len(args)
-    while i < imax-1:
-        preArg = args[i-1]
-        perArg = args[i]
-        posArg = fnRecursive_call(args[i+1])
-
-        # Ensure we're working with operators
-        if not perArg in _operators:
-            raise IOError("Expected operator in formula, got {0}. {1}".format(perArg, args))
-
-        cls = _operators.get(perArg)
-
-        if cls.can_optimise(preArg, posArg):
-            result = cls.execute(preArg, posArg)
-
-            # Inject result in args
-            args[i-1] = result
-            del args[i]
-            del args[i]
-            imax -= 2
-        else:
-            i+=2
-
-    return args if len(args) > 1 else args[0] # never return a single array
+    return _optimise_formula_with_operators(args, 'execute', 'can_optimise')
 
 def _create_nodes(args):
-    log.debug('[create_nodes] {0}'.format(args))
-    num_args = len(args)
-    if num_args < 3:
-        raise Exception("A minimum of 3 arguments are necessary! Got: {0}".format(args))
-
-    for i in range(1, num_args-1, 2):
-
-        perArg = args[i]
-        if not isinstance(perArg, basestring) or not perArg in _operators:
-            raise Exception("Unexpected operator: {0}".format(perArg))
-
-        preArg = args[i-1]
-        if isinstance(preArg, list):
-            preArg = _create_nodes(preArg)
-        else:
-            preArg = basic_cast(preArg)
-
-        posArg = args[i+1]
-        if isinstance(posArg, list):
-            posArg = _create_nodes(posArg)
-        else:
-            preArg = basic_cast(preArg)
-
-        cls = _operators[perArg]
-
-        fn = cls.execute if cls.can_optimise(preArg, posArg) else cls.create
-        log.debug("Proceeding with formula {0} {1} {2}".format(preArg, perArg, posArg))
-        return_val = args[i+1] = fn(preArg, posArg)
-
-    return return_val
+    return _optimise_formula_with_operators(args, 'create')
 
 def parse(str, **inkwargs):
     log.debug("--------------------")
@@ -447,7 +360,7 @@ def parse(str, **inkwargs):
 
     # Create nodes
     #log.debug("Creating nodes...")
-    #return _create_nodes(args)
+    return _create_nodes(args)
     #log.debug("ALL DONE!")
 
     return None
@@ -457,14 +370,36 @@ def parseToVar(name, formula, vars):
     attr.node().rename(name)
     vars[name] = attr
 
+def _test_squash():
+    # ex:creating a bell-curve type squash
+    cmds.file(new=True, f=True)
+    transform, shape = pymel.sphere()
+    stretch = transform.sy
+    squash = parse("1 / (e^(x^2))", x=stretch)
+    pymel.connectAttr(squash, transform.sx)
+    pymel.connectAttr(squash, transform.sz)
+    return True
 
+def _test_squash2(step_size=2):
+    cmds.file(new=True, f=True)
+    root = pymel.createNode('transform', name='root')
+    pymel.addAttr(root, longName='amount', defaultValue=1.0, k=True)
+    pymel.addAttr(root, longName='shape', defaultValue=math.e, k=True)
+    attAmount = root.attr('amount')
+    attShape = root.attr('shape')
+    attInput = parse("amount^2", amount=attAmount)
+    for i in range(0, 100, step_size):
+        cyl, make = pymel.cylinder()
+        cyl.rz.set(90)
+        cyl.ty.set(i+step_size/2)
+        make.heightRatio.set(step_size)
+        attSquash = parse("amount^(1/(shape^(x^2)))", x=(i-50)/50.0, amount=attInput, shape=attShape)
+        pymel.connectAttr(attSquash, cyl.sy)
+        pymel.connectAttr(attSquash, cyl.sz)
+    return True
 
-
-'''
-ex: basic_squash
-parse("1 / stretch", stretch=xstretch)
-
-ex: complex squash (f=[0.0-1.0])
-parse("1 / stretch ^ (1 / (e^(x^2)))", e=math.e, x=f, stretch=stretch)
-
-'''
+def test():
+    assert(parse("2+2") == 4)
+    assert(parse("a+3*(6+(3*b))", a=4, b=7) == 85)
+    assert(_test_squash())
+    assert(_test_squash2())

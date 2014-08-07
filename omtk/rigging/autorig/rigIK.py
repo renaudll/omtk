@@ -1,9 +1,7 @@
 import pymel.core as pymel
 from classRigCtrl import RigCtrl
 from classRigPart import RigPart
-from omtk.libs import libRigging, libAttr, libPymel
-from omtk.rigging import formulaParser
-
+from omtk.libs import libRigging, libAttr, libFormula
 
 class CtrlIk(RigCtrl):
     kAttrName_State = 'ikFk'
@@ -65,19 +63,10 @@ class IK(RigPart):
         oChainS = self.input[0]
         oChainE = self.input[self.iCtrlIndex]
 
-        # fChainLength = 0
-        # for oInput in self.input[1:self.iCtrlIndex + 1]:
-        #     fChainLength += oInput.t.get().length()
-        #
+        # Compute chain length
         self._chain_length = self._chain.getLength()
 
         # Compute swivel position
-        # p3ChainS = oChainS.getTranslation(space='world')
-        # p3ChainE = oChainE.getTranslation(space='world')
-        # fRatio = self.input[1].t.get().length() / self.fChainLength
-        # p3SwivelBase = (p3ChainE - p3ChainS) * fRatio + p3ChainS
-        # p3SwivelDir = (self.input[1].getTranslation(space='world') - p3SwivelBase).normal()
-        # p3SwivelPos = p3SwivelBase + p3SwivelDir * self.fChainLength
         p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
@@ -121,7 +110,7 @@ class IK(RigPart):
 
             vars = {}
             fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
-            fnParse = functools.partial(formulaParser.parse, **vars)
+            fnParse = functools.partial(libFormula.parse, **vars)
 
             #vars['inStretchAmount'] = fnAddAttr(oAttHolder, longName='StretchAmount', niceName='Stretch', minValue=0, maxValue=1)
 
@@ -134,14 +123,14 @@ class IK(RigPart):
             vars['pos'] = self.oSoftIKCtrlRef.worldMatrix
 
             # Variables (input)
-            formulaParser.parseToVar("inDistance", "identity~pos", vars)
+            libFormula.parseToVar("inDistance", "identity~pos", vars)
 
             # Variables (logic)
-            formulaParser.parseToVar("distanceSoft", "distanceMax*inRatio", vars)
+            libFormula.parseToVar("distanceSoft", "distanceMax*inRatio", vars)
 
             # distanceSafe: the maximum length where the soft ik isnt active
             # The maximum distane where the soft ik is not activated
-            formulaParser.parseToVar("distanceSafe", "distanceMax-distanceSoft", vars)
+            libFormula.parseToVar("distanceSafe", "distanceMax-distanceSoft", vars)
 
 
             vars['inDistanceFloor'] = libRigging.CreateUtilityNode('condition',
@@ -155,15 +144,15 @@ class IK(RigPart):
             # This represent the soft-ik state
             # When the soft-ik kick in, the value is 0.0.
             # When the stretch kick in, the value is 1.0.
-            # |--------|--------|-------|
-            # -1       0.0      1.0      +++
-            # -dBase   dSafe    dMax
-            formulaParser.parseToVar("deltaSafeSoft", "(inDistanceFloor-distanceSafe)/distanceSoft", vars)
+            # |-----------|-----------|----------|
+            # -1          0.0         1.0         +++
+            # -dBase      dSafe       dMax
+            libFormula.parseToVar("deltaSafeSoft", "(inDistanceFloor-distanceSafe)/distanceSoft", vars)
             self.__debug(vars['deltaSafeSoft'], scale=1.0, name='deltaSafeSoft')
 
             # soft_ik formula
             # src: http://www.softimageblog.com/userContent/anicholas/softik/Equation.gif
-            formulaParser.parseToVar("outDistanceSoft", "(distanceSoft*(1-(e^(deltaSafeSoft*-1))))+distanceSafe", vars)
+            libFormula.parseToVar("outDistanceSoft", "(distanceSoft*(1-(e^(deltaSafeSoft*-1))))+distanceSafe", vars)
             vars['outDistanceNoStretch'] = libRigging.CreateUtilityNode('condition',
                 operation=2,
                 firstTerm=vars['deltaSafeSoft'],
@@ -175,10 +164,10 @@ class IK(RigPart):
 
             print 'softik is accessible via utility node: ' + str(vars['outDistanceNoStretch'])
 
-            vars['outRatioNoStretch'] = formulaParser.parse("outDistanceNoStretch/distanceSafe", **vars)
+            vars['outRatioNoStretch'] = libFormula.parse("outDistanceNoStretch/distanceSafe", **vars)
             self.__debug(vars['outRatioNoStretch'], scale=10.0, name='outRatioNoStretch')
 
-            formulaParser.parseToVar("outRatioWithStretch", "inDistanceFloor/outDistanceNoStretch", vars)
+            libFormula.parseToVar("outRatioWithStretch", "inDistanceFloor/outDistanceNoStretch", vars)
             self.__debug(vars['outRatioWithStretch'], scale=10.0, name='outRatioWithStretch')
 
 
@@ -186,7 +175,7 @@ class IK(RigPart):
                 input=[vars['outRatioNoStretch'], vars['outRatioWithStretch']],
                 attributesBlender=vars['inStretch']).output
 
-            #formulaParser.parseToVar("outRatioStretch", "inDistance/outDistance", vars)
+            #libFormula.parseToVar("outRatioStretch", "inDistance/outDistance", vars)
 
             num_jnts = len(self._chain)
             for i in range(1, num_jnts):

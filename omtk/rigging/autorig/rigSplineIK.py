@@ -1,9 +1,7 @@
 import math
 import pymel.core as pymel
-from classRigCtrl import RigCtrl
 from classRigPart import RigPart
-from omtk.libs import libRigging, libAttr, libPymel, libPython
-from omtk.rigging import formulaParser
+from omtk.libs import libRigging, libPymel, libPython, libFormula
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class SplineIK(RigPart):
@@ -47,7 +45,7 @@ class SplineIK(RigPart):
 
         # Create squash
         num_joints = len(self._joints)
-        squash_atts = [formulaParser.parse("1 / (e^(x^2))", e=math.e, x=self.stretch_att) for i in libPython.frange(0, 1, 1.0/num_joints)]
+        squash_atts = [libFormula.parse("1 / (e^(x^2))", e=math.e, x=self.stretch_att) for i in libPython.frange(0, 1, 1.0/num_joints)]
 
         # Connect stretch/squash
         # Todo: Find correct axis orient

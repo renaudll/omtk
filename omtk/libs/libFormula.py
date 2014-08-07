@@ -7,17 +7,17 @@ Currently, supported operators are: add (+), substract (-), multiply (*), divide
 
 ex01 :creating a bell-curve type squash
 import math
-from omtk.rigging import formulaParser
+from omtk.rigging import libFormula
 loc, locs = pymel.polysphere()
 stretch = loc.sy
-squash = formulaParser.parse("1 / (e^(x^2))", e=math.e, x=stretch)
+squash = libFormula.parse("1 / (e^(x^2))", e=math.e, x=stretch)
 pymel.connectAttr(squash, loc.sx)
 pymel.connectAttr(squash, loc.sz)
 
 ex02:
-    from omtk.rigging import formulaParser
+    from omtk.rigging import libFormula
     grp = pymel.createNode('transform')
-    formulaParser.parse('(tx*rx)+(ty*ry)+(tz*rz)', tx=loc.tx, ty=loc.ty, tz=loc.tz, rx=loc.rx, ry=loc.ry, rz=loc.rz)
+    libFormula.parse('(tx*rx)+(ty*ry)+(tz*rz)', tx=loc.tx, ty=loc.ty, tz=loc.tz, rx=loc.rx, ry=loc.ry, rz=loc.rz)
 """
 
 # TODO: Implement operators priotity
@@ -41,7 +41,7 @@ class operator(object):
     def create(*args, **kwargs):
         raise NotImplementedError
 
-class add(operator):
+class addition(operator):
     @staticmethod
     def execute(arg1, arg2):
         log.debug('[add:execute] {0} + {1}'.format(arg1, arg2))
@@ -51,7 +51,7 @@ class add(operator):
         log.debug('[add:create] {0} + {1}'.format(arg1, arg2))
         return libRigging.CreateUtilityNode('plusMinusAverage', operation=1, input1D=[arg1, arg2]).output1D
 
-class substract(operator):
+class substraction(operator):
     @staticmethod
     def execute(arg1, arg2):
         log.debug('[substract:execute] {0} - {1}'.format(arg1, arg2))
@@ -61,7 +61,7 @@ class substract(operator):
         log.debug('[substract:create] {0} - {1}'.format(arg1, arg2))
         return libRigging.CreateUtilityNode('plusMinusAverage', operation=2, input1D=[arg1, arg2]).output1D
 
-class multiply(operator):
+class multiplication(operator):
     @staticmethod
     def execute(arg1, arg2):
         log.debug('[multiply:execute] {0} * {1}'.format(arg1, arg2))
@@ -71,7 +71,7 @@ class multiply(operator):
         log.debug('[multiply:create] {0} * {1}'.format(arg1, arg2))
         return libRigging.CreateUtilityNode('multiplyDivide', operation=1, input1X=arg1, input2X=arg2).outputX
 
-class divide(operator):
+class division(operator):
     @staticmethod
     def execute(arg1, arg2):
         log.debug('[divide:execute] {0} * {1}'.format(arg1, arg2))
@@ -170,10 +170,10 @@ class smaller_or_equal(operator):
         return equal(operation=5, *args, **kwargs).outColorR
 
 _operators = {
-    '+'  : add,
-    '-'  : substract,
-    '*'  : multiply,
-    '/'  : divide,
+    '+'  : addition,
+    '-'  : substraction,
+    '*'  : multiplication,
+    '/'  : division,
     '^'  : pow,
     '~'  : distance,
     '='  : equal,
@@ -183,6 +183,55 @@ _operators = {
     '<'  : smaller,
     '<=' : smaller_or_equal
 }
+'''
+1   ()   []   ->   .   ::	Grouping, scope, array/member access
+2	 !   ~   -   +   *   &   sizeof   type cast ++x   --x  	(most) unary operations, sizeof and type casts
+3	*   /   % MOD	Multiplication, division, modulo
+4	+   -	Addition and subtraction
+5	<<   >>	Bitwise shift left and right
+6	<   <=   >   >=	Comparisons: less-than, ...
+7	==   !=	Comparisons: equal and not equal
+8	&	Bitwise AND
+9	^	Bitwise exclusive OR
+10	|	Bitwise inclusive (normal) OR
+11	&&	Logical AND
+12	||	Logical OR
+13	 ?:   =   +=   -=   *=   /=   %=   &=   |=   ^=   <<=   >>=	Conditional expression (ternary) and assignment operators
+14	,	Comma operator
+'''
+__operators = [
+    {
+        '~'  : distance,
+    },
+    {
+        '^'  : pow,
+    },
+    {
+        '*'  : multiplication,
+        '/'  : division,
+    },
+    {
+        '+'  : addition,
+        '-'  : substraction,
+    },
+    {
+        '='  : equal,
+        '!=' : not_equal,
+        '>'  : bigger,
+        '>=' : bigger_or_equal,
+        '<'  : smaller,
+        '<=' : smaller_or_equal
+    }
+]
+
+
+    ('*', multiplication),
+    ('/', division),
+    ('+', addition),
+    ('-', substraction)
+]
+
+
 
 _varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')', '.'] + _operators.keys()
 _regex_splitVariables = '|'.join(re.escape(str) for str in _varDelimiters)
@@ -218,7 +267,7 @@ def rlen(L):
             i += 1
     return i
 
-def _optimise_formula_handle_negative(inn):
+def _optimise_removePrefixes(inn):
     global _operators
     fnIsOperator = lambda x: isinstance(x, collections.Hashable) and x in _operators
     num_args = len(inn)
@@ -227,7 +276,7 @@ def _optimise_formula_handle_negative(inn):
 
     first = inn[0]
     if isinstance(first, list):
-        first = _optimise_formula_handle_negative(first)
+        first = _optimise_removePrefixes(first)
     out.append(first)
 
     # todo: handle cases where the formula start with '-'
@@ -248,19 +297,19 @@ def _optimise_formula_handle_negative(inn):
             i += 2 # skip the next iteration
             #num_args -= 1
         elif isinstance(perArg, list):
-            perArg = _optimise_formula_handle_negative(perArg)
+            perArg = _optimise_removePrefixes(perArg)
         out.append(perArg)
 
         i += 1
 
     last = inn[-1]
     if isinstance(last, list):
-        last = _optimise_formula_handle_negative(last)
+        last = _optimise_removePrefixes(last)
     out.append(last)
 
     return out
 
-def _optimise_formula_replace_variables(args):
+def optimise_replaceVariables(args):
     global _variables
     fnIsVariable = lambda x: isinstance(x, basestring) and x in _variables
 
@@ -269,9 +318,44 @@ def _optimise_formula_replace_variables(args):
         if fnIsVariable(arg):
             arg = basic_cast(_variables[arg])
         elif isinstance(arg, list):
-            arg = _optimise_formula_replace_variables(arg)
+            arg = optimise_replaceVariables(arg)
+        else:
+            arg = basic_cast(arg)
         out.append(arg)
     return out
+
+# This minimise the weight of the formula, we make sure we're not applying operator on constants.
+# ex: "2 + 3 * a"   ->   "5 * a"
+# ex: "a ^ (2 + 3)" ->   "a ^ 5"
+def _optimise_cleanConstants(args):
+    fnRecursive_call = lambda x: _optimise_cleanConstants(x) if isinstance(x, list) else x
+
+    args[0] = fnRecursive_call(args[0])
+    i=1
+    imax = len(args)
+    while i < imax-1:
+        preArg = args[i-1]
+        perArg = args[i]
+        posArg = fnRecursive_call(args[i+1])
+
+        # Ensure we're working with operators
+        if not perArg in _operators:
+            raise IOError("Expected operator in formula, got {0}. {1}".format(perArg, args))
+
+        cls = _operators.get(perArg)
+
+        if cls.can_optimise(preArg, posArg):
+            result = cls.execute(preArg, posArg)
+
+            # Inject result in args
+            args[i-1] = result
+            del args[i]
+            del args[i]
+            imax -= 2
+        else:
+            i+=2
+
+    return args if len(args) > 1 else args[0] # never return a single array
 
 def _create_nodes(args):
     log.debug('[create_nodes] {0}'.format(args))
@@ -306,7 +390,8 @@ def _create_nodes(args):
     return return_val
 
 def parse(str, **inkwargs):
-    log.debug("PARSE: {0}".format(str))
+    log.debug("--------------------")
+    log.debug("PARSING: {0}".format(str))
     # step 1: identify variables
     vars = (var.strip() for var in re.split(_regex_splitVariables, str))
     vars = filter(lambda x: x, vars)
@@ -343,23 +428,29 @@ def parse(str, **inkwargs):
     if num_args == 0:
         raise IOError("Expected at least 1 argument!")
 
-    log.debug("Optimizing formula ({0} calls):{1}".format(rlen(args), args))
-
     # Replace variables by their real value
     # We're only iterating on every operators (ex: range(1,4,2)
-    args = _optimise_formula_replace_variables(args)
+    args = optimise_replaceVariables(args)
     log.debug("\tWithout variables ({0} calls): {1}".format(rlen(args), args))
+    if not isinstance(args, list): return args
 
     # Hack: Convert '-' prefix before a variable to a multiply operator
     # ex: x*-3 -> x * (3 * -1)
-    args = _optimise_formula_handle_negative(args)
+    args = _optimise_removePrefixes(args)
     log.debug("\tWithout '-' prefix ({0} calls): {1}".format(rlen(args), args))
+    if not isinstance(args, list): return args
+
+    # Calculate out the constants
+    args = _optimise_cleanConstants(args)
+    log.debug("\tWithout constants: {0}".format(args))
+    if not isinstance(args, list): return args
 
     # Create nodes
-    log.debug("Creating nodes...")
-    return _create_nodes(args)
-    log.debug("ALL DONE!")
+    #log.debug("Creating nodes...")
+    #return _create_nodes(args)
+    #log.debug("ALL DONE!")
 
+    return None
 
 def parseToVar(name, formula, vars):
     attr = parse(formula, **vars)

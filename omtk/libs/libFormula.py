@@ -171,8 +171,9 @@ _sorted_operators = [
     }
 ]
 
-
-_varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')', '.'] + _operators.keys()
+_all_operators = {}
+for operators in _sorted_operators: _all_operators.update(operators)
+_varDelimiters = ['0','1','2','3','4','5','6','7','8','9','(',')', '.'] + _all_operators.keys()
 _regex_splitVariables = '|'.join(re.escape(str) for str in _varDelimiters)
 
 _variables = {}
@@ -206,48 +207,6 @@ def rlen(L):
             i += 1
     return i
 
-def _optimise_removePrefixes(inn):
-    global _operators
-    fnIsOperator = lambda x: isinstance(x, collections.Hashable) and x in _operators
-    num_args = len(inn)
-
-    out = []
-
-    first = inn[0]
-    if isinstance(first, list):
-        first = _optimise_removePrefixes(first)
-    out.append(first)
-
-    # todo: handle cases where the formula start with '-'
-    i = 1
-    while i < num_args-1:
-        perArg = inn[i]
-        posArg = inn[i+1]
-        if fnIsOperator(perArg) and posArg == '-':
-            out.append(perArg)
-
-            next_arg = inn[i+2]
-
-            if isinstance(next_arg, basestring) and next_arg.isdigit():
-                perArg = -1 * float(next_arg) # todo: prevent int to float conversion
-            else:
-                perArg = [-1, '*', next_arg]
-
-            i += 2 # skip the next iteration
-            #num_args -= 1
-        elif isinstance(perArg, list):
-            perArg = _optimise_removePrefixes(perArg)
-        out.append(perArg)
-
-        i += 1
-
-    last = inn[-1]
-    if isinstance(last, list):
-        last = _optimise_removePrefixes(last)
-    out.append(last)
-
-    return out
-
 def optimise_replaceVariables(args):
     global _variables
     fnIsVariable = lambda x: isinstance(x, basestring) and x in _variables
@@ -262,6 +221,40 @@ def optimise_replaceVariables(args):
             arg = basic_cast(arg)
         out.append(arg)
     return out
+
+def _optimise_formula_remove_prefix(args):
+    import logging; log = logging.getLogger(__name__)
+
+    print '_optimise_formula_remove_prefix', args
+    if len(args) < 2:
+        raise Exception("A minimum of 2 arguments are necessary! Got: {0}".format(args))
+    fnRecursive_call = lambda x: _optimise_formula_remove_prefix(x) if isinstance(x, list) else x
+    #args[0] = fnRecursive_call(args[0])
+    pos=0
+    imax=len(args)
+    print len(args)
+    while pos < imax-1:
+        log.debug('| current position: {0}'.format(pos))
+        log.debug('| current operator: {0}'.format(args[0]))
+        log.debug('| memory: {0} {1} {2}'.format((args[pos-1] if pos != 0 else None), args[pos], args[pos+1]))
+        log.debug('| memory (all): {0}'.format(args))
+        preArg = args[pos-1] if pos > 0 else None
+        args[pos]   = perArg = fnRecursive_call(args[pos])
+        args[pos+1] = posArg = fnRecursive_call(args[pos+1])
+        if perArg == '-':
+            if preArg is None or preArg in _all_operators: # If the formula start with '-' or '-' is prefixed by an operator
+                del args[pos]
+
+                if isinstance(posArg, (int, float, long)):
+                    args[pos] = -1 * posArg
+                else:
+                    args[pos] = [-1, '*', posArg]
+                imax=len(args)
+            pos += 1
+        else:
+            pos += 1
+    log.debug('exiting... {0}'.format(args))
+    return args
 
 # Generic method to optimize a formula via a suite of operators
 # For now only 'sandwitched' operators are supported
@@ -332,7 +325,7 @@ def parse(str, **inkwargs):
     # src: http://stackoverflow.com/questions/5454322/python-how-to-match-nested-parentheses-with-regex
     from omtk.deps import pyparsing # make sure you have this installed
     content = pyparsing.Word(pyparsing.alphanums + '.')
-    for op in _operators.keys(): content |= op # defined operators
+    for op in _all_operators.keys(): content |= op # defined operators
     nestedExpr = pyparsing.nestedExpr( opener='(', closer=')', content=content)
     res = nestedExpr.parseString('({0})'.format(str)) # wrap all string in parenthesis, or it won't work
     args = res.asList()[0]
@@ -341,22 +334,24 @@ def parse(str, **inkwargs):
     if num_args == 0:
         raise IOError("Expected at least 1 argument!")
 
+
+
     # Replace variables by their real value
     # We're only iterating on every operators (ex: range(1,4,2)
     args = optimise_replaceVariables(args)
-    log.debug("\tWithout variables ({0} calls): {1}".format(rlen(args), args))
     if not isinstance(args, list): return args
+    log.debug("\tWithout variables ({0} calls) : {1}".format(rlen(args), args))
 
     # Hack: Convert '-' prefix before a variable to a multiply operator
     # ex: x*-3 -> x * (3 * -1)
-    args = _optimise_removePrefixes(args)
-    log.debug("\tWithout '-' prefix ({0} calls): {1}".format(rlen(args), args))
+    args = _optimise_formula_remove_prefix(args)
     if not isinstance(args, list): return args
+    log.debug("\tWithout '-' prefix ({0} calls): {1}".format(rlen(args), args))
 
     # Calculate out the constants
     args = _optimise_cleanConstants(args)
-    log.debug("\tWithout constants: {0}".format(args))
     if not isinstance(args, list): return args
+    log.debug("\tWithout constants ({0} calls) : {1}".format(rlen(args),args))
 
     # Create nodes
     #log.debug("Creating nodes...")
@@ -385,15 +380,17 @@ def _test_squash2(step_size=2):
     root = pymel.createNode('transform', name='root')
     pymel.addAttr(root, longName='amount', defaultValue=1.0, k=True)
     pymel.addAttr(root, longName='shape', defaultValue=math.e, k=True)
+    pymel.addAttr(root, longName='offset', defaultValue=0.0, k=True)
     attAmount = root.attr('amount')
     attShape = root.attr('shape')
+    attOffset = root.attr('offset')
     attInput = parse("amount^2", amount=attAmount)
     for i in range(0, 100, step_size):
         cyl, make = pymel.cylinder()
         cyl.rz.set(90)
         cyl.ty.set(i+step_size/2)
         make.heightRatio.set(step_size)
-        attSquash = parse("amount^(1/(shape^(x^2)))", x=(i-50)/50.0, amount=attInput, shape=attShape)
+        attSquash = parse("amount^(1/(shape^((x+offset)^2)))", x=(i-50)/50.0, amount=attInput, shape=attShape, offset=attOffset)
         pymel.connectAttr(attSquash, cyl.sy)
         pymel.connectAttr(attSquash, cyl.sz)
     return True
@@ -401,5 +398,8 @@ def _test_squash2(step_size=2):
 def test():
     assert(parse("2+2") == 4)
     assert(parse("a+3*(6+(3*b))", a=4, b=7) == 85)
+    assert(parse("-2^1.0*-1.0+3.3")) # '-' fix
+    assert(parse("-2*(1.0-(3^(3*-1.0)))")) # '-' prefix
+
     assert(_test_squash())
     assert(_test_squash2())

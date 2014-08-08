@@ -1,5 +1,6 @@
 import functools
 import pymel.core as pymel
+import logging; log = logging.getLogger(__name__); log.setLevel(logging.INFO)
 
 import classNameMap
 import classRigNode
@@ -14,7 +15,6 @@ import rigIK
 import rigSplineIK
 import rigArm
 import rigLeg
-#import classCurveDeformer
 
 from rigFK import FK
 from rigIK import IK
@@ -52,20 +52,6 @@ def unbuild_all():
         network = libSerialization.exportToNetwork(rigroot)
         pymel.select(network)
 
-'''
-Usage example:
-from pymel import core as pymel
-from omtk.rigging import AutoRig
-
-rig = AutoRig.Create()
-rig.AddPart(AutoRig.Arm(pymel.ls('jnt_arm_l_*')))
-rig.AddPart(AutoRig.Arm(pymel.ls('jnt_arm_r_*')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_spine')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_chest')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_neck')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_head')))
-rig.Build()
-'''
 
 #################
 
@@ -202,3 +188,38 @@ def show():
     global gui
     gui = AutoRig()
     gui.show()
+
+#
+# Unit testing
+#
+import unittest
+import os, glob
+from maya import cmds
+class TestAutoRig(unittest.TestCase):
+    def test_buildAndUnbuildExamples(self):
+        log.info("test_buildAndUnbuildExamples")
+        import omtk
+        directory = os.path.join(os.path.dirname(omtk.__file__), 'examples')
+        files = glob.glob(os.path.join(directory, '*.mb')) + glob.glob(os.path.join(directory, '*.ma'))
+        self.assertTrue(len(files)) # Ensure we got files to test
+        for path in files:
+            log.info('Testing {0}'.format(path))
+            self.assertTrue(True)
+            cmds.file(path, open=True, force=True)
+            # Find rig
+            rig = find_one()
+            log.info('Building...')
+            rig.build()
+            log.info('Unbuilding...')
+            rig.unbuild()
+
+    def runTest(self):
+        pass
+
+def test(**kwargs):
+    case = TestAutoRig()
+    case.test_buildAndUnbuildExamples()
+    #suite = unittest.TestLoader().loadTestsFromTestCase(TestAutoRig)
+    #unittest.TextTestRunner(**kwargs).run(suite)
+
+

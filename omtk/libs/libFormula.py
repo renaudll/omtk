@@ -2,7 +2,7 @@ import re, math, collections
 from omtk.libs import libRigging
 from maya import cmds
 import pymel.core as pymel
-import logging as log
+import logging; log = logging.getLogger(__name__); log.setLevel(logging.INFO)
 
 class operator(object):
     @staticmethod
@@ -223,21 +223,18 @@ def optimise_replaceVariables(args):
     return out
 
 def _optimise_formula_remove_prefix(args):
-    import logging; log = logging.getLogger(__name__)
-
-    print '_optimise_formula_remove_prefix', args
+    #import logging; log = logging.getLogger(__name__)
     if len(args) < 2:
         raise Exception("A minimum of 2 arguments are necessary! Got: {0}".format(args))
     fnRecursive_call = lambda x: _optimise_formula_remove_prefix(x) if isinstance(x, list) else x
     #args[0] = fnRecursive_call(args[0])
     pos=0
     imax=len(args)
-    print len(args)
     while pos < imax-1:
-        log.debug('| current position: {0}'.format(pos))
-        log.debug('| current operator: {0}'.format(args[0]))
-        log.debug('| memory: {0} {1} {2}'.format((args[pos-1] if pos != 0 else None), args[pos], args[pos+1]))
-        log.debug('| memory (all): {0}'.format(args))
+        #log.debug('| current position: {0}'.format(pos))
+        #log.debug('| current operator: {0}'.format(args[0]))
+        #log.debug('| memory: {0} {1} {2}'.format((args[pos-1] if pos != 0 else None), args[pos], args[pos+1]))
+        #log.debug('| memory (all): {0}'.format(args))
         preArg = args[pos-1] if pos > 0 else None
         args[pos]   = perArg = fnRecursive_call(args[pos])
         args[pos+1] = posArg = fnRecursive_call(args[pos+1])
@@ -253,7 +250,7 @@ def _optimise_formula_remove_prefix(args):
             pos += 1
         else:
             pos += 1
-    log.debug('exiting... {0}'.format(args))
+    #log.debug('exiting... {0}'.format(args))
     return args
 
 # Generic method to optimize a formula via a suite of operators
@@ -318,7 +315,7 @@ def parse(str, **inkwargs):
         if not var in kwargs:
             raise KeyError("Variable '{0}' is not defined".format(var))
         _variables[var] = kwargs[var]
-        log.debug('\t{0} = {1}'.format(var, kwargs[var]))
+        #log.debug('\t{0} = {1}'.format(var, kwargs[var]))
     #print 'defined variables are:', dicVariables
 
     # Convert parenthesis and operators to nested string lists
@@ -375,7 +372,7 @@ def _test_squash():
     pymel.connectAttr(squash, transform.sz)
     return True
 
-def _test_squash2(step_size=2):
+def _test_squash2(step_size=10):
     cmds.file(new=True, f=True)
     root = pymel.createNode('transform', name='root')
     pymel.addAttr(root, longName='amount', defaultValue=1.0, k=True)
@@ -395,11 +392,32 @@ def _test_squash2(step_size=2):
         pymel.connectAttr(attSquash, cyl.sz)
     return True
 
-def test():
-    assert(parse("2+2") == 4)
-    assert(parse("a+3*(6+(3*b))", a=4, b=7) == 85)
-    assert(parse("-2^1.0*-1.0+3.3")) # '-' fix
-    assert(parse("-2*(1.0-(3^(3*-1.0)))")) # '-' prefix
+#
+# Unit testing
+#
 
-    assert(_test_squash())
-    assert(_test_squash2())
+import unittest
+class TestFormula(unittest.TestCase):
+    def test_arythmetry(self):
+        log.info("test_arythmetry")
+        self.assertEqual(parse("2+2"), 4)
+        self.assertEqual(parse("a+3*(6+(3*b))", a=4, b=7), 85)
+        self.assertEqual(parse("-2^1.0*-1.0+3.3"), 5.3) # '-' fix
+        self.assertAlmostEqual(parse("-2*(1.0-(3^(3*-1.0)))"), -1.925925925925926) # '-' prefix
+
+    def test_rigging(self):
+        log.info("test_rigging")
+        self.assertTrue(_test_squash())
+        self.assertTrue(_test_squash2())
+
+    def runTest(self):
+        pass
+
+def test(**kwargs):
+    case = TestFormula()
+    case.test_arythmetry()
+    case.test_rigging()
+    #suite = unittest.TestLoader().loadTestsFromTestCase(TestFormula)
+    #unittest.TextTestRunner(**kwargs).run(suite)
+
+

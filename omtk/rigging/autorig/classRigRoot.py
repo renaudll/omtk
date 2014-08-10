@@ -28,7 +28,7 @@ class CtrlRoot(RigCtrl):
 
 class RigRoot(RigElement):
     def __init__(self):
-        self.aChildrens = []
+        self.children = []
         self.grp_anms = None
         self.grp_geos = None
         self.grp_jnts = None
@@ -40,7 +40,7 @@ class RigRoot(RigElement):
     def AddPart(self, _part):
         #if not isinstance(_part, RigPart):
         #    logging.error("[RigRoot:AddPart] Invalid RigPart '{0}' provided".format(_part))
-        self.aChildrens.append(_part)
+        self.children.append(_part)
 
     def prebuild(self):
         pass
@@ -55,9 +55,9 @@ class RigRoot(RigElement):
         self.prebuild()
 
         #try:
-        for children in self.aChildrens:
+        for child in self.children:
             #try:
-            children.build(**kwargs)
+            child.build(**kwargs)
             #except Exception, e:
             #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
             #    traceback.print_stack()
@@ -112,5 +112,5 @@ class RigRoot(RigElement):
         # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
         libRigging.BackupCtrlShapes(parent=self.grp_rigs)
 
-        for child in self.aChildrens:
+        for child in self.children:
             child.unbuild(**kwargs)

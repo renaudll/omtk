@@ -6,6 +6,8 @@ class RigCtrl(RigNode):
     def __init__(self, _create=False, _bOffset=True, *args, **kwargs):
         super(RigCtrl, self).__init__(_create=_create, *args, **kwargs)
         self._bOffset = _bOffset
+        if _create:
+            self.build()
 
     def __createOffset__(self):
         self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
@@ -93,8 +95,6 @@ class RigCtrl(RigNode):
             target.set(source)
 
     def fetch_attr_all(self):
-        print self.tx
-        print self.node.tx
         # Note: we're forced to use __dict__ since we don't self.tx to be interpreted as self.node.tx
         self.fetch_attr(self.__dict__.get('tx', None), self.node.tx)
         self.fetch_attr(self.__dict__.get('ty', None), self.node.ty)

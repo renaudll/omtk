@@ -15,9 +15,9 @@ class Leg(Arm):
 
 	# TODO: Support foot that is not aligned to world plane
 	def create_footroll(self):
-		oFoot = self._aIkChain[self.iCtrlIndex]
-		oToes = self._aIkChain[self.iCtrlIndex+1]
-		oTips = self._aIkChain[self.iCtrlIndex+2]
+		oFoot = self.sysIK._chain_ik[self.iCtrlIndex]
+		oToes = self.sysIK._chain_ik[self.iCtrlIndex+1]
+		oTips = self.sysIK._chain_ik[self.iCtrlIndex+2]
 
 		# Create FootRoll
 		p3Foot = oFoot.getTranslation(space='world')

@@ -7,17 +7,15 @@ from omtk.rigging.autorig.rigFK import FK
 from omtk.libs import libRigging
 
 class RigAttHolder(RigCtrl):
-    def build(self, name=None, *args, **kwargs):
+    def __createNode__(self, name=None, *args, **kwargs):
         s1 = 1.0
         s2 = s1 * 0.7
-        self.node =  pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)
-        if isinstance(name, basestring): self.node.rename(name)
-
-        self.node.t.set(channelBox=False)
-        self.node.r.set(channelBox=False)
-        self.node.s.set(channelBox=False)
-
-        return self.node
+        node = pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)
+        if isinstance(name, basestring): node.rename(name)
+        node.t.set(channelBox=False)
+        node.r.set(channelBox=False)
+        node.s.set(channelBox=False)
+        return node
 
 class Arm(RigPart):
     kAttrName_State = 'fkIk' # The name of the IK/FK attribute
@@ -58,7 +56,7 @@ class Arm(RigPart):
         #self.swivelSkinPose = self.sysIK.ctrlSwivel.getMatrix() * self.aInput[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
         # Blend ikChain with fkChain
-        for oInput, oIk, oFk in zip(self.input, self._aIkChain, self.sysFK.aCtrls):
+        for oInput, oIk, oFk in zip(self.input, self.sysIK._chain_ik, self.sysFK.aCtrls):
             oConstraint = pymel.parentConstraint(oIk, oFk, oInput)
             attCurIkWeight, attCurFkWeight = oConstraint.getWeightAliasList()
             pymel.connectAttr(attIkWeight, attCurIkWeight)

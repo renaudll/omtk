@@ -2,7 +2,7 @@ import pymel.core as pymel
 import logging
 from classNameMap import NameMap
 from classRigElement import RigElement
-from omtk.libs import libPymel
+from omtk.libs import libPymel, libAttr
 
 '''
 This is the baseclass for anything that can be Build/Unbuild
@@ -86,6 +86,20 @@ class RigPart(RigElement):
         if self.grp_rig is not None:
             pymel.delete(self.grp_rig)
             self.grp_rig = None
+
+        # Ensure that there's no more connections in the input chain
+        for obj in self.input:
+            if isinstance(obj, pymel.nodetypes.Transform):
+                libAttr.disconnectAttr(obj.tx)
+                libAttr.disconnectAttr(obj.ty)
+                libAttr.disconnectAttr(obj.tz)
+                libAttr.disconnectAttr(obj.rx)
+                libAttr.disconnectAttr(obj.ry)
+                libAttr.disconnectAttr(obj.rz)
+                libAttr.disconnectAttr(obj.sx)
+                libAttr.disconnectAttr(obj.sy)
+                libAttr.disconnectAttr(obj.sz)
+
 
     # Used in libSerialization
     def __getNetworkName__(self):

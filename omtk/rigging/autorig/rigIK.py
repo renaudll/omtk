@@ -51,10 +51,11 @@ class IK(RigPart):
 
     def __debug(self, attr, scale=1.0, name=None):
         parent = pymel.createNode('transform')
-        if name: parent.rename(name + '_parent')
-        loc = pymel.spaceLocator(name=name)
-        loc.setParent(parent)
+        #if name: parent.rename(name + '_parent')
+        loc = pymel.spaceLocator()
         if name: loc.rename(name)
+        loc.setParent(parent)
+        #if name: loc.rename(name)
         pymel.connectAttr(attr, loc.ty)
         parent.scale.set(scale, scale, scale)
 
@@ -148,7 +149,7 @@ class IK(RigPart):
             # -1          0.0         1.0         +++
             # -dBase      dSafe       dMax
             libFormula.parseToVar("deltaSafeSoft", "(inDistanceFloor-distanceSafe)/distanceSoft", vars)
-            self.__debug(vars['deltaSafeSoft'], scale=1.0, name='deltaSafeSoft')
+            #self.__debug(vars['deltaSafeSoft'], scale=1.0, name='deltaSafeSoft')
 
             # soft_ik formula
             # src: http://www.softimageblog.com/userContent/anicholas/softik/Equation.gif
@@ -160,12 +161,12 @@ class IK(RigPart):
                 colorIfTrueR=vars['outDistanceSoft'],
                 colorIfFalseR=vars['distanceSafe']
             ).outColorR
-            self.__debug(vars['outDistanceNoStretch'], scale=1.0, name='outDistanceNoStretch')
+            #self.__debug(vars['outDistanceNoStretch'], scale=1.0, name='outDistanceNoStretch')
 
             print 'softik is accessible via utility node: ' + str(vars['outDistanceNoStretch'])
 
             vars['outRatioNoStretch'] = libFormula.parse("outDistanceNoStretch/distanceSafe", **vars)
-            self.__debug(vars['outRatioNoStretch'], scale=10.0, name='outRatioNoStretch')
+            #self.__debug(vars['outRatioNoStretch'], scale=10.0, name='outRatioNoStretch')
 
             libFormula.parseToVar("outRatioWithStretch", "inDistanceFloor/outDistanceNoStretch", vars)
             self.__debug(vars['outRatioWithStretch'], scale=10.0, name='outRatioWithStretch')

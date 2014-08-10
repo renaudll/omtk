@@ -15,9 +15,12 @@ class SplineIK(RigPart):
         self._joints = [input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
         self._curves = [input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
 
-    def build(self,  *args, **kwargs):
-        assert(len(self._joints) > 1) # need at least 2 jnts
-        assert(len(self._curves) > 0)
+    def build(self, *args, **kwargs):
+        self._post_setattr_inputs() # update hack
+        if len(self._joints) < 2:
+            raise Exception("Can't build SplineIK. Expected at least two joints, got {0}".format(self._joints))
+        if len(self._curves) < 1:
+            raise Exception("Can't build SplineIK. Expected at least one nurbsCurve, got {0}".format(self._curves))
 
         super(SplineIK, self).build(*args, **kwargs)
 

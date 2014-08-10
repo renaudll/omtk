@@ -1,8 +1,8 @@
 import pymel.core as pymel
 from maya import OpenMaya
-import logging as _logging
-logging = _logging.getLogger()
-logging.setLevel(_logging.DEBUG)
+import logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 import core
 
@@ -126,13 +126,13 @@ def _setAttr(_plug, _val):
         if isinstance(_val, pymel.Attribute): # pymel.Attribute
             # Hack: Don't crash with non-existent pymel.Attribute
             if not _val.exists():
-                logging.warning("Can't setAttr, Attribute {0} don't exist".format(_val))
+                log.warning("Can't setAttr, Attribute {0} don't exist".format(_val))
                 return
             plug = _val.__apimfn__()
         elif hasattr(_val, 'exists'): # pymel.PyNode
             # Hack: Don't crash with non-existent pymel.Attribute
             if not pymel.objExists(_val.__melobject__()):
-                logging.warning("Can't setAttr, PyNode {0} don't exist".format(_val))
+                log.warning("Can't setAttr, PyNode {0} don't exist".format(_val))
                 return
             plug = _val.__apimfn__().findPlug('message')
 
@@ -160,7 +160,7 @@ def _getNetworkAttr(_att):
 
     if _att.type() == 'message':
         if not _att.isConnected():
-            logging.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(_att))
+            log.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(_att))
             return None
         oInput = _att.inputs()[0]
         # Network
@@ -178,7 +178,7 @@ def _getNetworkAttr(_att):
     return _att.get()
 
 def exportToNetwork(_data, **kwargs):
-    logging.debug('CreateNetwork {0}'.format(_data))
+    log.debug('CreateNetwork {0}'.format(_data))
 
     if hasattr(_data, '_network') and isinstance(_data._network, pymel.PyNode) and _data._network.exists():
         network = _data._network
@@ -206,7 +206,7 @@ def exportToNetwork(_data, **kwargs):
 
 def importFromNetwork(_network):
     if not _network.hasAttr('_class'):
-        logging.error('[importFromNetwork] Network dont have mandatory attribute _class')
+        log.error('[importFromNetwork] Network dont have mandatory attribute _class')
         raise AttributeError
 
     cls = _network.getAttr('_class').split('.')[-1]

@@ -73,7 +73,7 @@ class Leg(Arm):
 		pymel.connectAttr(attRollF, oPivotF.rotateX)
 		pymel.connectAttr(attRollB, oPivotB.rotateX)
 
-		pymel.parentConstraint(self.sysIK.ctrlIK, self.sysIK.ctrlSwivel, maintainOffset=True) # TODO: Implement SpaceSwitch
+		pymel.parentConstraint(self.sysIK.ctrlIK, self.sysIK.ctrl_swivel, maintainOffset=True) # TODO: Implement SpaceSwitch
 
 		# Create ikHandles
 		oIkHandleFoot, oIkEffectorFoot = pymel.ikHandle(startJoint=oFoot, endEffector=oToes, solver='ikSCsolver')

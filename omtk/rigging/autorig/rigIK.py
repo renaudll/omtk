@@ -169,7 +169,7 @@ class IK(RigPart):
             #self.__debug(vars['outRatioNoStretch'], scale=10.0, name='outRatioNoStretch')
 
             libFormula.parseToVar("outRatioWithStretch", "inDistanceFloor/outDistanceNoStretch", vars)
-            self.__debug(vars['outRatioWithStretch'], scale=10.0, name='outRatioWithStretch')
+            #self.__debug(vars['outRatioWithStretch'], scale=10.0, name='outRatioWithStretch')
 
 
             vars['out'] = libRigging.CreateUtilityNode('blendTwoAttr',
@@ -191,12 +191,14 @@ class IK(RigPart):
 
 
             # Debug: create gizmos
+            '''
             gsafe, gsafes = pymel.circle(name="safe")
             gsoft, gsofts = pymel.circle(name="soft")
             gbase, gbases = pymel.circle(name="base")
             pymel.connectAttr(vars['distanceMax'], gbases.radius)
             pymel.connectAttr(vars['distanceSoft'], gsofts.radius)
             pymel.connectAttr(vars['distanceSafe'], gsafes.radius)
+            '''
 
             # Debug locators
 

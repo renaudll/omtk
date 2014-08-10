@@ -10,7 +10,9 @@ An node-base autorig that store itself in a network of maya nodes.
 Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.rigging.autorig).
 
 ### omtk.libs.libSerialization
-A set of tools that serialize/deserialize python objects in various formats (maya nodes, json, yaml, xml, etc)
+A module that can serialize/deserialize python objects in various formats (maya network, json, yaml).
+Is also support the basic [pymel](https://github.com/LumaPictures/pymel) types.
+Primary used in the [autorig](http://github.com/renaudll/omtk/wiki/omtk.rigging.autorig) module.
 
 Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.libs.libSerialization).
 

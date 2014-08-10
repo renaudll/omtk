@@ -75,7 +75,7 @@ def from_selection():
     import pymel.core as pymel
     da =  DigitalAsset(pymel.selected())
     print da.__repr__()
-    libSerialization.exportToNetwork(da)
+    libSerialization.export_network(da)
     return da
 
 

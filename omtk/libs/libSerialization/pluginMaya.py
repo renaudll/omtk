@@ -113,7 +113,7 @@ def _setAttr(_plug, _val):
             _plug.setMObject(mo)
 
     elif sType == core.TYPE_COMPLEX:
-        network = exportToNetwork(_val)
+        network = export_network(_val)
         plugMessage = network.__apimfn__().findPlug('message')
 
         # Use a dag modifier to connect the attribute. TODO: Is this really the best way?
@@ -165,7 +165,7 @@ def _getNetworkAttr(_att):
         oInput = _att.inputs()[0]
         # Network
         if hasattr(oInput, '_class'):
-            return importFromNetwork(oInput)
+            return import_network(oInput)
         # Node
         else:
             return oInput
@@ -177,7 +177,7 @@ def _getNetworkAttr(_att):
     # Basic type
     return _att.get()
 
-def exportToNetwork(_data, **kwargs):
+def export_network(_data, **kwargs):
     log.debug('CreateNetwork {0}'.format(_data))
 
     if hasattr(_data, '_network') and isinstance(_data._network, pymel.PyNode) and _data._network.exists():
@@ -204,7 +204,7 @@ def exportToNetwork(_data, **kwargs):
 
     return network
 
-def importFromNetwork(_network):
+def import_network(_network):
     if not _network.hasAttr('_class'):
         log.error('[importFromNetwork] Network dont have mandatory attribute _class')
         raise AttributeError

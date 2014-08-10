@@ -191,11 +191,11 @@ def _handle_dir_creation(path):
     if not os.path.exists(path_dir):
         os.makedirs(path_dir)
 
-def exportToJson(data, **kwargs):
+def export_json(data, **kwargs):
     dicData = exportToBasicData(data)
     return json.dumps(data, **kwargs)
 
-def exportToJsonFile(data, path, mkdir=True, **kwargs):
+def export_json_file(data, path, mkdir=True, **kwargs):
     if mkdir: _handle_dir_creation(path)
 
     dicData = exportToBasicData(data)
@@ -205,11 +205,11 @@ def exportToJsonFile(data, path, mkdir=True, **kwargs):
 
     return True
 
-def importFromJson(str_, **kwargs):
+def import_json(str_, **kwargs):
     dicData = json.loads(str_, **kwargs)
     return importFromBasicData(dicData)
 
-def importFromJsonFile(path, **kwargs):
+def import_json_file(path, **kwargs):
     if not os.path.exists(path):
         raise Exception("Can't importFromJsonFile, file does not exist! {0}".format(path))
 
@@ -221,11 +221,11 @@ def importFromJsonFile(path, **kwargs):
 # Yaml support
 #
 
-def exportToYaml(data, **kwargs):
+def export_yaml(data, **kwargs):
     dicData = exportToBasicData(data)
     return yaml.dump(dicData, **kwargs)
 
-def exportToYamlFile(data, path, mkdir=True, **kwargs):
+def export_yaml_file(data, path, mkdir=True, **kwargs):
     if mkdir: _handle_dir_creation(path)
 
     dicData = exportToBasicData(data)
@@ -235,11 +235,11 @@ def exportToYamlFile(data, path, mkdir=True, **kwargs):
 
     return True
 
-def importFromYaml(str_, **kwargs):
+def import_yaml(str_, **kwargs):
     dicData = yaml.load(str_)
     return importFromBasicData(dicData)
 
-def importFromYamlFile(path, **kwargs):
+def import_yaml_file(path, **kwargs):
     if not os.path.exists(path):
         raise Exception("Can't importFromYamlFile, file does not exist! {0}".format(path))
 

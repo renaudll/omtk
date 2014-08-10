@@ -6,8 +6,8 @@ from omtk.libs import libPython
 #
 
 from core import importFromBasicData, exportToBasicData, _dag_types, _basic_types
-from core import importFromJson, importFromJsonFile, exportToJson, exportToJsonFile
-from core import importFromYaml, importFromYamlFile, exportToYaml, exportToYamlFile
+from core import import_json, import_json_file, export_json, export_json_file
+from core import import_yaml, import_yaml_file, export_yaml, export_yaml_file
 
 #
 # Maya only functionalities
@@ -17,7 +17,7 @@ from core import importFromYaml, importFromYamlFile, exportToYaml, exportToYamlF
 
 if libPython.does_module_exist("maya"):
     print 'in_maya'
-    from pluginMaya import exportToNetwork, importFromNetwork, isNetworkInstanceOfClass, getNetworksByClass, getConnectedNetworks
+    from pluginMaya import export_network, import_network, isNetworkInstanceOfClass, getNetworksByClass, getConnectedNetworks
     import pymel.core as pymel
     _dag_types.append(pymel.PyNode)
     _dag_types.append(pymel.Attribute)
@@ -47,11 +47,11 @@ class TestSerialization(unittest.TestCase):
         self._monkeypatch_various_types(data_inn)
 
         # Serializae
-        network = exportToNetwork(data_inn)
+        network = export_network(data_inn)
         self.assertTrue(isinstance(network, pymel.PyNode))
 
         # Deserialize
-        data_out = importFromNetwork(network)
+        data_out = import_network(network)
 
         # Compare output
         for att in dir(data_out):

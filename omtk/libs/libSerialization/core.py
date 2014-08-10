@@ -124,7 +124,7 @@ def getDataType(_data, *args, **kwargs):
 
 
 
-def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
+def _export_basicData(_data, _bSkipNone=True, _bRecursive=True, **args):
     ##logging.debug('[exportToBasicData]', _data)
 
     sType = getDataType(_data)
@@ -137,7 +137,7 @@ def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
             if '_' not in key[0]:
                 if not _bSkipNone or val is not None:
                     if (sType == TYPE_COMPLEX and _bRecursive is True) or sType == TYPE_LIST:
-                        val = exportToBasicData(val, _bSkipNone=_bSkipNone, _bRecursive=_bRecursive, **args)
+                        val = _export_basicData(val, _bSkipNone=_bSkipNone, _bRecursive=_bRecursive, **args)
                     if not _bSkipNone or val is not None:
                         dicReturn[key] = val
 
@@ -149,7 +149,7 @@ def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
 
     # Handle iterable
     elif sType == TYPE_LIST:
-        return [exportToBasicData(v, _bSkipNone=_bSkipNone, **args) for v in _data if not _bSkipNone or v is not None]
+        return [_export_basicData(v, _bSkipNone=_bSkipNone, **args) for v in _data if not _bSkipNone or v is not None]
 
     elif sType == TYPE_DAGNODE:
         return _data
@@ -158,7 +158,7 @@ def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
     return None
 
 
-def importFromBasicData(_data, **args):
+def _import_basicData(_data, **args):
     assert(_data is not None)
     if isinstance(_data, dict) and '_class' in _data:
         # Handle Serializable object
@@ -171,11 +171,11 @@ def importFromBasicData(_data, **args):
             return None
         for key, val in _data.items():
             if key != '_class':
-                instance.__dict__[key] = importFromBasicData(val, **args)
+                instance.__dict__[key] = _import_basicData(val, **args)
         return instance
     # Handle array
     elif _isDataList(_data):
-        return [importFromBasicData(v, **args) for v in _data]
+        return [_import_basicData(v, **args) for v in _data]
     # Handle other types of data
     else:
         return _data
@@ -192,13 +192,13 @@ def _handle_dir_creation(path):
         os.makedirs(path_dir)
 
 def export_json(data, **kwargs):
-    dicData = exportToBasicData(data)
+    dicData = _export_basicData(data)
     return json.dumps(data, **kwargs)
 
 def export_json_file(data, path, mkdir=True, **kwargs):
     if mkdir: _handle_dir_creation(path)
 
-    dicData = exportToBasicData(data)
+    dicData = _export_basicData(data)
 
     with open(path, 'w') as fp:
         json.dump(dicData, fp, **kwargs)
@@ -207,7 +207,7 @@ def export_json_file(data, path, mkdir=True, **kwargs):
 
 def import_json(str_, **kwargs):
     dicData = json.loads(str_, **kwargs)
-    return importFromBasicData(dicData)
+    return _import_basicData(dicData)
 
 def import_json_file(path, **kwargs):
     if not os.path.exists(path):
@@ -215,20 +215,20 @@ def import_json_file(path, **kwargs):
 
     with open(path, 'r') as fp:
         dicData = json.load(fp, **kwargs)
-        return importFromBasicData(dicData)
+        return _import_basicData(dicData)
 
 #
 # Yaml support
 #
 
 def export_yaml(data, **kwargs):
-    dicData = exportToBasicData(data)
+    dicData = _export_basicData(data)
     return yaml.dump(dicData, **kwargs)
 
 def export_yaml_file(data, path, mkdir=True, **kwargs):
     if mkdir: _handle_dir_creation(path)
 
-    dicData = exportToBasicData(data)
+    dicData = _export_basicData(data)
 
     with open(path, 'w') as fp:
         yaml.dump(dicData, fp)
@@ -237,7 +237,7 @@ def export_yaml_file(data, path, mkdir=True, **kwargs):
 
 def import_yaml(str_, **kwargs):
     dicData = yaml.load(str_)
-    return importFromBasicData(dicData)
+    return _import_basicData(dicData)
 
 def import_yaml_file(path, **kwargs):
     if not os.path.exists(path):
@@ -245,4 +245,4 @@ def import_yaml_file(path, **kwargs):
 
     with open(path, 'r') as fp:
         dicData = yaml.load(fp)
-        return importFromBasicData(dicData)
+        return _import_basicData(dicData)

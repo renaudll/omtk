@@ -193,7 +193,7 @@ def export_network(_data, **kwargs):
         network = pymel.createNode('network', name=networkName)
 
     # Convert _pData to basic data dictionary (recursive for now)
-    dicData = core.exportToBasicData(_data, _bRecursive=False, **kwargs)
+    dicData = core._export_basicData(_data, _bRecursive=False, **kwargs)
     assert(isinstance(dicData, dict))
 
     fnNet = network.__apimfn__()

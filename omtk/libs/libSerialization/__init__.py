@@ -5,7 +5,7 @@ from omtk.libs import libPython
 # Python/Xml/Yaml functionalities
 #
 
-from core import importFromBasicData, exportToBasicData, _dag_types, _basic_types
+from core import _dag_types, _basic_types
 from core import import_json, import_json_file, export_json, export_json_file
 from core import import_yaml, import_yaml_file, export_yaml, export_yaml_file
 

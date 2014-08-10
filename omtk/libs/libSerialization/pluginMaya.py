@@ -50,7 +50,22 @@ def _createAttribute(_name, _val):
         fn.create(_name, _name)
         return fn
     if issubclass(kType, pymel.Attribute):
-        return _createAttribute(_name, _val.get())
+        # There's a bug here since there's a lot of attributes types that we might want to create
+        if _val.type() == 'doubleAngle':
+            fn = OpenMaya.MFnUnitAttribute()
+            fn.create(_name, _name, OpenMaya.MFnUnitAttribute.kAngle)
+            return fn
+        elif _val.type() == 'time':
+            fn = OpenMaya.MFnUnitAttribute()
+            fn.create(_name, _name, OpenMaya.MFnUnitAttribute.kTime)
+            return fn
+        #elif _val.type() == '???':
+        #    fn = OpenMaya.MFnUnitAttribute()
+        #    fn.create(_name, _name, OpenMaya.MFnUnitAttribute.kDistance)
+        #    return fn
+        # If the attribute doesn't represent anything special, we'll check it's value to know what attribute type to create.
+        else:
+            return _createAttribute(_name, _val.get())
     if hasattr(_val, '__melobject__'): # TODO: Really usefull?
         fn = OpenMaya.MFnMessageAttribute()
         fn.create(_name, _name)

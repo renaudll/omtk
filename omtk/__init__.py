@@ -12,7 +12,7 @@ import sys, os, inspect
 module_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 sys.path.append(os.path.abspath(os.path.join(module_dir, 'deps')))
 
-from libs import libPython
+from libs import *
 
 import animation
 import managing

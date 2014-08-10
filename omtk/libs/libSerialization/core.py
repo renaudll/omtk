@@ -3,9 +3,9 @@ logging = _logging.getLogger()
 logging.setLevel(_logging.WARNING)
 import sys
 
-
-
-
+import os
+import json
+from omtk.deps import yaml
 
 _complex_types = [dict]
 def _isDataComplex(_data):
@@ -154,11 +154,11 @@ def exportToBasicData(_data, _bSkipNone=True, _bRecursive=True, **args):
     elif sType == TYPE_DAGNODE:
         return _data
 
-    logging.warning("[exportToBasicData] Unsupported type {0} for {1}".format(sType, _data))
+    logging.warning("[exportToBasicData] Unsupported type {0} ({1}) for {2}".format(type(_data), sType, _data))
     return None
 
 
-def importToBasicData(_data, **args):
+def importFromBasicData(_data, **args):
     assert(_data is not None)
     if isinstance(_data, dict) and '_class' in _data:
         # Handle Serializable object
@@ -171,11 +171,78 @@ def importToBasicData(_data, **args):
             return None
         for key, val in _data.items():
             if key != '_class':
-                instance.__dict__[key] = importToBasicData(val, **args)
+                instance.__dict__[key] = importFromBasicData(val, **args)
         return instance
     # Handle array
     elif _isDataList(_data):
-        return [importToBasicData(v, **args) for v in _data]
+        return [importFromBasicData(v, **args) for v in _data]
     # Handle other types of data
     else:
         return _data
+
+#
+# Json Support
+#
+
+def _handle_dir_creation(path):
+    path_dir = os.path.dirname(path)
+
+    # Create destination folder if needed
+    if not os.path.exists(path_dir):
+        os.makedirs(path_dir)
+
+def exportToJson(data, **kwargs):
+    dicData = exportToBasicData(data)
+    return json.dumps(data, **kwargs)
+
+def exportToJsonFile(data, path, mkdir=True, **kwargs):
+    if mkdir: _handle_dir_creation(path)
+
+    dicData = exportToBasicData(data)
+
+    with open(path, 'w') as fp:
+        json.dump(dicData, fp, **kwargs)
+
+    return True
+
+def importFromJson(str_, **kwargs):
+    dicData = json.loads(str_, **kwargs)
+    return importFromBasicData(dicData)
+
+def importFromJsonFile(path, **kwargs):
+    if not os.path.exists(path):
+        raise Exception("Can't importFromJsonFile, file does not exist! {0}".format(path))
+
+    with open(path, 'r') as fp:
+        dicData = json.load(fp, **kwargs)
+        return importFromBasicData(dicData)
+
+#
+# Yaml support
+#
+
+def exportToYaml(data, **kwargs):
+    dicData = exportToBasicData(data)
+    return yaml.dump(dicData, **kwargs)
+
+def exportToYamlFile(data, path, mkdir=True, **kwargs):
+    if mkdir: _handle_dir_creation(path)
+
+    dicData = exportToBasicData(data)
+
+    with open(path, 'w') as fp:
+        yaml.dump(dicData, fp)
+
+    return True
+
+def importFromYaml(str_, **kwargs):
+    dicData = yaml.load(str_)
+    return importFromBasicData(dicData)
+
+def importFromYamlFile(path, **kwargs):
+    if not os.path.exists(path):
+        raise Exception("Can't importFromYamlFile, file does not exist! {0}".format(path))
+
+    with open(path, 'r') as fp:
+        dicData = yaml.load(fp)
+        return importFromBasicData(dicData)

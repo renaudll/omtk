@@ -5,12 +5,14 @@ from omtk.libs import libPython
 # Python/Xml/Yaml functionalities
 #
 
-from core import importToBasicData, exportToBasicData, _dag_types, _basic_types
+from core import importFromBasicData, exportToBasicData, _dag_types, _basic_types
+from core import importFromJson, importFromJsonFile, exportToJson, exportToJsonFile
+from core import importFromYaml, importFromYamlFile, exportToYaml, exportToYamlFile
 
 #
 # Maya only functionalities
 # This allow us to use libSerialization outside of maya.
-#
+#x
 
 
 if libPython.does_module_exist("maya"):

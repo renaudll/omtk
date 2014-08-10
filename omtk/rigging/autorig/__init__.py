@@ -24,7 +24,7 @@ from rigLeg import Leg
 
 from omtk.libs import libSerialization
 
-def Create(*args, **kwargs):
+def create(*args, **kwargs):
     return classRigRoot.RigRoot(*args, **kwargs)
 
 def find():
@@ -86,7 +86,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     @root.getter
     def root(self):
         if not '_root' in self.__dict__:
-            self.__dict__['_root'] = Create()
+            self.__dict__['_root'] = create()
         return self.__dict__['_root']
 
     def _rigRootToQTreeWidget(self, _rig):

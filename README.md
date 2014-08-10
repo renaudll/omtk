@@ -12,7 +12,6 @@ Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.rigging.autor
 ### omtk.libs.libSerialization
 A module that can serialize/deserialize python objects in various formats (maya network, json, yaml).
 Is also support the basic [pymel](https://github.com/LumaPictures/pymel) types.
-Primary used in the [autorig](http://github.com/renaudll/omtk/wiki/omtk.rigging.autorig) module.
 
 Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.libs.libSerialization).
 

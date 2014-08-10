@@ -1,6 +1,7 @@
 import pymel.core as pymel
 from maya import OpenMaya
 import logging
+from omtk.libs import libPymel
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -50,8 +51,10 @@ def _createAttribute(_name, _val):
         fn.create(_name, _name)
         return fn
     if issubclass(kType, pymel.Attribute):
-        # There's a bug here since there's a lot of attributes types that we might want to create
-        if _val.type() == 'doubleAngle':
+        if not libPymel.is_valid_PyNode(_val):
+            log.warning("Can't serialize {0} attribute because of non-existent pymel Attribute!".format(_name))
+            return None
+        elif _val.type() == 'doubleAngle':
             fn = OpenMaya.MFnUnitAttribute()
             fn.create(_name, _name, OpenMaya.MFnUnitAttribute.kAngle)
             return fn
@@ -93,6 +96,7 @@ def _addAttr(_fnDependNode, _sName, _pValue):
 
     if plug is None:
         fnAtt = _createAttribute(_sName, _pValue)
+        if fnAtt is None: return # In case of invalid value like missing pymel PyNode & Attributes
         fnAtt.setNiceNameOverride(_sName)
         moAtt = fnAtt.object()
         if moAtt is not None:

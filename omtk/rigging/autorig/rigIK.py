@@ -2,6 +2,7 @@ import pymel.core as pymel
 from classRigCtrl import RigCtrl
 from classRigPart import RigPart
 from omtk.libs import libRigging, libAttr, libFormula
+from classNameMap import NameMap
 
 class CtrlIk(RigCtrl):
     kAttrName_State = 'ikFk'
@@ -12,6 +13,10 @@ class CtrlIk(RigCtrl):
         pymel.addAttr(self.node, longName=self.kAttrName_State)
         self.m_attState = getattr(self.node, self.kAttrName_State)
         return self.node
+
+    def unbuild(self, *args, **kwargs):
+        super(CtrlIk, self).unbuild(*args, **kwargs)
+        self.m_attState = None
 
 
 class CtrlIkSwivel(RigCtrl):
@@ -40,6 +45,9 @@ class IK(RigPart):
         super(IK, self).__init__(*args, **kwargs)
         self.bStretch = True
         self.iCtrlIndex = 2
+        self.ctrlIK = None
+        self.ctrl_swivel = None
+
 
     def calc_swivel_pos(self):
         p3ChainS = self.input[0].getTranslation(space='world')
@@ -61,8 +69,18 @@ class IK(RigPart):
 
     def build(self, _bOrientIkCtrl=True, softik=True, *args, **kwargs):
         super(IK, self).build(*args, **kwargs)
-        oChainS = self.input[0]
-        oChainE = self.input[self.iCtrlIndex]
+
+        # Duplicate input chain (we don't want to move the hierarchy)
+        # Todo: implement a duplicate method in omtk.libs.libPymel.PyNodeChain
+        # Create ikChain and fkChain
+        self._chain_ik = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
+        for oInput, oIk, in zip(self.input, self._chain_ik):
+            pNameMap = NameMap(oInput, _sType='rig')
+            oIk.rename(pNameMap.Serialize('ik'))
+        self._chain_ik[0].setParent(self._oParent) # Trick the IK system (temporary solution)
+
+        oChainS = self._chain_ik[0]
+        oChainE = self._chain_ik[self.iCtrlIndex]
 
         # Compute chain length
         self._chain_length = self._chain.getLength()
@@ -82,14 +100,18 @@ class IK(RigPart):
         oIkEffector.rename(self._pNameMapRig.Serialize('ikEffector'))
 
         # Create ctrls
-        self.ctrlIK = CtrlIk(_create=True)
+        if not isinstance(self.ctrlIK, CtrlIk): self.ctrlIK = CtrlIk()
+        self.ctrlIK.build()
+        #self.ctrlIK = CtrlIk(_create=True)
         self.ctrlIK.setParent(self.grp_anm)
         self.ctrlIK.rename(self._pNameMapAnm.Serialize('ik'))
         self.ctrlIK.offset.setTranslation(oChainE.getTranslation(space='world'), space='world')
         if _bOrientIkCtrl is True:
             self.ctrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
 
-        self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
+        if not isinstance(self.ctrl_swivel, CtrlIkSwivel): self.ctrl_swivel = CtrlIkSwivel()
+        self.ctrl_swivel.build()
+        #self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
         self.ctrl_swivel.rename(self._pNameMapAnm.Serialize('ikSwivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
@@ -103,6 +125,7 @@ class IK(RigPart):
             # Create an obj exposing the oCtrlIk translate relative to the start of the ikChain
             self.oSoftIKCtrlRef = pymel.createNode('transform')
             self.oSoftIKCtrlRef.rename(self._pNameMapRig.Serialize('ikHandleRef'))
+            self.oSoftIKCtrlRef.setParent(self.grp_rig)
             self.oSoftIKCtrlRef.setTranslation(self._oIkHandle.getTranslation(space='world'), space='world') # Todo: match unit scale?
             pymel.pointConstraint(self.ctrlIK, self.oSoftIKCtrlRef, maintainOffset=True)
 
@@ -116,7 +139,7 @@ class IK(RigPart):
             #vars['inStretchAmount'] = fnAddAttr(oAttHolder, longName='StretchAmount', niceName='Stretch', minValue=0, maxValue=1)
 
             # Constants
-            vars['inRatio'] = fnAddAttr(oAttHolder, longName='SoftIkRatio', niceName='SoftIK', defaultValue=0.125, minValue=0.001, maxValue=.5, k=True)
+            vars['inRatio'] = fnAddAttr(oAttHolder, longName='SoftIkRatio', niceName='SoftIK', defaultValue=0, minValue=0, maxValue=.5, k=True)
             vars['inStretch'] = fnAddAttr(oAttHolder, longName='Stretch', niceName='Stretch', defaultValue=0, minValue=0, maxValue=1.0, k=True)
             vars['distanceMax'] = fnAddAttr(oAttHolder, longName='chainBaseLength', defaultValue=self._chain_length)
 
@@ -149,6 +172,15 @@ class IK(RigPart):
             # -1          0.0         1.0         +++
             # -dBase      dSafe       dMax
             libFormula.parseToVar("deltaSafeSoft", "(inDistanceFloor-distanceSafe)/distanceSoft", vars)
+
+            # Hack: We don't want division by zero error, if distanceSoft is 0, deltaSafeSoft is automaticly zero
+            vars['deltaSafeSoft'] = libRigging.CreateUtilityNode('condition',
+                firstTerm=vars['distanceSoft'],
+                secondTerm=0.0,
+                colorIfTrueR=0.0,
+                colorIfFalseR=vars['deltaSafeSoft']
+            ).outColorR
+
             #self.__debug(vars['deltaSafeSoft'], scale=1.0, name='deltaSafeSoft')
 
             # soft_ik formula
@@ -228,8 +260,15 @@ class IK(RigPart):
         if self._oParent is not None:
             pymel.parentConstraint(self._oParent, oChainRoot, maintainOffset=True)
 
+        for source, target in zip(self._chain_ik, self._chain):
+            pymel.parentConstraint(source, target)
+
     def unbuild(self, *args, **kwargs):
+
+        #self.ctrlIK.setParent(world=True)
+        self.ctrlIK.unbuild()
+
         super(IK, self).unbuild(*args, **kwargs)
 
-        self.ctrlIk = None
+        #self.ctrlIK = None
         self.ctrl_swivel = None

@@ -196,6 +196,19 @@ import unittest
 import os, glob
 from maya import cmds
 class TestAutoRig(unittest.TestCase):
+    def test_RigCtrl(self):
+        from classRigCtrl import RigCtrl
+        from omtk.libs import libSerialization
+        log.info("test_RigCtrl")
+        foo = RigCtrl()
+        foo.build()
+        pymel.setKeyframe(foo.node)
+        foo.unbuild()
+
+        network = libSerialization.export_network(foo)
+        pymel.select(network)
+        foo.build()
+
     def test_buildAndUnbuildExamples(self):
         log.info("test_buildAndUnbuildExamples")
         import omtk
@@ -212,12 +225,18 @@ class TestAutoRig(unittest.TestCase):
             rig.build()
             log.info('Unbuilding...')
             rig.unbuild()
+            # Ensure we're not loosing data
+            log.info('Re-Building...')
+            rig.build()
+            log.info('Re-Unbuilding...')
+            rig.unbuild()
 
     def runTest(self):
         pass
 
 def test(**kwargs):
     case = TestAutoRig()
+    case.test_RigCtrl()
     case.test_buildAndUnbuildExamples()
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestAutoRig)
     #unittest.TextTestRunner(**kwargs).run(suite)

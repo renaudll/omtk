@@ -4,6 +4,10 @@ import pymel.core as pymel
 # A PyNodeChain is a special pymel-related object that act exactly like a standard array.
 # However it allow us to have more bells and whistles.
 #
+
+def is_valid_PyNode(val):
+    return hasattr(val, 'exists') and val.exists()
+
 import collections
 class PyNodeChain(collections.MutableSequence):
     """A container for manipulating lists of hosts"""
@@ -76,16 +80,16 @@ def ls_root(*args, **kwargs):
     return PyNodeChain(filter(lambda x:x.getParent() is None, iter(pymel.ls(*args, **kwargs))))
 
 def ls_root_anms(**kwargs):
-    return ls_root('anm*', **kwargs)
+    return ls_root('anm*', type='transform', **kwargs)
 
 def ls_root_geos(**kwargs):
-    return ls_root('geo*', **kwargs)
+    return ls_root('geo*', type='transform', **kwargs)
 
 def ls_root_rigs(**kwargs):
-    return ls_root('rig*', **kwargs)
+    return ls_root('rig*', type='transform', **kwargs)
 
 def ls_root_jnts(**kwargs):
-    return ls_root('jnt*', **kwargs)
+    return ls_root('jnt*', type='transform', **kwargs)
 
 #
 # isinstance() reimplementation

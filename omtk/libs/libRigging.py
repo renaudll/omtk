@@ -51,7 +51,7 @@ def CreateUtilityNode(_sClass, *args, **kwargs):
 #
 # CtrlShapes Backup
 #
-def BackupCtrlShape(_oCtrl, parent=None):
+def hold_ctrl_shapes(_oCtrl, parent=None):
     aShapes = filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), _oCtrl.getShapes())
     oSnapshot = pymel.duplicate(_oCtrl, parentOnly=True, returnRootsOnly=True)[0]
     for oShape in aShapes:
@@ -63,9 +63,19 @@ def BackupCtrlShape(_oCtrl, parent=None):
     oSnapshot.rename('_{0}'.format(_oCtrl.name()))
     return oSnapshot
 
+def fetch_ctrl_shapes(source, target):
+    # Remove any previous shapes
+    pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), target.getShapes()))
+    for source_shape in source.getShapes():
+        source_shape.setParent(target, r=True, s=True)
+        source_shape.rename(target.name() + 'Shape')
+
+    # TODO: Restore AnnotationShapes
+    pymel.delete(source)
+
 def BackupCtrlShapes(**kwargs):
     aCtrls = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
-    return [BackupCtrlShape(oCtrl, **kwargs) for oCtrl in aCtrls]
+    return [hold_ctrl_shapes(oCtrl, **kwargs) for oCtrl in aCtrls]
 
 # TODO: Fix bug when two objects have the same name.
 def RestoreCtrlShapes():
@@ -76,10 +86,8 @@ def RestoreCtrlShapes():
         if pymel.objExists(sTargetName):
             oTarget = pymel.PyNode(str(sTargetName))
 
-            pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), oTarget.getShapes()))
-            for oShape in oSource.getShapes():
-                oShape.setParent(oTarget, r=True, s=True)
-                oShape.rename(oTarget.name() + 'Shape')
+            fetch_ctrl_shapes(oSource, oTarget)
+            #pymel.delete(oSource)
 
-            # TODO: Restore AnnotationShapes
-            pymel.delete(oSource)
+
+

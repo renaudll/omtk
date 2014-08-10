@@ -33,6 +33,9 @@ class RigRoot(RigElement):
         self.grp_geos = None
         self.grp_jnts = None
         self.grp_rigs = None
+        self.layer_anm = None
+        self.layer_geo = None
+        self.layer_rig = None
 
     def __str__(self):
         return '<rig {0}/>'.format('???')
@@ -81,7 +84,7 @@ class RigRoot(RigElement):
         all_rigs.setParent(self.grp_rigs)
 
         all_jnts = libPymel.ls_root_jnts()
-        self.grp_jnts = pymel.joint(name='jnts')
+        self.grp_jnts = pymel.createNode('joint', name='jnts')
         all_jnts.setParent(self.grp_jnts)
 
         all_geos = libPymel.ls_root_geos()
@@ -89,28 +92,47 @@ class RigRoot(RigElement):
         all_geos.setParent(self.grp_geos)
 
         # Setup displayLayers
-        oLayerAnm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerAnm, self.grp_anms, noRecurse=True)
-        oLayerAnm.color.set(17) # Yellow
+        self.layer_anm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
+        pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anms, noRecurse=True)
+        self.layer_anm.color.set(17) # Yellow
 
-        oLayerRig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerRig, self.grp_rigs, noRecurse=True)
-        pymel.editDisplayLayerMembers(oLayerRig, self.grp_jnts, noRecurse=True)
-        oLayerRig.color.set(13) # Red
+        self.layer_rig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
+        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rigs, noRecurse=True)
+        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnts, noRecurse=True)
+        self.layer_rig.color.set(13) # Red
         #oLayerRig.visibility.set(0) # Hidden
-        oLayerRig.displayType.set(2) # Frozen
+        self.layer_rig.displayType.set(2) # Frozen
 
-        oLayerGeo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)
-        pymel.editDisplayLayerMembers(oLayerGeo, self.grp_geos, noRecurse=True)
-        oLayerGeo.color.set(12) # Green?
-        oLayerGeo.displayType.set(2) # Frozen
+        self.layer_geo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)
+        pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geos, noRecurse=True)
+        self.layer_geo.color.set(12) # Green?
+        self.layer_geo.displayType.set(2) # Frozen
 
         # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
-        libRigging.RestoreCtrlShapes()
+        #libRigging.RestoreCtrlShapes()
 
     def unbuild(self, **kwargs):
+        # Delete displayLayers
+        fnDeleteIfValid = lambda x: pymel.delete(x) if libPymel.is_valid_PyNode(x) else None
+        fnDeleteIfValid(self.layer_anm)
+        fnDeleteIfValid(self.layer_geo)
+        fnDeleteIfValid(self.layer_rig)
+        self.layer_anm = None
+        self.layer_geo = None
+        self.layer_rig = None
+
         # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
-        libRigging.BackupCtrlShapes(parent=self.grp_rigs)
+        #libRigging.BackupCtrlShapes(parent=self.grp_rigs)
 
         for child in self.children:
             child.unbuild(**kwargs)
+
+        fnDeleteIfValid(self.grp_anms)
+        fnDeleteIfValid(self.grp_geos)
+        #fnDeleteIfValid(self.grp_rigs)
+        self.grp_anms = None
+        self.grp_geos = None
+        #self.grp_jnts = None
+        #self.grp_rigs = None
+
+

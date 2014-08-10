@@ -25,15 +25,17 @@ class Arm(RigPart):
     def build(self, *args, **kwargs):
         super(Arm, self).build(*args, **kwargs)
 
+        '''
         # Create ikChain and fkChain
         self._aIkChain = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.input, self._aIkChain):
             pNameMap = NameMap(oInput, _sType='rig')
             oIk.rename(pNameMap.Serialize('ik'))
         self._aIkChain[0].setParent(self._oParent) # Trick the IK system (temporary solution)
+        '''
 
         # Rig ikChain and fkChain
-        self.sysIK = IK(self._aIkChain); self.sysIK.build(**kwargs)
+        self.sysIK = IK(self.input); self.sysIK.build(**kwargs)
         self.sysFK = FK(self.input); self.sysFK.build(_bConstraint=False, **kwargs)
         self.sysIK.grp_anm.setParent(self.grp_anm)
         self.sysIK.grp_rig.setParent(self.grp_rig)

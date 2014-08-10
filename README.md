@@ -9,15 +9,15 @@ An node-base autorig that store itself in a network of maya nodes.
 ```
 # ex: creating a basic biped rig
 from pymel import core as pymel
-from omtk.rigging import AutoRig
+from omtk.rigging import autorig
 
-rig = AutoRig.Create()
-rig.AddPart(AutoRig.Arm(pymel.ls('jnt_arm_l_*')))
-rig.AddPart(AutoRig.Arm(pymel.ls('jnt_arm_r_*')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_spine')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_chest')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_neck')))
-rig.AddPart(AutoRig.FK(pymel.ls('jnt_head')))
+rig = autorig.Create()
+rig.AddPart(autorig.Arm(pymel.ls('jnt_arm_l_*')))
+rig.AddPart(autorig.Arm(pymel.ls('jnt_arm_r_*')))
+rig.AddPart(autorig.FK(pymel.ls('jnt_spine')))
+rig.AddPart(autorig.FK(pymel.ls('jnt_chest')))
+rig.AddPart(autorig.FK(pymel.ls('jnt_neck')))
+rig.AddPart(autorig.FK(pymel.ls('jnt_head')))
 rig.Build()
 ```
 ### omtk.libs.libSerialization

@@ -23,6 +23,8 @@ rig.Build()
 ### omtk.libs.libSerialization
 A set of tools that serialize/deserialize python objects in various formats (maya nodes, json, yaml, xml, etc)
 
+Read the [documentation](http://github.com/renaudll/omtk/wiki/libSerialization).
+
 ### omtk.rigging.formulaParser
 A lightweight programming language that parse math formulas to utility nodes.
 This is done by defining lots of new operators.

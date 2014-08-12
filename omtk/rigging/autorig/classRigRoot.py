@@ -46,7 +46,12 @@ class RigRoot(RigElement):
         self.children.append(_part)
 
     def prebuild(self):
-        pass
+        # Ensure we got a root joint
+        # If needed, parent orphan joints to this one
+        all_root_jnts = libPymel.ls_root_jnts()
+        if not libPymel.is_valid_PyNode(self.grp_jnts):
+            self.grp_jnts = pymel.createNode('joint', name='jnts')
+        all_root_jnts.setParent(self.grp_jnts)
 
     def build(self, **kwargs):
         if self.isBuilt():
@@ -76,16 +81,25 @@ class RigRoot(RigElement):
     def postbuild(self):
         # Group everything
         all_anms = libPymel.ls_root_anms()
-        self.grp_anms = CtrlRoot(name='anm_root', _create=True)
+        if not isinstance(self.grp_anms, CtrlRoot):
+            self.grp_anms = CtrlRoot()
+        self.grp_anms.build()
+        self.grp_anms.rename('anm_root')
         all_anms.setParent(self.grp_anms)
 
         all_rigs = libPymel.ls_root_rigs()
         self.grp_rigs = RigNode(name='rigs', _create=True)
         all_rigs.setParent(self.grp_rigs)
 
-        all_jnts = libPymel.ls_root_jnts()
-        self.grp_jnts = pymel.createNode('joint', name='jnts')
-        all_jnts.setParent(self.grp_jnts)
+        # note: self.grp_jnts is now handled in prebuild
+        #all_jnts = libPymel.ls_root_jnts()
+        #self.grp_jnts = pymel.createNode('joint', name='jnts')
+        #all_jnts.setParent(self.grp_jnts)
+
+        # Ensure self.grp_jnts is constraint to self.grp_anms
+        # We use parentConstraint instead of connections in the the animator change self.grp_anms parent
+        pymel.delete([child for child in self.grp_jnts.getChildren() if isinstance(child, pymel.nodetypes.Constraint)])
+        pymel.parentConstraint(self.grp_anms, self.grp_jnts)
 
         all_geos = libPymel.ls_root_geos()
         self.grp_geos = RigNode(name='geos', _create=True)
@@ -108,31 +122,15 @@ class RigRoot(RigElement):
         self.layer_geo.color.set(12) # Green?
         self.layer_geo.displayType.set(2) # Frozen
 
-        # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
-        #libRigging.RestoreCtrlShapes()
-
     def unbuild(self, **kwargs):
-        # Delete displayLayers
-        fnDeleteIfValid = lambda x: pymel.delete(x) if libPymel.is_valid_PyNode(x) else None
-        fnDeleteIfValid(self.layer_anm)
-        fnDeleteIfValid(self.layer_geo)
-        fnDeleteIfValid(self.layer_rig)
-        self.layer_anm = None
-        self.layer_geo = None
-        self.layer_rig = None
-
-        # TODO: This need to be called individually on each rigpart, not just when unbuilding the whole rig.
-        #libRigging.BackupCtrlShapes(parent=self.grp_rigs)
-
         for child in self.children:
             child.unbuild(**kwargs)
 
-        fnDeleteIfValid(self.grp_anms)
-        fnDeleteIfValid(self.grp_geos)
-        #fnDeleteIfValid(self.grp_rigs)
-        self.grp_anms = None
-        self.grp_geos = None
-        #self.grp_jnts = None
-        #self.grp_rigs = None
+        # Delete the rig group if it isnt used anymore
+        if libPymel.is_valid_PyNode(self.grp_rigs) and len(self.grp_rigs.getChildren()) == 0:
+            pymel.delete(self.grp_rigs)
+            self.grp_rigs = None
+
+        super(RigRoot, self).unbuild(**kwargs)
 
 

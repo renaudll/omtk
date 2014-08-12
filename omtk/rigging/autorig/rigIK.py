@@ -1,7 +1,7 @@
 import pymel.core as pymel
 from classRigCtrl import RigCtrl
 from classRigPart import RigPart
-from omtk.libs import libRigging, libAttr, libFormula
+from omtk.libs import libRigging, libAttr, libFormula, libPymel
 from classNameMap import NameMap
 
 class CtrlIk(RigCtrl):
@@ -89,14 +89,14 @@ class IK(RigPart):
         p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
-        oChainRoot = pymel.createNode('transform', name=self._pNameMapRig.Serialize('ikChain'), parent=self.grp_rig)
-        oChainRoot.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
-        oChainS.setParent(oChainRoot)
+        grp_ikChain = pymel.createNode('transform', name=self._pNameMapRig.Serialize('ikChain'), parent=self.grp_rig)
+        grp_ikChain.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
+        oChainS.setParent(grp_ikChain)
 
         # Create ikEffector
         self._oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
         self._oIkHandle.rename(self._pNameMapRig.Serialize('ikHandle'))
-        self._oIkHandle.setParent(oChainRoot)
+        self._oIkHandle.setParent(grp_ikChain)
         oIkEffector.rename(self._pNameMapRig.Serialize('ikEffector'))
 
         # Create ctrls
@@ -143,7 +143,7 @@ class IK(RigPart):
             vars['inStretch'] = fnAddAttr(oAttHolder, longName='Stretch', niceName='Stretch', defaultValue=0, minValue=0, maxValue=1.0, k=True)
             vars['distanceMax'] = fnAddAttr(oAttHolder, longName='chainBaseLength', defaultValue=self._chain_length)
 
-            vars['identity'] = oChainRoot.worldMatrix
+            vars['identity'] = grp_ikChain.worldMatrix
             vars['pos'] = self.oSoftIKCtrlRef.worldMatrix
 
             # Variables (input)
@@ -257,18 +257,12 @@ class IK(RigPart):
         '''
 
         # Connect to parent
-        if self._oParent is not None:
-            pymel.parentConstraint(self._oParent, oChainRoot, maintainOffset=True)
+        print self.parent
+        if libPymel.is_valid_PyNode(self.parent):
+            pymel.parentConstraint(self.parent, grp_ikChain, maintainOffset=True)
 
         for source, target in zip(self._chain_ik, self._chain):
             pymel.parentConstraint(source, target)
 
-    def unbuild(self, *args, **kwargs):
-
-        #self.ctrlIK.setParent(world=True)
-        self.ctrlIK.unbuild()
-
-        super(IK, self).unbuild(*args, **kwargs)
-
-        #self.ctrlIK = None
-        self.ctrl_swivel = None
+    def unbuild(self):
+        pass

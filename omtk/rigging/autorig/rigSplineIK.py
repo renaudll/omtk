@@ -9,6 +9,8 @@ class SplineIK(RigPart):
         super(SplineIK, self).__init__(*args, **kwargs)
         self.bStretch = True
         self.iCtrlIndex = 2
+        self.ikEffector = None
+        self.ikHandle = None
 
     def _post_setattr_inputs(self):
         super(SplineIK, self)._post_setattr_inputs()
@@ -59,3 +61,10 @@ class SplineIK(RigPart):
             pymel.connectAttr(squash, jnt.sz)
 
         # Todo: Connect to parent?
+
+    def unbuild(self, **kwargs):
+        # hack: the ikEffector is parented to the bone chain and need to be deleted manually
+        if libPymel.is_valid_PyNode(self.ikEffector):
+            pymel.delete(self.ikEffector)
+
+        super(SplineIK, self).unbuild(**kwargs)

@@ -2,6 +2,7 @@ import pymel.core as pymel
 import logging
 from classNameMap import NameMap
 from classRigElement import RigElement
+from classRigCtrl import RigCtrl
 from omtk.libs import libPymel, libAttr
 
 '''
@@ -16,6 +17,16 @@ To manage a rigpart, use the build() and unbuild() function.
 Also, a rigpart have usefull properties like @inputs and @outputs.
 
 '''
+
+def _rget_by_type(val, type):
+    for key, val in val.__dict__.iteritems():
+        if isinstance(val, type):
+            yield val
+        elif hasattr(val, '__getItem__'):
+            for subval in val:
+                if isinstance(subval, type):
+                    yield subval
+
 class RigPart(RigElement):
 
     # RigElement overrides
@@ -80,13 +91,6 @@ class RigPart(RigElement):
             self.grp_rig = pymel.createNode('transform', name=self._pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rigs'))
 
     def unbuild(self):
-        if self.grp_anm is not None:
-            pymel.delete(self.grp_anm)
-            self.grp_anm = None
-        if self.grp_rig is not None:
-            pymel.delete(self.grp_rig)
-            self.grp_rig = None
-
         # Ensure that there's no more connections in the input chain
         for obj in self.input:
             if isinstance(obj, pymel.nodetypes.Transform):
@@ -100,6 +104,30 @@ class RigPart(RigElement):
                 libAttr.disconnectAttr(obj.sy)
                 libAttr.disconnectAttr(obj.sz)
 
+        # Call unbuild on each individual ctrls
+        # This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
+        for ctrl in self.ctrls:
+            ctrl.unbuild()
+
+        if self.grp_anm is not None:
+            pymel.delete(self.grp_anm)
+            self.grp_anm = None
+        if self.grp_rig is not None:
+            pymel.delete(self.grp_rig)
+            self.grp_rig = None
+
+        super(RigPart, self).unbuild()
+
+    @property
+    def ctrls(self):
+        return _rget_by_type(self, RigCtrl)
+
+    @property
+    def parent(self):
+        first_input = next(iter(self.input), None)
+        if libPymel.is_valid_PyNode(first_input):
+            return first_input.getParent()
+        return None
 
     # Used in libSerialization
     def __getNetworkName__(self):

@@ -1,4 +1,6 @@
 import collections
+import pymel.core as pymel
+from omtk.libs import libPymel
 
 class RigElement(collections.MutableSequence):
     def __init__(self):
@@ -34,3 +36,20 @@ class RigElement(collections.MutableSequence):
             if child.isBuilt():
                 return True
         return False
+
+    def _clean_invalid_pynodes(self):
+        fnCanDelete = lambda x: (isinstance(x, (pymel.PyNode, pymel.Attribute)) and not libPymel.is_valid_PyNode(x))
+        for key, val in self.__dict__.iteritems():
+            if fnCanDelete(val):
+                setattr(self, key, None)
+            elif isinstance(val, (list, set, tuple)):
+                for i in reversed(range(len(val))):
+                    if fnCanDelete(val[i]):
+                        val.pop(i)
+                if len(val) == 0:
+                    setattr(self, key, None)
+
+    def unbuild(self):
+        # Remove any references to missing pynodes
+        self._clean_invalid_pynodes()
+

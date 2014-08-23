@@ -3,6 +3,7 @@ from classRigCtrl import RigCtrl
 from classRigPart import RigPart
 from omtk.libs import libRigging, libAttr, libFormula, libPymel
 from classNameMap import NameMap
+import functools
 
 class CtrlIk(RigCtrl):
     kAttrName_State = 'ikFk'
@@ -67,7 +68,7 @@ class IK(RigPart):
         pymel.connectAttr(attr, loc.ty)
         parent.scale.set(scale, scale, scale)
 
-    def build(self, _bOrientIkCtrl=True, softik=True, *args, **kwargs):
+    def build(self, _bOrientIkCtrl=True, *args, **kwargs):
         super(IK, self).build(*args, **kwargs)
 
         # Duplicate input chain (we don't want to move the hierarchy)
@@ -118,151 +119,128 @@ class IK(RigPart):
         self.ctrl_swivel.offset.setRotation(self.input[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
         self.swivelDistance = self._chain_length # Used in ik/fk switch
 
+        #
         # Create softIk
-        if softik:
-            oAttHolder = self.ctrlIK
+        #
+        oAttHolder = self.ctrlIK
 
-            # Create an obj exposing the oCtrlIk translate relative to the start of the ikChain
-            self.oSoftIKCtrlRef = pymel.createNode('transform')
-            self.oSoftIKCtrlRef.rename(self._pNameMapRig.Serialize('ikHandleRef'))
-            self.oSoftIKCtrlRef.setParent(self.grp_rig)
-            self.oSoftIKCtrlRef.setTranslation(self._oIkHandle.getTranslation(space='world'), space='world') # Todo: match unit scale?
-            pymel.pointConstraint(self.ctrlIK, self.oSoftIKCtrlRef, maintainOffset=True)
+        # Create a null that always point to the ikCtrl so we only need to control one axis on the softIK effector
+        self.oSoftIKEffectorParent = pymel.createNode('transform')
+        self.oSoftIKEffectorParent.rename(self._pNameMapRig.Serialize('softIkEffectorAim'))
+        self.oSoftIKEffectorParent.setParent(grp_ikChain)
 
-            # Create the attributes that will be accessible by the end-user
-            import functools
+        # Create a null that will control the ikEffector (necessary for softIK without stretching)
+        self.oSoftIKEffector = pymel.createNode('transform')
+        self.oSoftIKEffector.rename(self._pNameMapRig.Serialize('softIkEffector'))
+        self.oSoftIKEffector.setParent(self.oSoftIKEffectorParent)
 
-            vars = {}
-            fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
-            fnParse = functools.partial(libFormula.parse, **vars)
+        self.oSoftIKEffectorParent.t.set(0,0,0)
+        pymel.aimConstraint(self.ctrlIK, self.oSoftIKEffectorParent)
+        pymel.pointConstraint(self.oSoftIKEffector, self._oIkHandle)
 
-            #vars['inStretchAmount'] = fnAddAttr(oAttHolder, longName='StretchAmount', niceName='Stretch', minValue=0, maxValue=1)
+        vars = {}
+        fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
+        fnParse = functools.partial(libFormula.parse, **vars)
 
-            # Constants
-            vars['inRatio'] = fnAddAttr(oAttHolder, longName='SoftIkRatio', niceName='SoftIK', defaultValue=0, minValue=0, maxValue=.5, k=True)
-            vars['inStretch'] = fnAddAttr(oAttHolder, longName='Stretch', niceName='Stretch', defaultValue=0, minValue=0, maxValue=1.0, k=True)
-            vars['distanceMax'] = fnAddAttr(oAttHolder, longName='chainBaseLength', defaultValue=self._chain_length)
+        # Constants
+        vars['inRatio'] = fnAddAttr(oAttHolder, longName='SoftIkRatio', niceName='SoftIK', defaultValue=0, minValue=0, maxValue=.5, k=True)
+        vars['inStretch'] = fnAddAttr(oAttHolder, longName='Stretch', niceName='Stretch', defaultValue=0, minValue=0, maxValue=1.0, k=True)
+        vars['distanceMax'] = fnAddAttr(oAttHolder, longName='chainBaseLength', defaultValue=self._chain_length)
 
-            vars['identity'] = grp_ikChain.worldMatrix
-            vars['pos'] = self.oSoftIKCtrlRef.worldMatrix
+        vars['identity'] = grp_ikChain.worldMatrix
+        vars['pos'] = self.ctrlIK.worldMatrix
 
-            # Variables (input)
-            libFormula.parseToVar("inDistance", "identity~pos", vars)
+        # Variables (input)
+        libFormula.parseToVar("inDistance", "identity~pos", vars)
 
-            # Variables (logic)
-            libFormula.parseToVar("distanceSoft", "distanceMax*inRatio", vars)
+        # Variables (logic)
+        libFormula.parseToVar("distanceSoft", "distanceMax*inRatio", vars)
 
-            # distanceSafe: the maximum length where the soft ik isnt active
-            # The maximum distane where the soft ik is not activated
-            libFormula.parseToVar("distanceSafe", "distanceMax-distanceSoft", vars)
-
-
-            vars['inDistanceFloor'] = libRigging.CreateUtilityNode('condition',
-                operation=2,
-                firstTerm=vars['inDistance'],
-                secondTerm=vars['distanceSafe'],
-                colorIfTrueR=vars['inDistance'],
-                colorIfFalseR=vars['distanceSafe']
-            ).outColorR
-
-            # This represent the soft-ik state
-            # When the soft-ik kick in, the value is 0.0.
-            # When the stretch kick in, the value is 1.0.
-            # |-----------|-----------|----------|
-            # -1          0.0         1.0         +++
-            # -dBase      dSafe       dMax
-            libFormula.parseToVar("deltaSafeSoft", "(inDistanceFloor-distanceSafe)/distanceSoft", vars)
-
-            # Hack: We don't want division by zero error, if distanceSoft is 0, deltaSafeSoft is automaticly zero
-            vars['deltaSafeSoft'] = libRigging.CreateUtilityNode('condition',
-                firstTerm=vars['distanceSoft'],
-                secondTerm=0.0,
-                colorIfTrueR=0.0,
-                colorIfFalseR=vars['deltaSafeSoft']
-            ).outColorR
-
-            #self.__debug(vars['deltaSafeSoft'], scale=1.0, name='deltaSafeSoft')
-
-            # soft_ik formula
-            # src: http://www.softimageblog.com/userContent/anicholas/softik/Equation.gif
-            libFormula.parseToVar("outDistanceSoft", "(distanceSoft*(1-(e^(deltaSafeSoft*-1))))+distanceSafe", vars)
-            vars['outDistanceNoStretch'] = libRigging.CreateUtilityNode('condition',
-                operation=2,
-                firstTerm=vars['deltaSafeSoft'],
-                secondTerm=0.0,
-                colorIfTrueR=vars['outDistanceSoft'],
-                colorIfFalseR=vars['distanceSafe']
-            ).outColorR
-            #self.__debug(vars['outDistanceNoStretch'], scale=1.0, name='outDistanceNoStretch')
-
-            print 'softik is accessible via utility node: ' + str(vars['outDistanceNoStretch'])
-
-            vars['outRatioNoStretch'] = libFormula.parse("outDistanceNoStretch/distanceSafe", **vars)
-            #self.__debug(vars['outRatioNoStretch'], scale=10.0, name='outRatioNoStretch')
-
-            libFormula.parseToVar("outRatioWithStretch", "inDistanceFloor/outDistanceNoStretch", vars)
-            #self.__debug(vars['outRatioWithStretch'], scale=10.0, name='outRatioWithStretch')
+        # distanceSafe: the maximum length where the soft ik isnt active
+        # The maximum distane where the soft ik is not activated
+        libFormula.parseToVar("distanceSafe", "distanceMax-distanceSoft", vars)
 
 
-            vars['out'] = libRigging.CreateUtilityNode('blendTwoAttr',
-                input=[vars['outRatioNoStretch'], vars['outRatioWithStretch']],
-                attributesBlender=vars['inStretch']).output
-
-            #libFormula.parseToVar("outRatioStretch", "inDistance/outDistance", vars)
-
-            num_jnts = len(self._chain)
-            for i in range(1, num_jnts):
-                obj = self._chain[i]
-                pymel.connectAttr(
-                    libRigging.CreateUtilityNode('multiplyDivide',
-                        input1X=vars['out'],
-                        input1Y=vars['out'],
-                        input1Z=vars['out'],
-                        input2=obj.t.get()).output,
-                    obj.t, force=True)
+        # This represent the soft-ik state
+        # When the soft-ik kick in, the value is 0.0.
+        # When the stretch kick in, the value is 1.0.
+        # |-----------|-----------|----------|
+        # -1          0.0         1.0         +++
+        # -dBase      dSafe       dMax
+        libFormula.parseToVar("deltaSafeSoft", "(inDistance-distanceSafe)/distanceSoft", vars)
+        # Hack: Precent potential division by zero
+        vars['deltaSafeSoft'] = libRigging.CreateUtilityNode('condition',
+            firstTerm=vars['distanceSoft'],
+            secondTerm=0.0,
+            colorIfTrueR=0.0,
+            colorIfFalseR=vars['deltaSafeSoft']
+        ).outColorR
 
 
-            # Debug: create gizmos
-            '''
-            gsafe, gsafes = pymel.circle(name="safe")
-            gsoft, gsofts = pymel.circle(name="soft")
-            gbase, gbases = pymel.circle(name="base")
-            pymel.connectAttr(vars['distanceMax'], gbases.radius)
-            pymel.connectAttr(vars['distanceSoft'], gsofts.radius)
-            pymel.connectAttr(vars['distanceSafe'], gsafes.radius)
-            '''
+        # soft_ik formula
+        # src: http://www.softimageblog.com/userContent/anicholas/softik/Equation.gif
+        libFormula.parseToVar("outDistanceSoft", "(distanceSoft*(1-(e^(deltaSafeSoft*-1))))+distanceSafe", vars)
+        vars['outDistanceNoStretch'] = vars['outDistanceSoft']
 
-            # Debug locators
+        print 'softik is accessible via utility node: ' + str(vars['outDistanceNoStretch'])
+        vars['outRatioNoStretch'] = libFormula.parse("outDistanceNoStretch/distanceSafe", **vars)
+        libFormula.parseToVar("outRatioWithStretch", "inDistance/outDistanceNoStretch", vars)
+        vars['outStretch'] = libRigging.CreateUtilityNode('blendTwoAttr',
+            input=[1.0, vars['outRatioWithStretch']],
+            attributesBlender=vars['inStretch']).output
 
+        # Limit stretch AFTER the safe distance
+        vars['outStretch'] = libRigging.CreateUtilityNode('condition',
+            operation=2,
+            firstTerm=vars['inDistance'],
+            secondTerm=vars['distanceSafe'],
+            colorIfTrueR=vars['outStretch'],
+            colorIfFalseR=1.0
+        ).outColorR
+
+        # We only want stretching if stretching is ON
+        vars['outStretch'] = libRigging.CreateUtilityNode('blendTwoAttr',
+            input=[1.0, vars['outStretch']],
+            attributesBlender=vars['inStretch']).output
+
+        vars['outDistanceNoStretchFloor'] = libRigging.CreateUtilityNode('condition',
+            operation=2,
+            firstTerm=vars['deltaSafeSoft'],
+            secondTerm=0.0,
+            colorIfTrueR=vars['outDistanceSoft'],
+            colorIfFalseR=vars['inDistance']
+        ).outColorR
+        vars['outDistanceNoStretchFloor'] = libRigging.CreateUtilityNode('blendTwoAttr',
+            input=[vars['outDistanceNoStretchFloor'],vars['inDistance']],
+            attributesBlender=vars['inStretch']).output
+        pymel.connectAttr(vars['outDistanceNoStretchFloor'], self.oSoftIKEffector.tx)
+
+        # Connect stretch
+        num_jnts = len(self._chain_ik)
+        for i in range(1, num_jnts):
+            obj = self._chain_ik[i]
+            pymel.connectAttr(
+                libRigging.CreateUtilityNode('multiplyDivide',
+                    input1X=vars['outStretch'],
+                    input1Y=vars['outStretch'],
+                    input1Z=vars['outStretch'],
+                    input2=obj.t.get()).output,
+                obj.t, force=True)
 
         # Connect rig -> anm
-        pymel.pointConstraint(self.ctrlIK, self._oIkHandle)
+        #pymel.pointConstraint(self.ctrlIK, self._oIkHandle)
         pymel.orientConstraint(self.ctrlIK, oChainE, maintainOffset=True)
         pymel.poleVectorConstraint(self.ctrl_swivel, self._oIkHandle)
 
-        # Connect stretch
-        '''
-        if self.bStretch is True:
-            attChainDistance = libRigging.CreateUtilityNode('distanceBetween', inMatrix1=oChainRoot.worldMatrix,
-                                                            inMatrix2=self.ctrlIK.worldMatrix).distance
-            attStretch = libRigging.CreateUtilityNode('multiplyDivide', operation=2, input1X=attChainDistance,
-                                                      input2X=self._chain_length).outputX
-            attStretch = libRigging.CreateUtilityNode('condition', operation=2, firstTerm=attStretch, secondTerm=1.0,
-                                                      colorIfTrueR=attStretch,
-                                                      colorIfFalseR=1.0).outColorR  # GreaterThan
-            for oInput in self.input[1:self.iCtrlIndex + 1]:
-                attNewPos = libRigging.CreateUtilityNode('multiplyDivide', input1=oInput.t.get(), input2X=attStretch,
-                                                         input2Y=attStretch, input2Z=attStretch).output
-                pymel.connectAttr(attNewPos, oInput.t)
-        '''
-
         # Connect to parent
+
         print self.parent
         if libPymel.is_valid_PyNode(self.parent):
             pymel.parentConstraint(self.parent, grp_ikChain, maintainOffset=True)
 
         for source, target in zip(self._chain_ik, self._chain):
             pymel.parentConstraint(source, target)
+
 
     def unbuild(self):
         pass

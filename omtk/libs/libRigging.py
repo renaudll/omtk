@@ -43,7 +43,7 @@ def CreateUtilityNode(_sClass, *args, **kwargs):
     uNode = pymel.shadingNode(_sClass, asUtility=True)
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
-            logging.warning('[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass, sAttrName))
+            raise Exception('[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass, sAttrName))
         else:
             ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)
     return uNode

@@ -66,8 +66,26 @@ class pow(operator):
         return libRigging.CreateUtilityNode('multiplyDivide', operation=3, input1X=arg1, input2X=arg2).outputX
 
 class distance(operator):
+    # Ensure that we correctly cast the arguments if '0' is provided.
+    # ex: 0~a where 'a' is a vector or a matrix
+    @staticmethod
+    def _get_identity_by_type(type):
+        if type == pymel.datatypes.Matrix:
+            return pymel.datatypes.Matrix()
+        if type == pymel.datatypes.Vector:
+            return pymel.datatypes.Vector()
+        raise Exception("Cannot cast type {0}".format(type))
+    @staticmethod
+    def _handle_args(arg1, arg2):
+        if arg1 == 0 and not isinstance(arg2, (int, float, long)):
+            arg1 = distance._get_identity_by_type(type(arg2))
+        if arg2 == 0 and not isinstance(arg1, (int, float, long)):
+            arg2 = distance._get_identity_by_type(type(arg1))
+        return arg1, arg2
+
     @staticmethod
     def execute(arg1, arg2):
+        arg1, arg2 = distance._handle_args(arg1, arg2)
         log.debug('[distance:execute] {0} * {1}'.format(arg1, arg2))
 
         # todo: check for matrix
@@ -75,6 +93,7 @@ class distance(operator):
         return arg1 * arg2;
     @staticmethod
     def create(arg1, arg2):
+        arg1, arg2 = distance._handle_args(arg1, arg2)
         log.debug('[distance:create] {0} * {1}'.format(arg1, arg2))
         # todo: check if we want to use inMatrix1 & inMatrix2 or point1 & point2
         kwargs = {}

@@ -314,6 +314,11 @@ def _create_nodes(args):
 def parse(str, **inkwargs):
     log.debug("--------------------")
     log.debug("PARSING: {0}".format(str))
+
+    if not isinstance(str, basestring):
+        log.debug("Formula provided is not a string! Skipped")
+        return str
+
     # step 1: identify variables
     vars = (var.strip() for var in re.split(_regex_splitVariables, str))
     vars = filter(lambda x: x, vars)
@@ -381,6 +386,36 @@ def parseToVar(name, formula, vars):
     attr.node().rename(name)
     vars[name] = attr
 
+
+#
+# A wrapper to
+#
+# todo: Fix regression of automatic node renaming
+class Formula(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    def add_variable(self, name, formula, **kwargs):
+        kwargs.update(self.__dict__)
+        value = parse(formula, **kwargs)
+        self.__dict__[name] = value
+        return value
+
+    def __setattr__(self, key, value):
+        self.add_variable(key, value)
+        #parseToVar(key, value, self.__dict__)
+
+    '''
+    def parse(self, formula=None)
+        if formula is None:
+            self
+        return parse(self._formula_, **self._vars_)
+    '''
+
+#
+# Unit testing
+#
+
 def _test_squash():
     # ex:creating a bell-curve type squash
     cmds.file(new=True, f=True)
@@ -410,10 +445,6 @@ def _test_squash2(step_size=10):
         pymel.connectAttr(attSquash, cyl.sy)
         pymel.connectAttr(attSquash, cyl.sz)
     return True
-
-#
-# Unit testing
-#
 
 import unittest
 class TestFormula(unittest.TestCase):

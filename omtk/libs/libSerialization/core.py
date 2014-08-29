@@ -30,21 +30,21 @@ def _isDataDagNode(_data):
 # constants
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX = range(4)
 
-def _getClassDef(_clsName, _baseclass=object):
+def get_class_def(_clsName, _baseclass=object):
     try:
         for cls in _baseclass.__subclasses__():
             if cls.__name__ == _clsName:
                 return cls
             else:
-                t = _getClassDef(_clsName, _baseclass=cls)
+                t = get_class_def(_clsName, _baseclass=cls)
                 if t is not None:
                     return t
     except Exception, e:
         logging.info(str(e)) # TODO: FIX
     return None
 
-def _createClassInstance(_clsName):
-    cls = _getClassDef(_clsName)
+def create_class_instance(_clsName):
+    cls = get_class_def(_clsName)
 
     if cls is None:
         logging.warning("Can't find class definition '{0}'".format(_clsName));
@@ -59,7 +59,7 @@ def _createClassInstance(_clsName):
         logging.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
         return None
 
-def _getClassNamespace(_cls):
+def get_class_namespace(_cls):
     if not isinstance(_cls, object):
         return None # Todo: throw exception
     tokens = []
@@ -131,7 +131,7 @@ def _export_basicData(_data, _bSkipNone=True, _bRecursive=True, **args):
     # object instance
     if sType == TYPE_COMPLEX:
         dicReturn = {}
-        dicReturn['_class'] = _getClassNamespace(_data.__class__)
+        dicReturn['_class'] = get_class_namespace(_data.__class__)
         dicReturn['_uid'] = id(_data)
         for key, val in (_data.items() if isinstance(_data, dict) else _data.__dict__.items()): # TODO: Clean
             if '_' not in key[0]:
@@ -164,7 +164,7 @@ def _import_basicData(_data, **args):
         # Handle Serializable object
         clsPath = _data['_class']
         clsName = clsPath.split('.')[-1]
-        instance = _createClassInstance(clsName)
+        instance = create_class_instance(clsName)
         if instance is None or not isinstance(instance, object):
             logging.error("Can't create class instance for {0}, did you import to module?".format(clsPath))
             # TODO: Log error

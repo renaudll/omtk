@@ -199,7 +199,14 @@ def _getNetworkAttr(_att):
 def export_network(_data, **kwargs):
     log.debug('CreateNetwork {0}'.format(_data))
 
-    if hasattr(_data, '_network') and isinstance(_data._network, pymel.PyNode) and _data._network.exists():
+    # We'll deal with two additional attributes, '_network' and '_uid'.
+    # Thoses two attributes allow us to find the network from the value and vice-versa.
+    # Note that since the '_uid' refer to the current python context, it's value could be erroned when calling import_network.
+    # However the change of collisions are extremely improbable so checking the type of the python variable is sufficient.
+    # Please feel free to provide a better design if any if possible.
+
+    # Optimisation: Use existing network if already present in scene
+    if hasattr(_data, '_network') and libPymel.is_valid_PyNode(_data._network):
         network = _data._network
     else:
         # Automaticly name network whenever possible
@@ -208,8 +215,12 @@ def export_network(_data, **kwargs):
         else:
             networkName = _data.__getNetworkName__() if hasattr(_data, '__getNetworkName__') else _data.__class__.__name__
             _data._network = networkName
-        
         network = pymel.createNode('network', name=networkName)
+
+    # Ensure the network have the current python id stored
+    if not network.hasAttr('_uid'):
+        pymel.addAttr(network, longName='_uid', niceName='_uid', at='long') # todo: validate attributeType
+    network._uid.set(id(_data))
 
     # Convert _pData to basic data dictionary (recursive for now)
     dicData = core._export_basicData(_data, _bRecursive=False, **kwargs)
@@ -223,13 +234,14 @@ def export_network(_data, **kwargs):
 
     return network
 
+# todo: add an optimisation to prevent recreating the python variable if it already exist.
 def import_network(_network):
     if not _network.hasAttr('_class'):
         log.error('[importFromNetwork] Network dont have mandatory attribute _class')
         raise AttributeError
 
     cls = _network.getAttr('_class').split('.')[-1]
-    obj = core._createClassInstance(cls)
+    obj = core.create_class_instance(cls)
     if obj is None:
         return None
     obj._network = _network
@@ -242,6 +254,10 @@ def import_network(_network):
             setattr(obj, key, val)
             #else:
             #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
+
+    # Update network _uid to the current python variable context
+    if _network.hasAttr('_uid'):
+        _network._uid.set(id(obj))
 
     return obj
 
@@ -266,3 +282,14 @@ def getConnectedNetworks(_objs, key=None, recursive=True, inArray=[]):
                         if recursive:
                             getConnectedNetworks(output, key=key, recursive=recursive, inArray=inArray)
     return inArray
+
+# Return all connected network while traversing the hierarchy upward.
+# The last result will be the higher in the hierarchy.
+# Mainly used to get parent autorig network
+def getConnectedNetworksByHierarchy(obj, recursive=False, **kwargs):
+    networks = set()
+    while obj is not None:
+        for current_network in getConnectedNetworks(obj, recursive=recursive, **kwargs):
+            networks.add(current_network)
+        obj = obj.getParent()
+    return list(networks)

@@ -44,6 +44,7 @@ class RigPart(RigElement):
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
+        self.canPinTo = True # If raised, the network can be used as a space-switch pin-point
         self._pNameMapAnm = None
         self._pNameMapRig = None
 
@@ -138,3 +139,9 @@ class RigPart(RigElement):
     # Overwritten from Serializable
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name=self._pNameMapAnm.Serialize(_sType='net'))
+
+    # Return the objs that child RigPart can pin themself to (space-switching)
+    # In the vast majority of cases, the desired behavior is to return the first joint in the inputs.
+    def getPinObjs(self):
+        firstJoint = next((input for input in self.input if isinstance(input, pymel.nodetypes.Joint)), None)
+        return [firstJoint] if firstJoint is not None else []

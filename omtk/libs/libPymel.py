@@ -6,7 +6,7 @@ import pymel.core as pymel
 #
 
 def is_valid_PyNode(val):
-    return hasattr(val, 'exists') and val.exists()
+    return val and hasattr(val, 'exists') and val.exists()
 
 import collections
 class PyNodeChain(collections.MutableSequence):

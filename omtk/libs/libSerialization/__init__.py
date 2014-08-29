@@ -17,7 +17,7 @@ from core import import_yaml, import_yaml_file, export_yaml, export_yaml_file
 
 if libPython.does_module_exist("maya"):
     print 'in_maya'
-    from pluginMaya import export_network, import_network, isNetworkInstanceOfClass, getNetworksByClass, getConnectedNetworks
+    from pluginMaya import export_network, import_network, isNetworkInstanceOfClass, getNetworksByClass, getConnectedNetworks, getConnectedNetworksByHierarchy
     import pymel.core as pymel
     _dag_types.append(pymel.PyNode)
     _dag_types.append(pymel.Attribute)

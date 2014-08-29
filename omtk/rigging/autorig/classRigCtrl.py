@@ -1,6 +1,44 @@
 import pymel.core as pymel
 from omtk.rigging.autorig.classRigNode import RigNode
 from omtk.libs import libRigging, libPymel
+import logging; log = logging.getLogger(__name__)
+
+
+def is_network_pinnable(network):
+    from omtk.libs import libSerialization
+    from omtk.rigging.autorig.classRigPart import RigPart
+    if not isinstance(network, pymel.nodetypes.Network):
+        raise IOError("Expected pymel.nodetypes.Network, got {0} ({1})".format(network, type(network)))
+
+    # We only listen to network that inherit from RigPart
+    if not libSerialization.isNetworkInstanceOfClass(network, RigPart.__name__):
+        return False
+
+    # If the network have an 'canPinTo' attribute
+    # todo: Don't hardcode attribute name...
+    if network.hasAttr('canPinTo'):
+        val = network.attr('canPinTo').get()
+        if not isinstance(val, bool):
+            raise IOError("Expected 'canPinTo' attribute type to be boolean, got {0} ({1})".format(val, type(val)))
+    else:
+        log.warning("Can't find attribute 'canPinTo' in {0}, maybe the network is old and need to be re-generated?".format(network))
+
+    # If there's no 'canPinTo' attribute we assume that the network is not pinnable.
+    return False
+
+def get_spaceswitch_targets(jnt):
+    from omtk.libs import libSerialization
+    # Return true if x is a network of type 'RigPart' and it's
+    networks = libSerialization.getConnectedNetworksByHierarchy(jnt, key=is_network_pinnable)
+    print networks
+    targets = []
+
+    for network in networks:
+        val = libSerialization.import_network(network)
+        targets.extend(val.getPinTargets())
+
+    return targets
+
 
 class RigCtrl(RigNode):
     def __init__(self, _create=False, _bOffset=True, *args, **kwargs):

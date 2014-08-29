@@ -89,5 +89,13 @@ def RestoreCtrlShapes():
             fetch_ctrl_shapes(oSource, oTarget)
             #pymel.delete(oSource)
 
-
-
+def create_squash_atts(attStretch, numSegments):
+    import libFormula
+    if not isinstance(attStretch, pymel.Attribute):
+        raise IOError("Expected pymel Attribute, got {0} ({1})".format(attStretch, type(attStretch)))
+    return_vals = []
+    for i in range(numSegments):
+        pos = float(i)/(numSegments-1) * 2.0 - 1.0
+        attSquash = libFormula.parse("s^(e^(x^2)))", s=attStretch, x=pos)
+        return_vals.append(attSquash)
+    return return_vals

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/Users/renaudlessardlarouche/GitHub/omtk/omtk/animation/pickerUI.ui'
 #
-# Created: Mon Oct 13 22:44:19 2014
+# Created: Mon Oct 13 22:53:27 2014
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!

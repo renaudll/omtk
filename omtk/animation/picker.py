@@ -4,8 +4,6 @@ import logging, os
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-
-
 class HitBox(object):
     _default_width = 42
     _default_height = 42
@@ -15,7 +13,7 @@ class HitBox(object):
     _color_selected = QtGui.QColor(128,128,128,128)
     _color_unselected = QtGui.QColor(0, 0, 0, 128)
 
-    _dagpath = 'test'
+    _dagpath = None
     _command_language = 'python'
 
     def __init__(self, **kwargs):
@@ -55,11 +53,10 @@ class HitBox(object):
 
     def execute(self):
         if self._command_language == 'python':
-            try:
+            if self._dagpath:
                 from maya import cmds
-                cmds.select(self._dagpath)
-            except Exception, e:
-                log.exception(e)
+                if cmds.objExists(self._dagpath):
+                    cmds.select(self._dagpath)
         else:
             raise NotImplementedError('Invalid command_language: {0}'.format(self._command_language))
 
@@ -164,6 +161,7 @@ class State_MouseSelect(EmptyState):
             if h.is_selected:
                 h.execute()
 
+        cls.ui.selectionChanged.emit()
         cls.ui.update()
 
 class State_MouseDrag(EmptyState):
@@ -188,6 +186,8 @@ class State_MouseDrag(EmptyState):
         cls.ui.update()
 
 class PickerWidget(QtGui.QWidget):
+    selectionChanged = QtCore.Signal()
+
     def __init__(self, data, *args, **kwargs):
         self.core = data
         super(PickerWidget, self).__init__(*args, **kwargs)
@@ -291,6 +291,8 @@ class PickerGUI(QtGui.QMainWindow, pickerUI.Ui_MainWindow):
 
         self.actionUpdateCommand.triggered.connect(self.commandChanged)
 
+        self.widget.selectionChanged.connect(self.onSelectionChanged)
+
     def keyPressEvent(self, event):
         print event.key()
         if event.key() == 16777216: # Esc
@@ -334,13 +336,22 @@ class PickerGUI(QtGui.QMainWindow, pickerUI.Ui_MainWindow):
             log.exception(e)
 
     def commandChanged(self, *args):
-        new_command = str(self.lineEdit_command.text())
+        val = str(self.lineEdit_command.text())
         for h in self.core.hitboxes:
             if h.is_selected:
-                h.command = new_command
+                h._dagpath = val
 
     def updateLayout(self):
-        pass
+        selected_items = [h for h in self.core.hitboxes if h.is_selected]
+        if len(selected_items) == 1:
+            self.lineEdit_command.setEnabled(True)
+            self.lineEdit_command.setText(selected_items[0]._dagpath)
+        else:
+            self.lineEdit_command.setEnabled(False)
+            self.lineEdit_command.setText('')
+
+    def onSelectionChanged(self):
+        self.updateLayout()
 
 
 

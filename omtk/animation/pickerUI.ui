@@ -119,7 +119,29 @@
     <string>Export</string>
    </property>
   </action>
+  <action name="actionUpdateCommand">
+   <property name="text">
+    <string>UpdateCommand</string>
+   </property>
+  </action>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>lineEdit_command</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>actionUpdateCommand</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>137</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

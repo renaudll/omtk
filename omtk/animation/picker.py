@@ -4,9 +4,7 @@ import logging, os
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-# Dynamic type creation for enum in python 2.7
-def enum(**enums):
-    return type('Enum', (), enums)
+
 
 class HitBox(object):
     _default_width = 42
@@ -57,8 +55,11 @@ class HitBox(object):
 
     def execute(self):
         if self._command_language == 'python':
-            from maya import cmds
-            cmds.select(self._dagpath)
+            try:
+                from maya import cmds
+                cmds.select(self._dagpath)
+            except Exception, e:
+                log.exception(e)
         else:
             raise NotImplementedError('Invalid command_language: {0}'.format(self._command_language))
 
@@ -104,7 +105,7 @@ class PickerCore(object):
         if rect.width() == 0: rect.setWidth(1)
         if rect.height() == 0: rect.setHeight(1)
 
-        log.debug('Selecting using rectangle {0}'.format(rect))
+        #log.debug('Selecting using rectangle {0}'.format(rect))
         return [h for h in self.hitboxes if h.intersect(rect)]
 
     def selectPoint(self, x, y, **kwargs):
@@ -126,16 +127,88 @@ class PickerCore(object):
                     hitbox.y() + y
                 )
 
+class EmptyState(object):
+    @classmethod
+    def EnterState(cls, *args):
+        pass
+
+    @classmethod
+    def ExecuteState(cls, *args):
+        pass
+
+    @classmethod
+    def ExitState(cls, *args):
+        pass
+
+class State_MouseSelect(EmptyState):
+    @classmethod
+    def EnterState(cls, ui):
+        cls.ui = ui
+        cls.old_mouse_pos = ui.mouse_pos
+
+    @classmethod
+    def ExecuteState(cls):
+        cls.ui.update()
+
+    @classmethod
+    def ExitState(cls, *args):
+        x = cls.old_mouse_pos.x()
+        y = cls.old_mouse_pos.y()
+        w = cls.ui.mouse_pos.x() - x
+        h = cls.ui.mouse_pos.y() - y
+        qtSelectionRectangle = QtCore.QRect(x, y, w, h)
+        cls.ui.core.selectRect(qtSelectionRectangle)
+
+        # Proceed with selection
+        for h in cls.ui.core.hitboxes:
+            if h.is_selected:
+                h.execute()
+
+        cls.ui.update()
+
+class State_MouseDrag(EmptyState):
+    @classmethod
+    def EnterState(cls, ui):
+        cls.ui = ui
+        cls.dragged_items = {}
+        for h in cls.ui.core.hitboxes:
+            if h.is_selected:
+                cls.dragged_items[h] = h._hitbox.topLeft()
+        cls.old_mouse_pos = cls.ui.mouse_pos
+    @classmethod
+    def ExecuteState(cls):
+        delta = cls.ui.mouse_pos - cls.old_mouse_pos
+        for hitbox, old_pos in cls.dragged_items.iteritems():
+            new_pos = old_pos + delta
+            hitbox.set_position(new_pos)
+        cls.ui.update()
+    @classmethod
+    def ExitState(cls):
+        cls.dragged_items = {}
+        cls.ui.update()
+
 class PickerWidget(QtGui.QWidget):
     def __init__(self, data, *args, **kwargs):
         self.core = data
         super(PickerWidget, self).__init__(*args, **kwargs)
         self._selection_start = QtCore.QPoint(0,0)
-        self.is_selecting = False
-        self.old_mouse_pos = None
 
-        self.selected_items = None
-        self.is_dragging = False
+        self._state = EmptyState
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, val):
+        if not isinstance(val, type):
+            raise IOError()
+
+        if self._state != val:
+            log.debug("Chaging from state {0} to {1}".format(self._state.__name__, val.__name__))
+            self._state.ExitState()
+            self._state = val
+            self._state.EnterState(self)
 
     def _get_selection_rect(self):
         mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
@@ -150,7 +223,7 @@ class PickerWidget(QtGui.QWidget):
         self.core.draw(qp)
 
         # Draw selection rectangle
-        if self.is_selecting:
+        if self.state == State_MouseSelect:
             qSelectionRect = self._get_selection_rect()
             qp.drawRect(qSelectionRect)
 
@@ -162,66 +235,23 @@ class PickerWidget(QtGui.QWidget):
         log.debug('Click at {0}, {1}'.format(x, y))
 
         self.selected_items = [h for h in self.core.hitboxes if h.is_selected]
-        mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
+        self.mouse_pos = event.pos()
+        hitbox = self.core.hitboxes_from_pos(self.mouse_pos.x(), self.mouse_pos.y())
 
-        # if the user click miss, clear selection
-        hitbox = self.core.hitboxes_from_pos(mouse_pos.x(), mouse_pos.y())
         if not hitbox: # If nothing is clicked on
-            log.debug("Changing state: mouseSelect")
-            self.is_selecting = True
-            self._selection_start = event.pos()
+            self.state = State_MouseSelect
         elif hitbox.is_selected: # If the thing that is clicked on is selected
-            log.debug("Changing state: mouseDrag")
-            self.is_dragging = True
-            self.dragged_items = {}
-            for h in self.core.hitboxes:
-                if h.is_selected:
-                    self.dragged_items[h] = h._hitbox.topLeft()
-            self.old_mouse_pos = mouse_pos
+            self.state = State_MouseDrag
         else:
-            log.debug("Changing state: mouseSelect")
-            self.is_selecting = True
-            self._selection_start = event.pos()
-
+            self.state = State_MouseSelect
 
     def mouseMoveEvent(self, event):
-        if self.is_selecting:
-            self.update()
-
-        if self.is_dragging:
-            mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
-            delta = mouse_pos - self.old_mouse_pos
-            for hitbox, old_pos in self.dragged_items.iteritems():
-                #log.debug('Moving {0}'.format(hitbox))
-                new_pos = old_pos + delta
-                hitbox.set_position(new_pos)
-            self.update()
+        self.mouse_pos = event.pos()
+        self.state.ExecuteState()
 
     def mouseReleaseEvent(self, event):
-        if self.is_selecting:
-            mouse_pos = event.pos()
-            x = self._selection_start.x()
-            y = self._selection_start.y()
-            w = mouse_pos.x() - x
-            h = mouse_pos.y() - y
-            qtSelectionRectangle = QtCore.QRect(x, y, w, h)
-            self.core.selectRect(qtSelectionRectangle)
-            self.is_selecting = False
-
-        self.update()
-
-        self.dragged_items = {}
-        self.is_dragging = False
-
-        log.debug("Exiting state")
-
-        print self._selection_start
-        print self.is_selecting
-        print self.old_mouse_pos
-
-        print self.selected_items
-        print self.is_dragging
-
+        self.mouse_pos = event.pos()
+        self.state = EmptyState
 
     def keyPressEvent(self, event):
         print event.key()
@@ -258,6 +288,8 @@ class PickerGUI(QtGui.QMainWindow, pickerUI.Ui_MainWindow):
 
         self.actionImport.triggered.connect(self.import_)
         self.actionExport.triggered.connect(self.export)
+
+        self.actionUpdateCommand.triggered.connect(self.commandChanged)
 
     def keyPressEvent(self, event):
         print event.key()
@@ -300,6 +332,16 @@ class PickerGUI(QtGui.QMainWindow, pickerUI.Ui_MainWindow):
                 self.update()
         except Exception, e:
             log.exception(e)
+
+    def commandChanged(self, *args):
+        new_command = str(self.lineEdit_command.text())
+        for h in self.core.hitboxes:
+            if h.is_selected:
+                h.command = new_command
+
+    def updateLayout(self):
+        pass
+
 
 
 gui = None

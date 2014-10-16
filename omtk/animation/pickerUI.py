@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/Users/renaudlessardlarouche/GitHub/omtk/omtk/animation/pickerUI.ui'
 #
-# Created: Wed Oct 15 20:29:39 2014
+# Created: Wed Oct 15 20:55:33 2014
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -70,10 +70,13 @@ class Ui_MainWindow(object):
         self.actionImport.setObjectName("actionImport")
         self.actionExport = QtGui.QAction(MainWindow)
         self.actionExport.setObjectName("actionExport")
+        self.actionUpdateCommand = QtGui.QAction(MainWindow)
+        self.actionUpdateCommand.setObjectName("actionUpdateCommand")
         self.toolBar.addAction(self.actionImport)
         self.toolBar.addAction(self.actionExport)
 
         self.retranslateUi(MainWindow)
+        QtCore.QObject.connect(self.lineEdit_command, QtCore.SIGNAL("textChanged(QString)"), self.actionUpdateCommand.trigger)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -85,4 +88,5 @@ class Ui_MainWindow(object):
         self.toolBar.setWindowTitle(QtGui.QApplication.translate("MainWindow", "toolBar", None, QtGui.QApplication.UnicodeUTF8))
         self.actionImport.setText(QtGui.QApplication.translate("MainWindow", "Import", None, QtGui.QApplication.UnicodeUTF8))
         self.actionExport.setText(QtGui.QApplication.translate("MainWindow", "Export", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionUpdateCommand.setText(QtGui.QApplication.translate("MainWindow", "UpdateCommand", None, QtGui.QApplication.UnicodeUTF8))
 

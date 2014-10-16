@@ -17,11 +17,14 @@ class HitBox(object):
     _color_selected = QtGui.QColor(128,128,128,128)
     _color_unselected = QtGui.QColor(0, 0, 0, 128)
 
+    _dagpath = 'test'
+    _command_language = 'python'
+
     def __init__(self, **kwargs):
-        self.width = HitBox._default_width
-        self.height = HitBox._default_height
-        self.posx = HitBox._default_posx
-        self.posy = HitBox._default_posy
+        self.width = HitBox._default_width # todo: remove
+        self.height = HitBox._default_height # todo: remove
+        self.posx = HitBox._default_posx # todo: remove
+        self.posy = HitBox._default_posy # todo: remove
         self.label = 'debug'
         self.__dict__.update(kwargs)
         self._hitbox = QtCore.QRect(self.posx, self.posy, self.width, self.height)
@@ -38,12 +41,26 @@ class HitBox(object):
             self.is_selected = val
             self.need_update = True
 
+    # todo: convert to property
+    def set_position(self, newpos):
+        if not isinstance(newpos, QtCore.QPoint): raise IOError
+        self.posx = newpos.x()
+        self.posy = newpos.y()
+        self._hitbox.moveTo(QtCore.QPoint(self.posx, self.posy))
+
     def draw(self, qp):
         #if self.need_update is True:
         qp.drawRect(self._hitbox)
         qp.fillRect(self._hitbox, HitBox._color_selected if self.selected else HitBox._color_unselected)
         qp.drawText(self._hitbox, QtCore.Qt.AlignCenter, self.label)
         #self.need_update = False
+
+    def execute(self):
+        if self._command_language == 'python':
+            from maya import cmds
+            cmds.select(self._dagpath)
+        else:
+            raise NotImplementedError('Invalid command_language: {0}'.format(self._command_language))
 
     def __getattr__(self, attname):
         return getattr(self._hitbox, attname)
@@ -57,6 +74,12 @@ class PickerCore(object):
         ]
 
     def select(self, items, more=False):
+        # Clear if the user miss
+        if len(items) == 0:
+            for h in self.hitboxes:
+                h.selected = False
+            return
+
         if not isinstance(items, list): items = [items]
         # todo: optimise
         if more is False:
@@ -65,29 +88,37 @@ class PickerCore(object):
         for hitbox in items:
             hitbox.is_selected = True
 
+
     def draw(self, qt):
         for hitbox in self.hitboxes:
             hitbox.draw(qt)
 
     # DEPRECATED
-    def selectPoint(self, x, y, **kwargs):
-        hitbox = next((h for h in self.hitboxes if h.contains(x, y)), None)
-        if hitbox:
-            log.debug('Hit {0}'.format(hitbox))
-            self.select(hitbox, **kwargs)
 
-    def selectRect(self, rect, **kwargs):
+    def hitboxes_from_pos(self, x, y, **kwargs):
+        return next((h for h in self.hitboxes if h.contains(x, y)), None)
+
+    def hitboxes_from_qrect(self, rect, **kwargs):
         # Hack: Ensure that the rectangle always have at least a size of 1
         # This allow us to painlessly implement click selection
         if rect.width() == 0: rect.setWidth(1)
         if rect.height() == 0: rect.setHeight(1)
 
         log.debug('Selecting using rectangle {0}'.format(rect))
-        hitboxes = [h for h in self.hitboxes if h.intersect(rect)]
+        return [h for h in self.hitboxes if h.intersect(rect)]
+
+    def selectPoint(self, x, y, **kwargs):
+        hitbox = self.hitboxes_from_pos(x, y, **kwargs)
+        if hitbox:
+            log.debug('Hit {0}'.format(hitbox))
+            self.select(hitbox, **kwargs)
+
+    def selectRect(self, rect, **kwargs):
+        hitboxes = self.hitboxes_from_qrect(rect)
         self.select(hitboxes)
 
+
     def offset_active(self, x, y):
-        print x, y
         for hitbox in self.hitboxes:
             if hitbox.selected:
                 hitbox._hitbox.moveTo(
@@ -101,11 +132,14 @@ class PickerWidget(QtGui.QWidget):
         super(PickerWidget, self).__init__(*args, **kwargs)
         self._selection_start = QtCore.QPoint(0,0)
         self.is_selecting = False
+        self.old_mouse_pos = None
+
+        self.selected_items = None
+        self.is_dragging = False
 
     def _get_selection_rect(self):
         mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
         return_val = QtCore.QRect(self._selection_start, mouse_pos)
-        print return_val
         return return_val
 
     def paintEvent(self, event):
@@ -127,24 +161,66 @@ class PickerWidget(QtGui.QWidget):
         y = event.y()
         log.debug('Click at {0}, {1}'.format(x, y))
 
-        self.is_selecting = True
-        self._selection_start = event.pos()
+        self.selected_items = [h for h in self.core.hitboxes if h.is_selected]
+        mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
+
+        # if the user click miss, clear selection
+        hitbox = self.core.hitboxes_from_pos(mouse_pos.x(), mouse_pos.y())
+        if not hitbox: # If nothing is clicked on
+            log.debug("Changing state: mouseSelect")
+            self.is_selecting = True
+            self._selection_start = event.pos()
+        elif hitbox.is_selected: # If the thing that is clicked on is selected
+            log.debug("Changing state: mouseDrag")
+            self.is_dragging = True
+            self.dragged_items = {}
+            for h in self.core.hitboxes:
+                if h.is_selected:
+                    self.dragged_items[h] = h._hitbox.topLeft()
+            self.old_mouse_pos = mouse_pos
+        else:
+            log.debug("Changing state: mouseSelect")
+            self.is_selecting = True
+            self._selection_start = event.pos()
+
 
     def mouseMoveEvent(self, event):
         if self.is_selecting:
             self.update()
 
-    def mouseReleaseEvent(self, event):
-        self.is_selecting = False
+        if self.is_dragging:
+            mouse_pos = self.mapFromGlobal(QtGui.QCursor.pos())
+            delta = mouse_pos - self.old_mouse_pos
+            for hitbox, old_pos in self.dragged_items.iteritems():
+                #log.debug('Moving {0}'.format(hitbox))
+                new_pos = old_pos + delta
+                hitbox.set_position(new_pos)
+            self.update()
 
-        mouse_pos = event.pos()
-        x = self._selection_start.x()
-        y = self._selection_start.y()
-        w = mouse_pos.x() - x
-        h = mouse_pos.y() - y
-        qtSelectionRectangle = QtCore.QRect(x, y, w, h)
-        self.core.selectRect(qtSelectionRectangle)
+    def mouseReleaseEvent(self, event):
+        if self.is_selecting:
+            mouse_pos = event.pos()
+            x = self._selection_start.x()
+            y = self._selection_start.y()
+            w = mouse_pos.x() - x
+            h = mouse_pos.y() - y
+            qtSelectionRectangle = QtCore.QRect(x, y, w, h)
+            self.core.selectRect(qtSelectionRectangle)
+            self.is_selecting = False
+
         self.update()
+
+        self.dragged_items = {}
+        self.is_dragging = False
+
+        log.debug("Exiting state")
+
+        print self._selection_start
+        print self.is_selecting
+        print self.old_mouse_pos
+
+        print self.selected_items
+        print self.is_dragging
 
 
     def keyPressEvent(self, event):
@@ -167,6 +243,7 @@ class PickerWidget(QtGui.QWidget):
             self.update()
 
 import pickerUI
+reload(pickerUI)
 class PickerGUI(QtGui.QMainWindow, pickerUI.Ui_MainWindow):
     def __init__(self, parent=getMayaWindow()):
         super(PickerGUI, self).__init__(None)

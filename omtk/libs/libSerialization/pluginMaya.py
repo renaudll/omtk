@@ -45,8 +45,7 @@ def _createAttribute(_name, _val):
         fn = _createAttribute(_name, _val[0])
         fn.setArray(True)
         return fn
-    if isinstance(kType, pymel.datatypes.Matrix): # HACK
-        print '!!!!!'
+    if isinstance(_val, pymel.datatypes.Matrix):
         fn = OpenMaya.MFnMatrixAttribute()
         fn.create(_name, _name)
         return fn

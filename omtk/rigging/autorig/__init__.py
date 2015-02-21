@@ -121,17 +121,25 @@ def detect(*args, **kwargs):
     # Detect hands?
     def get_arm(jnt):
         children = jnt.getChildren()
-        # Hand have a minimum of three fingers
-        if len(children) < 2:
+
+        # Hand have a minimum of three fingers or not fingers at all
+        # todo: More robust!
+        if len(children) < 2 and len(children) != 0:
             return False
 
         # At least two parents (upperarm and forearm)
-        parent = jnt.getParent()
-        pparent = parent.getParent() if isinstance(parent, pymel.PyNode) else None
-        if not pparent or not parent:
+        forearm = jnt.getParent()
+        upperarm = forearm.getParent() if isinstance(forearm, pymel.PyNode) else None
+        if not upperarm or not forearm:
             return False
 
-        arm_jnts = [pparent, parent, jnt]
+        # Arms don't point upward, don't confuse ourself with the spine
+        upperarm_dir = get_direction(upperarm, forearm)
+        MAX_DIRECTION_Y = 0.75
+        if abs(upperarm_dir.y) > MAX_DIRECTION_Y:
+            return False
+
+        arm_jnts = [upperarm, forearm, jnt]
         log.debug("Found Arm using {0}".format(arm_jnts))
         return arm_jnts
 
@@ -143,7 +151,16 @@ def detect(*args, **kwargs):
                 chains.append(leg_jnts)
         return chains
 
+    def get_direction(jnt_inn, jnt_out):
+        val = jnt_out.getTranslation(space='world') - jnt_inn.getTranslation(space='world')
+        val.normalize()
+        return val
+
     def get_leg(jnt):
+        # The tip of the leg never have childrens
+        if len(jnt.getChildren()) > 0:
+            return False
+
         # A leg have 5 joints from with the first two point to the ground
         parents = []
         parent = jnt
@@ -160,16 +177,13 @@ def detect(*args, **kwargs):
         toe = parents[0]
 
         # Validate thigh direction
-        thigh_pos = thigh.getTranslation(space='world')
-        calf_pos = calf.getTranslation(space='world')
-        thigh_dir = (calf_pos - thigh_pos); thigh_dir.normalize()
         DIR_MINIMUM = -0.5
+        thigh_dir = get_direction(thigh, calf)
         if thigh_dir.y >= DIR_MINIMUM:
             return False
 
         # Validate calf direction
-        foot_pos = foot.getTranslation(space='world')
-        calf_dir = foot_pos - calf_pos; calf_dir.normalize()
+        calf_dir = get_direction(calf, foot)
         if calf_dir.y >= DIR_MINIMUM:
             return False
 
@@ -199,6 +213,8 @@ def detect(*args, **kwargs):
         for leg_jnt in leg_jnts:
             jnts.remove(leg_jnt)
         rig.append(Leg(leg_jnts))
+        rig.append(Twistbone([leg_jnts[0], leg_jnts[1]]))
+        rig.append(Twistbone([leg_jnts[1], leg_jnts[2]]))
 
     print len(jnts)
 
@@ -207,18 +223,16 @@ def detect(*args, **kwargs):
     arms_jnts = get_arms(jnts)
     for arm_jnts in arms_jnts:
         for arm_jnt in arm_jnts:
-            print arm_jnt
             jnts.remove(arm_jnt)
         rig.append(Arm(arm_jnts))
+        rig.append(Twistbone([arm_jnts[0], arm_jnts[1]]))
+        rig.append(Twistbone([arm_jnts[1], arm_jnts[2]]))
 
     print len(jnts)
 
     rig.build()
 
     libSerialization.export_network(rig)
-
-
-
 
 
 #################

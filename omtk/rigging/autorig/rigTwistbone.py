@@ -1,7 +1,7 @@
 import pymel.core as pymel
 from classRigPart import RigPart
 from classRigNode import RigNode
-from omtk.libs import libRigging
+from omtk.libs import libRigging, libPymel
 from rigSplineIK import SplineIK
 
 class NonRollJoint(RigNode):
@@ -31,7 +31,7 @@ class Twistbone(RigPart):
     def __init__(self, *args, **kwargs):
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, _bOrientIkCtrl=True, *args, **kwargs):
+    def build(self, _bOrientIkCtrl=True, create_boxes=True, *args, **kwargs):
         super(Twistbone, self).build(_bCreateGrpAnm=False, *args, **kwargs)
         jnt_s = self.input[0]
         jnt_e = self.input[1]
@@ -47,8 +47,6 @@ class Twistbone(RigPart):
         # Generate Subjoinbs
         reload(libRigging)
         self.subjnts = libRigging.create_joints_from_chain(jnt_s, jnt_e, 5)
-        for jnt in self.subjnts:
-            jnt.displayLocalAxis.set(True)
 
         # Create splineIK
         splineIK = SplineIK(self.subjnts +[self.ikCurve])
@@ -109,7 +107,12 @@ class Twistbone(RigPart):
         pymel.connectAttr(upnode_s.xformMatrix, splineIK.ikHandle.dWorldUpMatrix)
         pymel.connectAttr(upnode_e.xformMatrix, splineIK.ikHandle.dWorldUpMatrixEnd)
 
-        # todo: connect stretch
+        # Bonus: Give the twistbones a killer look
+        if create_boxes:
+            for i in range(len(self.subjnts)-1):
+                jnt_inn = self.subjnts[i]
+                jnt_out = self.subjnts[i+1]
+                libRigging.create_jnt_box(jnt_inn, jnt_out)
 
     def unbuild(self):
         pass

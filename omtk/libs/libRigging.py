@@ -1,5 +1,6 @@
 import pymel.core as pymel
 import logging
+from omtk.libs import libPymel
 
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
@@ -136,3 +137,45 @@ def create_joints_from_chain(jnt_inn, jnt_out, num_segments):
         jnts[i].setParent(jnts[i-1])
 
     return jnts
+
+def create_jnt_box(jnt_inn, jnt_out):
+    jnt_inn_tm_inv = jnt_inn.getMatrix(worldSpace=True).inverse()
+    jnt_out_tm_world = jnt_out.getMatrix(worldSpace=True)
+    jnt_out_pos_local = (jnt_out_tm_world * jnt_inn_tm_inv).translate
+    pos_inn = jnt_inn.getTranslation(space='world') * jnt_inn_tm_inv
+    pos_out = jnt_out.getTranslation(space='world') * jnt_inn_tm_inv
+    dir = pos_out - pos_inn; dir.normalize()
+
+    distance = libPymel.distance(jnt_inn, jnt_out)
+
+    # Zero highest axis
+    max_val = 0
+    if abs(dir.x) > max_val: max_val = abs(dir.x)
+    if abs(dir.y) > max_val: max_val = abs(dir.y)
+    if abs(dir.z) > max_val: max_val = abs(dir.z)
+
+    axis1 = pymel.datatypes.Vector(1,0,0) if abs(dir.x) != max_val else pymel.datatypes.Vector(0,1,0)
+    axis2 = pymel.datatypes.Vector(0,0,1) if abs(dir.z) != max_val else pymel.datatypes.Vector(0,1,0)
+
+    vtx_coords_local = [
+        axis2 * distance,
+        (axis2 * distance) + jnt_out_pos_local,
+        axis1 * distance,
+        (axis1 * distance) + jnt_out_pos_local,
+        axis2 * -distance,
+        (axis2 * -distance) + jnt_out_pos_local,
+        axis1 * -distance,
+        (axis1 * -distance) + jnt_out_pos_local
+    ]
+
+    # Create basic polyCube shape and parent it to the jnt
+    transform, make = pymel.polyCube()
+    shape = transform.getShape()
+    shape.setParent(jnt_inn, relative=True, shape=True)
+    shape.rename(jnt_inn.name() + 'BoxShape')
+    pymel.disconnectAttr(shape.instObjGroups) # Remove shading (hide the fact that normals are incorrect when look axis is negative)
+    pymel.delete(make) # Delete history
+    pymel.delete(transform) # Delete original transform
+
+    for v, coord in zip(shape.vtx, vtx_coords_local):
+        v.setPosition(coord)

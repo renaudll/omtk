@@ -97,9 +97,9 @@ class RigPart(RigElement):
         '''
 
         if _bCreateGrpAnm:
-            self.grp_anm = pymel.createNode('transform', name=self._pNameMapAnm.Serialize(self.__class__.__name__.lower(), _sType='anms'))
+            self.grp_anm = pymel.createNode('transform', name=self._pNameMapAnm.Serialize(self.__class__.__name__.lower(), _sType='anm'))
         if _bCreateGrpRig:
-            self.grp_rig = pymel.createNode('transform', name=self._pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rigs'))
+            self.grp_rig = pymel.createNode('transform', name=self._pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rig'))
 
     def unbuild(self):
         # Ensure that there's no more connections in the input chain

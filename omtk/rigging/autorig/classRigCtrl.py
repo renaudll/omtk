@@ -41,11 +41,9 @@ def get_spaceswitch_targets(jnt):
 
 
 class RigCtrl(RigNode):
-    def __init__(self, _create=False, _bOffset=True, *args, **kwargs):
+    def __init__(self, _create=False, create_offset=True, *args, **kwargs):
+        self._create_offset = create_offset # set before buld is called by RigNode.__init__
         super(RigCtrl, self).__init__(_create=_create, *args, **kwargs)
-        self._bOffset = _bOffset
-        if _create:
-            self.build()
 
     def __createOffset__(self):
         self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
@@ -56,13 +54,14 @@ class RigCtrl(RigNode):
 
     def __createNode__(self, *args, **kwargs):
         transform, make = pymel.circle(*args, **kwargs)
+        print transform
         make.radius.set(5) # HARDCODED
         make.normal.set((1,0,0))
         return transform
 
     def build(self, *args, **kwargs):
         super(RigCtrl, self).build(*args, **kwargs)
-        if self._bOffset:
+        if self._create_offset:
             self.offset = self.__createOffset__()
 
         self.fetch_attr_all()
@@ -71,7 +70,6 @@ class RigCtrl(RigNode):
             libRigging.fetch_ctrl_shapes(self.shape, self.node)
             #pymel.delete(self.shape)
             self.shape = None
-
 
         #super(RigCtrl, self).build(*args, **kwargs)
         return self.node

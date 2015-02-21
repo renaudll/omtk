@@ -165,11 +165,10 @@ def _setAttr(_plug, _val):
             dagM.connect(plug, _plug)
             dagM.doIt()
         else:
-            raise Exception("Unknow TYPE_DAGNODE {0}".format(_val))
+            log.error('Unknow type for: {0} ({1})'.format(_val, type(_val)))
 
     else:
-        print _val, sType
-        raise NotImplementedError
+        log.error('Unknow value "{0}" of type {1}'.format(_val, sType))
 
 def _getNetworkAttr(_att):
     # Recursive

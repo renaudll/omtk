@@ -99,3 +99,40 @@ def create_squash_atts(attStretch, numSegments):
         attSquash = libFormula.parse("s^(e^(x^2)))", s=attStretch, x=pos)
         return_vals.append(attSquash)
     return return_vals
+
+
+def create_nurbsCurve_from_chain(jnt_inn, jnt_out, degree=2, num_cvs=3):
+    jnt_inn_world_tm = jnt_inn.getMatrix(worldSpace=True)
+    jnt_inn_world_tm_inv = jnt_inn_world_tm.inverse()
+    pos_inn_local = pymel.datatypes.Point(jnt_inn.getTranslation(worldSpace=True)) * jnt_inn_world_tm_inv
+    pow_out_local = pymel.datatypes.Point(jnt_out.getTranslation(worldSpace=True)) * jnt_inn_world_tm_inv
+    cvs = []
+    for i in range(num_cvs):
+        fPercent = float(i) / (num_cvs-1)
+        p3CurPos = (pos_inn_local + ( fPercent * ( pow_out_local - pos_inn_local ) ))
+        cvs.append(p3CurPos)
+    oCurve = pymel.curve(d=degree, p=cvs)
+    oCurve.setMatrix(jnt_inn_world_tm, worldSpace=True)
+    return oCurve
+
+def create_joints_from_chain(jnt_inn, jnt_out, num_segments):
+    pos_inn = jnt_inn.getTranslation(space='world')
+    pos_out = jnt_out.getTranslation(space='world')
+
+    # Create jnts
+    # todo: interpolate matrix?
+    jnts = []
+    pymel.select(cl=True)
+    for iCurJnt in range(0, num_segments):
+        fPercent = float(iCurJnt) / (num_segments - 1.00) # Used in joint name
+        p3Pos = pos_inn + (pos_out - pos_inn) * fPercent # Linear interpolation
+        oNewJnt = pymel.duplicate(jnt_inn, parentOnly=True)[0]
+        oNewJnt.setTranslation(p3Pos, space='world')
+        jnts.append(oNewJnt)
+
+    # Create Hierarchy
+    jnts[0].setParent(jnt_inn)
+    for i in range(1, len(jnts)):
+        jnts[i].setParent(jnts[i-1])
+
+    return jnts

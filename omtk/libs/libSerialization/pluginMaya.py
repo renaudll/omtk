@@ -2,10 +2,9 @@ import pymel.core as pymel
 from maya import OpenMaya
 import logging
 from omtk.libs import libPymel
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 import core
+log = core.log
 
 # Pymel compatibility implementation
 core._basic_types.append(pymel.datatypes.Matrix)

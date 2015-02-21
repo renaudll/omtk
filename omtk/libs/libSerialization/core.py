@@ -1,6 +1,7 @@
-import logging as _logging
-logging = _logging.getLogger()
-logging.setLevel(_logging.WARNING)
+
+import logging
+log = logging.getLogger('libSerialization'); log.setLevel(logging.INFO)
+
 import sys
 
 import os
@@ -40,14 +41,14 @@ def get_class_def(_clsName, _baseclass=object):
                 if t is not None:
                     return t
     except Exception, e:
-        logging.info(str(e)) # TODO: FIX
+        log.info(str(e)) # TODO: FIX
     return None
 
 def create_class_instance(_clsName):
     cls = get_class_def(_clsName)
 
     if cls is None:
-        logging.warning("Can't find class definition '{0}'".format(_clsName));
+        log.warning("Can't find class definition '{0}'".format(_clsName));
         return None
 
     clsDef = getattr(sys.modules[cls.__module__], cls.__name__)
@@ -56,7 +57,7 @@ def create_class_instance(_clsName):
     try:
         return clsDef()
     except Exception, e:
-        logging.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
+        log.error("Fatal error creating '{0}' instance: {1}".format(_clsName, str(e)))
         return None
 
 def get_class_namespace(_cls):
@@ -117,15 +118,15 @@ def getDataType(_data, *args, **kwargs):
     elif _isDataComplex(_data, *args, **kwargs):
         return TYPE_COMPLEX
     else:
-        logging.warning('{0} is unknow type'.format(_data))
+        log.warning('{0} is unknow type'.format(_data))
     '''
 
-    logging.warning('{0} is unknow type'.format(_data))
+    log.warning('{0} is unknow type'.format(_data))
 
 
 
 def _export_basicData(_data, _bSkipNone=True, _bRecursive=True, **args):
-    ##logging.debug('[exportToBasicData]', _data)
+    ##log.debug('[exportToBasicData]', _data)
 
     sType = getDataType(_data)
     # object instance
@@ -154,7 +155,7 @@ def _export_basicData(_data, _bSkipNone=True, _bRecursive=True, **args):
     elif sType == TYPE_DAGNODE:
         return _data
 
-    logging.warning("[exportToBasicData] Unsupported type {0} ({1}) for {2}".format(type(_data), sType, _data))
+    log.warning("[exportToBasicData] Unsupported type {0} ({1}) for {2}".format(type(_data), sType, _data))
     return None
 
 
@@ -166,7 +167,7 @@ def _import_basicData(_data, **args):
         clsName = clsPath.split('.')[-1]
         instance = create_class_instance(clsName)
         if instance is None or not isinstance(instance, object):
-            logging.error("Can't create class instance for {0}, did you import to module?".format(clsPath))
+            log.error("Can't create class instance for {0}, did you import to module?".format(clsPath))
             # TODO: Log error
             return None
         for key, val in _data.items():

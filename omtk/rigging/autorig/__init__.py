@@ -1,6 +1,6 @@
 import functools
 import pymel.core as pymel
-import logging; log = logging.getLogger(__name__); log.setLevel(logging.INFO)
+import logging; log = logging.getLogger(__name__); log.setLevel(logging.DEBUG)
 
 import classNameMap
 import classRigNode
@@ -21,8 +21,9 @@ from rigIK import IK
 from rigSplineIK import SplineIK
 from rigArm import Arm
 from rigLeg import Leg
+from rigTwistbone import Twistbone
 
-from omtk.libs import libSerialization
+from omtk.libs import libSerialization, libPymel
 
 def create(*args, **kwargs):
     return classRigRoot.RigRoot(*args, **kwargs)
@@ -52,6 +53,173 @@ def unbuild_all():
         network = libSerialization.export_network(rigroot)
         pymel.select(network)
 
+def detect(*args, **kwargs):
+    """
+    Fully automatic routine that create rig elements by analysing the joints structure.
+    This is only meant as a quick way to get started and is in no way production ready.
+    It is recommended that the 't-pose' or 45 angle 't-pose' is respected on the character before running this routine.
+    """
+    jnts = pymel.ls(type='joint')
+
+    # Validate the joints hyerarchy since it is mandatory to autorig.
+    roots = []
+    for jnt in jnts:
+        root = jnt.root()
+        if root and root not in roots:
+            roots.append(root)
+
+    if len(roots) > 1:
+        log.error("There are more than one joint root in the scene. Please clean up.")
+        return None
+
+    root = next(iter(roots), None)
+    if not root:
+        log.error("Found no joint root.")
+        return None
+
+    # Get the rig heights and radius
+    height = 0
+    radius = 0
+    for jnt in jnts:
+        pos = jnt.getTranslation(space='world')
+
+        pos_x = pos.x
+        h = pos.y
+        pos_z = pos.z
+
+        r = pow(pow(pos_x, 2) + pow(pos_z, 2), 0.5)
+
+        if h > height:
+            height = h
+
+        if r > radius:
+            radius = r
+
+    MINIMUM_HEIGHT=0.01
+    if height < MINIMUM_HEIGHT:
+        log.error("Skeletton height is too small. Expected more than {0}".format(MINIMUM_HEIGHT))
+        return None
+
+    MINIMUM_RADIUS = 0.01
+    if radius < MINIMUM_RADIUS:
+        log.error("Skeletton radius is too small. Expected more than {0}".format(MINIMUM_RADIUS))
+        return None
+
+    #
+    # Configure Rig
+    #
+    rig = classRigRoot.RigRoot()
+
+    def get_arms(jnts):
+        chains = []
+        for jnt in jnts:
+            arm_jnts = get_arm(jnt)
+            if arm_jnts:
+                chains.append(arm_jnts)
+        return chains
+
+    # Detect hands?
+    def get_arm(jnt):
+        children = jnt.getChildren()
+        # Hand have a minimum of three fingers
+        if len(children) < 2:
+            return False
+
+        # At least two parents (upperarm and forearm)
+        parent = jnt.getParent()
+        pparent = parent.getParent() if isinstance(parent, pymel.PyNode) else None
+        if not pparent or not parent:
+            return False
+
+        arm_jnts = [pparent, parent, jnt]
+        log.debug("Found Arm using {0}".format(arm_jnts))
+        return arm_jnts
+
+    def get_legs(jnts):
+        chains = []
+        for jnt in jnts:
+            leg_jnts = get_leg(jnt)
+            if leg_jnts:
+                chains.append(leg_jnts)
+        return chains
+
+    def get_leg(jnt):
+        # A leg have 5 joints from with the first two point to the ground
+        parents = []
+        parent = jnt
+        while parent:
+            parent = parent.getParent()
+            parents.append(parent)
+
+        if len(parents) < 5:
+            return False
+
+        thigh = parents[3]
+        calf = parents[2]
+        foot = parents[1]
+        toe = parents[0]
+
+        # Validate thigh direction
+        thigh_pos = thigh.getTranslation(space='world')
+        calf_pos = calf.getTranslation(space='world')
+        thigh_dir = (calf_pos - thigh_pos); thigh_dir.normalize()
+        DIR_MINIMUM = -0.5
+        if thigh_dir.y >= DIR_MINIMUM:
+            return False
+
+        # Validate calf direction
+        foot_pos = foot.getTranslation(space='world')
+        calf_dir = foot_pos - calf_pos; calf_dir.normalize()
+        if calf_dir.y >= DIR_MINIMUM:
+            return False
+
+        #print jnt, parents[3], parents[2],
+        leg_jnts = [thigh, calf, foot, toe, jnt]
+        log.debug("Found Leg using {0}".format(leg_jnts))
+        return leg_jnts
+
+    '''
+    def get_spines(jnts):
+        chains = []
+        for jnt in jnts:
+            spine_jnts = get_spine(jnt)
+            if spine_jnts:
+                chains.append(spine_jnts)
+        return chains
+    '''
+
+    log.debug("Detected rig layout:")
+    log.debug("\tHeight: {0}".format(height))
+    log.debug("\tRadius: {0}".format(radius))
+
+    # Detect legs
+    from rigLeg import Leg
+    legs_jnts = get_legs(jnts)
+    for leg_jnts in legs_jnts:
+        for leg_jnt in leg_jnts:
+            jnts.remove(leg_jnt)
+        rig.append(Leg(leg_jnts))
+
+    print len(jnts)
+
+    # Detect arms
+    from rigArm import Arm
+    arms_jnts = get_arms(jnts)
+    for arm_jnts in arms_jnts:
+        for arm_jnt in arm_jnts:
+            print arm_jnt
+            jnts.remove(arm_jnt)
+        rig.append(Arm(arm_jnts))
+
+    print len(jnts)
+
+    rig.build()
+
+    libSerialization.export_network(rig)
+
+
+
+
 
 #################
 
@@ -59,7 +227,8 @@ from omtk.libs.libQt import QtGui, getMayaWindow
 
 import ui
 class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
-    def __init__(self, parent=getMayaWindow()):
+    def __init__(self, parent=None):
+        if parent is None: parent = getMayaWindow()
         super(AutoRig, self).__init__(parent)
         self.setupUi(self)
 
@@ -242,3 +411,4 @@ def test(**kwargs):
     #unittest.TextTestRunner(**kwargs).run(suite)
 
 
+# Get the largest distance from the floor and

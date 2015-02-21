@@ -1,4 +1,3 @@
-import logging ; log = logging.getLogger(__name__); log.setLevel(logging.INFO)
 from omtk.libs import libPython
 
 #
@@ -41,8 +40,6 @@ class TestSerialization(unittest.TestCase):
         obj.exString = 'Hello World'
 
     def test_emptyClass(self):
-        log.info('test_emptyClass')
-
         data_inn = EmptyClass()
         self._monkeypatch_various_types(data_inn)
 

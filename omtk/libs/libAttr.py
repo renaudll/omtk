@@ -147,13 +147,13 @@ def fetchAttr(data):
             pymel.connectAttr(attr[i], output)
 
 # Normally we can use pymel.renameAttr but this work on multi-attributes also
-def renameAttr(attr, name):
-    assert(isinstance(attr, pymel.Attribute))
-    node = attr.node()
-    data = holdAttr(attr)
-    data['longName'] = name
-    data['niceName'] = name
-    data['shortName'] = name
+def renameAttr(node, oldname, newname):
+    assert(isinstance(node, pymel.PyNode))
+    if not node.hasAttr(oldname): return
+    data = holdAttr(node.attr(oldname))
+    data['longName'] = newname
+    data['niceName'] = newname
+    data['shortName'] = newname
     fetchAttr(data)
     return True
 

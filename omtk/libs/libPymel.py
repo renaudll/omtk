@@ -8,6 +8,21 @@ import pymel.core as pymel
 def is_valid_PyNode(val):
     return val and hasattr(val, 'exists') and val.exists()
 
+def distance(x, y):
+    """
+    Return the distance between two pynodes.
+    """
+    Ax, Ay, Az = x.getTranslation(space="world")
+    Bx, By, Bz = y.getTranslation(space="world")
+    return (  (Ax-Bx)**2 + (Ay-By)**2 + (Az-Bz)**2  )**0.5
+
+def is_child_of(node, potential_parent):
+    while node:
+        if node == potential_parent:
+            return True
+        node = node.getParent()
+    return False
+
 import collections
 class PyNodeChain(collections.MutableSequence):
     """A container for manipulating lists of hosts"""
@@ -29,6 +44,14 @@ class PyNodeChain(collections.MutableSequence):
     def __str__(self):
         return str(self._list)
 
+    @property
+    def start(self):
+        return next(iter(self._list), None)
+
+    @property
+    def end(self):
+        return self._list[-1] if len(self._list) > 0 else None
+
     def insert(self, ii, val):
         self._list.insert(ii, val)
 
@@ -39,17 +62,13 @@ class PyNodeChain(collections.MutableSequence):
         for node in self._list:
             node.setParent(*args, **kwargs)
 
-    def __pymel_distance(self, x, y):
-        Ax, Ay, Az = x.getTranslation(space="world")
-        Bx, By, Bz = y.getTranslation(space="world")
-        return (  (Ax-Bx)**2 + (Ay-By)**2 + (Az-Bz)**2  )**0.5
-
-    def getLength(self):
+    # todo: convert to property?
+    def length(self):
         length = 0
         for i in range(len(self._list)-1):
             head = self._list[i]
             tail = self._list[i+1]
-            length += self.__pymel_distance(head, tail)
+            length += distance(head, tail)
         return length
 
     # get the first pynode that have the attr

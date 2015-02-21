@@ -51,7 +51,7 @@ class SplineIK(RigPart):
 
         # Create squash
         num_joints = len(self._joints)
-        squash_atts = [libFormula.parse("1 / (e^(x^2))", e=math.e, x=self.stretch_att) for i in libPython.frange(0, 1, 1.0/num_joints)]
+        squash_atts = libRigging.create_squash_atts(self.stretch_att, num_joints)
 
         # Connect stretch/squash
         # Todo: Find correct axis orient

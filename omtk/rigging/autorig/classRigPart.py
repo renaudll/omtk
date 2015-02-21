@@ -39,6 +39,7 @@ class RigPart(RigElement):
         return self.__dict__['_outputs']
 
 
+    # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, _input=[], *args, **kwargs):
         super(RigPart, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
@@ -74,22 +75,31 @@ class RigPart(RigElement):
             self._oParent = oRef.getParent() if oRef is not None else None
 
     def build(self, _bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs):
+        '''
         if len(self.input) == 0:
             raise Exception("No inputs defined for {0}".format(self))
         assert(hasattr(self, '_pNameMapAnm'))
         assert(self._pNameMapAnm is not None)
         assert(hasattr(self, '_pNameMapRig'))
         assert(self._pNameMapRig is not None)
+        '''
+        if self._pNameMapAnm is None:
+            self._pNameMapAnm = NameMap('untitled')
+
+        if self._pNameMapRig is None:
+            self._pNameMapRig = NameMap('untitled')
 
         logging.info('Building {0}'.format(self._pNameMapRig.Serialize()))
 
+        '''
         if len(self.input) == 0:
             logging.error("[RigPart:Build] Can't build, inputs is empty"); return False
+        '''
 
         if _bCreateGrpAnm:
-            self.grp_anm = pymel.createNode('transform', name=self._pNameMapAnm.Serialize(self.__class__.__name__.lower(), _sType='anms'))
+            self.grp_anm = pymel.createNode('transform', name=self._pNameMapAnm.Serialize(self.__class__.__name__.lower(), _sType='anm'))
         if _bCreateGrpRig:
-            self.grp_rig = pymel.createNode('transform', name=self._pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rigs'))
+            self.grp_rig = pymel.createNode('transform', name=self._pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rig'))
 
     def unbuild(self):
         # Ensure that there's no more connections in the input chain

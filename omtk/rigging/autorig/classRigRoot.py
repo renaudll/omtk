@@ -9,7 +9,7 @@ import traceback
 
 class CtrlRoot(RigCtrl):
     def __init__(self, *args, **kwargs):
-        super(CtrlRoot, self).__init__(_bOffset=False, *args, **kwargs)
+        super(CtrlRoot, self).__init__(create_offset=False, *args, **kwargs)
 
     def build(self, *args, **kwargs):
         self.node = pymel.circle(*args, **kwargs)[0]

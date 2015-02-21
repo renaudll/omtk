@@ -30,7 +30,6 @@ def get_spaceswitch_targets(jnt):
     from omtk.libs import libSerialization
     # Return true if x is a network of type 'RigPart' and it's
     networks = libSerialization.getConnectedNetworksByHierarchy(jnt, key=is_network_pinnable)
-    print networks
     targets = []
 
     for network in networks:
@@ -54,7 +53,6 @@ class RigCtrl(RigNode):
 
     def __createNode__(self, *args, **kwargs):
         transform, make = pymel.circle(*args, **kwargs)
-        print transform
         make.radius.set(5) # HARDCODED
         make.normal.set((1,0,0))
         return transform

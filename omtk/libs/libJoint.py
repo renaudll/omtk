@@ -162,34 +162,117 @@ def matrix_from_normal(up_vect, front_vect):
         front_vect.x, front_vect.y, front_vect.z, 0,
         0,0,0,1)
 
-def align_joints_to_view(joints, cam):
-    cam_tm = cam.getMatrix()
-    sel = pymel.selected()
+from pymel.core.datatypes import Vector, Matrix
 
+def get_matrix_from_direction(look_vec, upp_vec):
+    # Ensure we deal with normalized vectors
+    look_vec.normalize()
+    upp_vec.normalize()
+
+    side_vec = Vector.cross(look_vec, upp_vec)
+    #recross in case up and front were not originally orthogonal:
+    upp_vec = Vector.cross(side_vec, look_vec)
+
+    #the new matrix is
+    return Matrix (
+        look_vec.x, look_vec.y, look_vec.z, 0,
+        upp_vec.x, upp_vec.y, upp_vec.z, 0,
+        side_vec.x, side_vec.y, side_vec.z, 0,
+        0, 0, 0, 1)
+
+def debug_pos(pos):
+    l = pymel.spaceLocator()
+    l.setTranslation(pos)
+
+def debug_tm(tm):
+    l = pymel.spaceLocator()
+    l.setMatrix(tm)
+    l.s.set(10,10,10)
+
+def align_joints_to_view(joints, cam, affect_pos=True):
+    """
+    Align the up axis of selected joints to the look axis of a camera.
+    Similar to an existing functionnality in blender.
+    """
+
+    pos_start = joints[0].getTranslation(space='world')
+
+    # Get camera direction
+    cam_tm = cam.getMatrix(worldSpace=True)
+    cam_pos = cam.getTranslation(space='world')
+    cam_upp = cam_pos - pos_start
+    cam_upp.normalize()
+
+    # Store original positions
+    positions_orig = [joint.getTranslation(space='world') for joint in joints]
+
+    # Compute positions that respect the plane
+    positions = []
+    if affect_pos:
+
+        pos_inn = positions_orig[0]
+        pos_out = positions_orig[-1]
+        look_axis = pos_out - pos_inn
+        ref_tm = get_matrix_from_direction(look_axis, cam_upp)
+        ref_tm.translate = pos_inn
+        ref_tm_inv = ref_tm.inverse()
+
+        for i in range(len(joints)):
+            joint = joints[i]
+            joint_pos = positions_orig[i]
+            if i == 0:
+                positions.append(joint_pos)
+            else:
+                joint_local_pos = (joint_pos - pos_start) * ref_tm_inv
+                joint_local_pos.z = 0
+                new_joint_pos = (joint_local_pos * ref_tm) + pos_start
+                positions.append(new_joint_pos)
+    else:
+        for joint in joints:
+            positions.append(joint.getTranslation(space='world'))
+
+
+    # Compute transforms
     transforms = []
-    parentdir = pymel.datatypes.Matrix()
-    for i in range(len(sel)-1):
-        s = sel[i].getTranslation(space='world')
-        e = sel[i+1].getTranslation(space='world')
-        x_axis = pymel.datatypes.Vector(s[0]-e[0], s[1]-e[1], s[2]-e[2])
-        x_axis.normalize()
-        #cam_tm = cam_tm * parentdir
-        y_axis = pymel.datatypes.Vector(cam_tm.data[2][0], cam_tm.data[2][1], cam_tm.data[2][2]).normal()
-        z_axis = pymel.datatypes.Vector(x_axis).cross(y_axis)
-        y_axis = x_axis.cross(z_axis)
+    num_positions = len(positions)
+    for i in range(num_positions):
+        pos_inn = positions[i]
 
-        transforms.append(matrix_from_normal(
-            (e - s),
-            y_axis
-        ))
+        # Compute rotation-only matrix
+        if i < num_positions-1:
+            pos_out = positions[i+1]
+            # Compute look axis
+            x_axis = pos_out - pos_inn
+            x_axis.normalize()
 
-    for transform, node in zip(transforms, pymel.selected()):
-        node.setParent(world=True)
+            # Compute side axis
+            z_axis = pymel.datatypes.Vector(x_axis).cross(cam_upp)
+
+            # Compute up axis (corrected)
+            y_axis = z_axis.cross(x_axis)
+
+            # Next ref_y_axis will use parent correct up axis to prevent flipping
+            cam_upp = y_axis
+
+            tm = get_matrix_from_direction(x_axis, y_axis)
+        else:
+            tm = transforms[i-1].copy() # Last joint share the same rotation as it's parent
+
+        # Add translation
+        if affect_pos:
+            tm.translate = pos_inn
+        else:
+            tm.translate = positions_orig[i]
+
+        transforms.append(tm)
+
+    # Apply transforms
+    for transform, node in zip(transforms, joints):
         node.setMatrix(transform, worldSpace=True)
+
+
 
 def align_selected_joints_to_persp ():
     sel = pymel.selected()
     cam = pymel.PyNode('persp')
     align_joints_to_view(sel, cam)
-
-

@@ -12,11 +12,8 @@ import sys, os, inspect
 module_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 sys.path.append(os.path.abspath(os.path.join(module_dir, 'deps')))
 
-from libs import *
-
-import animation
-import managing
-import rigging
+from omtk.libs import *
+from omtk import animation, rigging
 
 def test(**kwargs):
     import libSerialization; reload(libSerialization)

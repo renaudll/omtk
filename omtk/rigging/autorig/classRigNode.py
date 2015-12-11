@@ -8,6 +8,7 @@ Note: We can't directly inherit from pymel.PyNode.
 class RigNode(object):
     def __init__(self, _pData=None, _create=False, *args, **kwargs):
         self.__dict__['node'] = _pData
+
         if _create is True:
             self.build(*args, **kwargs)
             assert(isinstance(self.node, pymel.PyNode))
@@ -27,5 +28,7 @@ class RigNode(object):
     def unbuild(self, *args, **kwargs):
         pymel.delete(self.node)
         self.node = None
+
+
 
 

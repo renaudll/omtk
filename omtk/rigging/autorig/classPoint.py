@@ -1,35 +1,40 @@
 import pymel.core as pymel
 from omtk.rigging.autorig.classRigNode import RigNode
 
-'''
-This class is a pymel.PyNode wrapper that extent it's functionnality.
-Note: We can't directly inherit from pymel.PyNode.
-'''
-
 def enum(**enums):
     return type('Enum', (), enums)
 
-def BackupAttr(_att):
-    attInput = next(iter(_att.inputs(plugs=True)), None)
-    if attInput is not None:
-        return attInput
+def hold_attr(attr):
+    inn = next(iter(attr.inputs(plugs=True)), None)
+    if inn is not None:
+        return inn
     else:
-        return _att.get()
+        return attr.get()
 
-def RestoreAttr(_attOld, _attNew):
-    if isinstance(_attOld, pymel.general.Attribute):
-        return _attOld
+def fetch_attr(attr_old, attr_new):
+    if isinstance(attr_old, pymel.general.Attribute):
+        return attr_old
     else:
-        return _attNew
+        return attr_new
 
 '''
 PointDeformer represent the smallest unit of deformation in a rig.
 '''
 class PointDeformer(RigNode):
+    """
+    This is a wrapper intended for pymel.PyNode.
+    Note that we can't inherit directly from pymel.PyNode.
+    """
     def build(self, *args, **kwargs):
+        """
+        Create a simple joint.
+        """
         return pymel.joint(*args, **kwargs)
 
     def unbuild(self):
+        """
+        Disconnect and store all keyable attributes in an hidden internal node network.
+        """
         # Backup keyable attributes connections
         for att in self.node.listAttr(keyable=True):
-            setattr(self, att.shortName(), BackupAttr(att))
+            setattr(self, att.shortName(), hold_attr(att))

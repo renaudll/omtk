@@ -41,9 +41,9 @@ def _reparent_djRivet_follicles(parent, delete_old_parent=True):
     follicles = pymel.PyNode('djRivetX').getChildren()
     for child in follicles:
         if parent:
-            child.setParent(parent)
+            child.set_parent(parent)
         else:
-            child.setParent(world=True)
+            child.set_parent(world=True)
 
     if delete_old_parent:
         cmds.delete('djRivetX')
@@ -57,7 +57,7 @@ class Dorito(RigPart):
             self.input = [pymel.createNode('transform', name='untitled')]
         input = next(iter(self.input))
 
-        super(Dorito, self).build(_bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs)
+        super(Dorito, self).build(create_grp_anm=True, create_grp_rig=True, *args, **kwargs)
         self.ctrl = RigCtrl()
         self.ctrl.build()
 
@@ -66,7 +66,7 @@ class Dorito(RigPart):
         ref_matrix = pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, *input.rotatePivot.get()) * input.getMatrix(worldSpace=True)
 
         self.ctrl.offset.setMatrix(ref_matrix, worldSpace=True)
-        self.ctrl.setParent(self.grp_anm)
+        self.ctrl.set_parent(self.grp_anm)
 
         # Initialize self.mesh
         self.mesh = None
@@ -82,7 +82,7 @@ class Dorito(RigPart):
 
         if not self.mesh:
             self.mesh = create_plane()
-            self.mesh.setParent(self.grp_rig)
+            self.mesh.set_parent(self.grp_rig)
 
         # djRivet is a noble tool that handle things well on it's own, we don't need to re-implement it
         path_djrivet = os.path.join('/', os.path.dirname(omtk.__file__), 'deps', 'djRivet.mel')
@@ -97,12 +97,12 @@ class Dorito(RigPart):
                 pymel.delete(child)
         # Hack: Hide follicle
         follicle = next(iter(follicles))
-        follicle.setParent(self.grp_rig)
+        follicle.set_parent(self.grp_rig)
 
         # Create an initial pose reference since the follicle won't necessary have the same transform as the reference obj.
         ref = pymel.createNode('transform')
         ref.setMatrix(ref_matrix, worldSpace=True)
-        ref.setParent(follicle)
+        ref.set_parent(follicle)
 
         # Overwrite the self.ctrl.offset node with the magic
         # Compute the follicle minus the inverse of the ctrl

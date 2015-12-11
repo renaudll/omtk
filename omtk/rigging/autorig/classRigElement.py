@@ -27,13 +27,9 @@ class RigElement(collections.MutableSequence):
     def __iter__(self):
         return iter(self.children)
 
-    #
-    #
-    #
-
-    def isBuilt(self):
+    def is_built(self):
         for child in self:
-            if child.isBuilt():
+            if child.is_built():
                 return True
         return False
 

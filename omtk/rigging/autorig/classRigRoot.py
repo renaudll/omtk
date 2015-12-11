@@ -51,7 +51,7 @@ class RigRoot(RigElement):
         all_root_jnts = libPymel.ls_root_jnts()
         if not libPymel.is_valid_PyNode(self.grp_jnts):
             self.grp_jnts = pymel.createNode('joint', name='jnts')
-        all_root_jnts.setParent(self.grp_jnts)
+        all_root_jnts.set_parent(self.grp_jnts)
 
     def build(self, **kwargs):
         if self.isBuilt():
@@ -85,11 +85,11 @@ class RigRoot(RigElement):
             self.grp_anms = CtrlRoot()
         self.grp_anms.build()
         self.grp_anms.rename('anm_root')
-        all_anms.setParent(self.grp_anms)
+        all_anms.set_parent(self.grp_anms)
 
         all_rigs = libPymel.ls_root_rigs()
         self.grp_rigs = RigNode(name='rigs', _create=True)
-        all_rigs.setParent(self.grp_rigs)
+        all_rigs.set_parent(self.grp_rigs)
 
         # note: self.grp_jnts is now handled in prebuild
         #all_jnts = libPymel.ls_root_jnts()
@@ -103,7 +103,7 @@ class RigRoot(RigElement):
 
         all_geos = libPymel.ls_root_geos()
         self.grp_geos = RigNode(name='geos', _create=True)
-        all_geos.setParent(self.grp_geos)
+        all_geos.set_parent(self.grp_geos)
 
         # Setup displayLayers
         self.layer_anm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)

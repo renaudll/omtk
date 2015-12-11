@@ -304,7 +304,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def _actionBuild(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
-            if not rig.isBuilt():
+            if not rig.is_built():
                 rig.build()
             else:
                 pymel.warning("Can't build {0}, already built.".format(rig))
@@ -314,7 +314,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def _actionUnbuild(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
-            if rig.isBuilt():
+            if rig.is_built():
                 rig.unbuild()
             else:
                 pymel.warning("Can't unbuild {0}, already unbuilt.".format(rig))
@@ -324,7 +324,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def _actionRebuild(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
-            if rig.isBuilt():
+            if rig.is_built():
                 rig.unbuild()
             rig.build()
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE

@@ -14,7 +14,7 @@ class CtrlFk(RigCtrl):
 
 class FK(RigPart):
     def build(self, _bConstraint=True, *args, **kwargs):
-        super(FK, self).build(_bCreateGrpRig=False, *args, **kwargs)
+        super(FK, self).build(create_grp_rig=False, *args, **kwargs)
 
         # Create ctrl chain
         self.aCtrls = []
@@ -25,9 +25,9 @@ class FK(RigPart):
             oCtrl.offset.setMatrix(input.getMatrix(worldSpace=True))
             self.aCtrls.append(oCtrl)
 
-        self.aCtrls[0].setParent(self.grp_anm)
+        self.aCtrls[0].set_parent(self.grp_anm)
         for i in range(1, len(self.aCtrls)):
-            self.aCtrls[i].setParent(self.aCtrls[i-1])
+            self.aCtrls[i].set_parent(self.aCtrls[i - 1])
 
         # Connect jnt -> anm
         if _bConstraint is True:

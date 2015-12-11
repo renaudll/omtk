@@ -5,20 +5,7 @@ from classRigElement import RigElement
 from classRigCtrl import RigCtrl
 from omtk.libs import libPymel, libAttr
 
-'''
-This is the baseclass for anything that can be Build/Unbuild
-
-
-A RigPart serialized respect the maya architecture and can be vulgarised to a node.
-This allow us to expend the autorigger to software supporting compounds (xsi) or digital assets (houdini).
-
-To build a RigPart, use the build and unbuild function.
-To manage a rigpart, use the build() and unbuild() function.
-Also, a rigpart have usefull properties like @inputs and @outputs.
-
-'''
-
-def _rget_by_type(val, type):
+def getattrs_by_type(val, type):
     for key, val in val.__dict__.iteritems():
         if isinstance(val, type):
             yield val
@@ -28,34 +15,45 @@ def _rget_by_type(val, type):
                     yield subval
 
 class RigPart(RigElement):
+    """
+    This is the base class for anything that can be Build/Unbuild
 
-    # RigElement overrides
+    A RigPart serialized respect the maya architecture and can be vulgarised to a node.
+    This allow us to port the autorigger to software supporting compounds (xsi) or digital assets (houdini).
+
+    A rig part is built from at least one input, specific via the constructor.
+    To build a RigPart, use the .build and .unbuild function.
+    To manage a RigPart, use the .build() and .unbuild() function.
+    """
+
     def isBuilt(self):
+        """
+        Check in maya the existence of the grp_anm and grp_rig properties.
+=        Returns: True if the rig think it have been built.
+        """
         return self.grp_anm is not None or self.grp_rig is not None
-
 
     @property
     def outputs(self):
         return self.__dict__['_outputs']
 
-
     # todo: since args is never used, maybe use to instead of _input?
-    def __init__(self, _input=[], *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(RigPart, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
         self.canPinTo = True # If raised, the network can be used as a space-switch pin-point
-        self._pNameMapAnm = None
-        self._pNameMapRig = None
+        self._namemap_anm = None
+        self._namemap_rig = None
 
         #  since we're using hook on inputs, assign it last!
-        self.input = _input
+        self.input = args
 
     def __repr__(self):
         # TODO: Never crash on __repr__
         assert(hasattr(self, '_pNameMapAnm'))
-        return '{0} ({1})'.format(str(self._pNameMapAnm), self.__class__.__name__ )
+        return '{0} ({1})'.format(str(self._namemap_anm), self.__class__.__name__)
 
     def __setattr__(self, key, val):
         self.__dict__[key] = val
@@ -64,42 +62,47 @@ class RigPart(RigElement):
             self._post_setattr_inputs()
             self._chain = libPymel.PyNodeChain(self.input) # todo: approve PyNodeChain class
 
+    # Used in libSerialization
+    def __getNetworkName__(self):
+        """
+        Determine the name of the maya network.
+        Override this to customize.
+        Returns: The desired network name for this instance.
+        """
+        assert(hasattr(self, '_pNameMapRig'))
+        if (not self._namemap_rig): pymel.error('self._pNameMapRig is None, inputs: {0}'.format(self.input))
+        return self._namemap_rig.Serialize(self.__class__.__name__, _sType='net')
+
+    def __createMayaNetwork__(self):
+        return pymel.createNode('network', name=self._namemap_anm.Serialize(_sType='net'))
 
     # Even when nothing is build, it's usefull to access properties like namemaps.
     # This method is called automaticly when self.inputs is changed.
     def _post_setattr_inputs(self):
         oRef = next(iter(self.input), None)
         if oRef is not None:
-            self._pNameMapAnm = NameMap(oRef, _sType='anm')
-            self._pNameMapRig = NameMap(oRef, _sType='rig')
+            self._namemap_anm = NameMap(oRef, _sType='anm')
+            self._namemap_rig = NameMap(oRef, _sType='rig')
             self._oParent = oRef.getParent() if oRef is not None else None
 
-    def build(self, _bCreateGrpAnm=True, _bCreateGrpRig=True, *args, **kwargs):
-        '''
-        if len(self.input) == 0:
-            raise Exception("No inputs defined for {0}".format(self))
-        assert(hasattr(self, '_pNameMapAnm'))
-        assert(self._pNameMapAnm is not None)
-        assert(hasattr(self, '_pNameMapRig'))
-        assert(self._pNameMapRig is not None)
-        '''
-        if self._pNameMapAnm is None:
-            self._pNameMapAnm = NameMap('untitled')
+    def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
+        if self._namemap_anm is None:
+            self._namemap_anm = NameMap('untitled')
 
-        if self._pNameMapRig is None:
-            self._pNameMapRig = NameMap('untitled')
+        if self._namemap_rig is None:
+            self._namemap_rig = NameMap('untitled')
 
-        logging.info('Building {0}'.format(self._pNameMapRig.Serialize()))
+        logging.info('Building {0}'.format(self._namemap_rig.Serialize()))
 
         '''
         if len(self.input) == 0:
             logging.error("[RigPart:Build] Can't build, inputs is empty"); return False
         '''
 
-        if _bCreateGrpAnm:
-            self.grp_anm = pymel.createNode('transform', name=self._pNameMapAnm.Serialize(self.__class__.__name__.lower(), _sType='anm'))
-        if _bCreateGrpRig:
-            self.grp_rig = pymel.createNode('transform', name=self._pNameMapRig.Serialize(self.__class__.__name__.lower(), _sType='rig'))
+        if create_grp_anm:
+            self.grp_anm = pymel.createNode('transform', name=self._namemap_anm.Serialize(self.__class__.__name__.lower(), _sType='anm'))
+        if create_grp_rig:
+            self.grp_rig = pymel.createNode('transform', name=self._namemap_rig.Serialize(self.__class__.__name__.lower(), _sType='rig'))
 
     def unbuild(self):
         # Ensure that there's no more connections in the input chain
@@ -131,7 +134,7 @@ class RigPart(RigElement):
 
     @property
     def ctrls(self):
-        return _rget_by_type(self, RigCtrl)
+        return getattrs_by_type(self, RigCtrl)
 
     @property
     def parent(self):
@@ -140,18 +143,10 @@ class RigPart(RigElement):
             return first_input.getParent()
         return None
 
-    # Used in libSerialization
-    def __getNetworkName__(self):
-        assert(hasattr(self, '_pNameMapRig'))
-        if (not self._pNameMapRig): pymel.error('self._pNameMapRig is None, inputs: {0}'.format(self.input))
-        return self._pNameMapRig.Serialize(self.__class__.__name__, _sType='net')
-
-    # Overwritten from Serializable
-    def __createMayaNetwork__(self):
-        return pymel.createNode('network', name=self._pNameMapAnm.Serialize(_sType='net'))
-
-    # Return the objs that child RigPart can pin themself to (space-switching)
-    # In the vast majority of cases, the desired behavior is to return the first joint in the inputs.
-    def getPinObjs(self):
-        firstJoint = next((input for input in self.input if isinstance(input, pymel.nodetypes.Joint)), None)
-        return [firstJoint] if firstJoint is not None else []
+    def get_pin_locations(self):
+        """
+        Return the objs that child RigPart can pin themself to (space-switching)
+        In the vast majority of cases, the desired behavior is to return the first joint in the inputs.
+        """
+        first_joint = next((input for input in self.input if isinstance(input, pymel.nodetypes.Joint)), None)
+        return [first_joint] if first_joint is not None else []

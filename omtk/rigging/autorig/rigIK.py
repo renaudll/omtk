@@ -36,7 +36,7 @@ class CtrlIkSwivel(RigCtrl):
             oLineShape = pymel.createNode('annotationShape')
             oLineTransform = oLineShape.getParent()
             pymel.connectAttr(oCtrlShape.worldMatrix, oLineShape.dagObjectMatrix[0], force=True)
-            oLineTransform.setParent(self.offset)
+            oLineTransform.set_parent(self.offset)
             pymel.pointConstraint(_oLineTarget, oLineTransform)
 
         return self.node
@@ -151,7 +151,7 @@ class IK(RigPart):
         #if name: parent.rename(name + '_parent')
         loc = pymel.spaceLocator()
         if name: loc.rename(name)
-        loc.setParent(parent)
+        loc.set_parent(parent)
         #if name: loc.rename(name)
         pymel.connectAttr(attr, loc.ty)
         parent.scale.set(scale, scale, scale)
@@ -166,7 +166,7 @@ class IK(RigPart):
         for oInput, oIk, in zip(self.input, self._chain_ik):
             pNameMap = NameMap(oInput, _sType='rig')
             oIk.rename(pNameMap.Serialize('ik'))
-        self._chain_ik[0].setParent(self._oParent) # Trick the IK system (temporary solution)
+        self._chain_ik[0].set_parent(self._oParent) # Trick the IK system (temporary solution)
 
         oChainS = self._chain_ik[0]
         oChainE = self._chain_ik[self.iCtrlIndex]
@@ -180,12 +180,12 @@ class IK(RigPart):
         # Create ikChain
         grp_ikChain = pymel.createNode('transform', name=self._pNameMapRig.Serialize('ikChain'), parent=self.grp_rig)
         grp_ikChain.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
-        oChainS.setParent(grp_ikChain)
+        oChainS.set_parent(grp_ikChain)
 
         # Create ikEffector
         self._oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
         self._oIkHandle.rename(self._pNameMapRig.Serialize('ikHandle'))
-        self._oIkHandle.setParent(grp_ikChain)
+        self._oIkHandle.set_parent(grp_ikChain)
         oIkEffector.rename(self._pNameMapRig.Serialize('ikEffector'))
 
         # Create ctrls

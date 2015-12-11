@@ -42,7 +42,7 @@ class SplineIK(RigPart):
             name=name_kEffector,
             parentCurve=False,
             snapCurve=False)
-        self.ikHandle.setParent(self.grp_rig)
+        self.ikHandle.set_parent(self.grp_rig)
 
         # Create stretch
         # Todo: use shape instead of transform as curve input?

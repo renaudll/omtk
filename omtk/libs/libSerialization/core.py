@@ -10,21 +10,21 @@ from omtk.deps import yaml
 
 _complex_types = [dict]
 def _isDataComplex(_data):
-    return any(filter(lambda x: isinstance(_data, x), (iter(_basic_types)))) or hasattr(_data, '__dict__')
+    return any(filter(lambda x: isinstance(_data, x), (iter(types_basic)))) or hasattr(_data, '__dict__')
 
-_basic_types = [int, float, basestring, bool]
+types_basic = [int, float, basestring, bool]
 def _isDataBasic(_data):
-    global _basic_types
+    global types_basic
     return any(filter(lambda x: isinstance(_data, x), (iter(_basic_types))))
 
-_list_types = [list, tuple]
+types_list = [list, tuple]
 def _isDataList(_data):
-    global _list_types
+    global types_list
     return any(filter(lambda x: isinstance(_data, x), (iter(_list_types))))
 
-_dag_types = []
+types_dag = []
 def _isDataDagNode(_data):
-    global _dag_types
+    global types_dag
     return any(filter(lambda x: isinstance(_data, x), iter(_dag_types)))
 
 
@@ -79,21 +79,21 @@ def get_class_namespace(_cls):
 # Note: We check for __dict__ because isinstance(_data, object) return True for basic types.
 _complex_types = [dict]
 def _isDataComplex(_data):
-    return any(filter(lambda x: isinstance(_data, x), (iter(_basic_types)))) or hasattr(_data, '__dict__')
+    return any(filter(lambda x: isinstance(_data, x), (iter(types_basic)))) or hasattr(_data, '__dict__')
 
-_basic_types = [int, float, basestring, bool]
+types_basic = [int, float, basestring, bool]
 def _isDataBasic(_data):
-    global _basic_types
+    global types_basic
     return any(filter(lambda x: isinstance(_data, x), (iter(_basic_types))))
 
-_list_types = [list, tuple]
+types_list = [list, tuple]
 def _isDataList(_data):
-    global _list_types
+    global types_list
     return any(filter(lambda x: isinstance(_data, x), (iter(_list_types))))
 
-_dag_types = []
+types_dag = []
 def _isDataDagNode(_data):
-    global _dag_types
+    global types_dag
     return any(filter(lambda x: isinstance(_data, x), iter(_dag_types)))
 
 

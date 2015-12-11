@@ -51,10 +51,10 @@ class Leg(Arm):
 		oFootRollRoot.build()
 
 		# Create hyerarchy
-		oPivotM.setParent(oPivotF)
-		oPivotF.setParent(oPivotB)
-		oPivotB.setParent(oFootRollRoot)
-		oFootRollRoot.setParent(self.grp_rig)
+		oPivotM.set_parent(oPivotF)
+		oPivotF.set_parent(oPivotB)
+		oPivotB.set_parent(oFootRollRoot)
+		oFootRollRoot.set_parent(self.grp_rig)
 		pymel.parentConstraint(self.sysIK.ctrlIK, oFootRollRoot, maintainOffset=True)
 		
 		# Create attributes
@@ -78,10 +78,10 @@ class Leg(Arm):
 		# Create ikHandles
 		oIkHandleFoot, oIkEffectorFoot = pymel.ikHandle(startJoint=oFoot, endEffector=oToes, solver='ikSCsolver')
 		oIkHandleFoot.rename(self._pNameMapRig.Serialize('ikHandle', 'foot'))
-		oIkHandleFoot.setParent(oFootRollRoot)
+		oIkHandleFoot.set_parent(oFootRollRoot)
 		oIkHandleToes, oIkEffectorToes = pymel.ikHandle(startJoint=oToes, endEffector=oTips, solver='ikSCsolver')
 		oIkHandleToes.rename(self._pNameMapRig.Serialize('ikHandle', 'ties'))
-		oIkHandleToes.setParent(oFootRollRoot)
+		oIkHandleToes.set_parent(oFootRollRoot)
 
 		# Connect ikHandles
 		pymel.delete([o for o in self.sysIK._oIkHandle.getChildren() if isinstance(o, pymel.nodetypes.Constraint) and not isinstance(o, pymel.nodetypes.PoleVectorConstraint)])

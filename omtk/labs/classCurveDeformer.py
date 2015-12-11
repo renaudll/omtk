@@ -15,7 +15,7 @@ class Follicle(RigNode):
         joint = pymel.createNode('joint')
         follicle = pymel.createNode('follicle')
         follicleTransform = follicle.getParent()
-        follicle.setParent(joint, relative=True, shape=True)
+        follicle.set_parent(joint, relative=True, shape=True)
         pymel.connectAttr(follicle.outTranslate, joint.t)
         pymel.connectAttr(follicle.outRotate, joint.r)
         pymel.delete(follicleTransform)
@@ -72,26 +72,26 @@ class CurveDeformer(RigPart):
 
         if self.type == self.kType_NurbsSurface:
             oSurface = _createNurbsSurfaceFromNurbsCurve(oCurve)
-            oSurface.rename(self._pNameMapRig.Serialize()+'_nurbsSurface')
-            oSurface.setParent(self.grp_rig)
+            oSurface.rename(self._namemap_rig.Serialize() + '_nurbsSurface')
+            oSurface.set_parent(self.grp_rig)
 
             for i in range(oSurface.numKnotsInV()-1):
                 cluster, clusterHandle = pymel.cluster(oSurface.cv[0:3][i])
-                cluster.rename(self._pNameMapRig.Serialize('cluster', _iIter=i))
-                clusterHandle.rename(self._pNameMapRig.Serialize('clusterHandle', _iIter=i))
-                clusterHandle.setParent(self.grp_rig)
+                cluster.rename(self._namemap_rig.Serialize('cluster', _iIter=i))
+                clusterHandle.rename(self._namemap_rig.Serialize('clusterHandle', _iIter=i))
+                clusterHandle.set_parent(self.grp_rig)
 
                 uRef = pymel.createNode('transform')
-                uRef.rename(self._pNameMapRig.Serialize('cvRef', _iIter=i))
-                uRef.setParent(self.grp_rig)
+                uRef.rename(self._namemap_rig.Serialize('cvRef', _iIter=i))
+                uRef.set_parent(self.grp_rig)
                 pymel.connectAttr(oCurve.controlPoints[i], uRef.t)
                 #pymel.connectAttr(libRigging.CreateUtilityNode('pointOnCurveInfo', inputCurve=oCurve.worldSpace, parameter=((float(i)/(oSurface.numKnotsInV()-3)))).position, uRef.t)
                 #pymel.tangentConstraint(oCurve, uRef)
 
-                clusterHandle.setParent(uRef)
+                clusterHandle.set_parent(uRef)
 
         assert(isinstance(oSurface, pymel.PyNode))
         self.aJnts = _createSurfaceJnts(oSurface, self.numJnts)
         for i, jnt in enumerate(self.aJnts):
-            jnt.rename(self._pNameMapRig.Serialize(_iIter=i))
-            jnt.setParent(self.grp_rig)
+            jnt.rename(self._namemap_rig.Serialize(_iIter=i))
+            jnt.set_parent(self.grp_rig)

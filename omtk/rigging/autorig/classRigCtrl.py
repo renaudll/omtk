@@ -162,7 +162,7 @@ class RigCtrl(RigNode):
         """
         Analyse a network node and resolve if it can be usefull as a pivot for the animtor.
         """
-        from omtk.libs import libSerialization
+        import libSerialization
         from omtk.rigging.autorig.classRigPart import RigPart
 
         # Validate parameter
@@ -185,7 +185,7 @@ class RigCtrl(RigNode):
         return True
 
     def get_spaceswitch_targets(self, jnt):
-        from omtk.libs import libSerialization
+        import libSerialization
         # Return true if x is a network of type 'RigPart' and it's
         networks = libSerialization.getConnectedNetworksByHierarchy(jnt, key=self.is_pinnable)
         targets = []

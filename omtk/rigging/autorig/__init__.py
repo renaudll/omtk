@@ -23,7 +23,7 @@ from rigArm import Arm
 from rigLeg import Leg
 from rigTwistbone import Twistbone
 
-from omtk.libs import libSerialization, libPymel
+import libSerialization, libPymel
 
 def create(*args, **kwargs):
     return classRigRoot.RigRoot(*args, **kwargs)

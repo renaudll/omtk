@@ -1,5 +1,5 @@
 from omtk.libs.libQt import QtGui, QtCore, getMayaWindow
-from omtk.libs import libSerialization
+import libSerialization
 import logging, os
 from maya import cmds
 import pymel.core as pymel

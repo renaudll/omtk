@@ -1,6 +1,6 @@
 import pprint
 import pymel.core as pymel
-from omtk.libs import libSerialization
+import libSerialization
 
 # Todo: Export
 

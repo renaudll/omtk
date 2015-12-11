@@ -1,7 +1,7 @@
 import functools
 import logging
 
-from omtk.libs import libSerialization
+import libSerialization
 
 import pymel.core as pymel
 
@@ -16,8 +16,8 @@ def CallFnOnNetworkByClass(_sFn, _sCls):
 
         try:
             getattr(rigPart, _sFn)()
-        except Exception, e:
-            print str(e)
+        except Exception as e:
+            print(str(e))
 
 switchToIk = functools.partial(CallFnOnNetworkByClass, 'switchToIk', 'Arm')
 switchToFk = functools.partial(CallFnOnNetworkByClass, 'switchToFk', 'Arm')

@@ -5,27 +5,19 @@ from omtk.libs import libPython
 reload libPython
 libPython.reload_module_recursive(omtk)
 """
+import sys, os
 
+# Load dependencies (including git submodules) in sys.path
+__dependencies__ = [
+    ('deps',),
+    ('..', 'libSerialization',),
+    ('..', 'pyyaml', 'lib3')
+]
+current_dir = os.path.dirname(os.path.realpath(__file__))
+for dependency in __dependencies__:
+    path = os.path.realpath(os.path.join(current_dir, *dependency))
+    sys.path.append(path)
 
-# Add dependencies to sys paths
-import sys, os, inspect
-module_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-sys.path.append(os.path.abspath(os.path.join(module_dir, 'deps')))
-
+# Usefull shell access
 from omtk.libs import *
 from omtk import animation, rigging
-
-def test(**kwargs):
-    import libSerialization; reload(libSerialization)
-
-    # Test libSerialization
-    from omtk.libs import libSerialization; reload(libSerialization)
-    libSerialization.test(**kwargs)
-
-    # Test libFormula
-    from omtk.libs import libFormula; reload(libFormula)
-    libFormula.test(**kwargs)
-
-    # Test autorig
-    from omtk.rigging import autorig; reload(autorig)
-    autorig.test(**kwargs)

@@ -1,24 +1,18 @@
-import sys, logging, re
+import sys, os, logging, re
 __author__ = 'renaudlessardlarouche'
+
+# Automatically include git submodules in sys.path
+__dependencies__ = [
+    ('libSerialization',),
+    ('pyyaml', 'lib3')
+]
+current_dir = os.path.dirname(os.path.realpath(__file__))
+for dependency in __dependencies__:
+    sys.path.append(os.path.join(current_dir, *dependency))
 
 import animation
 import rigging
 import managing
-
 from libs import *
 
 log = logging.getLogger(__name__)
-
-
-regex_by_type = {
-    'maya': re.compile('maya.*')
-    'houdini': re.compile('houdini.*')
-}
-def get_engine_name():
-    exec_name = sys.executable
-
-    for key, val in regex_by_type.iteritems():
-        if val.match(exec_name):
-            return key
-
-    return None

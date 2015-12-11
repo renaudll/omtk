@@ -1,0 +1,6 @@
+[submodule "libSerialization"]
+	path = libSerialization
+	url = https://github.com/renaudll/libSerialization.git
+[submodule "pyyaml"]
+	path = pyyaml
+	url = https://github.com/yaml/pyyaml.git

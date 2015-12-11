@@ -19,6 +19,8 @@ import managing
 import rigging
 
 def test(**kwargs):
+    import libSerialization; reload(libSerialization)
+
     # Test libSerialization
     from omtk.libs import libSerialization; reload(libSerialization)
     libSerialization.test(**kwargs)

@@ -5,6 +5,7 @@ This class is a pymel.PyNode wrapper that extent it's functionnality.
 Note: We can't directly inherit from pymel.PyNode.
 '''
 
+
 class RigNode(object):
     def __init__(self, _pData=None, _create=False, *args, **kwargs):
         self.__dict__['node'] = _pData

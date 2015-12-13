@@ -23,8 +23,8 @@ class NonRollJoint(RigNode):
         self.ikHandle.poleVectorZ.set(0)
 
         # Set Hyerarchy
-        self.start.set_parent(self.node)
-        self.ikHandle.set_parent(self.node)
+        self.start.setParent(self.node)
+        self.ikHandle.setParent(self.node)
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class Twistbone(RigPart):
@@ -52,7 +52,7 @@ class Twistbone(RigPart):
         splineIK = SplineIK(self.subjnts +[self.ikCurve])
         splineIK.bStretch = False # todo: pass it via kwargs
         splineIK.build(create_grp_anm=False)
-        self.ikCurve.set_parent(splineIK.grp_rig)
+        self.ikCurve.setParent(splineIK.grp_rig)
 
         nonroll_1 = NonRollJoint() # todo: remove the need for an input
         nonroll_1.build()
@@ -75,13 +75,13 @@ class Twistbone(RigPart):
         twist_info = pymel.createNode('transform')
         twist_info.rename('twist_info')
         twist_info.setMatrix(nonroll_2.start.getMatrix(worldSpace=True), worldSpace=True)
-        twist_info.set_parent(nonroll_2.start)
+        twist_info.setParent(nonroll_2.start)
         pymel.aimConstraint(nonroll_2.end, twist_info, worldUpType=2, worldUpObject=jnt_e)
 
         ref_end = pymel.createNode('transform')
         ref_end.rename('ref_end')
         ref_end.setMatrix(nonroll_2.getMatrix(worldSpace=True), worldSpace=True)
-        ref_end.set_parent(nonroll_2.node)
+        ref_end.setParent(nonroll_2.node)
         pymel.connectAttr(twist_info.rotate, ref_end.rotate)
 
         # Create the upnodes
@@ -97,9 +97,9 @@ class Twistbone(RigPart):
         # Cleanup
         nonroll_1.setParent(self.grp_rig)
         nonroll_2.setParent(self.grp_rig)
-        upnode_s.set_parent(self.grp_rig)
-        upnode_e.set_parent(self.grp_rig)
-        splineIK.grp_rig.set_parent(self.grp_rig)
+        upnode_s.setParent(self.grp_rig)
+        upnode_e.setParent(self.grp_rig)
+        splineIK.grp_rig.setParent(self.grp_rig)
 
         # Configure splineIK upnodes parameters
         splineIK.ikHandle.dTwistControlEnable.set(1)

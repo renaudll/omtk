@@ -6,12 +6,13 @@ from omtk.libs import libRigging, libAttr, libFormula, libPymel
 from classNameMap import NameMap
 import functools
 
+
 class CtrlIk(RigCtrl):
     kAttrName_State = 'ikFk'
 
     def build(self, *args, **kwargs):
         super(CtrlIk, self).build(*args, **kwargs)
-        assert(self.node is not None)
+        assert (self.node is not None)
         pymel.addAttr(self.node, longName=self.kAttrName_State)
         self.m_attState = getattr(self.node, self.kAttrName_State)
         return self.node
@@ -24,7 +25,7 @@ class CtrlIk(RigCtrl):
 class CtrlIkSwivel(RigCtrl):
     def build(self, _oLineTarget=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
-        assert(self.node is not None)
+        assert (self.node is not None)
         oMake = self.node.getShape().create.inputs()[0]
         oMake.radius.set(oMake.radius.get() * 0.5)
         oMake.degree.set(1)
@@ -36,24 +37,25 @@ class CtrlIkSwivel(RigCtrl):
             oLineShape = pymel.createNode('annotationShape')
             oLineTransform = oLineShape.getParent()
             pymel.connectAttr(oCtrlShape.worldMatrix, oLineShape.dagObjectMatrix[0], force=True)
-            oLineTransform.set_parent(self.offset)
+            oLineTransform.setParent(self.offset)
             pymel.pointConstraint(_oLineTarget, oLineTransform)
 
         return self.node
+
 
 class SoftIkNode(RigNode):
     def build(self):
         self.node = pymel.createNode('network')
         formula = libFormula.Formula()
         fnAddAttr = functools.partial(libAttr.addAttr, self.node, hasMinValue=True, hasMaxValue=True)
-        formula.inMatrixS     = fnAddAttr(longName='inMatrixS', dt='matrix')
-        formula.inMatrixE     = fnAddAttr(longName='inMatrixE', dt='matrix')
-        formula.inRatio       = fnAddAttr(longName='inRatio', at='float')
-        formula.inScale       = fnAddAttr(longName='inScale', at='float')
-        formula.inStretch     = fnAddAttr(longName='inStretch', at='float')
+        formula.inMatrixS = fnAddAttr(longName='inMatrixS', dt='matrix')
+        formula.inMatrixE = fnAddAttr(longName='inMatrixE', dt='matrix')
+        formula.inRatio = fnAddAttr(longName='inRatio', at='float')
+        formula.inScale = fnAddAttr(longName='inScale', at='float')
+        formula.inStretch = fnAddAttr(longName='inStretch', at='float')
         formula.inChainLength = fnAddAttr(longName='inChainLength', at='float', defaultValue=1.0)
-        #fnAddAttr(longName='outTranslation', dt='float3')
-        #fnAddAttr(longName='outStretch', dt='float')
+        # fnAddAttr(longName='outTranslation', dt='float3')
+        # fnAddAttr(longName='outStretch', dt='float')
 
         # inDistance is the distance between the start of the chain and the ikCtrl
         formula.inDistance = "inMatrixS~inMatrixE"
@@ -72,11 +74,11 @@ class SoftIkNode(RigNode):
         formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoft"
         # Hack: Prevent potential division by zero when soft-ik is desactivated
         formula.deltaSafeSoft = libRigging.CreateUtilityNode('condition',
-            firstTerm=formula.distanceSoft,
-            secondTerm=0.0,
-            colorIfTrueR=0.0,
-            colorIfFalseR=formula.deltaSafeSoft
-        ).outColorR
+                                                             firstTerm=formula.distanceSoft,
+                                                             secondTerm=0.0,
+                                                             colorIfTrueR=0.0,
+                                                             colorIfFalseR=formula.deltaSafeSoft
+                                                             ).outColorR
 
         # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-ik
         # If there's no stretch, this will be directly applied to the ikEffector.
@@ -85,17 +87,16 @@ class SoftIkNode(RigNode):
 
         # Affect ikEffector distance only where inDistance if bigger than distanceSafe.
         formula.outDistance = libRigging.CreateUtilityNode('condition',
-            operation=2,
-            firstTerm=formula.deltaSafeSoft,
-            secondTerm=0.0,
-            colorIfTrueR=formula.outDistanceSoft,
-            colorIfFalseR=formula.inDistance
-        ).outColorR
+                                                           operation=2,
+                                                           firstTerm=formula.deltaSafeSoft,
+                                                           secondTerm=0.0,
+                                                           colorIfTrueR=formula.outDistanceSoft,
+                                                           colorIfFalseR=formula.inDistance
+                                                           ).outColorR
         # Affect ikEffector when we're not using stretching
         formula.outDistance = libRigging.CreateUtilityNode('blendTwoAttr',
-            input=[formula.outDistance,formula.inDistance],
-            attributesBlender=formula.inStretch).output
-
+                                                           input=[formula.outDistance, formula.inDistance],
+                                                           attributesBlender=formula.inStretch).output
 
         #
         # Handle Stretching
@@ -106,29 +107,29 @@ class SoftIkNode(RigNode):
 
         # Apply the softIK only AFTER the distanceSafe
         formula.outStretch = libRigging.CreateUtilityNode('condition',
-            operation=2,
-            firstTerm=formula.inDistance,
-            secondTerm=formula.distanceSafe,
-            colorIfTrueR=formula.outStretch,
-            colorIfFalseR=1.0
-        ).outColorR
+                                                          operation=2,
+                                                          firstTerm=formula.inDistance,
+                                                          secondTerm=formula.distanceSafe,
+                                                          colorIfTrueR=formula.outStretch,
+                                                          colorIfFalseR=1.0
+                                                          ).outColorR
 
         # Apply stretching only if inStretch is ON
         formula.outStretch = libRigging.CreateUtilityNode('blendTwoAttr',
-            input=[1.0, formula.outStretch],
-            attributesBlender=formula.inStretch).output
-
+                                                          input=[1.0, formula.outStretch],
+                                                          attributesBlender=formula.inStretch).output
 
         #
         # Connect outRatio and outStretch to our softIkNode
         #
-        #fnAddAttr(longName='outTranslation', dt='float3')
+        # fnAddAttr(longName='outTranslation', dt='float3')
         formula.outRatio = "outDistance/inDistance"
         attOutRatio = fnAddAttr(longName='outRatio', at='float')
         pymel.connectAttr(formula.outRatio, attOutRatio)
 
         attOutStretch = fnAddAttr(longName='outStretch', at='float')
         pymel.connectAttr(formula.outStretch, attOutStretch)
+
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class IK(RigPart):
@@ -148,11 +149,11 @@ class IK(RigPart):
 
     def __debug(self, attr, scale=1.0, name=None):
         parent = pymel.createNode('transform')
-        #if name: parent.rename(name + '_parent')
+        # if name: parent.rename(name + '_parent')
         loc = pymel.spaceLocator()
         if name: loc.rename(name)
-        loc.set_parent(parent)
-        #if name: loc.rename(name)
+        loc.setParent(parent)
+        # if name: loc.rename(name)
         pymel.connectAttr(attr, loc.ty)
         parent.scale.set(scale, scale, scale)
 
@@ -164,9 +165,9 @@ class IK(RigPart):
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.input, self._chain_ik):
-            pNameMap = NameMap(oInput, _sType='rig')
-            oIk.rename(pNameMap.Serialize('ik'))
-        self._chain_ik[0].set_parent(self._oParent) # Trick the IK system (temporary solution)
+            name_map = NameMap(oInput, _sType='rig')
+            oIk.rename(name_map.Serialize('ik'))
+        self._chain_ik[0].setParent(self._oParent)  # Trick the IK system (temporary solution)
 
         oChainS = self._chain_ik[0]
         oChainE = self._chain_ik[self.iCtrlIndex]
@@ -178,42 +179,44 @@ class IK(RigPart):
         p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
-        grp_ikChain = pymel.createNode('transform', name=self._pNameMapRig.Serialize('ikChain'), parent=self.grp_rig)
+        grp_ikChain = pymel.createNode('transform', name=self._namemap_rig.Serialize('ikChain'), parent=self.grp_rig)
         grp_ikChain.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
-        oChainS.set_parent(grp_ikChain)
+        oChainS.setParent(grp_ikChain)
 
         # Create ikEffector
         self._oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
-        self._oIkHandle.rename(self._pNameMapRig.Serialize('ikHandle'))
-        self._oIkHandle.set_parent(grp_ikChain)
-        oIkEffector.rename(self._pNameMapRig.Serialize('ikEffector'))
+        self._oIkHandle.rename(self._namemap_rig.Serialize('ikHandle'))
+        self._oIkHandle.setParent(grp_ikChain)
+        oIkEffector.rename(self._namemap_rig.Serialize('ikEffector'))
 
         # Create ctrls
         if not isinstance(self.ctrlIK, CtrlIk): self.ctrlIK = CtrlIk()
         self.ctrlIK.build()
-        #self.ctrlIK = CtrlIk(_create=True)
+        # self.ctrlIK = CtrlIk(_create=True)
         self.ctrlIK.setParent(self.grp_anm)
-        self.ctrlIK.rename(self._pNameMapAnm.Serialize('ik'))
+        self.ctrlIK.rename(self._namemap_anm.Serialize('ik'))
         self.ctrlIK.offset.setTranslation(oChainE.getTranslation(space='world'), space='world')
         if _bOrientIkCtrl is True:
             self.ctrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
 
         if not isinstance(self.ctrl_swivel, CtrlIkSwivel): self.ctrl_swivel = CtrlIkSwivel()
         self.ctrl_swivel.build()
-        #self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
+        # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
-        self.ctrl_swivel.rename(self._pNameMapAnm.Serialize('ikSwivel'))
+        self.ctrl_swivel.rename(self._namemap_anm.Serialize('ikSwivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.ctrl_swivel.offset.setRotation(self.input[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
-        self.swivelDistance = self._chain_length # Used in ik/fk switch
+        self.swivelDistance = self._chain_length  # Used in ik/fk switch
 
         #
         # Create softIk node and connect user accessible attributes to it.
         #
-        oAttHolder   = self.ctrlIK
-        fnAddAttr    = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
-        attInRatio   = fnAddAttr(oAttHolder, longName='SoftIkRatio', niceName='SoftIK', defaultValue=0, minValue=0, maxValue=.5, k=True)
-        attInStretch = fnAddAttr(oAttHolder, longName='Stretch', niceName='Stretch', defaultValue=0, minValue=0, maxValue=1.0, k=True)
+        oAttHolder = self.ctrlIK
+        fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
+        attInRatio = fnAddAttr(oAttHolder, longName='SoftIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
+                               maxValue=.5, k=True)
+        attInStretch = fnAddAttr(oAttHolder, longName='Stretch', niceName='Stretch', defaultValue=0, minValue=0,
+                                 maxValue=1.0, k=True)
 
         rig_softIkNetwork = SoftIkNode()
         rig_softIkNetwork.build()
@@ -242,10 +245,10 @@ class IK(RigPart):
             obj = self._chain_ik[i]
             pymel.connectAttr(
                 libRigging.CreateUtilityNode('multiplyDivide',
-                    input1X=attOutStretch,
-                    input1Y=attOutStretch,
-                    input1Z=attOutStretch,
-                    input2=obj.t.get()).output,
+                                             input1X=attOutStretch,
+                                             input1Y=attOutStretch,
+                                             input1Z=attOutStretch,
+                                             input2=obj.t.get()).output,
                 obj.t, force=True)
 
         # Connect rig -> anm

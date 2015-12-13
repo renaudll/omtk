@@ -26,7 +26,7 @@ class RigPart(RigElement):
     To manage a RigPart, use the .build() and .unbuild() function.
     """
 
-    def isBuilt(self):
+    def is_built(self):
         """
         Check in maya the existence of the grp_anm and grp_rig properties.
 =        Returns: True if the rig think it have been built.
@@ -38,7 +38,7 @@ class RigPart(RigElement):
         return self.__dict__['_outputs']
 
     # todo: since args is never used, maybe use to instead of _input?
-    def __init__(self, *args, **kwargs):
+    def __init__(self, input=None, *args, **kwargs):
         super(RigPart, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
         self.grp_anm = None
@@ -48,7 +48,7 @@ class RigPart(RigElement):
         self._namemap_rig = None
 
         #  since we're using hook on inputs, assign it last!
-        self.input = args
+        self.input = input if input else []
 
     def __repr__(self):
         # TODO: Never crash on __repr__
@@ -83,7 +83,7 @@ class RigPart(RigElement):
         if oRef is not None:
             self._namemap_anm = NameMap(oRef, _sType='anm')
             self._namemap_rig = NameMap(oRef, _sType='rig')
-            self._oParent = oRef.getParent() if oRef is not None else None
+            self._oParent = oRef.getParent() if oRef else None
 
     def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
         if self._namemap_anm is None:

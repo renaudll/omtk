@@ -32,7 +32,7 @@ class SplineIK(RigPart):
 
         # create splineik effector
         # todo: search for additional options
-        name_kEffector = self._pNameMapRig.Serialize('ikEffector')
+        name_kEffector = self._namemap_rig.Serialize('ikEffector')
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,
@@ -42,7 +42,7 @@ class SplineIK(RigPart):
             name=name_kEffector,
             parentCurve=False,
             snapCurve=False)
-        self.ikHandle.set_parent(self.grp_rig)
+        self.ikHandle.setParent(self.grp_rig)
 
         # Create stretch
         # Todo: use shape instead of transform as curve input?

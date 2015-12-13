@@ -15,7 +15,7 @@ class Follicle(RigNode):
         joint = pymel.createNode('joint')
         follicle = pymel.createNode('follicle')
         follicleTransform = follicle.getParent()
-        follicle.set_parent(joint, relative=True, shape=True)
+        follicle.setParent(joint, relative=True, shape=True)
         pymel.connectAttr(follicle.outTranslate, joint.t)
         pymel.connectAttr(follicle.outRotate, joint.r)
         pymel.delete(follicleTransform)
@@ -73,25 +73,25 @@ class CurveDeformer(RigPart):
         if self.type == self.kType_NurbsSurface:
             oSurface = _createNurbsSurfaceFromNurbsCurve(oCurve)
             oSurface.rename(self._namemap_rig.Serialize() + '_nurbsSurface')
-            oSurface.set_parent(self.grp_rig)
+            oSurface.setParent(self.grp_rig)
 
             for i in range(oSurface.numKnotsInV()-1):
                 cluster, clusterHandle = pymel.cluster(oSurface.cv[0:3][i])
                 cluster.rename(self._namemap_rig.Serialize('cluster', _iIter=i))
                 clusterHandle.rename(self._namemap_rig.Serialize('clusterHandle', _iIter=i))
-                clusterHandle.set_parent(self.grp_rig)
+                clusterHandle.setParent(self.grp_rig)
 
                 uRef = pymel.createNode('transform')
                 uRef.rename(self._namemap_rig.Serialize('cvRef', _iIter=i))
-                uRef.set_parent(self.grp_rig)
+                uRef.setParent(self.grp_rig)
                 pymel.connectAttr(oCurve.controlPoints[i], uRef.t)
                 #pymel.connectAttr(libRigging.CreateUtilityNode('pointOnCurveInfo', inputCurve=oCurve.worldSpace, parameter=((float(i)/(oSurface.numKnotsInV()-3)))).position, uRef.t)
                 #pymel.tangentConstraint(oCurve, uRef)
 
-                clusterHandle.set_parent(uRef)
+                clusterHandle.setParent(uRef)
 
         assert(isinstance(oSurface, pymel.PyNode))
         self.aJnts = _createSurfaceJnts(oSurface, self.numJnts)
         for i, jnt in enumerate(self.aJnts):
             jnt.rename(self._namemap_rig.Serialize(_iIter=i))
-            jnt.set_parent(self.grp_rig)
+            jnt.setParent(self.grp_rig)

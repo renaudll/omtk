@@ -104,7 +104,7 @@ def create_boxes():
                                               joint_data.dir[2]*length*0.5,
                                               1.0)
             cylinder_tm = r_offset
-            transform.set_parent(jnt)
+            transform.setParent(jnt)
             transform.setMatrix(cylinder_tm)
             boxes.append(transform)
     return boxes

@@ -3,9 +3,9 @@ import pymel.core as pymel
 from omtk.libs import libPymel
 
 class RigElement(collections.MutableSequence):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.children = []
-	#
+    #
     # collections.MutableSequence overrides
     #
     def __getitem__(self, item):

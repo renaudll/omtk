@@ -57,9 +57,9 @@ def hold_ctrl_shapes(_oCtrl, parent=None):
     for oShape in aShapes:
         oShape.set_parent(oSnapshot, s=True, r=True)
     if parent:
-        oSnapshot.set_parent(parent)
+        oSnapshot.setParent(parent)
     else:
-        oSnapshot.set_parent(world=True)
+        oSnapshot.setParent(world=True)
     oSnapshot.rename('_{0}'.format(_oCtrl.name()))
     return oSnapshot
 
@@ -67,7 +67,7 @@ def fetch_ctrl_shapes(source, target):
     # Remove any previous shapes
     pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), target.getShapes()))
     for source_shape in source.getShapes():
-        source_shape.set_parent(target, r=True, s=True)
+        source_shape.setParent(target, r=True, s=True)
         source_shape.rename(target.name() + 'Shape')
 
     # TODO: Restore AnnotationShapes

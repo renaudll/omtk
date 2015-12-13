@@ -19,5 +19,5 @@ for dependency in __dependencies__:
     sys.path.append(path)
 
 # Usefull shell access
-from omtk.libs import *
-from omtk import animation, rigging
+from libs import *
+import animation, rigging

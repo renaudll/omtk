@@ -40,7 +40,7 @@ class RigCtrl(RigNode):
         """
         transform, make = pymel.circle(*args, **kwargs)
         make.radius.set(self.default_radius)
-        make.normal.set((1,0,0))
+        make.normal.set((1, 0, 0))
         return transform
 
     def build(self, *args, **kwargs):
@@ -80,8 +80,11 @@ class RigCtrl(RigNode):
         if self.offset is not None:
             self.offset.rename(_sName + '_offset')
 
-    # Overwrite common pymel methods
-    def set_parent(self, *args, **kwargs):
+    def setParent(self, *args, **kwargs):
+        """
+        Override of pymel.PyNode .setParent method.
+        Redirect the call to the ctrl top node.
+        """
         if not isinstance(self.offset, pymel.PyNode):
             print "[setParent] {0} don't have an offset attribute".format(self)
         return self.offset.setParent(*args, **kwargs)

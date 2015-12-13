@@ -35,14 +35,14 @@ class Arm(RigPart):
         # Rig ikChain and fkChain
         self.sysIK = IK(self.input); self.sysIK.build(**kwargs)
         self.sysFK = FK(self.input); self.sysFK.build(_bConstraint=False, **kwargs)
-        self.sysIK.grp_anm.set_parent(self.grp_anm)
-        self.sysIK.grp_rig.set_parent(self.grp_rig)
-        self.sysFK.grp_anm.set_parent(self.grp_anm)
+        self.sysIK.grp_anm.setParent(self.grp_anm)
+        self.sysIK.grp_rig.setParent(self.grp_rig)
+        self.sysFK.grp_anm.setParent(self.grp_anm)
         #self.sysFK.oGrpRig.setParent(self.oGrpRig)
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         oAttHolder = RigAttHolder(name=self._namemap_anm.Serialize('atts'), _create=True)
-        oAttHolder.set_parent(self.grp_anm)
+        oAttHolder.setParent(self.grp_anm)
         pymel.parentConstraint(self.input[self.sysIK.iCtrlIndex], oAttHolder.offset)
         pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
         attIkWeight = oAttHolder.attr(self.kAttrName_State)

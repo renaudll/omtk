@@ -60,7 +60,7 @@ class PyNodeChain(collections.MutableSequence):
 
     def setParent(self, *args, **kwargs):
         for node in self._list:
-            node.set_parent(*args, **kwargs)
+            node.setParent(*args, **kwargs)
 
     # todo: convert to property?
     def length(self):

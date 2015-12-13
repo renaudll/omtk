@@ -10,9 +10,9 @@ log.setLevel(logging.DEBUG)
 import core
 
 # Pymel compatibility implementation
-core._dag_types.append(pymel.PyNode)
-core._dag_types.append(pymel.Attribute)
-core._dag_types.append(pymel.datatypes.Matrix)
+core.types_dag.append(pymel.PyNode)
+core.types_dag.append(pymel.Attribute)
+core.types_dag.append(pymel.datatypes.Matrix)
 
 # todo: add other pymel.datatypes
 pymel_types = [
@@ -271,7 +271,7 @@ def import_network(_network):
             #else:
             #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
 
-    # Update network _uid to the current python variable context
+# Update network _uid to the current python variable context
 #    if _network.hasAttr('_uid'):
 #        _network._uid.set(id(obj))
 

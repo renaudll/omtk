@@ -1,11 +1,11 @@
 import logging as _logging
-
+import sys
 logging = _logging.getLogger()
 logging.setLevel(_logging.WARNING)
-import sys
 
 # constants
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX = range(4)
+
 
 def get_class_def(class_name, base_class=object):
     try:
@@ -36,6 +36,7 @@ def create_class_instance(class_name):
     except Exception as e:
         logging.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
         return None
+
 
 def get_class_namespace(classe):
     if not isinstance(classe, object):

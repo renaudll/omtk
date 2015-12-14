@@ -9,7 +9,7 @@ class RigCtrl(RigNode):
     """
     default_radius = 5
 
-    def __init__(self, _create=False, create_offset=True, *args, **kwargs):
+    def __init__(self, create=False, create_offset=True, *args, **kwargs):
         self._create_offset = create_offset
 
         # Reserve maya default transform attributes.
@@ -23,9 +23,9 @@ class RigCtrl(RigNode):
         self.sy = None
         self.sz = None
 
-        self.offset = None # An intermediate parent that store the original transform of the ctrl.
+        self.offset = None  # An intermediate parent that store the original transform of the ctrl.
 
-        super(RigCtrl, self).__init__(_create=_create, *args, **kwargs)
+        super(RigCtrl, self).__init__(create=create, *args, **kwargs)
 
     def __createOffset__(self):
         """
@@ -41,6 +41,10 @@ class RigCtrl(RigNode):
         transform, make = pymel.circle(*args, **kwargs)
         make.radius.set(self.default_radius)
         make.normal.set((1, 0, 0))
+
+        # Expose the rotateOrder
+        transform.rotateOrder.setKeyable(True)
+
         return transform
 
     def build(self, *args, **kwargs):
@@ -63,13 +67,22 @@ class RigCtrl(RigNode):
 
         return self.node
 
+
     def unbuild(self, keep_shapes=True, *args, **kwargs):
         """
         Delete ctrl setup, but store the animation and the shapes.
         """
         self.hold_attrs_all()
         self.shape = libRigging.hold_ctrl_shapes(self.node)
+
         super(RigCtrl, self).unbuild(*args, **kwargs)
+
+        # Delete offset node if necessary.
+        # Note that we delete the offset node AFTER deleting the original node.
+        if libPymel.is_valid_PyNode(self.offset):
+            pymel.delete(self.offset)
+            self.offset = None
+
 
     def rename(self, _sName, *args, **kwargs):
         """
@@ -80,6 +93,7 @@ class RigCtrl(RigNode):
         if self.offset is not None:
             self.offset.rename(_sName + '_offset')
 
+
     def setParent(self, *args, **kwargs):
         """
         Override of pymel.PyNode .setParent method.
@@ -89,6 +103,7 @@ class RigCtrl(RigNode):
             print "[setParent] {0} don't have an offset attribute".format(self)
         return self.offset.setParent(*args, **kwargs)
 
+
     # TODO: Make sure it work
     def create_space_switch_network(self, spaces, labels, default=True):
         parent_constraint = pymel.parentConstraint(spaces, self.offset, maintainOffset=True)
@@ -97,7 +112,7 @@ class RigCtrl(RigNode):
         atts_weights = parent_constraint.getWeightAliasList()
         for i, att_weight in enumerate(atts_weights):
             index_to_match = i if not default else i + 1
-            att_enabled = libRigging.CreateUtilityNode( #Equal
+            att_enabled = libRigging.create_utility_node( #Equal
                 'condition',
                 firstTerm=attr_space,
                 secondTerm=index_to_match,
@@ -122,6 +137,10 @@ class RigCtrl(RigNode):
         """
         Restore a specific @attr attribute.
         """
+        if target.isLocked():
+            log.warning("Can't fetch attribute {0} since it's locked.".format(target.__melobject__()))
+            return
+
         if source is None:
             return
         elif isinstance(source, pymel.Attribute):
@@ -133,30 +152,30 @@ class RigCtrl(RigNode):
         """
         Hold all ctrl keyable attributes.
         """
-        self.tx = self.hold_attrs(self.node.tx)
-        self.ty = self.hold_attrs(self.node.ty)
-        self.tz = self.hold_attrs(self.node.tz)
-        self.rx = self.hold_attrs(self.node.rx)
-        self.ry = self.hold_attrs(self.node.ry)
-        self.rz = self.hold_attrs(self.node.rz)
-        self.sx = self.hold_attrs(self.node.sx)
-        self.sy = self.hold_attrs(self.node.sy)
-        self.sz = self.hold_attrs(self.node.sz)
+        self.tx = self.hold_attrs(self.node.translateX)
+        self.ty = self.hold_attrs(self.node.translateY)
+        self.tz = self.hold_attrs(self.node.translateZ)
+        self.rx = self.hold_attrs(self.node.rotateX)
+        self.ry = self.hold_attrs(self.node.rotateY)
+        self.rz = self.hold_attrs(self.node.rotateZ)
+        self.sx = self.hold_attrs(self.node.scaleX)
+        self.sy = self.hold_attrs(self.node.scaleY)
+        self.sz = self.hold_attrs(self.node.scaleZ)
 
     def fetch_attr_all(self):
         """
         Fetch all ctrl keyable attributes.
         """
         # Note: we're forced to use __dict__ since we don't self.tx to be interpreted as self.node.tx
-        self.fetch_attr(self.__dict__.get('tx', None), self.node.tx)
-        self.fetch_attr(self.__dict__.get('ty', None), self.node.ty)
-        self.fetch_attr(self.__dict__.get('tz', None), self.node.tz)
-        self.fetch_attr(self.__dict__.get('rx', None), self.node.rx)
-        self.fetch_attr(self.__dict__.get('ry', None), self.node.ry)
-        self.fetch_attr(self.__dict__.get('rz', None), self.node.rz)
-        self.fetch_attr(self.__dict__.get('sx', None), self.node.sx)
-        self.fetch_attr(self.__dict__.get('sy', None), self.node.sy)
-        self.fetch_attr(self.__dict__.get('sz', None), self.node.sz)
+        self.fetch_attr(self.__dict__.get('tx', None), self.node.translateX)
+        self.fetch_attr(self.__dict__.get('ty', None), self.node.translateY)
+        self.fetch_attr(self.__dict__.get('tz', None), self.node.translateZ)
+        self.fetch_attr(self.__dict__.get('rx', None), self.node.rotateX)
+        self.fetch_attr(self.__dict__.get('ry', None), self.node.rotateY)
+        self.fetch_attr(self.__dict__.get('rz', None), self.node.rotateZ)
+        self.fetch_attr(self.__dict__.get('sx', None), self.node.scaleX)
+        self.fetch_attr(self.__dict__.get('sy', None), self.node.scaleY)
+        self.fetch_attr(self.__dict__.get('sz', None), self.node.scaleZ)
 
     #
     # SPACE SWITH LOGIC

@@ -73,12 +73,12 @@ class SoftIkNode(RigNode):
         # -dBase      dSafe       dMax
         formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoft"
         # Hack: Prevent potential division by zero when soft-ik is desactivated
-        formula.deltaSafeSoft = libRigging.CreateUtilityNode('condition',
-                                                             firstTerm=formula.distanceSoft,
-                                                             secondTerm=0.0,
-                                                             colorIfTrueR=0.0,
-                                                             colorIfFalseR=formula.deltaSafeSoft
-                                                             ).outColorR
+        formula.deltaSafeSoft = libRigging.create_utility_node('condition',
+                                                               firstTerm=formula.distanceSoft,
+                                                               secondTerm=0.0,
+                                                               colorIfTrueR=0.0,
+                                                               colorIfFalseR=formula.deltaSafeSoft
+                                                               ).outColorR
 
         # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-ik
         # If there's no stretch, this will be directly applied to the ikEffector.
@@ -86,17 +86,17 @@ class SoftIkNode(RigNode):
         formula.outDistanceSoft = "(distanceSoft*(1-(e^(deltaSafeSoft*-1))))+distanceSafe"
 
         # Affect ikEffector distance only where inDistance if bigger than distanceSafe.
-        formula.outDistance = libRigging.CreateUtilityNode('condition',
-                                                           operation=2,
-                                                           firstTerm=formula.deltaSafeSoft,
-                                                           secondTerm=0.0,
-                                                           colorIfTrueR=formula.outDistanceSoft,
-                                                           colorIfFalseR=formula.inDistance
-                                                           ).outColorR
+        formula.outDistance = libRigging.create_utility_node('condition',
+                                                             operation=2,
+                                                             firstTerm=formula.deltaSafeSoft,
+                                                             secondTerm=0.0,
+                                                             colorIfTrueR=formula.outDistanceSoft,
+                                                             colorIfFalseR=formula.inDistance
+                                                             ).outColorR
         # Affect ikEffector when we're not using stretching
-        formula.outDistance = libRigging.CreateUtilityNode('blendTwoAttr',
-                                                           input=[formula.outDistance, formula.inDistance],
-                                                           attributesBlender=formula.inStretch).output
+        formula.outDistance = libRigging.create_utility_node('blendTwoAttr',
+                                                             input=[formula.outDistance, formula.inDistance],
+                                                             attributesBlender=formula.inStretch).output
 
         #
         # Handle Stretching
@@ -106,18 +106,18 @@ class SoftIkNode(RigNode):
         formula.outStretch = "inDistance/outDistanceSoft"
 
         # Apply the softIK only AFTER the distanceSafe
-        formula.outStretch = libRigging.CreateUtilityNode('condition',
-                                                          operation=2,
-                                                          firstTerm=formula.inDistance,
-                                                          secondTerm=formula.distanceSafe,
-                                                          colorIfTrueR=formula.outStretch,
-                                                          colorIfFalseR=1.0
-                                                          ).outColorR
+        formula.outStretch = libRigging.create_utility_node('condition',
+                                                            operation=2,
+                                                            firstTerm=formula.inDistance,
+                                                            secondTerm=formula.distanceSafe,
+                                                            colorIfTrueR=formula.outStretch,
+                                                            colorIfFalseR=1.0
+                                                            ).outColorR
 
         # Apply stretching only if inStretch is ON
-        formula.outStretch = libRigging.CreateUtilityNode('blendTwoAttr',
-                                                          input=[1.0, formula.outStretch],
-                                                          attributesBlender=formula.inStretch).output
+        formula.outStretch = libRigging.create_utility_node('blendTwoAttr',
+                                                            input=[1.0, formula.outStretch],
+                                                            attributesBlender=formula.inStretch).output
 
         #
         # Connect outRatio and outStretch to our softIkNode
@@ -140,12 +140,12 @@ class IK(RigPart):
         self.ctrl_swivel = None
 
     def calc_swivel_pos(self):
-        p3ChainS = self.input[0].getTranslation(space='world')
-        p3ChainE = self.input[self.iCtrlIndex].getTranslation(space='world')
-        fRatio = self.input[1].t.get().length() / self._chain_length
-        p3SwivelBase = (p3ChainE - p3ChainS) * fRatio + p3ChainS
-        p3SwivelDir = (self.input[1].getTranslation(space='world') - p3SwivelBase).normal()
-        return p3SwivelBase + p3SwivelDir * self._chain_length
+        pos_start = self.input[0].getTranslation(space='world')
+        pos_end = self.input[self.iCtrlIndex].getTranslation(space='world')
+        ratio = self.input[1].t.get().length() / self._chain_length
+        pos_swivel_base = (pos_end - pos_start) * ratio + pos_start
+        dir_swivel = (self.input[1].getTranslation(space='world') - pos_swivel_base).normal()
+        return pos_swivel_base + dir_swivel * self._chain_length
 
     def __debug(self, attr, scale=1.0, name=None):
         parent = pymel.createNode('transform')
@@ -228,7 +228,7 @@ class IK(RigPart):
 
         # Constraint effector
         attOutRatio = rig_softIkNetwork.outRatio
-        attOutRatioInv = libRigging.CreateUtilityNode('reverse', inputX=rig_softIkNetwork.outRatio).outputX
+        attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)
         pymel.select(self.ctrlIK, grp_ikChain, self._oIkHandle)
         constraint = pymel.pointConstraint()
@@ -244,11 +244,11 @@ class IK(RigPart):
         for i in range(1, num_jnts):
             obj = self._chain_ik[i]
             pymel.connectAttr(
-                libRigging.CreateUtilityNode('multiplyDivide',
-                                             input1X=attOutStretch,
-                                             input1Y=attOutStretch,
-                                             input1Z=attOutStretch,
-                                             input2=obj.t.get()).output,
+                libRigging.create_utility_node('multiplyDivide',
+                                               input1X=attOutStretch,
+                                               input1Y=attOutStretch,
+                                               input1Z=attOutStretch,
+                                               input2=obj.t.get()).output,
                 obj.t, force=True)
 
         # Connect rig -> anm
@@ -260,6 +260,3 @@ class IK(RigPart):
             pymel.parentConstraint(self.parent, grp_ikChain, maintainOffset=True)
         for source, target in zip(self._chain_ik, self._chain):
             pymel.parentConstraint(source, target)
-
-    def unbuild(self):
-        pass

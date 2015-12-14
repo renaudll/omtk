@@ -1,3 +1,4 @@
+from maya import cmds
 import pymel.core as pymel
 import logging
 
@@ -5,21 +6,24 @@ import logging
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
 '''
 __aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector]
-def _isBasicType(_val):
+
+
+def is_basic_type(_val):
     global __aBasicTypes
     return type(_val) in __aBasicTypes
 
-def ConnectOrSetAttr(_attr, _val):
+
+def connect_or_set_attr(_attr, _val):
     if isinstance(_val, list) or isinstance(_val, tuple):
 
         # Note: List attribute and compound attribute don't have the same way of iterating.
         if _attr.isArray():
             for i, val in enumerate(_val):
-                ConnectOrSetAttr(_attr.elementByLogicalIndex(i), val)
+                connect_or_set_attr(_attr.elementByLogicalIndex(i), val)
         elif _attr.isCompound():
             children = _attr.getChildren()
             for child, val in zip(children, _val):
-                ConnectOrSetAttr(child, val)
+                connect_or_set_attr(child, val)
         else:
             raise Exception("Can't apply value {0} on attribute {1}, need an array or compound".format(_val, _attr))
 
@@ -30,7 +34,7 @@ def ConnectOrSetAttr(_attr, _val):
     else:
         if isinstance(_val, pymel.Attribute):
             pymel.connectAttr(_val, _attr, force=True)
-        elif _isBasicType(_val):
+        elif is_basic_type(_val):
             _attr.set(_val)
         else:
             logging.error(
@@ -39,29 +43,36 @@ def ConnectOrSetAttr(_attr, _val):
                                                                                                       _val))
             raise TypeError
 
-def CreateUtilityNode(_sClass, *args, **kwargs):
+
+def create_utility_node(_sClass, *args, **kwargs):
     uNode = pymel.shadingNode(_sClass, asUtility=True)
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
-            raise Exception('[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass, sAttrName))
+            raise Exception(
+                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass,
+                                                                                                          sAttrName))
         else:
-            ConnectOrSetAttr(uNode.attr(sAttrName), pAttrValue)
+            connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
     return uNode
+
 
 #
 # CtrlShapes Backup
 #
-def hold_ctrl_shapes(_oCtrl, parent=None):
-    aShapes = filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), _oCtrl.getShapes())
-    oSnapshot = pymel.duplicate(_oCtrl, parentOnly=True, returnRootsOnly=True)[0]
-    for oShape in aShapes:
-        oShape.set_parent(oSnapshot, s=True, r=True)
+def hold_ctrl_shapes(transform, parent=None):
+    shapes = filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), transform.getShapes())
+    snapshot = pymel.duplicate(transform, parentOnly=True, returnRootsOnly=True)[0]
+    for shape in shapes:
+        shape.setParent(snapshot, s=True, r=True)
     if parent:
-        oSnapshot.setParent(parent)
+        snapshot.setParent(parent)
     else:
-        oSnapshot.setParent(world=True)
-    oSnapshot.rename('_{0}'.format(_oCtrl.name()))
-    return oSnapshot
+        snapshot.setParent(world=True)
+
+    new_name = '_{0}'.format(transform.name())
+    cmds.rename(snapshot.longName(), new_name)  # For strange reasons, using .rename don't always work.
+    return snapshot
+
 
 def fetch_ctrl_shapes(source, target):
     # Remove any previous shapes
@@ -73,9 +84,11 @@ def fetch_ctrl_shapes(source, target):
     # TODO: Restore AnnotationShapes
     pymel.delete(source)
 
+
 def BackupCtrlShapes(**kwargs):
     aCtrls = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
     return [hold_ctrl_shapes(oCtrl, **kwargs) for oCtrl in aCtrls]
+
 
 # TODO: Fix bug when two objects have the same name.
 def RestoreCtrlShapes():
@@ -87,7 +100,8 @@ def RestoreCtrlShapes():
             oTarget = pymel.PyNode(str(sTargetName))
 
             fetch_ctrl_shapes(oSource, oTarget)
-            #pymel.delete(oSource)
+            # pymel.delete(oSource)
+
 
 def create_squash_atts(attStretch, numSegments):
     import libFormula
@@ -95,7 +109,7 @@ def create_squash_atts(attStretch, numSegments):
         raise IOError("Expected pymel Attribute, got {0} ({1})".format(attStretch, type(attStretch)))
     return_vals = []
     for i in range(numSegments):
-        pos = float(i)/(numSegments-1) * 2.0 - 1.0
+        pos = float(i) / (numSegments - 1) * 2.0 - 1.0
         attSquash = libFormula.parse("s^(e^(x^2)))", s=attStretch, x=pos)
         return_vals.append(attSquash)
     return return_vals

@@ -46,8 +46,8 @@ class SplineIK(RigPart):
 
         # Create stretch
         # Todo: use shape instead of transform as curve input?
-        curveLength = libRigging.CreateUtilityNode('curveInfo', inputCurve=curveShape.worldSpace).arcLength
-        self.stretch_att = libRigging.CreateUtilityNode('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
+        curveLength = libRigging.create_utility_node('curveInfo', inputCurve=curveShape.worldSpace).arcLength
+        self.stretch_att = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
 
         # Create squash
         num_joints = len(self._joints)

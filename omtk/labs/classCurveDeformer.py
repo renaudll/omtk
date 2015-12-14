@@ -22,7 +22,8 @@ class Follicle(RigNode):
         self.node = joint
         return self.node
 
-def _createNurbsSurfaceFromNurbsCurve(_curve, _width=0.1):
+
+def create_NurbsSurface_from_NurbsCurve(_curve, _width=0.1):
     nurbsMin = pymel.duplicate(_curve)[0]
     nurbsMax = pymel.duplicate(_curve)[0]
     nurbsMin.tz.set(nurbsMin.tz.get() - _width)
@@ -71,7 +72,7 @@ class CurveDeformer(RigPart):
         oSurface = next((o for o in self.input if any (s for s in o.getShapes() if isinstance(s, pymel.nodetypes.NurbsSurface))), None)
 
         if self.type == self.kType_NurbsSurface:
-            oSurface = _createNurbsSurfaceFromNurbsCurve(oCurve)
+            oSurface = create_NurbsSurface_from_NurbsCurve(oCurve)
             oSurface.rename(self._namemap_rig.Serialize() + '_nurbsSurface')
             oSurface.setParent(self.grp_rig)
 

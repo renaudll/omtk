@@ -65,17 +65,17 @@ class Leg(Arm):
         attFootRoll = oAttHolder.attr('footRoll')
         attFootRollThreshold = oAttHolder.attr('footRollThreshold')
 
-        attRollF = libRigging.CreateUtilityNode('condition', operation=2,
-                                                firstTerm=attFootRoll, secondTerm=attFootRollThreshold, colorIfFalseR=0,
-                                                colorIfTrueR=(
-                                                libRigging.CreateUtilityNode('plusMinusAverage', operation=2,
-                                                                             input1D=[attFootRoll,
+        attRollF = libRigging.create_utility_node('condition', operation=2,
+                                                  firstTerm=attFootRoll, secondTerm=attFootRollThreshold, colorIfFalseR=0,
+                                                  colorIfTrueR=(
+                                                libRigging.create_utility_node('plusMinusAverage', operation=2,
+                                                                               input1D=[attFootRoll,
                                                                                       attFootRollThreshold]).output1D)).outColorR  # Substract
-        attRollM = libRigging.CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll,
-                                                secondTerm=attFootRollThreshold, colorIfTrueR=attFootRollThreshold,
-                                                colorIfFalseR=attFootRoll).outColorR  # Less
-        attRollB = libRigging.CreateUtilityNode('condition', operation=2, firstTerm=attFootRoll, secondTerm=0.0,
-                                                colorIfTrueR=0, colorIfFalseR=attFootRoll).outColorR  # Greater
+        attRollM = libRigging.create_utility_node('condition', operation=2, firstTerm=attFootRoll,
+                                                  secondTerm=attFootRollThreshold, colorIfTrueR=attFootRollThreshold,
+                                                  colorIfFalseR=attFootRoll).outColorR  # Less
+        attRollB = libRigging.create_utility_node('condition', operation=2, firstTerm=attFootRoll, secondTerm=0.0,
+                                                  colorIfTrueR=0, colorIfFalseR=attFootRoll).outColorR  # Greater
         pymel.connectAttr(attRollM, oPivotM.rotateX)
         pymel.connectAttr(attRollF, oPivotF.rotateX)
         pymel.connectAttr(attRollB, oPivotB.rotateX)

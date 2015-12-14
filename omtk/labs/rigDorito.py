@@ -1,6 +1,6 @@
 import os
 import pymel.core as pymel
-from maya import cmds, mel #djrivet
+from maya import cmds, mel  # djrivet
 import omtk
 from classNameMap import NameMap
 from classRigCtrl import RigCtrl
@@ -12,7 +12,10 @@ A Dorito is a ctrl interface that output local coordinates while being parented 
 Usefull to apply a deformation before a skinCluster while faking a parenting with the parent.
 """
 
-def create_plane(normal=[0,1,0]):
+
+def create_plane(normal=None):
+    if normal is None:
+        normal = [0, 1, 0]
     normal_x = normal[0]
     normal_y = normal[1]
     normal_z = normal[2]
@@ -23,16 +26,17 @@ def create_plane(normal=[0,1,0]):
     pymel.delete(polyPlane)
     offset_tm = None
     if normal_x != 0.0:
-        offset_tm = pymel.datatypes.Matrix([[0,1,0,0], [1,0,0,0], [0,0,-normal_x,0], [0,0,0,1]]) #X
+        offset_tm = pymel.datatypes.Matrix([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, -normal_x, 0], [0, 0, 0, 1]])  # X
     elif normal_y != 0.0:
-        offset_tm = pymel.datatypes.Matrix([[normal_y,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1]]) #Y
+        offset_tm = pymel.datatypes.Matrix([[normal_y, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])  # Y
     elif normal_z != 0.0:
-        offset_tm = pymel.datatypes.Matrix([[1,0,0,0], [0,0,1,0], [0,-normal_z,0,0], [0,0,0,1]]) #Z
+        offset_tm = pymel.datatypes.Matrix([[1, 0, 0, 0], [0, 0, 1, 0], [0, -normal_z, 0, 0], [0, 0, 0, 1]])  # Z
 
     for v in shape.vtx:
         v.setPosition(v.getPosition() * offset_tm)
 
     return transform
+
 
 def _reparent_djRivet_follicles(parent, delete_old_parent=True):
     if not cmds.objExists('djRivetX'):
@@ -50,6 +54,7 @@ def _reparent_djRivet_follicles(parent, delete_old_parent=True):
 
     return follicles
 
+
 class Dorito(RigPart):
     def build(self, _bConstraint=True, *args, **kwargs):
         # If there's no input, create it
@@ -61,9 +66,9 @@ class Dorito(RigPart):
         self.ctrl = RigCtrl()
         self.ctrl.build()
 
-
         # Hack: Include the rotatePivot in our matrix calculation
-        ref_matrix = pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, *input.rotatePivot.get()) * input.getMatrix(worldSpace=True)
+        ref_matrix = pymel.datatypes.Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,
+                                            *input.rotatePivot.get()) * input.getMatrix(worldSpace=True)
 
         self.ctrl.offset.setMatrix(ref_matrix, worldSpace=True)
         self.ctrl.setParent(self.grp_anm)
@@ -75,7 +80,8 @@ class Dorito(RigPart):
         is_cluster = any((shape for shape in input.getShapes() if isinstance(shape, pymel.nodetypes.ClusterHandle)))
 
         if is_cluster:
-            cluster = next((hist for hist in input.listHistory(future=True) if isinstance(hist, pymel.nodetypes.Cluster)), None)
+            cluster = next(
+                (hist for hist in input.listHistory(future=True) if isinstance(hist, pymel.nodetypes.Cluster)), None)
 
             if cluster:
                 self.mesh = next(iter(cluster.outputGeometry.outputs()), None)
@@ -109,31 +115,31 @@ class Dorito(RigPart):
         # Since a matrix is computed scale first, rotate second and translate last, we need to inverse
         # it using translate first and rotation last (we don't care about conter-rigging the scale).
 
-        att_ctrl_pos_inv = libRigging.CreateUtilityNode(
+        att_ctrl_pos_inv = libRigging.create_utility_node(
             'multiplyDivide',
             operation=2,
             input1=self.ctrl.node.t,
-            input2=[-1,-1,-1]
+            input2=[-1, -1, -1]
         ).output
 
-        att_pos_inv = libRigging.CreateUtilityNode(
+        att_pos_inv = libRigging.create_utility_node(
             'composeMatrix',
-            inputTranslate = att_ctrl_pos_inv
+            inputTranslate=att_ctrl_pos_inv
         ).outputMatrix
 
-        att_ctrl_rot_inv = libRigging.CreateUtilityNode(
+        att_ctrl_rot_inv = libRigging.create_utility_node(
             'multiplyDivide',
             operation=2,
             input1=self.ctrl.node.r,
-            input2=[-1,-1,-1]
+            input2=[-1, -1, -1]
         ).output
 
-        att_rot_inv = libRigging.CreateUtilityNode(
+        att_rot_inv = libRigging.create_utility_node(
             'composeMatrix',
-            inputRotate = att_ctrl_rot_inv
+            inputRotate=att_ctrl_rot_inv
         ).outputMatrix
 
-        uMatrixSum = libRigging.CreateUtilityNode(
+        uMatrixSum = libRigging.create_utility_node(
             'multMatrix',
             matrixIn=[
                 att_pos_inv,
@@ -142,7 +148,7 @@ class Dorito(RigPart):
             ]
         ).matrixSum
 
-        uResult = libRigging.CreateUtilityNode(
+        uResult = libRigging.create_utility_node(
             'decomposeMatrix',
             inputMatrix=uMatrixSum,
         )

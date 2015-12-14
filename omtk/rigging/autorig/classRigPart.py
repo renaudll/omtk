@@ -52,7 +52,7 @@ class RigPart(RigElement):
 
     def __repr__(self):
         # TODO: Never crash on __repr__
-        assert(hasattr(self, '_pNameMapAnm'))
+        assert(hasattr(self, '_namemap_anm'))
         return '{0} ({1})'.format(str(self._namemap_anm), self.__class__.__name__)
 
     def __setattr__(self, key, val):
@@ -69,8 +69,9 @@ class RigPart(RigElement):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        assert(hasattr(self, '_pNameMapRig'))
-        if (not self._namemap_rig): pymel.error('self._pNameMapRig is None, inputs: {0}'.format(self.input))
+        assert(hasattr(self, '_namemap_rig'))
+        if not self._namemap_rig:
+            pymel.error('self._namemap_rig is None, inputs: {0}'.format(self.input))
         return self._namemap_rig.Serialize(self.__class__.__name__, _sType='net')
 
     def __createMayaNetwork__(self):
@@ -120,7 +121,7 @@ class RigPart(RigElement):
 
         # Call unbuild on each individual ctrls
         # This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
-        for ctrl in self.ctrls:
+        for ctrl in self.get_ctrls():
             ctrl.unbuild()
 
         if self.grp_anm is not None:
@@ -132,8 +133,7 @@ class RigPart(RigElement):
 
         super(RigPart, self).unbuild()
 
-    @property
-    def ctrls(self):
+    def get_ctrls(self):
         return getattrs_by_type(self, RigCtrl)
 
     @property

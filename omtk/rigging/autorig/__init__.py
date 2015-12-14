@@ -48,7 +48,6 @@ def build_all():
             pymel.delete(network)
             libSerialization.export_network(rigroot)
 
-
 def unbuild_all():
     networks = libSerialization.getNetworksByClass('RigRoot')
     for network in networks:
@@ -258,11 +257,13 @@ def _reload():
     Reload all module in their respective order.
     """
     reload(classNameMap)
-    reload(classRigElement)
-    reload(classRigPart)
+
     reload(classRigNode)
     reload(classRigCtrl)
 
+    reload(classRigElement)
+    reload(classRigRoot)
+    reload(classRigPart)
     reload(rigIK)
     reload(rigFK)
     reload(rigArm)

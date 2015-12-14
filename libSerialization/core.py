@@ -55,11 +55,11 @@ def get_class_namespace(classe):
 
 # We consider a data complex if it's a class instance.
 # Note: We check for __dict__ because isinstance(_data, object) return True for basic types.
-_complex_types = [dict]
+types_complex = [dict]
 
 
 def is_data_complex(_data):
-    return any(filter(lambda x: isinstance(_data, x), (iter(types_basic)))) or hasattr(_data, '__dict__')
+    return any(filter(lambda x: isinstance(_data, x), (iter(types_complex)))) or hasattr(_data, '__dict__')
 
 
 types_basic = [int, float, bool]
@@ -98,12 +98,13 @@ def get_data_type(data, *args, **kwargs):
         return TYPE_BASIC
     if is_data_list(data):
         return TYPE_LIST
+    if is_data_pymel(data): # It is important to check pymel data before complex data since basically, pymel.PyNode and pymel.PyNode are complex datatypes themselfs.
+        return TYPE_DAGNODE
     if is_data_complex(data):
         return TYPE_COMPLEX
-    if is_data_pymel(data):
-        return TYPE_DAGNODE
 
-    raise NotImplemented("Unsupported object type {0} ({1}".format(data, type(data)))
+
+    raise NotImplementedError("Unsupported object type {0} ({1})".format(data, type(data)))
 
 def export_dict(data, skip_None=True, recursive=True, **args):
     """

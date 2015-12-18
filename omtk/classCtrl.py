@@ -1,5 +1,5 @@
 import pymel.core as pymel
-from omtk.rigging.autorig.classNode import Node
+from classNode import Node
 from omtk.libs import libRigging, libPymel
 import logging; log = logging.getLogger(__name__)
 

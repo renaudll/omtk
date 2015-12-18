@@ -70,26 +70,26 @@ class Module(object):
         assert(hasattr(self, '_namemap_rig'))
         if not self._name_rig:
             pymel.error('self._namemap_rig is None, inputs: {0}'.format(self.input))
-        return self._name_rig(self.__class__.__name__, suffix='net')
+        return self._name_rig.resolve(self.__class__.__name__, suffix='net')
 
     def __createMayaNetwork__(self):
-        return pymel.createNode('network', name=self._name_anm(suffix='net'))
+        return pymel.createNode('network', name=self._name_anm.resolve('net'))
 
     # Even when nothing is build, it's usefull to access properties like namemaps.
     # This method is called automaticly when self.inputs is changed.
     def _post_setattr_inputs(self):
         oRef = next(iter(self.input), None)
         if oRef is not None:
-            self._name_anm = Name(oRef, suffix='anm')
-            self._name_rig = Name(oRef, suffix='rig')
+            self._name_anm = Name(oRef, prefix='anm')
+            self._name_rig = Name(oRef, prefix='rig')
             self._oParent = oRef.getParent() if oRef else None
 
     def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
         if self._name_anm is None:
-            self._name_anm = Name('untitled')
+            self._name_anm = Name('untitled', prefix='anm')
 
         if self._name_rig is None:
-            self._name_rig = Name('untitled')
+            self._name_rig = Name('untitled', prefix='rig')
 
         logging.info('Building {0}'.format(self._name_rig))
 
@@ -99,10 +99,10 @@ class Module(object):
         '''
 
         if create_grp_anm:
-            grp_anm_name = self._name_anm.resolve(self.__class__.__name__.lower(), prefix='anm')
+            grp_anm_name = self._name_anm.resolve(self.__class__.__name__.lower())
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            grp_rig_name = self._name_rig.resolve(self.__class__.__name__.lower(), suffix='rig')
+            grp_rig_name = self._name_rig.resolve(self.__class__.__name__.lower())
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
     def unbuild(self):

@@ -52,7 +52,7 @@ class Arm(Module):
         self.sysFK.grp_anm.setParent(self.grp_anm)
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
-        oAttHolder = BaseAttHolder(name=self._name_anm('atts'), create=True)
+        oAttHolder = BaseAttHolder(name=self._name_anm.resolve('atts'), create=True)
         oAttHolder.setParent(self.grp_anm)
         pymel.parentConstraint(self.input[self.sysIK.iCtrlIndex], oAttHolder.offset)
         pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
@@ -63,8 +63,7 @@ class Arm(Module):
         # Create a chain for blending ikChain and fkChain
         _chain_blend = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_blend):
-            namemap = Name(input_, suffix='rig')
-            node.rename(namemap('blend'))
+            node.rename(self._name_rig.resolve('blend'))
 
         # Blend ikChain with fkChain
         for blend, oIk, oFk in zip(_chain_blend, self.sysIK._chain_ik, self.sysFK.ctrls):
@@ -81,8 +80,7 @@ class Arm(Module):
         # Create a chain that provide the elbow controller and override the blend chain (wich should only be nodes already)
         _chain_elbow = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_elbow):
-            namemap = Name(input_, suffix='rig')
-            node.rename(namemap('elbow')) # todo: find a better name???
+            node.rename(self._name_rig.resolve('elbow')) # todo: find a better name???
         _chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl
@@ -98,8 +96,8 @@ class Arm(Module):
         pymel.pointConstraint(_chain_blend[-1], _chain_elbow[-1], maintainOffset=False)
 
         # Constraint elbow setup to input
-        for innJnt, ref in zip(self.input, _chain_elbow):
-            pymel.parentConstraint(innJnt, ref, maintainOffset=False)
+        #for innJnt, ref in zip(self.input, _chain_elbow):
+        #    pymel.parentConstraint(innJnt, ref, maintainOffset=False)
 
         self.attState = attIkWeight # Expose state
 

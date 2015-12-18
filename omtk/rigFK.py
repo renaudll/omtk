@@ -23,8 +23,7 @@ class FK(Module):
         # Create ctrl chain
         self.ctrls = []
         for input in self.input:
-            #ctrl_name = self._namemap_anm('fk')
-            ctrl_name = Name(input)('fk', suffix='anm')
+            ctrl_name = self._name_anm.resolve('fk')
             ctrl = CtrlFk(name=ctrl_name, create=True)
             ctrl.offset.setMatrix(input.getMatrix(worldSpace=True))
             self.ctrls.append(ctrl)

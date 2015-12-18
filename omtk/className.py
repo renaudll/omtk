@@ -24,17 +24,15 @@ class Name(object):
         self.tokens.insert(0, prefix)
 
     @libPython.memoized
-    def resolve(self, prefix=None, suffix=None, *args):
+    def resolve(self, *args):
         tokens = []
-        if prefix:
-            tokens.append(prefix)
+
         if self.prefix:
             tokens.append(self.prefix)
         tokens.extend(args)
         if self.suffix:
             tokens.append(self.suffix)
-        if suffix:
-            tokens.append(suffix)
+
         return self.separator.join(tokens)
 
     def __repr__(self):

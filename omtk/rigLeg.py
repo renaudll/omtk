@@ -30,25 +30,25 @@ class Leg(Arm):
         fOffsetB = fOffsetF * 0.25
 
         # Create pivots; TODO: Create side pivots
-        oPivotM = Node(name=self._name_rig('pivotM'))
+        oPivotM = Node(name=self._name_rig.resolve('pivotM'))
         oPivotM.build()
         oPivotM.t.set(p3Toes)  # Optimisation: t.set is faster than setMatrix
         # oPivotM.setMatrix(tmToes)
         # oPivotM.r.set((0,0,0))
 
-        oPivotF = Node(name=self._name_rig('pivotF'))
+        oPivotF = Node(name=self._name_rig.resolve('pivotF'))
         oPivotF.build()
         oPivotF.t.set(p3Foot + [0, 0, fOffsetF])  # Optimisation: t.set is faster than setMatrix
         # oPivotF.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,fOffsetF, 1) * tmFoot)
         # oPivotF.r.set((0,0,0))
 
-        oPivotB = Node(name=self._name_rig('pivotB'))
+        oPivotB = Node(name=self._name_rig.resolve('pivotB'))
         oPivotB.build()
         oPivotB.t.set(p3Foot + [0, 0, -fOffsetB])  # Optimisation: t.set is faster than setMatrix
         # oPivotB.setMatrix(pymel.datatypes.Matrix(1,0,0,0,0,1,0,0,0,0,1,0, 0,0,-fOffsetB, 1) * tmFoot)
         # oPivotB.r.set((0,0,0))
 
-        oFootRollRoot = Node(name=self._name_rig('footroll'))
+        oFootRollRoot = Node(name=self._name_rig.resolve('footroll'))
         oFootRollRoot.build()
 
         # Create hyerarchy
@@ -85,16 +85,16 @@ class Leg(Arm):
 
         # Create ikHandles
         oIkHandleFoot, oIkEffectorFoot = pymel.ikHandle(startJoint=oFoot, endEffector=oToes, solver='ikSCsolver')
-        oIkHandleFoot.rename(self._name_rig('ikHandle', 'foot'))
+        oIkHandleFoot.rename(self._name_rig.resolve('ikHandle', 'foot'))
         oIkHandleFoot.setParent(oFootRollRoot)
         oIkHandleToes, oIkEffectorToes = pymel.ikHandle(startJoint=oToes, endEffector=oTips, solver='ikSCsolver')
-        oIkHandleToes.rename(self._name_rig('ikHandle', 'ties'))
+        oIkHandleToes.rename(self._name_rig.resolve('ikHandle', 'ties'))
         oIkHandleToes.setParent(oFootRollRoot)
 
         # Connect ikHandles
-        pymel.delete([o for o in self.sysIK._oIkHandle.getChildren() if
+        pymel.delete([o for o in self.sysIK._ik_handle.getChildren() if
                       isinstance(o, pymel.nodetypes.Constraint) and not isinstance(o,
                                                                                    pymel.nodetypes.PoleVectorConstraint)])
-        pymel.parentConstraint(oPivotM, self.sysIK._oIkHandle, maintainOffset=True)
+        pymel.parentConstraint(oPivotM, self.sysIK._ik_handle, maintainOffset=True)
         pymel.parentConstraint(oPivotF, oIkHandleFoot, maintainOffset=True)
         pymel.parentConstraint(oPivotB, oIkHandleToes, maintainOffset=True)

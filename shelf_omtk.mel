@@ -12,7 +12,7 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.getNetworksByClass('Rig')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n"
+        -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.getNetworksByClass('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n" 
         -enableBackground 0
         -align "center" 
         -label "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import ..." 
@@ -26,7 +26,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "# Build Rig\nfrom omtk.rigging import autorig\nimport reimport\nreimport.reimport(autorig)\nautorig.build_all()" 
+        -command "# Build Rig\nimport omtk\nomtk.build_all()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -39,10 +39,10 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "networks = libSerialization.getNetworksByClass('Rig')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Unbuild()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)"
+        -annotation "networks = libSerialization.getNetworksByClass('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Unbuild()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)" 
         -enableBackground 0
         -align "center" 
-        -label "networks = libSerialization.getNetworksByClass('Rig')\nfor ne..."
+        -label "networks = libSerialization.getNetworksByClass('RigRoot')\nfor ne..." 
         -labelOffset 0
         -font "plainLabelFont" 
         -imageOverlayLabel "Unbuild" 
@@ -53,7 +53,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "from omtk.rigging import autorig\nimport reimport\nreimport.reimport(autorig)\nautorig.unbuild_all()" 
+        -command "import omtk\nomtk.unbuild_all()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -80,7 +80,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\nimport reimport\nreimport.reimport(omtk)\nomtk.animationikfkTools.switchToIk()" 
+        -command "from omtk.animation import ikFkTools\nikFkTools.switchToIk()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -107,7 +107,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\nimporet reimport\nreimport.reimport(omtk)\nomtk.animation.ikfkTools.switchToFk()" 
+        -command "from omtk.animation import ikFkTools\nikFkTools.switchToFk()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -126,7 +126,7 @@ global proc shelf_omtk () {
         -label "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True..." 
         -labelOffset 0
         -font "plainLabelFont" 
-        -imageOverlayLabel "reload" 
+        -imageOverlayLabel "reopen" 
         -overlayLabelColor 1 0 0 
         -overlayLabelBackColor 0 0 0 0.2 
         -image "pythonFamily.png" 
@@ -161,7 +161,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\nimport reimport\nreimport.reimport(omtk)\n\n\n\n\n" 
+        -command "reload(autorig)\nautorig._reload()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -217,33 +217,6 @@ global proc shelf_omtk () {
         -marginHeight 1
         -command "sys.path.append(\"/Applications/PyCharm.app/helpers/pydev\")\nimport pydevd\npydevd.settrace('localhost', port=64304, stdoutToServer=True, stderrToServer=True, suspend=False)\n" 
         -sourceType "python" 
-        -commandRepeatable 1
-        -flat 1
-    ;
-    shelfButton
-        -enableCommandRepeat 1
-        -enable 1
-        -width 35
-        -height 35
-        -manage 1
-        -visible 1
-        -preventOverride 0
-        -annotation "Display relationships among nodes in your scene graphically" 
-        -enableBackground 0
-        -align "center" 
-        -label "Node Editor" 
-        -labelOffset 0
-        -font "plainLabelFont" 
-        -imageOverlayLabel "NE" 
-        -overlayLabelColor 0.8 0.8 0.8 
-        -overlayLabelBackColor 0 0 0 0.25 
-        -image "menuIconWindow.png" 
-        -image1 "menuIconWindow.png" 
-        -style "iconOnly" 
-        -marginWidth 1
-        -marginHeight 1
-        -command "NodeEditorWindow" 
-        -sourceType "mel" 
         -commandRepeatable 1
         -flat 1
     ;

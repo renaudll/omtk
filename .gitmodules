@@ -2,3 +2,7 @@
 	path = pyyaml
 	url = https://github.com/yaml/pyyaml.git
 	ignore = dirty
+[submodule "libSerialization"]
+	path = libSerialization
+	url = https://github.com/renaudll/libSerialization.git
+	ignore = dirty

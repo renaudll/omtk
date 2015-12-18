@@ -79,8 +79,8 @@ class Rig(object):
     #
 
     def add_part(self, part):
-        if not isinstance(part, Module):
-            raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
+        #if not isinstance(part, Module):
+        #    raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
         self.children.append(part)
 
     def is_built(self):

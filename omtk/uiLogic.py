@@ -1,5 +1,9 @@
 import functools
-from omtk.libs.libQt import QtGui, getMayaWindow
+import pymel.core as pymel
+from libs.libQt import QtGui, getMayaWindow
+import libSerialization
+import classModule
+import classRig
 
 import ui
 class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
@@ -31,7 +35,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     @root.getter
     def root(self):
         if not '_root' in self.__dict__:
-            self.__dict__['_root'] = create()
+            self.__dict__['_root'] = classRig.Rig()
         return self.__dict__['_root']
 
     def _rigRootToQTreeWidget(self, _rig):
@@ -42,7 +46,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             pymel.warning("{0} have no _network attributes".format(_rig))
         qItem.rig = _rig
         qItem.setText(0, str(_rig))
-        if isinstance(_rig, classRigElement.RigElement):
+        if isinstance(_rig, classRig.Rig):
             for child in _rig:
                 qSubItem = self._rigRootToQTreeWidget(child)
                 qItem.addChild(qSubItem)
@@ -106,8 +110,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
 
     def _actionAddPart(self, _cls):
-        part = _cls(_input=pymel.selected())
-        self.root.append(part)
+        part = _cls(pymel.selected())
+        print part, type(part)
+        self.root.add_part(part)
         net = libSerialization.export_network(self.root) # Export part and only part
         pymel.select(net)
         self.updateData()
@@ -122,7 +127,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def _actionAdd(self):
         menu     = QtGui.QMenu()
-        for cls in self._getSubClasses(classRigPart.RigPart):
+        for cls in self._getSubClasses(classModule.Module):
             action = menu.addAction(cls.__name__)
             action.triggered.connect(functools.partial(self._actionAddPart, cls))
 

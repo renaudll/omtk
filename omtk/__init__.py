@@ -271,10 +271,6 @@ def show():
     """
     Show a simple gui. Note that PySide or PyQt4 is needed.
     """
-    try:
-       import uiLogic
-       uiLogic.show()
-    except Exception, e:
-        print("[error] Unknow error initializing gui.py: {0}".format(str(e)))
 
-
+    import uiLogic
+    uiLogic.show()

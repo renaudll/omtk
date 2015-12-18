@@ -59,7 +59,6 @@ class Arm(Module):
         attIkWeight = oAttHolder.attr(self.kAttrName_State)
         attFkWeight = libRigging.create_utility_node('reverse', inputX=attIkWeight).outputX
 
-
         # Create a chain for blending ikChain and fkChain
         _chain_blend = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_blend):
@@ -102,6 +101,9 @@ class Arm(Module):
         # Constraint elbow setup to input
         for innJnt, ref in zip(self.input, _chain_elbow):
             pymel.parentConstraint(ref, innJnt, maintainOffset=True)
+
+        #self.ctrlIkOffset = self.sysIK.ctrlIK.getMatrix(worldSpace=True) * \
+        #                    self.sysFK.ctrls[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
         self.attState = attIkWeight # Expose state
 

@@ -1,9 +1,9 @@
 import pymel.core as pymel
-from classNameMap import NameMap
-from classRigCtrl import RigCtrl
-from classRigPart import RigPart
+from className import Name
+from classCtrl import BaseCtrl
+from classModule import Module
 
-class CtrlFk(RigCtrl):
+class CtrlFk(BaseCtrl):
     def build(self, *args, **kwargs):
         super(CtrlFk, self).build(*args, **kwargs)
         make = self.node.getShape().create.inputs()[0]
@@ -12,7 +12,7 @@ class CtrlFk(RigCtrl):
         make.sections.set(6)
         return self.node
 
-class FK(RigPart):
+class FK(Module):
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = []
@@ -24,7 +24,7 @@ class FK(RigPart):
         self.ctrls = []
         for input in self.input:
             #ctrl_name = self._namemap_anm.Serialize('fk')
-            ctrl_name = NameMap(input).Serialize('fk', _sType='anm')
+            ctrl_name = Name(input).Serialize('fk', _sType='anm')
             ctrl = CtrlFk(name=ctrl_name, create=True)
             ctrl.offset.setMatrix(input.getMatrix(worldSpace=True))
             self.ctrls.append(ctrl)

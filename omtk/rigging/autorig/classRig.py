@@ -1,16 +1,24 @@
 from maya import cmds
 import pymel.core as pymel
-from classRigCtrl import RigCtrl
-from classRigNode import RigNode
-from classRigElement import RigElement
+from classCtrl import BaseCtrl
+from classNode import Node
+from classModule import Module
 from omtk.libs import libPymel
 import time
 
-class CtrlRoot(RigCtrl):
+
+class CtrlRoot(BaseCtrl):
+    """
+    The main ctrl. Support global uniform scaling only.
+    """
     def __init__(self, *args, **kwargs):
         super(CtrlRoot, self).__init__(create_offset=False, *args, **kwargs)
 
     def __createNode__(self, *args, **kwargs):
+        """
+        Create a wide circle.
+        """
+        # use meshes boundinx box
         node = pymel.circle(*args, **kwargs)[0]
         make = node.getShape().create.inputs()[0]
         make.radius.set(10)
@@ -25,9 +33,31 @@ class CtrlRoot(RigCtrl):
 
         return node
 
-class RigRoot(RigElement):
+class Rig(object):
     NAME_ROOT_JNT = 'jnts'
     NAME_ROOT_ANM = 'anm_root'
+
+    #
+    # collections.MutableSequence implementation
+    #
+    def __getitem__(self, item):
+        self.children.__getitem__(item)
+
+    def __setitem__(self, index, value):
+        self.children.__setitem__(index, value)
+
+    def __delitem__(self, index):
+        self.children.__delitem__(index)
+
+    def __len__(self):
+        return self.children.__len__()
+
+    def insert(self, index, value):
+        self.children.insert(index, value)
+        value._parent = self # Store the parent for optimized network serialization (see libs.libSerialization)
+
+    def __iter__(self):
+        return iter(self.children)
 
     def __init__(self):
         self.children = []
@@ -39,15 +69,53 @@ class RigRoot(RigElement):
         self.layer_geo = None
         self.layer_rig = None
 
+        self.children = []
+
     def __str__(self):
         return '<rig {0}/>'.format('???')
 
-    def add_part(self, _part):
-        #if not isinstance(_part, RigPart):
-        #    logging.error("[RigRoot:AddPart] Invalid RigPart '{0}' provided".format(_part))
-        self.children.append(_part)
+    #
+    # Main implementation
+    #
 
-    def prebuild(self):
+    def add_part(self, part):
+        if not isinstance(part, Module):
+            raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
+        self.children.append(part)
+
+    def is_built(self):
+        """
+        :return: True if any module dag nodes exist in the scene.
+        """
+        for child in self:
+            if child.is_built():
+                return True
+        return False
+
+    def _clean_invalid_pynodes(self):
+        fnCanDelete = lambda x: (isinstance(x, (pymel.PyNode, pymel.Attribute)) and not libPymel.is_valid_PyNode(x))
+        for key, val in self.__dict__.iteritems():
+            if fnCanDelete(val):
+                setattr(self, key, None)
+            elif isinstance(val, (list, set, tuple)):
+                for i in reversed(range(len(val))):
+                    if fnCanDelete(val[i]):
+                        val.pop(i)
+                if len(val) == 0:
+                    setattr(self, key, None)
+
+    def build(self, **kwargs):
+        # Aboard if already built
+        if self.is_built():
+            pymel.warning("Can't build {0} because it's already built!".format(self))
+            return False
+
+        sTime = time.time()
+
+        #
+        # Prebuild
+        #
+
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
         all_root_jnts = libPymel.ls_root_jnts()
@@ -60,14 +128,9 @@ class RigRoot(RigElement):
 
         all_root_jnts.setParent(self.grp_jnts)
 
-    def build(self, **kwargs):
-        if self.is_built():
-            pymel.warning("Can't build {0} because it's already built!".format(self))
-            return False
-
-        sTime = time.time()
-
-        self.prebuild()
+        #
+        # Build
+        #
 
         #try:
         for child in self.children:
@@ -78,14 +141,11 @@ class RigRoot(RigElement):
             #    traceback.print_stack()
             #    logging.error(str(e))
             #    raise e
-        self.postbuild()
 
+        #
+        # Post-build
+        #
 
-        print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
-
-        return True
-
-    def postbuild(self):
         # Create anm root
         all_anms = libPymel.ls_root_anms()
         if not isinstance(self.grp_anms, CtrlRoot):
@@ -97,8 +157,8 @@ class RigRoot(RigElement):
 
         # Create rig root
         all_rigs = libPymel.ls_root_rigs()
-        if not isinstance(self.grp_rigs, RigNode):
-            self.grp_rigs = RigNode()
+        if not isinstance(self.grp_rigs, Node):
+            self.grp_rigs = Node()
         if not self.grp_rigs.is_built():
             self.grp_rigs.build()
         self.grp_rigs.rename('rigs')
@@ -111,8 +171,8 @@ class RigRoot(RigElement):
 
         # Create geo root
         all_geos = libPymel.ls_root_geos()
-        if not isinstance(self.grp_geos, RigNode):
-            self.grp_geos = RigNode()
+        if not isinstance(self.grp_geos, Node):
+            self.grp_geos = Node()
         if not self.grp_geos.is_built():
             self.grp_geos.build()
         self.grp_geos.rename('geos')
@@ -127,7 +187,7 @@ class RigRoot(RigElement):
         pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rigs, noRecurse=True)
         pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnts, noRecurse=True)
         self.layer_rig.color.set(13)  # Red
-        self.layer_rig.visibility.set(0)  # Hidden
+        #self.layer_rig.visibility.set(0)  # Hidden
         self.layer_rig.displayType.set(2)  # Frozen
 
         self.layer_geo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)
@@ -135,7 +195,16 @@ class RigRoot(RigElement):
         self.layer_geo.color.set(12)  # Green?
         self.layer_geo.displayType.set(2)  # Frozen
 
+
+        print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
+
+        return True
+
     def unbuild(self, **kwargs):
+        """
+        :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
+        :return: True if successfull.
+        """
         # Unbuild all childrens
         for child in self.children:
             child.unbuild(**kwargs)
@@ -157,8 +226,10 @@ class RigRoot(RigElement):
             self.layer_geo = None
         if libPymel.is_valid_PyNode(self.layer_rig):
             pymel.delete(self.layer_rig)
-            self.layer_rig = None
 
-        super(RigRoot, self).unbuild(**kwargs)
+        # Remove any references to missing pynodes
+        self._clean_invalid_pynodes()
+
+        return True
 
 

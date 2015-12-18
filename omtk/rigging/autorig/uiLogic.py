@@ -49,7 +49,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         return qItem
 
     def updateData(self):
-        networks = libSerialization.getNetworksByClass('RigRoot')
+        networks = libSerialization.getNetworksByClass('Rig')
         self.roots = [libSerialization.import_network(network) for network in networks]
 
     def updateUi(self):

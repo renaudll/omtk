@@ -12,7 +12,7 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.getNetworksByClass('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n" 
+        -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.getNetworksByClass('Rig')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n"
         -enableBackground 0
         -align "center" 
         -label "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import ..." 
@@ -39,10 +39,10 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "networks = libSerialization.getNetworksByClass('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Unbuild()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)" 
+        -annotation "networks = libSerialization.getNetworksByClass('Rig')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Unbuild()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)"
         -enableBackground 0
         -align "center" 
-        -label "networks = libSerialization.getNetworksByClass('RigRoot')\nfor ne..." 
+        -label "networks = libSerialization.getNetworksByClass('Rig')\nfor ne..."
         -labelOffset 0
         -font "plainLabelFont" 
         -imageOverlayLabel "Unbuild" 

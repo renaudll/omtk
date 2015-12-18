@@ -1,10 +1,10 @@
 import math
 import pymel.core as pymel
-from classRigPart import RigPart
+from classModule import Module
 from omtk.libs import libRigging, libPymel, libPython, libFormula
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
-class SplineIK(RigPart):
+class SplineIK(Module):
     def __init__(self, *args, **kwargs):
         super(SplineIK, self).__init__(*args, **kwargs)
         self.bStretch = True
@@ -32,7 +32,7 @@ class SplineIK(RigPart):
 
         # create splineik effector
         # todo: search for additional options
-        name_kEffector = self._namemap_rig.Serialize('ikEffector')
+        name_kEffector = self._name_rig.Serialize('ikEffector')
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,

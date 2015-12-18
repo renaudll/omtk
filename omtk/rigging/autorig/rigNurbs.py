@@ -1,14 +1,14 @@
 import pymel.core as pymel
-from classNameMap import NameMap
-from classRigPart import RigPart
-from classRigNode import RigNode
+from className import Name
+from classModule import Module
+from classNode import Node
 from rigIK import IK
 from rigFK import FK
 
-class FacePnt(RigNode):
+class FacePnt(Node):
     def __init__(self, _ref, *args, **kwargs):
 
         super(FacePnt, self).__init__(*args, **kwargs)
 
-class Nurbs(RigPart):
+class Nurbs(Module):
     pass

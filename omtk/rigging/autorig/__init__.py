@@ -3,13 +3,11 @@ import pymel.core as pymel
 import logging; log = logging.getLogger(__name__); log.setLevel(logging.DEBUG)
 
 # We need to import all modules since libSerialization need the classes to be defined so it can resolve them.
-import classNameMap
-import classRigNode
-import classRigCtrl
-import classRigElement
-import classRigPart
-import classRigRoot
-import classPoint
+import className
+import classNode
+import classCtrl
+import classModule
+import classRig
 
 import rigFK
 import rigIK
@@ -28,11 +26,11 @@ import libSerialization
 
 
 def create(*args, **kwargs):
-    return classRigRoot.RigRoot(*args, **kwargs)
+    return classRig.Rig(*args, **kwargs)
 
 
 def find():
-    networks = libSerialization.getNetworksByClass('RigRoot')
+    networks = libSerialization.getNetworksByClass('Rig')
     return [libSerialization.import_network(network) for network in networks]
 
 
@@ -41,7 +39,7 @@ def find_one(*args, **kwargs):
 
 
 def build_all():
-    networks = libSerialization.getNetworksByClass('RigRoot')
+    networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
         if rigroot.build():
@@ -49,7 +47,7 @@ def build_all():
             libSerialization.export_network(rigroot)
 
 def unbuild_all():
-    networks = libSerialization.getNetworksByClass('RigRoot')
+    networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
         rigroot.unbuild()
@@ -114,7 +112,7 @@ def detect(*args, **kwargs):
     #
     # Configure Rig
     #
-    rig = classRigRoot.RigRoot()
+    rig = classRig.Rig()
 
     def get_arms(jnts):
         chains = []
@@ -256,14 +254,14 @@ def _reload():
     """
     Reload all module in their respective order.
     """
-    reload(classNameMap)
+    reload(className)
 
-    reload(classRigNode)
-    reload(classRigCtrl)
+    reload(classNode)
+    reload(classCtrl)
 
     reload(classRigElement)
-    reload(classRigRoot)
-    reload(classRigPart)
+    reload(classRig)
+    reload(classModule)
     reload(rigIK)
     reload(rigFK)
     reload(rigArm)

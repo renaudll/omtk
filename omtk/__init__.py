@@ -21,3 +21,4 @@ for dependency in __dependencies__:
 # Usefull shell access
 from libs import *
 import animation, rigging
+

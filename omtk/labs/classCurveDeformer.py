@@ -1,11 +1,11 @@
 import pymel.core as pymel
-from omtk.rigging.autorig.classRigNode import RigNode
-from omtk.rigging.autorig.classRigPart import RigPart
+from omtk.rigging.autorig.classNode import Node
+from omtk.rigging.autorig.classModule import Module
 
 '''
 A follice is constrained to the surface of a nurbsSurface. (see NurbsPlane class)
 '''
-class Follicle(RigNode):
+class Follicle(Node):
     def __init__(self, _parent, *args, **kwargs):
         super(Follicle, self).__init__(*args, **kwargs)
 
@@ -54,7 +54,7 @@ def _createSurfaceJnts(_surface, _numJnts=19):
         aReturn.append(follicle)
     return aReturn
 
-class CurveDeformer(RigPart):
+class CurveDeformer(Module):
     kType_NurbsCurve = 0
     kType_NurbsSurface = 1
 
@@ -73,17 +73,17 @@ class CurveDeformer(RigPart):
 
         if self.type == self.kType_NurbsSurface:
             oSurface = create_NurbsSurface_from_NurbsCurve(oCurve)
-            oSurface.rename(self._namemap_rig.Serialize() + '_nurbsSurface')
+            oSurface.rename(self._name_rig.Serialize() + '_nurbsSurface')
             oSurface.setParent(self.grp_rig)
 
             for i in range(oSurface.numKnotsInV()-1):
                 cluster, clusterHandle = pymel.cluster(oSurface.cv[0:3][i])
-                cluster.rename(self._namemap_rig.Serialize('cluster', _iIter=i))
-                clusterHandle.rename(self._namemap_rig.Serialize('clusterHandle', _iIter=i))
+                cluster.rename(self._name_rig.Serialize('cluster', _iIter=i))
+                clusterHandle.rename(self._name_rig.Serialize('clusterHandle', _iIter=i))
                 clusterHandle.setParent(self.grp_rig)
 
                 uRef = pymel.createNode('transform')
-                uRef.rename(self._namemap_rig.Serialize('cvRef', _iIter=i))
+                uRef.rename(self._name_rig.Serialize('cvRef', _iIter=i))
                 uRef.setParent(self.grp_rig)
                 pymel.connectAttr(oCurve.controlPoints[i], uRef.t)
                 #pymel.connectAttr(libRigging.CreateUtilityNode('pointOnCurveInfo', inputCurve=oCurve.worldSpace, parameter=((float(i)/(oSurface.numKnotsInV()-3)))).position, uRef.t)
@@ -94,5 +94,5 @@ class CurveDeformer(RigPart):
         assert(isinstance(oSurface, pymel.PyNode))
         self.aJnts = _createSurfaceJnts(oSurface, self.numJnts)
         for i, jnt in enumerate(self.aJnts):
-            jnt.rename(self._namemap_rig.Serialize(_iIter=i))
+            jnt.rename(self._name_rig.Serialize(_iIter=i))
             jnt.setParent(self.grp_rig)

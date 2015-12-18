@@ -1,13 +1,13 @@
 import pymel.core as pymel
-from classRigCtrl import RigCtrl
-from classRigPart import RigPart
-from classRigNode import RigNode
+from classCtrl import BaseCtrl
+from classModule import Module
+from classNode import Node
 from omtk.libs import libRigging, libAttr, libFormula, libPymel
-from classNameMap import NameMap
+from className import Name
 import functools
 
 
-class CtrlIk(RigCtrl):
+class CtrlIk(BaseCtrl):
     kAttrName_State = 'ikFk'
 
     def build(self, *args, **kwargs):
@@ -22,7 +22,7 @@ class CtrlIk(RigCtrl):
         self.m_attState = None
 
 
-class CtrlIkSwivel(RigCtrl):
+class CtrlIkSwivel(BaseCtrl):
     def build(self, _oLineTarget=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
@@ -43,7 +43,7 @@ class CtrlIkSwivel(RigCtrl):
         return self.node
 
 
-class SoftIkNode(RigNode):
+class SoftIkNode(Node):
     def build(self):
         self.node = pymel.createNode('network')
         formula = libFormula.Formula()
@@ -132,7 +132,7 @@ class SoftIkNode(RigNode):
 
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
-class IK(RigPart):
+class IK(Module):
     def __init__(self, *args, **kwargs):
         super(IK, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
@@ -165,7 +165,7 @@ class IK(RigPart):
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.input, self._chain_ik):
-            name_map = NameMap(oInput, _sType='rig')
+            name_map = Name(oInput, _sType='rig')
             oIk.rename(name_map.Serialize('ik'))
         self._chain_ik[0].setParent(self._oParent)  # Trick the IK system (temporary solution)
 
@@ -179,22 +179,22 @@ class IK(RigPart):
         p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
-        grp_ikChain = pymel.createNode('transform', name=self._namemap_rig.Serialize('ikChain'), parent=self.grp_rig)
+        grp_ikChain = pymel.createNode('transform', name=self._name_rig.Serialize('ikChain'), parent=self.grp_rig)
         grp_ikChain.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
         oChainS.setParent(grp_ikChain)
 
         # Create ikEffector
         self._oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
-        self._oIkHandle.rename(self._namemap_rig.Serialize('ikHandle'))
+        self._oIkHandle.rename(self._name_rig.Serialize('ikHandle'))
         self._oIkHandle.setParent(grp_ikChain)
-        oIkEffector.rename(self._namemap_rig.Serialize('ikEffector'))
+        oIkEffector.rename(self._name_rig.Serialize('ikEffector'))
 
         # Create ctrls
         if not isinstance(self.ctrlIK, CtrlIk): self.ctrlIK = CtrlIk()
         self.ctrlIK.build()
         # self.ctrlIK = CtrlIk(_create=True)
         self.ctrlIK.setParent(self.grp_anm)
-        self.ctrlIK.rename(self._namemap_anm.Serialize('ik'))
+        self.ctrlIK.rename(self._name_anm.Serialize('ik'))
         self.ctrlIK.offset.setTranslation(oChainE.getTranslation(space='world'), space='world')
         if _bOrientIkCtrl is True:
             self.ctrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
@@ -203,7 +203,7 @@ class IK(RigPart):
         self.ctrl_swivel.build()
         # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
-        self.ctrl_swivel.rename(self._namemap_anm.Serialize('ikSwivel'))
+        self.ctrl_swivel.rename(self._name_anm.Serialize('ikSwivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.ctrl_swivel.offset.setRotation(self.input[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
         self.swivelDistance = self._chain_length  # Used in ik/fk switch

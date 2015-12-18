@@ -27,6 +27,7 @@ def is_child_of(node, potential_parent):
         node = node.getParent()
     return False
 
+
 class PyNodeChain(collections.MutableSequence):
     """A container for manipulating lists of hosts"""
 
@@ -91,6 +92,11 @@ class PyNodeChain(collections.MutableSequence):
                 setattr(node, key, value)
             except Exception, e:
                 logging.error(str(e))
+
+
+def duplicate_chain(chain):
+    new_chain = pymel.duplicate(chain, renameChildren=True, parentOnly=True)
+    return PyNodeChain(new_chain)
 
 
 #

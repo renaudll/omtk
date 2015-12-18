@@ -1,12 +1,12 @@
 import pymel.core as pymel
-from omtk.rigging.autorig.classNameMap import NameMap
-from omtk.rigging.autorig.classRigPart import RigPart
-from omtk.rigging.autorig.classRigCtrl import RigCtrl
+from omtk.rigging.autorig.className import Name
+from omtk.rigging.autorig.classModule import Module
+from omtk.rigging.autorig.classCtrl import BaseCtrl
 from omtk.rigging.autorig.rigIK import IK
 from omtk.rigging.autorig.rigFK import FK
 from omtk.libs import libRigging
 
-class RigAttHolder(RigCtrl):
+class BaseAttHolder(BaseCtrl):
     def __createNode__(self, name=None, *args, **kwargs):
         s1 = 1.0
         s2 = s1 * 0.7
@@ -17,13 +17,14 @@ class RigAttHolder(RigCtrl):
         node.s.set(channelBox=False)
         return node
 
-class Arm(RigPart):
+class Arm(Module):
     kAttrName_State = 'fkIk' # The name of the IK/FK attribute
 
     def __init__(self, *args, **kwargs):
         super(Arm, self).__init__(*args, **kwargs)
         self.sysIK = None
         self.sysFK = None
+        self.ctrl_elbow = None
 
     def build(self, *args, **kwargs):
         super(Arm, self).build(*args, **kwargs)
@@ -32,7 +33,7 @@ class Arm(RigPart):
         # Create ikChain and fkChain
         self._aIkChain = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.input, self._aIkChain):
-            namemap = NameMap(oInput, _sType='rig')
+            namemap = Name(oInput, _sType='rig')
             oIk.rename(namemap.Serialize('ik'))
         self._aIkChain[0].setParent(self._oParent) # Trick the IK system (temporary solution)
         '''
@@ -49,33 +50,56 @@ class Arm(RigPart):
         self.sysIK.grp_anm.setParent(self.grp_anm)
         self.sysIK.grp_rig.setParent(self.grp_rig)
         self.sysFK.grp_anm.setParent(self.grp_anm)
-        #self.sysFK.oGrpRig.setParent(self.oGrpRig)
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
-        oAttHolder = RigAttHolder(name=self._namemap_anm.Serialize('atts'), create=True)
+        oAttHolder = BaseAttHolder(name=self._name_anm.Serialize('atts'), create=True)
         oAttHolder.setParent(self.grp_anm)
         pymel.parentConstraint(self.input[self.sysIK.iCtrlIndex], oAttHolder.offset)
         pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
         attIkWeight = oAttHolder.attr(self.kAttrName_State)
         attFkWeight = libRigging.create_utility_node('reverse', inputX=attIkWeight).outputX
 
-        # Store the offset between the end fk ctrl and the end ik ctrl
-        # TODO: Make libSerialization work with matrix
-        #self.offsetCtrlIK = self.sysIK.ctrlIK.getMatrix(worldSpace=True) * self.sysFK.aCtrls[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
-        # Hold swivelSkinPose
-        #self.swivelSkinPose = self.sysIK.ctrlSwivel.getMatrix() * self.aInput[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True).inverse()
+        # Create a chain for blending ikChain and fkChain
+        _chain_blend = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
+        for input_, node in zip(self.input, _chain_blend):
+            namemap = Name(input_, _sType='rig')
+            node.rename(namemap.Serialize('blend'))
 
         # Blend ikChain with fkChain
-        for oInput, oIk, oFk in zip(self.input, self.sysIK._chain_ik, self.sysFK.ctrls):
-            oConstraint = pymel.parentConstraint(oIk, oFk, oInput)
-            attCurIkWeight, attCurFkWeight = oConstraint.getWeightAliasList()
-            pymel.connectAttr(attIkWeight, attCurIkWeight)
-            pymel.connectAttr(attFkWeight, attCurFkWeight)
+        for blend, oIk, oFk in zip(_chain_blend, self.sysIK._chain_ik, self.sysFK.ctrls):
+            oConstraint = pymel.parentConstraint(oIk, oFk, blend)
+            attr_weight_ik, attr_weight_fk = oConstraint.getWeightAliasList()
+            pymel.connectAttr(attIkWeight, attr_weight_ik)
+            pymel.connectAttr(attFkWeight, attr_weight_fk)
+        _chain_blend[0].setParent(self.grp_rig)
 
         # Connect visibility
         pymel.connectAttr(attIkWeight, self.sysIK.grp_anm.visibility)
         pymel.connectAttr(attFkWeight, self.sysFK.grp_anm.visibility)
+
+        # Create a chain that provide the elbow controller and override the blend chain (wich should only be nodes already)
+        _chain_elbow = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
+        for input_, node in zip(self.input, _chain_elbow):
+            namemap = Name(input_, _sType='rig')
+            node.rename(namemap.Serialize('elbow')) # todo: find a better name???
+        _chain_elbow[0].setParent(self.grp_rig)
+
+        # Create elbow ctrl
+        ctrl_elbow_parent = _chain_blend[1]
+        if not isinstance(self.ctrl_elbow, BaseCtrl):
+            self.ctrl_elbow = BaseCtrl(create_offset=True) # todo: custom RigCtrl implementation?
+        self.ctrl_elbow.build()
+        pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
+
+        pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0])
+        pymel.aimConstraint(self.sysIK.ctrlIK, _chain_elbow[1])
+        pymel.pointConstraint(self.ctrl_elbow, _chain_elbow[1], maintainOffset=False)
+        pymel.pointConstraint(_chain_blend[-1], _chain_elbow[-1], maintainOffset=False)
+
+        # Constraint elbow setup to input
+        for innJnt, ref in zip(self.input, _chain_elbow):
+            pymel.parentConstraint(innJnt, ref, maintainOffset=False)
 
         self.attState = attIkWeight # Expose state
 
@@ -95,23 +119,23 @@ class Arm(RigPart):
 
     def snapIkToFk(self):
         # Position ikCtrl
-        tmCtrlIk = self.input[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
-        self.sysIK.ctrlIK.setMatrix(self.ctrlIkOffset * tmCtrlIk, worldSpace=True)
+        ctrl_ik_tm = self.input[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
+        self.sysIK.ctrlIK.setMatrix(self.ctrlIkOffset * ctrl_ik_tm, worldSpace=True)
 
         # Position swivel
-        posRef = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
-        posS = self.sysFK.ctrls[0].getTranslation(space='world')
-        posM = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
-        posE = self.sysFK.ctrls[self.sysIK.iCtrlIndex].getTranslation(space='world')
-        fLengthS = posM.distanceTo(posS)
-        fLengthE = posM.distanceTo(posE)
-        fLengthRatio = fLengthS / (fLengthS+fLengthE)
-        posRefPos = (posE-posS)*fLengthRatio + posS
-        posDir = posM - posRefPos
-        posDir.normalize()
-        posSwivel = posDir * self.sysIK.swivelDistance + posRef
-        #self.sysIK.ctrlSwivel.setMatrix(self.aInput[self.sysIK.iCtrlIndex-1].getMatrix(worldSpace=True), worldSpace=True)
-        self.sysIK.ctrlSwivel.setTranslation(posSwivel, space='world')
+        pos_ref = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
+        pos_s = self.sysFK.ctrls[0].getTranslation(space='world')
+        pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
+        pos_e = self.sysFK.ctrls[self.sysIK.iCtrlIndex].getTranslation(space='world')
+        length_start = pos_m.distanceTo(pos_s)
+        length_end = pos_m.distanceTo(pos_e)
+        length_ratio = length_start / (length_start+length_end)
+
+        pos_middle = (pos_e-pos_s)*length_ratio + pos_s
+        dir_swivel = pos_m - pos_middle
+        dir_swivel.normalize()
+        pos_swivel = dir_swivel * self.sysIK.swivelDistance + pos_ref
+        self.sysIK.ctrlSwivel.setTranslation(pos_swivel, space='world')
 
     def snapFkToIk(self):
         for ctrl, jnt in zip(self.sysFK.ctrls, self.input):

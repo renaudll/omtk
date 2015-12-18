@@ -1,9 +1,9 @@
 import pymel.core as pymel
-from omtk.rigging.autorig.classRigNode import RigNode
+from omtk.rigging.autorig.classNode import Node
 from omtk.libs import libRigging, libPymel
 import logging; log = logging.getLogger(__name__)
 
-class RigCtrl(RigNode):
+class BaseCtrl(Node):
     """
     A rig ctrl automatically hold/fetch is animation and is shapes when building/unbuilding.
     """
@@ -25,7 +25,7 @@ class RigCtrl(RigNode):
 
         self.offset = None  # An intermediate parent that store the original transform of the ctrl.
 
-        super(RigCtrl, self).__init__(create=create, *args, **kwargs)
+        super(BaseCtrl, self).__init__(create=create, *args, **kwargs)
 
     def __createOffset__(self):
         """
@@ -51,7 +51,7 @@ class RigCtrl(RigNode):
         """
         Create ctrl setup, also fetch animation and shapes if necessary.
         """
-        super(RigCtrl, self).build(*args, **kwargs)
+        super(BaseCtrl, self).build(*args, **kwargs)
 
         # Create an intermediate parent if necessary
         if self._create_offset:
@@ -75,7 +75,7 @@ class RigCtrl(RigNode):
         self.hold_attrs_all()
         self.shape = libRigging.hold_ctrl_shapes(self.node)
 
-        super(RigCtrl, self).unbuild(*args, **kwargs)
+        super(BaseCtrl, self).unbuild(*args, **kwargs)
 
         # Delete offset node if necessary.
         # Note that we delete the offset node AFTER deleting the original node.
@@ -104,7 +104,7 @@ class RigCtrl(RigNode):
         return self.offset.setParent(*args, **kwargs)
 
 
-    # TODO: Make sure it work
+    # stabilise
     def create_space_switch_network(self, spaces, labels, default=True):
         parent_constraint = pymel.parentConstraint(spaces, self.offset, maintainOffset=True)
         pymel.addAttr(self.offset, longName='space', at='enum', enumName=labels)
@@ -185,14 +185,14 @@ class RigCtrl(RigNode):
         Analyse a network node and resolve if it can be usefull as a pivot for the animtor.
         """
         import libSerialization
-        from omtk.rigging.autorig.classRigPart import RigPart
+        from omtk.rigging.autorig.classModule import Module
 
         # Validate parameter
         if not isinstance(network, pymel.nodetypes.Network):
             raise IOError("Expected pymel.nodetypes.Network, got {0} ({1})".format(network, type(network)))
 
-        # Validate that the network inherit from the RigPart class.
-        if not libSerialization.isNetworkInstanceOfClass(network, RigPart.__name__):
+        # Validate that the network inherit from the Module class.
+        if not libSerialization.isNetworkInstanceOfClass(network, Module.__name__):
             return False
 
         # Validate that we can pin on this network
@@ -208,7 +208,7 @@ class RigCtrl(RigNode):
 
     def get_spaceswitch_targets(self, jnt):
         import libSerialization
-        # Return true if x is a network of type 'RigPart' and it's
+        # Return true if x is a network of type 'Module' and it's
         networks = libSerialization.getConnectedNetworksByHierarchy(jnt, key=self.is_pinnable)
         targets = []
 

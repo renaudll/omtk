@@ -2,9 +2,9 @@ import os
 import pymel.core as pymel
 from maya import cmds, mel  # djrivet
 import omtk
-from classNameMap import NameMap
-from classRigCtrl import RigCtrl
-from classRigPart import RigPart
+from classNameMap import NameMapLegacy
+from classCtrl import BaseCtrl
+from classModule import Module
 from omtk.libs import libRigging
 
 """
@@ -55,7 +55,7 @@ def _reparent_djRivet_follicles(parent, delete_old_parent=True):
     return follicles
 
 
-class Dorito(RigPart):
+class Dorito(Module):
     def build(self, _bConstraint=True, *args, **kwargs):
         # If there's no input, create it
         if len(self.input) == 0:
@@ -63,7 +63,7 @@ class Dorito(RigPart):
         input = next(iter(self.input))
 
         super(Dorito, self).build(create_grp_anm=True, create_grp_rig=True, *args, **kwargs)
-        self.ctrl = RigCtrl()
+        self.ctrl = BaseCtrl()
         self.ctrl.build()
 
         # Hack: Include the rotatePivot in our matrix calculation

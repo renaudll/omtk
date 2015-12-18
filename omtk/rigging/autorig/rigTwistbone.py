@@ -1,10 +1,17 @@
 import pymel.core as pymel
-from classRigPart import RigPart
-from classRigNode import RigNode
-from omtk.libs import libRigging, libPymel
+from classModule import Module
+from classNode import Node
+from omtk.libs import libRigging
 from rigSplineIK import SplineIK
 
-class NonRollJoint(RigNode):
+class NonRollJoint(Node):
+
+    def __init__(self):
+        self.ikHandle = self.ikEffector = None
+
+    """
+    Used for quaternion extraction.
+    """
     def build(self):
         self.node = pymel.createNode('transform')
 
@@ -14,7 +21,7 @@ class NonRollJoint(RigNode):
         self.end.setTranslation([1,0,0])
         pymel.makeIdentity((self.start, self.end), apply=True, r=True)
 
-        self.ikHandle, self.ikEffector = pymel.ikHandle( # todo: rename
+        self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver='ikRPsolver',
             startJoint=self.start,
             endEffector=self.end)
@@ -22,16 +29,19 @@ class NonRollJoint(RigNode):
         self.ikHandle.poleVectorY.set(0)
         self.ikHandle.poleVectorZ.set(0)
 
-        # Set Hyerarchy
+        # Set Hierarchy
         self.start.setParent(self.node)
         self.ikHandle.setParent(self.node)
 
+
 # Todo: Support more complex IK limbs (ex: 2 knees)
-class Twistbone(RigPart):
+class Twistbone(Module):
     def __init__(self, *args, **kwargs):
+        self.ikCurve = None
+
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, _bOrientIkCtrl=True, create_boxes=True, *args, **kwargs):
+    def build(self, orient_ik_ctrl=True, create_boxes=True, *args, **kwargs):
         super(Twistbone, self).build(create_grp_anm=False, *args, **kwargs)
         jnt_s = self.input[0]
         jnt_e = self.input[1]
@@ -107,12 +117,14 @@ class Twistbone(RigPart):
         pymel.connectAttr(upnode_s.xformMatrix, splineIK.ikHandle.dWorldUpMatrix)
         pymel.connectAttr(upnode_e.xformMatrix, splineIK.ikHandle.dWorldUpMatrixEnd)
 
+        '''
         # Bonus: Give the twistbones a killer look
         if create_boxes:
             for i in range(len(self.subjnts)-1):
                 jnt_inn = self.subjnts[i]
                 jnt_out = self.subjnts[i+1]
                 libRigging.create_jnt_box(jnt_inn, jnt_out)
+        '''
 
     def unbuild(self):
         pass

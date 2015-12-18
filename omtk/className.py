@@ -15,7 +15,7 @@ class Name(object):
         # prefix and suffix are automatically handled
         self.prefix = prefix
         self.suffix = suffix
-        self.tokens = self.separator.split(name)
+        self.tokens = name.split(self.separator)
 
     def add_suffix(self, suffix):
         self.tokens.append(suffix)
@@ -24,8 +24,18 @@ class Name(object):
         self.tokens.insert(0, prefix)
 
     @libPython.memoized
-    def resolve(self):
-        return '{0}{1}{2}'.format(self.prefix, self.separator.join(self.tokens), self.suffix)
+    def resolve(self, prefix=None, suffix=None, *args):
+        tokens = []
+        if prefix:
+            tokens.append(prefix)
+        if self.prefix:
+            tokens.append(self.prefix)
+        tokens.extend(args)
+        if self.suffix:
+            tokens.append(self.suffix)
+        if suffix:
+            tokens.append(suffix)
+        return self.separator.join(tokens)
 
     def __repr__(self):
         return self.resolve()

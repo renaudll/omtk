@@ -142,10 +142,10 @@ class IK(Module):
     def calc_swivel_pos(self):
         pos_start = self.input[0].getTranslation(space='world')
         pos_end = self.input[self.iCtrlIndex].getTranslation(space='world')
-        ratio = self.input[1].t.get().length() / self._chain_length
+        ratio = self.input[1].t.get().length() / self.chain_length
         pos_swivel_base = (pos_end - pos_start) * ratio + pos_start
         dir_swivel = (self.input[1].getTranslation(space='world') - pos_swivel_base).normal()
-        return pos_swivel_base + dir_swivel * self._chain_length
+        return pos_swivel_base + dir_swivel * self.chain_length
 
     def __debug(self, attr, scale=1.0, name=None):
         parent = pymel.createNode('transform')
@@ -165,36 +165,36 @@ class IK(Module):
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.input, self._chain_ik):
-            name_map = Name(oInput, _sType='rig')
-            oIk.rename(name_map.Serialize('ik'))
+            name_map = Name(oInput, suffix='rig')
+            oIk.rename(name_map('ik'))
         self._chain_ik[0].setParent(self._oParent)  # Trick the IK system (temporary solution)
 
         oChainS = self._chain_ik[0]
         oChainE = self._chain_ik[self.iCtrlIndex]
 
         # Compute chain length
-        self._chain_length = self._chain.length()
+        self.chain_length = self._chain.length()
 
         # Compute swivel position
         p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
-        grp_ikChain = pymel.createNode('transform', name=self._name_rig.Serialize('ikChain'), parent=self.grp_rig)
-        grp_ikChain.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
-        oChainS.setParent(grp_ikChain)
+        ikChainGrp = pymel.createNode('transform', name=self._name_rig('ikChain'), parent=self.grp_rig)
+        ikChainGrp.setMatrix(oChainS.getMatrix(worldSpace=True), worldSpace=True)
+        oChainS.setParent(ikChainGrp)
 
         # Create ikEffector
         self._oIkHandle, oIkEffector = pymel.ikHandle(startJoint=oChainS, endEffector=oChainE, solver='ikRPsolver')
-        self._oIkHandle.rename(self._name_rig.Serialize('ikHandle'))
-        self._oIkHandle.setParent(grp_ikChain)
-        oIkEffector.rename(self._name_rig.Serialize('ikEffector'))
+        self._oIkHandle.rename(self._name_rig('ikHandle'))
+        self._oIkHandle.setParent(ikChainGrp)
+        oIkEffector.rename(self._name_rig('ikEffector'))
 
         # Create ctrls
         if not isinstance(self.ctrlIK, CtrlIk): self.ctrlIK = CtrlIk()
         self.ctrlIK.build()
         # self.ctrlIK = CtrlIk(_create=True)
         self.ctrlIK.setParent(self.grp_anm)
-        self.ctrlIK.rename(self._name_anm.Serialize('ik'))
+        self.ctrlIK.rename(self._name_anm('ik'))
         self.ctrlIK.offset.setTranslation(oChainE.getTranslation(space='world'), space='world')
         if _bOrientIkCtrl is True:
             self.ctrlIK.offset.setRotation(oChainE.getRotation(space='world'), space='world')
@@ -203,10 +203,10 @@ class IK(Module):
         self.ctrl_swivel.build()
         # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
-        self.ctrl_swivel.rename(self._name_anm.Serialize('ikSwivel'))
+        self.ctrl_swivel.rename(self._name_anm('ikSwivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.ctrl_swivel.offset.setRotation(self.input[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
-        self.swivelDistance = self._chain_length  # Used in ik/fk switch
+        self.swivelDistance = self.chain_length  # Used in ik/fk switch
 
         #
         # Create softIk node and connect user accessible attributes to it.
@@ -222,15 +222,15 @@ class IK(Module):
         rig_softIkNetwork.build()
         pymel.connectAttr(attInRatio, rig_softIkNetwork.inRatio)
         pymel.connectAttr(attInStretch, rig_softIkNetwork.inStretch)
-        pymel.connectAttr(grp_ikChain.worldMatrix, rig_softIkNetwork.inMatrixS)
+        pymel.connectAttr(ikChainGrp.worldMatrix, rig_softIkNetwork.inMatrixS)
         pymel.connectAttr(self.ctrlIK.worldMatrix, rig_softIkNetwork.inMatrixE)
-        rig_softIkNetwork.inChainLength.set(self._chain_length)
+        rig_softIkNetwork.inChainLength.set(self.chain_length)
 
         # Constraint effector
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)
-        pymel.select(self.ctrlIK, grp_ikChain, self._oIkHandle)
+        pymel.select(self.ctrlIK, ikChainGrp, self._oIkHandle)
         constraint = pymel.pointConstraint()
         constraint.rename(constraint.name().replace('pointConstraint', 'softIkConstraint'))
         pymel.select(constraint)
@@ -257,6 +257,6 @@ class IK(Module):
 
         # Connect to parent
         if libPymel.is_valid_PyNode(self.parent):
-            pymel.parentConstraint(self.parent, grp_ikChain, maintainOffset=True)
+            pymel.parentConstraint(self.parent, ikChainGrp, maintainOffset=True)
         for source, target in zip(self._chain_ik, self._chain):
             pymel.parentConstraint(source, target)

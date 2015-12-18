@@ -1,8 +1,9 @@
 import pymel.core as pymel
 from classModule import Module
 from classNode import Node
-from omtk.libs import libRigging
+from libs import libRigging
 from rigSplineIK import SplineIK
+
 
 class NonRollJoint(Node):
 
@@ -42,40 +43,39 @@ class Twistbone(Module):
         super(Twistbone, self).__init__(*args, **kwargs)
 
     def build(self, orient_ik_ctrl=True, create_boxes=True, *args, **kwargs):
+        if len(self.input) < 2:
+            raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.input), self.input))
+
         super(Twistbone, self).build(create_grp_anm=False, *args, **kwargs)
         jnt_s = self.input[0]
         jnt_e = self.input[1]
 
         # Create curve from input joints (we'll use maya splineIKEffector for our upnodes.
         num_steps = 2
-        self.ikCurve = libRigging.create_nurbsCurve_from_chain(
-            jnt_s, jnt_e,
-            degree=(2 if num_steps > 2 else 1),
-            num_cvs=num_steps)
-        pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True) # todo: really?
+        self.ikCurve = libRigging.create_nurbsCurve_from_joints(jnt_s, jnt_e, 2 if num_steps > 2 else 1)
+        pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True)
 
         # Generate Subjoinbs
-        reload(libRigging)
-        self.subjnts = libRigging.create_joints_from_chain(jnt_s, jnt_e, 5)
+        self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 5)
 
         # Create splineIK
         splineIK = SplineIK(self.subjnts +[self.ikCurve])
-        splineIK.bStretch = False # todo: pass it via kwargs
+        splineIK.bStretch = False
         splineIK.build(create_grp_anm=False)
         self.ikCurve.setParent(splineIK.grp_rig)
 
-        nonroll_1 = NonRollJoint() # todo: remove the need for an input
+        nonroll_1 = NonRollJoint()
         nonroll_1.build()
-        nonroll_1.rename('nonroll_s')
+        nonroll_1.rename(self._name_rig.resolve('nonroll_s'))
         jnt_s_parent = jnt_s.getParent()
         nonroll_1.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         if jnt_s_parent: pymel.parentConstraint(jnt_s_parent, nonroll_1.node, maintainOffset=True)
 
         pymel.parentConstraint(jnt_s, nonroll_1.ikHandle, maintainOffset=True)
 
-        nonroll_2 = NonRollJoint() # todo: remove the need for an input
+        nonroll_2 = NonRollJoint()
         nonroll_2.build()
-        nonroll_2.rename('nonroll_e')
+        nonroll_2.rename(self._name_rig.resolve('nonroll_2'))
 
         nonroll_2.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         nonroll_2.setTranslation(jnt_e.getTranslation(space='world'), space='world')

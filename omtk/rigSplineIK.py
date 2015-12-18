@@ -27,26 +27,25 @@ class SplineIK(Module):
         super(SplineIK, self).build(*args, **kwargs)
 
         # todo: handle multiple curves?
-        curve = self._curves[0]
-        curveShape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)), None)
+        curve = next(iter(self._curves), None)
+        curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)), None)
 
-        # create splineik effector
-        # todo: search for additional options
-        name_kEffector = self._name_rig.Serialize('ikEffector')
+        # Create ik solver
+        solver_name = self._name_rig.resolve('ikEffector')
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,
             startJoint=self._joints[0],
             endEffector=self._joints[-1],
             createCurve=False,
-            name=name_kEffector,
+            name=solver_name,
             parentCurve=False,
             snapCurve=False)
         self.ikHandle.setParent(self.grp_rig)
 
         # Create stretch
         # Todo: use shape instead of transform as curve input?
-        curveLength = libRigging.create_utility_node('curveInfo', inputCurve=curveShape.worldSpace).arcLength
+        curveLength = libRigging.create_utility_node('curveInfo', inputCurve=curve_shape.worldSpace).arcLength
         self.stretch_att = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
 
         # Create squash

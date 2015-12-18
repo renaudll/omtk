@@ -39,7 +39,6 @@ class Module(object):
 
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, *args, **kwargs):
-        super(Module, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
@@ -52,7 +51,6 @@ class Module(object):
 
     def __repr__(self):
         # TODO: Never crash on __repr__
-        assert(hasattr(self, '_namemap_anm'))
         return '{0} ({1})'.format(str(self._name_anm), self.__class__.__name__)
 
     def __setattr__(self, key, val):
@@ -72,18 +70,18 @@ class Module(object):
         assert(hasattr(self, '_namemap_rig'))
         if not self._name_rig:
             pymel.error('self._namemap_rig is None, inputs: {0}'.format(self.input))
-        return self._name_rig.Serialize(self.__class__.__name__, _sType='net')
+        return self._name_rig(self.__class__.__name__, suffix='net')
 
     def __createMayaNetwork__(self):
-        return pymel.createNode('network', name=self._name_anm.Serialize(_sType='net'))
+        return pymel.createNode('network', name=self._name_anm(suffix='net'))
 
     # Even when nothing is build, it's usefull to access properties like namemaps.
     # This method is called automaticly when self.inputs is changed.
     def _post_setattr_inputs(self):
         oRef = next(iter(self.input), None)
         if oRef is not None:
-            self._name_anm = Name(oRef, _sType='anm')
-            self._name_rig = Name(oRef, _sType='rig')
+            self._name_anm = Name(oRef, suffix='anm')
+            self._name_rig = Name(oRef, suffix='rig')
             self._oParent = oRef.getParent() if oRef else None
 
     def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
@@ -93,7 +91,7 @@ class Module(object):
         if self._name_rig is None:
             self._name_rig = Name('untitled')
 
-        logging.info('Building {0}'.format(self._name_rig.Serialize()))
+        logging.info('Building {0}'.format(self._name_rig))
 
         '''
         if len(self.input) == 0:
@@ -101,9 +99,11 @@ class Module(object):
         '''
 
         if create_grp_anm:
-            self.grp_anm = pymel.createNode('transform', name=self._name_anm.Serialize(self.__class__.__name__.lower(), _sType='anm'))
+            grp_anm_name = self._name_anm.resolve(self.__class__.__name__.lower(), prefix='anm')
+            self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            self.grp_rig = pymel.createNode('transform', name=self._name_rig.Serialize(self.__class__.__name__.lower(), _sType='rig'))
+            grp_rig_name = self._name_rig.resolve(self.__class__.__name__.lower(), suffix='rig')
+            self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
     def unbuild(self):
         # Ensure that there's no more connections in the input chain

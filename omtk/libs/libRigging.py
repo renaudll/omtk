@@ -1,6 +1,7 @@
 from maya import cmds
 import pymel.core as pymel
 import logging
+from omtk.libs import libPymel
 
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
@@ -81,35 +82,81 @@ def fetch_ctrl_shapes(source, target):
         source_shape.setParent(target, r=True, s=True)
         source_shape.rename(target.name() + 'Shape')
 
-    # TODO: Restore AnnotationShapes
+    # TODO: Support AnnotationShapes
     pymel.delete(source)
 
 
-def BackupCtrlShapes(**kwargs):
+def hold_all_ctrl_shapes(**kwargs):
     aCtrls = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
     return [hold_ctrl_shapes(oCtrl, **kwargs) for oCtrl in aCtrls]
 
 
-# TODO: Fix bug when two objects have the same name.
-def RestoreCtrlShapes():
-    aSources = [o.getParent() for o in pymel.ls('_anm_*', type='nurbsCurve')]
+def fetch_all_ctrl_shapes():
+    ctrls = [o.getParent() for o in pymel.ls('_anm_*', type='nurbsCurve')]
 
-    for oSource in aSources:
-        sTargetName = oSource.name()[1:]
-        if pymel.objExists(sTargetName):
-            oTarget = pymel.PyNode(str(sTargetName))
-
-            fetch_ctrl_shapes(oSource, oTarget)
-            # pymel.delete(oSource)
+    for ctrl in ctrls:
+        target_name = ctrl.name()[1:]
+        if pymel.objExists(target_name):
+            target = pymel.PyNode(str(target_name))
+            fetch_ctrl_shapes(ctrl, target)
 
 
-def create_squash_atts(attStretch, numSegments):
+def create_squash_atts(attr_stretch, samples):
+    """
+    Create attributes resolving a curve using the following formula.
+    s^(e^(x^2)))
+    :param attr_stretch: # The stretch attribute.
+    :param samples: Number of samples to resolve.
+    """
     import libFormula
-    if not isinstance(attStretch, pymel.Attribute):
-        raise IOError("Expected pymel Attribute, got {0} ({1})".format(attStretch, type(attStretch)))
+    if not isinstance(attr_stretch, pymel.Attribute):
+        raise IOError("Expected pymel Attribute, got {0} ({1})".format(attr_stretch, type(attr_stretch)))
     return_vals = []
-    for i in range(numSegments):
-        pos = float(i) / (numSegments - 1) * 2.0 - 1.0
-        attSquash = libFormula.parse("s^(e^(x^2)))", s=attStretch, x=pos)
-        return_vals.append(attSquash)
+    for i in range(samples):
+        pos = float(i) / (samples - 1) * 2.0 - 1.0
+        attr_squash = libFormula.parse("s^(e^(x^2)))", s=attr_stretch, x=pos)
+        return_vals.append(attr_squash)
     return return_vals
+
+
+def create_nurbsCurve_from_joints(obj_s, obj_e, samples=2, num_cvs=3):
+    pos_s = obj_s.getTranslation(worldSpace=True)
+    pos_e = obj_e.getTranslation(worldSpace=True)
+    coords = []
+    for i in range(num_cvs):
+        ratio = float(i) / (num_cvs - 1)
+        oord = (pos_s + (ratio * (pos_e - pos_s)))
+        coords.append(oord)
+
+    nurbsCurve = pymel.curve(d=samples, p=coords)
+
+    return nurbsCurve
+
+
+def create_hyerarchy(_oObjs):
+    for i in range(1, len(_oObjs)):
+        _oObjs[i].setParent(_oObjs[i-1])
+
+
+def create_chain_between_objects(obj_s, obj_e, samples, ):
+    tm = obj_s.getMatrix(worldSpace=True)
+    pos_s = obj_s.getTranslation(space='world')
+    pos_e = obj_e.getTranslation(space='world')
+
+    new_objs = []
+
+    pymel.select(clear=True)
+    for iCurJnt in range(0, samples):
+        ratio = float(iCurJnt) / (samples - 1.00)
+        pos = pos_s + (pos_e - pos_s) * ratio
+
+        new_obj = pymel.duplicate(obj_s, parentOnly=True)[0]
+        new_obj.setMatrix(tm)
+        new_obj.setTranslation(pos, space='world')
+        new_objs.append(new_obj)
+
+    new_objs[0].setParent(world=True)
+    create_hyerarchy(new_objs)
+
+    return new_objs
+

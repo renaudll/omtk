@@ -24,6 +24,22 @@ from rigTwistbone import Twistbone
 
 import libSerialization
 
+def _reload():
+    """
+    Reload all module in their respective order.
+    """
+    reload(className)
+
+    reload(classNode)
+    reload(classCtrl)
+
+    reload(classRig)
+    reload(classModule)
+    reload(rigIK)
+    reload(rigFK)
+    reload(rigArm)
+    reload(rigLeg)
+    reload(rigSplineIK)
 
 def create(*args, **kwargs):
     return classRig.Rig(*args, **kwargs)
@@ -250,20 +266,3 @@ def show():
         print("[error] Unknow error initializing gui.py: {0}".format(str(e)))
 
 
-def _reload():
-    """
-    Reload all module in their respective order.
-    """
-    reload(className)
-
-    reload(classNode)
-    reload(classCtrl)
-
-    reload(classRigElement)
-    reload(classRig)
-    reload(classModule)
-    reload(rigIK)
-    reload(rigFK)
-    reload(rigArm)
-    reload(rigLeg)
-    reload(rigSplineIK)

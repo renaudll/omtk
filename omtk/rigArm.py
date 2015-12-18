@@ -1,10 +1,10 @@
 import pymel.core as pymel
-from omtk.rigging.autorig.className import Name
-from omtk.rigging.autorig.classModule import Module
-from omtk.rigging.autorig.classCtrl import BaseCtrl
-from omtk.rigging.autorig.rigIK import IK
-from omtk.rigging.autorig.rigFK import FK
-from omtk.libs import libRigging
+from className import Name
+from classModule import Module
+from classCtrl import BaseCtrl
+from rigIK import IK
+from rigFK import FK
+from libs import libRigging
 
 class BaseAttHolder(BaseCtrl):
     def __createNode__(self, name=None, *args, **kwargs):
@@ -34,7 +34,7 @@ class Arm(Module):
         self._aIkChain = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.input, self._aIkChain):
             namemap = Name(oInput, _sType='rig')
-            oIk.rename(namemap.Serialize('ik'))
+            oIk.rename(namemap('ik'))
         self._aIkChain[0].setParent(self._oParent) # Trick the IK system (temporary solution)
         '''
 
@@ -52,7 +52,7 @@ class Arm(Module):
         self.sysFK.grp_anm.setParent(self.grp_anm)
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
-        oAttHolder = BaseAttHolder(name=self._name_anm.Serialize('atts'), create=True)
+        oAttHolder = BaseAttHolder(name=self._name_anm('atts'), create=True)
         oAttHolder.setParent(self.grp_anm)
         pymel.parentConstraint(self.input[self.sysIK.iCtrlIndex], oAttHolder.offset)
         pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
@@ -63,8 +63,8 @@ class Arm(Module):
         # Create a chain for blending ikChain and fkChain
         _chain_blend = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_blend):
-            namemap = Name(input_, _sType='rig')
-            node.rename(namemap.Serialize('blend'))
+            namemap = Name(input_, suffix='rig')
+            node.rename(namemap('blend'))
 
         # Blend ikChain with fkChain
         for blend, oIk, oFk in zip(_chain_blend, self.sysIK._chain_ik, self.sysFK.ctrls):
@@ -81,8 +81,8 @@ class Arm(Module):
         # Create a chain that provide the elbow controller and override the blend chain (wich should only be nodes already)
         _chain_elbow = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_elbow):
-            namemap = Name(input_, _sType='rig')
-            node.rename(namemap.Serialize('elbow')) # todo: find a better name???
+            namemap = Name(input_, suffix='rig')
+            node.rename(namemap('elbow')) # todo: find a better name???
         _chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl

@@ -76,13 +76,19 @@ class Arm(Module):
         pymel.connectAttr(attIkWeight, self.sysIK.grp_anm.visibility)
         pymel.connectAttr(attFkWeight, self.sysFK.grp_anm.visibility)
 
+        #
+        # Create elbow chain
+        # This provide the elbow ctrl, an animator friendly way of cheating the elbow on top of the blend chain.
+        #
+
         # Create a chain that provide the elbow controller and override the blend chain (wich should only be nodes already)
-        _chain_elbow = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
+        _chain_elbow = pymel.duplicate(self.input[:self.sysIK.iCtrlIndex], renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_elbow):
             node.rename(self._name_rig.resolve('elbow')) # todo: find a better name???
         _chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl
+        # Note that this only affect the chain until @iCtrlIndex
         index_elbow = 1
         ctrl_elbow_name = self._name_anm.resolve('elbow')
         ctrl_elbow_parent = _chain_blend[index_elbow]
@@ -93,14 +99,21 @@ class Arm(Module):
         self.ctrl_elbow.setParent(self.grp_anm)
         pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
 
-        pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0])
-        pymel.aimConstraint(self.sysIK.ctrlIK, _chain_elbow[index_elbow])
+        pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0], worldUpType=2, worldUpObject=_chain_blend[0]) # Object Rotation Up
+        pymel.aimConstraint(self.sysIK.ctrlIK, _chain_elbow[index_elbow], worldUpType=2, worldUpObject=_chain_blend[index_elbow]) # Object Rotation Up
         pymel.pointConstraint(self.ctrl_elbow, _chain_elbow[index_elbow], maintainOffset=False)
-        pymel.pointConstraint(_chain_blend[-1], _chain_elbow[-1], maintainOffset=False)
 
-        # Constraint elbow setup to input
-        for innJnt, ref in zip(self.input, _chain_elbow):
-            pymel.parentConstraint(ref, innJnt, maintainOffset=True)
+        # Constraint input chain
+        # Note that we only constraint to the elbow chain until @iCtrlIndex.
+        # Afterward we constraint to the blend chain.
+        for i in range(self.sysIK.iCtrlIndex):
+            inn = self.input[i]
+            ref = _chain_elbow[i]
+            pymel.parentConstraint(ref, inn, maintainOffset=True) # todo: set to maintainOffset=False?
+        for i in range(self.sysIK.iCtrlIndex, len(self.input)):
+            inn = self.input[i]
+            ref = _chain_blend[i]
+            pymel.parentConstraint(ref, inn, maintainOffset=True) # todo: set to maintainOffset=False?
 
         #self.ctrlIkOffset = self.sysIK.ctrlIK.getMatrix(worldSpace=True) * \
         #                    self.sysFK.ctrls[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()

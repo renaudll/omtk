@@ -36,6 +36,7 @@ class CtrlRoot(BaseCtrl):
 class Rig(object):
     NAME_ROOT_JNT = 'jnts'
     NAME_ROOT_ANM = 'anm_root'
+    DEFAULT_NAME = 'untitled'
 
     #
     # collections.MutableSequence implementation
@@ -72,11 +73,14 @@ class Rig(object):
         self.children = []
 
     def __str__(self):
-        return '<rig {0}/>'.format('???')
+        return '<rig {0}/>'.format(self.name)
 
     #
     # Main implementation
     #
+
+    def __init__(self, name=None):
+        self.name = name if name else self.DEFAULT_NAME
 
     def add_part(self, part):
         #if not isinstance(part, Module):

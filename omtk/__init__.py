@@ -1,6 +1,17 @@
-import functools
+import sys, os, functools
 import pymel.core as pymel
 import logging; log = logging.getLogger(__name__); log.setLevel(logging.DEBUG)
+
+# Load dependencies (including git submodules) in sys.path
+__dependencies__ = [
+    ('deps',),
+    ('..', 'libSerialization',),
+    ('..', 'pyyaml', 'lib')
+]
+current_dir = os.path.dirname(os.path.realpath(__file__))
+for dependency in __dependencies__:
+    path = os.path.realpath(os.path.join(current_dir, *dependency))
+    sys.path.append(path)
 
 # We need to import all modules since libSerialization need the classes to be defined so it can resolve them.
 import className

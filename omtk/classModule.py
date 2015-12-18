@@ -2,7 +2,7 @@ import pymel.core as pymel
 import logging
 from className import Name
 from classCtrl import BaseCtrl
-from omtk.libs import libPymel, libAttr
+from libs import libPymel, libAttr
 
 def getattrs_by_type(val, type):
     for key, val in val.__dict__.iteritems():

@@ -60,9 +60,6 @@ class PyNodeChain(collections.MutableSequence):
     def insert(self, ii, val):
         self._list.insert(ii, val)
 
-    def append(self, val):
-        self.insert(len(self._list), val)
-
     def setParent(self, new_parent, **kwargs):
         for node in self._list:
             if node != new_parent and node.getParent() != new_parent:

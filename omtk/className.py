@@ -1,6 +1,6 @@
 import pymel.core as pymel
 import re
-from omtk.libs import libPython
+from libs import libPython
 
 
 class Name(object):

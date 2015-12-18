@@ -3,7 +3,7 @@ import pymel.core as pymel
 from classCtrl import BaseCtrl
 from classNode import Node
 from classModule import Module
-from omtk.libs import libPymel
+from libs import libPymel
 import time
 
 

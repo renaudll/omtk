@@ -1,6 +1,6 @@
 import pymel.core as pymel
 from classNode import Node
-from omtk.libs import libRigging, libPymel
+from libs import libRigging, libPymel
 import logging; log = logging.getLogger(__name__)
 
 class BaseCtrl(Node):

@@ -1,12 +1,11 @@
 import pymel.core as pymel
-from omtk.libs import libPymel
-
-'''
-This class is a pymel.PyNode wrapper that extent it's functionnality.
-Note: We can't directly inherit from pymel.PyNode.
-'''
+from libs import libPymel
 
 class Node(object):
+    """
+    This class is a pymel.PyNode wrapper that extent it's functionnality.
+    Note: We can't directly inherit from pymel.PyNode.
+    """
     def __init__(self, data=None, create=False, *args, **kwargs):
         self.__dict__['node'] = data
 

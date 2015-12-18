@@ -4,5 +4,4 @@
 	ignore = dirty
 [submodule "libSerialization"]
 	path = libSerialization
-	url = https://github.com/renaudll/libSerialization.git
-	ignore = dirty
+	url = git@github.com:renaudll/libSerialization.git

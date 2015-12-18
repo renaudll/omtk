@@ -234,10 +234,10 @@ class IK(Module):
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)
         pymel.select(self.ctrlIK, ikChainGrp, self._ik_handle)
-        constraint = pymel.pointConstraint()
-        constraint.rename(constraint.name().replace('pointConstraint', 'softIkConstraint'))
-        pymel.select(constraint)
-        weight_inn, weight_out = constraint.getWeightAliasList()
+        pointConstraint = pymel.pointConstraint()
+        pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
+        pymel.select(pointConstraint)
+        weight_inn, weight_out = pointConstraint.getWeightAliasList()
         pymel.connectAttr(attOutRatio, weight_inn)
         pymel.connectAttr(attOutRatioInv, weight_out)
 

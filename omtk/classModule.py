@@ -67,10 +67,7 @@ class Module(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        assert(hasattr(self, '_namemap_rig'))
-        if not self._name_rig:
-            pymel.error('self._namemap_rig is None, inputs: {0}'.format(self.input))
-        return self._name_rig.resolve(self.__class__.__name__, suffix='net')
+        return 'net_{0}'.format(self.__class__.__name__)
 
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name=self._name_anm.resolve('net'))

@@ -84,20 +84,24 @@ class Arm(Module):
         _chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl
-        ctrl_elbow_parent = _chain_blend[1]
+        index_elbow = 1
+        ctrl_elbow_name = self._name_anm.resolve('elbow')
+        ctrl_elbow_parent = _chain_blend[index_elbow]
         if not isinstance(self.ctrl_elbow, BaseCtrl):
             self.ctrl_elbow = BaseCtrl(create_offset=True) # todo: custom RigCtrl implementation?
         self.ctrl_elbow.build()
+        self.ctrl_elbow.rename(ctrl_elbow_name)
+        self.ctrl_elbow.setParent(self.grp_anm)
         pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
 
         pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0])
-        pymel.aimConstraint(self.sysIK.ctrlIK, _chain_elbow[1])
-        pymel.pointConstraint(self.ctrl_elbow, _chain_elbow[1], maintainOffset=False)
+        pymel.aimConstraint(self.sysIK.ctrlIK, _chain_elbow[index_elbow])
+        pymel.pointConstraint(self.ctrl_elbow, _chain_elbow[index_elbow], maintainOffset=False)
         pymel.pointConstraint(_chain_blend[-1], _chain_elbow[-1], maintainOffset=False)
 
         # Constraint elbow setup to input
-        #for innJnt, ref in zip(self.input, _chain_elbow):
-        #    pymel.parentConstraint(innJnt, ref, maintainOffset=False)
+        for innJnt, ref in zip(self.input, _chain_elbow):
+            pymel.parentConstraint(ref, innJnt, maintainOffset=True)
 
         self.attState = attIkWeight # Expose state
 

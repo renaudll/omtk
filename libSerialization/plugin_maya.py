@@ -1,7 +1,6 @@
 def is_valid_PyNode(val):
     return val and hasattr(val, 'exists') and val.exists()
 
-
 import pymel.core as pymel
 from maya import OpenMaya
 import logging
@@ -269,7 +268,7 @@ def import_network(_network):
         log.error('[importFromNetwork] Network dont have mandatory attribute _class')
         raise AttributeError
 
-    cls = _network.getAttr('_class').split('.')[-1]
+    cls = _network.getAttr('_class')
     obj = core.create_class_instance(cls)
     if obj is None:
         return None

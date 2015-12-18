@@ -9,8 +9,9 @@ TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX = range(4)
 
 def get_class_def(class_name, base_class=object):
     try:
-        for cls in base_class.__subclasses__():
-            if cls.__name__ == class_name:
+       for cls in base_class.__subclasses__():
+            cls_path = get_class_namespace(cls)
+            if cls_path == class_name:
                 return cls
             else:
                 t = get_class_def(class_name, base_class=cls)

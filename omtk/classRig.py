@@ -60,7 +60,8 @@ class Rig(object):
     def __iter__(self):
         return iter(self.children)
 
-    def __init__(self):
+    def __init__(self, name=None):
+        self.name = name if name else self.DEFAULT_NAME
         self.children = []
         self.grp_anms = None
         self.grp_geos = None
@@ -70,17 +71,12 @@ class Rig(object):
         self.layer_geo = None
         self.layer_rig = None
 
-        self.children = []
-
     def __str__(self):
         return '<rig {0}/>'.format(self.name)
 
     #
     # Main implementation
     #
-
-    def __init__(self, name=None):
-        self.name = name if name else self.DEFAULT_NAME
 
     def add_part(self, part):
         #if not isinstance(part, Module):
@@ -211,7 +207,8 @@ class Rig(object):
         """
         # Unbuild all childrens
         for child in self.children:
-            child.unbuild(**kwargs)
+            if child.is_built():
+                child.unbuild(**kwargs)
 
         # Delete anm_grp
         self.grp_anms.unbuild()

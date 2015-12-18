@@ -1,6 +1,6 @@
 import functools
 import pymel.core as pymel
-from libs.libQt import QtGui, getMayaWindow
+from libs.libQt import QtCore, QtGui, getMayaWindow
 import libSerialization
 import classModule
 import classRig
@@ -22,6 +22,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         self.treeWidget.itemSelectionChanged.connect(self._itemSelectionChanged)
         self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.treeWidget.itemChanged.connect(self._itemChanged)
 
         self.updateData()
         self.updateUi()
@@ -38,16 +39,17 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self.__dict__['_root'] = classRig.Rig()
         return self.__dict__['_root']
 
-    def _rigRootToQTreeWidget(self, _rig):
+    def _rigRootToQTreeWidget(self, module):
         qItem = QtGui.QTreeWidgetItem(0)
-        if hasattr(_rig, '_network'):
-            qItem.net = _rig._network
+        if hasattr(module, '_network'):
+            qItem.net = module._network
         else:
-            pymel.warning("{0} have no _network attributes".format(_rig))
-        qItem.rig = _rig
-        qItem.setText(0, str(_rig))
-        if isinstance(_rig, classRig.Rig):
-            for child in _rig:
+            pymel.warning("{0} have no _network attributes".format(module))
+        qItem.rig = module
+        qItem.setText(0, str(module))
+        qItem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
+        if isinstance(module, classRig.Rig):
+            for child in module:
                 qSubItem = self._rigRootToQTreeWidget(child)
                 qItem.addChild(qSubItem)
         return qItem
@@ -76,6 +78,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 pymel.warning("Can't build {0}, already built.".format(rig))
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE
             libSerialization.export_network(rig)
+        self.updateUi()
 
     def _actionUnbuild(self):
         for qItem in self.treeWidget.selectedItems():
@@ -86,6 +89,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 pymel.warning("Can't unbuild {0}, already unbuilt.".format(rig))
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE
             libSerialization.export_network(rig)
+        self.updateUi()
 
     def _actionRebuild(self):
         for qItem in self.treeWidget.selectedItems():
@@ -109,9 +113,25 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def _itemSelectionChanged(self):
         pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
 
+    def _itemChanged(self, item):
+        # todo: handle exception
+        module = item.rig
+        module_is_built = module.is_built()
+        new_state = item.checkState(0) == QtCore.Qt.Checked
+        if new_state:
+            if module_is_built:
+                module.unbuild()
+            module.build()
+        else:
+            if module_is_built:
+                module.unbuild()
+
+        # If we just built a rig, we might want to update all checkboxes.
+        if isinstance(module, classRig.Rig):
+            self.updateUi()
+
     def _actionAddPart(self, _cls):
         part = _cls(pymel.selected())
-        print part, type(part)
         self.root.add_part(part)
         net = libSerialization.export_network(self.root) # Export part and only part
         pymel.select(net)

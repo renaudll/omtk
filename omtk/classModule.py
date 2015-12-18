@@ -128,8 +128,6 @@ class Module(object):
             pymel.delete(self.grp_rig)
             self.grp_rig = None
 
-        super(Module, self).unbuild()
-
     def get_ctrls(self):
         return getattrs_by_type(self, BaseCtrl)
 

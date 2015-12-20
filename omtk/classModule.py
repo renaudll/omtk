@@ -2,17 +2,15 @@ import pymel.core as pymel
 import logging
 from className import Name
 from classCtrl import BaseCtrl
-from libs import libPymel, libAttr
+from libs import libPymel, libAttr, libPython
 
 def getattrs_by_type(val, type):
     for key, val in val.__dict__.iteritems():
         if isinstance(val, type):
             yield val
-        elif hasattr(val, '__getItem__'):
-            for subval in val:
-                if isinstance(subval, type):
-                    yield subval
-
+        elif isinstance(val, Module):
+            for subval in getattrs_by_type(val, type):
+                yield subval
 
 class Module(object):
     """
@@ -37,14 +35,38 @@ class Module(object):
     def outputs(self):
         return self.__dict__['_outputs']
 
+    # todo: rename
+    @libPython.cached_property()
+    def _name_anm(self):
+        ref = next(iter(self.input), None)
+        if ref:
+            return Name(ref.stripNamespace(), prefix='anm')
+
+    # todo: rename
+    @libPython.cached_property()
+    def _name_rig(self):
+        ref = next(iter(self.input), None)
+        if ref:
+            return Name(ref.stripNamespace(), prefix='rig')
+
+    # todo: rename or remove?
+    @libPython.cached_property()
+    def _oParent(self):
+        ref = next(iter(self.input), None)
+        if ref:
+            return ref.getParent()
+
+    # todo: rename?
+    @libPython.cached_property()
+    def _chain(self):
+        return libPymel.PyNodeChain(self.input)  # todo: approve PyNodeChain class
+
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, *args, **kwargs):
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
         self.canPinTo = True # If raised, the network can be used as a space-switch pin-point
-        self._name_anm = None
-        self._name_rig = None
 
         #  since we're using hook on inputs, assign it last!
         self.input = input if input else []
@@ -52,13 +74,6 @@ class Module(object):
     def __repr__(self):
         # TODO: Never crash on __repr__
         return '{0} ({1})'.format(str(self._name_anm), self.__class__.__name__)
-
-    def __setattr__(self, key, val):
-        self.__dict__[key] = val
-        # todo: find a faster way? (properties don't work since we need access via libSerialization)
-        if key == 'input':
-            self._post_setattr_inputs()
-            self._chain = libPymel.PyNodeChain(self.input) # todo: approve PyNodeChain class
 
     # Used in libSerialization
     def __getNetworkName__(self):
@@ -72,22 +87,7 @@ class Module(object):
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name=self._name_anm.resolve('net'))
 
-    # Even when nothing is build, it's usefull to access properties like namemaps.
-    # This method is called automaticly when self.inputs is changed.
-    def _post_setattr_inputs(self):
-        oRef = next(iter(self.input), None)
-        if oRef is not None:
-            self._name_anm = Name(oRef, prefix='anm')
-            self._name_rig = Name(oRef, prefix='rig')
-            self._oParent = oRef.getParent() if oRef else None
-
     def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
-        if self._name_anm is None:
-            self._name_anm = Name('untitled', prefix='anm')
-
-        if self._name_rig is None:
-            self._name_rig = Name('untitled', prefix='rig')
-
         logging.info('Building {0}'.format(self._name_rig))
 
         '''
@@ -103,6 +103,12 @@ class Module(object):
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
     def unbuild(self):
+        """
+        Call unbuild on each individual ctrls
+        This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
+        Note that this happen first so the rig can return to it's bind pose before anything else is done.
+        """
+
         # Ensure that there's no more connections in the input chain
         for obj in self.input:
             if isinstance(obj, pymel.nodetypes.Transform):
@@ -116,8 +122,6 @@ class Module(object):
                 libAttr.disconnectAttr(obj.sy)
                 libAttr.disconnectAttr(obj.sz)
 
-        # Call unbuild on each individual ctrls
-        # This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
         for ctrl in self.get_ctrls():
             ctrl.unbuild()
 
@@ -127,6 +131,11 @@ class Module(object):
         if self.grp_rig is not None:
             pymel.delete(self.grp_rig)
             self.grp_rig = None
+
+        # Reset any cached properties
+        # todo: ensure it's the best way
+        if '_cache' in self.__dict__:
+            self.__dict__.pop('_cache')
 
     def get_ctrls(self):
         return getattrs_by_type(self, BaseCtrl)

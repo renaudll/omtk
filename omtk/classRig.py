@@ -155,6 +155,16 @@ class Rig(object):
         self.grp_anms.rename(self.NAME_ROOT_ANM)
         all_anms.setParent(self.grp_anms)
 
+        # Connect globalScale attribute to each modules globalScale.
+        for child in self.children:
+            if child.globalScale:
+                pymel.connectAttr(self.grp_anms.globalScale, child.globalScale, force=True)
+
+        # Constraint grp_jnts to grp_anms
+        pymel.delete([child for child in self.grp_jnts.getChildren() if isinstance(child, pymel.nodetypes.Constraint)])
+        if self.grp_jnts.getParent() != self.grp_anms:
+            self.grp_jnts.setParent(self.grp_anms)
+
         # Create rig root
         all_rigs = libPymel.ls_root_rigs()
         if not isinstance(self.grp_rigs, Node):
@@ -163,11 +173,6 @@ class Rig(object):
             self.grp_rigs.build()
         self.grp_rigs.rename('rigs')
         all_rigs.setParent(self.grp_rigs)
-
-        # Ensure self.grp_jnts is constraint to self.grp_anms
-        # We use parentConstraint instead of connections to let the animator change grp_anms parent.
-        pymel.delete([child for child in self.grp_jnts.getChildren() if isinstance(child, pymel.nodetypes.Constraint)])
-        pymel.parentConstraint(self.grp_anms, self.grp_jnts)
 
         # Create geo root
         all_geos = libPymel.ls_root_geos()
@@ -179,8 +184,12 @@ class Rig(object):
         all_geos.setParent(self.grp_geos)
 
         # Setup displayLayers
+        anm_roots = [child.grp_anm for child in self.children if child.grp_anm]
+        for shape in self.grp_anms.getShapes():
+            anm_roots.append(shape)
+        print anm_roots
         self.layer_anm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anms, noRecurse=True)
+        pymel.editDisplayLayerMembers(self.layer_anm, anm_roots, noRecurse=True)
         self.layer_anm.color.set(17)  # Yellow
 
         self.layer_rig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
@@ -194,7 +203,6 @@ class Rig(object):
         pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geos, noRecurse=True)
         self.layer_geo.color.set(12)  # Green?
         self.layer_geo.displayType.set(2)  # Frozen
-
 
         print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 

@@ -47,10 +47,6 @@ class Arm(Module):
             self.sysFK = FK(self.input)
         self.sysFK.build(constraint=False, **kwargs)
 
-        self.sysIK.grp_anm.setParent(self.grp_anm)
-        self.sysIK.grp_rig.setParent(self.grp_rig)
-        self.sysFK.grp_anm.setParent(self.grp_anm)
-
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         oAttHolder = BaseAttHolder(name=self._name_anm.resolve('atts'), create=True)
         oAttHolder.setParent(self.grp_anm)
@@ -71,10 +67,6 @@ class Arm(Module):
             pymel.connectAttr(attIkWeight, attr_weight_ik)
             pymel.connectAttr(attFkWeight, attr_weight_fk)
         _chain_blend[0].setParent(self.grp_rig)
-
-        # Connect visibility
-        pymel.connectAttr(attIkWeight, self.sysIK.grp_anm.visibility)
-        pymel.connectAttr(attFkWeight, self.sysFK.grp_anm.visibility)
 
         #
         # Create elbow chain
@@ -119,7 +111,19 @@ class Arm(Module):
         #self.ctrlIkOffset = self.sysIK.ctrlIK.getMatrix(worldSpace=True) * \
         #                    self.sysFK.ctrls[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
-        self.attState = attIkWeight # Expose state
+        # Connect visibility
+        pymel.connectAttr(attIkWeight, self.sysIK.grp_anm.visibility)
+        pymel.connectAttr(attFkWeight, self.sysFK.grp_anm.visibility)
+
+        # Connect globalScale
+        pymel.connectAttr(self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True)
+
+        # Parent sub-modules so they are affected by displayLayer assignment and such.
+        self.sysIK.grp_anm.setParent(self.grp_anm)
+        self.sysIK.grp_rig.setParent(self.grp_rig)
+        self.sysFK.grp_anm.setParent(self.grp_anm)
+
+        self.attState = attIkWeight  # Expose state
 
     def unbuild(self, *args, **kwargs):
         super(Arm, self).unbuild(*args, **kwargs)

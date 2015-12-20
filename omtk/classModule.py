@@ -14,14 +14,9 @@ def getattrs_by_type(val, type):
 
 class Module(object):
     """
-    This is the base class for anything that can be Build/Unbuild
-
-    A Module serialized respect the maya architecture and can be vulgarised to a node.
-    This allow us to port the autorigger to software supporting compounds (xsi) or digital assets (houdini).
-
-    A rig part is built from at least one input, specific via the constructor.
-    To build a Module, use the .build and .unbuild function.
-    To manage a Module, use the .build() and .unbuild() function.
+    A Module is built from at least one input, specific via the constructor.
+    To build a Module, use the .build method.
+    To unbuild a Module, use the .unbuild() method.
     """
 
     def is_built(self):
@@ -40,14 +35,18 @@ class Module(object):
     def _name_anm(self):
         ref = next(iter(self.input), None)
         if ref:
-            return Name(ref.stripNamespace(), prefix='anm')
+            name = Name(ref.stripNamespace(), prefix='anm')
+            name.add_tokens(self.__class__.__name__.lower())
+            return name
 
     # todo: rename
     @libPython.cached_property()
     def _name_rig(self):
         ref = next(iter(self.input), None)
         if ref:
-            return Name(ref.stripNamespace(), prefix='rig')
+            name = Name(ref.stripNamespace(), prefix='rig')
+            name.add_tokens(self.__class__.__name__.lower())
+            return name
 
     # todo: rename or remove?
     @libPython.cached_property()
@@ -66,7 +65,8 @@ class Module(object):
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
-        self.canPinTo = True # If raised, the network can be used as a space-switch pin-point
+        self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
+        self.globalScale = None  # Each module is responsible for handling it scale!
 
         #  since we're using hook on inputs, assign it last!
         self.input = input if input else []
@@ -96,11 +96,15 @@ class Module(object):
         '''
 
         if create_grp_anm:
-            grp_anm_name = self._name_anm.resolve(self.__class__.__name__.lower())
+            grp_anm_name = self._name_anm.resolve()
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            grp_rig_name = self._name_rig.resolve(self.__class__.__name__.lower())
+            grp_rig_name = self._name_rig.resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
+
+            # todo: keep it here?
+            pymel.addAttr(self.grp_rig, longName='globalScale', defaultValue=1.0)
+            self.globalScale = self.grp_rig.globalScale
 
     def unbuild(self):
         """

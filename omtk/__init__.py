@@ -44,14 +44,15 @@ def _reload():
     reload(classNode)
     reload(classCtrl)
 
-    reload(classRig)
     reload(classModule)
     reload(rigIK)
     reload(rigFK)
+    reload(rigSplineIK)
     reload(rigArm)
     reload(rigLeg)
-    reload(rigSplineIK)
+    reload(rigTwistbone)
 
+    reload(classRig)
 
 def create(*args, **kwargs):
     return classRig.Rig(*args, **kwargs)

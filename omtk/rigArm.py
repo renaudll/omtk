@@ -99,7 +99,8 @@ class Arm(Module):
         self.ctrl_elbow.setParent(self.grp_anm)
         pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
 
-        pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0], worldUpType=2, worldUpObject=_chain_blend[0]) # Object Rotation Up
+        pymel.pointConstraint(_chain_blend[0], _chain_elbow[0], maintainOffset=False)
+        pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0], worldUpType=2, worldUpObject=_chain_blend[0])  # Object Rotation Up
         pymel.aimConstraint(self.sysIK.ctrlIK, _chain_elbow[index_elbow], worldUpType=2, worldUpObject=_chain_blend[index_elbow]) # Object Rotation Up
         pymel.pointConstraint(self.ctrl_elbow, _chain_elbow[index_elbow], maintainOffset=False)
 
@@ -121,14 +122,12 @@ class Arm(Module):
         self.attState = attIkWeight # Expose state
 
     def unbuild(self, *args, **kwargs):
+        super(Arm, self).unbuild(*args, **kwargs)
+
         if self.sysIK.is_built():
             self.sysIK.unbuild()
         if self.sysFK.is_built():
             self.sysFK.unbuild()
-        #self.sysIK = None # hack
-        #self.sysFK = None # hack
-        self.attState = None
-        super(Arm, self).unbuild(*args, **kwargs)
 
     #
     # Functions called for IK/FK switch (animation tools)

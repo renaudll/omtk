@@ -135,7 +135,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.root.add_part(part)
         net = libSerialization.export_network(self.root) # Export part and only part
         pymel.select(net)
-        self.updateData()
+        #Add manually the Rig to the root list instead of importing back all network
+        if not self.root in self.roots:
+            self.roots.append(self.root)
+        #self.updateData()
         self.updateUi()
 
     # TODO: Move to lib

@@ -1,7 +1,7 @@
 import pymel.core as pymel
 from classNode import Node
 from rigArm import Arm
-from omtk.libs import libRigging
+from libs import libRigging
 
 
 class Leg(Arm):

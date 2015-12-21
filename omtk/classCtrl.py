@@ -185,7 +185,7 @@ class BaseCtrl(Node):
         Analyse a network node and resolve if it can be usefull as a pivot for the animtor.
         """
         import libSerialization
-        from omtk.rigging.autorig.classModule import Module
+        from classModule import Module
 
         # Validate parameter
         if not isinstance(network, pymel.nodetypes.Network):

@@ -239,10 +239,11 @@ def export_network(_data, **kwargs):
         else:
             networkName = _data.__getNetworkName__() if hasattr(_data,
                                                                 '__getNetworkName__') else _data.__class__.__name__
-            # Monkey patch the network in a _network attribute if supported.
-            if isinstance(_data, object) and not isinstance(_data, dict):
-                _data._network = networkName
         network = pymel.createNode('network', name=networkName)
+
+        # Monkey patch the network in a _network attribute if supported.
+        if isinstance(_data, object) and not isinstance(_data, dict):
+            _data._network = network
 
     # Ensure the network have the current python id stored
     if not network.hasAttr('_uid'):

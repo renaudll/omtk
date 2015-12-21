@@ -71,9 +71,11 @@ class Module(object):
         #  since we're using hook on inputs, assign it last!
         self.input = input if input else []
 
-    def __repr__(self):
-        # TODO: Never crash on __repr__
-        return '{0} ({1})'.format(str(self._name_anm), self.__class__.__name__)
+    def __str__(self):
+        if self._name_anm:
+            return '{0} ({1})'.format(str(self._name_anm), self.__class__.__name__)
+        else:
+            return '{0} (no inputs)'.format(self.__class__.__name__)
 
     # Used in libSerialization
     def __getNetworkName__(self):

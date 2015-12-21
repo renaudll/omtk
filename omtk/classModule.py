@@ -35,7 +35,7 @@ class Module(object):
     def _name_anm(self):
         ref = next(iter(self.input), None)
         if ref:
-            name = Name(ref.stripNamespace(), prefix='anm')
+            name = Name(ref.nodeName(), prefix='anm')
             name.add_tokens(self.__class__.__name__.lower())
             return name
 
@@ -44,7 +44,7 @@ class Module(object):
     def _name_rig(self):
         ref = next(iter(self.input), None)
         if ref:
-            name = Name(ref.stripNamespace(), prefix='rig')
+            name = Name(ref.nodeName(), prefix='rig')
             name.add_tokens(self.__class__.__name__.lower())
             return name
 

@@ -162,27 +162,27 @@ class IK(Module):
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.input, self._chain_ik):
-            oIk.rename(self._name_rig.resolve('ik'))
-        self._chain_ik[0].setParent(self._oParent)  # Trick the IK system (temporary solution)
+            oIk.rename(self.name_rig.resolve('ik'))
+        self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
 
         obj_s = self._chain_ik[0]
         obj_e = self._chain_ik[self.iCtrlIndex]
 
         # Compute chain length
-        self.chain_length = self._chain.length()
+        self.chain_length = self.chain.length()
 
         # Compute swivel position
         p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
-        ikChainGrp_name = self._name_rig.resolve('ikChain')
+        ikChainGrp_name = self.name_rig.resolve('ikChain')
         ikChainGrp = pymel.createNode('transform', name=ikChainGrp_name, parent=self.grp_rig)
         ikChainGrp.setMatrix(obj_s.getMatrix(worldSpace=True), worldSpace=True)
         obj_s.setParent(ikChainGrp)
 
         # Create ikEffector
-        ik_solver_name = self._name_rig.resolve('ikHandle')
-        ik_effector_name = self._name_rig.resolve('ikEffector')
+        ik_solver_name = self.name_rig.resolve('ikHandle')
+        ik_effector_name = self.name_rig.resolve('ikEffector')
         self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=obj_e, solver='ikRPsolver')
         self._ik_handle.rename(ik_solver_name)
         self._ik_handle.setParent(ikChainGrp)
@@ -193,7 +193,7 @@ class IK(Module):
         self.ctrl_ik.build()
         # self.ctrlIK = CtrlIk(_create=True)
         self.ctrl_ik.setParent(self.grp_anm)
-        ctrl_ik_name = self._name_anm.resolve('ik')
+        ctrl_ik_name = self.name_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
         self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
         if orient_ik_ctrl is True:
@@ -203,7 +203,7 @@ class IK(Module):
         self.ctrl_swivel.build()
         # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
-        self.ctrl_swivel.rename(self._name_anm.resolve('ikSwivel'))
+        self.ctrl_swivel.rename(self.name_anm.resolve('ikSwivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.ctrl_swivel.offset.setRotation(self.input[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
@@ -267,5 +267,5 @@ class IK(Module):
             pymel.parentConstraint(self.parent, ikChainGrp, maintainOffset=True)
 
         if constraint:
-            for source, target in zip(self._chain_ik, self._chain):
+            for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)

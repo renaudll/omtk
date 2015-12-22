@@ -31,7 +31,7 @@ class SplineIK(Module):
         curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)), None)
 
         # Create ik solver
-        solver_name = self._name_rig.resolve('ikEffector')
+        solver_name = self.name_rig.resolve('ikEffector')
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,

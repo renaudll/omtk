@@ -54,7 +54,7 @@ class Arm(Module):
         self._create_sys_fk()
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
-        oAttHolder = BaseAttHolder(name=self._name_anm.resolve('atts'), create=True)
+        oAttHolder = BaseAttHolder(name=self.name_anm.resolve('atts'), create=True)
         oAttHolder.setParent(self.grp_anm)
         pymel.parentConstraint(self.input[self.sysIK.iCtrlIndex], oAttHolder.offset)
         pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
@@ -64,7 +64,7 @@ class Arm(Module):
         # Create a chain for blending ikChain and fkChain
         _chain_blend = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_blend):
-            node.rename(self._name_rig.resolve('blend'))
+            node.rename(self.name_rig.resolve('blend'))
 
         # Blend ikChain with fkChain
         for blend, oIk, oFk in zip(_chain_blend, self.sysIK._chain_ik, self.sysFK.ctrls):
@@ -82,13 +82,13 @@ class Arm(Module):
         # Create a chain that provide the elbow controller and override the blend chain (wich should only be nodes already)
         _chain_elbow = pymel.duplicate(self.input[:self.sysIK.iCtrlIndex], renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_elbow):
-            node.rename(self._name_rig.resolve('elbow')) # todo: find a better name???
+            node.rename(self.name_rig.resolve('elbow')) # todo: find a better name???
         _chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl
         # Note that this only affect the chain until @iCtrlIndex
         index_elbow = 1
-        ctrl_elbow_name = self._name_anm.resolve('elbow')
+        ctrl_elbow_name = self.name_anm.resolve('elbow')
         ctrl_elbow_parent = _chain_blend[index_elbow]
         if not isinstance(self.ctrl_elbow, BaseCtrl):
             self.ctrl_elbow = BaseCtrl(create_offset=True) # todo: custom RigCtrl implementation?

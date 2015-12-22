@@ -31,34 +31,31 @@ class Module(object):
     def outputs(self):
         return self.__dict__['_outputs']
 
-    # todo: rename
     @libPython.cached_property()
-    def _name_anm(self):
+    def name_anm(self):
         ref = next(iter(self.input), None)
         if ref:
             name = Name(ref.nodeName(), prefix='anm')
             name.add_tokens(self.__class__.__name__.lower())
             return name
 
-    # todo: rename
     @libPython.cached_property()
-    def _name_rig(self):
+    def name_rig(self):
         ref = next(iter(self.input), None)
         if ref:
             name = Name(ref.nodeName(), prefix='rig')
             name.add_tokens(self.__class__.__name__.lower())
             return name
 
-    # todo: rename or remove?
-    @libPython.cached_property()
-    def _oParent(self):
-        ref = next(iter(self.input), None)
-        if ref:
-            return ref.getParent()
+    @property
+    def parent(self):
+        first_input = next(iter(self.input), None)
+        if libPymel.is_valid_PyNode(first_input):
+            return first_input.getParent()
+        return None
 
-    # todo: rename?
     @libPython.cached_property()
-    def _chain(self):
+    def chain(self):
         return libPymel.PyNodeChain(self.input)  # todo: approve PyNodeChain class
 
     # todo: since args is never used, maybe use to instead of _input?
@@ -73,8 +70,8 @@ class Module(object):
         self.input = input if input else []
 
     def __str__(self):
-        if self._name_anm:
-            return '{0} ({1})'.format(str(self._name_anm), self.__class__.__name__)
+        if self.name_anm:
+            return '{0} ({1})'.format(str(self.name_anm), self.__class__.__name__)
         else:
             return '{0} (no inputs)'.format(self.__class__.__name__)
 
@@ -88,10 +85,10 @@ class Module(object):
         return 'net_{0}'.format(self.__class__.__name__)
 
     def __createMayaNetwork__(self):
-        return pymel.createNode('network', name=self._name_anm.resolve('net'))
+        return pymel.createNode('network', name=self.name_anm.resolve('net'))
 
     def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
-        logging.info('Building {0}'.format(self._name_rig))
+        logging.info('Building {0}'.format(self.name_rig))
 
         '''
         if len(self.input) == 0:
@@ -99,10 +96,10 @@ class Module(object):
         '''
 
         if create_grp_anm:
-            grp_anm_name = self._name_anm.resolve()
+            grp_anm_name = self.name_anm.resolve()
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            grp_rig_name = self._name_rig.resolve()
+            grp_rig_name = self.name_rig.resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
             # todo: keep it here?
@@ -148,13 +145,6 @@ class Module(object):
 
     def get_ctrls(self, recursive=False):
         return getattrs_by_type(self, BaseCtrl, recursive=recursive)
-
-    @property
-    def parent(self):
-        first_input = next(iter(self.input), None)
-        if libPymel.is_valid_PyNode(first_input):
-            return first_input.getParent()
-        return None
 
     def get_pin_locations(self):
         """

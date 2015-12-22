@@ -50,14 +50,14 @@ class FootRollIK(IK):
         tm_ref = self._get_reference_plane()
 
         # Pivot Ankle
-        self.pivot_ankle = pymel.spaceLocator(name=self._name_rig.resolve('pivotAnkle'))
+        self.pivot_ankle = pymel.spaceLocator(name=self.name_rig.resolve('pivotAnkle'))
         if self.pivot_ankle_pos:
             self.pivot_ankle.setTranslation(pymel.datatypes.Point(self.pivot_ankle_pos) * tm_ref, space='world')
         else:
             self.pivot_ankle.t.set(pos_toes)
 
         # Pivot Foot
-        self.pivot_front = pymel.spaceLocator(name=self._name_rig.resolve('pivotFront'))
+        self.pivot_front = pymel.spaceLocator(name=self.name_rig.resolve('pivotFront'))
         if self.pivot_front_pos:
             self.pivot_front.setTranslation(pymel.datatypes.Point(self.pivot_front_pos) * tm_ref, space='world')
         else:
@@ -65,7 +65,7 @@ class FootRollIK(IK):
             self.pivot_front.ty.set(0)
 
         # Pivot Front
-        self.pivot_back = pymel.spaceLocator(name=self._name_rig.resolve('pivotBack'))
+        self.pivot_back = pymel.spaceLocator(name=self.name_rig.resolve('pivotBack'))
         if self.pivot_back_pos:
             self.pivot_back.setTranslation(pymel.datatypes.Point(self.pivot_back_pos) * tm_ref, space='world')
         else:
@@ -73,7 +73,7 @@ class FootRollIK(IK):
             self.pivot_back.ty.set(0)
 
         # Pivot Bank Inn
-        self.pivot_inn = pymel.spaceLocator(name=self._name_rig.resolve('pivotInn'))
+        self.pivot_inn = pymel.spaceLocator(name=self.name_rig.resolve('pivotInn'))
         if self.pivot_inn_pos:
             self.pivot_inn.setTranslation(pymel.datatypes.Point(self.pivot_inn_pos) * tm_ref, space='world')
         else:
@@ -81,14 +81,14 @@ class FootRollIK(IK):
             self.pivot_inn.ty.set(0)
 
         # Pivot Bank Out
-        self.pivot_out = pymel.spaceLocator(name=self._name_rig.resolve('pivotOut'))
+        self.pivot_out = pymel.spaceLocator(name=self.name_rig.resolve('pivotOut'))
         if self.pivot_out_pos:
             self.pivot_out.setTranslation(pymel.datatypes.Point(self.pivot_out_pos) * tm_ref, space='world')
         else:
             self.pivot_out.t.set(pos_foot + [offsed_s, 0, 0])
             self.pivot_out.ty.set(0)
 
-        root_footRoll = pymel.createNode('transform', name=self._name_anm.resolve('footRoll'))
+        root_footRoll = pymel.createNode('transform', name=self.name_anm.resolve('footRoll'))
         chain_footroll = [root_footRoll, self.pivot_inn, self.pivot_out, self.pivot_back, self.pivot_front,
                           self.pivot_ankle]
         libRigging.create_hyerarchy(chain_footroll)
@@ -157,10 +157,10 @@ class FootRollIK(IK):
 
         # Create ikHandles
         ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_toes, solver='ikSCsolver')
-        ikHandle_foot.rename(self._name_rig.resolve('ikHandle', 'foot'))
+        ikHandle_foot.rename(self.name_rig.resolve('ikHandle', 'foot'))
         ikHandle_foot.setParent(self.grp_rig)
         ikHandle_toes, ikEffector_toes = pymel.ikHandle(startJoint=jnt_toes, endEffector=jnt_tip, solver='ikSCsolver')
-        ikHandle_toes.rename(self._name_rig.resolve('ikHandle', 'ties'))
+        ikHandle_toes.rename(self.name_rig.resolve('ikHandle', 'ties'))
         ikHandle_toes.setParent(self.grp_rig)
 
         # Parent ikHandlers

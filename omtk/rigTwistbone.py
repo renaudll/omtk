@@ -66,7 +66,7 @@ class Twistbone(Module):
 
         nonroll_1 = NonRollJoint()
         nonroll_1.build()
-        nonroll_1.rename(self._name_rig.resolve('nonroll_s'))
+        nonroll_1.rename(self.name_rig.resolve('nonroll_s'))
         jnt_s_parent = jnt_s.getParent()
         nonroll_1.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         if jnt_s_parent: pymel.parentConstraint(jnt_s_parent, nonroll_1.node, maintainOffset=True)
@@ -75,7 +75,7 @@ class Twistbone(Module):
 
         nonroll_2 = NonRollJoint()
         nonroll_2.build()
-        nonroll_2.rename(self._name_rig.resolve('nonroll_2'))
+        nonroll_2.rename(self.name_rig.resolve('nonroll_2'))
 
         nonroll_2.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         nonroll_2.setTranslation(jnt_e.getTranslation(space='world'), space='world')

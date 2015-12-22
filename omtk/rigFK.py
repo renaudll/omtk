@@ -23,7 +23,7 @@ class FK(Module):
         # Create ctrl chain
         self.ctrls = []
         for input in self.input:
-            ctrl_name = self._name_anm.resolve('fk')
+            ctrl_name = self.name_anm.resolve('fk')
             ctrl = CtrlFk(name=ctrl_name, create=True)
             ctrl.offset.setMatrix(input.getMatrix(worldSpace=True))
             self.ctrls.append(ctrl)
@@ -39,9 +39,9 @@ class FK(Module):
                 pymel.scaleConstraint(ctrl, input)
 
         # Connect to parent
-        if self._oParent is not None:
-            pymel.parentConstraint(self._oParent, self.grp_anm, maintainOffset=True)
-            pymel.scaleConstraint(self._oParent, self.grp_anm, maintainOffset=True)
+        if self.parent is not None:
+            pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
+            pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
 
 
     def unbuild(self, *args, **kwargs):

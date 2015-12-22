@@ -95,6 +95,12 @@ class Module(object):
             logging.error("[Module:Build] Can't build, inputs is empty"); return False
         '''
 
+        # Disable segment scale compensate by default.
+        # Otherwise we might have scale issues since the rig won't propagate uniform scale change.
+        for inn in self.input:
+            if inn.hasAttr('segmentScaleCompensate'):
+                inn.segmentScaleCompensate.set(False)
+
         if create_grp_anm:
             grp_anm_name = self.name_anm.resolve()
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)

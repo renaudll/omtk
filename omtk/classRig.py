@@ -163,6 +163,9 @@ class Rig(object):
         # Constraint grp_jnts to grp_anms
         pymel.delete([child for child in self.grp_jnts.getChildren() if isinstance(child, pymel.nodetypes.Constraint)])
         pymel.parentConstraint(self.grp_anms, self.grp_jnts, maintainOffset=True)
+        pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleX, force=True)
+        pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleY, force=True)
+        pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleZ, force=True)
 
         # Create rig root
         all_rigs = libPymel.ls_root_rigs()

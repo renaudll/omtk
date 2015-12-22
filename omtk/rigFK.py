@@ -34,9 +34,11 @@ class FK(Module):
 
         # Connect jnt -> anm
         if constraint is True:
-            for input, ctrl in zip(self.input, self.ctrls):
-                pymel.parentConstraint(ctrl, input)
-                pymel.scaleConstraint(ctrl, input)
+            for inn, ctrl in zip(self.input, self.ctrls):
+                pymel.parentConstraint(ctrl, inn)
+                pymel.connectAttr(ctrl.scaleX, inn.scaleX)
+                pymel.connectAttr(ctrl.scaleY, inn.scaleY)
+                pymel.connectAttr(ctrl.scaleZ, inn.scaleZ)
 
         # Connect to parent
         if self.parent is not None:

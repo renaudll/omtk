@@ -5,8 +5,7 @@ import logging; log = logging.getLogger(__name__); log.setLevel(logging.DEBUG)
 # Load dependencies (including git submodules) in sys.path
 __dependencies__ = [
     ('deps',),
-    ('..', 'libSerialization',),
-    ('..', 'pyyaml', 'lib')
+    ('..', 'libSerialization',)
 ]
 current_dir = os.path.dirname(os.path.realpath(__file__))
 for dependency in __dependencies__:
@@ -53,6 +52,7 @@ def _reload():
     reload(rigTwistbone)
 
     reload(classRig)
+
 
 def create(*args, **kwargs):
     return classRig.Rig(*args, **kwargs)

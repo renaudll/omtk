@@ -162,8 +162,7 @@ class Rig(object):
 
         # Constraint grp_jnts to grp_anms
         pymel.delete([child for child in self.grp_jnts.getChildren() if isinstance(child, pymel.nodetypes.Constraint)])
-        if self.grp_jnts.getParent() != self.grp_anms:
-            self.grp_jnts.setParent(self.grp_anms)
+        pymel.parentConstraint(self.grp_anms, self.grp_jnts, maintainOffset=True)
 
         # Create rig root
         all_rigs = libPymel.ls_root_rigs()
@@ -184,12 +183,8 @@ class Rig(object):
         all_geos.setParent(self.grp_geos)
 
         # Setup displayLayers
-        anm_roots = [child.grp_anm for child in self.children if child.grp_anm]
-        for shape in self.grp_anms.getShapes():
-            anm_roots.append(shape)
-        print anm_roots
         self.layer_anm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_anm, anm_roots, noRecurse=True)
+        pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anms, noRecurse=True)
         self.layer_anm.color.set(17)  # Yellow
 
         self.layer_rig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)

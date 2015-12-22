@@ -36,11 +36,12 @@ class FK(Module):
         if constraint is True:
             for input, ctrl in zip(self.input, self.ctrls):
                 pymel.parentConstraint(ctrl, input)
-                pymel.connectAttr(ctrl.s, input.s)
+                pymel.scaleConstraint(ctrl, input)
 
         # Connect to parent
         if self._oParent is not None:
             pymel.parentConstraint(self._oParent, self.grp_anm, maintainOffset=True)
+            pymel.scaleConstraint(self._oParent, self.grp_anm, maintainOffset=True)
 
 
     def unbuild(self, *args, **kwargs):

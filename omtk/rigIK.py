@@ -27,7 +27,7 @@ class CtrlIk(BaseCtrl):
 
 
 class CtrlIkSwivel(BaseCtrl):
-    def build(self, _oLineTarget=False, *args, **kwargs):
+    def build(self, line_target=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
         make = self.node.getShape().create.inputs()[0]
@@ -36,13 +36,13 @@ class CtrlIkSwivel(BaseCtrl):
         make.sections.set(4)
 
         # Create line
-        if _oLineTarget is True:
+        if line_target is True:
             ctrl_shape = self.node.getShape()
             line_shape = pymel.createNode('annotationShape')
             line_transform = line_shape.getParent()
             pymel.connectAttr(ctrl_shape.worldMatrix, line_shape.dagObjectMatrix[0], force=True)
             line_transform.setParent(self.offset)
-            pymel.pointConstraint(_oLineTarget, line_transform)
+            pymel.pointConstraint(line_target, line_transform)
 
         return self.node
 
@@ -142,7 +142,7 @@ class IK(Module):
     def __init__(self, *args, **kwargs):
         super(IK, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
-        self.ctrlIK = None
+        self.ctrl_ik = None
         self.ctrl_swivel = None
         self.chain_length = None
 
@@ -181,23 +181,23 @@ class IK(Module):
         obj_s.setParent(ikChainGrp)
 
         # Create ikEffector
-        _ik_solver_name = self._name_rig.resolve('ikHandle')
-        _ik_effector_name = self._name_rig.resolve('ikEffector')
+        ik_solver_name = self._name_rig.resolve('ikHandle')
+        ik_effector_name = self._name_rig.resolve('ikEffector')
         self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=obj_e, solver='ikRPsolver')
-        self._ik_handle.rename(_ik_solver_name)
+        self._ik_handle.rename(ik_solver_name)
         self._ik_handle.setParent(ikChainGrp)
-        _ik_effector.rename(_ik_effector_name)
+        _ik_effector.rename(ik_effector_name)
 
         # Create ctrls
-        if not isinstance(self.ctrlIK, CtrlIk): self.ctrlIK = CtrlIk()
-        self.ctrlIK.build()
+        if not isinstance(self.ctrl_ik, CtrlIk): self.ctrl_ik = CtrlIk()
+        self.ctrl_ik.build()
         # self.ctrlIK = CtrlIk(_create=True)
-        self.ctrlIK.setParent(self.grp_anm)
-        ctrlIK_name = self._name_anm.resolve('ik')
-        self.ctrlIK.rename(ctrlIK_name)
-        self.ctrlIK.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
+        self.ctrl_ik.setParent(self.grp_anm)
+        ctrl_ik_name = self._name_anm.resolve('ik')
+        self.ctrl_ik.rename(ctrl_ik_name)
+        self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
         if orient_ik_ctrl is True:
-            self.ctrlIK.offset.setRotation(obj_e.getRotation(space='world'), space='world')
+            self.ctrl_ik.offset.setRotation(obj_e.getRotation(space='world'), space='world')
 
         if not isinstance(self.ctrl_swivel, CtrlIkSwivel): self.ctrl_swivel = CtrlIkSwivel()
         self.ctrl_swivel.build()
@@ -211,7 +211,7 @@ class IK(Module):
         #
         # Create softIk node and connect user accessible attributes to it.
         #
-        oAttHolder = self.ctrlIK
+        oAttHolder = self.ctrl_ik
         fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
         attInRatio = fnAddAttr(oAttHolder, longName='SoftIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
                                maxValue=.5, k=True)
@@ -224,7 +224,7 @@ class IK(Module):
         pymel.connectAttr(attInRatio, rig_softIkNetwork.inRatio)
         pymel.connectAttr(attInStretch, rig_softIkNetwork.inStretch)
         pymel.connectAttr(ikChainGrp.worldMatrix, rig_softIkNetwork.inMatrixS)
-        pymel.connectAttr(self.ctrlIK.worldMatrix, rig_softIkNetwork.inMatrixE)
+        pymel.connectAttr(self.ctrl_ik.worldMatrix, rig_softIkNetwork.inMatrixE)
         attr_distance = libFormula.parse('distance*globalScale',
                                          distance=self.chain_length,
                                          globalScale=self.grp_rig.globalScale)
@@ -234,7 +234,7 @@ class IK(Module):
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)
-        pymel.select(self.ctrlIK, ikChainGrp, self._ik_handle)
+        pymel.select(self.ctrl_ik, ikChainGrp, self._ik_handle)
         pointConstraint = pymel.pointConstraint()
         pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
         pymel.select(pointConstraint)
@@ -259,7 +259,7 @@ class IK(Module):
                 obj.t, force=True)
 
         # Connect rig -> anm
-        pymel.orientConstraint(self.ctrlIK, obj_e, maintainOffset=True)
+        pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)
         pymel.poleVectorConstraint(self.ctrl_swivel, self._ik_handle)
 
         # Connect to parent

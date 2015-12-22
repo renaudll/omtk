@@ -25,6 +25,17 @@ class Arm(Module):
         self.sysIK = None
         self.sysFK = None
         self.ctrl_elbow = None
+        self.attState = None
+
+    def _create_sys_ik(self, **kwargs):
+        if not isinstance(self.sysIK, IK):
+            self.sysIK = IK(self.input)
+        self.sysIK.build(constraint=False, **kwargs)
+
+    def _create_sys_fk(self, **kwargs):
+        if not isinstance(self.sysFK, FK):
+            self.sysFK = FK(self.input)
+        self.sysFK.build(constraint=False, **kwargs)
 
     def build(self, *args, **kwargs):
         super(Arm, self).build(*args, **kwargs)
@@ -39,13 +50,8 @@ class Arm(Module):
         '''
 
         # Rig ikChain and fkChain
-        if not isinstance(self.sysIK, IK):
-            self.sysIK = IK(self.input)
-        self.sysIK.build(**kwargs)
-
-        if not isinstance(self.sysFK, FK):
-            self.sysFK = FK(self.input)
-        self.sysFK.build(constraint=False, **kwargs)
+        self._create_sys_ik()
+        self._create_sys_fk()
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         oAttHolder = BaseAttHolder(name=self._name_anm.resolve('atts'), create=True)
@@ -93,7 +99,7 @@ class Arm(Module):
 
         pymel.pointConstraint(_chain_blend[0], _chain_elbow[0], maintainOffset=False)
         pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0], worldUpType=2, worldUpObject=_chain_blend[0])  # Object Rotation Up
-        pymel.aimConstraint(self.sysIK.ctrlIK, _chain_elbow[index_elbow], worldUpType=2, worldUpObject=_chain_blend[index_elbow]) # Object Rotation Up
+        pymel.aimConstraint(self.sysIK.ctrl_ik, _chain_elbow[index_elbow], worldUpType=2, worldUpObject=_chain_blend[index_elbow]) # Object Rotation Up
         pymel.pointConstraint(self.ctrl_elbow, _chain_elbow[index_elbow], maintainOffset=False)
 
         # Constraint input chain
@@ -126,12 +132,14 @@ class Arm(Module):
         self.attState = attIkWeight  # Expose state
 
     def unbuild(self, *args, **kwargs):
-        super(Arm, self).unbuild(*args, **kwargs)
-
         if self.sysIK.is_built():
             self.sysIK.unbuild()
         if self.sysFK.is_built():
             self.sysFK.unbuild()
+
+        super(Arm, self).unbuild(*args, **kwargs)
+
+        self.attState = None
 
     #
     # Functions called for IK/FK switch (animation tools)

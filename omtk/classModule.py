@@ -4,13 +4,14 @@ from className import Name
 from classCtrl import BaseCtrl
 from libs import libPymel, libAttr, libPython
 
-def getattrs_by_type(val, type):
+def getattrs_by_type(val, type, recursive=False):
     for key, val in val.__dict__.iteritems():
         if isinstance(val, type):
             yield val
         elif isinstance(val, Module):
-            for subval in getattrs_by_type(val, type):
-                yield subval
+            if recursive:
+                for subval in getattrs_by_type(val, type):
+                    yield subval
 
 class Module(object):
     """
@@ -128,7 +129,7 @@ class Module(object):
                 libAttr.disconnectAttr(obj.sy)
                 libAttr.disconnectAttr(obj.sz)
 
-        for ctrl in self.get_ctrls():
+        for ctrl in self.get_ctrls(recursive=False):
             ctrl.unbuild()
 
         if self.grp_anm is not None:
@@ -138,13 +139,15 @@ class Module(object):
             pymel.delete(self.grp_rig)
             self.grp_rig = None
 
+        self.globalScale = None
+
         # Reset any cached properties
         # todo: ensure it's the best way
         if '_cache' in self.__dict__:
             self.__dict__.pop('_cache')
 
-    def get_ctrls(self):
-        return getattrs_by_type(self, BaseCtrl)
+    def get_ctrls(self, recursive=False):
+        return getattrs_by_type(self, BaseCtrl, recursive=recursive)
 
     @property
     def parent(self):

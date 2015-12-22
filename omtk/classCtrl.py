@@ -3,6 +3,7 @@ from classNode import Node
 from libs import libRigging, libPymel
 import logging; log = logging.getLogger(__name__)
 
+
 class BaseCtrl(Node):
     """
     A rig ctrl automatically hold/fetch is animation and is shapes when building/unbuilding.
@@ -67,15 +68,38 @@ class BaseCtrl(Node):
 
         return self.node
 
+    def restore_bind_pose(self):
+        val_by_att_names = {
+            'translateX':0,
+            'translateY':0,
+            'translateZ':0,
+            'rotateX':0,
+            'rotateY':0,
+            'rotateZ':0,
+            'scaleX':1,
+            'scaleY':1,
+            'scaleZ':1
+        }
+        for attr_name, val in val_by_att_names.iteritems():
+            if not self.node.hasAttr(attr_name):
+                continue
+
+            attr = self.node.attr(attr_name)
+            if attr.isLocked():
+                continue
+
+            attr.set(val)
 
     def unbuild(self, keep_shapes=True, *args, **kwargs):
         """
         Delete ctrl setup, but store the animation and the shapes.
         """
-        self.hold_attrs_all()
-        self.shape = libRigging.hold_ctrl_shapes(self.node)
-
-        super(BaseCtrl, self).unbuild(*args, **kwargs)
+        if not libPymel.is_valid_PyNode(self.node):
+            raise Exception("Can't hold ctrl attribute! Some information may be lost... {0}".format(self.node))
+        else:
+            self.hold_attrs_all()
+            self.shape = libRigging.hold_ctrl_shapes(self.node)
+            super(BaseCtrl, self).unbuild(*args, **kwargs)
 
         # Delete offset node if necessary.
         # Note that we delete the offset node AFTER deleting the original node.

@@ -14,21 +14,7 @@ import core
 core.types_dag.append(pymel.PyNode)
 core.types_dag.append(pymel.Attribute)
 core.types_dag.append(pymel.datatypes.Matrix)
-
-# todo: add other pymel.datatypes
-pymel_types = [
-    pymel.PyNode,
-    pymel.Attribute,
-    pymel.datatypes.Matrix
-]
-
-
-def is_data_pymel(data):
-    """
-    Add pymel support.
-    """
-    global pymel_types
-    return any(filter(lambda x: isinstance(data, x), iter(pymel_types)))
+core.types_dag.append(pymel.datatypes.Vector)
 
 
 #
@@ -68,6 +54,16 @@ def _createAttribute(_name, _val):
     if issubclass(kType, pymel.datatypes.Matrix):  # HACK
         fn = OpenMaya.MFnMatrixAttribute()
         fn.create(_name, _name)
+        return fn
+    if issubclass(kType, pymel.datatypes.Vector):
+        name_x = '{0}X'.format(_name)
+        name_y = '{0}Y'.format(_name)
+        name_z = '{0}Z'.format(_name)
+        fn = OpenMaya.MFnNumericAttribute()
+        moX = fn.create(name_x, name_x, OpenMaya.MFnNumericData.kDouble)
+        moY = fn.create(name_y, name_y, OpenMaya.MFnNumericData.kDouble)
+        moZ = fn.create(name_z, name_z, OpenMaya.MFnNumericData.kDouble)
+        fn.create(_name, _name, moX, moY, moZ)
         return fn
     if issubclass(kType, pymel.Attribute):
         if not is_valid_PyNode(_val):
@@ -120,8 +116,12 @@ def _addAttr(_fnDependNode, _sName, _pValue):
         fnAtt.setNiceNameOverride(_sName)
         moAtt = fnAtt.object()
         if moAtt is not None:
-            _fnDependNode.addAttribute(moAtt)
-            plug = OpenMaya.MPlug(_fnDependNode.object(), moAtt)
+            try:
+                _fnDependNode.addAttribute(moAtt)
+                plug = OpenMaya.MPlug(_fnDependNode.object(), moAtt)
+            except Exception as e:
+                log.warning('Error adding attribute {0}: {1}'.format(_sName, e))
+
 
     if plug is not None:
         _setAttr(plug, _pValue)
@@ -170,6 +170,11 @@ def _setAttr(_plug, _val):
                 log.warning("Can't setAttr, Attribute {0} don't exist".format(_val))
                 return
             plug = _val.__apimfn__()
+        elif isinstance(_val, pymel.datatypes.Vector):
+            _plug.child(0).setFloat(_val.x)
+            _plug.child(1).setFloat(_val.y)
+            _plug.child(2).setFloat(_val.z)
+            return True
         elif hasattr(_val, 'exists'):  # pymel.PyNode
             # Hack: Don't crash with non-existent pymel.Attribute
             if not pymel.objExists(_val.__melobject__()):
@@ -188,7 +193,7 @@ def _setAttr(_plug, _val):
             dagM.connect(plug, _plug)
             dagM.doIt()
         else:
-            raise Exception("Unknow TYPE_DAGNODE {0}".format(_val))
+            raise Exception("Unknow TYPE {0}, {1}".format(type(_val), _val))
 
     else:
         print _val, sType
@@ -277,17 +282,33 @@ def import_network(_network):
     if isinstance(obj, object) and not isinstance(obj, dict):
         obj._network = _network
 
-    for key in pymel.listAttr(_network, userDefined=True):
-        if '_' != key[0]:  # Variables starting with '_' are private
-            # logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
-            val = _getNetworkAttr(_network.attr(key))
-            # if hasattr(obj, key):
-            if isinstance(obj, dict):
-                obj[key] = val
-            else:
-                setattr(obj, key, val)
-            # else:
-            #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
+    # Resolve wich attribute we'll want to import
+    attrs_by_longname = {}
+    for attr_name in pymel.listAttr(_network, userDefined=True):
+        if '_' != attr_name[0]:  # Attribute longName starting with '_' are considered private
+            attrs_by_longname[attr_name] = _network.attr(attr_name)
+
+    # Filter compound children as we are only interested the compound value itself.
+    # ex: import translate and skip translateX, translateY, translateZ
+    for attr in attrs_by_longname.values():
+        if attr.isCompound():
+            for child in attr.getChildren():
+                child_longname = child.longName()
+                try:
+                    attrs_by_longname.pop(child_longname)
+                except KeyError:
+                    pass
+
+    for attr_name, attr in attrs_by_longname.iteritems():
+        # logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
+        val = _getNetworkAttr(attr)
+        # if hasattr(obj, key):
+        if isinstance(obj, dict):
+            obj[attr_name.longName()] = val
+        else:
+            setattr(obj, attr_name, val)
+        # else:
+        #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
 
         # Update network _uid to the current python variable context
         #    if _network.hasAttr('_uid'):

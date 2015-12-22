@@ -1,7 +1,7 @@
 from maya import cmds
 import pymel.core as pymel
 import logging
-from omtk.libs import libPymel
+import libPymel
 
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
@@ -138,7 +138,7 @@ def create_hyerarchy(_oObjs):
         _oObjs[i].setParent(_oObjs[i-1])
 
 
-def create_chain_between_objects(obj_s, obj_e, samples, ):
+def create_chain_between_objects(obj_s, obj_e, samples):
     tm = obj_s.getMatrix(worldSpace=True)
     pos_s = obj_s.getTranslation(space='world')
     pos_e = obj_e.getTranslation(space='world')
@@ -158,5 +158,5 @@ def create_chain_between_objects(obj_s, obj_e, samples, ):
     new_objs[0].setParent(world=True)
     create_hyerarchy(new_objs)
 
-    return new_objs
+    return libPymel.PyNodeChain(new_objs)
 

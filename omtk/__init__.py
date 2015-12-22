@@ -5,7 +5,7 @@ import logging; log = logging.getLogger(__name__); log.setLevel(logging.DEBUG)
 # Load dependencies (including git submodules) in sys.path
 __dependencies__ = [
     ('deps',),
-    ('..', 'libSerialization',)
+    ('../..', 'libSerialization',)
 ]
 current_dir = os.path.dirname(os.path.realpath(__file__))
 for dependency in __dependencies__:
@@ -24,6 +24,7 @@ import rigIK
 import rigSplineIK
 import rigArm
 import rigLeg
+import rigRibbon
 
 from rigFK import FK
 from rigIK import IK
@@ -31,6 +32,7 @@ from rigSplineIK import SplineIK
 from rigArm import Arm
 from rigLeg import Leg
 from rigTwistbone import Twistbone
+from rigRibbon import Ribbon
 
 import libSerialization
 
@@ -50,6 +52,7 @@ def _reload():
     reload(rigArm)
     reload(rigLeg)
     reload(rigTwistbone)
+    reload(rigRibbon)
 
     reload(classRig)
 

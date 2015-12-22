@@ -1,3 +1,0 @@
-[submodule "libSerialization"]
-	path = libSerialization
-	url = git@github.com:renaudll/libSerialization.git

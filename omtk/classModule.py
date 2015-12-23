@@ -47,6 +47,14 @@ class Module(object):
             name.add_tokens(self.__class__.__name__.lower())
             return name
 
+    @libPython.cached_property()
+    def name_jnt(self):
+        ref = next(iter(self.input), None)
+        if ref:
+            name = Name(ref.nodeName(), prefix='jnt')
+            name.add_tokens(self.__class__.__name__.lower())
+            return name
+
     @property
     def parent(self):
         first_input = next(iter(self.input), None)

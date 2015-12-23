@@ -58,7 +58,7 @@ class PyNodeChain(collections.MutableSequence):
         return self._list[-1] if len(self._list) > 0 else None
 
     @property
-    def pynodes(self):
+    def chain(self):
         return self._list
 
     def insert(self, ii, val):

@@ -138,7 +138,7 @@ def create_hyerarchy(_oObjs):
         _oObjs[i].setParent(_oObjs[i-1])
 
 
-def create_chain_between_objects(obj_s, obj_e, samples):
+def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
     tm = obj_s.getMatrix(worldSpace=True)
     pos_s = obj_s.getTranslation(space='world')
     pos_e = obj_e.getTranslation(space='world')
@@ -156,7 +156,8 @@ def create_chain_between_objects(obj_s, obj_e, samples):
         new_objs.append(new_obj)
 
     new_objs[0].setParent(world=True)
-    create_hyerarchy(new_objs)
+    if parented:
+        create_hyerarchy(new_objs)
 
     return libPymel.PyNodeChain(new_objs)
 

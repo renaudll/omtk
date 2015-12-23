@@ -127,6 +127,15 @@ class BaseCtrl(Node):
             print "[setParent] {0} don't have an offset attribute".format(self)
         return self.offset.setParent(*args, **kwargs)
 
+    def setMatrix(self, *args, **kwargs):
+        """
+        Override of pymel.PyNode .setMatrix method.
+        Redirect the call to the ctrl top node.
+        """
+        if not isinstance(self.offset, pymel.PyNode):
+            print "[setParent] {0} don't have an offset attribute".format(self)
+        return self.offset.setMatrix(*args, **kwargs)
+
 
     # stabilise
     def create_space_switch_network(self, spaces, labels, default=True):

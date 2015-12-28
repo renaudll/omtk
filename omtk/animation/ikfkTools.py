@@ -1,9 +1,8 @@
 import functools
 import logging
-
 import libSerialization
-
 import pymel.core as pymel
+
 
 def CallFnOnNetworkByClass(_sFn, _sCls):
     fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, _sCls)
@@ -19,5 +18,5 @@ def CallFnOnNetworkByClass(_sFn, _sCls):
         except Exception as e:
             print(str(e))
 
-switchToIk = functools.partial(CallFnOnNetworkByClass, 'switchToIk', 'Arm')
-switchToFk = functools.partial(CallFnOnNetworkByClass, 'switchToFk', 'Arm')
+switchToIk = functools.partial(CallFnOnNetworkByClass, 'switch_to_ik', 'Arm')
+switchToFk = functools.partial(CallFnOnNetworkByClass, 'switch_to_fk', 'Arm')

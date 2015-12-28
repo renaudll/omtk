@@ -4,18 +4,25 @@ from classModule import Module
 from classCtrl import BaseCtrl
 from rigIK import IK
 from rigFK import FK
-from libs import libRigging
+from libs import libRigging, libCtrlShapes
+
 
 class BaseAttHolder(BaseCtrl):
-    def __createNode__(self, name=None, *args, **kwargs):
-        s1 = 1.0
-        s2 = s1 * 0.7
-        node = pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)
-        if isinstance(name, basestring): node.rename(name)
+    def __createNode__(self, name=None, **kwargs):
+        node = libCtrlShapes.create_shape_attrholder(**kwargs)
+        if isinstance(name, basestring):
+            node.rename(name)
+        # Hide default keyable attributes
         node.t.set(channelBox=False)
         node.r.set(channelBox=False)
         node.s.set(channelBox=False)
         return node
+
+
+class CtrlElbow(BaseCtrl):
+    def __createNode__(self, size=1, *args, **kwargs):
+        return libCtrlShapes.create_shape_cross(size=size, **kwargs)
+
 
 class Arm(Module):
     kAttrName_State = 'fkIk' # The name of the IK/FK attribute
@@ -54,12 +61,14 @@ class Arm(Module):
         self._create_sys_fk()
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
-        oAttHolder = BaseAttHolder(name=self.name_anm.resolve('atts'), create=True)
-        oAttHolder.setParent(self.grp_anm)
-        pymel.parentConstraint(self.input[self.sysIK.iCtrlIndex], oAttHolder.offset)
-        pymel.addAttr(oAttHolder, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
-        attIkWeight = oAttHolder.attr(self.kAttrName_State)
-        attFkWeight = libRigging.create_utility_node('reverse', inputX=attIkWeight).outputX
+        jnt_hand = self.input[self.sysIK.iCtrlIndex]
+        obj_attr = BaseAttHolder(name=self.name_anm.resolve('atts'), create=True)
+        obj_attr.build()
+        obj_attr.setParent(self.grp_anm)
+        pymel.parentConstraint(jnt_hand, obj_attr.offset)
+        pymel.addAttr(obj_attr, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
+        attr_ik_weight = obj_attr.attr(self.kAttrName_State)
+        attr_fk_weight = libRigging.create_utility_node('reverse', inputX=attr_ik_weight).outputX
 
         # Create a chain for blending ikChain and fkChain
         _chain_blend = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
@@ -70,8 +79,8 @@ class Arm(Module):
         for blend, oIk, oFk in zip(_chain_blend, self.sysIK._chain_ik, self.sysFK.ctrls):
             oConstraint = pymel.parentConstraint(oIk, oFk, blend)
             attr_weight_ik, attr_weight_fk = oConstraint.getWeightAliasList()
-            pymel.connectAttr(attIkWeight, attr_weight_ik)
-            pymel.connectAttr(attFkWeight, attr_weight_fk)
+            pymel.connectAttr(attr_ik_weight, attr_weight_ik)
+            pymel.connectAttr(attr_fk_weight, attr_weight_fk)
         _chain_blend[0].setParent(self.grp_rig)
 
         #
@@ -79,7 +88,8 @@ class Arm(Module):
         # This provide the elbow ctrl, an animator friendly way of cheating the elbow on top of the blend chain.
         #
 
-        # Create a chain that provide the elbow controller and override the blend chain (wich should only be nodes already)
+        # Create a chain that provide the elbow controller and override the blend chain
+        # (witch should only be nodes already)
         _chain_elbow = pymel.duplicate(self.input[:self.sysIK.iCtrlIndex], renameChildren=True, parentOnly=True)
         for input_, node in zip(self.input, _chain_elbow):
             node.rename(self.name_rig.resolve('elbow')) # todo: find a better name???
@@ -90,16 +100,17 @@ class Arm(Module):
         index_elbow = 1
         ctrl_elbow_name = self.name_anm.resolve('elbow')
         ctrl_elbow_parent = _chain_blend[index_elbow]
-        if not isinstance(self.ctrl_elbow, BaseCtrl):
-            self.ctrl_elbow = BaseCtrl(create_offset=True) # todo: custom RigCtrl implementation?
-        self.ctrl_elbow.build()
+        if not isinstance(self.ctrl_elbow, CtrlElbow):
+            self.ctrl_elbow = CtrlElbow(create_offset=True)
+        ctrl_elbow_size = libRigging.get_recommended_ctrl_size(self.input[self.iCtrlIndex-1]) * 1.25
+        self.ctrl_elbow.build(size=ctrl_elbow_size)
         self.ctrl_elbow.rename(ctrl_elbow_name)
         self.ctrl_elbow.setParent(self.grp_anm)
         pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
 
         pymel.pointConstraint(_chain_blend[0], _chain_elbow[0], maintainOffset=False)
         pymel.aimConstraint(self.ctrl_elbow, _chain_elbow[0], worldUpType=2, worldUpObject=_chain_blend[0])  # Object Rotation Up
-        pymel.aimConstraint(self.sysIK.ctrl_ik, _chain_elbow[index_elbow], worldUpType=2, worldUpObject=_chain_blend[index_elbow]) # Object Rotation Up
+        pymel.aimConstraint(_chain_blend[self.sysIK.iCtrlIndex], _chain_elbow[index_elbow], worldUpType=2, worldUpObject=_chain_blend[index_elbow]) # Object Rotation Up
         pymel.pointConstraint(self.ctrl_elbow, _chain_elbow[index_elbow], maintainOffset=False)
 
         # Constraint input chain
@@ -118,8 +129,8 @@ class Arm(Module):
         #                    self.sysFK.ctrls[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
         # Connect visibility
-        pymel.connectAttr(attIkWeight, self.sysIK.grp_anm.visibility)
-        pymel.connectAttr(attFkWeight, self.sysFK.grp_anm.visibility)
+        pymel.connectAttr(attr_ik_weight, self.sysIK.grp_anm.visibility)
+        pymel.connectAttr(attr_fk_weight, self.sysFK.grp_anm.visibility)
 
         # Connect globalScale
         pymel.connectAttr(self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True)
@@ -129,15 +140,15 @@ class Arm(Module):
         self.sysIK.grp_rig.setParent(self.grp_rig)
         self.sysFK.grp_anm.setParent(self.grp_anm)
 
-        self.attState = attIkWeight  # Expose state
+        self.attState = attr_ik_weight  # Expose state
 
-    def unbuild(self, *args, **kwargs):
+    def unbuild(self):
         if self.sysIK.is_built():
             self.sysIK.unbuild()
         if self.sysFK.is_built():
             self.sysFK.unbuild()
 
-        super(Arm, self).unbuild(*args, **kwargs)
+        super(Arm, self).unbuild()
 
         self.attState = None
 

@@ -100,6 +100,28 @@ def duplicate_chain(chain):
     return PyNodeChain(new_chain)
 
 
+def get_num_parents(obj):
+    num_parents = -1
+    while obj is not None:
+        obj = obj.getParent()
+        num_parents += 1
+    return num_parents
+
+
+def get_chains_from_objs(objs):
+    chains = []
+    sorted(objs, key=get_num_parents)
+    for obj in objs:
+        parent = obj.getParent()
+        if parent not in objs:
+            chains.append([obj])
+        else:
+            for chain in chains:
+                if parent in chain:
+                    chain.append(obj)
+    return [PyNodeChain(chain) for chain in chains]
+
+
 #
 # ls() reimplementations
 #

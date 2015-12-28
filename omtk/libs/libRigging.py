@@ -2,6 +2,7 @@ from maya import cmds
 import pymel.core as pymel
 import logging
 import libPymel
+import libPython
 
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
@@ -160,4 +161,121 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
         create_hyerarchy(new_objs)
 
     return libPymel.PyNodeChain(new_objs)
+from maya import OpenMaya
 
+def get_affected_geometries(obj):
+    """
+    :param obj: A reference object, generally a pymel.nodetypes.Join.
+    :return: The geometries affected by the object.
+    """
+    geometries = set()
+
+    if isinstance(obj, pymel.nodetypes.Joint):
+        # Collect all geometries affected by the joint.
+        skinClusters = set()
+        for hist in obj.listHistory(future=True):
+            if isinstance(hist, pymel.nodetypes.SkinCluster):
+                skinClusters.add(hist)
+
+        for skinCluster in skinClusters:
+            geometries.update(skinCluster.getOutputGeometry())
+
+    return geometries
+
+
+def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
+    if not isinstance(ctrl_shape, pymel.nodetypes.NurbsCurve):
+        raise Exception("Unexpected input, expected NurbsCurve, got {0}.".format(type(ctrl_shape)))
+
+    geometries = get_affected_geometries(ref)
+    if not geometries:
+        print "Cannot resize {0}, found no affected geometries!".format(ctrl_shape)
+        return
+    pos = ctrl_shape.getParent().getTranslation(space='world')
+    pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
+
+    results = OpenMaya.MPointArray()
+
+    for i in range(ctrl_shape.numCVs()):
+        cv_pos = ctrl_shape.cv[i].getPosition(space='world')
+        length = None
+        dir = cv_pos - pos
+        dir.normalize()
+        dir = OpenMaya.MVector(dir.x, dir.y, dir.z)
+
+        # Resolve desired new length using raycast projection.
+        for geometry in geometries:
+            mfn_geometry = geometry.__apimfn__()
+            if mfn_geometry.intersect(pos, dir, results, 1.0e-10, OpenMaya.MSpace.kWorld):
+                cur_length = results[0].distanceTo(pos)
+                if length is None or cur_length > length:
+                    length = cur_length
+
+        if length is None:
+            continue
+
+        cv_new_pos = pos + (dir * length * multiplier)
+        ctrl_shape.cv[i].setPosition(cv_new_pos, space='world')
+
+
+@libPython.memoized
+def get_recommended_ctrl_size(obj, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
+                              weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0):
+    """
+    Return the recommended size of a controller if it was created for this obj.
+    :param obj: The object to analyze.
+    """
+    # TODO: Move to a cleaner location?
+    if isinstance(obj, pymel.nodetypes.Joint):
+
+        # Collect all geometries affected by the joint.
+        skinClusters = set()
+        for hist in obj.listHistory(future=True):
+            if isinstance(hist, pymel.nodetypes.SkinCluster):
+                skinClusters.add(hist)
+        geometries = set()
+        for skinCluster in skinClusters:
+            geometries.update(skinCluster.getOutputGeometry())
+
+        # Create a number of raycast for each geometry. Use the longuest distance.
+        # Note that we are not using the negative Y axis, this give bettern result for example on shoulders.
+        ref_tm = obj.getMatrix(worldSpace=True)
+        pos = ref_tm.translate
+        pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
+
+        dirs = []
+        if weight_x:
+            dirs.append(OpenMaya.MVector(ref_tm.a00, ref_tm.a01, ref_tm.a02))  # X Axis
+        if weight_neg_x:
+            dirs.append(OpenMaya.MVector(-ref_tm.a00, -ref_tm.a01, -ref_tm.a02))  # X Axis
+        if weight_y:
+            dirs.append(OpenMaya.MVector(ref_tm.a10, ref_tm.a11, ref_tm.a12))  # Y Axis
+        if weight_neg_y:
+            dirs.append(OpenMaya.MVector(-ref_tm.a10, -ref_tm.a11, -ref_tm.a12))  # Y Axis
+        if weight_z:
+            dirs.append(OpenMaya.MVector(ref_tm.a20, ref_tm.a21, ref_tm.a22))  # Z Axis
+        if weight_neg_z:
+            dirs.append(OpenMaya.MVector(-ref_tm.a20, -ref_tm.a21, -ref_tm.a22))  # Z Axis
+
+        length = 0
+        results = OpenMaya.MPointArray()
+        for geometry in geometries:
+            mfn_geo = geometry.__apimfn__()
+            for dir in dirs:
+                if mfn_geo.intersect(pos, dir, results, 1.0e-10, OpenMaya.MSpace.kWorld):
+                    cur_length = min((results[0].distanceTo(pos) for i in range(results.length())))
+                    if cur_length > length:
+                        length = cur_length
+        if not length:
+            length = obj.radius.get()
+        return length
+
+    print "Cannot get recommended size for {0}, return default value of {1}".format(
+        obj.name(), default_value
+    )
+    return default_value
+
+
+# TODO: Benchmark performances
+def snap(obj_dst, obj_src):
+    obj_dst.setMatrix(obj_src.getMatrix(worldSpace=True), worldSpace=True)

@@ -64,7 +64,12 @@ class Module(object):
 
     @libPython.cached_property()
     def chain(self):
-        return libPymel.PyNodeChain(self.input)  # todo: approve PyNodeChain class
+        return next(iter(self.chains), None)
+
+    @libPython.cached_property()
+    def chains(self):
+        return libPymel.get_chains_from_objs(self.input)
+
 
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, *args, **kwargs):
@@ -96,6 +101,9 @@ class Module(object):
         return pymel.createNode('network', name=self.name_anm.resolve('net'))
 
     def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
+        if not self.input:
+            raise Exception("Can't build module with zero inputs.")
+
         logging.info('Building {0}'.format(self.name_rig))
 
         '''

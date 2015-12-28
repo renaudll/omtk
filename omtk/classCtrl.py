@@ -8,7 +8,6 @@ class BaseCtrl(Node):
     """
     A rig ctrl automatically hold/fetch is animation and is shapes when building/unbuilding.
     """
-    default_radius = 5
 
     def __init__(self, create=False, create_offset=True, *args, **kwargs):
         self._create_offset = create_offset
@@ -35,12 +34,13 @@ class BaseCtrl(Node):
         self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
         return self.offset
 
-    def __createNode__(self, *args, **kwargs):
+    def __createNode__(self, size=1, *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
+        size: The maximum dimension of the controller.
         """
         transform, make = pymel.circle(*args, **kwargs)
-        make.radius.set(self.default_radius)
+        make.radius.set(size)
         make.normal.set((1, 0, 0))
 
         # Expose the rotateOrder
@@ -62,8 +62,8 @@ class BaseCtrl(Node):
         self.fetch_attr_all() # todo: still necessary^
 
         # Fetch stored shapes
-        if libPymel.is_valid_PyNode(self.shape):
-            libRigging.fetch_ctrl_shapes(self.shape, self.node)
+        if libPymel.is_valid_PyNode(self.shapes):
+            libRigging.fetch_ctrl_shapes(self.shapes, self.node)
             self.shape = None
 
         return self.node
@@ -98,7 +98,7 @@ class BaseCtrl(Node):
             raise Exception("Can't hold ctrl attribute! Some information may be lost... {0}".format(self.node))
         else:
             self.hold_attrs_all()
-            self.shape = libRigging.hold_ctrl_shapes(self.node)
+            self.shapes = libRigging.hold_ctrl_shapes(self.node)
             super(BaseCtrl, self).unbuild(*args, **kwargs)
 
         # Delete offset node if necessary.

@@ -188,10 +188,11 @@ class IK(Module):
         self._ik_handle.setParent(ikChainGrp)
         _ik_effector.rename(ik_effector_name)
 
-        # Create ctrls
-        if not isinstance(self.ctrl_ik, CtrlIk): self.ctrl_ik = CtrlIk()
-        self.ctrl_ik.build()
-        # self.ctrlIK = CtrlIk(_create=True)
+        # Create CtrlIK
+        if not isinstance(self.ctrl_ik, CtrlIk):
+            self.ctrl_ik = CtrlIk()
+        size = libRigging.get_recommended_ctrl_size(self.input[self.iCtrlIndex]) * 1.25
+        self.ctrl_ik.build(size=size)
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = self.name_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
@@ -199,8 +200,11 @@ class IK(Module):
         if orient_ik_ctrl is True:
             self.ctrl_ik.offset.setRotation(obj_e.getRotation(space='world'), space='world')
 
-        if not isinstance(self.ctrl_swivel, CtrlIkSwivel): self.ctrl_swivel = CtrlIkSwivel()
-        self.ctrl_swivel.build()
+        # Create CtrlIkSwivel
+        if not isinstance(self.ctrl_swivel, CtrlIkSwivel):
+            self.ctrl_swivel = CtrlIkSwivel()
+        size = libRigging.get_recommended_ctrl_size(self.input[self.iCtrlIndex-1]) * 1.25
+        self.ctrl_swivel.build(size=size)
         # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
         self.ctrl_swivel.rename(self.name_anm.resolve('ikSwivel'))

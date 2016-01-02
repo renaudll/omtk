@@ -5,14 +5,19 @@ from libs import libRigging, libCtrlShapes
 
 
 class CtrlFk(BaseCtrl):
-    def build(self, size=1, *args, **kwargs):
-        super(CtrlFk, self).build(*args, **kwargs)
-        make = self.node.getShape().create.inputs()[0]
-        make.radius.set(size)
-        make.degree.set(1)
-        make.sections.set(8)
-        return self.node
+    def __createNode__(self, size=1, name=None, *args, **kwargs):
+        if name is None:
+            raise Exception("Please provide the name argument.")
 
+        if 'shoulder' in name.lower():
+            node = libCtrlShapes.create_shape_double_needle(size=size*0.04, normal=(0, 0, 1))
+        else:
+            node, make = libCtrlShapes.create_shape_circle(size=size)
+            make.radius.set(size)
+            make.degree.set(1)
+            make.sections.set(8)
+
+        return node
 
 class FK(Module):
     def __init__(self, *args, **kwargs):
@@ -29,8 +34,7 @@ class FK(Module):
 
             ctrl = CtrlFk(name=ctrl_name)
             size = libRigging.get_recommended_ctrl_size(input) * 1.25
-            ctrl.build(size=size)
-            ctrl.rename(ctrl_name)
+            ctrl.build(size=size, name=ctrl_name)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
             self.ctrls.append(ctrl)

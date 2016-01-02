@@ -33,8 +33,10 @@ from rigArm import Arm
 from rigLeg import Leg
 from rigTwistbone import Twistbone
 from rigRibbon import Ribbon
+from rigHand import Hand
 
 import libSerialization
+from libs import libPython
 
 def _reload():
     """
@@ -51,6 +53,7 @@ def _reload():
     reload(rigSplineIK)
     reload(rigArm)
     reload(rigLeg)
+    reload(rigHand)
     reload(rigTwistbone)
     reload(rigRibbon)
 

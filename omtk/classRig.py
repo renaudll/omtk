@@ -75,6 +75,19 @@ class Rig(object):
         return '<rig {0}/>'.format(self.name)
 
     #
+    # libSerialization implementation
+    #
+    def __callbackNetworkPostBuild__(self):
+        """
+        Cleaning routine automatically called by libSerialization after a network import.
+        """
+        try:
+            # Ensure there's no None value in the .children array.
+            self.children = filter(None, self.children)
+        except (AttributeError, TypeError):
+            pass
+
+    #
     # Main implementation
     #
 
@@ -87,7 +100,7 @@ class Rig(object):
         """
         :return: True if any module dag nodes exist in the scene.
         """
-        for child in self:
+        for child in self.children:  # note: libSerialization can return None anytime
             if child.is_built():
                 return True
         return False

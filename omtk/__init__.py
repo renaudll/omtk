@@ -70,7 +70,10 @@ def find_one(*args, **kwargs):
     return next(iter(find(*args, **kwargs)), None)
 
 
+@libPython.log_execution_time('build_all')
 def build_all():
+
+
     networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
@@ -78,6 +81,7 @@ def build_all():
             pymel.delete(network)
             libSerialization.export_network(rigroot)
 
+@libPython.log_execution_time('unbuild_all')
 def unbuild_all():
     networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:

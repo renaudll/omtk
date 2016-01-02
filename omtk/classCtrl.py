@@ -215,7 +215,7 @@ class BaseCtrl(Node):
     #
     def is_pinnable(self, network):
         """
-        Analyse a network node and resolve if it can be usefull as a pivot for the animtor.
+        Analyse a network node and resolve if it can be useful as a pivot for the animator.
         """
         import libSerialization
         from classModule import Module
@@ -240,13 +240,20 @@ class BaseCtrl(Node):
         return True
 
     def get_spaceswitch_targets(self, jnt):
+        """
+        Analyse the upward hyerarchy of provided joint and return the approved hook points for a spaceswitch.
+        :param jnt: The joint to provide as a starting point.
+        :return: A list of approved hook points, sorted in reverse parent order.
+        """
         import libSerialization
         # Return true if x is a network of type 'Module' and it's
         networks = libSerialization.getConnectedNetworksByHierarchy(jnt, key=self.is_pinnable)
-        targets = []
+        targets = set()
 
         for network in networks:
             val = libSerialization.import_network(network)
-            targets.extend(val.getPinTargets())
+            targets.update(val.get_pin_locations())
+
+        targets = list(reversed(sorted(targets, key=libPymel.get_num_parents)))
 
         return targets

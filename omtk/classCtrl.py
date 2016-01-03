@@ -23,6 +23,20 @@ class BaseCtrl(Node):
         self.sy = None
         self.sz = None
 
+        # Store information concerning how the ctrl should mirror.
+        # For more information see the omtk.animation.mirrorPose module.
+        # The default behavior follow the result we get when mirroring joints using the 'behavior' option.
+        # TODO: Find a way to automatically guess the correct values.
+        self.mirror_x = False
+        self.mirror_y = False
+        self.mirror_z = False
+        self.mirror_flip_rot_x = False
+        self.mirror_flip_rot_y = False
+        self.mirror_flip_rot_z = False
+        self.mirror_flip_pos_x = True
+        self.mirror_flip_pos_y = True
+        self.mirror_flip_pos_z = True
+
         self.offset = None  # An intermediate parent that store the original transform of the ctrl.
 
         super(BaseCtrl, self).__init__(create=create, *args, **kwargs)

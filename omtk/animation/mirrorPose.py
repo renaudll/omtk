@@ -1,6 +1,6 @@
 import pymel.core as pymel
-from maya import cmds
-from omtk.libs import libPymel
+from maya import cmds, OpenMaya
+from omtk.libs import libPymel, libPython
 
 class Axis:
     x = 'X'
@@ -8,38 +8,87 @@ class Axis:
     z = 'Z'
 
 
-def flip_matrix_axis_pos(tm, axis):
+def list_from_MMatrix(m):
+    # TODO: There's got to be a better way!
+    #m = OpenMaya.MTransformationMatrix().asMatrix()
+    return [
+        m(0, 0),
+        m(0, 1),
+        m(0, 2),
+        m(0, 3),
+        m(1, 0),
+        m(1, 1),
+        m(1, 2),
+        m(1, 3),
+        m(2, 0),
+        m(2, 1),
+        m(2, 2),
+        m(2, 3),
+        m(3, 0),
+        m(3, 1),
+        m(3, 2),
+        m(3, 3)
+    ]
+
+
+def flip_matrix_axis_pos(m, axis):
+    data = list_from_MMatrix(m)
+
     if axis == Axis.x:
-        tm.a30 *= -1.0
+        data[12] *= -1.0
     elif axis == Axis.y:
-        tm.a31 *= -1.0
+        data[13] *= -1.0
     elif axis == Axis.z:
-        tm.a32 *= -1.0
+        data[14] *= -1.0
     else:
         raise Exception("Unsupported axis. Got {0}".format(axis))
 
+    OpenMaya.MScriptUtil.createMatrixFromList(data, m)
+    return m
 
-def flip_matrix_axis_rot(tm, axis):
+
+def flip_matrix_axis_rot_plane(m, axis):
+    data = list_from_MMatrix(m)
+
+    if axis == Axis.x:
+        data[0] *= -1.0
+    elif axis == Axis.y:
+        data[4] *= -1.0
+    elif axis == Axis.z:
+        data[8] *= -1.0
+    else:
+        raise Exception("Unsupported axis. Got {0}".format(axis))
+
+    OpenMaya.MScriptUtil.createMatrixFromList(data, m)
+    return m
+
+
+def flip_matrix_axis_rot(m, axis):
     """
     Utility function to mirror the x, y or z axis of an provided matrix.
-    :param tm: The pymel.datatypes.Matrix to flip.
+    :param m: The pymel.datatypes.Matrix to flip.
     :param axis: The axis to flip.
     :return: The resulting pymel.datatypes.Matrix.
     """
+    data = list_from_MMatrix(m)
+
     if axis == Axis.x:
-        tm.a00 *= -1.0
-        tm.a01 *= -1.0
-        tm.a02 *= -1.0
+        data[0] *= -1.0
+        data[1] *= -1.0
+        data[2] *= -1.0
     elif axis == Axis.y:
-        tm.a10 *= -1.0
-        tm.a11 *= -1.0
-        tm.a12 *= -1.0
+        data[4] *= -1.0
+        data[5] *= -1.0
+        data[6] *= -1.0
     elif axis == Axis.z:
-        tm.a20 *= -1.0
-        tm.a21 *= -1.0
-        tm.a22 *= -1.0
+        data[8] *= -1.0
+        data[9] *= -1.0
+        data[10] *= -1.0
     else:
         raise Exception("Unsupported axis. Got {0}".format(axis))
+
+    OpenMaya.MScriptUtil.createMatrixFromList(data, m)
+    return m
 
 
 def get_ctrl_fiend(obj_src):
@@ -64,36 +113,71 @@ def get_ctrl_fiend(obj_src):
     return pymel.PyNode(obj_dst_name)
 
 
-def mirror_matrix(tm_inn, parent_ref=None, flip_x=True, flip_y=True, flip_z=False):
+def mirror_matrix(tm_inn, parent_ref=None, mirror=False,
+                  flip_pos_x=False, flip_pos_y=False, flip_pos_z=False,
+                  flip_rot_x=False, flip_rot_y=False, flip_rot_z=False,
+                  mirror_x=False, mirror_y=False, mirror_z=False):
     """
     Mirror a pose using the local matrix and a flip vector.
     Note that you can store the flip vector in the BaseCtrl instance of each ctrls.
+
+    Standard configurations:
+    - Joint mirrored with 'behavior' activated: only position is flipped
+
     :param tm_inn: The source object containing the pose we want to mirror.
     :param obj_dst: The target object on witch we want to mirror to.
     """
 
-    tm_flip = pymel.datatypes.Matrix(-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)
+    m_flip = OpenMaya.MMatrix()
+    OpenMaya.MScriptUtil.createMatrixFromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip)
+    tm_flip = OpenMaya.MTransformationMatrix(m_flip)
 
     if parent_ref is None:
-        parent_ref = pymel.datatypes.Matrix()
+        parent_ref = OpenMaya.MTransformationMatrix()
 
-    tm = tm_inn * (tm_flip * parent_ref.inverse())
+    tm = OpenMaya.MTransformationMatrix(tm_inn.asMatrix() * parent_ref.asMatrixInverse())
+
+    if mirror:
+        if mirror and not (flip_rot_x or flip_rot_y or flip_rot_z):
+            raise Exception("When mirroring, please at least flip one axis, otherwise you might end of with a right handed matrix!")
+
+        tm = OpenMaya.MTransformationMatrix(tm_inn.asMatrix() * (m_flip * parent_ref.asMatrixInverse()))
+
+    m = tm.asMatrix()
 
     #print "Source Matrix: {0}".format(tm)
 
-    if flip_x:
-        flip_matrix_axis_rot(tm, Axis.x)
-    if flip_y:
-        flip_matrix_axis_rot(tm, Axis.y)
-    if flip_z:
-        flip_matrix_axis_rot(tm, Axis.z)
+    if flip_pos_x:
+        flip_matrix_axis_pos(m, Axis.x)
+    if flip_pos_y:
+        flip_matrix_axis_pos(m, Axis.y)
+    if flip_pos_z:
+        flip_matrix_axis_pos(m, Axis.z)
+
+    if mirror_x:
+        flip_matrix_axis_rot_plane(m, Axis.x)
+    if mirror_y:
+        flip_matrix_axis_rot_plane(m, Axis.y)
+    if mirror_z:
+        flip_matrix_axis_rot_plane(m, Axis.z)
+
+    if flip_rot_x:
+        flip_matrix_axis_rot(m, Axis.x)
+    if flip_rot_y:
+        flip_matrix_axis_rot(m, Axis.y)
+    if flip_rot_z:
+        flip_matrix_axis_rot(m, Axis.z)
 
     #print "Target Matrix: {0}".format(tm)
 
-    return tm * parent_ref
+    return OpenMaya.MTransformationMatrix(m * parent_ref.asMatrix())
 
 
+# @libPython.profiler
 def mirror_objs(objs):
+    # Only work on transforms
+    objs = filter(lambda obj: isinstance(obj, pymel.nodetypes.Transform) and not isinstance(obj, pymel.nodetypes.Constraint), objs)
+
     # Resolve desired poses without affecting anything
     tms_by_objs = {}
     for obj_dst in objs:
@@ -101,21 +185,31 @@ def mirror_objs(objs):
         obj_src = get_ctrl_fiend(obj_dst)
         if obj_src is None:
             obj_src = obj_dst
-        tm_inn = obj_dst.getMatrix(worldSpace=True)
+        #tm_parent = obj_dst.getParent().getMatrix(worldSpace=True) if obj_dst.getParent() else pymel.datatypes.Matrix()
+        #tm_inn = obj_dst.getMatrix(worldSpace=False)
+
+        mfn_transform_src = obj_src.__apimfn__()
+        mfn_transform_dst = obj_dst.__apimfn__()
+        tm_inn = mfn_transform_dst.transformation()
         # HACK: Currently we are only guessing
         # TODO: Store the flip information on the nodes (when the algorithm is approved)
         if obj_src == obj_dst:
-            tm_out = mirror_matrix(tm_inn, flip_x=False, flip_y=True, flip_z=False)
+            tm_out = mirror_matrix(tm_inn, mirror=True, flip_rot_x=True)
         else:
-            tm_out = mirror_matrix(tm_inn, flip_x=True, flip_y=True, flip_z=False)
+            tm_out = mirror_matrix(tm_inn, mirror=False,
+                                   flip_pos_x=True, flip_pos_y=True, flip_pos_z=True,
+                                   flip_rot_x=False, flip_rot_y=False, flip_rot_z=False,
+                                   mirror_x=False, mirror_y=False, mirror_z=False
+                                   )
 
-        tms_by_objs[obj_src] = tm_out
+        tms_by_objs[mfn_transform_src] = tm_out
 
     # Apply desired poses
-    objs = sorted(tms_by_objs.keys(), key=libPymel.get_num_parents)
-    for obj in objs:
-        tm = tms_by_objs[obj]
-        obj.setMatrix(tm, worldSpace=True)
+    cmds.undoInfo(openChunk=True)
+    for mfn_transform_src in tms_by_objs.keys():
+        tm = tms_by_objs[mfn_transform_src]
+        mfn_transform_src.set(tm)
+    cmds.undoInfo(closeChunk=True)
 
 
 

@@ -13,7 +13,7 @@ def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):
     return transform, make
 
 
-def create_shape_needle(size=1, length=None, radius=None, normal=(0, 1, 0), *args, **kwargs):
+def create_shape_needle(size=1, length=None, radius=None, name=None, normal=(0, 1, 0), *args, **kwargs):
     # TODO: docstring
     # Resolve length
     # Default length is 4x the provided size
@@ -88,6 +88,9 @@ def create_shape_needle(size=1, length=None, radius=None, normal=(0, 1, 0), *arg
             shape1.rotateX.set(90)
     if need_identity:
         pymel.makeIdentity(shape1, apply=True, rotate=True)
+
+    if name:
+        shape1.rename(name)
 
     return shape1
 

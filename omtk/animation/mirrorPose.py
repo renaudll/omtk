@@ -113,39 +113,31 @@ def get_ctrl_fiend(obj_src):
     return pymel.PyNode(obj_dst_name)
 
 
-def mirror_matrix(tm_inn, parent_ref=None, mirror=False,
+def mirror_matrix(m, parent_ref=None, mirror=False,
                   flip_pos_x=False, flip_pos_y=False, flip_pos_z=False,
                   flip_rot_x=False, flip_rot_y=False, flip_rot_z=False,
                   mirror_x=False, mirror_y=False, mirror_z=False):
     """
     Mirror a pose using the local matrix and a flip vector.
     Note that you can store the flip vector in the BaseCtrl instance of each ctrls.
-
-    Standard configurations:
-    - Joint mirrored with 'behavior' activated: only position is flipped
-
-    :param tm_inn: The source object containing the pose we want to mirror.
-    :param obj_dst: The target object on witch we want to mirror to.
     """
+    '''
 
-    m_flip = OpenMaya.MMatrix()
-    OpenMaya.MScriptUtil.createMatrixFromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip)
     tm_flip = OpenMaya.MTransformationMatrix(m_flip)
 
     if parent_ref is None:
         parent_ref = OpenMaya.MTransformationMatrix()
 
     tm = OpenMaya.MTransformationMatrix(tm_inn.asMatrix() * parent_ref.asMatrixInverse())
+    '''
 
     if mirror:
         if mirror and not (flip_rot_x or flip_rot_y or flip_rot_z):
             raise Exception("When mirroring, please at least flip one axis, otherwise you might end of with a right handed matrix!")
 
-        tm = OpenMaya.MTransformationMatrix(tm_inn.asMatrix() * (m_flip * parent_ref.asMatrixInverse()))
-
-    m = tm.asMatrix()
-
-    #print "Source Matrix: {0}".format(tm)
+        m_flip = OpenMaya.MMatrix()
+        OpenMaya.MScriptUtil.createMatrixFromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip)
+        m = m * m_flip
 
     if flip_pos_x:
         flip_matrix_axis_pos(m, Axis.x)
@@ -168,12 +160,9 @@ def mirror_matrix(tm_inn, parent_ref=None, mirror=False,
     if flip_rot_z:
         flip_matrix_axis_rot(m, Axis.z)
 
-    #print "Target Matrix: {0}".format(tm)
-
-    return OpenMaya.MTransformationMatrix(m * parent_ref.asMatrix())
-
 
 # @libPython.profiler
+@libPython.log_execution_time(__name__)
 def mirror_objs(objs):
     # Only work on transforms
     objs = filter(lambda obj: isinstance(obj, pymel.nodetypes.Transform) and not isinstance(obj, pymel.nodetypes.Constraint), objs)
@@ -191,24 +180,27 @@ def mirror_objs(objs):
         mfn_transform_src = obj_src.__apimfn__()
         mfn_transform_dst = obj_dst.__apimfn__()
         tm_inn = mfn_transform_dst.transformation()
+        m = tm_inn.asMatrix()
         # HACK: Currently we are only guessing
         # TODO: Store the flip information on the nodes (when the algorithm is approved)
         if obj_src == obj_dst:
-            tm_out = mirror_matrix(tm_inn, mirror=True, flip_rot_x=True)
+            mirror_matrix(m, mirror=True, flip_rot_x=True)
         else:
-            tm_out = mirror_matrix(tm_inn, mirror=False,
-                                   flip_pos_x=True, flip_pos_y=True, flip_pos_z=True,
-                                   flip_rot_x=False, flip_rot_y=False, flip_rot_z=False,
-                                   mirror_x=False, mirror_y=False, mirror_z=False
-                                   )
+            mirror_matrix(m, mirror=False,
+                             flip_pos_x=True, flip_pos_y=True, flip_pos_z=True,
+                             flip_rot_x=False, flip_rot_y=False, flip_rot_z=False,
+                             mirror_x=False, mirror_y=False, mirror_z=False
+                         )
 
-        tms_by_objs[mfn_transform_src] = tm_out
+        tms_by_objs[obj_src] = OpenMaya.MTransformationMatrix(m)
 
     # Apply desired poses
     cmds.undoInfo(openChunk=True)
     for mfn_transform_src in tms_by_objs.keys():
         tm = tms_by_objs[mfn_transform_src]
-        mfn_transform_src.set(tm)
+        # HACK: Use cmds so undoes are working
+        # mfn_transform_src.set(tm)
+        cmds.xform(mfn_transform_src.__melobject__(), matrix=list_from_MMatrix(tm.asMatrix()))
     cmds.undoInfo(closeChunk=True)
 
 

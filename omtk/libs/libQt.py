@@ -16,9 +16,8 @@ if use_pyqt4:
 
 elif use_pyside:
 	import PySide
+	from PySide import QtCore, QtGui
 	import shiboken
-	from PySide import QtCore
-	from PySide import QtGui
 	uic = shiboken
 	getMayaWindow = lambda: shiboken.wrapInstance(long(OpenMayaUI.MQtUtil.mainWindow()), QtGui.QWidget)
 

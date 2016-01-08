@@ -19,3 +19,10 @@ Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.libs.libSeria
 A lightweight programming language that create maya utility nodes setup by parsing mathematical formulas.
 
 Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.libs.libFormula).
+
+When developping, use the following code to reload omtk:
+import omtk; reload(omtk); omtk._reload()
+
+The nomenclature used in omtk is PEP8 with the following modifications:
+- The name of variables that are storing nodes are the same than the node.
+

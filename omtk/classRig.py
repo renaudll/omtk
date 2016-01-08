@@ -230,7 +230,8 @@ class Rig(object):
                 child.unbuild(**kwargs)
 
         # Delete anm_grp
-        self.grp_anms.unbuild()
+        if isinstance(self.grp_anms, CtrlRoot) and self.grp_anms.is_built():
+            self.grp_anms.unbuild()
 
         # Delete the rig group if it isnt used anymore
         if libPymel.is_valid_PyNode(self.grp_rigs) and len(self.grp_rigs.getChildren()) == 0:

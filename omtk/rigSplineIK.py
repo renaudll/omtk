@@ -12,19 +12,17 @@ class SplineIK(Module):
         self.ikEffector = None
         self.ikHandle = None
 
-    def _post_setattr_inputs(self):
-        super(SplineIK, self)._post_setattr_inputs()
+
+    def build(self, stretch=True, squash=False, *args, **kwargs):
         self._joints = [input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
         self._curves = [input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
 
-    def build(self, *args, **kwargs):
-        self._post_setattr_inputs() # update hack
         if len(self._joints) < 2:
             raise Exception("Can't build SplineIK. Expected at least two joints, got {0}".format(self._joints))
         if len(self._curves) < 1:
             raise Exception("Can't build SplineIK. Expected at least one nurbsCurve, got {0}".format(self._curves))
 
-        super(SplineIK, self).build(*args, **kwargs)
+        super(SplineIK, self).build(segmentScaleCompensate=True, *args, **kwargs)
 
         # todo: handle multiple curves?
         curve = next(iter(self._curves), None)
@@ -45,21 +43,22 @@ class SplineIK(Module):
 
         # Create stretch
         # Todo: use shape instead of transform as curve input?
-        curveLength = libRigging.create_utility_node('curveInfo', inputCurve=curve_shape.worldSpace).arcLength
-        self.stretch_att = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
+        if stretch:
+            curveLength = libRigging.create_utility_node('curveInfo', inputCurve=curve_shape.worldSpace).arcLength
+            self.stretch_att = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
+            for jnt in self._joints:
+                pymel.connectAttr(self.stretch_att, jnt.sx)
 
-        # Create squash
-        num_joints = len(self._joints)
-        squash_atts = libRigging.create_squash_atts(self.stretch_att, num_joints)
+            # Create squash
+            if squash:
+                num_joints = len(self._joints)
+                squash_atts = libRigging.create_squash_atts(self.stretch_att, num_joints)
+                # Todo: Find correct axis orient
+                for jnt, squash in zip(self._joints, squash_atts):
+                    print squash.get()
+                    pymel.connectAttr(squash, jnt.sy)
+                    pymel.connectAttr(squash, jnt.sz)
 
-        # Connect stretch/squash
-        # Todo: Find correct axis orient
-        for jnt, squash in zip(self._joints, squash_atts):
-            pymel.connectAttr(self.stretch_att, jnt.sx)
-            pymel.connectAttr(squash, jnt.sy)
-            pymel.connectAttr(squash, jnt.sz)
-
-        # Todo: Connect to parent?
 
     def unbuild(self, **kwargs):
         # hack: the ikEffector is parented to the bone chain and need to be deleted manually

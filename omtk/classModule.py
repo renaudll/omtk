@@ -100,7 +100,7 @@ class Module(object):
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name=self.name_anm.resolve('net'))
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, *args, **kwargs):
+    def build(self, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=False, *args, **kwargs):
         if not self.input:
             raise Exception("Can't build module with zero inputs.")
 
@@ -113,9 +113,10 @@ class Module(object):
 
         # Disable segment scale compensate by default.
         # Otherwise we might have scale issues since the rig won't propagate uniform scale change.
-        for inn in self.input:
-            if inn.hasAttr('segmentScaleCompensate'):
-                inn.segmentScaleCompensate.set(False)
+        if segmentScaleCompensate is not None:
+            for inn in self.input:
+                if inn.hasAttr('segmentScaleCompensate'):
+                    inn.segmentScaleCompensate.set(segmentScaleCompensate)
 
         if create_grp_anm:
             grp_anm_name = self.name_anm.resolve()

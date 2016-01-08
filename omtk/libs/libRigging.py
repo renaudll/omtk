@@ -101,21 +101,40 @@ def fetch_all_ctrl_shapes():
             target = pymel.PyNode(str(target_name))
             fetch_ctrl_shapes(ctrl, target)
 
+def create_strech_attr_from_curve(curve_shape):
+    curveLength = create_utility_node('curveInfo', inputCurve=curve_shape.worldSpace).arcLength
+    return create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
 
 def create_squash_atts(attr_stretch, samples):
     """
     Create attributes resolving a curve using the following formula.
     s^(e^(x^2)))
+    see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
     :param attr_stretch: # The stretch attribute.
     :param samples: Number of samples to resolve.
     """
     import libFormula
     if not isinstance(attr_stretch, pymel.Attribute):
         raise IOError("Expected pymel Attribute, got {0} ({1})".format(attr_stretch, type(attr_stretch)))
+
+    attr_stretch_inv = create_utility_node('multiplyDivide', operation=2, input1X=1.0, input2X=attr_stretch).outputX
+
     return_vals = []
     for i in range(samples):
         pos = float(i) / (samples - 1) * 2.0 - 1.0
-        attr_squash = libFormula.parse("s^(e^(x^2)))", s=attr_stretch, x=pos)
+
+        # Blend between no squash and full squash using a bell curve.
+        # 0 = Maximum Squash
+        # 1 = No Squash
+        # see see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
+        blend = libFormula.parse("x^2", x=pos)
+
+        attr_squash = libFormula.parse("((max-min)*blend)+min",
+            min=attr_stretch_inv,
+            max=1,
+            blend=blend
+        )
+
         return_vals.append(attr_squash)
     return return_vals
 

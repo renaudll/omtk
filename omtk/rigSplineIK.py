@@ -44,20 +44,18 @@ class SplineIK(Module):
         # Create stretch
         # Todo: use shape instead of transform as curve input?
         if stretch:
-            curveLength = libRigging.create_utility_node('curveInfo', inputCurve=curve_shape.worldSpace).arcLength
-            self.stretch_att = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
+            stretch_attr = libRigging.create_strech_attr_from_curve(curve_shape)
             for jnt in self._joints:
-                pymel.connectAttr(self.stretch_att, jnt.sx)
+                pymel.connectAttr(stretch_attr, jnt.sx, force=True)
 
             # Create squash
             if squash:
                 num_joints = len(self._joints)
-                squash_atts = libRigging.create_squash_atts(self.stretch_att, num_joints)
+                squash_attrs = libRigging.create_squash_atts(stretch_attr, num_joints)
                 # Todo: Find correct axis orient
-                for jnt, squash in zip(self._joints, squash_atts):
-                    print squash.get()
-                    pymel.connectAttr(squash, jnt.sy)
-                    pymel.connectAttr(squash, jnt.sz)
+                for jnt, squash in zip(self._joints, squash_attrs):
+                    pymel.connectAttr(squash, jnt.sy, force=True)
+                    pymel.connectAttr(squash, jnt.sz, force=True)
 
 
     def unbuild(self, **kwargs):

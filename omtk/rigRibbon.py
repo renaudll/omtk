@@ -3,7 +3,7 @@ import maya.mel as mel
 from className import Name
 from classCtrl import BaseCtrl
 from classModule import Module
-from libs import libRigging
+from libs import libRigging, libPymel, libRigging
 
 class CtrlRibbon(BaseCtrl):
     def build(self, *args, **kwargs):
@@ -22,76 +22,23 @@ class Ribbon(Module):
         self.ctrls = []
 
     def build(self, num_subdiv = 5, num_ctrl = 3, create_ctrl=True, *args, **kwargs):
-        super(Ribbon, self).build(*args, **kwargs)
-        self.num_subdiv = num_subdiv
+        self._chain_joints = libPymel.PyNodeChain([input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)])
+
+
+        super(Ribbon, self).build(segmentScaleCompensate=False, create_grp_anm=create_ctrl, *args, **kwargs)
         self.num_ctrl = num_ctrl
 
-        distance = self.chain.length()
-        
         #Create the plane and align it with the selected bones
-        plane_tran, plane_shape = pymel.nurbsPlane()
-        plane_name = self.name_rig.resolve("ribbonPlane")
-        plane_tran.rename(plane_name)
-        start_matrix = self.chain.start.getMatrix(worldSpace=True)
-        y_aligned_mat = pymel.datatypes.Matrix(start_matrix[1], start_matrix[0], -start_matrix[2], start_matrix[3])
-        plane_tran.setMatrix(y_aligned_mat, worldSpace=True)
+        plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
+        if plane_tran is None:
+            plane_name = self.name_rig.resolve("ribbonPlane")
+            plane_tran = libRigging.create_nurbs_plane_from_joints(self._chain_joints)
+            plane_tran.rename(plane_name)
+            plane_tran.setParent(self.grp_rig)
 
-        #Place the plane between the start and end bone
-        t_plane = plane_tran.getTranslation(space="world")
-        between_pos = pymel.datatypes.Vector(t_plane.x, (t_plane.y + distance/2), t_plane.z)
-        aligned_trans = between_pos * y_aligned_mat
-
-        #Set the length and number of subdivision for the place
-        plane_tran.setTranslation(aligned_trans, space="object")
-        plane_shape.lengthRatio.set(distance)
-        plane_shape.patchesV.set(self.num_subdiv)
-        plane_grp_name = self.name_rig.resolve("ribbonPlane" + "_grp")
-        plane_grp = pymel.createNode('transform', name=plane_grp_name, parent=self.grp_rig)
-        plane_grp.setMatrix(plane_tran.getMatrix(worldSpace=True))
-        plane_tran.setParent(plane_grp)
-
-        #Create the joints that will be used to skin the plane
-        a_ribbon_jnt = libRigging.create_chain_between_objects(self.chain.start,
-                                                               self.chain.end, self.num_ctrl, parented=False)
-        ribbon_chain_grp_name = self.name_rig.resolve('ribbonChain' + "_grp")
-        ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
-        ribbon_chain_grp.setMatrix(start_matrix)
-        pymel.parentConstraint(ribbon_chain_grp, self.chain[0], maintainOffset=True)
-        self.globalScale.connect(ribbon_chain_grp.scaleX)
-        self.globalScale.connect(ribbon_chain_grp.scaleY)
-        self.globalScale.connect(ribbon_chain_grp.scaleZ)
-        for i,n in enumerate(a_ribbon_jnt):
-            n.segmentScaleCompensate.set(False)
-            n.setParent(ribbon_chain_grp)
-            n.radius.set(1.0)
-            jnt_name = self.name_rig.resolve("jnt" + str(i+1).zfill(2))
-            n.rename(jnt_name)
-
-            #Create ctrl if needed
-            if create_ctrl:
-                ctrl_name = self.name_anm.resolve('fk' + str(i+1).zfill(2))
-                ctrl = CtrlRibbon(name=ctrl_name, create=True)
-                ctrl.setMatrix(n.getMatrix(worldSpace=True))
-                ctrl.setParent(self.grp_anm)
-                self.ctrls.append(ctrl)
-
-                #Constraint ctrl to ribbon jnt
-                pymel.parentConstraint(ctrl, n)
-                pymel.connectAttr(ctrl.scaleX, n.scaleX)
-                pymel.connectAttr(ctrl.scaleY, n.scaleY)
-                pymel.connectAttr(ctrl.scaleZ, n.scaleZ)
-
-        #Create the joint that will be constrained to the plane with djRivet
-        #TODO - Should we parent the joint together ? If yes, it cause some flipping du to the parent rotation
-        a_skin_jnt = libRigging.create_chain_between_objects(self.chain.start, self.chain.end,
-                                                             self.num_subdiv, parented=False)
-        for i,n in enumerate(a_skin_jnt):
-            n.segmentScaleCompensate.set(False)
-            n.setParent(self.chain.start)
-            jnt_name = self.name_jnt.resolve(str(i+1).zfill(2))
-            n.rename(jnt_name)
-            #Create the follicule needed for the system on the skinned bones
-            pymel.select(n, plane_tran)
+        #Create the follicule needed for the system on the skinned bones
+        for i, jnt in enumerate(self._chain_joints):
+            pymel.select(jnt, plane_tran)
             mel.eval("djRivet")
 
         #Apply the skin on the plane and rename follicle from djRivet
@@ -103,8 +50,39 @@ class Ribbon(Module):
             fol_name = self.name_rig.resolve("fol")
             n.rename(fol_name)
 
-        #TODO - Improve skinning smoothing by setting manully the skin...
-        pymel.skinCluster(a_ribbon_jnt.chain, plane_tran, dr=1.0, mi=2.0, omi=True)
+        # As a bonus, we can rig the plane automatically.
+        if create_ctrl:
+            # TODO: Support other shapes than straight lines...
+            # TODO: Support ctrl hold/fetch when building/unbuilding.
+            jnts = libRigging.create_chain_between_objects(self._chain_joints.start, self._chain_joints.end, self.num_ctrl, parented=False)
+
+            # Group all the joints
+            ribbon_chain_grp_name = self.name_rig.resolve('ribbonChain' + "_grp")
+            ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
+            for jnt in jnts:
+                jnt.setParent(ribbon_chain_grp)
+
+            self.ctrls = []
+            for i, jnt in enumerate(jnts):
+                ctrl_name = self.name_anm.resolve('fk' + str(i+1).zfill(2))
+                ctrl = CtrlRibbon(name=ctrl_name, create=True)
+                ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
+                ctrl.setParent(self.grp_anm)
+
+                pymel.parentConstraint(ctrl, jnt)
+                pymel.connectAttr(ctrl.scaleX, jnt.scaleX)
+                pymel.connectAttr(ctrl.scaleY, jnt.scaleY)
+                pymel.connectAttr(ctrl.scaleZ, jnt.scaleZ)
+
+                self.ctrls.append(ctrl)
+
+            #TODO - Improve skinning smoothing by setting manully the skin...
+            pymel.skinCluster(jnts._list, plane_tran, dr=1.0, mi=2.0, omi=True)
+
+            # Global uniform scale support
+            self.globalScale.connect(ribbon_chain_grp.scaleX)
+            self.globalScale.connect(ribbon_chain_grp.scaleY)
+            self.globalScale.connect(ribbon_chain_grp.scaleZ)
 
 
     def unbuild(self):

@@ -139,6 +139,28 @@ def create_squash_atts(attr_stretch, samples):
     return return_vals
 
 
+def create_nurbs_plane_from_joints(jnts, width=0.01):
+    """
+    Create a nurbsPlane following a provided joint chain.
+    Note that the plane is oriented in the up axis (Y) of each joint.
+    Note that degree > 1 are not supported at the moment.
+    """
+    # Create nurbsPlane
+    plane = pymel.nurbsPlane(d=1, u=(len(jnts)-1))[0]
+
+    pos1_local = pymel.datatypes.Point(0,width,0)
+    pos2_local = pymel.datatypes.Point(0,-width,0)
+    for i, jnt in enumerate(jnts):
+        jnt_tm_world = jnt.getMatrix(worldSpace=True)
+        pos1 = pos1_local * jnt_tm_world
+        pos2 = pos2_local * jnt_tm_world
+
+        plane.setCV(i,0,pos1, space='world')
+        plane.setCV(i,1,pos2, space='world')
+
+    return plane
+
+
 def create_nurbsCurve_from_joints(obj_s, obj_e, samples=2, num_cvs=3):
     pos_s = obj_s.getTranslation(worldSpace=True)
     pos_e = obj_e.getTranslation(worldSpace=True)
@@ -383,12 +405,12 @@ def get_matrix_from_direction(look_vec, upp_vec):
     look_vec.normalize()
     upp_vec.normalize()
 
-    side_vec = Vector.cross(look_vec, upp_vec)
+    side_vec = pymel.datatypes.Vector.cross(look_vec, upp_vec)
     #recross in case up and front were not originally orthogonal:
-    upp_vec = Vector.cross(side_vec, look_vec)
+    upp_vec = pymel.datatypes.Vector.cross(side_vec, look_vec)
 
     #the new matrix is
-    return Matrix (
+    return pymel.datatypes.Matrix (
         look_vec.x, look_vec.y, look_vec.z, 0,
         upp_vec.x, upp_vec.y, upp_vec.z, 0,
         side_vec.x, side_vec.y, side_vec.z, 0,

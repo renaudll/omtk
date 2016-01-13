@@ -164,3 +164,148 @@ def isinstance_of_transform(obj, cls=pymel.nodetypes.Transform):
 def isinstance_of_shape(obj, cls=pymel.nodetypes.Shape):
     if isinstance(obj, pymel.nodetypes.Transform):
         return any((shape for shape in obj.getShapes() if isinstance(shape, cls)))
+
+#
+# pymel.datatypes extensions.
+#
+
+class Segment(object):
+    """
+    In Maya there's no class to represent a segment.
+    This is the pymel.datatypes.Segment I've always wanted.
+    """
+    def __init__(self, pos_s, pos_e):
+        self.pos_s = pos_s
+        self.pos_e = pos_e
+
+        #self.pos_s = numpy.array(pos_s.x, pos_s.y, pos_s.z)
+        #self.pos_e = numpy.array(pos_e.x, pos_e.y, pos_e.z)
+
+    def closest_point(self, p):
+        """
+        http://stackoverflow.com/questions/3120357/get-closest-point-to-a-line
+        """
+        a = self.pos_s
+        b = self.pos_e
+        a_to_p = p - a
+        a_to_b = b - a
+        ab_length = a_to_b.length()
+        ap_length = a_to_p.length()
+        a_to_p_norm = a_to_p.normal()
+        a_to_b_norm = a_to_b.normal()
+        atp_dot_atb = a_to_p_norm.dot(a_to_b_norm)
+        dist_norm = atp_dot_atb * ap_length / ab_length
+        return pymel.datatypes.Vector(
+            a.x + a_to_b.x * dist_norm,
+            a.y + a_to_b.y * dist_norm,
+            a.z + a_to_b.z * dist_norm
+        )
+
+    def closest_point_normalized_distance(self, p):
+        """
+        Same things as .closest_point but only return the distance relative from the length of a to b.
+        Available for optimisation purpose.
+        """
+        a = self.pos_s
+        b = self.pos_e
+        a_to_p = p - a
+        a_to_b = b - a
+        ab_length = a_to_b.length()
+        ap_length = a_to_p.length()
+        a_to_p_norm = a_to_p.normal()
+        a_to_b_norm = a_to_b.normal()
+        atp_dot_atb = a_to_p_norm.dot(a_to_b_norm)
+        return atp_dot_atb * ap_length / ab_length
+
+
+class SegmentCollection(object):
+    def __init__(self, segments=None):
+        if segments is None:
+            segments = []
+        self.segments = segments
+
+        self.knots = [segment.pos_s for segment in self.segments]
+        self.knots.append(self.segments[-1].pos_e)
+
+    def closest_segment(self, pos):
+        bound_min = -0.999999999999  # Damn float imprecision
+        bound_max = 1.0000000000001  # Damn float imprecision
+        num_segments = len(self.segments)
+        for i, segment in enumerate(self.segments):
+            distance_normalized = segment.closest_point_normalized_distance(pos)
+            if distance_normalized >= bound_min and distance_normalized <= bound_max:
+                return segment, distance_normalized
+            elif i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
+                return segment, 0.0
+            elif i == num_segments and distance_normalized > bound_max:  # Handle out-of-bound
+                return segment, 1.0
+        raise Exception("Can't resolve segment for {0}".format(pos))
+
+    def closest_segment_index(self, pos):
+        closest_segment, ratio = self.closest_segment(pos)
+        index = self.segments.index(closest_segment)
+        return index, ratio
+
+    def get_knot_weights(self, dropoff=1.0, normalize=True):
+        num_knots = len(self.knots)
+        knots_weights = []
+        for i, knot in enumerate(self.knots):
+            if i == 0:
+                weights = [0] * num_knots
+                weights[0] = 1.0
+            elif i == (num_knots-1):
+                weights = [0] * num_knots
+                weights[-1] = 1.0
+            else:
+                weights = []
+                total_weight = 0.0
+                for j in range(num_knots):
+                    distance = abs(j-i)
+                    weight = max(0, 1.0-(distance/dropoff))
+                    total_weight += weight
+                    weights.append(weight)
+                weights = [weight / total_weight for weight in weights]
+            knots_weights.append(weights)
+        return knots_weights
+
+    '''
+    def get_weights(self, pos, dropoff=1.0, normalize=True):
+        # Compute the 'SegmentCollection' relative ratio and return the weight for each knots.
+        closest_segment, relative_ratio = self.closest_segment(pos)
+
+
+        index = self.segments.index(closest_segment)
+        absolute_ratio = relative_ratio + index
+
+        weights = []
+        total_weights = 0.0
+        for segment_ratio in range(len(self.knots)):
+            #segment_ratio += 0.5 # center of the joint
+            #print segment_ratio, absolute_ratio
+            distance = abs(segment_ratio - absolute_ratio)
+            weight = max(0, 1.0-(distance/dropoff))
+
+            # Apply cubic interpolation for greater results.
+            #weight = interp_cubic(weight)
+
+            total_weights += weight
+            weights.append(weight)
+
+        if normalize:
+            weights = [weight / total_weights for weight in weights]
+
+        return weights
+    '''
+
+    @classmethod
+    def from_transforms(cls, objs):
+        segments = []
+        num_objs = len(objs)
+        for i in range(num_objs-1):
+            obj_s = objs[i]
+            obj_e = objs[i+1]
+            pos_s = obj_s.getTranslation(space='world')
+            pos_e = obj_e.getTranslation(space='world')
+            segment = Segment(pos_s, pos_e)
+            segments.append(segment)
+        return cls(segments)

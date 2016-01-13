@@ -138,28 +138,98 @@ def create_squash_atts(attr_stretch, samples):
         return_vals.append(attr_squash)
     return return_vals
 
+def interp_linear(r, s, e):
+    return (e - s) * r + s
 
-def create_nurbs_plane_from_joints(jnts, width=0.01):
+def interp_linear_multiple(ratios, s, e):
+    return [interp_linear(ratio, s, e) for ratio in ratios]
+
+def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
     """
     Create a nurbsPlane following a provided joint chain.
     Note that the plane is oriented in the up axis (Y) of each joint.
-    Note that degree > 1 are not supported at the moment.
     """
-    # Create nurbsPlane
-    plane = pymel.nurbsPlane(d=1, u=(len(jnts)-1))[0]
 
-    pos1_local = pymel.datatypes.Point(0,width,0)
-    pos2_local = pymel.datatypes.Point(0,-width,0)
+    # Create nurbsPlane
+    num_patches_u = (len(jnts)-1)
+    plane = pymel.nurbsPlane(d=degree, u=num_patches_u)[0]
+
+    pos_upp_local = pymel.datatypes.Point(0,0,width)
+    pos_dwn_local = pymel.datatypes.Point(0,0,-width)
+
+    # Define how much in-between we need to compute.
+    num_patches_v = 2
+    num_inbetweens_outside = 0
+    num_inbetweens_inside = 0
+    add_inside_edges = True
+    if degree == 1:  # Linear
+        pass
+    elif degree == 2:  # Quadratic
+        num_inbetweens_outside = 1
+        num_inbetweens_inside = 1
+        add_inside_edges = False
+        num_patches_v = 3
+    elif degree == 3:  # Cubic
+        num_inbetweens_outside = 1
+        num_patches_v = 4
+    else:
+        # TODO: Support missing degrees!
+        Exception("Unexpected value for parameter degree, got {0}.".format(degree))
+
+    # Resolve ratios to compute v positions more easily.
+    v_ratios = [v / float(num_patches_v-1) for v in range(num_patches_v)]
+
+    # Resolve positions for edges
+    edges_positions_upp = []
+    edges_positions_dwn = []
     for i, jnt in enumerate(jnts):
         jnt_tm_world = jnt.getMatrix(worldSpace=True)
-        pos1 = pos1_local * jnt_tm_world
-        pos2 = pos2_local * jnt_tm_world
+        pos_upp = pos_upp_local * jnt_tm_world
+        pos_dwn = pos_dwn_local * jnt_tm_world
+        edges_positions_upp.append(pos_upp)
+        edges_positions_dwn.append(pos_dwn)
 
-        plane.setCV(i,0,pos1, space='world')
-        plane.setCV(i,1,pos2, space='world')
+    # Resolve all positions including in-between
+    all_positions = []
+
+    num_edges = len(edges_positions_upp)
+    for i in range(num_edges-1):
+        pos_upp_inn = edges_positions_upp[i]
+        pos_dwn_inn = edges_positions_dwn[i]
+        is_first = i == 0
+        is_before_last = i == num_edges - 2
+        is_last  = i == num_edges - 1
+
+        # Add edge (note that we always add the first and last edge edge).
+        if is_first or is_last or add_inside_edges:
+            all_positions.append(interp_linear_multiple(v_ratios, pos_upp_inn, pos_dwn_inn))
+
+        # Add in-betweens
+        if is_last:  # For obvious reasons, we don't want to add any points after the last edge.
+            continue
+
+        num_inbetweens = num_inbetweens_outside if is_first or is_before_last else num_inbetweens_inside
+
+        if num_inbetweens:
+            pos_upp_out = edges_positions_upp[i+1]
+            pos_dwn_out = edges_positions_dwn[i+1]
+            for j in range(num_inbetweens_outside):
+                ratio = float(j+1)/(num_inbetweens_outside+1)
+                pos_upp = interp_linear(ratio, pos_upp_inn, pos_upp_out)
+                pos_dwn = interp_linear(ratio, pos_dwn_inn, pos_dwn_out)
+                all_positions.append(interp_linear_multiple(v_ratios, pos_upp, pos_dwn))
+
+    # Add last edge
+    all_positions.append(interp_linear_multiple(v_ratios, edges_positions_upp[-1], edges_positions_dwn[-1]))
+
+
+    # Model the plane
+    for u in range(len(all_positions)):
+        for v in range(len(all_positions[u])):
+            pos = all_positions[u][v]
+            plane.setCV(u, v, pos)
 
     return plane
-
 
 def create_nurbsCurve_from_joints(obj_s, obj_e, samples=2, num_cvs=3):
     pos_s = obj_s.getTranslation(worldSpace=True)

@@ -110,7 +110,6 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
 
     # Resolve influence indices
     influence_objects = skinCluster.influenceObjects()
-    #num_jnts = len(influence_objects)
     jnt_src_index = influence_objects.index(source)
     jnt_dst_indexes = [influence_objects.index(target) for target in targets]
 
@@ -137,13 +136,14 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
 
     knot_weights = segments.get_knot_weights(dropoff=dropoff)
 
-    for v, vert in enumerate(obj.vtx):
-        old_weight = old_weights[v*chunk_size]
+    it_geometry= OpenMaya.MItGeometry(geometryDagPath)
+    vert_index = 0
+    while not it_geometry.isDone():
+        memory_location = (chunk_size * vert_index)
+        old_weight = old_weights[memory_location]
         if old_weight:
-            new_weights[v*chunk_size] = 0
-
-            pos = vert.getPosition(space='world')
-
+            # Resolve weight using the vtx/cv position
+            pos = OpenMaya.MVector(it_geometry.position(OpenMaya.MSpace.kWorld))  # MVector allow us to use .length()
             weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos)
 
             # Ensure the total of the new weights match the old weights
@@ -153,9 +153,13 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
             ratio = old_weight / total_weights
             weights= [weight * ratio for weight in weights]
 
+            # Write weights
             for i, weight in enumerate(weights):
                 index = (v * chunk_size) + i + 1
                 new_weights[index] = weight
+
+        it_geometry.next()
+        vert_index += 1
 
     mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
 
@@ -190,15 +194,23 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
 
     new_weights = OpenMaya.MDoubleArray(old_weights.length(), 0)
 
-    for i, vert in enumerate(shape.vtx):
-        memory_location = (chunk_size * i) + jnt_indices[0]
-        pos = vert.getPosition(space='world')
+    # Iterate through all vtx/cvs
+    it_geometry= OpenMaya.MItGeometry(geometryDagPath)
+    vert_index = 0
+    while not it_geometry.isDone():
+        # Resolve weight using the vtx/cv position
+        memory_location = (chunk_size * vert_index) + jnt_indices[0]
+        pos = OpenMaya.MVector(it_geometry.position(OpenMaya.MSpace.kWorld))  # MVector allow us to use .length()
         weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos)
 
-        # Assign weights
+        # Write weights
         for weight in weights:
             new_weights[memory_location] = weight
             memory_location += 1
+
+        it_geometry.next()
+        vert_index += 1
+
 
     mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
 

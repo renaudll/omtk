@@ -48,14 +48,14 @@ class BaseCtrl(Node):
         self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
         return self.offset
 
-    def __createNode__(self, size=1, *args, **kwargs):
+    def __createNode__(self, size=1, normal=(1,0,0), *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
         size: The maximum dimension of the controller.
         """
         transform, make = pymel.circle(*args, **kwargs)
         make.radius.set(size)
-        make.normal.set((1, 0, 0))
+        make.normal.set(normal)
 
         # Expose the rotateOrder
         transform.rotateOrder.setKeyable(True)
@@ -149,6 +149,24 @@ class BaseCtrl(Node):
         if not isinstance(self.offset, pymel.PyNode):
             print "[setParent] {0} don't have an offset attribute".format(self)
         return self.offset.setMatrix(*args, **kwargs)
+
+    def setTranslation(self, *args, **kwargs):
+        """
+        Override of pymel.PyNode .setTranslation method.
+        Redirect the call to the ctrl top node.
+        """
+        if not isinstance(self.offset, pymel.PyNode):
+            print "[setParent] {0} don't have an offset attribute".format(self)
+        return self.offset.setTranslation(*args, **kwargs)
+
+    def setRotation(self, *args, **kwargs):
+        """
+        Override of pymel.PyNode .setRotation method.
+        Redirect the call to the ctrl top node.
+        """
+        if not isinstance(self.offset, pymel.PyNode):
+            print "[setParent] {0} don't have an offset attribute".format(self)
+        return self.offset.setRotation(*args, **kwargs)
 
 
     # stabilise

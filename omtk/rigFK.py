@@ -5,17 +5,17 @@ from libs import libRigging, libCtrlShapes
 
 
 class CtrlFk(BaseCtrl):
-    def __createNode__(self, size=1, name=None, *args, **kwargs):
-        if name is None:
-            raise Exception("Please provide the name argument.")
-
+    def __createNode__(self, size=1, *args, **kwargs):
+        '''
         if 'shoulder' in name.lower():
-            node = libCtrlShapes.create_shape_double_needle(size=size*0.04, name=name, normal=(0, 0, 1), *args, **kwargs)
+            node = libCtrlShapes.create_shape_double_needle(size=size*0.04, normal=(0, 0, 1), *args, **kwargs)
         else:
-            node, make = libCtrlShapes.create_shape_circle(size=size, name=name, *args, **kwargs)
-            make.radius.set(size)
-            make.degree.set(1)
-            make.sections.set(8)
+        '''
+
+        node, make = libCtrlShapes.create_shape_circle(size=size, *args, **kwargs)
+        make.radius.set(size)
+        make.degree.set(1)
+        make.sections.set(8)
 
         return node
 
@@ -52,10 +52,12 @@ class FK(Module):
                 pymel.connectAttr(ctrl.scaleY, inn.scaleY)
                 pymel.connectAttr(ctrl.scaleZ, inn.scaleZ)
 
+        '''
         # Connect to parent
         if parent and self.parent is not None:
             pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
-            pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
+            #pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
+        '''
 
     def unbuild(self):
         super(FK, self).unbuild()
@@ -81,8 +83,10 @@ class AdditiveFK(FK):
         super(AdditiveFK, self).build(*args, **kwargs)
 
         # TODO: Support multiple additive ctrls
+        ctrl_add_size = libRigging.get_recommended_ctrl_size(self.chain.start)
+
         ctrl_add = CtrlFkAdd()
-        ctrl_add.build()
+        ctrl_add.build(size=ctrl_add_size)
         ctrl_add.setMatrix(self.chain.start.getMatrix(worldSpace=True))
         ctrl_add.setParent(self.grp_anm)
         self.additive_ctrls.append(ctrl_add)

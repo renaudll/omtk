@@ -18,7 +18,7 @@ def create_shape_needle(size=1, length=None, radius=None, name=None, normal=(0, 
     # Resolve length
     # Default length is 4x the provided size
     if length is None:
-        length = size * 4.0
+        length = size * 1.0
 
     # Resolve radius
     if radius is None:
@@ -130,5 +130,15 @@ def create_shape_attrholder(size=1.0, **kwargs):
     s1 = size
     s2 = s1 * 0.7
     node = pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)
+    return node
 
+
+def create_shape_box(size=1.0, r=None, h=None):
+    if r is None:
+        r = size
+
+    if h is None:
+        h = size / 5.0
+
+    node = pymel.curve(d=1, p=[(-r, -h, r), (-r, h, r), (r, h, r), (r, -h, r), (-r, -h, r), (-r, -h, -r), (-r, h, -r), (-r, h, r), (r, h, r), (r, h, -r), (r, -h, -r), (r, -h, r), (r, -h, -r), (-r, -h, -r), (-r, h, -r), (r, h, -r)] )
     return node

@@ -3,6 +3,7 @@ import pymel.core as pymel
 from classCtrl import BaseCtrl
 from classNode import Node
 from classModule import Module
+import className
 from libs import libPymel
 import time
 
@@ -34,9 +35,24 @@ class CtrlRoot(BaseCtrl):
         return node
 
 class Rig(object):
-    NAME_ROOT_JNT = 'jnts'
-    NAME_ROOT_ANM = 'anm_root'
     DEFAULT_NAME = 'untitled'
+
+    #
+    # className.BaseNomenclature implementation
+    #
+
+    def _get_nomenclature_cls(self):
+        """
+        :return: Return the nomenclature type class that will determine the production specific nomenclature to use.
+        """
+        return className.BaseName
+
+    @property
+    def nomenclature(self):
+        """
+        Singleton that will return the nomenclature to use.
+        """
+        return self._get_nomenclature_cls()
 
     #
     # collections.MutableSequence implementation
@@ -81,20 +97,23 @@ class Rig(object):
         """
         Cleaning routine automatically called by libSerialization after a network import.
         """
+
+        # Ensure there's no None value in the .children array.
         try:
-            # Ensure there's no None value in the .children array.
             self.children = filter(None, self.children)
         except (AttributeError, TypeError):
             pass
+
 
     #
     # Main implementation
     #
 
-    def add_part(self, part):
+    def add_module(self, module):
         #if not isinstance(part, Module):
         #    raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
-        self.children.append(part)
+        module.root = self
+        self.children.append(module)
 
     def is_built(self):
         """
@@ -134,10 +153,10 @@ class Rig(object):
         all_root_jnts = libPymel.ls_root_jnts()
 
         if not libPymel.is_valid_PyNode(self.grp_jnts):
-            if cmds.objExists(self.NAME_ROOT_JNT):
-                self.grp_jnts = pymel.PyNode(self.NAME_ROOT_JNT)
+            if cmds.objExists(self.nomenclature.root_jnt_name):
+                self.grp_jnts = pymel.PyNode(self.nomenclature.root_jnt_name)
             else:
-                self.grp_jnts = pymel.createNode('joint', name=self.NAME_ROOT_JNT)
+                self.grp_jnts = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
 
         all_root_jnts.setParent(self.grp_jnts)
 
@@ -160,13 +179,14 @@ class Rig(object):
         #
 
         # Create anm root
-        all_anms = libPymel.ls_root_anms()
+        anm_grps = [module.grp_anm for module in self.children if module.grp_anm is not None]
         if not isinstance(self.grp_anms, CtrlRoot):
             self.grp_anms = CtrlRoot()
         if not self.grp_anms.is_built():
             self.grp_anms.build()
-        self.grp_anms.rename(self.NAME_ROOT_ANM)
-        all_anms.setParent(self.grp_anms)
+        self.grp_anms.rename(self.nomenclature.root_anm_name)
+        for anm_grp in anm_grps:
+            anm_grp.setParent(self.grp_anms)
 
         # Connect globalScale attribute to each modules globalScale.
         for child in self.children:
@@ -181,13 +201,14 @@ class Rig(object):
         pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleZ, force=True)
 
         # Create rig root
-        all_rigs = libPymel.ls_root_rigs()
+        rig_grps = [module.grp_rig for module in self.children if module.grp_rig is not None]
         if not isinstance(self.grp_rigs, Node):
             self.grp_rigs = Node()
         if not self.grp_rigs.is_built():
             self.grp_rigs.build()
-        self.grp_rigs.rename('rigs')
-        all_rigs.setParent(self.grp_rigs)
+        self.grp_rigs.rename(self.nomenclature.root_rig_name)
+        for rig_grp in rig_grps:
+            rig_grp.setParent(self.grp_rigs)
 
         # Create geo root
         all_geos = libPymel.ls_root_geos()
@@ -195,22 +216,22 @@ class Rig(object):
             self.grp_geos = Node()
         if not self.grp_geos.is_built():
             self.grp_geos.build()
-        self.grp_geos.rename('geos')
+        self.grp_geos.rename(self.nomenclature.root_geo_name)
         all_geos.setParent(self.grp_geos)
 
         # Setup displayLayers
-        self.layer_anm = pymel.createDisplayLayer(name='layer_anm', number=1, empty=True)
+        self.layer_anm = pymel.createDisplayLayer(name=self.nomenclature.layer_anm_name, number=1, empty=True)
         pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anms, noRecurse=True)
         self.layer_anm.color.set(17)  # Yellow
 
-        self.layer_rig = pymel.createDisplayLayer(name='layer_rig', number=1, empty=True)
+        self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
         pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rigs, noRecurse=True)
         pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnts, noRecurse=True)
         self.layer_rig.color.set(13)  # Red
         #self.layer_rig.visibility.set(0)  # Hidden
         self.layer_rig.displayType.set(2)  # Frozen
 
-        self.layer_geo = pymel.createDisplayLayer(name='layer_geo', number=1, empty=True)
+        self.layer_geo = pymel.createDisplayLayer(name=self.nomenclature.layer_geo_name, number=1, empty=True)
         pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geos, noRecurse=True)
         self.layer_geo.color.set(12)  # Green?
         self.layer_geo.displayType.set(2)  # Frozen
@@ -222,9 +243,9 @@ class Rig(object):
     def unbuild(self, **kwargs):
         """
         :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
-        :return: True if successfull.
+        :return: True if successful.
         """
-        # Unbuild all childrens
+        # Unbuild all children
         for child in self.children:
             if child.is_built():
                 child.unbuild(**kwargs)
@@ -252,5 +273,4 @@ class Rig(object):
         self._clean_invalid_pynodes()
 
         return True
-
 

@@ -4,6 +4,7 @@ from libs.libQt import QtCore, QtGui, getMayaWindow
 import libSerialization
 import classModule
 import classRig
+from maya import OpenMaya
 
 import ui
 class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
@@ -26,6 +27,34 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         self.updateData()
         self.updateUi()
+
+        self.callbacks_events = []
+        self.callbacks_scene = []
+
+        self.create_callbacks()
+
+    def create_callbacks(self):
+        self.remove_callbacks()
+        self.callbacks_events = [
+            OpenMaya.MEventMessage.addEventCallback("Undo", self.updateUi),
+            OpenMaya.MEventMessage.addEventCallback("Redo", self.updateUi),
+        ]
+        self.callbacks_scene = [
+            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kSceneUpdate, self.updateUi)
+        ]
+
+    def remove_callbacks(self):
+        for callback_id in self.callbacks_events:
+            OpenMaya.MEventMessage.removeCallback(callback_id)
+        self.callbacks_events = []
+
+        for callback_id in self.callbacks_scene:
+            OpenMaya.MSceneMessage.removeCallback(callback_id)
+        self.callbacks_scene = []
+
+    def closeEvent(self, *args, **kwargs):
+        self.remove_callbacks()
+        super(AutoRig, self).closeEvent(*args, **kwargs)
 
     #
     # root property
@@ -132,7 +161,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def _actionAddPart(self, _cls):
         part = _cls(pymel.selected())
-        self.root.add_part(part)
+        self.root.add_module(part)
+        try:
+            pymel.delete(self.root._network)
+        except AttributeError:
+            pass
         net = libSerialization.export_network(self.root) # Export part and only part
         pymel.select(net)
         #Add manually the Rig to the root list instead of importing back all network

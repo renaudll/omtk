@@ -1,6 +1,5 @@
 import pymel.core as pymel
 import maya.mel as mel
-from className import Name
 from classCtrl import BaseCtrl
 from classModule import Module
 from libs import libPymel, libRigging, libSkinning
@@ -21,11 +20,11 @@ class Ribbon(Module):
         self.num_ctrl = None
         self.ctrls = []
 
-    def build(self, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, *args, **kwargs):
+    def build(self, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, segmentScaleCompensate=False, *args, **kwargs):
         self._chain_joints = libPymel.PyNodeChain([input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)])
 
 
-        super(Ribbon, self).build(segmentScaleCompensate=False, create_grp_anm=create_ctrl, *args, **kwargs)
+        super(Ribbon, self).build(segmentScaleCompensate=segmentScaleCompensate, create_grp_anm=create_ctrl, *args, **kwargs)
         self.num_ctrl = num_ctrl
 
         #Create the plane and align it with the selected bones
@@ -35,7 +34,7 @@ class Ribbon(Module):
             plane_tran = libRigging.create_nurbs_plane_from_joints(self._chain_joints, degree=degree)
             plane_tran.rename(plane_name)
             plane_tran.setParent(self.grp_rig)
-            plane_shape = plane_tran.getShape()
+        self._ribbon_shape = plane_tran.getShape()
 
         #Create the follicule needed for the system on the skinned bones
         for i, jnt in enumerate(self._chain_joints):
@@ -54,22 +53,22 @@ class Ribbon(Module):
         # Create the joints that will drive the ribbon.
         # TODO: Support other shapes than straight lines...
         # TODO: Support ctrl hold/fetch when building/unbuilding.
-        jnts = libRigging.create_chain_between_objects(self._chain_joints.start, self._chain_joints.end, self.num_ctrl, parented=False)
+        self._ribbon_jnts = libRigging.create_chain_between_objects(self._chain_joints.start, self._chain_joints.end, self.num_ctrl, parented=False)
 
         # Group all the joints
         ribbon_chain_grp_name = self.name_rig.resolve('ribbonChain' + "_grp")
         ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
-        for jnt in jnts:
+        for jnt in self._ribbon_jnts:
             jnt.setParent(ribbon_chain_grp)
 
         #TODO - Improve skinning smoothing by setting manully the skin...
-        pymel.skinCluster(jnts._list, plane_tran, dr=1.0, mi=2.0, omi=True)
-        libSkinning.assign_weights_from_segments(plane_shape, jnts._list, dropoff=1.0)
+        pymel.skinCluster(self._ribbon_jnts._list, plane_tran, dr=1.0, mi=2.0, omi=True)
+        libSkinning.assign_weights_from_segments(self._ribbon_shape, self._ribbon_jnts._list, dropoff=1.0)
 
         # Create the ctrls that will drive the joints that will drive the ribbon.
         if create_ctrl:
             self.ctrls = []
-            for i, jnt in enumerate(jnts):
+            for i, jnt in enumerate(self._ribbon_jnts):
                 ctrl_name = self.name_anm.resolve('fk' + str(i+1).zfill(2))
                 ctrl = CtrlRibbon(name=ctrl_name, create=True)
                 ctrl.setMatrix(jnt.getMatrix(worldSpace=True))

@@ -2,8 +2,7 @@ import pymel.core as pymel
 from classCtrl import BaseCtrl
 from classModule import Module
 from classNode import Node
-from omtk.libs import libRigging, libAttr, libFormula, libPymel
-from className import Name
+from omtk.libs import libRigging, libAttr, libFormula
 import functools
 
 
@@ -145,6 +144,7 @@ class IK(Module):
         self.ctrl_ik = None
         self.ctrl_swivel = None
         self.chain_length = None
+        self._chain_ik = None
 
     def calc_swivel_pos(self):
         pos_start = self.input[0].getTranslation(space='world')
@@ -155,6 +155,12 @@ class IK(Module):
         return pos_swivel_base + dir_swivel * self.chain_length
 
     def build(self, orient_ik_ctrl=True, constraint=False, *args, **kwargs):
+        # Create a group for the ik system
+        # This group will be parentConstrained to the module parent.
+        ikChainGrp_name = self.name_rig.resolve('ikChain')
+        self._ikChainGrp = pymel.createNode('transform', name=ikChainGrp_name, parent=self.grp_rig)
+        self._ikChainGrp.setMatrix(self.chain.start.getMatrix(worldSpace=True), worldSpace=True)
+
         super(IK, self).build(*args, **kwargs)
 
         # Duplicate input chain (we don't want to move the hierarchy)
@@ -164,6 +170,7 @@ class IK(Module):
         for oInput, oIk, in zip(self.input, self._chain_ik):
             oIk.rename(self.name_rig.resolve('ik'))
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
+
 
         obj_s = self._chain_ik[0]
         obj_e = self._chain_ik[self.iCtrlIndex]
@@ -175,17 +182,14 @@ class IK(Module):
         p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
-        ikChainGrp_name = self.name_rig.resolve('ikChain')
-        ikChainGrp = pymel.createNode('transform', name=ikChainGrp_name, parent=self.grp_rig)
-        ikChainGrp.setMatrix(obj_s.getMatrix(worldSpace=True), worldSpace=True)
-        obj_s.setParent(ikChainGrp)
+        obj_s.setParent(self._ikChainGrp)
 
         # Create ikEffector
         ik_solver_name = self.name_rig.resolve('ikHandle')
         ik_effector_name = self.name_rig.resolve('ikEffector')
         self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=obj_e, solver='ikRPsolver')
         self._ik_handle.rename(ik_solver_name)
-        self._ik_handle.setParent(ikChainGrp)
+        self._ik_handle.setParent(self._ikChainGrp)
         _ik_effector.rename(ik_effector_name)
 
         # Create CtrlIK
@@ -227,7 +231,7 @@ class IK(Module):
         rig_softIkNetwork.build()
         pymel.connectAttr(attInRatio, rig_softIkNetwork.inRatio)
         pymel.connectAttr(attInStretch, rig_softIkNetwork.inStretch)
-        pymel.connectAttr(ikChainGrp.worldMatrix, rig_softIkNetwork.inMatrixS)
+        pymel.connectAttr(self._ikChainGrp.worldMatrix, rig_softIkNetwork.inMatrixS)
         pymel.connectAttr(self.ctrl_ik.worldMatrix, rig_softIkNetwork.inMatrixE)
         attr_distance = libFormula.parse('distance*globalScale',
                                          distance=self.chain_length,
@@ -238,7 +242,7 @@ class IK(Module):
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)
-        pymel.select(self.ctrl_ik, ikChainGrp, self._ik_handle)
+        pymel.select(self.ctrl_ik, self._ikChainGrp, self._ik_handle)
         pointConstraint = pymel.pointConstraint()
         pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
         pymel.select(pointConstraint)
@@ -266,10 +270,18 @@ class IK(Module):
         pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)
         pymel.poleVectorConstraint(self.ctrl_swivel, self._ik_handle)
 
+        '''
         # Connect to parent
         if libPymel.is_valid_PyNode(self.parent):
-            pymel.parentConstraint(self.parent, ikChainGrp, maintainOffset=True)
+            pymel.parentConstraint(self.parent, self._ikChainGrp, maintainOffset=True)
+        '''
 
         if constraint:
             for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)
+
+
+    def parent_to(self, parent):
+        pymel.parentConstraint(parent, self._ikChainGrp, maintainOffset=True)
+
+

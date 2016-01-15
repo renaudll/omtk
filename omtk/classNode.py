@@ -25,8 +25,10 @@ class Node(object):
     def is_built(self):
         return libPymel.is_valid_PyNode(self.node)
 
-    def build(self, *args, **kwargs):
+    def build(self, name=None, *args, **kwargs):
         self.node = self.__createNode__(*args, **kwargs)
+        if name:
+            self.node.rename(name)  # TODO: Prevent name collision?
 
     def unbuild(self, *args, **kwargs):
         pymel.delete(self.node)

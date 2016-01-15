@@ -1,5 +1,8 @@
 from libs import libPython
+from maya import cmds
 
+# TODO: Find a way to have different naming for different production.
+# Maybe handle it in the rig directly?
 
 class BaseName(object):
     """
@@ -10,6 +13,19 @@ class BaseName(object):
     """
     separator = '_'
 
+    type_anm = 'anm'
+    type_jnt = 'jnt'
+    type_rig = 'rig'
+
+    root_anm_name = 'anms'
+    root_geo_name = 'geos'
+    root_jnt_name = 'jnts'
+    root_rig_name = 'data'
+
+    layer_anm_name = 'layer_anm'
+    layer_rig_name = 'layer_rig'
+    layer_geo_name = 'layer_geo'
+
     def __init__(self, name, prefix=None, suffix=None):
         self.tokens = self._get_tokens(name)
         # prefix and suffix are automatically handled
@@ -19,6 +35,9 @@ class BaseName(object):
     def _get_tokens(self, name):
         return name.split(self.separator)
 
+    def _join_tokens(self, tokens):
+        return self.separator.join(tokens)
+
     def add_tokens(self, *args):
         self.tokens.extend(args)
 
@@ -27,6 +46,14 @@ class BaseName(object):
 
     def add_prefix(self, prefix):
         self.tokens.insert(0, prefix)
+
+    def get_unique_name(self, name):
+        if cmds.objExists(name):
+            i = 1
+            while cmds.objExists(name + str(i)):
+                i += 1
+            return name + str(i)
+        return name
 
     @libPython.memoized
     def resolve(self, *args):
@@ -39,7 +66,17 @@ class BaseName(object):
         if self.suffix:
             tokens.append(self.suffix)
 
-        return self.separator.join(tokens)
+        name = self._join_tokens(tokens)
+
+        # Prevent maya from crashing by guarantying that the name is unique.
+        if cmds.objExists(name):
+            name_old = name
+            name = self.get_unique_name(name)
+            cmds.warning("Name {0} already exist, using {1} instead.".format(
+                name_old, name
+            ))
+
+        return name
 
     def rename(self, obj, *args):
         name = self.resolve(*args)
@@ -55,7 +92,7 @@ class BaseName(object):
         return self.resolve()
 
 
-class Name(BaseName):
+class NameRenaud(BaseName):
     def _get_tokens(self, name):
-        tokens = super(Name, self)._get_tokens(name)
+        tokens = super(NameRenaud, self)._get_tokens(name)
         return tokens[1:] if tokens else None

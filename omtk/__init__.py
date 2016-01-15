@@ -25,6 +25,7 @@ import rigSplineIK
 import rigArm
 import rigLeg
 import rigRibbon
+import rigDpSpine
 
 from rigFK import FK
 from rigIK import IK
@@ -46,7 +47,7 @@ def _reload():
 
     reload(classNode)
     reload(classCtrl)
-
+    reload(classRig)
     reload(classModule)
     reload(rigIK)
     reload(rigFK)
@@ -56,8 +57,12 @@ def _reload():
     reload(rigHand)
     reload(rigTwistbone)
     reload(rigRibbon)
+    reload(rigDpSpine)
 
-    reload(classRig)
+
+
+    # Ensure libSerialization don't hold outdated definition of the classes.
+    libSerialization.clear_maya_cache()
 
 
 def create(*args, **kwargs):

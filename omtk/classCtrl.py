@@ -10,6 +10,7 @@ class BaseCtrl(Node):
     """
 
     def __init__(self, create=False, create_offset=True, *args, **kwargs):
+        # TODO: Deprecate the usage of create.
         self._create_offset = create_offset
 
         # Reserve maya default transform attributes.

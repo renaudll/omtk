@@ -1,5 +1,4 @@
 import pymel.core as pymel
-from className import Name
 from classModule import Module
 from classCtrl import BaseCtrl
 from rigIK import IK
@@ -34,15 +33,18 @@ class Arm(Module):
         self.ctrl_elbow = None
         self.attState = None
         self.offset_ctrl_ik = None
+        self.ctrl_attrs = None
 
     def _create_sys_ik(self, **kwargs):
         if not isinstance(self.sysIK, IK):
             self.sysIK = IK(self.input)
+            self.sysIK.root = self.root  # TODO: Find a cleaner way
         self.sysIK.build(constraint=False, **kwargs)
 
     def _create_sys_fk(self, **kwargs):
         if not isinstance(self.sysFK, FK):
             self.sysFK = FK(self.input)
+            self.sysFK.root = self.root  # TODO: Find a cleaner way
         self.sysFK.build(constraint=False, **kwargs)
 
     def build(self, *args, **kwargs):
@@ -53,18 +55,24 @@ class Arm(Module):
         self._create_sys_fk()
 
         # Store the offset between the ik ctrl and it's joint equivalent.
-        # Usefull when they don't match for example on a leg setup.
+        # Useful when they don't match for example on a leg setup.
         self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.input[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
+        # Note that this is production specific and should be defined in a sub-class implementation.
         jnt_hand = self.input[self.sysIK.iCtrlIndex]
-        obj_attr = BaseAttHolder(name=self.name_anm.resolve('atts'), create=True)
-        obj_attr.build()
-        obj_attr.setParent(self.grp_anm)
-        pymel.parentConstraint(jnt_hand, obj_attr.offset)
-        pymel.addAttr(obj_attr, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0,
+        ctrl_attrs_size = libRigging.get_recommended_ctrl_size(jnt_hand)
+        ctrl_attrs_name = self.name_anm.resolve('atts')
+        if not isinstance(self.ctrl_attrs, BaseAttHolder):
+            self.ctrl_attrs = BaseAttHolder()
+        self.ctrl_attrs.build(name=ctrl_attrs_name, size=ctrl_attrs_size)
+        self.ctrl_attrs.setParent(self.grp_anm)
+        pymel.parentConstraint(jnt_hand, self.ctrl_attrs.offset)
+
+        # Add attributes to the attribute holder.
+        pymel.addAttr(self.ctrl_attrs, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0,
                       maxValue=1, defaultValue=1, k=True)
-        attr_ik_weight = obj_attr.attr(self.kAttrName_State)
+        attr_ik_weight = self.ctrl_attrs.attr(self.kAttrName_State)
         attr_fk_weight = libRigging.create_utility_node('reverse', inputX=attr_ik_weight).outputX
 
         # Create a chain for blending ikChain and fkChain

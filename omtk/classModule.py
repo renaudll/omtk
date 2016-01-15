@@ -1,8 +1,9 @@
 import pymel.core as pymel
 import logging
-from className import Name
+from className import BaseName
 from classCtrl import BaseCtrl
 from libs import libPymel, libAttr, libPython
+import libSerialization
 
 def getattrs_by_type(val, type, recursive=False):
     for key, val in val.__dict__.iteritems():
@@ -20,12 +21,33 @@ class Module(object):
     To unbuild a Module, use the .unbuild() method.
     """
 
+    @classmethod
+    def create(cls, parent, *args, **kwargs):
+        module = cls(*args, **kwargs)
+        cls.root = parent
+        return cls
+
+
+    #
+    # libSerialization implementation
+    #
+    def __callbackNetworkPostBuild__(self):
+        """
+        Cleaning routine automatically called by libSerialization after a network import.
+        """
+
+        # Ensure there's no None value in the .input array as this is not supported..
+        try:
+            self.input = filter(None, self.input)
+        except (AttributeError, TypeError):
+            pass
+
     def is_built(self):
         """
         Check in maya the existence of the grp_anm and grp_rig properties.
 =        Returns: True if the rig think it have been built.
         """
-        return self.grp_anm is not None or self.grp_rig is not None
+        return (self.grp_anm is not None and self.grp_anm.exists()) or (self.grp_rig is not None and self.grp_rig.exists())
 
     @property
     def outputs(self):
@@ -35,24 +57,24 @@ class Module(object):
     def name_anm(self):
         ref = next(iter(self.input), None)
         if ref:
-            name = Name(ref.nodeName(), prefix='anm')
-            name.add_tokens(self.__class__.__name__.lower())
+            name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_anm)
+            #name.add_tokens(self.__class__.__name__.lower())
             return name
 
     @libPython.cached_property()
     def name_rig(self):
         ref = next(iter(self.input), None)
         if ref:
-            name = Name(ref.nodeName(), prefix='rig')
-            name.add_tokens(self.__class__.__name__.lower())
+            name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_rig)
+            #name.add_tokens(self.__class__.__name__.lower())
             return name
 
     @libPython.cached_property()
     def name_jnt(self):
         ref = next(iter(self.input), None)
         if ref:
-            name = Name(ref.nodeName(), prefix='jnt')
-            name.add_tokens(self.__class__.__name__.lower())
+            name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_jnt)
+            #name.add_tokens(self.__class__.__name__.lower())
             return name
 
     @property
@@ -73,6 +95,7 @@ class Module(object):
 
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, *args, **kwargs):
+        self.root = None
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
@@ -88,7 +111,9 @@ class Module(object):
         else:
             return '{0} (no inputs)'.format(self.__class__.__name__)
 
-    # Used in libSerialization
+    #
+    # libSerialization implementation
+    #
     def __getNetworkName__(self):
         """
         Determine the name of the maya network.
@@ -100,9 +125,14 @@ class Module(object):
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name=self.name_anm.resolve('net'))
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=False, *args, **kwargs):
+    def build(self, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=False, parent=True, *args, **kwargs):
+        # Ensure the module is owned by a rig entity.
+        # This otherwise we refuse to build it since we'll miss crucial information like the nomenclature.
+        if self.root is None:
+            raise Exception("Can't build a module not attached to a rig. {0}".format(self))
+
         if not self.input:
-            raise Exception("Can't build module with zero inputs.")
+            raise Exception("Can't build module with zero inputs. {0}".format(self))
 
         logging.info('Building {0}'.format(self.name_rig))
 
@@ -128,6 +158,18 @@ class Module(object):
             # todo: keep it here?
             pymel.addAttr(self.grp_rig, longName='globalScale', defaultValue=1.0)
             self.globalScale = self.grp_rig.globalScale
+
+        if self.parent:
+            parent_network = next(iter(libSerialization.getConnectedNetworks(self.parent, recursive=False)), None)
+            if parent_network is None:
+                logging.warning("{0} parent is not in any module!".format(self))
+                self.parent_to(self.parent)
+            else:
+                parent_module = libSerialization.import_network(parent_network)
+                desired_parent = parent_module.get_parent(self.parent)
+                logging.info("{0} will be parented to module {1}".format(self, parent_module))
+                self.parent_to(desired_parent)
+
 
     def unbuild(self):
         """
@@ -166,6 +208,21 @@ class Module(object):
         if '_cache' in self.__dict__:
             self.__dict__.pop('_cache')
 
+    def get_parent(self, parent):
+        """
+        This function can be called by a child module that would like to hook itself to this module hierarchy.
+        The default behavior is do to nothing, however a system can provide a custom node if needed.
+        """
+        return parent
+
+    def parent_to(self, parent):
+        """
+        Parent the system to a specific object.
+        # TODO: Implement!
+        """
+        if self.grp_anm:
+            pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
+
     def get_ctrls(self, recursive=False):
         return getattrs_by_type(self, BaseCtrl, recursive=recursive)
 
@@ -176,3 +233,4 @@ class Module(object):
         """
         first_joint = next((input for input in self.input if isinstance(input, pymel.nodetypes.Joint)), None)
         return [first_joint] if first_joint is not None else []
+

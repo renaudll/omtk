@@ -105,6 +105,36 @@ def create_strech_attr_from_curve(curve_shape):
     curveLength = create_utility_node('curveInfo', inputCurve=curve_shape.worldSpace).arcLength
     return create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
 
+def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
+    """
+    Compute the stretch applied on a pymel.nodetypes.NurbsSurface.
+    :param nurbs_shape: The pymel.nodetypes.NurbsSurface node.
+    :return: The stretch attribute and an arcLengthDimension that will need to be parented somewhere.
+    """
+    arcLengthDimension_shape = pymel.createNode('arcLengthDimension')
+    arcLengthDimension_shape.uParamValue.set(u)
+    arcLengthDimension_shape.vParamValue.set(v)
+    pymel.connectAttr(nurbs_shape.worldSpace, arcLengthDimension_shape.nurbsGeometry)
+    attr_length_u = arcLengthDimension_shape.arcLength
+    attr_length_v = arcLengthDimension_shape.arcLengthInV
+    multiply_node = create_utility_node('multiplyDivide', operation=2,
+            input1X=attr_length_u,
+            input2X=attr_length_u.get(),
+            input1Y=attr_length_v,
+            input2Y=attr_length_v.get()
+    )
+    attr_stretch_u = multiply_node.outputX
+    attr_stretch_v = multiply_node.outputY
+    return attr_stretch_u, attr_stretch_v, arcLengthDimension_shape
+
+def create_squash_attr_simple(attr_stretch):
+    return create_utility_node('multiplyDivide', operation=2, input1X=1.0, input2X=attr_stretch).outputX
+
+def create_squash_attr(attr_stretch):
+    #return next(iter(create_squash_atts(attr_stretch, 1)))
+    attr_stretch_inv = create_utility_node('multiplyDivide', operation=2, input1X=1.0, input2X=attr_stretch).outputX
+    return create_utility_node('multiplyDivide', operation=3, input1X=attr_stretch_inv, input2X=2).outputX
+
 def create_squash_atts(attr_stretch, samples):
     """
     Create attributes resolving a curve using the following formula.

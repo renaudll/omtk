@@ -1,9 +1,9 @@
 import pymel.core as pymel
-from classModule import Module
-from classCtrl import BaseCtrl
-from rigIK import IK
-from rigFK import FK
-from libs import libRigging, libCtrlShapes
+from omtk.classModule import Module
+from omtk.classCtrl import BaseCtrl
+from omtk.modules.rigIK import IK
+from omtk.modules.rigFK import FK
+from omtk.libs import libRigging, libCtrlShapes
 
 
 class BaseAttHolder(BaseCtrl):
@@ -138,6 +138,7 @@ class Arm(Module):
 
         # Connect globalScale
         pymel.connectAttr(self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True)
+        self.globalScale = self.grp_rig.globalScale  # Expose the attribute, the rig will reconise it.
 
         # Parent sub-modules so they are affected by displayLayer assignment and such.
         self.sysIK.grp_anm.setParent(self.grp_anm)
@@ -155,6 +156,10 @@ class Arm(Module):
         super(Arm, self).unbuild()
 
         self.attState = None
+
+    def parent_to(self, parent):
+        # Do nothing as everything is handled by the sysIK and sysFK modules.
+        pass
 
     #
     # Functions called for IK/FK switch (animation tools)

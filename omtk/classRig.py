@@ -7,7 +7,6 @@ import className
 from libs import libPymel
 import time
 
-
 class CtrlRoot(BaseCtrl):
     """
     The main ctrl. Support global uniform scaling only.
@@ -150,7 +149,7 @@ class Rig(object):
 
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
-        all_root_jnts = libPymel.ls_root_jnts()
+        all_root_jnts = libPymel.ls_root(type='joint')
 
         if not libPymel.is_valid_PyNode(self.grp_jnts):
             if cmds.objExists(self.nomenclature.root_jnt_name):
@@ -160,12 +159,20 @@ class Rig(object):
 
         all_root_jnts.setParent(self.grp_jnts)
 
+        # Ensure all joinst have segmentScaleComprensate deactivated.
+        # This allow us to scale adequately and support video game rigs.
+        # If for any mean stretch and squash are necessary, implement them on a new joint chains parented to the skeletton.
+        all_jnts = libPymel.ls(type='joint')
+        for jnt in all_jnts:
+            jnt.segmentScaleCompensate.set(False)
+
         #
         # Build
         #
 
         #try:
-        for child in self.children:
+
+        for child in sorted(self.children, key=(lambda module: libPymel.get_num_parents(module.chain.start))):
             #try:
             child.build(**kwargs)
             #except Exception, e:
@@ -273,4 +280,13 @@ class Rig(object):
         self._clean_invalid_pynodes()
 
         return True
+
+    #
+    # Utility methods
+    #
+
+    def get_module_by_input(self, obj):
+        for module in self.children:
+            if obj in module.input:
+                return module
 

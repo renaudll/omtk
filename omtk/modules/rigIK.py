@@ -1,10 +1,9 @@
-import pymel.core as pymel
-from classCtrl import BaseCtrl
-from classModule import Module
-from classNode import Node
-from omtk.libs import libRigging, libAttr, libFormula
 import functools
-
+import pymel.core as pymel
+from omtk.classCtrl import BaseCtrl
+from omtk.classModule import Module
+from omtk.classNode import Node
+from omtk.libs import libRigging, libAttr, libFormula
 
 class CtrlIk(BaseCtrl):
     kAttrName_State = 'ikFk'
@@ -162,6 +161,8 @@ class IK(Module):
         self._ikChainGrp.setMatrix(self.chain.start.getMatrix(worldSpace=True), worldSpace=True)
 
         super(IK, self).build(*args, **kwargs)
+
+        self._ikChainGrp.setParent(self.grp_rig)
 
         # Duplicate input chain (we don't want to move the hierarchy)
         # Todo: implement a duplicate method in omtk.libs.libPymel.PyNodeChain

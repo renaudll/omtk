@@ -126,7 +126,7 @@ def get_chains_from_objs(objs):
 # ls() reimplementations
 #
 
-def ls_ex(*args, **kwargs):
+def ls(*args, **kwargs):
     return PyNodeChain(pymel.ls(*args, **kwargs))
 
 

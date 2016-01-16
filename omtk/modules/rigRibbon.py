@@ -1,8 +1,8 @@
 import pymel.core as pymel
 import maya.mel as mel
-from classCtrl import BaseCtrl
-from classModule import Module
-from libs import libPymel, libRigging, libSkinning
+from omtk.classCtrl import BaseCtrl
+from omtk.classModule import Module
+from omtk.libs import libPymel, libRigging, libSkinning
 
 class CtrlRibbon(BaseCtrl):
     def build(self, *args, **kwargs):
@@ -20,11 +20,11 @@ class Ribbon(Module):
         self.num_ctrl = None
         self.ctrls = []
 
-    def build(self, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, segmentScaleCompensate=False, *args, **kwargs):
+    def build(self, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, *args, **kwargs):
         self._chain_joints = libPymel.PyNodeChain([input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)])
 
 
-        super(Ribbon, self).build(segmentScaleCompensate=segmentScaleCompensate, create_grp_anm=create_ctrl, *args, **kwargs)
+        super(Ribbon, self).build(screate_grp_anm=create_ctrl, *args, **kwargs)
         self.num_ctrl = num_ctrl
 
         #Create the plane and align it with the selected bones

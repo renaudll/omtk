@@ -1,10 +1,9 @@
 import pymel.core as pymel
-from classNode import Node
-from classModule import Module
-from rigArm import Arm
-from libs import libRigging
-from rigIK import IK
-
+from omtk.classNode import Node
+from omtk.classModule import Module
+from omtk.modules.rigArm import Arm
+from omtk.modules.rigIK import IK
+from omtk.libs import libRigging
 
 class FootRollIK(IK):
     """

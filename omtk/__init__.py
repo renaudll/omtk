@@ -19,22 +19,24 @@ import classCtrl
 import classModule
 import classRig
 
-import rigFK
-import rigIK
-import rigSplineIK
-import rigArm
-import rigLeg
-import rigRibbon
-import rigDpSpine
+from modules import rigFK
+from modules import rigIK
+from modules import rigSplineIK
+from modules import rigArm
+from modules import rigLeg
+from modules import rigRibbon
+from modules import rigDpSpine
+from modules import rigHand
+from modules import rigTwistbone
 
-from rigFK import FK
-from rigIK import IK
-from rigSplineIK import SplineIK
-from rigArm import Arm
-from rigLeg import Leg
-from rigTwistbone import Twistbone
-from rigRibbon import Ribbon
-from rigHand import Hand
+from modules.rigFK import FK
+from modules.rigIK import IK
+from modules.rigSplineIK import SplineIK
+from modules.rigArm import Arm
+from modules.rigLeg import Leg
+from modules.rigTwistbone import Twistbone
+from modules.rigRibbon import Ribbon
+from modules.rigHand import Hand
 
 import libSerialization
 from libs import libPython

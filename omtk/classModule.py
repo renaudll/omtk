@@ -1,9 +1,12 @@
 import pymel.core as pymel
 import logging
+import copy
+logging.basicConfig()
 from className import BaseName
 from classCtrl import BaseCtrl
 from libs import libPymel, libAttr, libPython
 import libSerialization
+
 
 def getattrs_by_type(val, type, recursive=False):
     for key, val in val.__dict__.iteritems():
@@ -20,13 +23,6 @@ class Module(object):
     To build a Module, use the .build method.
     To unbuild a Module, use the .unbuild() method.
     """
-
-    @classmethod
-    def create(cls, parent, *args, **kwargs):
-        module = cls(*args, **kwargs)
-        cls.root = parent
-        return cls
-
 
     #
     # libSerialization implementation
@@ -58,7 +54,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_anm)
-            #name.add_tokens(self.__class__.__name__.lower())
+            name.add_tokens(self.__class__.__name__.lower())
             return name
 
     @libPython.cached_property()
@@ -66,7 +62,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_rig)
-            #name.add_tokens(self.__class__.__name__.lower())
+            name.add_tokens(self.__class__.__name__.lower())
             return name
 
     @libPython.cached_property()
@@ -74,7 +70,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_jnt)
-            #name.add_tokens(self.__class__.__name__.lower())
+            name.add_tokens(self.__class__.__name__.lower())
             return name
 
     @property
@@ -92,6 +88,16 @@ class Module(object):
     def chains(self):
         return libPymel.get_chains_from_objs(self.input)
 
+    @libPython.cached_property()
+    def rig(self):
+        """
+        Navigate down the module hyerarchy until a Rig instance is hit. Then return it.
+        """
+        from classRig import Rig
+        module = self
+        while module and not isinstance(module, Rig):
+            module = module.root
+        return module
 
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, *args, **kwargs):
@@ -136,6 +142,7 @@ class Module(object):
 
         logging.info('Building {0}'.format(self.name_rig))
 
+
         '''
         if len(self.input) == 0:
             logging.error("[Module:Build] Can't build, inputs is empty"); return False
@@ -160,16 +167,14 @@ class Module(object):
             self.globalScale = self.grp_rig.globalScale
 
         if self.parent:
-            parent_network = next(iter(libSerialization.getConnectedNetworks(self.parent, recursive=False)), None)
-            if parent_network is None:
+            module = self.rig.get_module_by_input(self.parent)
+            if module:
+                desired_parent = module.get_parent(self.parent)
+                logging.info("{0} will be parented to module {1}".format(self, module))
+                self.parent_to(desired_parent)
+            else:
                 logging.warning("{0} parent is not in any module!".format(self))
                 self.parent_to(self.parent)
-            else:
-                parent_module = libSerialization.import_network(parent_network)
-                desired_parent = parent_module.get_parent(self.parent)
-                logging.info("{0} will be parented to module {1}".format(self, parent_module))
-                self.parent_to(desired_parent)
-
 
     def unbuild(self):
         """

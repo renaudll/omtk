@@ -1,8 +1,8 @@
 import pymel.core as pymel
-from classModule import Module
-from classNode import Node
-from libs import libRigging
-from rigSplineIK import SplineIK
+from omtk.classModule import Module
+from omtk.classNode import Node
+from omtk.libs import libRigging
+from omtk.modules.rigSplineIK import SplineIK
 
 
 class NonRollJoint(Node):

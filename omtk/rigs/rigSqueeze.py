@@ -1,4 +1,4 @@
-import classRig
+import rigDefault
 import className
 
 class SqueezeNomenclature(className.BaseName):
@@ -26,6 +26,14 @@ class SqueezeNomenclature(className.BaseName):
         tokens = [token[0].upper() + token[1:] for token in tokens]
         return super(SqueezeNomenclature, self)._join_tokens(tokens)
 
-class RigSqueeze(classRig.Rig):
+class RigSqueeze(rigDefault.Rig):
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
+
+    def build(self, **kwargs):
+        super(RigSqueeze, self).build(**kwargs)
+
+        color_l = 13  # Red
+        color_r = 6  # Blue
+
+        # TODO: Implement colors

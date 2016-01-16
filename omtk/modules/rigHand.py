@@ -1,8 +1,10 @@
 import logging
 import pymel.core as pymel
-from classModule import Module
-from libs import libPython, libPymel
-import rigFK
+from omtk.classModule import Module
+from omtk.modules import rigFK
+from omtk.libs import libPython
+from omtk.libs import libPymel
+
 
 '''
 class Finger(Module):

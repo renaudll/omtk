@@ -1,8 +1,8 @@
 import pymel.core as pymel
-from classModule import Module
-from classCtrl import BaseCtrl
-from rigRibbon import Ribbon
-from libs import libCtrlShapes, libPymel, libRigging
+from omtk.classModule import Module
+from omtk.classCtrl import BaseCtrl
+from omtk.modules.rigRibbon import Ribbon
+from omtk.libs import libCtrlShapes, libPymel, libRigging
 
 
 class Ctrl_DpSpine_IK(BaseCtrl):
@@ -31,7 +31,7 @@ class DpSpine(Module):
         if len(self.chain) != 3:
             raise Exception("Expected 3 joints. Got {0}.".format(len(self.chain)))
 
-        super(DpSpine, self).build(segmentScaleCompensate=True, *args, **kwargs)
+        super(DpSpine, self).build(*args, **kwargs)
 
         #
         # Create ctrls
@@ -68,10 +68,15 @@ class DpSpine(Module):
         self.ctrl_ik_upp.scalePivot.set(ctrl_ik_upp_pivot)
 
         # Create FK ctrls
+        ctrl_fk_color = 18  # Baby blue
+
         ctrl_fk_dwn_name = self.name_anm.resolve('HipsB')
         if not isinstance(self.ctrl_fk_dwn, Ctrl_DpSpine_FK):
             self.ctrl_fk_dwn = Ctrl_DpSpine_FK()
         self.ctrl_fk_dwn.build(name=ctrl_fk_dwn_name)
+        ctrl_fk_dwn_shape = self.ctrl_fk_dwn.getShape()
+        ctrl_fk_dwn_shape.drawOverride.overrideEnabled.set(1)
+        ctrl_fk_dwn_shape.drawOverride.overrideColor.set(ctrl_fk_color)
         self.ctrl_fk_dwn.setTranslation(pos_dwn_world)
         self.ctrl_fk_dwn.setParent(self.ctrl_ik_dwn)
 
@@ -79,6 +84,9 @@ class DpSpine(Module):
         if not isinstance(self.ctrl_fk_upp, Ctrl_DpSpine_FK):
             self.ctrl_fk_upp = Ctrl_DpSpine_FK()
         self.ctrl_fk_upp.build(name=ctrl_fk_upp_name)
+        ctrl_fk_upp_shape = self.ctrl_fk_upp.getShape()
+        ctrl_fk_upp_shape.drawOverride.overrideEnabled.set(1)
+        ctrl_fk_upp_shape.drawOverride.overrideColor.set(ctrl_fk_color)
         self.ctrl_fk_upp.setTranslation(pos_upp_world)
         self.ctrl_fk_upp.setParent(self.ctrl_ik_upp)
 
@@ -86,6 +94,9 @@ class DpSpine(Module):
         if not isinstance(self.ctrl_fk_mid, Ctrl_DpSpine_FK):
             self.ctrl_fk_mid = Ctrl_DpSpine_FK()
         self.ctrl_fk_mid.build(name=ctrl_fk_mid_name)
+        ctrl_fk_mid_shape = self.ctrl_fk_mid.getShape()
+        ctrl_fk_mid_shape.drawOverride.overrideEnabled.set(1)
+        ctrl_fk_mid_shape.drawOverride.overrideColor.set(ctrl_fk_color)
         self.ctrl_fk_mid.setTranslation(pos_mid_world)
         self.ctrl_fk_mid.setParent(self.ctrl_ik_dwn)
 
@@ -98,7 +109,7 @@ class DpSpine(Module):
 
         sys_ribbon = Ribbon(self.input)
         sys_ribbon.root = self.root  # TODO: Find a cleaner way
-        sys_ribbon.build(segmentScaleCompensate=None, create_ctrl=False, degree=3)
+        sys_ribbon.build(create_ctrl=False, degree=3)
         sys_ribbon.grp_rig.setParent(self.grp_rig)
 
         # Constraint the ribbon joints to the ctrls
@@ -115,8 +126,11 @@ class DpSpine(Module):
 
         #
         # Configure the squash
+        # Note: The squash is disconnected for now since it can affect the whole hierarchy.
+        # The standard in omtk is that if something need to stretch or squash, it need to be separated from the main hierarchy.
         #
 
+        '''
         # Add squash amount attribute
         squash_attr_name = 'squashAmount'
         pymel.addAttr(self.grp_rig, longName=squash_attr_name, defaultValue=1.0)
@@ -124,7 +138,8 @@ class DpSpine(Module):
 
         # Compute the squash
         attr_stretch_u, attr_stretch_v, node_arc_length = libRigging.create_stretch_attr_from_nurbs_plane(sys_ribbon._ribbon_shape, v=0.5)
-        node_arc_length.setParent(self.grp_rig)
+        node_arc_length_transform = node_arc_length.getParent()
+        node_arc_length_transform .setParent(self.grp_rig)
         attr_squash_raw = libRigging.create_squash_attr_simple(attr_stretch_u)
         attr_squash = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw], attributesBlender=attr_squash_amount).output
 
@@ -138,6 +153,7 @@ class DpSpine(Module):
         middle_jnt = self.chain[1]
         pymel.connectAttr(attr_squash , middle_jnt.scaleY)
         pymel.connectAttr(attr_squash , middle_jnt.scaleZ)
+        '''
 
     def get_parent(self, parent):
         if parent == self.chain[0]:

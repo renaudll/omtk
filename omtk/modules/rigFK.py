@@ -1,7 +1,7 @@
 import pymel.core as pymel
-from classCtrl import BaseCtrl
-from classModule import Module
-from libs import libRigging, libCtrlShapes
+from omtk.classCtrl import BaseCtrl
+from omtk.classModule import Module
+from omtk.libs import libRigging, libCtrlShapes
 
 
 class CtrlFk(BaseCtrl):
@@ -26,7 +26,7 @@ class FK(Module):
         self.ctrls = []
 
     def build(self, constraint=True, parent=True, *args, **kwargs):
-        super(FK, self).build(create_grp_rig=False, *args, **kwargs)
+        super(FK, self).build(segmentScaleCompensate=True, *args, **kwargs)
 
         # Create ctrl chain
         self.ctrls = []

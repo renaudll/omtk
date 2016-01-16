@@ -251,7 +251,7 @@ global proc djRivet() {
 	string $rivetList[];			// used to build list of objects to be riveted
 	string $djRX;					// store name of djRivet_follicles group
 	
-	print("djRivet start\n");
+	// print("djRivet start\n");
 
 	// skip select flag was introduced in maya 8, used by createNode command, doesnt work in maya 7	
 	string $SS = ($ver >= 8) ? " -ss " : " ";
@@ -288,12 +288,12 @@ global proc djRivet() {
 		setAttr -lock true -keyable false ($djRX + ".sy");
 		setAttr -lock true -keyable false ($djRX + ".sz");
 		
-		print("Follicle group called " + $djRX +" has been created.\n");
+		// print("Follicle group called " + $djRX +" has been created.\n");
 
 	}
 	else {
 		$djRX = "djRivetX";
-		print("Follicle group called " + $djRX +" has been discovered.\n");
+		// print("Follicle group called " + $djRX +" has been discovered.\n");
 	}
 
 	// check for vertices, cv's and lattice-points in the selected object list
@@ -562,15 +562,15 @@ global proc djRivet() {
 	
 	// final status report
 	if($lockedAttributeCount == 1) {
-		print("\n");
+		// print("\n");
 		warning($lockedAttributeCount + " object was not constrained. See script editor for details.");
 	}
 	else if($lockedAttributeCount > 1) {
-		print("\n");
+		// print("\n");
 		warning($lockedAttributeCount + " objects were not constrained. See script editor for details.");
 	}
 	else {
-		print("djRivet done\n");
+		// print("djRivet done\n");
 	}
 }
 

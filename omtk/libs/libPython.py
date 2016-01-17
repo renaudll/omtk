@@ -135,3 +135,53 @@ def log_execution_time(NAME):
         return run
 
     return deco_retry
+
+#
+# Taken from libSerialization
+#
+import sys
+
+def get_class_namespace(classe, relative=False):
+    if not isinstance(classe, object):
+        return None  # Todo: throw exception
+    class_name = classe.__name__
+    if relative:
+        tokens = class_name.split('.')
+        return tokens[-1] if tokens else None
+    else:
+        tokens = []
+        while classe is not object:
+            tokens.append(class_name)
+            classe = classe.__bases__[0]
+        return '.'.join(reversed(tokens))
+
+def get_class_def(class_name, base_class=object, relative=False):
+    try:
+        for cls in base_class.__subclasses__():
+            cls_path = get_class_namespace(cls, relative=relative)
+            if cls_path == class_name:
+                return cls
+            else:
+                t = get_class_def(class_name, base_class=cls, relative=relative)
+                if t is not None:
+                    return t
+    except Exception as e:
+        pass
+        #logging.warning("Error obtaining class definition for {0}: {1}".format(class_name, e))
+    return None
+
+def create_class_instance(class_name):
+    cls = get_class_def(class_name)
+
+    if cls is None:
+        logging.warning("Can't find class definition '{0}'".format(class_name))
+        return None
+
+    class_def = getattr(sys.modules[cls.__module__], cls.__name__)
+    assert (class_def is not None)
+
+    try:
+        return class_def()
+    except Exception as e:
+        logging.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
+        return None

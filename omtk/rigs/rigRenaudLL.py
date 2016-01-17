@@ -1,5 +1,5 @@
-import rigDefault
-import className
+from omtk import className
+from omtk import classRig
 
 class RenaudllNomenclature(className.BaseName):
     type_anm = 'Ctrl'
@@ -26,6 +26,6 @@ class RenaudllNomenclature(className.BaseName):
         tokens = [token[0].upper() + token[1:] for token in tokens]
         return super(SqueezeNomenclature, self)._join_tokens(tokens)
 
-class RigRenaudLL(rigDefault.Rig):
+class RigRenaudLL(classRig.Rig):
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature

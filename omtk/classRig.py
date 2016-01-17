@@ -2,9 +2,10 @@ from maya import cmds
 import pymel.core as pymel
 from classCtrl import BaseCtrl
 from classNode import Node
-from classModule import Module
 import className
+import classModule
 from libs import libPymel
+from libs import libPython
 import time
 
 class CtrlRoot(BaseCtrl):
@@ -108,17 +109,27 @@ class Rig(object):
     # Main implementation
     #
 
-    def add_module(self, module):
+    def add_module(self, cls_name, *args, **kwargs):
         #if not isinstance(part, Module):
         #    raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
-        module.root = self
-        self.children.append(module)
+
+        # Resolve class to use.
+        cls = libPython.get_class_def(cls_name, base_class=classModule.Module, relative=True)
+        if cls is None:
+            raise Exception("Cannot resolve class name '{0}'".format(cls_name))
+
+        instance = cls(*args, **kwargs)
+        #instance.root = self  # Link the rig to the module automaticaly.
+        self.children.append(instance)
+        return instance
 
     def is_built(self):
         """
         :return: True if any module dag nodes exist in the scene.
         """
         for child in self.children:  # note: libSerialization can return None anytime
+            if not child:
+                continue
             if child.is_built():
                 return True
         return False

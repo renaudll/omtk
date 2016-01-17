@@ -1,56 +1,81 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'Users/renaudlessardlarouche/GitHub/omtk/omtk/rigging/autorig/ui.ui'
+# Form implementation generated from reading ui file '/home/rlessard/dev/omtk/omtk/ui.ui'
 #
-# Created: Tue Feb 25 23:41:26 2014
-#      by: PyQt4 UI code generator 4.9.4
+# Created: Sat Jan 16 21:55:51 2016
+#      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
 
-from libs.libQt import QtCore, QtGui
-
-try:
-    _fromUtf8 = lambda s: s
-except AttributeError:
-    _fromUtf8 = lambda s: s
+from PySide import QtCore, QtGui
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
-        MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(597, 417)
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(558, 393)
         self.centralwidget = QtGui.QWidget(MainWindow)
-        self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
-        self.verticalLayout = QtGui.QVBoxLayout(self.centralwidget)
-        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.treeWidget = QtGui.QTreeWidget(self.centralwidget)
-        self.treeWidget.setObjectName(_fromUtf8("treeWidget"))
-        self.treeWidget.headerItem().setText(0, _fromUtf8("1"))
-        self.verticalLayout.addWidget(self.treeWidget)
+        self.centralwidget.setObjectName("centralwidget")
+        self.verticalLayout_3 = QtGui.QVBoxLayout(self.centralwidget)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.splitter = QtGui.QSplitter(self.centralwidget)
+        self.splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.splitter.setObjectName("splitter")
+        self.widget = QtGui.QWidget(self.splitter)
+        self.widget.setObjectName("widget")
+        self.verticalLayout_2 = QtGui.QVBoxLayout(self.widget)
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.label_modules = QtGui.QLabel(self.widget)
+        self.label_modules.setObjectName("label_modules")
+        self.verticalLayout_2.addWidget(self.label_modules)
+        self.treeWidget = QtGui.QTreeWidget(self.widget)
+        self.treeWidget.setObjectName("treeWidget")
+        self.treeWidget.headerItem().setText(0, "1")
+        self.verticalLayout_2.addWidget(self.treeWidget)
+        self.widget1 = QtGui.QWidget(self.splitter)
+        self.widget1.setObjectName("widget1")
+        self.verticalLayout = QtGui.QVBoxLayout(self.widget1)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.label_jnts = QtGui.QLabel(self.widget1)
+        self.label_jnts.setObjectName("label_jnts")
+        self.verticalLayout.addWidget(self.label_jnts)
+        self.lineEdit_search_jnt = QtGui.QLineEdit(self.widget1)
+        self.lineEdit_search_jnt.setObjectName("lineEdit_search_jnt")
+        self.verticalLayout.addWidget(self.lineEdit_search_jnt)
+        self.treeWidget_jnts = QtGui.QTreeWidget(self.widget1)
+        self.treeWidget_jnts.setObjectName("treeWidget_jnts")
+        self.treeWidget_jnts.headerItem().setText(0, "1")
+        self.verticalLayout.addWidget(self.treeWidget_jnts)
+        self.verticalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 597, 22))
-        self.menubar.setObjectName(_fromUtf8("menubar"))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 558, 26))
+        self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
-        self.statusbar.setObjectName(_fromUtf8("statusbar"))
+        self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
         self.toolBar = QtGui.QToolBar(MainWindow)
-        self.toolBar.setObjectName(_fromUtf8("toolBar"))
+        self.toolBar.setObjectName("toolBar")
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
+        self.toolBar_2 = QtGui.QToolBar(MainWindow)
+        self.toolBar_2.setObjectName("toolBar_2")
+        MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar_2)
         self.actionBuild = QtGui.QAction(MainWindow)
-        self.actionBuild.setObjectName(_fromUtf8("actionBuild"))
+        self.actionBuild.setObjectName("actionBuild")
         self.actionUnbuild = QtGui.QAction(MainWindow)
-        self.actionUnbuild.setObjectName(_fromUtf8("actionUnbuild"))
+        self.actionUnbuild.setObjectName("actionUnbuild")
         self.actionRebuild = QtGui.QAction(MainWindow)
-        self.actionRebuild.setObjectName(_fromUtf8("actionRebuild"))
+        self.actionRebuild.setObjectName("actionRebuild")
         self.actionImport = QtGui.QAction(MainWindow)
-        self.actionImport.setObjectName(_fromUtf8("actionImport"))
+        self.actionImport.setObjectName("actionImport")
         self.actionExport = QtGui.QAction(MainWindow)
-        self.actionExport.setObjectName(_fromUtf8("actionExport"))
+        self.actionExport.setObjectName("actionExport")
         self.actionUpdate = QtGui.QAction(MainWindow)
-        self.actionUpdate.setObjectName(_fromUtf8("actionUpdate"))
+        self.actionUpdate.setObjectName("actionUpdate")
         self.actionAdd = QtGui.QAction(MainWindow)
-        self.actionAdd.setObjectName(_fromUtf8("actionAdd"))
+        self.actionAdd.setObjectName("actionAdd")
         self.toolBar.addAction(self.actionBuild)
         self.toolBar.addAction(self.actionUnbuild)
         self.toolBar.addAction(self.actionRebuild)
@@ -60,13 +85,17 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionExport)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionUpdate)
+        self.toolBar_2.addSeparator()
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
+        MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Open Rigging Toolkit", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_modules.setText(QtGui.QApplication.translate("MainWindow", "Loaded Modules", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_jnts.setText(QtGui.QApplication.translate("MainWindow", "Unassigned Jnts", None, QtGui.QApplication.UnicodeUTF8))
         self.toolBar.setWindowTitle(QtGui.QApplication.translate("MainWindow", "toolBar", None, QtGui.QApplication.UnicodeUTF8))
+        self.toolBar_2.setWindowTitle(QtGui.QApplication.translate("MainWindow", "toolBar_2", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBuild.setText(QtGui.QApplication.translate("MainWindow", "Build", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUnbuild.setText(QtGui.QApplication.translate("MainWindow", "Unbuild", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRebuild.setText(QtGui.QApplication.translate("MainWindow", "Rebuild", None, QtGui.QApplication.UnicodeUTF8))

@@ -1,5 +1,5 @@
-import rigDefault
-import className
+from omtk import className
+from omtk import classRig
 
 class SqueezeNomenclature(className.BaseName):
     type_anm = 'Ctrl'
@@ -26,7 +26,7 @@ class SqueezeNomenclature(className.BaseName):
         tokens = [token[0].upper() + token[1:] for token in tokens]
         return super(SqueezeNomenclature, self)._join_tokens(tokens)
 
-class RigSqueeze(rigDefault.Rig):
+class RigSqueeze(classRig.Rig):
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
 

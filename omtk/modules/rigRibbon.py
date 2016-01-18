@@ -20,43 +20,44 @@ class Ribbon(Module):
         self.num_ctrl = None
         self.ctrls = []
 
-    def build(self, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, *args, **kwargs):
-        self._chain_joints = libPymel.PyNodeChain([input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)])
-
-
-        super(Ribbon, self).build(screate_grp_anm=create_ctrl, *args, **kwargs)
+    def build(self, rig, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, *args, **kwargs):
+        super(Ribbon, self).build(rig, create_grp_anm=create_ctrl, *args, **kwargs)
         self.num_ctrl = num_ctrl
+
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_rig = self.get_nomenclature_rig(rig)
 
         #Create the plane and align it with the selected bones
         plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
         if plane_tran is None:
-            plane_name = self.name_rig.resolve("ribbonPlane")
-            plane_tran = libRigging.create_nurbs_plane_from_joints(self._chain_joints, degree=degree)
+            plane_name = nomenclature_rig.resolve("ribbonPlane")
+            plane_tran = libRigging.create_nurbs_plane_from_joints(self.chain_jnt, degree=degree)
             plane_tran.rename(plane_name)
             plane_tran.setParent(self.grp_rig)
         self._ribbon_shape = plane_tran.getShape()
 
         #Create the follicule needed for the system on the skinned bones
-        for i, jnt in enumerate(self._chain_joints):
+        for i, jnt in enumerate(self.chain_jnt):
             pymel.select(jnt, plane_tran)
             mel.eval("djRivet")
 
         #Apply the skin on the plane and rename follicle from djRivet
         dj_rivet_grp = pymel.PyNode("djRivetX")
-        follicle_grp_name = self.name_rig.resolve("follicle_grp")
+        follicle_grp_name = nomenclature_rig.resolve("follicle_grp")
         dj_rivet_grp.rename(follicle_grp_name)
         dj_rivet_grp.setParent(self.grp_rig)
         for n in dj_rivet_grp.getChildren():
-            fol_name = self.name_rig.resolve("fol")
+            fol_name = nomenclature_rig.resolve("fol")
             n.rename(fol_name)
 
         # Create the joints that will drive the ribbon.
         # TODO: Support other shapes than straight lines...
         # TODO: Support ctrl hold/fetch when building/unbuilding.
-        self._ribbon_jnts = libRigging.create_chain_between_objects(self._chain_joints.start, self._chain_joints.end, self.num_ctrl, parented=False)
+        self._ribbon_jnts = libRigging.create_chain_between_objects(
+            self.chain_jnt.start, self.chain_jnt.end, self.num_ctrl, parented=False)
 
         # Group all the joints
-        ribbon_chain_grp_name = self.name_rig.resolve('ribbonChain' + "_grp")
+        ribbon_chain_grp_name = nomenclature_rig.resolve('ribbonChain' + "_grp")
         ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
         for jnt in self._ribbon_jnts:
             jnt.setParent(ribbon_chain_grp)
@@ -69,7 +70,7 @@ class Ribbon(Module):
         if create_ctrl:
             self.ctrls = []
             for i, jnt in enumerate(self._ribbon_jnts):
-                ctrl_name = self.name_anm.resolve('fk' + str(i+1).zfill(2))
+                ctrl_name = nomenclature_anm.resolve('fk' + str(i+1).zfill(2))
                 ctrl = CtrlRibbon(name=ctrl_name, create=True)
                 ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
                 ctrl.setParent(self.grp_anm)

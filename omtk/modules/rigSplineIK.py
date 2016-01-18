@@ -13,7 +13,8 @@ class SplineIK(Module):
         self.ikHandle = None
 
 
-    def build(self, stretch=True, squash=False, *args, **kwargs):
+    def build(self, rig, stretch=True, squash=False, *args, **kwargs):
+        # TODO: Use self.chain_jnt
         self._joints = [input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
         self._curves = [input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
 
@@ -22,14 +23,16 @@ class SplineIK(Module):
         if len(self._curves) < 1:
             raise Exception("Can't build SplineIK. Expected at least one nurbsCurve, got {0}".format(self._curves))
 
-        super(SplineIK, self).build(segmentScaleCompensate=True, *args, **kwargs)
+        super(SplineIK, self).build(rig, segmentScaleCompensate=True, *args, **kwargs)
+
+        nomenclature_rig = self.get_nomenclature_rig(rig)
 
         # todo: handle multiple curves?
         curve = next(iter(self._curves), None)
         curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)), None)
 
         # Create ik solver
-        solver_name = self.name_rig.resolve('ikEffector')
+        solver_name = nomenclature_rig.resolve('ikEffector')
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,

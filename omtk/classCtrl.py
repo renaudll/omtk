@@ -204,7 +204,7 @@ class BaseCtrl(Node):
         Restore a specific @attr attribute.
         """
         if target.isLocked():
-            log.warning("Can't fetch attribute {0} since it's locked.".format(target.__melobject__()))
+            log.info("Can't fetch attribute {0} since it's locked.".format(target.__melobject__()))
             return
 
         if source is None:
@@ -218,6 +218,7 @@ class BaseCtrl(Node):
         """
         Hold all ctrl keyable attributes.
         """
+        # TODO: Hold all keyable attributes.
         self.tx = self.hold_attrs(self.node.translateX)
         self.ty = self.hold_attrs(self.node.translateY)
         self.tz = self.hold_attrs(self.node.translateZ)

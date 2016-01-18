@@ -42,13 +42,16 @@ class Twistbone(Module):
 
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, orient_ik_ctrl=True, create_boxes=True, *args, **kwargs):
-        if len(self.input) < 2:
-            raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.input), self.input))
+    def build(self, rig, orient_ik_ctrl=True, create_boxes=True, *args, **kwargs):
+        if len(self.chain_jnt) < 2:
+            raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.chain_jnt), self.chain_jnt))
 
-        super(Twistbone, self).build(create_grp_anm=False, *args, **kwargs)
-        jnt_s = self.input[0]
-        jnt_e = self.input[1]
+        super(Twistbone, self).build(rig, create_grp_anm=False, *args, **kwargs)
+
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        jnt_s = self.chain_jnt[0]
+        jnt_e = self.chain_jnt[1]
 
         # Create curve from input joints (we'll use maya splineIKEffector for our upnodes.
         num_steps = 2
@@ -66,7 +69,7 @@ class Twistbone(Module):
 
         nonroll_1 = NonRollJoint()
         nonroll_1.build()
-        nonroll_1.rename(self.name_rig.resolve('nonroll_s'))
+        nonroll_1.rename(nomenclature_rig.resolve('nonroll_s'))
         jnt_s_parent = jnt_s.getParent()
         nonroll_1.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         if jnt_s_parent: pymel.parentConstraint(jnt_s_parent, nonroll_1.node, maintainOffset=True)
@@ -75,7 +78,7 @@ class Twistbone(Module):
 
         nonroll_2 = NonRollJoint()
         nonroll_2.build()
-        nonroll_2.rename(self.name_rig.resolve('nonroll_2'))
+        nonroll_2.rename(nomenclature_rig.resolve('nonroll_2'))
 
         nonroll_2.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         nonroll_2.setTranslation(jnt_e.getTranslation(space='world'), space='world')

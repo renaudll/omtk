@@ -109,8 +109,11 @@ def get_num_parents(obj):
 
 
 def get_chains_from_objs(objs):
+    """
+    Take an arbitraty collection of joints and sort them in hyerarchies represented by lists.
+    """
     chains = []
-    sorted(objs, key=get_num_parents)
+    objs = sorted(objs, key=get_num_parents)
     for obj in objs:
         parent = obj.getParent()
         if parent not in objs:

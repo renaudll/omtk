@@ -35,34 +35,35 @@ class Arm(Module):
         self.offset_ctrl_ik = None
         self.ctrl_attrs = None
 
-    def _create_sys_ik(self, **kwargs):
+    def _create_sys_ik(self, rig, **kwargs):
         if not isinstance(self.sysIK, IK):
-            self.sysIK = IK(self.input)
-            self.sysIK.root = self.root  # TODO: Find a cleaner way
-        self.sysIK.build(constraint=False, **kwargs)
+            self.sysIK = IK(self.chain_jnt)
+        self.sysIK.build(rig, constraint=False, **kwargs)
 
-    def _create_sys_fk(self, **kwargs):
+    def _create_sys_fk(self, rig, **kwargs):
         if not isinstance(self.sysFK, FK):
-            self.sysFK = FK(self.input)
-            self.sysFK.root = self.root  # TODO: Find a cleaner way
-        self.sysFK.build(constraint=False, **kwargs)
+            self.sysFK = FK(self.chain_jnt)
+        self.sysFK.build(rig, constraint=False, **kwargs)
 
-    def build(self, *args, **kwargs):
-        super(Arm, self).build(*args, **kwargs)
+    def build(self, rig, *args, **kwargs):
+        super(Arm, self).build(rig, *args, **kwargs)
+
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_rig = self.get_nomenclature_rig(rig)
 
         # Rig ikChain and fkChain
-        self._create_sys_ik()
-        self._create_sys_fk()
+        self._create_sys_ik(rig)
+        self._create_sys_fk(rig)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
-        self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.input[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
+        self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         # Note that this is production specific and should be defined in a sub-class implementation.
-        jnt_hand = self.input[self.sysIK.iCtrlIndex]
+        jnt_hand = self.chain_jnt[self.sysIK.iCtrlIndex]
         ctrl_attrs_size = libRigging.get_recommended_ctrl_size(jnt_hand)
-        ctrl_attrs_name = self.name_anm.resolve('atts')
+        ctrl_attrs_name = nomenclature_anm.resolve('atts')
         if not isinstance(self.ctrl_attrs, BaseAttHolder):
             self.ctrl_attrs = BaseAttHolder()
         self.ctrl_attrs.build(name=ctrl_attrs_name, size=ctrl_attrs_size)
@@ -76,9 +77,9 @@ class Arm(Module):
         attr_fk_weight = libRigging.create_utility_node('reverse', inputX=attr_ik_weight).outputX
 
         # Create a chain for blending ikChain and fkChain
-        chain_blend = pymel.duplicate(self.input, renameChildren=True, parentOnly=True)
-        for input_, node in zip(self.input, chain_blend):
-            node.rename(self.name_rig.resolve('blend'))
+        chain_blend = pymel.duplicate(self.chain_jnt._list, renameChildren=True, parentOnly=True)
+        for input_, node in zip(self.chain_jnt, chain_blend):
+            node.rename(nomenclature_rig.resolve('blend'))
 
         # Blend ikChain with fkChain
         for blend, oIk, oFk in zip(chain_blend, self.sysIK._chain_ik, self.sysFK.ctrls):
@@ -95,19 +96,19 @@ class Arm(Module):
 
         # Create a chain that provide the elbow controller and override the blend chain
         # (witch should only be nodes already)
-        chain_elbow = pymel.duplicate(self.input[:self.sysIK.iCtrlIndex], renameChildren=True, parentOnly=True)
-        for input_, node in zip(self.input, chain_elbow):
-            node.rename(self.name_rig.resolve('elbow'))  # todo: find a better name???
+        chain_elbow = pymel.duplicate(self.chain_jnt[:self.sysIK.iCtrlIndex], renameChildren=True, parentOnly=True)
+        for input_, node in zip(self.chain_jnt, chain_elbow):
+            node.rename(nomenclature_rig.resolve('elbow'))  # todo: find a better name???
         chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl
         # Note that this only affect the chain until @iCtrlIndex
         index_elbow = 1
-        ctrl_elbow_name = self.name_anm.resolve('elbow')
+        ctrl_elbow_name = nomenclature_anm.resolve('elbow')
         ctrl_elbow_parent = chain_blend[index_elbow]
         if not isinstance(self.ctrl_elbow, CtrlElbow):
             self.ctrl_elbow = CtrlElbow(create_offset=True)
-        ctrl_elbow_size = libRigging.get_recommended_ctrl_size(self.input[self.iCtrlIndex - 1]) * 1.25
+        ctrl_elbow_size = libRigging.get_recommended_ctrl_size(self.chain_jnt[self.iCtrlIndex - 1]) * 1.25
         self.ctrl_elbow.build(size=ctrl_elbow_size)
         self.ctrl_elbow.rename(ctrl_elbow_name)
         self.ctrl_elbow.setParent(self.grp_anm)
@@ -124,11 +125,11 @@ class Arm(Module):
         # Note that we only constraint to the elbow chain until @iCtrlIndex.
         # Afterward we constraint to the blend chain.
         for i in range(self.sysIK.iCtrlIndex):
-            inn = self.input[i]
+            inn = self.chain_jnt[i]
             ref = chain_elbow[i]
             pymel.parentConstraint(ref, inn, maintainOffset=True)  # todo: set to maintainOffset=False?
-        for i in range(self.sysIK.iCtrlIndex, len(self.input)):
-            inn = self.input[i]
+        for i in range(self.sysIK.iCtrlIndex, len(self.chain_jnt)):
+            inn = self.chain_jnt[i]
             ref = chain_blend[i]
             pymel.parentConstraint(ref, inn, maintainOffset=True)  # todo: set to maintainOffset=False?
 
@@ -167,7 +168,7 @@ class Arm(Module):
 
     def snap_ik_to_fk(self):
         # Position ikCtrl
-        ctrl_ik_tm = self.input[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
+        ctrl_ik_tm = self.chain_jnt[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
         self.sysIK.ctrl_ik.node.setMatrix(self.offset_ctrl_ik * ctrl_ik_tm, worldSpace=True)
 
         # Position swivel
@@ -186,7 +187,7 @@ class Arm(Module):
         self.sysIK.ctrl_swivel.setTranslation(pos_swivel, space='world')
 
     def snap_fk_to_ik(self):
-        for ctrl, jnt in zip(self.sysFK.ctrls, self.input):
+        for ctrl, jnt in zip(self.sysFK.ctrls, self.chain_jnt):
             ctrl.node.setMatrix(jnt.getMatrix(worldSpace=True), worldSpace=True)
 
     def switch_to_ik(self):

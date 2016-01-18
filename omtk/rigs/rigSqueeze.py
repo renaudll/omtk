@@ -33,7 +33,16 @@ class RigSqueeze(classRig.Rig):
     def build(self, **kwargs):
         super(RigSqueeze, self).build(**kwargs)
 
-        color_l = 13  # Red
-        color_r = 6  # Blue
-
-        # TODO: Implement colors
+        # Set ctrls colors
+        color_by_side = {
+            'l': 13,  # Red
+            'r': 6  # Blue
+        }
+        for module in self.modules:
+            if module.grp_anm:
+                nomenclature_anm = module.get_nomenclature_anm(self)
+                side = nomenclature_anm.get_side()
+                color = color_by_side.get(side, None)
+                if color:
+                    module.grp_anm.drawOverride.overrideEnabled.set(1)
+                    module.grp_anm.drawOverride.overrideColor.set(color)

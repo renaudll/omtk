@@ -49,59 +49,55 @@ class Module(object):
     def outputs(self):
         return self.__dict__['_outputs']
 
-    @libPython.cached_property()
-    def name_anm(self):
+    @libPython.memoized
+    def get_nomenclature_anm(self, rig):
         ref = next(iter(self.input), None)
         if ref:
-            name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_anm)
+            name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_anm)
             name.add_tokens(self.__class__.__name__.lower())
             return name
 
-    @libPython.cached_property()
-    def name_rig(self):
+    @libPython.memoized
+    def get_nomenclature_rig(self, rig):
         ref = next(iter(self.input), None)
         if ref:
-            name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_rig)
-            name.add_tokens(self.__class__.__name__.lower())
-            return name
-
-    @libPython.cached_property()
-    def name_jnt(self):
-        ref = next(iter(self.input), None)
-        if ref:
-            name = self.root.nomenclature(ref.nodeName(), suffix=self.root.nomenclature.type_jnt)
+            name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_rig)
             name.add_tokens(self.__class__.__name__.lower())
             return name
 
     @property
     def parent(self):
-        first_input = next(iter(self.input), None)
+        first_input = next(iter(self.chain_jnt), None)
         if libPymel.is_valid_PyNode(first_input):
             return first_input.getParent()
         return None
 
-    @libPython.cached_property()
-    def chain(self):
-        return next(iter(self.chains), None)
+    #
+    # Helper methods for accessing the .input attribute.
+    # It is not a good pratice to access .input directly as the order
+    # of the objects can be random if the user didn't care enough.
+    #
 
     @libPython.cached_property()
     def chains(self):
         return libPymel.get_chains_from_objs(self.input)
 
     @libPython.cached_property()
-    def rig(self):
-        """
-        Navigate down the module hyerarchy until a Rig instance is hit. Then return it.
-        """
-        from classRig import Rig
-        module = self
-        while module and not isinstance(module, Rig):
-            module = module.root
-        return module
+    def chain(self):
+        return next(iter(self.chains), None)
+
+    @libPython.cached_property()
+    def chains_jnt(self):
+        fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
+        jnts = filter(fn_is_jnt, self.input)
+        return libPymel.get_chains_from_objs(jnts)
+
+    @libPython.cached_property()
+    def chain_jnt(self):
+        return next(iter(self.chains_jnt), None)
 
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, *args, **kwargs):
-        self.root = None
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
@@ -112,8 +108,8 @@ class Module(object):
         self.input = input if input else []
 
     def __str__(self):
-        if self.name_anm:
-            return '{0} ({1})'.format(str(self.name_anm), self.__class__.__name__)
+        if self.input:
+            return '{0} ({1})'.format(str(self.__class__.__name__), self.__class__.__name__)
         else:
             return '{0} (no inputs)'.format(self.__class__.__name__)
 
@@ -129,18 +125,22 @@ class Module(object):
         return 'net_{0}'.format(self.__class__.__name__)
 
     def __createMayaNetwork__(self):
-        return pymel.createNode('network', name=self.name_anm.resolve('net'))
+        return pymel.createNode('network', name='net_{0}'.format(self.__class__.__name__))
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=False, parent=True, *args, **kwargs):
-        # Ensure the module is owned by a rig entity.
-        # This otherwise we refuse to build it since we'll miss crucial information like the nomenclature.
-        if self.root is None:
-            raise Exception("Can't build a module not attached to a rig. {0}".format(self))
-
+    def build(self, rig, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=False, parent=True):
+        """
+        Build the module following the provided rig rules.
+        :param rig: The rig dictating the nomenclature and other settings.
+        :param create_grp_anm: If True, a group for all the animation controller will be created.
+        :param create_grp_rig: If True, a group for all the rig data will be created/
+        :param segmentScaleCompensate: If provided, the segmentScaleCompensation attribute of all the inputs will be modified.
+        :param parent: If True, the parent_to method will be automatically called.
+        :return:
+        """
         if not self.input:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
 
-        logging.info('Building {0}'.format(self.name_rig))
+        logging.info('Building {0}'.format(self))
 
 
         '''
@@ -156,10 +156,10 @@ class Module(object):
                     inn.segmentScaleCompensate.set(segmentScaleCompensate)
 
         if create_grp_anm:
-            grp_anm_name = self.name_anm.resolve()
+            grp_anm_name = self.get_nomenclature_anm(rig).resolve()
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            grp_rig_name = self.name_rig.resolve()
+            grp_rig_name = self.get_nomenclature_rig(rig).resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
             # todo: keep it here?
@@ -167,7 +167,7 @@ class Module(object):
             self.globalScale = self.grp_rig.globalScale
 
         if self.parent:
-            module = self.rig.get_module_by_input(self.parent)
+            module = rig.get_module_by_input(self.parent)
             if module:
                 desired_parent = module.get_parent(self.parent)
                 logging.info("{0} will be parented to module {1}".format(self, module))

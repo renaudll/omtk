@@ -58,27 +58,27 @@ class Rig(object):
     # collections.MutableSequence implementation
     #
     def __getitem__(self, item):
-        self.children.__getitem__(item)
+        self.modules.__getitem__(item)
 
     def __setitem__(self, index, value):
-        self.children.__setitem__(index, value)
+        self.modules.__setitem__(index, value)
 
     def __delitem__(self, index):
-        self.children.__delitem__(index)
+        self.modules.__delitem__(index)
 
     def __len__(self):
-        return self.children.__len__()
+        return self.modules.__len__()
 
     def insert(self, index, value):
-        self.children.insert(index, value)
+        self.modules.insert(index, value)
         value._parent = self # Store the parent for optimized network serialization (see libs.libSerialization)
 
     def __iter__(self):
-        return iter(self.children)
+        return iter(self.modules)
 
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
-        self.children = []
+        self.modules = []
         self.grp_anms = None
         self.grp_geos = None
         self.grp_jnts = None
@@ -100,7 +100,7 @@ class Rig(object):
 
         # Ensure there's no None value in the .children array.
         try:
-            self.children = filter(None, self.children)
+            self.modules = filter(None, self.modules)
         except (AttributeError, TypeError):
             pass
 
@@ -119,15 +119,14 @@ class Rig(object):
             raise Exception("Cannot resolve class name '{0}'".format(cls_name))
 
         instance = cls(*args, **kwargs)
-        #instance.root = self  # Link the rig to the module automaticaly.
-        self.children.append(instance)
+        self.modules.append(instance)
         return instance
 
     def is_built(self):
         """
         :return: True if any module dag nodes exist in the scene.
         """
-        for child in self.children:  # note: libSerialization can return None anytime
+        for child in self.modules:  # note: libSerialization can return None anytime
             if not child:
                 continue
             if child.is_built():
@@ -183,21 +182,36 @@ class Rig(object):
 
         #try:
 
-        for child in sorted(self.children, key=(lambda module: libPymel.get_num_parents(module.chain.start))):
+        modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
+        for module in modules:
+            print("Building {0}...".format(module))
             #try:
-            child.build(**kwargs)
+            module.build(self, **kwargs)
             #except Exception, e:
             #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
             #    traceback.print_stack()
             #    logging.error(str(e))
             #    raise e
 
+        # Raise warnings if a module leave junk in the scene.
+        for module in self.modules:
+            if module.grp_anm and not module.grp_anm.getChildren():
+                cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
+                    module.grp_anm.longName(), self
+                ))
+                pymel.delete(module.grp_anm)
+            if module.grp_rig and not module.grp_rig.getChildren():
+                cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
+                    module.grp_rig.longName(), self
+                ))
+                pymel.delete(module.grp_rig)
+
         #
         # Post-build
         #
 
         # Create anm root
-        anm_grps = [module.grp_anm for module in self.children if module.grp_anm is not None]
+        anm_grps = [module.grp_anm for module in self.modules if module.grp_anm is not None]
         if not isinstance(self.grp_anms, CtrlRoot):
             self.grp_anms = CtrlRoot()
         if not self.grp_anms.is_built():
@@ -207,19 +221,19 @@ class Rig(object):
             anm_grp.setParent(self.grp_anms)
 
         # Connect globalScale attribute to each modules globalScale.
-        for child in self.children:
-            if child.globalScale:
-                pymel.connectAttr(self.grp_anms.globalScale, child.globalScale, force=True)
+        for module in self.modules:
+            if module.globalScale:
+                pymel.connectAttr(self.grp_anms.globalScale, module.globalScale, force=True)
 
         # Constraint grp_jnts to grp_anms
-        pymel.delete([child for child in self.grp_jnts.getChildren() if isinstance(child, pymel.nodetypes.Constraint)])
+        pymel.delete([module for module in self.grp_jnts.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
         pymel.parentConstraint(self.grp_anms, self.grp_jnts, maintainOffset=True)
         pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleX, force=True)
         pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleY, force=True)
         pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleZ, force=True)
 
         # Create rig root
-        rig_grps = [module.grp_rig for module in self.children if module.grp_rig is not None]
+        rig_grps = [module.grp_rig for module in self.modules if module.grp_rig is not None]
         if not isinstance(self.grp_rigs, Node):
             self.grp_rigs = Node()
         if not self.grp_rigs.is_built():
@@ -264,7 +278,7 @@ class Rig(object):
         :return: True if successful.
         """
         # Unbuild all children
-        for child in self.children:
+        for child in self.modules:
             if child.is_built():
                 child.unbuild(**kwargs)
 
@@ -297,7 +311,7 @@ class Rig(object):
     #
 
     def get_module_by_input(self, obj):
-        for module in self.children:
+        for module in self.modules:
             if obj in module.input:
                 return module
 

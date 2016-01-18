@@ -67,8 +67,8 @@ class Hand(Module):
 
         return sorted(chains, key=sort_chain)
 
-    def build(self, *args, **kwargs):
-        super(Hand, self).build(parent=False, *args, **kwargs)
+    def build(self, rig, *args, **kwargs):
+        super(Hand, self).build(rig, parent=False, *args, **kwargs)
 
 
         # Resolve fingers and metacarpals
@@ -95,9 +95,8 @@ class Hand(Module):
 
             # Rig fingers
             sysFinger = rigFK.AdditiveFK(jnts_phalanges)
-            sysFinger.root = self.root  # TODO: Find a cleaner way
             self.sysFingers.append(sysFinger)
-            sysFinger.build(parent=False)
+            sysFinger.build(rig, parent=False)
             sysFinger.grp_anm.setParent(self.grp_anm)
 
             # Rig metacarpals if necessary

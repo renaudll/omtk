@@ -26,6 +26,9 @@ class BaseName(object):
     layer_rig_name = 'layer_rig'
     layer_geo_name = 'layer_geo'
 
+    side_l_tokens = ['l', "left"]
+    side_r_tokens = ['r', "right"]
+
     def __init__(self, name, prefix=None, suffix=None):
         self.tokens = self._get_tokens(name)
         # prefix and suffix are automatically handled
@@ -54,6 +57,15 @@ class BaseName(object):
                 i += 1
             return name + str(i)
         return name
+
+    def get_side(self):
+        for token in self.tokens:
+            token_lower = token.lower()
+            if any(True for pattern in self.side_l_tokens if token_lower == pattern.lower()):
+                return "l"
+            elif any(True for pattern in self.side_r_tokens if token_lower == pattern.lower()):
+                return "r"
+        return None
 
     @libPython.memoized
     def resolve(self, *args):

@@ -27,26 +27,29 @@ class DpSpine(Module):
         self.ctrl_fk_mid = None
         self.ctrl_fk_upp = None
 
-    def build(self, *args, **kwargs):
-        if len(self.chain) != 3:
+    def build(self, rig, *args, **kwargs):
+        if len(self.chain_jnt) != 3:
             raise Exception("Expected 3 joints. Got {0}.".format(len(self.chain)))
 
-        super(DpSpine, self).build(*args, **kwargs)
+        super(DpSpine, self).build(rig, *args, **kwargs)
+
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_rig = self.get_nomenclature_rig(rig)
 
         #
         # Create ctrls
         #
 
-        jnt_dwn = self.input[0]
-        jnt_mid = self.input[1]
-        jnt_upp = self.input[2]
+        jnt_dwn = self.chain_jnt[0]
+        jnt_mid = self.chain_jnt[1]
+        jnt_upp = self.chain_jnt[2]
 
         pos_dwn_world = jnt_dwn.getTranslation(space='world')
         pos_mid_world = jnt_mid.getTranslation(space='world')
         pos_upp_world = jnt_upp.getTranslation(space='world')
 
         # Create IK ctrls
-        ctrl_ik_dwn_name = self.name_anm.resolve('HipsA')
+        ctrl_ik_dwn_name = nomenclature_anm.resolve('HipsA')
         ctrl_ik_dwn_size = libRigging.get_recommended_ctrl_size(jnt_dwn)
         if not isinstance(self.ctrl_ik_dwn, Ctrl_DpSpine_IK):
             self.ctrl_ik_dwn = Ctrl_DpSpine_IK()
@@ -54,7 +57,7 @@ class DpSpine(Module):
         self.ctrl_ik_dwn.setTranslation(pos_dwn_world)
         self.ctrl_ik_dwn.setParent(self.grp_anm)
 
-        ctrl_ik_upp_name = self.name_anm.resolve('ChestA')
+        ctrl_ik_upp_name = nomenclature_anm.resolve('ChestA')
         ctrl_ik_upp_size = libRigging.get_recommended_ctrl_size(jnt_upp)
         if not isinstance(self.ctrl_ik_upp, Ctrl_DpSpine_IK):
             self.ctrl_ik_upp = Ctrl_DpSpine_IK()
@@ -70,7 +73,7 @@ class DpSpine(Module):
         # Create FK ctrls
         ctrl_fk_color = 18  # Baby blue
 
-        ctrl_fk_dwn_name = self.name_anm.resolve('HipsB')
+        ctrl_fk_dwn_name = nomenclature_anm.resolve('HipsB')
         if not isinstance(self.ctrl_fk_dwn, Ctrl_DpSpine_FK):
             self.ctrl_fk_dwn = Ctrl_DpSpine_FK()
         self.ctrl_fk_dwn.build(name=ctrl_fk_dwn_name)
@@ -80,7 +83,7 @@ class DpSpine(Module):
         self.ctrl_fk_dwn.setTranslation(pos_dwn_world)
         self.ctrl_fk_dwn.setParent(self.ctrl_ik_dwn)
 
-        ctrl_fk_upp_name = self.name_anm.resolve('ChestB')
+        ctrl_fk_upp_name = nomenclature_anm.resolve('ChestB')
         if not isinstance(self.ctrl_fk_upp, Ctrl_DpSpine_FK):
             self.ctrl_fk_upp = Ctrl_DpSpine_FK()
         self.ctrl_fk_upp.build(name=ctrl_fk_upp_name)
@@ -90,7 +93,7 @@ class DpSpine(Module):
         self.ctrl_fk_upp.setTranslation(pos_upp_world)
         self.ctrl_fk_upp.setParent(self.ctrl_ik_upp)
 
-        ctrl_fk_mid_name = self.name_anm.resolve('Middle1')
+        ctrl_fk_mid_name = nomenclature_anm.resolve('Middle1')
         if not isinstance(self.ctrl_fk_mid, Ctrl_DpSpine_FK):
             self.ctrl_fk_mid = Ctrl_DpSpine_FK()
         self.ctrl_fk_mid.build(name=ctrl_fk_mid_name)
@@ -107,9 +110,8 @@ class DpSpine(Module):
         # Create ribbon rig
         #
 
-        sys_ribbon = Ribbon(self.input)
-        sys_ribbon.root = self.root  # TODO: Find a cleaner way
-        sys_ribbon.build(create_ctrl=False, degree=3)
+        sys_ribbon = Ribbon(self.chain_jnt)
+        sys_ribbon.build(rig, create_ctrl=False, degree=3)
         sys_ribbon.grp_rig.setParent(self.grp_rig)
 
         # Constraint the ribbon joints to the ctrls

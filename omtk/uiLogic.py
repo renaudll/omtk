@@ -157,7 +157,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if not rig.is_built():
-                rig.build()
+                if isinstance(rig, classModule.Module):
+                    rig.build(self.root)
+                else:
+                    rig.build()
             else:
                 pymel.warning("Can't build {0}, already built.".format(rig))
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE

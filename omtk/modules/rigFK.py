@@ -25,14 +25,15 @@ class FK(Module):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = []
 
-    def build(self, constraint=True, parent=True, *args, **kwargs):
-        super(FK, self).build(segmentScaleCompensate=True, *args, **kwargs)
+    def build(self, rig, constraint=True, parent=True, *args, **kwargs):
+        super(FK, self).build(rig, create_grp_rig=False, segmentScaleCompensate=True, *args, **kwargs)
+
+        nomenclature_anm = self.get_nomenclature_anm(rig)
 
         # Create ctrl chain
         self.ctrls = []
-        for input in self.input:
-            ctrl_name = self.name_anm.resolve('fk')
-
+        for input in self.chain_jnt:
+            ctrl_name = nomenclature_anm.resolve('fk')
             ctrl = CtrlFk(name=ctrl_name)
             size = libRigging.get_recommended_ctrl_size(input) * 1.25
             ctrl.build(size=size, name=ctrl_name)
@@ -46,7 +47,7 @@ class FK(Module):
 
         # Connect jnt -> anm
         if constraint is True:
-            for inn, ctrl in zip(self.input, self.ctrls):
+            for inn, ctrl in zip(self.chain_jnt, self.ctrls):
                 pymel.parentConstraint(ctrl, inn)
                 pymel.connectAttr(ctrl.scaleX, inn.scaleX)
                 pymel.connectAttr(ctrl.scaleY, inn.scaleY)
@@ -79,8 +80,8 @@ class AdditiveFK(FK):
         self.num_ctrls = 1
         self.additive_ctrls = []
 
-    def build(self, *args, **kwargs):
-        super(AdditiveFK, self).build(*args, **kwargs)
+    def build(rig, self, *args, **kwargs):
+        super(AdditiveFK, self).build(rig, *args, **kwargs)
 
         # TODO: Support multiple additive ctrls
         ctrl_add_size = libRigging.get_recommended_ctrl_size(self.chain.start)

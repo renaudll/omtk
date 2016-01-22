@@ -16,7 +16,7 @@ class Node(object):
     def __getattr__(self, attr_name):
         if self.__dict__['node'] and not isinstance(self.__dict__['node'], pymel.PyNode):
             raise TypeError("RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(type(self.__dict__['node']), self.__dict__['node']))
-        if hasattr(self.__dict__['node'], attr_name):
+        elif hasattr(self.__dict__['node'], attr_name):
             return getattr(self.__dict__['node'], attr_name)
 
     def __createNode__(self, *args, **kwargs):

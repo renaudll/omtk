@@ -416,6 +416,39 @@ def get_recommended_ctrl_size(obj, default_value=1.0, weight_x=0.0, weight_neg_x
     )
     return default_value
 
+def ray_cast(pos, dir, geometries, debug=False):
+    """
+    Simple pymel wrapper for the MFnGeometry intersect method.
+    :param pos: Any OpenMaya.MPoint compatible type (ex: pymel.datatypes.Point)
+    :param dir: Any OpenMaya.MVector compatible type (ex: pymel.datatypes.Vector)
+    :param geometries: The geometries to intersect.
+    :param debug: If True, spaceLocators will be created at intersection points.
+    :return: pymel.datatypes.Point list containing the intersection points.
+    """
+    # Cast pos to OpenMaya.MPoint if necessary.
+    if type(pos) != OpenMaya.MPoint:
+        pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
+
+    # Cast dir to OpenMaya.MVector if necessary.
+    if type(dir) != OpenMaya.MVector:
+        dir = OpenMaya.MVector(dir.x, dir.y, dir.z)
+
+    results = []
+
+    buffer_results = OpenMaya.MPointArray()
+    for geometry in geometries:
+        mfn_geo = geometry.__apimfn__()
+        if mfn_geo.intersect(pos, dir, buffer_results, 1.0e-10, OpenMaya.MSpace.kWorld):
+            for i in range(buffer_results.length()):
+                results.append(pymel.datatypes.Point(buffer_results[i]))
+
+    if debug:
+        for result in results:
+            loc = pymel.spaceLocator()
+            loc.setTranslation(result)
+
+    return results
+
 
 # TODO: Benchmark performances
 def snap(obj_dst, obj_src):

@@ -1,6 +1,6 @@
 import logging, collections
 import pymel.core as pymel
-
+from maya import OpenMaya
 
 #
 # A PyNodeChain is a special pymel-related object that act exactly like a standard array.
@@ -27,54 +27,31 @@ def is_child_of(node, potential_parent):
         node = node.getParent()
     return False
 
-
-class PyNodeChain(collections.MutableSequence):
+class PyNodeChain(list):
     """A container for manipulating lists of hosts"""
-
-    def __init__(self, _list=None):
-        self.__dict__['_list'] = _list if _list else []
-
-    def __len__(self):
-        return len(self._list)
-
-    def __getitem__(self, ii):
-        return self._list[ii]
-
-    def __delitem__(self, ii):
-        del self._list[ii]
-
-    def __setitem__(self, ii, val):
-        return self._list[ii]
-
-    def __str__(self):
-        return str(self._list)
-
     @property
     def start(self):
-        return next(iter(self._list), None)
+        return next(iter(self), None)
 
     @property
     def end(self):
-        return self._list[-1] if len(self._list) > 0 else None
+        return self[-1] if len(self) > 0 else None
 
     @property
     def chain(self):
-        return self._list
-
-    def insert(self, ii, val):
-        self._list.insert(ii, val)
+        return self
 
     def setParent(self, new_parent, **kwargs):
-        for node in self._list:
+        for node in self:
             if node != new_parent and node.getParent() != new_parent:
                 node.setParent(new_parent, **kwargs)
 
     # todo: convert to property?
     def length(self):
         length = 0
-        for i in range(len(self._list) - 1):
-            head = self._list[i]
-            tail = self._list[i + 1]
+        for i in range(len(self) - 1):
+            head = self[i]
+            tail = self[i + 1]
             length += distance(head, tail)
         return length
 
@@ -196,7 +173,7 @@ class Segment(object):
         ap_length = a_to_p.length()
         a_to_p_norm = a_to_p.normal()
         a_to_b_norm = a_to_b.normal()
-        atp_dot_atb = a_to_p_norm.dot(a_to_b_norm)
+        atp_dot_atb = a_to_p_norm * (a_to_b_norm)  # dot product
         dist_norm = atp_dot_atb * ap_length / ab_length
         return pymel.datatypes.Vector(
             a.x + a_to_b.x * dist_norm,
@@ -217,8 +194,8 @@ class Segment(object):
         ap_length = a_to_p.length()
         a_to_p_norm = a_to_p.normal()
         a_to_b_norm = a_to_b.normal()
-        atp_dot_atb = a_to_p_norm.dot(a_to_b_norm)
-        return atp_dot_atb * ap_length / ab_length
+        atp_dot_atb = a_to_p_norm * a_to_b_norm
+        return (atp_dot_atb * ap_length / ab_length) if ab_length > 0.001  else 0.0
 
 
 class SegmentCollection(object):
@@ -307,8 +284,10 @@ class SegmentCollection(object):
         for i in range(num_objs-1):
             obj_s = objs[i]
             obj_e = objs[i+1]
-            pos_s = obj_s.getTranslation(space='world')
-            pos_e = obj_e.getTranslation(space='world')
+            mfn_transform_s = obj_s.__apimfn__()
+            mfn_transform_e = obj_e.__apimfn__()
+            pos_s = OpenMaya.MVector(mfn_transform_s.getTranslation(OpenMaya.MSpace.kWorld))
+            pos_e = OpenMaya.MVector(mfn_transform_e.getTranslation(OpenMaya.MSpace.kWorld))
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)

@@ -9,9 +9,14 @@ import libSerialization
 
 
 def getattrs_by_type(val, type, recursive=False):
+    # TODO: Find a more eleguant way...
     for key, val in val.__dict__.iteritems():
         if isinstance(val, type):
             yield val
+        elif isinstance(val, list):
+            for subval in val:
+                if isinstance(subval, type):
+                    yield subval
         elif isinstance(val, Module):
             if recursive:
                 for subval in getattrs_by_type(val, type):
@@ -127,7 +132,7 @@ class Module(object):
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name='net_{0}'.format(self.__class__.__name__))
 
-    def build(self, rig, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=False, parent=True):
+    def build(self, rig, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=None, parent=True):
         """
         Build the module following the provided rig rules.
         :param rig: The rig dictating the nomenclature and other settings.
@@ -137,6 +142,7 @@ class Module(object):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
+
         if not self.input:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
 
@@ -196,7 +202,10 @@ class Module(object):
                 libAttr.disconnectAttr(obj.sy)
                 libAttr.disconnectAttr(obj.sz)
 
-        for ctrl in self.get_ctrls(recursive=False):
+        # Delete the ctrls in reverse hyerarchy order.
+        ctrls = self.get_ctrls(recursive=True)
+        ctrls = reversed(sorted(ctrls, key=libPymel.get_num_parents))
+        for ctrl in ctrls:
             ctrl.unbuild()
 
         if self.grp_anm is not None:
@@ -229,7 +238,11 @@ class Module(object):
             pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
 
     def get_ctrls(self, recursive=False):
-        return getattrs_by_type(self, BaseCtrl, recursive=recursive)
+        ctrls = getattrs_by_type(self, BaseCtrl, recursive=recursive)
+        for ctrl in ctrls:
+            if ctrl.exists():
+                yield ctrl
+
 
     def get_pin_locations(self):
         """

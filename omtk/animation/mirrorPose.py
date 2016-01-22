@@ -90,16 +90,38 @@ def flip_matrix_axis_rot(m, axis):
     return m
 
 
-def get_ctrl_fiend(obj_src):
+def get_ctrl_fiend(obj_src, separator='_'):
     obj_src_name = obj_src.name()
 
+    tokens_side_l = ['l', 'L', 'lf', 'LF', 'left', 'Left']
+    tokens_side_r = ['r', 'R', 'rt', 'RT', 'right', 'Right']
+
     # Resolve obj_dst_name
+    tokens_src = obj_src_name.split(separator)
+    tokens_dst = []
+
+    for i, token in enumerate(tokens_src):
+        for token_side_l, token_side_r in zip(tokens_side_l, tokens_side_r):
+            if token == token_side_l:
+                token = token_side_r
+            elif token == token_side_r:
+                token = token_side_l
+        tokens_dst.append(token)
+
+    obj_dst_name = separator.join(tokens_dst)
+
+
+
+
+
+    '''
     obj_dst_name = None
     # TODO: find a better algorythm
     if '_l_' in obj_src_name:
         obj_dst_name = obj_src_name.replace('_l_', '_r_')
     elif '_r_' in obj_src_name:
         obj_dst_name = obj_src_name.replace('_r_', '_l_')
+    '''
 
     if obj_dst_name is None:
         print("Can't find ctrl friend of {0}".format(obj_src_name))

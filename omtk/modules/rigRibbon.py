@@ -20,7 +20,7 @@ class Ribbon(Module):
         self.num_ctrl = None
         self.ctrls = []
 
-    def build(self, rig, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, *args, **kwargs):
+    def build(self, rig, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, constraint=False, *args, **kwargs):
         super(Ribbon, self).build(rig, create_grp_anm=create_ctrl, *args, **kwargs)
         self.num_ctrl = num_ctrl
 
@@ -63,8 +63,11 @@ class Ribbon(Module):
             jnt.setParent(ribbon_chain_grp)
 
         #TODO - Improve skinning smoothing by setting manully the skin...
-        pymel.skinCluster(self._ribbon_jnts._list, plane_tran, dr=1.0, mi=2.0, omi=True)
-        libSkinning.assign_weights_from_segments(self._ribbon_shape, self._ribbon_jnts._list, dropoff=1.0)
+        pymel.skinCluster(list(self._ribbon_jnts), plane_tran, dr=1.0, mi=2.0, omi=True)
+        try:
+            libSkinning.assign_weights_from_segments(self._ribbon_shape, self._ribbon_jnts, dropoff=1.0)
+        except ZeroDivisionError, e:
+            pass
 
         # Create the ctrls that will drive the joints that will drive the ribbon.
         if create_ctrl:
@@ -86,6 +89,13 @@ class Ribbon(Module):
             self.globalScale.connect(ribbon_chain_grp.scaleX)
             self.globalScale.connect(ribbon_chain_grp.scaleY)
             self.globalScale.connect(ribbon_chain_grp.scaleZ)
+
+        '''
+        if constraint:
+            for source, target in zip(self._ribbon_jnts, self.chain_jnt):
+                print source, target
+                pymel.parentConstraint(source, target, maintainOffset=True)
+        '''
 
 
     def unbuild(self):

@@ -23,23 +23,27 @@ class CtrlFk(BaseCtrl):
 class FK(Module):
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
-        self.ctrls = []
+        self.ctrls = None
 
     def build(self, rig, constraint=True, parent=True, *args, **kwargs):
-        super(FK, self).build(rig, create_grp_rig=False, segmentScaleCompensate=True, *args, **kwargs)
+        super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
-        # Create ctrl chain
-        self.ctrls = []
-        for input in self.chain_jnt:
+        # Define ctrls
+        if self.ctrls is None:
+            self.ctrls = []
+            for input in self.chain_jnt:
+                ctrl = CtrlFk()
+                self.ctrls.append(ctrl)
+
+        # Create ctrls
+        for input, ctrl in zip(self.chain_jnt, self.ctrls):
             ctrl_name = nomenclature_anm.resolve('fk')
-            ctrl = CtrlFk(name=ctrl_name)
             size = libRigging.get_recommended_ctrl_size(input) * 1.25
             ctrl.build(size=size, name=ctrl_name)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
-            self.ctrls.append(ctrl)
 
         self.ctrls[0].setParent(self.grp_anm)
         for i in range(1, len(self.ctrls)):
@@ -62,8 +66,6 @@ class FK(Module):
 
     def unbuild(self):
         super(FK, self).unbuild()
-
-        self.ctrls = None
 
 
 class CtrlFkAdd(BaseCtrl):

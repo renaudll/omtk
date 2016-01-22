@@ -63,6 +63,11 @@ class BaseCtrl(Node):
 
         return transform
 
+    def exists(self):
+        if self.node is None:
+            return False
+        return self.node.exists()  # PyNode
+
     def build(self, *args, **kwargs):
         """
         Create ctrl setup, also fetch animation and shapes if necessary.

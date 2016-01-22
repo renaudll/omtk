@@ -1,4 +1,5 @@
 import pymel.core as pymel
+from maya import cmds
 from omtk.classNode import Node
 from omtk.classModule import Module
 from omtk.modules.rigArm import Arm
@@ -30,7 +31,73 @@ class FootRollIK(IK):
         When holding/fetching the footroll pivots, we do not want to use their worldSpace transforms.
         :return: The reference worldSpace matrix to use when holding/fetching pivot positions.
         """
-        return self.chain_jnt[0].getMatrix(worldSpace=True)
+        pos = pymel.datatypes.Point(self.chain_jnt[self.iCtrlIndex].getTranslation(space='world'))
+        tm = pymel.datatypes.Matrix(
+            1,0,0,0,
+            0,1,0,0,
+            0,0,1,0,
+            pos.x, pos.y, pos.z, 1
+        )
+        return tm
+
+        #return self.chain_jnt[0].getMatrix(worldSpace=True)
+
+    def _get_recommended_pivot_front(self, tm_ref, pos_toes, pos_tip):
+        """
+        Determine recommended position using ray-cast from the toes.
+        If the ray-cast fail, use the last joint position.
+        """
+        geometries = pymel.ls(type='mesh')
+        results = libRigging.ray_cast(pos_toes, pymel.datatypes.Vector(0, 0, 1), geometries)
+        pos = next(iter(results), None)
+        if not pos:
+            cmds.warning("Can't automatically solve FootRoll front pivot, using last joint as reference.")
+            pos = pos_tip
+        else:
+            # Compare our result with the last joint position and take the longuest.
+            pos.z = max(pos.z, pos_tip.z)
+
+        # Ensure we are aligned with the reference matrix.
+        pos_relative = pos * tm_ref.inverse()
+        pos_relative.x = 0
+        pos_relative.y = 0
+        pos = pos_relative * tm_ref
+
+        return pos
+
+    def _get_recommended_pivot_back(self, tm_ref, pos_toes):
+        """
+        Determine recommended position using ray-cast from the toes.
+        If the ray-cast fail, use the toes position.
+        """
+        geometries = pymel.ls(type='mesh')  # TODO: Use a property in the Rig class?
+        results = libRigging.ray_cast(pos_toes, pymel.datatypes.Vector(0, 0, -1), geometries)
+        pos = next(iter(results), None)
+        if not pos:
+            cmds.warning("Can't automatically solve FootRoll back pivot.")
+            pos = pos_toes
+
+        # Ensure we are aligned with the reference matrix.
+        pos_relative = pos * tm_ref.inverse()
+        pos_relative.x = 0
+        pos_relative.y = 0
+        pos = pos_relative * tm_ref
+
+        return pos
+
+    def _get_recommended_pivot_bank(self, tm_ref, pos_toes, direction=1):
+        """
+        Determine recommended position using ray-cast from the toes.
+        TODO: If the ray-case fail, use a specified default value.
+        """
+        geometries = pymel.ls(type='mesh')  # TODO: Use a property in the Rig class?
+        results = libRigging.ray_cast(pos_toes, pymel.datatypes.Vector(direction, 0, 0), geometries)
+        pos = next(iter(results), None)
+        if not pos:
+            cmds.warning("Can't automatically solve FootRoll bank inn pivot.")
+            pos = pos_toes
+
+        return pos
 
     def build(self, rig, attr_holder=None, **kwargs):
         if len(self.chain_jnt) != 5:
@@ -45,12 +112,10 @@ class FootRollIK(IK):
         jnt_foot, jnt_toes, jnt_tip = self._chain_ik[self.iCtrlIndex:]
 
         # Create FootRoll (chain?)
-        pos_foot = jnt_foot.getTranslation(space='world')
-        pos_toes = jnt_toes.getTranslation(space='world')
+        pos_foot = pymel.datatypes.Point(jnt_foot.getTranslation(space='world'))
+        pos_toes = pymel.datatypes.Point(jnt_toes.getTranslation(space='world'))
+        pos_tip = pymel.datatypes.Point(jnt_tip.getTranslation(space='world'))
 
-        offset_f = 5
-        offset_b = offset_f * 0.25
-        offsed_s = offset_b
 
         # Resolve pivot locations
         tm_ref = self._get_reference_plane()
@@ -62,20 +127,22 @@ class FootRollIK(IK):
         else:
             self.pivot_ankle.t.set(pos_toes)
 
-        # Pivot Foot
+        # Pivot Front
         self.pivot_front = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFront'))
         if self.pivot_front_pos:
             self.pivot_front.setTranslation(pymel.datatypes.Point(self.pivot_front_pos) * tm_ref, space='world')
         else:
-            self.pivot_front.t.set(pos_foot + [0, 0, offset_f])
+            pos_pivot_front = self._get_recommended_pivot_front(tm_ref, pos_toes, pos_tip)
+            self.pivot_front.t.set(pos_pivot_front)
             self.pivot_front.ty.set(0)
 
-        # Pivot Front
+        # Pivot Back
         self.pivot_back = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotBack'))
         if self.pivot_back_pos:
             self.pivot_back.setTranslation(pymel.datatypes.Point(self.pivot_back_pos) * tm_ref, space='world')
         else:
-            self.pivot_back.setTranslation(jnt_toes.getTranslation(space='world'), space='world')
+            pos_pivot_back = self._get_recommended_pivot_back(tm_ref, pos_toes)
+            self.pivot_back.setTranslation(pos_pivot_back)
             self.pivot_back.ty.set(0)
 
         # Pivot Bank Inn
@@ -83,7 +150,8 @@ class FootRollIK(IK):
         if self.pivot_inn_pos:
             self.pivot_inn.setTranslation(pymel.datatypes.Point(self.pivot_inn_pos) * tm_ref, space='world')
         else:
-            self.pivot_inn.t.set(pos_foot + [-offsed_s, 0, 0])
+            pos_pivot_inn = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=-1)
+            self.pivot_inn.t.set(pos_pivot_inn)
             self.pivot_inn.ty.set(0)
 
         # Pivot Bank Out
@@ -91,7 +159,8 @@ class FootRollIK(IK):
         if self.pivot_out_pos:
             self.pivot_out.setTranslation(pymel.datatypes.Point(self.pivot_out_pos) * tm_ref, space='world')
         else:
-            self.pivot_out.t.set(pos_foot + [offsed_s, 0, 0])
+            pos_pivot_out = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=1)
+            self.pivot_out.t.set(pos_pivot_out)
             self.pivot_out.ty.set(0)
 
         root_footRoll = pymel.createNode('transform', name=nomenclature_rig.resolve('footRoll'))

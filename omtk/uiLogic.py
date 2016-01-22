@@ -126,7 +126,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         return qItem, can_show
 
     def update_modules_data(self):
-        libSerialization.clear_maya_cache()
         self.roots = core.find()
 
     def update_ui_modules(self, *args, **kwargs):
@@ -211,7 +210,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if new_state:
             if module_is_built:
                 module.unbuild()
-            module.build()
+            if isinstance(module, classModule.Module):
+                module.build(self.root)
+            else:
+                module.build()
         else:
             if module_is_built:
                 module.unbuild()
@@ -227,7 +229,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             pymel.delete(self.root._network)
         except AttributeError:
             pass
-        libSerialization.clear_maya_cache() # HACK
         net = libSerialization.export_network(self.root) # Export part and only part
         pymel.select(net)
         #Add manually the Rig to the root list instead of importing back all network

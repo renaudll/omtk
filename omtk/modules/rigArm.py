@@ -71,13 +71,17 @@ class Arm(Module):
         pymel.parentConstraint(jnt_hand, self.ctrl_attrs.offset)
 
         # Add attributes to the attribute holder.
-        pymel.addAttr(self.ctrl_attrs, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0,
-                      maxValue=1, defaultValue=1, k=True)
-        attr_ik_weight = self.ctrl_attrs.attr(self.kAttrName_State)
+        # Add ikFk state attribute on the grp_rig.
+        # This is currently controlled by self.ctrl_attrs.
+        pymel.addAttr(self.grp_rig, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
+        attr_ik_weight = self.grp_rig.attr(self.kAttrName_State)
         attr_fk_weight = libRigging.create_utility_node('reverse', inputX=attr_ik_weight).outputX
 
+        pymel.addAttr(self.ctrl_attrs, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
+        pymel.connectAttr(self.ctrl_attrs.attr(self.kAttrName_State), self.grp_rig.attr(self.kAttrName_State))
+
         # Create a chain for blending ikChain and fkChain
-        chain_blend = pymel.duplicate(self.chain_jnt._list, renameChildren=True, parentOnly=True)
+        chain_blend = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for input_, node in zip(self.chain_jnt, chain_blend):
             node.rename(nomenclature_rig.resolve('blend'))
 

@@ -1,8 +1,8 @@
 import pymel.core as pymel
 from maya import OpenMaya
 
-from omtk.libs.libPymel import SegmentCollection
-
+from omtk.libs import libPymel
+from omtk.libs import libPython
 
 def get_skin_cluster(obj):
     for hist in pymel.listHistory(obj):
@@ -93,7 +93,7 @@ def _get_point_weights_from_segments_weights(segments, segments_weights, pos):
     point_weights = [(weight_out - weight_inn)*interp_cubic(ratio) + weight_inn for weight_inn, weight_out in zip(point_weights_inn, point_weights_out)]
     return point_weights
 
-#@decorators.profiler
+#@libPython.profiler
 def transfer_weights_from_segments(obj, source, targets, dropoff=2):
     """
     Automatically assign skin weights from source to destinations using the vertices position.
@@ -121,7 +121,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
         mint_influences.append(dst_index)
     chunk_size = mint_influences.length()
 
-    segments = SegmentCollection.from_transforms(targets)
+    segments = libPymel.SegmentCollection.from_transforms(targets)
 
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
@@ -155,7 +155,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
 
             # Write weights
             for i, weight in enumerate(weights):
-                index = (v * chunk_size) + i + 1
+                index = (vert_index * chunk_size) + i + 1
                 new_weights[index] = weight
 
         it_geometry.next()
@@ -189,7 +189,7 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
 
     # Resolve new weights
     # Note that we start with zero weight since we are re-skinning from scratch.
-    segments = SegmentCollection.from_transforms(jnts)
+    segments = libPymel.SegmentCollection.from_transforms(jnts)
     knot_weights = segments.get_knot_weights(dropoff=dropoff)
 
     new_weights = OpenMaya.MDoubleArray(old_weights.length(), 0)

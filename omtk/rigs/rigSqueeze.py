@@ -46,3 +46,5 @@ class RigSqueeze(classRig.Rig):
                 if color:
                     module.grp_anm.drawOverride.overrideEnabled.set(1)
                     module.grp_anm.drawOverride.overrideColor.set(color)
+
+        return True

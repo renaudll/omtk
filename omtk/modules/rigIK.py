@@ -170,7 +170,7 @@ class IK(Module):
         # Duplicate input chain (we don't want to move the hierarchy)
         # Todo: implement a duplicate method in omtk.libs.libPymel.PyNodeChain
         # Create ikChain and fkChain
-        self._chain_ik = pymel.duplicate(self.chain_jnt._list, renameChildren=True, parentOnly=True)
+        self._chain_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.chain_jnt, self._chain_ik):
             oIk.rename(nomenclature_anm.resolve('ik'))
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)

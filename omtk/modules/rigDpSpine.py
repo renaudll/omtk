@@ -158,9 +158,9 @@ class DpSpine(Module):
         '''
 
     def get_parent(self, parent):
-        if parent == self.chain[0]:
+        if parent == self.chain_jnt[0]:
             return self.ctrl_fk_dwn
-        if parent == self.chain[-1]:
+        if parent == self.chain_jnt[-1]:
             return self.ctrl_fk_upp
 
         return super(DpSpine, self).get_parent(parent)

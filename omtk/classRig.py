@@ -15,24 +15,41 @@ class CtrlRoot(BaseCtrl):
     def __init__(self, *args, **kwargs):
         super(CtrlRoot, self).__init__(create_offset=False, *args, **kwargs)
 
-    def __createNode__(self, *args, **kwargs):
+    def __createNode__(self, size=10, *args, **kwargs):
         """
         Create a wide circle.
         """
         # use meshes boundinx box
         node = pymel.circle(*args, **kwargs)[0]
         make = node.getShape().create.inputs()[0]
-        make.radius.set(10)
+        make.radius.set(size)
         make.normal.set((0,1,0))
 
         # Add a globalScale attribute to replace the sx, sy and sz.
-        pymel.addAttr(node, longName='globalScale', k=True, defaultValue=1.0)
-        pymel.connectAttr(node.globalScale, node.sx)
-        pymel.connectAttr(node.globalScale, node.sy)
-        pymel.connectAttr(node.globalScale, node.sz)
-        node.s.set(lock=True, channelBox=False)
+        if not node.hasAttr('globalScale'):
+            pymel.addAttr(node, longName='globalScale', k=True, defaultValue=1.0, minValue=0.001)
+            pymel.connectAttr(node.globalScale, node.sx)
+            pymel.connectAttr(node.globalScale, node.sy)
+            pymel.connectAttr(node.globalScale, node.sz)
+            node.s.set(lock=True, channelBox=False)
 
         return node
+
+    @staticmethod
+    def _get_recommended_radius(min_size=1.0):
+        """
+        Analyze the scene and return the recommended radius using the scene geometry.
+        """
+        geometries = pymel.ls(type='mesh')
+        geometries_mel = [geo.__melobject__() for geo in geometries]
+
+        x_min, y_min, z_min, x_max, y_max, z_max = cmds.exactWorldBoundingBox(*geometries_mel)
+
+        return max(
+            min_size,
+            x_max - x_min,
+            z_max - z_min
+        ) / 2.0
 
 class Rig(object):
     DEFAULT_NAME = 'untitled'
@@ -215,7 +232,8 @@ class Rig(object):
         if not isinstance(self.grp_anms, CtrlRoot):
             self.grp_anms = CtrlRoot()
         if not self.grp_anms.is_built():
-            self.grp_anms.build()
+            grp_anm_size = CtrlRoot._get_recommended_radius()
+            self.grp_anms.build(size=grp_anm_size)
         self.grp_anms.rename(self.nomenclature.root_anm_name)
         for anm_grp in anm_grps:
             anm_grp.setParent(self.grp_anms)

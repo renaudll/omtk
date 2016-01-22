@@ -50,9 +50,6 @@ def _reload():
     from omtk.libs import libStringMap; reload(libStringMap)
     from omtk.libs import libUtils; reload(libUtils)
 
-    # Ensure libSerialization don't hold outdated definition of the classes.
-    libSerialization.clear_maya_cache()
-
 def show():
     """
     Show a simple gui. Note that PySide or PyQt4 is needed.

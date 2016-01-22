@@ -23,7 +23,7 @@ class SplineIK(Module):
         if len(self._curves) < 1:
             raise Exception("Can't build SplineIK. Expected at least one nurbsCurve, got {0}".format(self._curves))
 
-        super(SplineIK, self).build(rig, segmentScaleCompensate=True, *args, **kwargs)
+        super(SplineIK, self).build(rig, *args, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
 

@@ -44,7 +44,6 @@ class Finger(Module):
         pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
 '''
 
-
 class Hand(Module):
     def __init__(self, *args, **kwargs):
         super(Hand, self).__init__(*args, **kwargs)
@@ -74,6 +73,7 @@ class Hand(Module):
         # Resolve fingers and metacarpals
         jnts_metacarpals = []
 
+        # Create fingers systems if necessary
         for i, chain in enumerate(self.chains):
             chain_length = len(chain)
 
@@ -85,7 +85,7 @@ class Hand(Module):
                 continue
 
             # Resolve phalanges and metacarpal from chain
-                if chain_length == 5:
+            if chain_length == 5:
                 jnt_metacarpal = chain[0]
                 jnts_phalanges = chain[1:-1]
                 jnts_metacarpals.append(jnt_metacarpal)
@@ -99,10 +99,12 @@ class Hand(Module):
             sysFinger.build(rig, parent=False)
             sysFinger.grp_anm.setParent(self.grp_anm)
 
+            '''
             # Rig metacarpals if necessary
             if jnt_metacarpal:
                 pymel.aimConstraint(sysFinger.additive_ctrls[0], jnt_metacarpal, worldUpType=2,
                                     worldUpObject=self.parent)
+            '''
             # pymel.parentConstraint(jnt_metacarp, metacarpal, maintainOffset=True)
 
         '''

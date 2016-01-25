@@ -1,12 +1,20 @@
 import pymel.core as pymel
 from maya import cmds
-from omtk.classNode import Node
-from omtk.classModule import Module
+
 from omtk.modules.rigArm import Arm
 from omtk.modules.rigIK import IK
+from omtk.modules import rigIK
 from omtk.libs import libRigging
+from omtk.libs import libCtrlShapes
+
+class CtrlIkLeg(rigIK.CtrlIk):
+    def __createNode__(self, *args, **kwargs):
+        return libCtrlShapes.create_shape_box_feet(*args, **kwargs)
+
 
 class FootRollIK(IK):
+    #_CLASS_CTRL_IK = CtrlIkLeg
+
     """
     A standard footroll that remember it's pivot when building/unbuilding.
     """
@@ -293,23 +301,3 @@ class Leg(Arm):
         if not isinstance(self.sysIK, FootRollIK):
             self.sysIK = FootRollIK(self.chain_jnt)
         self.sysIK.build(rig, **kwargs)
-
-    def build(self, rig, *args, **kwargs):
-        super(Leg, self).build(rig, *args, **kwargs)
-
-        # Hack: Ensure the ctrlIK is looking in the right direction
-        make = self.sysIK.ctrl_ik.getShape().create.inputs()[0]
-        make.normal.set((0, 1, 0))
-
-        '''
-        pymel.parentConstraint(self.sysIK.ctrlIK, self.sysFootRoll.grp_rig, maintainOffset=True)
-
-        # Connect ikHandles to footroll
-        fn_can_delete = lambda x: isinstance(x, pymel.nodetypes.Constraint) and not isinstance(x, pymel.nodetypes.PoleVectorConstraint)
-        pymel.delete(filter(fn_can_delete, self.sysIK._ik_handle.getChildren()))
-        pymel.parentConstraint(self.sysFootRoll.pivot_ankle, self.sysIK._ik_handle, maintainOffset=True)
-
-        # Constraint swivel to ctrl_ik
-        pymel.parentConstraint(self.sysIK.ctrlIK, self.sysIK.ctrl_swivel,
-                               maintainOffset=True)  # TODO: Implement SpaceSwitch
-        '''

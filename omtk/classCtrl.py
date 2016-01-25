@@ -49,7 +49,7 @@ class BaseCtrl(Node):
         self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
         return self.offset
 
-    def __createNode__(self, size=1, normal=(1,0,0), *args, **kwargs):
+    def __createNode__(self, size=1, normal=(1,0,0), refs=None, offset=None, *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
         size: The maximum dimension of the controller.

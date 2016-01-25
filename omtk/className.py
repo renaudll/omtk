@@ -35,6 +35,9 @@ class BaseName(object):
         self.prefix = prefix
         self.suffix = suffix
 
+    def copy(self, name):
+        return self.__class__(name, prefix=self.prefix, suffix=self.suffix)
+
     def _get_tokens(self, name):
         return name.split(self.separator)
 

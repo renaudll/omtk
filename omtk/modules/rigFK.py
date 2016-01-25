@@ -25,13 +25,27 @@ class FK(Module):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = None
 
+    #
+    # libSerialization implementation
+    #
+    def __callbackNetworkPostBuild__(self):
+        """
+        Cleaning routine automatically called by libSerialization after a network import.
+        """
+        # Ensure there's no None value in the .ctrls array.
+        # This can happen if the rigging delete the stored shape before rebuilding.
+        try:
+            self.ctrls= filter(None, self.ctrls)
+        except (AttributeError, TypeError):
+            pass
+
     def build(self, rig, constraint=True, parent=True, *args, **kwargs):
         super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
         # Define ctrls
-        if self.ctrls is None:
+        if not self.ctrls:
             self.ctrls = []
             for input in self.chain_jnt:
                 ctrl = CtrlFk()
@@ -39,7 +53,8 @@ class FK(Module):
 
         # Create ctrls
         for input, ctrl in zip(self.chain_jnt, self.ctrls):
-            ctrl_name = nomenclature_anm.resolve('fk')
+            ctrl_nomenclature = nomenclature_anm.copy(input.name())
+            ctrl_name = ctrl_nomenclature.resolve('fk')
             size = libRigging.get_recommended_ctrl_size(input) * 1.25
             ctrl.build(size=size, name=ctrl_name)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
@@ -82,7 +97,7 @@ class AdditiveFK(FK):
         self.num_ctrls = 1
         self.additive_ctrls = []
 
-    def build(rig, self, *args, **kwargs):
+    def build(self, rig, *args, **kwargs):
         super(AdditiveFK, self).build(rig, *args, **kwargs)
 
         # TODO: Support multiple additive ctrls

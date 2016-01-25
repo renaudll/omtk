@@ -1,5 +1,6 @@
 import pymel.core as pymel
-
+from maya import OpenMaya
+from omtk.libs import libRigging
 
 def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):
     transform, make = pymel.circle(*args, **kwargs)
@@ -141,4 +142,76 @@ def create_shape_box(size=1.0, r=None, h=None):
         h = size / 5.0
 
     node = pymel.curve(d=1, p=[(-r, -h, r), (-r, h, r), (r, h, r), (r, -h, r), (-r, -h, r), (-r, -h, -r), (-r, h, -r), (-r, h, r), (r, h, r), (r, h, -r), (r, -h, -r), (r, -h, r), (r, -h, -r), (-r, -h, -r), (-r, h, -r), (r, h, -r)] )
+    return node
+
+def create_shape_box_feet(refs, offset=pymel.datatypes.Vector(0,0,0), *args, **kwargs):
+    dirs = [
+        OpenMaya.MVector(-1,0,0),
+        OpenMaya.MVector(1,0,0),
+        OpenMaya.MVector(0,0,-1),
+        OpenMaya.MVector(0,0,1)
+    ]
+
+    # Using all provided objects
+    min_x = max_x = max_y = min_z = max_z = None
+    min_y = 0
+    geometries = pymel.ls(type='mesh')
+
+
+    # Ray-cast
+    for ref in refs:
+        pos_world = ref.getTranslation(space='world')
+
+        x = pos_world.x
+        y = pos_world.y
+        z = pos_world.z
+        if min_x is None or x < min_x:
+            min_x = x
+        if max_x is None or x > max_x:
+            max_x = x
+        if max_y is None or y > max_y:
+            max_y = y
+        if min_z is None or z < min_z:
+            min_z = z
+        if max_z is None or z > max_z:
+            max_z = z
+
+        for dir in dirs:
+            ray_cast_pos = next(iter(libRigging.ray_cast(pos_world, dir, geometries, debug=False)), None)
+            if ray_cast_pos is None:
+                continue
+
+            x = ray_cast_pos.x
+            y = ray_cast_pos.y
+            z = ray_cast_pos.z
+            if min_x is None or x < min_x:
+                min_x = x
+            if max_x is None or x > max_x:
+                max_x = x
+            if max_y is None or y > max_y:
+                max_y = y
+            if min_z is None or z < min_z:
+                min_z = z
+            if max_z is None or z > max_z:
+                max_z = z
+
+    # HACK: Apply offset since the ctrl is generally built in-place.
+    # TODO: Find an elegant way
+    min_x += offset.x
+    max_x += offset.x
+    min_y += offset.y
+    max_y += offset.y
+    min_z += offset.z
+    max_z += offset.z
+
+    pos1 = (min_x, min_y, min_z)
+    pos2 = (min_x, min_y, max_z)
+    pos3 = (min_x, max_y, min_z)
+    pos4 = (min_x, max_y, max_z)
+    pos5 = (max_x, min_y, min_z)
+    pos6 = (max_x, min_y, max_z)
+    pos7 = (max_x, max_y, min_z)
+    pos8 = (max_x, max_y, max_z)
+    node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
+
     return node

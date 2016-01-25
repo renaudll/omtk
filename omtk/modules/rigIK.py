@@ -137,6 +137,9 @@ class SoftIkNode(Node):
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class IK(Module):
+    _CLASS_CTRL_IK = CtrlIk
+    _CLASS_CTRL_SWIVEL = CtrlIkSwivel
+
     def __init__(self, *args, **kwargs):
         super(IK, self).__init__(*args, **kwargs)
         self.iCtrlIndex = 2
@@ -144,6 +147,9 @@ class IK(Module):
         self.ctrl_swivel = None
         self.chain_length = None
         self._chain_ik = None
+
+    def _create_ctrl_ik(self, *args, **kwargs):
+        return CtrlIk(*args, **kwargs)
 
     def calc_swivel_pos(self):
         pos_start = self.chain_jnt[0].getTranslation(space='world')
@@ -197,10 +203,10 @@ class IK(Module):
         _ik_effector.rename(ik_effector_name)
 
         # Create CtrlIK
-        if not isinstance(self.ctrl_ik, CtrlIk):
-            self.ctrl_ik = CtrlIk()
+        if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
+            self.ctrl_ik = self._CLASS_CTRL_IK()
         size = libRigging.get_recommended_ctrl_size(self.chain_jnt[self.iCtrlIndex]) * 1.25
-        self.ctrl_ik.build(size=size)
+        self.ctrl_ik.build(size=size, offset=self.chain_jnt[self.iCtrlIndex].getTranslation(space='world'), refs=self.chain_jnt[self.iCtrlIndex:])  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
@@ -209,8 +215,8 @@ class IK(Module):
             self.ctrl_ik.offset.setRotation(obj_e.getRotation(space='world'), space='world')
 
         # Create CtrlIkSwivel
-        if not isinstance(self.ctrl_swivel, CtrlIkSwivel):
-            self.ctrl_swivel = CtrlIkSwivel()
+        if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
+            self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
         size = libRigging.get_recommended_ctrl_size(self.chain_jnt[self.iCtrlIndex-1]) * 1.25
         self.ctrl_swivel.build(size=size)
         # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)

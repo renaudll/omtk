@@ -1,4 +1,5 @@
 import functools
+import collections
 import pymel.core as pymel
 from omtk.classCtrl import BaseCtrl
 from omtk.classModule import Module
@@ -7,6 +8,9 @@ from omtk.libs import libRigging, libAttr, libFormula
 
 class CtrlIk(BaseCtrl):
     kAttrName_State = 'ikFk'
+
+    def __createNode__(self, *args, **kwargs):
+        return super(CtrlIk, self).__createNode__(multiplier=1.5, *args, **kwargs)
 
     def __init__(self, *args, **kwargs):
         super(CtrlIk, self).__init__(*args, **kwargs)
@@ -25,6 +29,34 @@ class CtrlIk(BaseCtrl):
 
 
 class CtrlIkSwivel(BaseCtrl):
+
+    def __createNode__(self, refs=None, line_target=True, offset=None, *args, **kwargs):
+        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+
+        node = super(CtrlIkSwivel, self).__createNode__(*args, **kwargs)
+        make = node.getShape().create.inputs()[0]
+        make.radius.set(make.radius.get() * 0.5)
+        make.degree.set(1)
+        make.sections.set(4)
+
+
+        # Create line
+        if line_target is True:
+            # Create a spaceLocator so the annotation can hook itself to it.
+            locator_transform = pymel.spaceLocator()
+            locator_shape = locator_transform.getShape()
+            pymel.pointConstraint(ref, locator_transform)
+            locator_transform.setParent(node)
+            locator_transform.hide()
+
+            annotation_shape = pymel.createNode('annotationShape')
+            annotation_transform = annotation_shape.getParent()
+            annotation_shape.setParent(node, relative=True, shape=True)
+            pymel.connectAttr(locator_shape.worldMatrix, annotation_shape.dagObjectMatrix[0], force=True)
+            pymel.delete(annotation_transform)
+
+        return node
+
     def build(self, line_target=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
@@ -154,10 +186,15 @@ class IK(Module):
     def calc_swivel_pos(self):
         pos_start = self.chain_jnt[0].getTranslation(space='world')
         pos_end = self.chain_jnt[self.iCtrlIndex].getTranslation(space='world')
-        ratio = self.chain_jnt[1].t.get().length() / self.chain_length
+
+        chain_length = 0
+        for i in range(self.iCtrlIndex):
+            chain_length += self.chain_jnt[i+1].t.get().length()
+
+        ratio = self.chain_jnt[1].t.get().length() / chain_length
         pos_swivel_base = (pos_end - pos_start) * ratio + pos_start
         dir_swivel = (self.chain_jnt[1].getTranslation(space='world') - pos_swivel_base).normal()
-        return pos_swivel_base + dir_swivel * self.chain_length
+        return pos_swivel_base + (dir_swivel * chain_length)
 
     def build(self, rig, orient_ik_ctrl=True, constraint=False, *args, **kwargs):
         nomenclature_anm = self.get_nomenclature_anm(rig)
@@ -205,8 +242,8 @@ class IK(Module):
         # Create CtrlIK
         if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
             self.ctrl_ik = self._CLASS_CTRL_IK()
-        size = libRigging.get_recommended_ctrl_size(self.chain_jnt[self.iCtrlIndex]) * 1.25
-        self.ctrl_ik.build(size=size, offset=self.chain_jnt[self.iCtrlIndex].getTranslation(space='world'), refs=self.chain_jnt[self.iCtrlIndex:])  # refs is used by CtrlIkCtrl
+        ctrl_ik_refs = self.chain_jnt[self.iCtrlIndex:]  # jnt_hand and bellow
+        self.ctrl_ik.build(refs=ctrl_ik_refs)  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
@@ -217,13 +254,13 @@ class IK(Module):
         # Create CtrlIkSwivel
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
             self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
-        size = libRigging.get_recommended_ctrl_size(self.chain_jnt[self.iCtrlIndex-1]) * 1.25
-        self.ctrl_swivel.build(size=size)
+        ctrl_swivel_ref = self.chain_jnt[self.iCtrlIndex - 1]
+        self.ctrl_swivel.build(refs=ctrl_swivel_ref)
         # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
         self.ctrl_swivel.rename(nomenclature_anm.resolve('ikSwivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
-        self.ctrl_swivel.offset.setRotation(self.chain_jnt[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
+        #self.ctrl_swivel.offset.setRotation(self.chain_jnt[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
 
         #

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>558</width>
-    <height>393</height>
+    <width>909</width>
+    <height>565</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QLabel" name="label_modules">
@@ -40,7 +40,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QLabel" name="label_jnts">
@@ -72,7 +72,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>558</width>
+     <width>909</width>
      <height>26</height>
     </rect>
    </property>
@@ -97,18 +97,9 @@
    <addaction name="actionExport"/>
    <addaction name="separator"/>
    <addaction name="actionUpdate"/>
-  </widget>
-  <widget class="QToolBar" name="toolBar_2">
-   <property name="windowTitle">
-    <string>toolBar_2</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
    <addaction name="separator"/>
+   <addaction name="actionMirrorJntsLToR"/>
+   <addaction name="actionMirrorJntsRToL"/>
   </widget>
   <action name="actionBuild">
    <property name="text">
@@ -146,6 +137,22 @@
   <action name="actionAdd">
    <property name="text">
     <string>Add</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsLToR">
+   <property name="text">
+    <string>Mirror Jnts R &lt;- L</string>
+   </property>
+   <property name="toolTip">
+    <string>MirrorLToR</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsRToL">
+   <property name="text">
+    <string>Mirror Jnts R -&gt; L</string>
+   </property>
+   <property name="toolTip">
+    <string>Mirror Jnts R -&gt; L</string>
    </property>
   </action>
  </widget>

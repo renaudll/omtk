@@ -1,3 +1,4 @@
+import collections
 import pymel.core as pymel
 from classNode import Node
 from libs import libRigging, libPymel
@@ -6,7 +7,9 @@ import logging; log = logging.getLogger(__name__)
 
 class BaseCtrl(Node):
     """
-    A rig ctrl automatically hold/fetch is animation and is shapes when building/unbuilding.
+    A Ctrl is the layer between the rig and the animator.
+    When unbuilt/built it's shapes and animatable attributes are automatically saved/loaded.
+    If no shapes are stored, a Ctrl have the ability to resize itself automatically.
     """
 
     def __init__(self, create=False, create_offset=True, *args, **kwargs):
@@ -49,11 +52,19 @@ class BaseCtrl(Node):
         self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
         return self.offset
 
-    def __createNode__(self, size=1, normal=(1,0,0), refs=None, offset=None, *args, **kwargs):
+    def __createNode__(self, size=None, normal=(1,0,0), multiplier=1.0, refs=None, offset=None, *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
         size: The maximum dimension of the controller.
         """
+
+        # Resolve size automatically if refs are provided.
+        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        if size is None and ref is not None:
+            size = libRigging.get_recommended_ctrl_size(ref) * multiplier
+        else:
+            size = 1.0
+
         transform, make = pymel.circle(*args, **kwargs)
         make.radius.set(size)
         make.normal.set(normal)
@@ -68,11 +79,18 @@ class BaseCtrl(Node):
             return False
         return self.node.exists()  # PyNode
 
-    def build(self, *args, **kwargs):
+    def build(self, name=None, *args, **kwargs):
         """
         Create ctrl setup, also fetch animation and shapes if necessary.
         """
-        super(BaseCtrl, self).build(*args, **kwargs)
+        if libPymel.is_valid_PyNode(self.shapes):
+            self.node = pymel.createNode('transform')
+            libRigging.fetch_ctrl_shapes(self.shapes, self.node)
+        else:
+            super(BaseCtrl, self).build(name=None, *args, **kwargs)
+
+        if name:
+            self.node.rename(name)
 
         # Create an intermediate parent if necessary
         if self._create_offset:
@@ -82,9 +100,6 @@ class BaseCtrl(Node):
         self.fetch_attr_all() # todo: still necessary^
 
         # Fetch stored shapes
-        if libPymel.is_valid_PyNode(self.shapes):
-            libRigging.fetch_ctrl_shapes(self.shapes, self.node)
-            self.shape = None
 
         return self.node
 

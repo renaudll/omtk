@@ -7,6 +7,7 @@ import classRig
 from maya import OpenMaya
 from omtk.libs import libPymel
 from omtk.libs import libPython
+from omtk.libs import libSkeleton
 import core
 
 import ui; reload(ui)
@@ -23,6 +24,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.actionExport.triggered.connect(self._actionExport)
         self.actionUpdate.triggered.connect(self._actionUpdate)
         self.actionAdd.triggered.connect(self._actionAdd)
+        self.actionMirrorJntsLToR.triggered.connect(self._actionMirrorJntsLToR)
+        self.actionMirrorJntsRToL.triggered.connect(self._actionMirrorJntsRToL)
+
 
         self.treeWidget.itemSelectionChanged.connect(self._itemSelectionChanged)
         self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -254,6 +258,12 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             action.triggered.connect(functools.partial(self._actionAddPart, cls_name))
 
         menu.exec_(QtGui.QCursor.pos())
+
+    def _actionMirrorJntsLToR(self):
+        libSkeleton.mirror_jnts_l_to_r()
+
+    def _actionMirrorJntsRToL(self):
+        libSkeleton.mirror_jnts_r_to_l()
 
 gui = None
 def show():

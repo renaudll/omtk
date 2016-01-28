@@ -1,3 +1,4 @@
+import collections
 import pymel.core as pymel
 from omtk.classCtrl import BaseCtrl
 from omtk.classModule import Module
@@ -5,17 +6,20 @@ from omtk.libs import libRigging, libCtrlShapes
 
 
 class CtrlFk(BaseCtrl):
-    def __createNode__(self, size=1, *args, **kwargs):
+    def __createNode__(self, *args, **kwargs):
         '''
         if 'shoulder' in name.lower():
             node = libCtrlShapes.create_shape_double_needle(size=size*0.04, normal=(0, 0, 1), *args, **kwargs)
         else:
         '''
+        node = super(CtrlFk, self).__createNode__(multiplier=1.1, *args, **kwargs)
 
-        node, make = libCtrlShapes.create_shape_circle(size=size, *args, **kwargs)
-        make.radius.set(size)
-        make.degree.set(1)
-        make.sections.set(8)
+        make = next(iter(node.inputs()), None)
+        if make:
+            # TODO: Multiply radius???
+            #make.radius.set(size)
+            make.degree.set(1)
+            make.sections.set(8)
 
         return node
 
@@ -55,8 +59,7 @@ class FK(Module):
         for input, ctrl in zip(self.chain_jnt, self.ctrls):
             ctrl_nomenclature = nomenclature_anm.copy(input.name())
             ctrl_name = ctrl_nomenclature.resolve('fk')
-            size = libRigging.get_recommended_ctrl_size(input) * 1.25
-            ctrl.build(size=size, name=ctrl_name)
+            ctrl.build(name=ctrl_name, refs=input)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
 
@@ -84,8 +87,19 @@ class FK(Module):
 
 
 class CtrlFkAdd(BaseCtrl):
-    def __createNode__(self, *args, **kwargs):
-        return libCtrlShapes.create_shape_needle(*args, **kwargs)
+    def __createNode__(self, size=None, refs=None, *args, **kwargs):
+        # Resolve size automatically if refs are provided.
+        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        if size is None and ref is not None:
+            size = libRigging.get_recommended_ctrl_size(ref)
+        else:
+            size = 1.0
+
+        node = libCtrlShapes.create_shape_needle(size=size, *args, **kwargs)
+
+        return node
+
+
 
 
 class AdditiveFK(FK):
@@ -101,10 +115,9 @@ class AdditiveFK(FK):
         super(AdditiveFK, self).build(rig, *args, **kwargs)
 
         # TODO: Support multiple additive ctrls
-        ctrl_add_size = libRigging.get_recommended_ctrl_size(self.chain.start)
-
+        # TODO: Rename
         ctrl_add = CtrlFkAdd()
-        ctrl_add.build(size=ctrl_add_size)
+        ctrl_add.build(refs=self.chain.start)
         ctrl_add.setMatrix(self.chain.start.getMatrix(worldSpace=True))
         ctrl_add.setParent(self.grp_anm)
         self.additive_ctrls.append(ctrl_add)

@@ -1,5 +1,9 @@
+import pymel.core as pymel
 from omtk import className
 from omtk import classRig
+from omtk.libs import libPymel
+from omtk.libs import libRigging
+from omtk.modules import rigArm
 
 class SqueezeNomenclature(className.BaseName):
     type_anm = 'Ctrl'
@@ -27,13 +31,59 @@ class SqueezeNomenclature(className.BaseName):
         return super(SqueezeNomenclature, self)._join_tokens(tokens)
 
 class RigSqueeze(classRig.Rig):
+    GROUP_NAME_DISPLAY = 'Display'
+    ATTR_NAME_DISPLAY_MESH = 'displayMesh'
+    GROUP_NAME_IKFK = 'IKFKBlend'
+
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
 
     def build(self, **kwargs):
         super(RigSqueeze, self).build(**kwargs)
 
+        #
+        # Add root ctrl attributes specific to squeeze
+        #
+        libPymel.addAttr_separator(self.grp_anms, self.GROUP_NAME_DISPLAY)
+        pymel.addAttr(self.grp_anms, longName=self.ATTR_NAME_DISPLAY_MESH, at='short', k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
+        attr_displayMesh = self.grp_anms.attr(self.ATTR_NAME_DISPLAY_MESH)
+        pymel.connectAttr(attr_displayMesh, self.grp_geos.visibility, force=True)
+
+        #
+        # Connect all IK/FK attributes
+        #
+        attr_by_name = {}
+        for module in self.modules:
+            if isinstance(module, rigArm.Arm):
+                pymel.delete(module.ctrl_attrs)
+
+                # Resolve name
+                # TODO: Handle name conflict
+                nomenclature = module.get_nomenclature_anm(self)
+                tokens = [module.__class__.__name__]
+                side = nomenclature.get_side()
+                if side:
+                    tokens.append(side)
+
+                key = '_'.join(tokens)
+                val = module.grp_rig.attr(module.kAttrName_State)
+                attr_by_name[key] = val
+
+        if attr_by_name:
+            libPymel.addAttr_separator(self.grp_anms, self.GROUP_NAME_IKFK)
+            for attr_src_name, attr_dst in sorted(attr_by_name.iteritems()):
+                pymel.addAttr(self.grp_anms, longName=attr_src_name, at='short', k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
+                attr_src = self.grp_anms.attr(attr_src_name)
+
+                # Note that at Squeeze, 0 is for IK and 1 is for FK so we'll need to reverse it.
+                attr_src_inv = libRigging.create_utility_node('reverse', inputX=attr_src).outputX
+
+                pymel.connectAttr(attr_src_inv, attr_dst)
+
+
+        #
         # Set ctrls colors
+        #
         color_by_side = {
             'l': 13,  # Red
             'r': 6  # Blue

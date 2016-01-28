@@ -144,7 +144,7 @@ def create_shape_box(size=1.0, r=None, h=None):
     node = pymel.curve(d=1, p=[(-r, -h, r), (-r, h, r), (r, h, r), (r, -h, r), (-r, -h, r), (-r, -h, -r), (-r, h, -r), (-r, h, r), (r, h, r), (r, h, -r), (r, -h, -r), (r, -h, r), (r, -h, -r), (-r, -h, -r), (-r, h, -r), (r, h, -r)] )
     return node
 
-def create_shape_box_feet(refs, offset=pymel.datatypes.Vector(0,0,0), *args, **kwargs):
+def create_shape_box_feet(refs, *args, **kwargs):
     dirs = [
         OpenMaya.MVector(-1,0,0),
         OpenMaya.MVector(1,0,0),
@@ -195,23 +195,27 @@ def create_shape_box_feet(refs, offset=pymel.datatypes.Vector(0,0,0), *args, **k
             if max_z is None or z > max_z:
                 max_z = z
 
-    # HACK: Apply offset since the ctrl is generally built in-place.
-    # TODO: Find an elegant way
-    min_x += offset.x
-    max_x += offset.x
-    min_y += offset.y
-    max_y += offset.y
-    min_z += offset.z
-    max_z += offset.z
+    pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
+    pos2 = pymel.datatypes.Point(min_x, min_y, max_z)
+    pos3 = pymel.datatypes.Point(min_x, max_y, min_z)
+    pos4 = pymel.datatypes.Point(min_x, max_y, max_z)
+    pos5 = pymel.datatypes.Point(max_x, min_y, min_z)
+    pos6 = pymel.datatypes.Point(max_x, min_y, max_z)
+    pos7 = pymel.datatypes.Point(max_x, max_y, min_z)
+    pos8 = pymel.datatypes.Point(max_x, max_y, max_z)
 
-    pos1 = (min_x, min_y, min_z)
-    pos2 = (min_x, min_y, max_z)
-    pos3 = (min_x, max_y, min_z)
-    pos4 = (min_x, max_y, max_z)
-    pos5 = (max_x, min_y, min_z)
-    pos6 = (max_x, min_y, max_z)
-    pos7 = (max_x, max_y, min_z)
-    pos8 = (max_x, max_y, max_z)
+    # HACK: Convert to local space...
+    ref = next(iter(refs))
+    pos = ref.getTranslation(space='world')
+    pos1 -= pos
+    pos2 -= pos
+    pos3 -= pos
+    pos4 -= pos
+    pos5 -= pos
+    pos6 -= pos
+    pos7 -= pos
+    pos8 -= pos
+
     node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
 
     return node

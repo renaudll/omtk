@@ -70,6 +70,14 @@ class Module(object):
             name.add_tokens(self.__class__.__name__.lower())
             return name
 
+    @libPython.memoized
+    def get_nomenclature_jnt(self, rig):
+        ref = next(iter(self.input), None)
+        if ref:
+            name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_jnt)
+            name.add_tokens(self.__class__.__name__.lower())
+            return name
+
     @property
     def parent(self):
         first_input = next(iter(self.chain_jnt), None)

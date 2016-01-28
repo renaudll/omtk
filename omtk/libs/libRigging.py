@@ -293,7 +293,7 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
         pos = pos_s + (pos_e - pos_s) * ratio
 
         new_obj = pymel.duplicate(obj_s, parentOnly=True)[0]
-        new_obj.setMatrix(tm)
+        new_obj.setMatrix(tm, worldSpace=True)
         new_obj.setTranslation(pos, space='world')
         new_objs.append(new_obj)
 
@@ -323,7 +323,7 @@ def get_affected_geometries(obj):
 
     return geometries
 
-
+'''
 def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
     if not isinstance(ctrl_shape, pymel.nodetypes.NurbsCurve):
         raise Exception("Unexpected input, expected NurbsCurve, got {0}.".format(type(ctrl_shape)))
@@ -357,7 +357,7 @@ def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
 
         cv_new_pos = pos + (dir * length * multiplier)
         ctrl_shape.cv[i].setPosition(cv_new_pos, space='world')
-
+'''
 
 @libPython.memoized
 def get_recommended_ctrl_size(obj, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,

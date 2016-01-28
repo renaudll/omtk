@@ -8,12 +8,12 @@ from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 
 class CtrlIkLeg(rigIK.CtrlIk):
-    def __createNode__(self, *args, **kwargs):
-        return libCtrlShapes.create_shape_box_feet(*args, **kwargs)
+    def __createNode__(self, refs=None, *args, **kwargs):
+        return libCtrlShapes.create_shape_box_feet(refs, *args, **kwargs)
 
 
 class FootRollIK(IK):
-    #_CLASS_CTRL_IK = CtrlIkLeg
+    _CLASS_CTRL_IK = CtrlIkLeg
 
     """
     A standard footroll that remember it's pivot when building/unbuilding.

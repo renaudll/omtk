@@ -90,7 +90,7 @@ def flip_matrix_axis_rot(m, axis):
     return m
 
 
-def get_ctrl_fiend(obj_src, separator='_'):
+def get_ctrl_friend(obj_src, separator='_'):
     obj_src_name = obj_src.name()
 
     tokens_side_l = ['l', 'L', 'lf', 'LF', 'left', 'Left']
@@ -229,7 +229,7 @@ def mirror_objs(objs):
     tms_by_objs = {}
     for obj_dst in objs:
         # Resolve source object
-        obj_src = get_ctrl_fiend(obj_dst)
+        obj_src = get_ctrl_friend(obj_dst)
         if obj_src is None:
             obj_src = obj_dst
 

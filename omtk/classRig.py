@@ -25,15 +25,19 @@ class CtrlRoot(BaseCtrl):
         make.radius.set(size)
         make.normal.set((0,1,0))
 
-        # Add a globalScale attribute to replace the sx, sy and sz.
-        if not node.hasAttr('globalScale'):
-            pymel.addAttr(node, longName='globalScale', k=True, defaultValue=1.0, minValue=0.001)
-            pymel.connectAttr(node.globalScale, node.sx)
-            pymel.connectAttr(node.globalScale, node.sy)
-            pymel.connectAttr(node.globalScale, node.sz)
-            node.s.set(lock=True, channelBox=False)
-
         return node
+
+    def build(self, *args, **kwargs):
+        super(CtrlRoot, self).build(*args, **kwargs)
+
+        # Add a globalScale attribute to replace the sx, sy and sz.
+        if not self.node.hasAttr('globalScale'):
+            pymel.addAttr(self.node, longName='globalScale', k=True, defaultValue=1.0, minValue=0.001)
+            pymel.connectAttr(self.node.globalScale, self.node.sx)
+            pymel.connectAttr(self.node.globalScale, self.node.sy)
+            pymel.connectAttr(self.node.globalScale, self.node.sz)
+            self.node.s.set(lock=True, channelBox=False)
+
 
     @staticmethod
     def _get_recommended_radius(min_size=1.0):
@@ -214,12 +218,12 @@ class Rig(object):
         for module in self.modules:
             if module.grp_anm and not module.grp_anm.getChildren():
                 cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
-                    module.grp_anm.longName(), self
+                    module.grp_anm.longName(), module
                 ))
                 pymel.delete(module.grp_anm)
             if module.grp_rig and not module.grp_rig.getChildren():
                 cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
-                    module.grp_rig.longName(), self
+                    module.grp_rig.longName(), module
                 ))
                 pymel.delete(module.grp_rig)
 

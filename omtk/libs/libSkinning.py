@@ -1,8 +1,6 @@
 import pymel.core as pymel
 from maya import OpenMaya
-
 from omtk.libs import libPymel
-from omtk.libs import libPython
 
 def get_skin_cluster(obj):
     for hist in pymel.listHistory(obj):
@@ -11,7 +9,7 @@ def get_skin_cluster(obj):
     return None
 
 #@decorators.profiler
-def transfer_weights(obj, sources, target):
+def transfer_weights(obj, sources, target, add_missing_influences=False):
     """
     Transfer skin weights from multiples joints to a specific joint.
     Took 0.193 in Makino.
@@ -20,7 +18,9 @@ def transfer_weights(obj, sources, target):
     :param target: The joint to transfer to.
     :return:
     """
+    # TODO: Allow the skinCluster to be specified in case a specific geometry is bound to multiple skinClusters.
     # TODO: automatically unlock influences?
+    # TODO: add missing influences if necessary?
 
     # Validate obj type
     if not isinstance(obj, pymel.nodetypes.Mesh):
@@ -31,6 +31,23 @@ def transfer_weights(obj, sources, target):
     if skinCluster is None:
         raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
 
+    # Resolve influence indices
+    influence_jnts = skinCluster.influenceObjects()
+
+    # Add target if missing, otherwise thrown an error.
+    if target not in influence_jnts:
+        skinCluster.addInfluence(target, lockWeights=True)
+        influence_jnts.append(target)
+    else:
+        raise ValueError("Can't find target {0} in skinCluster {1}".format(target.name(), skinCluster.name()))
+
+    num_jnts = len(influence_jnts)
+    jnt_src_indices = [influence_jnts.index(source) for source in sources]
+    jnt_dst_index = influence_jnts.index(target)
+    influences = OpenMaya.MIntArray()
+    for i in range(len(influence_jnts)):
+        influences.append(i)
+
     # Ensure no provided joints are locked
     for source in sources:
         if source.lockInfluenceWeights.get():
@@ -38,15 +55,6 @@ def transfer_weights(obj, sources, target):
     if target.lockInfluenceWeights.get():
         target.lockInfluenceWeights.set(False)
 
-    # Resolve influence indices
-    influence_jnts = skinCluster.influenceObjects()
-    num_jnts = len(influence_jnts)
-    jnt_src_indices = [influence_jnts.index(source) for source in sources]
-    jnt_dst_index = influence_jnts.index(target)
-    influences = OpenMaya.MIntArray()
-    for i in range(len(influence_jnts)):
-        influences.append(i)
-    # TODO: add only necessary influences
 
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
@@ -75,6 +83,51 @@ def transfer_weights(obj, sources, target):
 
     mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights, old_weights)
 
+def transfer_weights_replace(source, target):
+    """
+    Quickly transfer weight for a source to a target by swapping the connection.
+    Fast but only usefull when you are willing to lose the weights stored in target.
+    """
+    if source.hasAttr('lockInfluenceWeights') and target.hasAttr('lockInfluenceWeights'):
+        attr_lockInfluenceWeights_src = source.lockInfluenceWeights
+        attr_lockInfluenceWeights_dst = target.lockInfluenceWeights
+        for plug in attr_lockInfluenceWeights_src.outputs(plugs=True):
+            if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
+                pymel.disconnectAttr(attr_lockInfluenceWeights_src, plug)
+                pymel.connectAttr(attr_lockInfluenceWeights_dst, plug)
+
+    attr_objectColorRGB_src = source.attr('objectColorRGB')
+    attr_objectColorRGB_dst = target.attr('objectColorRGB')
+    for plug in attr_objectColorRGB_src.outputs(plugs=True):
+        if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
+            pymel.disconnectAttr(attr_objectColorRGB_src, plug)
+            pymel.connectAttr(attr_objectColorRGB_dst, plug)
+
+    attr_worldMatrix_dst = target.worldMatrix
+    for attr_worldMatrix_src in source.worldMatrix:
+        for plug in attr_worldMatrix_src.outputs(plugs=True):
+            if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
+                pymel.disconnectAttr(attr_worldMatrix_src, plug)
+                pymel.connectAttr(attr_worldMatrix_dst, plug)
+
+    '''
+    skinClusters = set()
+    for source in sources:
+        for hist in source.listHistory(future=True):
+            if isinstance(hist, pymel.nodetypes.SkinCluster):
+                skinClusters.add(hist)
+
+    for skinCluster in skinClusters:
+        for geo in skinCluster.getGeometry():
+            # Only mesh are supported for now
+            if not isinstance(geo, pymel.nodetypes.Mesh):
+                continue
+
+            try:
+                transfer_weights(geo, sources, target, **kwargs)
+            except ValueError:  # jnt_dwn not in skinCluster
+                pass
+    '''
 
 def interp_linear(r, s, e):
     return (e - s) * r + s
@@ -213,5 +266,3 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
 
 
     mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
-
-

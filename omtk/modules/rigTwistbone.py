@@ -199,7 +199,7 @@ class Twistbone(Module):
         pymel.connectAttr(nonroll_out.extractedRoll, twist_deformer.endAngle)
 
         # Rig Ribbon
-        sys_ribbon_inputs = self.subjnts._list + [nurbsSurface]
+        sys_ribbon_inputs = self.subjnts + [nurbsSurface]
         sys_ribbon = rigRibbon.Ribbon(sys_ribbon_inputs)
         sys_ribbon.build(rig, constraint=True)
         sys_ribbon.grp_anm.setParent(self.grp_anm)
@@ -211,8 +211,11 @@ class Twistbone(Module):
         jnt_ribbon_inn = sys_ribbon._ribbon_jnts.start
         pymel.parentConstraint(self.chain_jnt.start, jnt_ribbon_inn)
 
+        # Unparent the twistbones so they squash correctly, even in a Game-Engine scenario.
+        for jnt in self.subjnts:
+            if jnt.getParent() != self.chain_jnt.start:
+                jnt.setParent(self.chain_jnt.start)
 
-        '''
         # Automatically skin the twistbones
         skinClusters = set()
         for jnt in self.chain_jnt:
@@ -221,6 +224,11 @@ class Twistbone(Module):
                     skinClusters.add(hist)
 
         for skinCluster in skinClusters:
+            # Ensure the source joint is in the skinCluster influences
+            influenceObjects = skinCluster.influenceObjects()
+            if self.chain_jnt.start not in influenceObjects:
+                continue
+
             # Add new joints as influence.
             for subjnt in self.subjnts:
                 skinCluster.addInfluence(subjnt)
@@ -229,8 +237,8 @@ class Twistbone(Module):
             for i in range(num_shapes):
                 shape = skinCluster.outputShapeAtIndex(i)
                 print("Assign skin weights on {0}.".format(shape.name()))
-                libSkinning.transfer_weights_from_segments(shape, self.chain_jnt.start, self.subjnts._list)
-        '''
+                libSkinning.transfer_weights_from_segments(shape, self.chain_jnt.start, self.subjnts)
+
 
         '''
         # Bonus: Give the twistbones a killer look

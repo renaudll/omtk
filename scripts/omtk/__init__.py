@@ -3,8 +3,7 @@ import sys
 
 # Load dependencies (including git submodules) in sys.path
 __dependencies__ = [
-    ('deps',),
-    ('../..', 'libSerialization',)
+    ('deps',)
 ]
 current_dir = os.path.dirname(os.path.realpath(__file__))
 for dependency in __dependencies__:

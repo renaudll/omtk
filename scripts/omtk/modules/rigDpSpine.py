@@ -1,24 +1,44 @@
 import pymel.core as pymel
+import collections
 from omtk.classModule import Module
 from omtk.classCtrl import BaseCtrl
 from omtk.modules.rigRibbon import Ribbon
-from omtk.libs import libCtrlShapes, libPymel, libRigging
-
+from omtk.libs import libCtrlShapes
+from omtk.libs import libRigging
+from omtk.libs import libSkinning
 
 class Ctrl_DpSpine_IK(BaseCtrl):
-    def __createNode__(self, **kwargs):
-        node = libCtrlShapes.create_shape_box(**kwargs)
+    def __createNode__(self, size=None, refs=None, **kwargs):
+        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        if size is None and ref is not None:
+            size = libRigging.get_recommended_ctrl_size(ref)
+        else:
+            size = 1.0
+
+        node = libCtrlShapes.create_shape_box(size=size, **kwargs)
         return node
 
 class Ctrl_DpSpine_FK(BaseCtrl):
+    _DEFAULT_COLOR = 18  # Baby blue
+
     def __createNode__(self, **kwargs):
-        return super(Ctrl_DpSpine_FK, self).__createNode__(normal=(0,1,0), **kwargs)
+        node = super(Ctrl_DpSpine_FK, self).__createNode__(normal=(0,1,0), **kwargs)
+
+        # To match dpSpine, color the shapes individually
+        for shape in node.getShapes():
+            shape.overrideEnabled.set(1)
+            shape.overrideColor.set(self._DEFAULT_COLOR)
+
+        return node
 
 class DpSpine(Module):
     """
     Spine setup similar to dpAutoRig.
     Note that the spline ctrls orientation follow the world axis by default.
     """
+    _CLASS_CTRL_IK = Ctrl_DpSpine_IK
+    _CLASS_CTRL_FK = Ctrl_DpSpine_FK
+
     def __init__(self, *args, **kwargs):
         super(DpSpine, self).__init__(*args, **kwargs)
         self.ctrl_ik_dwn = None
@@ -26,6 +46,9 @@ class DpSpine(Module):
         self.ctrl_fk_dwn = None
         self.ctrl_fk_mid = None
         self.ctrl_fk_upp = None
+
+        self.jnt_squash_dwn = None
+        self.jnt_squash_mid = None
 
     def build(self, rig, *args, **kwargs):
         if len(self.chain_jnt) != 3:
@@ -35,6 +58,7 @@ class DpSpine(Module):
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_jnt = self.get_nomenclature_jnt(rig)
 
         #
         # Create ctrls
@@ -50,18 +74,16 @@ class DpSpine(Module):
 
         # Create IK ctrls
         ctrl_ik_dwn_name = nomenclature_anm.resolve('HipsA')
-        ctrl_ik_dwn_size = libRigging.get_recommended_ctrl_size(jnt_dwn)
-        if not isinstance(self.ctrl_ik_dwn, Ctrl_DpSpine_IK):
-            self.ctrl_ik_dwn = Ctrl_DpSpine_IK()
-        self.ctrl_ik_dwn.build(name=ctrl_ik_dwn_name, size=ctrl_ik_dwn_size)
+        if not isinstance(self.ctrl_ik_dwn, self._CLASS_CTRL_IK):
+            self.ctrl_ik_dwn = self._CLASS_CTRL_IK()
+        self.ctrl_ik_dwn.build(name=ctrl_ik_dwn_name, refs=jnt_dwn)
         self.ctrl_ik_dwn.setTranslation(pos_dwn_world)
         self.ctrl_ik_dwn.setParent(self.grp_anm)
 
         ctrl_ik_upp_name = nomenclature_anm.resolve('ChestA')
-        ctrl_ik_upp_size = libRigging.get_recommended_ctrl_size(jnt_upp)
-        if not isinstance(self.ctrl_ik_upp, Ctrl_DpSpine_IK):
-            self.ctrl_ik_upp = Ctrl_DpSpine_IK()
-        self.ctrl_ik_upp.build(name=ctrl_ik_upp_name, size=ctrl_ik_upp_size)
+        if not isinstance(self.ctrl_ik_upp, self._CLASS_CTRL_IK):
+            self.ctrl_ik_upp = self._CLASS_CTRL_IK()
+        self.ctrl_ik_upp.build(name=ctrl_ik_upp_name, refs=jnt_upp)
         self.ctrl_ik_upp.setTranslation(pos_upp_world)
         self.ctrl_ik_upp.setParent(self.ctrl_ik_dwn)
 
@@ -74,32 +96,23 @@ class DpSpine(Module):
         ctrl_fk_color = 18  # Baby blue
 
         ctrl_fk_dwn_name = nomenclature_anm.resolve('HipsB')
-        if not isinstance(self.ctrl_fk_dwn, Ctrl_DpSpine_FK):
-            self.ctrl_fk_dwn = Ctrl_DpSpine_FK()
-        self.ctrl_fk_dwn.build(name=ctrl_fk_dwn_name)
-        ctrl_fk_dwn_shape = self.ctrl_fk_dwn.getShape()
-        ctrl_fk_dwn_shape.drawOverride.overrideEnabled.set(1)
-        ctrl_fk_dwn_shape.drawOverride.overrideColor.set(ctrl_fk_color)
+        if not isinstance(self.ctrl_fk_dwn, self._CLASS_CTRL_FK):
+            self.ctrl_fk_dwn = self._CLASS_CTRL_FK()
+        self.ctrl_fk_dwn.build(name=ctrl_fk_dwn_name, refs=jnt_dwn)
         self.ctrl_fk_dwn.setTranslation(pos_dwn_world)
         self.ctrl_fk_dwn.setParent(self.ctrl_ik_dwn)
 
         ctrl_fk_upp_name = nomenclature_anm.resolve('ChestB')
-        if not isinstance(self.ctrl_fk_upp, Ctrl_DpSpine_FK):
-            self.ctrl_fk_upp = Ctrl_DpSpine_FK()
-        self.ctrl_fk_upp.build(name=ctrl_fk_upp_name)
-        ctrl_fk_upp_shape = self.ctrl_fk_upp.getShape()
-        ctrl_fk_upp_shape.drawOverride.overrideEnabled.set(1)
-        ctrl_fk_upp_shape.drawOverride.overrideColor.set(ctrl_fk_color)
+        if not isinstance(self.ctrl_fk_upp, self._CLASS_CTRL_FK):
+            self.ctrl_fk_upp = self._CLASS_CTRL_FK()
+        self.ctrl_fk_upp.build(name=ctrl_fk_upp_name, refs=jnt_upp)
         self.ctrl_fk_upp.setTranslation(pos_upp_world)
         self.ctrl_fk_upp.setParent(self.ctrl_ik_upp)
 
         ctrl_fk_mid_name = nomenclature_anm.resolve('Middle1')
-        if not isinstance(self.ctrl_fk_mid, Ctrl_DpSpine_FK):
-            self.ctrl_fk_mid = Ctrl_DpSpine_FK()
-        self.ctrl_fk_mid.build(name=ctrl_fk_mid_name)
-        ctrl_fk_mid_shape = self.ctrl_fk_mid.getShape()
-        ctrl_fk_mid_shape.drawOverride.overrideEnabled.set(1)
-        ctrl_fk_mid_shape.drawOverride.overrideColor.set(ctrl_fk_color)
+        if not isinstance(self.ctrl_fk_mid, self._CLASS_CTRL_FK):
+            self.ctrl_fk_mid = self._CLASS_CTRL_FK()
+        self.ctrl_fk_mid.build(name=ctrl_fk_mid_name, refs=jnt_mid)
         self.ctrl_fk_mid.setTranslation(pos_mid_world)
         self.ctrl_fk_mid.setParent(self.ctrl_ik_dwn)
 
@@ -128,11 +141,28 @@ class DpSpine(Module):
 
         #
         # Configure the squash
-        # Note: The squash is disconnected for now since it can affect the whole hierarchy.
         # The standard in omtk is that if something need to stretch or squash, it need to be separated from the main hierarchy.
         #
 
-        '''
+        # Create the squash hierarchy
+        jnt_squash_dwn_name = nomenclature_jnt.copy(jnt_dwn.name()).resolve('squash')
+        self.jnt_squash_dwn = pymel.createNode('joint', name=jnt_squash_dwn_name)
+        self.jnt_squash_dwn.setParent(jnt_dwn)
+        self.jnt_squash_dwn.t.set(0,0,0)
+        self.jnt_squash_dwn.r.set(0,0,0)
+        self.jnt_squash_dwn.jointOrientX.set(0)
+        self.jnt_squash_dwn.jointOrientY.set(0)
+        self.jnt_squash_dwn.jointOrientZ.set(0)
+
+        jnt_squash_mid_name = nomenclature_jnt.copy(jnt_mid.name()).resolve('squash')
+        self.jnt_squash_mid= pymel.createNode('joint', name=jnt_squash_mid_name)
+        self.jnt_squash_mid.setParent(jnt_mid)
+        self.jnt_squash_mid.t.set(0,0,0)
+        self.jnt_squash_mid.r.set(0,0,0)
+        self.jnt_squash_mid.jointOrientX.set(0)
+        self.jnt_squash_mid.jointOrientY.set(0)
+        self.jnt_squash_mid.jointOrientZ.set(0)
+
         # Add squash amount attribute
         squash_attr_name = 'squashAmount'
         pymel.addAttr(self.grp_rig, longName=squash_attr_name, defaultValue=1.0)
@@ -147,15 +177,29 @@ class DpSpine(Module):
 
         # Apply the squash
         # Note that the squash on the first joint is hardcoded to 80%.
-        first_jnt = self.chain[0]
         attr_squash_first_jnt = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw], attributesBlender=0.8).output
-        pymel.connectAttr(attr_squash_first_jnt , first_jnt.scaleY)
-        pymel.connectAttr(attr_squash_first_jnt , first_jnt.scaleZ)
+        pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleY)
+        pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleZ)
 
-        middle_jnt = self.chain[1]
-        pymel.connectAttr(attr_squash , middle_jnt.scaleY)
-        pymel.connectAttr(attr_squash , middle_jnt.scaleZ)
-        '''
+        pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleY)
+        pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleZ)
+
+        # Finally, transfer the skin to the squash jnt
+        # TODO: Modify the skinCluster connections instead?
+        libSkinning.transfer_weights_replace(jnt_dwn, self.jnt_squash_dwn)
+        libSkinning.transfer_weights_replace(jnt_mid, self.jnt_squash_mid)
+
+    def unbuild(self):
+        # Restore the original skin and remove the squash joints
+        jnt_dwn = self.chain_jnt[0]
+        jnt_mid = self.chain_jnt[1]
+        libSkinning.transfer_weights_replace(self.jnt_squash_dwn, jnt_dwn)
+        libSkinning.transfer_weights_replace(self.jnt_squash_mid, jnt_mid)
+        pymel.delete(self.jnt_squash_dwn)
+        pymel.delete(self.jnt_squash_mid)
+        self.jnt_squash_dwn = None
+        self.jnt_squash_dwn = None
+        super(DpSpine, self).unbuild()
 
     def get_parent(self, parent):
         if parent == self.chain_jnt[0]:

@@ -144,42 +144,42 @@ def create_shape_box(size=1.0, r=None, h=None):
     node = pymel.curve(d=1, p=[(-r, -h, r), (-r, h, r), (r, h, r), (r, -h, r), (-r, -h, r), (-r, -h, -r), (-r, h, -r), (-r, h, r), (r, h, r), (r, h, -r), (r, -h, -r), (r, -h, r), (r, -h, -r), (-r, -h, -r), (-r, h, -r), (r, h, -r)] )
     return node
 
-def create_shape_box_feet(refs, *args, **kwargs):
-    dirs = [
-        OpenMaya.MVector(-1,0,0),
-        OpenMaya.MVector(1,0,0),
-        OpenMaya.MVector(0,0,-1),
-        OpenMaya.MVector(0,0,1)
-    ]
-
-    # Using all provided objects
-    min_x = max_x = max_y = min_z = max_z = None
-    min_y = 0
-    geometries = pymel.ls(type='mesh')
-
+def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None):
+    min_x = max_x = min_y = max_y = min_z = max_z = None
+    parent_tm_inv = parent_tm.inverse()
 
     # Ray-cast
-    for ref in refs:
-        pos_world = ref.getTranslation(space='world')
+    for pos in positions:
+        #x = pos.x
+        #y = pos.y
+        #z = pos.z
 
-        x = pos_world.x
-        y = pos_world.y
-        z = pos_world.z
-        if min_x is None or x < min_x:
-            min_x = x
-        if max_x is None or x > max_x:
-            max_x = x
-        if max_y is None or y > max_y:
-            max_y = y
-        if min_z is None or z < min_z:
-            min_z = z
-        if max_z is None or z > max_z:
-            max_z = z
+        pos_local = pymel.datatypes.Point(pos) * parent_tm_inv if parent_tm is not None else pos
+
+        x_local = pos_local.x
+        y_local = pos_local.y
+        z_local = pos_local.z
+
+        if min_x is None or x_local < min_x:
+            min_x = x_local
+        if max_x is None or x_local > max_x:
+            max_x = x_local
+        if min_y is None or y_local < min_y:
+            min_y = y_local
+        if max_y is None or y_local > max_y:
+            max_y = y_local
+        if min_z is None or z_local < min_z:
+            min_z = z_local
+        if max_z is None or z_local > max_z:
+            max_z = z_local
 
         for dir in dirs:
-            ray_cast_pos = next(iter(libRigging.ray_cast(pos_world, dir, geometries, debug=False)), None)
+            ray_cast_pos = next(iter(libRigging.ray_cast(pos, dir, geometries, debug=False)), None)
             if ray_cast_pos is None:
                 continue
+
+            if parent_tm is not None:
+                ray_cast_pos = ray_cast_pos * parent_tm_inv
 
             x = ray_cast_pos.x
             y = ray_cast_pos.y
@@ -188,12 +188,33 @@ def create_shape_box_feet(refs, *args, **kwargs):
                 min_x = x
             if max_x is None or x > max_x:
                 max_x = x
+            if min_y is None or y < min_y:
+                min_y = y
             if max_y is None or y > max_y:
                 max_y = y
             if min_z is None or z < min_z:
                 min_z = z
             if max_z is None or z > max_z:
                 max_z = z
+
+    return min_x, max_x, min_y, max_y, min_z, max_z
+
+def create_shape_box_arm(refs):
+    ref = next(iter(refs))
+    ref_tm = ref.getMatrix(worldSpace=True)
+
+    positions = [ref.getTranslation(space='world') for ref in refs]
+    dirs = [
+        OpenMaya.MPoint(1,0,0) * ref_tm,
+        OpenMaya.MPoint(0,0,-1) * ref_tm,
+        OpenMaya.MPoint(0,0,1) * ref_tm
+    ]
+    geometries = pymel.ls(type='mesh')
+
+    min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
+
+    # Convert our bouding box
+    min_x = 0
 
     pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
     pos2 = pymel.datatypes.Point(min_x, min_y, max_z)
@@ -204,7 +225,46 @@ def create_shape_box_feet(refs, *args, **kwargs):
     pos7 = pymel.datatypes.Point(max_x, max_y, min_z)
     pos8 = pymel.datatypes.Point(max_x, max_y, max_z)
 
+    node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
+
+    return node
+
+
+def create_shape_box_feet(refs, *args, **kwargs):
+    ref = next(iter(refs))
+    ref_pos = ref.getTranslation(space='world')
+    ref_tm = pymel.datatypes.Matrix(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        ref_pos.x, ref_pos.y, ref_pos.z, 1
+    )
+
+    positions = [ref.getTranslation(space='world') for ref in refs]
+    dirs = [
+        OpenMaya.MVector(-1,0,0),
+        OpenMaya.MVector(1,0,0),
+        OpenMaya.MVector(0,0,-1),
+        OpenMaya.MVector(0,0,1)
+    ]
+    geometries = pymel.ls(type='mesh')
+
+    # Using all provided objects
+    min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
+    min_y = min(min_y, -ref_pos.y)
+
+    pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
+    pos2 = pymel.datatypes.Point(min_x, min_y, max_z)
+    pos3 = pymel.datatypes.Point(min_x, max_y, min_z)
+    pos4 = pymel.datatypes.Point(min_x, max_y, max_z)
+    pos5 = pymel.datatypes.Point(max_x, min_y, min_z)
+    pos6 = pymel.datatypes.Point(max_x, min_y, max_z)
+    pos7 = pymel.datatypes.Point(max_x, max_y, min_z)
+    pos8 = pymel.datatypes.Point(max_x, max_y, max_z)
+
+
     # HACK: Convert to local space...
+    '''
     ref = next(iter(refs))
     pos = ref.getTranslation(space='world')
     pos1 -= pos
@@ -215,6 +275,8 @@ def create_shape_box_feet(refs, *args, **kwargs):
     pos6 -= pos
     pos7 -= pos
     pos8 -= pos
+    '''
+
 
     node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
 

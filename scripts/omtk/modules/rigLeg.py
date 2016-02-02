@@ -4,6 +4,7 @@ from maya import cmds
 from omtk.modules.rigArm import Arm
 from omtk.modules.rigIK import IK
 from omtk.modules import rigIK
+from omtk.modules import rigLimb
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 
@@ -292,7 +293,7 @@ class FootRollIK(IK):
         self.pivot_out = None
 
 
-class Leg(Arm):
+class Leg(rigLimb.Limb):
     def __init__(self, *args, **kwargs):
         super(Leg, self).__init__(*args, **kwargs)
         self.sysFootRoll = None

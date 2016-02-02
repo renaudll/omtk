@@ -90,9 +90,7 @@ def flip_matrix_axis_rot(m, axis):
     return m
 
 
-def get_ctrl_friend(obj_src, separator='_'):
-    obj_src_name = obj_src.name()
-
+def get_name_friend(obj_src_name, separator='_'):
     tokens_side_l = ['l', 'L', 'lf', 'LF', 'left', 'Left']
     tokens_side_r = ['r', 'R', 'rt', 'RT', 'right', 'Right']
 
@@ -109,9 +107,11 @@ def get_ctrl_friend(obj_src, separator='_'):
         tokens_dst.append(token)
 
     obj_dst_name = separator.join(tokens_dst)
+    return obj_dst_name
 
-
-
+def get_ctrl_friend(obj_src):
+    obj_src_name = obj_src.name()
+    obj_dst_name = get_name_friend(obj_src_name)
 
 
     '''

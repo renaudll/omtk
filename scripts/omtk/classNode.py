@@ -1,5 +1,6 @@
 import pymel.core as pymel
 from libs import libPymel
+from libs import libRigging
 
 class Node(object):
     """
@@ -8,6 +9,7 @@ class Node(object):
     """
     def __init__(self, data=None, create=False, *args, **kwargs):
         self.__dict__['node'] = data
+        self._layers = []  # TODO: Use libPymel.PyNodeChain?
 
         if create is True:
             self.build(*args, **kwargs)
@@ -29,6 +31,42 @@ class Node(object):
         self.node = self.__createNode__(*args, **kwargs)
         if name:
             self.node.rename(name)  # TODO: Prevent name collision?
+
+    # TODO: If it work well, implement the logic in classCtrl!
+    def add_layer(self, name=None):
+        new_layer = pymel.createNode('transform')
+        if name:
+            new_name = self.node.name() + '_' + name
+            new_layer.rename(new_name)
+        new_layer.setMatrix(self.node.getMatrix(worldSpace=True))
+
+        if self._layers:
+            new_layer.setParent(self._layers[-1])
+        self._layers.append(new_layer)
+        self.node.setParent(new_layer)
+
+        return new_layer
+
+    def setParent(self, *args, **kwargs):
+        """
+        Override of pymel.PyNode .setParent method.
+        Redirect the call to the ctrl top node.
+        """
+        if self._layers:
+            self._layers[0].setParent(*args, **kwargs)
+        else:
+            self.node.setParent(*args, **kwargs)
+
+    def setMatrix(self, *args, **kwargs):
+        """
+        Override of pymel.PyNode .setMatrix method.
+        Redirect the call to the ctrl top node.
+        """
+        if self._layers:
+            self._layers[0].setMatrix(*args, **kwargs)
+        else:
+            self.node.setMatrix(*args, **kwargs)
+
 
     def unbuild(self, *args, **kwargs):
         pymel.delete(self.node)

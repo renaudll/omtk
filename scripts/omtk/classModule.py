@@ -80,6 +80,8 @@ class Module(object):
 
     @property
     def parent(self):
+        if not self.chain_jnt:
+            return None
         first_input = next(iter(self.chain_jnt), None)
         if libPymel.is_valid_PyNode(first_input):
             return first_input.getParent()
@@ -118,7 +120,12 @@ class Module(object):
         self.globalScale = None  # Each module is responsible for handling it scale!
 
         #  since we're using hook on inputs, assign it last!
-        self.input = input if input else []
+        if input:
+            if not isinstance(input, list):
+                raise IOError("Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
+            self.input = input
+        else:
+            self.input = []
 
     def __str__(self):
         if self.input:

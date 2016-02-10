@@ -11,6 +11,7 @@ import rigLimb
 import rigLeg
 import rigHand
 import rigDpSpine
+import rigFacePnt
 
 def _reload():
     reload(rigFK)
@@ -22,6 +23,7 @@ def _reload():
     reload(rigLeg)
     reload(rigHand)
     reload(rigDpSpine)
+    reload(rigFacePnt)
 
 def create(cls_name, *args, **kwargs):
     cls = libPython.get_class_def(cls_name, classModule.Module)

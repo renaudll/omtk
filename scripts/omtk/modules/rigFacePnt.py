@@ -289,6 +289,39 @@ class FaceAvar(classModule.Module):
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_ROLL, k=True)
         self.attr_avar_rl = self.grp_rig.attr(self.AVAR_NAME_ROLL)
 
+    def _create_doritos_setup(self, rig):
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+
+        obj_mesh = libRigging.get_farest_affected_mesh(self.jnt)
+        if obj_mesh is None:
+            pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
+            return False
+
+        layer_doritos_fol_name = nomenclature_anm.resolve('doritos_fol')
+        layer_doritos_fol = self.ctrl_offset.add_layer()
+        layer_doritos_fol.rename(layer_doritos_fol_name)
+
+        layer_doritos_name = nomenclature_anm.resolve('doritos')
+        layer_doritos = self.ctrl_offset.add_layer()
+        layer_doritos.rename(layer_doritos_name)
+
+        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl_offset.t, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl_offset.t, input2=[-1, -1, -1]).output
+        pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
+        pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
+
+        libRigging.create_follicle(layer_doritos_fol, obj_mesh)
+
+
+        # The doritos setup can be hard to control when the rotation of the controller depend on the follicle since
+        # any deformation can affect the normal of the faces.
+        jnt_head = rig.get_head_jnt()
+        if jnt_head:
+            pymel.disconnectAttr(layer_doritos_fol.rx)
+            pymel.disconnectAttr(layer_doritos_fol.ry)
+            pymel.disconnectAttr(layer_doritos_fol.rz)
+            pymel.orientConstraint(jnt_head, layer_doritos_fol, maintainOffset=True)
+
     def build(self, rig, constraint=True, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
@@ -337,23 +370,10 @@ class FaceAvar(classModule.Module):
         pymel.connectAttr(self.ctrl_offset.rotate, layer_ctrl.rotate)
         pymel.connectAttr(self.ctrl_offset.scale, layer_ctrl.scale)
 
-        layer_doritos_fol_name = nomenclature_anm.resolve('doritos_fol')
-        layer_doritos_fol = self.ctrl_offset.add_layer()
-        layer_doritos_fol.rename(layer_doritos_fol_name)
 
-        layer_doritos_name = nomenclature_anm.resolve('doritos')
-        layer_doritos = self.ctrl_offset.add_layer()
-        layer_doritos.rename(layer_doritos_name)
+        self._create_doritos_setup(rig)
 
-        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl_offset.t, input2=[-1, -1, -1]).output
-        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl_offset.t, input2=[-1, -1, -1]).output
-        pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
-        pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
 
-        # TODO: Implement find closest mesh!
-        # HACK: JUST DEBUGGING
-        obj_mesh = pymel.PyNode('GenericCaracter_Mesh')
-        libRigging.create_follicle(layer_doritos_fol, obj_mesh)
 
 
         if constraint:

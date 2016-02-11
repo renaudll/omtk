@@ -672,3 +672,25 @@ def create_follicle(obj, surface, name=None):
             follicle_transform.rename(name)
 
         return follicle_transform
+
+
+def get_nearest_affected_mesh(jnt):
+    """
+    Return the immediate mesh affected by provided object in the geometry stack.
+    """
+    def fn_filter(obj):
+        return isinstance(obj, pymel.nodetypes.Mesh) and not obj.intermediateObject.get()
+    affected_meshes = filter(fn_filter, jnt.listHistory(future=True))
+
+    return next(iter(affected_meshes), None)
+
+def get_farest_affected_mesh(jnt):
+    """
+    Return the last mesh affected by provided object in the geometry stack.
+    Usefull to identify which mesh to use in the 'doritos' setup.
+    """
+    def fn_filter(obj):
+        return isinstance(obj, pymel.nodetypes.Mesh) and not obj.intermediateObject.get()
+    affected_meshes = filter(fn_filter, jnt.listHistory(future=True))
+
+    return next(iter(reversed(affected_meshes)), None)

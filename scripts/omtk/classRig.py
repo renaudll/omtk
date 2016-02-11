@@ -178,6 +178,9 @@ class Rig(object):
         # Prebuild
         #
 
+        # HACK: Load matrixNodes.dll
+        pymel.loadPlugin('matrixNodes', quiet=True)
+
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
         all_root_jnts = libPymel.ls_root(type='joint')
@@ -337,3 +340,16 @@ class Rig(object):
             if obj in module.input:
                 return module
 
+    def get_head_jnt(self, key=None):
+        """
+        Not the prettiest but used to find the head for facial rigging.
+        """
+        if key is None:
+            def key(obj):
+                name_safe = obj.stripNamespace().lower()
+                return 'head' in name_safe or 'face'in name_safe
+
+        for module in self.modules:
+            for obj in module.input:
+                if key(obj):
+                    return obj

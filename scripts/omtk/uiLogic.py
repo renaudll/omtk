@@ -34,8 +34,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         self.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.treeWidget_jnts.itemSelectionChanged.connect(self._jnt_iteSelectedChanged)
-        self.lineEdit_search_jnt.textChanged.connect(self.update_ui_jnts)
-        self.checkBox_hideAssigned.pressed.connect(self.update_ui_jnts)
+        self.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
+        self.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
 
         self.update_modules_data()
         self.update_ui_modules()
@@ -112,26 +112,24 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 qItem.addChild(qSubItem)
         return qItem
 
-    def _jntRootToQTreeWidget(self, jnt, query_regex='.*'):
-        obj_name = jnt.stripNamespace()
-        qItem = QtGui.QTreeWidgetItem(0)
-        qItem.obj = jnt
-        qItem.setText(0, obj_name)
+    def _jntRootToQTreeWidget(self, obj, query_regex='.*'):
+        obj_name = obj.stripNamespace()
+
         fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
-        is_handled = libSerialization.getConnectedNetworks(jnt, key=fnFilter)
+        networks = libSerialization.getConnectedNetworks(obj, key=fnFilter)
 
-        can_show = re.match(query_regex, obj_name, re.IGNORECASE)
-        if self.checkBox_hideAssigned.isChecked() and is_handled:
-            can_show = False
+        qItem = QtGui.QTreeWidgetItem(0)
+        qItem.obj = obj
+        qItem.networks = networks
+        qItem.setText(0, obj_name)
+        qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
 
-        qItem.setCheckState(0, QtCore.Qt.Checked if is_handled else QtCore.Qt.Unchecked)
-        for sub_jnt in jnt.getChildren():
+        for sub_jnt in obj.getChildren():
             if isinstance(sub_jnt, pymel.nodetypes.Transform):
-                qSubItem, can_show_subitem = self._jntRootToQTreeWidget(sub_jnt, query_regex=query_regex)
-                if can_show_subitem:
-                    can_show = True
+                qSubItem = self._jntRootToQTreeWidget(sub_jnt, query_regex=query_regex)
+                if qSubItem:
                     qItem.addChild(qSubItem)
-        return qItem, can_show
+        return qItem
 
     def update_modules_data(self):
         self.roots = core.find()
@@ -144,7 +142,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self.treeWidget.expandItem(qItem)
         self.update_ui_jnts()  # TODO: Better update implementation!
 
-    def update_ui_jnts(self):
+    def update_ui_jnts(self, *args, **kwargs):
         # Resolve text query
         query_raw = self.lineEdit_search_jnt.text()
         query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
@@ -152,9 +150,46 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.treeWidget_jnts.clear()
         all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
         for jnt in all_jnt_roots:
-            qItem, can_show = self._jntRootToQTreeWidget(jnt, query_regex)
-            self.treeWidget_jnts.addTopLevelItem(qItem)
+            qItem = self._jntRootToQTreeWidget(jnt, query_regex)
+            qItem.obj = jnt  # Monkey-patch!
+            if qItem:
+                self.treeWidget_jnts.addTopLevelItem(qItem)
         self.treeWidget_jnts.expandAll()
+
+    def update_ui_jnts_visibility(self, query_regex=None):
+
+        def can_shot_QTreeWidgetItem(qItem, query):
+            obj = qItem.obj  # Retrieve monkey-patched data
+            obj_name = obj.stripNamespace()
+
+            if not re.match(query_regex, obj_name, re.IGNORECASE):
+                return False
+
+            if self.checkBox_hideAssigned.isChecked():
+                if qItem.networks:
+                    return False
+
+            return True
+
+        def update_QTreeWidgetItem_visibility(qItem, query_regex):
+            num_child = qItem.childCount()
+            for i in range(num_child):
+                qSubItem = qItem.child(i)
+
+                can_show = can_shot_QTreeWidgetItem(qSubItem, query_regex)
+                qSubItem.setHidden(not can_show)
+
+                update_QTreeWidgetItem_visibility(qSubItem, query_regex)
+
+        if query_regex is None:
+            query_raw = self.lineEdit_search_jnt.text()
+            query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
+        qRootItem = self.treeWidget_jnts.invisibleRootItem()
+        update_QTreeWidgetItem_visibility(qRootItem, query_regex)
+
+    def on_query_changed(self, *args, **kwargs):
+        self.update_ui_jnts_visibility()
+
 
     #
     # Events

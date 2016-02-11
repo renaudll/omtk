@@ -45,12 +45,14 @@ class BaseCtrl(Node):
 
         super(BaseCtrl, self).__init__(create=create, *args, **kwargs)
 
+    '''
     def __createOffset__(self):
         """
         Create an intermediate parent used to store the origin offset of the ctrl.
         """
         self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
         return self.offset
+    '''
 
     def __createNode__(self, size=None, normal=(1,0,0), multiplier=1.0, refs=None, offset=None, *args, **kwargs):
         """
@@ -94,7 +96,7 @@ class BaseCtrl(Node):
 
         # Create an intermediate parent if necessary
         if self._create_offset:
-            self.offset = self.__createOffset__()
+            self.offset = self.add_layer('offset')
 
         # Fetch stored animations
         self.fetch_attr_all() # todo: still necessary^

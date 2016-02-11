@@ -35,6 +35,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.treeWidget_jnts.itemSelectionChanged.connect(self._jnt_iteSelectedChanged)
         self.lineEdit_search_jnt.textChanged.connect(self.update_ui_jnts)
+        self.checkBox_hideAssigned.pressed.connect(self.update_ui_jnts)
 
         self.update_modules_data()
         self.update_ui_modules()
@@ -118,7 +119,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         qItem.setText(0, obj_name)
         fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
         is_handled = libSerialization.getConnectedNetworks(jnt, key=fnFilter)
+
         can_show = re.match(query_regex, obj_name, re.IGNORECASE)
+        if self.checkBox_hideAssigned.isChecked() and is_handled:
+            can_show = False
 
         qItem.setCheckState(0, QtCore.Qt.Checked if is_handled else QtCore.Qt.Unchecked)
         for sub_jnt in jnt.getChildren():
@@ -146,7 +150,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         self.treeWidget_jnts.clear()
-        all_jnt_roots = libPymel.ls_root(type='joint')
+        all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
         for jnt in all_jnt_roots:
             qItem, can_show = self._jntRootToQTreeWidget(jnt, query_regex)
             self.treeWidget_jnts.addTopLevelItem(qItem)

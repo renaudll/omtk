@@ -8,6 +8,7 @@ import rigRibbon
 import rigSplineIK
 import rigTwistbone
 import rigLimb
+import rigArm
 import rigLeg
 import rigHand
 import rigDpSpine
@@ -20,6 +21,7 @@ def _reload():
     reload(rigSplineIK)
     reload(rigTwistbone)
     reload(rigLimb)
+    reload(rigArm)
     reload(rigLeg)
     reload(rigHand)
     reload(rigDpSpine)

@@ -54,12 +54,17 @@ class Module(object):
     def outputs(self):
         return self.__dict__['_outputs']
 
+
+    @libPython.memoized
+    def get_module_name(self):
+        return self.__class__.__name__.lower()
+
     @libPython.memoized
     def get_nomenclature_anm(self, rig):
         ref = next(iter(self.input), None)
         if ref:
             name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_anm)
-            name.add_tokens(self.__class__.__name__.lower())
+            name.add_tokens(self.get_module_name())
             return name
 
     @libPython.memoized
@@ -67,7 +72,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_rig)
-            name.add_tokens(self.__class__.__name__.lower())
+            name.add_tokens(self.get_module_name())
             return name
 
     @libPython.memoized
@@ -75,7 +80,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_jnt)
-            name.add_tokens(self.__class__.__name__.lower())
+            name.add_tokens(self.get_module_name())
             return name
 
     @property

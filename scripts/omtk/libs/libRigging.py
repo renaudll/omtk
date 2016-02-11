@@ -1,4 +1,5 @@
 from maya import cmds
+from maya import mel
 import pymel.core as pymel
 import logging
 import libPymel
@@ -647,3 +648,27 @@ def align_selected_joints_to_persp ():
     sel = pymel.selected()
     cam = pymel.PyNode('persp')
     align_joints_to_view(sel, cam)
+
+
+def create_follicle(obj, surface, name=None):
+        """
+        Create a follicle via djRivet but don't automatically align it to @obj.
+        """
+        # Note that obj should have a identity parent space
+        pymel.select(obj, surface)
+        mel.eval("djRivet")
+
+        # Found the follicle shape...
+        dj_rivet_grp = pymel.PyNode("djRivetX")
+        follicle_transform = next(iter(reversed(dj_rivet_grp.getChildren())))
+        # follicle_shape = follicle_transform.getShape()
+
+        # follicle_shape.setParent(obj, relative=True, shape=True)
+        # pymel.delete(follicle_transform)
+        # pymel.connectAttr(follicle_shape.outTranslate, obj.t)
+        # pymel.connectAttr(follicle_shape.outRotate, obj.r)
+
+        if name:
+            follicle_transform.rename(name)
+
+        return follicle_transform

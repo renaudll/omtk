@@ -1,11 +1,10 @@
 import pymel.core as pymel
-from maya import mel
+
+from omtk import classCtrl
 from omtk import classModule
 from omtk import classNode
-from omtk import classCtrl
-from omtk.libs import libPython
 from omtk.libs import libPymel
-from omtk.modules import rigRibbon
+from omtk.libs import libPython
 from omtk.libs import libRigging
 
 
@@ -187,14 +186,6 @@ class TransformOffsetNode(classModule.Module):
         libRigging.create_hyerarchy(chain)
 
 
-def create_transform_offset_constraint(src, dst):
-    """
-    Apply the transformation of @src to @dst in relation to it's original position.
-    Note that the calculation is done in worldSpace, however to support pre-deformation
-    a different space could be provided.
-    """
-
-
 class AvarStack(classNode.Node):
     def build(self, rig, **kwargs):
         super(AvarStack, self).build(**kwargs)
@@ -214,13 +205,9 @@ class AvarStack(classNode.Node):
 
         layer_offset_name = 'offset'  # nomenclature_rig.resolve('preCtrl')
         layer_offset = self.add_layer(name=layer_offset_name)
-        # grp_preCtrl = pymel.createNode('transform', name=grp_preCtrl_name)
-        # grp_preCtrl.setParent(self.grp_rig)
 
         layer_ctrl_name = 'perCtrl'  # nomenclature_rig.resolve('perCtrl')
         layer_ctrl = self.add_layer(name=layer_ctrl_name)
-        # grp_perCtrl = pymel.createNode('transform', name=grp_perCtrl_name)
-        # grp_perCtrl.setParent(grp_preCtrl)
 
         # pymel.parentConstraint(layer_offset, self.ctrl_offset.offset)
         pymel.connectAttr(self.ctrl_offset.translate, layer_ctrl.translate)
@@ -269,24 +256,23 @@ class FaceAvar(classModule.Module):
         stack.build()
 
         # Create an offset layer so everything start at the same parent space.
-        layer_offset_name = 'offset'  # nomenclature_rig.resolve('preCtrl')
-        layer_offset = stack.add_layer(name=layer_offset_name)
+        layer_offset_name = nomenclature_rig.resolve('offset')
+        layer_offset = stack.add_layer()
+        layer_offset.rename(layer_offset_name)
         layer_offset.setMatrix(self.jnt.getMatrix(worldSpace=True))
-        # grp_preCtrl = pymel.createNode('transform', name=grp_preCtrl_name)
-        # grp_preCtrl.setParent(self.grp_rig)
+
+        # Create a layer before the ctrl to apply the YW, PT and RL avar.
+        layer_rot_name = nomenclature_rig.resolve('rot')
+        layer_rot = stack.add_layer()
+        layer_rot.rename(layer_rot_name)
+
+        pymel.connectAttr(self.attr_avar_yw, layer_rot.rotateX)
+        pymel.connectAttr(self.attr_avar_pt, layer_rot.rotateY)
+        pymel.connectAttr(self.attr_avar_rl, layer_rot.rotateZ)
 
         return stack
 
-    def build(self, rig, constraint=True, **kwargs):
-        """
-        Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
-        """
-        super(FaceAvar, self).build(rig, **kwargs)
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-
-        ref_tm = self.jnt.getMatrix(worldSpace=True)
-
+    def _add_avar_attrs(self):
         # Define macro avars
         libPymel.addAttr_separator(self.grp_rig, 'Avars')
 
@@ -303,6 +289,18 @@ class FaceAvar(classModule.Module):
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_ROLL, k=True)
         self.attr_avar_rl = self.grp_rig.attr(self.AVAR_NAME_ROLL)
 
+    def build(self, rig, constraint=True, **kwargs):
+        """
+        Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
+        """
+        super(FaceAvar, self).build(rig, **kwargs)
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        ref_tm = self.jnt.getMatrix(worldSpace=True)
+
+        self._add_avar_attrs()
+
         dag_stack_name = nomenclature_rig.resolve('dagStack')
         self._dag_stack = self._build_dag_stack(rig)
         self._dag_stack.setMatrix(ref_tm)
@@ -316,7 +314,7 @@ class FaceAvar(classModule.Module):
 
         layer_ctrl_name = 'offset'  # nomenclature_rig.resolve('perCtrl')
         layer_ctrl = self._dag_stack.add_layer(name=layer_ctrl_name)
-        # grp_perCtrl = pymel.createNode('transform', name=grp_perCtrl_name)
+        layer_ctrl.rename(layer_ctrl_name)
 
         ctrl_offset_name = 'offset'  # nomenclature_anm.resolve('offset')
         if not isinstance(self.ctrl_offset, FaceCtrl):
@@ -324,6 +322,7 @@ class FaceAvar(classModule.Module):
         self.ctrl_offset.build(name=ctrl_offset_name)
         self.ctrl_offset.setParent(self.grp_anm)
         self.ctrl_offset.setMatrix(self.jnt.getMatrix(worldSpace=True))
+
 
         # TODO: HANDLE HEAD JNT MOVEMENT, USE DORITOS?
         util_decomposeTM = libRigging.create_utility_node('decomposeMatrix',
@@ -338,13 +337,24 @@ class FaceAvar(classModule.Module):
         pymel.connectAttr(self.ctrl_offset.rotate, layer_ctrl.rotate)
         pymel.connectAttr(self.ctrl_offset.scale, layer_ctrl.scale)
 
-        # TODO: Use 'doritos' setup?
+        layer_doritos_fol_name = nomenclature_anm.resolve('doritos_fol')
+        layer_doritos_fol = self.ctrl_offset.add_layer()
+        layer_doritos_fol.rename(layer_doritos_fol_name)
 
-        # Add the last dag stack layer
-        '''
-        grp_output_name = nomenclature_rig.resolve('outputTM')
-        self.grp_output = self._dag_stack.add_layer(name=grp_output_name)
-        '''
+        layer_doritos_name = nomenclature_anm.resolve('doritos')
+        layer_doritos = self.ctrl_offset.add_layer()
+        layer_doritos.rename(layer_doritos_name)
+
+        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl_offset.t, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl_offset.t, input2=[-1, -1, -1]).output
+        pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
+        pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
+
+        # TODO: Implement find closest mesh!
+        # HACK: JUST DEBUGGING
+        obj_mesh = pymel.PyNode('GenericCaracter_Mesh')
+        libRigging.create_follicle(layer_doritos_fol, obj_mesh)
+
 
         if constraint:
             pymel.parentConstraint(self._dag_stack.node, self.jnt)
@@ -373,29 +383,6 @@ class FaceAvarFollicle(FaceAvar):
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
 
-    def _create_follicle(self, obj, surface, name=None):
-        """
-        Create a follicle via djRivet but don't automatically align it to @obj.
-        """
-        # Note that obj should have a identity parent space
-        pymel.select(obj, surface)
-        mel.eval("djRivet")
-
-        # Found the follicle shape...
-        dj_rivet_grp = pymel.PyNode("djRivetX")
-        follicle_transform = next(iter(reversed(dj_rivet_grp.getChildren())))
-        # follicle_shape = follicle_transform.getShape()
-
-        # follicle_shape.setParent(obj, relative=True, shape=True)
-        # pymel.delete(follicle_transform)
-        # pymel.connectAttr(follicle_shape.outTranslate, obj.t)
-        # pymel.connectAttr(follicle_shape.outRotate, obj.r)
-
-        if name:
-            follicle_transform.rename(name)
-
-        return follicle_transform
-
     def _build_dag_stack(self, rig):
         stack = super(FaceAvarFollicle, self)._build_dag_stack(rig)
 
@@ -413,7 +400,7 @@ class FaceAvarFollicle(FaceAvar):
         obj_offset.setParent(stack._layers[0])
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
-        fol_offset = self._create_follicle(obj_offset, self.surface, name=fol_offset_name)
+        fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
         fol_offset.setParent(self.grp_rig)
 
         influence_name = nomenclature_rig.resolve('influence')
@@ -422,7 +409,7 @@ class FaceAvarFollicle(FaceAvar):
         influence.setParent(stack._layers[0])
 
         fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
-        fol_influence = self._create_follicle(influence, self.surface, name=fol_influence_name)
+        fol_influence = libRigging.create_follicle(influence, self.surface, name=fol_influence_name)
         fol_influence.setParent(self.grp_rig)
 
         # Extract the delta of the influence follicle and it's initial pose follicle
@@ -586,6 +573,16 @@ class Eyebrows(classModule.Module):
     AVAR_NAME_LR = 'avar_lr'
     AVAR_NAME_FB = 'avar_fb'
 
+    module_name_ignore_list = [
+        'Inn', 'Mid', 'Out'
+    ]
+
+    def get_module_name(self):
+        name = super(Eyebrows, self).get_module_name()
+        for ignore in self.module_name_ignore_list:
+            name = name.replace(ignore, '')
+        return name
+
     @libPython.cached_property()
     def surface(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
@@ -617,6 +614,7 @@ class Eyebrows(classModule.Module):
             connectAttr_blendWeight(self.attr_avar_ud, sys_facepnt.attr_avar_ud)
             connectAttr_blendWeight(self.attr_avar_lr, sys_facepnt.attr_avar_lr)
             connectAttr_blendWeight(self.attr_avar_fb, sys_facepnt.attr_avar_fb)
+
 
 
 '''

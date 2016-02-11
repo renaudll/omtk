@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rlessard/dev/omtk/omtk/ui.ui'
+# Form implementation generated from reading ui file '/home/rlessard/dev/omtk/scripts/omtk/ui.ui'
 #
-# Created: Tue Jan 26 16:38:19 2016
+# Created: Wed Feb 10 23:00:14 2016
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -43,6 +43,9 @@ class Ui_MainWindow(object):
         self.lineEdit_search_jnt = QtGui.QLineEdit(self.layoutWidget1)
         self.lineEdit_search_jnt.setObjectName("lineEdit_search_jnt")
         self.verticalLayout.addWidget(self.lineEdit_search_jnt)
+        self.checkBox_hideAssigned = QtGui.QCheckBox(self.layoutWidget1)
+        self.checkBox_hideAssigned.setObjectName("checkBox_hideAssigned")
+        self.verticalLayout.addWidget(self.checkBox_hideAssigned)
         self.treeWidget_jnts = QtGui.QTreeWidget(self.layoutWidget1)
         self.treeWidget_jnts.setObjectName("treeWidget_jnts")
         self.treeWidget_jnts.headerItem().setText(0, "1")
@@ -97,6 +100,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Open Rigging Toolkit", None, QtGui.QApplication.UnicodeUTF8))
         self.label_modules.setText(QtGui.QApplication.translate("MainWindow", "Loaded Modules", None, QtGui.QApplication.UnicodeUTF8))
         self.label_jnts.setText(QtGui.QApplication.translate("MainWindow", "Unassigned Jnts", None, QtGui.QApplication.UnicodeUTF8))
+        self.checkBox_hideAssigned.setText(QtGui.QApplication.translate("MainWindow", "Hide Assigned", None, QtGui.QApplication.UnicodeUTF8))
         self.toolBar.setWindowTitle(QtGui.QApplication.translate("MainWindow", "toolBar", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBuild.setText(QtGui.QApplication.translate("MainWindow", "Build", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUnbuild.setText(QtGui.QApplication.translate("MainWindow", "Unbuild", None, QtGui.QApplication.UnicodeUTF8))

@@ -97,4 +97,9 @@ class RigSqueeze(classRig.Rig):
                     module.grp_anm.drawOverride.overrideEnabled.set(1)
                     module.grp_anm.drawOverride.overrideColor.set(color)
 
+        #
+        # Add display attribute for micro avars
+        #
+        pass
+
         return True

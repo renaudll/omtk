@@ -8,12 +8,12 @@ from omtk.libs import libPython
 from omtk.libs import libRigging
 
 
-class FaceCtrl(classCtrl.BaseCtrl):
+class CtrlFaceMicro(classCtrl.BaseCtrl):
     """
     If you need specific ctrls for you module, you can inherit from BaseCtrl directly.
     """
     def __createNode__(self, normal=(0,0,1), **kwargs):
-        return super(FaceCtrl, self).__createNode__(normal=normal, **kwargs)
+        return super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
 
 class TransformOffsetNode(classModule.Module):
     ATTR_NAME_MULTIPLIER = 'influenceAmount'
@@ -186,9 +186,9 @@ class TransformOffsetNode(classModule.Module):
         libRigging.create_hyerarchy(chain)
 
 
-class AvarStack(classNode.Node):
+class NodeStack(classNode.Node):
     def build(self, rig, **kwargs):
-        super(AvarStack, self).build(**kwargs)
+        super(NodeStack, self).build(**kwargs)
 
         #
         # Create the layers for the manual ctrl
@@ -197,8 +197,8 @@ class AvarStack(classNode.Node):
         #
 
         ctrl_offset_name = 'offset'  # nomenclature_anm.resolve('offset')
-        if not isinstance(self.ctrl_offset, FaceCtrl):
-            self.ctrl_offset = FaceCtrl()
+        if not isinstance(self.ctrl_offset, CtrlFaceMicro):
+            self.ctrl_offset = CtrlFaceMicro()
         self.ctrl_offset.build(name=ctrl_offset_name)
         self.ctrl_offset.setParent(rig.grp_anm)
         self.ctrl_offset.setMatrix(rig.jnt.getMatrix(worldSpace=True))
@@ -312,6 +312,53 @@ class FaceAvar(classModule.Module):
 
         libRigging.create_follicle(layer_doritos_fol, obj_mesh)
 
+        # The doritos setup can be hard to control when the rotation of the controller depend on the follicle since
+        # any deformation can affect the normal of the faces.
+        jnt_head = rig.get_head_jnt()
+        if jnt_head:
+            pymel.disconnectAttr(layer_doritos_fol.rx)
+            pymel.disconnectAttr(layer_doritos_fol.ry)
+            pymel.disconnectAttr(layer_doritos_fol.rz)
+            pymel.orientConstraint(jnt_head, layer_doritos_fol, maintainOffset=True)
+
+    def _create_doritos_setup_2(self, rig, ctrl):
+        """
+        A doritos setup allow a ctrl to be directly constrained on the final mesh via a follicle.
+        To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
+        For clarity purposes, this is built in the rig so the animator don't need to see the whole setup.
+        """
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        obj_mesh = libRigging.get_farest_affected_mesh(self.jnt)
+        if obj_mesh is None:
+            pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
+            return False
+
+        # doritos_name
+        stack_name = nomenclature_rig.resolve('doritos_stack')
+        stack = classNode.Node(self, name=stack_name)
+        #stack.rename(stack_name)
+        stack.build(rig)
+        stack.setMatrix(ctrl.getMatrix(worldSpace=True))
+
+        layer_doritos_fol_name = nomenclature_rig.resolve('doritos_fol')
+        layer_doritos_fol = stack.add_layer()
+        layer_doritos_fol.rename(layer_doritos_fol_name)
+
+        layer_doritos_name = nomenclature_rig.resolve('doritos_inv')
+        layer_doritos = stack.add_layer()
+        layer_doritos.rename(layer_doritos_name)
+
+
+
+
+        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
+        pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
+        pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
+
+        libRigging.create_follicle(layer_doritos_fol, obj_mesh)
+
 
         # The doritos setup can be hard to control when the rotation of the controller depend on the follicle since
         # any deformation can affect the normal of the faces.
@@ -321,6 +368,10 @@ class FaceAvar(classModule.Module):
             pymel.disconnectAttr(layer_doritos_fol.ry)
             pymel.disconnectAttr(layer_doritos_fol.rz)
             pymel.orientConstraint(jnt_head, layer_doritos_fol, maintainOffset=True)
+
+        stack.setParent(self.grp_rig)
+
+        return layer_doritos
 
     def build(self, rig, constraint=True, **kwargs):
         """
@@ -350,14 +401,13 @@ class FaceAvar(classModule.Module):
         layer_ctrl.rename(layer_ctrl_name)
 
         ctrl_offset_name = 'offset'  # nomenclature_anm.resolve('offset')
-        if not isinstance(self.ctrl_offset, FaceCtrl):
-            self.ctrl_offset = FaceCtrl()
+        if not isinstance(self.ctrl_offset, CtrlFaceMicro):
+            self.ctrl_offset = CtrlFaceMicro()
         self.ctrl_offset.build(name=ctrl_offset_name)
         self.ctrl_offset.setParent(self.grp_anm)
         self.ctrl_offset.setMatrix(self.jnt.getMatrix(worldSpace=True))
 
 
-        # TODO: HANDLE HEAD JNT MOVEMENT, USE DORITOS?
         util_decomposeTM = libRigging.create_utility_node('decomposeMatrix',
                                                           inputMatrix=layer_ctrl.worldMatrix
                                                           )
@@ -370,24 +420,22 @@ class FaceAvar(classModule.Module):
         pymel.connectAttr(self.ctrl_offset.rotate, layer_ctrl.rotate)
         pymel.connectAttr(self.ctrl_offset.scale, layer_ctrl.scale)
 
+        doritos = self._create_doritos_setup_2(rig, self.ctrl_offset)
 
-        self._create_doritos_setup(rig)
-
-
-
+        pymel.parentConstraint(doritos, self.ctrl_offset.offset, maintainOffset=False)
 
         if constraint:
             pymel.parentConstraint(self._dag_stack.node, self.jnt)
 
 
 '''
-class AvarStackFollicle(AvarStack):
+class NodeStackFollicle(NodeStack):
     def build(self, rig, nurbsSurface, **kwargs):
-        super(AvarStackFollicle, self).build(rig, **kwargs)
+        super(NodeStackFollicle, self).build(rig, **kwargs)
 '''
 
 
-class FaceAvarFollicle(FaceAvar):
+class AvarMicro(FaceAvar):
     ATTR_NAME_U_BASE = 'BaseU'
     ATTR_NAME_V_BASE = 'BaseV'
     ATTR_NAME_U = 'U'
@@ -404,7 +452,7 @@ class FaceAvarFollicle(FaceAvar):
         return next(iter(objs), None)
 
     def _build_dag_stack(self, rig):
-        stack = super(FaceAvarFollicle, self)._build_dag_stack(rig)
+        stack = super(AvarMicro, self)._build_dag_stack(rig)
 
         jnt_tm = self.jnt.getMatrix(worldSpace=True)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -495,7 +543,7 @@ class FaceAvarFollicle(FaceAvar):
         return stack
 
     def build(self, rig, *args, **kwargs):
-        super(FaceAvarFollicle, self).build(rig, **kwargs)
+        super(AvarMicro, self).build(rig, **kwargs)
 
         # nomenclature_anm = self.get_nomenclature_anm(rig)
         # nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -578,27 +626,105 @@ class FaceAvarFollicle(FaceAvar):
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(FaceAvarFollicle, self).unbuild()
+        super(AvarMicro, self).unbuild()
 
+def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs):
+    # Check on which attribute @attr_dst is connected to (if applicable).
+    attr_dst_input = next(iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)), None)
+
+    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
+    if attr_dst_input is None or not isinstance(attr_dst_input.node(), pymel.nodetypes.BlendWeighted):
+        util_blend = pymel.createNode('blendWeighted')
+
+        if attr_dst_input is not None:
+            next_available = util_blend.input.numElements()
+
+
+            pymel.connectAttr(attr_dst_input, util_blend.input[next_available])
+
+    else:
+        util_blend = attr_dst_input.node()
+
+    next_available = util_blend.input.numElements()
+
+    if multiplier:
+        attr_src = libRigging.create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
+
+    pymel.connectAttr(attr_src, util_blend.input[next_available])
+
+    if not attr_dst.isDestination():
+        pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)
 
 def connectAttr_blendWeight(attr_src, attr_dst):
     pymel.connectAttr(libRigging.create_utility_node('blendWeighted', input=[
         attr_src
     ]).output, attr_dst)
 
+#
+# Setup consisted of multiples avars
+#
 
-# TODO: Rename to EyeBrow
-class Eyebrows(classModule.Module):
+class CtrlFaceMacro(classCtrl.BaseCtrl):
+    ATTR_NAME_SENSIBILITY = 'sensibility'
+
+    def __init__(self, *args, **kwargs):
+        super(CtrlFaceMacro, self).__init__(*args, **kwargs)
+        self.sensibility = 0.5
+        self._attr_sensibility = None
+
+    def build(self, sensibility=None, *args, **kwargs):
+        super(CtrlFaceMacro, self).build(*args, **kwargs)
+
+        if sensibility is None:
+            sensibility = self.sensibility
+        else:
+            self.sensibility = sensibility
+
+        pymel.addAttr(self.node, longName=self.ATTR_NAME_SENSIBILITY, defaultValue=sensibility, k=True)
+        self._attr_sensibility = self.node.attr(self.ATTR_NAME_SENSIBILITY)
+
+    # TODO: SHOULD NOT BE NEEDED, MAKE BaseCtrl MORE INTELLIGENT
+    def unbuild(self):
+        self.sensibility = self._attr_sensibility.get()
+        self._attr_sensibility = None
+        super(CtrlFaceMacro, self).unbuild()
+
+class CtrlFaceMacroAll(CtrlFaceMacro):
+    pass
+
+
+class CtrlFaceMacroInn(CtrlFaceMacro):
+    pass
+
+
+class CtrlFaceMacroMid(CtrlFaceMacro):
+    pass
+
+
+class CtrlFaceMacroOut(CtrlFaceMacro):
+    pass
+
+
+class AvarGroup(classModule.Module):
+    """
+    Base class for a group of avars that can share a same curve.
+    Also global avars will be provided to controll all avars.
+    """
     AVAR_NAME_UD = 'avar_ud'
     AVAR_NAME_LR = 'avar_lr'
     AVAR_NAME_FB = 'avar_fb'
+    # TODO: Provide additional avars
 
     module_name_ignore_list = [
         'Inn', 'Mid', 'Out'
     ]
 
+    def __init__(self, *args, **kwargs):
+        super(AvarGroup, self).__init__(*args, **kwargs)
+        self.avars = []
+
     def get_module_name(self):
-        name = super(Eyebrows, self).get_module_name()
+        name = super(AvarGroup, self).get_module_name()
         for ignore in self.module_name_ignore_list:
             name = name.replace(ignore, '')
         return name
@@ -615,9 +741,9 @@ class Eyebrows(classModule.Module):
         return filter(fn_is_nurbsSurface, self.input)
 
     def build(self, rig, **kwargs):
-        super(Eyebrows, self).build(rig, **kwargs)
+        super(AvarGroup, self).build(rig, **kwargs)
 
-        # Create avars for the whole EyeLid
+        # Create global avars
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_UD, k=True)
         self.attr_avar_ud = self.grp_rig.attr(self.AVAR_NAME_UD)
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_LR, k=True)
@@ -625,16 +751,111 @@ class Eyebrows(classModule.Module):
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_FB, k=True)
         self.attr_avar_fb = self.grp_rig.attr(self.AVAR_NAME_FB)
 
+        self.avars = []
+        # Connect global avars to invidial avars
         for jnt in self.jnts:
-            sys_facepnt = FaceAvarFollicle([jnt, self.surface])
+            sys_facepnt = AvarMicro([jnt, self.surface])
             sys_facepnt.build(rig)
             sys_facepnt.grp_anm.setParent(self.grp_anm)
             sys_facepnt.grp_rig.setParent(self.grp_rig)
+            self.avars.append(sys_facepnt)
 
-            connectAttr_blendWeight(self.attr_avar_ud, sys_facepnt.attr_avar_ud)
-            connectAttr_blendWeight(self.attr_avar_lr, sys_facepnt.attr_avar_lr)
-            connectAttr_blendWeight(self.attr_avar_fb, sys_facepnt.attr_avar_fb)
+            connectAttr_withBlendWeighted(self.attr_avar_ud, sys_facepnt.attr_avar_ud)
+            connectAttr_withBlendWeighted(self.attr_avar_lr, sys_facepnt.attr_avar_lr)
+            connectAttr_withBlendWeighted(self.attr_avar_fb, sys_facepnt.attr_avar_fb)
 
+    def unbuild(self):
+        for ctrl in self.avars:
+            ctrl.unbuild()
+        super(AvarGroup, self).unbuild()
+
+
+class AvarGroupInnMidOut(AvarGroup):
+    """
+    Base set for a group of 3 avars with provided controllers.
+    """
+    _CLASS_CTRL_MACRO_ALL = CtrlFaceMacroAll
+    _CLASS_CTRL_MACRO_INN = CtrlFaceMacroInn
+    _CLASS_CTRL_MACRO_MID = CtrlFaceMacroMid
+    _CLASS_CTRL_MACRO_OUT = CtrlFaceMacroOut
+
+    def __init__(self, *args, **kwargs):
+        super(AvarGroupInnMidOut, self).__init__(*args, **kwargs)
+        self.ctrl_all = None
+        self.ctrl_inn = None
+        self.ctrl_mid = None
+        self.ctrl_out = None
+
+    @property
+    def inf_inn(self):
+        # TODO: Use jnt position for better detection!!!
+        return self.jnts[0]
+
+    @property
+    def inf_mid(self):
+        # TODO: Use jnt position for better detection!!!
+        return self.jnts[1]
+
+    @property
+    def inf_out(self):
+        # TODO: Use jnt position for better detection!!!
+        return self.jnts[2]
+
+    @property
+    def avar_inn(self):
+        return self.avars[0]
+
+    @property
+    def avar_mid(self):
+        return self.avars[1]
+
+    @property
+    def avar_out(self):
+        return self.avars[2]
+
+    def create_ctrl(self, cls, ctrl, avar, ref, name):
+        # Build Ctrl Inn
+        if not isinstance(ctrl, cls):
+            ctrl = cls()
+        ctrl.build(name=name)
+        ctrl.setParent(self.grp_anm)
+        ctrl.setMatrix(ref.getMatrix(worldSpace=True))
+        connectAttr_withBlendWeighted(ctrl.translateX, avar.attr_avar_ud)
+        connectAttr_withBlendWeighted(ctrl.translateY, avar.attr_avar_lr)
+        connectAttr_withBlendWeighted(ctrl.translateZ, avar.attr_avar_fb)
+        return ctrl
+
+    def build(self, rig, **kwargs):
+        super(AvarGroupInnMidOut, self).build(rig, **kwargs)
+
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+
+        # The animators want the ctrls to float in front of the face.
+        ctrl_z_axis = 16.645  # TODO: DONT HARDCODE
+
+        # Build Ctrl All
+        ctrl_inn_name = nomenclature_anm.resolve('all')
+        self.ctrl_inn = self.create_ctrl(self._CLASS_CTRL_MACRO_ALL, self.ctrl_all, self, self.inf_mid, ctrl_inn_name)
+
+        # Build Ctrl Inn
+        ctrl_inn_name = nomenclature_anm.resolve('inn')
+        self.ctrl_inn = self.create_ctrl(self._CLASS_CTRL_MACRO_INN, self.ctrl_inn, self.avar_inn, self.inf_inn, ctrl_inn_name)
+
+        # Build Ctrl Mid
+        ctrl_mid_name = nomenclature_anm.resolve('mid')
+        self.ctrl_mid = self.create_ctrl(self._CLASS_CTRL_MACRO_MID, self.ctrl_mid, self.avar_mid, self.inf_mid, ctrl_mid_name)
+
+        # Build Ctrl Out
+        ctrl_out_name = nomenclature_anm.resolve('out')
+        self.ctrl_out = self.create_ctrl(self._CLASS_CTRL_MACRO_OUT, self.ctrl_out, self.avar_out, self.inf_inn, ctrl_out_name)
+
+
+    def unbuild(self):
+        self.ctrl_out.unbuild()
+        self.ctrl_mid.unbuild()
+        self.ctrl_inn.unbuild()
+        self.ctrl_all.unbuild()
+        super(AvarGroupInnMidOut, self).unbuild()
 
 
 '''

@@ -2,6 +2,7 @@ from omtk.libs import libPython
 from omtk import classModule
 from maya import cmds
 
+# Import body modules
 import rigFK
 import rigIK
 import rigRibbon
@@ -12,9 +13,15 @@ import rigArm
 import rigLeg
 import rigHand
 import rigDpSpine
+
+# Import face modules
 import rigFacePnt
+import rigFaceBrow
+import rigFaceLids
+
 
 def _reload():
+    # Reload body modules
     reload(rigFK)
     reload(rigIK)
     reload(rigRibbon)
@@ -25,7 +32,12 @@ def _reload():
     reload(rigLeg)
     reload(rigHand)
     reload(rigDpSpine)
+
+    # Reload face modules
     reload(rigFacePnt)
+    reload(rigFaceBrow)
+    reload(rigFaceLids)
+
 
 def create(cls_name, *args, **kwargs):
     cls = libPython.get_class_def(cls_name, classModule.Module)

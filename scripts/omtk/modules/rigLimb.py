@@ -40,6 +40,8 @@ class CtrlElbow(BaseCtrl):
 
 class Limb(Module):
     kAttrName_State = 'fkIk'  # The name of the IK/FK attribute
+    _CLASS_SYS_IK = IK
+    _CLASS_SYS_FK = FK
     _CLASS_CTRL_ATTR = BaseAttHolder
     _CLASS_CTRL_ELBOW = CtrlElbow
 
@@ -52,25 +54,21 @@ class Limb(Module):
         self.offset_ctrl_ik = None
         self.ctrl_attrs = None
 
-    def _create_sys_ik(self, rig, **kwargs):
-        if not isinstance(self.sysIK, IK):
-            self.sysIK = IK(self.chain_jnt)
-        self.sysIK.build(rig, constraint=False, **kwargs)
-
-    def _create_sys_fk(self, rig, **kwargs):
-        if not isinstance(self.sysFK, FK):
-            self.sysFK = FK(self.chain_jnt)
-        self.sysFK.build(rig, constraint=False, **kwargs)
-
     def build(self, rig, *args, **kwargs):
         super(Limb, self).build(rig, *args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
-        # Rig ikChain and fkChain
-        self._create_sys_ik(rig)
-        self._create_sys_fk(rig)
+        # Create IK system
+        if not isinstance(self.sysIK, self._CLASS_SYS_IK):
+            self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
+        self.sysIK.build(rig, constraint=False, **kwargs)
+
+        # Create FK system
+        if not isinstance(self.sysFK, self._CLASS_SYS_FK):
+            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt)
+        self.sysFK.build(rig, constraint=False, **kwargs)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.

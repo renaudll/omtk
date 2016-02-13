@@ -8,10 +8,10 @@ from omtk.libs import libRigging
 from omtk.libs import libSkinning
 
 class Ctrl_DpSpine_IK(BaseCtrl):
-    def __createNode__(self, size=None, refs=None, **kwargs):
+    def __createNode__(self, size=None, multiplier=1.25, refs=None, **kwargs):
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if size is None and ref is not None:
-            size = libRigging.get_recommended_ctrl_size(ref)
+            size = libRigging.get_recommended_ctrl_size(ref) * multiplier
         else:
             size = 1.0
 
@@ -22,7 +22,7 @@ class Ctrl_DpSpine_FK(BaseCtrl):
     _DEFAULT_COLOR = 18  # Baby blue
 
     def __createNode__(self, **kwargs):
-        node = super(Ctrl_DpSpine_FK, self).__createNode__(normal=(0,1,0), **kwargs)
+        node = super(Ctrl_DpSpine_FK, self).__createNode__(normal=(0,1,0), multiplier=1.25, **kwargs)
 
         # To match dpSpine, color the shapes individually
         for shape in node.getShapes():
@@ -173,11 +173,15 @@ class DpSpine(Module):
         node_arc_length_transform = node_arc_length.getParent()
         node_arc_length_transform .setParent(self.grp_rig)
         attr_squash_raw = libRigging.create_squash_attr_simple(attr_stretch_u)
-        attr_squash = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw], attributesBlender=attr_squash_amount).output
+
+        # Apply the global uniform scale
+        attr_squash_raw_scale = libRigging.create_utility_node('multiplyDivide', input1X=attr_squash_raw, input2X=self.globalScale).outputX
+
+        attr_squash = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw_scale], attributesBlender=attr_squash_amount).output
 
         # Apply the squash
         # Note that the squash on the first joint is hardcoded to 80%.
-        attr_squash_first_jnt = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw], attributesBlender=0.8).output
+        attr_squash_first_jnt = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw_scale], attributesBlender=0.8).output
         pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleY)
         pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleZ)
 

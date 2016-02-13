@@ -30,15 +30,19 @@ class CtrlIk(BaseCtrl):
 
 class CtrlIkSwivel(BaseCtrl):
 
-    def __createNode__(self, refs=None, line_target=True, offset=None, *args, **kwargs):
+    def __createNode__(self, refs=None, size=None, line_target=True, offset=None, *args, **kwargs):
+        # Resolve size automatically if refs are provided
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        if size is None and ref is not None:
+            size = libRigging.get_recommended_ctrl_size(ref)
+        else:
+            size = 1.0
 
         node = super(CtrlIkSwivel, self).__createNode__(*args, **kwargs)
         make = node.getShape().create.inputs()[0]
-        make.radius.set(make.radius.get() * 0.5)
+        make.radius.set(size * 2)
         make.degree.set(1)
         make.sections.set(4)
-
 
         # Create line
         if line_target is True:
@@ -200,6 +204,12 @@ class IK(Module):
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
+        index_elbow = self.iCtrlIndex - 1
+        index_hand = self.iCtrlIndex
+
+        jnt_elbow = self.chain_jnt[index_elbow]
+        jnt_hand = self.chain_jnt[index_hand]
+
         # Create a group for the ik system
         # This group will be parentConstrained to the module parent.
         ikChainGrp_name = nomenclature_rig.resolve('ikChain')
@@ -220,7 +230,7 @@ class IK(Module):
 
 
         obj_s = self._chain_ik[0]
-        obj_e = self._chain_ik[self.iCtrlIndex]
+        obj_e = self._chain_ik[index_hand]
 
         # Compute chain length
         self.chain_length = self.chain.length()
@@ -242,7 +252,7 @@ class IK(Module):
         # Create CtrlIK
         if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
             self.ctrl_ik = self._CLASS_CTRL_IK()
-        ctrl_ik_refs = self.chain_jnt[self.iCtrlIndex:]  # jnt_hand and bellow
+        ctrl_ik_refs = [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
         self.ctrl_ik.build(refs=ctrl_ik_refs)  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = nomenclature_anm.resolve('ik')
@@ -254,13 +264,11 @@ class IK(Module):
         # Create CtrlIkSwivel
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
             self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
-        ctrl_swivel_ref = self.chain_jnt[self.iCtrlIndex - 1]
+        ctrl_swivel_ref = jnt_elbow
         self.ctrl_swivel.build(refs=ctrl_swivel_ref)
-        # self.ctrl_swivel = CtrlIkSwivel(_oLineTarget=self.input[1], _create=True)
         self.ctrl_swivel.setParent(self.grp_anm)
         self.ctrl_swivel.rename(nomenclature_anm.resolve('ikSwivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
-        #self.ctrl_swivel.offset.setRotation(self.chain_jnt[self.iCtrlIndex - 1].getRotation(space='world'), space='world')
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
 
         #

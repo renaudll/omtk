@@ -13,7 +13,7 @@ class CtrlIkLeg(rigIK.CtrlIk):
         return libCtrlShapes.create_shape_box_feet(refs, *args, **kwargs)
 
 
-class FootRollIK(IK):
+class LegIk(IK):
     _CLASS_CTRL_IK = CtrlIkLeg
 
     """
@@ -21,7 +21,7 @@ class FootRollIK(IK):
     """
 
     def __init__(self, *args, **kwargs):
-        super(FootRollIK, self).__init__(*args, **kwargs)
+        super(LegIk, self).__init__(*args, **kwargs)
 
         self.pivot_ankle = None
         self.pivot_front = None
@@ -114,7 +114,7 @@ class FootRollIK(IK):
                 self, len(self.chain_jnt)
             ))
 
-        super(FootRollIK, self).build(rig, orient_ik_ctrl=False, **kwargs)
+        super(LegIk, self).build(rig, orient_ik_ctrl=False, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
@@ -284,7 +284,7 @@ class FootRollIK(IK):
         self.pivot_inn_pos = (self.pivot_inn.getMatrix(worldSpace=True) * tm_ref_inv).translate
         self.pivot_out_pos = (self.pivot_out.getMatrix(worldSpace=True) * tm_ref_inv).translate
 
-        super(FootRollIK, self).unbuild()
+        super(LegIk, self).unbuild()
 
         self.pivot_ankle = None
         self.pivot_front = None
@@ -294,11 +294,5 @@ class FootRollIK(IK):
 
 
 class Leg(rigLimb.Limb):
-    def __init__(self, *args, **kwargs):
-        super(Leg, self).__init__(*args, **kwargs)
-        self.sysFootRoll = None
+    _CLASS_SYS_IK = LegIk
 
-    def _create_sys_ik(self, rig, **kwargs):
-        if not isinstance(self.sysIK, FootRollIK):
-            self.sysIK = FootRollIK(self.chain_jnt)
-        self.sysIK.build(rig, **kwargs)

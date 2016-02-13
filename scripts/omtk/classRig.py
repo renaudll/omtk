@@ -349,6 +349,9 @@ class Rig(object):
                 name_safe = obj.stripNamespace().lower()
                 return 'head' in name_safe or 'face'in name_safe
 
+        # TODO: MAKE IT WORK EVEN IF THERE ARE NO HEAD MODULE
+        return pymel.PyNode('Head_Jnt')
+
         for module in self.modules:
             for obj in module.input:
                 if key(obj):

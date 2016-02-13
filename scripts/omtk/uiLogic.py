@@ -11,6 +11,25 @@ from omtk.libs import libSkeleton
 import core
 
 import ui; reload(ui)
+
+
+def get_all_QTreeWidgetItem(widget, qt_item=None):
+    """
+    Iterate through all items of a provided QTreeWidgetItem.
+    :param widget: The QTreeWidgetItem to iterate through.
+    :param qt_item: The starting point of the iteration. If nothing is provided the invisibleRootItem will be used.
+    :return:
+    """
+    if qt_item is None:
+        qt_item = widget.invisibleRootItem()
+
+    num_child = qt_item.childCount()
+    for i in range(num_child):
+        qt_sub_item = qt_item.child(i)
+        yield qt_sub_item
+        for x in get_all_QTreeWidgetItem(widget, qt_sub_item):
+            yield x
+
 class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def __init__(self, parent=None):
         if parent is None: parent = getMayaWindow()
@@ -112,24 +131,32 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 qItem.addChild(qSubItem)
         return qItem
 
-    def _jntRootToQTreeWidget(self, obj, query_regex='.*'):
+    def _is_influence(self, obj):
+        """
+        Supported influences are joints and nurbsSurface.
+        :return:
+        """
+        return libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+
+
+    def _fill_widget_influences_recursive(self, qt_parent, obj):
         obj_name = obj.stripNamespace()
 
         fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
         networks = libSerialization.getConnectedNetworks(obj, key=fnFilter)
 
-        qItem = QtGui.QTreeWidgetItem(0)
-        qItem.obj = obj
-        qItem.networks = networks
-        qItem.setText(0, obj_name)
-        qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
+        if self._is_influence(obj):
+            qItem = QtGui.QTreeWidgetItem(0)
+            qItem.obj = obj
+            qItem.networks = networks
+            qItem.setText(0, obj_name)
+            qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
+            qt_parent.addChild(qItem)
+            qt_parent = qItem
 
         for sub_jnt in obj.getChildren():
             if isinstance(sub_jnt, pymel.nodetypes.Transform):
-                qSubItem = self._jntRootToQTreeWidget(sub_jnt, query_regex=query_regex)
-                if qSubItem:
-                    qItem.addChild(qSubItem)
-        return qItem
+                qSubItem = self._fill_widget_influences_recursive(qt_parent, sub_jnt)
 
     def update_modules_data(self):
         self.roots = core.find()
@@ -150,42 +177,33 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.treeWidget_jnts.clear()
         all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
         for jnt in all_jnt_roots:
-            qItem = self._jntRootToQTreeWidget(jnt, query_regex)
-            qItem.obj = jnt  # Monkey-patch!
-            if qItem:
-                self.treeWidget_jnts.addTopLevelItem(qItem)
+            self._fill_widget_influences_recursive(self.treeWidget_jnts.invisibleRootItem(), jnt)
+
         self.treeWidget_jnts.expandAll()
 
-    def update_ui_jnts_visibility(self, query_regex=None):
+    def can_show_QTreeWidgetItem(self, qItem, query_regex):
+        obj = qItem.obj  # Retrieve monkey-patched data
+        obj_name = obj.stripNamespace()
+        print obj_name
 
-        def can_shot_QTreeWidgetItem(qItem, query):
-            obj = qItem.obj  # Retrieve monkey-patched data
-            obj_name = obj.stripNamespace()
+        if not re.match(query_regex, obj_name, re.IGNORECASE):
+            return False
 
-            if not re.match(query_regex, obj_name, re.IGNORECASE):
+        if self.checkBox_hideAssigned.isChecked():
+            if qItem.networks:
                 return False
 
-            if self.checkBox_hideAssigned.isChecked():
-                if qItem.networks:
-                    return False
+        return True
 
-            return True
-
-        def update_QTreeWidgetItem_visibility(qItem, query_regex):
-            num_child = qItem.childCount()
-            for i in range(num_child):
-                qSubItem = qItem.child(i)
-
-                can_show = can_shot_QTreeWidgetItem(qSubItem, query_regex)
-                qSubItem.setHidden(not can_show)
-
-                update_QTreeWidgetItem_visibility(qSubItem, query_regex)
-
+    def update_ui_jnts_visibility(self, query_regex=None):
         if query_regex is None:
             query_raw = self.lineEdit_search_jnt.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
-        qRootItem = self.treeWidget_jnts.invisibleRootItem()
-        update_QTreeWidgetItem_visibility(qRootItem, query_regex)
+
+        for qt_item in get_all_QTreeWidgetItem(self.treeWidget_jnts):
+            can_show = self.can_show_QTreeWidgetItem(qt_item, query_regex)
+            qt_item.setHidden(not can_show)
+
 
     def on_query_changed(self, *args, **kwargs):
         self.update_ui_jnts_visibility()

@@ -64,7 +64,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_anm)
-            name.add_tokens(self.get_module_name())
+            #name.add_tokens(self.get_module_name())
             return name
 
     @libPython.memoized
@@ -72,7 +72,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_rig)
-            name.add_tokens(self.get_module_name())
+            #name.add_tokens(self.get_module_name())
             return name
 
     @libPython.memoized
@@ -80,7 +80,7 @@ class Module(object):
         ref = next(iter(self.input), None)
         if ref:
             name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_jnt)
-            name.add_tokens(self.get_module_name())
+            #name.add_tokens(self.get_module_name())
             return name
 
     @property

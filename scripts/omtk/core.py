@@ -9,6 +9,8 @@ import classNode
 import classCtrl
 import classModule
 import classRig
+import classAvar
+import classAvarsGroup
 
 def _reload():
     reload(className)
@@ -16,6 +18,8 @@ def _reload():
     reload(classCtrl)
     reload(classModule)
     reload(classRig)
+    reload(classAvar)
+    reload(classAvarsGroup)
 
 def create(*args, **kwargs):
     return classRig.Rig(*args, **kwargs)

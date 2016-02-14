@@ -39,11 +39,13 @@ def _reload():
 
     reload(uiLogic)
 
+    # Reload libs
     from omtk.libs import libAttr; reload(libAttr)
     from omtk.libs import libCtrlShapes; reload(libCtrlShapes)
     from omtk.libs import libFormula; reload(libFormula)
     from omtk.libs import libPython; reload(libPython)
     from omtk.libs import libQt; reload(libQt)
+    from omtk.libs import libPymel; reload(libPymel)
     from omtk.libs import libRigging; reload(libRigging)
     from omtk.libs import libSkinning; reload(libSkinning)
     from omtk.libs import libStringMap; reload(libStringMap)

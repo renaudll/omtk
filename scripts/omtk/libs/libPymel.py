@@ -19,6 +19,11 @@ def distance(x, y):
     bx, b, bz = y.getTranslation(space="world")
     return ((ax - bx) ** 2 + (ay - b) ** 2 + (az - bz) ** 2) ** 0.5
 
+def distance_between_vectors(a, b):
+    """
+    http://darkvertex.com/wp/2010/06/05/python-distance-between-2-vectors/
+    """
+    return (  (a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2  ) **0.5
 
 def is_child_of(node, potential_parent):
     while node:
@@ -296,3 +301,5 @@ def addAttr_separator(obj, attr_name, *args, **kwargs):
     pymel.addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
     attr = obj.attr(attr_name)
     attr.lock()
+
+

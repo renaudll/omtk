@@ -5,27 +5,26 @@ from omtk.classCtrl import BaseCtrl
 from omtk.modules.rigIK import IK
 from omtk.modules.rigFK import FK
 from omtk.libs import libRigging, libCtrlShapes
-from omtk.modules.rigFacePnt import AvarGroupInnMidOut
-from omtk.modules import rigFacePnt
+from omtk import classAvarsGroup
 
 
-class CtrlFaceBrowAll(rigFacePnt.CtrlFaceMacroAll):
+class CtrlFaceBrowAll(classAvarsGroup.CtrlFaceMacroAll):
     pass
 
 
-class CtrlFaceBrowInn(rigFacePnt.CtrlFaceMacroInn):
+class CtrlFaceBrowInn(classAvarsGroup.CtrlFaceMacroInn):
     pass
 
 
-class CtrlFaceBrowMid(rigFacePnt.CtrlFaceMacroMid):
+class CtrlFaceBrowMid(classAvarsGroup.CtrlFaceMacroMid):
     pass
 
 
-class CtrlFaceBrowOut(rigFacePnt.CtrlFaceMacroOut):
+class CtrlFaceBrowOut(classAvarsGroup.CtrlFaceMacroOut):
     pass
 
 
-class FaceBrow(AvarGroupInnMidOut):
+class FaceBrow(classAvarsGroup.AvarGroupInnMidOut):
     _CLASS_CTRL_MACRO_ALL = CtrlFaceBrowAll
     _CLASS_CTRL_MACRO_INN = CtrlFaceBrowInn
     _CLASS_CTRL_MACRO_MID = CtrlFaceBrowMid

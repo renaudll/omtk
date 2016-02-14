@@ -34,6 +34,9 @@ class RigSqueeze(classRig.Rig):
     GROUP_NAME_DISPLAY = 'Display'
     ATTR_NAME_DISPLAY_MESH = 'displayMesh'
     GROUP_NAME_IKFK = 'IKFKBlend'
+    GROUP_NAME_FACE = 'Facial'
+    ATTR_NAME_FACE_MACRO = 'ShowMacroCtrls'
+    ATTR_NAME_FACE_MICRO = 'ShowMicroCtrls'
 
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
@@ -100,6 +103,15 @@ class RigSqueeze(classRig.Rig):
         #
         # Add display attribute for micro avars
         #
-        pass
+        libPymel.addAttr_separator(self.grp_anms, self.GROUP_NAME_FACE)
+        pymel.addAttr(self.grp_anms, longName=self.ATTR_NAME_FACE_MACRO, defaultValue=1.0, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, k=True)
+        attr_show_face_macro = self.grp_anms.attr(self.ATTR_NAME_FACE_MACRO)
+        pymel.addAttr(self.grp_anms, longName=self.ATTR_NAME_FACE_MICRO, defaultValue=0.0, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, k=True)
+        attr_show_face_micro = self.grp_anms.attr(self.ATTR_NAME_FACE_MICRO)
+
+        for avar in self.iter_avars():
+            ctrl_micro = avar.ctrl_micro
+            if ctrl_micro:
+                pymel.connectAttr(attr_show_face_micro, ctrl_micro.offset.visibility)
 
         return True

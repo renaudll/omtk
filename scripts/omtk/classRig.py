@@ -7,6 +7,7 @@ import classModule
 from libs import libPymel
 from libs import libPython
 import time
+from omtk.libs import libRigging
 
 class CtrlRoot(BaseCtrl):
     """
@@ -69,11 +70,11 @@ class Rig(object):
         return className.BaseName
 
     @property
-    def nomenclature(self):
+    def nomenclature(self, *args, **kwargs):
         """
         Singleton that will return the nomenclature to use.
         """
-        return self._get_nomenclature_cls()
+        return self._get_nomenclature_cls(*args, **kwargs)
 
     #
     # collections.MutableSequence implementation
@@ -234,6 +235,13 @@ class Rig(object):
         # Post-build
         #
 
+        # Prevent animators from accidentaly moving offset nodes
+        for ctrl in self.iter_ctrls():
+            if ctrl.offset:
+                ctrl.offset.t.lock()
+                ctrl.offset.r.lock()
+                ctrl.offset.s.lock()
+
         # Create anm root
         anm_grps = [module.grp_anm for module in self.modules if module.grp_anm is not None]
         if not isinstance(self.grp_anms, CtrlRoot):
@@ -340,6 +348,11 @@ class Rig(object):
             if obj in module.input:
                 return module
 
+    #
+    # Facial and avars utility methods
+    #
+
+    @libPython.memoized
     def get_head_jnt(self, key=None):
         """
         Not the prettiest but used to find the head for facial rigging.
@@ -352,7 +365,90 @@ class Rig(object):
         # TODO: MAKE IT WORK EVEN IF THERE ARE NO HEAD MODULE
         return pymel.PyNode('Head_Jnt')
 
+        '''
         for module in self.modules:
             for obj in module.input:
                 if key(obj):
                     return obj
+        '''
+
+    @libPython.memoized
+    def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):
+        """
+        :return: The recommended distance between the head middle and the face macro ctrls.
+        """
+        return 20
+        '''
+        jnt_head = self.get_head_jnt()
+        ref_tm = jnt_head.getMatrix(worldSpace=True)
+
+        geometries = libRigging.get_affected_geometries(jnt_head)
+
+        # Resolve the top of the head location
+        pos = pymel.datatypes.Point(ref_tm.translate)
+        #dir = pymel.datatypes.Point(1,0,0) * ref_tm
+        #dir = dir.normal()
+        # This is strange but not pointing to the world sometime don't work...
+        # TODO: FIX ME
+        dir = pymel.datatypes.Point(0,1,0)
+
+        top = next(iter(libRigging.ray_cast(pos, dir, geometries)), None)
+        if not top:
+            raise Exception("Can't resolve head top location using raycasts!")
+
+        # Resolve the middle of the head
+        middle = ((top-pos) * 0.5) + pos
+
+        # Find the front of the face
+        # For now, one raycase seem fine.
+        #dir = pymel.datatypes.Point(0,-1,0) * ref_tm
+        #dir.normalize()
+        dir = pymel.datatypes.Point(0,0,1)
+        front = next(iter(libRigging.ray_cast(middle, dir, geometries)), None)
+        if not front:
+            raise Exception("Can't resolve head front location using raycasts!")
+
+        distance = libPymel.distance_between_vectors(middle, front)
+
+        return distance * multiplier
+        '''
+
+    @libPython.memoized
+    def get_head_length(self):
+        jnt_head = self.get_head_jnt()
+        ref_tm = jnt_head.getMatrix(worldSpace=True)
+
+        geometries = libRigging.get_affected_geometries(jnt_head)
+
+        # Resolve the top of the head location
+        bot = pymel.datatypes.Point(ref_tm.translate)
+        #dir = pymel.datatypes.Point(1,0,0) * ref_tm
+        #dir = dir.normal()
+        # This is strange but not pointing to the world sometime don't work...
+        # TODO: FIX ME
+        dir = pymel.datatypes.Point(0,1,0)
+
+        top = next(iter(libRigging.ray_cast(bot, dir, geometries)), None)
+        if not top:
+            raise Exception("Can't resolve head top location using raycasts!")
+
+        return libPymel.distance_between_vectors(bot, top)
+
+    def iter_avars(self):
+        """
+        Iterate through all avars module of the rig.
+        """
+        from omtk import classAvar
+        from omtk import classAvarsGroup
+        for module in self.modules:
+            if isinstance(module, classAvar.Avar):
+                yield module
+            elif isinstance(module, classAvarsGroup.AvarsGroup):
+                for avar in module.avars:
+                    yield avar
+
+    def iter_ctrls(self):
+        for module in self.modules:
+            for ctrl in module.get_ctrls(recursive=True):
+                yield ctrl
+

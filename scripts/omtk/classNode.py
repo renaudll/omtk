@@ -2,6 +2,7 @@ import pymel.core as pymel
 from libs import libPymel
 from libs import libRigging
 
+
 class Node(object):
     """
     This class is a pymel.PyNode wrapper that extent it's functionnality.
@@ -71,7 +72,4 @@ class Node(object):
     def unbuild(self, *args, **kwargs):
         pymel.delete(self.node)
         self.node = None
-
-
-
 

@@ -281,3 +281,22 @@ def create_shape_box_feet(refs, *args, **kwargs):
     node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
 
     return node
+
+
+def create_square(size=1.0, width=None, height=None, **kwargs):
+    if width is None:
+        width = 1.0
+    if height is None:
+        height = 1.0
+    width *= size
+    height *= size
+
+    pos1 = pymel.datatypes.Point(-height, -width, 0)
+    pos2 = pymel.datatypes.Point(-height, width, 0)
+    pos3 = pymel.datatypes.Point(height, width, 0)
+    pos4 = pymel.datatypes.Point(height, -width, 0)
+    pos5 = pymel.datatypes.Point(-height, -width, 0)
+
+    node = pymel.curve(d=1, p=[pos1, pos2, pos3, pos4, pos5] )
+
+    return node

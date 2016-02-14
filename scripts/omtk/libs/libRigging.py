@@ -305,22 +305,23 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
     return libPymel.PyNodeChain(new_objs)
 from maya import OpenMaya
 
-def get_affected_geometries(obj):
+def get_affected_geometries(*objs):
     """
     :param obj: A reference object, generally a pymel.nodetypes.Join.
     :return: The geometries affected by the object.
     """
     geometries = set()
 
-    if isinstance(obj, pymel.nodetypes.Joint):
-        # Collect all geometries affected by the joint.
-        skinClusters = set()
-        for hist in obj.listHistory(future=True):
-            if isinstance(hist, pymel.nodetypes.SkinCluster):
-                skinClusters.add(hist)
+    for obj in objs:
+        if isinstance(obj, pymel.nodetypes.Joint):
+            # Collect all geometries affected by the joint.
+            skinClusters = set()
+            for hist in obj.listHistory(future=True):
+                if isinstance(hist, pymel.nodetypes.SkinCluster):
+                    skinClusters.add(hist)
 
-        for skinCluster in skinClusters:
-            geometries.update(skinCluster.getOutputGeometry())
+            for skinCluster in skinClusters:
+                geometries.update(skinCluster.getOutputGeometry())
 
     return geometries
 
@@ -439,9 +440,9 @@ def ray_cast(pos, dir, geometries, debug=False):
     buffer_results = OpenMaya.MPointArray()
     for geometry in geometries:
         mfn_geo = geometry.__apimfn__()
-        if mfn_geo.intersect(pos, dir, buffer_results, 1.0e-10, OpenMaya.MSpace.kWorld):
-            for i in range(buffer_results.length()):
-                results.append(pymel.datatypes.Point(buffer_results[i]))
+        mfn_geo.intersect(pos, dir, buffer_results, 1.0e-10, OpenMaya.MSpace.kWorld)
+        for i in range(buffer_results.length()):
+            results.append(pymel.datatypes.Point(buffer_results[i]))
 
     if debug:
         for result in results:
@@ -694,3 +695,31 @@ def get_farest_affected_mesh(jnt):
     affected_meshes = filter(fn_filter, jnt.listHistory(future=True))
 
     return next(iter(reversed(affected_meshes)), None)
+
+
+def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs):
+    # Check on which attribute @attr_dst is connected to (if applicable).
+    attr_dst_input = next(iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)), None)
+
+    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
+    if attr_dst_input is None or not isinstance(attr_dst_input.node(), pymel.nodetypes.BlendWeighted):
+        util_blend = pymel.createNode('blendWeighted')
+
+        if attr_dst_input is not None:
+            next_available = util_blend.input.numElements()
+
+
+            pymel.connectAttr(attr_dst_input, util_blend.input[next_available])
+
+    else:
+        util_blend = attr_dst_input.node()
+
+    next_available = util_blend.input.numElements()
+
+    if multiplier:
+        attr_src = libRigging.create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
+
+    pymel.connectAttr(attr_src, util_blend.input[next_available])
+
+    if not attr_dst.isDestination():
+        pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)

@@ -16,13 +16,15 @@ class CtrlFaceMicro(classCtrl.BaseCtrl):
     """
     If you need specific ctrls for you module, you can inherit from BaseCtrl directly.
     """
-    def __createNode__(self, normal=(0,0,1), **kwargs):
+
+    def __createNode__(self, normal=(0, 0, 1), **kwargs):
         return super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
+
 
 class CtrlFaceMacro(classCtrl.BaseCtrl):
     ATTR_NAME_SENSIBILITY = 'sensibility'
 
-    def __createNode__(self, normal=(0,0,1), **kwargs):
+    def __createNode__(self, normal=(0, 0, 1), **kwargs):
         return libCtrlShapes.create_square(normal=normal, **kwargs)
 
     def __init__(self, *args, **kwargs):
@@ -38,7 +40,8 @@ class CtrlFaceMacro(classCtrl.BaseCtrl):
         # The secret is to scale the ctrl offset node and adjust the shape in consequence.
         pymel.addAttr(self.node, longName=self.ATTR_NAME_SENSIBILITY, defaultValue=sensibility, k=True)
         self._attr_sensibility = self.node.attr(self.ATTR_NAME_SENSIBILITY)
-        attr_sensibility_inv = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=1.0, input2X=self._attr_sensibility).outputX
+        attr_sensibility_inv = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=1.0,
+                                                              input2X=self._attr_sensibility).outputX
         '''
         if sensibility is None:
             sensibility = self.sensibility
@@ -57,17 +60,19 @@ class CtrlFaceMacro(classCtrl.BaseCtrl):
         ctrl_shape_orig.intermediateObject.set(True)
         ctrl_shape_orig.setParent(self.offset, shape=True, relative=True)
 
-
-        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix', inputScaleX=self._attr_sensibility, inputScaleY=self._attr_sensibility, inputScaleZ=self._attr_sensibility).outputMatrix
-        attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm, inputGeometry=ctrl_shape_orig.local).outputGeometry
+        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix', inputScaleX=self._attr_sensibility,
+                                                             inputScaleY=self._attr_sensibility,
+                                                             inputScaleZ=self._attr_sensibility).outputMatrix
+        attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm,
+                                                                 inputGeometry=ctrl_shape_orig.local).outputGeometry
         pymel.connectAttr(attr_transform_geometry, ctrl_shape.create)
-
 
     # TODO: SHOULD NOT BE NEEDED, MAKE BaseCtrl MORE INTELLIGENT
     def unbuild(self):
         self.sensibility = self._attr_sensibility.get()
         self._attr_sensibility = None
         super(CtrlFaceMacro, self).unbuild()
+
 
 class Avar(classModule.Module):
     """
@@ -159,7 +164,7 @@ class Avar(classModule.Module):
         # doritos_name
         stack_name = nomenclature_rig.resolve('doritos_stack')
         stack = classNode.Node(self, name=stack_name)
-        #stack.rename(stack_name)
+        # stack.rename(stack_name)
         stack.build(rig)
         stack.setMatrix(ctrl.getMatrix(worldSpace=True))
 
@@ -172,12 +177,13 @@ class Avar(classModule.Module):
         layer_doritos.rename(layer_doritos_name)
 
         attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
-        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=ctrl.r, input2=[-1, -1, -1]).output
         pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
         pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
 
-        libRigging.create_follicle(layer_doritos_fol, obj_mesh)
+        # TODO: Validate that we don't need to inverse the rotation separately.
 
+        libRigging.create_follicle(layer_doritos_fol, obj_mesh)
 
         # The doritos setup can be hard to control when the rotation of the controller depend on the follicle since
         # any deformation can affect the normal of the faces.
@@ -196,7 +202,7 @@ class Avar(classModule.Module):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
-        super(Avar, self).build(rig, **kwargs)
+        super(Avar, self).build(rig)
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
@@ -205,7 +211,7 @@ class Avar(classModule.Module):
         self._add_avar_attrs()
 
         dag_stack_name = nomenclature_rig.resolve('dagStack')
-        self._dag_stack = self._build_dag_stack(rig)
+        self._dag_stack = self._build_dag_stack(rig, **kwargs)
         self._dag_stack.setMatrix(ref_tm)
         self._dag_stack.setParent(self.grp_rig)
 
@@ -225,7 +231,6 @@ class Avar(classModule.Module):
         self.ctrl_micro.build(name=ctrl_offset_name)
         self.ctrl_micro.setParent(self.grp_anm)
         self.ctrl_micro.setMatrix(self.jnt.getMatrix(worldSpace=True))
-
 
         util_decomposeTM = libRigging.create_utility_node('decomposeMatrix',
                                                           inputMatrix=layer_ctrl.worldMatrix
@@ -252,10 +257,19 @@ class AvarFollicle(Avar):
     ATTR_NAME_V_BASE = 'BaseV'
     ATTR_NAME_U = 'U'
     ATTR_NAME_V = 'V'
+    ATTR_NAME_U_MULT = 'UMultiplier'
+    ATTR_NAME_V_MULT = 'VMultiplier'
 
     """
     A FacePnt on wich the UD and LR avar controls a movement on a nurbsSurface using follicles.
     """
+
+    def __init__(self, *args, **kwargs):
+        super(AvarFollicle, self).__init__(*args, **kwargs)
+        self._attr_u_base = None
+        self._attr_v_base = None
+        self._attr_u_mult_inn = None
+        self._attr_v_mult_inn = None
 
     @libPython.cached_property()
     def surface(self):
@@ -263,7 +277,7 @@ class AvarFollicle(Avar):
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
 
-    def _build_dag_stack(self, rig):
+    def _build_dag_stack(self, rig, mult_u=1.0, mult_v=1.0):
         stack = super(AvarFollicle, self)._build_dag_stack(rig)
 
         jnt_tm = self.jnt.getMatrix(worldSpace=True)
@@ -307,200 +321,62 @@ class AvarFollicle(Avar):
         pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle.rotate)
 
         # Create and connect follicle-related parameters
-        u_base = 0.5  # fol_influence.parameterU.get()
+        u_base = fol_influence.parameterU.get()
         v_base = 0.5  # fol_influence.parameterV.get()
 
-        pymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U_BASE, defaultValue=u_base)
-        attr_u_base = self.grp_rig.attr(self.ATTR_NAME_U_BASE)
-        pymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V_BASE, defaultValue=v_base)
-        attr_v_base = self.grp_rig.attr(self.ATTR_NAME_V_BASE)
+        self._attr_u_base = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U_BASE, defaultValue=u_base)
+        self._attr_v_base = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V_BASE, defaultValue=v_base)
 
-        pymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U, k=True)
-        attr_u_add = self.grp_rig.attr(self.ATTR_NAME_U)
-        pymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V, k=True)
-        attr_v_add = self.grp_rig.attr(self.ATTR_NAME_V)
+        attr_u_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U, k=True)
+        attr_v_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V, k=True)
+
+        self._attr_u_mult_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U_MULT, defaultValue=mult_u)
+        self._attr_v_mult_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V_MULT, defaultValue=mult_v)
+
+        #attr_u_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_u_inn, input2X=mult_u).outputX
+        #attr_v_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_v_inn, input2X=mult_v).outputX
 
         # Connect UD to V
         attr_get_v_offset = libRigging.create_utility_node('multiplyDivide',
                                                            input1X=self.attr_avar_ud,
                                                            input2X=0.5
                                                            ).outputX
+        attr_get_v_multiplied = libRigging.create_utility_node('multiplyDivide',
+                                                               input1X=attr_get_v_offset,
+                                                               input2X=self._attr_v_mult_inn).outputX
         attr_v_cur = libRigging.create_utility_node('addDoubleLinear',
-                                                    input1=attr_v_base,
-                                                    input2=attr_get_v_offset
+                                                    input1=self._attr_v_base,
+                                                    input2=attr_get_v_multiplied
                                                     ).output
-        pymel.connectAttr(attr_v_cur, attr_v_add)
+        pymel.connectAttr(attr_v_cur, attr_v_inn)
 
         # Connect LR to U
         attr_get_u_offset = libRigging.create_utility_node('multiplyDivide',
                                                            input1X=self.attr_avar_lr,
                                                            input2X=0.5
                                                            ).outputX
+        attr_get_u_multiplied = libRigging.create_utility_node('multiplyDivide',
+                                                               input1X=attr_get_u_offset,
+                                                               input2X=self._attr_u_mult_inn).outputX
         attr_u_cur = libRigging.create_utility_node('addDoubleLinear',
-                                                    input1=attr_u_base,
-                                                    input2=attr_get_u_offset
+                                                    input1=self._attr_u_base,
+                                                    input2=attr_get_u_multiplied
                                                     ).output
-        pymel.connectAttr(attr_u_cur, attr_u_add)
+        pymel.connectAttr(attr_u_cur, attr_u_inn)
 
-        pymel.connectAttr(attr_u_add, fol_influence.parameterU)
-        pymel.connectAttr(attr_v_add, fol_influence.parameterV)
-        pymel.connectAttr(attr_u_base, fol_offset.parameterU)
-        pymel.connectAttr(attr_v_base, fol_offset.parameterV)
+        pymel.connectAttr(attr_u_inn, fol_influence.parameterU)
+        pymel.connectAttr(attr_v_inn, fol_influence.parameterV)
+        pymel.connectAttr(self._attr_u_base, fol_offset.parameterU)
+        pymel.connectAttr(self._attr_v_base, fol_offset.parameterV)
 
         #
         # Connect UD and LR avar to their respective follicle.
         #
-
-
         return stack
 
-    def build(self, rig, *args, **kwargs):
-        super(AvarFollicle, self).build(rig, **kwargs)
-
-        # nomenclature_anm = self.get_nomenclature_anm(rig)
-        # nomenclature_rig = self.get_nomenclature_rig(rig)
-
-
-
-        # pymel.parentConstraint(influence, self.jnt, maintainOffset=True)
-        # self.grp_output.setParent(influence)
-
-        '''
-        # Create the follicle using djRivet
-        #Create the plane and align it with the selected bones
-        plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
-        if plane_tran is None:
-            plane_name = nomenclature_rig.resolve("ribbonPlane")
-            plane_tran = libRigging.create_nurbs_plane_from_joints(self.chain_jnt, degree=degree)
-            plane_tran.rename(plane_name)
-            plane_tran.setParent(self.grp_rig)
-        self._ribbon_shape = plane_tran.getShape()
-
-        #Create the follicule needed for the system on the skinned bones
-        for i, jnt in enumerate(self.chain_jnt):
-            pymel.select(jnt, plane_tran)
-            mel.eval("djRivet")
-
-        #Apply the skin on the plane and rename follicle from djRivet
-        dj_rivet_grp = pymel.PyNode("djRivetX")
-        follicle_grp_name = nomenclature_rig.resolve("follicle_grp")
-        dj_rivet_grp.rename(follicle_grp_name)
-        dj_rivet_grp.setParent(self.grp_rig)
-        for n in dj_rivet_grp.getChildren():
-            fol_name = nomenclature_rig.resolve("fol")
-            n.rename(fol_name)
-
-        # Create the joints that will drive the ribbon.
-        # TODO: Support other shapes than straight lines...
-        # TODO: Support ctrl hold/fetch when building/unbuilding.
-        self._ribbon_jnts = libRigging.create_chain_between_objects(
-            self.chain_jnt.start, self.chain_jnt.end, self.num_ctrl, parented=False)
-
-        # Group all the joints
-        ribbon_chain_grp_name = nomenclature_rig.resolve('ribbonChain' + "_grp")
-        ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
-        for jnt in self._ribbon_jnts:
-            jnt.setParent(ribbon_chain_grp)
-
-        #TODO - Improve skinning smoothing by setting manully the skin...
-        pymel.skinCluster(list(self._ribbon_jnts), plane_tran, dr=1.0, mi=2.0, omi=True)
-        try:
-            libSkinning.assign_weights_from_segments(self._ribbon_shape, self._ribbon_jnts, dropoff=1.0)
-        except ZeroDivisionError, e:
-            pass
-
-        # Create the ctrls that will drive the joints that will drive the ribbon.
-        if create_ctrl:
-            self.ctrls = []
-            for i, jnt in enumerate(self._ribbon_jnts):
-                ctrl_name = nomenclature_anm.resolve('fk' + str(i+1).zfill(2))
-                ctrl = CtrlRibbon(name=ctrl_name, create=True)
-                ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
-                ctrl.setParent(self.grp_anm)
-
-                pymel.parentConstraint(ctrl, jnt)
-                pymel.connectAttr(ctrl.scaleX, jnt.scaleX)
-                pymel.connectAttr(ctrl.scaleY, jnt.scaleY)
-                pymel.connectAttr(ctrl.scaleZ, jnt.scaleZ)
-
-                self.ctrls.append(ctrl)
-
-            # Global uniform scale support
-            self.globalScale.connect(ribbon_chain_grp.scaleX)
-            self.globalScale.connect(ribbon_chain_grp.scaleY)
-            self.globalScale.connect(ribbon_chain_grp.scaleZ)
-
-        for jnt in
-        '''
-
     def unbuild(self):
-        """
-        If you are using sub-modules, you might want to clean them here.
-        :return:
-        """
         super(AvarFollicle, self).unbuild()
-
-
-class AvarsGroup(classModule.Module):
-    """
-    Base class for a group of avars that can share a same curve.
-    Also global avars will be provided to controll all avars.
-    """
-    AVAR_NAME_UD = 'avar_ud'
-    AVAR_NAME_LR = 'avar_lr'
-    AVAR_NAME_FB = 'avar_fb'
-    # TODO: Provide additional avars
-
-    module_name_ignore_list = [
-        'Inn', 'Mid', 'Out'
-    ]
-
-    def __init__(self, *args, **kwargs):
-        super(AvarsGroup, self).__init__(*args, **kwargs)
-        self.avars = []
-
-    def get_module_name(self):
-        name = super(AvarsGroup, self).get_module_name()
-        for ignore in self.module_name_ignore_list:
-            name = name.replace(ignore, '')
-        return name
-
-    @libPython.cached_property()
-    def surface(self):
-        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-        objs = filter(fn_is_nurbsSurface, self.input)
-        return next(iter(objs), None)
-
-    @libPython.cached_property()
-    def jnts(self):
-        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
-        return filter(fn_is_nurbsSurface, self.input)
-
-    def build(self, rig, **kwargs):
-        super(AvarsGroup, self).build(rig, **kwargs)
-
-        # Create global avars
-        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_UD, k=True)
-        self.attr_avar_ud = self.grp_rig.attr(self.AVAR_NAME_UD)
-        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_LR, k=True)
-        self.attr_avar_lr = self.grp_rig.attr(self.AVAR_NAME_LR)
-        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_FB, k=True)
-        self.attr_avar_fb = self.grp_rig.attr(self.AVAR_NAME_FB)
-
-        self.avars = []
-        # Connect global avars to invidial avars
-        for jnt in self.jnts:
-            sys_facepnt = AvarFollicle([jnt, self.surface])
-            sys_facepnt.build(rig)
-            sys_facepnt.grp_anm.setParent(self.grp_anm)
-            sys_facepnt.grp_rig.setParent(self.grp_rig)
-            self.avars.append(sys_facepnt)
-
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, sys_facepnt.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, sys_facepnt.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, sys_facepnt.attr_avar_fb)
-
-    def unbuild(self):
-        for ctrl in self.avars:
-            ctrl.unbuild()
-        super(AvarsGroup, self).unbuild()
+        self._attr_u_base = None
+        self._attr_v_base = None
+        self._attr_u_mult_inn = None
+        self._attr_v_mult_inn = None

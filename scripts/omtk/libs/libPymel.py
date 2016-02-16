@@ -297,6 +297,15 @@ class SegmentCollection(object):
             segments.append(segment)
         return cls(segments)
 
+
+def addAttr(obj, longName=None, **kwargs):
+    """
+    Fancy pymel.addAttr wrapper that return the created attribute.
+    """
+    pymel.addAttr(obj, longName=longName, **kwargs)
+    return obj.attr(longName)
+
+
 def addAttr_separator(obj, attr_name, *args, **kwargs):
     pymel.addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
     attr = obj.attr(attr_name)

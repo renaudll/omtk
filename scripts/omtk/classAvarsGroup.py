@@ -1,12 +1,80 @@
-from omtk.classAvar import CtrlFaceMacro, AvarsGroup
+from omtk.classAvar import CtrlFaceMacro
 from omtk.libs import libRigging
+from omtk import classModule
+from omtk import classAvar
+from omtk.libs import libPymel
+from omtk.libs import libPython
 import pymel.core as pymel
 
 
+class AvarsGroup(classModule.Module):
+    """
+    Base class for a group of avars that can share a same curve.
+    Also global avars will be provided to controll all avars.
+    """
+    AVAR_NAME_UD = 'avar_ud'
+    AVAR_NAME_LR = 'avar_lr'
+    AVAR_NAME_FB = 'avar_fb'
+    # TODO: Provide additional avars
+
+    module_name_ignore_list = [
+        'Inn', 'Mid', 'Out'
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super(AvarsGroup, self).__init__(*args, **kwargs)
+        self.avars = []
+
+    def get_module_name(self):
+        name = super(AvarsGroup, self).get_module_name()
+        for ignore in self.module_name_ignore_list:
+            name = name.replace(ignore, '')
+        return name
+
+    @libPython.cached_property()
+    def surface(self):
+        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        objs = filter(fn_is_nurbsSurface, self.input)
+        return next(iter(objs), None)
+
+    @libPython.cached_property()
+    def jnts(self):
+        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
+        return filter(fn_is_nurbsSurface, self.input)
+
+    def build(self, rig, **kwargs):
+        super(AvarsGroup, self).build(rig, **kwargs)
+
+        # Create global avars
+        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_UD, k=True)
+        self.attr_avar_ud = self.grp_rig.attr(self.AVAR_NAME_UD)
+        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_LR, k=True)
+        self.attr_avar_lr = self.grp_rig.attr(self.AVAR_NAME_LR)
+        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_FB, k=True)
+        self.attr_avar_fb = self.grp_rig.attr(self.AVAR_NAME_FB)
+
+        self.avars = []
+        # Connect global avars to invidial avars
+        for jnt in self.jnts:
+            sys_facepnt = classAvar.AvarFollicle([jnt, self.surface])
+            sys_facepnt.build(rig)
+            sys_facepnt.grp_anm.setParent(self.grp_anm)
+            sys_facepnt.grp_rig.setParent(self.grp_rig)
+            self.avars.append(sys_facepnt)
+
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, sys_facepnt.attr_avar_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, sys_facepnt.attr_avar_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, sys_facepnt.attr_avar_fb)
+
+    def unbuild(self):
+        for ctrl in self.avars:
+            ctrl.unbuild()
+        super(AvarsGroup, self).unbuild()
 
 #
 # Setup consisted of multiples avars
 #
+
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
@@ -70,7 +138,8 @@ class AvarGroupInnMidOut(AvarsGroup):
 
     def create_ctrl_macro(self, rig, cls, ctrl, avar_anchor, avar, ref, name, sensibility=1.0):
 
-
+        # HACK: Negative scale to the ctrls are a true mirror of each others.
+        need_flip = ref.getTranslation(space='world').x < 0
 
         if not isinstance(ctrl, cls):
             ctrl = cls()
@@ -78,17 +147,17 @@ class AvarGroupInnMidOut(AvarsGroup):
         ctrl.setParent(self.grp_anm)
         ctrl.setMatrix(ref.getMatrix(worldSpace=True))
 
+
         # Connect UD avar
         libRigging.connectAttr_withBlendWeighted(ctrl.translateX, avar.attr_avar_ud)
 
         # Connect LR avar (handle mirroring)
 
-        need_flip = ref.getTranslation(space='world').x >= 0
+
         if need_flip:
             inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
         else:
             inn_lr = ctrl.translateY
-
         libRigging.connectAttr_withBlendWeighted(inn_lr, avar.attr_avar_lr)
 
         # Connect FB avar
@@ -117,6 +186,19 @@ class AvarGroupInnMidOut(AvarsGroup):
         ctrl_tm = offset * ctrl_tm
 
         ctrl.setMatrix(ctrl_tm)
+
+
+        '''
+        if need_flip:
+            inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
+        else:
+            inn_lr = ctrl.translateY
+        '''
+        if need_flip:
+            ctrl.offset.scaleY.set(-1)
+        else:
+            pass
+            # TODO: Flip ctrl to avar connection
 
 
         #pymel.parentConstraint(jnt_head, ctrl.offset, maintainOffset=True)

@@ -195,12 +195,16 @@ class DpSpine(Module):
 
     def unbuild(self):
         # Restore the original skin and remove the squash joints
-        jnt_dwn = self.chain_jnt[0]
-        jnt_mid = self.chain_jnt[1]
-        libSkinning.transfer_weights_replace(self.jnt_squash_dwn, jnt_dwn)
-        libSkinning.transfer_weights_replace(self.jnt_squash_mid, jnt_mid)
-        pymel.delete(self.jnt_squash_dwn)
-        pymel.delete(self.jnt_squash_mid)
+        if self.jnt_squash_dwn and self.jnt_squash_dwn.exists():
+            jnt_dwn = self.chain_jnt[0]
+            libSkinning.transfer_weights_replace(self.jnt_squash_dwn, jnt_dwn)
+            pymel.delete(self.jnt_squash_dwn)
+
+        if self.jnt_squash_mid and self.jnt_squash_mid.exists():
+            jnt_mid = self.chain_jnt[1]
+            libSkinning.transfer_weights_replace(self.jnt_squash_mid, jnt_mid)
+            pymel.delete(self.jnt_squash_mid)
+
         self.jnt_squash_dwn = None
         self.jnt_squash_dwn = None
         super(DpSpine, self).unbuild()

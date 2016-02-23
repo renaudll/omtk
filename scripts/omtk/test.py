@@ -15,7 +15,7 @@ import pymel.core as pymel
 class TestAutoRig(unittest.TestCase):
     def test_RigCtrl(self):
         from classCtrl import BaseCtrl
-        from omtk.libs import libSerialization
+        import libSerialization
         log.info("test_RigCtrl")
         foo = BaseCtrl()
         foo.build()

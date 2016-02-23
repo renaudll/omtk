@@ -36,23 +36,23 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         super(AutoRig, self).__init__(parent)
         self.setupUi(self)
 
-        self.actionBuild.triggered.connect(self._actionBuild)
-        self.actionUnbuild.triggered.connect(self._actionUnbuild)
-        self.actionRebuild.triggered.connect(self._actionRebuild)
-        self.actionImport.triggered.connect(self._actionImport)
-        self.actionExport.triggered.connect(self._actionExport)
-        self.actionUpdate.triggered.connect(self._actionUpdate)
-        self.actionAdd.triggered.connect(self._actionAdd)
+        self.actionBuild.triggered.connect(self.on_build)
+        self.actionUnbuild.triggered.connect(self.on_unbuild)
+        self.actionRebuild.triggered.connect(self.on_rebuild)
+        self.actionImport.triggered.connect(self.on_import)
+        self.actionExport.triggered.connect(self.on_export)
+        self.actionUpdate.triggered.connect(self.on_update)
+        self.actionAdd.triggered.connect(self.on_btn_add_pressed)
         self.actionMirrorJntsLToR.triggered.connect(self._actionMirrorJntsLToR)
         self.actionMirrorJntsRToL.triggered.connect(self._actionMirrorJntsRToL)
 
 
-        self.treeWidget.itemSelectionChanged.connect(self._itemSelectionChanged)
+        self.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
         self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.treeWidget.itemChanged.connect(self._itemChanged)
+        self.treeWidget.itemChanged.connect(self.on_module_changed)
 
         self.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.treeWidget_jnts.itemSelectionChanged.connect(self._jnt_iteSelectedChanged)
+        self.treeWidget_jnts.itemSelectionChanged.connect(self.on_influence_selection_changed)
         self.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
         self.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
 
@@ -213,7 +213,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     # Events
     #
 
-    def _actionBuild(self):
+    def on_build(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if not rig.is_built():
@@ -227,7 +227,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             libSerialization.export_network(rig)
         self.update_ui_modules()
 
-    def _actionUnbuild(self):
+    def on_unbuild(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if rig.is_built():
@@ -238,7 +238,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             libSerialization.export_network(rig)
         self.update_ui_modules()
 
-    def _actionRebuild(self):
+    def on_rebuild(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if rig.is_built():
@@ -247,23 +247,44 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE
             libSerialization.export_network(rig)
 
-    def _actionImport(self):
-        raise NotImplementedError
+    def on_import(self):
+        path, _ = QtGui.QFileDialog.getOpenFileName(caption="File Save (.json)", filter="JSON (*.json)")
+        if not path:
+            return
 
-    def _actionExport(self):
-        raise NotImplementedError
+        new_rigs = libSerialization.import_json_file_maya(path)
+        if not new_rigs:
+            return
 
-    def _actionUpdate(self):
+        # Remove previous rigs
+        all_rigs = core.find()
+        for rig in all_rigs:
+            if rig._network.exists():
+                pymel.delete(rig._network)
+
+        for rig in filter(None, new_rigs):
+            libSerialization.export_network(rig)
+
+        self.on_update()
+
+    def on_export(self):
+        all_rigs = core.find()
+
+        path, _ = QtGui.QFileDialog.getSaveFileName(caption="File Save (.json)", filter="JSON (*.json)")
+        if path:
+            libSerialization.export_json_file_maya(all_rigs, path)
+
+    def on_update(self):
         self.update_modules_data()
         self.update_ui_modules()
 
-    def _itemSelectionChanged(self):
+    def on_module_selection_changed(self):
         pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
 
-    def _jnt_iteSelectedChanged(self):
+    def on_influence_selection_changed(self):
         pymel.select([item.obj for item in self.treeWidget_jnts.selectedItems() if item.obj.exists()])
 
-    def _itemChanged(self, item):
+    def on_module_changed(self, item):
         # todo: handle exception
         module = item.rig
         module_is_built = module.is_built()
@@ -283,7 +304,24 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if isinstance(module, classRig.Rig):
             self.update_ui_modules()
 
-    def _actionAddPart(self, cls_name):
+    # TODO: Move to lib
+    def _getSubClasses(self, _cls):
+        # TODO: Move to libPython?
+        for subcls in _cls.__subclasses__():
+            yield subcls
+            for subsubcls in self._getSubClasses(subcls):
+                yield subsubcls
+
+    def on_btn_add_pressed(self):
+        menu = QtGui.QMenu()
+        for cls in self._getSubClasses(classModule.Module):
+            cls_name = cls.__name__
+            action = menu.addAction(cls_name)
+            action.triggered.connect(functools.partial(self.action_add_part, cls_name))
+
+        menu.exec_(QtGui.QCursor.pos())
+
+    def action_add_part(self, cls_name):
         #part = _cls(pymel.selected())
         self.root.add_module(cls_name, pymel.selected())
         try:
@@ -298,23 +336,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         #self.updateData()
         self.update_modules_data()
         self.update_ui_modules()
-
-    # TODO: Move to lib
-    def _getSubClasses(self, _cls):
-        # TODO: Move to libPython?
-        for subcls in _cls.__subclasses__():
-            yield subcls
-            for subsubcls in self._getSubClasses(subcls):
-                yield subsubcls
-
-    def _actionAdd(self):
-        menu = QtGui.QMenu()
-        for cls in self._getSubClasses(classModule.Module):
-            cls_name = cls.__name__
-            action = menu.addAction(cls_name)
-            action.triggered.connect(functools.partial(self._actionAddPart, cls_name))
-
-        menu.exec_(QtGui.QCursor.pos())
 
     def _actionMirrorJntsLToR(self):
         libSkeleton.mirror_jnts_l_to_r()

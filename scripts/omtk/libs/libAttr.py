@@ -162,3 +162,32 @@ def addAttr(node, longName=None, *args, **kwargs):
     pymel.addAttr(node, longName=longName, *args, **kwargs)
     return node.attr(longName)
 
+def hold_attrs(attr):
+    """
+    Hold a specific @attr attribute.
+    """
+    if isinstance(attr, pymel.Attribute):
+        for input in attr.inputs(plugs=True):
+            if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
+                pymel.disconnectAttr(input, attr) # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
+                return input
+        return attr.get()
+    return attr
+
+def fetch_attr(source, target):
+    """
+    Restore a specific @attr attribute.
+    Returns: the destination attribute.
+    """
+    if target.isLocked():
+        log.info("Can't fetch attribute {0} since it's locked.".format(target.__melobject__()))
+        return
+
+    if source is None:
+        return
+    elif isinstance(source, pymel.Attribute):
+        pymel.connectAttr(source, target)
+    else:
+        target.set(source)
+
+    return target

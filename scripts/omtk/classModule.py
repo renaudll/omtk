@@ -99,6 +99,12 @@ class Module(object):
     #
 
     @libPython.cached_property()
+    def jnts(self):
+        fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
+        jnts = filter(fn_is_jnt, self.input)
+        return jnts
+
+    @libPython.cached_property()
     def chains(self):
         return libPymel.get_chains_from_objs(self.input)
 
@@ -108,9 +114,7 @@ class Module(object):
 
     @libPython.cached_property()
     def chains_jnt(self):
-        fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
-        jnts = filter(fn_is_jnt, self.input)
-        return libPymel.get_chains_from_objs(jnts)
+        return libPymel.get_chains_from_objs(self.jnts)
 
     @libPython.cached_property()
     def chain_jnt(self):

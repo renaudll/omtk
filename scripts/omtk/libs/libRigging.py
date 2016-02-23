@@ -321,7 +321,9 @@ def get_affected_geometries(*objs):
                     skinClusters.add(hist)
 
             for skinCluster in skinClusters:
-                geometries.update(skinCluster.getOutputGeometry())
+                for geometry in skinCluster.getOutputGeometry():
+                    if isinstance(geometry, pymel.nodetypes.Mesh):  # Only Mesh are supported for now
+                        geometries.add(geometry)
 
     return geometries
 
@@ -654,15 +656,21 @@ def align_selected_joints_to_persp ():
 def create_follicle(obj, surface, name=None):
         """
         Create a follicle via djRivet but don't automatically align it to @obj.
+        TODO: Make it work when the plane is scaled.
         """
         # Note that obj should have a identity parent space
         pymel.select(obj, surface)
         mel.eval("djRivet")
 
+        #pymel.delete(ref)
+
         # Found the follicle shape...
         dj_rivet_grp = pymel.PyNode("djRivetX")
         follicle_transform = next(iter(reversed(dj_rivet_grp.getChildren())))
+        follicle_transform.setParent(world=True)
         # follicle_shape = follicle_transform.getShape()
+
+        pymel.parentConstraint(follicle_transform, obj, maintainOffset=True)
 
         # follicle_shape.setParent(obj, relative=True, shape=True)
         # pymel.delete(follicle_transform)
@@ -717,7 +725,7 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
     next_available = util_blend.input.numElements()
 
     if multiplier:
-        attr_src = libRigging.create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
+        attr_src = create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
 
     pymel.connectAttr(attr_src, util_blend.input[next_available])
 

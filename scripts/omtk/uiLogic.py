@@ -24,17 +24,66 @@ def get_all_QTreeWidgetItem(widget, qt_item=None):
         qt_item = widget.invisibleRootItem()
 
     num_child = qt_item.childCount()
-    for i in range(num_child):
+    for i in reversed(range(num_child)):
         qt_sub_item = qt_item.child(i)
         yield qt_sub_item
         for x in get_all_QTreeWidgetItem(widget, qt_sub_item):
             yield x
 
 class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
+    #http://forums.cgsociety.org/archive/index.php?t-1096914.html
+    #Use the intern maya resssources icon
+    _STYLE_SHEET = \
+    """
+           QTreeView::item
+           {
+              background-color: rgb(45,45,45);
+           }
+
+          QTreeView::item::selected
+          {
+             background-color: highlight;
+             color: rgb(40,40,40);
+          }
+
+          QTreeView::branch
+          {
+               selection-background-color: highlight;
+               background-color: rgb(45,45,45);
+           }
+
+            QTreeView::branch:has-children:!has-siblings:closed,
+            QTreeView::branch:closed:has-children:has-siblings
+            {
+                    border-image: none;
+                    image: url(:/openObject.png);
+            }
+
+            QTreeView::branch:open:has-children:!has-siblings,
+            QTreeView::branch:open:has-children:has-siblings
+            {
+                    border-image: none;
+                    image: url(:/closeObject.png);
+            }
+
+            QTreeView::indicator:checked
+            {
+                image: url(:/checkboxOn.png);
+            }
+
+            QTreeView::indicator:unchecked
+            {
+                image: url(:/checkboxOff.png);
+            }
+       """
+
     def __init__(self, parent=None):
         if parent is None: parent = getMayaWindow()
         super(AutoRig, self).__init__(parent)
         self.setupUi(self)
+
+        self.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
+        self.actionAdd.setEnabled(False)
 
         self.actionBuild.triggered.connect(self._actionBuild)
         self.actionUnbuild.triggered.connect(self._actionUnbuild)
@@ -48,16 +97,27 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
 
         self.treeWidget.itemSelectionChanged.connect(self._itemSelectionChanged)
-        self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ContiguousSelection)
         self.treeWidget.itemChanged.connect(self._itemChanged)
+
+        self.treeWidget_jnts.setStyleSheet(self._STYLE_SHEET)
+        self.treeWidget.setStyleSheet(self._STYLE_SHEET)
 
         self.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.treeWidget_jnts.itemSelectionChanged.connect(self._jnt_iteSelectedChanged)
         self.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
         self.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
 
-        self.update_modules_data()
-        self.update_ui_modules()
+        #Right click menu
+        self.treeWidget_jnts.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.connect(self.treeWidget_jnts, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
+                     self._actionAdd)
+
+        self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.connect(self.treeWidget, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
+                     self._contextMenuModule)
+
+        self.refresh()
 
         self.callbacks_events = []
         self.callbacks_scene = []
@@ -75,9 +135,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kSceneUpdate, self.update_ui_modules)
         ]
 
-        self.callbacks_nodes = OpenMaya.MDGMessage.addNodeRemovedCallback(
-            self.callback_network_deleted, 'network'  # TODO: Restrict to network nodes
-        )
+        # self.callbacks_nodes = OpenMaya.MDGMessage.addNodeRemovedCallback(
+        #     self.callback_network_deleted, 'network'  # TODO: Restrict to network nodes
+        # )
 
 
     def remove_callbacks(self):
@@ -90,9 +150,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.callbacks_scene = []
 
         # temporary disabled for performance issues
-        if self.callbacks_nodes is not None:
-            OpenMaya.MMessage.removeCallback(self.callbacks_nodes)
-            self.callbacks_nodes = None
+        # if self.callbacks_nodes is not None:
+        #     OpenMaya.MMessage.removeCallback(self.callbacks_nodes)
+        #     self.callbacks_nodes = None
 
     def closeEvent(self, *args, **kwargs):
         self.remove_callbacks()
@@ -106,9 +166,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     #
     # root property
     #
-    #@property
     #def root(self):
     #    return self.__dict__['_root']
+    #@property
     @libPython.cached_property()
     def root(self):
         root = core.find_one()
@@ -126,8 +186,15 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         qItem.setText(0, str(module))
         qItem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
         if isinstance(module, classRig.Rig):
+            qItem.setIcon(0, QtGui.QIcon(":/out_character.png"))
             for child in module:
                 qSubItem = self._rigRootToQTreeWidget(child)
+                qSubItem.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
+                for input in child.input:
+                    qInputItem = QtGui.QTreeWidgetItem(0)
+                    qInputItem.setText(0, input.name())
+                    qInputItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
+                    qSubItem.addChild(qInputItem)
                 qItem.addChild(qSubItem)
         return qItem
 
@@ -145,18 +212,32 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
         networks = libSerialization.getConnectedNetworks(obj, key=fnFilter)
 
+        backBrush = QtGui.QBrush(QtCore.Qt.black)
+        textBrush = QtGui.QBrush(QtCore.Qt.white)
+
         if self._is_influence(obj):
             qItem = QtGui.QTreeWidgetItem(0)
             qItem.obj = obj
             qItem.networks = networks
             qItem.setText(0, obj_name)
+            qItem.setForeground(0, textBrush)
+            qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
             qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
+            flags = qItem.flags()
+            if flags & QtCore.Qt.ItemIsUserCheckable:
+                flags ^= QtCore.Qt.ItemIsUserCheckable #Toggle checkable flag
+            qItem.setFlags(flags)
             qt_parent.addChild(qItem)
             qt_parent = qItem
 
         for sub_jnt in obj.getChildren():
             if isinstance(sub_jnt, pymel.nodetypes.Transform):
                 qSubItem = self._fill_widget_influences_recursive(qt_parent, sub_jnt)
+
+    def refresh(self):
+        self.update_modules_data()
+        self.update_ui_modules()
+        self.update_ui_jnts_visibility()
 
     def update_modules_data(self):
         self.roots = core.find()
@@ -184,7 +265,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def can_show_QTreeWidgetItem(self, qItem, query_regex):
         obj = qItem.obj  # Retrieve monkey-patched data
         obj_name = obj.stripNamespace()
-        print obj_name
+        #print obj_name
 
         if not re.match(query_regex, obj_name, re.IGNORECASE):
             return False
@@ -200,10 +281,30 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             query_raw = self.lineEdit_search_jnt.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
+        unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
+        selectableBrush = QtGui.QBrush(QtCore.Qt.white)
         for qt_item in get_all_QTreeWidgetItem(self.treeWidget_jnts):
             can_show = self.can_show_QTreeWidgetItem(qt_item, query_regex)
             qt_item.setHidden(not can_show)
+            if can_show:
+                qt_item.setForeground(0, selectableBrush)
+                flags = qt_item.flags()
+                if not flags & QtCore.Qt.ItemIsSelectable: #Make selectable
+                    flags ^= QtCore.Qt.ItemIsSelectable
+                    qt_item.setFlags(flags)
+                self._show_parent_recursive(qt_item.parent())
+            else:
+                qt_item.setForeground(0, unselectableBrush)
+                flags = qt_item.flags()
+                if flags & QtCore.Qt.ItemIsSelectable: #Make unselectable
+                    flags ^= QtCore.Qt.ItemIsSelectable
+                    qt_item.setFlags(flags)
 
+    def _show_parent_recursive(self, qt_parent_item):
+        if qt_parent_item is not None:
+            if qt_parent_item.isHidden:
+                qt_parent_item.setHidden(False)
+            self._show_parent_recursive(qt_parent_item.parent())
 
     def on_query_changed(self, *args, **kwargs):
         self.update_ui_jnts_visibility()
@@ -254,14 +355,17 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         raise NotImplementedError
 
     def _actionUpdate(self):
-        self.update_modules_data()
-        self.update_ui_modules()
+        self.refresh()
 
     def _itemSelectionChanged(self):
         pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
 
     def _jnt_iteSelectedChanged(self):
         pymel.select([item.obj for item in self.treeWidget_jnts.selectedItems() if item.obj.exists()])
+        if self.treeWidget_jnts.selectedItems():
+            self.actionAdd.setEnabled(True)
+        else:
+            self.actionAdd.setEnabled(False)
 
     def _itemChanged(self, item):
         # todo: handle exception
@@ -284,6 +388,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self.update_ui_modules()
 
     def _actionAddPart(self, cls_name):
+        #TODO : Support multiple rig in same scene ?
         #part = _cls(pymel.selected())
         self.root.add_module(cls_name, pymel.selected())
         try:
@@ -296,8 +401,35 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         #if not self.root in self.roots:
         #    self.roots.append(self.root)
         #self.updateData()
-        self.update_modules_data()
-        self.update_ui_modules()
+        self.refresh()
+
+    def _removeModule(self):
+        for item in self.treeWidget.selectedItems():
+            module = item.rig
+            net = item.net if hasattr(item, "net") else None
+            if module.is_built():
+                module.unbuild()
+            if net:
+                pymel.delete(net)
+        #Clear root cached property to make sure it's still valid
+        if hasattr(self, "_cache"):
+            del self._cache
+        self.refresh()
+
+    def _contextMenuModule(self):
+        if self.treeWidget.selectedItems():
+            menu = QtGui.QMenu()
+            actionBuild = menu.addAction("Build")
+            actionBuild.triggered.connect(functools.partial(self._actionBuild))
+            actionUnbuild = menu.addAction("Unbuild")
+            actionUnbuild.triggered.connect(functools.partial(self._actionUnbuild))
+            actionRebuild = menu.addAction("Rebuild")
+            actionRebuild.triggered.connect(functools.partial(self._actionRebuild))
+            menu.addSeparator()
+            actionRemove = menu.addAction("Remove")
+            actionRemove.triggered.connect(functools.partial(self._removeModule))
+
+            menu.exec_(QtGui.QCursor.pos())
 
     # TODO: Move to lib
     def _getSubClasses(self, _cls):
@@ -308,13 +440,14 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 yield subsubcls
 
     def _actionAdd(self):
-        menu = QtGui.QMenu()
-        for cls in self._getSubClasses(classModule.Module):
-            cls_name = cls.__name__
-            action = menu.addAction(cls_name)
-            action.triggered.connect(functools.partial(self._actionAddPart, cls_name))
+        if self.treeWidget_jnts.selectedItems():
+            menu = QtGui.QMenu()
+            for cls in self._getSubClasses(classModule.Module):
+                cls_name = cls.__name__
+                action = menu.addAction(cls_name)
+                action.triggered.connect(functools.partial(self._actionAddPart, cls_name))
 
-        menu.exec_(QtGui.QCursor.pos())
+            menu.exec_(QtGui.QCursor.pos())
 
     def _actionMirrorJntsLToR(self):
         libSkeleton.mirror_jnts_l_to_r()
@@ -325,5 +458,14 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 gui = None
 def show():
     global gui
+
     gui = AutoRig()
+
+    # Create a frame geo to easilly move it from the center
+    pFrame = gui.frameGeometry()
+    pScreen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+    ptCenter = QtGui.QApplication.desktop().screenGeometry(pScreen).center()
+    pFrame.moveCenter(ptCenter)
+    gui.move(pFrame.topLeft())
+
     gui.show()

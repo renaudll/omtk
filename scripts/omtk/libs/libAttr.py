@@ -24,21 +24,13 @@ kwargsMap = {
     'spectrumRGB' : {'dt':'spectrumRGB'},
     'spectrum' : {'at':'spectrum'},
     'float2' : {'dt':'float2'},
-    'float2' : {'at':'float2'},
     'float3' : {'dt':'float3'},
-    'float3' : {'at':'float3'},
     'double2' : {'dt':'double2'},
-    'double2' : {'at':'double2'},
     'double3' : {'dt':'double3'},
-    'double3' : {'at':'double3'},
     'long2' : {'dt':'long2'},
-    'long2' : {'at':'long2'},
     'long3' : {'dt':'long3'},
-    'long3' : {'at':'long3'},
     'short2' : {'dt':'short2'},
-    'short2' : {'at':'short2'},
     'short3' : {'dt':'short3'},
-    'short3' : {'at':'short3'},
     'doubleArray' : {'dt':'doubleArray'},
     'Int32Array' : {'dt':'Int32Array'},
     'vectorArray' : {'dt':'vectorArray'},
@@ -48,6 +40,7 @@ kwargsMap = {
     'lattice' : {'dt':'lattice'},
     'pointArray' : {'dt':'pointArray'}
 }
+
 
 def disconnectAttr(attr, inputs=True, outputs=True):
     attr_is_locked = attr.isLocked()
@@ -61,6 +54,7 @@ def disconnectAttr(attr, inputs=True, outputs=True):
             pymel.disconnectAttr(attr, attr_out)
 
     if attr_is_locked: attr.lock()
+
 
 # TODO: test
 def swapAttr(a, b, inputs=True, outputs=True):
@@ -96,8 +90,10 @@ def swapAttr(a, b, inputs=True, outputs=True):
         _set_attr_out(a, b_outputs)
         _set_attr_out(b, a_outputs)
 
+
 def sortAttr(node):
     raise NotImplementedError
+
 
 # TODO: finish
 def holdAttr(attr):
@@ -117,6 +113,7 @@ def holdAttr(attr):
 
     pymel.deleteAttr(attr)
     return data
+
 
 def fetchAttr(data):
     node = data['node']
@@ -146,6 +143,7 @@ def fetchAttr(data):
         if output:
             pymel.connectAttr(attr[i], output)
 
+
 # Normally we can use pymel.renameAttr but this work on multi-attributes also
 def renameAttr(node, oldname, newname):
     assert(isinstance(node, pymel.PyNode))
@@ -157,10 +155,12 @@ def renameAttr(node, oldname, newname):
     fetchAttr(data)
     return True
 
+
 def addAttr(node, longName=None, *args, **kwargs):
     assert(longName)
     pymel.addAttr(node, longName=longName, *args, **kwargs)
     return node.attr(longName)
+
 
 def hold_attrs(attr):
     """
@@ -174,13 +174,14 @@ def hold_attrs(attr):
         return attr.get()
     return attr
 
+
 def fetch_attr(source, target):
     """
     Restore a specific @attr attribute.
     Returns: the destination attribute.
     """
     if target.isLocked():
-        log.info("Can't fetch attribute {0} since it's locked.".format(target.__melobject__()))
+        pymel.warning("Can't fetch attribute {0} since it's locked.".format(target.__melobject__()))
         return
 
     if source is None:
@@ -191,3 +192,16 @@ def fetch_attr(source, target):
         target.set(source)
 
     return target
+
+
+def transfer_connections(attr_src, attr_dst):
+    # Transfer input connections
+    attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
+    if attr_src_inn:
+        pymel.disconnectAttr(attr_src_inn, attr_src)
+        pymel.connectAttr(attr_src_inn, attr_dst)
+
+    # Transfer output connections
+    for attr_src_out in attr_src.outputs(plugs=True):
+        pymel.disconnectAttr(attr_src, attr_src_out)
+        pymel.connectAttr(attr_dst, attr_src_out)

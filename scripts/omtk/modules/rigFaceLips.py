@@ -68,13 +68,13 @@ class FaceLips(classModuleFace.ModuleFace):
     @property  # Note that since the avars are volatile we don't want to cache this property.
     def UppAvars(self):
         # TODO: Find a better way
-        fnFilter = lambda avar: 'upp' in avar.name.lower()
+        fnFilter = lambda avar: 'upp' in avar.ref_name.lower()
         return filter(fnFilter, self.avars)
 
     @property  # Note that since the avars are volatile we don't want to cache this property.
     def LowAvars(self):
         # TODO: Find a better way
-        fnFilter = lambda avar: 'low' in avar.name.lower()
+        fnFilter = lambda avar: 'low' in avar.ref_name.lower()
         return filter(fnFilter, self.avars)
 
     @property

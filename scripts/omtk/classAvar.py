@@ -2,15 +2,17 @@
 An avar is a facial control unit inspired from The Art of Moving Points.
 This is the foundation for the facial animation modules.
 """
+from maya import cmds
 import pymel.core as pymel
 
 from omtk import classModule, classCtrl
 from omtk import classNode
-from omtk.libs import libCtrlShapes, libRigging
+from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs import libAttr
+from omtk.libs import libFormula
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
     def connect_avars(self, attr_ud, attr_lr, attr_fb):
@@ -119,31 +121,23 @@ class Avar(classModule.Module):
 
     def __init__(self, *args, **kwargs):
         super(Avar, self).__init__(*args, **kwargs)
-        self.attr_avar_up = None
-        self.attr_avar_lr = None
-        self.attr_aval_fb = None
-        self.attr_aval_yw = None
-        self.attr_aval_pt = None
-        self.attr_aval_rl = None
 
         self._attr_u_base = None
         self._attr_v_base = None
         self._attr_u_mult_inn = None
         self._attr_v_mult_inn = None
 
+        self.avar_network = None
         self.ctrl_macro = None
         self.ctrl_micro = None
+
+        self.init_avars()
 
     @libPython.cached_property()
     def jnt(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
-
-    @libPython.cached_property()
-    def name(self):
-        # todo: use className!
-        return self.jnt.name()
 
     @libPython.cached_property()
     def surface(self):
@@ -187,7 +181,7 @@ class Avar(classModule.Module):
         #
 
         # Create the bind pose follicle
-        offset_name = nomenclature_rig.resolve('bindPose')
+        offset_name = nomenclature_rig.resolve('bindPoseRef')
         obj_offset = pymel.createNode('transform', name=offset_name)
         obj_offset.setParent(stack._layers[0])
         obj_offset.setMatrix(jnt_tm, worldSpace=True)
@@ -197,7 +191,7 @@ class Avar(classModule.Module):
         fol_offset.setParent(self.grp_rig)
 
         # Create the influence follicle
-        influence_name = nomenclature_rig.resolve('influence')
+        influence_name = nomenclature_rig.resolve('influenceRef')
         influence = pymel.createNode('transform', name=influence_name)
         influence.setParent(stack._layers[0])
         influence.setMatrix(jnt_tm, worldSpace=True)
@@ -269,17 +263,219 @@ class Avar(classModule.Module):
         pymel.connectAttr(self._attr_u_base, fol_offset.parameterU)
         pymel.connectAttr(self._attr_v_base, fol_offset.parameterV)
 
+        #
+        # Out-Of-Bound Layer
+        # HACK: If the UD value is out the nurbsPlane UV range (0-1), ie 1.1, we'll want to still offset the follicle.
+        # For that we'll compute a delta between a small increment (0.99 and 1.0) and multiply it.
+        #
+        oob_step_size = 0.001  # TODO: Expose a Maya attribute?
+
+        # TODO: Don't use any dagnode for this... djRivet is slow and overkill
+        inf_clamped_v_name= nomenclature_rig.resolve('influenceClampedVRef')
+        inf_clamped_v = pymel.createNode('transform', name=inf_clamped_v_name)
+        inf_clamped_v.setParent(stack._layers[0])
+        inf_clamped_v.setMatrix(jnt_tm, worldSpace=True)
+
+        inf_clamped_u_name= nomenclature_rig.resolve('influenceClampedURef')
+        inf_clamped_u = pymel.createNode('transform', name=inf_clamped_u_name)
+        inf_clamped_u.setParent(stack._layers[0])
+        inf_clamped_u.setMatrix(jnt_tm, worldSpace=True)
+
+        fol_clamped_v_name = nomenclature_rig.resolve('influenceClampedV')
+        fol_clamped_v = libRigging.create_follicle(inf_clamped_v, self.surface, constraint=False, name=fol_clamped_v_name)  # TODO: Is djRivet necessary here?
+        fol_clamped_v.setParent(self.grp_rig)
+
+        fol_clamped_u_name = nomenclature_rig.resolve('influenceClampedU')
+        fol_clamped_u = libRigging.create_follicle(inf_clamped_u, self.surface, constraint=False, name=fol_clamped_u_name)
+        fol_clamped_u.setParent(self.grp_rig)
+
+        # Clamp the values so they never fully reach 0 or 1 for U and V.
+        util_clamp_uv = libRigging.create_utility_node('clamp',
+                                                       inputR=attr_u_cur,
+                                                       inputG=attr_v_cur,
+                                                       minR=oob_step_size,
+                                                       minG=oob_step_size,
+                                                       maxR=1.0-oob_step_size,
+                                                       maxG=1.0-oob_step_size)
+        clamped_u = util_clamp_uv.outputR
+        clamped_v = util_clamp_uv.outputG
+
+        pymel.connectAttr(clamped_v, fol_clamped_v.parameterV)
+        pymel.connectAttr(attr_u_cur, fol_clamped_v.parameterU)
+
+        pymel.connectAttr(attr_v_cur, fol_clamped_u.parameterV)
+        pymel.connectAttr(clamped_u, fol_clamped_u.parameterU)
+
+
+
+        # Compute the direction to add for U and V if we are out-of-bound.
+        dir_oob_u = libRigging.create_utility_node('plusMinusAverage',
+                                                   operation=2,
+                                                   input3D=[
+                                                       fol_influence.translate,
+                                                       fol_clamped_u.translate
+                                                   ]).output3D
+        dir_oob_v = libRigging.create_utility_node('plusMinusAverage',
+                                                   operation=2,
+                                                   input3D=[
+                                                       fol_influence.translate,
+                                                       fol_clamped_v.translate
+                                                   ]).output3D
+
+        # Compute the offset to add for U and V
+
+        condition_oob_u_neg = libRigging.create_utility_node('condition',
+                                                           operation=4,  # less than
+                                                           firstTerm=attr_u_cur,
+                                                           secondTerm=0.0,
+                                                           colorIfTrueR=1.0,
+                                                           colorIfFalseR=0.0,
+                                                           ).outColorR
+        condition_oob_u_pos =  libRigging.create_utility_node('condition',  # greater than
+                                                           operation=2,
+                                                           firstTerm=attr_u_cur,
+                                                           secondTerm=1.0,
+                                                           colorIfTrueR=1.0,
+                                                           colorIfFalseR=0.0,
+                                                           ).outColorR
+        condition_oob_v_neg = libRigging.create_utility_node('condition',
+                                                           operation=4,  # less than
+                                                           firstTerm=attr_v_cur,
+                                                           secondTerm=0.0,
+                                                           colorIfTrueR=1.0,
+                                                           colorIfFalseR=0.0,
+                                                           ).outColorR
+        condition_oob_v_pos = libRigging.create_utility_node('condition',  # greater than
+                                                           operation=2,
+                                                           firstTerm=attr_v_cur,
+                                                           secondTerm=1.0,
+                                                           colorIfTrueR=1.0,
+                                                           colorIfFalseR=0.0,
+                                                           ).outColorR
+
+        # Compute the amount of oob
+        oob_val_u_pos = libRigging.create_utility_node('plusMinusAverage', operation=2, input1D=[attr_u_cur, 1.0]).output1D
+        oob_val_u_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_u_cur, input2X=-1.0).outputX
+        oob_val_v_pos = libRigging.create_utility_node('plusMinusAverage', operation=2, input1D=[attr_v_cur, 1.0]).output1D
+        oob_val_v_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_v_cur, input2X=-1.0).outputX
+        oob_val_u = libRigging.create_utility_node('condition', operation=0, firstTerm=condition_oob_u_pos, secondTerm=1.0, colorIfTrueR=oob_val_u_pos, colorIfFalseR=oob_val_u_neg).outColorR
+        oob_val_v = libRigging.create_utility_node('condition', operation=0, firstTerm=condition_oob_v_pos, secondTerm=1.0, colorIfTrueR=oob_val_v_pos, colorIfFalseR=oob_val_v_neg).outColorR
+
+        oob_amount_u = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=oob_val_u, input2X=oob_step_size).outputX
+        oob_amount_v = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=oob_val_v, input2X=oob_step_size).outputX
+
+        oob_offset_u = libRigging.create_utility_node('multiplyDivide', input1X=oob_amount_u, input1Y=oob_amount_u, input1Z=oob_amount_u, input2=dir_oob_u).output
+        oob_offset_v = libRigging.create_utility_node('multiplyDivide', input1X=oob_amount_v, input1Y=oob_amount_v, input1Z=oob_amount_v, input2=dir_oob_v).output
+
+
+
+        # Add the U out-of-bound-offset only if the U is between 0.0 and 1.0
+        oob_u_condition_1 = condition_oob_u_neg
+        oob_u_condition_2 = condition_oob_u_pos
+        oob_u_condition_added = libRigging.create_utility_node('addDoubleLinear',
+                                                    input1=oob_u_condition_1,
+                                                    input2=oob_u_condition_2
+                                                    ).output
+        oob_u_condition_out = libRigging.create_utility_node('condition',
+                                                         operation=0,  # equal
+                                                         firstTerm=oob_u_condition_added,
+                                                         secondTerm=1.0,
+                                                         colorIfTrue=oob_offset_u,
+                                                         colorIfFalse=[0,0,0]
+                                                         ).outColor
+
+        # Add the V out-of-bound-offset only if the V is between 0.0 and 1.0
+        oob_v_condition_1 = condition_oob_v_neg
+        oob_v_condition_2 = condition_oob_v_pos
+        oob_v_condition_added = libRigging.create_utility_node('addDoubleLinear',
+                                                    input1=oob_v_condition_1,
+                                                    input2=oob_v_condition_2
+                                                    ).output
+        oob_v_condition_out = libRigging.create_utility_node('condition',
+                                                         operation=0,  # equal
+                                                         firstTerm=oob_v_condition_added,
+                                                         secondTerm=1.0,
+                                                         colorIfTrue=oob_offset_v,
+                                                         colorIfFalse=[0,0,0]
+                                                         ).outColor
+
+        oob_offset = libRigging.create_utility_node('plusMinusAverage', input3D=[oob_u_condition_out, oob_v_condition_out]).output3D
+
+        layer_oob = stack.add_layer('OOB')
+        pymel.connectAttr(oob_offset, layer_oob.t)
+
+
+        # Create the FB setup.
+        # To determine the range of the FB, we'll use 10% the v arcLength of the plane.
+        layer_fb = stack.add_layer('FB')
+        attr_length_u, attr_length_v, arclengthdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
+        arclengthdimension_shape.setParent(self.grp_rig)
+        attr_get_fb = libRigging.create_utility_node('multiplyDivide',
+                                                     input1X=self.attr_avar_fb,
+                                                     input2X=attr_length_u).outputX
+        attr_get_fb_adjusted = libRigging.create_utility_node('multiplyDivide',
+                                                              input1X=attr_get_fb,
+                                                              input2X=0.1).outputX
+        pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
+
         return stack
 
-    def _add_avar_attrs(self):
+
+    def init_avars(self):
+        self.attr_avar_ud = None
+        self.attr_avar_lr = None
+        self.attr_avar_fb = None
+        self.attr_avar_yw = None
+        self.attr_avar_pt = None
+        self.attr_avar_rl = None
+
+    def add_avar(self, attr_holder, name):
+        """
+        Add an avar in the internal avars network.
+        An attribute will also be created on the grp_rig node.
+        """
+        '''
+        if self.avar_network is None:
+            raise IOError("Avar network have not been initialized!")
+        '''
+
+        attr_rig = libAttr.addAttr(attr_holder, longName=name, k=True)
+
+        '''
+        if self.avar_network.hasAttr(name):
+            attr_net = self.avar_network.attr(name)
+            attr_net_input = next(iter, attr_net.inputs(plugs=True), None)
+            if attr_net_input:
+                pymel.connectAttr(attr_net_input, attr_rig)
+        else:
+            attr_net = libAttr.addAttr(self.avar_network, longName=name, k=True)
+
+        pymel.connectAttr(attr_rig, attr_net)
+        '''
+
+        return attr_rig
+
+    def add_avars(self, attr_holder):
+        """
+        Create the network that contain all our avars.
+        For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
+        when unbuilding they are really existing in an external network node.
+        """
+        '''
+        # Create network holder.
+        nomenclature = self.get_nomenclature_rig(rig)
+        network_name = nomenclature.resolve('avars')
+        self.avar_network = pymel.createNode('network', name=network_name)
+        '''
+
         # Define macro avars
-        libPymel.addAttr_separator(self.grp_rig, 'Avars')
-        libAttr.fetch_attr(self.attr_avar_ud, libAttr.addAttr(self.grp_rig, longName=self.AVAR_NAME_UD, k=True))
-        libAttr.fetch_attr(self.attr_avar_lr, libAttr.addAttr(self.grp_rig, longName=self.AVAR_NAME_LR, k=True))
-        libAttr.fetch_attr(self.attr_aval_fb, libAttr.addAttr(self.grp_rig, longName=self.AVAR_NAME_FB, k=True))
-        libAttr.fetch_attr(self.attr_avar_yw, libAttr.addAttr(self.grp_rig, longName=self.AVAR_NAME_YAW, k=True))
-        libAttr.fetch_attr(self.attr_avar_pt, libAttr.addAttr(self.grp_rig, longName=self.AVAR_NAME_PITCH, k=True))
-        libAttr.fetch_attr(self.attr_avar_rl, libAttr.addAttr(self.grp_rig, longName=self.AVAR_NAME_ROLL, k=True))
+        libPymel.addAttr_separator(attr_holder, 'Avars')
+        self.attr_avar_ud = self.add_avar(attr_holder, self.AVAR_NAME_UD)
+        self.attr_avar_lr = self.add_avar(attr_holder, self.AVAR_NAME_LR)
+        self.attr_avar_fb = self.add_avar(attr_holder, self.AVAR_NAME_FB)
+        self.attr_avar_yw = self.add_avar(attr_holder, self.AVAR_NAME_YAW)
+        self.attr_avar_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
+        self.attr_avar_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
 
     def _create_doritos_setup_2(self, rig, ctrl):
         """
@@ -342,7 +538,8 @@ class Avar(classModule.Module):
         ref_tm = self.jnt.getMatrix(worldSpace=True)
         ref_pos = self.jnt.getTranslation(space='world')
 
-        self._add_avar_attrs()
+        self.add_avars(self.grp_rig)
+        self.fetch_avars()
 
         dag_stack_name = nomenclature_rig.resolve('dagStack')
         self._dag_stack = self._build_dag_stack(rig, **kwargs)
@@ -363,7 +560,8 @@ class Avar(classModule.Module):
             self.ctrl_macro.connect_avars(self.attr_avar_ud, self.attr_avar_lr, self.attr_avar_fb)
 
             doritos = self._create_doritos_setup_2(rig, self.ctrl_macro)
-            pymel.parentConstraint(doritos, self.ctrl_macro.offset, maintainOffset=True)
+            if doritos:
+                pymel.parentConstraint(doritos, self.ctrl_macro.offset, maintainOffset=True)
 
 
         #
@@ -402,14 +600,74 @@ class Avar(classModule.Module):
 
         if constraint:
             pymel.parentConstraint(self._dag_stack.node, self.jnt)
+
+    def hold_avars(self):
+        """
+        Create a network to hold all the avars complex connection.
+        This prevent Maya from deleting our connection when unbuilding.
+        """
+        self.avar_network = pymel.createNode('network')
+        self.add_avars(self.avar_network)
+
+        avar_attr_names = cmds.listAttr(self.avar_network.__melobject__(), userDefined=True)
+        for attr_name in avar_attr_names :
+            attr_src = self.grp_rig.attr(attr_name)
+            attr_dst = self.avar_network.attr(attr_name)
+            libAttr.transfer_connections(attr_src, attr_dst)
+
+        # Finaly, to prevent Maya from deleting our driven keys, remove any connection that is NOT a driven key.
+        '''
+        def can_delete_connection(attr):
+            attr_inn = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
+            if attr_inn is None:
+                return False
+
+            if isinstance(attr_inn, pymel.nodetypes.BlendWeighted):
+                
+
+
+            for hist in attr.listHistory():
+                if isinstance(hist, pymel.nodetypes.AnimCurve):
+                    return False
+                elif isinstance(hist, pymel.nodetypes.Transform):
+                    return True
+            return False
+
+        for attr in self.avar_network.listAttr(userDefined=True):
+            attr_inn = next(iter(attr.inputs(plugs=True)), None)
+            if attr_inn:
+                if can_delete_connection(attr):
+                    pymel.warning("Deleting {0} to {1}".format(attr_inn, attr))
+                    #pymel.disconnectAttr(attr_inn, attr)
+        '''
+
+
+    def fetch_avars(self):
+        """
+        If a previously created network have be created holding avars connection,
+        we'll transfert thoses connections back to the grp_rig node.
+        Note that the avars have to been added to the grp_rig before..
+        """
+        if libPymel.is_valid_PyNode(self.avar_network):
+            for attr_name in cmds.listAttr(self.avar_network.__melobject__(), userDefined=True):
+                attr_src = self.avar_network(attr_name)
+                attr_dst = self.grp_rig.attr(attr_name)
+                libAttr.transfer_connections(attr_src, attr_dst)
+            pymel.delete(self.avar_network)
+            self.avar_network = None
     
     def unbuild(self):
-        self.attr_avar_ud = libAttr.hold_attrs(self.attr_avar_ud)
-        self.attr_avar_lr = libAttr.hold_attrs(self.attr_avar_lr)
-        self.attr_aval_fb = libAttr.hold_attrs(self.attr_aval_fb)
-        self.attr_avar_yw = libAttr.hold_attrs(self.attr_avar_yw)
-        self.attr_avar_pt = libAttr.hold_attrs(self.attr_avar_pt)
-        self.attr_avar_rl = libAttr.hold_attrs(self.attr_avar_rl)
+        # self.attr_avar_ud = libAttr.hold_attrs(self.attr_avar_ud)
+        # self.attr_avar_lr = libAttr.hold_attrs(self.attr_avar_lr)
+        # self.attr_avar_fb = libAttr.hold_attrs(self.attr_avar_fb)
+        # self.attr_avar_yw = libAttr.hold_attrs(self.attr_avar_yw)
+        # self.attr_avar_pt = libAttr.hold_attrs(self.attr_avar_pt)
+        # self.attr_avar_rl = libAttr.hold_attrs(self.attr_avar_rl)
+
+        self.hold_avars()
+        self.init_avars()
+
+        #raise Exception()
 
         super(Avar, self).unbuild()
 

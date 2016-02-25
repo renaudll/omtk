@@ -69,23 +69,28 @@ class ModuleFace(classModule.Module):
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_FB, k=True)
         self.attr_avar_fb = self.grp_rig.attr(self.AVAR_NAME_FB)
 
-        self.avars = []
-        # Connect global avars to invidial avars
-        # TODO: Handle if there's no surface!
-        for jnt in self.jnts:
-            sys_facepnt = classAvar.Avar([jnt, self.surface])
-            sys_facepnt.build(rig)
-            sys_facepnt.grp_anm.setParent(self.grp_anm)
-            sys_facepnt.grp_rig.setParent(self.grp_rig)
-            self.avars.append(sys_facepnt)
+        # Define avars on first build
+        if not self.avars:
+            self.avars = []
+            # Connect global avars to invidial avars
+            # TODO: Handle if there's no surface!
+            for jnt in self.jnts:
+                sys_facepnt = classAvar.Avar([jnt, self.surface])
+                self.avars.append(sys_facepnt)
 
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, sys_facepnt.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, sys_facepnt.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, sys_facepnt.attr_avar_fb)
+        # Build avars and connect them to global avars
+        for avar in self.avars:
+            avar.build(rig)
+            avar.grp_anm.setParent(self.grp_anm)
+            avar.grp_rig.setParent(self.grp_rig)
+
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, avar.attr_avar_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, avar.attr_avar_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, avar.attr_avar_fb)
 
     def unbuild(self):
-        for ctrl in self.avars:
-            ctrl.unbuild()
+        for avar in self.avars:
+            avar.unbuild()
         super(ModuleFace, self).unbuild()
 
 
@@ -156,7 +161,7 @@ class ModuleFace(classModule.Module):
         libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, attr_avar_fb)
     '''
 
-    def create_ctrl_macro(self, rig, cls, ctrl, avar_anchor, avars, ref, name, sensibility=1.0):
+    def create_ctrl_macro(self, rig, cls, ctrl, avar_anchor, avar, ref, name, sensibility=1.0):
         """
 
         :param rig:
@@ -182,20 +187,19 @@ class ModuleFace(classModule.Module):
 
 
         # Connect UD avar
-        for avar in avars:
-            libRigging.connectAttr_withBlendWeighted(ctrl.translateX, avar.attr_avar_ud)
+        libRigging.connectAttr_withBlendWeighted(ctrl.translateX, avar.attr_avar_ud)
 
-            # Connect LR avar (handle mirroring)
+        # Connect LR avar (handle mirroring)
 
 
-            if need_flip:
-                inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
-            else:
-                inn_lr = ctrl.translateY
-            libRigging.connectAttr_withBlendWeighted(inn_lr, avar.attr_avar_lr)
+        if need_flip:
+            inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
+        else:
+            inn_lr = ctrl.translateY
+        libRigging.connectAttr_withBlendWeighted(inn_lr, avar.attr_avar_lr)
 
-            # Connect FB avar
-            libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, avar.attr_avar_fb)
+        # Connect FB avar
+        libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, avar.attr_avar_fb)
 
         # Compute ctrl position
         jnt_head = rig.get_head_jnt()
@@ -333,8 +337,8 @@ class AvarGroupInnMidOut(ModuleFace):
 
 
     def unbuild(self):
-        self.ctrl_out.unbuild()
-        self.ctrl_mid.unbuild()
-        self.ctrl_inn.unbuild()
+        #self.ctrl_out.unbuild()
+        #self.ctrl_mid.unbuild()
+        #self.ctrl_inn.unbuild()
         self.ctrl_all.unbuild()
         super(AvarGroupInnMidOut, self).unbuild()

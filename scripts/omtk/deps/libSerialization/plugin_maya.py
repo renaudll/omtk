@@ -274,9 +274,10 @@ def export_network(data, **kwargs):
 
 # todo: add an optimisation to prevent recreating the python variable if it already exist.
 def import_network(network):
+    # Duck-type the network, if the '_class' attribute exist, it is a class instance representation.
+    # Otherwise it is a simple pymel.PyNode datatypes.
     if not network.hasAttr('_class'):
-        log.error('[importFromNetwork] Network dont have mandatory attribute _class')
-        raise AttributeError
+        return network
 
     cls = network.getAttr('_class')
     obj = core.create_class_instance(cls)

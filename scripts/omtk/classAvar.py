@@ -51,8 +51,8 @@ class CtrlFaceMacro(BaseCtrlFace):
 
     def __init__(self, *args, **kwargs):
         super(CtrlFaceMacro, self).__init__(*args, **kwargs)
-        self.sensibility = 0.5
-        self._attr_sensibility = None
+        #self.sensibility = 0.5
+        #self._attr_sensibility = None
 
     def build(self, sensibility=None, *args, **kwargs):
         super(CtrlFaceMacro, self).build(*args, **kwargs)
@@ -91,8 +91,8 @@ class CtrlFaceMacro(BaseCtrlFace):
 
     # TODO: SHOULD NOT BE NEEDED, MAKE BaseCtrl MORE INTELLIGENT
     def unbuild(self):
-        self.sensibility = self._attr_sensibility.get()
-        self._attr_sensibility = None
+        #self.sensibility = self._attr_sensibility.get()
+        #self._attr_sensibility = None
         super(CtrlFaceMacro, self).unbuild()
 
 
@@ -152,23 +152,14 @@ class Avar(classModule.Module):
         """
         nomenclature_rig = self.get_nomenclature_rig(rig)
         dag_stack_name = nomenclature_rig.resolve('stack')
-        stack = classNode.Node(name=dag_stack_name)
-        stack.build()
+        stack = classNode.Node()
+        stack.build(name=dag_stack_name)
 
         # Create an offset layer so everything start at the same parent space.
         layer_offset_name = nomenclature_rig.resolve('offset')
         layer_offset = stack.add_layer()
         layer_offset.rename(layer_offset_name)
         layer_offset.setMatrix(self.jnt.getMatrix(worldSpace=True))
-
-        # Create a layer before the ctrl to apply the YW, PT and RL avar.
-        layer_rot_name = nomenclature_rig.resolve('rot')
-        layer_rot = stack.add_layer()
-        layer_rot.rename(layer_rot_name)
-
-        pymel.connectAttr(self.attr_avar_yw, layer_rot.rotateX)
-        pymel.connectAttr(self.attr_avar_pt, layer_rot.rotateY)
-        pymel.connectAttr(self.attr_avar_rl, layer_rot.rotateZ)
 
         jnt_tm = self.jnt.getMatrix(worldSpace=True)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -401,15 +392,15 @@ class Avar(classModule.Module):
 
         oob_offset = libRigging.create_utility_node('plusMinusAverage', input3D=[oob_u_condition_out, oob_v_condition_out]).output3D
 
-        layer_oob = stack.add_layer('OOB')
+        layer_oob = stack.add_layer('outOfBound')
         pymel.connectAttr(oob_offset, layer_oob.t)
 
 
         # Create the FB setup.
         # To determine the range of the FB, we'll use 10% the v arcLength of the plane.
-        layer_fb = stack.add_layer('FB')
+        layer_fb = stack.add_layer('frontBack')
         attr_length_u, attr_length_v, arclengthdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
-        arclengthdimension_shape.setParent(self.grp_rig)
+        arclengthdimension_shape.getParent().setParent(self.grp_rig)
         attr_get_fb = libRigging.create_utility_node('multiplyDivide',
                                                      input1X=self.attr_avar_fb,
                                                      input2X=attr_length_u).outputX
@@ -417,6 +408,17 @@ class Avar(classModule.Module):
                                                               input1X=attr_get_fb,
                                                               input2X=0.1).outputX
         pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
+
+        #
+        #  Create a layer before the ctrl to apply the YW, PT and RL avar.
+        #
+        layer_rot_name = nomenclature_rig.resolve('rotation')
+        layer_rot = stack.add_layer()
+        layer_rot.rename(layer_rot_name)
+
+        pymel.connectAttr(self.attr_avar_yw, layer_rot.rotateX)
+        pymel.connectAttr(self.attr_avar_pt, layer_rot.rotateY)
+        pymel.connectAttr(self.attr_avar_rl, layer_rot.rotateZ)
 
         return stack
 
@@ -491,17 +493,16 @@ class Avar(classModule.Module):
             return False
 
         # doritos_name
-        stack_name = nomenclature_rig.resolve('doritos_stack')
-        stack = classNode.Node(self, name=stack_name)
-        # stack.rename(stack_name)
-        stack.build(rig)
+        stack_name = nomenclature_rig.resolve('doritosStack')
+        stack = classNode.Node(self)
+        stack.build(name=stack_name)
         stack.setMatrix(ctrl.getMatrix(worldSpace=True))
 
-        layer_doritos_fol_name = nomenclature_rig.resolve('doritos_fol')
+        layer_doritos_fol_name = nomenclature_rig.resolve('doritosFol')
         layer_doritos_fol = stack.add_layer()
         layer_doritos_fol.rename(layer_doritos_fol_name)
 
-        layer_doritos_name = nomenclature_rig.resolve('doritos_inv')
+        layer_doritos_name = nomenclature_rig.resolve('doritosInv')
         layer_doritos = stack.add_layer()
         layer_doritos.rename(layer_doritos_name)
 
@@ -511,7 +512,9 @@ class Avar(classModule.Module):
         pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
 
         # TODO: Validate that we don't need to inverse the rotation separately.
+        follicle_name = nomenclature_rig.resolve('doritosFollicle')
         follicle = libRigging.create_follicle(layer_doritos_fol, obj_mesh)
+        follicle.rename(follicle_name)
         follicle.setParent(self.grp_rig)
 
         # The doritos setup can be hard to control when the rotation of the controller depend on the follicle since
@@ -609,11 +612,38 @@ class Avar(classModule.Module):
         self.avar_network = pymel.createNode('network')
         self.add_avars(self.avar_network)
 
+        def attr_have_animcurve_input(attr):
+            attr_input = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
+            if attr_input is None:
+                return False
+
+            attr_input_node = attr_input.node()
+
+            if isinstance(attr_input_node, pymel.nodetypes.AnimCurve):
+                return True
+
+            if isinstance(attr_input_node , pymel.nodetypes.BlendWeighted):
+                for blendweighted_input in attr_input_node.input:
+                    if attr_have_animcurve_input(blendweighted_input):
+                        return True
+
+            return False
+
         avar_attr_names = cmds.listAttr(self.avar_network.__melobject__(), userDefined=True)
         for attr_name in avar_attr_names :
             attr_src = self.grp_rig.attr(attr_name)
             attr_dst = self.avar_network.attr(attr_name)
-            libAttr.transfer_connections(attr_src, attr_dst)
+            #libAttr.transfer_connections(attr_src, attr_dst)
+
+            if attr_have_animcurve_input(attr_src):
+                attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
+                pymel.disconnectAttr(attr_src_inn, attr_src)
+                pymel.connectAttr(attr_src_inn, attr_dst)
+
+            # Transfer output connections
+            for attr_src_out in attr_src.outputs(plugs=True):
+                pymel.disconnectAttr(attr_src, attr_src_out)
+                pymel.connectAttr(attr_dst, attr_src_out)
 
         # Finaly, to prevent Maya from deleting our driven keys, remove any connection that is NOT a driven key.
         '''
@@ -650,7 +680,7 @@ class Avar(classModule.Module):
         """
         if libPymel.is_valid_PyNode(self.avar_network):
             for attr_name in cmds.listAttr(self.avar_network.__melobject__(), userDefined=True):
-                attr_src = self.avar_network(attr_name)
+                attr_src = self.avar_network.attr(attr_name)
                 attr_dst = self.grp_rig.attr(attr_name)
                 libAttr.transfer_connections(attr_src, attr_dst)
             pymel.delete(self.avar_network)

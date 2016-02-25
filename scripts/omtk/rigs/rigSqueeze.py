@@ -47,10 +47,10 @@ class RigSqueeze(classRig.Rig):
         #
         # Add root ctrl attributes specific to squeeze
         #
-        libPymel.addAttr_separator(self.grp_anms, self.GROUP_NAME_DISPLAY)
-        pymel.addAttr(self.grp_anms, longName=self.ATTR_NAME_DISPLAY_MESH, at='short', k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
-        attr_displayMesh = self.grp_anms.attr(self.ATTR_NAME_DISPLAY_MESH)
-        pymel.connectAttr(attr_displayMesh, self.grp_geos.visibility, force=True)
+        libPymel.addAttr_separator(self.grp_anm, self.GROUP_NAME_DISPLAY)
+        pymel.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_MESH, at='short', k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
+        attr_displayMesh = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_MESH)
+        pymel.connectAttr(attr_displayMesh, self.grp_geo.visibility, force=True)
 
         #
         # Connect all IK/FK attributes
@@ -73,10 +73,10 @@ class RigSqueeze(classRig.Rig):
                 attr_by_name[key] = val
 
         if attr_by_name:
-            libPymel.addAttr_separator(self.grp_anms, self.GROUP_NAME_IKFK)
+            libPymel.addAttr_separator(self.grp_anm, self.GROUP_NAME_IKFK)
             for attr_src_name, attr_dst in sorted(attr_by_name.iteritems()):
-                pymel.addAttr(self.grp_anms, longName=attr_src_name, at='short', k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
-                attr_src = self.grp_anms.attr(attr_src_name)
+                pymel.addAttr(self.grp_anm, longName=attr_src_name, at='short', k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
+                attr_src = self.grp_anm.attr(attr_src_name)
 
                 # Note that at Squeeze, 0 is for IK and 1 is for FK so we'll need to reverse it.
                 attr_src_inv = libRigging.create_utility_node('reverse', inputX=attr_src).outputX

@@ -242,7 +242,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             qItem.setForeground(0, textBrush)
             qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
             qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
-            qItem.setFlags(qItem.flags() | QtCore.Qt.ItemIsEditable)
+            if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
+                qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
             qt_parent.addChild(qItem)
             qt_parent = qItem
 

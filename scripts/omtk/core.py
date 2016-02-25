@@ -10,7 +10,7 @@ import classCtrl
 import classModule
 import classRig
 import classAvar
-import classAvarsGroup
+import classModuleFace
 
 def _reload():
     reload(className)
@@ -19,7 +19,7 @@ def _reload():
     reload(classModule)
     reload(classRig)
     reload(classAvar)
-    reload(classAvarsGroup)
+    reload(classModuleFace)
 
 def create(*args, **kwargs):
     return classRig.Rig(*args, **kwargs)
@@ -54,7 +54,7 @@ def unbuild_all():
         network = libSerialization.export_network(rigroot)
         pymel.select(network)
 
-
+'''
 def detect(*args, **kwargs):
     """
     Fully automatic routine that create rig elements by analysing the joints structure.
@@ -194,15 +194,13 @@ def detect(*args, **kwargs):
         log.debug("Found Leg using {0}".format(leg_jnts))
         return leg_jnts
 
-    '''
-    def get_spines(jnts):
-        chains = []
-        for jnt in jnts:
-            spine_jnts = get_spine(jnt)
-            if spine_jnts:
-                chains.append(spine_jnts)
-        return chains
-    '''
+    #def get_spines(jnts):
+    #    chains = []
+    #    for jnt in jnts:
+    #        spine_jnts = get_spine(jnt)
+    #        if spine_jnts:
+    #            chains.append(spine_jnts)
+    #    return chains
 
     log.debug("Detected rig layout:")
     log.debug("\tHeight: {0}".format(height))
@@ -235,3 +233,4 @@ def detect(*args, **kwargs):
     rig.build()
 
     libSerialization.export_network(rig)
+'''

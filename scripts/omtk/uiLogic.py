@@ -85,37 +85,37 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
         self.actionAdd.setEnabled(False)
 
-        self.actionBuild.triggered.connect(self._actionBuild)
-        self.actionUnbuild.triggered.connect(self._actionUnbuild)
-        self.actionRebuild.triggered.connect(self._actionRebuild)
-        self.actionImport.triggered.connect(self._actionImport)
-        self.actionExport.triggered.connect(self._actionExport)
-        self.actionUpdate.triggered.connect(self._actionUpdate)
-        self.actionAdd.triggered.connect(self._actionAdd)
-        self.actionMirrorJntsLToR.triggered.connect(self._actionMirrorJntsLToR)
-        self.actionMirrorJntsRToL.triggered.connect(self._actionMirrorJntsRToL)
+        self.actionBuild.triggered.connect(self.on_build)
+        self.actionUnbuild.triggered.connect(self.on_unbuild)
+        self.actionRebuild.triggered.connect(self.on_rebuild)
+        self.actionImport.triggered.connect(self.on_import)
+        self.actionExport.triggered.connect(self.on_export)
+        self.actionUpdate.triggered.connect(self.on_update)
+        self.actionAdd.triggered.connect(self.on_btn_add_pressed)
+        self.actionMirrorJntsLToR.triggered.connect(self.on_mirror_jnts_LtoR)
+        self.actionMirrorJntsRToL.triggered.connect(self.on_mirror_jnts_RtoL)
 
 
-        self.treeWidget.itemSelectionChanged.connect(self._itemSelectionChanged)
+        self.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
         self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ContiguousSelection)
-        self.treeWidget.itemChanged.connect(self._itemChanged)
+        self.treeWidget.itemChanged.connect(self.on_module_changed)
 
         self.treeWidget_jnts.setStyleSheet(self._STYLE_SHEET)
         self.treeWidget.setStyleSheet(self._STYLE_SHEET)
 
         self.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.treeWidget_jnts.itemSelectionChanged.connect(self._jnt_iteSelectedChanged)
+        self.treeWidget_jnts.itemSelectionChanged.connect(self.on_influence_selection_changed)
         self.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
         self.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
 
         #Right click menu
         self.treeWidget_jnts.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.connect(self.treeWidget_jnts, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
-                     self._actionAdd)
+                     self.on_btn_add_pressed)
 
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.connect(self.treeWidget, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
-                     self._contextMenuModule)
+                     self.on_context_menu_request)
 
         self.refresh()
 
@@ -166,6 +166,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     #
     # root property
     #
+    #@property
     #def root(self):
     #    return self.__dict__['_root']
     #@property
@@ -212,7 +213,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
         networks = libSerialization.getConnectedNetworks(obj, key=fnFilter)
 
-        backBrush = QtGui.QBrush(QtCore.Qt.black)
         textBrush = QtGui.QBrush(QtCore.Qt.white)
 
         if self._is_influence(obj):
@@ -314,7 +314,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     # Events
     #
 
-    def _actionBuild(self):
+    def on_build(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if not rig.is_built():
@@ -328,7 +328,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             libSerialization.export_network(rig)
         self.update_ui_modules()
 
-    def _actionUnbuild(self):
+    def on_unbuild(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if rig.is_built():
@@ -339,7 +339,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             libSerialization.export_network(rig)
         self.update_ui_modules()
 
-    def _actionRebuild(self):
+    def on_rebuild(self):
         for qItem in self.treeWidget.selectedItems():
             rig = qItem.rig
             if rig.is_built():
@@ -348,26 +348,47 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             #pymel.delete(rig._network) # TODO: AUTOMATIC UPDATE
             libSerialization.export_network(rig)
 
-    def _actionImport(self):
-        raise NotImplementedError
+    def on_import(self):
+        path, _ = QtGui.QFileDialog.getOpenFileName(caption="File Save (.json)", filter="JSON (*.json)")
+        if not path:
+            return
 
-    def _actionExport(self):
-        raise NotImplementedError
+        new_rigs = libSerialization.import_json_file(path)
+        if not new_rigs:
+            return
 
-    def _actionUpdate(self):
-        self.refresh()
+        # Remove previous rigs
+        all_rigs = core.find()
+        for rig in all_rigs:
+            if rig._network.exists():
+                pymel.delete(rig._network)
 
-    def _itemSelectionChanged(self):
+        for rig in filter(None, new_rigs):
+            libSerialization.export_network(rig)
+
+        self.on_update()
+
+    def on_export(self):
+        all_rigs = core.find()
+
+        path, _ = QtGui.QFileDialog.getSaveFileName(caption="File Save (.json)", filter="JSON (*.json)")
+        if path:
+            libSerialization.export_json_file(all_rigs, path)
+
+    def on_update(self):
+        self.refresh();
+
+    def on_module_selection_changed(self):
         pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
 
-    def _jnt_iteSelectedChanged(self):
+    def on_influence_selection_changed(self):
         pymel.select([item.obj for item in self.treeWidget_jnts.selectedItems() if item.obj.exists()])
         if self.treeWidget_jnts.selectedItems():
             self.actionAdd.setEnabled(True)
         else:
             self.actionAdd.setEnabled(False)
 
-    def _itemChanged(self, item):
+    def on_module_changed(self, item):
         # todo: handle exception
         module = item.rig
         module_is_built = module.is_built()
@@ -387,8 +408,45 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if isinstance(module, classRig.Rig):
             self.update_ui_modules()
 
-    def _actionAddPart(self, cls_name):
-        #TODO : Support multiple rig in same scene ?
+    def on_remove(self):
+        for item in self.treeWidget.selectedItems():
+            module = item.rig
+            net = item.net if hasattr(item, "net") else None
+            if module.is_built():
+                module.unbuild()
+            if net:
+                pymel.delete(net)
+        #Clear root cached property to make sure it's still valid
+        if hasattr(self, "_cache"):
+            del self._cache
+        self.refresh()
+
+    def on_context_menu_request(self):
+        if self.treeWidget.selectedItems():
+            menu = QtGui.QMenu()
+            actionBuild = menu.addAction("Build")
+            actionBuild.triggered.connect(functools.partial(self.on_build))
+            actionUnbuild = menu.addAction("Unbuild")
+            actionUnbuild.triggered.connect(functools.partial(self.on_unbuild))
+            actionRebuild = menu.addAction("Rebuild")
+            actionRebuild.triggered.connect(functools.partial(self.on_rebuild))
+            menu.addSeparator()
+            actionRemove = menu.addAction("Remove")
+            actionRemove.triggered.connect(functools.partial(self.on_remove))
+
+            menu.exec_(QtGui.QCursor.pos())
+
+    def on_btn_add_pressed(self):
+        if self.treeWidget_jnts.selectedItems():
+            menu = QtGui.QMenu()
+            for cls in libPython.get_sub_classes(classModule.Module):
+                cls_name = cls.__name__
+                action = menu.addAction(cls_name)
+                action.triggered.connect(functools.partial(self.action_add_part, cls_name))
+
+            menu.exec_(QtGui.QCursor.pos())
+
+    def action_add_part(self, cls_name):
         #part = _cls(pymel.selected())
         self.root.add_module(cls_name, pymel.selected())
         try:
@@ -403,56 +461,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         #self.updateData()
         self.refresh()
 
-    def _removeModule(self):
-        for item in self.treeWidget.selectedItems():
-            module = item.rig
-            net = item.net if hasattr(item, "net") else None
-            if module.is_built():
-                module.unbuild()
-            if net:
-                pymel.delete(net)
-        #Clear root cached property to make sure it's still valid
-        if hasattr(self, "_cache"):
-            del self._cache
-        self.refresh()
-
-    def _contextMenuModule(self):
-        if self.treeWidget.selectedItems():
-            menu = QtGui.QMenu()
-            actionBuild = menu.addAction("Build")
-            actionBuild.triggered.connect(functools.partial(self._actionBuild))
-            actionUnbuild = menu.addAction("Unbuild")
-            actionUnbuild.triggered.connect(functools.partial(self._actionUnbuild))
-            actionRebuild = menu.addAction("Rebuild")
-            actionRebuild.triggered.connect(functools.partial(self._actionRebuild))
-            menu.addSeparator()
-            actionRemove = menu.addAction("Remove")
-            actionRemove.triggered.connect(functools.partial(self._removeModule))
-
-            menu.exec_(QtGui.QCursor.pos())
-
-    # TODO: Move to lib
-    def _getSubClasses(self, _cls):
-        # TODO: Move to libPython?
-        for subcls in _cls.__subclasses__():
-            yield subcls
-            for subsubcls in self._getSubClasses(subcls):
-                yield subsubcls
-
-    def _actionAdd(self):
-        if self.treeWidget_jnts.selectedItems():
-            menu = QtGui.QMenu()
-            for cls in self._getSubClasses(classModule.Module):
-                cls_name = cls.__name__
-                action = menu.addAction(cls_name)
-                action.triggered.connect(functools.partial(self._actionAddPart, cls_name))
-
-            menu.exec_(QtGui.QCursor.pos())
-
-    def _actionMirrorJntsLToR(self):
+    def on_mirror_jnts_LtoR(self):
         libSkeleton.mirror_jnts_l_to_r()
 
-    def _actionMirrorJntsRToL(self):
+    def on_mirror_jnts_RtoL(self):
         libSkeleton.mirror_jnts_r_to_l()
 
 gui = None

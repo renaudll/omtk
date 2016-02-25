@@ -300,3 +300,17 @@ def create_square(size=1.0, width=None, height=None, **kwargs):
     node = pymel.curve(d=1, p=[pos1, pos2, pos3, pos4, pos5] )
 
     return node
+
+def create_triangle_upp():
+    p1 = [0, 0.577, 0]
+    p2 = [-0.5, -0.288, 0]
+    p3 = [0.5, -0.288, 0]
+    node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+    return node
+
+def create_triangle_low():
+    p1 = [0, -0.577, 0]
+    p2 = [-0.5, 0.288, 0]
+    p3 = [0.5, 0.288, 0]
+    node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+    return node

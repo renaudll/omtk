@@ -1,6 +1,8 @@
 import pymel.core as pymel
 from maya import cmds, OpenMaya
 from omtk.libs import libPython
+import libSerialization
+from omtk import classCtrl
 
 
 class Axis:
@@ -173,10 +175,6 @@ def mirror_matrix(m,
         m = flip_matrix_axis_pos(m, Axis.z)
 
     return m
-
-
-import libSerialization
-from omtk import classCtrl
 
 
 def get_obj_mirror_def(obj):

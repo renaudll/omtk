@@ -29,8 +29,8 @@ class BaseName(object):
     side_l_tokens = ['l', "left"]
     side_r_tokens = ['r', "right"]
 
-    def __init__(self, name, prefix=None, suffix=None):
-        self.tokens = self._get_tokens(name)
+    def __init__(self, name=None, prefix=None, suffix=None):
+        self.tokens = self._get_tokens(name) if name else []
         # prefix and suffix are automatically handled
         self.prefix = prefix
         self.suffix = suffix

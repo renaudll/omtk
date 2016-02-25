@@ -54,6 +54,15 @@ class Module(object):
     def outputs(self):
         return self.__dict__['_outputs']
 
+    @libPython.cached_property()
+    def ref_name(self):
+        """
+        :return: Return an unique identifier using the inputs of the module.
+        Note that this will crash if the module don't use any joint.
+        """
+        # todo: use className!
+        ref = next(iter(self.input), None)
+        return ref.nodeName() if ref else 'UNKNOW'
 
     @libPython.memoized
     def get_module_name(self):
@@ -99,6 +108,12 @@ class Module(object):
     #
 
     @libPython.cached_property()
+    def jnts(self):
+        fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
+        jnts = filter(fn_is_jnt, self.input)
+        return jnts
+
+    @libPython.cached_property()
     def chains(self):
         return libPymel.get_chains_from_objs(self.input)
 
@@ -108,9 +123,7 @@ class Module(object):
 
     @libPython.cached_property()
     def chains_jnt(self):
-        fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
-        jnts = filter(fn_is_jnt, self.input)
-        return libPymel.get_chains_from_objs(jnts)
+        return libPymel.get_chains_from_objs(self.jnts)
 
     @libPython.cached_property()
     def chain_jnt(self):
@@ -134,7 +147,7 @@ class Module(object):
 
     def __str__(self):
         if self.input:
-            return '{0} ({1})'.format(str(self.__class__.__name__), self.__class__.__name__)
+            return '{0} ({1})'.format(str(self.__class__.__name__), self.ref_name)
         else:
             return '{0} (no inputs)'.format(self.__class__.__name__)
 
@@ -147,7 +160,7 @@ class Module(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        return 'net_{0}'.format(self.__class__.__name__)
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.ref_name)
 
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name='net_{0}'.format(self.__class__.__name__))

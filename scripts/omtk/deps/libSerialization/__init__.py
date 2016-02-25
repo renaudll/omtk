@@ -3,6 +3,7 @@ import plugin_json
 import plugin_maya
 from plugin_json import *
 from plugin_maya import *
+from plugin_maya_json import *
 
 
 def _reload():

@@ -185,3 +185,9 @@ def create_class_instance(class_name):
     except Exception as e:
         logging.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
         return None
+
+def get_sub_classes(_cls):
+    for subcls in _cls.__subclasses__():
+        yield subcls
+        for subsubcls in get_sub_classes(subcls):
+            yield subsubcls

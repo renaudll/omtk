@@ -106,17 +106,22 @@ def create_strech_attr_from_curve(curve_shape):
     curveLength = create_utility_node('curveInfo', inputCurve=curve_shape.worldSpace).arcLength
     return create_utility_node('multiplyDivide', operation=2, input1X=curveLength, input2X=curveLength.get()).outputX
 
+def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
+    arcLengthDimension_shape = pymel.createNode('arcLengthDimension')
+    arcLengthDimension_shape.uParamValue.set(u)
+    arcLengthDimension_shape.vParamValue.set(v)
+    pymel.connectAttr(nurbs_shape.worldSpace, arcLengthDimension_shape.nurbsGeometry)
+    attr_length_u = arcLengthDimension_shape.arcLength
+    attr_length_v = arcLengthDimension_shape.arcLengthInV
+    return attr_length_u, attr_length_v, arcLengthDimension_shape
+
 def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
     """
     Compute the stretch applied on a pymel.nodetypes.NurbsSurface.
     :param nurbs_shape: The pymel.nodetypes.NurbsSurface node.
     :return: The stretch attribute and an arcLengthDimension that will need to be parented somewhere.
     """
-    arcLengthDimension_shape = pymel.createNode('arcLengthDimension')
-    arcLengthDimension_shape.uParamValue.set(u)
-    arcLengthDimension_shape.vParamValue.set(v)
-    pymel.connectAttr(nurbs_shape.worldSpace, arcLengthDimension_shape.nurbsGeometry)
-    attr_length_u = arcLengthDimension_shape.arcLength
+    attr_length_u, attr_length_v, arcLengthDimension_shape = create_arclengthdimension_for_nurbsplane(nurbs_shape, u=u, v=v)
     attr_length_v = arcLengthDimension_shape.arcLengthInV
     multiply_node = create_utility_node('multiplyDivide', operation=2,
             input1X=attr_length_u,
@@ -321,7 +326,9 @@ def get_affected_geometries(*objs):
                     skinClusters.add(hist)
 
             for skinCluster in skinClusters:
-                geometries.update(skinCluster.getOutputGeometry())
+                for geometry in skinCluster.getOutputGeometry():
+                    if isinstance(geometry, pymel.nodetypes.Mesh):  # Only Mesh are supported for now
+                        geometries.add(geometry)
 
     return geometries
 
@@ -651,18 +658,25 @@ def align_selected_joints_to_persp ():
     align_joints_to_view(sel, cam)
 
 
-def create_follicle(obj, surface, name=None):
+def create_follicle(obj, surface, constraint=True, name=None):
         """
         Create a follicle via djRivet but don't automatically align it to @obj.
+        TODO: Make it work when the plane is scaled.
         """
         # Note that obj should have a identity parent space
         pymel.select(obj, surface)
         mel.eval("djRivet")
 
+        #pymel.delete(ref)
+
         # Found the follicle shape...
         dj_rivet_grp = pymel.PyNode("djRivetX")
         follicle_transform = next(iter(reversed(dj_rivet_grp.getChildren())))
+        follicle_transform.setParent(world=True)
         # follicle_shape = follicle_transform.getShape()
+
+        if constraint:
+            pymel.parentConstraint(follicle_transform, obj, maintainOffset=True)
 
         # follicle_shape.setParent(obj, relative=True, shape=True)
         # pymel.delete(follicle_transform)
@@ -717,7 +731,7 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
     next_available = util_blend.input.numElements()
 
     if multiplier:
-        attr_src = libRigging.create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
+        attr_src = create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
 
     pymel.connectAttr(attr_src, util_blend.input[next_available])
 

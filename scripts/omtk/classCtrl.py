@@ -1,7 +1,9 @@
 import collections
 import pymel.core as pymel
 from classNode import Node
-from libs import libRigging, libPymel
+from libs import libRigging
+from libs import libPymel
+from libs import libAttr
 import logging; log = logging.getLogger(__name__)
 
 
@@ -209,62 +211,35 @@ class BaseCtrl(Node):
             ).outColorR
             pymel.connectAttr(att_enabled, att_weight)
 
-    def hold_attrs(self, attr):
-        """
-        Hold a specific @attr attribute.
-        """
-        if isinstance(attr, pymel.Attribute):
-            for input in attr.inputs(plugs=True):
-                if isinstance(input.node(), pymel.nodetypes.AnimCurve):
-                    pymel.disconnectAttr(input, attr) # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
-                    return input
-            return attr.get()
-        return attr
-
-    def fetch_attr(self, source, target):
-        """
-        Restore a specific @attr attribute.
-        """
-        if target.isLocked():
-            log.info("Can't fetch attribute {0} since it's locked.".format(target.__melobject__()))
-            return
-
-        if source is None:
-            return
-        elif isinstance(source, pymel.Attribute):
-            pymel.connectAttr(source, target)
-        else:
-            target.set(source)
-
     def hold_attrs_all(self):
         """
         Hold all ctrl keyable attributes.
         """
         # TODO: Hold all keyable attributes.
-        self.tx = self.hold_attrs(self.node.translateX)
-        self.ty = self.hold_attrs(self.node.translateY)
-        self.tz = self.hold_attrs(self.node.translateZ)
-        self.rx = self.hold_attrs(self.node.rotateX)
-        self.ry = self.hold_attrs(self.node.rotateY)
-        self.rz = self.hold_attrs(self.node.rotateZ)
-        self.sx = self.hold_attrs(self.node.scaleX)
-        self.sy = self.hold_attrs(self.node.scaleY)
-        self.sz = self.hold_attrs(self.node.scaleZ)
+        self.tx = libAttr.hold_attrs(self.node.translateX)
+        self.ty = libAttr.hold_attrs(self.node.translateY)
+        self.tz = libAttr.hold_attrs(self.node.translateZ)
+        self.rx = libAttr.hold_attrs(self.node.rotateX)
+        self.ry = libAttr.hold_attrs(self.node.rotateY)
+        self.rz = libAttr.hold_attrs(self.node.rotateZ)
+        self.sx = libAttr.hold_attrs(self.node.scaleX)
+        self.sy = libAttr.hold_attrs(self.node.scaleY)
+        self.sz = libAttr.hold_attrs(self.node.scaleZ)
 
     def fetch_attr_all(self):
         """
         Fetch all ctrl keyable attributes.
         """
         # Note: we're forced to use __dict__ since we don't self.tx to be interpreted as self.node.tx
-        self.fetch_attr(self.__dict__.get('tx', None), self.node.translateX)
-        self.fetch_attr(self.__dict__.get('ty', None), self.node.translateY)
-        self.fetch_attr(self.__dict__.get('tz', None), self.node.translateZ)
-        self.fetch_attr(self.__dict__.get('rx', None), self.node.rotateX)
-        self.fetch_attr(self.__dict__.get('ry', None), self.node.rotateY)
-        self.fetch_attr(self.__dict__.get('rz', None), self.node.rotateZ)
-        self.fetch_attr(self.__dict__.get('sx', None), self.node.scaleX)
-        self.fetch_attr(self.__dict__.get('sy', None), self.node.scaleY)
-        self.fetch_attr(self.__dict__.get('sz', None), self.node.scaleZ)
+        libAttr.fetch_attr(self.__dict__.get('tx', None), self.node.translateX)
+        libAttr.fetch_attr(self.__dict__.get('ty', None), self.node.translateY)
+        libAttr.fetch_attr(self.__dict__.get('tz', None), self.node.translateZ)
+        libAttr.fetch_attr(self.__dict__.get('rx', None), self.node.rotateX)
+        libAttr.fetch_attr(self.__dict__.get('ry', None), self.node.rotateY)
+        libAttr.fetch_attr(self.__dict__.get('rz', None), self.node.rotateZ)
+        libAttr.fetch_attr(self.__dict__.get('sx', None), self.node.scaleX)
+        libAttr.fetch_attr(self.__dict__.get('sy', None), self.node.scaleY)
+        libAttr.fetch_attr(self.__dict__.get('sz', None), self.node.scaleZ)
 
     #
     # SPACE SWITH LOGIC

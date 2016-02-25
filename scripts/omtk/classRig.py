@@ -1,5 +1,7 @@
 from maya import cmds
 import pymel.core as pymel
+
+import omtk.classModuleFace
 from classCtrl import BaseCtrl
 from classNode import Node
 import className
@@ -439,11 +441,10 @@ class Rig(object):
         Iterate through all avars module of the rig.
         """
         from omtk import classAvar
-        from omtk import classAvarsGroup
         for module in self.modules:
             if isinstance(module, classAvar.Avar):
                 yield module
-            elif isinstance(module, classAvarsGroup.AvarsGroup):
+            elif isinstance(module, omtk.classModuleFace.ModuleFace):
                 for avar in module.avars:
                     yield avar
 

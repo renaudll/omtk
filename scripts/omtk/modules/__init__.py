@@ -17,7 +17,7 @@ import rigDpSpine
 # Import face modules
 import rigFaceBrow
 import rigFaceLids
-
+import rigFaceLips
 
 def _reload():
     # Reload body modules
@@ -35,6 +35,7 @@ def _reload():
     # Reload face modules
     reload(rigFaceBrow)
     reload(rigFaceLids)
+    reload(rigFaceLips)
 
 
 def create(cls_name, *args, **kwargs):

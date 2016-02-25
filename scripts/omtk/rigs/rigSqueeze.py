@@ -100,6 +100,7 @@ class RigSqueeze(classRig.Rig):
                     module.grp_anm.drawOverride.overrideEnabled.set(1)
                     module.grp_anm.drawOverride.overrideColor.set(color)
 
+        '''
         #
         # Add display attribute for micro avars
         #
@@ -113,5 +114,6 @@ class RigSqueeze(classRig.Rig):
             ctrl_micro = avar.ctrl_micro
             if ctrl_micro:
                 pymel.connectAttr(attr_show_face_micro, ctrl_micro.offset.visibility)
+        '''
 
         return True

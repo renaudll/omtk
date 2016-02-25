@@ -19,6 +19,7 @@ core.types_dag.append(pymel.Attribute)
 core.types_dag.append(pymel.datatypes.Matrix)
 core.types_dag.append(pymel.datatypes.Vector)
 
+
 #
 # Maya Metanetwork Serialization
 #

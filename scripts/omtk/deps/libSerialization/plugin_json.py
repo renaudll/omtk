@@ -17,19 +17,19 @@ def _make_dir(path):
         os.makedirs(path_dir)
 
 
-def export_json(data, **kwargs):
+def export_json(data, indent=4, **kwargs):
     data = core.export_dict(data)
-    return json.dumps(data, **kwargs)
+    return json.dumps(data, indent=indent, **kwargs)
 
 
-def export_json_file(data, path, mkdir=True, **kwargs):
+def export_json_file(data, path, mkdir=True, indent=4, **kwargs):
     if mkdir:
         _make_dir(path)
 
     data_dict = core.export_dict(data)
 
     with open(path, 'w') as fp:
-        json.dump(data_dict, fp, **kwargs)
+        json.dump(data_dict, fp, indent=indent, **kwargs)
 
     return True
 

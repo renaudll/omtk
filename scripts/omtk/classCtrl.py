@@ -64,10 +64,11 @@ class BaseCtrl(Node):
 
         # Resolve size automatically if refs are provided.
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
-        if size is None and ref is not None:
-            size = libRigging.get_recommended_ctrl_size(ref) * multiplier
-        else:
-            size = 1.0
+        if size is None:
+            if ref is not None:
+                size = libRigging.get_recommended_ctrl_size(ref) * multiplier
+            else:
+                size = 1.0
 
         transform, make = pymel.circle(*args, **kwargs)
         make.radius.set(size)
@@ -87,9 +88,11 @@ class BaseCtrl(Node):
         """
         Create ctrl setup, also fetch animation and shapes if necessary.
         """
+        # TODO: Add support for multiple shapes?
         if libPymel.is_valid_PyNode(self.shapes):
             self.node = pymel.createNode('transform')
             libRigging.fetch_ctrl_shapes(self.shapes, self.node)
+            self.shapes = None
         else:
             super(BaseCtrl, self).build(name=None, *args, **kwargs)
 

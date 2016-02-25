@@ -1,16 +1,17 @@
+import itertools
 import pymel.core as pymel
 from omtk import classModule, classAvar
 from omtk.classAvar import CtrlFaceMacroAll
 from omtk.libs import libPython, libPymel, libRigging
 
-class ModuleFace(classModule.Module):
+class ModuleFace(classAvar.AbstractAvar):
     """
     Base class for a group of 'avars' that share similar properties.
     Also global avars will be provided to controll all avars.
     """
-    AVAR_NAME_UD = 'avar_ud'
-    AVAR_NAME_LR = 'avar_lr'
-    AVAR_NAME_FB = 'avar_fb'
+    #AVAR_NAME_UD = 'avar_ud'
+    #AVAR_NAME_LR = 'avar_lr'
+    #AVAR_NAME_FB = 'avar_fb'
     # TODO: Provide additional avars
 
     '''
@@ -18,6 +19,52 @@ class ModuleFace(classModule.Module):
         'Inn', 'Mid', 'Out'
     ]
     '''
+
+    @libPython.cached_property()
+    def jnts_upp(self):
+        # TODO: Find a better way
+        fnFilter = lambda jnt: 'upp' in jnt.name().lower()
+        return filter(fnFilter, self.jnts)
+
+    @libPython.cached_property()
+    def jnt_upp_mid(self):
+        # TODO: Find a better way
+        i = (len(self.jnts_upp)-1) / 2
+        return self.jnts_upp[i]
+
+    @libPython.cached_property()
+    def jnts_low(self):
+        # TODO: Find a better way
+        fnFilter = lambda jnt: 'low' in jnt.name().lower()
+        return filter(fnFilter, self.jnts)
+
+    @libPython.cached_property()
+    def jnt_low_mid(self):
+        i = (len(self.jnts_low)-1) / 2
+        return self.jnts_low[i]
+
+    @property  # Note that since the avars are volatile we don't want to cache this property.
+    def avars_upp(self):
+        # TODO: Find a better way
+        fnFilter = lambda avar: 'upp' in avar.ref_name.lower()
+        return filter(fnFilter, self.avars)
+
+    @property  # Note that since the avars are volatile we don't want to cache this property.
+    def avars_low(self):
+        # TODO: Find a better way
+        fnFilter = lambda avar: 'low' in avar.ref_name.lower()
+        return filter(fnFilter, self.avars)
+
+    @property
+    def avar_upp_mid(self):
+        i = (len(self.avars_upp)-1) / 2
+        return self.avars_upp[i]
+
+    @property
+    def avar_low_mid(self):
+        i = (len(self.avars_upp)-1) / 2
+        return self.avars_low[i]
+
 
     def __init__(self, *args, **kwargs):
         super(ModuleFace, self).__init__(*args, **kwargs)
@@ -61,6 +108,7 @@ class ModuleFace(classModule.Module):
     def build(self, rig, **kwargs):
         super(ModuleFace, self).build(rig, **kwargs)
 
+        '''
         # Create global avars
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_UD, k=True)
         self.attr_avar_ud = self.grp_rig.attr(self.AVAR_NAME_UD)
@@ -68,6 +116,17 @@ class ModuleFace(classModule.Module):
         self.attr_avar_lr = self.grp_rig.attr(self.AVAR_NAME_LR)
         pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_FB, k=True)
         self.attr_avar_fb = self.grp_rig.attr(self.AVAR_NAME_FB)
+        '''
+
+        # Resolve the desired ctrl size
+        # One thing we are sure is that ctrls should no overlay,
+        # so we'll max out their radius to half of the shortest distances between each.
+        # Also the radius cannot be bigger than 3% of the head length.
+        ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
+        max_ctrl_size = rig.get_head_length() * 0.03
+        if ctrl_size > max_ctrl_size:
+            print("Limiting ctrl size to {0}".format(max_ctrl_size))
+            ctrl_size = max_ctrl_size
 
         # Define avars on first build
         if not self.avars:
@@ -80,13 +139,15 @@ class ModuleFace(classModule.Module):
 
         # Build avars and connect them to global avars
         for avar in self.avars:
-            avar.build(rig)
+            avar.build(rig, ctrl_size=ctrl_size)
             avar.grp_anm.setParent(self.grp_anm)
             avar.grp_rig.setParent(self.grp_rig)
 
+        '''
             libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, avar.attr_avar_ud)
             libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, avar.attr_avar_lr)
             libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, avar.attr_avar_fb)
+        '''
 
     def unbuild(self):
         for avar in self.avars:
@@ -136,7 +197,7 @@ class ModuleFace(classModule.Module):
             inn_lr = ctrl.translateY
         '''
         if need_flip:
-            ctrl.offset.scaleY.set(-1)
+            ctrl.offset.scaleX.set(-1)
         else:
             pass
             # TODO: Flip ctrl to avar connection
@@ -233,7 +294,7 @@ class ModuleFace(classModule.Module):
             inn_lr = ctrl.translateY
         '''
         if need_flip:
-            ctrl.offset.scaleY.set(-1)
+            ctrl.offset.scaleX.set(-1)
         else:
             pass
             # TODO: Flip ctrl to avar connection

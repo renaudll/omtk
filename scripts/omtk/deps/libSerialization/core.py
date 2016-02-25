@@ -8,16 +8,49 @@ logging.setLevel(_logging.WARNING)
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX = range(4)
 
 
-def get_class_def(class_name, base_class=object):
+
+def iter_subclasses_recursive(cls):
+    yield cls
+
+    try:
+        for sub_cls in cls.__subclasses__():
+            for x in iter_subclasses_recursive(sub_cls):
+                yield x
+    except TypeError:  # This will fail when encountering the 'type' datatype.
+        pass
+
+def get_class_module_root(cls):
+    return next(iter(cls.__module__.split('.')), None)
+
+def iter_module_subclasses_recursive(cls, module_root):
+    for sub_cls in iter_subclasses_recursive(cls):
+        cur_module_root = get_class_module_root(sub_cls)
+        if module_root == cur_module_root:
+            yield sub_cls
+
+
+def find_class_by_name(class_name, base_class=object, module=None):
+    if module is None:
+        iterator = iter_subclasses_recursive(base_class)
+    else:
+        iterator = iter_module_subclasses_recursive(base_class, module)
+
+    for cls in iterator:
+        if cls.__name__ == class_name:
+            return cls
+
+
+def find_class_by_namespace(class_namespace, base_class=object, module=None):
     try:
         for cls in base_class.__subclasses__():
+            # Compare the absolute class namespace
             cls_path = get_class_namespace(cls)
-            if cls_path == class_name:
+            if cls_path == class_namespace:
                 return cls
-            else:
-                t = get_class_def(class_name, base_class=cls)
-                if t is not None:
-                    return t
+
+            t = find_class_by_namespace(class_namespace, base_class=cls)
+            if t is not None:
+                return t
     except Exception as e:
         pass
         #logging.warning("Error obtaining class definition for {0}: {1}".format(class_name, e))
@@ -25,7 +58,10 @@ def get_class_def(class_name, base_class=object):
 
 
 def create_class_instance(class_name):
-    cls = get_class_def(class_name)
+    """
+    Create a class instance using the latest definition.
+    """
+    cls = find_class_by_namespace(class_name)
 
     if cls is None:
         logging.warning("Can't find class definition '{0}'".format(class_name))
@@ -40,8 +76,8 @@ def create_class_instance(class_name):
         logging.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
         return None
 
-
 def get_class_namespace(classe):
+    # TODO: use inspect.get_mro
     if not isinstance(classe, object):
         return None  # Todo: throw exception
     tokens = []
@@ -49,6 +85,8 @@ def get_class_namespace(classe):
         tokens.append(classe.__name__)
         classe = classe.__bases__[0]
     return '.'.join(reversed(tokens))
+
+
 
 
 #
@@ -131,17 +169,23 @@ def export_dict(data, skip_None=True, recursive=True, **args):
     data_type = get_data_type(data)
     # object instance
     if data_type == TYPE_COMPLEX:
+        data_cls = data.__class__
         data_dict = {
-            '_class': get_class_namespace(data.__class__),
+            '_class': data_cls.__name__,
+            '_class_namespace': get_class_namespace(data_cls),
+            '_class_module': get_class_module_root(data_cls),
             '_uid': id(data)
         }
         for key, val in (data.items() if isinstance(data, dict) else data.__dict__.items()):  # TODO: Clean
-            if '_' not in key[0]:
+            # Ignore private keys (starting with an underscore)
+            if key[0] == '_':
+                continue
+
+            if not skip_None or val is not None:
+                if (data_type == TYPE_COMPLEX and recursive is True) or data_type == TYPE_LIST:
+                    val = export_dict(val, skip_None=skip_None, recursive=recursive, **args)
                 if not skip_None or val is not None:
-                    if (data_type == TYPE_COMPLEX and recursive is True) or data_type == TYPE_LIST:
-                        val = export_dict(val, skip_None=skip_None, recursive=recursive, **args)
-                    if not skip_None or val is not None:
-                        data_dict[key] = val
+                    data_dict[key] = val
 
         return data_dict
 

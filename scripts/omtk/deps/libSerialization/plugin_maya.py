@@ -1,5 +1,6 @@
 import pymel.core as pymel
 from maya import OpenMaya
+import sys
 import logging
 import core
 
@@ -226,6 +227,20 @@ def get_network_attr(attr):
     # Basic type
     return attr.get()
 
+export_network_key_whitelist = ['_class', '_class_module', '_class_namespace']
+def can_export_attr_by_name(name):
+    """
+    Determine what attribute can be exported to a network.
+    All key that start with an underscore are considered private and won't be exported.
+    The reserved keyword and automatically excempted from this rule.
+    """
+    if name in export_network_key_whitelist:
+        return True
+
+    if name[0] == '_':
+        return False
+
+    return True
 
 def export_network(data, **kwargs):
     #log.debug('CreateNetwork {0}'.format(data))
@@ -265,9 +280,8 @@ def export_network(data, **kwargs):
 
     fnNet = network.__apimfn__()
     for key, val in data_dict.items():
-        if val is not None:
-            if key == '_class' or key[0] != '_':  # Attributes starting with '_' are protected or private
-                add_attr(fnNet, key, val)
+        if can_export_attr_by_name(key):
+            add_attr(fnNet, key, val)
 
     return network
 
@@ -279,10 +293,25 @@ def import_network(network):
     if not network.hasAttr('_class'):
         return network
 
-    cls = network.getAttr('_class')
-    obj = core.create_class_instance(cls)
-    if obj is None:
+    cls_name = network.getAttr('_class')
+
+    # HACK: Previously we were storing the complete class namespace.
+    # However this was not very flexible when we played with the class hierarchy.
+    # If we find a '_class_module' attribute, it mean we are doing thing the new way.
+    # Otherwise we'll let it slip for now.
+    cls_module = network.getAttr('_class_module') if network.hasAttr('_class_module') else None
+    if cls_module:
+        cls_def = core.find_class_by_name(cls_name, module=cls_module)
+    else:
+        cls_def = core.find_class_by_namespace(cls_name)
+
+    if cls_def is None:
         return None
+
+    # HACK: Get latest definition
+    cls_def = getattr(sys.modules[cls_def.__module__], cls_def.__name__)
+    obj = cls_def()
+
     # Monkey patch the network if supported
     if isinstance(obj, object) and not isinstance(obj, dict):
         obj._network = network
@@ -330,7 +359,13 @@ def import_network(network):
 
 
 def isNetworkInstanceOfClass(_network, _clsName):
-    return hasattr(_network, '_class') and _clsName in _network._class.get().split('.')
+    # HACK: Backward compatibility with the old system.
+    # Previously the full namespace was stored in the '_class' attribute.
+    if hasattr(_network, '_class_namespace'):
+        return _clsName in _network._class_namespace.get().split('.')
+    elif hasattr(_network, '_class'):
+        return _clsName in _network._class.get().split('.')
+    return None
 
 
 def getNetworksByClass(_clsName):

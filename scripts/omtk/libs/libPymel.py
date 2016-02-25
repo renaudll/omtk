@@ -11,7 +11,7 @@ def is_valid_PyNode(val):
     return (val and hasattr(val, 'exists') and val.exists()) if val else None
 
 
-def distance(x, y):
+def distance_between_nodes(x, y):
     """
     Return the distance between two pynodes.
     """
@@ -57,7 +57,7 @@ class PyNodeChain(list):
         for i in range(len(self) - 1):
             head = self[i]
             tail = self[i + 1]
-            length += distance(head, tail)
+            length += distance_between_nodes(head, tail)
         return length
 
     # get the first pynode that have the attr

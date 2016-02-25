@@ -42,6 +42,46 @@ class CtrlFaceMicro(BaseCtrlFace):
 
         return node
 
+    '''
+    def build(self, sensitivity_ud=1.0, sensitivity_lr=1.0, sensitivity_fb=1.0, *args, **kwargs):
+        super(CtrlFaceMicro, self).build(*args, **kwargs)
+
+        # Since this controller is desined to be used as a doritos, we might want to adjust the sensitivity.
+        # This will allow transform gizmo to react better if the deformer is too large/small.
+
+        # Create hidden attributes so the sensibility can be adjusted for each axis.
+        attr_sensitiviry_ud = libPymel.addAttr(self.node, longName=self._ATTR_NAME_SENSITIVITY_UD, defaultValue=sensitivity_ud)
+        attr_sensitiviry_lr = libPymel.addAttr(self.node, longName=self._ATTR_NAME_SENSITIVITY_LR, defaultValue=sensitivity_lr)
+        attr_sensitiviry_fb = libPymel.addAttr(self.node, longName=self._ATTR_NAME_SENSITIVITY_FB, defaultValue=sensitivity_fb)
+
+        # Create inverted attributes
+        util_sensitivity_inv = libRigging.create_utility_node('multiplyDivide', operation=2,
+                                                              input1X=1.0, input1Y=1.0, input1Z=1.0,
+                                                              input2X=attr_sensitiviry_lr, input2Y=attr_sensitiviry_ud, input2Z=attr_sensitiviry_fb)
+        attr_sensibility_lr_inv = util_sensitivity_inv.outputX
+        attr_sensibility_ud_inv = util_sensitivity_inv.outputY
+        attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
+
+        # Create a Orig copy of the original shape.
+        ctrl_shape = self.node.getShape()
+        ctrl_shape_orig = pymel.duplicate(self.node.getShape())[0]
+        ctrl_shape_orig.intermediateObject.set(True)
+
+        # Apply scaling on the ctrl parent.
+        # This is were the 'black magic' happen.
+        pymel.connectAttr(attr_sensitiviry_lr, self.offset.scaleX)
+        pymel.connectAttr(attr_sensitiviry_ud, self.offset.scaleY)
+        pymel.connectAttr(attr_sensitiviry_fb, self.offset.scaleZ)
+
+        # Counter-scale the shape
+        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix', inputScaleX=attr_sensibility_lr_inv,
+                                                                 inputScaleY=attr_sensibility_ud_inv,
+                                                                 inputScaleZ=attr_sensibility_fb_inv).outputMatrix
+        attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm,
+                                                                 inputGeometry=ctrl_shape_orig.local).outputGeometry
+        pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
+    '''
+
 
 class CtrlFaceMacro(BaseCtrlFace):
     ATTR_NAME_SENSIBILITY = 'sensibility'
@@ -49,62 +89,13 @@ class CtrlFaceMacro(BaseCtrlFace):
     def __createNode__(self, normal=(0, 0, 1), **kwargs):
         return libCtrlShapes.create_square(normal=normal, **kwargs)
 
-    def __init__(self, *args, **kwargs):
-        super(CtrlFaceMacro, self).__init__(*args, **kwargs)
-        #self.sensibility = 0.5
-        #self._attr_sensibility = None
 
-    def build(self, sensibility=None, *args, **kwargs):
-        super(CtrlFaceMacro, self).build(*args, **kwargs)
-
-        # Create sensibility setup
-        # This allow us to tweak how much the ctrl is sensible to movement.
-        # The secret is to scale the ctrl offset node and adjust the shape in consequence.
-        pymel.addAttr(self.node, longName=self.ATTR_NAME_SENSIBILITY, defaultValue=sensibility, k=True)
-        self._attr_sensibility = self.node.attr(self.ATTR_NAME_SENSIBILITY)
-        attr_sensibility_inv = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=1.0,
-                                                              input2X=self._attr_sensibility).outputX
-        '''
-        if sensibility is None:
-            sensibility = self.sensibility
-        else:
-            self.sensibility = sensibility
-        '''
-
-        scaleInv = self.add_layer('scaleInv')
-
-        pymel.connectAttr(attr_sensibility_inv, scaleInv.scaleX)
-        pymel.connectAttr(attr_sensibility_inv, scaleInv.scaleY)
-        pymel.connectAttr(attr_sensibility_inv, scaleInv.scaleZ)
-
-        ctrl_shape = self.node.getShape()  # Note: this only work with single shape
-        ctrl_shape_orig = pymel.duplicate(self.node.getShape())[0]
-        ctrl_shape_orig.intermediateObject.set(True)
-        ctrl_shape_orig.setParent(self.offset, shape=True, relative=True)
-
-        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix', inputScaleX=self._attr_sensibility,
-                                                             inputScaleY=self._attr_sensibility,
-                                                             inputScaleZ=self._attr_sensibility).outputMatrix
-        attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm,
-                                                                 inputGeometry=ctrl_shape_orig.local).outputGeometry
-        pymel.connectAttr(attr_transform_geometry, ctrl_shape.create)
-
-    # TODO: SHOULD NOT BE NEEDED, MAKE BaseCtrl MORE INTELLIGENT
-    def unbuild(self):
-        #self.sensibility = self._attr_sensibility.get()
-        #self._attr_sensibility = None
-        super(CtrlFaceMacro, self).unbuild()
-
-
-class Avar(classModule.Module):
+class AbstractAvar(classModule.Module):
     """
     This low-level module is a direct interpretation of "The Art of Moving Points" of "Brian Tindal".
     A can be moved in space using it's UD (Up/Down), IO (Inn/Out) and FB (FrontBack) attributes.
     In general, changing thoses attributes will make the FacePnt move on a NurbsSurface.
     """
-    _CLS_CTRL_MACRO = CtrlFaceMicro
-    _CLS_CTRL_MICRO = CtrlFaceMicro
-
     AVAR_NAME_UD = 'avar_ud'
     AVAR_NAME_LR = 'avar_lr'
     AVAR_NAME_FB = 'avar_fb'
@@ -112,12 +103,181 @@ class Avar(classModule.Module):
     AVAR_NAME_PITCH = 'avar_pt'
     AVAR_NAME_ROLL = 'avar_rl'
 
-    ATTR_NAME_U_BASE = 'BaseU'
-    ATTR_NAME_V_BASE = 'BaseV'
-    ATTR_NAME_U = 'U'
-    ATTR_NAME_V = 'V'
-    ATTR_NAME_U_MULT = 'UMultiplier'
-    ATTR_NAME_V_MULT = 'VMultiplier'
+    def __init__(self, *args, **kwargs):
+        super(AbstractAvar, self).__init__(*args, **kwargs)
+        self.avar_network = None
+        self.init_avars()
+
+    def init_avars(self):
+        self.attr_avar_ud = None
+        self.attr_avar_lr = None
+        self.attr_avar_fb = None
+        self.attr_avar_yw = None
+        self.attr_avar_pt = None
+        self.attr_avar_rl = None
+
+    def add_avar(self, attr_holder, name):
+        """
+        Add an avar in the internal avars network.
+        An attribute will also be created on the grp_rig node.
+        """
+        '''
+        if self.avar_network is None:
+            raise IOError("Avar network have not been initialized!")
+        '''
+
+        attr_rig = libAttr.addAttr(attr_holder, longName=name, k=True)
+
+        '''
+        if self.avar_network.hasAttr(name):
+            attr_net = self.avar_network.attr(name)
+            attr_net_input = next(iter, attr_net.inputs(plugs=True), None)
+            if attr_net_input:
+                pymel.connectAttr(attr_net_input, attr_rig)
+        else:
+            attr_net = libAttr.addAttr(self.avar_network, longName=name, k=True)
+
+        pymel.connectAttr(attr_rig, attr_net)
+        '''
+
+        return attr_rig
+
+    def add_avars(self, attr_holder):
+        """
+        Create the network that contain all our avars.
+        For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
+        when unbuilding they are really existing in an external network node.
+        """
+        '''
+        # Create network holder.
+        nomenclature = self.get_nomenclature_rig(rig)
+        network_name = nomenclature.resolve('avars')
+        self.avar_network = pymel.createNode('network', name=network_name)
+        '''
+
+        # Define macro avars
+        libPymel.addAttr_separator(attr_holder, 'Avars')
+        self.attr_avar_ud = self.add_avar(attr_holder, self.AVAR_NAME_UD)
+        self.attr_avar_lr = self.add_avar(attr_holder, self.AVAR_NAME_LR)
+        self.attr_avar_fb = self.add_avar(attr_holder, self.AVAR_NAME_FB)
+        self.attr_avar_yw = self.add_avar(attr_holder, self.AVAR_NAME_YAW)
+        self.attr_avar_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
+        self.attr_avar_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
+
+    def hold_avars(self):
+        """
+        Create a network to hold all the avars complex connection.
+        This prevent Maya from deleting our connection when unbuilding.
+        """
+        self.avar_network = pymel.createNode('network')
+        self.add_avars(self.avar_network)
+
+        def attr_have_animcurve_input(attr):
+            attr_input = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
+            if attr_input is None:
+                return False
+
+            attr_input_node = attr_input.node()
+
+            if isinstance(attr_input_node, pymel.nodetypes.AnimCurve):
+                return True
+
+            if isinstance(attr_input_node , pymel.nodetypes.BlendWeighted):
+                for blendweighted_input in attr_input_node.input:
+                    if attr_have_animcurve_input(blendweighted_input):
+                        return True
+
+            return False
+
+        avar_attr_names = cmds.listAttr(self.avar_network.__melobject__(), userDefined=True)
+        for attr_name in avar_attr_names :
+            attr_src = self.grp_rig.attr(attr_name)
+            attr_dst = self.avar_network.attr(attr_name)
+            #libAttr.transfer_connections(attr_src, attr_dst)
+
+            if attr_have_animcurve_input(attr_src):
+                attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
+                pymel.disconnectAttr(attr_src_inn, attr_src)
+                pymel.connectAttr(attr_src_inn, attr_dst)
+
+            # Transfer output connections
+            for attr_src_out in attr_src.outputs(plugs=True):
+                pymel.disconnectAttr(attr_src, attr_src_out)
+                pymel.connectAttr(attr_dst, attr_src_out)
+
+        # Finaly, to prevent Maya from deleting our driven keys, remove any connection that is NOT a driven key.
+        '''
+        def can_delete_connection(attr):
+            attr_inn = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
+            if attr_inn is None:
+                return False
+
+            if isinstance(attr_inn, pymel.nodetypes.BlendWeighted):
+
+
+
+            for hist in attr.listHistory():
+                if isinstance(hist, pymel.nodetypes.AnimCurve):
+                    return False
+                elif isinstance(hist, pymel.nodetypes.Transform):
+                    return True
+            return False
+
+        for attr in self.avar_network.listAttr(userDefined=True):
+            attr_inn = next(iter(attr.inputs(plugs=True)), None)
+            if attr_inn:
+                if can_delete_connection(attr):
+                    pymel.warning("Deleting {0} to {1}".format(attr_inn, attr))
+                    #pymel.disconnectAttr(attr_inn, attr)
+        '''
+
+
+    def fetch_avars(self):
+        """
+        If a previously created network have be created holding avars connection,
+        we'll transfert thoses connections back to the grp_rig node.
+        Note that the avars have to been added to the grp_rig before..
+        """
+        if libPymel.is_valid_PyNode(self.avar_network):
+            for attr_name in cmds.listAttr(self.avar_network.__melobject__(), userDefined=True):
+                attr_src = self.avar_network.attr(attr_name)
+                attr_dst = self.grp_rig.attr(attr_name)
+                libAttr.transfer_connections(attr_src, attr_dst)
+            pymel.delete(self.avar_network)
+            self.avar_network = None
+
+    def build(self, rig, **kwargs):
+        super(AbstractAvar, self).build(rig, **kwargs)
+
+        self.add_avars(self.grp_rig)
+        self.fetch_avars()
+
+    def unbuild(self):
+        self.hold_avars()
+        self.init_avars()
+
+        super(AbstractAvar, self).unbuild()
+
+        # TODO: cleanup junk connections that Maya didn't delete by itself?
+
+
+class Avar(AbstractAvar):
+    """
+    This represent a deformation point on the face that move accordingly to nurbsSurface.
+    """
+    _CLS_CTRL_MACRO = CtrlFaceMicro
+    _CLS_CTRL_MICRO = CtrlFaceMicro
+
+    _ATTR_NAME_U_BASE = 'BaseU'
+    _ATTR_NAME_V_BASE = 'BaseV'
+    _ATTR_NAME_U = 'U'
+    _ATTR_NAME_V = 'V'
+    _ATTR_NAME_U_MULT = 'UMultiplier'
+    _ATTR_NAME_V_MULT = 'VMultiplier'
+
+    _ATTR_NAME_SENSITIVITY_UD = 'sensitivityUD'
+    _ATTR_NAME_SENSITIVITY_LR = 'sensitivityLR'
+    _ATTR_NAME_SENSITIVITY_FB = 'sensitivityFB'
 
     def __init__(self, *args, **kwargs):
         super(Avar, self).__init__(*args, **kwargs)
@@ -126,12 +286,18 @@ class Avar(classModule.Module):
         self._attr_v_base = None
         self._attr_u_mult_inn = None
         self._attr_v_mult_inn = None
-
-        self.avar_network = None
         self.ctrl_macro = None
         self.ctrl_micro = None
 
-        self.init_avars()
+        # Note that theres values will be overriden during the build() execution.
+        self._default_sensitivity_lr = 1.0
+        self._default_sensitivity_ud = 1.0
+        self._default_sensitivity_fb = 1.0
+
+        # TODO: Move to build, we don't want 1000 member properties.
+        self._length_lr = None
+        self._length_ud = None
+        self._length_fb = None
 
     @libPython.cached_property()
     def jnt(self):
@@ -154,6 +320,17 @@ class Avar(classModule.Module):
         dag_stack_name = nomenclature_rig.resolve('stack')
         stack = classNode.Node()
         stack.build(name=dag_stack_name)
+
+        # Determine the UD and LR length using the provided surface.
+        # The FB length will use 10% the v arcLength of the plane.
+        attr_length_u, attr_length_v, arclengthdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
+        arclengthdimension_shape.getParent().setParent(self.grp_rig)
+        self._length_lr = attr_length_u.get()
+        self._length_ud = attr_length_v.get()
+        self._length_fb = self._length_ud * 0.1
+        #self._default_sensitivity_lr = self._length_lr
+        #self._default_sensitivity_ud = self._length_ud
+        #self._default_sensitivity_fb = self._length_fb
 
         # Create an offset layer so everything start at the same parent space.
         layer_offset_name = nomenclature_rig.resolve('offset')
@@ -209,14 +386,14 @@ class Avar(classModule.Module):
         u_base = fol_influence.parameterU.get()
         v_base = 0.5  # fol_influence.parameterV.get()
 
-        self._attr_u_base = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U_BASE, defaultValue=u_base)
-        self._attr_v_base = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V_BASE, defaultValue=v_base)
+        self._attr_u_base = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=u_base)
+        self._attr_v_base = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=v_base)
 
-        attr_u_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U, k=True)
-        attr_v_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V, k=True)
+        attr_u_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U, k=True)
+        attr_v_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V, k=True)
 
-        self._attr_u_mult_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_U_MULT, defaultValue=mult_u)
-        self._attr_v_mult_inn = libPymel.addAttr(self.grp_rig, longName=self.ATTR_NAME_V_MULT, defaultValue=mult_v)
+        self._attr_u_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=mult_u)
+        self._attr_v_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=mult_v)
 
         #attr_u_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_u_inn, input2X=mult_u).outputX
         #attr_v_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_v_inn, input2X=mult_v).outputX
@@ -397,10 +574,7 @@ class Avar(classModule.Module):
 
 
         # Create the FB setup.
-        # To determine the range of the FB, we'll use 10% the v arcLength of the plane.
         layer_fb = stack.add_layer('frontBack')
-        attr_length_u, attr_length_v, arclengthdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
-        arclengthdimension_shape.getParent().setParent(self.grp_rig)
         attr_get_fb = libRigging.create_utility_node('multiplyDivide',
                                                      input1X=self.attr_avar_fb,
                                                      input2X=attr_length_u).outputX
@@ -420,66 +594,13 @@ class Avar(classModule.Module):
         pymel.connectAttr(self.attr_avar_pt, layer_rot.rotateY)
         pymel.connectAttr(self.attr_avar_rl, layer_rot.rotateZ)
 
+
+
         return stack
 
 
-    def init_avars(self):
-        self.attr_avar_ud = None
-        self.attr_avar_lr = None
-        self.attr_avar_fb = None
-        self.attr_avar_yw = None
-        self.attr_avar_pt = None
-        self.attr_avar_rl = None
 
-    def add_avar(self, attr_holder, name):
-        """
-        Add an avar in the internal avars network.
-        An attribute will also be created on the grp_rig node.
-        """
-        '''
-        if self.avar_network is None:
-            raise IOError("Avar network have not been initialized!")
-        '''
-
-        attr_rig = libAttr.addAttr(attr_holder, longName=name, k=True)
-
-        '''
-        if self.avar_network.hasAttr(name):
-            attr_net = self.avar_network.attr(name)
-            attr_net_input = next(iter, attr_net.inputs(plugs=True), None)
-            if attr_net_input:
-                pymel.connectAttr(attr_net_input, attr_rig)
-        else:
-            attr_net = libAttr.addAttr(self.avar_network, longName=name, k=True)
-
-        pymel.connectAttr(attr_rig, attr_net)
-        '''
-
-        return attr_rig
-
-    def add_avars(self, attr_holder):
-        """
-        Create the network that contain all our avars.
-        For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
-        when unbuilding they are really existing in an external network node.
-        """
-        '''
-        # Create network holder.
-        nomenclature = self.get_nomenclature_rig(rig)
-        network_name = nomenclature.resolve('avars')
-        self.avar_network = pymel.createNode('network', name=network_name)
-        '''
-
-        # Define macro avars
-        libPymel.addAttr_separator(attr_holder, 'Avars')
-        self.attr_avar_ud = self.add_avar(attr_holder, self.AVAR_NAME_UD)
-        self.attr_avar_lr = self.add_avar(attr_holder, self.AVAR_NAME_LR)
-        self.attr_avar_fb = self.add_avar(attr_holder, self.AVAR_NAME_FB)
-        self.attr_avar_yw = self.add_avar(attr_holder, self.AVAR_NAME_YAW)
-        self.attr_avar_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
-        self.attr_avar_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
-
-    def _create_doritos_setup_2(self, rig, ctrl):
+    def _create_doritos_setup_2(self, rig, ctrl, sensitivity_lr=1.0, sensitivity_ud=1.0, sensitivity_fb=1.0):
         """
         A doritos setup allow a ctrl to be directly constrained on the final mesh via a follicle.
         To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
@@ -491,6 +612,22 @@ class Avar(classModule.Module):
         if obj_mesh is None:
             pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
             return False
+
+
+        # Add sensibility attributes
+        # This allow us to tweak the sensibility of the doritos.
+        attr_sensitiviry_ud = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_UD, defaultValue=sensitivity_ud)
+        attr_sensitiviry_lr = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_LR, defaultValue=sensitivity_lr)
+        attr_sensitiviry_fb = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_FB, defaultValue=sensitivity_fb)
+
+         # Create inverted attributes
+        util_sensitivity_inv = libRigging.create_utility_node('multiplyDivide', operation=2,
+                                                              input1X=1.0, input1Y=1.0, input1Z=1.0,
+                                                              input2X=attr_sensitiviry_lr, input2Y=attr_sensitiviry_ud, input2Z=attr_sensitiviry_fb)
+        attr_sensibility_lr_inv = util_sensitivity_inv.outputX
+        attr_sensibility_ud_inv = util_sensitivity_inv.outputY
+        attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
+
 
         # doritos_name
         stack_name = nomenclature_rig.resolve('doritosStack')
@@ -508,6 +645,10 @@ class Avar(classModule.Module):
 
         attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
         attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=ctrl.r, input2=[-1, -1, -1]).output
+
+        # Apply sensitivity
+        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=attr_ctrl_inv_t, input2X=attr_sensitiviry_lr, input2Y=attr_sensitiviry_ud, input2Z=attr_sensitiviry_fb).output
+
         pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
         pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
 
@@ -517,8 +658,34 @@ class Avar(classModule.Module):
         follicle.rename(follicle_name)
         follicle.setParent(self.grp_rig)
 
+
+        #
+        # Apply sensibility on the ctrl
+        #
+        # Create a Orig copy of the original shape.
+        ctrl_shape = ctrl.node.getShape()
+        ctrl_shape_orig = pymel.duplicate(ctrl.node.getShape())[0]
+        ctrl_shape_orig.intermediateObject.set(True)
+
+        # Apply scaling on the ctrl parent.
+        # This is were the 'black magic' happen.
+        pymel.connectAttr(attr_sensitiviry_lr, ctrl.offset.scaleX)
+        pymel.connectAttr(attr_sensitiviry_ud, ctrl.offset.scaleY)
+        pymel.connectAttr(attr_sensitiviry_fb, ctrl.offset.scaleZ)
+
+        # Counter-scale the shape
+        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix', inputScaleX=attr_sensibility_lr_inv,
+                                                                 inputScaleY=attr_sensibility_ud_inv,
+                                                                 inputScaleZ=attr_sensibility_fb_inv).outputMatrix
+        attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm,
+                                                                 inputGeometry=ctrl_shape_orig.local).outputGeometry
+        pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
+
+        #
+        # HACK: Fix rotation issues.
         # The doritos setup can be hard to control when the rotation of the controller depend on the follicle since
         # any deformation can affect the normal of the faces.
+        #
         jnt_head = rig.get_head_jnt()
         if jnt_head:
             pymel.disconnectAttr(layer_doritos_fol.rx)
@@ -530,7 +697,8 @@ class Avar(classModule.Module):
 
         return layer_doritos
 
-    def build(self, rig, constraint=True, create_ctrl_macro=True, create_ctrl_micro=False, **kwargs):
+
+    def build(self, rig, constraint=True, create_ctrl_macro=True, create_ctrl_micro=False, ctrl_size=None, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
@@ -541,9 +709,6 @@ class Avar(classModule.Module):
         ref_tm = self.jnt.getMatrix(worldSpace=True)
         ref_pos = self.jnt.getTranslation(space='world')
 
-        self.add_avars(self.grp_rig)
-        self.fetch_avars()
-
         dag_stack_name = nomenclature_rig.resolve('dagStack')
         self._dag_stack = self._build_dag_stack(rig, **kwargs)
         self._dag_stack.setMatrix(ref_tm)
@@ -553,18 +718,24 @@ class Avar(classModule.Module):
         # Create the macro ctrl
         #
         if create_ctrl_macro:
-            ctrl_macro_name = nomenclature_anm.resolve('macro')
+            ctrl_macro_name = nomenclature_anm.resolve()
             if not isinstance(self.ctrl_macro, self._CLS_CTRL_MACRO):
                 self.ctrl_macro = self._CLS_CTRL_MACRO()
-            self.ctrl_macro.build(name=ctrl_macro_name)
+            self.ctrl_macro.build(name=ctrl_macro_name, size=ctrl_size)
             self.ctrl_macro.setTranslation(ref_pos)
             #self.ctrl_macro.setMatrix(ref_tm)
             self.ctrl_macro.setParent(self.grp_anm)
             self.ctrl_macro.connect_avars(self.attr_avar_ud, self.attr_avar_lr, self.attr_avar_fb)
 
-            doritos = self._create_doritos_setup_2(rig, self.ctrl_macro)
+            doritos = self._create_doritos_setup_2(rig, self.ctrl_macro,
+                                  sensitivity_ud=self._default_sensitivity_ud,
+                                  sensitivity_lr=self._default_sensitivity_lr,
+                                  sensitivity_fb=self._default_sensitivity_fb
+                                  )
             if doritos:
                 pymel.parentConstraint(doritos, self.ctrl_macro.offset, maintainOffset=True)
+
+
 
 
         #
@@ -603,103 +774,6 @@ class Avar(classModule.Module):
 
         if constraint:
             pymel.parentConstraint(self._dag_stack.node, self.jnt)
-
-    def hold_avars(self):
-        """
-        Create a network to hold all the avars complex connection.
-        This prevent Maya from deleting our connection when unbuilding.
-        """
-        self.avar_network = pymel.createNode('network')
-        self.add_avars(self.avar_network)
-
-        def attr_have_animcurve_input(attr):
-            attr_input = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
-            if attr_input is None:
-                return False
-
-            attr_input_node = attr_input.node()
-
-            if isinstance(attr_input_node, pymel.nodetypes.AnimCurve):
-                return True
-
-            if isinstance(attr_input_node , pymel.nodetypes.BlendWeighted):
-                for blendweighted_input in attr_input_node.input:
-                    if attr_have_animcurve_input(blendweighted_input):
-                        return True
-
-            return False
-
-        avar_attr_names = cmds.listAttr(self.avar_network.__melobject__(), userDefined=True)
-        for attr_name in avar_attr_names :
-            attr_src = self.grp_rig.attr(attr_name)
-            attr_dst = self.avar_network.attr(attr_name)
-            #libAttr.transfer_connections(attr_src, attr_dst)
-
-            if attr_have_animcurve_input(attr_src):
-                attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
-                pymel.disconnectAttr(attr_src_inn, attr_src)
-                pymel.connectAttr(attr_src_inn, attr_dst)
-
-            # Transfer output connections
-            for attr_src_out in attr_src.outputs(plugs=True):
-                pymel.disconnectAttr(attr_src, attr_src_out)
-                pymel.connectAttr(attr_dst, attr_src_out)
-
-        # Finaly, to prevent Maya from deleting our driven keys, remove any connection that is NOT a driven key.
-        '''
-        def can_delete_connection(attr):
-            attr_inn = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
-            if attr_inn is None:
-                return False
-
-            if isinstance(attr_inn, pymel.nodetypes.BlendWeighted):
-                
-
-
-            for hist in attr.listHistory():
-                if isinstance(hist, pymel.nodetypes.AnimCurve):
-                    return False
-                elif isinstance(hist, pymel.nodetypes.Transform):
-                    return True
-            return False
-
-        for attr in self.avar_network.listAttr(userDefined=True):
-            attr_inn = next(iter(attr.inputs(plugs=True)), None)
-            if attr_inn:
-                if can_delete_connection(attr):
-                    pymel.warning("Deleting {0} to {1}".format(attr_inn, attr))
-                    #pymel.disconnectAttr(attr_inn, attr)
-        '''
-
-
-    def fetch_avars(self):
-        """
-        If a previously created network have be created holding avars connection,
-        we'll transfert thoses connections back to the grp_rig node.
-        Note that the avars have to been added to the grp_rig before..
-        """
-        if libPymel.is_valid_PyNode(self.avar_network):
-            for attr_name in cmds.listAttr(self.avar_network.__melobject__(), userDefined=True):
-                attr_src = self.avar_network.attr(attr_name)
-                attr_dst = self.grp_rig.attr(attr_name)
-                libAttr.transfer_connections(attr_src, attr_dst)
-            pymel.delete(self.avar_network)
-            self.avar_network = None
-    
-    def unbuild(self):
-        # self.attr_avar_ud = libAttr.hold_attrs(self.attr_avar_ud)
-        # self.attr_avar_lr = libAttr.hold_attrs(self.attr_avar_lr)
-        # self.attr_avar_fb = libAttr.hold_attrs(self.attr_avar_fb)
-        # self.attr_avar_yw = libAttr.hold_attrs(self.attr_avar_yw)
-        # self.attr_avar_pt = libAttr.hold_attrs(self.attr_avar_pt)
-        # self.attr_avar_rl = libAttr.hold_attrs(self.attr_avar_rl)
-
-        self.hold_avars()
-        self.init_avars()
-
-        #raise Exception()
-
-        super(Avar, self).unbuild()
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):

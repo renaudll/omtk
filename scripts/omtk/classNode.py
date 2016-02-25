@@ -72,4 +72,5 @@ class Node(object):
     def unbuild(self, *args, **kwargs):
         pymel.delete(self.node)
         self.node = None
+        self._layers = []
 

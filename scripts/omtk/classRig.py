@@ -176,9 +176,6 @@ class Rig(object):
         # Prebuild
         #
 
-        # HACK: Load matrixNodes.dll
-        pymel.loadPlugin('matrixNodes', quiet=True)
-
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
         all_root_jnts = libPymel.ls_root(type='joint')

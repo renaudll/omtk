@@ -10,6 +10,9 @@ for dependency in __dependencies__:
     path = os.path.realpath(os.path.join(current_dir, *dependency))
     sys.path.append(path)
 
+# HACK: Load matrixNodes.dll
+pymel.loadPlugin('matrixNodes', quiet=True)
+
 import core
 from core import *
 

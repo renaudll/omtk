@@ -739,3 +739,70 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
 
     if not attr_dst.isDestination():
         pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)
+
+def get_closest_point_on_mesh(mesh, pos):
+    # TODO: maybe support multiple uv sets?
+    util_cpom = create_utility_node('closestPointOnMesh',
+        inPosition=pos,
+        inMesh=mesh.worldMesh
+    )
+
+    pos = util_cpom.position.get()
+    u = util_cpom.parameterU.get()
+    v = util_cpom.parameterV.get()
+
+    pymel.delete(util_cpom)
+
+    return pos, u, v
+
+def get_closest_point_on_surface(nurbsSurface, pos):
+    # closestPointOnSurface don't listen to transform so we'll need to duplicate the shape.
+    util_cpos = create_utility_node('closestPointOnSurface',
+        inPosition=pos,
+        inputSurface=nurbsSurface.worldSpace
+    )
+
+    pos = util_cpos.position.get()
+    u = util_cpos.parameterU.get()
+    v = util_cpos.parameterV.get()
+
+    # follicles use normalized uv's when attaching to nurbs so we need to know the uv min max values
+    surface_min_u, surface_max_u = nurbsSurface.minMaxRangeU.get()
+    surface_min_v, surface_max_v = nurbsSurface.minMaxRangeV.get()
+    u = abs( (u - surface_min_u) / (surface_max_u - surface_min_u) )
+    v = abs( (v - surface_min_v) / (surface_max_v - surface_min_v) )
+
+    pymel.delete(util_cpos)
+
+    return pos, u, v
+
+def create_follicle2(shape, u=0, v=0, connect_transform=True):
+    """
+    Alternative to djRivet when you already know the u and v values.
+    :param shape: The nurbsSurface to attach the follicle.
+    :param u: The value of the follicle parameterU. Default to 0.
+    :param v: The value of the follicle parameterV. Default to 0.
+    :param connect_transform: If True, the output position and rotation will affect the follicle transform. Set the False if you wish to delete the transform afterward.
+    :return: The created follicle shape.
+    """
+    follicle_shape = pymel.createNode('follicle')
+    follicle_shape.parameterU.set(u)
+    follicle_shape.parameterV.set(v)
+
+    # HACK: If a transform was provided, use the first surface.
+    if isinstance(shape, pymel.nodetypes.Transform):
+        shape = shape.getShape()
+
+    if isinstance(shape, pymel.nodetypes.NurbsSurface):
+        pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
+    elif isinstance(shape, pymel.nodetypes.Mesh):
+        pymel.connectAttr(shape.worldMesh, follicle_shape.inputMesh)
+    else:
+        raise Exception("Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(shape.type(), shape))
+
+    if connect_transform:
+        follicle_transform = follicle_shape.getParent()
+        pymel.connectAttr(follicle_shape.outTranslate, follicle_transform.translate)
+        pymel.connectAttr(follicle_shape.outRotate, follicle_transform.rotate)
+
+    return follicle_shape

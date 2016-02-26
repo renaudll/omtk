@@ -103,16 +103,16 @@ class Rig(object):
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
         self.modules = []
-        self.grp_anms = None
-        self.grp_geos = None
-        self.grp_jnts = None
-        self.grp_rigs = None
+        self.grp_anm = None
+        self.grp_geo = None
+        self.grp_jnt = None
+        self.grp_rig = None
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
 
     def __str__(self):
-        return '<rig {0}/>'.format(self.name)
+        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
 
     #
     # libSerialization implementation
@@ -150,12 +150,7 @@ class Rig(object):
         """
         :return: True if any module dag nodes exist in the scene.
         """
-        for child in self.modules:  # note: libSerialization can return None anytime
-            if not child:
-                continue
-            if child.is_built():
-                return True
-        return False
+        return self.grp_anm is not None and self.grp_anm.exists()
 
     def _clean_invalid_pynodes(self):
         fnCanDelete = lambda x: (isinstance(x, (pymel.PyNode, pymel.Attribute)) and not libPymel.is_valid_PyNode(x))
@@ -188,13 +183,13 @@ class Rig(object):
         # If needed, parent orphan joints to this one
         all_root_jnts = libPymel.ls_root(type='joint')
 
-        if not libPymel.is_valid_PyNode(self.grp_jnts):
+        if not libPymel.is_valid_PyNode(self.grp_jnt):
             if cmds.objExists(self.nomenclature.root_jnt_name):
-                self.grp_jnts = pymel.PyNode(self.nomenclature.root_jnt_name)
+                self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
             else:
-                self.grp_jnts = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
+                self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
 
-        all_root_jnts.setParent(self.grp_jnts)
+        all_root_jnts.setParent(self.grp_jnt)
 
         # Ensure all joinst have segmentScaleComprensate deactivated.
         # This allow us to scale adequately and support video game rigs.
@@ -211,9 +206,10 @@ class Rig(object):
 
         modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
         for module in modules:
-            print("Building {0}...".format(module))
             #try:
-            module.build(self, **kwargs)
+            if not module.is_built():
+                print("Building {0}...".format(module))
+                module.build(self, **kwargs)
             #except Exception, e:
             #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
             #    traceback.print_stack()
@@ -246,60 +242,60 @@ class Rig(object):
 
         # Create anm root
         anm_grps = [module.grp_anm for module in self.modules if module.grp_anm is not None]
-        if not isinstance(self.grp_anms, CtrlRoot):
-            self.grp_anms = CtrlRoot()
-        if not self.grp_anms.is_built():
+        if not isinstance(self.grp_anm, CtrlRoot):
+            self.grp_anm = CtrlRoot()
+        if not self.grp_anm.is_built():
             grp_anm_size = CtrlRoot._get_recommended_radius()
-            self.grp_anms.build(size=grp_anm_size)
-        self.grp_anms.rename(self.nomenclature.root_anm_name)
+            self.grp_anm.build(size=grp_anm_size)
+        self.grp_anm.rename(self.nomenclature.root_anm_name)
         for anm_grp in anm_grps:
-            anm_grp.setParent(self.grp_anms)
+            anm_grp.setParent(self.grp_anm)
 
         # Connect globalScale attribute to each modules globalScale.
         for module in self.modules:
             if module.globalScale:
-                pymel.connectAttr(self.grp_anms.globalScale, module.globalScale, force=True)
+                pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
         # Constraint grp_jnts to grp_anms
-        pymel.delete([module for module in self.grp_jnts.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
-        pymel.parentConstraint(self.grp_anms, self.grp_jnts, maintainOffset=True)
-        pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleX, force=True)
-        pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleY, force=True)
-        pymel.connectAttr(self.grp_anms.globalScale, self.grp_jnts.scaleZ, force=True)
+        pymel.delete([module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
+        pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
+        pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
+        pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
+        pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
 
         # Create rig root
         rig_grps = [module.grp_rig for module in self.modules if module.grp_rig is not None]
-        if not isinstance(self.grp_rigs, Node):
-            self.grp_rigs = Node()
-        if not self.grp_rigs.is_built():
-            self.grp_rigs.build()
-        self.grp_rigs.rename(self.nomenclature.root_rig_name)
+        if not isinstance(self.grp_rig, Node):
+            self.grp_rig = Node()
+        if not self.grp_rig.is_built():
+            self.grp_rig.build()
+        self.grp_rig.rename(self.nomenclature.root_rig_name)
         for rig_grp in rig_grps:
-            rig_grp.setParent(self.grp_rigs)
+            rig_grp.setParent(self.grp_rig)
 
         # Create geo root
         all_geos = libPymel.ls_root_geos()
-        if not isinstance(self.grp_geos, Node):
-            self.grp_geos = Node()
-        if not self.grp_geos.is_built():
-            self.grp_geos.build()
-        self.grp_geos.rename(self.nomenclature.root_geo_name)
-        all_geos.setParent(self.grp_geos)
+        if not isinstance(self.grp_geo, Node):
+            self.grp_geo = Node()
+        if not self.grp_geo.is_built():
+            self.grp_geo.build()
+        self.grp_geo.rename(self.nomenclature.root_geo_name)
+        all_geos.setParent(self.grp_geo)
 
         # Setup displayLayers
         self.layer_anm = pymel.createDisplayLayer(name=self.nomenclature.layer_anm_name, number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anms, noRecurse=True)
+        pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm, noRecurse=True)
         self.layer_anm.color.set(17)  # Yellow
 
         self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rigs, noRecurse=True)
-        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnts, noRecurse=True)
+        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rig, noRecurse=True)
+        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnt, noRecurse=True)
         self.layer_rig.color.set(13)  # Red
         #self.layer_rig.visibility.set(0)  # Hidden
         self.layer_rig.displayType.set(2)  # Frozen
 
         self.layer_geo = pymel.createDisplayLayer(name=self.nomenclature.layer_geo_name, number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geos, noRecurse=True)
+        pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
         self.layer_geo.color.set(12)  # Green?
         self.layer_geo.displayType.set(2)  # Frozen
 
@@ -318,13 +314,13 @@ class Rig(object):
                 child.unbuild(**kwargs)
 
         # Delete anm_grp
-        if isinstance(self.grp_anms, CtrlRoot) and self.grp_anms.is_built():
-            self.grp_anms.unbuild()
+        if isinstance(self.grp_anm, CtrlRoot) and self.grp_anm.is_built():
+            self.grp_anm.unbuild()
 
         # Delete the rig group if it isnt used anymore
-        if libPymel.is_valid_PyNode(self.grp_rigs) and len(self.grp_rigs.getChildren()) == 0:
-            pymel.delete(self.grp_rigs)
-            self.grp_rigs = None
+        if libPymel.is_valid_PyNode(self.grp_rig) and len(self.grp_rig.getChildren()) == 0:
+            pymel.delete(self.grp_rig)
+            self.grp_rig = None
 
         # Delete the displayLayers
         if libPymel.is_valid_PyNode(self.layer_anm):
@@ -337,7 +333,9 @@ class Rig(object):
             pymel.delete(self.layer_rig)
 
         # Remove any references to missing pynodes
+        #HACK --> Remove clean invalid PyNode
         self._clean_invalid_pynodes()
+        self.modules = []
 
         return True
 

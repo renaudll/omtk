@@ -145,11 +145,10 @@ class Module(object):
         else:
             self.input = []
 
+        self.name = '{0}_{1}'.format(self.ref_name, str(self.__class__.__name__))
+
     def __str__(self):
-        if self.input:
-            return '{0} ({1})'.format(str(self.__class__.__name__), self.ref_name)
-        else:
-            return '{0} (no inputs)'.format(self.__class__.__name__)
+        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
 
     #
     # libSerialization implementation

@@ -289,15 +289,9 @@ class Avar(AbstractAvar):
         self.ctrl_macro = None
         self.ctrl_micro = None
 
-        # Note that theres values will be overriden during the build() execution.
-        self._default_sensitivity_lr = 1.0
-        self._default_sensitivity_ud = 1.0
-        self._default_sensitivity_fb = 1.0
-
         # TODO: Move to build, we don't want 1000 member properties.
-        self._length_lr = None
-        self._length_ud = None
-        self._length_fb = None
+        self._attr_length_v = None
+        self._attr_length_u = None
 
     @libPython.cached_property()
     def jnt(self):
@@ -311,39 +305,19 @@ class Avar(AbstractAvar):
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
 
-    def build_layer_follicle(self):
-
-
-
-    def _build_dag_stack(self, rig, mult_u=1.0, mult_v=1.0):
-        """
-        The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
-        the drived joint.
-        """
+    def _build_layer_follicle(self, rig, stack):
         nomenclature_rig = self.get_nomenclature_rig(rig)
-        dag_stack_name = nomenclature_rig.resolve('stack')
-        stack = classNode.Node()
-        stack.build(name=dag_stack_name)
+        jnt_tm = self.jnt.getMatrix(worldSpace=True)
 
-        # Determine the UD and LR length using the provided surface.
-        # The FB length will use 10% the v arcLength of the plane.
-        attr_length_u, attr_length_v, arclengthdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
-        arclengthdimension_shape.getParent().setParent(self.grp_rig)
-        self._length_lr = attr_length_u.get()
-        self._length_ud = attr_length_v.get()
-        self._length_fb = self._length_ud * 0.1
-        #self._default_sensitivity_lr = self._length_lr
-        #self._default_sensitivity_ud = self._length_ud
-        #self._default_sensitivity_fb = self._length_fb
+        # Determine the follicle U and V on the reference nurbsSurface.
+        jnt_pos = self.jnt.getTranslation(space='world')
+        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, jnt_pos)
 
         # Create an offset layer so everything start at the same parent space.
         layer_offset_name = nomenclature_rig.resolve('offset')
         layer_offset = stack.add_layer()
         layer_offset.rename(layer_offset_name)
-        layer_offset.setMatrix(self.jnt.getMatrix(worldSpace=True))
-
-        jnt_tm = self.jnt.getMatrix(worldSpace=True)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        layer_offset.setMatrix(jnt_tm)
 
         #
         # Create follicle setup
@@ -356,20 +330,28 @@ class Avar(AbstractAvar):
         offset_name = nomenclature_rig.resolve('bindPoseRef')
         obj_offset = pymel.createNode('transform', name=offset_name)
         obj_offset.setParent(stack._layers[0])
-        obj_offset.setMatrix(jnt_tm, worldSpace=True)
+        #obj_offset.setMatrix(jnt_tm, worldSpace=True)
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
-        fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
+        #fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
+        fol_offset_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_offset = fol_offset_shape.getParent()
+        fol_offset.rename(fol_offset_name)
+        pymel.parentConstraint(fol_offset, obj_offset, maintainOffset=False)
         fol_offset.setParent(self.grp_rig)
 
         # Create the influence follicle
         influence_name = nomenclature_rig.resolve('influenceRef')
         influence = pymel.createNode('transform', name=influence_name)
         influence.setParent(stack._layers[0])
-        influence.setMatrix(jnt_tm, worldSpace=True)
+        #influence.setMatrix(jnt_tm, worldSpace=True)
 
         fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
-        fol_influence = libRigging.create_follicle(influence, self.surface, name=fol_influence_name)
+        #fol_influence = libRigging.create_follicle(influence, self.surface, name=fol_influence_name)
+        fol_influence_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_influence = fol_influence_shape.getParent()
+        fol_influence.rename(fol_influence_name)
+        pymel.parentConstraint(fol_influence, influence, maintainOffset=False)
         fol_influence.setParent(self.grp_rig)
 
         # Extract the delta of the influence follicle and it's initial pose follicle
@@ -396,11 +378,8 @@ class Avar(AbstractAvar):
         attr_u_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U, k=True)
         attr_v_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V, k=True)
 
-        self._attr_u_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=mult_u)
-        self._attr_v_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=mult_v)
-
-        #attr_u_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_u_inn, input2X=mult_u).outputX
-        #attr_v_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_v_inn, input2X=mult_v).outputX
+        self._attr_u_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=1.0)
+        self._attr_v_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=1.0)
 
         # Connect UD to V
         attr_get_v_offset = libRigging.create_utility_node('multiplyDivide',
@@ -436,29 +415,35 @@ class Avar(AbstractAvar):
         pymel.connectAttr(self._attr_v_base, fol_offset.parameterV)
 
         #
-        # Out-Of-Bound Layer
+        # The OOB layer (out-of-bound) allow the follicle to go outside it's original plane.
         # HACK: If the UD value is out the nurbsPlane UV range (0-1), ie 1.1, we'll want to still offset the follicle.
         # For that we'll compute a delta between a small increment (0.99 and 1.0) and multiply it.
         #
+        nomenclature_rig = self.get_nomenclature_rig(rig)
         oob_step_size = 0.001  # TODO: Expose a Maya attribute?
+        jnt_tm = self.jnt.getMatrix(worldSpace=True)
 
         # TODO: Don't use any dagnode for this... djRivet is slow and overkill
+        '''
         inf_clamped_v_name= nomenclature_rig.resolve('influenceClampedVRef')
         inf_clamped_v = pymel.createNode('transform', name=inf_clamped_v_name)
         inf_clamped_v.setParent(stack._layers[0])
-        inf_clamped_v.setMatrix(jnt_tm, worldSpace=True)
 
         inf_clamped_u_name= nomenclature_rig.resolve('influenceClampedURef')
         inf_clamped_u = pymel.createNode('transform', name=inf_clamped_u_name)
         inf_clamped_u.setParent(stack._layers[0])
-        inf_clamped_u.setMatrix(jnt_tm, worldSpace=True)
+        '''
 
         fol_clamped_v_name = nomenclature_rig.resolve('influenceClampedV')
-        fol_clamped_v = libRigging.create_follicle(inf_clamped_v, self.surface, constraint=False, name=fol_clamped_v_name)  # TODO: Is djRivet necessary here?
+        fol_clamped_v_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_clamped_v = fol_clamped_v_shape.getParent()
+        fol_clamped_v.rename(fol_clamped_v_name)
         fol_clamped_v.setParent(self.grp_rig)
 
         fol_clamped_u_name = nomenclature_rig.resolve('influenceClampedU')
-        fol_clamped_u = libRigging.create_follicle(inf_clamped_u, self.surface, constraint=False, name=fol_clamped_u_name)
+        fol_clamped_u_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_clamped_u = fol_clamped_u_shape.getParent()
+        fol_clamped_u.rename(fol_clamped_u_name)
         fol_clamped_u.setParent(self.grp_rig)
 
         # Clamp the values so they never fully reach 0 or 1 for U and V.
@@ -576,20 +561,22 @@ class Avar(AbstractAvar):
         layer_oob = stack.add_layer('outOfBound')
         pymel.connectAttr(oob_offset, layer_oob.t)
 
-
+    def _build_layer_fb(self, rig, stack):
         # Create the FB setup.
         layer_fb = stack.add_layer('frontBack')
         attr_get_fb = libRigging.create_utility_node('multiplyDivide',
                                                      input1X=self.attr_avar_fb,
-                                                     input2X=attr_length_u).outputX
+                                                     input2X=self._attr_length_u).outputX
         attr_get_fb_adjusted = libRigging.create_utility_node('multiplyDivide',
                                                               input1X=attr_get_fb,
                                                               input2X=0.1).outputX
         pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
 
+    def _build_layer_rot(self, rig, stack):
         #
         #  Create a layer before the ctrl to apply the YW, PT and RL avar.
         #
+        nomenclature_rig = self.get_nomenclature_rig(rig)
         layer_rot_name = nomenclature_rig.resolve('rotation')
         layer_rot = stack.add_layer()
         layer_rot.rename(layer_rot_name)
@@ -598,11 +585,26 @@ class Avar(AbstractAvar):
         pymel.connectAttr(self.attr_avar_pt, layer_rot.rotateY)
         pymel.connectAttr(self.attr_avar_rl, layer_rot.rotateZ)
 
+    def build_stack(self, rig):
+        """
+        The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
+        the drived joint.
+        """
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+        dag_stack_name = nomenclature_rig.resolve('stack')
+        stack = classNode.Node()
+        stack.build(name=dag_stack_name)
+        
+        # Determine the UD and LR length using the provided surface.
+        # The FB length will use 10% the v arcLength of the plane.
+        self._attr_length_u, self._attr_length_v, arclengthdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
+        arclengthdimension_shape.getParent().setParent(self.grp_rig)
 
+        self._build_layer_follicle(rig, stack)
+        self._build_layer_fb(rig, stack)
+        self._build_layer_rot(rig, stack)
 
         return stack
-
-
 
     def add_doritos_on_ctrl(self, rig, ctrl, sensitivity_lr=1.0, sensitivity_ud=1.0, sensitivity_fb=1.0):
         """
@@ -655,12 +657,18 @@ class Avar(AbstractAvar):
         pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
         pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
 
+        # Resolve the follicle U and V
+        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, layer_doritos_fol.getTranslation(space='world'))
+
         # TODO: Validate that we don't need to inverse the rotation separately.
         follicle_name = nomenclature_rig.resolve('doritosFollicle')
-        follicle = libRigging.create_follicle(layer_doritos_fol, obj_mesh)
+        #follicle = libRigging.create_follicle(layer_doritos_fol, obj_mesh)
+        follicle_shape = libRigging.create_follicle2(obj_mesh, u=fol_u, v=fol_v)
+        follicle = follicle_shape.getParent()
+        pymel.parentConstraint(follicle, layer_doritos_fol, maintainOffset=True)
+        follicle = follicle_shape.getParent()
         follicle.rename(follicle_name)
         follicle.setParent(self.grp_rig)
-
 
         #
         # Apply sensibility on the ctrl
@@ -733,7 +741,7 @@ class Avar(AbstractAvar):
 
         return layer_doritos
 
-
+    @libPython.profiler
     def build(self, rig, constraint=True, create_ctrl_macro=True, create_ctrl_micro=False, ctrl_size=None, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
@@ -745,8 +753,7 @@ class Avar(AbstractAvar):
         ref_tm = self.jnt.getMatrix(worldSpace=True)
         ref_pos = self.jnt.getTranslation(space='world')
 
-        dag_stack_name = nomenclature_rig.resolve('dagStack')
-        self._dag_stack = self._build_dag_stack(rig, **kwargs)
+        self._dag_stack = self.build_stack(rig, **kwargs)
         self._dag_stack.setMatrix(ref_tm)
         self._dag_stack.setParent(self.grp_rig)
 
@@ -768,15 +775,7 @@ class Avar(AbstractAvar):
             self.ctrl_macro.setParent(self.grp_anm)
             self.ctrl_macro.connect_avars(self.attr_avar_ud, self.attr_avar_lr, self.attr_avar_fb)
 
-            self.add_doritos_on_ctrl(rig, self.ctrl_macro,
-                                               sensitivity_ud=self._default_sensitivity_ud,
-                                               sensitivity_lr=self._default_sensitivity_lr,
-                                               sensitivity_fb=self._default_sensitivity_fb
-                                               )
-            #if doritos:
-            #    pymel.parentConstraint(doritos, self.ctrl_macro.offset, maintainOffset=True)
-
-
+            self.add_doritos_on_ctrl(rig, self.ctrl_macro)
 
 
         #
@@ -810,10 +809,6 @@ class Avar(AbstractAvar):
             pymel.connectAttr(self.ctrl_micro.scale, layer_ctrl.scale)
 
             self.add_doritos_on_ctrl(rig, self.ctrl_micro)
-
-            #pymel.parentConstraint(doritos, self.ctrl_micro.offset, maintainOffset=True)
-
-
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):

@@ -311,6 +311,10 @@ class Avar(AbstractAvar):
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
 
+    def build_layer_follicle(self):
+
+
+
     def _build_dag_stack(self, rig, mult_u=1.0, mult_v=1.0):
         """
         The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
@@ -600,7 +604,7 @@ class Avar(AbstractAvar):
 
 
 
-    def _create_doritos_setup_2(self, rig, ctrl, sensitivity_lr=1.0, sensitivity_ud=1.0, sensitivity_fb=1.0):
+    def add_doritos_on_ctrl(self, rig, ctrl, sensitivity_lr=1.0, sensitivity_ud=1.0, sensitivity_fb=1.0):
         """
         A doritos setup allow a ctrl to be directly constrained on the final mesh via a follicle.
         To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
@@ -627,7 +631,6 @@ class Avar(AbstractAvar):
         attr_sensibility_lr_inv = util_sensitivity_inv.outputX
         attr_sensibility_ud_inv = util_sensitivity_inv.outputY
         attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
-
 
         # doritos_name
         stack_name = nomenclature_rig.resolve('doritosStack')
@@ -694,6 +697,39 @@ class Avar(AbstractAvar):
             pymel.orientConstraint(jnt_head, layer_doritos_fol, maintainOffset=True)
 
         stack.setParent(self.grp_rig)
+        pymel.parentConstraint(layer_doritos, ctrl.offset, maintainOffset=True)
+
+        #
+        # Automatically adjust the sensibility by anylising the weightmaps
+        # TODO: Benchmark the impact on performance.
+        #
+        epsilon=0.01
+
+        def resolve_sensitivity(attr, ref, step_size=0.1):
+            attr.set(0)
+            pos_s = ref.getTranslation(space='world')
+            attr.set(step_size)
+            pos_e = ref.getTranslation(space='world')
+            attr.set(0)
+            return libPymel.distance_between_vectors(pos_s, pos_e) / step_size
+
+        sensitivity_lr = resolve_sensitivity(self.attr_avar_lr, follicle)
+        if sensitivity_lr > epsilon:
+            attr_sensitiviry_lr.set(sensitivity_lr)
+        else:
+            print "Can't detect LR sensibility for {0}".format(follicle)
+
+        sensitivity_ud = resolve_sensitivity(self.attr_avar_ud, layer_doritos_fol)
+        if sensitivity_ud > epsilon:
+            attr_sensitiviry_ud.set(sensitivity_ud)
+        else:
+            print "Can't detect UD sensibility for {0}".format(follicle)
+
+        sensitivity_fb = resolve_sensitivity(self.attr_avar_fb, layer_doritos_fol)
+        if sensitivity_fb > epsilon:
+            attr_sensitiviry_fb.set(sensitivity_fb)
+        else:
+            print "Can't detect FB sensibility for {0}".format(follicle)
 
         return layer_doritos
 
@@ -714,6 +750,11 @@ class Avar(AbstractAvar):
         self._dag_stack.setMatrix(ref_tm)
         self._dag_stack.setParent(self.grp_rig)
 
+        # Note that we connect the joint before creating the controllers.
+        # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
+        if constraint:
+            pymel.parentConstraint(self._dag_stack.node, self.jnt)
+
         #
         # Create the macro ctrl
         #
@@ -727,13 +768,13 @@ class Avar(AbstractAvar):
             self.ctrl_macro.setParent(self.grp_anm)
             self.ctrl_macro.connect_avars(self.attr_avar_ud, self.attr_avar_lr, self.attr_avar_fb)
 
-            doritos = self._create_doritos_setup_2(rig, self.ctrl_macro,
-                                  sensitivity_ud=self._default_sensitivity_ud,
-                                  sensitivity_lr=self._default_sensitivity_lr,
-                                  sensitivity_fb=self._default_sensitivity_fb
-                                  )
-            if doritos:
-                pymel.parentConstraint(doritos, self.ctrl_macro.offset, maintainOffset=True)
+            self.add_doritos_on_ctrl(rig, self.ctrl_macro,
+                                               sensitivity_ud=self._default_sensitivity_ud,
+                                               sensitivity_lr=self._default_sensitivity_lr,
+                                               sensitivity_fb=self._default_sensitivity_fb
+                                               )
+            #if doritos:
+            #    pymel.parentConstraint(doritos, self.ctrl_macro.offset, maintainOffset=True)
 
 
 
@@ -768,12 +809,11 @@ class Avar(AbstractAvar):
             pymel.connectAttr(self.ctrl_micro.rotate, layer_ctrl.rotate)
             pymel.connectAttr(self.ctrl_micro.scale, layer_ctrl.scale)
 
-            doritos = self._create_doritos_setup_2(rig, self.ctrl_micro)
+            self.add_doritos_on_ctrl(rig, self.ctrl_micro)
 
-            pymel.parentConstraint(doritos, self.ctrl_micro.offset, maintainOffset=True)
+            #pymel.parentConstraint(doritos, self.ctrl_micro.offset, maintainOffset=True)
 
-        if constraint:
-            pymel.parentConstraint(self._dag_stack.node, self.jnt)
+
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):

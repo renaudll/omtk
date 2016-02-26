@@ -140,12 +140,13 @@ class Module(object):
         #  since we're using hook on inputs, assign it last!
         if input:
             if not isinstance(input, list):
-                raise IOError("Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
+                raise IOError("Unexpected type for argument input. Expected list, got {0}. { 1}".format(type(input), input))
             self.input = input
+            self.name = '{0}_{1}'.format(self.ref_name ,str(self.__class__.__name__))
         else:
             self.input = []
+            self.name = '{0}'.format(str(self.__class__.__name__))
 
-        self.name = '{0}_{1}'.format(self.ref_name, str(self.__class__.__name__))
 
     def __str__(self):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)

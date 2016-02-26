@@ -335,7 +335,8 @@ class Rig(object):
         # Remove any references to missing pynodes
         #HACK --> Remove clean invalid PyNode
         self._clean_invalid_pynodes()
-        self.modules = []
+        if self.modules is None:
+            self.modules = []
 
         return True
 

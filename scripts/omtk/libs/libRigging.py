@@ -74,6 +74,7 @@ def hold_ctrl_shapes(transform, parent=None):
 
     new_name = '_{0}'.format(transform.name())
     cmds.rename(snapshot.longName(), new_name)  # For strange reasons, using .rename don't always work.
+    snapshot.template.set(True)
     return snapshot
 
 
@@ -81,6 +82,7 @@ def fetch_ctrl_shapes(source, target):
     # Remove any previous shapes
     pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), target.getShapes()))
     for source_shape in source.getShapes():
+        source_shape.template.set(False)
         source_shape.setParent(target, r=True, s=True)
         source_shape.rename(target.name() + 'Shape')
 

@@ -88,11 +88,20 @@ def transfer_weights_replace(source, target):
     Quickly transfer weight for a source to a target by swapping the connection.
     Fast but only usefull when you are willing to lose the weights stored in target.
     """
-    if source.hasAttr('lockInfluenceWeights') and target.hasAttr('lockInfluenceWeights'):
+    skinToReset = set()
+
+    if source.hasAttr('lockInfluenceWeights'):
         attr_lockInfluenceWeights_src = source.lockInfluenceWeights
-        attr_lockInfluenceWeights_dst = target.lockInfluenceWeights
+        #The target bone could possibly not have the attribute
+        if target.hasAttr('lockInfluenceWeights'):
+            attr_lockInfluenceWeights_dst = target.lockInfluenceWeights
+        else:
+            target.addAttr("lockInfluenceWeights", at="bool")
+            attr_lockInfluenceWeights_dst = target.lockInfluenceWeights
+            attr_lockInfluenceWeights_dst.set(attr_lockInfluenceWeights_src.get())
         for plug in attr_lockInfluenceWeights_src.outputs(plugs=True):
             if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
+                skinToReset.add(plug.node())
                 pymel.disconnectAttr(attr_lockInfluenceWeights_src, plug)
                 pymel.connectAttr(attr_lockInfluenceWeights_dst, plug)
 
@@ -109,6 +118,9 @@ def transfer_weights_replace(source, target):
             if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
                 pymel.disconnectAttr(attr_worldMatrix_src, plug)
                 pymel.connectAttr(attr_worldMatrix_dst, plug)
+
+    #HACK : Evaluate back all skinCluster in which we changed connections
+    pymel.dgdirty(skinToReset)
 
     '''
     skinClusters = set()

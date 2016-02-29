@@ -741,7 +741,6 @@ class Avar(AbstractAvar):
 
         return layer_doritos
 
-    @libPython.profiler
     def build(self, rig, constraint=True, create_ctrl_macro=True, create_ctrl_micro=False, ctrl_size=None, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".

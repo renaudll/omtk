@@ -62,9 +62,8 @@ class ModuleFace(classAvar.AbstractAvar):
 
     @property
     def avar_low_mid(self):
-        i = (len(self.avars_upp)-1) / 2
+        i = (len(self.avars_low)-1) / 2
         return self.avars_low[i]
-
 
     def __init__(self, *args, **kwargs):
         super(ModuleFace, self).__init__(*args, **kwargs)
@@ -313,6 +312,69 @@ class ModuleFace(classAvar.AbstractAvar):
 
 
         return ctrl
+
+    def create_surface(self):
+        root = pymel.createNode('transform')
+        pymel.addAttr(root, longName='bendUpp', k=True)
+        pymel.addAttr(root, longName='bendLow', k=True)
+        pymel.addAttr(root, longName='bendSide', k=True)
+
+        # Create Guide
+        plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
+
+        # Create Bends
+        bend_side_deformer, bend_side_handle = pymel.nonLinear(plane_transform, type='bend')
+        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type='bend')
+        bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type='bend')
+
+        plane_transform.r.set(0,-90,0)
+        bend_side_handle.r.set(90, 90, 0)
+        bend_upp_handle.r.set(180, 90, 0)
+        bend_low_handle.r.set(180, 90, 0)
+        bend_upp_deformer.highBound.set(0)  # create pymel warning
+        bend_low_deformer.lowBound.set(0)  # create pymel warning
+
+        plane_transform.setParent(root)
+        bend_side_handle.setParent(root)
+        bend_upp_handle.setParent(root)
+        bend_low_handle.setParent(root)
+
+        pymel.connectAttr(root.bendSide, bend_side_deformer.curvature)
+        pymel.connectAttr(root.bendUpp, bend_upp_deformer.curvature)
+        pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
+
+        # Rename all the things!
+        root.rename('{0}_Surface_Grp'.format(self.name))
+        plane_transform.rename('{0}_Surface'.format(self.name))
+        bend_upp_deformer.rename('{0}_UppBend'.format(self.name))
+        bend_low_deformer.rename('{0}_LowBend'.format(self.name))
+        bend_side_deformer.rename('{0}_SideBend'.format(self.name))
+        bend_upp_handle.rename('{0}_UppBendHandle'.format(self.name))
+        bend_low_handle.rename('{0}_LowBendHandle'.format(self.name))
+        bend_side_handle.rename('{0}_SideBendHandle'.format(self.name))
+
+        # Try to guess the desired position
+        min_x = 0
+        max_x = 0
+        pos = pymel.datatypes.Vector()
+        for jnt in self.jnts:
+            pos += jnt.getTranslation(space='world')
+            if pos.x < min_x:
+                mix_x = pos.x
+            if pos.x > max_x:
+                max_x = pos.x
+        pos /= len(self.jnts)
+
+        length_x = max_x-min_x
+        root.setTranslation(pos)
+        root.scaleX.set(length_x)
+        root.scaleY.set(length_x*0.5)
+        root.scaleZ.set(length_x)
+
+        pymel.select(root)
+
+        self.input.append(plane_transform)
+
 
 # TODO: DEPRECATE!!!
 class AvarGroupInnMidOut(ModuleFace):

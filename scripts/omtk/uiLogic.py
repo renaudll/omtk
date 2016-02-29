@@ -399,6 +399,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             libSerialization.export_json_file(all_rigs, path)
 
     def on_update(self):
+        reload(core)
+        core._reload()
+        #reload(libSerialization)
+        #libSerialization._reload()
         self._fetch_scene_data()
         self.refresh_ui()
 

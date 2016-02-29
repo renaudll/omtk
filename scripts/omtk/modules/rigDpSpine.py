@@ -117,7 +117,15 @@ class DpSpine(Module):
         self.ctrl_fk_mid.setParent(self.ctrl_ik_dwn)
 
         # Ensure the ctrl_fk_mid follow ctrl_ik_upp and ctrl_ik_dwn
-        pymel.parentConstraint(self.ctrl_fk_dwn, self.ctrl_fk_upp, self.ctrl_fk_mid.offset, maintainOffset=True)
+        # Note that this is evil, a parentConstraint should never have two targets.
+        # HACK: To bypass flip issues, we'll use reference object that have no parent space.
+        ref_s = pymel.createNode('transform', name=nomenclature_rig.resolve('ref_s'))
+        pymel.parentConstraint(self.ctrl_fk_upp, ref_s)
+        ref_s.setParent(self.grp_rig)
+        ref_e = pymel.createNode('transform', name=nomenclature_rig.resolve('ref_e'))
+        pymel.parentConstraint(self.ctrl_fk_dwn, ref_e)
+        ref_e.setParent(self.grp_rig)
+        pymel.parentConstraint(ref_s, ref_e, self.ctrl_fk_mid.offset, maintainOffset=True)
 
         #
         # Create ribbon rig
@@ -129,7 +137,7 @@ class DpSpine(Module):
 
         # Constraint the ribbon joints to the ctrls
         pymel.parentConstraint(self.ctrl_fk_dwn, sys_ribbon._ribbon_jnts[0], maintainOffset=True)
-        pymel.pointConstraint(self.ctrl_fk_mid, sys_ribbon._ribbon_jnts[1], maintainOffset=True)
+        pymel.parentConstraint(self.ctrl_fk_mid, sys_ribbon._ribbon_jnts[1], maintainOffset=True)
         pymel.parentConstraint(self.ctrl_fk_upp, sys_ribbon._ribbon_jnts[2], maintainOffset=True)
 
         # Ensure the last ribbon chain follow the rotation of the chest ctrl.
@@ -138,6 +146,30 @@ class DpSpine(Module):
         last_jnt.rotateY.disconnect()
         last_jnt.rotateZ.disconnect()
         pymel.orientConstraint(ctrl_fk_upp_name, last_jnt, maintainOffset=True)
+
+        #HACK : The rotation of the joint will be an aim constraint instead of the follicle rotation
+        #Create intermediate obj to compute the aim constraint
+        aim_grp = pymel.createNode("transform")
+        aim_grp_name = nomenclature_rig.resolve("aimTarget_grp")
+        aim_grp.rename(aim_grp_name)
+        aim_grp.setParent(self.grp_rig)
+        for i, jnt in enumerate(self.chain_jnt):
+            if i < (len(self.chain_jnt) - 1):
+                jnt.rotateX.disconnect()
+                jnt.rotateY.disconnect()
+                jnt.rotateZ.disconnect()
+
+                target = self.ctrl_fk_mid if i == 0 else self.ctrl_fk_upp
+
+                aim_target_off = pymel.createNode("transform")
+                aim_target_off_name = nomenclature_rig.resolve("aimTargetOffset" + jnt.name())
+                aim_target_off.rename(aim_target_off_name)
+                aim_target_off.setParent(aim_grp)
+                aim_target_off.setMatrix(jnt.getMatrix(worldSpace=True))
+                pymel.parentConstraint(sys_ribbon._follicles[i], aim_target_off, mo=True)
+
+                pymel.aimConstraint(target, jnt, mo=True,
+                                    u = (0.0, 1.0, 0.0), wuo=aim_target_off, wu=(0.0, 1.0, 0.0), wut="objectrotation")
 
         #
         # Configure the squash

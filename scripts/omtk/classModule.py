@@ -66,31 +66,50 @@ class Module(object):
 
     @libPython.memoized
     def get_module_name(self):
-        return self.__class__.__name__.lower()
+        return self.name if self.name else self.__class__.__name__.lower()
 
     @libPython.memoized
     def get_nomenclature_anm(self, rig):
-        ref = next(iter(self.input), None)
-        if ref:
-            name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_anm)
-            #name.add_tokens(self.get_module_name())
-            return name
+        """
+        :return: The nomenclature to use for animation controllers.
+        """
+        name = rig.nomenclature(suffix=rig.nomenclature.type_anm)
+        name.add_tokens(self.get_module_name())
+        return name
+
+    @libPython.memoized
+    def get_nomenclature_anm_grp(self, rig):
+        """
+        :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
+        """
+        name = rig.nomenclature(suffix=rig.nomenclature.type_anm_grp)
+        name.add_tokens(self.get_module_name())
+        return name
 
     @libPython.memoized
     def get_nomenclature_rig(self, rig):
-        ref = next(iter(self.input), None)
-        if ref:
-            name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_rig)
-            #name.add_tokens(self.get_module_name())
-            return name
+        """
+        :return: The nomenclature to use for rig objects.
+        """
+        name = rig.nomenclature(suffix=rig.nomenclature.type_rig)
+        name.add_tokens(self.get_module_name())
+        return name
+
+    def get_nomenclature_rig_grp(self, rig):
+        """
+        :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
+        """
+        name = rig.nomenclature(suffix=rig.nomenclature.type_rig_grp)
+        name.add_tokens(self.get_module_name())
+        return name
 
     @libPython.memoized
     def get_nomenclature_jnt(self, rig):
-        ref = next(iter(self.input), None)
-        if ref:
-            name = rig.nomenclature(ref.nodeName(), suffix=rig.nomenclature.type_jnt)
-            #name.add_tokens(self.get_module_name())
-            return name
+        """
+        :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
+        """
+        name = rig.nomenclature(self.get_module_name(), suffix=rig.nomenclature.type_jnt)
+        return name
 
     @property
     def parent(self):
@@ -137,6 +156,7 @@ class Module(object):
         self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
         self.globalScale = None  # Each module is responsible for handling it scale!
 
+        # TODO: It is still confusing how name are choosen, please find a better way.
         #  since we're using hook on inputs, assign it last!
         if input:
             if not isinstance(input, list):
@@ -163,7 +183,7 @@ class Module(object):
         return 'net_{0}_{1}'.format(self.__class__.__name__, self.ref_name)
 
     def __createMayaNetwork__(self):
-        return pymel.createNode('network', name='net_{0}'.format(self.__class__.__name__))
+        return pymel.createNode('network', name='net_{0}'.format(self.name))
 
     def build(self, rig, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=None, parent=True):
         """
@@ -195,10 +215,10 @@ class Module(object):
                     inn.segmentScaleCompensate.set(segmentScaleCompensate)
 
         if create_grp_anm:
-            grp_anm_name = self.get_nomenclature_anm(rig).resolve()
+            grp_anm_name = self.get_nomenclature_anm_grp(rig).resolve()
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            grp_rig_name = self.get_nomenclature_rig(rig).resolve()
+            grp_rig_name = self.get_nomenclature_rig_grp(rig).resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
             # todo: keep it here?

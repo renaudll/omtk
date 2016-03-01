@@ -14,8 +14,10 @@ class BaseName(object):
     separator = '_'
 
     type_anm = 'anm'
+    type_anm_grp = 'grp'
     type_jnt = 'jnt'
     type_rig = 'rig'
+    type_rig_grp = 'grp'
 
     root_anm_name = 'anms'
     root_geo_name = 'geos'
@@ -83,6 +85,8 @@ class BaseName(object):
 
         name = self._join_tokens(tokens)
 
+        # If we have name conflicts, we WILL want to crash.
+        '''
         # Prevent maya from crashing by guarantying that the name is unique.
         if cmds.objExists(name):
             name_old = name
@@ -90,18 +94,13 @@ class BaseName(object):
             cmds.warning("Name {0} already exist, using {1} instead.".format(
                 name_old, name
             ))
+        '''
 
         return name
 
     def rename(self, obj, *args):
         name = self.resolve(*args)
         obj.rename(name)
-
-    def rename_may(self, objs, *args):
-        args.append(None)  # Reserve space for iterator
-        for i, obj in enumerate(objs):
-            args[-1] = '%02d' % i
-            self.rename(obj, *args)
 
     def __repr__(self):
         return self.resolve()

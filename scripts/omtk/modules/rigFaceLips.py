@@ -74,6 +74,7 @@ class FaceLips(classModuleFace.ModuleFace):
         self.create_ctrl(rig, self.ctrl_upp, self.jnt_upp_mid)
         #self.AvarUppMid._create_doritos_setup_2(rig, self.ctrl_upp)
         self.ctrl_upp.connect_avars(self.attr_avar_upp_ud, self.attr_avar_upp_lr, self.attr_avar_upp_fb)
+        self.avar_upp_mid.attach_ctrl(rig, self.ctrl_upp)
 
         # Create a ctrl for the whole lower lips
         ctrl_low_name = nomenclature_anm.resolve('low')
@@ -83,4 +84,5 @@ class FaceLips(classModuleFace.ModuleFace):
         self.create_ctrl(rig, self.ctrl_low, self.jnt_low_mid)
         #self.AvarLowMid._create_doritos_setup_2(rig, self.ctrl_low)
         self.ctrl_low.connect_avars(self.attr_avar_low_ud, self.attr_avar_low_lr, self.attr_avar_low_fb)
+        self.avar_upp_mid.attach_ctrl(rig, self.ctrl_low)
 

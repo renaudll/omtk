@@ -15,6 +15,27 @@ from omtk.libs import libAttr
 from omtk.libs import libFormula
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
+
+    def link_to_avar(self, avar):
+        attr_inn_ud = self.translateY
+        attr_inn_lr = self.translateX
+        attr_inn_fb = self.translateZ
+        attr_inn_yw = self.rotateY
+        attr_inn_pt = self.rotateX
+        attr_inn_rl = self.rotateZ
+
+        need_flip = self.getTranslation(space='world').x < 0
+        if need_flip:
+            attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
+
+        libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_avar_ud)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_avar_lr)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_avar_fb)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_avar_yw)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_avar_pt)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_avar_rl)
+
+    # TODO: deprecated, replace with link_to_avar
     def connect_avars(self, attr_ud, attr_lr, attr_fb):
         attr_inn_ud = self.translateY
         attr_inn_lr = self.translateX
@@ -249,6 +270,9 @@ class AbstractAvar(classModule.Module):
     def build(self, rig, **kwargs):
         super(AbstractAvar, self).build(rig, **kwargs)
 
+        if not self.jnts:
+            raise Exception("Can't build ModuleFace with zero joints!")
+
         self.add_avars(self.grp_rig)
         self.fetch_avars()
 
@@ -292,6 +316,11 @@ class Avar(AbstractAvar):
         # TODO: Move to build, we don't want 1000 member properties.
         self._attr_length_v = None
         self._attr_length_u = None
+
+        self._doritos_stack = None
+        self.attr_sensitiviry_ud = None
+        self.attr_sensitiviry_lr = None
+        self.attr_sensitiviry_fb = None
 
     @libPython.cached_property()
     def jnt(self):
@@ -606,112 +635,67 @@ class Avar(AbstractAvar):
 
         return stack
 
-    def add_doritos_on_ctrl(self, rig, ctrl, sensitivity_lr=1.0, sensitivity_ud=1.0, sensitivity_fb=1.0):
+    def _build_doritos_setup(self, rig, ref, sensitivity_lr=1.0, sensitivity_ud=1.0, sensitivity_fb=1.0):
         """
         A doritos setup allow a ctrl to be directly constrained on the final mesh via a follicle.
         To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
         For clarity purposes, this is built in the rig so the animator don't need to see the whole setup.
+
+        Any ctrl added to a doritos setup can share the same sensibility.
         """
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
+        # Initialize node stack
+        stack_name = nomenclature_rig.resolve('doritosStack')
+        stack = classNode.Node(self)
+        stack.build(name=stack_name)
+        stack.setMatrix(ref.getMatrix(worldSpace=True))
+        stack.setParent(self.grp_rig)
+        self._doritos_stack = stack  # used in connect_ctrl_to_doritos
+
+        # Resolve geometry for the follicle
         obj_mesh = libRigging.get_farest_affected_mesh(self.jnt)
         if obj_mesh is None:
             pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
             return False
 
+        # Create the follicle
+        layer_fol_name = nomenclature_rig.resolve('doritosFol')
+        layer_fol = stack.add_layer()
+        layer_fol.rename(layer_fol_name)
+        layer_fol.setParent(self.grp_rig)
 
-        # Add sensibility attributes
-        # This allow us to tweak the sensibility of the doritos.
-        attr_sensitiviry_ud = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_UD, defaultValue=sensitivity_ud)
-        attr_sensitiviry_lr = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_LR, defaultValue=sensitivity_lr)
-        attr_sensitiviry_fb = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_FB, defaultValue=sensitivity_fb)
-
-         # Create inverted attributes
-        util_sensitivity_inv = libRigging.create_utility_node('multiplyDivide', operation=2,
-                                                              input1X=1.0, input1Y=1.0, input1Z=1.0,
-                                                              input2X=attr_sensitiviry_lr, input2Y=attr_sensitiviry_ud, input2Z=attr_sensitiviry_fb)
-        attr_sensibility_lr_inv = util_sensitivity_inv.outputX
-        attr_sensibility_ud_inv = util_sensitivity_inv.outputY
-        attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
-
-        # doritos_name
-        stack_name = nomenclature_rig.resolve('doritosStack')
-        stack = classNode.Node(self)
-        stack.build(name=stack_name)
-        stack.setMatrix(ctrl.getMatrix(worldSpace=True))
-
-        layer_doritos_fol_name = nomenclature_rig.resolve('doritosFol')
-        layer_doritos_fol = stack.add_layer()
-        layer_doritos_fol.rename(layer_doritos_fol_name)
-
-        layer_doritos_name = nomenclature_rig.resolve('doritosInv')
-        layer_doritos = stack.add_layer()
-        layer_doritos.rename(layer_doritos_name)
-
-        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
-        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=ctrl.r, input2=[-1, -1, -1]).output
-
-        # Apply sensitivity
-        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=attr_ctrl_inv_t, input2X=attr_sensitiviry_lr, input2Y=attr_sensitiviry_ud, input2Z=attr_sensitiviry_fb).output
-
-        pymel.connectAttr(attr_ctrl_inv_t, layer_doritos.t)
-        pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
-
-        # Resolve the follicle U and V
-        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, layer_doritos_fol.getTranslation(space='world'))
+        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, layer_fol.getTranslation(space='world'))
 
         # TODO: Validate that we don't need to inverse the rotation separately.
-        follicle_name = nomenclature_rig.resolve('doritosFollicle')
-        #follicle = libRigging.create_follicle(layer_doritos_fol, obj_mesh)
-        follicle_shape = libRigging.create_follicle2(obj_mesh, u=fol_u, v=fol_v)
-        follicle = follicle_shape.getParent()
-        pymel.parentConstraint(follicle, layer_doritos_fol, maintainOffset=True)
-        follicle = follicle_shape.getParent()
-        follicle.rename(follicle_name)
-        follicle.setParent(self.grp_rig)
+        fol_name = nomenclature_rig.resolve('doritosFollicle')
+        fol_shape = libRigging.create_follicle2(obj_mesh, u=fol_u, v=fol_v)
+        fol = fol_shape.getParent()
+        fol.rename(fol_name)
+        pymel.parentConstraint(fol, layer_fol, maintainOffset=True)
+        fol = fol_shape.getParent()
+        fol.setParent(self.grp_rig)
 
-        #
-        # Apply sensibility on the ctrl
-        #
-        # Create a Orig copy of the original shape.
-        ctrl_shape = ctrl.node.getShape()
-        ctrl_shape_orig = pymel.duplicate(ctrl.node.getShape())[0]
-        ctrl_shape_orig.intermediateObject.set(True)
-
-        # Apply scaling on the ctrl parent.
-        # This is were the 'black magic' happen.
-        pymel.connectAttr(attr_sensitiviry_lr, ctrl.offset.scaleX)
-        pymel.connectAttr(attr_sensitiviry_ud, ctrl.offset.scaleY)
-        pymel.connectAttr(attr_sensitiviry_fb, ctrl.offset.scaleZ)
-
-        # Counter-scale the shape
-        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix', inputScaleX=attr_sensibility_lr_inv,
-                                                                 inputScaleY=attr_sensibility_ud_inv,
-                                                                 inputScaleZ=attr_sensibility_fb_inv).outputMatrix
-        attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm,
-                                                                 inputGeometry=ctrl_shape_orig.local).outputGeometry
-        pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
-
-        #
         # HACK: Fix rotation issues.
         # The doritos setup can be hard to control when the rotation of the controller depend on the follicle since
         # any deformation can affect the normal of the faces.
-        #
         jnt_head = rig.get_head_jnt()
         if jnt_head:
-            pymel.disconnectAttr(layer_doritos_fol.rx)
-            pymel.disconnectAttr(layer_doritos_fol.ry)
-            pymel.disconnectAttr(layer_doritos_fol.rz)
-            pymel.orientConstraint(jnt_head, layer_doritos_fol, maintainOffset=True)
-
-        stack.setParent(self.grp_rig)
-        pymel.parentConstraint(layer_doritos, ctrl.offset, maintainOffset=True)
+            pymel.disconnectAttr(layer_fol.rx)
+            pymel.disconnectAttr(layer_fol.ry)
+            pymel.disconnectAttr(layer_fol.rz)
+            pymel.orientConstraint(jnt_head, layer_fol, maintainOffset=True)
 
         #
         # Automatically adjust the sensibility by anylising the weightmaps
-        # TODO: Benchmark the impact on performance.
         #
         epsilon=0.01
+
+        # Add sensibility attributes
+        # This allow us to tweak the sensibility of the doritos.
+        self.attr_sensitiviry_ud = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_UD, defaultValue=sensitivity_ud)
+        self.attr_sensitiviry_lr = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_LR, defaultValue=sensitivity_lr)
+        self.attr_sensitiviry_fb = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_FB, defaultValue=sensitivity_fb)
 
         def resolve_sensitivity(attr, ref, step_size=0.1):
             attr.set(0)
@@ -721,25 +705,104 @@ class Avar(AbstractAvar):
             attr.set(0)
             return libPymel.distance_between_vectors(pos_s, pos_e) / step_size
 
-        sensitivity_lr = resolve_sensitivity(self.attr_avar_lr, follicle)
+        sensitivity_lr = resolve_sensitivity(self.attr_avar_lr, fol)
         if sensitivity_lr > epsilon:
-            attr_sensitiviry_lr.set(sensitivity_lr)
+            self.attr_sensitiviry_lr.set(sensitivity_lr)
         else:
-            print "Can't detect LR sensibility for {0}".format(follicle)
+            print "Can't detect LR sensibility for {0}".format(fol)
 
-        sensitivity_ud = resolve_sensitivity(self.attr_avar_ud, layer_doritos_fol)
+        sensitivity_ud = resolve_sensitivity(self.attr_avar_ud, fol)
         if sensitivity_ud > epsilon:
-            attr_sensitiviry_ud.set(sensitivity_ud)
+            self.attr_sensitiviry_ud.set(sensitivity_ud)
         else:
-            print "Can't detect UD sensibility for {0}".format(follicle)
+            print "Can't detect UD sensibility for {0}".format(fol)
 
-        sensitivity_fb = resolve_sensitivity(self.attr_avar_fb, layer_doritos_fol)
+        sensitivity_fb = resolve_sensitivity(self.attr_avar_fb, fol)
         if sensitivity_fb > epsilon:
-            attr_sensitiviry_fb.set(sensitivity_fb)
+            self.attr_sensitiviry_fb.set(sensitivity_fb)
         else:
-            print "Can't detect FB sensibility for {0}".format(follicle)
+            print "Can't detect FB sensibility for {0}".format(fol)
 
-        return layer_doritos
+    def attach_ctrl(self, rig, ctrl):
+        """
+        Constraint a specic controller to the avar doritos stack.
+        """
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        need_flip = ctrl.getTranslation(space='world').x < 0
+
+        # Create inverted attributes for sensibility
+        util_sensitivity_inv = libRigging.create_utility_node('multiplyDivide', operation=2,
+                                                              input1X=1.0, input1Y=1.0, input1Z=1.0,
+                                                              input2X=self.attr_sensitiviry_lr, input2Y=self.attr_sensitiviry_ud, input2Z=self.attr_sensitiviry_fb)
+        attr_sensibility_lr_inv = util_sensitivity_inv.outputX
+        attr_sensibility_ud_inv = util_sensitivity_inv.outputY
+        attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
+
+        # Add an inverse node that will counter animate the position of the ctrl.
+        # TODO: Rename
+        layer_doritos_name = nomenclature_rig.resolve('doritosInv')
+        layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
+        layer_doritos.setParent(self._doritos_stack.node)
+
+        # Create inverse attributes for the ctrl
+        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=ctrl.r, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=attr_ctrl_inv_t, input2X=self.attr_sensitiviry_lr, input2Y=self.attr_sensitiviry_ud, input2Z=self.attr_sensitiviry_fb).output
+
+        if need_flip:
+            attr_doritos_tx = libRigging.create_utility_node('multiplyDivide', input1X=attr_ctrl_inv_t.outputX, input2X=-1).outputX
+        else:
+            attr_doritos_tx = attr_ctrl_inv_t.outputX
+        attr_doritos_ty = attr_ctrl_inv_t.outputY
+        attr_doritos_tz = attr_ctrl_inv_t.outputZ
+        
+        pymel.connectAttr(attr_doritos_tx, layer_doritos.tx)
+        pymel.connectAttr(attr_doritos_ty, layer_doritos.ty)
+        pymel.connectAttr(attr_doritos_tz, layer_doritos.tz)
+        pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
+
+        # Apply scaling on the ctrl parent.
+        # This is were the 'black magic' happen.
+        if need_flip:
+            attr_ctrl_offset_sx_inn = libRigging.create_utility_node('multiplyDivide', input1X=self.attr_sensitiviry_lr, input2X=-1).outputX
+        else:
+            attr_ctrl_offset_sx_inn = self.attr_sensitiviry_lr
+        #attr_ctrl_offset_sx_inn = self.attr_sensitiviry_lr
+        attr_ctrl_offset_sy_inn = self.attr_sensitiviry_ud
+        attr_ctrl_offset_sz_inn = self.attr_sensitiviry_fb
+
+        pymel.connectAttr(attr_ctrl_offset_sx_inn, ctrl.offset.scaleX)
+        pymel.connectAttr(attr_ctrl_offset_sy_inn, ctrl.offset.scaleY)
+        pymel.connectAttr(attr_ctrl_offset_sz_inn, ctrl.offset.scaleZ)
+
+        # Apply sensibility on the ctrl shape
+        ctrl_shape = ctrl.node.getShape()
+        ctrl_shape_orig = pymel.duplicate(ctrl.node.getShape())[0]
+        ctrl_shape_orig.intermediateObject.set(True)
+
+        # Counter-scale the shape
+        '''
+        if need_flip:
+            attr_adjustement_sx_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_sensibility_lr_inv, input2X=-1).outputX
+        else:
+            attr_adjustement_sx_inn = attr_sensibility_lr_inv
+        '''
+        attr_adjustement_sx_inn = attr_sensibility_lr_inv
+        attr_adjustement_sy_inn = attr_sensibility_ud_inv
+        attr_adjustement_sz_inn = attr_sensibility_fb_inv
+        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix',
+                                                            inputScaleX=attr_adjustement_sx_inn,
+                                                            inputScaleY=attr_adjustement_sy_inn,
+                                                            inputScaleZ=attr_adjustement_sz_inn
+                                                             ).outputMatrix
+        attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm,
+                                                                 inputGeometry=ctrl_shape_orig.local).outputGeometry
+        pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
+
+        # Constraint ctrl
+        pymel.parentConstraint(layer_doritos, ctrl.offset, maintainOffset=True)
+
 
     def build(self, rig, constraint=True, create_ctrl_macro=True, create_ctrl_micro=False, ctrl_size=None, **kwargs):
         """
@@ -762,6 +825,11 @@ class Avar(AbstractAvar):
             pymel.parentConstraint(self._dag_stack.node, self.jnt)
 
         #
+        # Create a doritos setup for the avar
+        #
+        self._build_doritos_setup(rig, self.jnt)
+
+        #
         # Create the macro ctrl
         #
         if create_ctrl_macro:
@@ -774,7 +842,8 @@ class Avar(AbstractAvar):
             self.ctrl_macro.setParent(self.grp_anm)
             self.ctrl_macro.connect_avars(self.attr_avar_ud, self.attr_avar_lr, self.attr_avar_fb)
 
-            self.add_doritos_on_ctrl(rig, self.ctrl_macro)
+            #self.create_doritos_setup(rig, self.ctrl_macro)
+            self.attach_ctrl(rig, self.ctrl_macro)
 
 
         #
@@ -807,7 +876,12 @@ class Avar(AbstractAvar):
             pymel.connectAttr(self.ctrl_micro.rotate, layer_ctrl.rotate)
             pymel.connectAttr(self.ctrl_micro.scale, layer_ctrl.scale)
 
-            self.add_doritos_on_ctrl(rig, self.ctrl_micro)
+            #self.create_doritos_setup(rig, self.ctrl_micro)
+            self.attach_ctrl(rig, self.ctrl_micro)
+
+    def unbuild(self):
+        super(Avar, self).unbuild()
+        self._doritos_stack = None
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):

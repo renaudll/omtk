@@ -419,6 +419,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def on_module_changed(self, item):
         # todo: handle exception
         #Check first if the checkbox have changed
+        need_update = False
         new_state = item.checkState(0) == QtCore.Qt.Checked
         new_text = item.text(0)
         module = item.rig
@@ -436,17 +437,25 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             else:
                 if module_is_built:
                     module.unbuild()
+            need_update = True
             self._update_network(self.root)
-            self.refresh_ui()
 
         #Check if the name have changed
         if (item._name != new_text):
             item._name = new_text
             module.name = new_text
+
             #Update directly the network value instead of re-exporting it
             if hasattr(item, "net"):
                 name_attr = item.net.attr("name")
                 name_attr.set(new_text)
+
+        # This call is commented since it can cause Maya to crash.
+        # TODO: Fix crash
+        '''
+        if need_update:
+            self.refresh_ui()
+        '''
 
     #Block signals need to be called in a function because if called in a signal, it will block it
     def _set_text_block(self, item):

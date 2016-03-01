@@ -1,8 +1,17 @@
 import itertools
 import pymel.core as pymel
 from omtk import classModule, classAvar
-from omtk.classAvar import CtrlFaceMacroAll
 from omtk.libs import libPython, libPymel, libRigging
+
+def _find_mid_jnt(jnts):
+    nearest_jnt = None
+    nearest_distance = None
+    for jnt in jnts:
+        distance = abs(jnt.getTranslation(space='world').x)
+        if nearest_jnt is None or distance < nearest_distance:
+            nearest_jnt = jnt
+            nearest_distance = distance
+    return nearest_jnt
 
 class ModuleFace(classAvar.AbstractAvar):
     """
@@ -20,6 +29,26 @@ class ModuleFace(classAvar.AbstractAvar):
     ]
     '''
 
+    #
+    # Influences properties
+    #
+
+    @property
+    def jnt_inn(self):
+        # TODO: Find a better way
+        return self.jnts[0]
+
+    @property
+    def jnt_mid(self):
+        # TODO: Find a better way
+        i = (len(self.jnts)-1) / 2
+        return self.jnts[i]
+
+    @property
+    def jnt_out(self):
+        # TODO: Find a better way
+        return self.jnts[-1]
+
     @libPython.cached_property()
     def jnts_upp(self):
         # TODO: Find a better way
@@ -28,9 +57,7 @@ class ModuleFace(classAvar.AbstractAvar):
 
     @libPython.cached_property()
     def jnt_upp_mid(self):
-        # TODO: Find a better way
-        i = (len(self.jnts_upp)-1) / 2
-        return self.jnts_upp[i]
+        return _find_mid_jnt(self.jnts_upp)
 
     @libPython.cached_property()
     def jnts_low(self):
@@ -40,8 +67,12 @@ class ModuleFace(classAvar.AbstractAvar):
 
     @libPython.cached_property()
     def jnt_low_mid(self):
-        i = (len(self.jnts_low)-1) / 2
-        return self.jnts_low[i]
+        return _find_mid_jnt(self.jnts_low)
+
+    #
+    # Avar properties
+    # Note that theses are only accessible after the avars have been built.
+    #
 
     @property  # Note that since the avars are volatile we don't want to cache this property.
     def avars_upp(self):
@@ -65,6 +96,23 @@ class ModuleFace(classAvar.AbstractAvar):
         i = (len(self.avars_low)-1) / 2
         return self.avars_low[i]
 
+    @property
+    def avar_inn(self):
+        return self.avars[0]
+
+    @property
+    def avar_mid(self):
+        i = (len(self.avars)-1) / 2
+        return self.avars[i]
+
+    @property
+    def avar_out(self):
+        return self.avars[-1]
+
+    #
+    #
+    #
+
     def __init__(self, *args, **kwargs):
         super(ModuleFace, self).__init__(*args, **kwargs)
         self.avars = []
@@ -77,22 +125,6 @@ class ModuleFace(classAvar.AbstractAvar):
         return name
         '''
 
-    @libPython.memoized
-    def get_nomenclature_anm(self, rig):
-        ref = next(iter(self.input), None)
-        if ref:
-            name = rig.nomenclature(suffix=rig.nomenclature.type_anm)
-            name.add_tokens(self.get_module_name())
-            return name
-
-    @libPython.memoized
-    def get_nomenclature_rig(self, rig):
-        ref = next(iter(self.input), None)
-        if ref:
-            name = rig.nomenclature(suffix=rig.nomenclature.type_rig)
-            name.add_tokens(self.get_module_name())
-            return name
-
     @libPython.cached_property()
     def surface(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
@@ -104,18 +136,17 @@ class ModuleFace(classAvar.AbstractAvar):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         return filter(fn_is_nurbsSurface, self.input)
 
+    def connect_global_avars(self):
+        for avar in self.avars:
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, avar.attr_avar_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, avar.attr_avar_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, avar.attr_avar_fb)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_yw, avar.attr_avar_yw)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_pt, avar.attr_avar_pt)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_rl, avar.attr_avar_rl)
+
     def build(self, rig, **kwargs):
         super(ModuleFace, self).build(rig, **kwargs)
-
-        '''
-        # Create global avars
-        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_UD, k=True)
-        self.attr_avar_ud = self.grp_rig.attr(self.AVAR_NAME_UD)
-        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_LR, k=True)
-        self.attr_avar_lr = self.grp_rig.attr(self.AVAR_NAME_LR)
-        pymel.addAttr(self.grp_rig, longName=self.AVAR_NAME_FB, k=True)
-        self.attr_avar_fb = self.grp_rig.attr(self.AVAR_NAME_FB)
-        '''
 
         # Resolve the desired ctrl size
         # One thing we are sure is that ctrls should no overlay,
@@ -142,11 +173,7 @@ class ModuleFace(classAvar.AbstractAvar):
             avar.grp_anm.setParent(self.grp_anm)
             avar.grp_rig.setParent(self.grp_rig)
 
-        '''
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, avar.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, avar.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, avar.attr_avar_fb)
-        '''
+        self.connect_global_avars()
 
     def unbuild(self):
         for avar in self.avars:
@@ -221,98 +248,6 @@ class ModuleFace(classAvar.AbstractAvar):
         libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, attr_avar_fb)
     '''
 
-    def create_ctrl_macro(self, rig, cls, ctrl, avar_anchor, avar, ref, name, sensibility=1.0):
-        """
-
-        :param rig:
-        :param cls:
-        :param ctrl: The previous value of the ctrl. If the value is not None, the ctrl will re-use the same shapes.
-        :param avar_anchor:
-        :param avar:
-        :param ref:
-        :param name:
-        :param sensibility:
-        :return:
-        """
-        # TODO: Massive cleanup
-
-        # HACK: Negative scale to the ctrls are a true mirror of each others.
-        need_flip = ref.getTranslation(space='world').x < 0
-
-        if not isinstance(ctrl, cls):
-            ctrl = cls()
-        ctrl.build(name=name, sensibility=sensibility)
-        ctrl.setParent(self.grp_anm)
-        ctrl.setMatrix(ref.getMatrix(worldSpace=True))
-
-
-        # Connect UD avar
-        libRigging.connectAttr_withBlendWeighted(ctrl.translateX, avar.attr_avar_ud)
-
-        # Connect LR avar (handle mirroring)
-
-
-        if need_flip:
-            inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
-        else:
-            inn_lr = ctrl.translateY
-        libRigging.connectAttr_withBlendWeighted(inn_lr, avar.attr_avar_lr)
-
-        # Connect FB avar
-        libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, avar.attr_avar_fb)
-
-        # Compute ctrl position
-        jnt_head = rig.get_head_jnt()
-        ref_tm = jnt_head.getMatrix(worldSpace=True)
-        ctrl_tm = ref_tm.copy()
-
-        pos = pymel.datatypes.Point(ref.getTranslation(space='world'))
-        pos_local = pos * ref_tm.inverse()
-        pos_local.y = - rig.get_face_macro_ctrls_distance_from_head()
-        pos = pos_local * ref_tm
-
-        ctrl_tm.translate = pos
-
-        # HACK!
-        # TODO: Standardize orientation
-        offset = pymel.datatypes.Matrix(
-            1,0,0,0,
-            0,0,-1,0,
-            0,1,0,0,
-            0,0,0,1
-        )
-        ctrl_tm = offset * ctrl_tm
-
-        ctrl.setMatrix(ctrl_tm)
-
-
-        '''
-        if need_flip:
-            inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
-        else:
-            inn_lr = ctrl.translateY
-        '''
-        if need_flip:
-            ctrl.offset.scaleX.set(-1)
-        else:
-            pass
-            # TODO: Flip ctrl to avar connection
-
-
-        #pymel.parentConstraint(jnt_head, ctrl.offset, maintainOffset=True)
-
-        #doritos = avar_anchor._create_doritos_setup_2(rig, ctrl)
-        #pymel.parentConstraint(doritos, ctrl.offset)
-
-        # HACK: Use negative scaling for easier animation mirror
-
-        #ctrl.offset.sx.set(sensibility)
-        #ctrl.offset.sy.set(sensibility if ref_tm.translate.x >= 0 else -sensibility)
-        #ctrl.offset.sz.set(sensibility)
-
-
-        return ctrl
-
     def create_surface(self):
         root = pymel.createNode('transform')
         pymel.addAttr(root, longName='bendUpp', k=True)
@@ -376,92 +311,244 @@ class ModuleFace(classAvar.AbstractAvar):
         self.input.append(plane_transform)
 
 
-# TODO: DEPRECATE!!!
-class AvarGroupInnMidOut(ModuleFace):
-    """
-    Base set for a group of 3 avars with provided controllers.
-    """
-    _CLASS_CTRL_MACRO_ALL = CtrlFaceMacroAll
+class ModuleFaceUppDown(ModuleFace):
+    _CLS_CTRL_UPP = None
+    _CLS_CTRL_LOW = None
+    _CLS_SYS_UPP = ModuleFace
+    _CLS_SYS_LOW = ModuleFace
+    '''
+    _AVAR_NAME_UPP_UD = 'UppUD'
+    _AVAR_NAME_UPP_LR = 'UppLR'
+    _AVAR_NAME_UPP_FB = 'UppFB'
+    _AVAR_NAME_LOW_UD = 'LowUD'
+    _AVAR_NAME_LOW_LR = 'LowLR'
+    _AVAR_NAME_LOW_FB = 'LowFB'
+    '''
 
     def __init__(self, *args, **kwargs):
-        super(AvarGroupInnMidOut, self).__init__(*args, **kwargs)
-        self.ctrl_all = None
-        self.ctrl_inn = None
-        self.ctrl_mid = None
-        self.ctrl_out = None
+        self.sys_upp = None
+        self.sys_low = None
+        self.ctrl_upp = None
+        self.ctrl_low = None
+        '''
+        self.attr_avar_upp_ud = None
+        self.attr_avar_upp_lr = None
+        self.attr_avar_upp_fb = None
+        self.attr_avar_low_ud = None
+        self.attr_avar_low_lr = None
+        self.attr_avar_low_fb = None
+        '''
 
-    @property
-    def inf_inn(self):
-        # TODO: Use jnt position for better detection!!!
-        return self.jnts[0]
+        super(ModuleFaceUppDown, self).__init__(*args, **kwargs)
 
-    @property
-    def inf_mid(self):
-        # TODO: Use jnt position for better detection!!!
-        return self.jnts[1]
+    def add_avars(self, attr_holder):
+        pass
+        '''
+        self.sys_upp.add_avars()
+        self.sys_low.add_avars()
+        self.attr_avar_upp_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
+        self.attr_avar_upp_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
+        self.attr_avar_upp_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
+        self.attr_avar_low_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
+        self.attr_avar_low_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
+        self.attr_avar_low_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
+        '''
 
-    @property
-    def inf_out(self):
-        # TODO: Use jnt position for better detection!!!
-        return self.jnts[2]
+    def connect_global_avars(self):
+        pass
+        '''
+        # Create UpperLips Global Avars
+        for avar in self.avars_upp:
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_ud, avar.attr_avar_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_lr, avar.attr_avar_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_fb, avar.attr_avar_fb)
 
-    @property
-    def avar_inn(self):
-        return self.avars[0]
-
-    @property
-    def avar_mid(self):
-        return self.avars[1]
-
-    @property
-    def avar_out(self):
-        return self.avars[2]
+        # Create LowerLips Global Avars
+        for avar in self.avars_low:
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_ud, avar.attr_avar_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_lr, avar.attr_avar_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_fb, avar.attr_avar_fb)
+        '''
 
     def build(self, rig, **kwargs):
-        super(AvarGroupInnMidOut, self).build(rig, **kwargs)
+        super(ModuleFaceUppDown, self).build(rig, **kwargs)
 
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+
+        if self.jnts_upp:
+            # Create upp ctrl
+            ctrl_upp_name = nomenclature_anm.resolve('upp')
+            if not isinstance(self.ctrl_upp, self._CLS_CTRL_UPP):
+                self.ctrl_upp = self._CLS_CTRL_UPP()
+            self.ctrl_upp.build(name=ctrl_upp_name)
+
+            self.create_ctrl(rig, self.ctrl_upp, self.jnt_upp_mid)
+            #self.ctrl_upp.connect_avars(self.attr_avar_upp_ud, self.attr_avar_upp_lr, self.attr_avar_upp_fb)
+            self.avar_upp_mid.attach_ctrl(rig, self.ctrl_upp)
+
+            # Connect ctrl_upp to upp avars
+            for avar in self.avars_upp:
+                self.ctrl_upp.link_to_avar(avar)
+
+        if self.jnts_low:
+            # Create low ctrl
+            ctrl_low_name = nomenclature_anm.resolve('low')
+            if not isinstance(self.ctrl_low, self._CLS_CTRL_LOW):
+                self.ctrl_low = self._CLS_CTRL_LOW()
+            self.ctrl_low.build(name=ctrl_low_name)
+
+            self.create_ctrl(rig, self.ctrl_low, self.jnt_low_mid)
+            #self.ctrl_low.connect_avars(self.attr_avar_low_ud, self.attr_avar_low_lr, self.attr_avar_low_fb)
+            self.avar_low_mid.attach_ctrl(rig, self.ctrl_low)
+
+            # Connect ctrl_low to upp avars
+            for avar in self.avars_low:
+                self.ctrl_low.link_to_avar(avar)
+
+
+    def unbuild(self):
+        self.ctrl_upp.unbuild()
+        self.ctrl_low.unbuild()
+        self.sys_upp.unbuild()
+        self.sys_low.unbuild()
+        super(ModuleFaceUppDown, self).unbuild()
+
+class ModuleFaceLftRgt(ModuleFace):
+    """
+    This module receive targets from all sides of the face (left and right) and create ctrls for each sides.
+    """
+    _CLS_CTRL = None
+    _CLS_SYS = ModuleFace
+
+    @libPython.cached_property()
+    def jnts_l(self):
+        fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= 0
+        return filter(fn_filter, self.jnts)
+
+    @libPython.cached_property()
+    def jnts_r(self):
+        fn_filter = lambda jnt: jnt.getTranslation(space='world').x < 0
+        return filter(fn_filter, self.jnts)
+
+    @libPython.cached_property()
+    def jnt_l_mid(self):
+        i = (len(self.jnts_l)-1) / 2
+        return self.jnts_l[i]
+
+    @libPython.cached_property()
+    def jnt_r_mid(self):
+        i = (len(self.jnts_r)-1) / 2
+        return self.jnts_r[i]
+
+    @libPython.cached_property()
+    def avars_l(self):
+        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x >= 0
+        return filter(fn_filter, self.avars)
+
+    @libPython.cached_property()
+    def avars_r(self):
+        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x < 0
+        return filter(fn_filter, self.avars)
+
+    @libPython.cached_property()
+    def avar_l_mid(self):
+        i = (len(self.avars_l)-1) / 2
+        return self.avars_l[i]
+
+    @libPython.cached_property()
+    def avar_r_mid(self):
+        i = (len(self.avars_l)-1) / 2
+        return self.avars_r[i]
+
+    def __init__(self, *args, **kwargs):
+        super(ModuleFaceLftRgt, self).__init__(*args, **kwargs)
+        self.sys_l = None
+        self.sys_r = None
+        self.ctrl_l = None
+        self.ctrl_r = None
+        #self.ctrl_all = None
+
+    def add_avars(self, attr_holder):
+        pass
+
+    def connect_global_avars(self):
+        pass
+
+    def get_multiplier_lr(self):
+        """
+        Since we are using the same plane for the eyebrows, we want to attenuate the relation between the LR avar
+        and the plane V coordinates.
+        In the best case scenario, at LR -1, the V coordinates of the BrowInn are 0.5 both.
+        """
+        base_u = self.avar_inn._attr_u_base.get()
+        return abs(base_u - 0.5) * 2.0
+
+    def build(self, rig, **kwargs):
+        super(ModuleFaceLftRgt, self).build(rig, **kwargs)
+
+        '''
         nomenclature_anm = self.get_nomenclature_anm(rig)
         head_length = rig.get_head_length()
         sensibility = 1.0 / (0.25 * head_length)
 
-        # Build Ctrl All
-        ctrl_inn_name = nomenclature_anm.resolve('all')
-        self.ctrl_all = self.create_ctrl_macro(rig, self._CLASS_CTRL_MACRO_ALL, self.ctrl_all, [self.avar_mid], self, self.inf_mid, ctrl_inn_name, sensibility=sensibility)
-        pymel.parentConstraint(rig.get_head_jnt(), self.ctrl_all.offset, maintainOffset=True)
+        # Create a ctrl for all the brows
+        ctrl_all_name = nomenclature_anm.resolve('all')
+        if not isinstance(self.ctrl_all, self._CLS_CTRL_ALL):
+            self.ctrl_all = self._CLS_CTRL_ALL()
+        self.ctrl_all.build(name=ctrl_all_name)
+        self.create_ctrl(rig, self.ctrl_all, self.jnt_mid)
+        self.avar_mid.attach_ctrl(rig, self.ctrl_all)
 
-        # HACK: Adjust ctrl sensibility with scale...
-
-
-
+        # Connect global avars to the main ctrl
+        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.translateX, self.attr_avar_lr)
+        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.translateY, self.attr_avar_ud)
+        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.translateZ, self.attr_avar_fb)
+        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.rotateX, self.attr_avar_pt)
+        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.rotateY, self.attr_avar_yw)
+        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.rotateZ, self.attr_avar_rl)
         '''
-        # Build Ctrl Inn
-        ctrl_inn_name = nomenclature_anm.resolve('inn')
-        self.ctrl_inn = self.create_ctrl_macro(rig, self._CLASS_CTRL_MACRO_INN, self.ctrl_inn, self.avar_inn, self.avar_inn, self.inf_inn, ctrl_inn_name, sensibility=sensibility)
-        pymel.parentConstraint(self.ctrl_all, self.ctrl_inn.offset, maintainOffset=True)
-        #self.ctrl_inn.setParent(self.ctrl_all)  # TODO: Do it in the grp_rig?
 
-        # HACK: Use negative scaling for easier animation mirror
-        #self.ctrl_inn.offset.sx.set(sensibility)
-        #self.ctrl_inn.offset.sy.set(sensibility if self.inf_inn.getTranslation(space='world').x >= 0 else -sensibility)
-        #self.ctrl_inn.offset.sz.set(sensibility)
+        nomenclature_anm = self.get_nomenclature_anm(rig)
 
-        # Build Ctrl Mid
-        ctrl_mid_name = nomenclature_anm.resolve('mid')
-        self.ctrl_mid = self.create_ctrl_macro(rig, self._CLASS_CTRL_MACRO_MID, self.ctrl_mid, self.avar_mid, self.avar_mid, self.inf_mid, ctrl_mid_name, sensibility=sensibility)
-        pymel.parentConstraint(self.ctrl_all, self.ctrl_mid.offset, maintainOffset=True)
-        #self.ctrl_mid.setParent(self.ctrl_all)
+        # Rig l module
+        if self.jnts_l:
+            # Create l ctrl
+            ctrl_l_name = nomenclature_anm.resolve('l')  # todo: set side manually
+            if not isinstance(self.ctrl_l, self._CLS_CTRL):
+                self.ctrl_l = self._CLS_CTRL()
+            self.ctrl_l.build(name=ctrl_l_name)
 
-        # Build Ctrl Out
-        ctrl_out_name = nomenclature_anm.resolve('out')
-        self.ctrl_out = self.create_ctrl_macro(rig, self._CLASS_CTRL_MACRO_OUT, self.ctrl_out, self.avar_out, self.avar_out, self.inf_out, ctrl_out_name, sensibility=sensibility)
-        pymel.parentConstraint(self.ctrl_all, self.ctrl_out.offset, maintainOffset=True)
-        #self.ctrl_out.setParent(self.ctrl_all)
-        '''
+            self.create_ctrl(rig, self.ctrl_l, self.jnt_l_mid)
+            #self.ctrl_l.connect_avars(self.attr_avar_upp_ud, self.attr_avar_upp_lr, self.attr_avar_upp_fb)
+            self.avar_l_mid.attach_ctrl(rig, self.ctrl_l)
+
+            # Connect r ctrl to r avars
+            for avar in self.avars_l:
+                self.ctrl_l.link_to_avar(avar)
+
+        if self.jnts_r:
+
+            # Create r ctrl
+            ctrl_r_name = nomenclature_anm.resolve('r') # todo: set side manually
+            if not isinstance(self.ctrl_r, self._CLS_CTRL):
+                self.ctrl_r = self._CLS_CTRL()
+            self.ctrl_r.build(name=ctrl_r_name)
+
+            self.create_ctrl(rig, self.ctrl_r, self.jnt_r_mid)
+            #self.ctrl_r.connect_avars(self.attr_avar_low_ud, self.attr_avar_low_lr, self.attr_avar_low_fb)
+            self.avar_r_mid.attach_ctrl(rig, self.ctrl_r)
+
+            # Connect r ctrl to r avars
+            for avar in self.avars_r:
+                self.ctrl_r.link_to_avar(avar)
+
+        # Adjust LR multiplier
+        mult_lr = self.get_multiplier_lr()
+        for avar in self.avars:
+            avar._attr_u_mult_inn.set(mult_lr)
 
 
     def unbuild(self):
-        #self.ctrl_out.unbuild()
-        #self.ctrl_mid.unbuild()
-        #self.ctrl_inn.unbuild()
-        self.ctrl_all.unbuild()
-        super(AvarGroupInnMidOut, self).unbuild()
+        self.ctrl_l.unbuild()
+        self.ctrl_r.unbuild()
+        super(ModuleFaceLftRgt, self).unbuild()

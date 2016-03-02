@@ -87,5 +87,5 @@ class FaceLips(classModuleFace.ModuleFace):
         #self.AvarLowMid._create_doritos_setup_2(rig, self.ctrl_low)
         self.ctrl_low.connect_avars(self.attr_low_ud, self.attr_low_lr, self.attr_low_fb)
         #self.ctrl_low.link_to_avar(self)
-        self.avar_upp_mid.attach_ctrl(rig, self.ctrl_low)
+        self.avar_low_mid.attach_ctrl(rig, self.ctrl_low)
 

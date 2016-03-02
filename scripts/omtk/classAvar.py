@@ -297,7 +297,9 @@ class AbstractAvar(classModule.Module):
     """
     This low-level module is a direct interpretation of "The Art of Moving Points" of "Brian Tindal".
     A can be moved in space using it's UD (Up/Down), IO (Inn/Out) and FB (FrontBack) attributes.
-    In general, changing thoses attributes will make the FacePnt move on a NurbsSurface.
+    In an ideal facial setup, any movement in the face is driven by avars.
+    Using driven-keys we can orchestrate all the secondary movements in the face.
+    Any driven-key set between Avar attributes will be preserved if the rig is unbuilt.
     """
     AVAR_NAME_UD = 'avar_ud'
     AVAR_NAME_LR = 'avar_lr'
@@ -312,6 +314,10 @@ class AbstractAvar(classModule.Module):
         super(AbstractAvar, self).__init__(*args, **kwargs)
         self.avar_network = None
         self.init_avars()
+
+        self._sys_doritos = None
+        self._doritos_stack = None  # TODO: Deprecated, use ._sys_doritos
+        self.ctrl = None
 
     def init_avars(self):
         self.attr_ud = None  # Up/Down
@@ -400,23 +406,15 @@ class AbstractAvar(classModule.Module):
             pymel.delete(self.avar_network)
             self.avar_network = None
 
-    def build(self, rig, ctrl_size=None, **kwargs):
-        super(AbstractAvar, self).build(rig, **kwargs)
-
-        if not self.jnts:
-            raise Exception("Can't build ModuleFace with zero joints!")
-
-        self.add_avars(self.grp_rig)
-        self.fetch_avars()
-
     def unbuild(self):
         self.hold_avars()
         self.init_avars()
 
         super(AbstractAvar, self).unbuild()
 
-        # TODO: cleanup junk connections that Maya didn't delete by itself?
+        self._doritos_stack = None
 
+        # TODO: cleanup junk connections that Maya didn't delete by itself?
     #
     # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
     #
@@ -427,11 +425,13 @@ class AbstractAvar(classModule.Module):
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
 
+
     @libPython.memoized
     def get_base_uv(self):
         pos = self.get_jnt_tm().translate
         fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, pos)
         return fol_u, fol_v
+
 
     def get_jnt_tm(self):
         """
@@ -444,6 +444,7 @@ class AbstractAvar(classModule.Module):
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
         )
 
+
     def get_ctrl_tm(self):
         """
         :return: The ctrl transformation.
@@ -451,7 +452,154 @@ class AbstractAvar(classModule.Module):
         return self.jnt.getMatrix(worldSpace=True)
 
 
-class Avar(AbstractAvar):
+    def _build_doritos_setup(self, rig, ref_tm=None):
+        # Resolve geometrycreate_ctrl for the follicle
+        obj_mesh = libRigging.get_farest_affected_mesh(self.jnt)
+        if obj_mesh is None:
+            pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
+            return False
+
+        # Resolve the doritos location
+        if ref_tm is None:
+            ref_tm = self.get_ctrl_tm()
+
+        self._sys_doritos = Doritos(self.jnts)
+        self._sys_doritos.build(rig, ctrl_tm=ref_tm, obj_mesh=obj_mesh)
+        self._sys_doritos.grp_rig.setParent(self.grp_rig)
+
+
+    def attach_ctrl(self, rig, ctrl):
+        """
+        Constraint a specic controller to the avar doritos stack.
+        """
+        self._sys_doritos.attach_ctrl(rig, ctrl)
+
+
+    '''
+    # TODO: Merge with attach ctrl?
+    def link_ctlr(self, ctrl, avar_tx=None, avar_ty=None, avar_tz=None, avar_rx=None, avar_ry=None, avar_rz=None,
+                  avar_sx=None, avar_sy=None, avar_sz=None):
+
+        attr_inn_ud = self.translateY
+        attr_inn_lr = self.translateX
+        attr_inn_fb = self.translateZ
+        attr_inn_yw = self.rotateY
+        attr_inn_pt = self.rotateX
+        attr_inn_rl = self.rotateZ
+
+        need_flip = self.getTranslation(space='world').x < 0
+        if need_flip:
+            attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
+
+        libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_yw)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_pt)
+        libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
+    '''
+
+
+    def build(self, rig, mult_u=1.0,
+              mult_v=1.0, **kwargs):
+        """
+        Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
+        """
+        super(AbstractAvar, self).build(rig, **kwargs)
+
+        if not self.jnts:
+            raise Exception("Can't build ModuleFace with zero joints!")
+
+        self.add_avars(self.grp_rig)
+        self.fetch_avars()
+
+    def build_stack(self, rig, stack, **kwargs):
+        pass
+        #raise NotImplementedError
+
+
+class AvarSimple(AbstractAvar):
+    """
+    This represent a single deformer influence that is moved in space using avars.
+    By default it come with a Deformer driven by a doritos setup.
+    A doritos setup allow the controller to always be on the surface of the face.
+    """
+
+    def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
+        """
+        The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
+        the drived joint.
+        """
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        layer_pos = stack.add_layer('pos')
+        pymel.connectAttr(self.attr_lr, layer_pos.tx)
+        pymel.connectAttr(self.attr_ud, layer_pos.ty)
+        pymel.connectAttr(self.attr_fb, layer_pos.tz)
+        pymel.connectAttr(self.attr_yw, layer_pos.ry)
+        pymel.connectAttr(self.attr_pt, layer_pos.rx)
+        pymel.connectAttr(self.attr_rl, layer_pos.rz)
+
+        return stack
+
+    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, **kwargs):
+        super(AvarSimple, self).build(rig)
+
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        jnt_tm = self.get_jnt_tm()
+        doritos_pos = self.get_ctrl_tm().translate
+
+        #
+        # Build stack
+        #
+        dag_stack_name = nomenclature_rig.resolve('stack')
+        stack = classNode.Node()
+        stack.build(name=dag_stack_name)
+        stack.setParent(self.grp_rig)
+
+        # Create an offset layer so everything start at the original position.
+        layer_offset_name = nomenclature_rig.resolve('offset')
+        layer_offset = stack.add_layer()
+        layer_offset.rename(layer_offset_name)
+        layer_offset.setMatrix(jnt_tm)
+
+        # The rest of the stack is built in another function.
+        # This allow easier override by sub-classes.
+        self.build_stack(rig, stack, **kwargs)
+
+        # We connect the joint before creating the controllers.
+        # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
+        if constraint:
+            pymel.parentConstraint(stack.node, self.jnt, maintainOffset=True)
+
+        #
+        # Create a doritos setup for the avar
+        #
+        self._build_doritos_setup(rig)
+
+        # Create the ctrl
+        if create_ctrl:
+            ctrl_name = nomenclature_anm.resolve()
+            if not isinstance(self.ctrl, self._CLS_CTRL):
+                self.ctrl = self._CLS_CTRL()
+            self.ctrl.build(name=ctrl_name, size=ctrl_size)
+            self.ctrl.setTranslation(doritos_pos)
+            # self.ctrl_macro.setMatrix(ref_tm)
+            self.ctrl.setParent(self.grp_anm)
+            # self.ctrl_macro.connect_avars(self.attr_ud, self.attr_lr, self.attr_fb)
+            self.ctrl.link_to_avar(self)
+
+            self.attach_ctrl(rig, self.ctrl)
+
+        # If the deformation order is set to post (aka the deformer is in the final skinCluster)
+        # we will want the offset node to follow it's original parent (ex: the head)
+        if self._DEFORMATION_ORDER == 'post':
+            pymel.parentConstraint(self.parent, layer_offset, maintainOffset=True)
+
+
+class AvarFollicle(AvarSimple):
     """
     This represent a deformation point on the face that move accordingly to nurbsSurface.
     """
@@ -465,26 +613,27 @@ class Avar(AbstractAvar):
     _ATTR_NAME_U_MULT = 'UMultiplier'
     _ATTR_NAME_V_MULT = 'VMultiplier'
 
-
     def __init__(self, *args, **kwargs):
-        super(Avar, self).__init__(*args, **kwargs)
+        super(AvarFollicle, self).__init__(*args, **kwargs)
 
         self._attr_u_base = None
         self._attr_v_base = None
         self._attr_u_mult_inn = None
         self._attr_v_mult_inn = None
-        self.ctrl_macro = None
-        self.ctrl_micro = None
+        #self.ctrl_micro = None
 
         # TODO: Move to build, we don't want 1000 member properties.
         self._attr_length_v = None
         self._attr_length_u = None
 
-        self._sys_doritos = None
-        self._doritos_stack = None  # TODO: Deprecated, use ._sys_doritos
-
-    def _build_layer_follicle(self, rig, stack, mult_u=1.0, mult_v=1.0):
+    def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
+        """
+        The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
+        the drived joint.
+        """
+        # TODO: Maybe use sub-classing to differenciate when we need to use a surface or not.
         nomenclature_rig = self.get_nomenclature_rig(rig)
+
         #
         # Create follicle setup
         # The setup is composed of two follicles.
@@ -493,19 +642,23 @@ class Avar(AbstractAvar):
         #
 
         # Determine the follicle U and V on the reference nurbsSurface.
-        #jnt_pos = self.jnt.getTranslation(space='world')
-        #fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, jnt_pos)
+        # jnt_pos = self.jnt.getTranslation(space='world')
+        # fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, jnt_pos)
         fol_u, fol_v = self.get_base_uv()
 
         # Create and connect follicle-related parameters
         u_base = fol_u  # fol_influence.parameterU.get()
         v_base = 0.5  # fol_influence.parameterV.get()
 
+        # Resolve the length of each axis of the surface
+        self._attr_length_u, self._attr_length_v, arcdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
+        arcdimension_shape.getParent().setParent(self.grp_rig)
+
+
         # Create the bind pose follicle
         offset_name = nomenclature_rig.resolve('bindPoseRef')
         obj_offset = pymel.createNode('transform', name=offset_name)
         obj_offset.setParent(stack._layers[0])
-        # obj_offset.setMatrix(jnt_tm, worldSpace=True)
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
         # fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
@@ -519,10 +672,8 @@ class Avar(AbstractAvar):
         influence_name = nomenclature_rig.resolve('influenceRef')
         influence = pymel.createNode('transform', name=influence_name)
         influence.setParent(stack._layers[0])
-        # influence.setMatrix(jnt_tm, worldSpace=True)
 
         fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
-        # fol_influence = libRigging.create_follicle(influence, self.surface, name=fol_influence_name)
         fol_influence_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
         fol_influence = fol_influence_shape.getParent()
         fol_influence.rename(fol_influence_name)
@@ -764,188 +915,10 @@ class Avar(AbstractAvar):
         pymel.connectAttr(self.attr_pt, layer_rot.rotateY)
         pymel.connectAttr(self.attr_rl, layer_rot.rotateZ)
 
-    def _build_layer_classic(self, rig, stack):
-        layer_pos = stack.add_layer('pos')
-        pymel.connectAttr(self.attr_lr, layer_pos.tx)
-        pymel.connectAttr(self.attr_ud, layer_pos.ty)
-        pymel.connectAttr(self.attr_fb, layer_pos.tz)
-        pymel.connectAttr(self.attr_yw, layer_pos.ry)
-        pymel.connectAttr(self.attr_pt, layer_pos.rx)
-        pymel.connectAttr(self.attr_rl, layer_pos.rz)
-
-    def _build_layer_fb(self, rig, stack):
-        # Create the FB setup.
-        layer_fb = stack.add_layer('frontBack')
-        attr_get_fb = libRigging.create_utility_node('multiplyDivide',
-                                                     input1X=self.attr_fb,
-                                                     input2X=self._attr_length_u).outputX
-        attr_get_fb_adjusted = libRigging.create_utility_node('multiplyDivide',
-                                                              input1X=attr_get_fb,
-                                                              input2X=0.1).outputX
-        pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
-
-    def build_stack(self, rig, mult_u=1.0, mult_v=1.0):
-        """
-        The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
-        the drived joint.
-        """
-        # TODO: Maybe use sub-classing to differenciate when we need to use a surface or not.
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-        dag_stack_name = nomenclature_rig.resolve('stack')
-        stack = classNode.Node()
-        stack.build(name=dag_stack_name)
-
-        jnt_tm = self.get_jnt_tm()
-        # jnt_tm = self.jnt.getMatrix(worldSpace=True)
-
-        # Create an offset layer so everything start at the same parent space.
-        layer_offset_name = nomenclature_rig.resolve('offset')
-        layer_offset = stack.add_layer()
-        layer_offset.rename(layer_offset_name)
-        layer_offset.setMatrix(jnt_tm)
-
-        if self._DEFORMATION_ORDER == 'post':
-            pymel.parentConstraint(self.parent, layer_offset, maintainOffset=True)
-
-        if self.surface:
-            # Determine the UD and LR length using the provided surface.
-            # The FB length will use 10% the v arcLength of the plane.
-            self._attr_length_u, self._attr_length_v, arclengthdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(
-                self.surface)
-            arclengthdimension_shape.getParent().setParent(self.grp_rig)
-
-            self._build_layer_follicle(rig, stack, mult_u=mult_u, mult_v=mult_v)
-        else:
-            self._build_layer_classic(rig, stack)
-
         return stack
-
-    def _build_doritos_setup(self, rig, ref_tm=None):
-        # Resolve geometry for the follicle
-        obj_mesh = libRigging.get_farest_affected_mesh(self.jnt)
-        if obj_mesh is None:
-            pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
-            return False
-
-        # Resolve the doritos location
-        if ref_tm is None:
-            ref_tm = self.get_ctrl_tm()
-
-        self._sys_doritos = Doritos(self.jnts)
-        self._sys_doritos.build(rig, ctrl_tm=ref_tm, obj_mesh=obj_mesh)
-        self._sys_doritos.grp_rig.setParent(self.grp_rig)
-
-    def attach_ctrl(self, rig, ctrl):
-        """
-        Constraint a specic controller to the avar doritos stack.
-        """
-        self._sys_doritos.attach_ctrl(rig, ctrl)
-
-    '''
-    # TODO: Merge with attach ctrl?
-    def link_ctlr(self, ctrl, avar_tx=None, avar_ty=None, avar_tz=None, avar_rx=None, avar_ry=None, avar_rz=None,
-                  avar_sx=None, avar_sy=None, avar_sz=None):
-
-        attr_inn_ud = self.translateY
-        attr_inn_lr = self.translateX
-        attr_inn_fb = self.translateZ
-        attr_inn_yw = self.rotateY
-        attr_inn_pt = self.rotateX
-        attr_inn_rl = self.rotateZ
-
-        need_flip = self.getTranslation(space='world').x < 0
-        if need_flip:
-            attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
-
-        libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_yw)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_pt)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
-    '''
-
-    def build(self, rig, constraint=True, create_ctrl_macro=True, create_ctrl_micro=False, ctrl_size=None, mult_u=1.0, mult_v=1.0, **kwargs):
-        """
-        Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
-        """
-        super(Avar, self).build(rig)
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-
-        inf_tm = self.get_jnt_tm()
-        doritos_pos = self.get_ctrl_tm().translate
-        # doritos_pos = self.jnt.getTranslation(space='world')
-
-        self._dag_stack = self.build_stack(rig, mult_u=mult_u, mult_v=mult_v, **kwargs)
-        # self._dag_stack.setMatrix(inf_tm)
-        self._dag_stack.setParent(self.grp_rig)
-
-        # Note that we connect the joint before creating the controllers.
-        # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
-        if constraint:
-            pymel.parentConstraint(self._dag_stack.node, self.jnt, maintainOffset=True)
-
-        #
-        # Create a doritos setup for the avar
-        #
-        self._build_doritos_setup(rig)
-
-        #
-        # Create the macro ctrl
-        #
-        if create_ctrl_macro:
-            ctrl_macro_name = nomenclature_anm.resolve()
-            if not isinstance(self.ctrl_macro, self._CLS_CTRL):
-                self.ctrl_macro = self._CLS_CTRL()
-            self.ctrl_macro.build(name=ctrl_macro_name, size=ctrl_size)
-            self.ctrl_macro.setTranslation(doritos_pos)
-            # self.ctrl_macro.setMatrix(ref_tm)
-            self.ctrl_macro.setParent(self.grp_anm)
-            # self.ctrl_macro.connect_avars(self.attr_ud, self.attr_lr, self.attr_fb)
-            self.ctrl_macro.link_to_avar(self)
-
-            # self.create_doritos_setup(rig, self.ctrl_macro)
-            self.attach_ctrl(rig, self.ctrl_macro)
-
-        #
-        # Create the layers for the manual ctrl
-        # Any avar can be manually overrided by the animator using a small controller.
-        # TODO: Automatically project the ctrl on the face yo
-        #
-        if create_ctrl_micro:
-            layer_ctrl_name = nomenclature_rig.resolve('perCtrl')
-            layer_ctrl = self._dag_stack.add_layer(name=layer_ctrl_name)
-            layer_ctrl.rename(layer_ctrl_name)
-
-            ctrl_offset_name = nomenclature_anm.resolve('micro')
-            if not isinstance(self.ctrl_micro, self._CLS_CTRL_MICRO):
-                self.ctrl_micro = self._CLS_CTRL_MICRO()
-            self.ctrl_micro.build(name=ctrl_offset_name)
-            self.ctrl_micro.setTranslation(doritos_pos)
-            # self.ctrl_micro.setMatrix(ref_tm)
-            self.ctrl_micro.setParent(self.grp_anm)
-
-            util_decomposeTM = libRigging.create_utility_node('decomposeMatrix',
-                                                              inputMatrix=layer_ctrl.worldMatrix
-                                                              )
-            # pymel.parentConstraint(self.ctrl_offset.offset)
-            pymel.connectAttr(util_decomposeTM.outputTranslate, self.ctrl_micro.offset.translate)
-            pymel.connectAttr(util_decomposeTM.outputRotate, self.ctrl_micro.offset.rotate)
-
-            # pymel.parentConstraint(layer_offset, self.ctrl_offset.offset)
-            pymel.connectAttr(self.ctrl_micro.translate, layer_ctrl.translate)
-            pymel.connectAttr(self.ctrl_micro.rotate, layer_ctrl.rotate)
-            pymel.connectAttr(self.ctrl_micro.scale, layer_ctrl.scale)
-
-            # self.create_doritos_setup(rig, self.ctrl_micro)
-            self.attach_ctrl(rig, self.ctrl_micro)
-
-    def unbuild(self):
-        super(Avar, self).unbuild()
-        self._doritos_stack = None
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
         return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

@@ -32,7 +32,7 @@ class CtrlJaw(classAvar.BaseCtrlFace):
         )
         
 
-class AvarJaw(classAvar.Avar):
+class AvarJaw(classAvar.AvarSimple):
     """
     This avar is not designed to use any surface.
     """

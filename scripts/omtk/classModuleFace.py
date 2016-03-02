@@ -18,7 +18,7 @@ class ModuleFace(classAvar.AbstractAvar):
     Base class for a group of 'avars' that share similar properties.
     Also global avars will be provided to controll all avars.
     """
-    _CLS_AVAR = classAvar.Avar
+    _CLS_AVAR = classAvar.AvarFollicle
 
     #
     # Influences properties
@@ -460,4 +460,4 @@ class ModuleFaceLftRgt(ModuleFace):
     def unbuild(self):
         self.ctrl_l.unbuild()
         self.ctrl_r.unbuild()
-        super(ModuleFaceLftRgt, self).unbuild()
+        sup

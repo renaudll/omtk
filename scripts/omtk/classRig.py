@@ -438,7 +438,7 @@ class Rig(object):
         """
         from omtk import classAvar
         for module in self.modules:
-            if isinstance(module, classAvar.Avar):
+            if isinstance(module, classAvar.AvarFollicle):
                 yield module
             elif isinstance(module, omtk.classModuleFace.ModuleFace):
                 for avar in module.avars:

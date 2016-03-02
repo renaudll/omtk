@@ -43,6 +43,9 @@ class Node(object):
 
         if self._layers:
             new_layer.setParent(self._layers[-1])
+        else:
+            parent = self.node.getParent()
+            new_layer.setParent(parent)
         self._layers.append(new_layer)
         self.node.setParent(new_layer)
 

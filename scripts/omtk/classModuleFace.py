@@ -18,16 +18,7 @@ class ModuleFace(classAvar.AbstractAvar):
     Base class for a group of 'avars' that share similar properties.
     Also global avars will be provided to controll all avars.
     """
-    #AVAR_NAME_UD = 'avar_ud'
-    #AVAR_NAME_LR = 'avar_lr'
-    #AVAR_NAME_FB = 'avar_fb'
-    # TODO: Provide additional avars
-
-    '''
-    module_name_ignore_list = [
-        'Inn', 'Mid', 'Out'
-    ]
-    '''
+    _CLS_AVAR = classAvar.Avar
 
     #
     # Influences properties
@@ -138,24 +129,28 @@ class ModuleFace(classAvar.AbstractAvar):
 
     def connect_global_avars(self):
         for avar in self.avars:
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_ud, avar.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_lr, avar.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_fb, avar.attr_avar_fb)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_yw, avar.attr_avar_yw)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_pt, avar.attr_avar_pt)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_rl, avar.attr_avar_rl)
+            libRigging.connectAttr_withBlendWeighted(self.attr_ud, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_lr, avar.attr_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_fb, avar.attr_fb)
+            libRigging.connectAttr_withBlendWeighted(self.attr_yw, avar.attr_yw)
+            libRigging.connectAttr_withBlendWeighted(self.attr_pt, avar.attr_pt)
+            libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
 
     def build(self, rig, **kwargs):
-        super(ModuleFace, self).build(rig, **kwargs)
+        super(ModuleFace, self).build(rig)
 
         # Resolve the desired ctrl size
         # One thing we are sure is that ctrls should no overlay,
         # so we'll max out their radius to half of the shortest distances between each.
         # Also the radius cannot be bigger than 3% of the head length.
-        ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
         max_ctrl_size = rig.get_head_length() * 0.03
-        if ctrl_size > max_ctrl_size:
-            print("Limiting ctrl size to {0}".format(max_ctrl_size))
+        if len(self.jnts) > 1:
+            ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
+            if ctrl_size > max_ctrl_size:
+                print("Limiting ctrl size to {0}".format(max_ctrl_size))
+                ctrl_size = max_ctrl_size
+        else:
+            print("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
             ctrl_size = max_ctrl_size
 
         # Define avars on first build
@@ -164,12 +159,17 @@ class ModuleFace(classAvar.AbstractAvar):
             # Connect global avars to invidial avars
             # TODO: Handle if there's no surface!
             for jnt in self.jnts:
-                sys_facepnt = classAvar.Avar([jnt, self.surface])
+                inn = [jnt]
+                if self.surface:
+                    inn.append(self.surface)
+
+                sys_facepnt = self._CLS_AVAR(inn)
                 self.avars.append(sys_facepnt)
 
         # Build avars and connect them to global avars
         for avar in self.avars:
-            avar.build(rig, ctrl_size=ctrl_size)
+            avar._DEFORMATION_ORDER = self._DEFORMATION_ORDER
+            avar.build(rig, ctrl_size=ctrl_size, **kwargs)
             avar.grp_anm.setParent(self.grp_anm)
             avar.grp_rig.setParent(self.grp_rig)
 
@@ -215,13 +215,6 @@ class ModuleFace(classAvar.AbstractAvar):
         #ctrl.setMatrix(ctrl_tm)
         ctrl.setTranslation(ctrl_tm.translate)
 
-
-        '''
-        if need_flip:
-            inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
-        else:
-            inn_lr = ctrl.translateY
-        '''
         if need_flip:
             ctrl.offset.scaleX.set(-1)
         else:
@@ -229,24 +222,6 @@ class ModuleFace(classAvar.AbstractAvar):
             # TODO: Flip ctrl to avar connection
 
         return ctrl
-
-    '''
-    def connect_ctrl_to_avars(self, ctrl, attr_avar_ud, attr_avar_lr, attr_avar_fb):
-        need_flip = ctrl.getTranslation(space='world').x < 0
-
-        # Connect UD avar
-        libRigging.connectAttr_withBlendWeighted(ctrl.translateX, attr_avar_ud)
-
-        # Connect LR avar (handle mirroring)
-        if need_flip:
-            inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=ctrl.translateY, input2X=-1).outputX
-        else:
-            inn_lr = ctrl.translateY
-        libRigging.connectAttr_withBlendWeighted(inn_lr, attr_avar_lr)
-
-        # Connect FB avar
-        libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, attr_avar_fb)
-    '''
 
     def create_surface(self):
         root = pymel.createNode('transform')
@@ -316,59 +291,20 @@ class ModuleFaceUppDown(ModuleFace):
     _CLS_CTRL_LOW = None
     _CLS_SYS_UPP = ModuleFace
     _CLS_SYS_LOW = ModuleFace
-    '''
-    _AVAR_NAME_UPP_UD = 'UppUD'
-    _AVAR_NAME_UPP_LR = 'UppLR'
-    _AVAR_NAME_UPP_FB = 'UppFB'
-    _AVAR_NAME_LOW_UD = 'LowUD'
-    _AVAR_NAME_LOW_LR = 'LowLR'
-    _AVAR_NAME_LOW_FB = 'LowFB'
-    '''
 
     def __init__(self, *args, **kwargs):
         self.sys_upp = None
         self.sys_low = None
         self.ctrl_upp = None
         self.ctrl_low = None
-        '''
-        self.attr_avar_upp_ud = None
-        self.attr_avar_upp_lr = None
-        self.attr_avar_upp_fb = None
-        self.attr_avar_low_ud = None
-        self.attr_avar_low_lr = None
-        self.attr_avar_low_fb = None
-        '''
 
         super(ModuleFaceUppDown, self).__init__(*args, **kwargs)
 
     def add_avars(self, attr_holder):
         pass
-        '''
-        self.sys_upp.add_avars()
-        self.sys_low.add_avars()
-        self.attr_avar_upp_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
-        self.attr_avar_upp_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
-        self.attr_avar_upp_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
-        self.attr_avar_low_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
-        self.attr_avar_low_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
-        self.attr_avar_low_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
-        '''
 
     def connect_global_avars(self):
         pass
-        '''
-        # Create UpperLips Global Avars
-        for avar in self.avars_upp:
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_ud, avar.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_lr, avar.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_fb, avar.attr_avar_fb)
-
-        # Create LowerLips Global Avars
-        for avar in self.avars_low:
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_ud, avar.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_lr, avar.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_fb, avar.attr_avar_fb)
-        '''
 
     def build(self, rig, **kwargs):
         super(ModuleFaceUppDown, self).build(rig, **kwargs)
@@ -383,7 +319,6 @@ class ModuleFaceUppDown(ModuleFace):
             self.ctrl_upp.build(name=ctrl_upp_name)
 
             self.create_ctrl(rig, self.ctrl_upp, self.jnt_upp_mid)
-            #self.ctrl_upp.connect_avars(self.attr_avar_upp_ud, self.attr_avar_upp_lr, self.attr_avar_upp_fb)
             self.avar_upp_mid.attach_ctrl(rig, self.ctrl_upp)
 
             # Connect ctrl_upp to upp avars
@@ -398,7 +333,6 @@ class ModuleFaceUppDown(ModuleFace):
             self.ctrl_low.build(name=ctrl_low_name)
 
             self.create_ctrl(rig, self.ctrl_low, self.jnt_low_mid)
-            #self.ctrl_low.connect_avars(self.attr_avar_low_ud, self.attr_avar_low_lr, self.attr_avar_low_fb)
             self.avar_low_mid.attach_ctrl(rig, self.ctrl_low)
 
             # Connect ctrl_low to upp avars
@@ -466,7 +400,6 @@ class ModuleFaceLftRgt(ModuleFace):
         self.sys_r = None
         self.ctrl_l = None
         self.ctrl_r = None
-        #self.ctrl_all = None
 
     def add_avars(self, attr_holder):
         pass
@@ -476,36 +409,21 @@ class ModuleFaceLftRgt(ModuleFace):
 
     def get_multiplier_lr(self):
         """
-        Since we are using the same plane for the eyebrows, we want to attenuate the relation between the LR avar
+        Since we are using the same plane for the eyebrows, we want to attenget_multiplier_lruate the relation between the LR avar
         and the plane V coordinates.
         In the best case scenario, at LR -1, the V coordinates of the BrowInn are 0.5 both.
         """
-        base_u = self.avar_inn._attr_u_base.get()
+        base_u, base_v = self.get_base_uv()
         return abs(base_u - 0.5) * 2.0
 
     def build(self, rig, **kwargs):
-        super(ModuleFaceLftRgt, self).build(rig, **kwargs)
+        mult_u = self.get_multiplier_lr()
+        super(ModuleFaceLftRgt, self).build(rig, mult_u=mult_u, **kwargs)
 
+        # Adjust LR multiplier
         '''
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        head_length = rig.get_head_length()
-        sensibility = 1.0 / (0.25 * head_length)
-
-        # Create a ctrl for all the brows
-        ctrl_all_name = nomenclature_anm.resolve('all')
-        if not isinstance(self.ctrl_all, self._CLS_CTRL_ALL):
-            self.ctrl_all = self._CLS_CTRL_ALL()
-        self.ctrl_all.build(name=ctrl_all_name)
-        self.create_ctrl(rig, self.ctrl_all, self.jnt_mid)
-        self.avar_mid.attach_ctrl(rig, self.ctrl_all)
-
-        # Connect global avars to the main ctrl
-        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.translateX, self.attr_avar_lr)
-        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.translateY, self.attr_avar_ud)
-        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.translateZ, self.attr_avar_fb)
-        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.rotateX, self.attr_avar_pt)
-        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.rotateY, self.attr_avar_yw)
-        libRigging.connectAttr_withBlendWeighted(self.ctrl_all.rotateZ, self.attr_avar_rl)
+        for avar in self.avars:
+            avar._attr_u_mult_inn.set(mult_lr)
         '''
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
@@ -519,7 +437,6 @@ class ModuleFaceLftRgt(ModuleFace):
             self.ctrl_l.build(name=ctrl_l_name)
 
             self.create_ctrl(rig, self.ctrl_l, self.jnt_l_mid)
-            #self.ctrl_l.connect_avars(self.attr_avar_upp_ud, self.attr_avar_upp_lr, self.attr_avar_upp_fb)
             self.avar_l_mid.attach_ctrl(rig, self.ctrl_l)
 
             # Connect r ctrl to r avars
@@ -527,7 +444,6 @@ class ModuleFaceLftRgt(ModuleFace):
                 self.ctrl_l.link_to_avar(avar)
 
         if self.jnts_r:
-
             # Create r ctrl
             ctrl_r_name = nomenclature_anm.resolve('r') # todo: set side manually
             if not isinstance(self.ctrl_r, self._CLS_CTRL):
@@ -535,18 +451,11 @@ class ModuleFaceLftRgt(ModuleFace):
             self.ctrl_r.build(name=ctrl_r_name)
 
             self.create_ctrl(rig, self.ctrl_r, self.jnt_r_mid)
-            #self.ctrl_r.connect_avars(self.attr_avar_low_ud, self.attr_avar_low_lr, self.attr_avar_low_fb)
             self.avar_r_mid.attach_ctrl(rig, self.ctrl_r)
 
             # Connect r ctrl to r avars
             for avar in self.avars_r:
                 self.ctrl_r.link_to_avar(avar)
-
-        # Adjust LR multiplier
-        mult_lr = self.get_multiplier_lr()
-        for avar in self.avars:
-            avar._attr_u_mult_inn.set(mult_lr)
-
 
     def unbuild(self):
         self.ctrl_l.unbuild()

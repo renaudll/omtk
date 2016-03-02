@@ -133,6 +133,13 @@ class Module(object):
         return jnts
 
     @libPython.cached_property()
+    def jnt(self):
+        """
+        Return the first input joint. Usefull for system like Avars that only handle one influence.
+        """
+        return next(iter(self.jnts), None)
+
+    @libPython.cached_property()
     def chains(self):
         return libPymel.get_chains_from_objs(self.input)
 

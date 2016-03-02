@@ -100,12 +100,12 @@ class CtrlFkAdd(BaseCtrl):
         return node
 
 
-
-
 class AdditiveFK(FK):
     """
     An AdditiveFK chain is a standard FK chain that have one or many additional controllers to rotate the entire chain.
     """
+    _CLASS_CTRL_IK = CtrlFkAdd
+
     def __init__(self, *args, **kwargs):
         super(AdditiveFK, self).__init__(*args, **kwargs)
         self.num_ctrls = 1
@@ -114,15 +114,25 @@ class AdditiveFK(FK):
     def build(self, rig, *args, **kwargs):
         super(AdditiveFK, self).build(rig, *args, **kwargs)
 
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+
         # TODO: Support multiple additive ctrls
         # TODO: Rename
-        ctrl_add = CtrlFkAdd()
-        ctrl_add.build(refs=self.chain.start)
-        ctrl_add.setMatrix(self.chain.start.getMatrix(worldSpace=True))
-        ctrl_add.setParent(self.grp_anm)
-        self.additive_ctrls.append(ctrl_add)
+        if not self.additive_ctrls:
+            ctrl_add = CtrlFkAdd()
+            self.additive_ctrls.append(ctrl_add)
+        #HACK - Temp since we don't support multiple ctrl for the moment
+        ctrl_add = self.additive_ctrls[0]
+        for i, ctrl in enumerate(self.additive_ctrls):
+            name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
+            ctrl.build(name=name, refs=self.chain.start)
+            ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
+            ctrl.setParent(self.grp_anm)
 
-        for ctrl in self.ctrls:
+        for i, ctrl in enumerate(self.ctrls):
+            #HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems
+            if i == 0:
+                ctrl.offset = ctrl.add_layer("gimbal")
             attr_rotate_x = libRigging.create_utility_node('addDoubleLinear',
                                                            input1=ctrl.offset.rotateX.get(),
                                                            input2=ctrl_add.rotateX
@@ -143,5 +153,5 @@ class AdditiveFK(FK):
         pymel.pointConstraint(ctrl_add, self.ctrls[0].offset)
 
     def unbuild(self):
-        self.additive_ctrls = None
+        #self.additive_ctrls = []
         super(AdditiveFK, self).unbuild()

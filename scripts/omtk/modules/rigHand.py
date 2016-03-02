@@ -4,6 +4,7 @@ from omtk.classModule import Module
 from omtk.modules import rigFK
 from omtk.libs import libPython
 from omtk.libs import libPymel
+from omtk.libs import libRigging
 
 
 '''
@@ -48,7 +49,8 @@ class Hand(Module):
     def __init__(self, *args, **kwargs):
         super(Hand, self).__init__(*args, **kwargs)
         self.sysFingers = []
-        self.ctrls_metacarpals = []
+        self.metacarpals = []
+        self.fk_sys_metacarpals = []
 
     @libPython.cached_property()
     def chains(self):
@@ -57,21 +59,27 @@ class Hand(Module):
         :return: The chains sorted by their position relative to the hand.
         """
         # TODO: Implement 'super' behavior in property
-        parent_tm_inv = self.parent.getMatrix(worldSpace=True) if self.parent else pymel.datatypes.Matrix()
         chains = libPymel.get_chains_from_objs(self.input)
 
         def sort_chain(chain):
-            local_tm = chain.end.getMatrix(worldSpace=True) * parent_tm_inv
+            local_tm = chain.end.getMatrix(worldSpace=True)
             return local_tm.translate.z
 
-        return sorted(chains, key=sort_chain)
+        #Sorted by distance, but doesn't detect positive/negative value
+        sorted_chain = sorted(chains, key=sort_chain)
+
+        return sorted_chain
 
     def build(self, rig, *args, **kwargs):
         super(Hand, self).build(rig, parent=False, *args, **kwargs)
 
-
         # Resolve fingers and metacarpals
-        jnts_metacarpals = []
+        #jnts_metacarpals = []
+        #metacarpals_sys = []
+        meta_index = 0 #We can have less metacarpals than finger chains
+
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_rig = self.get_nomenclature_rig(rig)
 
         # Create fingers systems if necessary
         for i, chain in enumerate(self.chains):
@@ -88,45 +96,60 @@ class Hand(Module):
             if chain_length == 5:
                 jnt_metacarpal = chain[0]
                 jnts_phalanges = chain[1:-1]
-                jnts_metacarpals.append(jnt_metacarpal)
+                #jnts_metacarpals.append(jnt_metacarpal)
             else:
                 jnt_metacarpal = None
                 jnts_phalanges = chain[:-1]
 
-            # Rig fingers
-            sysFinger = rigFK.AdditiveFK(jnts_phalanges)
-            self.sysFingers.append(sysFinger)
-            sysFinger.build(rig, parent=False)
-            sysFinger.grp_anm.setParent(self.grp_anm)
-
-            '''
             # Rig metacarpals if necessary
+            ctrl_meta = None
             if jnt_metacarpal:
-                pymel.aimConstraint(sysFinger.additive_ctrls[0], jnt_metacarpal, worldUpType=2,
-                                    worldUpObject=self.parent)
-            '''
-            # pymel.parentConstraint(jnt_metacarp, metacarpal, maintainOffset=True)
+                if meta_index >= len(self.fk_sys_metacarpals):
+                    ctrl_meta = rigFK.FK([jnt_metacarpal])
+                    self.fk_sys_metacarpals.append(ctrl_meta)
 
-        '''
+                ctrl_meta = self.fk_sys_metacarpals[meta_index]
+                ctrl_meta.build(rig, parent=False)
+                ctrl_meta.grp_anm.setParent(self.grp_anm)
+                meta_index += 1
+
+            # Rig fingers
+            if not self.sysFingers or i >= len(self.sysFingers):
+                sysFinger = rigFK.AdditiveFK(jnts_phalanges)
+                self.sysFingers.append(sysFinger)
+
+            sysFinger = self.sysFingers[i]
+            sysFinger.build(rig, parent=False)
+            if ctrl_meta:
+                sysFinger.grp_anm.setParent(ctrl_meta.ctrls[0])
+            else:
+                sysFinger.grp_anm.setParent(self.grp_anm)
+
+            #Keep the system to make sure it match the index of the metacarpal associated
+            #metacarpals_sys.append(sysFinger)
+
         # Rig the 'cup' setup
-        if jnts_metacarpals:
-            pos_inn = jnts_metacarpals[0].getTranslation(space='world')
-            pos_out = jnts_metacarpals[-1].getTranslation(space='world')
-            pos_mid = (pos_out - pos_inn) / 2.0 + pos_inn
+        if self.fk_sys_metacarpals:
+            pos_inn = self.fk_sys_metacarpals[0].ctrls[0].getTranslation(space='world')
+            pos_out = self.fk_sys_metacarpals[-1].ctrls[0].getTranslation(space='world')
+            pos_mid = ((pos_out - pos_inn) / 2.0) + pos_inn
 
             # Resolve the metacarpal plane orientation
             parent_tm = self.parent.getMatrix(worldSpace=True)
             x = pos_out - pos_inn
             x.normalize()
             y = pymel.datatypes.Vector(parent_tm.a10, parent_tm.a11, parent_tm.a12)
-            z = x.cross(y)
+            z = x.cross(y) #Get the front vector
+            z.normalize()
+            y = x.cross(z) #Ensure the up vector is orthogonal
+            y.normalize()
             ref_tm = pymel.datatypes.Matrix(
                     z.x, z.y, z.z, 0.0,
                     y.x, y.y, y.z, 0.0,
                     x.x, x.y, x.z, 0.0,
                     pos_mid.x, pos_mid.y, pos_mid.z, 1.0
             )
-            rig_metacarpal_center = pymel.spaceLocator(name=self.name_rig.resolve('metacarpCenter'))
+            rig_metacarpal_center = pymel.spaceLocator(name=nomenclature_rig.resolve('metacarpCenter'))
             rig_metacarpal_center.setMatrix(ref_tm)
             rig_metacarpal_center.setParent(self.grp_rig)
             pymel.parentConstraint(self.parent, rig_metacarpal_center, maintainOffset=True)
@@ -137,12 +160,12 @@ class Hand(Module):
             attr_cup = attr_holder.attr('cup')
 
 
-            for jnt_metacarpal in jnts_metacarpals:
+            for i, ctrl_metacarpal in enumerate(self.fk_sys_metacarpals):
                 width = pos_inn.distanceTo(pos_out)
-                pos = jnt_metacarpal.getTranslation(space='world')
+                pos = ctrl_metacarpal.ctrls[0].getTranslation(space='world')
                 ratio = (pos - pos_inn).length() / width
 
-                grp_pivot_name = self.name_anm.resolve('pivot')
+                grp_pivot_name = nomenclature_rig.resolve(ctrl_metacarpal.input[0].name() + '_pivot')
                 grp_pivot = pymel.createNode('transform', name=grp_pivot_name)
                 grp_pivot.setMatrix(ref_tm)
                 grp_pivot.setParent(rig_metacarpal_center)
@@ -152,27 +175,31 @@ class Hand(Module):
                                                                input1X=attr_cup,
                                                                input2X=multiplier,
                                                                ).outputX
-                pymel.connectAttr(attr_rotate_x, grp_pivot.rotateX)
+                pymel.connectAttr(attr_rotate_x, grp_pivot.rotateY)
 
-                jnt_phalange_inn = next(iter(jnt_metacarpal.getChildren()))
-                grp_pos = pymel.createNode('transform')
-                grp_pos.setMatrix(jnt_phalange_inn.getMatrix(worldSpace=True))
-                grp_pos.setParent(grp_pivot)
+                # jnt_phalange_inn = next(iter(jnt_metacarpal.getChildren()))
+                # grp_pos = pymel.createNode('transform')
+                # grp_pos.rename(nomenclature_rig.resolve(jnt_phalange_inn.name() + "_parentPos"))
+                # grp_pos.setMatrix(jnt_phalange_inn.getMatrix(worldSpace=True))
+                # grp_pos.setParent(grp_pivot)
 
-                #pymel.parentConstraint(grp_pivot, jnt_metacarpal, maintainOffset=True, skipRotate=['x', 'y', 'z'])
+                pymel.parentConstraint(grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True, skipRotate=['y','z'])
 
                 # HACK: Override the phalanges rig parent
+                # sysFinger = metacarpals_sys[i]
                 # pymel.disconnectAttr(sysFinger.grp_anm.translateX)
                 # pymel.disconnectAttr(sysFinger.grp_anm.translateY)
                 # pymel.disconnectAttr(sysFinger.grp_anm.translateZ)
-                # #pymel.parentConstraint(grp_pivot, sysFinger.grp_anm, maintainOffset=True, skipRotate=['x', 'y', 'z'])
+                # pymel.parentConstraint(grp_pivot, sysFinger.grp_anm, maintainOffset=True, skipRotate=['x', 'y', 'z'])
                 # pymel.pointConstraint(grp_pos, sysFinger.grp_anm, maintainOffset=True)
-            '''
 
         pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
 
     def unbuild(self):
         for sysFinger in self.sysFingers:
             sysFinger.unbuild()
+
+        for ctrl_meta in self.fk_sys_metacarpals:
+            ctrl_meta.unbuild()
 
         super(Hand, self).unbuild()

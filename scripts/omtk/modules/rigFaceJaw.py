@@ -17,7 +17,7 @@ class CtrlJaw(classAvar.BaseCtrlFace):
         attr_yw_inn = self.translateX
 
         # UD Low
-        attr_pt_low = libRigging.create_utility_node('multiplyDivide', input1X=attr_pt_inn, input2X=-15).outputX
+        attr_pt_low = libRigging.create_utility_node('multiplyDivide', input1X=attr_pt_inn, input2X=-1).outputX
         attr_pt_inn = libRigging.create_utility_node('condition', operation=4,  # Less than
                                        firstTerm=attr_pt_inn,
                                        colorIfTrueR=attr_pt_low,
@@ -43,12 +43,12 @@ class AvarJaw(classAvar.Avar):
         Find the chin location. This is the preffered location for the jaw doritos.
         :return:
         """
+        # TODO: Prevent multiple calls? cached?
         jnt = next(iter(self.jnts), None)
         geos = libRigging.get_affected_geometries(jnt)  # TODO: Validate
 
         ref = jnt.getMatrix(worldSpace=True)
 
-        #raise Exception
         pos_s = pymel.datatypes.Point(jnt.getTranslation(space='world'))
         pos_e = pymel.datatypes.Point(10,0,0) * ref
         dir = pos_e - pos_s
@@ -58,16 +58,26 @@ class AvarJaw(classAvar.Avar):
 
         result = next(iter(reversed(result)))
         tm = pymel.datatypes.Matrix([1,0,0,0, 0,1,0,0, 0,0,1,0, result.x, result.y, result.z, 1])
-        sl = pymel.spaceLocator()
-        sl.setMatrix(tm)
+        #sl = pymel.spaceLocator()
+        #sl.setMatrix(tm)
         return tm
 
     def build(self, *args, **kwargs):
         super(AvarJaw, self).build(*args, **kwargs)
 
+
 class FaceJaw(classModuleFace.ModuleFace):
     """
     The Jaw is a special zone since it doesn't happen in pre-deform, it happen in the main skinCluster.
+    The Jaw global avars are made 
     """
     _DEFORMATION_ORDER = 'post'
     _CLS_AVAR = AvarJaw
+
+    # HACK: For now we won't use any global avars on the Jaw since there's only one influence.
+    def add_avars(self, attr_holder):
+        pass
+
+    def connect_global_avars(self):
+        pass
+

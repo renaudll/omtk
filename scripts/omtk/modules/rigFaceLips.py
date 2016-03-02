@@ -48,23 +48,24 @@ class FaceLips(classModuleFace.ModuleFace):
         super(FaceLips, self).build(rig, **kwargs)
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
+
         # Create UpperLips Global Avars
-        self.attr_avar_upp_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
-        self.attr_avar_upp_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
-        self.attr_avar_upp_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
+        self.attr_upp_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
+        self.attr_upp_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
+        self.attr_upp_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
         for avar in self.avars_upp:
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_ud, avar.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_lr, avar.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_upp_fb, avar.attr_avar_fb)
+            libRigging.connectAttr_withBlendWeighted(self.attr_upp_ud, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_upp_lr, avar.attr_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_upp_fb, avar.attr_fb)
 
         # Create LowerLips Global Avars
-        self.attr_avar_low_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
-        self.attr_avar_low_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
-        self.attr_avar_low_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
+        self.attr_low_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
+        self.attr_low_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
+        self.attr_low_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
         for avar in self.avars_low:
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_ud, avar.attr_avar_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_lr, avar.attr_avar_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_avar_low_fb, avar.attr_avar_fb)
+            libRigging.connectAttr_withBlendWeighted(self.attr_low_ud, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_low_lr, avar.attr_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_low_fb, avar.attr_fb)
 
         # Create a ctrl for the whole upper lips
         ctrl_upp_name = nomenclature_anm.resolve('upp')
@@ -73,8 +74,8 @@ class FaceLips(classModuleFace.ModuleFace):
         self.ctrl_upp.build(name=ctrl_upp_name)
         self.create_ctrl(rig, self.ctrl_upp, self.jnt_upp_mid)
         #self.AvarUppMid._create_doritos_setup_2(rig, self.ctrl_upp)
-        #self.ctrl_upp.connect_avars(self.attr_avar_upp_ud, self.attr_avar_upp_lr, self.attr_avar_upp_fb)
-        self.ctrl_upp.link_to_avar(self)
+        self.ctrl_upp.connect_avars(self.attr_upp_ud, self.attr_upp_lr, self.attr_upp_fb)
+        #self.ctrl_upp.link_to_avar(self)
         self.avar_upp_mid.attach_ctrl(rig, self.ctrl_upp)
 
         # Create a ctrl for the whole lower lips
@@ -84,7 +85,7 @@ class FaceLips(classModuleFace.ModuleFace):
         self.ctrl_low.build(name=ctrl_low_name)
         self.create_ctrl(rig, self.ctrl_low, self.jnt_low_mid)
         #self.AvarLowMid._create_doritos_setup_2(rig, self.ctrl_low)
-        #self.ctrl_low.connect_avars(self.attr_avar_low_ud, self.attr_avar_low_lr, self.attr_avar_low_fb)
-        self.ctrl_low.link_to_avar(self)
+        self.ctrl_low.connect_avars(self.attr_low_ud, self.attr_low_lr, self.attr_low_fb)
+        #self.ctrl_low.link_to_avar(self)
         self.avar_upp_mid.attach_ctrl(rig, self.ctrl_low)
 

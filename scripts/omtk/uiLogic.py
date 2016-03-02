@@ -4,6 +4,7 @@ from libs.libQt import QtCore, QtGui, getMayaWindow
 import libSerialization
 import classModule
 import classRig
+import rigs.rigSqueeze as classRigSqueeze
 from maya import OpenMaya
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -32,7 +33,7 @@ def get_all_QTreeWidgetItem(widget, qt_item=None):
 
 class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     #http://forums.cgsociety.org/archive/index.php?t-1096914.html
-    #Use the intern maya resssources icon
+    #Use the intern maya ressources icon
     _STYLE_SHEET = \
     """
            QTreeView::item
@@ -82,12 +83,12 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         super(AutoRig, self).__init__(parent)
         self.setupUi(self)
 
-        self._fetch_scene_data() #refresh_ui is also called in this function
-
         self._is_modifying = False
-
         self.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
         self.actionAdd.setEnabled(False)
+
+        self._fetch_scene_data()
+        self.update_ui()
 
         self.actionBuild.triggered.connect(self.on_build)
         self.actionUnbuild.triggered.connect(self.on_unbuild)
@@ -133,14 +134,17 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def create_callbacks(self):
         self.remove_callbacks()
+        #Disable to prevent performance drop when CTRL-Z and the tool is open
+        #TODO - Reactivate back when the tool will be stable ?
         self.callbacks_events = \
         [
-            OpenMaya.MEventMessage.addEventCallback("Undo", self.update_ui_modules),
-            OpenMaya.MEventMessage.addEventCallback("Redo", self.update_ui_modules),
+            # OpenMaya.MEventMessage.addEventCallback("Undo", self.update_ui),
+            # OpenMaya.MEventMessage.addEventCallback("Redo", self.update_ui)
         ]
         self.callbacks_scene = \
         [
-            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kSceneUpdate, self._fetch_scene_data)
+            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterOpen, self.on_update),
+            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterNew, self.on_update)
         ]
 
         # self.callbacks_nodes = OpenMaya.MDGMessage.addNodeRemovedCallback(
@@ -162,27 +166,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         #     OpenMaya.MMessage.removeCallback(self.callbacks_nodes)
         #     self.callbacks_nodes = None
 
-    def closeEvent(self, *args, **kwargs):
-        self.remove_callbacks()
-        super(AutoRig, self).closeEvent(*args, **kwargs)
-
-
     #
-    # root property
+    # Privates
     #
-    #@property
-    #def root(self):
-    #    return self.__dict__['_root']
-    #@property
-    '''
-    @libPython.cached_property()
-    def root(self):
-        root = core.find_one()
-        if root:
-            return root
-        return classRig.Rig()
-    '''
-
     def _rig_to_tree_widget(self, module):
         qItem = QtGui.QTreeWidgetItem(0)
         if hasattr(module, '_network'):
@@ -197,26 +183,18 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         qItem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
         if isinstance(module, classRig.Rig):
             qItem.setIcon(0, QtGui.QIcon(":/out_character.png"))
-            for child in module:
+            sorted_modules = sorted(module, key=lambda mod: mod.name)
+            for child in sorted_modules:
                 qSubItem = self._rig_to_tree_widget(child)
                 qSubItem.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
                 for input in child.input:
                     qInputItem = QtGui.QTreeWidgetItem(0)
                     qInputItem.setText(0, input.name())
-                    qInputItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
+                    self._set_icon_from_type(input, qInputItem)
                     qInputItem.setFlags(qItem.flags() & QtCore.Qt.ItemIsSelectable)
                     qSubItem.addChild(qInputItem)
                 qItem.addChild(qSubItem)
         return qItem
-
-    def focus_in_module(self, event):
-        #Set bach the text with the information about the module in it
-        if self._is_modifying:
-            sel = self.treeWidget.selectedItems()
-            if sel:
-                sel[0].setText(0, str(sel[0].rig))
-            self._is_modifying = False
-        self.focusInEvent(event)
 
     def _is_influence(self, obj):
         """
@@ -225,6 +203,17 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         """
         return libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
 
+    def _set_icon_from_type(self, obj, qItem):
+        if isinstance(obj, pymel.nodetypes.Joint):
+            qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
+        else:
+            if getattr(obj, "getShape"):
+                if isinstance(obj.getShape(), pymel.nodetypes.NurbsSurface):
+                    qItem.setIcon(0, QtGui.QIcon(":/nurbsSurface.svg"))
+                elif isinstance(obj.getShape(), pymel.nodetypes.NurbsCurve):
+                    qItem.setIcon(0, QtGui.QIcon(":/nurbsCurve.svg"))
+                else:
+                    qItem.setIcon(0, QtGui.QIcon(":/question.png"))
 
     def _fill_widget_influences_recursive(self, qt_parent, obj):
         obj_name = obj.stripNamespace()
@@ -240,7 +229,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             qItem.networks = networks
             qItem.setText(0, obj_name)
             qItem.setForeground(0, textBrush)
-            qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
+            self._set_icon_from_type(obj, qItem)
             qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
             if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
                 qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
@@ -255,35 +244,16 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.roots = core.find()
         self.root = next(iter(self.roots), None)
         if self.root is None:
-            self.root = classRig.Rig()
+            self.root = classRigSqueeze.RigSqueeze()
             self.roots = [self.root]
-        self.refresh_ui()
 
-    def refresh_ui(self):
-        self.update_ui_modules()
-        self.update_ui_jnts_visibility()
+    def _show_parent_recursive(self, qt_parent_item):
+        if qt_parent_item is not None:
+            if qt_parent_item.isHidden:
+                qt_parent_item.setHidden(False)
+            self._show_parent_recursive(qt_parent_item.parent())
 
-    def update_ui_modules(self, *args, **kwargs):
-        self.treeWidget.clear()
-        for root in self.roots:
-            qItem = self._rig_to_tree_widget(root)
-            self.treeWidget.addTopLevelItem(qItem)
-            self.treeWidget.expandItem(qItem)
-        self.update_ui_jnts()  # TODO: Better update implementation!
-
-    def update_ui_jnts(self, *args, **kwargs):
-        # Resolve text query
-        query_raw = self.lineEdit_search_jnt.text()
-        query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
-
-        self.treeWidget_jnts.clear()
-        all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
-        for jnt in all_jnt_roots:
-            self._fill_widget_influences_recursive(self.treeWidget_jnts.invisibleRootItem(), jnt)
-
-        self.treeWidget_jnts.expandAll()
-
-    def can_show_QTreeWidgetItem(self, qItem, query_regex):
+    def _can_show_QTreeWidgetItem(self, qItem, query_regex):
         obj = qItem.obj  # Retrieve monkey-patched data
         obj_name = obj.stripNamespace()
         #print obj_name
@@ -297,7 +267,73 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         return True
 
-    def update_ui_jnts_visibility(self, query_regex=None):
+    def _update_network(self, module):
+        if hasattr(module, "_network"):
+            pymel.delete(module._network)
+        libSerialization.export_network(module) #TODO : Automatic update
+
+    #Block signals need to be called in a function because if called in a signal, it will block it
+    def _set_text_block(self, item, str):
+        self.treeWidget.blockSignals(True)
+        if hasattr(item, "rig"):
+            item.setText(0, str)
+        self.treeWidget.blockSignals(False)
+
+    def _add_part(self, cls_name):
+        #part = _cls(pymel.selected())
+        self.root.add_module(cls_name, pymel.selected())
+        try:
+            pymel.delete(self.root._network)
+        except AttributeError:
+            pass
+        net = libSerialization.export_network(self.root) # Export part and only part
+        pymel.select(net)
+        #Add manually the Rig to the root list instead of importing back all network
+        #if not self.root in self.roots:
+        #    self.roots.append(self.root)
+        #self.updateData()
+        self.update_ui()
+
+    #
+    # Publics
+    #
+
+    #Will only refresh tree view information without removing any items
+    def refresh_ui(self):
+        self.refresh_ui_module()
+        self.refresh_ui_jnts()
+
+    #Recreate tree views items
+    def update_ui(self, *args, **kwargs):
+        self.update_ui_modules()
+        self.update_ui_jnts()
+
+    def refresh_ui_module(self):
+        for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
+            if hasattr(qt_item, "rig"):
+                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.rig.is_built() else QtCore.Qt.Unchecked)
+
+    def update_ui_modules(self, *args, **kwargs):
+        self.treeWidget.clear()
+        for root in self.roots:
+            qItem = self._rig_to_tree_widget(root)
+            self.treeWidget.addTopLevelItem(qItem)
+            self.treeWidget.expandItem(qItem)
+
+    def update_ui_jnts(self, *args, **kwargs):
+        # Resolve text query
+        query_raw = self.lineEdit_search_jnt.text()
+        query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
+
+        self.treeWidget_jnts.clear()
+        all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
+        for jnt in all_jnt_roots:
+            self._fill_widget_influences_recursive(self.treeWidget_jnts.invisibleRootItem(), jnt)
+
+        self.refresh_ui_jnts()
+        self.treeWidget_jnts.expandAll()
+
+    def refresh_ui_jnts(self, query_regex=None):
         if query_regex is None:
             query_raw = self.lineEdit_search_jnt.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
@@ -305,7 +341,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
         selectableBrush = QtGui.QBrush(QtCore.Qt.white)
         for qt_item in get_all_QTreeWidgetItem(self.treeWidget_jnts):
-            can_show = self.can_show_QTreeWidgetItem(qt_item, query_regex)
+            can_show = self._can_show_QTreeWidgetItem(qt_item, query_regex)
             qt_item.setHidden(not can_show)
             if can_show:
                 qt_item.setForeground(0, selectableBrush)
@@ -320,21 +356,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 if flags & QtCore.Qt.ItemIsSelectable: #Make selectable
                     flags ^= QtCore.Qt.ItemIsSelectable
                     qt_item.setFlags(flags)
-
-    def _show_parent_recursive(self, qt_parent_item):
-        if qt_parent_item is not None:
-            if qt_parent_item.isHidden:
-                qt_parent_item.setHidden(False)
-            self._show_parent_recursive(qt_parent_item.parent())
-
-    def on_query_changed(self, *args, **kwargs):
-        self.update_ui_jnts_visibility()
-
-    def _update_network(self, module):
-        if hasattr(module, "_network"):
-            pymel.delete(module._network)
-        libSerialization.export_network(module) #TODO : Automatic update
-
 
     #
     # Events
@@ -351,7 +372,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             else:
                 pymel.warning("Can't build {0}, already built.".format(rig))
         self._update_network(self.root)
-        self.update_ui_modules()
+        self.update_ui()
 
     def on_unbuild(self):
         for qItem in self.treeWidget.selectedItems():
@@ -361,7 +382,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             else:
                 pymel.warning("Can't unbuild {0}, already unbuilt.".format(rig))
         self._update_network(self.root)
-        self.update_ui_modules()
+        self.update_ui()
 
     def on_rebuild(self):
         for qItem in self.treeWidget.selectedItems():
@@ -398,13 +419,14 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if path:
             libSerialization.export_json_file(all_rigs, path)
 
-    def on_update(self):
-        reload(core)
-        core._reload()
+    def on_update(self, *args, **kwargs):
+        #TODO - Fix the reload problem which cause isinstance function check to fail with an existing network
+        #reload(core)
+        #core._reload()
         #reload(libSerialization)
         #libSerialization._reload()
         self._fetch_scene_data()
-        self.refresh_ui()
+        self.update_ui()
 
     def on_module_selection_changed(self):
         pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
@@ -450,23 +472,17 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 name_attr = item.net.attr("name")
                 name_attr.set(new_text)
 
-        # This call is commented since it can cause Maya to crash.
-        # TODO: Fix crash
-        '''
+        #Ensure to only refresh the UI and not recreate all
         if need_update:
             self.refresh_ui()
-        '''
 
-    #Block signals need to be called in a function because if called in a signal, it will block it
-    def _set_text_block(self, item):
-        self.treeWidget.blockSignals(True)
-        if hasattr(item, "rig"):
-            item.setText(0, item.rig.name)
-        self.treeWidget.blockSignals(False)
+    def on_query_changed(self, *args, **kwargs):
+        self.refresh_ui_jnts()
 
     def on_module_double_clicked(self, item):
-        self._set_text_block(item)
-        self._is_modifying = True #Flag to know that we are currently modifying the name
+        if hasattr(item, "rig"):
+            self._set_text_block(item, item.rig.name)
+            self._is_modifying = True #Flag to know that we are currently modifying the name
 
     def on_remove(self):
         for item in self.treeWidget.selectedItems():
@@ -477,7 +493,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             if net:
                 pymel.delete(net)
         self._fetch_scene_data()
-        self.refresh_ui()
+        self.update_ui()
 
     def on_context_menu_request(self):
         if self.treeWidget.selectedItems():
@@ -504,30 +520,29 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             for name in sorted(cls_name):
                 cls_name = name
                 action = menu.addAction(cls_name)
-                action.triggered.connect(functools.partial(self.action_add_part, cls_name))
+                action.triggered.connect(functools.partial(self._add_part, cls_name))
 
             menu.exec_(QtGui.QCursor.pos())
-
-    def action_add_part(self, cls_name):
-        #part = _cls(pymel.selected())
-        self.root.add_module(cls_name, pymel.selected())
-        try:
-            pymel.delete(self.root._network)
-        except AttributeError:
-            pass
-        net = libSerialization.export_network(self.root) # Export part and only part
-        pymel.select(net)
-        #Add manually the Rig to the root list instead of importing back all network
-        #if not self.root in self.roots:
-        #    self.roots.append(self.root)
-        #self.updateData()
-        self.refresh_ui()
 
     def on_mirror_jnts_LtoR(self):
         libSkeleton.mirror_jnts_l_to_r()
 
     def on_mirror_jnts_RtoL(self):
         libSkeleton.mirror_jnts_r_to_l()
+
+    def focus_in_module(self, event):
+        #Set back the text with the information about the module in it
+        if self._is_modifying:
+            sel = self.treeWidget.selectedItems()
+            if sel:
+                self._set_text_block(sel[0], str(sel[0].rig))
+                #sel[0].setText(0, str(sel[0].rig))
+            self._is_modifying = False
+        self.focusInEvent(event)
+
+    def closeEvent(self, *args, **kwargs):
+        self.remove_callbacks()
+        super(AutoRig, self).closeEvent(*args, **kwargs)
 
 gui = None
 def show():

@@ -26,6 +26,7 @@ def create(*args, **kwargs):
 
 
 def find():
+    #TODO - Finc why when a scene is open for a long time, this function is slower
     networks = libSerialization.getNetworksByClass('Rig')
     return [libSerialization.import_network(network) for network in networks]
 

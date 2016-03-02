@@ -19,6 +19,7 @@ import rigFaceBrow
 import rigFaceLids
 import rigFaceLips
 import rigFaceSquint
+import rigFaceJaw
 
 def _reload():
     # Reload body modules
@@ -38,6 +39,7 @@ def _reload():
     reload(rigFaceLids)
     reload(rigFaceLips)
     reload(rigFaceSquint)
+    reload(rigFaceJaw)
 
 
 def create(cls_name, *args, **kwargs):

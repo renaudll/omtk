@@ -1,6 +1,8 @@
-import logging, collections
+import logging
+
 import pymel.core as pymel
 from maya import OpenMaya
+
 
 #
 # A PyNodeChain is a special pymel-related object that act exactly like a standard array.
@@ -296,19 +298,3 @@ class SegmentCollection(object):
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)
-
-
-def addAttr(obj, longName=None, **kwargs):
-    """
-    Fancy pymel.addAttr wrapper that return the created attribute.
-    """
-    pymel.addAttr(obj, longName=longName, **kwargs)
-    return obj.attr(longName)
-
-
-def addAttr_separator(obj, attr_name, *args, **kwargs):
-    pymel.addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
-    attr = obj.attr(attr_name)
-    attr.lock()
-
-

@@ -61,6 +61,7 @@ class Hand(Module):
         # TODO: Implement 'super' behavior in property
         chains = libPymel.get_chains_from_objs(self.input)
 
+        #TODO : Do we want to check the distance in the world or related to the parent ?
         def sort_chain(chain):
             local_tm = chain.end.getMatrix(worldSpace=True)
             return local_tm.translate.z

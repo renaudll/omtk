@@ -102,7 +102,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
 
         self.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
-        self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ContiguousSelection)
+        self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.treeWidget.itemChanged.connect(self.on_module_changed)
         self.treeWidget.itemDoubleClicked.connect(self.on_module_double_clicked)
         self.treeWidget.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -516,7 +516,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def on_btn_add_pressed(self):
         if self.treeWidget_jnts.selectedItems():
             menu = QtGui.QMenu()
-            cls_name = [cls.__name__ for cls in libPython.get_sub_classes(classModule.Module)]
+            cls_name = [cls.__name__ for cls in libPython.get_sub_classes(classModule.Module) if cls.ui_show]
             for name in sorted(cls_name):
                 cls_name = name
                 action = menu.addAction(cls_name)

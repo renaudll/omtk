@@ -5,6 +5,7 @@ This is the foundation for the facial animation modules.
 from maya import cmds
 import pymel.core as pymel
 
+import omtk.libs.libAttr
 from omtk import classModule, classCtrl
 from omtk import classNode
 from omtk.libs import libCtrlShapes
@@ -27,6 +28,8 @@ class Doritos(classModule.Module):
     _ATTR_NAME_SENSITIVITY_TX = 'sensitivityX'
     _ATTR_NAME_SENSITIVITY_TY = 'sensitivityY'
     _ATTR_NAME_SENSITIVITY_TZ = 'sensitivityZ'
+
+    ui_show = False
 
     def __init__(self, *args, **kwargs):
         super(Doritos, self).__init__(*args, **kwargs)
@@ -73,12 +76,12 @@ class Doritos(classModule.Module):
 
         # Add sensibility attributes
         # The values will be computed when attach_ctrl will be called
-        self.attr_sensitivity_tx = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TX,
-                                                    defaultValue=1.0)
-        self.attr_sensitivity_ty = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TY,
-                                                    defaultValue=1.0)
-        self.attr_sensitivity_tz = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TZ,
-                                                    defaultValue=1.0)
+        self.attr_sensitivity_tx = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TX,
+                                                             defaultValue=1.0)
+        self.attr_sensitivity_ty = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TY,
+                                                             defaultValue=1.0)
+        self.attr_sensitivity_tz = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TZ,
+                                                             defaultValue=1.0)
 
         # Resolve geometry for the follicle
         if obj_mesh is None:
@@ -310,6 +313,8 @@ class AbstractAvar(classModule.Module):
 
     _DEFORMATION_ORDER = 'pre'  # todo: Use enum
 
+    ui_show = False
+
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
         self.avar_network = None
@@ -343,7 +348,7 @@ class AbstractAvar(classModule.Module):
         when unbuilding they are really existing in an external network node.
         """
         # Define macro avars
-        libPymel.addAttr_separator(attr_holder, 'Avars')
+        libAttr.addAttr_separator(attr_holder, 'avars')
         self.attr_ud = self.add_avar(attr_holder, self.AVAR_NAME_UD)
         self.attr_lr = self.add_avar(attr_holder, self.AVAR_NAME_LR)
         self.attr_fb = self.add_avar(attr_holder, self.AVAR_NAME_FB)
@@ -525,6 +530,8 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
 
+    ui_show = True
+
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
         """
         The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
@@ -606,12 +613,14 @@ class AvarFollicle(AvarSimple):
     _CLS_CTRL = CtrlFaceMicro
     _CLS_CTRL_MICRO = CtrlFaceMicro
 
-    _ATTR_NAME_U_BASE = 'BaseU'
-    _ATTR_NAME_V_BASE = 'BaseV'
-    _ATTR_NAME_U = 'U'
-    _ATTR_NAME_V = 'V'
-    _ATTR_NAME_U_MULT = 'UMultiplier'
-    _ATTR_NAME_V_MULT = 'VMultiplier'
+    _ATTR_NAME_U_BASE = 'baseU'
+    _ATTR_NAME_V_BASE = 'baseV'
+    _ATTR_NAME_U = 'u'
+    _ATTR_NAME_V = 'v'
+    _ATTR_NAME_U_MULT = 'uMultiplier'
+    _ATTR_NAME_V_MULT = 'vMultiplier'
+
+    ui_show = False
 
     def __init__(self, *args, **kwargs):
         super(AvarFollicle, self).__init__(*args, **kwargs)
@@ -694,14 +703,14 @@ class AvarFollicle(AvarSimple):
         pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
         pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle.rotate)
 
-        self._attr_u_base = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=u_base)
-        self._attr_v_base = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=v_base)
+        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=u_base)
+        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=v_base)
 
-        attr_u_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U, k=True)
-        attr_v_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V, k=True)
+        attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U, k=True)
+        attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V, k=True)
 
-        self._attr_u_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=mult_u)
-        self._attr_v_mult_inn = libPymel.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=mult_v)
+        self._attr_u_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=mult_u)
+        self._attr_v_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=mult_v)
 
         # Connect UD to V
         attr_get_v_offset = libRigging.create_utility_node('multiplyDivide',
@@ -921,4 +930,3 @@ class AvarFollicle(AvarSimple):
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
         return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

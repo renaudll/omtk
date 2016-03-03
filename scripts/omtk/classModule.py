@@ -29,6 +29,9 @@ class Module(object):
     To unbuild a Module, use the .unbuild() method.
     """
 
+    #Static variable to know if we show the module in the UI list
+    ui_show = True
+
     #
     # libSerialization implementation
     #

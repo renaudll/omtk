@@ -47,7 +47,9 @@ class BaseName(object):
         return self.separator.join(tokens)
 
     def add_tokens(self, *args):
-        self.tokens.extend(args)
+        for arg in args:
+            for token in arg.split(self.separator):
+                self.tokens.append(token)
 
     def add_suffix(self, suffix):
         self.tokens.append(suffix)

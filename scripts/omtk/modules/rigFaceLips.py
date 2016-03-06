@@ -2,6 +2,7 @@ import pymel.core as pymel
 import collections
 
 import omtk.classAvar
+import omtk.libs.libAttr
 from omtk import classModule
 from omtk.classModule import Module
 from omtk.classCtrl import BaseCtrl
@@ -26,12 +27,12 @@ class CtrlLipsLow(omtk.classAvar.BaseCtrlFace):
 class FaceLips(classModuleFace.ModuleFace):
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
-    _AVAR_NAME_UPP_UD = 'UppUD'
-    _AVAR_NAME_UPP_LR = 'UppLR'
-    _AVAR_NAME_UPP_FB = 'UppFB'
-    _AVAR_NAME_LOW_UD = 'LowUD'
-    _AVAR_NAME_LOW_LR = 'LowLR'
-    _AVAR_NAME_LOW_FB = 'LowFB'
+    _AVAR_NAME_UPP_UD = 'uppUD'
+    _AVAR_NAME_UPP_LR = 'uppLR'
+    _AVAR_NAME_UPP_FB = 'uppFB'
+    _AVAR_NAME_LOW_UD = 'lowUD'
+    _AVAR_NAME_LOW_LR = 'lowLR'
+    _AVAR_NAME_LOW_FB = 'lowFB'
 
     def __init__(self, *args, **kwargs):
         super(FaceLips, self).__init__(*args, **kwargs)
@@ -50,18 +51,18 @@ class FaceLips(classModuleFace.ModuleFace):
 
 
         # Create UpperLips Global Avars
-        self.attr_upp_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
-        self.attr_upp_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
-        self.attr_upp_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
+        self.attr_upp_ud = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
+        self.attr_upp_lr = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
+        self.attr_upp_fb = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
         for avar in self.avars_upp:
             libRigging.connectAttr_withBlendWeighted(self.attr_upp_ud, avar.attr_ud)
             libRigging.connectAttr_withBlendWeighted(self.attr_upp_lr, avar.attr_lr)
             libRigging.connectAttr_withBlendWeighted(self.attr_upp_fb, avar.attr_fb)
 
         # Create LowerLips Global Avars
-        self.attr_low_ud = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
-        self.attr_low_lr = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
-        self.attr_low_fb = libPymel.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
+        self.attr_low_ud = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
+        self.attr_low_lr = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
+        self.attr_low_fb = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
         for avar in self.avars_low:
             libRigging.connectAttr_withBlendWeighted(self.attr_low_ud, avar.attr_ud)
             libRigging.connectAttr_withBlendWeighted(self.attr_low_lr, avar.attr_lr)

@@ -93,6 +93,9 @@ class RollExtractor(Module):
     """
     Extract the roll in the X axis and expose to in a extractedRoll attribute on self.grp_rig.
     """
+
+    ui_show = False
+
     def __init__(self, *args, **kwargs):
         super(RollExtractor, self).__init__(*args, **kwargs)
         self.nonroll_s = None

@@ -1,6 +1,8 @@
 import pymel.core as pymel
 
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
+from pymel import core as pymel
+
 kwargsMap = {
     'bool' : {'at':'double'},
     'long' : {'at':'long'},
@@ -156,12 +158,6 @@ def renameAttr(node, oldname, newname):
     return True
 
 
-def addAttr(node, longName=None, *args, **kwargs):
-    assert(longName)
-    pymel.addAttr(node, longName=longName, *args, **kwargs)
-    return node.attr(longName)
-
-
 def hold_attrs(attr):
     """
     Hold a specific @attr attribute.
@@ -205,3 +201,23 @@ def transfer_connections(attr_src, attr_dst):
     for attr_src_out in attr_src.outputs(plugs=True):
         pymel.disconnectAttr(attr_src, attr_src_out)
         pymel.connectAttr(attr_dst, attr_src_out)
+
+
+def addAttr(node, longName=None, *args, **kwargs):
+    assert(longName)
+    pymel.addAttr(node, longName=longName, *args, **kwargs)
+    return node.attr(longName)
+
+
+def addAttr_separator(obj, attr_name, *args, **kwargs):
+    attr = addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
+    attr.lock()
+
+'''
+TODO : Implement Lock Hide function
+def lock_position(node, x=True, y=True, z=True):
+
+def lock_rotation(node, x=True, y=True, z=True):
+
+def lock_scale(node, x=True, y=True, z=True):
+'''

@@ -16,6 +16,8 @@ class CtrlIkLeg(rigIK.CtrlIk):
 class LegIk(IK):
     _CLASS_CTRL_IK = CtrlIkLeg
 
+    ui_show = False
+
     """
     A standard footroll that remember it's pivot when building/unbuilding.
     """

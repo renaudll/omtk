@@ -20,6 +20,8 @@ class ModuleFace(classAvar.AbstractAvar):
     """
     _CLS_AVAR = classAvar.AvarFollicle
 
+    ui_show = True
+
     #
     # Influences properties
     #
@@ -292,6 +294,8 @@ class ModuleFaceUppDown(ModuleFace):
     _CLS_SYS_UPP = ModuleFace
     _CLS_SYS_LOW = ModuleFace
 
+    ui_show = False
+
     def __init__(self, *args, **kwargs):
         self.sys_upp = None
         self.sys_low = None
@@ -353,6 +357,8 @@ class ModuleFaceLftRgt(ModuleFace):
     """
     _CLS_CTRL = None
     _CLS_SYS = ModuleFace
+
+    ui_show = False
 
     @libPython.cached_property()
     def jnts_l(self):

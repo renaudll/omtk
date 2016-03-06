@@ -65,6 +65,9 @@ class Limb(Module):
             self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
         self.sysIK.build(rig, constraint=False, **kwargs)
 
+        self.sysIK.ctrl_ik.create_spaceswitch(rig, self.parent, default_name='World')
+        self.sysIK.ctrl_swivel.create_spaceswitch(rig, self.parent, default_name='World')
+
         # Create FK system
         if not isinstance(self.sysFK, self._CLASS_SYS_FK):
             self.sysFK = self._CLASS_SYS_FK(self.chain_jnt)

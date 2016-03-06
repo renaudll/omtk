@@ -557,13 +557,15 @@ class AvarSimple(AbstractAvar):
         dag_stack_name = nomenclature_rig.resolve('stack')
         stack = classNode.Node()
         stack.build(name=dag_stack_name)
-        stack.setParent(self.grp_rig)
+
 
         # Create an offset layer so everything start at the original position.
         layer_offset_name = nomenclature_rig.resolve('offset')
         layer_offset = stack.add_layer()
         layer_offset.rename(layer_offset_name)
         layer_offset.setMatrix(jnt_tm)
+
+        stack.setParent(self.grp_rig)
 
         # The rest of the stack is built in another function.
         # This allow easier override by sub-classes.
@@ -680,13 +682,40 @@ class AvarFollicle(AvarSimple):
         pymel.parentConstraint(fol_influence, influence, maintainOffset=False)
         fol_influence.setParent(self.grp_rig)
 
+        #
         # Extract the delta of the influence follicle and it's initial pose follicle
-        tm_local_displacement = libRigging.create_utility_node('multMatrix', matrixIn=[
+        #
+        attr_localTM = libRigging.create_utility_node('multMatrix', matrixIn=[
             influence.worldMatrix,
             obj_offset.worldInverseMatrix
         ]).matrixSum
+
+        # Since we are extracting the delta between the influence and the bindpose matrix, the rotation of the surface
+        # is not taken in consideration wich make things less intuitive for the rigger.
+        # So we'll add an adjustement matrix so the rotation of the surface is taken in consideration.
+        util_decomposeTM_bindPose = libRigging.create_utility_node('decomposeMatrix',
+                                                                   inputMatrix=obj_offset.worldMatrix
+                                                                   )
+        attr_translateTM = libRigging.create_utility_node('composeMatrix',
+                                                          inputTranslate=util_decomposeTM_bindPose.outputTranslate
+                                                          ).outputMatrix
+        attr_translateTM_inv = libRigging.create_utility_node('inverseMatrix',
+                                                              inputMatrix=attr_translateTM,
+                                                              ).outputMatrix
+        attr_rotateTM = libRigging.create_utility_node('multMatrix',
+                                                       matrixIn=[obj_offset.worldMatrix, attr_translateTM_inv]
+                                                       ).matrixSum
+        attr_rotateTM_inv = libRigging.create_utility_node('inverseMatrix',
+                                                           inputMatrix=attr_rotateTM
+                                                           ).outputMatrix
+        attr_finalTM = libRigging.create_utility_node('multMatrix',
+                                                      matrixIn=[attr_rotateTM_inv,
+                                                                attr_localTM,
+                                                                attr_rotateTM]
+                                                      ).matrixSum
+
         util_decomposeTM = libRigging.create_utility_node('decomposeMatrix',
-                                                          inputMatrix=tm_local_displacement
+                                                          inputMatrix=attr_finalTM
                                                           )
 
         layer_follicle_name = 'follicle'
@@ -921,4 +950,3 @@ class AvarFollicle(AvarSimple):
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
         return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

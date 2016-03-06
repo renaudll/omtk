@@ -1,16 +1,17 @@
-import sys, os, functools
-import pymel.core as pymel
-import logging; log = logging.getLogger(__name__); log.setLevel(logging.DEBUG)
+import logging
 import libSerialization
-from omtk.libs import libPython
+import pymel.core as pymel
 
-import className
-import classNode
+import classAvar
 import classCtrl
 import classModule
-import classRig
-import classAvar
 import classModuleFace
+import className
+import classNode
+import classRig
+from omtk.libs import libPython
+
+log = logging.getLogger('omtk')
 
 def _reload():
     reload(className)

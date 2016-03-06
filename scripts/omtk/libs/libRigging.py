@@ -52,8 +52,7 @@ def create_utility_node(_sClass, *args, **kwargs):
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
-                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute. Skipping it.'.format(_sClass,
-                                                                                                          sAttrName))
+                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(_sClass,                                                                                                          sAttrName))
         else:
             connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
     return uNode

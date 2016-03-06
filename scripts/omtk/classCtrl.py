@@ -4,7 +4,9 @@ from classNode import Node
 from libs import libRigging
 from libs import libPymel
 from libs import libAttr
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger('omtk')
 
 
 class BaseCtrl(Node):
@@ -197,23 +199,6 @@ class BaseCtrl(Node):
         return self.offset.setRotation(*args, **kwargs)
 
 
-    # stabilise
-    def create_space_switch_network(self, spaces, labels, default=True):
-        parent_constraint = pymel.parentConstraint(spaces, self.offset, maintainOffset=True)
-        pymel.addAttr(self.offset, longName='space', at='enum', enumName=labels)
-        attr_space = self.offset.getAttr('space')
-        atts_weights = parent_constraint.getWeightAliasList()
-        for i, att_weight in enumerate(atts_weights):
-            index_to_match = i if not default else i + 1
-            att_enabled = libRigging.create_utility_node( #Equal
-                'condition',
-                firstTerm=attr_space,
-                secondTerm=index_to_match,
-                colorIfTrueR=1,
-                colorIfFalseR=0
-            ).outColorR
-            pymel.connectAttr(att_enabled, att_weight)
-
     def hold_attrs_all(self):
         """
         Hold all ctrl keyable attributes.
@@ -247,47 +232,74 @@ class BaseCtrl(Node):
     #
     # SPACE SWITH LOGIC
     #
-    def is_pinnable(self, network):
-        """
-        Analyse a network node and resolve if it can be useful as a pivot for the animator.
-        """
-        import libSerialization
-        from classModule import Module
 
-        # Validate parameter
-        if not isinstance(network, pymel.nodetypes.Network):
-            raise IOError("Expected pymel.nodetypes.Network, got {0} ({1})".format(network, type(network)))
+    def create_spaceswitch(self, rig, parent, add_default=True, default_name=None, add_world=False, **kwargs):
+        # TODO: Handle when parent is None?
+        nomenclature = rig.nomenclature
 
-        # Validate that the network inherit from the Module class.
-        if not libSerialization.isNetworkInstanceOfClass(network, Module.__name__):
-            return False
+        if parent is None:
+            log.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
+            return
 
-        # Validate that we can pin on this network
-        if not network.hasAttr('canPinTo'):
-            raise Exception("Can't find attribute 'canPinTo' in {0}, maybe the network is old and need to be re-generated?".format(network))
+        # Resolve spaceswitch targets
+        targets, labels = self.get_spaceswitch_targets(rig, parent, add_world=add_world)
+        if not targets:
+            log.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
+            return
 
-        # Check if network is pinnable
-        val = network.attr('canPinTo').get()
-        if not isinstance(val, bool):
-            raise IOError("Expected 'canPinTo' attribute type to be boolean, got {0} ({1})".format(val, type(val)))
+        if default_name is None:
+            default_name = 'Local'
 
-        return True
+        # Resolve the niceName of the targets
+        for i in range(len(targets)):
+            target = targets[i]
+            label = labels[i]
 
-    def get_spaceswitch_targets(self, jnt):
-        """
-        Analyse the upward hyerarchy of provided joint and return the approved hook points for a spaceswitch.
-        :param jnt: The joint to provide as a starting point.
-        :return: A list of approved hook points, sorted in reverse parent order.
-        """
-        import libSerialization
-        # Return true if x is a network of type 'Module' and it's
-        networks = libSerialization.getConnectedNetworksByHierarchy(jnt, key=self.is_pinnable)
-        targets = set()
+            if label is None:
+                name = nomenclature(target.name())
+                labels[i] = name.resolve()
 
-        for network in networks:
-            val = libSerialization.import_network(network)
-            targets.update(val.get_pin_locations())
+        offset = 0
+        if add_default:
+            offset += 1
+            labels.insert(0, default_name)
 
-        targets = list(reversed(sorted(targets, key=libPymel.get_num_parents)))
+        layer_spaceSwitch = self.add_layer('spaceSwitch')
+        parent_constraint = pymel.parentConstraint(targets, layer_spaceSwitch, maintainOffset=True, **kwargs)
+        attr_space = libPymel.addAttr(self.node, 'space', at='enum', enumName=labels, k=True)
+        atts_weights = parent_constraint.getWeightAliasList()
 
-        return targets
+        for i, att_weight in enumerate(atts_weights):
+            index_to_match = i + offset
+            att_enabled = libRigging.create_utility_node(  #Equal
+                'condition',
+                firstTerm=attr_space,
+                secondTerm=index_to_match,
+                colorIfTrueR=1,
+                colorIfFalseR=0
+            ).outColorR
+            pymel.connectAttr(att_enabled, att_weight)
+
+    def get_spaceswitch_targets(self, rig, jnt, add_world=False, world_name='World'):
+        targets = []
+        target_names = []
+
+        # Resolve modules
+        modules = set()
+        while jnt:
+            module = rig.get_module_by_input(jnt)
+            if module:
+                modules.add(module)
+                #targets.update(module.get_pin_locations())
+            jnt = jnt.getParent()
+
+        for module in modules:
+            for target, target_name in module.get_pin_locations():
+                targets.append(target)
+                target_names.append(target_name)
+
+        if add_world and libPymel.is_valid_PyNode(rig.grp_jnt):
+            targets.append(rig.grp_jnt)
+            target_names.append(world_name)
+
+        return targets, target_names

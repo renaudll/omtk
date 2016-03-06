@@ -6,7 +6,7 @@ from className import BaseName
 from classCtrl import BaseCtrl
 from libs import libPymel, libAttr, libPython
 import libSerialization
-
+log = logging.getLogger('omtk')
 
 def getattrs_by_type(val, type, recursive=False):
     # TODO: Find a more eleguant way...
@@ -206,13 +206,7 @@ class Module(object):
         if not self.input:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
 
-        logging.info('Building {0}'.format(self))
-
-
-        '''
-        if len(self.input) == 0:
-            logging.error("[Module:Build] Can't build, inputs is empty"); return False
-        '''
+        log.info('Building {0}'.format(self))
 
         # Disable segment scale compensate by default.
         # Otherwise we might have scale issues since the rig won't propagate uniform scale change.
@@ -236,10 +230,10 @@ class Module(object):
             module = rig.get_module_by_input(self.parent)
             if module:
                 desired_parent = module.get_parent(self.parent)
-                logging.info("{0} will be parented to module {1}".format(self, module))
+                log.info("{0} will be parented to module {1}".format(self, module))
                 self.parent_to(desired_parent)
             else:
-                logging.warning("{0} parent is not in any module!".format(self))
+                log.warning("{0} parent is not in any module!".format(self))
                 self.parent_to(self.parent)
 
     def unbuild(self):
@@ -303,12 +297,17 @@ class Module(object):
             if ctrl.exists():
                 yield ctrl
 
-
     def get_pin_locations(self):
         """
-        Return the objs that child Module can pin themself to (space-switching)
+        Define which objs of the module a ctrl can hook itself too (space-switching).
         In the vast majority of cases, the desired behavior is to return the first joint in the inputs.
+        Return a list of tuples of size 2.
+        The first element is the object, the second element is the name to use.
+        If the name is None, it will be reserved automatically.
         """
         first_joint = next((input for input in self.input if isinstance(input, pymel.nodetypes.Joint)), None)
-        return [first_joint] if first_joint is not None else []
+        if first_joint:
+            return [(first_joint, None)]
+        else:
+            return []
 

@@ -61,6 +61,7 @@ class FK(Module):
             ctrl_name = ctrl_nomenclature.resolve('fk')
             ctrl.build(name=ctrl_name, refs=input)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
+            ctrl.create_spaceswitch(rig, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
 
 
         self.ctrls[0].setParent(self.grp_anm)

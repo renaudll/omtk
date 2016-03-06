@@ -210,7 +210,7 @@ def get_network_attr(attr):
 
     if attr.type() == 'message':
         if not attr.isConnected():
-            log.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(attr))
+            #log.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(attr))
             return None
         attr_input = attr.inputs()[0]
         # Network

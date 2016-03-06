@@ -178,15 +178,15 @@ class Rig(object):
 
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
-        all_root_jnts = libPymel.ls_root(type='joint')
-
         if not libPymel.is_valid_PyNode(self.grp_jnt):
+            self.grp_jnt = next(iter(libPymel.ls_root(type='joint')), None)
+            '''
             if cmds.objExists(self.nomenclature.root_jnt_name):
                 self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
             else:
                 self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
-
-        all_root_jnts.setParent(self.grp_jnt)
+            '''
+        #all_root_jnts.setParent(self.grp_jnt)
 
         # Ensure all joinst have segmentScaleComprensate deactivated.
         # This allow us to scale adequately and support video game rigs.
@@ -194,6 +194,21 @@ class Rig(object):
         all_jnts = libPymel.ls(type='joint')
         for jnt in all_jnts:
             jnt.segmentScaleCompensate.set(False)
+
+        # Create main grp_anm
+        if not isinstance(self.grp_anm, CtrlRoot):
+            self.grp_anm = CtrlRoot()
+        if not self.grp_anm.is_built():
+            grp_anm_size = CtrlRoot._get_recommended_radius()
+            self.grp_anm.build(size=grp_anm_size)
+        self.grp_anm.rename(self.nomenclature.root_anm_name)
+
+        # Create main grp_rig
+        if not isinstance(self.grp_rig, Node):
+            self.grp_rig = Node()
+        if not self.grp_rig.is_built():
+            self.grp_rig.build()
+        self.grp_rig.rename(self.nomenclature.root_rig_name)
 
         #
         # Build
@@ -237,14 +252,8 @@ class Rig(object):
                 ctrl.offset.r.lock()
                 ctrl.offset.s.lock()
 
-        # Create anm root
+        # Parent modules grp_anm to main grp_anm
         anm_grps = [module.grp_anm for module in self.modules if module.grp_anm is not None]
-        if not isinstance(self.grp_anm, CtrlRoot):
-            self.grp_anm = CtrlRoot()
-        if not self.grp_anm.is_built():
-            grp_anm_size = CtrlRoot._get_recommended_radius()
-            self.grp_anm.build(size=grp_anm_size)
-        self.grp_anm.rename(self.nomenclature.root_anm_name)
         for anm_grp in anm_grps:
             anm_grp.setParent(self.grp_anm)
 
@@ -260,13 +269,8 @@ class Rig(object):
         pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
         pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
 
-        # Create rig root
+        # Constraint modules grp_rig to main grp_rig
         rig_grps = [module.grp_rig for module in self.modules if module.grp_rig is not None]
-        if not isinstance(self.grp_rig, Node):
-            self.grp_rig = Node()
-        if not self.grp_rig.is_built():
-            self.grp_rig.build()
-        self.grp_rig.rename(self.nomenclature.root_rig_name)
         for rig_grp in rig_grps:
             rig_grp.setParent(self.grp_rig)
 

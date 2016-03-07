@@ -617,8 +617,8 @@ class AvarFollicle(AvarSimple):
 
     _ATTR_NAME_U_BASE = 'baseU'
     _ATTR_NAME_V_BASE = 'baseV'
-    _ATTR_NAME_U = 'u'
-    _ATTR_NAME_V = 'v'
+    _ATTR_NAME_U = 'surfaceU'
+    _ATTR_NAME_V = 'surfaceV'
     _ATTR_NAME_U_MULT = 'uMultiplier'
     _ATTR_NAME_V_MULT = 'vMultiplier'
 
@@ -735,8 +735,8 @@ class AvarFollicle(AvarSimple):
         self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=u_base)
         self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=v_base)
 
-        attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U, k=True)
-        attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V, k=True)
+        attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
+        attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V)
 
         self._attr_u_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=mult_u)
         self._attr_v_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=mult_v)

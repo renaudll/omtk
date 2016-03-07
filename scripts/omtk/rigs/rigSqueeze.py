@@ -45,6 +45,7 @@ class RigSqueeze(classRig.Rig):
     GROUP_NAME_DISPLAY = 'display'
     ATTR_NAME_DISPLAY_MESH = 'displayMesh'
     ATTR_NAME_DISPLAY_CTRL = 'displayCtrl'
+    ATTR_NAME_DISPLAY_PROXY = 'displayProxy'
     GROUP_NAME_IKFK = 'ikFkBlend'
     GROUP_NAME_FACE = 'facial'
     ATTR_NAME_FACE_MACRO = 'showMacroCtrls'
@@ -91,13 +92,29 @@ class RigSqueeze(classRig.Rig):
             else:
                 self.grp_fx = pymel.createNode('transform', name=self.nomenclature.root_fx_name)
 
-        #self.grp_anm.setParent(self.grp_all)
-        pymel.parent(self.grp_anm, self.grp_all)
+        #Parent all groups in the main grp_all
+        pymel.parent(self.grp_anm, self.grp_all) #grp_anm is not a Node, but a Ctrl
         self.grp_rig.setParent(self.grp_all)
         self.grp_fx.setParent(self.grp_all)
         self.grp_model.setParent(self.grp_all)
         self.grp_proxy.setParent(self.grp_all)
         self.grp_geo.setParent(self.grp_all)
+        self.grp_jnt.setParent(self.grp_all)
+
+        #Lock and hide all attributes we don't want the animator to play with
+        libAttr.lock_hide_trs(self.grp_all)
+        libAttr.lock_hide_trs(self.grp_rig)
+        libAttr.lock_hide_trs(self.grp_fx)
+        libAttr.lock_hide_trs(self.grp_model)
+        libAttr.lock_hide_trs(self.grp_proxy)
+        libAttr.lock_hide_trs(self.grp_geo)
+        libAttr.hide_scale(self.grp_anm)
+
+        #Hide some group
+        self.grp_jnt.visibility.set(False)
+        self.grp_rig.visibility.set(False)
+        self.grp_fx.visibility.set(False)
+        self.grp_model.visibility.set(False)
 
         #
         # Add root ctrl attributes specific to squeeze
@@ -119,9 +136,17 @@ class RigSqueeze(classRig.Rig):
         else:
             attr_displayCtrl = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_CTRL)
 
+        #Display Proxy
+        if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_PROXY, checkShape=False):
+            attr_displayProxy = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_PROXY, at='short', k=True,
+                                               hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
+        else:
+            attr_displayProxy = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_PROXY)
+
         pymel.connectAttr(attr_displayMesh, self.grp_geo.visibility, force=True)
-        #TODO : Connect all childs visibility instead of the ctrl visibility itself
-        pymel.connectAttr(attr_displayCtrl, self.grp_anm.visibility, force=True)
+        pymel.connectAttr(attr_displayProxy, self.grp_proxy.visibility, force=True)
+        for child in self.grp_anm.getChildren():
+            pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
 
         #
         # Connect all IK/FK attributes
@@ -139,7 +164,7 @@ class RigSqueeze(classRig.Rig):
                 side = nomenclature.get_side()
                 if side:
                     tokens.append(side)
-                tokens = [module.__class__.__name__]
+                tokens += [module.__class__.__name__]
 
                 key = '_'.join(tokens)
                 val = module.grp_rig.attr(module.kAttrName_State)

@@ -213,11 +213,219 @@ def addAttr_separator(obj, attr_name, *args, **kwargs):
     attr = addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
     attr.lock()
 
-'''
-TODO : Implement Lock Hide function
+#Lock/unlock Function#
+
+def lock_attrs(attr_list):
+    for attr in attr_list:
+        attr.lock()
+
+def unlock_attrs(attr_list):
+    for attr in attr_list:
+        attr.unlock()
+
+def lock_trs(node):
+    lock_position(node)
+    lock_rotation(node)
+    lock_scale(node)
+
+def unlock_trs(node):
+    unlock_position(node)
+    unlock_rotation(node)
+    unlock_scale(node)
+
 def lock_position(node, x=True, y=True, z=True):
+    lock_list = []
+    if x:
+        translate_x = node.attr('translateX')
+        lock_list.append(translate_x)
+    if y:
+        translate_y = node.attr('translateY')
+        lock_list.append(translate_y)
+    if z:
+        translate_z = node.attr('translateZ')
+        lock_list.append(translate_z)
+
+    lock_attrs(lock_list)
+
+def unlock_position(node, x=True, y=True, z=True):
+    unlock_list = []
+    if x:
+        translate_x = node.attr('translateX')
+        unlock_list.append(translate_x)
+    if y:
+        translate_y = node.attr('translateY')
+        unlock_list.append(translate_y)
+    if z:
+        translate_z = node.attr('translateZ')
+        unlock_list.append(translate_z)
+
+    unlock_attrs(unlock_list)
 
 def lock_rotation(node, x=True, y=True, z=True):
+    lock_list = []
+    if x:
+        rotate_x = node.attr('rotateX')
+        lock_list.append(rotate_x)
+    if y:
+        rotate_y = node.attr('rotateY')
+        lock_list.append(rotate_y)
+    if z:
+        rotate_z = node.attr('rotateZ')
+        lock_list.append(rotate_z)
+
+    lock_attrs(lock_list)
+
+def unlock_rotation(node, x=True, y=True, z=True):
+    unlock_list = []
+    if x:
+        rotate_x = node.attr('rotateX')
+        unlock_list.append(rotate_x)
+    if y:
+        rotate_y = node.attr('rotateY')
+        unlock_list.append(rotate_y)
+    if z:
+        rotate_z = node.attr('rotateZ')
+        unlock_list.append(rotate_z)
+
+    unlock_attrs(unlock_list)
 
 def lock_scale(node, x=True, y=True, z=True):
-'''
+    lock_list = []
+    if x:
+        scale_x = node.attr('scaleX')
+        lock_list.append(scale_x)
+    if y:
+        scale_y = node.attr('scaleY')
+        lock_list.append(scale_y)
+    if z:
+        scale_z = node.attr('scaleZ')
+        lock_list.append(scale_z)
+
+    lock_attrs(lock_list)
+
+def unlock_scale(node, x=True, y=True, z=True):
+    unlock_list = []
+    if x:
+        scale_x = node.attr('scaleX')
+        unlock_list.append(scale_x)
+    if y:
+        scale_y = node.attr('scaleY')
+        unlock_list.append(scale_y)
+    if z:
+        scale_z = node.attr('scaleZ')
+        unlock_list.append(scale_z)
+
+    unlock_attrs(unlock_list)
+
+#Hide Function#
+
+def hide_attrs(attr_list):
+    for attr in attr_list:
+        attr.setKeyable(False)
+
+def unhide_attrs(attr_list):
+    for attr in attr_list:
+        attr.setKeyable(True)
+
+def hide_trs(node):
+    hide_position(node)
+    hide_rotation(node)
+    hide_scale(node)
+
+def unhide_trs(node):
+    unhide_position(node)
+    unhide_rotation(node)
+    unhide_scale(node)
+
+def hide_position(node, x=True, y=True, z=True):
+    hide_list = []
+    if x:
+        translate_x = node.attr('translateX')
+        hide_list.append(translate_x)
+    if y:
+        translate_y = node.attr('translateY')
+        hide_list.append(translate_y)
+    if z:
+        translate_z = node.attr('translateZ')
+        hide_list.append(translate_z)
+
+    hide_attrs(hide_list)
+
+def unhide_position(node, x=True, y=True, z=True):
+    unhide_list = []
+    if x:
+        translate_x = node.attr('translateX')
+        unhide_list.append(translate_x)
+    if y:
+        translate_y = node.attr('translateY')
+        unhide_list.append(translate_y)
+    if z:
+        translate_z = node.attr('translateZ')
+        unhide_list.append(translate_z)
+
+    unhide_attrs(unhide_list)
+
+def hide_rotation(node, x=True, y=True, z=True):
+    hide_list = []
+    if x:
+        rotate_x = node.attr('rotateX')
+        hide_list.append(rotate_x)
+    if y:
+        rotate_y = node.attr('rotateY')
+        hide_list.append(rotate_y)
+    if z:
+        rotate_z = node.attr('rotateZ')
+        hide_list.append(rotate_z)
+
+    hide_attrs(hide_list)
+
+def unhide_rotation(node, x=True, y=True, z=True):
+    unhide_list = []
+    if x:
+        rotate_x = node.attr('rotateX')
+        unhide_list.append(rotate_x)
+    if y:
+        rotate_y = node.attr('rotateY')
+        unhide_list.append(rotate_y)
+    if z:
+        rotate_z = node.attr('rotateZ')
+        unhide_list.append(rotate_z)
+
+    unhide_attrs(unhide_list)
+
+def hide_scale(node, x=True, y=True, z=True):
+    hide_list = []
+    if x:
+        scale_x = node.attr('scaleX')
+        hide_list.append(scale_x)
+    if y:
+        scale_y = node.attr('scaleY')
+        hide_list.append(scale_y)
+    if z:
+        scale_z = node.attr('scaleZ')
+        hide_list.append(scale_z)
+
+    hide_attrs(hide_list)
+
+def unhide_scale(node, x=True, y=True, z=True):
+    unhide_list = []
+    if x:
+        scale_x = node.attr('scaleX')
+        unhide_list.append(scale_x)
+    if y:
+        scale_y = node.attr('scaleY')
+        unhide_list.append(scale_y)
+    if z:
+        scale_z = node.attr('scaleZ')
+        unhide_list.append(scale_z)
+
+    unhide_attrs(unhide_list)
+
+def lock_hide_trs(node):
+    lock_trs(node)
+    hide_trs(node)
+
+def unlock_unhide_trs(node):
+    unlock_trs(node)
+    unhide_trs(node)
+

@@ -267,10 +267,13 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         return True
 
-    def _update_network(self, module):
+    def _update_network(self, module, item=None):
         if hasattr(module, "_network"):
             pymel.delete(module._network)
-        libSerialization.export_network(module) #TODO : Automatic update
+        new_network = libSerialization.export_network(module) #TODO : Automatic update
+        #If needed, update the network item net property to match the new exported network
+        if item:
+            item.net = new_network
 
     #Block signals need to be called in a function because if called in a signal, it will block it
     def _set_text_block(self, item, str):
@@ -309,9 +312,12 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.update_ui_jnts()
 
     def refresh_ui_module(self):
+        #Block the signal to make sure that the itemChanged event is not called when adjusting the check state
+        self.treeWidget.blockSignals(True)
         for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
             if hasattr(qt_item, "rig"):
                 qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.rig.is_built() else QtCore.Qt.Unchecked)
+        self.treeWidget.blockSignals(False)
 
     def update_ui_modules(self, *args, **kwargs):
         self.treeWidget.clear()
@@ -460,7 +466,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 if module_is_built:
                     module.unbuild()
             need_update = True
-            self._update_network(self.root)
+            self._update_network(self.root, item=item)
 
         #Check if the name have changed
         if (item._name != new_text):
@@ -483,6 +489,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if hasattr(item, "rig"):
             self._set_text_block(item, item.rig.name)
             self._is_modifying = True #Flag to know that we are currently modifying the name
+            self.treeWidget.editItem(item, 0)
 
     def on_remove(self):
         for item in self.treeWidget.selectedItems():
@@ -508,7 +515,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             sel = self.treeWidget.selectedItems()
             if len(sel) == 1:
                 actionRemove = menu.addAction("Rename")
-                actionRemove.triggered.connect(functools.partial(self.treeWidget.editItem, sel[0], 0))
+                #actionRemove.triggered.connect(functools.partial(self.treeWidget.editItem, sel[0], 0))
+                actionRemove.triggered.connect(functools.partial(self.treeWidget.itemDoubleClicked.emit, sel[0], 0))
             actionRemove = menu.addAction("Remove")
             actionRemove.triggered.connect(functools.partial(self.on_remove))
             menu.exec_(QtGui.QCursor.pos())

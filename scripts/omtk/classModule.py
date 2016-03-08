@@ -195,6 +195,14 @@ class Module(object):
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name='net_{0}'.format(self.name))
 
+    def validate(self, rig):
+        """
+        Check if the module can be built with it's current configuration.
+        In case of error, an exception will be raised with the necessary informations.
+        """
+        if not self.input:
+            raise Exception("Can't build module with zero inputs. {0}".format(self))
+
     def build(self, rig, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=None, parent=True):
         """
         Build the module following the provided rig rules.

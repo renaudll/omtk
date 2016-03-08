@@ -2,6 +2,8 @@
 An avar is a facial control unit inspired from The Art of Moving Points.
 This is the foundation for the facial animation modules.
 """
+import logging
+
 from maya import cmds
 import pymel.core as pymel
 
@@ -14,7 +16,7 @@ from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs import libAttr
 from omtk.libs import libFormula
-
+log = logging.getLogger('omtk')
 
 class Doritos(classModule.Module):
     """
@@ -67,7 +69,7 @@ class Doritos(classModule.Module):
         if distance > epsilon:
             return distance
         else:
-            print "Can't detect sensibility for {0}".format(attr)
+            log.warning("Can't detect sensibility for {0}".format(attr))
             return default
 
     def build(self, rig, ctrl_tm=None, obj_mesh=None, **kwargs):
@@ -213,17 +215,32 @@ class Doritos(classModule.Module):
         attr_adjustement_sx_inn = attr_sensibility_lr_inv
         attr_adjustement_sy_inn = attr_sensibility_ud_inv
         attr_adjustement_sz_inn = attr_sensibility_fb_inv
-        attr_adjustement_tm = libRigging.create_utility_node('composeMatrix',
+        attr_adjustement_scale = libRigging.create_utility_node('composeMatrix',
                                                              inputScaleX=attr_adjustement_sx_inn,
                                                              inputScaleY=attr_adjustement_sy_inn,
                                                              inputScaleZ=attr_adjustement_sz_inn
                                                              ).outputMatrix
+
+        attr_adjustement_rot = libRigging.create_utility_node('composeMatrix',
+                                                              inputRotateX=ctrl.node.rotateX,
+                                                              inputRotateY=ctrl.node.rotateY,
+                                                              inputRotateZ=ctrl.node.rotateZ
+                                                             ).outputMatrix
+
+        attr_adjustement_rot_inv = libRigging.create_utility_node('inverseMatrix', inputMatrix=attr_adjustement_rot).outputMatrix
+
+        attr_adjustement_tm = libRigging.create_utility_node('multMatrix', matrixIn=[
+            attr_adjustement_rot,
+            attr_adjustement_scale,
+            attr_adjustement_rot_inv
+        ]).matrixSum
+
         attr_transform_geometry = libRigging.create_utility_node('transformGeometry', transform=attr_adjustement_tm,
                                                                  inputGeometry=ctrl_shape_orig.local).outputGeometry
         pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
 
         # Constraint ctrl
-        pymel.parentConstraint(layer_doritos, ctrl.offset, maintainOffset=True)
+        pymel.parentConstraint(layer_doritos, ctrl.offset, maintainOffset=True, skipRotate=['x', 'y', 'z'])
 
         # Automatically resolve sensitivity
         if self.sensitivity_tx is None and not ctrl.node.tx.isLocked():
@@ -361,6 +378,10 @@ class AbstractAvar(classModule.Module):
         Create a network to hold all the avars complex connection.
         This prevent Maya from deleting our connection when unbuilding.
         """
+        if self.grp_rig is None:
+            log.warning("Can't hold avars, no grp_rig found in {0}!".format(self))
+            return
+
         self.avar_network = pymel.createNode('network')
         self.add_avars(self.avar_network)
 
@@ -381,8 +402,9 @@ class AbstractAvar(classModule.Module):
 
             return False
 
-        avar_attr_names = cmds.listAttr(self.avar_network.__melobject__(), userDefined=True)
-        for attr_name in avar_attr_names:
+        attrs = pymel.listAttr(self.avar_network, userDefined=True)
+        for attr in attrs:
+            attr_name = attrs.longName()
             attr_src = self.grp_rig.attr(attr_name)
             attr_dst = self.avar_network.attr(attr_name)
             # libAttr.transfer_connections(attr_src, attr_dst)
@@ -504,6 +526,13 @@ class AbstractAvar(classModule.Module):
         libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
     '''
 
+    def validate(self, rig):
+        super(AbstractAvar, self).validate(rig)
+
+        if not self.jnts:
+            raise Exception("Can't build ModuleFace with zero joints!")
+
+        return True
 
     def build(self, rig, mult_u=1.0,
               mult_v=1.0, **kwargs):
@@ -511,9 +540,6 @@ class AbstractAvar(classModule.Module):
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
         super(AbstractAvar, self).build(rig, **kwargs)
-
-        if not self.jnts:
-            raise Exception("Can't build ModuleFace with zero joints!")
 
         self.add_avars(self.grp_rig)
         self.fetch_avars()
@@ -949,8 +975,8 @@ class AvarFollicle(AvarSimple):
         layer_rot = stack.add_layer()
         layer_rot.rename(layer_rot_name)
 
-        pymel.connectAttr(self.attr_yw, layer_rot.rotateX)
-        pymel.connectAttr(self.attr_pt, layer_rot.rotateY)
+        pymel.connectAttr(self.attr_yw, layer_rot.rotateY)
+        pymel.connectAttr(self.attr_pt, layer_rot.rotateX)
         pymel.connectAttr(self.attr_rl, layer_rot.rotateZ)
 
         return stack

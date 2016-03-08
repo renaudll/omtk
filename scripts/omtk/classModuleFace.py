@@ -1,7 +1,11 @@
 import itertools
+import logging
 import pymel.core as pymel
-from omtk import classModule, classAvar
-from omtk.libs import libPython, libPymel, libRigging
+from omtk import classAvar
+from omtk.libs import libPython
+from omtk.libs import libPymel
+from omtk.libs import libRigging
+log = logging.getLogger('omtk')
 
 def _find_mid_jnt(jnts):
     nearest_jnt = None
@@ -141,6 +145,13 @@ class ModuleFace(classAvar.AbstractAvar):
     def build(self, rig, **kwargs):
         super(ModuleFace, self).build(rig)
 
+        # Create the plane if it doesn't exist!
+        if self.surface is None:
+            log.warning("Can't find surface for {0}, creating one...".format(self))
+            new_surface = self.create_surface()
+            self.input.append(new_surface)
+            del self._cache['surface']
+
         # Resolve the desired ctrl size
         # One thing we are sure is that ctrls should no overlay,
         # so we'll max out their radius to half of the shortest distances between each.
@@ -149,10 +160,10 @@ class ModuleFace(classAvar.AbstractAvar):
         if len(self.jnts) > 1:
             ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
             if ctrl_size > max_ctrl_size:
-                print("Limiting ctrl size to {0}".format(max_ctrl_size))
+                log.warning("Limiting ctrl size to {0}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
         else:
-            print("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
+            log.warning("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
             ctrl_size = max_ctrl_size
 
         # Define avars on first build
@@ -286,6 +297,8 @@ class ModuleFace(classAvar.AbstractAvar):
         pymel.select(root)
 
         self.input.append(plane_transform)
+
+        return plane_transform
 
 
 class ModuleFaceUppDown(ModuleFace):

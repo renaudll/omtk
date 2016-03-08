@@ -4,7 +4,7 @@ import pymel.core as pymel
 from omtk.classCtrl import BaseCtrl
 from omtk.classModule import Module
 from omtk.classNode import Node
-from omtk.libs import libRigging, libAttr, libFormula
+from omtk.libs import libRigging, libAttr, libFormula, libPymel
 
 class CtrlIk(BaseCtrl):
     kAttrName_State = 'ikFk'
@@ -225,15 +225,17 @@ class IK(Module):
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.chain_jnt, self._chain_ik):
-            oIk.rename(nomenclature_anm.resolve('ik'))
+            ik_nomenclature = nomenclature_rig.copy(oInput.name())
+            oIk.rename(ik_nomenclature.resolve('ik'))
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
 
 
         obj_s = self._chain_ik[0]
         obj_e = self._chain_ik[index_hand]
 
-        # Compute chain length
-        self.chain_length = self.chain.length()
+        # Compute chain length without taking in consideration the foot joints
+        chain_no_foot = libPymel.PyNodeChain(self.chain[0:index_hand + 1])
+        self.chain_length = chain_no_foot.length()
 
         # Compute swivel position
         p3SwivelPos = self.calc_swivel_pos()
@@ -284,6 +286,7 @@ class IK(Module):
         # Create and configure SoftIK solver
         rig_softIkNetwork = SoftIkNode()
         rig_softIkNetwork.build()
+        pymel.rename(rig_softIkNetwork, nomenclature_rig.resolve("softIkData"))
         pymel.connectAttr(attInRatio, rig_softIkNetwork.inRatio)
         pymel.connectAttr(attInStretch, rig_softIkNetwork.inStretch)
         pymel.connectAttr(self._ikChainGrp.worldMatrix, rig_softIkNetwork.inMatrixS)
@@ -306,24 +309,32 @@ class IK(Module):
         pymel.connectAttr(attOutRatioInv, weight_out)
 
         # Constraint joints stretch
-        attOutStretch = rig_softIkNetwork.outStretch
+        '''
         attr_joint_stretch = libRigging.create_utility_node('multiplyDivide',
                                                             input1X=rig_softIkNetwork.outStretch,
                                                             input2X=self.grp_rig.globalScale).outputX
-        num_jnts = len(self._chain_ik)
-        for i in range(1, num_jnts):
+        '''
+
+        #num_jnts = len(self._chain_ik)
+        #Do not apply the stretch in the chain farther than the ctrl index
+        for i in range(1, len(chain_no_foot)):
             obj = self._chain_ik[i]
             pymel.connectAttr(
                 libRigging.create_utility_node('multiplyDivide',
-                                               input1X=attr_joint_stretch,
-                                               input1Y=attr_joint_stretch,
-                                               input1Z=attr_joint_stretch,
+                                               input1X=rig_softIkNetwork.outStretch,
+                                               input1Y=rig_softIkNetwork.outStretch,
+                                               input1Z=rig_softIkNetwork.outStretch,
                                                input2=obj.t.get()).output,
                 obj.t, force=True)
 
         # Connect rig -> anm
         pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)
         pymel.poleVectorConstraint(self.ctrl_swivel, self._ik_handle)
+
+        #Connect global scale
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.scaleX)
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.scaleY)
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.scaleZ)
 
         '''
         # Connect to parent

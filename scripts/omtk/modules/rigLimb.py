@@ -100,7 +100,8 @@ class Limb(Module):
         # Create a chain for blending ikChain and fkChain
         chain_blend = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for input_, node in zip(self.chain_jnt, chain_blend):
-            node.rename(nomenclature_rig.resolve('blend'))
+            blend_nomenclature = nomenclature_rig.copy(input_.name())
+            node.rename(blend_nomenclature.resolve('blend'))
 
         # Blend ikChain with fkChain
         for blend, oIk, oFk in zip(chain_blend, self.sysIK._chain_ik, self.sysFK.ctrls):
@@ -119,7 +120,8 @@ class Limb(Module):
         # (witch should only be nodes already)
         chain_elbow = pymel.duplicate(self.chain_jnt[:self.sysIK.iCtrlIndex], renameChildren=True, parentOnly=True)
         for input_, node in zip(self.chain_jnt, chain_elbow):
-            node.rename(nomenclature_rig.resolve('elbow'))  # todo: find a better name???
+            nomenclature_elbow = nomenclature_rig.copy(input_.name())
+            node.rename(nomenclature_elbow.resolve('elbow'))  # todo: find a better name???
         chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl

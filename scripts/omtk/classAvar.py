@@ -269,6 +269,8 @@ class BaseCtrlFace(classCtrl.BaseCtrl):
         need_flip = self.getTranslation(space='world').x < 0
         if need_flip:
             attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
+            attr_inn_yw = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_yw, input2X=-1).outputX
+            attr_inn_rl = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_rl, input2X=-1).outputX
 
         libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
         libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)

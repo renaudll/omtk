@@ -266,7 +266,7 @@ class BaseCtrl(Node):
 
         layer_spaceSwitch = self.add_layer('spaceSwitch')
         parent_constraint = pymel.parentConstraint(targets, layer_spaceSwitch, maintainOffset=True, **kwargs)
-        attr_space = libPymel.addAttr(self.node, 'space', at='enum', enumName=labels, k=True)
+        attr_space = libAttr.addAttr(self.node, 'space', at='enum', enumName=labels, k=True)
         atts_weights = parent_constraint.getWeightAliasList()
 
         for i, att_weight in enumerate(atts_weights):

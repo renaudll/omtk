@@ -204,17 +204,26 @@ def create_shape_box_arm(refs):
     ref_tm = ref.getMatrix(worldSpace=True)
 
     positions = [ref.getTranslation(space='world') for ref in refs]
-    dirs = [
-        OpenMaya.MPoint(1,0,0) * ref_tm,
-        OpenMaya.MPoint(0,0,-1) * ref_tm,
-        OpenMaya.MPoint(0,0,1) * ref_tm
-    ]
+    #HACK : Check the x_position to know in which direction we need to do the raycast
+    x_pos = ref.getTranslation(space='world').x
+    if x_pos >= 0.0:
+        dirs = [
+            OpenMaya.MPoint(1,0,0) * ref_tm,
+            OpenMaya.MPoint(0,0,-1) * ref_tm,
+            OpenMaya.MPoint(0,0,1) * ref_tm
+        ]
+    else:
+        dirs = [
+            OpenMaya.MPoint(-1,0,0) * ref_tm,
+            OpenMaya.MPoint(0,0,-1) * ref_tm,
+            OpenMaya.MPoint(0,0,1) * ref_tm
+        ]
     geometries = pymel.ls(type='mesh')
 
     min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
 
     # Convert our bouding box
-    min_x = 0
+    #min_x = 0
 
     pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
     pos2 = pymel.datatypes.Point(min_x, min_y, max_z)

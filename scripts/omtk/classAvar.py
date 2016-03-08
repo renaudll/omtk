@@ -73,7 +73,7 @@ class Doritos(classModule.Module):
             return default
 
     def build(self, rig, ctrl_tm=None, obj_mesh=None, **kwargs):
-        super(Doritos, self).build(rig, create_grp_anm=False, **kwargs)
+        super(Doritos, self).build(rig, create_grp_anm=False, parent=False, **kwargs)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
         # Add sensibility attributes
@@ -241,6 +241,7 @@ class Doritos(classModule.Module):
 
         # Constraint ctrl
         pymel.parentConstraint(layer_doritos, ctrl.offset, maintainOffset=True, skipRotate=['x', 'y', 'z'])
+        pymel.orientConstraint(layer_doritos.getParent(), ctrl.offset, maintainOffset=True)
 
         # Automatically resolve sensitivity
         if self.sensitivity_tx is None and not ctrl.node.tx.isLocked():
@@ -330,8 +331,6 @@ class AbstractAvar(classModule.Module):
     AVAR_NAME_PITCH = 'avar_pt'
     AVAR_NAME_ROLL = 'avar_rl'
 
-    _DEFORMATION_ORDER = 'pre'  # todo: Use enum
-
     ui_show = False
 
     def __init__(self, *args, **kwargs):
@@ -342,6 +341,7 @@ class AbstractAvar(classModule.Module):
         self._sys_doritos = None
         self._doritos_stack = None  # TODO: Deprecated, use ._sys_doritos
         self.ctrl = None
+
 
     def init_avars(self):
         self.attr_ud = None  # Up/Down
@@ -405,8 +405,8 @@ class AbstractAvar(classModule.Module):
             return False
 
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
-        for attr in attrs:
-            attr_name = attrs.longName()
+        for attr_name in attrs:
+            #attr_name = attr.longName()
             attr_src = self.grp_rig.attr(attr_name)
             attr_dst = self.avar_network.attr(attr_name)
             # libAttr.transfer_connections(attr_src, attr_dst)
@@ -536,8 +536,7 @@ class AbstractAvar(classModule.Module):
 
         return True
 
-    def build(self, rig, mult_u=1.0,
-              mult_v=1.0, **kwargs):
+    def build(self, rig, mult_u=1.0, mult_v=1.0, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
@@ -578,7 +577,7 @@ class AvarSimple(AbstractAvar):
         return stack
 
     def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, **kwargs):
-        super(AvarSimple, self).build(rig)
+        super(AvarSimple, self).build(rig, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -592,6 +591,7 @@ class AvarSimple(AbstractAvar):
         dag_stack_name = nomenclature_rig.resolve('stack')
         stack = classNode.Node()
         stack.build(name=dag_stack_name)
+        self._stack = stack
 
 
         # Create an offset layer so everything start at the original position.
@@ -604,7 +604,7 @@ class AvarSimple(AbstractAvar):
 
         # The rest of the stack is built in another function.
         # This allow easier override by sub-classes.
-        self.build_stack(rig, stack, **kwargs)
+        self.build_stack(rig, stack)
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
@@ -629,11 +629,6 @@ class AvarSimple(AbstractAvar):
             self.ctrl.link_to_avar(self)
 
             self.attach_ctrl(rig, self.ctrl)
-
-        # If the deformation order is set to post (aka the deformer is in the final skinCluster)
-        # we will want the offset node to follow it's original parent (ex: the head)
-        if self._DEFORMATION_ORDER == 'post':
-            pymel.parentConstraint(self.parent, layer_offset, maintainOffset=True)
 
 
 class AvarFollicle(AvarSimple):
@@ -692,7 +687,6 @@ class AvarFollicle(AvarSimple):
         # Resolve the length of each axis of the surface
         self._attr_length_u, self._attr_length_v, arcdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
         arcdimension_shape.getParent().setParent(self.grp_rig)
-
 
         # Create the bind pose follicle
         offset_name = nomenclature_rig.resolve('bindPoseRef')

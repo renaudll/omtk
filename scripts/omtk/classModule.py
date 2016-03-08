@@ -203,7 +203,7 @@ class Module(object):
         if not self.input:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
 
-    def build(self, rig, create_grp_anm=True, create_grp_rig=True, segmentScaleCompensate=None, parent=True):
+    def build(self, rig, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True, segmentScaleCompensate=None, parent=True):
         """
         Build the module following the provided rig rules.
         :param rig: The rig dictating the nomenclature and other settings.
@@ -233,11 +233,12 @@ class Module(object):
             grp_rig_name = self.get_nomenclature_rig_grp(rig).resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
-            # todo: keep it here?
-            pymel.addAttr(self.grp_rig, longName='globalScale', defaultValue=1.0)
-            self.globalScale = self.grp_rig.globalScale
+            if connect_global_scale:
+                # todo: keep it here?
+                pymel.addAttr(self.grp_rig, longName='globalScale', defaultValue=1.0)
+                self.globalScale = self.grp_rig.globalScale
 
-        if self.parent:
+        if parent and self.parent:
             module = rig.get_module_by_input(self.parent)
             if module:
                 desired_parent = module.get_parent(self.parent)

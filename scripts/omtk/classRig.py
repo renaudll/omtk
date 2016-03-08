@@ -364,15 +364,22 @@ class Rig(object):
                 name_safe = obj.stripNamespace().lower()
                 return 'head' in name_safe or 'face'in name_safe
 
-        # TODO: MAKE IT WORK EVEN IF THERE ARE NO HEAD MODULE
+        # TODOL CLEAN MEEEE
         return pymel.PyNode('Head_Jnt')
 
-        '''
-        for module in self.modules:
-            for obj in module.input:
-                if key(obj):
-                    return obj
-        '''
+    @libPython.memoized
+    def get_jaw_jnt(self, key=None):
+        """
+        Not the prettiest but used to find the jaw for facial rigging.
+        """
+        if key is None:
+            def key(obj):
+                name_safe = obj.stripNamespace().lower()
+                return 'jaw' in name_safe
+
+        # TODOL CLEAN MEEEE
+        return pymel.PyNode('Jaw_Jnt')
+
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):

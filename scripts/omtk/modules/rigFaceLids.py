@@ -24,3 +24,5 @@ class CtrlLidLow(classAvar.BaseCtrlFace):
 class FaceLids(classModuleFace.ModuleFaceUppDown):
     _CLS_CTRL_UPP = CtrlLidUpp
     _CLS_CTRL_LOW = CtrlLidLow
+
+    ui_show = True

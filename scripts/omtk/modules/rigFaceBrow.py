@@ -11,3 +11,5 @@ class CtrlBrow(classAvar.BaseCtrlFace):
 
 class FaceBrow(classModuleFace.ModuleFaceLftRgt):
     _CLS_CTRL = CtrlBrow
+
+    ui_show = True

@@ -71,8 +71,11 @@ class FaceJaw(classModuleFace.ModuleFace):
     The Jaw is a special zone since it doesn't happen in pre-deform, it happen in the main skinCluster.
     The Jaw global avars are made 
     """
-    _DEFORMATION_ORDER = 'post'
     _CLS_AVAR = AvarJaw
+
+    def __init__(self, *args, **kwargs):
+        super(FaceJaw, self).__init__(*args, **kwargs)
+        self.preDeform = False # By default, the jaw is in the final skin deformer.
 
     # HACK: For now we won't use any global avars on the Jaw since there's only one influence.
     def add_avars(self, attr_holder):

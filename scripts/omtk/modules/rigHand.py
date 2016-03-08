@@ -120,7 +120,7 @@ class Hand(Module):
                 self.sysFingers.append(sysFinger)
 
             sysFinger = self.sysFingers[i]
-            sysFinger.build(rig, parent=False)
+            sysFinger.build(rig, create_spaceswitch=False, parent=False)
             if ctrl_meta:
                 sysFinger.grp_anm.setParent(ctrl_meta.ctrls[0])
             else:

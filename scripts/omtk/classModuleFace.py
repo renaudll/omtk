@@ -1,17 +1,44 @@
 import itertools
+import logging
 import pymel.core as pymel
-from omtk import classModule, classAvar
-from omtk.libs import libPython, libPymel, libRigging
+from omtk import classAvar
+from omtk.libs import libPython
+from omtk.libs import libPymel
+from omtk.libs import libRigging
+log = logging.getLogger('omtk')
 
+# TODO: Move to libs?
+def _find_middle(jnts):
+    pos = pymel.datatypes.Vector()
+    for jnt in jnts:
+        pos += jnt.getTranslation(space='world')
+    return pos / len(jnts)
+
+# TODO: Move to libs?
 def _find_mid_jnt(jnts):
     nearest_jnt = None
     nearest_distance = None
+
+    middle = _find_middle(jnts)
+    middle.y = 0
+    middle.z = 0
+
     for jnt in jnts:
-        distance = abs(jnt.getTranslation(space='world').x)
+        jnt_pos = jnt.getTranslation(space='world')
+        jnt_pos.y = 0
+        jnt_pos.z = 0
+        distance = libPymel.distance_between_vectors(jnt_pos, middle)
+        #distance = abs(.x)
         if nearest_jnt is None or distance < nearest_distance:
             nearest_jnt = jnt
             nearest_distance = distance
     return nearest_jnt
+
+def _find_mid_avar(avars):
+    jnts = [avar.jnt for avar in avars]
+    nearest_jnt = _find_mid_jnt(jnts)
+
+    return avars[jnts.index(nearest_jnt)]
 
 class ModuleFace(classAvar.AbstractAvar):
     """
@@ -81,13 +108,11 @@ class ModuleFace(classAvar.AbstractAvar):
 
     @property
     def avar_upp_mid(self):
-        i = (len(self.avars_upp)-1) / 2
-        return self.avars_upp[i]
+        return _find_mid_avar(self.avars_upp)
 
     @property
     def avar_low_mid(self):
-        i = (len(self.avars_low)-1) / 2
-        return self.avars_low[i]
+        return _find_mid_avar(self.avars_low)
 
     @property
     def avar_inn(self):
@@ -95,8 +120,7 @@ class ModuleFace(classAvar.AbstractAvar):
 
     @property
     def avar_mid(self):
-        i = (len(self.avars)-1) / 2
-        return self.avars[i]
+        return _find_mid_avar(self.avars)
 
     @property
     def avar_out(self):
@@ -109,6 +133,7 @@ class ModuleFace(classAvar.AbstractAvar):
     def __init__(self, *args, **kwargs):
         super(ModuleFace, self).__init__(*args, **kwargs)
         self.avars = []
+        self.preDeform = True
 
     def get_module_name(self):
         return super(ModuleFace, self).get_module_name()
@@ -138,8 +163,21 @@ class ModuleFace(classAvar.AbstractAvar):
             libRigging.connectAttr_withBlendWeighted(self.attr_pt, avar.attr_pt)
             libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
 
-    def build(self, rig, **kwargs):
-        super(ModuleFace, self).build(rig)
+    def build(self, rig, mult_u=None, mult_v=None, parent=None, connect_global_scale=None, **kwargs):
+        if parent is None:
+            parent = not self.preDeform
+
+        if connect_global_scale is None:
+            connect_global_scale = self.preDeform
+
+        super(ModuleFace, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
+
+        # Create the plane if it doesn't exist!
+        if self.surface is None:
+            log.warning("Can't find surface for {0}, creating one...".format(self))
+            new_surface = self.create_surface()
+            self.input.append(new_surface)
+            del self._cache['surface']
 
         # Resolve the desired ctrl size
         # One thing we are sure is that ctrls should no overlay,
@@ -149,10 +187,10 @@ class ModuleFace(classAvar.AbstractAvar):
         if len(self.jnts) > 1:
             ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
             if ctrl_size > max_ctrl_size:
-                print("Limiting ctrl size to {0}".format(max_ctrl_size))
+                log.warning("Limiting ctrl size to {0}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
         else:
-            print("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
+            log.warning("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
             ctrl_size = max_ctrl_size
 
         # Define avars on first build
@@ -170,12 +208,18 @@ class ModuleFace(classAvar.AbstractAvar):
 
         # Build avars and connect them to global avars
         for avar in self.avars:
-            avar._DEFORMATION_ORDER = self._DEFORMATION_ORDER
-            avar.build(rig, ctrl_size=ctrl_size, **kwargs)
+            avar.build(rig, ctrl_size=ctrl_size, mult_u=mult_u, mult_v=mult_v, connect_global_scale=connect_global_scale, **kwargs)
             avar.grp_anm.setParent(self.grp_anm)
             avar.grp_rig.setParent(self.grp_rig)
 
         self.connect_global_avars()
+
+        # If the deformation order is set to post (aka the deformer is in the final skinCluster)
+        # we will want the offset node to follow it's original parent (ex: the head)
+        if parent and self.parent:
+            for avar in self.avars:
+                layer_offset = avar._stack._layers[0]
+                pymel.parentConstraint(self.parent, layer_offset, maintainOffset=True)
 
     def unbuild(self):
         for avar in self.avars:
@@ -286,6 +330,8 @@ class ModuleFace(classAvar.AbstractAvar):
         pymel.select(root)
 
         self.input.append(plane_transform)
+
+        return plane_transform
 
 
 class ModuleFaceUppDown(ModuleFace):
@@ -464,6 +510,7 @@ class ModuleFaceLftRgt(ModuleFace):
                 self.ctrl_r.link_to_avar(avar)
 
     def unbuild(self):
-        self.ctrl_l.unbuild()
-        self.ctrl_r.unbuild()
-        sup
+        if self.ctrl_l:
+            self.ctrl_l.unbuild()
+        if self.ctrl_r:
+            self.ctrl_r.unbuild()

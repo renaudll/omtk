@@ -2,16 +2,9 @@ import pymel.core as pymel
 import collections
 
 import omtk.classAvar
-import omtk.libs.libAttr
-from omtk import classModule
-from omtk.classModule import Module
-from omtk.classCtrl import BaseCtrl
-from omtk.modules.rigIK import IK
-from omtk.modules.rigFK import FK
+from omtk.libs import libAttr
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
-from omtk.libs import libPython
-from omtk.libs import libPymel
 from omtk import classModuleFace
 
 class CtrlLipsUpp(omtk.classAvar.BaseCtrlFace):
@@ -39,6 +32,12 @@ class FaceLips(classModuleFace.ModuleFace):
         self.ctrl_upp = None
         self.ctrl_low = None
 
+    @property
+    def avars_corners(self):
+        # TODO: Find a better way
+        fnFilter = lambda avar: 'corner' in avar.ref_name.lower()
+        return filter(fnFilter, self.avars)
+
     def get_module_name(self):
         return 'Lips'
 
@@ -46,23 +45,24 @@ class FaceLips(classModuleFace.ModuleFace):
         """
         The Lips rig have additional controllers to open all the upper or lower lips together.
         """
-        super(FaceLips, self).build(rig, **kwargs)
+        # Normally the lips are in preDeform.
+        # If it is not the case, we'll handle constraining ourself with the head and jaw.
+        super(FaceLips, self).build(rig, parent=False, **kwargs)
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
-
         # Create UpperLips Global Avars
-        self.attr_upp_ud = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
-        self.attr_upp_lr = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
-        self.attr_upp_fb = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
+        self.attr_upp_ud = libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_UD, k=True)
+        self.attr_upp_lr = libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_LR, k=True)
+        self.attr_upp_fb = libAttr.addAttr(self.grp_rig, self._AVAR_NAME_UPP_FB, k=True)
         for avar in self.avars_upp:
             libRigging.connectAttr_withBlendWeighted(self.attr_upp_ud, avar.attr_ud)
             libRigging.connectAttr_withBlendWeighted(self.attr_upp_lr, avar.attr_lr)
             libRigging.connectAttr_withBlendWeighted(self.attr_upp_fb, avar.attr_fb)
 
         # Create LowerLips Global Avars
-        self.attr_low_ud = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
-        self.attr_low_lr = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
-        self.attr_low_fb = omtk.libs.libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
+        self.attr_low_ud = libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_UD, k=True)
+        self.attr_low_lr = libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_LR, k=True)
+        self.attr_low_fb = libAttr.addAttr(self.grp_rig, self._AVAR_NAME_LOW_FB, k=True)
         for avar in self.avars_low:
             libRigging.connectAttr_withBlendWeighted(self.attr_low_ud, avar.attr_ud)
             libRigging.connectAttr_withBlendWeighted(self.attr_low_lr, avar.attr_lr)
@@ -89,4 +89,27 @@ class FaceLips(classModuleFace.ModuleFace):
         self.ctrl_low.connect_avars(self.attr_low_ud, self.attr_low_lr, self.attr_low_fb)
         #self.ctrl_low.link_to_avar(self)
         self.avar_low_mid.attach_ctrl(rig, self.ctrl_low)
+
+        # If we are using the lips in the main deformer, we'll do shenanigans with the jaw.
+        if not self.preDeform:
+            jnt_head = rig.get_head_jnt()
+            if not jnt_head:
+                raise Exception("Can't resolve head.")
+
+            jnt_jaw = rig.get_jaw_jnt()
+            if not jnt_jaw:
+                raise Exception("Can't resolve jaw.")
+
+            for avar in self.avars_upp:
+                pymel.parentConstraint(jnt_head, avar._stack._layers[0], maintainOffset=True)
+
+            for avar in self.avars_low:
+                pymel.parentConstraint(jnt_jaw, avar._stack._layers[0], maintainOffset=True)
+
+            for avar in self.avars_corners:
+                pymel.parentConstraint(jnt_head, jnt_jaw, avar._stack._layers[0], maintainOffset=True)
+
+
+
+
 

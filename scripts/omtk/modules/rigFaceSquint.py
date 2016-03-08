@@ -11,3 +11,5 @@ class CtrlSquint(omtk.classAvar.BaseCtrlFace):
 
 class FaceSquint(classModuleFace.ModuleFaceLftRgt):
     _CLS_CTRL = CtrlSquint
+
+    ui_show = True

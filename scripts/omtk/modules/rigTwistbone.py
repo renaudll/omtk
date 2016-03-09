@@ -4,6 +4,7 @@ from omtk.classNode import Node
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.modules.rigSplineIK import SplineIK
+import re
 
 
 class NonRollJoint(Node):
@@ -18,8 +19,10 @@ class NonRollJoint(Node):
         self.node = pymel.createNode('transform')
 
         pymel.select(clear=True)
-        self.start = pymel.joint() # todo: rename
-        self.end = pymel.joint() # todo: rename
+        self.start = pymel.joint() # todo: really the best name ?
+        pymel.rename(self.start, "Nonroll_Start_Jnt")
+        self.end = pymel.joint() # todo: really the best name ?
+        pymel.rename(self.end, "Nonroll_End_Jnt")
         self.end.setTranslation([1,0,0])
         pymel.makeIdentity((self.start, self.end), apply=True, r=True)
 
@@ -50,6 +53,7 @@ class Twistbone(Module):
         super(Twistbone, self).build(rig, create_grp_anm=False, *args, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_jnt = self.get_nomenclature_jnt(rig)
 
         jnt_s = self.chain_jnt[0]
         jnt_e = self.chain_jnt[1]
@@ -59,13 +63,21 @@ class Twistbone(Module):
         self.ikCurve = libRigging.create_nurbsCurve_from_joints(jnt_s, jnt_e, 2 if num_steps > 2 else 1)
         pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True)
 
-        # Generate Subjoinbs
+        # Generate Subjoints
         self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 4)
 
+        #TODO : Use the nomeclature system to name the bones
+        for i, sub_jnt in enumerate(self.subjnts):
+            #Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
+            jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            sub_jnt.rename(jnt_name)
+
         # Create splineIK
+        #Do not connect the stretch to prevent scaling problem
+        #TODO : If a stretch system exist on the input, we need to find a way to connect it to the twist system
         splineIK = SplineIK(self.subjnts +[self.ikCurve])
         splineIK.bStretch = False
-        splineIK.build(rig, create_grp_anm=False)
+        splineIK.build(rig, create_grp_anm=False, stretch=False)
         self.ikCurve.setParent(splineIK.grp_rig)
 
         nonroll_1 = NonRollJoint()
@@ -79,7 +91,7 @@ class Twistbone(Module):
 
         nonroll_2 = NonRollJoint()
         nonroll_2.build()
-        nonroll_2.rename(nomenclature_rig.resolve('nonroll_2'))
+        nonroll_2.rename(nomenclature_rig.resolve('nonroll_e'))
 
         nonroll_2.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         nonroll_2.setTranslation(jnt_e.getTranslation(space='world'), space='world')
@@ -121,13 +133,15 @@ class Twistbone(Module):
         pymel.connectAttr(upnode_s.xformMatrix, splineIK.ikHandle.dWorldUpMatrix)
         pymel.connectAttr(upnode_e.xformMatrix, splineIK.ikHandle.dWorldUpMatrixEnd)
 
-        # Unparent the twistbones so they squash correctly, even in a Game-Engine scenario.
-        for jnt in self.subjnts:
-            if jnt.getParent() != self.chain_jnt.start:
-                jnt.setParent(self.chain_jnt.start)
+        #Connect global scale
+        pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)
+        pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleY)
+        pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleZ)
 
-        # TODO : Automatically skin the twistbones
-        '''
+        # Unparent the twistbones so they squash correctly, even in a Game-Engine scenario.
+        if self.subjnts[0].getParent() != self.chain_jnt.start:
+            self.subjnts[0].setParent(self.chain_jnt.start)
+
         skinClusters = set()
         for jnt in self.chain_jnt:
             for hist in jnt.listHistory(future=True):
@@ -142,8 +156,10 @@ class Twistbone(Module):
 
             # Add new joints as influence.
             for subjnt in self.subjnts:
-                skinCluster.addInfluence(subjnt)
+                skinCluster.addInfluence(subjnt, lockWeights=True, weight=0.0)
 
+        # TODO : Automatically skin the twistbones
+        '''
             num_shapes = skinCluster.numOutputConnections()
             for i in range(num_shapes):
                 shape = skinCluster.outputShapeAtIndex(i)

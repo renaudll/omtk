@@ -130,8 +130,35 @@ class Twistbone(Module):
         # Configure splineIK upnodes parameters
         splineIK.ikHandle.dTwistControlEnable.set(1)
         splineIK.ikHandle.dWorldUpType.set(4) # Object Rotation Up (Start End)
+        #TODO : Find a better way to define the foward axis than the side string
+        if nomenclature_rig.get_side() == 'r':
+            splineIK.ikHandle.dForwardAxis.set(1)
+            #splineIK.ikHandle.dWorldUpAxis.set(1)
         pymel.connectAttr(upnode_s.xformMatrix, splineIK.ikHandle.dWorldUpMatrix)
         pymel.connectAttr(upnode_e.xformMatrix, splineIK.ikHandle.dWorldUpMatrixEnd)
+
+        #Compute the Stretch
+        stretch_factor = libRigging.create_stretch_node_between_2_bones(jnt_s, jnt_e)
+
+        #Adjust with the global scale
+        dist_globalScale_adjust = libRigging.create_utility_node('multiplyDivide',
+                                                           input1X=self.grp_rig.globalScale,
+                                                            input2X=stretch_factor.input1X.get(),
+                                                            operation=1
+                                                           ).outputX
+
+        pymel.connectAttr(dist_globalScale_adjust, stretch_factor.input2X)
+
+        #The distance between the twist bones is the same
+        stretch_value = libRigging.create_utility_node('multiplyDivide',
+                                   input1X=stretch_factor.outputX,
+                                    input2X=self.subjnts[1].translateX.get(),
+                                    operation=1
+                                   ).outputX
+
+        #Connect stretch
+        for i in range(1, len(self.subjnts)):
+            pymel.connectAttr(stretch_value, self.subjnts[i].translateX)
 
         #Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)

@@ -134,6 +134,29 @@ def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
     attr_stretch_v = multiply_node.outputY
     return attr_stretch_u, attr_stretch_v, arcLengthDimension_shape
 
+def create_stretch_node_between_2_bones(start, end):
+    #Compute the Stretch
+    start_world_trans_attr = create_utility_node('decomposeMatrix',
+                                                       inputMatrix=start.worldMatrix
+                                                       ).outputTranslate
+
+    end_world_trans_attr = create_utility_node('decomposeMatrix',
+                                                       inputMatrix=end.worldMatrix
+                                                       ).outputTranslate
+
+    distance_nonroll_attr = create_utility_node('distanceBetween',
+                                               point1=start_world_trans_attr,
+                                                point2=end_world_trans_attr
+                                               ).distance
+
+    stretch_factor = create_utility_node('multiplyDivide',
+                                       input1X=distance_nonroll_attr,
+                                        input2X=distance_nonroll_attr.get(),
+                                        operation=2
+                                       )
+
+    return stretch_factor
+
 def create_squash_attr_simple(attr_stretch):
     return create_utility_node('multiplyDivide', operation=2, input1X=1.0, input2X=attr_stretch).outputX
 

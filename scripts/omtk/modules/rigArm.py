@@ -16,6 +16,7 @@ class CtrlIkArm(rigIK.CtrlIk):
 
 class ArmIk(rigIK.IK):
     _CLASS_CTRL_IK = CtrlIkArm
+    ui_show = False
 
 class Arm(rigLimb.Limb):
     _CLASS_SYS_IK = ArmIk

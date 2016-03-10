@@ -6,51 +6,125 @@ from omtk.libs import libRigging
 import pymel.core as pymel
 
 
-class CtrlNose(classAvar.BaseCtrlFace):
+class CtrlNose(classAvar.CtrlFaceMicro):
     pass
 
 
-class FaceNose(classModuleFace.ModuleFace):
+class FaceNose(classModuleFace.ModuleFaceWithSurface):
     """
     The Nose is composed of two zones. The uppernose and the lower nose.
     The uppernose is user specifically for it's yaw and pitch rotation.
     Everything under is considered a nostril.
+
+    Note that this was done reallllly quickly and cleanup may be needed in the future.
     """
     #_DEFORMATION_ORDER = 'post'
     #_CLS_AVAR = AvarJaw
+    _CLS_CTRL = CtrlNose
+
+    def __init__(self, *args, **kwargs):
+        super(FaceNose, self).__init__(*args, **kwargs)
+        self.ctrl_main = None
 
     @property
-    def inf_node_upp(self):
-        pass
+    def inf_nose_upp(self):
+        # TODO: FIX ME
+        return pymel.PyNode('NoseBend_Jnt')
 
     @property
     def inf_nose_low(self):
-        pass
+        # TODO: FIX ME
+        return pymel.PyNode('Nose_Jnt')
+
+    @property
+    def influences_snear(self):
+        return [jnt for jnt in self.jnts if 'snear' in jnt.name().lower()]
+
+    @property
+    def avar_nose_upp(self):
+        for avar in self.avars:
+            if avar.jnt == self.inf_nose_upp:
+                return avar
+
+    @property
+    def avar_nose_low(self):
+        for avar in self.avars:
+            if avar.jnt == self.inf_nose_low:
+                return avar
+
+    @property
+    def avars_snear(self):
+        return [avar for avar in self.avars if avar.jnt in self.influences_snear]
 
     @property
     def inf_nostrils(self):
         raise NotImplementedError
 
-    # HACK: For now we won't use any global avars on the Jaw since there's only one influence.
-    def add_avars(self, attr_holder):
-        pass
-
-        """
-        Create the network that contain all our avars.
-        For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
-        when unbuilding they are really existing in an external network node.
-        """
-        '''
-        # Define macro avars
-        libAttr.addAttr_separator(attr_holder, 'avars')
-        self.attr_ud = self.add_avar(attr_holder, self.AVAR_NAME_UD)
-        self.attr_lr = self.add_avar(attr_holder, self.AVAR_NAME_LR)
-        self.attr_fb = self.add_avar(attr_holder, self.AVAR_NAME_FB)
-        self.attr_yw = self.add_avar(attr_holder, self.AVAR_NAME_YAW)
-        self.attr_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
-        self.attr_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
-        '''
-
     def connect_global_avars(self):
-        pass
+        for avar in self.avars:
+            # HACK: Ignore nose bend pivot
+            if avar == self.avar_nose_upp:
+                continue
+
+            libRigging.connectAttr_withBlendWeighted(self.attr_ud, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(self.attr_lr, avar.attr_lr)
+            libRigging.connectAttr_withBlendWeighted(self.attr_fb, avar.attr_fb)
+            libRigging.connectAttr_withBlendWeighted(self.attr_yw, avar.attr_yw)
+            libRigging.connectAttr_withBlendWeighted(self.attr_pt, avar.attr_pt)
+            libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
+
+    def build(self, rig, **kwargs):
+        super(FaceNose, self).build(rig, **kwargs)
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+
+        # Create a ctrl that will control the whole nose
+        ctrl_upp_name = nomenclature_anm.resolve()
+        if not isinstance(self.ctrl_main, self._CLS_CTRL):
+            self.ctrl_main = self._CLS_CTRL()
+        self.ctrl_main.build(name=ctrl_upp_name)
+        self.create_ctrl_macro(rig, self.ctrl_main, self.inf_nose_low)
+
+        self.ctrl_main.link_to_avar(self,
+                                    attrs_yw = [self.avar_nose_low.attr_yw],
+                                    attrs_pt = [self.avar_nose_upp.attr_pt],
+                                    attrs_rl = [self.avar_nose_upp.attr_rl]
+                                    )
+
+
+        self.avar_nose_low.attach_ctrl(rig, self.ctrl_main)
+
+        '''
+        #if not self.preDeform:
+            jnt_head = rig.get_head_jnt()
+            if not jnt_head:
+                raise Exception("Can't resolve head.")
+
+            jnt_jaw = rig.get_jaw_jnt()
+            if not jnt_jaw:
+                raise Exception("Can't resolve jaw.")
+
+            for avar in self.avars_upp:
+                pymel.parentConstraint(jnt_head, avar._stack._layers[0], maintainOffset=True)
+
+            for avar in self.avars_low:
+                pymel.parentConstraint(jnt_jaw, avar._stack._layers[0], maintainOffset=True)
+
+            for avar in self.avars_corners:
+                pymel.parentConstraint(jnt_head, jnt_jaw, avar._stack._layers[0], maintainOffset=True)
+        '''
+
+        if self.parent:
+            pymel.parentConstraint(self.parent, self.avar_nose_upp._stack._layers[0], maintainOffset=True)
+
+        nose_upp_out = self.avar_nose_upp._stack.node
+        for avar in self.avars:
+            if avar is self.avar_nose_upp:
+                continue
+
+            avar_inn = avar._stack._layers[0]
+            pymel.parentConstraint(nose_upp_out, avar_inn, maintainOffset=True)
+
+    def unbuild(self):
+        super(FaceNose, self).unbuild()
+        self.ctrl_main = None
 

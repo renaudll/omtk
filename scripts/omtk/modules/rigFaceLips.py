@@ -17,7 +17,7 @@ class CtrlLipsLow(omtk.classAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceLips(classModuleFace.ModuleFace):
+class FaceLips(classModuleFace.ModuleFaceWithSurface):
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
     _AVAR_NAME_UPP_UD = 'uppUD'
@@ -26,6 +26,11 @@ class FaceLips(classModuleFace.ModuleFace):
     _AVAR_NAME_LOW_UD = 'lowUD'
     _AVAR_NAME_LOW_LR = 'lowLR'
     _AVAR_NAME_LOW_FB = 'lowFB'
+
+    AVAR_NAME_UPP_ROLL_INN = 'avar_uppRollInn'
+    AVAR_NAME_UPP_ROLL_OUT = 'avar_uppRollOut'
+    AVAR_NAME_LOW_ROLL_INN = 'avar_lowRollInn'
+    AVAR_NAME_LOW_ROLL_OUT = 'avar_lowRollOut'
 
     def __init__(self, *args, **kwargs):
         super(FaceLips, self).__init__(*args, **kwargs)
@@ -40,6 +45,15 @@ class FaceLips(classModuleFace.ModuleFace):
 
     def get_module_name(self):
         return 'Lips'
+
+
+    def add_avars(self, attr_holder):
+        super(FaceLips, self).add_avars(attr_holder)
+        self.attr_lip_upp_roll_inn = self.add_avar(attr_holder, self.AVAR_NAME_UPP_ROLL_INN)
+        self.attr_lip_upp_roll_out = self.add_avar(attr_holder, self.AVAR_NAME_UPP_ROLL_OUT)
+        self.attr_lip_low_roll_inn = self.add_avar(attr_holder, self.AVAR_NAME_LOW_ROLL_INN)
+        self.attr_lip_low_roll_out = self.add_avar(attr_holder, self.AVAR_NAME_LOW_ROLL_OUT)
+
 
     def build(self, rig, **kwargs):
         """
@@ -73,7 +87,7 @@ class FaceLips(classModuleFace.ModuleFace):
         if not isinstance(self.ctrl_upp, self._CLS_CTRL_UPP):
             self.ctrl_upp = self._CLS_CTRL_UPP()
         self.ctrl_upp.build(name=ctrl_upp_name)
-        self.create_ctrl(rig, self.ctrl_upp, self.jnt_upp_mid)
+        self.create_ctrl_macro(rig, self.ctrl_upp, self.jnt_upp_mid)
         #self.AvarUppMid._create_doritos_setup_2(rig, self.ctrl_upp)
         self.ctrl_upp.connect_avars(self.attr_upp_ud, self.attr_upp_lr, self.attr_upp_fb)
         #self.ctrl_upp.link_to_avar(self)
@@ -84,11 +98,40 @@ class FaceLips(classModuleFace.ModuleFace):
         if not isinstance(self.ctrl_low, self._CLS_CTRL_LOW):
             self.ctrl_low = self._CLS_CTRL_LOW()
         self.ctrl_low.build(name=ctrl_low_name)
-        self.create_ctrl(rig, self.ctrl_low, self.jnt_low_mid)
+        self.create_ctrl_macro(rig, self.ctrl_low, self.jnt_low_mid)
         #self.AvarLowMid._create_doritos_setup_2(rig, self.ctrl_low)
         self.ctrl_low.connect_avars(self.attr_low_ud, self.attr_low_lr, self.attr_low_fb)
         #self.ctrl_low.link_to_avar(self)
         self.avar_low_mid.attach_ctrl(rig, self.ctrl_low)
+
+        # Connect the macro ctrls to the lips avars (for morph targets)
+        def connect_roll_avars(attr_inn, attr_out_inner, attr_out_outer, multiplier):
+            attr_inn_inner = libRigging.create_utility_node('condition',
+                                                              operation=2,  # Greather Than
+                                                              firstTerm=attr_inn,
+                                                              colorIfTrueR=attr_inn,
+                                                              colorIfFalseR=0.0
+                                                              ).outColorR
+            attr_inn_outer = libRigging.create_utility_node('condition',
+                                                                  operation=4,  # Less Than
+                                                                  firstTerm=attr_inn,
+                                                                  colorIfTrueR=attr_inn,
+                                                                  colorIfFalseR=0.0
+                                                                  ).outColorR
+            util_inn_multiplied = libRigging.create_utility_node('multiplyDivide',
+                                                                 input1X=attr_inn_inner,
+                                                                 input1Y=attr_inn_outer,
+                                                                 input2X=multiplier,
+                                                                 input2Y=-multiplier
+                                                                 )
+            pymel.connectAttr(util_inn_multiplied.outputX, attr_out_inner)
+            pymel.connectAttr(util_inn_multiplied.outputY, attr_out_outer)
+
+        multiplier = 1.0/45
+        ctrl_upp_inn = self.ctrl_upp.rotateX
+        ctrl_low_inn = libRigging.create_utility_node('multiplyDivide', input1X=self.ctrl_low.rotateX, input2X=-1).outputX
+        connect_roll_avars(ctrl_upp_inn, self.attr_lip_upp_roll_inn, self.attr_lip_upp_roll_out, multiplier)
+        connect_roll_avars(ctrl_low_inn, self.attr_lip_low_roll_inn, self.attr_lip_low_roll_out, multiplier)
 
         # If we are using the lips in the main deformer, we'll do shenanigans with the jaw.
         if not self.preDeform:

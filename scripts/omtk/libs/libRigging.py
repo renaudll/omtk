@@ -8,7 +8,7 @@ import libPython
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
 '''
-__aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector]
+__aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector, pymel.datatypes.Point]
 
 
 def is_basic_type(_val):

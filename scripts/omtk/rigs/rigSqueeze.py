@@ -9,10 +9,10 @@ from omtk.modules import rigLimb
 class SqueezeNomenclature(className.BaseName):
     type_anm = 'Ctrl'
     type_jnt = 'Jnt'
-    type_rig = 'Grp'
+    type_rig = None
     # TODO: fix collision when anm_grp and rig_grp are created with the same nomenclature (they are at the same level)
     type_anm_grp = 'CtrlGrp'
-    type_rig_grp = 'RigGrp'
+    type_rig_grp = 'Grp'
 
     root_anm_name = 'Ctrls_Grp'
     root_geo_name = 'Render_Grp'
@@ -186,7 +186,6 @@ class RigSqueeze(classRig.Rig):
 
                 pymel.connectAttr(attr_src_inv, attr_dst)
 
-
         #
         # Set ctrls colors
         #
@@ -194,30 +193,16 @@ class RigSqueeze(classRig.Rig):
             'l': 13,  # Red
             'r': 6  # Blue
         }
+        epsilon = 0.1
         for module in self.modules:
             if module.grp_anm:
                 nomenclature_anm = module.get_nomenclature_anm(self)
-                side = nomenclature_anm.get_side()
-                color = color_by_side.get(side, None)
-                if color:
-                    module.grp_anm.drawOverride.overrideEnabled.set(1)
-                    module.grp_anm.drawOverride.overrideColor.set(color)
-
-        '''
-        #
-        # Add display attribute for micro avars
-        #
-        libAttr.addAttr_separator(self.grp_anms, self.GROUP_NAME_FACE)
-        pymel.addAttr(self.grp_anms, longName=self.ATTR_NAME_FACE_MACRO, defaultValue=1.0, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, k=True)
-        attr_show_face_macro = self.grp_anms.attr(self.ATTR_NAME_FACE_MACRO)
-        pymel.addAttr(self.grp_anms, longName=self.ATTR_NAME_FACE_MICRO, defaultValue=0.0, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, k=True)
-        attr_show_face_micro = self.grp_anms.attr(self.ATTR_NAME_FACE_MICRO)
-
-        for avar in self.iter_avars():
-            ctrl_micro = avar.ctrl_micro
-            if ctrl_micro:
-                pymel.connectAttr(attr_show_face_micro, ctrl_micro.offset.visibility)
-        '''
+                for ctrl in module.get_ctrls():
+                    side = nomenclature_anm.get_side()
+                    color = color_by_side.get(side, None)
+                    if color:
+                        ctrl.drawOverride.overrideEnabled.set(1)
+                        ctrl.drawOverride.overrideColor.set(color)
 
         return True
 

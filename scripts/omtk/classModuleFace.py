@@ -45,7 +45,7 @@ class ModuleFace(classAvar.AbstractAvar):
     Base class for a group of 'avars' that share similar properties.
     Also global avars will be provided to controll all avars.
     """
-    _CLS_AVAR = classAvar.AvarFollicle
+    _CLS_AVAR = classAvar.AvarSimple
 
     ui_show = True
 
@@ -135,20 +135,6 @@ class ModuleFace(classAvar.AbstractAvar):
         self.avars = []
         self.preDeform = True
 
-    def get_module_name(self):
-        return super(ModuleFace, self).get_module_name()
-        '''
-        for ignore in self.module_name_ignore_list:
-            name = name.replace(ignore, '')
-        return name
-        '''
-
-    @libPython.cached_property()
-    def surface(self):
-        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-        objs = filter(fn_is_nurbsSurface, self.input)
-        return next(iter(objs), None)
-
     @libPython.cached_property()
     def jnts(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
@@ -171,13 +157,6 @@ class ModuleFace(classAvar.AbstractAvar):
             connect_global_scale = self.preDeform
 
         super(ModuleFace, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
-
-        # Create the plane if it doesn't exist!
-        if self.surface is None:
-            log.warning("Can't find surface for {0}, creating one...".format(self))
-            new_surface = self.create_surface()
-            self.input.append(new_surface)
-            del self._cache['surface']
 
         # Resolve the desired ctrl size
         # One thing we are sure is that ctrls should no overlay,
@@ -204,10 +183,15 @@ class ModuleFace(classAvar.AbstractAvar):
                     inn.append(self.surface)
 
                 sys_facepnt = self._CLS_AVAR(inn)
+
                 self.avars.append(sys_facepnt)
 
         # Build avars and connect them to global avars
-        for avar in self.avars:
+        for jnt, avar in zip(self.jnts, self.avars):
+            # HACK: Set module name using rig nomenclature.
+            # TODO: Do this in the back-end
+            avar.name = rig.nomenclature(jnt.name(), suffix='avar').resolve()
+
             avar.build(rig, ctrl_size=ctrl_size, mult_u=mult_u, mult_v=mult_v, connect_global_scale=connect_global_scale, **kwargs)
             avar.grp_anm.setParent(self.grp_anm)
             avar.grp_rig.setParent(self.grp_rig)
@@ -220,6 +204,7 @@ class ModuleFace(classAvar.AbstractAvar):
             for avar in self.avars:
                 layer_offset = avar._stack._layers[0]
                 pymel.parentConstraint(self.parent, layer_offset, maintainOffset=True)
+                pymel.scaleConstraint(self.parent, layer_offset, maintainOffset=True)
 
     def unbuild(self):
         for avar in self.avars:
@@ -227,7 +212,7 @@ class ModuleFace(classAvar.AbstractAvar):
         super(ModuleFace, self).unbuild()
 
 
-    def create_ctrl(self, rig, ctrl, ref, sensibility=1.0):
+    def create_ctrl_macro(self, rig, ctrl, ref, sensibility=1.0):
 
         # HACK: Negative scale to the ctrls are a true mirror of each others.
         need_flip = ref.getTranslation(space='world').x < 0
@@ -241,25 +226,25 @@ class ModuleFace(classAvar.AbstractAvar):
         ref_pos = jnt_head.getTranslation(space='world')
         ctrl_tm = ref_tm.copy()
 
+
+
         pos = pymel.datatypes.Point(ref.getTranslation(space='world'))
         pos_local = pos * ref_tm.inverse()
         pos_local.y = - rig.get_face_macro_ctrls_distance_from_head()
-        pos = pos_local * ref_tm
+        pos_shape = pos_local * ref_tm
 
-        ctrl_tm.translate = pos
 
-        # HACK!
-        # TODO: Standardize orientation
-        offset = pymel.datatypes.Matrix(
-            1,0,0,0,
-            0,0,-1,0,
-            0,1,0,0,
-            0,0,0,1
-        )
-        ctrl_tm = offset * ctrl_tm
+        # HACK: Move the ctrl shape outside of the face
+        # TODO: Allow the ctrl rotation to be done in-place.
+        ctrl.setTranslation(pos, space='world')
 
-        #ctrl.setMatrix(ctrl_tm)
-        ctrl.setTranslation(ctrl_tm.translate)
+        pos_z = pos_shape.z
+        for shape in ctrl.getShapes():
+            num_cvs = shape.numCVs()
+            for i in range(num_cvs):
+                pos = shape.getCV(i, space='world')
+                pos.z = pos_z
+                shape.setCV(i, pos, space='world')
 
         if need_flip:
             ctrl.offset.scaleX.set(-1)
@@ -268,6 +253,33 @@ class ModuleFace(classAvar.AbstractAvar):
             # TODO: Flip ctrl to avar connection
 
         return ctrl
+
+    def get_ctrls(self, **kwargs):
+        for ctrl in super(ModuleFace, self).get_ctrls(**kwargs):
+            yield ctrl
+        for avar in self.avars:
+            for ctrl in avar.get_ctrls():
+                yield ctrl
+
+
+class ModuleFaceWithSurface(ModuleFace):
+    _CLS_AVAR = classAvar.AvarFollicle
+
+    @libPython.cached_property()
+    def surface(self):
+        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        objs = filter(fn_is_nurbsSurface, self.input)
+        return next(iter(objs), None)
+
+    def build(self, rig, **kwargs):
+        # Create the plane if it doesn't exist!
+        if self.surface is None:
+            log.warning("Can't find surface for {0}, creating one...".format(self))
+            new_surface = self.create_surface()
+            self.input.append(new_surface)
+            del self._cache['surface']
+
+        super(ModuleFaceWithSurface, self).build(rig, **kwargs)
 
     def create_surface(self):
         root = pymel.createNode('transform')
@@ -334,7 +346,7 @@ class ModuleFace(classAvar.AbstractAvar):
         return plane_transform
 
 
-class ModuleFaceUppDown(ModuleFace):
+class ModuleFaceUppDown(ModuleFaceWithSurface):
     _CLS_CTRL_UPP = None
     _CLS_CTRL_LOW = None
     _CLS_SYS_UPP = ModuleFace
@@ -343,8 +355,6 @@ class ModuleFaceUppDown(ModuleFace):
     ui_show = False
 
     def __init__(self, *args, **kwargs):
-        self.sys_upp = None
-        self.sys_low = None
         self.ctrl_upp = None
         self.ctrl_low = None
 
@@ -368,7 +378,7 @@ class ModuleFaceUppDown(ModuleFace):
                 self.ctrl_upp = self._CLS_CTRL_UPP()
             self.ctrl_upp.build(name=ctrl_upp_name)
 
-            self.create_ctrl(rig, self.ctrl_upp, self.jnt_upp_mid)
+            self.create_ctrl_macro(rig, self.ctrl_upp, self.jnt_upp_mid)
             self.avar_upp_mid.attach_ctrl(rig, self.ctrl_upp)
 
             # Connect ctrl_upp to upp avars
@@ -382,7 +392,7 @@ class ModuleFaceUppDown(ModuleFace):
                 self.ctrl_low = self._CLS_CTRL_LOW()
             self.ctrl_low.build(name=ctrl_low_name)
 
-            self.create_ctrl(rig, self.ctrl_low, self.jnt_low_mid)
+            self.create_ctrl_macro(rig, self.ctrl_low, self.jnt_low_mid)
             self.avar_low_mid.attach_ctrl(rig, self.ctrl_low)
 
             # Connect ctrl_low to upp avars
@@ -393,11 +403,9 @@ class ModuleFaceUppDown(ModuleFace):
     def unbuild(self):
         self.ctrl_upp.unbuild()
         self.ctrl_low.unbuild()
-        self.sys_upp.unbuild()
-        self.sys_low.unbuild()
         super(ModuleFaceUppDown, self).unbuild()
 
-class ModuleFaceLftRgt(ModuleFace):
+class ModuleFaceLftRgt(ModuleFaceWithSurface):
     """
     This module receive targets from all sides of the face (left and right) and create ctrls for each sides.
     """
@@ -448,8 +456,6 @@ class ModuleFaceLftRgt(ModuleFace):
 
     def __init__(self, *args, **kwargs):
         super(ModuleFaceLftRgt, self).__init__(*args, **kwargs)
-        self.sys_l = None
-        self.sys_r = None
         self.ctrl_l = None
         self.ctrl_r = None
 
@@ -488,7 +494,7 @@ class ModuleFaceLftRgt(ModuleFace):
                 self.ctrl_l = self._CLS_CTRL()
             self.ctrl_l.build(name=ctrl_l_name)
 
-            self.create_ctrl(rig, self.ctrl_l, self.jnt_l_mid)
+            self.create_ctrl_macro(rig, self.ctrl_l, self.jnt_l_mid)
             self.avar_l_mid.attach_ctrl(rig, self.ctrl_l)
 
             # Connect r ctrl to r avars
@@ -502,7 +508,7 @@ class ModuleFaceLftRgt(ModuleFace):
                 self.ctrl_r = self._CLS_CTRL()
             self.ctrl_r.build(name=ctrl_r_name)
 
-            self.create_ctrl(rig, self.ctrl_r, self.jnt_r_mid)
+            self.create_ctrl_macro(rig, self.ctrl_r, self.jnt_r_mid)
             self.avar_r_mid.attach_ctrl(rig, self.ctrl_r)
 
             # Connect r ctrl to r avars

@@ -177,7 +177,7 @@ def fetch_attr(source, target):
     Returns: the destination attribute.
     """
     if target.isLocked():
-        pymel.warning("Can't fetch locked attribute {0}.".format(target.__melobject__()))
+        #pymel.warning("Can't fetch locked attribute {0}.".format(target.__melobject__()))
         return
 
     if source is None:

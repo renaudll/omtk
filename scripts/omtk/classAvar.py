@@ -94,7 +94,20 @@ class Doritos(classModule.Module):
 
         # Resolve the doritos location
         if ctrl_tm is None:
-            ctrl_tm = self.jng.getMatrix(worldSpace=True)
+            ctrl_tm = self.jnt.getMatrix(worldSpace=True)
+
+        # Find the closest point on the surface.
+        pos_ref = ctrl_tm.translate
+
+        # Note that to only check in the Z axis, we'll do a raycast first.
+        # If we success this will become our reference position.
+        pos = pos_ref
+        pos.z = 999
+        dir = pymel.datatypes.Point(0,0,-1)
+        result = next(iter(libRigging.ray_cast(pos, dir, [obj_mesh])), None)
+        if result:
+            pos_ref = result
+            ctrl_tm.translate = result
 
         # Initialize node stack
         stack_name = nomenclature_rig.resolve('doritosStack')
@@ -111,7 +124,7 @@ class Doritos(classModule.Module):
         layer_fol.setParent(self.grp_rig)
         self._follicle = layer_fol
 
-        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, layer_fol.getTranslation(space='world'))
+        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, pos_ref)
 
         # TODO: Validate that we don't need to inverse the rotation separately.
         fol_name = nomenclature_rig.resolve('doritosFollicle')
@@ -259,7 +272,7 @@ class Doritos(classModule.Module):
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
     # TODO: inverse? link_to_avar in the avar?
-    def link_to_avar(self, avar):
+    def link_to_avar(self, avar, attrs_ud=None, attrs_lr=None, attrs_fb=None, attrs_yw=None, attrs_pt=None, attrs_rl=None):
         attr_inn_ud = self.translateY
         attr_inn_lr = self.translateX
         attr_inn_fb = self.translateZ
@@ -273,12 +286,20 @@ class BaseCtrlFace(classCtrl.BaseCtrl):
             attr_inn_yw = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_yw, input2X=-1).outputX
             attr_inn_rl = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_rl, input2X=-1).outputX
 
-        libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_yw)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_pt)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
+        # Resolve output attributes
+        def connect(source, destinations, default_destination):
+            if destinations is None:
+                libRigging.connectAttr_withBlendWeighted(source, default_destination)
+            else:
+                for destination in destinations:
+                    libRigging.connectAttr_withBlendWeighted(source, destination)
+
+        connect(attr_inn_ud, attrs_ud, avar.attr_ud)
+        connect(attr_inn_lr, attrs_lr, avar.attr_lr)
+        connect(attr_inn_fb, attrs_fb, avar.attr_fb)
+        connect(attr_inn_yw, attrs_yw, avar.attr_yw)
+        connect(attr_inn_pt, attrs_pt, avar.attr_pt)
+        connect(attr_inn_rl, attrs_rl, avar.attr_rl)
 
     # TODO: deprecated, replace with link_to_avar
     def connect_avars(self, attr_ud, attr_lr, attr_fb):
@@ -300,6 +321,8 @@ class CtrlFaceMicro(BaseCtrlFace):
     If you need specific ctrls for you module, you can inherit from BaseCtrl directly.
     """
 
+    pass
+    '''
     def __createNode__(self, normal=(0, 0, 1), **kwargs):
         node = super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
 
@@ -307,6 +330,7 @@ class CtrlFaceMicro(BaseCtrlFace):
         node.translateZ.lock()
 
         return node
+    '''
 
 
 class CtrlFaceMacro(BaseCtrlFace):
@@ -428,7 +452,7 @@ class AbstractAvar(classModule.Module):
         Note that the avars have to been added to the grp_rig before..
         """
         if libPymel.is_valid_PyNode(self.avar_network):
-            for attr_name in cmds.listAttr(self.avar_network.__melobject__(), userDefined=True):
+            for attr_name in pymel.listAttr(self.avar_network, userDefined=True):
                 attr_src = self.avar_network.attr(attr_name)
                 attr_dst = self.grp_rig.attr(attr_name)
                 libAttr.transfer_connections(attr_src, attr_dst)
@@ -458,6 +482,7 @@ class AbstractAvar(classModule.Module):
     @libPython.memoized
     def get_base_uv(self):
         pos = self.get_jnt_tm().translate
+
         fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, pos)
         return fol_u, fol_v
 
@@ -556,7 +581,7 @@ class AvarSimple(AbstractAvar):
     By default it come with a Deformer driven by a doritos setup.
     A doritos setup allow the controller to always be on the surface of the face.
     """
-
+    _CLS_CTRL = CtrlFaceMicro
     ui_show = True
 
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
@@ -635,8 +660,7 @@ class AvarFollicle(AvarSimple):
     """
     This represent a deformation point on the face that move accordingly to nurbsSurface.
     """
-    _CLS_CTRL = CtrlFaceMicro
-    _CLS_CTRL_MICRO = CtrlFaceMicro
+    #_CLS_CTRL_MICRO = CtrlFaceMicro
 
     _ATTR_NAME_U_BASE = 'baseU'
     _ATTR_NAME_V_BASE = 'baseV'
@@ -686,7 +710,9 @@ class AvarFollicle(AvarSimple):
 
         # Resolve the length of each axis of the surface
         self._attr_length_u, self._attr_length_v, arcdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
-        arcdimension_shape.getParent().setParent(self.grp_rig)
+        arcdimension_transform = arcdimension_shape.getParent()
+        arcdimension_transform.rename(nomenclature_rig.resolve('arcdimension'))
+        arcdimension_transform.setParent(self.grp_rig)
 
         # Create the bind pose follicle
         offset_name = nomenclature_rig.resolve('bindPoseRef')
@@ -749,8 +775,7 @@ class AvarFollicle(AvarSimple):
                                                           inputMatrix=attr_finalTM
                                                           )
 
-        layer_follicle_name = 'follicle'
-        layer_follicle = stack.add_layer(name=layer_follicle_name)
+        layer_follicle = stack.add_layer('follicleLayer')
         pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
         pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle.rotate)
 
@@ -947,14 +972,14 @@ class AvarFollicle(AvarSimple):
         oob_offset = libRigging.create_utility_node('plusMinusAverage',
                                                     input3D=[oob_u_condition_out, oob_v_condition_out]).output3D
 
-        layer_oob = stack.add_layer('outOfBound')
+        layer_oob = stack.add_layer('oobLayer')
         pymel.connectAttr(oob_offset, layer_oob.t)
 
         #
         # Build Front/Back setup
         #
 
-        layer_fb = stack.add_layer('frontBack')
+        layer_fb = stack.add_layer('fbLayer')
         attr_get_fb = libRigging.create_utility_node('multiplyDivide',
                                                      input1X=self.attr_fb,
                                                      input2X=self._attr_length_u).outputX
@@ -967,9 +992,7 @@ class AvarFollicle(AvarSimple):
         #  Create a layer before the ctrl to apply the YW, PT and RL avar.
         #
         nomenclature_rig = self.get_nomenclature_rig(rig)
-        layer_rot_name = nomenclature_rig.resolve('rotation')
-        layer_rot = stack.add_layer()
-        layer_rot.rename(layer_rot_name)
+        layer_rot = stack.add_layer('rotLayer')
 
         pymel.connectAttr(self.attr_yw, layer_rot.rotateY)
         pymel.connectAttr(self.attr_pt, layer_rot.rotateX)

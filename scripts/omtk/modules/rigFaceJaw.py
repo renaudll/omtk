@@ -18,14 +18,16 @@ class CtrlJaw(classAvar.BaseCtrlFace):
 
         # UD Low
         attr_pt_low = libRigging.create_utility_node('multiplyDivide', input1X=attr_pt_inn, input2X=-1).outputX
+        '''
         attr_pt_inn = libRigging.create_utility_node('condition', operation=4,  # Less than
                                        firstTerm=attr_pt_inn,
                                        colorIfTrueR=attr_pt_low,
                                        colorIfFalseR=0.0
                                        ).outColorR
+        '''
 
         libRigging.connectAttr_withBlendWeighted(
-            attr_pt_inn, avar.attr_pt
+            attr_pt_low, avar.attr_pt
         )
         libRigging.connectAttr_withBlendWeighted(
             attr_yw_inn, avar.attr_yw
@@ -65,6 +67,17 @@ class AvarJaw(classAvar.AvarSimple):
     def build(self, *args, **kwargs):
         super(AvarJaw, self).build(*args, **kwargs)
 
+        # HACK: Hijack the jaw PT avar so the jaw don't go over 0.
+        # TODO: Bulletproof
+        attr_pt_out = next(iter(self.attr_pt.outputs(plugs=True, skipConversionNodes=True)), None)
+
+        attr_pt_clamp = libRigging.create_utility_node('condition', operation=2,  # Greater than
+                                       firstTerm=self.attr_pt,
+                                       colorIfTrueR=self.attr_pt,
+                                       colorIfFalseR=0.0
+                                       ).outColorR
+        pymel.connectAttr(attr_pt_clamp, attr_pt_out, force=True)
+
 
 class FaceJaw(classModuleFace.ModuleFace):
     """
@@ -72,15 +85,37 @@ class FaceJaw(classModuleFace.ModuleFace):
     The Jaw global avars are made 
     """
     _CLS_AVAR = AvarJaw
+    AVAR_LIPS_COMPRESS = 'avarLipsCompress'
 
     def __init__(self, *args, **kwargs):
         super(FaceJaw, self).__init__(*args, **kwargs)
         self.preDeform = False # By default, the jaw is in the final skin deformer.
 
-    # HACK: For now we won't use any global avars on the Jaw since there's only one influence.
+        # attr_ud_scuplt is a combo sculpt that make the lips thinner when the jaw move uppward.
+        # see: Art of Moving Points page 207.
+        self.attr_ud_sculpt = None
+
     def add_avars(self, attr_holder):
+        # HACK: For now we won't use any global avars on the Jaw since there's only one influence.
+        #super(FaceJaw, self).add_avars(attr_holder)
         pass
+
+        self.attr_ud_sculpt = self.add_avar(attr_holder, self.AVAR_LIPS_COMPRESS)
 
     def connect_global_avars(self):
         pass
+
+        # Connect attr_lips_compress
+        attr_pt_inn = self.avars[0].attr_pt
+        attr_pt_inv = libRigging.create_utility_node('multiplyDivide',
+                                                     input1X=attr_pt_inn,  # todo: use global avar?
+                                                     input2X=-1.0/45,
+                                                    ).outputX
+        attr_lips_compress_out = libRigging.create_utility_node('condition',
+                                                                operation=4,  # Less than
+                                                                firstTerm=attr_pt_inn,
+                                                                colorIfTrueR=attr_pt_inv,
+                                                                colorIfFalseR=0.0
+                                                                ).outColorR
+        pymel.connectAttr(attr_lips_compress_out, self.attr_ud_sculpt)
 

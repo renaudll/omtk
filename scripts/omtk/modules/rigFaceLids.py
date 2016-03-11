@@ -26,3 +26,8 @@ class FaceLids(classModuleFace.ModuleFaceUppDown):
     _CLS_CTRL_LOW = CtrlLidLow
 
     ui_show = True
+
+    def get_multiplier_u(self):
+        # Since the V go all around the sphere, it is too much range.
+        # We'll restrict ourself only to a single quadrant.
+        return 0.25

@@ -10,7 +10,7 @@ class CtrlNose(classAvar.CtrlFaceMicro):
     pass
 
 
-class FaceNose(classModuleFace.ModuleFaceWithSurface):
+class FaceNose(classModuleFace.ModuleFaceOnSurface):
     """
     The Nose is composed of two zones. The uppernose and the lower nose.
     The uppernose is user specifically for it's yaw and pitch rotation.
@@ -84,11 +84,13 @@ class FaceNose(classModuleFace.ModuleFaceWithSurface):
         self.ctrl_main.build(name=ctrl_upp_name)
         self.create_ctrl_macro(rig, self.ctrl_main, self.inf_nose_low)
 
-        self.ctrl_main.link_to_avar(self,
-                                    attrs_yw = [self.avar_nose_low.attr_yw],
-                                    attrs_pt = [self.avar_nose_upp.attr_pt],
-                                    attrs_rl = [self.avar_nose_upp.attr_rl]
-                                    )
+        self.ctrl_main.attach_to_avars(attr_ud=self.attr_ud,
+                                       attr_lr=self.attr_lr,
+                                       attr_fb=self.attr_fb,
+                                       attr_yw=self.avar_nose_low.attr_yw,
+                                       attr_pt=self.avar_nose_upp.attr_pt,
+                                       attr_rl=self.avar_nose_upp.attr_rl
+                                       )
 
 
         self.avar_nose_low.attach_ctrl(rig, self.ctrl_main)

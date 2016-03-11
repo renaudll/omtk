@@ -17,7 +17,7 @@ class CtrlLipsLow(omtk.classAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceLips(classModuleFace.ModuleFaceWithSurface):
+class FaceLips(classModuleFace.ModuleFaceOnSurface):
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
     _AVAR_NAME_UPP_UD = 'uppUD'
@@ -45,7 +45,6 @@ class FaceLips(classModuleFace.ModuleFaceWithSurface):
 
     def get_module_name(self):
         return 'Lips'
-
 
     def add_avars(self, attr_holder):
         super(FaceLips, self).add_avars(attr_holder)

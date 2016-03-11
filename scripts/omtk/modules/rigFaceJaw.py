@@ -12,7 +12,7 @@ class CtrlJaw(classAvar.BaseCtrlFace):
         node.s.lock()
         return node
 
-    def link_to_avar(self, avar):
+    def attach_all_to_avars(self, avar):
         attr_pt_inn = self.translateY
         attr_yw_inn = self.translateX
 

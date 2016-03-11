@@ -149,7 +149,13 @@ class ModuleFace(classAvar.AbstractAvar):
             libRigging.connectAttr_withBlendWeighted(self.attr_pt, avar.attr_pt)
             libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
 
-    def build(self, rig, mult_u=None, mult_v=None, parent=None, connect_global_scale=None, **kwargs):
+    def get_multiplier_u(self):
+        return 1.0
+
+    def get_multiplier_v(self):
+        return 1.0
+
+    def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=None, constraint=True, **kwargs):
         if parent is None:
             parent = not self.preDeform
 
@@ -172,6 +178,12 @@ class ModuleFace(classAvar.AbstractAvar):
             log.warning("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
             ctrl_size = max_ctrl_size
 
+        # Resolve the U and V modifiers.
+        # Note that this only applies to avars on a surface.
+        # TODO: Move to ModuleFaceOnSurface
+        mult_u = self.get_multiplier_u()
+        mult_v = self.get_multiplier_v()
+
         # Define avars on first build
         if not self.avars:
             self.avars = []
@@ -192,8 +204,16 @@ class ModuleFace(classAvar.AbstractAvar):
             # TODO: Do this in the back-end
             avar.name = rig.nomenclature(jnt.name(), suffix='avar').resolve()
 
-            avar.build(rig, ctrl_size=ctrl_size, mult_u=mult_u, mult_v=mult_v, connect_global_scale=connect_global_scale, **kwargs)
-            avar.grp_anm.setParent(self.grp_anm)
+            avar.build(rig,
+                       create_ctrl=create_ctrls,
+                       constraint=constraint,
+                       ctrl_size=ctrl_size,
+                       mult_u=mult_u,
+                       mult_v=mult_v,
+                       connect_global_scale=connect_global_scale,
+                       **kwargs)
+            if avar.grp_anm:
+                avar.grp_anm.setParent(self.grp_anm)
             avar.grp_rig.setParent(self.grp_rig)
 
         self.connect_global_avars()
@@ -225,7 +245,6 @@ class ModuleFace(classAvar.AbstractAvar):
         ref_tm = jnt_head.getMatrix(worldSpace=True)
         ref_pos = jnt_head.getTranslation(space='world')
         ctrl_tm = ref_tm.copy()
-
 
 
         pos = pymel.datatypes.Point(ref.getTranslation(space='world'))
@@ -262,7 +281,7 @@ class ModuleFace(classAvar.AbstractAvar):
                 yield ctrl
 
 
-class ModuleFaceWithSurface(ModuleFace):
+class ModuleFaceOnSurface(ModuleFace):
     _CLS_AVAR = classAvar.AvarFollicle
 
     @libPython.cached_property()
@@ -279,7 +298,7 @@ class ModuleFaceWithSurface(ModuleFace):
             self.input.append(new_surface)
             del self._cache['surface']
 
-        super(ModuleFaceWithSurface, self).build(rig, **kwargs)
+        super(ModuleFaceOnSurface, self).build(rig, **kwargs)
 
     def create_surface(self):
         root = pymel.createNode('transform')
@@ -346,7 +365,7 @@ class ModuleFaceWithSurface(ModuleFace):
         return plane_transform
 
 
-class ModuleFaceUppDown(ModuleFaceWithSurface):
+class ModuleFaceUppDown(ModuleFaceOnSurface):
     _CLS_CTRL_UPP = None
     _CLS_CTRL_LOW = None
     _CLS_SYS_UPP = ModuleFace
@@ -383,7 +402,7 @@ class ModuleFaceUppDown(ModuleFaceWithSurface):
 
             # Connect ctrl_upp to upp avars
             for avar in self.avars_upp:
-                self.ctrl_upp.link_to_avar(avar)
+                self.ctrl_upp.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
 
         if self.jnts_low:
             # Create low ctrl
@@ -397,7 +416,7 @@ class ModuleFaceUppDown(ModuleFaceWithSurface):
 
             # Connect ctrl_low to upp avars
             for avar in self.avars_low:
-                self.ctrl_low.link_to_avar(avar)
+                self.ctrl_low.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
 
 
     def unbuild(self):
@@ -405,7 +424,7 @@ class ModuleFaceUppDown(ModuleFaceWithSurface):
         self.ctrl_low.unbuild()
         super(ModuleFaceUppDown, self).unbuild()
 
-class ModuleFaceLftRgt(ModuleFaceWithSurface):
+class ModuleFaceLftRgt(ModuleFaceOnSurface):
     """
     This module receive targets from all sides of the face (left and right) and create ctrls for each sides.
     """
@@ -465,7 +484,7 @@ class ModuleFaceLftRgt(ModuleFaceWithSurface):
     def connect_global_avars(self):
         pass
 
-    def get_multiplier_lr(self):
+    def get_multiplier_u(self):
         """
         Since we are using the same plane for the eyebrows, we want to attenget_multiplier_lruate the relation between the LR avar
         and the plane V coordinates.
@@ -475,8 +494,7 @@ class ModuleFaceLftRgt(ModuleFaceWithSurface):
         return abs(base_u - 0.5) * 2.0
 
     def build(self, rig, **kwargs):
-        mult_u = self.get_multiplier_lr()
-        super(ModuleFaceLftRgt, self).build(rig, mult_u=mult_u, **kwargs)
+        super(ModuleFaceLftRgt, self).build(rig, **kwargs)
 
         # Adjust LR multiplier
         '''
@@ -489,7 +507,9 @@ class ModuleFaceLftRgt(ModuleFaceWithSurface):
         # Rig l module
         if self.jnts_l:
             # Create l ctrl
-            ctrl_l_name = nomenclature_anm.resolve('l')  # todo: set side manually
+            ctrl_l_nomenclature = nomenclature_anm.copy()
+            ctrl_l_nomenclature.tokens.insert(0, 'l')  # TODO: Find a better way to explicitely set the side
+            ctrl_l_name = ctrl_l_nomenclature.resolve()
             if not isinstance(self.ctrl_l, self._CLS_CTRL):
                 self.ctrl_l = self._CLS_CTRL()
             self.ctrl_l.build(name=ctrl_l_name)
@@ -499,11 +519,13 @@ class ModuleFaceLftRgt(ModuleFaceWithSurface):
 
             # Connect r ctrl to r avars
             for avar in self.avars_l:
-                self.ctrl_l.link_to_avar(avar)
+                self.ctrl_l.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
 
         if self.jnts_r:
             # Create r ctrl
-            ctrl_r_name = nomenclature_anm.resolve('r') # todo: set side manually
+            ctrl_r_nomenclature = nomenclature_anm.copy()
+            ctrl_r_nomenclature.tokens.insert(0, 'r')  # TODO: Find a better way to explicitely set the side
+            ctrl_r_name = ctrl_r_nomenclature.resolve()
             if not isinstance(self.ctrl_r, self._CLS_CTRL):
                 self.ctrl_r = self._CLS_CTRL()
             self.ctrl_r.build(name=ctrl_r_name)
@@ -513,7 +535,7 @@ class ModuleFaceLftRgt(ModuleFaceWithSurface):
 
             # Connect r ctrl to r avars
             for avar in self.avars_r:
-                self.ctrl_r.link_to_avar(avar)
+                self.ctrl_r.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
 
     def unbuild(self):
         if self.ctrl_l:

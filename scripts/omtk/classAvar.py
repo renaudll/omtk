@@ -272,34 +272,55 @@ class Doritos(classModule.Module):
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
     # TODO: inverse? link_to_avar in the avar?
-    def link_to_avar(self, avar, attrs_ud=None, attrs_lr=None, attrs_fb=None, attrs_yw=None, attrs_pt=None, attrs_rl=None):
-        attr_inn_ud = self.translateY
-        attr_inn_lr = self.translateX
-        attr_inn_fb = self.translateZ
-        attr_inn_yw = self.rotateY
-        attr_inn_pt = self.rotateX
-        attr_inn_rl = self.rotateZ
 
+    def attach_to_avars(self, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
         need_flip = self.getTranslation(space='world').x < 0
-        if need_flip:
-            attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
-            attr_inn_yw = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_yw, input2X=-1).outputX
-            attr_inn_rl = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_rl, input2X=-1).outputX
 
-        # Resolve output attributes
-        def connect(source, destinations, default_destination):
-            if destinations is None:
-                libRigging.connectAttr_withBlendWeighted(source, default_destination)
-            else:
-                for destination in destinations:
-                    libRigging.connectAttr_withBlendWeighted(source, destination)
+        if attr_ud:
+            attr_inn_ud = self.translateY
+            libRigging.connectAttr_withBlendWeighted(attr_inn_ud, attr_ud)
 
-        connect(attr_inn_ud, attrs_ud, avar.attr_ud)
-        connect(attr_inn_lr, attrs_lr, avar.attr_lr)
-        connect(attr_inn_fb, attrs_fb, avar.attr_fb)
-        connect(attr_inn_yw, attrs_yw, avar.attr_yw)
-        connect(attr_inn_pt, attrs_pt, avar.attr_pt)
-        connect(attr_inn_rl, attrs_rl, avar.attr_rl)
+        if attr_lr:
+            attr_inn_lr = self.translateX
+
+            if need_flip:
+                attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_lr, attr_lr)
+
+        if attr_fb:
+            attr_inn_fb = self.translateZ
+            libRigging.connectAttr_withBlendWeighted(attr_inn_fb, attr_fb)
+
+        if attr_yw:
+            attr_inn_yw = self.rotateY
+
+            if need_flip:
+                attr_inn_yw = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_yw, input2X=-1).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_yw, attr_yw)
+
+        if attr_pt:
+            attr_inn_pt = self.rotateX
+            libRigging.connectAttr_withBlendWeighted(attr_inn_pt, attr_pt)
+
+        if attr_rl:
+            attr_inn_rl = self.rotateZ
+
+            if need_flip:
+                attr_inn_rl = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_rl, input2X=-1).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_rl, attr_rl)
+
+    def attach_all_to_avars(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
+        self.attach_to_avars(
+            attr_ud=avar.attr_ud if ud else None,
+            attr_lr=avar.attr_lr if lr else None,
+            attr_fb=avar.attr_fb if fb else None,
+            attr_yw=avar.attr_yw if yw else None,
+            attr_pt=avar.attr_pt if pt else None,
+            attr_rl=avar.attr_rl if rl else None
+        )
 
     # TODO: deprecated, replace with link_to_avar
     def connect_avars(self, attr_ud, attr_lr, attr_fb):
@@ -321,16 +342,13 @@ class CtrlFaceMicro(BaseCtrlFace):
     If you need specific ctrls for you module, you can inherit from BaseCtrl directly.
     """
 
-    pass
-    '''
     def __createNode__(self, normal=(0, 0, 1), **kwargs):
         node = super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
 
         # Lock the Z axis to prevent the animator to affect it accidentaly using the transform gizmo.
-        node.translateZ.lock()
+        #node.translateZ.lock()
 
         return node
-    '''
 
 
 class CtrlFaceMacro(BaseCtrlFace):
@@ -526,6 +544,10 @@ class AbstractAvar(classModule.Module):
         """
         Constraint a specic controller to the avar doritos stack.
         """
+        # Build the doritos setup only if needed
+        if self._sys_doritos is None:
+            self._build_doritos_setup(rig)
+
         self._sys_doritos.attach_ctrl(rig, ctrl)
 
 
@@ -574,6 +596,15 @@ class AbstractAvar(classModule.Module):
         pass
         #raise NotImplementedError
 
+    def connect_matrix(self, attr_tm):
+        util_decomposeMatrix = libRigging.create_utility_node('decomposeMatrix', inputMatrix=attr_tm)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateX, self.attr_lr)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateY, self.attr_ud)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateZ, self.attr_fb)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateY, self.attr_yw)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateX, self.attr_pt)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateZ, self.attr_rl)
+
 
 class AvarSimple(AbstractAvar):
     """
@@ -602,7 +633,7 @@ class AvarSimple(AbstractAvar):
         return stack
 
     def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, **kwargs):
-        super(AvarSimple, self).build(rig, parent=False)
+        super(AvarSimple, self).build(rig, create_grp_anm=create_ctrl, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -639,7 +670,6 @@ class AvarSimple(AbstractAvar):
         #
         # Create a doritos setup for the avar
         #
-        self._build_doritos_setup(rig)
 
         # Create the ctrl
         if create_ctrl:
@@ -651,7 +681,7 @@ class AvarSimple(AbstractAvar):
             # self.ctrl_macro.setMatrix(ref_tm)
             self.ctrl.setParent(self.grp_anm)
             # self.ctrl_macro.connect_avars(self.attr_ud, self.attr_lr, self.attr_fb)
-            self.ctrl.link_to_avar(self)
+            self.ctrl.attach_all_to_avars(self)
 
             self.attach_ctrl(rig, self.ctrl)
 

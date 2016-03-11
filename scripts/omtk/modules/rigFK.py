@@ -57,7 +57,7 @@ class FK(Module):
 
         # Create ctrls
         for input, ctrl in zip(self.chain_jnt, self.ctrls):
-            ctrl_nomenclature = nomenclature_anm.copy(input.name())
+            ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
             ctrl_name = ctrl_nomenclature.resolve('fk')
             ctrl.build(name=ctrl_name, refs=input)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))

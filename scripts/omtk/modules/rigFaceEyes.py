@@ -1,6 +1,7 @@
 import pymel.core as pymel
 import collections
 from omtk.classModule import Module
+from omtk.classModuleFace import ModuleFace
 from omtk.classCtrl import BaseCtrl
 from omtk.modules.rigIK import IK
 from omtk.modules.rigFK import FK
@@ -26,7 +27,7 @@ class CtrlEye(BaseCtrl):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
 
 
-class FaceEyes(Module):
+class FaceEyes(ModuleFace):
     def __init__(self, *args, **kwargs):
         """
         Pre-declare here all the used members.
@@ -42,7 +43,7 @@ class FaceEyes(Module):
         if self.parent is None:
             raise Exception("Can't build FaceEyes, no parent found!")
 
-        super(FaceEyes, self).build(rig, *args, **kwargs)
+        super(FaceEyes, self).build(rig, create_ctrls=False, *args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -103,11 +104,11 @@ class FaceEyes(Module):
                 self.ctrls[i] = CtrlEye()
 
         # Build ctrls
-        for jnt, ctrl, ctrl_pos in zip(self.jnts, self.ctrls, ctrl_positions):
+        for jnt, ctrl, ctrl_pos, avar, in zip(self.jnts, self.ctrls, ctrl_positions, self.avars):
             jnt_name = jnt.name()
             jnt_pos = jnt.getTranslation(space='world')
-            nomenclature_jnt_anm = nomenclature_anm.copy(jnt_name)
-            nomenclature_jnt_rig = nomenclature_rig.copy(jnt_name)
+            nomenclature_jnt_anm = nomenclature_anm.rebuild(jnt_name)
+            nomenclature_jnt_rig = nomenclature_rig.rebuild(jnt_name)
 
             # Build ctrl
             ctrl_name = nomenclature_jnt_anm.resolve()
@@ -115,6 +116,18 @@ class FaceEyes(Module):
             ctrl.rename(ctrl_name)
             ctrl.setTranslation(ctrl_pos)
             ctrl.setParent(self.ctrl_all)
+
+            # Build an aim node
+            # This separated node allow the joints to be driven by the avars.
+            looknode_offset_name = nomenclature_jnt_rig.resolve('looknode_offset')
+            looknode_offset = pymel.createNode('transform', name=looknode_offset_name)
+            looknode_offset.setTranslation(jnt_pos)
+            looknode_offset.setParent(self.grp_rig)
+
+            looknode_name = nomenclature_jnt_rig.resolve('looknode')
+            looknode = pymel.createNode('transform', name=looknode_name)
+            looknode.setTranslation(jnt_pos)
+            looknode.setParent(looknode_offset)
 
             # Build an upnode for the eyes.
             # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.
@@ -124,11 +137,18 @@ class FaceEyes(Module):
             upnode.setTranslation(upnode_pos)
             upnode.setParent(grp_upnodes)
 
-            pymel.aimConstraint(ctrl, jnt, maintainOffset=True,
+            pymel.aimConstraint(ctrl, looknode,
+                                maintainOffset=True,
                                 upVector=(0.0, 1.0, 0.0),
                                 worldUpObject=upnode,
                                 worldUpType='object'
                                 )
+
+            # Convert the rotation to avars to additional values can be added.
+            avar.connect_matrix(looknode.matrix)
+
+
+        # TODO: Connect jnts to avars
 
     def unbuild(self):
         """

@@ -1,5 +1,6 @@
 from libs import libPython
 from maya import cmds
+import copy
 
 # TODO: Find a way to have different naming for different production.
 # Maybe handle it in the rig directly?
@@ -37,7 +38,14 @@ class BaseName(object):
         self.prefix = prefix
         self.suffix = suffix
 
-    def copy(self, name):
+    def copy(self):
+        inst = self.__class__()
+        inst.tokens = copy.copy(self.tokens)
+        inst.prefix = self.prefix
+        inst.suffix = self.suffix
+        return inst
+
+    def rebuild(self, name):
         return self.__class__(name, prefix=self.prefix, suffix=self.suffix)
 
     def _get_tokens(self, name):
@@ -106,9 +114,3 @@ class BaseName(object):
 
     def __repr__(self):
         return self.resolve()
-
-
-class NameRenaud(BaseName):
-    def _get_tokens(self, name):
-        tokens = super(NameRenaud, self)._get_tokens(name)
-        return tokens[1:] if tokens else None

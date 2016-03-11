@@ -177,7 +177,7 @@ class DpSpine(Module):
         #
 
         # Create the squash hierarchy
-        jnt_squash_dwn_name = nomenclature_jnt.copy(jnt_dwn.name()).resolve('squash')
+        jnt_squash_dwn_name = nomenclature_jnt.rebuild(jnt_dwn.name()).resolve('squash')
         self.jnt_squash_dwn = pymel.createNode('joint', name=jnt_squash_dwn_name)
         self.jnt_squash_dwn.setParent(jnt_dwn)
         self.jnt_squash_dwn.t.set(0,0,0)
@@ -186,7 +186,7 @@ class DpSpine(Module):
         self.jnt_squash_dwn.jointOrientY.set(0)
         self.jnt_squash_dwn.jointOrientZ.set(0)
 
-        jnt_squash_mid_name = nomenclature_jnt.copy(jnt_mid.name()).resolve('squash')
+        jnt_squash_mid_name = nomenclature_jnt.rebuild(jnt_mid.name()).resolve('squash')
         self.jnt_squash_mid= pymel.createNode('joint', name=jnt_squash_mid_name)
         self.jnt_squash_mid.setParent(jnt_mid)
         self.jnt_squash_mid.t.set(0,0,0)

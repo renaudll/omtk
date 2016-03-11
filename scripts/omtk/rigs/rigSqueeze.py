@@ -198,7 +198,8 @@ class RigSqueeze(classRig.Rig):
             if module.grp_anm:
                 nomenclature_anm = module.get_nomenclature_anm(self)
                 for ctrl in module.get_ctrls():
-                    side = nomenclature_anm.get_side()
+                    nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                    side = nomenclature_ctrl.get_side()
                     color = color_by_side.get(side, None)
                     if color:
                         ctrl.drawOverride.overrideEnabled.set(1)

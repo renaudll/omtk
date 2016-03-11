@@ -90,6 +90,7 @@ def transfer_weights_replace(source, target):
     """
     skinToReset = set()
 
+    #TODO : Ensure that the transfered lockInfluenceWeight attr work correctly (The lock icon doesn't appear in the skinCluster)
     if source.hasAttr('lockInfluenceWeights'):
         attr_lockInfluenceWeights_src = source.lockInfluenceWeights
         #The target bone could possibly not have the attribute

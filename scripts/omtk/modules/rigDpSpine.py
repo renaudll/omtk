@@ -119,12 +119,14 @@ class DpSpine(Module):
         # Ensure the ctrl_fk_mid follow ctrl_ik_upp and ctrl_ik_dwn
         # Note that this is evil, a parentConstraint should never have two targets.
         # HACK: To bypass flip issues, we'll use reference object that have no parent space.
+        ref_parent = pymel.createNode('transform', name=nomenclature_rig.resolve('ref'))
+        ref_parent.setParent(self.grp_rig)
         ref_s = pymel.createNode('transform', name=nomenclature_rig.resolve('ref_s'))
         pymel.parentConstraint(self.ctrl_fk_upp, ref_s)
-        ref_s.setParent(self.grp_rig)
+        ref_s.setParent(ref_parent)
         ref_e = pymel.createNode('transform', name=nomenclature_rig.resolve('ref_e'))
         pymel.parentConstraint(self.ctrl_fk_dwn, ref_e)
-        ref_e.setParent(self.grp_rig)
+        ref_e.setParent(ref_parent)
         pymel.parentConstraint(ref_s, ref_e, self.ctrl_fk_mid.offset, maintainOffset=True)
 
         #
@@ -219,6 +221,11 @@ class DpSpine(Module):
 
         pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleY)
         pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleZ)
+
+        #Ensure global scale is working correctly
+        pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleX)
+        pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleY)
+        pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleZ)
 
         # Finally, transfer the skin to the squash jnt
         # TODO: Modify the skinCluster connections instead?

@@ -111,7 +111,8 @@ class Module(object):
         """
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
         """
-        name = rig.nomenclature(self.get_module_name(), suffix=rig.nomenclature.type_jnt)
+        name = rig.nomenclature(suffix=rig.nomenclature.type_jnt)
+        name.add_tokens(self.get_module_name())
         return name
 
     @property

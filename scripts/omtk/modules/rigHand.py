@@ -194,6 +194,11 @@ class Hand(Module):
                 # pymel.parentConstraint(grp_pivot, sysFinger.grp_anm, maintainOffset=True, skipRotate=['x', 'y', 'z'])
                 # pymel.pointConstraint(grp_pos, sysFinger.grp_anm, maintainOffset=True)
 
+            #Connect Global scale
+            pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)
+            pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleY)
+            pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleZ)
+
         pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
 
     def unbuild(self):

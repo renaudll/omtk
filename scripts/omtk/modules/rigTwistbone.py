@@ -68,6 +68,7 @@ class Twistbone(Module):
 
         #TODO : Use the nomeclature system to name the bones
         for i, sub_jnt in enumerate(self.subjnts):
+            sub_jnt.segmentScaleCompensate.set(0) #Remove segment scale compensate
             #Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
             jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
             sub_jnt.rename(jnt_name)
@@ -141,32 +142,10 @@ class Twistbone(Module):
         pymel.connectAttr(upnode_e.xformMatrix, splineIK.ikHandle.dWorldUpMatrixEnd)
 
         #Compute the Stretch
-        attr_stretch_raw = libRigging.create_stretch_node_between_2_bones(jnt_s, jnt_e)
+        attr_stretch_raw = libRigging.create_stretch_node_between_2_bones(jnt_s, jnt_e, self.grp_rig.globalScale)
 
-        #Adjust with the global scale
-        attr_stretch = libRigging.create_utility_node('multiplyDivide',
-                                                           input1X=self.grp_rig.globalScale,
-                                                            input2X=attr_stretch_raw,
-                                                            operation=1
-                                                           ).outputX
-
-        #pymel.connectAttr(attr_stretch, attr_stretch_raw.input2X)
-
-        #The distance between the twist bones is the same
-        '''
-        stretch_value = libRigging.create_utility_node('multiplyDivide',
-                                   input1X=stretch_factor.outputX,
-                                    input2X=self.subjnts[1].translateX.get(),
-                                    operation=1
-                                   ).outputX
-
-
-        #Connect stretch
-        for i in range(1, len(self.subjnts)):
-            pymel.connectAttr(stretch_value, self.subjnts[i].translateX)
-        '''
-        for subjnt in self.subjnts[:-1]:
-            pymel.connectAttr(attr_stretch, subjnt.scaleX)
+        #for subjnt in self.subjnts[1:]:
+        pymel.connectAttr(attr_stretch_raw, self.subjnts[0].scaleX)
 
         #Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)

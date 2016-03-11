@@ -85,7 +85,9 @@ class Twistbone(Module):
         nonroll_1.rename(nomenclature_rig.resolve('nonroll_s'))
         jnt_s_parent = jnt_s.getParent()
         nonroll_1.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
-        if jnt_s_parent: pymel.parentConstraint(jnt_s_parent, nonroll_1.node, maintainOffset=True)
+        if jnt_s_parent:
+            pymel.parentConstraint(jnt_s_parent, nonroll_1.node, maintainOffset=True, skipTranslate=['x', 'y', 'z'])
+            pymel.pointConstraint(jnt_s, nonroll_1.node)
 
         pymel.parentConstraint(jnt_s, nonroll_1.ikHandle, maintainOffset=True)
 
@@ -95,7 +97,8 @@ class Twistbone(Module):
 
         nonroll_2.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         nonroll_2.setTranslation(jnt_e.getTranslation(space='world'), space='world')
-        pymel.parentConstraint(jnt_s, nonroll_2.node, maintainOffset=True)
+        pymel.parentConstraint(jnt_s, nonroll_2.node, maintainOffset=True, skipTranslate=['x', 'y', 'z'])
+        pymel.pointConstraint(jnt_e, nonroll_2.node)
         pymel.parentConstraint(jnt_e, nonroll_2.ikHandle, maintainOffset=True)
 
         twist_info = pymel.createNode('transform')
@@ -138,27 +141,32 @@ class Twistbone(Module):
         pymel.connectAttr(upnode_e.xformMatrix, splineIK.ikHandle.dWorldUpMatrixEnd)
 
         #Compute the Stretch
-        stretch_factor = libRigging.create_stretch_node_between_2_bones(jnt_s, jnt_e)
+        attr_stretch_raw = libRigging.create_stretch_node_between_2_bones(jnt_s, jnt_e)
 
         #Adjust with the global scale
-        dist_globalScale_adjust = libRigging.create_utility_node('multiplyDivide',
+        attr_stretch = libRigging.create_utility_node('multiplyDivide',
                                                            input1X=self.grp_rig.globalScale,
-                                                            input2X=stretch_factor.input1X.get(),
+                                                            input2X=attr_stretch_raw,
                                                             operation=1
                                                            ).outputX
 
-        pymel.connectAttr(dist_globalScale_adjust, stretch_factor.input2X)
+        #pymel.connectAttr(attr_stretch, attr_stretch_raw.input2X)
 
         #The distance between the twist bones is the same
+        '''
         stretch_value = libRigging.create_utility_node('multiplyDivide',
                                    input1X=stretch_factor.outputX,
                                     input2X=self.subjnts[1].translateX.get(),
                                     operation=1
                                    ).outputX
 
+
         #Connect stretch
         for i in range(1, len(self.subjnts)):
             pymel.connectAttr(stretch_value, self.subjnts[i].translateX)
+        '''
+        for subjnt in self.subjnts[:-1]:
+            pymel.connectAttr(attr_stretch, subjnt.scaleX)
 
         #Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)
@@ -202,6 +210,3 @@ class Twistbone(Module):
                 jnt_out = self.subjnts[i+1]
                 libRigging.create_jnt_box(jnt_inn, jnt_out)
         '''
-
-    def unbuild(self):
-        pass

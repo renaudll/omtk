@@ -155,7 +155,7 @@ def create_stretch_node_between_2_bones(start, end):
                                         operation=2
                                        )
 
-    return stretch_factor
+    return stretch_factor.outputX
 
 def create_squash_attr_simple(attr_stretch):
     return create_utility_node('multiplyDivide', operation=2, input1X=1.0, input2X=attr_stretch).outputX

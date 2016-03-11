@@ -63,6 +63,7 @@ class Limb(Module):
         # Create IK system
         if not isinstance(self.sysIK, self._CLASS_SYS_IK):
             self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
+        self.sysIK.name = self.name  # Hack
         self.sysIK.build(rig, constraint=False, **kwargs)
 
         self.sysIK.ctrl_ik.create_spaceswitch(rig, self.parent, default_name='World')
@@ -71,6 +72,7 @@ class Limb(Module):
         # Create FK system
         if not isinstance(self.sysFK, self._CLASS_SYS_FK):
             self.sysFK = self._CLASS_SYS_FK(self.chain_jnt)
+        self.sysFK.name = self.name  # Hack
         self.sysFK.build(rig, constraint=False, **kwargs)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
@@ -100,7 +102,7 @@ class Limb(Module):
         # Create a chain for blending ikChain and fkChain
         chain_blend = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for input_, node in zip(self.chain_jnt, chain_blend):
-            blend_nomenclature = nomenclature_rig.copy(input_.name())
+            blend_nomenclature = nomenclature_rig.rebuild(input_.name())
             node.rename(blend_nomenclature.resolve('blend'))
 
         # Blend ikChain with fkChain
@@ -120,7 +122,7 @@ class Limb(Module):
         # (witch should only be nodes already)
         chain_elbow = pymel.duplicate(self.chain_jnt[:self.sysIK.iCtrlIndex], renameChildren=True, parentOnly=True)
         for input_, node in zip(self.chain_jnt, chain_elbow):
-            nomenclature_elbow = nomenclature_rig.copy(input_.name())
+            nomenclature_elbow = nomenclature_rig.rebuild(input_.name())
             node.rename(nomenclature_elbow.resolve('elbow'))  # todo: find a better name???
         chain_elbow[0].setParent(self.grp_rig)
 

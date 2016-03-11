@@ -37,8 +37,16 @@ class SqueezeNomenclature(className.BaseName):
         """
         In Squeeze nomenclature, the first letter of each token is always in uppercase.
         """
-        tokens = [token[0].upper() + token[1:] for token in tokens]
-        return super(SqueezeNomenclature, self)._join_tokens(tokens)
+        new_tokens = []
+        for token in tokens:
+            if len(token) > 1:
+                new_token = token[0].upper() + token[1:]
+            else:
+                new_token = token.upper()
+            new_tokens.append(new_token)
+
+        #tokens = [token.title() for token in tokens]
+        return super(SqueezeNomenclature, self)._join_tokens(new_tokens)
 
 class RigSqueeze(classRig.Rig):
     #Ensure that all start with a lower case word and all other one are camel case
@@ -197,7 +205,7 @@ class RigSqueeze(classRig.Rig):
         for module in self.modules:
             if module.grp_anm:
                 nomenclature_anm = module.get_nomenclature_anm(self)
-                for ctrl in module.get_ctrls():
+                for ctrl in module.get_ctrls(recursive=True):
                     nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
                     side = nomenclature_ctrl.get_side()
                     color = color_by_side.get(side, None)

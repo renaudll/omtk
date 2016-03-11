@@ -43,7 +43,7 @@ class FaceEyes(ModuleFace):
         if self.parent is None:
             raise Exception("Can't build FaceEyes, no parent found!")
 
-        super(FaceEyes, self).build(rig, create_ctrls=False, *args, **kwargs)
+        super(FaceEyes, self).build(rig, create_ctrls=False, parent=True, *args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -53,9 +53,14 @@ class FaceEyes(ModuleFace):
         # Build a grp for the upnodes
         # Upnodes are ugly, however in this case it's better than trying to guess the joint orientation.
         # We know that the upnodes of the eyes are always upp.
-        grp_upnodes_name = nomenclature_rig.resolve('upnodes')
-        grp_upnodes = pymel.createNode('transform', name=grp_upnodes_name)
-        grp_upnodes.setParent(self.grp_rig)
+        grp_parent_name = nomenclature_rig.resolve('parentGrp')
+        grp_parent = pymel.createNode('transform', name=grp_parent_name)
+        grp_parent.setParent(self.grp_rig)
+
+        # TODO: Don't parent if we are in pre-deform!
+        if self.parent:
+            pymel.parentConstraint(self.parent, grp_parent)
+            pymel.scaleConstraint(self.parent, grp_parent)
 
         # Resolve average position of each ctrls.
         # This is used as the position of the main ctrl.
@@ -89,7 +94,7 @@ class FaceEyes(ModuleFace):
         ctrl_all_name = nomenclature_anm.resolve()
         self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
-        self.ctrl_all.create_spaceswitch(rig, self.parent, add_default=False, add_world=True)
+        self.ctrl_all.create_spaceswitch(rig, self.parent, add_default=True, default_name='Head', add_world=True)
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 
@@ -121,13 +126,16 @@ class FaceEyes(ModuleFace):
             # This separated node allow the joints to be driven by the avars.
             looknode_offset_name = nomenclature_jnt_rig.resolve('looknode_offset')
             looknode_offset = pymel.createNode('transform', name=looknode_offset_name)
-            looknode_offset.setTranslation(jnt_pos)
-            looknode_offset.setParent(self.grp_rig)
+            #looknode_offset.setTranslation(jnt_pos)
+            looknode_offset.setParent(grp_parent)
+
 
             looknode_name = nomenclature_jnt_rig.resolve('looknode')
             looknode = pymel.createNode('transform', name=looknode_name)
-            looknode.setTranslation(jnt_pos)
+            #looknode.setTranslation(jnt_pos)
             looknode.setParent(looknode_offset)
+
+            looknode_offset.setTranslation(jnt_pos, space='world')
 
             # Build an upnode for the eyes.
             # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.
@@ -135,7 +143,7 @@ class FaceEyes(ModuleFace):
             upnode_pos = jnt_pos + pymel.datatypes.Vector(0, 1, 0)
             upnode = pymel.createNode('transform', name=upnode_name)
             upnode.setTranslation(upnode_pos)
-            upnode.setParent(grp_upnodes)
+            upnode.setParent(grp_parent)
 
             pymel.aimConstraint(ctrl, looknode,
                                 maintainOffset=True,

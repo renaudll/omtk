@@ -135,7 +135,7 @@ def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
     attr_stretch_v = multiply_node.outputY
     return attr_stretch_u, attr_stretch_v, arcLengthDimension_shape
 
-def create_stretch_node_between_2_bones(start, end):
+def create_stretch_node_between_2_bones(start, end, attr_scale=None):
     #Compute the Stretch
     start_world_trans_attr = create_utility_node('decomposeMatrix',
                                                        inputMatrix=start.worldMatrix
@@ -150,9 +150,18 @@ def create_stretch_node_between_2_bones(start, end):
                                                 point2=end_world_trans_attr
                                                ).distance
 
+    #Adjust with a scale attribute if necessary
+    scale_adjust_attr = distance_nonroll_attr.get()
+    if attr_scale:
+        scale_adjust_attr = create_utility_node('multiplyDivide',
+                                                       input1X=attr_scale,
+                                                        input2X=distance_nonroll_attr.get(),
+                                                        operation=1
+                                                       ).outputX
+
     stretch_factor = create_utility_node('multiplyDivide',
                                        input1X=distance_nonroll_attr,
-                                        input2X=distance_nonroll_attr.get(),
+                                        input2X=scale_adjust_attr,
                                         operation=2
                                        )
 

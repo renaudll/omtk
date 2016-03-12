@@ -1,7 +1,7 @@
 import pymel.core as pymel
 import collections
-from omtk.classModule import Module
-from omtk.classCtrl import BaseCtrl
+from omtk.core.classModule import Module
+from omtk.core.classCtrl import BaseCtrl
 from omtk.modules.rigRibbon import Ribbon
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging

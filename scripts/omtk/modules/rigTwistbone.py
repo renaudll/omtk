@@ -1,6 +1,6 @@
 import pymel.core as pymel
-from omtk.classModule import Module
-from omtk.classNode import Node
+from omtk.core.classModule import Module
+from omtk.core.classNode import Node
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.modules.rigSplineIK import SplineIK
@@ -177,30 +177,25 @@ class Twistbone(Module):
         if self.subjnts[0].getParent() != self.chain_jnt.start:
             self.subjnts[0].setParent(self.chain_jnt.start)
 
-        skinClusters = set()
-        for jnt in self.chain_jnt:
-            for hist in jnt.listHistory(future=True):
-                if isinstance(hist, pymel.nodetypes.SkinCluster):
-                    skinClusters.add(hist)
+        skin_deformers = self.get_skinClusters_from_inputs()
 
-        for skinCluster in skinClusters:
+        for skin_deformer in skin_deformers:
             # Ensure the source joint is in the skinCluster influences
-            influenceObjects = skinCluster.influenceObjects()
+            influenceObjects = skin_deformer.influenceObjects()
             if self.chain_jnt.start not in influenceObjects:
                 continue
 
             # Add new joints as influence.
             for subjnt in self.subjnts:
-                skinCluster.addInfluence(subjnt, lockWeights=True, weight=0.0)
+                skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
 
         # TODO : Automatically skin the twistbones
-        '''
-            num_shapes = skinCluster.numOutputConnections()
-            for i in range(num_shapes):
-                shape = skinCluster.outputShapeAtIndex(i)
-                print("Assign skin weights on {0}.".format(shape.name()))
-                libSkinning.transfer_weights_from_segments(shape, self.chain_jnt.start, self.subjnts)
-        '''
+        num_shapes = skin_deformer.numOutputConnections()
+        for i in range(num_shapes):
+            shape = skin_deformer.outputShapeAtIndex(i)
+            print("Assign skin weights on {0}.".format(shape.name()))
+            libSkinning.transfer_weights_from_segments(shape, self.chain_jnt.start, self.subjnts)
+
 
         '''
         # Bonus: Give the twistbones a killer look
@@ -210,3 +205,29 @@ class Twistbone(Module):
                 jnt_out = self.subjnts[i+1]
                 libRigging.create_jnt_box(jnt_inn, jnt_out)
         '''
+
+    def get_skinClusters_from_inputs(self):
+        skinClusters = set()
+        for jnt in self.chain_jnt:
+            for hist in jnt.listHistory(future=True):
+                if isinstance(hist, pymel.nodetypes.SkinCluster):
+                    skinClusters.add(hist)
+        return skinClusters
+
+    def get_farest_affected_mesh(self):
+        results = set()
+        for jnt in self.jnts:
+            for mesh in libRigging.get_farest_affected_mesh(jnt):
+                results.add(mesh)
+        return results
+
+    def unbuild(self, delete=True):
+        # Remove twistbones skin
+        for mesh in self.get_farest_affected_mesh():
+            libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
+
+        super(Twistbone, self).unbuild()
+
+        # Remove twistbones
+        if delete:
+            pymel.delete(self.subjnts)

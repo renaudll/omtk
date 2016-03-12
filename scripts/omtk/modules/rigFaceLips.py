@@ -5,7 +5,7 @@ import omtk.classAvar
 from omtk.libs import libAttr
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
-from omtk import classModuleFace
+from omtk.core import classModuleFace
 
 class CtrlLipsUpp(omtk.classAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):

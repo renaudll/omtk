@@ -1,23 +1,13 @@
-import pymel.core as pymel
-import collections
-
-import omtk.classModuleFace
-from omtk import classModuleFace
-from omtk import classAvar
-from omtk.classModule import Module
-from omtk.classCtrl import BaseCtrl
-from omtk.modules.rigIK import IK
-from omtk.modules.rigFK import FK
-from omtk.libs import libRigging
+from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvar
 from omtk.libs import libCtrlShapes
-from omtk.libs import libPymel
 
-class CtrlLidUpp(classAvar.BaseCtrlFace):
+class CtrlLidUpp(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
 
-class CtrlLidLow(classAvar.BaseCtrlFace):
+class CtrlLidLow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 

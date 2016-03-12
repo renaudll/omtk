@@ -1,6 +1,6 @@
 import logging
 import pymel.core as pymel
-from omtk.classModule import Module
+from omtk.core.classModule import Module
 from omtk.modules import rigFK
 from omtk.libs import libPython
 from omtk.libs import libPymel

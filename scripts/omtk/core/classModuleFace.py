@@ -1,51 +1,27 @@
 import itertools
 import logging
+
 import pymel.core as pymel
-from omtk import classAvar
-from omtk.libs import libPython
+
 from omtk.libs import libPymel
+from omtk.libs import libPython
 from omtk.libs import libRigging
+from omtk.libs.libRigging import get_average_pos_between_nodes
+from omtk.modules import rigFaceAvar
+
 log = logging.getLogger('omtk')
-
-# TODO: Move to libs?
-def _find_middle(jnts):
-    pos = pymel.datatypes.Vector()
-    for jnt in jnts:
-        pos += jnt.getTranslation(space='world')
-    return pos / len(jnts)
-
-# TODO: Move to libs?
-def _find_mid_jnt(jnts):
-    nearest_jnt = None
-    nearest_distance = None
-
-    middle = _find_middle(jnts)
-    middle.y = 0
-    middle.z = 0
-
-    for jnt in jnts:
-        jnt_pos = jnt.getTranslation(space='world')
-        jnt_pos.y = 0
-        jnt_pos.z = 0
-        distance = libPymel.distance_between_vectors(jnt_pos, middle)
-        #distance = abs(.x)
-        if nearest_jnt is None or distance < nearest_distance:
-            nearest_jnt = jnt
-            nearest_distance = distance
-    return nearest_jnt
 
 def _find_mid_avar(avars):
     jnts = [avar.jnt for avar in avars]
-    nearest_jnt = _find_mid_jnt(jnts)
-
+    nearest_jnt = get_average_pos_between_nodes(jnts)
     return avars[jnts.index(nearest_jnt)]
 
-class ModuleFace(classAvar.AbstractAvar):
+class ModuleFace(rigFaceAvar.AbstractAvar):
     """
     Base class for a group of 'avars' that share similar properties.
     Also global avars will be provided to controll all avars.
     """
-    _CLS_AVAR = classAvar.AvarSimple
+    _CLS_AVAR = rigFaceAvar.AvarSimple
 
     ui_show = True
 
@@ -77,7 +53,7 @@ class ModuleFace(classAvar.AbstractAvar):
 
     @libPython.cached_property()
     def jnt_upp_mid(self):
-        return _find_mid_jnt(self.jnts_upp)
+        return get_average_pos_between_nodes(self.jnts_upp)
 
     @libPython.cached_property()
     def jnts_low(self):
@@ -87,7 +63,7 @@ class ModuleFace(classAvar.AbstractAvar):
 
     @libPython.cached_property()
     def jnt_low_mid(self):
-        return _find_mid_jnt(self.jnts_low)
+        return get_average_pos_between_nodes(self.jnts_low)
 
     #
     # Avar properties
@@ -243,15 +219,11 @@ class ModuleFace(classAvar.AbstractAvar):
         # Compute ctrl position
         jnt_head = rig.get_head_jnt()
         ref_tm = jnt_head.getMatrix(worldSpace=True)
-        ref_pos = jnt_head.getTranslation(space='world')
-        ctrl_tm = ref_tm.copy()
-
 
         pos = pymel.datatypes.Point(ref.getTranslation(space='world'))
         pos_local = pos * ref_tm.inverse()
         pos_local.y = - rig.get_face_macro_ctrls_distance_from_head()
         pos_shape = pos_local * ref_tm
-
 
         # HACK: Move the ctrl shape outside of the face
         # TODO: Allow the ctrl rotation to be done in-place.
@@ -282,7 +254,7 @@ class ModuleFace(classAvar.AbstractAvar):
 
 
 class ModuleFaceOnSurface(ModuleFace):
-    _CLS_AVAR = classAvar.AvarFollicle
+    _CLS_AVAR = rigFaceAvar.AvarFollicle
 
     @libPython.cached_property()
     def surface(self):

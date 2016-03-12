@@ -2,7 +2,6 @@ import logging
 import libSerialization
 import pymel.core as pymel
 
-import classAvar
 import classCtrl
 import classModule
 import classModuleFace
@@ -18,9 +17,8 @@ def _reload():
     reload(classNode)
     reload(classCtrl)
     reload(classModule)
-    reload(classRig)
-    reload(classAvar)
     reload(classModuleFace)
+    reload(classRig)
 
 def create(*args, **kwargs):
     return classRig.Rig(*args, **kwargs)

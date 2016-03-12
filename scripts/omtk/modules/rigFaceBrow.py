@@ -1,10 +1,10 @@
-from omtk import classModuleFace
-from omtk import classAvar
+from omtk.core import classModuleFace
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libRigging
+from omtk.modules import rigFaceAvar
 
-class CtrlBrow(classAvar.BaseCtrlFace):
+class CtrlBrow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 

@@ -1,11 +1,8 @@
 import pymel.core as pymel
 import logging
-import copy
 logging.basicConfig()
-from className import BaseName
 from classCtrl import BaseCtrl
-from libs import libPymel, libAttr, libPython
-import libSerialization
+from omtk.libs import libPymel, libAttr, libPython
 log = logging.getLogger('omtk')
 
 def getattrs_by_type(val, type, recursive=False):

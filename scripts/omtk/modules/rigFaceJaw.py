@@ -1,11 +1,10 @@
-from omtk import classModuleFace
-from omtk import classAvar
+from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvar
 from omtk.libs import libCtrlShapes
-from omtk.libs import libPymel
 from omtk.libs import libRigging
 import pymel.core as pymel
 
-class CtrlJaw(classAvar.BaseCtrlFace):
+class CtrlJaw(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         node = libCtrlShapes.create_triangle_low()
         node.r.lock()
@@ -34,7 +33,7 @@ class CtrlJaw(classAvar.BaseCtrlFace):
         )
         
 
-class AvarJaw(classAvar.AvarSimple):
+class AvarJaw(rigFaceAvar.AvarSimple):
     """
     This avar is not designed to use any surface.
     """

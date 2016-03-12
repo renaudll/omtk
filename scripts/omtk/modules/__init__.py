@@ -1,5 +1,5 @@
 from omtk.libs import libPython
-from omtk import classModule
+from omtk.core import classModule
 from maya import cmds
 
 # Import body modules
@@ -22,6 +22,7 @@ import rigFaceSquint
 import rigFaceJaw
 import rigFaceEyes
 import rigFaceNose
+import rigFaceAvar
 
 def _reload():
     # Reload body modules
@@ -44,6 +45,7 @@ def _reload():
     reload(rigFaceJaw)
     reload(rigFaceEyes)
     reload(rigFaceNose)
+    reload(rigFaceAvar)
 
 
 def create(cls_name, *args, **kwargs):

@@ -1,9 +1,9 @@
 import collections
 import pymel.core as pymel
 from classNode import Node
-from libs import libRigging
-from libs import libPymel
-from libs import libAttr
+from omtk.libs import libRigging
+from omtk.libs import libPymel
+from omtk.libs import libAttr
 import logging
 
 log = logging.getLogger('omtk')

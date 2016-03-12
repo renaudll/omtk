@@ -1,4 +1,4 @@
-from libs import libPython
+from omtk.libs import libPython
 from maya import cmds
 import copy
 

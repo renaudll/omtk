@@ -1,7 +1,7 @@
 import pymel.core as pymel
 import maya.mel as mel
-from omtk.classCtrl import BaseCtrl
-from omtk.classModule import Module
+from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classModule import Module
 from omtk.libs import libPymel, libRigging, libSkinning
 
 class CtrlRibbon(BaseCtrl):

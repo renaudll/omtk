@@ -6,8 +6,8 @@ from classCtrl import BaseCtrl
 from classNode import Node
 import className
 import classModule
-from libs import libPymel
-from libs import libPython
+from omtk.libs import libPymel
+from omtk.libs import libPython
 import time
 from omtk.libs import libRigging
 
@@ -447,7 +447,7 @@ class Rig(object):
         """
         Iterate through all avars module of the rig.
         """
-        from omtk import classAvar
+        from omtk.modules import rigFaceAvar
         for module in self.modules:
             if isinstance(module, classAvar.AvarFollicle):
                 yield module

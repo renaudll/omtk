@@ -427,10 +427,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def on_update(self, *args, **kwargs):
         #TODO - Fix the reload problem which cause isinstance function check to fail with an existing network
-        #reload(core)
-        #core._reload()
-        #reload(libSerialization)
-        #libSerialization._reload()
+        import omtk; reload(omtk); omtk._reload()
         self._fetch_scene_data()
         self.update_ui()
 

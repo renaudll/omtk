@@ -1,9 +1,8 @@
 import collections
 import pymel.core as pymel
-from omtk.classCtrl import BaseCtrl
-from omtk.classModule import Module
+from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classModule import Module
 from omtk.libs import libRigging, libCtrlShapes
-
 
 class CtrlFk(BaseCtrl):
     def __createNode__(self, *args, **kwargs):

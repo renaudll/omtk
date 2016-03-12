@@ -1,9 +1,9 @@
 import functools
 import collections
 import pymel.core as pymel
-from omtk.classCtrl import BaseCtrl
-from omtk.classModule import Module
-from omtk.classNode import Node
+from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classModule import Module
+from omtk.core.classNode import Node
 from omtk.libs import libRigging, libAttr, libFormula
 
 class CtrlIk(BaseCtrl):

@@ -1,12 +1,10 @@
-from omtk import classModuleFace
-from omtk import classAvar
-from omtk.libs import libCtrlShapes
-from omtk.libs import libPymel
+from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvar
 from omtk.libs import libRigging
 import pymel.core as pymel
 
 
-class CtrlNose(classAvar.CtrlFaceMicro):
+class CtrlNose(rigFaceAvar.CtrlFaceMicro):
     pass
 
 

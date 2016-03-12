@@ -224,7 +224,7 @@ class SegmentCollection(object):
                 return segment, distance_normalized
             elif i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
                 return segment, 0.0
-            elif i == num_segments and distance_normalized > bound_max:  # Handle out-of-bound
+            elif i == (num_segments-1) and distance_normalized > bound_max:  # Handle out-of-bound
                 return segment, 1.0
         raise Exception("Can't resolve segment for {0}".format(pos))
 

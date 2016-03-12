@@ -1,6 +1,6 @@
 import math
 import pymel.core as pymel
-from omtk.classModule import Module
+from omtk.core.classModule import Module
 from omtk.libs import libRigging, libPymel, libPython, libFormula
 
 # Todo: Support more complex IK limbs (ex: 2 knees)

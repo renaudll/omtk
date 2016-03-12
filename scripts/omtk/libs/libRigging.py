@@ -4,6 +4,7 @@ import pymel.core as pymel
 import logging
 import libPymel
 import libPython
+from omtk.libs import libPymel
 
 '''
 This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
@@ -828,3 +829,30 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
         pymel.connectAttr(follicle_shape.outRotate, follicle_transform.rotate)
 
     return follicle_shape
+
+
+def get_average_pos_between_vectors(jnts):
+    pos = pymel.datatypes.Vector()
+    for jnt in jnts:
+        pos += jnt.getTranslation(space='world')
+    return pos / len(jnts)
+
+
+def get_average_pos_between_nodes(jnts):
+    nearest_jnt = None
+    nearest_distance = None
+
+    middle = get_average_pos_between_vectors(jnts)
+    middle.y = 0
+    middle.z = 0
+
+    for jnt in jnts:
+        jnt_pos = jnt.getTranslation(space='world')
+        jnt_pos.y = 0
+        jnt_pos.z = 0
+        distance = libPymel.distance_between_vectors(jnt_pos, middle)
+        #distance = abs(.x)
+        if nearest_jnt is None or distance < nearest_distance:
+            nearest_jnt = jnt
+            nearest_distance = distance
+    return nearest_jnt

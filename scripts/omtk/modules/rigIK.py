@@ -44,6 +44,10 @@ class CtrlIkSwivel(BaseCtrl):
         make.degree.set(1)
         make.sections.set(4)
 
+        make.radius.set(make.radius.get() * 0.5)
+        make.degree.set(1)
+        make.sections.set(4)
+
         # Create line
         if line_target is True:
             # Create a spaceLocator so the annotation can hook itself to it.
@@ -64,10 +68,6 @@ class CtrlIkSwivel(BaseCtrl):
     def build(self, line_target=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
-        make = self.node.getShape().create.inputs()[0]
-        make.radius.set(make.radius.get() * 0.5)
-        make.degree.set(1)
-        make.sections.set(4)
 
         # Create line
         if line_target is True:

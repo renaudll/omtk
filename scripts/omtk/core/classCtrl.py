@@ -91,7 +91,7 @@ class BaseCtrl(Node):
         Create ctrl setup, also fetch animation and shapes if necessary.
         """
         # TODO: Add support for multiple shapes?
-        if libPymel.is_valid_PyNode(self.shapes):
+        if libPymel.is_valid_PyNode(self.shapes) and self.shapes.getShape():
             self.node = pymel.createNode('transform')
             libRigging.fetch_ctrl_shapes(self.shapes, self.node)
             self.shapes = None

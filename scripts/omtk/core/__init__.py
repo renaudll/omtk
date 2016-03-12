@@ -33,6 +33,7 @@ def find_one(*args, **kwargs):
 
 
 @libPython.log_execution_time('build_all')
+@libPython.profiler
 def build_all():
     networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:
@@ -42,6 +43,7 @@ def build_all():
             libSerialization.export_network(rigroot)
 
 @libPython.log_execution_time('unbuild_all')
+@libPython.profiler
 def unbuild_all():
     networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:

@@ -118,7 +118,7 @@ def profiler(func):
             pProf.disable()
             return pResult
         finally:
-            pProf.print_stats()
+            pProf.print_stats(sort='cumulative')
 
     return runProfile
 

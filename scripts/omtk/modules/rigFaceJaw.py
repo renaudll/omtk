@@ -2,6 +2,7 @@ from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
+from omtk.libs import libAttr
 import pymel.core as pymel
 
 class CtrlJaw(rigFaceAvar.BaseCtrlFace):
@@ -105,16 +106,22 @@ class FaceJaw(rigFaceAvarGrps.ModuleFace):
         pass
 
         # Connect attr_lips_compress
+        # Note that if we are re-building a rig, this logic may already exist, in which case we'll skip it.
         attr_pt_inn = self.avars[0].attr_pt
-        attr_pt_inv = libRigging.create_utility_node('multiplyDivide',
-                                                     input1X=attr_pt_inn,  # todo: use global avar?
-                                                     input2X=-1.0/45,
-                                                    ).outputX
-        attr_lips_compress_out = libRigging.create_utility_node('condition',
-                                                                operation=4,  # Less than
-                                                                firstTerm=attr_pt_inn,
-                                                                colorIfTrueR=attr_pt_inv,
-                                                                colorIfFalseR=0.0
-                                                                ).outColorR
-        pymel.connectAttr(attr_lips_compress_out, self.attr_ud_sculpt)
+        if not libAttr.is_connected_to(attr_pt_inn, self.attr_ud_sculpt):
+            attr_pt_inv = libRigging.create_utility_node('multiplyDivide',
+                                                         input1X=attr_pt_inn,  # todo: use global avar?
+                                                         input2X=-1.0/45,
+                                                        ).outputX
+            attr_lips_compress_out = libRigging.create_utility_node('condition',
+                                                                    operation=4,  # Less than
+                                                                    firstTerm=attr_pt_inn,
+                                                                    colorIfTrueR=attr_pt_inv,
+                                                                    colorIfFalseR=0.0
+                                                                    ).outColorR
+            pymel.connectAttr(attr_lips_compress_out, self.attr_ud_sculpt)
+
+
+
+
 

@@ -229,13 +229,19 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
         # TODO: Allow the ctrl rotation to be done in-place.
         ctrl.setTranslation(pos, space='world')
 
-        pos_z = pos_shape.z
-        for shape in ctrl.getShapes():
-            num_cvs = shape.numCVs()
-            for i in range(num_cvs):
-                pos = shape.getCV(i, space='world')
-                pos.z = pos_z
-                shape.setCV(i, pos, space='world')
+        try:
+            pos_z = pos_shape.z
+            for shape in ctrl.getShapes():
+                num_cvs = shape.numCVs()
+                for i in range(num_cvs):
+                    pos = shape.getCV(i, space='world')
+                    pos.z = pos_z
+                    shape.setCV(i, pos, space='world')
+        except RuntimeError, e:  # TODO: Find why it happen
+            log.warning("Can't tweak ctrl shape for {0}: {1}".format(
+                ctrl.node.name(),
+                str(e)
+            ))
 
         if need_flip:
             ctrl.offset.scaleX.set(-1)

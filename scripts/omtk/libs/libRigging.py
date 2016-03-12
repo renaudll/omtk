@@ -735,6 +735,12 @@ def get_farest_affected_mesh(jnt):
 
     return next(iter(reversed(affected_meshes)), None)
 
+def get_multi_attr_available_slot(attr_multi):
+    # "Safe" way to get available attribute child of an attribute.
+    i = 0
+    while attr_multi[i].isDestination():
+        i += 1
+    return attr_multi[i]
 
 def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs):
     # Check on which attribute @attr_dst is connected to (if applicable).
@@ -753,12 +759,11 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
     else:
         util_blend = attr_dst_input.node()
 
-    next_available = util_blend.input.numElements()
-
     if multiplier:
         attr_src = create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
 
-    pymel.connectAttr(attr_src, util_blend.input[next_available])
+    next_input = get_multi_attr_available_slot(util_blend.input)
+    pymel.connectAttr(attr_src, next_input)
 
     if not attr_dst.isDestination():
         pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)

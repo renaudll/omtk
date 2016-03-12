@@ -1,3 +1,4 @@
+import pymel.core as pymel
 from omtk.core import classModule
 from omtk.core import classNode
 from omtk.libs import libPython

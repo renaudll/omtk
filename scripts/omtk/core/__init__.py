@@ -31,9 +31,8 @@ def find():
 def find_one(*args, **kwargs):
     return next(iter(find(*args, **kwargs)), None)
 
-
+#@libPython.profiler
 @libPython.log_execution_time('build_all')
-@libPython.profiler
 def build_all():
     networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:
@@ -42,8 +41,8 @@ def build_all():
             pymel.delete(network)
             libSerialization.export_network(rigroot)
 
+#@libPython.profiler
 @libPython.log_execution_time('unbuild_all')
-@libPython.profiler
 def unbuild_all():
     networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:

@@ -429,3 +429,23 @@ def unlock_unhide_trs(node):
     unlock_trs(node)
     unhide_trs(node)
 
+def is_connected_to(attr_inn, attr_out, recursive=True):
+    # TODO: Benchmark this function
+    # TODO: Implement key for performance
+    node = next(iter(attr_out.inputs()), None)
+    if not node:
+        return False
+
+    for attr in node.listAttr(connectable=True, hasData=True):
+        # HACK: Skip problematic avars...
+        # TODO: Find a better way
+        if '[' in attr.name():
+            continue        
+
+        if attr == attr_inn:
+            return True
+        else:
+            if is_connected_to(attr_inn, attr, recursive=recursive):
+                return True
+
+    return False

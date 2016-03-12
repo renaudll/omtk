@@ -1,5 +1,5 @@
-from omtk.core import classModuleFace
 from omtk.modules import rigFaceAvar
+from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
 import pymel.core as pymel
@@ -78,7 +78,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         pymel.connectAttr(attr_pt_clamp, attr_pt_out, force=True)
 
 
-class FaceJaw(classModuleFace.ModuleFace):
+class FaceJaw(rigFaceAvarGrps.ModuleFace):
     """
     The Jaw is a special zone since it doesn't happen in pre-deform, it happen in the main skinCluster.
     The Jaw global avars are made 

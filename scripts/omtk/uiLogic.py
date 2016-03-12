@@ -1,15 +1,14 @@
 import functools, re
 import pymel.core as pymel
-from libs.libQt import QtCore, QtGui, getMayaWindow
-import libSerialization
-import classModule
-import classRig
-import rigs.rigSqueeze as classRigSqueeze
 from maya import OpenMaya
+import libSerialization
+import core
+from omtk.core import classModule
+from omtk.core import classRig
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
-import core
+from omtk.libs.libQt import QtCore, QtGui, getMayaWindow
 
 import ui; reload(ui)
 
@@ -244,6 +243,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.roots = core.find()
         self.root = next(iter(self.roots), None)
         if self.root is None:
+            # HACK: Create classRigSqueeze by default
+            # TODO: Use config file?
+            from omtk.rigs import rigSqueeze as classRigSqueeze
             self.root = classRigSqueeze.RigSqueeze()
             self.roots = [self.root]
 

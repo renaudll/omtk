@@ -1,4 +1,4 @@
-from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
 from omtk.libs import libCtrlShapes
 
@@ -11,7 +11,7 @@ class CtrlLidLow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 
-class FaceLids(classModuleFace.ModuleFaceUppDown):
+class FaceLids(rigFaceAvarGrps.ModuleFaceUppDown):
     _CLS_CTRL_UPP = CtrlLidUpp
     _CLS_CTRL_LOW = CtrlLidLow
 

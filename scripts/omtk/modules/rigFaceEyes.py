@@ -1,10 +1,10 @@
 import pymel.core as pymel
 import collections
 from omtk.core.classModule import Module
-from omtk.core.classModuleFace import ModuleFace
 from omtk.core.classCtrl import BaseCtrl
 from omtk.modules.rigIK import IK
 from omtk.modules.rigFK import FK
+from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libRigging, libCtrlShapes
 
 
@@ -27,7 +27,7 @@ class CtrlEye(BaseCtrl):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
 
 
-class FaceEyes(ModuleFace):
+class FaceEyes(rigFaceAvarGrps.ModuleFace):
     def __init__(self, *args, **kwargs):
         """
         Pre-declare here all the used members.

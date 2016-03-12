@@ -2,14 +2,15 @@ import pymel.core as pymel
 import collections
 
 from omtk.modules import rigFaceAvar
-from omtk.libs import libCtrlShapes
-from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvarGrps
 
-class CtrlSquint(rigFaceAvarfrom.BaseCtrlFace):
+from omtk.libs import libCtrlShapes
+
+class CtrlSquint(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
-class FaceSquint(classModuleFace.ModuleFaceLftRgt):
+class FaceSquint(rigFaceAvarGrps.ModuleFaceLftRgt):
     _CLS_CTRL = CtrlSquint
 
     ui_show = True

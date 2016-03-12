@@ -36,10 +36,15 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
 
     # Add target if missing, otherwise thrown an error.
     if target not in influence_jnts:
+        print("Can't find target {0} in skinCluster {1}".format(target.name(), skinCluster.name()))
         skinCluster.addInfluence(target, lockWeights=True)
         influence_jnts.append(target)
-    else:
-        raise ValueError("Can't find target {0} in skinCluster {1}".format(target.name(), skinCluster.name()))
+
+    # Hack: Remove influences not present in skinCluster
+    sources = filter(lambda jnt: jnt in influence_jnts, sources)
+
+    if not sources:
+        print "Abording transfering on {0}, nothing to transfer".format(obj.name())
 
     num_jnts = len(influence_jnts)
     jnt_src_indices = [influence_jnts.index(source) for source in sources]

@@ -1,4 +1,4 @@
-from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
 from omtk.libs import libRigging
 import pymel.core as pymel
@@ -8,7 +8,7 @@ class CtrlNose(rigFaceAvar.CtrlFaceMicro):
     pass
 
 
-class FaceNose(classModuleFace.ModuleFaceOnSurface):
+class FaceNose(rigFaceAvarGrps.ModuleFaceOnSurface):
     """
     The Nose is composed of two zones. The uppernose and the lower nose.
     The uppernose is user specifically for it's yaw and pitch rotation.

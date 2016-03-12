@@ -1,4 +1,4 @@
-from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libRigging
@@ -9,7 +9,7 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceBrow(classModuleFace.ModuleFaceLftRgt):
+class FaceBrow(rigFaceAvarGrps.ModuleFaceLftRgt):
     _CLS_CTRL = CtrlBrow
 
     ui_show = True

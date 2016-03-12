@@ -4,7 +4,6 @@ import pymel.core as pymel
 
 import classCtrl
 import classModule
-import classModuleFace
 import className
 import classNode
 import classRig
@@ -17,7 +16,6 @@ def _reload():
     reload(classNode)
     reload(classCtrl)
     reload(classModule)
-    reload(classModuleFace)
     reload(classRig)
 
 def create(*args, **kwargs):

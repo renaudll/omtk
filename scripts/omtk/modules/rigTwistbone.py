@@ -9,14 +9,15 @@ import re
 
 class NonRollJoint(Node):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super(NonRollJoint, self).__init__(*args, **kwargs)
         self.ikHandle = self.ikEffector = None
 
     """
     Used for quaternion extraction.
     """
-    def build(self):
-        self.node = pymel.createNode('transform')
+    def build(self, *args, **kwargs):
+        super(NonRollJoint, self).build(*args, **kwargs)
 
         pymel.select(clear=True)
         self.start = pymel.joint() # todo: really the best name ?
@@ -217,8 +218,8 @@ class Twistbone(Module):
     def get_farest_affected_mesh(self):
         results = set()
         for jnt in self.jnts:
-            for mesh in libRigging.get_farest_affected_mesh(jnt):
-                results.add(mesh)
+            mesh = libRigging.get_farest_affected_mesh(jnt)
+            results.add(mesh)
         return results
 
     def unbuild(self, delete=True):

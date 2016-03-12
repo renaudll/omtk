@@ -24,6 +24,9 @@ from modules import *
 import rigs
 from rigs import *
 
+import libs
+from libs import *
+
 import libSerialization
 from omtk.libs import libPython
 
@@ -42,19 +45,10 @@ def _reload():
     reload(rigs)
     rigs._reload()
 
-    reload(uiLogic)
+    reload(libs)
+    libs._reload()
 
-    # Reload libs
-    from omtk.libs import libAttr; reload(libAttr)
-    from omtk.libs import libCtrlShapes; reload(libCtrlShapes)
-    from omtk.libs import libFormula; reload(libFormula)
-    from omtk.libs import libPython; reload(libPython)
-    from omtk.libs import libQt; reload(libQt)
-    from omtk.libs import libPymel; reload(libPymel)
-    from omtk.libs import libRigging; reload(libRigging)
-    from omtk.libs import libSkinning; reload(libSkinning)
-    from omtk.libs import libStringMap; reload(libStringMap)
-    from omtk.libs import libUtils; reload(libUtils)
+    reload(uiLogic)
 
 def show():
     """

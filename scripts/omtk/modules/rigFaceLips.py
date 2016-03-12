@@ -1,23 +1,22 @@
 import pymel.core as pymel
-import collections
 
-import omtk.classAvar
 from omtk.libs import libAttr
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
-from omtk.core import classModuleFace
+from omtk.modules import rigFaceAvar
+from omtk.modules import rigFaceAvarGrps
 
-class CtrlLipsUpp(omtk.classAvar.BaseCtrlFace):
+class CtrlLipsUpp(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
 
-class CtrlLipsLow(omtk.classAvar.BaseCtrlFace):
+class CtrlLipsLow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceLips(classModuleFace.ModuleFaceOnSurface):
+class FaceLips(rigFaceAvarGrps.ModuleFaceOnSurface):
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
     _AVAR_NAME_UPP_UD = 'uppUD'

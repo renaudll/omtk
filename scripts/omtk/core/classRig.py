@@ -1,14 +1,14 @@
 from maya import cmds
 import pymel.core as pymel
+import time
 
-import omtk.classModuleFace
-from classCtrl import BaseCtrl
-from classNode import Node
-import className
-import classModule
+from omtk.modules import rigFaceAvarGrps
+from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classNode import Node
+from omtk.core import className
+from omtk.core import classModule
 from omtk.libs import libPymel
 from omtk.libs import libPython
-import time
 from omtk.libs import libRigging
 
 class CtrlRoot(BaseCtrl):
@@ -451,7 +451,7 @@ class Rig(object):
         for module in self.modules:
             if isinstance(module, classAvar.AvarFollicle):
                 yield module
-            elif isinstance(module, omtk.classModuleFace.ModuleFace):
+            elif isinstance(module, rigFaceAvarGrps.ModuleFace):
                 for avar in module.avars:
                     yield avar
 

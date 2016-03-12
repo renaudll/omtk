@@ -15,6 +15,9 @@ import rigHand
 import rigDpSpine
 
 # Import face modules
+import rigDoritos
+import rigFaceAvar
+import rigFaceAvarGrps
 import rigFaceBrow
 import rigFaceLids
 import rigFaceLips
@@ -22,7 +25,7 @@ import rigFaceSquint
 import rigFaceJaw
 import rigFaceEyes
 import rigFaceNose
-import rigFaceAvar
+
 
 def _reload():
     # Reload body modules
@@ -38,6 +41,9 @@ def _reload():
     reload(rigDpSpine)
 
     # Reload face modules
+    reload(rigDoritos)
+    reload(rigFaceAvar)
+    reload(rigFaceAvarGrps)
     reload(rigFaceBrow)
     reload(rigFaceLids)
     reload(rigFaceLips)
@@ -45,7 +51,7 @@ def _reload():
     reload(rigFaceJaw)
     reload(rigFaceEyes)
     reload(rigFaceNose)
-    reload(rigFaceAvar)
+
 
 
 def create(cls_name, *args, **kwargs):

@@ -440,7 +440,7 @@ def is_connected_to(attr_inn, attr_out, recursive=True):
         # HACK: Skip problematic avars...
         # TODO: Find a better way
         if '[' in attr.name():
-            continue        
+            continue
 
         if attr == attr_inn:
             return True

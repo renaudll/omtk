@@ -189,6 +189,7 @@ class Twistbone(Module):
             # Add new joints as influence.
             for subjnt in self.subjnts:
                 skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
+                subjnt.lockInfluenceWeights.set(False)
 
         # TODO : Automatically skin the twistbones
         num_shapes = skin_deformer.numOutputConnections()

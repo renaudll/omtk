@@ -91,10 +91,9 @@ class BaseCtrl(Node):
         Create ctrl setup, also fetch animation and shapes if necessary.
         """
         # TODO: Add support for multiple shapes?
-        if libPymel.is_valid_PyNode(self.shapes) and self.shapes.getShape():
+        if self.can_fetch_shapes():
             self.node = pymel.createNode('transform')
-            libRigging.fetch_ctrl_shapes(self.shapes, self.node)
-            self.shapes = None
+            self.fetch_shapes()
         else:
             super(BaseCtrl, self).build(name=None, *args, **kwargs)
 
@@ -134,6 +133,16 @@ class BaseCtrl(Node):
 
             attr.set(val)
 
+    def can_fetch_shapes(self):
+        return libPymel.is_valid_PyNode(self.shapes) and self.shapes.getShape()
+
+    def hold_shapes(self):
+        self.shapes = libRigging.hold_ctrl_shapes(self.node)
+
+    def fetch_shapes(self):
+        libRigging.fetch_ctrl_shapes(self.shapes, self.node)
+        self.shapes = None
+
     def unbuild(self, keep_shapes=True, *args, **kwargs):
         """
         Delete ctrl setup, but store the animation and the shapes.
@@ -142,7 +151,7 @@ class BaseCtrl(Node):
             raise Exception("Can't hold ctrl attribute! Some information may be lost... {0}".format(self.node))
         else:
             self.hold_attrs_all()
-            self.shapes = libRigging.hold_ctrl_shapes(self.node)
+            self.hold_shapes()
             super(BaseCtrl, self).unbuild(*args, **kwargs)
 
         # Delete offset node if necessary.

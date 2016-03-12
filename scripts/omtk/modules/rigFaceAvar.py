@@ -85,6 +85,9 @@ class BaseCtrlFace(classCtrl.BaseCtrl):
         libRigging.connectAttr_withBlendWeighted(attr_inn_lr, attr_lr)
         libRigging.connectAttr_withBlendWeighted(attr_inn_fb, attr_fb)
 
+    def hold_shapes(self):
+        log.warning("Can't hold shapes for {0}, not supported. (fix me!)".format(self))
+
 
 class CtrlFaceMicro(BaseCtrlFace):
     """
@@ -98,6 +101,8 @@ class CtrlFaceMicro(BaseCtrlFace):
         #node.translateZ.lock()
 
         return node
+
+    # TODO: Disable hold shapes for now
 
 
 class CtrlFaceMacro(BaseCtrlFace):

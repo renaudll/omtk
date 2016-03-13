@@ -1,24 +1,26 @@
 # Open Maya Rigging Toolkit
 
-Omtk is a suite of production rigging tools for maya.
-The goal of the project is to provide the most pythonic and robust fondation for a rigging system.
-
-Note: libSerialization is needed.
+Omtk is a lightweight suite of production tools for Maya.
+The goal of the project is to provide the most object-oriented, pythonic fondation for an automated rigging system.
+OMTK is highly dependent of libSerialization, a module that allow python objects to be embeded in a Maya scene via network nodes.
+OMTK also rely heavily on PyMel.
 
 ### Rules
 The following rules simplify the implementation of the system and must be respected for Omtk to work properly.
-- All joints point toward the X axis, Y is their up axis.
-- The character should look toward the positive Z axis.
-- Feets orientation and straight.
+- All joints point toward the X axis, Y is their up axis. This mean the roll axis is always x and the primary axis is y. 
+- The character should look toward the positive Z axis. 
+- Feets orientation and straight, always.
+- All python code should respect the PEP8 standards.
+- All nodes and attributes created in a Maya scene are in camelCase for better integration in Maya.
 
-### omtk.rigging.formulaParser
+### omtk.libs.libFormula
 A lightweight programming language that create maya utility nodes setup by parsing mathematical formulas.
 
 Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.libs.libFormula).
 
-When developping, use the following code to reload omtk:
-import omtk; reload(omtk); omtk._reload()
+### omtk.libs.libSerialization
+An IO module that allow serialization/deserialisation of Python objects to Maya networks.
 
-The nomenclature used in omtk is PEP8 with the following modifications:
-- The name of variables that are storing nodes are the same than the node.
+Read the [documentation](https://github.com/renaudll/libSerialization).
+
 

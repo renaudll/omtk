@@ -364,8 +364,12 @@ class Rig(object):
                 name_safe = obj.stripNamespace().lower()
                 return 'head' in name_safe or 'face'in name_safe
 
-        # TODOL CLEAN MEEEE
-        return pymel.PyNode('Head_Jnt')
+        # TODO: Find a better way!
+        for jnt in pymel.ls(type='joint'):
+            if key(jnt):
+                return jnt
+
+        raise Exception("Can't resolve head joint!")
 
     @libPython.memoized
     def get_jaw_jnt(self, key=None):
@@ -377,9 +381,12 @@ class Rig(object):
                 name_safe = obj.stripNamespace().lower()
                 return 'jaw' in name_safe
 
-        # TODOL CLEAN MEEEE
-        return pymel.PyNode('Jaw_Jnt')
+        # TODO: Find a better way!
+        for jnt in pymel.ls(type='joint'):
+            if key(jnt):
+                return jnt
 
+        raise Exception("Can't resolve jaw joint!")
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):

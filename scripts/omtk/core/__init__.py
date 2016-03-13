@@ -1,5 +1,8 @@
 import logging
+import os
+import inspect
 import libSerialization
+import json
 import pymel.core as pymel
 
 import classCtrl
@@ -11,6 +14,14 @@ from omtk.libs import libPython
 
 log = logging.getLogger('omtk')
 
+# Load configuration file
+# Currently this only allow the default rig class from being used.
+config = {}
+config_path = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))), 'config.json')
+if os.path.exists(config_path):
+    with open(config_path) as fp:
+        config = json.load(fp)
+
 def _reload():
     reload(className)
     reload(classNode)
@@ -19,11 +30,15 @@ def _reload():
     reload(classRig)
 
 def create(*args, **kwargs):
-    return classRig.Rig(*args, **kwargs)
-
+    default_rig = classRig.Rig.__name__
+    rig_type = config.get('default_rig', default_rig)
+    return getattr(classRig, rig_type)(*args, **kwargs)
 
 def find():
-    #TODO - Finc why when a scene is open for a long time, this function is slower
+    """
+    :return: All the rigs embedded in the current maya scene.
+    """
+    #TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.getNetworksByClass('Rig')
     return [libSerialization.import_network(network) for network in networks]
 
@@ -34,6 +49,9 @@ def find_one(*args, **kwargs):
 #@libPython.profiler
 @libPython.log_execution_time('build_all')
 def build_all():
+    """
+    Build all the rigs embedded in the current maya scene.
+    """
     networks = libSerialization.getNetworksByClass('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
@@ -53,7 +71,6 @@ def unbuild_all():
         network = libSerialization.export_network(rigroot)
         pymel.select(network)
 
-'''
 def detect(*args, **kwargs):
     """
     Fully automatic routine that create rig elements by analysing the joints structure.
@@ -109,7 +126,7 @@ def detect(*args, **kwargs):
     #
     # Configure Rig
     #
-    rig = classRig.Rig()
+    rig = create()
 
     def get_arms(jnts):
         chains = []
@@ -205,8 +222,11 @@ def detect(*args, **kwargs):
     log.debug("\tHeight: {0}".format(height))
     log.debug("\tRadius: {0}".format(radius))
 
+    from omtk.modules.rigTwistbone import Twistbone
+    from omtk.modules.rigLeg import Leg
+    from omtk.modules.rigArm import Arm
+
     # Detect legs
-    from rigLeg import Leg
     legs_jnts = get_legs(jnts)
     for leg_jnts in legs_jnts:
         for leg_jnt in leg_jnts:
@@ -215,10 +235,7 @@ def detect(*args, **kwargs):
         rig.append(Twistbone([leg_jnts[0], leg_jnts[1]]))
         rig.append(Twistbone([leg_jnts[1], leg_jnts[2]]))
 
-    print len(jnts)
-
     # Detect arms
-    from rigArm import Arm
     arms_jnts = get_arms(jnts)
     for arm_jnts in arms_jnts:
         for arm_jnt in arm_jnts:
@@ -232,4 +249,3 @@ def detect(*args, **kwargs):
     rig.build()
 
     libSerialization.export_network(rig)
-'''

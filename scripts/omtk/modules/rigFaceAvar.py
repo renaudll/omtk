@@ -329,8 +329,8 @@ class AbstractAvar(classModule.Module):
         libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
     '''
 
-    def validate(self, rig):
-        super(AbstractAvar, self).validate(rig)
+    def validate(self):
+        super(AbstractAvar, self).validate()
 
         if not self.jnts:
             raise Exception("Can't build ModuleFace with zero joints!")

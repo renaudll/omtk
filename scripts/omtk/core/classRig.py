@@ -10,6 +10,8 @@ from omtk.core import classModule
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
+import logging
+log = logging.getLogger('omtk')
 
 class CtrlRoot(BaseCtrl):
     """
@@ -48,6 +50,11 @@ class CtrlRoot(BaseCtrl):
         Analyze the scene and return the recommended radius using the scene geometry.
         """
         geometries = pymel.ls(type='mesh')
+
+        if not geometries:
+            log.warning("Can't find any geometry in the scene.")
+            return min_size
+
         geometries_mel = [geo.__melobject__() for geo in geometries]
 
         x_min, y_min, z_min, x_max, y_max, z_max = cmds.exactWorldBoundingBox(*geometries_mel)
@@ -164,10 +171,19 @@ class Rig(object):
                 if len(val) == 0:
                     setattr(self, key, None)
 
+    def validate(self):
+        """
+        Check any module can be built with it's current configuration.
+        In case of error, an exception will be raised with the necessary informations.
+        """
+        for module in self.modules:
+            module.validate()
+        return True
+
     def build(self, **kwargs):
         # Aboard if already built
         if self.is_built():
-            pymel.warning("Can't build {0} because it's already built!".format(self))
+            log.warning("Can't build {0} because it's already built!".format(self))
             return False
 
         sTime = time.time()

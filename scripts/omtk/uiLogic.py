@@ -35,10 +35,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     #Use the intern maya ressources icon
     _STYLE_SHEET = \
     """
-           QTreeView::item
-           {
-              background-color: rgb(45,45,45);
-           }
 
           QTreeView::item::selected
           {
@@ -169,6 +165,17 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     # Privates
     #
     def _rig_to_tree_widget(self, module):
+        # HACK: bypass the stylecheet
+        # see: http://forum.qt.io/topic/22219/item-view-stylesheet-bgcolor/12
+        color_invalid= QtGui.QBrush(QtGui.QColor(255,45,45))
+        color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
+
+        style_sheet_invalid = """
+        QTreeView::item
+        {
+           background-color: rgb(45,45,45);
+        }"""
+
         qItem = QtGui.QTreeWidgetItem(0)
         if hasattr(module, '_network'):
             qItem.net = module._network
@@ -176,6 +183,16 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             pymel.warning("{0} have no _network attributes".format(module))
         qItem.rig = module
         qItem.setText(0,str(module))
+
+        # Set QTreeWidgetItem red if the module fail validation
+        try:
+            module.validate()
+            color = color_valid
+        except Exception, e:
+            pymel.warning("Module {0} failed validation: {1}".format(module, str(e)))
+            color = color_invalid
+        qItem.setBackground(0, color)
+
         qItem._name = qItem.text(0)
         qItem._checked = module.is_built()
         qItem.setFlags(qItem.flags() | QtCore.Qt.ItemIsEditable)
@@ -243,10 +260,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.roots = core.find()
         self.root = next(iter(self.roots), None)
         if self.root is None:
-            # HACK: Create classRigSqueeze by default
-            # TODO: Use config file?
-            from omtk.rigs import rigSqueeze as classRigSqueeze
-            self.root = classRigSqueeze.RigSqueeze()
+            self.root = core.create()
             self.roots = [self.root]
 
     def _show_parent_recursive(self, qt_parent_item):

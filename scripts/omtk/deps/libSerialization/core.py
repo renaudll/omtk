@@ -1,12 +1,13 @@
 import logging as _logging
 import sys
+import inspect
+from omtk.libs import libPython
 
 logging = _logging.getLogger()
 logging.setLevel(_logging.WARNING)
 
 # constants
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX = range(4)
-
 
 
 def iter_subclasses_recursive(cls):
@@ -22,17 +23,19 @@ def iter_subclasses_recursive(cls):
 def get_class_module_root(cls):
     return next(iter(cls.__module__.split('.')), None)
 
+
 def iter_module_subclasses_recursive(cls, module_root):
     for sub_cls in iter_subclasses_recursive(cls):
         cur_module_root = get_class_module_root(sub_cls)
         if module_root == cur_module_root:
             yield sub_cls
 
-
+@libPython.memoized
 def find_class_by_name(class_name, base_class=object, module=None):
     if module is None:
         iterator = iter_subclasses_recursive(base_class)
     else:
+        module = sys.modules[module]
         iterator = iter_module_subclasses_recursive(base_class, module)
 
     for cls in iterator:

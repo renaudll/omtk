@@ -215,7 +215,7 @@ def get_network_attr(attr):
         attr_input = attr.inputs()[0]
         # Network
         if hasattr(attr_input, '_class'):
-            return import_network(attr_input)
+            return import_network(attr_input, clear_cache=False)
         # Node
         else:
             return attr_input
@@ -287,7 +287,10 @@ def export_network(data, **kwargs):
 
 
 # todo: add an optimisation to prevent recreating the python variable if it already exist.
-def import_network(network):
+def import_network(network, clear_cache=True):
+    if clear_cache:
+        core.find_class_by_name.cache = {}
+
     # Duck-type the network, if the '_class' attribute exist, it is a class instance representation.
     # Otherwise it is a simple pymel.PyNode datatypes.
     if not network.hasAttr('_class'):

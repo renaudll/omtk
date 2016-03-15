@@ -520,3 +520,4 @@ class ModuleFaceLftRgt(ModuleFaceOnSurface):
             self.ctrl_l.unbuild()
         if self.ctrl_r:
             self.ctrl_r.unbuild()
+        super(ModuleFaceLftRgt, self).unbuild()

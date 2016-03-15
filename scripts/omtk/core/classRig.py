@@ -381,7 +381,8 @@ class Rig(object):
                 return 'head' in name_safe or 'face'in name_safe
 
         # TODO: Find a better way!
-        for jnt in pymel.ls(type='joint'):
+        jnts = sorted(pymel.ls(type='joint'), key=libPymel.get_num_parents)
+        for jnt in jnts:
             if key(jnt):
                 return jnt
 

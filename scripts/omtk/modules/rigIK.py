@@ -225,7 +225,7 @@ class IK(Module):
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.chain_jnt, self._chain_ik):
-            oIk.rename(nomenclature_anm.resolve('ik'))
+            oIk.rename(nomenclature_rig.resolve('ik'))
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
 
 

@@ -35,7 +35,7 @@ def find_class_by_name(class_name, base_class=object, module=None):
     if module is None:
         iterator = iter_subclasses_recursive(base_class)
     else:
-        module = sys.modules[module]
+        #module = sys.modules[module]
         iterator = iter_module_subclasses_recursive(base_class, module)
 
     for cls in iterator:

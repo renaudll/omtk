@@ -228,6 +228,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
             for i, weight in enumerate(weights):
                 index = (vert_index * chunk_size) + i + 1
                 new_weights[index] = weight
+            new_weights[vert_index * chunk_size] = 0.0  # Remove original weight
 
         it_geometry.next()
         vert_index += 1

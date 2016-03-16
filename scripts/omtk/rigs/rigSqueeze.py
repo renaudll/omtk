@@ -163,6 +163,11 @@ class RigSqueeze(classRig.Rig):
         attr_by_name = {}
         for module in self.modules:
             if isinstance(module, rigLimb.Limb):
+                # Inverse IK/FK state.
+                # At Squeeze, 0 is IK and 1 is FK, strange.
+                module.STATE_IK = 0.0
+                module.STATE_FK = 1.0
+
                 pymel.delete(module.ctrl_attrs)
 
                 # Resolve name
@@ -176,6 +181,7 @@ class RigSqueeze(classRig.Rig):
 
                 key = '_'.join(tokens)
                 val = module.grp_rig.attr(module.kAttrName_State)
+
                 attr_by_name[key] = val
 
         if attr_by_name:

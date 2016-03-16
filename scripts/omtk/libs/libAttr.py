@@ -449,3 +449,51 @@ def is_connected_to(attr_inn, attr_out, recursive=True):
                 return True
 
     return False
+
+#
+# get_settable_attr
+#
+
+attr_inn_by_out_by_type = {
+    'reverse':{
+        'outputX': 'inputX',
+        'outputY': 'inputY',
+        'outputZ': 'inputZ'
+    }
+}
+
+def get_input_attr_from_output_attr(attr_out):
+    node = attr_out.node()
+    node_type = node.type()
+    association_dict = attr_inn_by_out_by_type.get(node_type, None)
+    if association_dict:
+        attr_out_name = attr_out.longName()
+        attr_inn_name = association_dict.get(attr_out_name, None)
+        if attr_inn_name:
+            return node.attr(attr_inn_name)
+
+    return next(iter(attr_out.inputs(plugs=True)), None)
+
+def get_settable_attr(attr):
+    """
+    If attr is not settable, navigate upp in the connection hierarchy until we find the settable attribute.
+    For example, in RigSqueeze, the ikFk state attribute will be redirected to the root ctrl.
+    Note that in some case the attribute might have been piped in an utility node, if necessary we'll try to
+    follow the connections through the utility node.
+    """
+    def is_attr_interesting(attr):
+        if not attr:
+            return True
+
+        if not attr.isSettable() or not attr.isKeyable():
+            return False
+
+        classification = pymel.getClassification(attr.node().type())
+        if any(True for token in classification if 'utility' in token):
+            return False
+
+        return True
+
+    while not is_attr_interesting(attr):
+        attr = get_input_attr_from_output_attr(attr)
+    return attr

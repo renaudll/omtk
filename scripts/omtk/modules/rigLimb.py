@@ -67,7 +67,7 @@ class Limb(Module):
         # Create IK system
         if not isinstance(self.sysIK, self._CLASS_SYS_IK):
             self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
-        self.sysIK.name = self.name  # Hack
+        self.sysIK.name = '{0}_Ik'.format(self.name) # Hack
         self.sysIK.build(rig, constraint=False, **kwargs)
 
         self.sysIK.ctrl_ik.create_spaceswitch(rig, self.parent, default_name='World')
@@ -75,8 +75,8 @@ class Limb(Module):
 
         # Create FK system
         if not isinstance(self.sysFK, self._CLASS_SYS_FK):
-            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt)
-        self.sysFK.name = self.name  # Hack
+            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt[:-1])
+        self.sysFK.name = '{0}_Fk'.format(self.name) # Hack
         self.sysFK.build(rig, constraint=False, **kwargs)
 
         # Store the offset between the ik ctrl and it's joint equivalent.

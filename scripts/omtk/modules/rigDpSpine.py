@@ -262,6 +262,8 @@ class DpSpine(Module):
         return super(DpSpine, self).get_parent(parent)
 
     def get_pin_locations(self):
+        if not self.ctrl_fk_upp or not self.ctrl_fk_dwn:
+            return ()
         return (
             (self.ctrl_fk_upp.node, 'Chest'),
             (self.ctrl_fk_dwn.node, 'Cog')

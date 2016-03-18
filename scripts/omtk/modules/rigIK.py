@@ -200,7 +200,7 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
-    def build(self, rig, orient_ik_ctrl=True, constraint=False, *args, **kwargs):
+    def build(self, rig, ctrl_ik_orientation=None, constraint=False, *args, **kwargs):
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
@@ -258,8 +258,11 @@ class IK(Module):
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
         self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
-        if orient_ik_ctrl is True:
-            self.ctrl_ik.offset.setRotation(obj_e.getRotation(space='world'), space='world')
+
+        # Set ctrl_ik_orientation
+        if ctrl_ik_orientation is None:
+            ctrl_ik_orientation = obj_e.getRotation(space='world')
+        self.ctrl_ik.offset.setRotation(ctrl_ik_orientation, space='world')
 
         # Create CtrlIkSwivel
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):

@@ -494,6 +494,11 @@ def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
 
     return results
 
+def ray_cast_nearest(*args, **kwargs):
+    return next(iter(ray_cast(*args, **kwargs)), None)
+
+def ray_cast_farthest(*args, **kwargs):
+    return next(iter(reversed(ray_cast(*args, **kwargs))), None)
 
 # TODO: Benchmark performances
 def snap(obj_dst, obj_src):

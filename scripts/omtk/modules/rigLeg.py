@@ -42,25 +42,36 @@ class LegIk(IK):
         When holding/fetching the footroll pivots, we do not want to use their worldSpace transforms.
         :return: The reference worldSpace matrix to use when holding/fetching pivot positions.
         """
+        jnt_foot, jnt_toes, jnt_tip = self.input[self.iCtrlIndex:]
+        pos_foot = pymel.datatypes.Point(jnt_foot.getTranslation(space='world'))
+        pos_toes = pymel.datatypes.Point(jnt_toes.getTranslation(space='world'))
+
+        # We take in account that the foot is always flat on the floor.
+        axis_y = pymel.datatypes.Vector(0,1,0)
+        axis_z = pos_toes - pos_foot
+        axis_z.y = 0
+        axis_z.normalize()
+        axis_x = axis_y.cross(axis_z)
+        axis_x.normalize()
+
         pos = pymel.datatypes.Point(self.chain_jnt[self.iCtrlIndex].getTranslation(space='world'))
         tm = pymel.datatypes.Matrix(
-            1,0,0,0,
-            0,1,0,0,
-            0,0,1,0,
+            axis_x.x, axis_x.y, axis_x.z, 0,
+            axis_y.x, axis_y.y, axis_y.z, 0,
+            axis_z.x, axis_z.y, axis_z.z, 0,
             pos.x, pos.y, pos.z, 1
         )
         return tm
-
-        #return self.chain_jnt[0].getMatrix(worldSpace=True)
 
     def _get_recommended_pivot_front(self, tm_ref, pos_toes, pos_tip):
         """
         Determine recommended position using ray-cast from the toes.
         If the ray-cast fail, use the last joint position.
+        return: The recommended position as a world pymel.datatypes.Vector
         """
-        geometries = pymel.ls(type='mesh')
-        results = libRigging.ray_cast(pos_toes, pymel.datatypes.Vector(0, 0, 1), geometries)
-        pos = next(iter(results), None)
+        geometries = pymel.ls(type='mesh', noIntermediate=True)
+        dir = pymel.datatypes.Point(0, 0, 1) * tm_ref
+        pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
         if not pos:
             cmds.warning("Can't automatically solve FootRoll front pivot, using last joint as reference.")
             pos = pos_tip
@@ -73,6 +84,7 @@ class LegIk(IK):
         pos_relative.x = 0
         pos_relative.y = 0
         pos = pos_relative * tm_ref
+        pos.y = 0
 
         return pos
 
@@ -80,10 +92,11 @@ class LegIk(IK):
         """
         Determine recommended position using ray-cast from the toes.
         If the ray-cast fail, use the toes position.
+        return: The recommended position as a world pymel.datatypes.Vector
         """
-        geometries = pymel.ls(type='mesh')  # TODO: Use a property in the Rig class?
-        results = libRigging.ray_cast(pos_toes, pymel.datatypes.Vector(0, 0, -1), geometries)
-        pos = next(iter(results), None)
+        dir = pymel.datatypes.Point(0,0,-1) * tm_ref
+        geometries = pymel.ls(type='mesh', noIntermediate=True)  # TODO: Use a property in the Rig class?
+        pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
         if not pos:
             cmds.warning("Can't automatically solve FootRoll back pivot.")
             pos = pos_toes
@@ -93,6 +106,7 @@ class LegIk(IK):
         pos_relative.x = 0
         pos_relative.y = 0
         pos = pos_relative * tm_ref
+        pos.y = 0
 
         return pos
 
@@ -100,13 +114,16 @@ class LegIk(IK):
         """
         Determine recommended position using ray-cast from the toes.
         TODO: If the ray-case fail, use a specified default value.
+        return: The recommended position as a world pymel.datatypes.Vector
         """
-        geometries = pymel.ls(type='mesh')  # TODO: Use a property in the Rig class?
-        results = libRigging.ray_cast(pos_toes, pymel.datatypes.Vector(direction, 0, 0), geometries)
-        pos = next(iter(results), None)
+        geometries = pymel.ls(type='mesh', noIntermediate=True)  # TODO: Use a property in the Rig class?
+        dir = pymel.datatypes.Point(direction, 0, 0) * tm_ref
+        pos = libRigging.ray_cast_nearest(pos_toes, dir, geometries)
         if not pos:
             cmds.warning("Can't automatically solve FootRoll bank inn pivot.")
             pos = pos_toes
+
+        pos.y = 0
 
         return pos
 
@@ -116,7 +133,11 @@ class LegIk(IK):
                 self, len(self.chain_jnt)
             ))
 
-        super(LegIk, self).build(rig, orient_ik_ctrl=False, **kwargs)
+        # Compute ctrl_ik orientation
+        # Hack: Bypass pymel bug (see https://github.com/LumaPictures/pymel/issues/355)
+        ctrl_ik_orientation = pymel.datatypes.TransformationMatrix(self._get_reference_plane()).rotate
+
+        super(LegIk, self).build(rig, ctrl_ik_orientation=ctrl_ik_orientation, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
@@ -127,58 +148,57 @@ class LegIk(IK):
         pos_toes = pymel.datatypes.Point(jnt_toes.getTranslation(space='world'))
         pos_tip = pymel.datatypes.Point(jnt_tip.getTranslation(space='world'))
 
-
         # Resolve pivot locations
         tm_ref = self._get_reference_plane()
 
-        # Pivot Ankle
-        self.pivot_ankle = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotAnkle'))
-        if self.pivot_ankle_pos:
-            self.pivot_ankle.setTranslation(pymel.datatypes.Point(self.pivot_ankle_pos) * tm_ref, space='world')
-        else:
-            self.pivot_ankle.t.set(pos_toes)
-
-        # Pivot Front
-        self.pivot_front = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFront'))
-        if self.pivot_front_pos:
-            self.pivot_front.setTranslation(pymel.datatypes.Point(self.pivot_front_pos) * tm_ref, space='world')
-        else:
-            pos_pivot_front = self._get_recommended_pivot_front(tm_ref, pos_toes, pos_tip)
-            self.pivot_front.t.set(pos_pivot_front)
-            self.pivot_front.ty.set(0)
-
-        # Pivot Back
-        self.pivot_back = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotBack'))
-        if self.pivot_back_pos:
-            self.pivot_back.setTranslation(pymel.datatypes.Point(self.pivot_back_pos) * tm_ref, space='world')
-        else:
-            pos_pivot_back = self._get_recommended_pivot_back(tm_ref, pos_toes)
-            self.pivot_back.setTranslation(pos_pivot_back)
-            self.pivot_back.ty.set(0)
-
-        # Pivot Bank Inn
-        self.pivot_inn = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotInn'))
-        if self.pivot_inn_pos:
-            self.pivot_inn.setTranslation(pymel.datatypes.Point(self.pivot_inn_pos) * tm_ref, space='world')
-        else:
-            pos_pivot_inn = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=-1)
-            self.pivot_inn.t.set(pos_pivot_inn)
-            self.pivot_inn.ty.set(0)
-
-        # Pivot Bank Out
-        self.pivot_out = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotOut'))
-        if self.pivot_out_pos:
-            self.pivot_out.setTranslation(pymel.datatypes.Point(self.pivot_out_pos) * tm_ref, space='world')
-        else:
-            pos_pivot_out = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=1)
-            self.pivot_out.t.set(pos_pivot_out)
-            self.pivot_out.ty.set(0)
-
+        # Create pivots hierarchy
         root_footRoll = pymel.createNode('transform', name=nomenclature_rig.resolve('footRoll'))
+        self.pivot_ankle = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotAnkle'))
+        self.pivot_front = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFront'))
+        self.pivot_back = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotBack'))
+        self.pivot_inn = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotInn'))
+        self.pivot_out = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotOut'))
         chain_footroll = [root_footRoll, self.pivot_inn, self.pivot_out, self.pivot_back, self.pivot_front,
                           self.pivot_ankle]
         libRigging.create_hyerarchy(chain_footroll)
         chain_footroll[0].setParent(self.grp_rig)
+
+        # Align all pivots to the reference plane
+        root_footRoll.setMatrix(tm_ref)
+
+        # Set pivot Bank Inn
+        if self.pivot_inn_pos:
+            self.pivot_inn.setTranslation(pymel.datatypes.Point(self.pivot_inn_pos) * tm_ref, space='world')
+        else:
+            pos_pivot_inn = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=-1)
+            self.pivot_inn.setTranslation(pos_pivot_inn, space='world')
+
+        # Set pivot Bank Out
+        if self.pivot_out_pos:
+            self.pivot_out.setTranslation(pymel.datatypes.Point(self.pivot_out_pos) * tm_ref, space='world')
+        else:
+            pos_pivot_out = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=1)
+            self.pivot_out.setTranslation(pos_pivot_out, space='world')
+
+        # Set pivot Back
+        if self.pivot_back_pos:
+            self.pivot_back.setTranslation(pymel.datatypes.Point(self.pivot_back_pos) * tm_ref, space='world')
+        else:
+            pos_pivot_back = self._get_recommended_pivot_back(tm_ref, pos_toes)
+            self.pivot_back.setTranslation(pos_pivot_back, space='world')
+
+        # Set pivot Front
+        if self.pivot_front_pos:
+            self.pivot_front.setTranslation(pymel.datatypes.Point(self.pivot_front_pos) * tm_ref, space='world')
+        else:
+            pos_pivot_front = self._get_recommended_pivot_front(tm_ref, pos_toes, pos_tip)
+            self.pivot_front.setTranslation(pos_pivot_front, space='world')
+
+        # Set pivot Ankle
+        if self.pivot_ankle_pos:
+            self.pivot_ankle.setTranslation(pymel.datatypes.Point(self.pivot_ankle_pos) * tm_ref, space='world')
+        else:
+            self.pivot_ankle.setTranslation(pos_toes, space='world')
 
         # Create attributes
         attr_holder = self.ctrl_ik
@@ -262,6 +282,7 @@ class LegIk(IK):
         fn_can_delete = lambda x: isinstance(x, pymel.nodetypes.Constraint) and \
                                   not isinstance(x, pymel.nodetypes.PoleVectorConstraint)
         pymel.delete(filter(fn_can_delete, self._ik_handle.getChildren()))
+
         pymel.parentConstraint(self.pivot_ankle, self._ik_handle, maintainOffset=True)
 
         '''

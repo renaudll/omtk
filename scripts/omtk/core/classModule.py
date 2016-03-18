@@ -238,14 +238,26 @@ class Module(object):
                 self.globalScale = self.grp_rig.globalScale
 
         if parent and self.parent:
-            module = rig.get_module_by_input(self.parent)
-            if module:
-                desired_parent = module.get_parent(self.parent)
-                log.info("{0} will be parented to module {1}".format(self, module))
-                self.parent_to(desired_parent)
-            else:
-                log.warning("{0} parent is not in any module!".format(self))
-                self.parent_to(self.parent)
+            parent_obj = self.get_parent_obj(rig)
+            if parent_obj:
+                self.parent_to(parent_obj)
+
+    def get_parent_obj(self, rig):
+        """
+        :return: The object to act as the parent of the module if applicable.
+        """
+        if self.parent is None:
+            return None
+
+        module = rig.get_module_by_input(self.parent)
+        if module:
+            desired_parent = module.get_parent(self.parent)
+            if desired_parent:
+                log.info("{0} will be parented to module {1}, {2}".format(self, module, desired_parent))
+                return desired_parent
+
+        log.warning("{0} parent is not in any module!".format(self))
+        return self.parent
 
     def unbuild(self):
         """

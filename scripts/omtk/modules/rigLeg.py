@@ -63,14 +63,14 @@ class LegIk(IK):
         )
         return tm
 
-    def _get_recommended_pivot_front(self, tm_ref, pos_toes, pos_tip):
+    def _get_recommended_pivot_front(self, tm_ref, tm_ref_dir, pos_toes, pos_tip):
         """
         Determine recommended position using ray-cast from the toes.
         If the ray-cast fail, use the last joint position.
         return: The recommended position as a world pymel.datatypes.Vector
         """
         geometries = pymel.ls(type='mesh', noIntermediate=True)
-        dir = pymel.datatypes.Point(0, 0, 1) * tm_ref
+        dir = pymel.datatypes.Point(0, 0, 1) * tm_ref_dir
         pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
         if not pos:
             cmds.warning("Can't automatically solve FootRoll front pivot, using last joint as reference.")
@@ -88,13 +88,13 @@ class LegIk(IK):
 
         return pos
 
-    def _get_recommended_pivot_back(self, tm_ref, pos_toes):
+    def _get_recommended_pivot_back(self, tm_ref, tm_ref_dir, pos_toes):
         """
         Determine recommended position using ray-cast from the toes.
         If the ray-cast fail, use the toes position.
         return: The recommended position as a world pymel.datatypes.Vector
         """
-        dir = pymel.datatypes.Point(0,0,-1) * tm_ref
+        dir = pymel.datatypes.Point(0,0,-1) * tm_ref_dir
         geometries = pymel.ls(type='mesh', noIntermediate=True)  # TODO: Use a property in the Rig class?
         pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
         if not pos:
@@ -110,14 +110,14 @@ class LegIk(IK):
 
         return pos
 
-    def _get_recommended_pivot_bank(self, tm_ref, pos_toes, direction=1):
+    def _get_recommended_pivot_bank(self, tm_ref, tm_ref_dir, pos_toes, direction=1):
         """
         Determine recommended position using ray-cast from the toes.
         TODO: If the ray-case fail, use a specified default value.
         return: The recommended position as a world pymel.datatypes.Vector
         """
         geometries = pymel.ls(type='mesh', noIntermediate=True)  # TODO: Use a property in the Rig class?
-        dir = pymel.datatypes.Point(direction, 0, 0) * tm_ref
+        dir = pymel.datatypes.Point(direction, 0, 0) * tm_ref_dir
         pos = libRigging.ray_cast_nearest(pos_toes, dir, geometries)
         if not pos:
             cmds.warning("Can't automatically solve FootRoll bank inn pivot.")
@@ -150,6 +150,12 @@ class LegIk(IK):
 
         # Resolve pivot locations
         tm_ref = self._get_reference_plane()
+        tm_ref_dir = pymel.datatypes.Matrix(  # Used to compute raycast directions
+            tm_ref.a00, tm_ref.a01, tm_ref.a02, tm_ref.a03,
+            tm_ref.a10, tm_ref.a11, tm_ref.a12, tm_ref.a13,
+            tm_ref.a20, tm_ref.a21, tm_ref.a22, tm_ref.a23,
+            0, 0, 0, 1
+        )
 
         # Create pivots hierarchy
         root_footRoll = pymel.createNode('transform', name=nomenclature_rig.resolve('footRoll'))
@@ -170,28 +176,28 @@ class LegIk(IK):
         if self.pivot_inn_pos:
             self.pivot_inn.setTranslation(pymel.datatypes.Point(self.pivot_inn_pos) * tm_ref, space='world')
         else:
-            pos_pivot_inn = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=-1)
+            pos_pivot_inn = self._get_recommended_pivot_bank(tm_ref, tm_ref_dir, pos_toes, direction=-1)
             self.pivot_inn.setTranslation(pos_pivot_inn, space='world')
 
         # Set pivot Bank Out
         if self.pivot_out_pos:
             self.pivot_out.setTranslation(pymel.datatypes.Point(self.pivot_out_pos) * tm_ref, space='world')
         else:
-            pos_pivot_out = self._get_recommended_pivot_bank(tm_ref, pos_toes, direction=1)
+            pos_pivot_out = self._get_recommended_pivot_bank(tm_ref, tm_ref_dir, pos_toes, direction=1)
             self.pivot_out.setTranslation(pos_pivot_out, space='world')
 
         # Set pivot Back
         if self.pivot_back_pos:
             self.pivot_back.setTranslation(pymel.datatypes.Point(self.pivot_back_pos) * tm_ref, space='world')
         else:
-            pos_pivot_back = self._get_recommended_pivot_back(tm_ref, pos_toes)
+            pos_pivot_back = self._get_recommended_pivot_back(tm_ref, tm_ref_dir, pos_toes)
             self.pivot_back.setTranslation(pos_pivot_back, space='world')
 
         # Set pivot Front
         if self.pivot_front_pos:
             self.pivot_front.setTranslation(pymel.datatypes.Point(self.pivot_front_pos) * tm_ref, space='world')
         else:
-            pos_pivot_front = self._get_recommended_pivot_front(tm_ref, pos_toes, pos_tip)
+            pos_pivot_front = self._get_recommended_pivot_front(tm_ref, tm_ref_dir, pos_toes, pos_tip)
             self.pivot_front.setTranslation(pos_pivot_front, space='world')
 
         # Set pivot Ankle

@@ -75,7 +75,7 @@ class Limb(Module):
 
         # Create FK system
         if not isinstance(self.sysFK, self._CLASS_SYS_FK):
-            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt[:-1])
+            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt)
         self.sysFK.name = '{0}_Fk'.format(self.name) # Hack
         self.sysFK.build(rig, constraint=False, **kwargs)
 

@@ -49,6 +49,7 @@ class DpSpine(Module):
 
         self.jnt_squash_dwn = None
         self.jnt_squash_mid = None
+        self.enable_squash = True
 
     def validate(self):
         super(DpSpine, self).validate()
@@ -182,60 +183,61 @@ class DpSpine(Module):
         # Configure the squash
         # The standard in omtk is that if something need to stretch or squash, it need to be separated from the main hierarchy.
         #
+        #TODO : Keep in network
+        if self.enable_squash:
+            # Create the squash hierarchy
+            jnt_squash_dwn_name = nomenclature_jnt.rebuild(jnt_dwn.name()).resolve('squash')
+            self.jnt_squash_dwn = pymel.createNode('joint', name=jnt_squash_dwn_name)
+            self.jnt_squash_dwn.setParent(jnt_dwn)
+            self.jnt_squash_dwn.t.set(0,0,0)
+            self.jnt_squash_dwn.r.set(0,0,0)
+            self.jnt_squash_dwn.jointOrientX.set(0)
+            self.jnt_squash_dwn.jointOrientY.set(0)
+            self.jnt_squash_dwn.jointOrientZ.set(0)
 
-        # Create the squash hierarchy
-        jnt_squash_dwn_name = nomenclature_jnt.rebuild(jnt_dwn.name()).resolve('squash')
-        self.jnt_squash_dwn = pymel.createNode('joint', name=jnt_squash_dwn_name)
-        self.jnt_squash_dwn.setParent(jnt_dwn)
-        self.jnt_squash_dwn.t.set(0,0,0)
-        self.jnt_squash_dwn.r.set(0,0,0)
-        self.jnt_squash_dwn.jointOrientX.set(0)
-        self.jnt_squash_dwn.jointOrientY.set(0)
-        self.jnt_squash_dwn.jointOrientZ.set(0)
+            jnt_squash_mid_name = nomenclature_jnt.rebuild(jnt_mid.name()).resolve('squash')
+            self.jnt_squash_mid= pymel.createNode('joint', name=jnt_squash_mid_name)
+            self.jnt_squash_mid.setParent(jnt_mid)
+            self.jnt_squash_mid.t.set(0,0,0)
+            self.jnt_squash_mid.r.set(0,0,0)
+            self.jnt_squash_mid.jointOrientX.set(0)
+            self.jnt_squash_mid.jointOrientY.set(0)
+            self.jnt_squash_mid.jointOrientZ.set(0)
 
-        jnt_squash_mid_name = nomenclature_jnt.rebuild(jnt_mid.name()).resolve('squash')
-        self.jnt_squash_mid= pymel.createNode('joint', name=jnt_squash_mid_name)
-        self.jnt_squash_mid.setParent(jnt_mid)
-        self.jnt_squash_mid.t.set(0,0,0)
-        self.jnt_squash_mid.r.set(0,0,0)
-        self.jnt_squash_mid.jointOrientX.set(0)
-        self.jnt_squash_mid.jointOrientY.set(0)
-        self.jnt_squash_mid.jointOrientZ.set(0)
+            # Add squash amount attribute
+            squash_attr_name = 'squashAmount'
+            pymel.addAttr(self.grp_rig, longName=squash_attr_name, defaultValue=1.0)
+            attr_squash_amount = self.grp_rig.attr(squash_attr_name)
 
-        # Add squash amount attribute
-        squash_attr_name = 'squashAmount'
-        pymel.addAttr(self.grp_rig, longName=squash_attr_name, defaultValue=1.0)
-        attr_squash_amount = self.grp_rig.attr(squash_attr_name)
+            # Compute the squash
+            attr_stretch_u, attr_stretch_v, node_arc_length = libRigging.create_stretch_attr_from_nurbs_plane(sys_ribbon._ribbon_shape, v=0.5)
+            node_arc_length_transform = node_arc_length.getParent()
+            node_arc_length_transform .setParent(self.grp_rig)
+            attr_squash_raw = libRigging.create_squash_attr_simple(attr_stretch_u)
 
-        # Compute the squash
-        attr_stretch_u, attr_stretch_v, node_arc_length = libRigging.create_stretch_attr_from_nurbs_plane(sys_ribbon._ribbon_shape, v=0.5)
-        node_arc_length_transform = node_arc_length.getParent()
-        node_arc_length_transform .setParent(self.grp_rig)
-        attr_squash_raw = libRigging.create_squash_attr_simple(attr_stretch_u)
+            # Apply the global uniform scale
+            attr_squash_raw_scale = libRigging.create_utility_node('multiplyDivide', input1X=attr_squash_raw, input2X=self.globalScale).outputX
 
-        # Apply the global uniform scale
-        attr_squash_raw_scale = libRigging.create_utility_node('multiplyDivide', input1X=attr_squash_raw, input2X=self.globalScale).outputX
+            attr_squash = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw_scale], attributesBlender=attr_squash_amount).output
 
-        attr_squash = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw_scale], attributesBlender=attr_squash_amount).output
+            # Apply the squash
+            # Note that the squash on the first joint is hardcoded to 80%.
+            attr_squash_first_jnt = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw_scale], attributesBlender=0.8).output
+            pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleY)
+            pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleZ)
 
-        # Apply the squash
-        # Note that the squash on the first joint is hardcoded to 80%.
-        attr_squash_first_jnt = libRigging.create_utility_node('blendTwoAttr', input=[1.0, attr_squash_raw_scale], attributesBlender=0.8).output
-        pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleY)
-        pymel.connectAttr(attr_squash_first_jnt , self.jnt_squash_dwn.scaleZ)
+            pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleY)
+            pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleZ)
 
-        pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleY)
-        pymel.connectAttr(attr_squash , self.jnt_squash_mid.scaleZ)
+            # Finally, transfer the skin to the squash jnt
+            # TODO: Modify the skinCluster connections instead?
+            libSkinning.transfer_weights_replace(jnt_dwn, self.jnt_squash_dwn)
+            libSkinning.transfer_weights_replace(jnt_mid, self.jnt_squash_mid)
 
-        #Ensure global scale is working correctly
+                #Ensure global scale is working correctly
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleX)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleZ)
-
-        # Finally, transfer the skin to the squash jnt
-        # TODO: Modify the skinCluster connections instead?
-        libSkinning.transfer_weights_replace(jnt_dwn, self.jnt_squash_dwn)
-        libSkinning.transfer_weights_replace(jnt_mid, self.jnt_squash_mid)
 
     def unbuild(self):
         # Restore the original skin and remove the squash joints

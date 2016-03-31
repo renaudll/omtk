@@ -65,7 +65,7 @@ class Twistbone(Module):
         pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True)
 
         # Generate Subjoints
-        self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 4)
+        self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 3)
 
         #TODO : Use the nomeclature system to name the bones
         for i, sub_jnt in enumerate(self.subjnts):

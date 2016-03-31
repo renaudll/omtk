@@ -30,6 +30,15 @@ def transfer_rotation_to_joint_orient(obj):
     rotation_orig = OpenMaya.MEulerRotation()
     mfn.getRotation(rotation_orig)
     rotation_xyz = rotation_orig.reorder(OpenMaya.MEulerRotation.kXYZ)
+
+    if obj.rotateX.isLocked() or obj.rotateY.isLocked() or obj.rotateZ.isLocked():
+        pymel.warning("Can't transfer rotation to joint orient. {0} rotation is locked.".format(obj.name()))
+        return
+
+    if obj.jointOrientX.isLocked() or obj.jointOrientY.isLocked() or obj.jointOrientZ.isLocked():
+        pymel.warning("Can't transfer rotation to joint orient. {0} jointOrient is locked.".format(obj.name()))
+        return
+
     obj.jointOrientX.set(math.degrees(rotation_xyz.x))
     obj.jointOrientY.set(math.degrees(rotation_xyz.y))
     obj.jointOrientZ.set(math.degrees(rotation_xyz.z))
@@ -73,3 +82,14 @@ def mirror_jnts_r_to_l(**kwargs):
     jnts = sorted(pymel.ls('R_*_Jnt', type='joint') + pymel.ls('R_*_JEnd', type='joint'), key=libPymel.get_num_parents)
     for jnt in jnts:
         mirror_jnt(jnt, **kwargs)
+
+def freeze_selected_joints_rotation():
+    jnts = [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
+    for jnt in jnts:
+        if not isinstance(jnt, pymel.nodetypes.Joint):
+            pymel.warning("Skipping non-joint {0}".format(jnt))
+            continue
+
+        transfer_rotation_to_joint_orient(jnt)
+
+

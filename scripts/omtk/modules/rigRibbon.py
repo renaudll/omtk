@@ -19,6 +19,7 @@ class Ribbon(Module):
         self.num_subdiv = None
         self.num_ctrl = None
         self.ctrls = []
+        self.width = 1.0
 
     def build(self, rig, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, constraint=False, rot_fol=False, *args, **kwargs):
         super(Ribbon, self).build(rig, create_grp_anm=create_ctrl, *args, **kwargs)
@@ -31,7 +32,7 @@ class Ribbon(Module):
         plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
         if plane_tran is None:
             plane_name = nomenclature_rig.resolve("ribbonPlane")
-            plane_tran = libRigging.create_nurbs_plane_from_joints(self.chain_jnt, degree=degree)
+            plane_tran = libRigging.create_nurbs_plane_from_joints(self.chain_jnt, degree=degree, width=self.width)
             plane_tran.rename(plane_name)
             plane_tran.setParent(self.grp_rig)
         self._ribbon_shape = plane_tran.getShape()

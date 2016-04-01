@@ -2,7 +2,6 @@
 Various utility methods that help the job of laying out the skeletton for a Rig.
 """
 import pymel.core as pymel
-from omtk.animation import mirrorPose
 from omtk.libs import libPymel
 from maya import OpenMaya
 import math
@@ -12,6 +11,7 @@ def mirror_obj(obj_src, obj_dst=None):
     Method to mirror joints in behavior.
     This use existing joint and doesn't break the skin or the network associated with the joints.
     """
+    from omtk.animation import mirrorPose
     if obj_dst is None:
         obj_dst = mirrorPose.get_ctrl_friend(obj_src)
     if obj_src is obj_dst:
@@ -57,6 +57,7 @@ def transfer_rotation_to_joint_orient(obj):
 
 
 def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
+    from omtk.animation import mirrorPose
     obj_dst = mirrorPose.get_ctrl_friend(obj_src)
     if obj_dst is None:
         src_name = obj_src.name()
@@ -76,6 +77,7 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
     mirror_obj(obj_src, obj_dst)
     if handle_joint_orient and isinstance(obj_dst, pymel.nodetypes.Joint):
         transfer_rotation_to_joint_orient(obj_dst)
+        obj_dst.radius.set(obj_src)
     return obj_dst
 
 def mirror_selected_joints():

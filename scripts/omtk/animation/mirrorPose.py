@@ -2,7 +2,7 @@ import pymel.core as pymel
 from maya import cmds, OpenMaya
 from omtk.libs import libPython
 import libSerialization
-from omtk import classCtrl
+from omtk.modules import classCtrl
 
 
 class Axis:

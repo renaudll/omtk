@@ -184,7 +184,10 @@ class Hand(Module):
                 # grp_pos.setMatrix(jnt_phalange_inn.getMatrix(worldSpace=True))
                 # grp_pos.setParent(grp_pivot)
 
-                pymel.parentConstraint(grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True, skipRotate=['y','z'])
+                # Note that the cup system worked with a partial parentConstraint.
+                # I've remove it since it was breaking things.
+                # TODO: Make it work again.
+                pymel.parentConstraint(grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True)
 
                 # HACK: Override the phalanges rig parent
                 # sysFinger = metacarpals_sys[i]

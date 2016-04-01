@@ -27,9 +27,15 @@ def transfer_rotation_to_joint_orient(obj):
     This method bypass this limitation.
     """
     mfn = obj.__apimfn__()
+
     rotation_orig = OpenMaya.MEulerRotation()
     mfn.getRotation(rotation_orig)
     rotation_xyz = rotation_orig.reorder(OpenMaya.MEulerRotation.kXYZ)
+
+    # Apply existing jointOrient values
+    orientation_orig = OpenMaya.MEulerRotation()
+    mfn.getOrientation(orientation_orig)
+    rotation_xyz *= orientation_orig
 
     if obj.rotateX.isLocked() or obj.rotateY.isLocked() or obj.rotateZ.isLocked():
         pymel.warning("Can't transfer rotation to joint orient. {0} rotation is locked.".format(obj.name()))

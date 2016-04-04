@@ -171,11 +171,9 @@ class Twistbone(Module):
                 subjnt.lockInfluenceWeights.set(False)
 
         # TODO : Automatically skin the twistbones
-        num_shapes = skin_deformer.numOutputConnections()
-        for i in range(num_shapes):
-            shape = skin_deformer.outputShapeAtIndex(i)
-            print("Assign skin weights on {0}.".format(shape.name()))
-            libSkinning.transfer_weights_from_segments(shape, self.chain_jnt.start, self.subjnts)
+        for mesh in self.get_farest_affected_mesh():
+            print("Assign skin weights on {0}.".format(mesh.name()))
+            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
 
         '''
@@ -209,6 +207,10 @@ class Twistbone(Module):
 
         super(Twistbone, self).unbuild()
 
+        self.start = None
+        self.end = None
+
         # Remove twistbones
         if delete:
-            pymel.delete(self.subjnts)
+            pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
+            self.subjnts = None

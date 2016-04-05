@@ -386,7 +386,8 @@ class Rig(object):
             if key(jnt):
                 return jnt
 
-        raise Exception("Can't resolve head joint!")
+        #raise Warning("Can't resolve head joint!")
+        print "[classRigRoot.get_head_jnt] - Can't resolve head joint!"
 
     @libPython.memoized
     def get_jaw_jnt(self, key=None):
@@ -403,7 +404,8 @@ class Rig(object):
             if key(jnt):
                 return jnt
 
-        raise Exception("Can't resolve jaw joint!")
+        #raise Exception("Can't resolve jaw joint!")
+        print "[classRigRoot.get_jaw_jnt] - Can't resolve head joint!"
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):

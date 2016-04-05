@@ -27,6 +27,7 @@ class FK(Module):
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = None
+        self.sw_translate=False
 
     #
     # libSerialization implementation
@@ -62,7 +63,10 @@ class FK(Module):
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
         if create_spaceswitch:
-            self.ctrls[0].create_spaceswitch(rig, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
+            if self.sw_translate:
+                self.ctrls[0].create_spaceswitch(rig, self.parent, add_world=True)
+            else:
+                self.ctrls[0].create_spaceswitch(rig, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
 
         self.ctrls[0].setParent(self.grp_anm)
         for i in range(1, len(self.ctrls)):

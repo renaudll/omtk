@@ -77,7 +77,7 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
     mirror_obj(obj_src, obj_dst)
     if handle_joint_orient and isinstance(obj_dst, pymel.nodetypes.Joint):
         transfer_rotation_to_joint_orient(obj_dst)
-        obj_dst.radius.set(obj_src)
+        obj_dst.radius.set(obj_src.radius.get())
     return obj_dst
 
 def mirror_selected_joints():

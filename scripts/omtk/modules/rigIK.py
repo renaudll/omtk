@@ -284,9 +284,12 @@ class IK(Module):
         oAttHolder = self.ctrl_ik
         fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
         attInRatio = fnAddAttr(oAttHolder, longName='softIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
-                               maxValue=.5, k=True)
+                               maxValue=50, k=True)
         attInStretch = fnAddAttr(oAttHolder, longName='stretch', niceName='Stretch', defaultValue=0, minValue=0,
                                  maxValue=1.0, k=True)
+
+        # Adjust the ratio in percentage so animators understand that 0.03 is 3%
+        attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
 
         # Create and configure SoftIK solver
         rig_softIkNetwork = SoftIkNode()
@@ -301,10 +304,14 @@ class IK(Module):
         pymel.connectAttr(attr_distance, rig_softIkNetwork.inChainLength)
 
         # Constraint effector
+        # Note that we create an ikHandleTarget node so that we can hijack the system later.
+        # For example if we are building a Leg and want to footroll to influence the ikHandle.
+        self._ik_handle_target = pymel.createNode('transform', name=nomenclature_rig.resolve('ikHandleTarget'))
+        pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)
-        pymel.select(self.ctrl_ik, self._ikChainGrp, self._ik_handle)
+        pymel.select(self._ik_handle_target , self._ikChainGrp, self._ik_handle)
         pointConstraint = pymel.pointConstraint()
         pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
         pymel.select(pointConstraint)

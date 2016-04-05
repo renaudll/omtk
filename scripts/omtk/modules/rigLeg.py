@@ -387,9 +387,9 @@ class LegIk(IK):
         # Connect ikHandles to footroll
         fn_can_delete = lambda x: isinstance(x, pymel.nodetypes.Constraint) and \
                                   not isinstance(x, pymel.nodetypes.PoleVectorConstraint)
-        pymel.delete(filter(fn_can_delete, self._ik_handle.getChildren()))
+        pymel.delete(filter(fn_can_delete, self._ik_handle_target.getChildren()))
 
-        pymel.parentConstraint(self.pivot_toes_heel, self._ik_handle, maintainOffset=True)
+        pymel.parentConstraint(self.pivot_toes_heel, self._ik_handle_target, maintainOffset=True)
 
         '''
         # Constraint swivel to ctrl_ik

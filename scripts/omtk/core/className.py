@@ -73,12 +73,25 @@ class BaseName(object):
             return name + str(i)
         return name
 
+    def _is_side_l(self, token):
+        token_lower = token.lower()
+        return any(True for pattern in self.side_l_tokens if token_lower == pattern.lower())
+
+    def _is_side_r(self, token):
+        token_lower = token.lower()
+        return any(True for pattern in self.side_r_tokens if token_lower == pattern.lower())
+
+    def get_tokens(self):
+        """
+        :return: All token without the side tokens.
+        """
+        return [token for token in self.tokens if not self._is_side_l(token) and not self._is_side_r(token)]
+
     def get_side(self):
         for token in self.tokens:
-            token_lower = token.lower()
-            if any(True for pattern in self.side_l_tokens if token_lower == pattern.lower()):
+            if self._is_side_l(token):
                 return "l"
-            elif any(True for pattern in self.side_r_tokens if token_lower == pattern.lower()):
+            elif self._is_side_r(token):
                 return "r"
         return None
 

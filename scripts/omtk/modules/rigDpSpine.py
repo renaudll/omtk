@@ -36,6 +36,7 @@ class DpSpine(Module):
     Spine setup similar to dpAutoRig.
     Note that the spline ctrls orientation follow the world axis by default.
     """
+    IS_SIDE_SPECIFIC = False
     _CLASS_CTRL_IK = Ctrl_DpSpine_IK
     _CLASS_CTRL_FK = Ctrl_DpSpine_FK
 

@@ -20,7 +20,7 @@ class Doritos(classModule.Module):
     _ATTR_NAME_SENSITIVITY_TY = 'sensitivityY'
     _ATTR_NAME_SENSITIVITY_TZ = 'sensitivityZ'
 
-    ui_show = False
+    SHOW_IN_UI = False
 
     def __init__(self, *args, **kwargs):
         super(Doritos, self).__init__(*args, **kwargs)
@@ -36,6 +36,7 @@ class Doritos(classModule.Module):
     def unbuild(self):
         super(Doritos, self).unbuild()
         # TODO: Maybe hold and fetch the senstivity? Will a doritos will ever be serialzied?
+        self._doritos_stack = None
         self._follicle = None
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
@@ -110,7 +111,8 @@ class Doritos(classModule.Module):
         layer_fol_name = nomenclature_rig.resolve('doritosFol')
         layer_fol = stack.add_layer()
         layer_fol.rename(layer_fol_name)
-        layer_fol.setParent(self.grp_rig)
+        #layer_fol.setParent(self.grp_rig)
+
         self._follicle = layer_fol
 
         fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, pos_ref)

@@ -307,6 +307,7 @@ class IK(Module):
         # Note that we create an ikHandleTarget node so that we can hijack the system later.
         # For example if we are building a Leg and want to footroll to influence the ikHandle.
         self._ik_handle_target = pymel.createNode('transform', name=nomenclature_rig.resolve('ikHandleTarget'))
+        self._ik_handle_target.setParent(self.grp_rig)
         pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX

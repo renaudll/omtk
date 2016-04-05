@@ -24,7 +24,7 @@ class LegIk(IK):
     This allow us to ensure the foot stay fixed when the 'Ankle Side' attribute is used.
     """
     _CLASS_CTRL_IK = CtrlIkLeg
-    ui_show = False
+    SHOW_IN_UI = False
 
     BACK_ROTX_LONGNAME = 'rollBack'
     BACK_ROTX_NICENAME = 'Back Roll'

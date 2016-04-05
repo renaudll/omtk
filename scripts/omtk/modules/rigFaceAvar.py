@@ -127,7 +127,7 @@ class AbstractAvar(classModule.Module):
     AVAR_NAME_PITCH = 'avar_pt'
     AVAR_NAME_ROLL = 'avar_rl'
 
-    ui_show = False
+    SHOW_IN_UI = False
 
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
@@ -289,7 +289,7 @@ class AbstractAvar(classModule.Module):
         if ref_tm is None:
             ref_tm = self.get_ctrl_tm()
 
-        self._sys_doritos = rigDoritos.Doritos(self.jnts)
+        self._sys_doritos = rigDoritos.Doritos(self.jnts, name=self.name)
         self._sys_doritos.build(rig, ctrl_tm=ref_tm, obj_mesh=obj_mesh)
         self._sys_doritos.grp_rig.setParent(self.grp_rig)
 
@@ -367,7 +367,7 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
     _CLS_CTRL = CtrlFaceMicro
-    ui_show = True
+    SHOW_IN_UI= True
 
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
         """
@@ -453,7 +453,7 @@ class AvarFollicle(AvarSimple):
     _ATTR_NAME_U_MULT = 'uMultiplier'
     _ATTR_NAME_V_MULT = 'vMultiplier'
 
-    ui_show = False
+    SHOW_IN_UI = False
 
     def __init__(self, *args, **kwargs):
         super(AvarFollicle, self).__init__(*args, **kwargs)

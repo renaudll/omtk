@@ -353,7 +353,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self._fill_widget_influences_recursive(self.treeWidget_jnts.invisibleRootItem(), jnt)
 
         self.refresh_ui_jnts()
-        self.treeWidget_jnts.expandAll()
 
     def refresh_ui_jnts(self, query_regex=None):
         if query_regex is None:
@@ -378,6 +377,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 if flags & QtCore.Qt.ItemIsSelectable: #Make selectable
                     flags ^= QtCore.Qt.ItemIsSelectable
                     qt_item.setFlags(flags)
+
+        self.treeWidget_jnts.expandAll()
 
     #
     # Events
@@ -537,7 +538,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def on_btn_add_pressed(self):
         if self.treeWidget_jnts.selectedItems():
             menu = QtGui.QMenu()
-            cls_name = [cls.__name__ for cls in libPython.get_sub_classes(classModule.Module) if cls.ui_show]
+            cls_name = [cls.__name__ for cls in libPython.get_sub_classes(classModule.Module) if cls.SHOW_IN_UI]
             for name in sorted(cls_name):
                 cls_name = name
                 action = menu.addAction(cls_name)

@@ -150,6 +150,11 @@ class Rig(object):
             raise Exception("Cannot resolve class name '{0}'".format(cls_name))
 
         instance = cls(*args, **kwargs)
+
+        # Resolve name to use
+        default_name = instance.get_default_name(self)
+        instance.name = default_name
+
         self.modules.append(instance)
         return instance
 

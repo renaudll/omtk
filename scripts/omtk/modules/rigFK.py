@@ -29,6 +29,18 @@ class FK(Module):
         self.ctrls = None
         self.sw_translate=False
 
+    def get_default_name(self, rig):
+        ref = next(iter(self.chain), None)
+        if ref:
+            old_nomenclature = rig.nomenclature(ref.nodeName())
+            new_nomenclature = rig.nomenclature()
+            new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
+            if self.IS_SIDE_SPECIFIC:
+                side = old_nomenclature.get_side()
+                if side:
+                    new_nomenclature.add_prefix(side)
+            return new_nomenclature.resolve()
+
     #
     # libSerialization implementation
     #

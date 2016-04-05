@@ -107,6 +107,7 @@ class Hand(Module):
             if jnt_metacarpal:
                 if meta_index >= len(self.fk_sys_metacarpals):
                     ctrl_meta = rigFK.FK([jnt_metacarpal])
+                    ctrl_meta.name = ctrl_meta.get_default_name(rig)
                     self.fk_sys_metacarpals.append(ctrl_meta)
 
                 ctrl_meta = self.fk_sys_metacarpals[meta_index]
@@ -117,6 +118,7 @@ class Hand(Module):
             # Rig fingers
             if not self.sysFingers or i >= len(self.sysFingers):
                 sysFinger = rigFK.AdditiveFK(jnts_phalanges)
+                sysFinger.name = sysFinger.get_default_name(rig)
                 self.sysFingers.append(sysFinger)
 
             sysFinger = self.sysFingers[i]

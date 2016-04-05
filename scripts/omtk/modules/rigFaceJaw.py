@@ -39,6 +39,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
     This avar is not designed to use any surface.
     """
     _CLS_CTRL = CtrlJaw
+    IS_SIDE_SPECIFIC = False
 
     def get_ctrl_tm(self):
         """

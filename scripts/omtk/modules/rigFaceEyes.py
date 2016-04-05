@@ -28,6 +28,8 @@ class CtrlEye(BaseCtrl):
 
 
 class FaceEyes(rigFaceAvarGrps.ModuleFace):
+    IS_SIDE_SPECIFIC = False
+
     def __init__(self, *args, **kwargs):
         """
         Pre-declare here all the used members.

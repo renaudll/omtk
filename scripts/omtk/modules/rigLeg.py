@@ -15,6 +15,14 @@ class CtrlIkLeg(rigIK.CtrlIk):
 
 
 class LegIk(IK):
+    """
+    Create an IK chain with an embeded footroll.
+    Two modes are supported:
+    1) leg_upp, leg_low, leg_foot, leg_toes, leg_tip (classical setup)
+    2) leg_upp, leg_low, leg_foot, leg_heel, leg_toes, leg_tip (advanced setup)
+    Setup #2 is more usefull if the character have shoes.
+    This allow us to ensure the foot stay fixed when the 'Ankle Side' attribute is used.
+    """
     _CLASS_CTRL_IK = CtrlIkLeg
     ui_show = False
 
@@ -176,11 +184,19 @@ class LegIk(IK):
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
-        jnt_foot, jnt_heel, jnt_toes, jnt_tip = self._chain_ik[self.iCtrlIndex:]
+        jnts = self._chain_ik[self.iCtrlIndex:]
+        num_jnts = len(jnts)
+        if num_jnts == 4:
+            jnt_foot, jnt_heel, jnt_toes, jnt_tip = jnts
+        elif num_jnts == 3:
+            jnt_foot, jnt_toes, jnt_tip = jnts
+            jnt_heel = None
+        else:
+            raise Exception("Unexpected number of joints after the limb. Expected 3 or 4, got {0}".format(num_jnts))
 
         # Create FootRoll (chain?)
         pos_foot = pymel.datatypes.Point(jnt_foot.getTranslation(space='world'))
-        pos_heel = pymel.datatypes.Point(jnt_heel.getTranslation(space='world'))
+        pos_heel = pymel.datatypes.Point(jnt_heel.getTranslation(space='world')) if jnt_heel else None
         pos_toes = pymel.datatypes.Point(jnt_toes.getTranslation(space='world'))
         pos_tip = pymel.datatypes.Point(jnt_tip.getTranslation(space='world'))
 
@@ -231,7 +247,12 @@ class LegIk(IK):
         if self.pivot_toes_heel_pos:
             pos_pivot_heel = pymel.datatypes.Point(self.pivot_toes_heel_pos) * tm_ref
         else:
-            pos_pivot_heel = pos_heel
+            if jnt_heel:
+                pos_pivot_heel = pos_heel
+            else:
+                pos_pivot_heel = pymel.datatypes.Point(pos_foot)
+                pos_pivot_heel.y = 0
+
 
         #
         # Build Setup
@@ -340,21 +361,23 @@ class LegIk(IK):
         pymel.connectAttr(attr_inn_ankle_rotz, self.pivot_toes_heel.rotateZ)
         pymel.connectAttr(attr_inn_toes_roty, self.pivot_foot_ankle.rotateY)
 
-        # Create ikHandles
-        ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_heel, solver='ikSCsolver')
+        # Create ikHandles and parent them
+        # Note that we are directly parenting them so the 'Preserve Child Transform' of the translate tool still work.
+        if jnt_heel:
+            ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_heel, solver='ikSCsolver')
+        else:
+            ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_toes, solver='ikSCsolver')
         ikHandle_foot.rename(nomenclature_rig.resolve('ikHandle', 'foot'))
         ikHandle_foot.setParent(self.grp_rig)
-        ikHandle_heel, ikEffector_foot = pymel.ikHandle(startJoint=jnt_heel, endEffector=jnt_toes, solver='ikSCsolver')
-        ikHandle_heel.rename(nomenclature_rig.resolve('ikHandle', 'heel'))
-        ikHandle_heel.setParent(self.grp_rig)
+        ikHandle_foot.setParent(self.pivot_toes_heel)
+        if jnt_heel:
+            ikHandle_heel, ikEffector_foot = pymel.ikHandle(startJoint=jnt_heel, endEffector=jnt_toes, solver='ikSCsolver')
+            ikHandle_heel.rename(nomenclature_rig.resolve('ikHandle', 'heel'))
+            ikHandle_heel.setParent(self.grp_rig)
+            ikHandle_heel.setParent(self.pivot_foot_front)
         ikHandle_toes, ikEffector_toes = pymel.ikHandle(startJoint=jnt_toes, endEffector=jnt_tip, solver='ikSCsolver')
         ikHandle_toes.rename(nomenclature_rig.resolve('ikHandle', 'toes'))
         ikHandle_toes.setParent(self.grp_rig)
-
-        # Parent ikHandlers
-        # Note that we are directly parenting them so the 'Preserve Child Transform' of the translate tool still work.
-        ikHandle_foot.setParent(self.pivot_toes_heel)
-        ikHandle_heel.setParent(self.pivot_foot_front)
         ikHandle_toes.setParent(self.pivot_foot_heel)
 
         # Hack: Re-constraint foot ikhandle
@@ -414,8 +437,8 @@ class Leg(rigLimb.Limb):
         super(Leg, self).validate()
 
         num_inputs = len(self.input)
-        if num_inputs != 6:
-            raise Exception("Expected 6 joints, got {0}".format(num_inputs))
+        if num_inputs < 5 or num_inputs > 6:
+            raise Exception("Expected 5 or 6 joints, got {0}".format(num_inputs))
 
         return True
 

@@ -260,7 +260,7 @@ class LegIk(IK):
         attr_inn_roll_ankle = libAttr.addAttr(attr_holder, longName='rollAnkle', k=True)
         attr_inn_roll_front = libAttr.addAttr(attr_holder, longName='rollFront', k=True)
         attr_inn_roll_back = libAttr.addAttr(attr_holder, longName='rollBack', k=True)
-        attr_inn_heel_yaw = libAttr.addAttr(attr_holder, longName='heelSpin', k=True)
+        attr_inn_heel_yaw = libAttr.addAttr(attr_holder, longName='footTwist', k=True)
         #attr_inn_heel_roll = libAttr.addAttr(attr_holder, longName='rollHeel', k=True)
 
         attr_roll_auto_pos = libRigging.create_utility_node('condition', operation=2, firstTerm=attr_inn_roll_auto,

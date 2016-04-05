@@ -4,7 +4,10 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
-from omtk.libs import libRigging, libAttr, libFormula
+from omtk.libs import libRigging
+from omtk.libs import libAttr
+from omtk.libs import libFormula
+from omtk.libs import libPymel
 
 class CtrlIk(BaseCtrl):
     kAttrName_State = 'ikFk'
@@ -233,7 +236,8 @@ class IK(Module):
         obj_e = self._chain_ik[index_hand]
 
         # Compute chain length
-        self.chain_length = self.chain.length()
+        self.chain_length = libPymel.PyNodeChain(self.chain[:self.iCtrlIndex+1]).length()
+        #self.chain_length = self.chain.length()
 
         # Compute swivel position
         p3SwivelPos = self.calc_swivel_pos()
@@ -308,21 +312,22 @@ class IK(Module):
         pymel.connectAttr(attOutRatio, weight_inn)
         pymel.connectAttr(attOutRatioInv, weight_out)
 
-        # Constraint joints stretch
-        attOutStretch = rig_softIkNetwork.outStretch
-        attr_joint_stretch = libRigging.create_utility_node('multiplyDivide',
-                                                            input1X=rig_softIkNetwork.outStretch,
-                                                            input2X=self.grp_rig.globalScale).outputX
-        num_jnts = len(self._chain_ik)
-        for i in range(1, num_jnts):
+        # Connect global scale
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sx)
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sy)
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sz)
+
+        # Connect stretch
+        for i in range(1, self.iCtrlIndex+1):
             obj = self._chain_ik[i]
-            pymel.connectAttr(
-                libRigging.create_utility_node('multiplyDivide',
-                                               input1X=attr_joint_stretch,
-                                               input1Y=attr_joint_stretch,
-                                               input1Z=attr_joint_stretch,
-                                               input2=obj.t.get()).output,
-                obj.t, force=True)
+            util_get_t = libRigging.create_utility_node('multiplyDivide',
+                                               input1X=rig_softIkNetwork.outStretch,
+                                               input1Y=rig_softIkNetwork.outStretch,
+                                               input1Z=rig_softIkNetwork.outStretch,
+                                               input2=obj.t.get())
+            pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
+            pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
+            pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
 
         # Connect rig -> anm
         pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)

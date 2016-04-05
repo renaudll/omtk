@@ -1,5 +1,6 @@
 import pymel.core as pymel
 from maya import OpenMaya
+from maya import cmds
 from omtk.libs import libRigging
 
 def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):

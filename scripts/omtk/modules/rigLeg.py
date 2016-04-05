@@ -16,8 +16,28 @@ class CtrlIkLeg(rigIK.CtrlIk):
 
 class LegIk(IK):
     _CLASS_CTRL_IK = CtrlIkLeg
-
     ui_show = False
+
+    BACK_ROTX_LONGNAME = 'rollBack'
+    BACK_ROTX_NICENAME = 'Back Roll'
+    BACK_ROTY_LONGNAME = 'backTwist'
+    BACK_ROTY_NICENAME = 'Back Twist'
+
+    HEEL_ROTY_LONGNAME = 'footTwist'
+    HEEL_ROTY_NICENAME = 'Heel Twist'
+
+    ANKLE_ROTX_LONGNAME = 'rollAnkle'
+    ANKLE_ROTX_NICENAME = 'Ankle Roll'
+    ANKLE_ROTZ_LONGNAME = 'heelSpin'
+    ANKLE_ROTZ_NICENAME = 'Ankle Side'
+
+    TOES_ROTY_LONGNAME = 'toesTwist'
+    TOES_ROTY_NICENAME = 'Toes Twist'
+
+    FRONT_ROTX_LONGNAME = 'rollFront'
+    FRONT_ROTX_NICENAME = 'Front Roll'
+    FRONT_ROTY_LONGNAME = 'frontTwist'
+    FRONT_ROTY_NICENAME = 'Front Twist'
 
     """
     A standard footroll that remember it's pivot when building/unbuilding.
@@ -26,28 +46,28 @@ class LegIk(IK):
     def __init__(self, *args, **kwargs):
         super(LegIk, self).__init__(*args, **kwargs)
 
-        self.pivot_heel = None
-        self.pivot_heelfloor = None
-        self.pivot_ankle = None
-        self.pivot_front = None
-        self.pivot_back = None
-        self.pivot_inn = None
-        self.pivot_out = None
+        self.pivot_foot_heel = None
+        self.pivot_toes_heel = None
+        self.pivot_toes_ankle = None
+        self.pivot_foot_front = None
+        self.pivot_foot_back = None
+        self.pivot_foot_inn = None
+        self.pivot_foot_out = None
 
-        self.pivot_heel_pos = None
-        self.pivot_heelfloor_pos = None
-        self.pivot_ankle_pos = None
-        self.pivot_front_pos = None
-        self.pivot_back_pos = None
-        self.pivot_inn_pos = None
-        self.pivot_out_pos = None
+        self.pivot_foot_heel_pos = None
+        self.pivot_toes_heel_pos = None
+        self.pivot_toes_ankle_pos = None
+        self.pivot_foot_front_pos = None
+        self.pivot_foot_back_pos = None
+        self.pivot_foot_inn_pos = None
+        self.pivot_foot_out_pos = None
 
     def _get_reference_plane(self):
         """
         When holding/fetching the footroll pivots, we do not want to use their worldSpace transforms.
         :return: The reference worldSpace matrix to use when holding/fetching pivot positions.
         """
-        jnt_foot, jnt_toes, jnt_tip = self.input[self.iCtrlIndex:]
+        jnt_foot, jnt_heel, jnt_toes, jnt_tip = self.input[self.iCtrlIndex:]
         pos_foot = pymel.datatypes.Point(jnt_foot.getTranslation(space='world'))
         pos_toes = pymel.datatypes.Point(jnt_toes.getTranslation(space='world'))
 
@@ -148,11 +168,6 @@ class LegIk(IK):
         return pos
 
     def build(self, rig, attr_holder=None, **kwargs):
-        if len(self.chain_jnt) != 5:
-            raise Exception("Unexpected input count for {0}. Expected 5, got {1}.".format(
-                self, len(self.chain_jnt)
-            ))
-
         # Compute ctrl_ik orientation
         # Hack: Bypass pymel bug (see https://github.com/LumaPictures/pymel/issues/355)
         ctrl_ik_orientation = pymel.datatypes.TransformationMatrix(self._get_reference_plane()).rotate
@@ -161,10 +176,11 @@ class LegIk(IK):
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
-        jnt_foot, jnt_toes, jnt_tip = self._chain_ik[self.iCtrlIndex:]
+        jnt_foot, jnt_heel, jnt_toes, jnt_tip = self._chain_ik[self.iCtrlIndex:]
 
         # Create FootRoll (chain?)
         pos_foot = pymel.datatypes.Point(jnt_foot.getTranslation(space='world'))
+        pos_heel = pymel.datatypes.Point(jnt_heel.getTranslation(space='world'))
         pos_toes = pymel.datatypes.Point(jnt_toes.getTranslation(space='world'))
         pos_tip = pymel.datatypes.Point(jnt_tip.getTranslation(space='world'))
 
@@ -177,102 +193,108 @@ class LegIk(IK):
             0, 0, 0, 1
         )
 
-        # Create pivots hierarchy
-        root_footRoll = pymel.createNode('transform', name=nomenclature_rig.resolve('footRoll'))
-        self.pivot_heelfloor = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotHeelFloor'))
-        self.pivot_ankle = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotAnkle'))
-        self.pivot_front = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFront'))
-        self.pivot_back = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotBack'))
-        self.pivot_inn = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotInn'))
-        self.pivot_out = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotOut'))
-        self.pivot_heel = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotHeel'))
-        chain_footroll = [root_footRoll, self.pivot_inn, self.pivot_out, self.pivot_back, self.pivot_heelfloor, self.pivot_front,
-                          self.pivot_ankle, self.pivot_heel]
-        libRigging.create_hyerarchy(chain_footroll)
-        chain_footroll[0].setParent(self.grp_rig)
-
-        # Align all pivots to the reference plane
-        root_footRoll.setMatrix(tm_ref)
+        #
+        # Resolve pivot positions
+        #
 
         # Resolve pivot inn
-        if self.pivot_inn_pos:
-            pos_pivot_inn = pymel.datatypes.Point(self.pivot_inn_pos) * tm_ref
+        if self.pivot_foot_inn_pos:
+            pos_pivot_inn = pymel.datatypes.Point(self.pivot_foot_inn_pos) * tm_ref
         else:
             pos_pivot_inn = self._get_recommended_pivot_bank(tm_ref, tm_ref_dir, pos_toes, direction=-1)
 
         # Resolve pivot bank out
-        if self.pivot_out_pos:
-            pos_pivot_out = pymel.datatypes.Point(self.pivot_out_pos) * tm_ref
+        if self.pivot_foot_out_pos:
+            pos_pivot_out = pymel.datatypes.Point(self.pivot_foot_out_pos) * tm_ref
         else:
             pos_pivot_out = self._get_recommended_pivot_bank(tm_ref, tm_ref_dir, pos_toes, direction=1)
 
         # Resolve pivot Back
-        if self.pivot_back_pos:
-            pos_pivot_back = pymel.datatypes.Point(self.pivot_back_pos) * tm_ref
+        if self.pivot_foot_back_pos:
+            pos_pivot_back = pymel.datatypes.Point(self.pivot_foot_back_pos) * tm_ref
         else:
             pos_pivot_back = self._get_recommended_pivot_back(tm_ref, tm_ref_dir, pos_toes)
 
         # Set pivot Front
-        if self.pivot_front_pos:
-            pos_pivot_front = pymel.datatypes.Point(self.pivot_front_pos) * tm_ref
+        if self.pivot_foot_front_pos:
+            pos_pivot_front = pymel.datatypes.Point(self.pivot_foot_front_pos) * tm_ref
         else:
             pos_pivot_front = self._get_recommended_pivot_front(tm_ref, tm_ref_dir, pos_toes, pos_tip)
 
         # Set pivot Ankle
-        if self.pivot_ankle_pos:
-            pos_pivot_ankle = pymel.datatypes.Point(self.pivot_ankle_pos) * tm_ref
+        if self.pivot_toes_ankle_pos:
+            pos_pivot_ankle = pymel.datatypes.Point(self.pivot_toes_ankle_pos) * tm_ref
         else:
             pos_pivot_ankle = pos_toes
 
         # Set pivot Heel floor
-        if self.pivot_heelfloor_pos:
-            pos_pivot_heel = pymel.datatypes.Point(self.pivot_heelfloor_pos) * tm_ref
+        if self.pivot_toes_heel_pos:
+            pos_pivot_heel = pymel.datatypes.Point(self.pivot_toes_heel_pos) * tm_ref
         else:
-            pos_pivot_heel = self._get_recommended_pivot_heelfloor(pos_foot)
+            pos_pivot_heel = pos_heel
 
-        # Set pivot Bank Inn
-        self.pivot_inn.setTranslation(pos_pivot_inn, space='world')
+        #
+        # Build Setup
+        #
 
-        # Set pivot Bank Out
-        self.pivot_out.setTranslation(pos_pivot_out, space='world')
+        root_footRoll = pymel.createNode('transform', name=nomenclature_rig.resolve('footRoll'))
 
-        # Set pivot Back
-        self.pivot_back.setTranslation(pos_pivot_back, space='world')
+        # Align all pivots to the reference plane
+        root_footRoll.setMatrix(tm_ref)
 
-        # Set pivot Heelfloor
-        self.pivot_heelfloor.setTranslation(pos_pivot_heel, space='world')
+        # Create pivots hierarchy
+        self.pivot_toes_heel = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotToesHeel'))
+        self.pivot_toes_ankle = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotToesAnkle'))
+        self.pivot_foot_ankle = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootAnkle'))
+        self.pivot_foot_front = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootFront'))
+        self.pivot_foot_back = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootBack'))
+        self.pivot_foot_inn = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootBankInn'))
+        self.pivot_foot_out = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootBankOut'))
+        self.pivot_foot_heel = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootHeel'))
 
-        # Set pivot Front
-        self.pivot_front.setTranslation(pos_pivot_front, space='world')
+        chain_footroll = [
+            root_footRoll,
+            self.pivot_foot_ankle,
+            self.pivot_foot_inn,
+            self.pivot_foot_out,
+            self.pivot_foot_back,
+            self.pivot_foot_heel,
+            self.pivot_foot_front,
+            self.pivot_toes_ankle,
+            self.pivot_toes_heel
+        ]
+        libRigging.create_hyerarchy(chain_footroll)
+        chain_footroll[0].setParent(self.grp_rig)
 
-        # Set pivot Ankle
-        self.pivot_ankle.setTranslation(pos_pivot_ankle, space='world')
-
-        # Set pivot heel
-        self.pivot_heel.setTranslation(pos_pivot_heel, space='world')
-
+        self.pivot_foot_ankle.setTranslation(pos_pivot_ankle, space='world')
+        self.pivot_foot_inn.setTranslation(pos_pivot_inn, space='world')
+        self.pivot_foot_out.setTranslation(pos_pivot_out, space='world')
+        self.pivot_foot_back.setTranslation(pos_pivot_back, space='world')
+        self.pivot_foot_heel.setTranslation(pos_pivot_heel, space='world')
+        self.pivot_foot_front.setTranslation(pos_pivot_front, space='world')
+        self.pivot_toes_ankle.setTranslation(pos_pivot_ankle, space='world')
+        self.pivot_toes_heel.setTranslation(pos_pivot_heel, space='world')
 
         # Create attributes
         attr_holder = self.ctrl_ik
+        libAttr.addAttr_separator(attr_holder, 'footRoll', niceName='Foot Roll')
         attr_inn_roll_auto = libAttr.addAttr(attr_holder, longName='rollAuto', k=True)
-        attr_inn_roll_auto_threshold = libAttr.addAttr(attr_holder, longName='rollAutoThreshold', k=True, defaultValue=45)
+        attr_inn_roll_auto_threshold = libAttr.addAttr(attr_holder, longName='rollAutoThreshold', k=True, defaultValue=25)
         attr_inn_bank = libAttr.addAttr(attr_holder, longName='bank', k=True)
-        attr_inn_roll_ankle = libAttr.addAttr(attr_holder, longName='rollAnkle', k=True)
-        attr_inn_roll_front = libAttr.addAttr(attr_holder, longName='rollFront', k=True)
-        attr_inn_roll_back = libAttr.addAttr(attr_holder, longName='rollBack', k=True)
-        attr_inn_heel_yaw = libAttr.addAttr(attr_holder, longName='footTwist', k=True)
-        #attr_inn_heel_roll = libAttr.addAttr(attr_holder, longName='rollHeel', k=True)
+        attr_inn_ankle_rotz   = libAttr.addAttr(attr_holder, longName=self.ANKLE_ROTZ_LONGNAME, niceName=self.ANKLE_ROTZ_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
+        attr_inn_back_rotx   = libAttr.addAttr(attr_holder, longName=self.BACK_ROTX_LONGNAME, niceName=self.BACK_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=0)
+        attr_inn_ankle_rotx  = libAttr.addAttr(attr_holder, longName=self.ANKLE_ROTX_LONGNAME, niceName=self.ANKLE_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=90)
+        attr_inn_front_rotx  = libAttr.addAttr(attr_holder, longName=self.FRONT_ROTX_LONGNAME, niceName=self.FRONT_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=90)
+        attr_inn_back_roty  = libAttr.addAttr(attr_holder, longName=self.BACK_ROTY_LONGNAME, niceName=self.BACK_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
+        attr_inn_heel_roty  = libAttr.addAttr(attr_holder, longName=self.HEEL_ROTY_LONGNAME, niceName=self.HEEL_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
+        attr_inn_toes_roty = libAttr.addAttr(attr_holder, longName=self.TOES_ROTY_LONGNAME, niceName=self.TOES_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
+        attr_inn_front_roty = libAttr.addAttr(attr_holder, longName=self.FRONT_ROTY_LONGNAME, niceName=self.FRONT_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
 
         attr_roll_auto_pos = libRigging.create_utility_node('condition', operation=2, firstTerm=attr_inn_roll_auto,
                                                             secondTerm=0,
                                                             colorIfTrueR=attr_inn_roll_auto,
                                                             colorIfFalseR=0.0).outColorR  # Greater
 
-        attr_roll_auto_m = libRigging.create_utility_node('condition', operation=2, firstTerm=attr_inn_roll_auto,
-                                                          secondTerm=attr_inn_roll_auto_threshold,
-                                                          colorIfTrueR=attr_inn_roll_auto_threshold,
-                                                          colorIfFalseR=attr_roll_auto_pos
-                                                          ).outColorR  # Greater
         attr_roll_auto_f = libRigging.create_utility_node('condition', operation=2,
                                                           firstTerm=attr_inn_roll_auto,
                                                           secondTerm=attr_inn_roll_auto_threshold,
@@ -290,11 +312,11 @@ class LegIk(IK):
                                                           ).outColorR  # Greater
 
         attr_roll_m = libRigging.create_utility_node('addDoubleLinear', input1=attr_roll_auto_pos,
-                                                     input2=attr_inn_roll_ankle).output
+                                                     input2=attr_inn_ankle_rotx).output
         attr_roll_f = libRigging.create_utility_node('addDoubleLinear', input1=attr_roll_auto_f,
-                                                     input2=attr_inn_roll_front).output
+                                                     input2=attr_inn_front_rotx).output
         attr_roll_b = libRigging.create_utility_node('addDoubleLinear', input1=attr_roll_auto_b,
-                                                     input2=attr_inn_roll_back).output
+                                                     input2=attr_inn_back_rotx).output
 
         attr_bank_inn = libRigging.create_utility_node('condition', operation=2,
                                                        firstTerm=attr_inn_bank, secondTerm=0,
@@ -307,25 +329,33 @@ class LegIk(IK):
                                                        colorIfTrueR=attr_inn_bank,
                                                        colorIfFalseR=0.0).outColorR  # Less
 
-        pymel.connectAttr(attr_roll_m, self.pivot_ankle.rotateX)
-        pymel.connectAttr(attr_roll_f, self.pivot_front.rotateX)
-        pymel.connectAttr(attr_roll_b, self.pivot_back.rotateX)
-        pymel.connectAttr(attr_bank_inn, self.pivot_inn.rotateZ)
-        pymel.connectAttr(attr_bank_out, self.pivot_out.rotateZ)
-        pymel.connectAttr(attr_inn_heel_yaw, self.pivot_heelfloor.rotateY)
+        pymel.connectAttr(attr_roll_m, self.pivot_toes_ankle.rotateX)
+        pymel.connectAttr(attr_roll_f, self.pivot_foot_front.rotateX)
+        pymel.connectAttr(attr_roll_b, self.pivot_foot_back.rotateX)
+        pymel.connectAttr(attr_bank_inn, self.pivot_foot_inn.rotateZ)
+        pymel.connectAttr(attr_bank_out, self.pivot_foot_out.rotateZ)
+        pymel.connectAttr(attr_inn_heel_roty, self.pivot_foot_heel.rotateY)
+        pymel.connectAttr(attr_inn_front_roty, self.pivot_foot_front.rotateY)
+        pymel.connectAttr(attr_inn_back_roty, self.pivot_foot_back.rotateY)
+        pymel.connectAttr(attr_inn_ankle_rotz, self.pivot_toes_heel.rotateZ)
+        pymel.connectAttr(attr_inn_toes_roty, self.pivot_foot_ankle.rotateY)
 
         # Create ikHandles
-        ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_toes, solver='ikSCsolver')
+        ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_heel, solver='ikSCsolver')
         ikHandle_foot.rename(nomenclature_rig.resolve('ikHandle', 'foot'))
         ikHandle_foot.setParent(self.grp_rig)
+        ikHandle_heel, ikEffector_foot = pymel.ikHandle(startJoint=jnt_heel, endEffector=jnt_toes, solver='ikSCsolver')
+        ikHandle_heel.rename(nomenclature_rig.resolve('ikHandle', 'heel'))
+        ikHandle_heel.setParent(self.grp_rig)
         ikHandle_toes, ikEffector_toes = pymel.ikHandle(startJoint=jnt_toes, endEffector=jnt_tip, solver='ikSCsolver')
         ikHandle_toes.rename(nomenclature_rig.resolve('ikHandle', 'toes'))
         ikHandle_toes.setParent(self.grp_rig)
 
         # Parent ikHandlers
         # Note that we are directly parenting them so the 'Preserve Child Transform' of the translate tool still work.
-        ikHandle_foot.setParent(self.pivot_front)
-        ikHandle_toes.setParent(self.pivot_heelfloor)
+        ikHandle_foot.setParent(self.pivot_toes_heel)
+        ikHandle_heel.setParent(self.pivot_foot_front)
+        ikHandle_toes.setParent(self.pivot_foot_heel)
 
         # Hack: Re-constraint foot ikhandle
         # todo: cleaner!
@@ -336,7 +366,7 @@ class LegIk(IK):
                                   not isinstance(x, pymel.nodetypes.PoleVectorConstraint)
         pymel.delete(filter(fn_can_delete, self._ik_handle.getChildren()))
 
-        pymel.parentConstraint(self.pivot_heel, self._ik_handle, maintainOffset=True)
+        pymel.parentConstraint(self.pivot_toes_heel, self._ik_handle, maintainOffset=True)
 
         '''
         # Constraint swivel to ctrl_ik
@@ -354,29 +384,39 @@ class LegIk(IK):
         # The reference matrix is the ankle, maybe we should zero out the y axis.
         tm_ref_inv = self._get_reference_plane().inverse()
 
-        if self.pivot_heelfloor:
-            self.pivot_heelfloor_pos = (self.pivot_heelfloor.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if self.pivot_ankle:
-            self.pivot_ankle_pos = (self.pivot_ankle.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if self.pivot_front:
-            self.pivot_front_pos = (self.pivot_front.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if self.pivot_back:
-            self.pivot_back_pos = (self.pivot_back.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if self.pivot_inn:
-            self.pivot_inn_pos = (self.pivot_inn.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if self.pivot_out:
-            self.pivot_out_pos = (self.pivot_out.getMatrix(worldSpace=True) * tm_ref_inv).translate
+        if self.pivot_toes_heel:
+            self.pivot_toes_heel_pos = (self.pivot_toes_heel.getMatrix(worldSpace=True) * tm_ref_inv).translate
+        if self.pivot_toes_ankle:
+            self.pivot_toes_ankle_pos = (self.pivot_toes_ankle.getMatrix(worldSpace=True) * tm_ref_inv).translate
+        if self.pivot_foot_front:
+            self.pivot_foot_front_pos = (self.pivot_foot_front.getMatrix(worldSpace=True) * tm_ref_inv).translate
+        if self.pivot_foot_back:
+            self.pivot_foot_back_pos = (self.pivot_foot_back.getMatrix(worldSpace=True) * tm_ref_inv).translate
+        if self.pivot_foot_inn:
+            self.pivot_foot_inn_pos = (self.pivot_foot_inn.getMatrix(worldSpace=True) * tm_ref_inv).translate
+        if self.pivot_foot_out:
+            self.pivot_foot_out_pos = (self.pivot_foot_out.getMatrix(worldSpace=True) * tm_ref_inv).translate
 
         super(LegIk, self).unbuild()
 
-        self.pivot_heelfloor = None
-        self.pivot_ankle = None
-        self.pivot_front = None
-        self.pivot_back = None
-        self.pivot_inn = None
-        self.pivot_out = None
+        self.pivot_toes_heel = None
+        self.pivot_toes_ankle = None
+        self.pivot_foot_front = None
+        self.pivot_foot_back = None
+        self.pivot_foot_inn = None
+        self.pivot_foot_out = None
 
 
 class Leg(rigLimb.Limb):
     _CLASS_SYS_IK = LegIk
+
+    def validate(self):
+        super(Leg, self).validate()
+
+        num_inputs = len(self.input)
+        if num_inputs != 6:
+            raise Exception("Expected 6 joints, got {0}".format(num_inputs))
+
+        return True
+
 

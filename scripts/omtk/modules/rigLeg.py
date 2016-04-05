@@ -67,13 +67,13 @@ class LegIk(IK):
         When holding/fetching the footroll pivots, we do not want to use their worldSpace transforms.
         :return: The reference worldSpace matrix to use when holding/fetching pivot positions.
         """
-        jnt_foot, jnt_heel, jnt_toes, jnt_tip = self.input[self.iCtrlIndex:]
-        pos_foot = pymel.datatypes.Point(jnt_foot.getTranslation(space='world'))
-        pos_toes = pymel.datatypes.Point(jnt_toes.getTranslation(space='world'))
+        jnts = self.input[self.iCtrlIndex:]
+        pos_s = jnts[0].getTranslation(space='world')
+        pos_e = jnts[-1].getTranslation(space='world')
 
         # We take in account that the foot is always flat on the floor.
         axis_y = pymel.datatypes.Vector(0,1,0)
-        axis_z = pos_toes - pos_foot
+        axis_z = pos_e - pos_s
         axis_z.y = 0
         axis_z.normalize()
         axis_x = axis_y.cross(axis_z)

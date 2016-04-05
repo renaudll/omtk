@@ -358,13 +358,13 @@ class LegIk(IK):
             self.pivot_heelfloor_pos = (self.pivot_heelfloor.getMatrix(worldSpace=True) * tm_ref_inv).translate
         if self.pivot_ankle:
             self.pivot_ankle_pos = (self.pivot_ankle.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if pivot_front:
+        if self.pivot_front:
             self.pivot_front_pos = (self.pivot_front.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if pivot_back:
+        if self.pivot_back:
             self.pivot_back_pos = (self.pivot_back.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if pivot_inn:
+        if self.pivot_inn:
             self.pivot_inn_pos = (self.pivot_inn.getMatrix(worldSpace=True) * tm_ref_inv).translate
-        if pivot_out:
+        if self.pivot_out:
             self.pivot_out_pos = (self.pivot_out.getMatrix(worldSpace=True) * tm_ref_inv).translate
 
         super(LegIk, self).unbuild()

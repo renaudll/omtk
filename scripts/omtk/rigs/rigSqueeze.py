@@ -107,7 +107,8 @@ class RigSqueeze(classRig.Rig):
         self.grp_model.setParent(self.grp_all)
         self.grp_proxy.setParent(self.grp_all)
         self.grp_geo.setParent(self.grp_all)
-        self.grp_jnt.setParent(self.grp_all)
+        if self.grp_jnt.getParent() is None:
+            self.grp_jnt.setParent(self.grp_all)
 
         #Lock and hide all attributes we don't want the animator to play with
         libAttr.lock_hide_trs(self.grp_all)

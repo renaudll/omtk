@@ -144,7 +144,7 @@ def create_shape_box(size=1.0, r=None, h=None):
     node = pymel.curve(d=1, p=[(-r, -h, r), (-r, h, r), (r, h, r), (r, -h, r), (-r, -h, r), (-r, -h, -r), (-r, h, -r), (-r, h, r), (r, h, r), (r, h, -r), (r, -h, -r), (r, -h, r), (r, -h, -r), (-r, -h, -r), (-r, h, -r), (r, h, -r)] )
     return node
 
-def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None):
+def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None, filter=None):
     min_x = max_x = min_y = max_y = min_z = max_z = None
     parent_tm_inv = parent_tm.inverse()
 
@@ -174,7 +174,7 @@ def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None):
             max_z = z_local
 
         for dir in dirs:
-            ray_cast_pos = next(iter(libRigging.ray_cast(pos, dir, geometries, debug=False)), None)
+            ray_cast_pos = libRigging.ray_cast_nearest(pos, dir, geometries, debug=False)
             if ray_cast_pos is None:
                 continue
 
@@ -258,8 +258,19 @@ def create_shape_box_feet(refs, *args, **kwargs):
     ]
     geometries = pymel.ls(type='mesh')
 
+    # Sanity check, ensure that at least one point is in the bounds of geometries.
+    # This can prevent rays from being fired from outside a geometry.
+    # TODO: Make it more robust.
+    filtered_geometries = []
+    for geometry in geometries:
+        xmin, ymin, zmin, xmax, ymax, zmax = cmds.exactWorldBoundingBox(geometry.__melobject__())
+        bound = pymel.datatypes.BoundingBox((xmin, ymin, zmin), (xmax, ymax, zmax))
+        if any(True for pos in positions if bound.contains(pos)):
+            filtered_geometries.append(geometry)
+
+
     # Using all provided objects
-    min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
+    min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, filtered_geometries, parent_tm=ref_tm)
     min_y = min(min_y, -ref_pos.y)
 
     pos1 = pymel.datatypes.Point(min_x, min_y, min_z)

@@ -42,6 +42,8 @@ class NonRollJoint(Node):
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class Twistbone(Module):
+    DEFAULT_NAME_USE_FIRST_INPUT = True
+
     def __init__(self, *args, **kwargs):
         self.ikCurve = None
 

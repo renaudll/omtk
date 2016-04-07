@@ -33,6 +33,9 @@ class Module(object):
     # This will affect the behavior of get_default_name().
     IS_SIDE_SPECIFIC = True
 
+    # Set to true if the module default name need to use it's first input.
+    DEFAULT_NAME_USE_FIRST_INPUT = False
+
     #
     # libSerialization implementation
     #
@@ -68,11 +71,17 @@ class Module(object):
         if ref:
             old_nomenclature = rig.nomenclature(ref.nodeName())
             new_nomenclature = rig.nomenclature()
-            new_nomenclature.add_tokens(self.__class__.__name__)
+
+            if self.DEFAULT_NAME_USE_FIRST_INPUT:
+                new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
+            else:
+                new_nomenclature.add_tokens(self.__class__.__name__)
+
             if self.IS_SIDE_SPECIFIC:
                 side = old_nomenclature.get_side()
                 if side:
                     new_nomenclature.add_prefix(side)
+
             return new_nomenclature.resolve()
 
     @libPython.memoized

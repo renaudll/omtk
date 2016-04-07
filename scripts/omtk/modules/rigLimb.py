@@ -216,7 +216,7 @@ class Limb(Module):
         dir_swivel = pos_m - pos_middle
         dir_swivel.normalize()
         pos_swivel = dir_swivel * self.sysIK.swivelDistance + pos_ref
-        self.sysIK.ctrl_swivel.setTranslation(pos_swivel, space='world')
+        self.sysIK.ctrl_swivel.node.setTranslation(pos_swivel, space='world')
 
     def snap_fk_to_ik(self):
         for ctrl, jnt in zip(self.sysFK.ctrls, self.chain_jnt):

@@ -185,8 +185,6 @@ class Limb(Module):
 
         super(Limb, self).unbuild()
 
-        self.ctrl_elbow = None
-        self.ctrl_attrs = None
         self.attState = None
 
     def parent_to(self, parent):

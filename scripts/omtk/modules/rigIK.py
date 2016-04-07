@@ -112,14 +112,15 @@ class SoftIkNode(Node):
         # |-----------|-----------|----------|
         # -1          0.0         1.0         +++
         # -dBase      dSafe       dMax
-        formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoft"
-        # Hack: Prevent potential division by zero when soft-ik is desactivated
-        formula.deltaSafeSoft = libRigging.create_utility_node('condition',
-                                                               firstTerm=formula.distanceSoft,
-                                                               secondTerm=0.0,
-                                                               colorIfTrueR=0.0,
-                                                               colorIfFalseR=formula.deltaSafeSoft
-                                                               ).outColorR
+        # Hack: Prevent potential division by zero.
+        # Originally we were using a condition, however in Maya 2016+ in Parallel or Serial evaluation mode, this
+        # somehow evalated the division even when the condition was False.
+        formula.distanceSoftClamped = libRigging.create_utility_node('clamp',
+                                                           inputR=formula.distanceSoft,
+                                                           minR=0.0001,
+                                                           maxR=999
+                                                           ).outputR
+        formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoftClamped"
 
         # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-ik
         # If there's no stretch, this will be directly applied to the ikEffector.

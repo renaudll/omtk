@@ -407,6 +407,8 @@ class LegIk(IK):
         # The reference matrix is the ankle, maybe we should zero out the y axis.
         tm_ref_inv = self._get_reference_plane().inverse()
 
+        if self.pivot_foot_heel:
+            self.pivot_foot_heel_pos = (self.pivot_foot_heel.getMatrix(worldSpace=True) * tm_ref_inv).translate
         if self.pivot_toes_heel:
             self.pivot_toes_heel_pos = (self.pivot_toes_heel.getMatrix(worldSpace=True) * tm_ref_inv).translate
         if self.pivot_toes_ankle:
@@ -422,12 +424,21 @@ class LegIk(IK):
 
         super(LegIk, self).unbuild()
 
+        self.pivot_foot_heel = None
         self.pivot_toes_heel = None
         self.pivot_toes_ankle = None
         self.pivot_foot_front = None
         self.pivot_foot_back = None
         self.pivot_foot_inn = None
         self.pivot_foot_out = None
+
+        # Remove deprecated properties
+        # Delete me after 2016-06 (2 months)
+        self.pivot_front = None
+        self.pivot_back = None
+        self.pivot_ankle = None
+        self.pivot_inn = None
+        self.pivot_out = None
 
 
 class Leg(rigLimb.Limb):

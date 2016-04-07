@@ -135,6 +135,7 @@ class AdditiveFK(FK):
 
         # TODO: Support multiple additive ctrls
         # TODO: Rename
+        self.additive_ctrls = filter(None, self.additive_ctrls)
         if not self.additive_ctrls:
             ctrl_add = CtrlFkAdd()
             self.additive_ctrls.append(ctrl_add)

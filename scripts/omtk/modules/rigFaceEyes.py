@@ -96,7 +96,7 @@ class FaceEyes(rigFaceAvarGrps.ModuleFace):
         ctrl_all_name = nomenclature_anm.resolve()
         self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
-        self.ctrl_all.create_spaceswitch(rig, self.parent, add_default=True, default_name='Head', add_world=True)
+        self.ctrl_all.create_spaceswitch(rig, self, self.parent, add_default=True, default_name='Head', add_world=True)
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 

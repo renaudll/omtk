@@ -2,6 +2,7 @@ import pymel.core as pymel
 import collections
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
+from omtk.modules import rigIK
 from omtk.modules.rigIK import IK
 from omtk.modules.rigFK import FK
 from omtk.libs import libRigging
@@ -69,9 +70,6 @@ class Limb(Module):
             self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
         self.sysIK.name = '{0}_Ik'.format(self.name) # Hack
         self.sysIK.build(rig, constraint=False, **kwargs)
-
-        self.sysIK.ctrl_ik.create_spaceswitch(rig, self.parent, default_name='World')
-        self.sysIK.ctrl_swivel.create_spaceswitch(rig, self.parent, default_name='World')
 
         # Create FK system
         if not isinstance(self.sysFK, self._CLASS_SYS_FK):

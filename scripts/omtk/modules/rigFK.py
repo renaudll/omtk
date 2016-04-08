@@ -66,9 +66,9 @@ class FK(Module):
 
         if create_spaceswitch:
             if self.sw_translate:
-                self.ctrls[0].create_spaceswitch(rig, self.parent, add_world=True)
+                self.ctrls[0].create_spaceswitch(rig, self, self.parent, add_world=True)
             else:
-                self.ctrls[0].create_spaceswitch(rig, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
+                self.ctrls[0].create_spaceswitch(rig, self, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
 
         self.ctrls[0].setParent(self.grp_anm)
         for i in range(1, len(self.ctrls)):

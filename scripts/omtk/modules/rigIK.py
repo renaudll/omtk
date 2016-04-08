@@ -68,6 +68,18 @@ class CtrlIkSwivel(BaseCtrl):
 
         return node
 
+    def get_spaceswitch_targets(self, rig, module, *args, **kwargs):
+        """
+        Add the Hand/Leg IK ctrl by default as a space-switch target to any swivel.
+        """
+        targets, target_names = super(CtrlIkSwivel, self).get_spaceswitch_targets(rig, module, *args, **kwargs)
+
+        # Add the Hand/Foot ctrl
+        targets.append(module.ctrl_ik)
+        target_names.append(None)
+
+        return targets, target_names
+
     def build(self, line_target=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
@@ -269,6 +281,8 @@ class IK(Module):
             ctrl_ik_orientation = obj_e.getRotation(space='world')
         self.ctrl_ik.offset.setRotation(ctrl_ik_orientation, space='world')
 
+        self.ctrl_ik.create_spaceswitch(rig, self, self.parent, default_name='World')
+
         # Create CtrlIkSwivel
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
             self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
@@ -278,6 +292,7 @@ class IK(Module):
         self.ctrl_swivel.rename(nomenclature_anm.resolve('swivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
+        self.ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')
 
         #
         # Create softIk node and connect user accessible attributes to it.

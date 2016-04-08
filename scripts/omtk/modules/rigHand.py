@@ -111,7 +111,7 @@ class Hand(Module):
                     self.fk_sys_metacarpals.append(ctrl_meta)
 
                 ctrl_meta = self.fk_sys_metacarpals[meta_index]
-                ctrl_meta.build(rig)
+                ctrl_meta.build(rig, create_spaceswitch=False)
                 ctrl_meta.grp_anm.setParent(self.grp_anm)
                 meta_index += 1
 

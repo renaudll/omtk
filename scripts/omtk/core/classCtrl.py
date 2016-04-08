@@ -242,7 +242,7 @@ class BaseCtrl(Node):
     # SPACE SWITH LOGIC
     #
 
-    def create_spaceswitch(self, rig, parent, add_default=True, default_name=None, add_world=False, **kwargs):
+    def create_spaceswitch(self, rig, module, parent, add_default=True, default_name=None, add_world=False, **kwargs):
         # TODO: Handle when parent is None?
         nomenclature = rig.nomenclature
 
@@ -251,7 +251,7 @@ class BaseCtrl(Node):
             return
 
         # Resolve spaceswitch targets
-        targets, labels = self.get_spaceswitch_targets(rig, parent)
+        targets, labels = self.get_spaceswitch_targets(rig, module, parent, add_world=add_world)
         if not targets:
             log.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
             return
@@ -266,6 +266,7 @@ class BaseCtrl(Node):
 
             if label is None:
                 name = nomenclature(target.name())
+                name.remove_extra_tokens()
                 labels[i] = name.resolve()
 
         offset = 0
@@ -289,7 +290,7 @@ class BaseCtrl(Node):
             ).outColorR
             pymel.connectAttr(att_enabled, att_weight)
 
-    def get_spaceswitch_targets(self, rig, jnt, add_world=True, world_name='World'):
+    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, world_name='World'):
         targets = []
         target_names = []
 

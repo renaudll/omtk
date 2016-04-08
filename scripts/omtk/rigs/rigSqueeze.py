@@ -170,6 +170,7 @@ class RigSqueeze(classRig.Rig):
                 module.STATE_FK = 1.0
 
                 pymel.delete(module.ctrl_attrs)
+                module.ctrl_attrs = None
 
                 # Resolve name
                 # TODO: Handle name conflict

@@ -68,6 +68,18 @@ class CtrlIkSwivel(BaseCtrl):
 
         return node
 
+    def get_spaceswitch_targets(self, rig, module, *args, **kwargs):
+        """
+        Add the Hand/Leg IK ctrl by default as a space-switch target to any swivel.
+        """
+        targets, target_names = super(CtrlIkSwivel, self).get_spaceswitch_targets(rig, module, *args, **kwargs)
+
+        # Add the Hand/Foot ctrl
+        targets.append(module.ctrl_ik)
+        target_names.append(None)
+
+        return targets, target_names
+
     def build(self, line_target=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
@@ -112,14 +124,15 @@ class SoftIkNode(Node):
         # |-----------|-----------|----------|
         # -1          0.0         1.0         +++
         # -dBase      dSafe       dMax
-        formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoft"
-        # Hack: Prevent potential division by zero when soft-ik is desactivated
-        formula.deltaSafeSoft = libRigging.create_utility_node('condition',
-                                                               firstTerm=formula.distanceSoft,
-                                                               secondTerm=0.0,
-                                                               colorIfTrueR=0.0,
-                                                               colorIfFalseR=formula.deltaSafeSoft
-                                                               ).outColorR
+        # Hack: Prevent potential division by zero.
+        # Originally we were using a condition, however in Maya 2016+ in Parallel or Serial evaluation mode, this
+        # somehow evalated the division even when the condition was False.
+        formula.distanceSoftClamped = libRigging.create_utility_node('clamp',
+                                                           inputR=formula.distanceSoft,
+                                                           minR=0.0001,
+                                                           maxR=999
+                                                           ).outputR
+        formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoftClamped"
 
         # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-ik
         # If there's no stretch, this will be directly applied to the ikEffector.
@@ -268,6 +281,8 @@ class IK(Module):
             ctrl_ik_orientation = obj_e.getRotation(space='world')
         self.ctrl_ik.offset.setRotation(ctrl_ik_orientation, space='world')
 
+        self.ctrl_ik.create_spaceswitch(rig, self, self.parent, default_name='World')
+
         # Create CtrlIkSwivel
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
             self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
@@ -277,6 +292,7 @@ class IK(Module):
         self.ctrl_swivel.rename(nomenclature_anm.resolve('swivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
+        self.ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')
 
         #
         # Create softIk node and connect user accessible attributes to it.

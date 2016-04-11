@@ -6,8 +6,8 @@ class CtrlIkArm(rigIK.CtrlIk):
     def __createNode__(self, refs=None, *args, **kwargs):
         return libCtrlShapes.create_shape_box_arm(refs, *args, **kwargs)
 
-    def get_spaceswitch_targets(self, rig, jnt, **kwargs):
-        targets, labels = super(CtrlIkArm, self).get_spaceswitch_targets(rig, jnt, **kwargs)
+    def get_spaceswitch_targets(self, rig, *args, **kwargs):
+        targets, labels = super(CtrlIkArm, self).get_spaceswitch_targets(rig, *args, **kwargs)
         jnt_head = rig.get_head_jnt()
         if jnt_head:
             targets.append(jnt_head)

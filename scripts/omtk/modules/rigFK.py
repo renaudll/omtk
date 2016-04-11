@@ -24,22 +24,12 @@ class CtrlFk(BaseCtrl):
 
 
 class FK(Module):
+    DEFAULT_NAME_USE_FIRST_INPUT = True
+
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = None
         self.sw_translate=False
-
-    def get_default_name(self, rig):
-        ref = next(iter(self.chain), None)
-        if ref:
-            old_nomenclature = rig.nomenclature(ref.nodeName())
-            new_nomenclature = rig.nomenclature()
-            new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
-            if self.IS_SIDE_SPECIFIC:
-                side = old_nomenclature.get_side()
-                if side:
-                    new_nomenclature.add_prefix(side)
-            return new_nomenclature.resolve()
 
     #
     # libSerialization implementation
@@ -76,9 +66,9 @@ class FK(Module):
 
         if create_spaceswitch:
             if self.sw_translate:
-                self.ctrls[0].create_spaceswitch(rig, self.parent, add_world=True)
+                self.ctrls[0].create_spaceswitch(rig, self, self.parent, add_world=True)
             else:
-                self.ctrls[0].create_spaceswitch(rig, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
+                self.ctrls[0].create_spaceswitch(rig, self, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
 
         self.ctrls[0].setParent(self.grp_anm)
         for i in range(1, len(self.ctrls)):
@@ -135,6 +125,7 @@ class AdditiveFK(FK):
 
         # TODO: Support multiple additive ctrls
         # TODO: Rename
+        self.additive_ctrls = filter(None, self.additive_ctrls)
         if not self.additive_ctrls:
             ctrl_add = CtrlFkAdd()
             self.additive_ctrls.append(ctrl_add)

@@ -140,6 +140,20 @@ class Rig(object):
     # Main implementation
     #
 
+    def _is_name_unique(self, name):
+        return not any((True for module in self.modules if module.name == name))
+
+    def _get_unique_name(self, name):
+        if self._is_name_unique(name):
+            return name
+
+        str_format = '{0}{1}'
+
+        i = 1
+        while not self._is_name_unique(str_format.format(name, i)):
+            i += 1
+        return str_format.format(name, i)
+
     def add_module(self, cls_name, *args, **kwargs):
         #if not isinstance(part, Module):
         #    raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
@@ -153,6 +167,7 @@ class Rig(object):
 
         # Resolve name to use
         default_name = instance.get_default_name(self)
+        default_name = self._get_unique_name(default_name)  # Ensure name is unique
         instance.name = default_name
 
         self.modules.append(instance)

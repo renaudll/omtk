@@ -128,6 +128,7 @@ class DpSpine(Module):
         # HACK: To bypass flip issues, we'll use reference object that have no parent space.
         ref_parent = pymel.createNode('transform', name=nomenclature_rig.resolve('ref'))
         ref_parent.setParent(self.grp_rig)
+        pymel.parentConstraint(self.ctrl_fk_dwn, ref_parent)
         ref_s = pymel.createNode('transform', name=nomenclature_rig.resolve('ref_s'))
         pymel.parentConstraint(self.ctrl_fk_upp, ref_s)
         ref_s.setParent(ref_parent)

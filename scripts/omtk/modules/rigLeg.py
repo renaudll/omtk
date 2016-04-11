@@ -124,7 +124,8 @@ class LegIk(IK):
         pos = pos_relative * tm_ref
         pos.y = 0
 
-        return pos
+        #HACK : Ensure that the point is size 3 and not 4
+        return pymel.datatypes.Point(pos.x,pos.y,pos.z)
 
     def _get_recommended_pivot_back(self, tm_ref, tm_ref_dir, pos_toes):
         """
@@ -146,7 +147,8 @@ class LegIk(IK):
         pos = pos_relative * tm_ref
         pos.y = 0
 
-        return pos
+        #HACK : Ensure that the point is size 3 and not 4
+        return pymel.datatypes.Point(pos.x,pos.y,pos.z)
 
     def _get_recommended_pivot_bank(self, tm_ref, tm_ref_dir, pos_toes, direction=1):
         """

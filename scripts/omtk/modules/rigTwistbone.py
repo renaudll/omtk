@@ -79,7 +79,7 @@ class Twistbone(Module):
         # Create splineIK
         #Do not connect the stretch to prevent scaling problem
         #TODO : If a stretch system exist on the input, we need to find a way to connect it to the twist system
-        splineIK = SplineIK(self.subjnts +[self.ikCurve])
+        splineIK = SplineIK(self.subjnts +[self.ikCurve], name=self.name)
         splineIK.bStretch = False
         splineIK.build(rig, create_grp_anm=False, stretch=False)
         self.ikCurve.setParent(splineIK.grp_rig)
@@ -174,7 +174,7 @@ class Twistbone(Module):
 
         # TODO : Automatically skin the twistbones
         for mesh in self.get_farest_affected_mesh():
-            print("Assign skin weights on {0}.".format(mesh.name()))
+            print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
             libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
 

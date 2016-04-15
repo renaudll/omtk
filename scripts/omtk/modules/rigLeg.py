@@ -391,7 +391,11 @@ class LegIk(IK):
                                   not isinstance(x, pymel.nodetypes.PoleVectorConstraint)
         pymel.delete(filter(fn_can_delete, self._ik_handle_target.getChildren()))
 
-        pymel.parentConstraint(self.pivot_toes_heel, self._ik_handle_target, maintainOffset=True)
+        if jnt_heel:
+            pymel.parentConstraint(self.pivot_toes_heel, self._ik_handle_target, maintainOffset=True)
+        else:
+            pymel.parentConstraint(self.pivot_toes_ankle, self._ik_handle_target, maintainOffset=True)
+
 
         '''
         # Constraint swivel to ctrl_ik

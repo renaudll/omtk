@@ -2,7 +2,6 @@
 Various utility methods that help the job of laying out the skeletton for a Rig.
 """
 import pymel.core as pymel
-from omtk.animation import mirrorPose
 from omtk.libs import libPymel
 from maya import OpenMaya
 import math
@@ -12,6 +11,7 @@ def mirror_obj(obj_src, obj_dst=None):
     Method to mirror joints in behavior.
     This use existing joint and doesn't break the skin or the network associated with the joints.
     """
+    from omtk.animation import mirrorPose
     if obj_dst is None:
         obj_dst = mirrorPose.get_ctrl_friend(obj_src)
     if obj_src is obj_dst:
@@ -27,9 +27,27 @@ def transfer_rotation_to_joint_orient(obj):
     This method bypass this limitation.
     """
     mfn = obj.__apimfn__()
+
     rotation_orig = OpenMaya.MEulerRotation()
     mfn.getRotation(rotation_orig)
     rotation_xyz = rotation_orig.reorder(OpenMaya.MEulerRotation.kXYZ)
+
+    # Apply existing jointOrient values
+    orientation_orig = OpenMaya.MEulerRotation()
+    mfn.getOrientation(orientation_orig)
+    rotation_xyz *= orientation_orig
+
+    def is_attr_accessible(attr):
+        return not attr.isFreeToChange() == OpenMaya.MPlug.kFreeToChange
+
+    if is_attr_accessible(obj.rotateX) or is_attr_accessible(obj.rotateY) or is_attr_accessible(obj.rotateZ):
+        pymel.warning("Can't transfer rotation to joint orient. {0} rotation is locked.".format(obj.name()))
+        return
+
+    if is_attr_accessible(obj.jointOrientX) or is_attr_accessible(obj.jointOrientY) or is_attr_accessible(obj.jointOrientZ):
+        pymel.warning("Can't transfer rotation to joint orient. {0} jointOrient is locked.".format(obj.name()))
+        return
+
     obj.jointOrientX.set(math.degrees(rotation_xyz.x))
     obj.jointOrientY.set(math.degrees(rotation_xyz.y))
     obj.jointOrientZ.set(math.degrees(rotation_xyz.z))
@@ -39,6 +57,7 @@ def transfer_rotation_to_joint_orient(obj):
 
 
 def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
+    from omtk.animation import mirrorPose
     obj_dst = mirrorPose.get_ctrl_friend(obj_src)
     if obj_dst is None:
         src_name = obj_src.name()
@@ -58,6 +77,7 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
     mirror_obj(obj_src, obj_dst)
     if handle_joint_orient and isinstance(obj_dst, pymel.nodetypes.Joint):
         transfer_rotation_to_joint_orient(obj_dst)
+        obj_dst.radius.set(obj_src.radius.get())
     return obj_dst
 
 def mirror_selected_joints():
@@ -73,3 +93,14 @@ def mirror_jnts_r_to_l(**kwargs):
     jnts = sorted(pymel.ls('R_*_Jnt', type='joint') + pymel.ls('R_*_JEnd', type='joint'), key=libPymel.get_num_parents)
     for jnt in jnts:
         mirror_jnt(jnt, **kwargs)
+
+def freeze_selected_joints_rotation():
+    jnts = [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
+    for jnt in jnts:
+        if not isinstance(jnt, pymel.nodetypes.Joint):
+            pymel.warning("Skipping non-joint {0}".format(jnt))
+            continue
+
+        transfer_rotation_to_joint_orient(jnt)
+
+

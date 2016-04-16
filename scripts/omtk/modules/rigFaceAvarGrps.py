@@ -23,7 +23,7 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
     """
     _CLS_AVAR = rigFaceAvar.AvarSimple
 
-    ui_show = True
+    SHOW_IN_UI = True
 
     #
     # Influences properties
@@ -73,13 +73,13 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
     @property  # Note that since the avars are volatile we don't want to cache this property.
     def avars_upp(self):
         # TODO: Find a better way
-        fnFilter = lambda avar: 'upp' in avar.ref_name.lower()
+        fnFilter = lambda avar: 'upp' in avar.name.lower()
         return filter(fnFilter, self.avars)
 
     @property  # Note that since the avars are volatile we don't want to cache this property.
     def avars_low(self):
         # TODO: Find a better way
-        fnFilter = lambda avar: 'low' in avar.ref_name.lower()
+        fnFilter = lambda avar: 'low' in avar.name.lower()
         return filter(fnFilter, self.avars)
 
     @property
@@ -349,7 +349,7 @@ class ModuleFaceUppDown(ModuleFaceOnSurface):
     _CLS_SYS_UPP = ModuleFace
     _CLS_SYS_LOW = ModuleFace
 
-    ui_show = False
+    SHOW_IN_UI = False
 
     def __init__(self, *args, **kwargs):
         self.ctrl_upp = None
@@ -409,7 +409,7 @@ class ModuleFaceLftRgt(ModuleFaceOnSurface):
     _CLS_CTRL = None
     _CLS_SYS = ModuleFace
 
-    ui_show = False
+    SHOW_IN_UI = False
 
     @libPython.cached_property()
     def jnts_l(self):
@@ -520,3 +520,4 @@ class ModuleFaceLftRgt(ModuleFaceOnSurface):
             self.ctrl_l.unbuild()
         if self.ctrl_r:
             self.ctrl_r.unbuild()
+        super(ModuleFaceLftRgt, self).unbuild()

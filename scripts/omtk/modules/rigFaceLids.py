@@ -15,7 +15,7 @@ class FaceLids(rigFaceAvarGrps.ModuleFaceUppDown):
     _CLS_CTRL_UPP = CtrlLidUpp
     _CLS_CTRL_LOW = CtrlLidLow
 
-    ui_show = True
+    SHOW_IN_UI = True
 
     def get_multiplier_u(self):
         # Since the V go all around the sphere, it is too much range.

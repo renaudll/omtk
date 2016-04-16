@@ -459,9 +459,11 @@ def get_recommended_ctrl_size(obj, default_value=1.0, weight_x=0.0, weight_neg_x
     )
     return default_value
 
-def ray_cast(pos, dir, geometries, debug=False):
+def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
     """
     Simple pymel wrapper for the MFnGeometry intersect method.
+    Note: Default tolerance is 1.0e-5. With the default MFnMesh.intersect valut of 1.0e10, sometime
+    the raycase might misfire. Still doesn't know why.
     :param pos: Any OpenMaya.MPoint compatible type (ex: pymel.datatypes.Point)
     :param dir: Any OpenMaya.MVector compatible type (ex: pymel.datatypes.Vector)
     :param geometries: The geometries to intersect.
@@ -481,7 +483,7 @@ def ray_cast(pos, dir, geometries, debug=False):
     buffer_results = OpenMaya.MPointArray()
     for geometry in geometries:
         mfn_geo = geometry.__apimfn__()
-        mfn_geo.intersect(pos, dir, buffer_results, 1.0e-10, OpenMaya.MSpace.kWorld)
+        mfn_geo.intersect(pos, dir, buffer_results, tolerance, OpenMaya.MSpace.kWorld)
         for i in range(buffer_results.length()):
             results.append(pymel.datatypes.Point(buffer_results[i]))
 
@@ -492,6 +494,11 @@ def ray_cast(pos, dir, geometries, debug=False):
 
     return results
 
+def ray_cast_nearest(*args, **kwargs):
+    return next(iter(ray_cast(*args, **kwargs)), None)
+
+def ray_cast_farthest(*args, **kwargs):
+    return next(iter(reversed(ray_cast(*args, **kwargs))), None)
 
 # TODO: Benchmark performances
 def snap(obj_dst, obj_src):

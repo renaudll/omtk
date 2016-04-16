@@ -1,5 +1,6 @@
 import pymel.core as pymel
 from maya import OpenMaya
+from maya import cmds
 from omtk.libs import libRigging
 
 def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):
@@ -8,6 +9,8 @@ def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):
     make.normal.set(normal)
 
     # Expose the rotateOrder
+    transform.rotateOrder.setKeyable(True)
+
     make.radius.set(size)
     make.degree.set(1)
     make.sections.set(8)
@@ -93,6 +96,9 @@ def create_shape_needle(size=1, length=None, radius=None, name=None, normal=(0, 
     if name:
         shape1.rename(name)
 
+    # Expose the rotateOrder
+    shape1.rotateOrder.setKeyable(True)
+
     return shape1
 
 
@@ -103,6 +109,10 @@ def create_shape_double_needle(normal=(0, 1, 0), *args, **kwargs):
     for shape in shape2.getShapes():
         shape.setParent(shape1, shape=True, relative=True)
     pymel.delete(shape2)
+
+    # Expose the rotateOrder
+    shape1.rotateOrder.setKeyable(True)
+
     return shape1
 
 
@@ -124,6 +134,10 @@ def create_shape_cross(size=1.0, **kwargs):
         (0,-s2,s1),
         (0,-s1,s1)
     ], **kwargs)
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -131,6 +145,10 @@ def create_shape_attrholder(size=1.0, **kwargs):
     s1 = size
     s2 = s1 * 0.7
     node = pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -142,9 +160,13 @@ def create_shape_box(size=1.0, r=None, h=None):
         h = size / 5.0
 
     node = pymel.curve(d=1, p=[(-r, -h, r), (-r, h, r), (r, h, r), (r, -h, r), (-r, -h, r), (-r, -h, -r), (-r, h, -r), (-r, h, r), (r, h, r), (r, h, -r), (r, -h, -r), (r, -h, r), (r, -h, -r), (-r, -h, -r), (-r, h, -r), (r, h, -r)] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
-def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None):
+def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None, filter=None):
     min_x = max_x = min_y = max_y = min_z = max_z = None
     parent_tm_inv = parent_tm.inverse()
 
@@ -174,7 +196,7 @@ def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None):
             max_z = z_local
 
         for dir in dirs:
-            ray_cast_pos = next(iter(libRigging.ray_cast(pos, dir, geometries, debug=False)), None)
+            ray_cast_pos = libRigging.ray_cast_nearest(pos, dir, geometries, debug=False)
             if ray_cast_pos is None:
                 continue
 
@@ -236,6 +258,9 @@ def create_shape_box_arm(refs):
 
     node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
 
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -258,8 +283,19 @@ def create_shape_box_feet(refs, *args, **kwargs):
     ]
     geometries = pymel.ls(type='mesh')
 
+    # Sanity check, ensure that at least one point is in the bounds of geometries.
+    # This can prevent rays from being fired from outside a geometry.
+    # TODO: Make it more robust.
+    filtered_geometries = []
+    for geometry in geometries:
+        xmin, ymin, zmin, xmax, ymax, zmax = cmds.exactWorldBoundingBox(geometry.__melobject__())
+        bound = pymel.datatypes.BoundingBox((xmin, ymin, zmin), (xmax, ymax, zmax))
+        if any(True for pos in positions if bound.contains(pos)):
+            filtered_geometries.append(geometry)
+
+
     # Using all provided objects
-    min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
+    min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, filtered_geometries, parent_tm=ref_tm)
     min_y = min(min_y, -ref_pos.y)
 
     pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
@@ -289,6 +325,9 @@ def create_shape_box_feet(refs, *args, **kwargs):
 
     node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
 
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -308,6 +347,9 @@ def create_square(size=1.0, width=None, height=None, **kwargs):
 
     node = pymel.curve(d=1, p=[pos1, pos2, pos3, pos4, pos5] )
 
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 def create_triangle_upp():
@@ -315,6 +357,10 @@ def create_triangle_upp():
     p2 = [-0.5, -0.288, 0]
     p3 = [0.5, -0.288, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 def create_triangle_low():
@@ -322,4 +368,8 @@ def create_triangle_low():
     p2 = [-0.5, 0.288, 0]
     p3 = [0.5, 0.288, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node

@@ -179,10 +179,26 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
     if skinCluster is None:
         raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
 
-    # Resolve influence indices
+    # Resolve source indices
     influence_objects = skinCluster.influenceObjects()
-    jnt_src_index = influence_objects.index(source)
+    try:
+        jnt_src_index = influence_objects.index(source)
+    except ValueError:
+        pymel.warning("Can't transfer weights from segments in {0}, source {1} is missing from skinCluster.".format(
+            obj.__melobject__(),
+            source.__melobject__()
+        ))
+        return False
+
+    # Resolve targets indices
+    targets = [target for target in targets if target in influence_objects]
+    if not targets:
+        pymel.warning("Can't transfer weights from segments in {0}, no targets found in skinCluster.".format(
+            obj.__melobject__()
+        ))
+        return False
     jnt_dst_indexes = [influence_objects.index(target) for target in targets]
+
 
     # Store the affected joints only
     # This allow us to reference the index to navigate in the weights table.
@@ -228,6 +244,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
             for i, weight in enumerate(weights):
                 index = (vert_index * chunk_size) + i + 1
                 new_weights[index] = weight
+            new_weights[vert_index * chunk_size] = 0.0  # Remove original weight
 
         it_geometry.next()
         vert_index += 1

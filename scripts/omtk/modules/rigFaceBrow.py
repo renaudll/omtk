@@ -12,4 +12,5 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
 class FaceBrow(rigFaceAvarGrps.ModuleFaceLftRgt):
     _CLS_CTRL = CtrlBrow
 
-    ui_show = True
+    SHOW_IN_UI= True
+    IS_SIDE_SPECIFIC = False

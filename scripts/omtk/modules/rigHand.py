@@ -107,16 +107,18 @@ class Hand(Module):
             if jnt_metacarpal:
                 if meta_index >= len(self.fk_sys_metacarpals):
                     ctrl_meta = rigFK.FK([jnt_metacarpal])
+                    ctrl_meta.name = ctrl_meta.get_default_name(rig)
                     self.fk_sys_metacarpals.append(ctrl_meta)
 
                 ctrl_meta = self.fk_sys_metacarpals[meta_index]
-                ctrl_meta.build(rig)
+                ctrl_meta.build(rig, create_spaceswitch=False)
                 ctrl_meta.grp_anm.setParent(self.grp_anm)
                 meta_index += 1
 
             # Rig fingers
             if not self.sysFingers or i >= len(self.sysFingers):
                 sysFinger = rigFK.AdditiveFK(jnts_phalanges)
+                sysFinger.name = sysFinger.get_default_name(rig)
                 self.sysFingers.append(sysFinger)
 
             sysFinger = self.sysFingers[i]
@@ -184,7 +186,10 @@ class Hand(Module):
                 # grp_pos.setMatrix(jnt_phalange_inn.getMatrix(worldSpace=True))
                 # grp_pos.setParent(grp_pivot)
 
-                pymel.parentConstraint(grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True, skipRotate=['y','z'])
+                # Note that the cup system worked with a partial parentConstraint.
+                # I've remove it since it was breaking things.
+                # TODO: Make it work again.
+                pymel.parentConstraint(grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True)
 
                 # HACK: Override the phalanges rig parent
                 # sysFinger = metacarpals_sys[i]

@@ -26,8 +26,15 @@ class Module(object):
     To unbuild a Module, use the .unbuild() method.
     """
 
-    #Static variable to know if we show the module in the UI list
-    ui_show = True
+    # Static variable to know if we show the module in the UI list
+    SHOW_IN_UI = True
+
+    # Set to true if the module can represent a left or right side of the body.
+    # This will affect the behavior of get_default_name().
+    IS_SIDE_SPECIFIC = True
+
+    # Set to true if the module default name need to use it's first input.
+    DEFAULT_NAME_USE_FIRST_INPUT = False
 
     #
     # libSerialization implementation
@@ -54,15 +61,28 @@ class Module(object):
     def outputs(self):
         return self.__dict__['_outputs']
 
-    @libPython.cached_property()
-    def ref_name(self):
+    def get_default_name(self, rig):
         """
         :return: Return an unique identifier using the inputs of the module.
         Note that this will crash if the module don't use any joint.
         """
         # todo: use className!
-        ref = next(iter(self.input), None)
-        return ref.nodeName() if ref else 'UNKNOW'
+        ref = next(iter(self.chain), None)
+        if ref:
+            old_nomenclature = rig.nomenclature(ref.nodeName())
+            new_nomenclature = rig.nomenclature()
+
+            if self.DEFAULT_NAME_USE_FIRST_INPUT:
+                new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
+            else:
+                new_nomenclature.add_tokens(self.__class__.__name__)
+
+            if self.IS_SIDE_SPECIFIC:
+                side = old_nomenclature.get_side()
+                if side:
+                    new_nomenclature.add_prefix(side)
+
+            return new_nomenclature.resolve()
 
     @libPython.memoized
     def get_module_name(self):
@@ -157,23 +177,24 @@ class Module(object):
         return next(iter(self.chains_jnt), None)
 
     # todo: since args is never used, maybe use to instead of _input?
-    def __init__(self, input=None, *args, **kwargs):
+    def __init__(self, input=None, name=None, *args, **kwargs):
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
         self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
         self.globalScale = None  # Each module is responsible for handling it scale!
 
-        # TODO: It is still confusing how name are choosen, please find a better way.
-        #  since we're using hook on inputs, assign it last!
         if input:
             if not isinstance(input, list):
                 raise IOError("Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
             self.input = input
-            self.name = '{0}_{1}'.format(self.ref_name ,str(self.__class__.__name__))
         else:
             self.input = []
-            self.name = '{0}'.format(str(self.__class__.__name__))
+
+        if name:
+            self.name = name
+        else:
+            self.name = 'RENAMEME'
 
 
     def __str__(self):
@@ -188,7 +209,7 @@ class Module(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.ref_name)
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
 
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name='net_{0}'.format(self.name))
@@ -238,14 +259,26 @@ class Module(object):
                 self.globalScale = self.grp_rig.globalScale
 
         if parent and self.parent:
-            module = rig.get_module_by_input(self.parent)
-            if module:
-                desired_parent = module.get_parent(self.parent)
-                log.info("{0} will be parented to module {1}".format(self, module))
-                self.parent_to(desired_parent)
-            else:
-                log.warning("{0} parent is not in any module!".format(self))
-                self.parent_to(self.parent)
+            parent_obj = self.get_parent_obj(rig)
+            if parent_obj:
+                self.parent_to(parent_obj)
+
+    def get_parent_obj(self, rig):
+        """
+        :return: The object to act as the parent of the module if applicable.
+        """
+        if self.parent is None:
+            return None
+
+        module = rig.get_module_by_input(self.parent)
+        if module:
+            desired_parent = module.get_parent(self.parent)
+            if desired_parent:
+                log.info("{0} will be parented to module {1}, {2}".format(self, module, desired_parent))
+                return desired_parent
+
+        log.warning("{0} parent is not in any module!".format(self))
+        return self.parent
 
     def unbuild(self):
         """

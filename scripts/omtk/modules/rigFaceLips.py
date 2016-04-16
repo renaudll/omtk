@@ -17,6 +17,8 @@ class CtrlLipsLow(rigFaceAvar.BaseCtrlFace):
 
 
 class FaceLips(rigFaceAvarGrps.ModuleFaceOnSurface):
+    IS_SIDE_SPECIFIC = False
+
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
     _AVAR_NAME_UPP_UD = 'uppUD'
@@ -39,7 +41,7 @@ class FaceLips(rigFaceAvarGrps.ModuleFaceOnSurface):
     @property
     def avars_corners(self):
         # TODO: Find a better way
-        fnFilter = lambda avar: 'corner' in avar.ref_name.lower()
+        fnFilter = lambda avar: 'corner' in avar.name.lower()
         return filter(fnFilter, self.avars)
 
     def get_module_name(self):

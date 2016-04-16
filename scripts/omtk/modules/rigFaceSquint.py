@@ -12,5 +12,6 @@ class CtrlSquint(rigFaceAvar.BaseCtrlFace):
 
 class FaceSquint(rigFaceAvarGrps.ModuleFaceLftRgt):
     _CLS_CTRL = CtrlSquint
+    IS_SIDE_SPECIFIC = False
 
-    ui_show = True
+    SHOW_IN_UI= True

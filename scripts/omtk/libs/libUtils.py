@@ -26,6 +26,9 @@ def get_center(objs):
             for oPointVtx in aPointVtx:
                 pos += oPointVtx
                 count += 1
+        elif isinstance(obj, pymel.general.NurbsCurveCV):
+            pos += obj.getPosition(space="world")
+            count += 1
         else:
             logging.warning("Unsupported data type ({0}), will be skipped".format(type(obj)))
     if count != 0:

@@ -140,6 +140,20 @@ class Rig(object):
     # Main implementation
     #
 
+    def _is_name_unique(self, name):
+        return not any((True for module in self.modules if module.name == name))
+
+    def _get_unique_name(self, name):
+        if self._is_name_unique(name):
+            return name
+
+        str_format = '{0}{1}'
+
+        i = 1
+        while not self._is_name_unique(str_format.format(name, i)):
+            i += 1
+        return str_format.format(name, i)
+
     def add_module(self, cls_name, *args, **kwargs):
         #if not isinstance(part, Module):
         #    raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
@@ -150,6 +164,12 @@ class Rig(object):
             raise Exception("Cannot resolve class name '{0}'".format(cls_name))
 
         instance = cls(*args, **kwargs)
+
+        # Resolve name to use
+        default_name = instance.get_default_name(self)
+        default_name = self._get_unique_name(default_name)  # Ensure name is unique
+        instance.name = default_name
+
         self.modules.append(instance)
         return instance
 
@@ -381,11 +401,13 @@ class Rig(object):
                 return 'head' in name_safe or 'face'in name_safe
 
         # TODO: Find a better way!
-        for jnt in pymel.ls(type='joint'):
+        jnts = sorted(pymel.ls(type='joint'), key=libPymel.get_num_parents)
+        for jnt in jnts:
             if key(jnt):
                 return jnt
 
-        raise Exception("Can't resolve head joint!")
+        #raise Warning("Can't resolve head joint!")
+        print "[classRigRoot.get_head_jnt] - Can't resolve head joint!"
 
     @libPython.memoized
     def get_jaw_jnt(self, key=None):
@@ -402,7 +424,8 @@ class Rig(object):
             if key(jnt):
                 return jnt
 
-        raise Exception("Can't resolve jaw joint!")
+        #raise Exception("Can't resolve jaw joint!")
+        print "[classRigRoot.get_jaw_jnt] - Can't resolve head joint!"
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):
@@ -462,7 +485,9 @@ class Rig(object):
 
         top = next(iter(libRigging.ray_cast(bot, dir, geometries)), None)
         if not top:
-            raise Exception("Can't resolve head top location using raycasts!")
+            raise Exception("Can't resolve head top location using raycasts using {0} {1}!".format(
+                bot, dir
+            ))
 
         return libPymel.distance_between_vectors(bot, top)
 

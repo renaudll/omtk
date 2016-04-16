@@ -24,9 +24,12 @@ class CtrlFk(BaseCtrl):
 
 
 class FK(Module):
+    DEFAULT_NAME_USE_FIRST_INPUT = True
+
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = None
+        self.sw_translate=False
 
     #
     # libSerialization implementation
@@ -60,8 +63,12 @@ class FK(Module):
             ctrl_name = ctrl_nomenclature.resolve('fk')
             ctrl.build(name=ctrl_name, refs=input)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
-            if create_spaceswitch:
-                ctrl.create_spaceswitch(rig, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
+
+        if create_spaceswitch:
+            if self.sw_translate:
+                self.ctrls[0].create_spaceswitch(rig, self, self.parent, add_world=True)
+            else:
+                self.ctrls[0].create_spaceswitch(rig, self, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
 
         self.ctrls[0].setParent(self.grp_anm)
         for i in range(1, len(self.ctrls)):
@@ -118,6 +125,7 @@ class AdditiveFK(FK):
 
         # TODO: Support multiple additive ctrls
         # TODO: Rename
+        self.additive_ctrls = filter(None, self.additive_ctrls)
         if not self.additive_ctrls:
             ctrl_add = CtrlFkAdd()
             self.additive_ctrls.append(ctrl_add)

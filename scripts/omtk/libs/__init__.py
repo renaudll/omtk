@@ -12,6 +12,7 @@ import libFormula
 import libPython
 import libQt
 import libPymel
+import libSkeleton
 import libRigging
 import libSkinning
 import libStringMap
@@ -24,6 +25,7 @@ def _reload():
     reload(libPython)
     reload(libQt)
     reload(libPymel)
+    reload(libSkeleton)
     reload(libRigging)
     reload(libSkinning)
     reload(libStringMap)

@@ -11,13 +11,13 @@ import className
 import classNode
 import classRig
 from omtk.libs import libPython
-
 log = logging.getLogger('omtk')
 
 # Load configuration file
 # Currently this only allow the default rig class from being used.
 config = {}
-config_path = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))), 'config.json')
+config_dir = os.path.abspath(os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), '..'))
+config_path = os.path.join(config_dir, 'config.json')
 if os.path.exists(config_path):
     with open(config_path) as fp:
         config = json.load(fp)
@@ -30,9 +30,16 @@ def _reload():
     reload(classRig)
 
 def create(*args, **kwargs):
-    default_rig = classRig.Rig.__name__
-    rig_type = config.get('default_rig', default_rig)
-    return getattr(classRig, rig_type)(*args, **kwargs)
+    from libSerialization import core
+    cls = classRig.Rig.__name__
+
+    rig_type = config.get('default_rig', None)
+    if rig_type is None:
+        cls = classRig.Rig
+    else:
+        cls = core.find_class_by_name(rig_type, base_class=classRig.Rig)
+
+    return cls(*args, **kwargs)
 
 def find():
     """

@@ -2,9 +2,12 @@ import pymel.core as pymel
 import collections
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
+from omtk.modules import rigIK
 from omtk.modules.rigIK import IK
 from omtk.modules.rigFK import FK
-from omtk.libs import libRigging, libCtrlShapes
+from omtk.libs import libRigging
+from omtk.libs import libCtrlShapes
+from omtk.libs import libAttr
 
 
 class BaseAttHolder(BaseCtrl):
@@ -53,6 +56,8 @@ class Limb(Module):
         self.attState = None
         self.offset_ctrl_ik = None
         self.ctrl_attrs = None
+        self.STATE_IK = 1.0
+        self.STATE_FK = 0.0
 
     def build(self, rig, *args, **kwargs):
         super(Limb, self).build(rig, *args, **kwargs)
@@ -63,16 +68,13 @@ class Limb(Module):
         # Create IK system
         if not isinstance(self.sysIK, self._CLASS_SYS_IK):
             self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
-        self.sysIK.name = self.name  # Hack
+        self.sysIK.name = '{0}_Ik'.format(self.name) # Hack
         self.sysIK.build(rig, constraint=False, **kwargs)
-
-        self.sysIK.ctrl_ik.create_spaceswitch(rig, self.parent, default_name='World')
-        self.sysIK.ctrl_swivel.create_spaceswitch(rig, self.parent, default_name='World')
 
         # Create FK system
         if not isinstance(self.sysFK, self._CLASS_SYS_FK):
             self.sysFK = self._CLASS_SYS_FK(self.chain_jnt)
-        self.sysFK.name = self.name  # Hack
+        self.sysFK.name = '{0}_Fk'.format(self.name) # Hack
         self.sysFK.build(rig, constraint=False, **kwargs)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
@@ -210,7 +212,7 @@ class Limb(Module):
         dir_swivel = pos_m - pos_middle
         dir_swivel.normalize()
         pos_swivel = dir_swivel * self.sysIK.swivelDistance + pos_ref
-        self.sysIK.ctrl_swivel.setTranslation(pos_swivel, space='world')
+        self.sysIK.ctrl_swivel.node.setTranslation(pos_swivel, space='world')
 
     def snap_fk_to_ik(self):
         for ctrl, jnt in zip(self.sysFK.ctrls, self.chain_jnt):
@@ -218,8 +220,12 @@ class Limb(Module):
 
     def switch_to_ik(self):
         self.snap_ik_to_fk()
-        self.attState.set(1.0)
+        attr_state = libAttr.get_settable_attr(self.attState)
+        if attr_state:
+            attr_state.set(self.STATE_IK)
 
     def switch_to_fk(self):
         self.snap_fk_to_ik()
-        self.attState.set(0.0)
+        attr_state = libAttr.get_settable_attr(self.attState)
+        if attr_state:
+            attr_state.set(self.STATE_FK)

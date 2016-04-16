@@ -48,6 +48,34 @@ class BaseName(object):
     def rebuild(self, name):
         return self.__class__(name, prefix=self.prefix, suffix=self.suffix)
 
+    def get_basename(self):
+        """
+        Each name have one single token that represent it's part.
+        ex: L_LegUpp_Ik_Ctrl -> LegUpp
+        By default it is the first non-side token in the name.
+        return: The part name.
+        """
+        for token in self.tokens:
+            if not self._is_side(token):
+                return token
+
+    def remove_extra_tokens(self):
+        """
+        Remove any tokens that is not the base token or a side token.
+        :return:
+        """
+        basename = self.get_basename()
+        found_base_token = False
+
+        new_tokens = []
+        for token in self.tokens:
+            if self._is_side(token):
+                new_tokens.append(token)
+            elif not found_base_token and token == basename:
+                new_tokens.append(token)
+
+        self.tokens = new_tokens
+
     def _get_tokens(self, name):
         return name.split(self.separator)
 
@@ -73,12 +101,28 @@ class BaseName(object):
             return name + str(i)
         return name
 
+    def _is_side_l(self, token):
+        token_lower = token.lower()
+        return any(True for pattern in self.side_l_tokens if token_lower == pattern.lower())
+
+    def _is_side_r(self, token):
+        token_lower = token.lower()
+        return any(True for pattern in self.side_r_tokens if token_lower == pattern.lower())
+
+    def _is_side(self, token):
+        return self._is_side_l(token) or self._is_side_r(token)
+
+    def get_tokens(self):
+        """
+        :return: All token without the side tokens.
+        """
+        return [token for token in self.tokens if not self._is_side_l(token) and not self._is_side_r(token)]
+
     def get_side(self):
         for token in self.tokens:
-            token_lower = token.lower()
-            if any(True for pattern in self.side_l_tokens if token_lower == pattern.lower()):
+            if self._is_side_l(token):
                 return "l"
-            elif any(True for pattern in self.side_r_tokens if token_lower == pattern.lower()):
+            elif self._is_side_r(token):
                 return "r"
         return None
 

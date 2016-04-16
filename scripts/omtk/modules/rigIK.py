@@ -4,7 +4,10 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
-from omtk.libs import libRigging, libAttr, libFormula
+from omtk.libs import libRigging
+from omtk.libs import libAttr
+from omtk.libs import libFormula
+from omtk.libs import libPymel
 
 class CtrlIk(BaseCtrl):
     kAttrName_State = 'ikFk'
@@ -65,6 +68,18 @@ class CtrlIkSwivel(BaseCtrl):
 
         return node
 
+    def get_spaceswitch_targets(self, rig, module, *args, **kwargs):
+        """
+        Add the Hand/Leg IK ctrl by default as a space-switch target to any swivel.
+        """
+        targets, target_names = super(CtrlIkSwivel, self).get_spaceswitch_targets(rig, module, *args, **kwargs)
+
+        # Add the Hand/Foot ctrl
+        targets.append(module.ctrl_ik)
+        target_names.append(None)
+
+        return targets, target_names
+
     def build(self, line_target=False, *args, **kwargs):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
@@ -109,14 +124,15 @@ class SoftIkNode(Node):
         # |-----------|-----------|----------|
         # -1          0.0         1.0         +++
         # -dBase      dSafe       dMax
-        formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoft"
-        # Hack: Prevent potential division by zero when soft-ik is desactivated
-        formula.deltaSafeSoft = libRigging.create_utility_node('condition',
-                                                               firstTerm=formula.distanceSoft,
-                                                               secondTerm=0.0,
-                                                               colorIfTrueR=0.0,
-                                                               colorIfFalseR=formula.deltaSafeSoft
-                                                               ).outColorR
+        # Hack: Prevent potential division by zero.
+        # Originally we were using a condition, however in Maya 2016+ in Parallel or Serial evaluation mode, this
+        # somehow evalated the division even when the condition was False.
+        formula.distanceSoftClamped = libRigging.create_utility_node('clamp',
+                                                           inputR=formula.distanceSoft,
+                                                           minR=0.0001,
+                                                           maxR=999
+                                                           ).outputR
+        formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoftClamped"
 
         # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-ik
         # If there's no stretch, this will be directly applied to the ikEffector.
@@ -200,7 +216,7 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
-    def build(self, rig, orient_ik_ctrl=True, constraint=False, *args, **kwargs):
+    def build(self, rig, ctrl_ik_orientation=None, constraint=False, *args, **kwargs):
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
@@ -225,7 +241,7 @@ class IK(Module):
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for oInput, oIk, in zip(self.chain_jnt, self._chain_ik):
-            oIk.rename(nomenclature_anm.resolve('ik'))
+            oIk.rename(nomenclature_rig.resolve('ik'))
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
 
 
@@ -233,7 +249,8 @@ class IK(Module):
         obj_e = self._chain_ik[index_hand]
 
         # Compute chain length
-        self.chain_length = self.chain.length()
+        self.chain_length = libPymel.PyNodeChain(self.chain[:self.iCtrlIndex+1]).length()
+        #self.chain_length = self.chain.length()
 
         # Compute swivel position
         p3SwivelPos = self.calc_swivel_pos()
@@ -258,8 +275,13 @@ class IK(Module):
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
         self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
-        if orient_ik_ctrl is True:
-            self.ctrl_ik.offset.setRotation(obj_e.getRotation(space='world'), space='world')
+
+        # Set ctrl_ik_orientation
+        if ctrl_ik_orientation is None:
+            ctrl_ik_orientation = obj_e.getRotation(space='world')
+        self.ctrl_ik.offset.setRotation(ctrl_ik_orientation, space='world')
+
+        self.ctrl_ik.create_spaceswitch(rig, self, self.parent, default_name='World')
 
         # Create CtrlIkSwivel
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
@@ -270,6 +292,7 @@ class IK(Module):
         self.ctrl_swivel.rename(nomenclature_anm.resolve('swivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
+        self.ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')
 
         #
         # Create softIk node and connect user accessible attributes to it.
@@ -277,9 +300,12 @@ class IK(Module):
         oAttHolder = self.ctrl_ik
         fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
         attInRatio = fnAddAttr(oAttHolder, longName='softIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
-                               maxValue=.5, k=True)
+                               maxValue=50, k=True)
         attInStretch = fnAddAttr(oAttHolder, longName='stretch', niceName='Stretch', defaultValue=0, minValue=0,
                                  maxValue=1.0, k=True)
+
+        # Adjust the ratio in percentage so animators understand that 0.03 is 3%
+        attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
 
         # Create and configure SoftIK solver
         rig_softIkNetwork = SoftIkNode()
@@ -294,10 +320,15 @@ class IK(Module):
         pymel.connectAttr(attr_distance, rig_softIkNetwork.inChainLength)
 
         # Constraint effector
+        # Note that we create an ikHandleTarget node so that we can hijack the system later.
+        # For example if we are building a Leg and want to footroll to influence the ikHandle.
+        self._ik_handle_target = pymel.createNode('transform', name=nomenclature_rig.resolve('ikHandleTarget'))
+        self._ik_handle_target.setParent(self.grp_rig)
+        pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)
-        pymel.select(self.ctrl_ik, self._ikChainGrp, self._ik_handle)
+        pymel.select(self._ik_handle_target , self._ikChainGrp, self._ik_handle)
         pointConstraint = pymel.pointConstraint()
         pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
         pymel.select(pointConstraint)
@@ -305,21 +336,22 @@ class IK(Module):
         pymel.connectAttr(attOutRatio, weight_inn)
         pymel.connectAttr(attOutRatioInv, weight_out)
 
-        # Constraint joints stretch
-        attOutStretch = rig_softIkNetwork.outStretch
-        attr_joint_stretch = libRigging.create_utility_node('multiplyDivide',
-                                                            input1X=rig_softIkNetwork.outStretch,
-                                                            input2X=self.grp_rig.globalScale).outputX
-        num_jnts = len(self._chain_ik)
-        for i in range(1, num_jnts):
+        # Connect global scale
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sx)
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sy)
+        pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sz)
+
+        # Connect stretch
+        for i in range(1, self.iCtrlIndex+1):
             obj = self._chain_ik[i]
-            pymel.connectAttr(
-                libRigging.create_utility_node('multiplyDivide',
-                                               input1X=attr_joint_stretch,
-                                               input1Y=attr_joint_stretch,
-                                               input1Z=attr_joint_stretch,
-                                               input2=obj.t.get()).output,
-                obj.t, force=True)
+            util_get_t = libRigging.create_utility_node('multiplyDivide',
+                                               input1X=rig_softIkNetwork.outStretch,
+                                               input1Y=rig_softIkNetwork.outStretch,
+                                               input1Z=rig_softIkNetwork.outStretch,
+                                               input2=obj.t.get())
+            pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
+            pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
+            pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
 
         # Connect rig -> anm
         pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)

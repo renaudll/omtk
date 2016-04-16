@@ -29,3 +29,6 @@ build/
 
 # Backup files
 *~.nib
+
+# Configuration file
+scripts/omtk/config.json

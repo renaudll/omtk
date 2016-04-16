@@ -42,6 +42,8 @@ class NonRollJoint(Node):
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class Twistbone(Module):
+    DEFAULT_NAME_USE_FIRST_INPUT = True
+
     def __init__(self, *args, **kwargs):
         self.ikCurve = None
 
@@ -65,7 +67,7 @@ class Twistbone(Module):
         pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True)
 
         # Generate Subjoints
-        self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 4)
+        self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 3)
 
         #TODO : Use the nomeclature system to name the bones
         for i, sub_jnt in enumerate(self.subjnts):
@@ -77,7 +79,7 @@ class Twistbone(Module):
         # Create splineIK
         #Do not connect the stretch to prevent scaling problem
         #TODO : If a stretch system exist on the input, we need to find a way to connect it to the twist system
-        splineIK = SplineIK(self.subjnts +[self.ikCurve])
+        splineIK = SplineIK(self.subjnts +[self.ikCurve], name=self.name)
         splineIK.bStretch = False
         splineIK.build(rig, create_grp_anm=False, stretch=False)
         self.ikCurve.setParent(splineIK.grp_rig)
@@ -171,11 +173,9 @@ class Twistbone(Module):
                 subjnt.lockInfluenceWeights.set(False)
 
         # TODO : Automatically skin the twistbones
-        num_shapes = skin_deformer.numOutputConnections()
-        for i in range(num_shapes):
-            shape = skin_deformer.outputShapeAtIndex(i)
-            print("Assign skin weights on {0}.".format(shape.name()))
-            libSkinning.transfer_weights_from_segments(shape, self.chain_jnt.start, self.subjnts)
+        for mesh in self.get_farest_affected_mesh():
+            print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
+            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
 
         '''
@@ -209,6 +209,10 @@ class Twistbone(Module):
 
         super(Twistbone, self).unbuild()
 
+        self.start = None
+        self.end = None
+
         # Remove twistbones
         if delete:
-            pymel.delete(self.subjnts)
+            pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
+            self.subjnts = None

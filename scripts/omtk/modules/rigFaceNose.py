@@ -18,6 +18,7 @@ class FaceNose(rigFaceAvarGrps.ModuleFaceOnSurface):
     """
     #_DEFORMATION_ORDER = 'post'
     #_CLS_AVAR = AvarJaw
+    IS_SIDE_SPECIFIC = False
     _CLS_CTRL = CtrlNose
 
     def __init__(self, *args, **kwargs):

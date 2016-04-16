@@ -70,9 +70,9 @@ class RigSqueeze(classRig.Rig):
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
 
-    def build(self, **kwargs):
-        super(RigSqueeze, self).build(**kwargs)
-
+    def pre_build(self):
+        super(RigSqueeze, self).pre_build(create_grp_jnt=False)
+        
         #
         # Create specific group related to squeeze rig convention
         #
@@ -107,8 +107,10 @@ class RigSqueeze(classRig.Rig):
         self.grp_model.setParent(self.grp_all)
         self.grp_proxy.setParent(self.grp_all)
         self.grp_geo.setParent(self.grp_all)
+        '''
         if self.grp_jnt.getParent() is None:
             self.grp_jnt.setParent(self.grp_all)
+        '''
 
         #Lock and hide all attributes we don't want the animator to play with
         libAttr.lock_hide_trs(self.grp_all)
@@ -120,7 +122,7 @@ class RigSqueeze(classRig.Rig):
         libAttr.hide_scale(self.grp_anm)
 
         #Hide some group
-        self.grp_jnt.visibility.set(False)
+        #self.grp_jnt.visibility.set(False)
         self.grp_rig.visibility.set(False)
         self.grp_fx.visibility.set(False)
         self.grp_model.visibility.set(False)
@@ -156,6 +158,9 @@ class RigSqueeze(classRig.Rig):
         pymel.connectAttr(attr_displayProxy, self.grp_proxy.visibility, force=True)
         for child in self.grp_anm.getChildren():
             pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
+
+    def build(self, **kwargs):
+        super(RigSqueeze, self).build(**kwargs)
 
         #
         # Connect all IK/FK attributes

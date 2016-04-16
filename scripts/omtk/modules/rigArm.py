@@ -3,8 +3,8 @@ from omtk.modules import rigLimb
 from omtk.libs import libCtrlShapes
 
 class CtrlIkArm(rigIK.CtrlIk):
-    def __createNode__(self, refs=None, *args, **kwargs):
-        return libCtrlShapes.create_shape_box_arm(refs, *args, **kwargs)
+    def __createNode__(self, refs=None, geometries=None, *args, **kwargs):
+        return libCtrlShapes.create_shape_box_arm(refs, geometries=geometries, *args, **kwargs)
 
     def get_spaceswitch_targets(self, rig, *args, **kwargs):
         targets, labels = super(CtrlIkArm, self).get_spaceswitch_targets(rig, *args, **kwargs)

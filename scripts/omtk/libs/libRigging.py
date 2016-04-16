@@ -4,6 +4,7 @@ import pymel.core as pymel
 import logging
 import libPymel
 import libPython
+from maya import OpenMaya
 from omtk.libs import libPymel
 
 '''
@@ -342,7 +343,6 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
         create_hyerarchy(new_objs)
 
     return libPymel.PyNodeChain(new_objs)
-from maya import OpenMaya
 
 def get_affected_geometries(*objs):
     """
@@ -691,63 +691,71 @@ def align_joints_to_view(joints, cam, affect_pos=True):
     for transform, node in zip(transforms, joints):
         node.setMatrix(transform, worldSpace=True)
 
+def get_active_camera():
+    """
+    Return the active camera.
+    Thanks to Nohra Seif for the snippet!
+    """
+    # seems that $gMainPane contain the name of the main window pane layout holding the panels.
+    main_pane = mel.eval('string $test = $gMainPane;')
+    if main_pane != "":
+        # get the layout's immediate children
+        main_pane_ctrls = pymel.paneLayout(main_pane, q=True, childArray=True)
+        for i in range(len(main_pane_ctrls)):
+            # panel containing the specified control
+            panel_name = pymel.getPanel(containing=main_pane_ctrls[i])
+            if "" != panel_name:
+                # Return the type of the specified panel.
+                if ("modelPanel" == pymel.getPanel(typeOf=panel_name)):
+                    # Return whether the control can actually be seen by the user, isObscured for invisible
+                    if not (pymel.control(main_pane_ctrls[i], q=True, isObscured=True)):
+                        model_editor = pymel.modelPanel(panel_name, q=True, modelEditor=True)
+                        if model_editor:
+                            # If this view is already active, let's continue to use it.
+                            if pymel.modelEditor(model_editor, q=True, activeView=True):
+                                # get the camera in the current modelPanel
+                                return pymel.modelPanel(model_editor, q=True, camera=True)
 
+def align_selected_joints_to_active_view(default_cam='persp'):
+    sel = pymel.selected()
+    cam = get_active_camera()
+    if not cam:
+        pymel.warning("Can't find active camera, will use {0}.".format(default_cam))
+        cam = pymel.PyNode(default_cam)
+    align_joints_to_view(sel, cam)
 
-def align_selected_joints_to_persp ():
+def align_selected_joints_to_persp():
+    # TODO: Deprecated, remove me after 2016-05-01
     sel = pymel.selected()
     cam = pymel.PyNode('persp')
     align_joints_to_view(sel, cam)
 
+def _filter_shape(obj, key):
+    if not isinstance(obj, pymel.nodetypes.Mesh):
+        return False
 
-def create_follicle(obj, surface, constraint=True, name=None):
-        """
-        Create a follicle via djRivet but don't automatically align it to @obj.
-        TODO: Make it work when the plane is scaled.
-        """
-        # Note that obj should have a identity parent space
-        pymel.select(obj, surface)
-        mel.eval("djRivet")
+    if obj.intermediateObject.get():
+        return False
 
-        #pymel.delete(ref)
+    if key is not None and not key(obj):
+        return False
 
-        # Found the follicle shape...
-        dj_rivet_grp = pymel.PyNode("djRivetX")
-        follicle_transform = next(iter(reversed(dj_rivet_grp.getChildren())))
-        follicle_transform.setParent(world=True)
-        # follicle_shape = follicle_transform.getShape()
+    return True
 
-        if constraint:
-            pymel.parentConstraint(follicle_transform, obj, maintainOffset=True)
-
-        # follicle_shape.setParent(obj, relative=True, shape=True)
-        # pymel.delete(follicle_transform)
-        # pymel.connectAttr(follicle_shape.outTranslate, obj.t)
-        # pymel.connectAttr(follicle_shape.outRotate, obj.r)
-
-        if name:
-            follicle_transform.rename(name)
-
-        return follicle_transform
-
-
-def get_nearest_affected_mesh(jnt):
+def get_nearest_affected_mesh(jnt, key=None):
     """
     Return the immediate mesh affected by provided object in the geometry stack.
     """
-    def fn_filter(obj):
-        return isinstance(obj, pymel.nodetypes.Mesh) and not obj.intermediateObject.get()
-    affected_meshes = filter(fn_filter, jnt.listHistory(future=True))
+    affected_meshes = [hist for hist in jnt.listHistory(future=True) if _filter_shape(hist, key)]
 
     return next(iter(affected_meshes), None)
 
-def get_farest_affected_mesh(jnt):
+def get_farest_affected_mesh(jnt, key=None):
     """
     Return the last mesh affected by provided object in the geometry stack.
     Usefull to identify which mesh to use in the 'doritos' setup.
     """
-    def fn_filter(obj):
-        return isinstance(obj, pymel.nodetypes.Mesh) and not obj.intermediateObject.get()
-    affected_meshes = filter(fn_filter, jnt.listHistory(future=True))
+    affected_meshes = [hist for hist in jnt.listHistory(future=True) if _filter_shape(hist, key)]
 
     return next(iter(reversed(affected_meshes)), None)
 
@@ -820,6 +828,7 @@ def get_closest_point_on_surface(nurbsSurface, pos):
 
     return pos, u, v
 
+# TODO: write an alternative method that work when the mesh have no UVs using pointOnMesh constraint.
 def create_follicle2(shape, u=0, v=0, connect_transform=True):
     """
     Alternative to djRivet when you already know the u and v values.

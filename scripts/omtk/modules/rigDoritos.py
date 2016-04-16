@@ -77,7 +77,7 @@ class Doritos(classModule.Module):
 
         # Resolve geometry for the follicle
         if obj_mesh is None:
-            obj_mesh = libRigging.get_farest_affected_mesh(self.jnt)
+            obj_mesh = rig.get_farest_affected_mesh(self.jnt)
         if obj_mesh is None:
             pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
             return False

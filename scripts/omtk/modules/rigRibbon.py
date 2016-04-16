@@ -37,13 +37,14 @@ class Ribbon(Module):
             plane_tran.setParent(self.grp_rig)
         self._ribbon_shape = plane_tran.getShape()
 
+        # TODO: Remove usage of djRivet
         #Create the follicule needed for the system on the skinned bones
         for i, jnt in enumerate(self.chain_jnt):
             pymel.select(jnt, plane_tran)
             mel.eval("djRivet")
             #TODO : Support aim constraint for bones instead of follicle rotation?
 
-        #Apply the skin on the plane and rename follicle from djRivet
+        # Apply the skin on the plane and rename follicle from djRivet
         dj_rivet_grp = pymel.PyNode("djRivetX")
         follicle_grp_name = nomenclature_rig.resolve("follicle_grp")
         dj_rivet_grp.rename(follicle_grp_name)
@@ -61,7 +62,7 @@ class Ribbon(Module):
 
         # Group all the joints
         ribbon_chain_grp_name = nomenclature_rig.resolve('ribbonChain' + "_grp")
-        ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
+        ribbon_chain_grp = pymel.createNodew('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
         align_chain = True if len(self.chain_jnt) == len(self._ribbon_jnts) else False
         for i, jnt in enumerate(self._ribbon_jnts):
             #Align the ribbon joints with the real joint to have a better rotation ctrl

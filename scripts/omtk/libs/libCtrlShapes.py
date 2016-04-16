@@ -200,7 +200,8 @@ def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None, filte
 
     return min_x, max_x, min_y, max_y, min_z, max_z
 
-def create_shape_box_arm(refs):
+def create_shape_box_arm(refs, geometries):
+    # TODO: Prevent crashes when there's no geometries
     ref = next(iter(refs))
     ref_tm = ref.getMatrix(worldSpace=True)
 
@@ -219,7 +220,6 @@ def create_shape_box_arm(refs):
             OpenMaya.MPoint(0,0,-1) * ref_tm,
             OpenMaya.MPoint(0,0,1) * ref_tm
         ]
-    geometries = pymel.ls(type='mesh')
 
     min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
 
@@ -240,7 +240,8 @@ def create_shape_box_arm(refs):
     return node
 
 
-def create_shape_box_feet(refs, *args, **kwargs):
+def create_shape_box_feet(refs, geometries, *args, **kwargs):
+    # TODO: Prevent crash when there's no provided geometries
     ref = next(iter(refs))
     ref_pos = ref.getTranslation(space='world')
     ref_tm = pymel.datatypes.Matrix(
@@ -257,7 +258,6 @@ def create_shape_box_feet(refs, *args, **kwargs):
         OpenMaya.MVector(0,0,-1),
         OpenMaya.MVector(0,0,1)
     ]
-    geometries = pymel.ls(type='mesh')
 
     # Sanity check, ensure that at least one point is in the bounds of geometries.
     # This can prevent rays from being fired from outside a geometry.

@@ -62,7 +62,7 @@ class Ribbon(Module):
 
         # Group all the joints
         ribbon_chain_grp_name = nomenclature_rig.resolve('ribbonChain' + "_grp")
-        ribbon_chain_grp = pymel.createNodew('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
+        ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
         align_chain = True if len(self.chain_jnt) == len(self._ribbon_jnts) else False
         for i, jnt in enumerate(self._ribbon_jnts):
             #Align the ribbon joints with the real joint to have a better rotation ctrl

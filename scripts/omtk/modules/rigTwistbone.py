@@ -170,11 +170,14 @@ class Twistbone(Module):
 
             # Add new joints as influence.
             for subjnt in self.subjnts:
+                if subjnt in influenceObjects:
+                    continue
+
                 skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                 subjnt.lockInfluenceWeights.set(False)
 
         # TODO : Automatically skin the twistbones
-        for mesh in rig.get_farest_affected_mesh():
+        for mesh in self.get_farest_affected_meshes(rig):
             print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
             libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
@@ -196,14 +199,13 @@ class Twistbone(Module):
                     skinClusters.add(hist)
         return skinClusters
 
-    '''
     def get_farest_affected_meshes(self, rig):
         results = set()
         for jnt in self.jnts:
             mesh = rig.get_farest_affected_mesh(jnt)
-            results.add(mesh)
+            if mesh:
+                results.add(mesh)
         return results
-    '''
 
     def unbuild(self, delete=True):
         '''
@@ -211,6 +213,12 @@ class Twistbone(Module):
         for mesh in self.get_farest_affected_mesh():
             libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
         '''
+        # Remove scaling from the subjnts before unbuilding, otherwise scale issue will occur.
+        for jnt in self.subjnts:
+            pymel.disconnectAttr(jnt.scaleX)
+            pymel.disconnectAttr(jnt.scaleY)
+            pymel.disconnectAttr(jnt.scaleZ)
+
 
         super(Twistbone, self).unbuild()
 

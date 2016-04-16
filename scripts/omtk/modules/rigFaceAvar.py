@@ -333,7 +333,7 @@ class AbstractAvar(classModule.Module):
         super(AbstractAvar, self).validate()
 
         if not self.jnts:
-            raise Exception("Can't build ModuleFace with zero joints!")
+            raise Exception("Can't build AvarGrp with zero joints!")
 
         return True
 

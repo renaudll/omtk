@@ -265,7 +265,7 @@ class Rig(object):
                 self.grp_rig = Node()
             if not self.grp_rig.is_built():
                 self.grp_rig.build()
-            self.grp_rig.rename(self.nomenclature.root_rig_name)
+                self.grp_rig.rename(self.nomenclature.root_rig_name)
 
         # Create grp_geo
         if create_grp_geo:
@@ -274,7 +274,7 @@ class Rig(object):
                 self.grp_geo = Node()
             if not self.grp_geo.is_built():
                 self.grp_geo.build()
-            self.grp_geo.rename(self.nomenclature.root_geo_name)
+                self.grp_geo.rename(self.nomenclature.root_geo_name)
             all_geos.setParent(self.grp_geo)
 
         # Setup displayLayers
@@ -429,15 +429,18 @@ class Rig(object):
         """
         Not the prettiest but used to find the head for facial rigging.
         """
-        if key is None:
-            def key(obj):
-                name_safe = obj.stripNamespace().lower()
-                return 'head' in name_safe or 'face'in name_safe
+        nomenclature = self._get_nomenclature_cls()
+        whitelist = ('head', 'face')
 
-        # TODO: Find a better way!
-        jnts = sorted(pymel.ls(type='joint'), key=libPymel.get_num_parents)
-        for jnt in jnts:
-            if key(jnt):
+        for jnt in self.get_potential_influences():
+            # Ignore non-joints
+            if not isinstance(jnt, pymel.nodetypes.Joint):
+                continue
+
+            name = nomenclature(jnt.name())
+            basename = name.get_basename()
+
+            if basename.lower() in whitelist:
                 return jnt
 
         #raise Warning("Can't resolve head joint!")
@@ -448,14 +451,18 @@ class Rig(object):
         """
         Not the prettiest but used to find the jaw for facial rigging.
         """
-        if key is None:
-            def key(obj):
-                name_safe = obj.stripNamespace().lower()
-                return 'jaw' in name_safe
+        nomenclature = self._get_nomenclature_cls()
+        whitelist = ('jaw',)
 
-        # TODO: Find a better way!
-        for jnt in pymel.ls(type='joint'):
-            if key(jnt):
+        for jnt in self.get_potential_influences():
+            # Ignore non-joints
+            if not isinstance(jnt, pymel.nodetypes.Joint):
+                continue
+
+            name = nomenclature(jnt.name())
+            basename = name.get_basename()
+
+            if basename.lower() in whitelist:
                 return jnt
 
         #raise Exception("Can't resolve jaw joint!")
@@ -524,21 +531,3 @@ class Rig(object):
             ))
 
         return libPymel.distance_between_vectors(bot, top)
-
-    def iter_avars(self):
-        """
-        Iterate through all avars module of the rig.
-        """
-        from omtk.modules import rigFaceAvar
-        for module in self.modules:
-            if isinstance(module, classAvar.AvarFollicle):
-                yield module
-            elif isinstance(module, rigFaceAvarGrps.ModuleFace):
-                for avar in module.avars:
-                    yield avar
-
-    def iter_ctrls(self):
-        for module in self.modules:
-            for ctrl in module.get_ctrls(recursive=True):
-                yield ctrl
-

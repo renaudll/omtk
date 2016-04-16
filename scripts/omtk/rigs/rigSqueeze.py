@@ -1,3 +1,5 @@
+import re
+
 import pymel.core as pymel
 from maya import cmds
 
@@ -70,6 +72,17 @@ class RigSqueeze(classRig.Rig):
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
 
+    def get_potential_influences(self):
+        influences = super(RigSqueeze, self).get_potential_influences()
+        blacklist = ['.*_Jne']
+
+        # We know we can safely ignore
+        def is_blacklisted(jnt):
+            name = jnt.name()
+            return not any(True for pattern in blacklist if re.match(pattern, name, re.IGNORECASE))
+
+        return filter(is_blacklisted, influences)
+
     def pre_build(self):
         super(RigSqueeze, self).pre_build(create_grp_jnt=False)
         
@@ -130,7 +143,7 @@ class RigSqueeze(classRig.Rig):
         #
         # Add root ctrl attributes specific to squeeze
         #
-        if not self.grp_anm.hasAttr(self.GROUP_NAME_FACE, checkShape=False):
+        if not self.grp_anm.hasAttr(self.GROUP_NAME_DISPLAY, checkShape=False):
             libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_DISPLAY)
 
         #Display Mesh
@@ -159,53 +172,48 @@ class RigSqueeze(classRig.Rig):
         for child in self.grp_anm.getChildren():
             pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
 
-    def build(self, **kwargs):
-        super(RigSqueeze, self).build(**kwargs)
+    def post_buid_module(self, module):
+        super(RigSqueeze, self).post_buid_module(module)
 
         #
         # Connect all IK/FK attributes
         # TODO: Ensure all attributes are correctly transfered
         #
-        attr_by_name = {}
-        for module in self.modules:
-            if isinstance(module, rigLimb.Limb):
-                # Inverse IK/FK state.
-                # At Squeeze, 0 is IK and 1 is FK, strange.
-                module.STATE_IK = 0.0
-                module.STATE_FK = 1.0
+        if isinstance(module, rigLimb.Limb):
+            # Inverse IK/FK state.
+            # At Squeeze, 0 is IK and 1 is FK, strange.
+            module.STATE_IK = 0.0
+            module.STATE_FK = 1.0
 
-                pymel.delete(module.ctrl_attrs)
-                module.ctrl_attrs = None
+            pymel.delete(module.ctrl_attrs)
+            module.ctrl_attrs = None
 
-                # Resolve name
-                # TODO: Handle name conflict
-                nomenclature = module.get_nomenclature_anm(self)
-                tokens = []
-                side = nomenclature.get_side()
-                if side:
-                    tokens.append(side)
-                tokens += [module.__class__.__name__]
+            # Resolve name
+            # TODO: Handle name conflict
+            nomenclature = module.get_nomenclature_anm(self)
+            tokens = []
+            side = nomenclature.get_side()
+            if side:
+                tokens.append(side)
+            tokens += [module.__class__.__name__]
 
-                key = '_'.join(tokens)
-                val = module.grp_rig.attr(module.kAttrName_State)
+            attr_src_name = '_'.join(tokens)
+            attr_dst = module.grp_rig.attr(module.kAttrName_State)
 
-                attr_by_name[key] = val
-
-        if attr_by_name:
             if not self.grp_anm.hasAttr(self.GROUP_NAME_IKFK, checkShape=False):
                 libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_IKFK)
-            for attr_src_name, attr_dst in sorted(attr_by_name.iteritems()):
-                attr_src = None
-                if not self.grp_anm.hasAttr(attr_src_name, checkShape=False):
-                    attr_src = libAttr.addAttr(self.grp_anm, longName=attr_src_name, at='short', k=True,
-                                  hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
-                else:
-                    attr_src = self.grp_anm.attr(attr_src_name)
 
-                # Note that at Squeeze, 0 is for IK and 1 is for FK so we'll need to reverse it.
-                attr_src_inv = libRigging.create_utility_node('reverse', inputX=attr_src).outputX
+            attr_src = None
+            if not self.grp_anm.hasAttr(attr_src_name, checkShape=False):
+                attr_src = libAttr.addAttr(self.grp_anm, longName=attr_src_name, at='short', k=True,
+                              hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
+            else:
+                attr_src = self.grp_anm.attr(attr_src_name)
 
-                pymel.connectAttr(attr_src_inv, attr_dst)
+            # Note that at Squeeze, 0 is for IK and 1 is for FK so we'll need to reverse it.
+            attr_src_inv = libRigging.create_utility_node('reverse', inputX=attr_src).outputX
+
+            pymel.connectAttr(attr_src_inv, attr_dst)
 
         #
         # Set ctrls colors
@@ -215,18 +223,15 @@ class RigSqueeze(classRig.Rig):
             'r': 6  # Blue
         }
         epsilon = 0.1
-        for module in self.modules:
-            if module.grp_anm:
-                nomenclature_anm = module.get_nomenclature_anm(self)
-                for ctrl in module.get_ctrls(recursive=True):
-                    nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                    side = nomenclature_ctrl.get_side()
-                    color = color_by_side.get(side, None)
-                    if color:
-                        ctrl.drawOverride.overrideEnabled.set(1)
-                        ctrl.drawOverride.overrideColor.set(color)
-
-        return True
+        if module.grp_anm:
+            nomenclature_anm = module.get_nomenclature_anm(self)
+            for ctrl in module.get_ctrls(recursive=True):
+                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                side = nomenclature_ctrl.get_side()
+                color = color_by_side.get(side, None)
+                if color:
+                    ctrl.drawOverride.overrideEnabled.set(1)
+                    ctrl.drawOverride.overrideColor.set(color)
 
     def unbuild(self, *args, **kwargs):
         super(RigSqueeze, self).unbuild()

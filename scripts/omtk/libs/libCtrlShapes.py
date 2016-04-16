@@ -9,6 +9,8 @@ def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):
     make.normal.set(normal)
 
     # Expose the rotateOrder
+    transform.rotateOrder.setKeyable(True)
+
     make.radius.set(size)
     make.degree.set(1)
     make.sections.set(8)
@@ -94,6 +96,9 @@ def create_shape_needle(size=1, length=None, radius=None, name=None, normal=(0, 
     if name:
         shape1.rename(name)
 
+    # Expose the rotateOrder
+    shape1.rotateOrder.setKeyable(True)
+
     return shape1
 
 
@@ -104,6 +109,10 @@ def create_shape_double_needle(normal=(0, 1, 0), *args, **kwargs):
     for shape in shape2.getShapes():
         shape.setParent(shape1, shape=True, relative=True)
     pymel.delete(shape2)
+
+    # Expose the rotateOrder
+    shape1.rotateOrder.setKeyable(True)
+
     return shape1
 
 
@@ -125,6 +134,10 @@ def create_shape_cross(size=1.0, **kwargs):
         (0,-s2,s1),
         (0,-s1,s1)
     ], **kwargs)
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -132,6 +145,10 @@ def create_shape_attrholder(size=1.0, **kwargs):
     s1 = size
     s2 = s1 * 0.7
     node = pymel.curve(d=1, p=[(0,0,s1),(0,s2,s2),(0,s1,0),(0,s2,-s2),(0,0,-s1),(0,-s2,-s2),(0,-s1,0),(0,-s2,s2),(0,0,s1),(-s2,0,s2),(-s1,0,0),(-s2,s2,0),(0,s1,0),(s2,s2,0),(s1,0,0),(s2,0,-s2),(0,0,-s1),(-s2,0,-s2),(-s1,0,0),(-s2,-s2,0),(0,-s1,0),(s2,-s2,0),(s1,0,0),(s2,0,s2),(0,0,s1),(-s2,0,s2)], k=range(26), *kwargs)
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -143,6 +160,10 @@ def create_shape_box(size=1.0, r=None, h=None):
         h = size / 5.0
 
     node = pymel.curve(d=1, p=[(-r, -h, r), (-r, h, r), (r, h, r), (r, -h, r), (-r, -h, r), (-r, -h, -r), (-r, h, -r), (-r, h, r), (r, h, r), (r, h, -r), (r, -h, -r), (r, -h, r), (r, -h, -r), (-r, -h, -r), (-r, h, -r), (r, h, -r)] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None, filter=None):
@@ -237,6 +258,9 @@ def create_shape_box_arm(refs, geometries):
 
     node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
 
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -301,6 +325,9 @@ def create_shape_box_feet(refs, geometries, *args, **kwargs):
 
     node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
 
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 
@@ -320,6 +347,9 @@ def create_square(size=1.0, width=None, height=None, **kwargs):
 
     node = pymel.curve(d=1, p=[pos1, pos2, pos3, pos4, pos5] )
 
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 def create_triangle_upp():
@@ -327,6 +357,10 @@ def create_triangle_upp():
     p2 = [-0.5, -0.288, 0]
     p3 = [0.5, -0.288, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node
 
 def create_triangle_low():
@@ -334,4 +368,8 @@ def create_triangle_low():
     p2 = [-0.5, 0.288, 0]
     p3 = [0.5, 0.288, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
     return node

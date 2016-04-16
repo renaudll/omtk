@@ -141,7 +141,7 @@ class DpSpine(Module):
         # Create ribbon rig
         #
 
-        sys_ribbon = Ribbon(self.chain_jnt)
+        sys_ribbon = Ribbon(self.chain_jnt, name=self.name)
         sys_ribbon.build(rig, create_ctrl=False, degree=3)
         sys_ribbon.grp_rig.setParent(self.grp_rig)
 

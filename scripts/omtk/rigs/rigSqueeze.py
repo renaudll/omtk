@@ -74,7 +74,7 @@ class RigSqueeze(classRig.Rig):
 
     def get_potential_influences(self):
         influences = super(RigSqueeze, self).get_potential_influences()
-        blacklist = ['.*_Jne']
+        blacklist = ['.*_Jne', '.*JEnd']
 
         # We know we can safely ignore
         def is_blacklisted(jnt):

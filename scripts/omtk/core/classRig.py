@@ -209,9 +209,20 @@ class Rig(object):
 
     @libPython.memoized
     def get_meshes(self):
+        """
+        :return: All meshes under the mesh group. If found nothing, scan the whole scene.
+        """
+        meshes = None
         if self.grp_geo and self.grp_geo.exists():
             shapes = self.grp_geo.listRelatives(allDescendents=True, shapes=True)
-            return [shape for shape in shapes if not shape.intermediateObject.get()]
+            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+
+        if not meshes:
+            log.warning("Found no mesh under the mesh group, scanning the whole scene.")
+            shapes = pymel.ls(type='mesh')
+            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+
+        return meshes
 
     def get_nearest_affected_mesh(self, jnt):
         """

@@ -714,7 +714,7 @@ def get_active_camera():
                             # If this view is already active, let's continue to use it.
                             if pymel.modelEditor(model_editor, q=True, activeView=True):
                                 # get the camera in the current modelPanel
-                                return pymel.modelPanel(model_editor, q=True, camera=True)
+                                return pymel.PyNode(pymel.modelPanel(model_editor, q=True, camera=True))
 
 def align_selected_joints_to_active_view(default_cam='persp'):
     sel = pymel.selected()

@@ -17,13 +17,14 @@ class Ribbon(Module):
     def __init__(self, *args, **kwargs):
         super(Ribbon, self).__init__(*args, **kwargs)
         self.num_subdiv = None
-        self.num_ctrl = None
+        self.num_ctrl = 3
         self.ctrls = []
         self.width = 1.0
 
-    def build(self, rig, num_subdiv = 5, num_ctrl = 3, degree=1, create_ctrl=True, constraint=False, rot_fol=False, *args, **kwargs):
+    def build(self, rig, num_subdiv = 5, num_ctrl = None, degree=1, create_ctrl=True, constraint=False, rot_fol=False, *args, **kwargs):
         super(Ribbon, self).build(rig, create_grp_anm=create_ctrl, *args, **kwargs)
-        self.num_ctrl = num_ctrl
+        if num_ctrl is not None:
+            self.num_ctrl = num_ctrl
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -66,8 +67,8 @@ class Ribbon(Module):
         for i, jnt in enumerate(self._ribbon_jnts):
             #Align the ribbon joints with the real joint to have a better rotation ctrl
             if align_chain:
-                pos = self.chain_jnt[i].getTranslation(space="world")
-                jnt.setTranslation(pos, space="world")
+                matrix = self.chain_jnt[i].getMatrix(worldSpace=True)
+                jnt.setMatrix(matrix, worldSpace=True)
             jnt.setParent(ribbon_chain_grp)
 
         #TODO - Improve skinning smoothing by setting manully the skin...

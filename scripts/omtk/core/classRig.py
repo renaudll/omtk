@@ -290,21 +290,24 @@ class Rig(object):
 
         # Setup displayLayers
         if create_display_layers:
-            self.layer_anm = pymel.createDisplayLayer(name=self.nomenclature.layer_anm_name, number=1, empty=True)
-            pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm, noRecurse=True)
-            self.layer_anm.color.set(17)  # Yellow
+            if not pymel.objExists(self.nomenclature.layer_anm_name):
+                self.layer_anm = pymel.createDisplayLayer(name=self.nomenclature.layer_anm_name, number=1, empty=True)
+                pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm, noRecurse=True)
+                self.layer_anm.color.set(17)  # Yellow
 
-            self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
-            pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rig, noRecurse=True)
-            pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnt, noRecurse=True)
-            self.layer_rig.color.set(13)  # Red
-            #self.layer_rig.visibility.set(0)  # Hidden
-            self.layer_rig.displayType.set(2)  # Frozen
+            if not pymel.objExists(self.nomenclature.layer_rig_name):
+                self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
+                pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rig, noRecurse=True)
+                pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnt, noRecurse=True)
+                self.layer_rig.color.set(13)  # Red
+                #self.layer_rig.visibility.set(0)  # Hidden
+                self.layer_rig.displayType.set(2)  # Frozen
 
-            self.layer_geo = pymel.createDisplayLayer(name=self.nomenclature.layer_geo_name, number=1, empty=True)
-            pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
-            self.layer_geo.color.set(12)  # Green?
-            self.layer_geo.displayType.set(2)  # Frozen
+            if not pymel.objExists(self.nomenclature.layer_geo_name):
+                self.layer_geo = pymel.createDisplayLayer(name=self.nomenclature.layer_geo_name, number=1, empty=True)
+                pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
+                self.layer_geo.color.set(12)  # Green?
+                self.layer_geo.displayType.set(2)  # Frozen
 
     def build(self, **kwargs):
         # Aboard if already built

@@ -10,7 +10,7 @@ class CtrlSquint(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
-class FaceSquint(rigFaceAvarGrps.ModuleFaceLftRgt):
+class FaceSquint(rigFaceAvarGrps.AvarGrpLftRgt):
     _CLS_CTRL = CtrlSquint
     IS_SIDE_SPECIFIC = False
 

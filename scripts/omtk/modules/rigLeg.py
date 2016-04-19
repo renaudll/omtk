@@ -10,8 +10,8 @@ from omtk.libs import libCtrlShapes
 from omtk.libs import libAttr
 
 class CtrlIkLeg(rigIK.CtrlIk):
-    def __createNode__(self, refs=None, *args, **kwargs):
-        return libCtrlShapes.create_shape_box_feet(refs, *args, **kwargs)
+    def __createNode__(self, refs=None, geometries=None, *args, **kwargs):
+        return libCtrlShapes.create_shape_box_feet(refs, geometries, *args, **kwargs)
 
 
 class LegIk(IK):
@@ -41,6 +41,9 @@ class LegIk(IK):
 
     TOES_ROTY_LONGNAME = 'toesTwist'
     TOES_ROTY_NICENAME = 'Toes Twist'
+
+    TOESFK_ROTX_LONGNAME = 'toeWiggle'
+    TOESFK_ROTX_NICENAME = 'Toe Wiggle'
 
     FRONT_ROTX_LONGNAME = 'rollFront'
     FRONT_ROTX_NICENAME = 'Front Roll'
@@ -101,13 +104,12 @@ class LegIk(IK):
         result.y = 0
         return result
 
-    def _get_recommended_pivot_front(self, tm_ref, tm_ref_dir, pos_toes, pos_tip):
+    def _get_recommended_pivot_front(self, geometries, tm_ref, tm_ref_dir, pos_toes, pos_tip):
         """
         Determine recommended position using ray-cast from the toes.
         If the ray-cast fail, use the last joint position.
         return: The recommended position as a world pymel.datatypes.Vector
         """
-        geometries = pymel.ls(type='mesh', noIntermediate=True)
         dir = pymel.datatypes.Point(0, 0, 1) * tm_ref_dir
         pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
         if not pos:
@@ -127,14 +129,13 @@ class LegIk(IK):
         #HACK : Ensure that the point is size 3 and not 4
         return pymel.datatypes.Point(pos.x,pos.y,pos.z)
 
-    def _get_recommended_pivot_back(self, tm_ref, tm_ref_dir, pos_toes):
+    def _get_recommended_pivot_back(self, geometries, tm_ref, tm_ref_dir, pos_toes):
         """
         Determine recommended position using ray-cast from the toes.
         If the ray-cast fail, use the toes position.
         return: The recommended position as a world pymel.datatypes.Vector
         """
         dir = pymel.datatypes.Point(0,0,-1) * tm_ref_dir
-        geometries = pymel.ls(type='mesh', noIntermediate=True)  # TODO: Use a property in the Rig class?
         pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
         if not pos:
             cmds.warning("Can't automatically solve FootRoll back pivot.")
@@ -150,13 +151,12 @@ class LegIk(IK):
         #HACK : Ensure that the point is size 3 and not 4
         return pymel.datatypes.Point(pos.x,pos.y,pos.z)
 
-    def _get_recommended_pivot_bank(self, tm_ref, tm_ref_dir, pos_toes, direction=1):
+    def _get_recommended_pivot_bank(self, geometries, tm_ref, tm_ref_dir, pos_toes, direction=1):
         """
         Determine recommended position using ray-cast from the toes.
         TODO: If the ray-case fail, use a specified default value.
         return: The recommended position as a world pymel.datatypes.Vector
         """
-        geometries = pymel.ls(type='mesh', noIntermediate=True)  # TODO: Use a property in the Rig class?
         # Sanity check, ensure that at least one point is in the bounds of geometries.
         # This can prevent rays from being fired from outside a geometry.
         # TODO: Make it more robust.
@@ -214,30 +214,31 @@ class LegIk(IK):
         #
         # Resolve pivot positions
         #
+        geometries = rig.get_meshes()
 
         # Resolve pivot inn
         if self.pivot_foot_inn_pos:
             pos_pivot_inn = pymel.datatypes.Point(self.pivot_foot_inn_pos) * tm_ref
         else:
-            pos_pivot_inn = self._get_recommended_pivot_bank(tm_ref, tm_ref_dir, pos_toes, direction=-1)
+            pos_pivot_inn = self._get_recommended_pivot_bank(geometries, tm_ref, tm_ref_dir, pos_toes, direction=-1)
 
         # Resolve pivot bank out
         if self.pivot_foot_out_pos:
             pos_pivot_out = pymel.datatypes.Point(self.pivot_foot_out_pos) * tm_ref
         else:
-            pos_pivot_out = self._get_recommended_pivot_bank(tm_ref, tm_ref_dir, pos_toes, direction=1)
+            pos_pivot_out = self._get_recommended_pivot_bank(geometries, tm_ref, tm_ref_dir, pos_toes, direction=1)
 
         # Resolve pivot Back
         if self.pivot_foot_back_pos:
             pos_pivot_back = pymel.datatypes.Point(self.pivot_foot_back_pos) * tm_ref
         else:
-            pos_pivot_back = self._get_recommended_pivot_back(tm_ref, tm_ref_dir, pos_toes)
+            pos_pivot_back = self._get_recommended_pivot_back(geometries, tm_ref, tm_ref_dir, pos_toes)
 
         # Set pivot Front
         if self.pivot_foot_front_pos:
             pos_pivot_front = pymel.datatypes.Point(self.pivot_foot_front_pos) * tm_ref
         else:
-            pos_pivot_front = self._get_recommended_pivot_front(tm_ref, tm_ref_dir, pos_toes, pos_tip)
+            pos_pivot_front = self._get_recommended_pivot_front(geometries, tm_ref, tm_ref_dir, pos_toes, pos_tip)
 
         # Set pivot Ankle
         if self.pivot_toes_ankle_pos:

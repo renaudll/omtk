@@ -27,8 +27,9 @@ class CtrlEye(BaseCtrl):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
 
 
-class FaceEyes(rigFaceAvarGrps.ModuleFace):
+class FaceEyes(rigFaceAvarGrps.AvarGrp):
     IS_SIDE_SPECIFIC = False
+    SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
         """

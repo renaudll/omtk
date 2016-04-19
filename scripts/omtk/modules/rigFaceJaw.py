@@ -38,6 +38,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
     """
     This avar is not designed to use any surface.
     """
+    SHOW_IN_UI = True
     _CLS_CTRL = CtrlJaw
     IS_SIDE_SPECIFIC = False
 
@@ -80,7 +81,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         pymel.connectAttr(attr_pt_clamp, attr_pt_out, force=True)
 
 
-class FaceJaw(rigFaceAvarGrps.ModuleFace):
+class FaceJaw(rigFaceAvarGrps.AvarGrp):
     """
     The Jaw is a special zone since it doesn't happen in pre-deform, it happen in the main skinCluster.
     The Jaw global avars are made 

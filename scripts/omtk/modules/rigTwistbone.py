@@ -66,15 +66,16 @@ class Twistbone(Module):
         self.ikCurve = libRigging.create_nurbsCurve_from_joints(jnt_s, jnt_e, 2 if num_steps > 2 else 1)
         pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True)
 
-        # Generate Subjoints
-        self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 3)
+        # Generate Subjoints if necessary
+        if not self.subjnts:
+            self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 3)
 
-        #TODO : Use the nomeclature system to name the bones
-        for i, sub_jnt in enumerate(self.subjnts):
-            sub_jnt.segmentScaleCompensate.set(0) #Remove segment scale compensate
-            #Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
-            jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
-            sub_jnt.rename(jnt_name)
+            #TODO : Use the nomeclature system to name the bones
+            for i, sub_jnt in enumerate(self.subjnts):
+                sub_jnt.segmentScaleCompensate.set(0) #Remove segment scale compensate
+                #Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
+                jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+                sub_jnt.rename(jnt_name)
 
         # Create splineIK
         #Do not connect the stretch to prevent scaling problem
@@ -169,11 +170,14 @@ class Twistbone(Module):
 
             # Add new joints as influence.
             for subjnt in self.subjnts:
+                if subjnt in influenceObjects:
+                    continue
+
                 skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                 subjnt.lockInfluenceWeights.set(False)
 
         # TODO : Automatically skin the twistbones
-        for mesh in self.get_farest_affected_mesh():
+        for mesh in self.get_farest_affected_meshes(rig):
             print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
             libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
@@ -195,24 +199,35 @@ class Twistbone(Module):
                     skinClusters.add(hist)
         return skinClusters
 
-    def get_farest_affected_mesh(self):
+    def get_farest_affected_meshes(self, rig):
         results = set()
         for jnt in self.jnts:
-            mesh = libRigging.get_farest_affected_mesh(jnt)
-            results.add(mesh)
+            mesh = rig.get_farest_affected_mesh(jnt)
+            if mesh:
+                results.add(mesh)
         return results
 
     def unbuild(self, delete=True):
+        '''
         # Remove twistbones skin
         for mesh in self.get_farest_affected_mesh():
             libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
+        '''
+        # Remove scaling from the subjnts before unbuilding, otherwise scale issue will occur.
+        for jnt in self.subjnts:
+            pymel.disconnectAttr(jnt.scaleX)
+            pymel.disconnectAttr(jnt.scaleY)
+            pymel.disconnectAttr(jnt.scaleZ)
+
 
         super(Twistbone, self).unbuild()
 
         self.start = None
         self.end = None
 
+        '''
         # Remove twistbones
         if delete:
             pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
             self.subjnts = None
+        '''

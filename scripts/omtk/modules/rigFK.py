@@ -30,6 +30,7 @@ class FK(Module):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = None
         self.sw_translate=False
+        self.create_spaceswitch = True
 
     #
     # libSerialization implementation
@@ -45,8 +46,11 @@ class FK(Module):
         except (AttributeError, TypeError):
             pass
 
-    def build(self, rig, constraint=True, parent=True, create_spaceswitch=True, *args, **kwargs):
+    def build(self, rig, constraint=True, parent=True, create_spaceswitch=None, *args, **kwargs):
         super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)
+
+        if create_spaceswitch is not None:
+            self.create_spaceswitch = create_spaceswitch
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 

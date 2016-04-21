@@ -74,14 +74,19 @@ class RigSqueeze(classRig.Rig):
 
     def get_potential_influences(self):
         influences = super(RigSqueeze, self).get_potential_influences()
-        blacklist = ['.*_Jne', '.*JEnd']
+        jnt_whitelist = ['.*_Jnt']
+        #jnt_blacklist = ['.*_Jne', '.*JEnd']
 
         # We know we can safely ignore
-        def is_blacklisted(jnt):
-            name = jnt.name()
-            return not any(True for pattern in blacklist if re.match(pattern, name, re.IGNORECASE))
+        def can_show(jnt):
+            # Filter joints
+            if isinstance(jnt, pymel.nodetypes.Joint):
+                name = jnt.nodeName()
+                if any(True for pattern in jnt_whitelist if re.match(pattern, name, re.IGNORECASE)):
+                    return True
+            return False
 
-        return filter(is_blacklisted, influences)
+        return filter(can_show, influences)
 
     def pre_build(self):
         super(RigSqueeze, self).pre_build(create_grp_jnt=False)

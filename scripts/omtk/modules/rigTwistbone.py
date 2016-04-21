@@ -21,9 +21,9 @@ class NonRollJoint(Node):
 
         pymel.select(clear=True)
         self.start = pymel.joint() # todo: really the best name ?
-        pymel.rename(self.start, "Nonroll_Start_Jnt")
+        pymel.rename(self.start, "Nonroll_Start")
         self.end = pymel.joint() # todo: really the best name ?
-        pymel.rename(self.end, "Nonroll_End_Jnt")
+        pymel.rename(self.end, "Nonroll_End")
         self.end.setTranslation([1,0,0])
         pymel.makeIdentity((self.start, self.end), apply=True, r=True)
 
@@ -46,6 +46,7 @@ class Twistbone(Module):
 
     def __init__(self, *args, **kwargs):
         self.ikCurve = None
+        self.subjnts = []
 
         super(Twistbone, self).__init__(*args, **kwargs)
 

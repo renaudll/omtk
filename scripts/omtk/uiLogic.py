@@ -464,7 +464,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if not path:
             return
 
-        new_rigs = libSerialization.import_json_file(path)
+        new_rigs = libSerialization.import_json_file_maya(path)
         if not new_rigs:
             return
 
@@ -484,7 +484,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         path, _ = QtGui.QFileDialog.getSaveFileName(caption="File Save (.json)", filter="JSON (*.json)")
         if path:
-            libSerialization.export_json_file(all_rigs, path)
+            libSerialization.export_json_file_maya(all_rigs, path)
 
     def on_update(self, *args, **kwargs):
         #TODO - Fix the reload problem which cause isinstance function check to fail with an existing network

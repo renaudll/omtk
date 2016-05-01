@@ -108,6 +108,57 @@ def get_chains_from_objs(objs):
                     chain.append(obj)
     return [PyNodeChain(chain) for chain in chains]
 
+def get_parents(obj):
+    parents = []
+    while obj.getParent() is not None:
+        parent = obj.getParent()
+        parents.append(parent)
+        obj = parent
+    return parents
+
+def get_tree_from_objs(objs, sort=False):
+    """
+    Sort all provided objects in a tree fashion.
+    Each elements is a tuple of size 2, containing the object and it's children.
+    Support missing objects between hierarchy.
+    Note that to help recursive functions, the first entry is always None, representing the root node.
+    ex:
+    (None,
+        [
+            ('parent1',
+                [
+                    ('child1', [])
+                ]
+            )
+        ]
+    )
+    """
+    data_by_obj = {}
+    ischild_by_obj = {}
+    for obj in objs:
+        data_by_obj[obj] = (obj, [])
+        ischild_by_obj[obj] = False
+
+    for obj in objs:
+        parents = get_parents(obj)
+
+        for parent in parents:
+            if parent in objs:
+                data_by_obj[parent][1].append(data_by_obj[obj])
+                ischild_by_obj[obj] = True
+                break
+
+    if sort:
+        for obj, data in data_by_obj.iteritems():
+            data_by_obj[obj] = sorted(data)
+
+    tree = []
+    for obj, ischild in sorted(ischild_by_obj.iteritems()):
+        if not ischild:
+            tree.append(data_by_obj[obj])
+
+    return (None, tree)
+
 
 #
 # ls() reimplementations

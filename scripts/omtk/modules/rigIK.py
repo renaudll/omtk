@@ -270,7 +270,7 @@ class IK(Module):
         if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
             self.ctrl_ik = self._CLASS_CTRL_IK()
         ctrl_ik_refs = [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
-        self.ctrl_ik.build(refs=ctrl_ik_refs)  # refs is used by CtrlIkCtrl
+        self.ctrl_ik.build(refs=ctrl_ik_refs, geometries=rig.get_meshes())  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)

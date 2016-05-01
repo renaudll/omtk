@@ -45,11 +45,11 @@ class CtrlRoot(BaseCtrl):
 
 
     @staticmethod
-    def _get_recommended_radius(min_size=1.0):
+    def _get_recommended_radius(rig, min_size=1.0):
         """
         Analyze the scene and return the recommended radius using the scene geometry.
         """
-        geometries = pymel.ls(type='mesh')
+        geometries = rig.get_meshes()
 
         if not geometries:
             log.warning("Can't find any geometry in the scene.")
@@ -200,6 +200,115 @@ class Rig(object):
             module.validate()
         return True
 
+    def get_potential_influences(self):
+        """
+        Return all objects that are being seem as potential influences for the rig.
+        Mainly used by the uiLogic.
+        """
+        return pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
+
+    @libPython.memoized
+    def get_meshes(self):
+        """
+        :return: All meshes under the mesh group. If found nothing, scan the whole scene.
+        """
+        meshes = None
+        if self.grp_geo and self.grp_geo.exists():
+            shapes = self.grp_geo.listRelatives(allDescendents=True, shapes=True)
+            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+
+        if not meshes:
+            log.warning("Found no mesh under the mesh group, scanning the whole scene.")
+            shapes = pymel.ls(type='mesh')
+            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+
+        return meshes
+
+    def get_nearest_affected_mesh(self, jnt):
+        """
+        Return the immediate mesh affected by provided object in the geometry stack.
+        """
+        key = lambda mesh: mesh in self.get_meshes()
+        return libRigging.get_nearest_affected_mesh(jnt, key=key)
+
+    def get_farest_affected_mesh(self, jnt):
+        """
+        Return the last mesh affected by provided object in the geometry stack.
+        Usefull to identify which mesh to use in the 'doritos' setup.
+        """
+        key = lambda mesh: mesh in self.get_meshes()
+        return libRigging.get_farest_affected_mesh(jnt, key=key)
+
+    def pre_build(self, create_grp_jnt=True, create_grp_anm=True, create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
+        # Ensure we got a root joint
+        # If needed, parent orphan joints to this one
+        if create_grp_jnt:
+            if not libPymel.is_valid_PyNode(self.grp_jnt):
+                self.grp_jnt = next(iter(libPymel.ls_root(type='joint')), None)
+                '''
+                if cmds.objExists(self.nomenclature.root_jnt_name):
+                    self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
+                else:
+                    self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
+                '''
+            #all_root_jnts.setParent(self.grp_jnt)
+
+        # Ensure all joinst have segmentScaleComprensate deactivated.
+        # This allow us to scale adequately and support video game rigs.
+        # If for any mean stretch and squash are necessary, implement them on a new joint chains parented to the skeletton.
+        # TODO: Move elsewere?
+        all_jnts = libPymel.ls(type='joint')
+        for jnt in all_jnts:
+            jnt.segmentScaleCompensate.set(False)
+
+        # Create grp_anm
+        if create_grp_anm:
+            if not isinstance(self.grp_anm, CtrlRoot):
+                self.grp_anm = CtrlRoot()
+            if not self.grp_anm.is_built():
+                grp_anm_size = CtrlRoot._get_recommended_radius(self)
+                self.grp_anm.build(size=grp_anm_size)
+            self.grp_anm.rename(self.nomenclature.root_anm_name)
+
+        # Create grp_rig
+        if create_grp_rig:
+            if not isinstance(self.grp_rig, Node):
+                self.grp_rig = Node()
+            if not self.grp_rig.is_built():
+                self.grp_rig.build()
+                self.grp_rig.rename(self.nomenclature.root_rig_name)
+
+        # Create grp_geo
+        if create_grp_geo:
+            all_geos = libPymel.ls_root_geos()
+            if not isinstance(self.grp_geo, Node):
+                self.grp_geo = Node()
+            if not self.grp_geo.is_built():
+                self.grp_geo.build()
+                self.grp_geo.rename(self.nomenclature.root_geo_name)
+            all_geos.setParent(self.grp_geo)
+
+        # Setup displayLayers
+        if create_display_layers:
+            if not pymel.objExists(self.nomenclature.layer_anm_name):
+                self.layer_anm = pymel.createDisplayLayer(name=self.nomenclature.layer_anm_name, number=1, empty=True)
+                pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm, noRecurse=True)
+                self.layer_anm.color.set(17)  # Yellow
+
+            if not pymel.objExists(self.nomenclature.layer_rig_name):
+                self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
+                pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rig, noRecurse=True)
+                pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnt, noRecurse=True)
+                self.layer_rig.color.set(13)  # Red
+                #self.layer_rig.visibility.set(0)  # Hidden
+                self.layer_rig.displayType.set(2)  # Frozen
+
+            if not pymel.objExists(self.nomenclature.layer_geo_name):
+                self.layer_geo = pymel.createDisplayLayer(name=self.nomenclature.layer_geo_name, number=1, empty=True)
+                pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
+                self.layer_geo.color.set(12)  # Green?
+                self.layer_geo.displayType.set(2)  # Frozen
+
     def build(self, **kwargs):
         # Aboard if already built
         if self.is_built():
@@ -211,46 +320,12 @@ class Rig(object):
         #
         # Prebuild
         #
+        self.pre_build()
 
-        # Ensure we got a root joint
-        # If needed, parent orphan joints to this one
-        if not libPymel.is_valid_PyNode(self.grp_jnt):
-            self.grp_jnt = next(iter(libPymel.ls_root(type='joint')), None)
-            '''
-            if cmds.objExists(self.nomenclature.root_jnt_name):
-                self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
-            else:
-                self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
-            '''
-        #all_root_jnts.setParent(self.grp_jnt)
-
-        # Ensure all joinst have segmentScaleComprensate deactivated.
-        # This allow us to scale adequately and support video game rigs.
-        # If for any mean stretch and squash are necessary, implement them on a new joint chains parented to the skeletton.
-        all_jnts = libPymel.ls(type='joint')
-        for jnt in all_jnts:
-            jnt.segmentScaleCompensate.set(False)
-
-        # Create main grp_anm
-        if not isinstance(self.grp_anm, CtrlRoot):
-            self.grp_anm = CtrlRoot()
-        if not self.grp_anm.is_built():
-            grp_anm_size = CtrlRoot._get_recommended_radius()
-            self.grp_anm.build(size=grp_anm_size)
-        self.grp_anm.rename(self.nomenclature.root_anm_name)
-
-        # Create main grp_rig
-        if not isinstance(self.grp_rig, Node):
-            self.grp_rig = Node()
-        if not self.grp_rig.is_built():
-            self.grp_rig.build()
-        self.grp_rig.rename(self.nomenclature.root_rig_name)
 
         #
         # Build
         #
-
-        #try:
 
         modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
         for module in modules:
@@ -258,87 +333,60 @@ class Rig(object):
             if not module.is_built():
                 print("Building {0}...".format(module))
                 module.build(self, **kwargs)
-            #except Exception, e:
-            #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
-            #    traceback.print_stack()
-            #    logging.error(str(e))
-            #    raise e
+                self.post_buid_module(module)
+                #except Exception, e:
+                #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
+                #    traceback.print_stack()
+                #    logging.error(str(e))
+                #    raise e
 
+        # Connect global scale to jnt root
+        if self.grp_rig:
+            if self.grp_jnt:
+                pymel.delete([module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
+                pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
+                pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
+                pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
+                pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
+
+        print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
+
+        return True
+
+    def post_buid_module(self, module):
         # Raise warnings if a module leave junk in the scene.
-        for module in self.modules:
-            if module.grp_anm and not module.grp_anm.getChildren():
-                cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
-                    module.grp_anm.longName(), module
-                ))
-                pymel.delete(module.grp_anm)
-            if module.grp_rig and not module.grp_rig.getChildren():
-                cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
-                    module.grp_rig.longName(), module
-                ))
-                pymel.delete(module.grp_rig)
+        if module.grp_anm and not module.grp_anm.getChildren():
+            cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
+                module.grp_anm.longName(), module
+            ))
+            pymel.delete(module.grp_anm)
+        if module.grp_rig and not module.grp_rig.getChildren():
+            cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
+                module.grp_rig.longName(), module
+            ))
+            pymel.delete(module.grp_rig)
 
-        #
-        # Post-build
-        #
 
         # Prevent animators from accidentaly moving offset nodes
-        for ctrl in self.iter_ctrls():
+        # TODO: Lock more?
+        for ctrl in module.get_ctrls():
             if ctrl.offset:
                 ctrl.offset.t.lock()
                 ctrl.offset.r.lock()
                 ctrl.offset.s.lock()
 
         # Parent modules grp_anm to main grp_anm
-        anm_grps = [module.grp_anm for module in self.modules if module.grp_anm is not None]
-        for anm_grp in anm_grps:
-            anm_grp.setParent(self.grp_anm)
-
-        # Connect globalScale attribute to each modules globalScale.
-        for module in self.modules:
-            if module.globalScale:
-                pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
-
-        # Constraint grp_jnts to grp_anms
-        pymel.delete([module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
-        pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
-        pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
-        pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
-        pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
+        if module.grp_anm:
+            module.grp_anm.setParent(self.grp_anm)
 
         # Constraint modules grp_rig to main grp_rig
-        rig_grps = [module.grp_rig for module in self.modules if module.grp_rig is not None]
-        for rig_grp in rig_grps:
-            rig_grp.setParent(self.grp_rig)
+        if module.grp_rig is not None:
+            module.grp_rig.setParent(self.grp_rig)
 
-        # Create geo root
-        all_geos = libPymel.ls_root_geos()
-        if not isinstance(self.grp_geo, Node):
-            self.grp_geo = Node()
-        if not self.grp_geo.is_built():
-            self.grp_geo.build()
-        self.grp_geo.rename(self.nomenclature.root_geo_name)
-        all_geos.setParent(self.grp_geo)
+        # Connect globalScale attribute to each modules globalScale.
+        if module.globalScale:
+            pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
-        # Setup displayLayers
-        self.layer_anm = pymel.createDisplayLayer(name=self.nomenclature.layer_anm_name, number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm, noRecurse=True)
-        self.layer_anm.color.set(17)  # Yellow
-
-        self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rig, noRecurse=True)
-        pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnt, noRecurse=True)
-        self.layer_rig.color.set(13)  # Red
-        #self.layer_rig.visibility.set(0)  # Hidden
-        self.layer_rig.displayType.set(2)  # Frozen
-
-        self.layer_geo = pymel.createDisplayLayer(name=self.nomenclature.layer_geo_name, number=1, empty=True)
-        pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
-        self.layer_geo.color.set(12)  # Green?
-        self.layer_geo.displayType.set(2)  # Frozen
-
-        print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
-
-        return True
 
     def unbuild(self, **kwargs):
         """
@@ -395,15 +443,18 @@ class Rig(object):
         """
         Not the prettiest but used to find the head for facial rigging.
         """
-        if key is None:
-            def key(obj):
-                name_safe = obj.stripNamespace().lower()
-                return 'head' in name_safe or 'face'in name_safe
+        nomenclature = self._get_nomenclature_cls()
+        whitelist = ('head', 'face')
 
-        # TODO: Find a better way!
-        jnts = sorted(pymel.ls(type='joint'), key=libPymel.get_num_parents)
-        for jnt in jnts:
-            if key(jnt):
+        for jnt in self.get_potential_influences():
+            # Ignore non-joints
+            if not isinstance(jnt, pymel.nodetypes.Joint):
+                continue
+
+            name = nomenclature(jnt.name())
+            basename = name.get_basename()
+
+            if basename.lower() in whitelist:
                 return jnt
 
         #raise Warning("Can't resolve head joint!")
@@ -414,14 +465,18 @@ class Rig(object):
         """
         Not the prettiest but used to find the jaw for facial rigging.
         """
-        if key is None:
-            def key(obj):
-                name_safe = obj.stripNamespace().lower()
-                return 'jaw' in name_safe
+        nomenclature = self._get_nomenclature_cls()
+        whitelist = ('jaw',)
 
-        # TODO: Find a better way!
-        for jnt in pymel.ls(type='joint'):
-            if key(jnt):
+        for jnt in self.get_potential_influences():
+            # Ignore non-joints
+            if not isinstance(jnt, pymel.nodetypes.Joint):
+                continue
+
+            name = nomenclature(jnt.name())
+            basename = name.get_basename()
+
+            if basename.lower() in whitelist:
                 return jnt
 
         #raise Exception("Can't resolve jaw joint!")
@@ -490,21 +545,3 @@ class Rig(object):
             ))
 
         return libPymel.distance_between_vectors(bot, top)
-
-    def iter_avars(self):
-        """
-        Iterate through all avars module of the rig.
-        """
-        from omtk.modules import rigFaceAvar
-        for module in self.modules:
-            if isinstance(module, classAvar.AvarFollicle):
-                yield module
-            elif isinstance(module, rigFaceAvarGrps.ModuleFace):
-                for avar in module.avars:
-                    yield avar
-
-    def iter_ctrls(self):
-        for module in self.modules:
-            for ctrl in module.get_ctrls(recursive=True):
-                yield ctrl
-

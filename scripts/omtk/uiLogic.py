@@ -256,6 +256,34 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             if isinstance(sub_jnt, pymel.nodetypes.Transform):
                 qSubItem = self._fill_widget_influences_recursive(qt_parent, sub_jnt)
 
+    def _fill_widget_influences_recursive2(self, qt_parent, data):
+        obj, children_data = data
+        if obj:
+            obj_name = obj.stripNamespace()
+
+            fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
+            networks = libSerialization.getConnectedNetworks(obj, key=fnFilter)
+
+            textBrush = QtGui.QBrush(QtCore.Qt.white)
+
+            if self._is_influence(obj):
+                qItem = QtGui.QTreeWidgetItem(0)
+                qItem.obj = obj
+                qItem.networks = networks
+                qItem.setText(0, obj_name)
+                qItem.setForeground(0, textBrush)
+                self._set_icon_from_type(obj, qItem)
+                qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
+                if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
+                    qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
+                qt_parent.addChild(qItem)
+                qt_parent = qItem
+
+        for child_data in children_data:
+            child = child_data[0]
+            if isinstance(child, pymel.nodetypes.Transform):
+                qSubItem = self._fill_widget_influences_recursive2(qt_parent, child_data)
+
     def _fetch_scene_data(self, *args, **kwargs):
         self.roots = core.find()
         self.root = next(iter(self.roots), None)
@@ -342,15 +370,29 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self.treeWidget.addTopLevelItem(qItem)
             self.treeWidget.expandItem(qItem)
 
+
+
     def update_ui_jnts(self, *args, **kwargs):
         # Resolve text query
         query_raw = self.lineEdit_search_jnt.text()
         query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         self.treeWidget_jnts.clear()
-        all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
-        for jnt in all_jnt_roots:
-            self._fill_widget_influences_recursive(self.treeWidget_jnts.invisibleRootItem(), jnt)
+        #all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
+        all_potential_influences = self.root.get_potential_influences()
+
+        if all_potential_influences :
+            data = libPymel.get_tree_from_objs(all_potential_influences, sort=True)
+
+            self._fill_widget_influences_recursive2(self.treeWidget_jnts.invisibleRootItem(), data)
+
+
+
+        '''
+        if all_jnt_roots:
+            for jnt in all_jnt_roots:
+                self._fill_widget_influences_recursive(self.treeWidget_jnts.invisibleRootItem(), jnt)
+        '''
 
         self.refresh_ui_jnts()
 
@@ -389,7 +431,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             rig = qItem.rig
             if not rig.is_built():
                 if isinstance(rig, classModule.Module):
+                    self.root.pre_build()
                     rig.build(self.root)
+                    self.root.post_buid_module(rig)
                 else:
                     rig.build()
             else:
@@ -473,7 +517,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 if module_is_built:
                     module.unbuild()
                 if isinstance(module, classModule.Module):
+                    self.root.pre_build()
                     module.build(self.root)
+                    self.root.post_buid_module(module)
                 else:
                     module.build()
             else:

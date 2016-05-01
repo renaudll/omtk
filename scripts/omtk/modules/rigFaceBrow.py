@@ -9,7 +9,7 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceBrow(rigFaceAvarGrps.ModuleFaceLftRgt):
+class FaceBrow(rigFaceAvarGrps.AvarGrpLftRgt):
     _CLS_CTRL = CtrlBrow
 
     SHOW_IN_UI= True

@@ -16,8 +16,9 @@ class CtrlLipsLow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceLips(rigFaceAvarGrps.ModuleFaceOnSurface):
+class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     IS_SIDE_SPECIFIC = False
+    SHOW_IN_UI = True
 
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow

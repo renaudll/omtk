@@ -16,14 +16,14 @@ def _find_mid_avar(avars):
     nearest_jnt = get_average_pos_between_nodes(jnts)
     return avars[jnts.index(nearest_jnt)]
 
-class ModuleFace(rigFaceAvar.AbstractAvar):
+class AvarGrp(rigFaceAvar.AbstractAvar):
     """
     Base class for a group of 'avars' that share similar properties.
     Also global avars will be provided to controll all avars.
     """
     _CLS_AVAR = rigFaceAvar.AvarSimple
 
-    SHOW_IN_UI = True
+    SHOW_IN_UI = False
 
     #
     # Influences properties
@@ -107,7 +107,7 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
     #
 
     def __init__(self, *args, **kwargs):
-        super(ModuleFace, self).__init__(*args, **kwargs)
+        super(AvarGrp, self).__init__(*args, **kwargs)
         self.avars = []
         self.preDeform = True
 
@@ -138,7 +138,7 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
         if connect_global_scale is None:
             connect_global_scale = self.preDeform
 
-        super(ModuleFace, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
+        super(AvarGrp, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
 
         # Resolve the desired ctrl size
         # One thing we are sure is that ctrls should no overlay,
@@ -156,7 +156,7 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
 
         # Resolve the U and V modifiers.
         # Note that this only applies to avars on a surface.
-        # TODO: Move to ModuleFaceOnSurface
+        # TODO: Move to AvarGrpOnSurface
         mult_u = self.get_multiplier_u()
         mult_v = self.get_multiplier_v()
 
@@ -205,7 +205,7 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
     def unbuild(self):
         for avar in self.avars:
             avar.unbuild()
-        super(ModuleFace, self).unbuild()
+        super(AvarGrp, self).unbuild()
 
 
     def create_ctrl_macro(self, rig, ctrl, ref, sensibility=1.0):
@@ -252,14 +252,14 @@ class ModuleFace(rigFaceAvar.AbstractAvar):
         return ctrl
 
     def get_ctrls(self, **kwargs):
-        for ctrl in super(ModuleFace, self).get_ctrls(**kwargs):
+        for ctrl in super(AvarGrp, self).get_ctrls(**kwargs):
             yield ctrl
         for avar in self.avars:
             for ctrl in avar.get_ctrls():
                 yield ctrl
 
 
-class ModuleFaceOnSurface(ModuleFace):
+class AvarGrpOnSurface(AvarGrp):
     _CLS_AVAR = rigFaceAvar.AvarFollicle
 
     @libPython.cached_property()
@@ -276,7 +276,7 @@ class ModuleFaceOnSurface(ModuleFace):
             self.input.append(new_surface)
             del self._cache['surface']
 
-        super(ModuleFaceOnSurface, self).build(rig, **kwargs)
+        super(AvarGrpOnSurface, self).build(rig, **kwargs)
 
     def create_surface(self):
         root = pymel.createNode('transform')
@@ -343,11 +343,11 @@ class ModuleFaceOnSurface(ModuleFace):
         return plane_transform
 
 
-class ModuleFaceUppDown(ModuleFaceOnSurface):
+class AvarGrpUppDown(AvarGrpOnSurface):
     _CLS_CTRL_UPP = None
     _CLS_CTRL_LOW = None
-    _CLS_SYS_UPP = ModuleFace
-    _CLS_SYS_LOW = ModuleFace
+    _CLS_SYS_UPP = AvarGrp
+    _CLS_SYS_LOW = AvarGrp
 
     SHOW_IN_UI = False
 
@@ -355,7 +355,7 @@ class ModuleFaceUppDown(ModuleFaceOnSurface):
         self.ctrl_upp = None
         self.ctrl_low = None
 
-        super(ModuleFaceUppDown, self).__init__(*args, **kwargs)
+        super(AvarGrpUppDown, self).__init__(*args, **kwargs)
 
     def add_avars(self, attr_holder):
         pass
@@ -364,7 +364,7 @@ class ModuleFaceUppDown(ModuleFaceOnSurface):
         pass
 
     def build(self, rig, **kwargs):
-        super(ModuleFaceUppDown, self).build(rig, **kwargs)
+        super(AvarGrpUppDown, self).build(rig, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
@@ -400,14 +400,14 @@ class ModuleFaceUppDown(ModuleFaceOnSurface):
     def unbuild(self):
         self.ctrl_upp.unbuild()
         self.ctrl_low.unbuild()
-        super(ModuleFaceUppDown, self).unbuild()
+        super(AvarGrpUppDown, self).unbuild()
 
-class ModuleFaceLftRgt(ModuleFaceOnSurface):
+class AvarGrpLftRgt(AvarGrpOnSurface):
     """
     This module receive targets from all sides of the face (left and right) and create ctrls for each sides.
     """
     _CLS_CTRL = None
-    _CLS_SYS = ModuleFace
+    _CLS_SYS = AvarGrp
 
     SHOW_IN_UI = False
 
@@ -452,7 +452,7 @@ class ModuleFaceLftRgt(ModuleFaceOnSurface):
         return self.avars_r[i]
 
     def __init__(self, *args, **kwargs):
-        super(ModuleFaceLftRgt, self).__init__(*args, **kwargs)
+        super(AvarGrpLftRgt, self).__init__(*args, **kwargs)
         self.ctrl_l = None
         self.ctrl_r = None
 
@@ -472,7 +472,7 @@ class ModuleFaceLftRgt(ModuleFaceOnSurface):
         return abs(base_u - 0.5) * 2.0
 
     def build(self, rig, **kwargs):
-        super(ModuleFaceLftRgt, self).build(rig, **kwargs)
+        super(AvarGrpLftRgt, self).build(rig, **kwargs)
 
         # Adjust LR multiplier
         '''
@@ -520,4 +520,4 @@ class ModuleFaceLftRgt(ModuleFaceOnSurface):
             self.ctrl_l.unbuild()
         if self.ctrl_r:
             self.ctrl_r.unbuild()
-        super(ModuleFaceLftRgt, self).unbuild()
+        super(AvarGrpLftRgt, self).unbuild()

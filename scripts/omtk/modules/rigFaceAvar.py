@@ -280,7 +280,7 @@ class AbstractAvar(classModule.Module):
 
     def _build_doritos_setup(self, rig, ref_tm=None):
         # Resolve geometrycreate_ctrl for the follicle
-        obj_mesh = libRigging.get_farest_affected_mesh(self.jnt)
+        obj_mesh = rig.get_farest_affected_mesh(self.jnt)
         if obj_mesh is None:
             pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
             return False
@@ -333,7 +333,7 @@ class AbstractAvar(classModule.Module):
         super(AbstractAvar, self).validate()
 
         if not self.jnts:
-            raise Exception("Can't build ModuleFace with zero joints!")
+            raise Exception("Can't build AvarGrp with zero joints!")
 
         return True
 
@@ -453,7 +453,7 @@ class AvarFollicle(AvarSimple):
     _ATTR_NAME_U_MULT = 'uMultiplier'
     _ATTR_NAME_V_MULT = 'vMultiplier'
 
-    SHOW_IN_UI = False
+    SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
         super(AvarFollicle, self).__init__(*args, **kwargs)
@@ -614,7 +614,6 @@ class AvarFollicle(AvarSimple):
         oob_step_size = 0.001  # TODO: Expose a Maya attribute?
         jnt_tm = self.jnt.getMatrix(worldSpace=True)
 
-        # TODO: Don't use any dagnode for this... djRivet is slow and overkill
         '''
         inf_clamped_v_name= nomenclature_rig.resolve('influenceClampedVRef')
         inf_clamped_v = pymel.createNode('transform', name=inf_clamped_v_name)

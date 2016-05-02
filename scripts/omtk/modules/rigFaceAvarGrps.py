@@ -131,19 +131,27 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     def get_multiplier_v(self):
         return 1.0
 
-    def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=None, constraint=True, **kwargs):
-        if parent is None:
-            parent = not self.preDeform
+    def _get_default_ctrl_size(self, rig):
+        """
+        Resolve the desired ctrl size
+        One thing we are sure is that ctrls should no overlay,
+        so we'll max out their radius to half of the shortest distances between each.
+        Also the radius cannot be bigger than 3% of the head length.
+        """
+        ctrl_size = 1
 
-        if connect_global_scale is None:
-            connect_global_scale = self.preDeform
+        # Resolve head
+        jnt_head = rig.get_head_jnt()
+        if not jnt_head:
+            log.warning("Can't resolve default ctrl size, no head joint found.")
+            return ctrl_size
 
-        super(AvarGrp, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
+        # Resolve head length
+        head_length = rig.get_head_length()
+        if head_length is None:
+            log.warning("Can't resolve default ctrl size, cannot resolve head length.")
+            return ctrl_size
 
-        # Resolve the desired ctrl size
-        # One thing we are sure is that ctrls should no overlay,
-        # so we'll max out their radius to half of the shortest distances between each.
-        # Also the radius cannot be bigger than 3% of the head length.
         max_ctrl_size = rig.get_head_length() * 0.03
         if len(self.jnts) > 1:
             ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
@@ -153,6 +161,18 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         else:
             log.warning("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
             ctrl_size = max_ctrl_size
+        return ctrl_size
+
+    def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=None, constraint=True, **kwargs):
+        if parent is None:
+            parent = not self.preDeform
+
+        if connect_global_scale is None:
+            connect_global_scale = self.preDeform
+
+        super(AvarGrp, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
+
+        ctrl_size = self._get_default_ctrl_size(rig)
 
         # Resolve the U and V modifiers.
         # Note that this only applies to avars on a surface.

@@ -540,8 +540,9 @@ class Rig(object):
 
         top = next(iter(libRigging.ray_cast(bot, dir, geometries)), None)
         if not top:
-            raise Exception("Can't resolve head top location using raycasts using {0} {1}!".format(
+            pymel.warning("Can't resolve head top location using raycasts using {0} {1}!".format(
                 bot, dir
             ))
+            return None
 
         return libPymel.distance_between_vectors(bot, top)

@@ -240,8 +240,10 @@ class IK(Module):
         # Todo: implement a duplicate method in omtk.libs.libPymel.PyNodeChain
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
+        i = 1
         for oInput, oIk, in zip(self.chain_jnt, self._chain_ik):
-            oIk.rename(nomenclature_rig.resolve('ik'))
+            oIk.rename(nomenclature_rig.resolve('{0:02}'.format(i)))
+            i += 1
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
 
 

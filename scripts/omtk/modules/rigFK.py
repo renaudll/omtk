@@ -46,11 +46,8 @@ class FK(Module):
         except (AttributeError, TypeError):
             pass
 
-    def build(self, rig, constraint=True, parent=True, create_spaceswitch=None, *args, **kwargs):
+    def build(self, rig, constraint=True, parent=True, *args, **kwargs):
         super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)
-
-        if create_spaceswitch is not None:
-            self.create_spaceswitch = create_spaceswitch
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
@@ -68,7 +65,7 @@ class FK(Module):
             ctrl.build(name=ctrl_name, refs=input)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
-        if create_spaceswitch:
+        if self.create_spaceswitch:
             if self.sw_translate:
                 self.ctrls[0].create_spaceswitch(rig, self, self.parent, add_world=True)
             else:

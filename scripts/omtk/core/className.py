@@ -15,10 +15,10 @@ class BaseName(object):
     separator = '_'
 
     type_anm = 'anm'
-    type_anm_grp = 'grp'
+    type_anm_grp = 'anm_grp'
     type_jnt = 'jnt'
     type_rig = 'rig'
-    type_rig_grp = 'grp'
+    type_rig_grp = 'data_grp'
 
     root_anm_name = 'anms'
     root_geo_name = 'geos'

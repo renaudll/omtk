@@ -111,7 +111,8 @@ class Hand(Module):
                     self.fk_sys_metacarpals.append(ctrl_meta)
 
                 ctrl_meta = self.fk_sys_metacarpals[meta_index]
-                ctrl_meta.build(rig, create_spaceswitch=False)
+                ctrl_meta.create_spaceswitch = False
+                ctrl_meta.build(rig)
                 ctrl_meta.grp_anm.setParent(self.grp_anm)
                 meta_index += 1
 
@@ -122,7 +123,8 @@ class Hand(Module):
                 self.sysFingers.append(sysFinger)
 
             sysFinger = self.sysFingers[i]
-            sysFinger.build(rig, create_spaceswitch=False)
+            sysFinger.create_spaceswitch = False
+            sysFinger.build(rig)
             if ctrl_meta:
                 sysFinger.grp_anm.setParent(ctrl_meta.ctrls[0])
             else:

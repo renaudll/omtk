@@ -20,10 +20,8 @@ class NonRollJoint(Node):
         super(NonRollJoint, self).build(*args, **kwargs)
 
         pymel.select(clear=True)
-        self.start = pymel.joint() # todo: really the best name ?
-        pymel.rename(self.start, "Nonroll_Start")
-        self.end = pymel.joint() # todo: really the best name ?
-        pymel.rename(self.end, "Nonroll_End")
+        self.start = pymel.joint()
+        self.end = pymel.joint()
         self.end.setTranslation([1,0,0])
         pymel.makeIdentity((self.start, self.end), apply=True, r=True)
 
@@ -47,6 +45,7 @@ class Twistbone(Module):
     def __init__(self, *args, **kwargs):
         self.ikCurve = None
         self.subjnts = []
+        self.auto_skin = True
 
         super(Twistbone, self).__init__(*args, **kwargs)
 
@@ -65,11 +64,12 @@ class Twistbone(Module):
         # Create curve from input joints (we'll use maya splineIKEffector for our upnodes.
         num_steps = 2
         self.ikCurve = libRigging.create_nurbsCurve_from_joints(jnt_s, jnt_e, 2 if num_steps > 2 else 1)
+        self.ikCurve.rename(self.name + "_crv")
         pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True)
 
         # Generate Subjoints if necessary
         if not self.subjnts:
-            self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 3)
+            self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 4)
 
             #TODO : Use the nomeclature system to name the bones
             for i, sub_jnt in enumerate(self.subjnts):
@@ -81,7 +81,7 @@ class Twistbone(Module):
         # Create splineIK
         #Do not connect the stretch to prevent scaling problem
         #TODO : If a stretch system exist on the input, we need to find a way to connect it to the twist system
-        splineIK = SplineIK(self.subjnts +[self.ikCurve], name=self.name)
+        splineIK = SplineIK(self.subjnts +[self.ikCurve], name=nomenclature_rig.resolve("splineik"))
         splineIK.bStretch = False
         splineIK.build(rig, create_grp_anm=False, stretch=False)
         self.ikCurve.setParent(splineIK.grp_rig)
@@ -89,6 +89,8 @@ class Twistbone(Module):
         nonroll_1 = NonRollJoint()
         nonroll_1.build()
         nonroll_1.rename(nomenclature_rig.resolve('nonroll_s'))
+        nonroll_1.start.rename(nomenclature_jnt.resolve("nonroll_s_start"))
+        nonroll_1.end.rename(nomenclature_jnt.resolve("nonroll_s_end"))
         jnt_s_parent = jnt_s.getParent()
         nonroll_1.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         if jnt_s_parent:
@@ -100,7 +102,8 @@ class Twistbone(Module):
         nonroll_2 = NonRollJoint()
         nonroll_2.build()
         nonroll_2.rename(nomenclature_rig.resolve('nonroll_e'))
-
+        nonroll_2.start.rename(nomenclature_jnt.resolve("nonroll_e_start"))
+        nonroll_2.end.rename(nomenclature_jnt.resolve("nonroll_e_end"))
         nonroll_2.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         nonroll_2.setTranslation(jnt_e.getTranslation(space='world'), space='world')
         pymel.parentConstraint(jnt_s, nonroll_2.node, maintainOffset=True, skipTranslate=['x', 'y', 'z'])
@@ -161,26 +164,27 @@ class Twistbone(Module):
         if self.subjnts[0].getParent() != self.chain_jnt.start:
             self.subjnts[0].setParent(self.chain_jnt.start)
 
-        skin_deformers = self.get_skinClusters_from_inputs()
+        if self.auto_skin:
+            skin_deformers = self.get_skinClusters_from_inputs()
 
-        for skin_deformer in skin_deformers:
-            # Ensure the source joint is in the skinCluster influences
-            influenceObjects = skin_deformer.influenceObjects()
-            if self.chain_jnt.start not in influenceObjects:
-                continue
-
-            # Add new joints as influence.
-            for subjnt in self.subjnts:
-                if subjnt in influenceObjects:
+            for skin_deformer in skin_deformers:
+                # Ensure the source joint is in the skinCluster influences
+                influenceObjects = skin_deformer.influenceObjects()
+                if self.chain_jnt.start not in influenceObjects:
                     continue
 
-                skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
-                subjnt.lockInfluenceWeights.set(False)
+                # Add new joints as influence.
+                for subjnt in self.subjnts:
+                    if subjnt in influenceObjects:
+                        continue
 
-        # TODO : Automatically skin the twistbones
-        for mesh in self.get_farest_affected_meshes(rig):
-            print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
-            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
+                    skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
+                    subjnt.lockInfluenceWeights.set(False)
+
+            # TODO : Automatically skin the twistbones
+            for mesh in self.get_farest_affected_meshes(rig):
+                print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
+                libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
 
         '''

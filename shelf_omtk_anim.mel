@@ -25,7 +25,7 @@ global proc shelf_omtk_anim () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "from omtk.animation import ikFkTools\nikFkTools.switchToIk()" 
+        -command "from omtk.animation import ikfkTools\nikfkTools.switchToIk()"
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -52,7 +52,7 @@ global proc shelf_omtk_anim () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "from omtk.animation import ikFkTools\nikFkTools.switchToFk()" 
+        -command "from omtk.animation import ikfkTools\nikfkTools.switchToFk()"
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

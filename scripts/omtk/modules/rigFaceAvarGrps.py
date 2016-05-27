@@ -3,9 +3,11 @@ import logging
 
 import pymel.core as pymel
 
+from omtk.core import classModule
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
+from omtk.libs import libCtrlShapes
 from omtk.libs.libRigging import get_average_pos_between_nodes
 from omtk.modules import rigFaceAvar
 
@@ -14,7 +16,7 @@ log = logging.getLogger('omtk')
 def _find_mid_avar(avars):
     jnts = [avar.jnt for avar in avars]
     nearest_jnt = get_average_pos_between_nodes(jnts)
-    return avars[jnts.index(nearest_jnt)]
+    return avars[jnts.index(nearest_jnt)] if nearest_jnt else None
 
 class AvarGrp(rigFaceAvar.AbstractAvar):
     """
@@ -92,7 +94,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
     @property
     def avar_inn(self):
-        return self.avars[0]
+        return self.avars[0] if self.avars else None
 
     @property
     def avar_mid(self):
@@ -100,7 +102,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
     @property
     def avar_out(self):
-        return self.avars[-1]
+        return self.avars[-1] if self.avars else None
 
     #
     #
@@ -134,34 +136,34 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     def _get_default_ctrl_size(self, rig):
         """
         Resolve the desired ctrl size
-        One thing we are sure is that ctrls should no overlay,
+        One thing we are sure is that ctrls should not overlay,
         so we'll max out their radius to half of the shortest distances between each.
         Also the radius cannot be bigger than 3% of the head length.
         """
         ctrl_size = 1
+        max_ctrl_size = None
 
-        # Resolve head
-        jnt_head = rig.get_head_jnt()
-        if not jnt_head:
-            log.warning("Can't resolve default ctrl size, no head joint found.")
-            return ctrl_size
-
-        # Resolve head length
+        # Resolve maximum ctrl size from head joint
         head_length = rig.get_head_length()
-        if head_length is None:
-            log.warning("Can't resolve default ctrl size, cannot resolve head length.")
-            return ctrl_size
+        if head_length:
+            max_ctrl_size = rig.get_head_length() * 0.03
 
-        max_ctrl_size = rig.get_head_length() * 0.03
         if len(self.jnts) > 1:
             ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
-            if ctrl_size > max_ctrl_size:
+            if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
                 log.warning("Limiting ctrl size to {0}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
         else:
-            log.warning("Can't automatically resolve ctrl size, using default {0}".format(max_ctrl_size))
-            ctrl_size = max_ctrl_size
+            log.warning("Can't automatically resolve ctrl size, using default {0}".format(ctrl_size))
+
         return ctrl_size
+
+    '''
+    def create_avar(self, cls):
+        """
+        Factory method to create a sub avar.
+        """
+    '''
 
     def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=None, constraint=True, **kwargs):
         if parent is None:
@@ -184,7 +186,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         if not self.avars:
             self.avars = []
             # Connect global avars to invidial avars
-            # TODO: Handle if there's no surface!
             for jnt in self.jnts:
                 inn = [jnt]
                 if self.surface:
@@ -278,9 +279,33 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             for ctrl in avar.get_ctrls():
                 yield ctrl
 
+    @classModule.decorator_uiexpose
+    def calibrate(self):
+        for avar in self.avars:
+            avar.calibrate()
+
+    def create_macro_avar(self, rig, cls, ref, name=None, **kwargs):
+        """
+        Factory method to create abstract avars that will controller other avars.
+        """
+        input = [ref, self.surface]
+
+        avar = cls(input, name=name)
+        avar.build(
+            rig,
+            callibrate_doritos=False,  # We'll callibrate ourself since we're connecting manually.
+            constraint=False  # We are only using the avar to control
+        )
+        if avar.grp_anm:
+            avar.grp_anm.setParent(self.grp_anm)
+        if avar.grp_rig:
+            avar.grp_rig.setParent(self.grp_rig)
+
+        return avar
 
 class AvarGrpOnSurface(AvarGrp):
     _CLS_AVAR = rigFaceAvar.AvarFollicle
+    SHOW_IN_UI = True
 
     @libPython.cached_property()
     def surface(self):
@@ -298,6 +323,7 @@ class AvarGrpOnSurface(AvarGrp):
 
         super(AvarGrpOnSurface, self).build(rig, **kwargs)
 
+    @classModule.decorator_uiexpose
     def create_surface(self):
         root = pymel.createNode('transform')
         pymel.addAttr(root, longName='bendUpp', k=True)
@@ -362,18 +388,33 @@ class AvarGrpOnSurface(AvarGrp):
 
         return plane_transform
 
+class BaseCtrlUpp(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, **kwargs):
+        return libCtrlShapes.create_triangle_upp()
+
+class BaseCtrlLow(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, **kwargs):
+        return libCtrlShapes.create_triangle_low()
+
+class AvarUpp(rigFaceAvar.AvarSimple):
+    _CLS_CTRL = BaseCtrlUpp
+
+class AvarLow(rigFaceAvar.AvarSimple):
+    _CLS_CTRL = BaseCtrlLow
 
 class AvarGrpUppDown(AvarGrpOnSurface):
-    _CLS_CTRL_UPP = None
-    _CLS_CTRL_LOW = None
     _CLS_SYS_UPP = AvarGrp
     _CLS_SYS_LOW = AvarGrp
+    _CLS_AVAR_UPP = AvarUpp
+    _CLS_AVAR_LOW = AvarLow
 
-    SHOW_IN_UI = False
+    SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
-        self.ctrl_upp = None
-        self.ctrl_low = None
+        #self.ctrl_upp = None
+        #self.ctrl_low = None
+        self.avar_upp = None
+        self.avar_low = None
 
         super(AvarGrpUppDown, self).__init__(*args, **kwargs)
 
@@ -383,43 +424,38 @@ class AvarGrpUppDown(AvarGrpOnSurface):
     def connect_global_avars(self):
         pass
 
+
     def build(self, rig, **kwargs):
         super(AvarGrpUppDown, self).build(rig, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
-        if self.jnts_upp:
-            # Create upp ctrl
-            ctrl_upp_name = nomenclature_anm.resolve('upp')
-            if not isinstance(self.ctrl_upp, self._CLS_CTRL_UPP):
-                self.ctrl_upp = self._CLS_CTRL_UPP()
-            self.ctrl_upp.build(name=ctrl_upp_name)
+        # Create upp avar
+        ref = self.jnt_upp_mid
+        if ref:
+            avar_upp_name = '{0}Upp'.format(self.name)
+            self.avar_upp = self.create_macro_avar(self._CLS_AVAR_UPP, ref, name=avar_upp_name)
 
-            self.create_ctrl_macro(rig, self.ctrl_upp, self.jnt_upp_mid)
-            self.avar_upp_mid.attach_ctrl(rig, self.ctrl_upp)
-
-            # Connect ctrl_upp to upp avars
             for avar in self.avars_upp:
-                self.ctrl_upp.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_upp.attr_ud, avar.attr_ud)
 
-        if self.jnts_low:
-            # Create low ctrl
-            ctrl_low_name = nomenclature_anm.resolve('low')
-            if not isinstance(self.ctrl_low, self._CLS_CTRL_LOW):
-                self.ctrl_low = self._CLS_CTRL_LOW()
-            self.ctrl_low.build(name=ctrl_low_name)
+            self.avar_upp.calibrate()
 
-            self.create_ctrl_macro(rig, self.ctrl_low, self.jnt_low_mid)
-            self.avar_low_mid.attach_ctrl(rig, self.ctrl_low)
+        # Create low avar
+        ref = self.jnt_low_mid
+        if ref:
+            avar_low_name = '{0}Low'.format(self.name)
+            self.avar_low = self.create_macro_avar(self._CLS_AVAR_LOW, ref, name=avar_low_name)
 
-            # Connect ctrl_low to upp avars
             for avar in self.avars_low:
-                self.ctrl_low.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_low.attr_ud, avar.attr_ud)
 
+            self.avar_low.calibrate()
 
     def unbuild(self):
-        self.ctrl_upp.unbuild()
-        self.ctrl_low.unbuild()
+        self.avar_upp.unbuild()
+        self.avar_low.unbuild()
+
         super(AvarGrpUppDown, self).unbuild()
 
 class AvarGrpLftRgt(AvarGrpOnSurface):
@@ -429,7 +465,7 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
     _CLS_CTRL = None
     _CLS_SYS = AvarGrp
 
-    SHOW_IN_UI = False
+    SHOW_IN_UI = True
 
     @libPython.cached_property()
     def jnts_l(self):
@@ -444,12 +480,12 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
     @libPython.cached_property()
     def jnt_l_mid(self):
         i = (len(self.jnts_l)-1) / 2
-        return self.jnts_l[i]
+        return self.jnts_l[i] if self.jnts_l else None
 
     @libPython.cached_property()
     def jnt_r_mid(self):
         i = (len(self.jnts_r)-1) / 2
-        return self.jnts_r[i]
+        return self.jnts_r[i] if self.jnts_r else None
 
     @libPython.cached_property()
     def avars_l(self):
@@ -464,17 +500,17 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
     @libPython.cached_property()
     def avar_l_mid(self):
         i = (len(self.avars_l)-1) / 2
-        return self.avars_l[i]
+        return self.avars_l[i] if self.avars_l else None
 
     @libPython.cached_property()
     def avar_r_mid(self):
-        i = (len(self.avars_l)-1) / 2
-        return self.avars_r[i]
+        i = (len(self.avars_r)-1) / 2
+        return self.avars_r[i] if self.avars_l else None
 
     def __init__(self, *args, **kwargs):
         super(AvarGrpLftRgt, self).__init__(*args, **kwargs)
-        self.ctrl_l = None
-        self.ctrl_r = None
+        self.avar_l = None
+        self.avar_r = None
 
     def add_avars(self, attr_holder):
         pass
@@ -502,38 +538,32 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
-        # Rig l module
-        if self.jnts_l:
+        # Create left avar
+        if self.jnt_l_mid:
             # Create l ctrl
-            ctrl_l_nomenclature = nomenclature_anm.copy()
-            ctrl_l_nomenclature.tokens.insert(0, 'l')  # TODO: Find a better way to explicitely set the side
-            ctrl_l_name = ctrl_l_nomenclature.resolve()
-            if not isinstance(self.ctrl_l, self._CLS_CTRL):
-                self.ctrl_l = self._CLS_CTRL()
-            self.ctrl_l.build(name=ctrl_l_name)
+            name = 'L_{0}'.format(self.name)
+            self.avar_l = self.create_macro_avar(rig, self._CLS_CTRL, self.jnt_l_mid)
 
-            self.create_ctrl_macro(rig, self.ctrl_l, self.jnt_l_mid)
-            self.avar_l_mid.attach_ctrl(rig, self.ctrl_l)
-
-            # Connect r ctrl to r avars
             for avar in self.avars_l:
-                self.ctrl_l.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar.attr_ud)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_lr, avar.attr_lr)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar.attr_fb)
 
-        if self.jnts_r:
-            # Create r ctrl
-            ctrl_r_nomenclature = nomenclature_anm.copy()
-            ctrl_r_nomenclature.tokens.insert(0, 'r')  # TODO: Find a better way to explicitely set the side
-            ctrl_r_name = ctrl_r_nomenclature.resolve()
-            if not isinstance(self.ctrl_r, self._CLS_CTRL):
-                self.ctrl_r = self._CLS_CTRL()
-            self.ctrl_r.build(name=ctrl_r_name)
+            self.avar_l.calibrate()
 
-            self.create_ctrl_macro(rig, self.ctrl_r, self.jnt_r_mid)
-            self.avar_r_mid.attach_ctrl(rig, self.ctrl_r)
+        # Create right avar
+        if self.jnt_r_mid:
+            # Create l ctrl
+            name = 'R_{0}'.format(self.name)
+            self.avar_r = self.create_macro_avar(rig, self._CLS_CTRL, self.jnt_r_mid)
 
-            # Connect r ctrl to r avars
             for avar in self.avars_r:
-                self.ctrl_r.attach_all_to_avars(avar, yw=False, pt=False, rl=False)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar.attr_ud)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_lr, avar.attr_lr)
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar.attr_fb)
+
+            self.avar_r.calibrate()
+
 
     def unbuild(self):
         if self.ctrl_l:

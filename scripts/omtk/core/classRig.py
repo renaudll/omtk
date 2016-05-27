@@ -286,7 +286,8 @@ class Rig(object):
             if not self.grp_geo.is_built():
                 self.grp_geo.build()
                 self.grp_geo.rename(self.nomenclature.root_geo_name)
-            all_geos.setParent(self.grp_geo)
+            #if all_geos:
+            #    all_geos.setParent(self.grp_geo)
 
         # Setup displayLayers
         if create_display_layers:
@@ -526,6 +527,9 @@ class Rig(object):
     @libPython.memoized
     def get_head_length(self):
         jnt_head = self.get_head_jnt()
+        if not jnt_head:
+            return None
+
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
         geometries = libRigging.get_affected_geometries(jnt_head)

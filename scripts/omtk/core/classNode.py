@@ -39,6 +39,8 @@ class Node(object):
         if name:
             new_name = self.node.name() + '_' + name
             new_layer.rename(new_name)
+
+        # Note: Removed for performance
         new_layer.setMatrix(self.node.getMatrix(worldSpace=True))
 
         if self._layers:
@@ -46,6 +48,11 @@ class Node(object):
         else:
             parent = self.node.getParent()
             new_layer.setParent(parent)
+
+        # Fasten than .setMatrix
+        #new_layer.t.set(0,0,0)
+        #new_layer.r.set(0,0,0)
+
         self._layers.append(new_layer)
         self.node.setParent(new_layer)
 

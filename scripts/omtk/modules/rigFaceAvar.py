@@ -22,6 +22,7 @@ log = logging.getLogger('omtk')
 class BaseCtrlFace(classCtrl.BaseCtrl):
     # TODO: inverse? link_to_avar in the avar?
 
+    '''
     def attach_to_avars(self, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
         need_flip = self.getTranslation(space='world').x < 0
 
@@ -84,9 +85,12 @@ class BaseCtrlFace(classCtrl.BaseCtrl):
         libRigging.connectAttr_withBlendWeighted(attr_inn_ud, attr_ud)
         libRigging.connectAttr_withBlendWeighted(attr_inn_lr, attr_lr)
         libRigging.connectAttr_withBlendWeighted(attr_inn_fb, attr_fb)
+    '''
 
+    '''
     def hold_shapes(self):
         log.warning("Can't hold shapes for {0}, not supported. (fix me!)".format(self))
+    '''
 
 
 class CtrlFaceMicro(BaseCtrlFace):
@@ -135,9 +139,7 @@ class AbstractAvar(classModule.Module):
         self.init_avars()
 
         self._sys_doritos = None
-        self._doritos_stack = None  # TODO: Deprecated, use ._sys_doritos
         self.ctrl = None
-
 
     def init_avars(self):
         self.attr_ud = None  # Up/Down
@@ -237,8 +239,6 @@ class AbstractAvar(classModule.Module):
 
         super(AbstractAvar, self).unbuild()
 
-        self._doritos_stack = None
-
         # TODO: cleanup junk connections that Maya didn't delete by itself?
     #
     # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
@@ -277,7 +277,7 @@ class AbstractAvar(classModule.Module):
         """
         return self.jnt.getMatrix(worldSpace=True)
 
-
+    '''
     def _build_doritos_setup(self, rig, ref_tm=None):
         # Resolve geometrycreate_ctrl for the follicle
         obj_mesh = rig.get_farest_affected_mesh(self.jnt)
@@ -303,7 +303,7 @@ class AbstractAvar(classModule.Module):
             self._build_doritos_setup(rig)
 
         self._sys_doritos.attach_ctrl(rig, ctrl)
-
+    '''
 
     '''
     # TODO: Merge with attach ctrl?
@@ -359,6 +359,67 @@ class AbstractAvar(classModule.Module):
         libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateX, self.attr_pt)
         libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateZ, self.attr_rl)
 
+    #
+    # Ctrl connection
+    #
+
+    # todo: merge with .connect_ctrl
+    def _connect_ctrl(self, ctrl, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
+        need_flip = ctrl.getTranslation(space='world').x < 0
+
+        if attr_ud:
+            attr_inn_ud = ctrl.translateY
+            libRigging.connectAttr_withBlendWeighted(attr_inn_ud, attr_ud)
+
+        if attr_lr:
+            attr_inn_lr = ctrl.translateX
+
+            if need_flip:
+                attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_lr, attr_lr)
+
+        if attr_fb:
+            attr_inn_fb = ctrl.translateZ
+            libRigging.connectAttr_withBlendWeighted(attr_inn_fb, attr_fb)
+
+        if attr_yw:
+            attr_inn_yw = ctrl.rotateY
+
+            if need_flip:
+                attr_inn_yw = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_yw, input2X=-1).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_yw, attr_yw)
+
+        if attr_pt:
+            attr_inn_pt = ctrl.rotateX
+            libRigging.connectAttr_withBlendWeighted(attr_inn_pt, attr_pt)
+
+        if attr_rl:
+            attr_inn_rl = ctrl.rotateZ
+
+            if need_flip:
+                attr_inn_rl = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_rl, input2X=-1).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_rl, attr_rl)
+
+    def connect_ctrl(self, ctrl, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
+        self._connect_ctrl(
+            ctrl,
+            attr_ud=self.attr_ud if ud else None,
+            attr_lr=self.attr_lr if lr else None,
+            attr_fb=self.attr_fb if fb else None,
+            attr_yw=self.attr_yw if yw else None,
+            attr_pt=self.attr_pt if pt else None,
+            attr_rl=self.attr_rl if rl else None
+        )
+
+# todo: Create an Avar for each possibilities?
+# This include:
+# - No ctrl
+# - A ctrl that affect other avars, so only the doritos setup
+# - A ctrl that affect an influence (AvarSimple)
+# - A ctrl that affect an influence, driven on a surface (AvarFollicle)
 
 class AvarSimple(AbstractAvar):
     """
@@ -368,6 +429,15 @@ class AvarSimple(AbstractAvar):
     """
     _CLS_CTRL = CtrlFaceMicro
     SHOW_IN_UI= True
+
+    def __init__(self, *args, **kwargs):
+        super(AvarSimple, self).__init__(*args, **kwargs)
+
+        # Attribute used for callibration
+        # Redirected from the doritos setup to help serialization performance.
+        self.attr_sensitivity_tx = None
+        self.attr_sensitivity_ty = None
+        self.attr_sensibility_tz = None
 
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
         """
@@ -386,7 +456,7 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, **kwargs):
+    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, **kwargs):
         super(AvarSimple, self).build(rig, create_grp_anm=create_ctrl, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
@@ -402,7 +472,6 @@ class AvarSimple(AbstractAvar):
         stack = classNode.Node()
         stack.build(name=dag_stack_name)
         self._stack = stack
-
 
         # Create an offset layer so everything start at the original position.
         layer_offset_name = nomenclature_rig.resolve('offset')
@@ -429,15 +498,59 @@ class AvarSimple(AbstractAvar):
         if create_ctrl:
             ctrl_name = nomenclature_anm.resolve()
             if not isinstance(self.ctrl, self._CLS_CTRL):
-                self.ctrl = self._CLS_CTRL()
+                self.ctrl = self._CLS_CTRL(self.input)
             self.ctrl.build(name=ctrl_name, size=ctrl_size)
             self.ctrl.setTranslation(doritos_pos)
-            # self.ctrl_macro.setMatrix(ref_tm)
             self.ctrl.setParent(self.grp_anm)
-            # self.ctrl_macro.connect_avars(self.attr_ud, self.attr_lr, self.attr_fb)
-            self.ctrl.attach_all_to_avars(self)
 
-            self.attach_ctrl(rig, self.ctrl)
+            if create_doritos:
+                self._sys_doritos = rigDoritos.Doritos(self.input, name=self.name)
+                self._sys_doritos.build(rig, self.ctrl)
+                self._sys_doritos.grp_rig.setParent(self.grp_rig)
+                self.attr_sensitivity_tx = self._sys_doritos.attr_sensitivity_tx
+                self.attr_sensitivity_ty = self._sys_doritos.attr_sensitivity_ty
+                self.attr_sensitivity_tz = self._sys_doritos.attr_sensitivity_tz
+
+            # Connect ctrl to avars
+            self.connect_ctrl(self.ctrl)
+
+            # Calibrate ctrl
+            if create_doritos and callibrate_doritos:
+                self.calibrate()
+
+    def unbuild(self):
+        super(AvarSimple, self).unbuild()
+        self.attr_sensitivity_tx = None
+        self.attr_sensitivity_ty = None
+        self.attr_sensibility_tz = None
+
+    def calibrate(self):
+        """
+        Apply micro movement on the doritos and analyse the reaction on the mesh.
+        """
+        ctrl = self.ctrl.node
+        if not ctrl:
+            log.warning("Can't calibrate, found no ctrl for {0}".format(self))
+            return False
+
+        influence = self.jnt
+        if not influence:
+            log.warning("Can't calibrate, found no influence for {0}".format(self))
+            return False
+
+        if not ctrl.tx.isLocked():
+            sensitivity_tx = rigDoritos._get_attr_sensibility(ctrl.tx, influence)
+            self.attr_sensitivity_tx.set(sensitivity_tx)
+
+        if not ctrl.ty.isLocked():
+            sensitivity_ty = rigDoritos._get_attr_sensibility(ctrl.ty, influence)
+            self.attr_sensitivity_ty.set(sensitivity_ty)
+
+        if not ctrl.tz.isLocked():
+            sensitivity_tz = rigDoritos._get_attr_sensibility(ctrl.tz, influence)
+            self.attr_sensitivity_tz.set(sensitivity_tz)
+
+        return True
 
 
 class AvarFollicle(AvarSimple):

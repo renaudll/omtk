@@ -3,6 +3,7 @@ import pymel.core as pymel
 from maya import OpenMaya
 import libSerialization
 import core
+import inspect
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk.libs import libPymel
@@ -579,6 +580,23 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 actionRemove.triggered.connect(functools.partial(self.treeWidget.itemDoubleClicked.emit, sel[0], 0))
             actionRemove = menu.addAction("Remove")
             actionRemove.triggered.connect(functools.partial(self.on_remove))
+
+            # Expose decorated functions
+            module = sel[0].rig
+
+            def is_exposed(fn):
+                if not hasattr(fn, '__can_show__'):
+                    return False
+                return fn.__can_show__()
+
+            if isinstance(module, classModule.Module):
+                functions = inspect.getmembers(module, is_exposed)
+                if functions:
+                    menu.addSeparator()
+                    for fn_name, fn in functions:
+                        action = menu.addAction(fn_name)
+                        action.triggered.connect(fn)
+
             menu.exec_(QtGui.QCursor.pos())
 
     def on_btn_add_pressed(self):

@@ -1,31 +1,43 @@
 import pymel.core as pymel
 from omtk.core import classModule
 from omtk.core import classNode
+from omtk.core import classCtrl
 from omtk.libs import libPython
 from omtk.libs import libPymel
 from omtk.libs import libAttr
 from omtk.libs import libRigging
 import logging  as log
 
+# TODO: This is a ctrl, rename the class.
 class Doritos(classModule.Module):
     """
     A doritos setup allow a ctrl to be directly constrained on the final mesh via a follicle.
     To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
     For clarity purposes, this is built in the rig so the animator don't need to see the whole setup.
 
-    Any ctrl added to a doritos setup can share the same sensibility.
-    """
+    However a Doritos might still have to be callibrated.
+    This is necessay if the Doritos control values in a specific range (ex: -1 to 1) but the scene scale might varies.
+    The calibration apply non-uniform scaling on the ctrl parent to cheat the difference.
 
+    For this reason a Doritos is created using the following steps:
+    1) Create the setup (using build)
+    2) Connecting the doritos ctrl to something
+    3) Optionally call .calibrate()
+
+
+    The doritos take a ctrl as an input.
+    """
+    _CLS_CTRL = classCtrl.BaseCtrl
     _ATTR_NAME_SENSITIVITY_TX = 'sensitivityX'
     _ATTR_NAME_SENSITIVITY_TY = 'sensitivityY'
     _ATTR_NAME_SENSITIVITY_TZ = 'sensitivityZ'
-
     SHOW_IN_UI = False
 
     def __init__(self, *args, **kwargs):
         super(Doritos, self).__init__(*args, **kwargs)
         self._doritos_stack = None
         self._follicle = None
+        self.ctrl = None
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
@@ -42,28 +54,10 @@ class Doritos(classModule.Module):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
-    @libPython.memoized
-    def get_sensitibility(self, attr, ref, step_size=0.1, epsilon=0.01, default=1.0):
-        """
-        Return the distance that @ref move when @attr is changed.
-        This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
-        Note that to compensate non-linear movement, a small value (@step_size) is used.
-        """
-        attr.set(0)
-        pos_s = ref.getTranslation(space='world')
-        attr.set(-step_size)  # HACK: Jaw only deforme the face in the negative direction...
-        pos_e = ref.getTranslation(space='world')
-        attr.set(0)
-        distance = libPymel.distance_between_vectors(pos_s, pos_e) / step_size
-
-        if distance > epsilon:
-            return distance
-        else:
-            log.warning("Can't detect sensibility for {0}".format(attr))
-            return default
-
-    def build(self, rig, ctrl_tm=None, obj_mesh=None, **kwargs):
+    def build(self, rig, ctrl, obj_mesh=None, **kwargs):
+        self.ctrl = ctrl
         super(Doritos, self).build(rig, create_grp_anm=False, parent=False, **kwargs)
+        nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
         # Add sensibility attributes
@@ -82,15 +76,21 @@ class Doritos(classModule.Module):
             pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
             return False
 
+        log.info('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
+
         # Resolve the doritos location
+        ctrl_tm = self.ctrl.getMatrix(worldSpace=True)
+        '''
         if ctrl_tm is None:
             ctrl_tm = self.jnt.getMatrix(worldSpace=True)
+        '''
 
         # Find the closest point on the surface.
         pos_ref = ctrl_tm.translate
 
         # Note that to only check in the Z axis, we'll do a raycast first.
         # If we success this will become our reference position.
+        '''
         pos = pos_ref
         pos.z = 999
         dir = pymel.datatypes.Point(0,0,-1)
@@ -98,6 +98,7 @@ class Doritos(classModule.Module):
         if result:
             pos_ref = result
             ctrl_tm.translate = result
+        '''
 
         # Initialize node stack
         stack_name = nomenclature_rig.resolve('doritosStack')
@@ -107,7 +108,7 @@ class Doritos(classModule.Module):
         stack.setParent(self.grp_rig)
         self._doritos_stack = stack  # used in connect_ctrl_to_doritos
 
-        # Create the follicle
+        # Create the follicle that will follow the geometry
         layer_fol_name = nomenclature_rig.resolve('doritosFol')
         layer_fol = stack.add_layer()
         layer_fol.rename(layer_fol_name)
@@ -136,15 +137,15 @@ class Doritos(classModule.Module):
             pymel.disconnectAttr(layer_fol.rz)
             pymel.orientConstraint(jnt_head, layer_fol, maintainOffset=True)
 
-    def attach_ctrl(self, rig, ctrl):
-        """
-        Constraint a specic controller to the avar doritos stack.
-        Call this method after connecting the ctrl to the necessary avars.
-        The sensibility of the doritos will be automatically computed in this step if necessary.
-        """
+        #
+        # Constraint a specic controller to the avar doritos stack.
+        # Call this method after connecting the ctrl to the necessary avars.
+        # The sensibility of the doritos will be automatically computed in this step if necessary.
+        #
+
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
-        need_flip = ctrl.getTranslation(space='world').x < 0
+        need_flip = self.ctrl.getTranslation(space='world').x < 0
 
         # Create inverted attributes for sensibility
         util_sensitivity_inv = libRigging.create_utility_node('multiplyDivide', operation=2,
@@ -164,8 +165,8 @@ class Doritos(classModule.Module):
         layer_doritos.setParent(self._doritos_stack.node)
 
         # Create inverse attributes for the ctrl
-        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=ctrl.t, input2=[-1, -1, -1]).output
-        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=ctrl.r, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.t, input2=[-1, -1, -1]).output
+        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.r, input2=[-1, -1, -1]).output
         attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide',
                                                          input1=attr_ctrl_inv_t,
                                                          input2X=self.attr_sensitivity_tx,
@@ -200,14 +201,21 @@ class Doritos(classModule.Module):
         attr_ctrl_offset_sy_inn = self.attr_sensitivity_ty
         attr_ctrl_offset_sz_inn = self.attr_sensitivity_tz
 
-        pymel.connectAttr(attr_ctrl_offset_sx_inn, ctrl.offset.scaleX)
-        pymel.connectAttr(attr_ctrl_offset_sy_inn, ctrl.offset.scaleY)
-        pymel.connectAttr(attr_ctrl_offset_sz_inn, ctrl.offset.scaleZ)
+        pymel.connectAttr(attr_ctrl_offset_sx_inn, self.ctrl.offset.scaleX)
+        pymel.connectAttr(attr_ctrl_offset_sy_inn, self.ctrl.offset.scaleY)
+        pymel.connectAttr(attr_ctrl_offset_sz_inn, self.ctrl.offset.scaleZ)
 
         # Apply sensibility on the ctrl shape
-        ctrl_shape = ctrl.node.getShape()
-        ctrl_shape_orig = pymel.duplicate(ctrl.node.getShape())[0]
+        ctrl_shape = self.ctrl.node.getShape()
+        tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
+        ctrl_shape_orig = tmp.getShape()
+        ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
+        ctrl_shape_orig.rename('{0}Orig'.format(ctrl_shape.name()))
+        pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
+
+        for cp in ctrl_shape.cp:
+            cp.set(0,0,0)
 
         # Counter-scale the shape
         '''
@@ -226,9 +234,9 @@ class Doritos(classModule.Module):
                                                              ).outputMatrix
 
         attr_adjustement_rot = libRigging.create_utility_node('composeMatrix',
-                                                              inputRotateX=ctrl.node.rotateX,
-                                                              inputRotateY=ctrl.node.rotateY,
-                                                              inputRotateZ=ctrl.node.rotateZ
+                                                              inputRotateX=self.ctrl.node.rotateX,
+                                                              inputRotateY=self.ctrl.node.rotateY,
+                                                              inputRotateZ=self.ctrl.node.rotateZ
                                                              ).outputMatrix
 
         attr_adjustement_rot_inv = libRigging.create_utility_node('inverseMatrix', inputMatrix=attr_adjustement_rot).outputMatrix
@@ -244,18 +252,24 @@ class Doritos(classModule.Module):
         pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
 
         # Constraint ctrl
-        pymel.parentConstraint(layer_doritos, ctrl.offset, maintainOffset=True, skipRotate=['x', 'y', 'z'])
-        pymel.orientConstraint(layer_doritos.getParent(), ctrl.offset, maintainOffset=True)
+        pymel.parentConstraint(layer_doritos, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
+        pymel.orientConstraint(layer_doritos.getParent(), self.ctrl.offset, maintainOffset=True)
 
-        # Automatically resolve sensitivity
-        if self.sensitivity_tx is None and not ctrl.node.tx.isLocked():
-            self.sensitivity_tx = self.get_sensitibility(ctrl.node.tx, self._follicle)
-            self.attr_sensitivity_tx.set(self.sensitivity_tx)
+def _get_attr_sensibility(attr, ref, step_size=0.1, epsilon=0.01, default=1.0):
+    """
+    Return the distance that @ref move when @attr is changed.
+    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
+    Note that to compensate non-linear movement, a small value (@step_size) is used.
+    """
+    attr.set(0)
+    pos_s = ref.getTranslation(space='world')
+    attr.set(-step_size)  # HACK: Jaw only deforme the face in the negative direction...
+    pos_e = ref.getTranslation(space='world')
+    attr.set(0)
+    distance = libPymel.distance_between_vectors(pos_s, pos_e) / step_size
 
-        if self.sensitivity_ty is None and not ctrl.node.ty.isLocked():
-            self.sensitivity_ty = self.get_sensitibility(ctrl.node.ty, self._follicle)
-            self.attr_sensitivity_ty.set(self.sensitivity_ty)
-
-        if self.sensitivity_tz is None and not ctrl.node.tz.isLocked():
-            self.sensitivity_tz = self.get_sensitibility(ctrl.node.tz, self._follicle)
-            self.attr_sensitivity_tz.set(self.sensitivity_tz)
+    if distance > epsilon:
+        return distance
+    else:
+        log.warning("Can't detect sensibility for {0}".format(attr))
+        return default

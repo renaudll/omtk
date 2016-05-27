@@ -4,6 +4,27 @@ logging.basicConfig()
 from classCtrl import BaseCtrl
 from omtk.libs import libPymel, libAttr, libPython
 log = logging.getLogger('omtk')
+import functools
+
+#
+# Define decorators that can be used to expose function to the UI.
+#
+class decorator_uiexpose(object):
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+    def __repr__(self):
+        return self.func.__doc__
+    def __get__(self, obj, objtype):
+        fn = functools.partial(self.__call__, obj)
+        fn.__can_show__ = self.__can_show__
+        return fn
+    def __can_show__(self):
+        """
+        This method is used for duck-typing by the interface.
+        """
+        return True
 
 def getattrs_by_type(val, type, recursive=False):
     # TODO: Find a more eleguant way...
@@ -57,9 +78,11 @@ class Module(object):
         """
         return (self.grp_anm is not None and self.grp_anm.exists()) or (self.grp_rig is not None and self.grp_rig.exists())
 
+    '''
     @property
     def outputs(self):
         return self.__dict__['_outputs']
+    '''
 
     def get_default_name(self, rig):
         """

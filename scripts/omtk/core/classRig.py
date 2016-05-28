@@ -267,7 +267,7 @@ class Rig(object):
                 self.grp_anm = CtrlRoot()
             if not self.grp_anm.is_built():
                 grp_anm_size = CtrlRoot._get_recommended_radius(self)
-                self.grp_anm.build(size=grp_anm_size)
+                self.grp_anm.build(self, size=grp_anm_size)
             self.grp_anm.rename(self.nomenclature.root_anm_name)
 
         # Create grp_rig
@@ -275,7 +275,7 @@ class Rig(object):
             if not isinstance(self.grp_rig, Node):
                 self.grp_rig = Node()
             if not self.grp_rig.is_built():
-                self.grp_rig.build()
+                self.grp_rig.build(self)
                 self.grp_rig.rename(self.nomenclature.root_rig_name)
 
         # Create grp_geo
@@ -284,7 +284,7 @@ class Rig(object):
             if not isinstance(self.grp_geo, Node):
                 self.grp_geo = Node()
             if not self.grp_geo.is_built():
-                self.grp_geo.build()
+                self.grp_geo.build(self)
                 self.grp_geo.rename(self.nomenclature.root_geo_name)
             #if all_geos:
             #    all_geos.setParent(self.grp_geo)

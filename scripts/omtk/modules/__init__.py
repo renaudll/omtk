@@ -15,7 +15,6 @@ import rigHand
 import rigDpSpine
 
 # Import face modules
-import rigDoritos
 import rigFaceAvar
 import rigFaceAvarGrps
 import rigFaceBrow
@@ -41,7 +40,6 @@ def _reload():
     reload(rigDpSpine)
 
     # Reload face modules
-    reload(rigDoritos)
     reload(rigFaceAvar)
     reload(rigFaceAvarGrps)
     reload(rigFaceBrow)

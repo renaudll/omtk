@@ -890,14 +890,16 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
     elif isinstance(shape, pymel.nodetypes.Mesh):
+        '''
         # closestPointOnMesh ignores polymesh transforms
         util_transformGeometry = create_utility_node('transformGeometry',
                                                      inputGeometry=shape.outMesh,
                                                      transform=shape.worldMatrix
                                                      )
+        '''
 
 
-        pymel.connectAttr(util_transformGeometry.outputGeometry, follicle_shape.inputMesh)
+        pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception("Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(shape.type(), shape))
 

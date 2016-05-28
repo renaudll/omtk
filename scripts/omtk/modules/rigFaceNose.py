@@ -81,7 +81,7 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
         ctrl_upp_name = nomenclature_anm.resolve()
         if not isinstance(self.ctrl_main, self._CLS_CTRL):
             self.ctrl_main = self._CLS_CTRL()
-        self.ctrl_main.build(name=ctrl_upp_name)
+        self.ctrl_main.build(rig, name=ctrl_upp_name)
         self.create_ctrl_macro(rig, self.ctrl_main, self.inf_nose_low)
 
         self.ctrl_main.attach_to_avars(attr_ud=self.attr_ud,

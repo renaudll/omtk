@@ -4,6 +4,7 @@ import logging
 import pymel.core as pymel
 
 from omtk.core import classModule
+from omtk.core import classCtrl
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -284,13 +285,14 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         for avar in self.avars:
             avar.calibrate()
 
-    def create_macro_avar(self, rig, cls, ref, name=None, **kwargs):
+    def create_abstract_avar(self, rig, cls, ref, name=None, **kwargs):
         """
         Factory method to create abstract avars that will controller other avars.
         """
         input = [ref, self.surface]
 
-        avar = cls(input, name=name)
+        avar = rigFaceAvar.AvarSimple(input, name=name)  # TODO: Replace by Abstract Avar
+        avar._CLS_CTRL = cls
         avar.build(
             rig,
             callibrate_doritos=False,  # We'll callibrate ourself since we're connecting manually.
@@ -388,26 +390,21 @@ class AvarGrpOnSurface(AvarGrp):
 
         return plane_transform
 
-class BaseCtrlUpp(rigFaceAvar.BaseCtrlFace):
+#
+# AvarGrp Upp/Low
+#
+
+class BaseCtrlUpp(classCtrl.InteractiveCtrl):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
-class BaseCtrlLow(rigFaceAvar.BaseCtrlFace):
+class BaseCtrlLow(classCtrl.InteractiveCtrl):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 
-class AvarUpp(rigFaceAvar.AvarSimple):
-    _CLS_CTRL = BaseCtrlUpp
-
-class AvarLow(rigFaceAvar.AvarSimple):
-    _CLS_CTRL = BaseCtrlLow
-
-class AvarGrpUppDown(AvarGrpOnSurface):
-    _CLS_SYS_UPP = AvarGrp
-    _CLS_SYS_LOW = AvarGrp
-    _CLS_AVAR_UPP = AvarUpp
-    _CLS_AVAR_LOW = AvarLow
-
+class AvarGrpUppLow(AvarGrpOnSurface):
+    _CLS_CTRL_UPP = BaseCtrlUpp
+    _CLS_CTRL_LOW = BaseCtrlLow
     SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
@@ -416,7 +413,7 @@ class AvarGrpUppDown(AvarGrpOnSurface):
         self.avar_upp = None
         self.avar_low = None
 
-        super(AvarGrpUppDown, self).__init__(*args, **kwargs)
+        super(AvarGrpUppLow, self).__init__(*args, **kwargs)
 
     def add_avars(self, attr_holder):
         pass
@@ -426,7 +423,7 @@ class AvarGrpUppDown(AvarGrpOnSurface):
 
 
     def build(self, rig, **kwargs):
-        super(AvarGrpUppDown, self).build(rig, **kwargs)
+        super(AvarGrpUppLow, self).build(rig, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
@@ -434,7 +431,7 @@ class AvarGrpUppDown(AvarGrpOnSurface):
         ref = self.jnt_upp_mid
         if ref:
             avar_upp_name = '{0}Upp'.format(self.name)
-            self.avar_upp = self.create_macro_avar(self._CLS_AVAR_UPP, ref, name=avar_upp_name)
+            self.avar_upp = self.create_abstract_avar(rig, self._CLS_CTRL_UPP, ref, name=avar_upp_name)
 
             for avar in self.avars_upp:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_upp.attr_ud, avar.attr_ud)
@@ -445,7 +442,7 @@ class AvarGrpUppDown(AvarGrpOnSurface):
         ref = self.jnt_low_mid
         if ref:
             avar_low_name = '{0}Low'.format(self.name)
-            self.avar_low = self.create_macro_avar(self._CLS_AVAR_LOW, ref, name=avar_low_name)
+            self.avar_low = self.create_abstract_avar(rig, self._CLS_CTRL_LOW, ref, name=avar_low_name)
 
             for avar in self.avars_low:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_low.attr_ud, avar.attr_ud)
@@ -456,14 +453,18 @@ class AvarGrpUppDown(AvarGrpOnSurface):
         self.avar_upp.unbuild()
         self.avar_low.unbuild()
 
-        super(AvarGrpUppDown, self).unbuild()
+        super(AvarGrpUppLow, self).unbuild()
+
+#
+# AvarGrp Lft/Rgt
+#
 
 class AvarGrpLftRgt(AvarGrpOnSurface):
     """
     This module receive targets from all sides of the face (left and right) and create ctrls for each sides.
     """
-    _CLS_CTRL = None
-    _CLS_SYS = AvarGrp
+    _CLS_CTRL_LFT = BaseCtrlUpp
+    _CLS_CTRL_RGT = BaseCtrlUpp
 
     SHOW_IN_UI = True
 
@@ -538,11 +539,15 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
+        # Hack: Allow ctrl override
+        self._CLS_CTRL_LFT._CLS_CTRL = self._CLS_CTRL
+        self._CLS_CTRL_RGT._CLS_CTRL = self._CLS_CTRL
+
         # Create left avar
         if self.jnt_l_mid:
             # Create l ctrl
             name = 'L_{0}'.format(self.name)
-            self.avar_l = self.create_macro_avar(rig, self._CLS_CTRL, self.jnt_l_mid)
+            self.avar_l = self.create_abstract_avar(rig, self._CLS_CTRL_LFT, self.jnt_l_mid, name=name)
 
             for avar in self.avars_l:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar.attr_ud)
@@ -555,7 +560,7 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
         if self.jnt_r_mid:
             # Create l ctrl
             name = 'R_{0}'.format(self.name)
-            self.avar_r = self.create_macro_avar(rig, self._CLS_CTRL, self.jnt_r_mid)
+            self.avar_r = self.create_abstract_avar(rig, self._CLS_CTRL_RGT, self.jnt_r_mid, name=name)
 
             for avar in self.avars_r:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar.attr_ud)

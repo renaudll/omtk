@@ -11,7 +11,7 @@ class CtrlLidLow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 
-class FaceLids(rigFaceAvarGrps.AvarGrpUppDown):
+class FaceLids(rigFaceAvarGrps.AvarGrpUppLow):
     _CLS_CTRL_UPP = CtrlLidUpp
     _CLS_CTRL_LOW = CtrlLidLow
 

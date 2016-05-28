@@ -87,7 +87,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         ctrl_upp_name = nomenclature_anm.resolve('upp')
         if not isinstance(self.ctrl_upp, self._CLS_CTRL_UPP):
             self.ctrl_upp = self._CLS_CTRL_UPP()
-        self.ctrl_upp.build(name=ctrl_upp_name)
+        self.ctrl_upp.build(rig, name=ctrl_upp_name)
         self.create_ctrl_macro(rig, self.ctrl_upp, self.jnt_upp_mid)
         #self.AvarUppMid._create_doritos_setup_2(rig, self.ctrl_upp)
         self.ctrl_upp.connect_avars(self.attr_upp_ud, self.attr_upp_lr, self.attr_upp_fb)
@@ -98,7 +98,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         ctrl_low_name = nomenclature_anm.resolve('low')
         if not isinstance(self.ctrl_low, self._CLS_CTRL_LOW):
             self.ctrl_low = self._CLS_CTRL_LOW()
-        self.ctrl_low.build(name=ctrl_low_name)
+        self.ctrl_low.build(rig, name=ctrl_low_name)
         self.create_ctrl_macro(rig, self.ctrl_low, self.jnt_low_mid)
         #self.AvarLowMid._create_doritos_setup_2(rig, self.ctrl_low)
         self.ctrl_low.connect_avars(self.attr_low_ud, self.attr_low_lr, self.attr_low_fb)

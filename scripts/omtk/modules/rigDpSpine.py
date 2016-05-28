@@ -83,14 +83,14 @@ class DpSpine(Module):
         ctrl_ik_dwn_name = nomenclature_anm.resolve('HipsA')
         if not isinstance(self.ctrl_ik_dwn, self._CLASS_CTRL_IK):
             self.ctrl_ik_dwn = self._CLASS_CTRL_IK()
-        self.ctrl_ik_dwn.build(name=ctrl_ik_dwn_name, refs=jnt_dwn)
+        self.ctrl_ik_dwn.build(rig, name=ctrl_ik_dwn_name, refs=jnt_dwn)
         self.ctrl_ik_dwn.setTranslation(pos_dwn_world)
         self.ctrl_ik_dwn.setParent(self.grp_anm)
 
         ctrl_ik_upp_name = nomenclature_anm.resolve('ChestA')
         if not isinstance(self.ctrl_ik_upp, self._CLASS_CTRL_IK):
             self.ctrl_ik_upp = self._CLASS_CTRL_IK()
-        self.ctrl_ik_upp.build(name=ctrl_ik_upp_name, refs=jnt_upp)
+        self.ctrl_ik_upp.build(rig, name=ctrl_ik_upp_name, refs=jnt_upp)
         self.ctrl_ik_upp.setTranslation(pos_upp_world)
         self.ctrl_ik_upp.setParent(self.ctrl_ik_dwn)
 
@@ -105,21 +105,21 @@ class DpSpine(Module):
         ctrl_fk_dwn_name = nomenclature_anm.resolve('HipsB')
         if not isinstance(self.ctrl_fk_dwn, self._CLASS_CTRL_FK):
             self.ctrl_fk_dwn = self._CLASS_CTRL_FK()
-        self.ctrl_fk_dwn.build(name=ctrl_fk_dwn_name, refs=jnt_dwn)
+        self.ctrl_fk_dwn.build(rig, name=ctrl_fk_dwn_name, refs=jnt_dwn)
         self.ctrl_fk_dwn.setTranslation(pos_dwn_world)
         self.ctrl_fk_dwn.setParent(self.ctrl_ik_dwn)
 
         ctrl_fk_upp_name = nomenclature_anm.resolve('ChestB')
         if not isinstance(self.ctrl_fk_upp, self._CLASS_CTRL_FK):
             self.ctrl_fk_upp = self._CLASS_CTRL_FK()
-        self.ctrl_fk_upp.build(name=ctrl_fk_upp_name, refs=jnt_upp)
+        self.ctrl_fk_upp.build(rig, name=ctrl_fk_upp_name, refs=jnt_upp)
         self.ctrl_fk_upp.setTranslation(pos_upp_world)
         self.ctrl_fk_upp.setParent(self.ctrl_ik_upp)
 
         ctrl_fk_mid_name = nomenclature_anm.resolve('Middle1')
         if not isinstance(self.ctrl_fk_mid, self._CLASS_CTRL_FK):
             self.ctrl_fk_mid = self._CLASS_CTRL_FK()
-        self.ctrl_fk_mid.build(name=ctrl_fk_mid_name, refs=jnt_mid)
+        self.ctrl_fk_mid.build(rig, name=ctrl_fk_mid_name, refs=jnt_mid)
         self.ctrl_fk_mid.setTranslation(pos_mid_world)
         self.ctrl_fk_mid.setParent(self.ctrl_ik_dwn)
 

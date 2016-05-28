@@ -6,6 +6,7 @@ import logging
 
 import pymel.core as pymel
 
+import omtk.core.classCtrl
 from omtk.core import classModule
 from omtk.core import classCtrl
 from omtk.core import classNode
@@ -15,11 +16,10 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 
-from omtk.modules import rigDoritos
 log = logging.getLogger('omtk')
 
 
-class BaseCtrlFace(classCtrl.BaseCtrl):
+class BaseCtrlFace(classCtrl.InteractiveCtrl):
     # TODO: inverse? link_to_avar in the avar?
 
     '''
@@ -277,58 +277,6 @@ class AbstractAvar(classModule.Module):
         """
         return self.jnt.getMatrix(worldSpace=True)
 
-    '''
-    def _build_doritos_setup(self, rig, ref_tm=None):
-        # Resolve geometrycreate_ctrl for the follicle
-        obj_mesh = rig.get_farest_affected_mesh(self.jnt)
-        if obj_mesh is None:
-            pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
-            return False
-
-        # Resolve the doritos location
-        if ref_tm is None:
-            ref_tm = self.get_ctrl_tm()
-
-        self._sys_doritos = rigDoritos.Doritos(self.jnts, name=self.name)
-        self._sys_doritos.build(rig, ctrl_tm=ref_tm, obj_mesh=obj_mesh)
-        self._sys_doritos.grp_rig.setParent(self.grp_rig)
-
-
-    def attach_ctrl(self, rig, ctrl):
-        """
-        Constraint a specic controller to the avar doritos stack.
-        """
-        # Build the doritos setup only if needed
-        if self._sys_doritos is None:
-            self._build_doritos_setup(rig)
-
-        self._sys_doritos.attach_ctrl(rig, ctrl)
-    '''
-
-    '''
-    # TODO: Merge with attach ctrl?
-    def link_ctlr(self, ctrl, avar_tx=None, avar_ty=None, avar_tz=None, avar_rx=None, avar_ry=None, avar_rz=None,
-                  avar_sx=None, avar_sy=None, avar_sz=None):
-
-        attr_inn_ud = self.translateY
-        attr_inn_lr = self.translateX
-        attr_inn_fb = self.translateZ
-        attr_inn_yw = self.rotateY
-        attr_inn_pt = self.rotateX
-        attr_inn_rl = self.rotateZ
-
-        need_flip = self.getTranslation(space='world').x < 0
-        if need_flip:
-            attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
-
-        libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_yw)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_pt)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
-    '''
-
     def validate(self):
         super(AbstractAvar, self).validate()
 
@@ -433,12 +381,6 @@ class AvarSimple(AbstractAvar):
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
 
-        # Attribute used for callibration
-        # Redirected from the doritos setup to help serialization performance.
-        self.attr_sensitivity_tx = None
-        self.attr_sensitivity_ty = None
-        self.attr_sensibility_tz = None
-
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
         """
         The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
@@ -498,18 +440,10 @@ class AvarSimple(AbstractAvar):
         if create_ctrl:
             ctrl_name = nomenclature_anm.resolve()
             if not isinstance(self.ctrl, self._CLS_CTRL):
-                self.ctrl = self._CLS_CTRL(self.input)
-            self.ctrl.build(name=ctrl_name, size=ctrl_size)
+                self.ctrl = self._CLS_CTRL()
+            self.ctrl.build(rig, self.jnt, name=ctrl_name, size=ctrl_size)
             self.ctrl.setTranslation(doritos_pos)
             self.ctrl.setParent(self.grp_anm)
-
-            if create_doritos:
-                self._sys_doritos = rigDoritos.Doritos(self.input, name=self.name)
-                self._sys_doritos.build(rig, self.ctrl)
-                self._sys_doritos.grp_rig.setParent(self.grp_rig)
-                self.attr_sensitivity_tx = self._sys_doritos.attr_sensitivity_tx
-                self.attr_sensitivity_ty = self._sys_doritos.attr_sensitivity_ty
-                self.attr_sensitivity_tz = self._sys_doritos.attr_sensitivity_tz
 
             # Connect ctrl to avars
             self.connect_ctrl(self.ctrl)
@@ -518,18 +452,11 @@ class AvarSimple(AbstractAvar):
             if create_doritos and callibrate_doritos:
                 self.calibrate()
 
-    def unbuild(self):
-        super(AvarSimple, self).unbuild()
-        self.attr_sensitivity_tx = None
-        self.attr_sensitivity_ty = None
-        self.attr_sensibility_tz = None
-
     def calibrate(self):
         """
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
-        ctrl = self.ctrl.node
-        if not ctrl:
+        if not self.ctrl:
             log.warning("Can't calibrate, found no ctrl for {0}".format(self))
             return False
 
@@ -538,17 +465,17 @@ class AvarSimple(AbstractAvar):
             log.warning("Can't calibrate, found no influence for {0}".format(self))
             return False
 
-        if not ctrl.tx.isLocked():
-            sensitivity_tx = rigDoritos._get_attr_sensibility(ctrl.tx, influence)
-            self.attr_sensitivity_tx.set(sensitivity_tx)
+        if not self.ctrl.node.tx.isLocked():
+            sensitivity_tx = omtk.core.classCtrl._get_attr_sensibility(self.ctrl.node.tx, influence)
+            self.ctrl.attr_sensitivity_tx.set(sensitivity_tx)
 
-        if not ctrl.ty.isLocked():
-            sensitivity_ty = rigDoritos._get_attr_sensibility(ctrl.ty, influence)
-            self.attr_sensitivity_ty.set(sensitivity_ty)
+        if not self.ctrl.node.ty.isLocked():
+            sensitivity_ty = omtk.core.classCtrl._get_attr_sensibility(self.ctrl.node.ty, influence)
+            self.ctrl.attr_sensitivity_ty.set(sensitivity_ty)
 
-        if not ctrl.tz.isLocked():
-            sensitivity_tz = rigDoritos._get_attr_sensibility(ctrl.tz, influence)
-            self.attr_sensitivity_tz.set(sensitivity_tz)
+        if not self.ctrl.node.tz.isLocked():
+            sensitivity_tz = omtk.core.classCtrl._get_attr_sensibility(self.ctrl.node.tz, influence)
+            self.ctrl.attr_sensitivity_tz.set(sensitivity_tz)
 
         return True
 

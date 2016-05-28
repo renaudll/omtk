@@ -95,7 +95,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         if not isinstance(self.ctrl_all, CtrlEyes):
             self.ctrl_all = CtrlEyes()
         ctrl_all_name = nomenclature_anm.resolve()
-        self.ctrl_all.build(width=width, height=height)
+        self.ctrl_all.build(rig, width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
         self.ctrl_all.create_spaceswitch(rig, self, self.parent, add_default=True, default_name='Head', add_world=True)
         self.ctrl_all.rename(ctrl_all_name)

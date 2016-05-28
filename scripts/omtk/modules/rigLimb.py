@@ -94,7 +94,7 @@ class Limb(Module):
         ctrl_attrs_name = nomenclature_anm.resolve('atts')
         if not isinstance(self.ctrl_attrs, self._CLASS_CTRL_ATTR):
             self.ctrl_attrs = self._CLASS_CTRL_ATTR()
-        self.ctrl_attrs.build(name=ctrl_attrs_name, refs=jnt_hand)
+        self.ctrl_attrs.build(rig, name=ctrl_attrs_name, refs=jnt_hand)
         self.ctrl_attrs.setParent(self.grp_anm)
         pymel.parentConstraint(jnt_hand, self.ctrl_attrs.offset)
 
@@ -136,7 +136,7 @@ class Limb(Module):
         if not isinstance(self.ctrl_elbow, self._CLASS_CTRL_ELBOW):
             self.ctrl_elbow = self._CLASS_CTRL_ELBOW(create_offset=True)
         ctrl_elbow_ref = self.chain_jnt[self.iCtrlIndex - 1]  # jnt_elbow
-        self.ctrl_elbow.build(refs=ctrl_elbow_ref)
+        self.ctrl_elbow.build(rig, refs=ctrl_elbow_ref)
         self.ctrl_elbow.rename(ctrl_elbow_name)
         self.ctrl_elbow.setParent(self.grp_anm)
         pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)

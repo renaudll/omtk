@@ -441,7 +441,7 @@ class AvarSimple(AbstractAvar):
             ctrl_name = nomenclature_anm.resolve()
             if not isinstance(self.ctrl, self._CLS_CTRL):
                 self.ctrl = self._CLS_CTRL()
-            self.ctrl.build(rig, self.jnt, name=ctrl_name, size=ctrl_size)
+            self.ctrl.build(rig, self.jnt, grp_rig=self.grp_rig, name=ctrl_name, size=ctrl_size)
             self.ctrl.setTranslation(doritos_pos)
             self.ctrl.setParent(self.grp_anm)
 

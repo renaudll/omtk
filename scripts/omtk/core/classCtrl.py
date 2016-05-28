@@ -354,7 +354,7 @@ class InteractiveCtrl(BaseCtrl):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
-    def build(self, parent, ref, obj_mesh=None, **kwargs):
+    def build(self, parent, ref, grp_rig=None, obj_mesh=None, **kwargs):
         # todo: Simplify the setup, too many nodes
 
         # Resolve geometry to attach to
@@ -372,13 +372,14 @@ class InteractiveCtrl(BaseCtrl):
 
         ref_tm = ref.getMatrix(worldSpace=True)
 
+        need_flip = ref_tm.translate.x < 0
+
         # Initialize external stack
         # Normally this would be hidden from animators.
         stack_name = nomenclature_rig.resolve('doritosStack')
         stack = classNode.Node(self)
         stack.build(name=stack_name)
         stack.setMatrix(ref_tm )
-        #stack.setParent(self.grp_rig)
 
         # Add sensibility attributes
         # The values will be computed when attach_ctrl will be called
@@ -400,7 +401,7 @@ class InteractiveCtrl(BaseCtrl):
         # Find the closest point on the surface.
         pos_ref = ref_tm.translate
 
-        need_flip = self.node.getTranslation(space='world').x < 0
+
 
         # Note that to only check in the Z axis, we'll do a raycast first.
         # If we success this will become our reference position.
@@ -556,6 +557,11 @@ class InteractiveCtrl(BaseCtrl):
         # Constraint ctrl
         pymel.parentConstraint(layer_doritos, self.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
         pymel.orientConstraint(layer_doritos.getParent(), self.offset, maintainOffset=True)
+
+        # Clean dag junk
+        if grp_rig:
+            stack.setParent(grp_rig)
+            fol.setParent(grp_rig)
 
 
 def _get_attr_sensibility(attr, ref, step_size=0.1, epsilon=0.01, default=1.0):

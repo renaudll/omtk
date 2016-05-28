@@ -293,8 +293,13 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         avar = rigFaceAvar.AvarSimple(input, name=name)  # TODO: Replace by Abstract Avar
         avar._CLS_CTRL = cls
+
+        return avar
+
+    def build_abstract_avar(self, rig, avar):
         avar.build(
             rig,
+            grp_rig=self.grp_rig,
             callibrate_doritos=False,  # We'll callibrate ourself since we're connecting manually.
             constraint=False  # We are only using the avar to control
         )
@@ -431,7 +436,9 @@ class AvarGrpUppLow(AvarGrpOnSurface):
         ref = self.jnt_upp_mid
         if ref:
             avar_upp_name = '{0}Upp'.format(self.name)
-            self.avar_upp = self.create_abstract_avar(rig, self._CLS_CTRL_UPP, ref, name=avar_upp_name)
+            if not self.avar_upp:
+                self.avar_upp = self.create_abstract_avar(rig, self._CLS_CTRL_UPP, ref, name=avar_upp_name)
+            self.build_abstract_avar(rig, self.avar_upp)
 
             for avar in self.avars_upp:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_upp.attr_ud, avar.attr_ud)
@@ -442,7 +449,9 @@ class AvarGrpUppLow(AvarGrpOnSurface):
         ref = self.jnt_low_mid
         if ref:
             avar_low_name = '{0}Low'.format(self.name)
-            self.avar_low = self.create_abstract_avar(rig, self._CLS_CTRL_LOW, ref, name=avar_low_name)
+            if not self.avar_low:
+                self.avar_low = self.create_abstract_avar(rig, self._CLS_CTRL_LOW, ref, name=avar_low_name)
+            self.build_abstract_avar(rig, self.avar_low)
 
             for avar in self.avars_low:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_low.attr_ud, avar.attr_ud)
@@ -537,17 +546,13 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
             avar._attr_u_mult_inn.set(mult_lr)
         '''
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-
-        # Hack: Allow ctrl override
-        self._CLS_CTRL_LFT._CLS_CTRL = self._CLS_CTRL
-        self._CLS_CTRL_RGT._CLS_CTRL = self._CLS_CTRL
-
         # Create left avar
         if self.jnt_l_mid:
             # Create l ctrl
             name = 'L_{0}'.format(self.name)
-            self.avar_l = self.create_abstract_avar(rig, self._CLS_CTRL_LFT, self.jnt_l_mid, name=name)
+            if not self.avar_l:
+                self.avar_l = self.create_abstract_avar(rig, self._CLS_CTRL_LFT, self.jnt_l_mid, name=name)
+            self.build_abstract_avar(rig, self.avar_l)
 
             for avar in self.avars_l:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar.attr_ud)
@@ -560,7 +565,9 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
         if self.jnt_r_mid:
             # Create l ctrl
             name = 'R_{0}'.format(self.name)
-            self.avar_r = self.create_abstract_avar(rig, self._CLS_CTRL_RGT, self.jnt_r_mid, name=name)
+            if not self.avar_r:
+                self.avar_r = self.create_abstract_avar(rig, self._CLS_CTRL_RGT, self.jnt_r_mid, name=name)
+            self.build_abstract_avar(rig, self.avar_r)
 
             for avar in self.avars_r:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar.attr_ud)

@@ -42,17 +42,19 @@ class AvarJaw(rigFaceAvar.AvarSimple):
     _CLS_CTRL = CtrlJaw
     IS_SIDE_SPECIFIC = False
 
-    def get_ctrl_tm(self):
+    def get_ctrl_tm(self, rig):
         """
         Find the chin location. This is the preffered location for the jaw doritos.
         :return:
         """
         # TODO: Prevent multiple calls? cached?
         jnt = next(iter(self.jnts), None)
-        geos = libRigging.get_affected_geometries(jnt)  # TODO: Validate
+        geo = rig.get_farest_affected_mesh(jnt)
+        if not geo:
+            return super(AvarJaw, self).get_ctrl_tm(rig)
+        geos = [geo]
 
         ref = jnt.getMatrix(worldSpace=True)
-
         pos_s = pymel.datatypes.Point(jnt.getTranslation(space='world'))
         pos_e = pymel.datatypes.Point(10,0,0) * ref
         dir = pos_e - pos_s

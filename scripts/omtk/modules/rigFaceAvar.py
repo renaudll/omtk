@@ -271,7 +271,7 @@ class AbstractAvar(classModule.Module):
         )
 
 
-    def get_ctrl_tm(self):
+    def get_ctrl_tm(self, rig):
         """
         :return: The ctrl transformation.
         """
@@ -405,7 +405,7 @@ class AvarSimple(AbstractAvar):
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
         jnt_tm = self.get_jnt_tm()
-        doritos_pos = self.get_ctrl_tm().translate
+        doritos_pos = self.get_ctrl_tm(rig).translate
 
         #
         # Build stack

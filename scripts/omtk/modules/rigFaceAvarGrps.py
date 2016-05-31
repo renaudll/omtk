@@ -200,7 +200,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         for jnt, avar in zip(self.jnts, self.avars):
             # HACK: Set module name using rig nomenclature.
             # TODO: Do this in the back-end
-            avar.name = rig.nomenclature(jnt.name(), suffix='avar').resolve()
+            avar.name = rig.nomenclature(jnt.name()).resolve()
 
             avar.build(rig,
                        create_ctrl=create_ctrls,
@@ -296,7 +296,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         return avar
 
-    def build_abstract_avar(self, rig, avar):
+    def build_abstract_avar(self, rig, cls, avar):
+        avar._CLS_CTRL = cls  # Hack
         avar.build(
             rig,
             grp_rig=self.grp_rig,
@@ -426,6 +427,9 @@ class AvarGrpUppLow(AvarGrpOnSurface):
     def connect_global_avars(self):
         pass
 
+    def connect_macro_avar(self, avar_macro, avar_micros):
+        for avar_micro in avar_micros:
+            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_ud, avar_micro.attr_ud)
 
     def build(self, rig, **kwargs):
         super(AvarGrpUppLow, self).build(rig, **kwargs)
@@ -435,26 +439,24 @@ class AvarGrpUppLow(AvarGrpOnSurface):
         # Create upp avar
         ref = self.jnt_upp_mid
         if ref:
-            avar_upp_name = '{0}Upp'.format(self.name)
+            avar_upp_name = '{0}Upp'.format(self.get_module_name())
             if not self.avar_upp:
                 self.avar_upp = self.create_abstract_avar(rig, self._CLS_CTRL_UPP, ref, name=avar_upp_name)
-            self.build_abstract_avar(rig, self.avar_upp)
+            self.build_abstract_avar(rig, self._CLS_CTRL_UPP, self.avar_upp)
 
-            for avar in self.avars_upp:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_upp.attr_ud, avar.attr_ud)
+            self.connect_macro_avar(self.avar_upp, self.avars_upp)
 
             self.avar_upp.calibrate()
 
         # Create low avar
         ref = self.jnt_low_mid
         if ref:
-            avar_low_name = '{0}Low'.format(self.name)
+            avar_low_name = '{0}Low'.format(self.get_module_name())
             if not self.avar_low:
                 self.avar_low = self.create_abstract_avar(rig, self._CLS_CTRL_LOW, ref, name=avar_low_name)
-            self.build_abstract_avar(rig, self.avar_low)
+            self.build_abstract_avar(rig, self._CLS_CTRL_LOW, self.avar_low)
 
-            for avar in self.avars_low:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_low.attr_ud, avar.attr_ud)
+            self.connect_macro_avar(self.avar_low, self.avars_low)
 
             self.avar_low.calibrate()
 
@@ -549,10 +551,10 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
         # Create left avar
         if self.jnt_l_mid:
             # Create l ctrl
-            name = 'L_{0}'.format(self.name)
+            name = 'L_{0}'.format(self.get_module_name())
             if not self.avar_l:
                 self.avar_l = self.create_abstract_avar(rig, self._CLS_CTRL_LFT, self.jnt_l_mid, name=name)
-            self.build_abstract_avar(rig, self.avar_l)
+            self.build_abstract_avar(rig, self._CLS_CTRL_LFT, self.avar_l)
 
             for avar in self.avars_l:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar.attr_ud)
@@ -564,10 +566,10 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
         # Create right avar
         if self.jnt_r_mid:
             # Create l ctrl
-            name = 'R_{0}'.format(self.name)
+            name = 'R_{0}'.format(self.get_module_name())
             if not self.avar_r:
                 self.avar_r = self.create_abstract_avar(rig, self._CLS_CTRL_RGT, self.jnt_r_mid, name=name)
-            self.build_abstract_avar(rig, self.avar_r)
+            self.build_abstract_avar(rig, self._CLS_CTRL_RGT, self.avar_r)
 
             for avar in self.avars_r:
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar.attr_ud)
@@ -578,8 +580,6 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
 
 
     def unbuild(self):
-        if self.ctrl_l:
-            self.ctrl_l.unbuild()
-        if self.ctrl_r:
-            self.ctrl_r.unbuild()
+        self.avar_l.unbuild()
+        self.avar_r.unbuild()
         super(AvarGrpLftRgt, self).unbuild()

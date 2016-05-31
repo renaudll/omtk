@@ -239,6 +239,14 @@ class Rig(object):
         key = lambda mesh: mesh in self.get_meshes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
+    @classModule.decorator_uiexpose
+    def create_hierarchy(self):
+        """
+        Alias to pre_build that is exposed in the gui and hidden from subclassing.
+        :return:
+        """
+        self.pre_build()
+
     def pre_build(self, create_grp_jnt=True, create_grp_anm=True, create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one

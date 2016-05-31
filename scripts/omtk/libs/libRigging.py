@@ -1049,7 +1049,7 @@ def getAttrOutput(attr, plugs=True, skipBlendWeighted=False, **kwargs):
     else:
         return [attr.node() for attr in attr_outs]
 
-def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', force=True):
+def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', force=True, kt=(-1.0,0.0,1.0), kv=(-1.0,0.0,1.0), kit=(4,2,4), kot=(4,2,4), pre='linear', pst='linear'):
     # Skip if a connection already exist
     for node in getAttrOutput(attr_src, plugs=False, skipBlendWeighted=True):
         if 'animCurveU' in node.type():
@@ -1068,41 +1068,14 @@ def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', for
                         ))
                         return
 
-    drivenkey = create_animCurveU('animCurveUU',
-                                  kt=(-1.0,0.0,1.0),
-                                  kv=(-1.0,0.0,1.0),
-                                  kit=(4,2,4), # Spline/Linear/Spline
-                                  kot=(4,2,4), # Spline/Linear/Spline
-                                  pre='linear',
-                                  pst='linear'
+    animCurve = create_animCurveU('animCurveUU',
+                                  kt=kt,
+                                  kv=kv,
+                                  kit=kit, # Spline/Linear/Spline
+                                  kot=kot, # Spline/Linear/Spline
+                                  pre=pre,
+                                  pst=pst
                                   )
-    drivenkey.rename('{0}_{1}'.format(attr_src.node().name(), attr_src.longName()))
-    pymel.connectAttr(attr_src, drivenkey.input)
-    return connectAttr_withBlendWeighted(drivenkey.output, attr_dst)
-
-    '''
-    # Check on which attribute @attr_dst is connected to (if applicable).
-    attr_dst_input = next(iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)), None)
-
-    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
-    if attr_dst_input is None or not isinstance(attr_dst_input.node(), pymel.nodetypes.BlendWeighted):
-        util_blend = pymel.createNode('blendWeighted')
-
-        if attr_dst_input is not None:
-            next_available = util_blend.input.numElements()
-
-
-            pymel.connectAttr(attr_dst_input, util_blend.input[next_available])
-
-    else:
-        util_blend = attr_dst_input.node()
-
-    if multiplier:
-        attr_src = create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
-
-    next_input = get_multi_attr_available_slot(util_blend.input)
-    pymel.connectAttr(attr_src, next_input)
-
-    if not attr_dst.isDestination():
-        pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)
-    '''
+    animCurve.rename('{0}_{1}'.format(attr_src.node().name(), attr_src.longName()))
+    pymel.connectAttr(attr_src, animCurve.input)
+    return connectAttr_withBlendWeighted(animCurve.output, attr_dst)

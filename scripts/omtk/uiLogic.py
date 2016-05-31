@@ -81,7 +81,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         self._is_modifying = False
         self.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
-        self.actionAdd.setEnabled(False)
+        self.actionCreateModule.setEnabled(False)
 
         self._fetch_scene_data()
         self.update_ui()
@@ -92,9 +92,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.actionImport.triggered.connect(self.on_import)
         self.actionExport.triggered.connect(self.on_export)
         self.actionUpdate.triggered.connect(self.on_update)
-        self.actionAdd.triggered.connect(self.on_btn_add_pressed)
+        self.actionCreateModule.triggered.connect(self.on_btn_add_pressed)
         self.actionMirrorJntsLToR.triggered.connect(self.on_mirror_jnts_LtoR)
         self.actionMirrorJntsRToL.triggered.connect(self.on_mirror_jnts_RtoL)
+        self.actionAddNodeToModule.triggered.connect(self.on_addToModule)
+        self.actionRemoveNodeFromModule.triggered.connect(self.on_removeFromModule)
 
 
         self.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
@@ -330,17 +332,21 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def _add_part(self, cls_name):
         #part = _cls(pymel.selected())
         self.root.add_module(cls_name, pymel.selected())
-        try:
-            pymel.delete(self.root._network)
-        except AttributeError:
-            pass
-        net = libSerialization.export_network(self.root) # Export part and only part
+        net = self.export_networks()
         pymel.select(net)
         #Add manually the Rig to the root list instead of importing back all network
         #if not self.root in self.roots:
         #    self.roots.append(self.root)
         #self.updateData()
         self.update_ui()
+
+    def export_networks(self):
+        try:
+            pymel.delete(self.root._network)
+        except AttributeError:
+            pass
+        net = libSerialization.export_network(self.root) # Export part and only part
+        return net
 
     #
     # Publics
@@ -499,9 +505,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def on_influence_selection_changed(self):
         pymel.select([item.obj for item in self.treeWidget_jnts.selectedItems() if item.obj.exists()])
         if self.treeWidget_jnts.selectedItems():
-            self.actionAdd.setEnabled(True)
+            self.actionCreateModule.setEnabled(True)
         else:
-            self.actionAdd.setEnabled(False)
+            self.actionCreateModule.setEnabled(False)
 
     def on_module_changed(self, item):
         # todo: handle exception
@@ -584,18 +590,22 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             # Expose decorated functions
             module = sel[0].rig
 
-            def is_exposed(fn):
-                if not hasattr(fn, '__can_show__'):
+            def is_exposed(val):
+                if not hasattr(val, '__can_show__'):
                     return False
-                return fn.__can_show__()
+                fn = getattr(val, '__can_show__')
+                if fn is None:
+                    return False
+                #if not inspect.ismethod(fn):
+                #    return False
+                return val.__can_show__()
 
-            if isinstance(module, classModule.Module):
-                functions = inspect.getmembers(module, is_exposed)
-                if functions:
-                    menu.addSeparator()
-                    for fn_name, fn in functions:
-                        action = menu.addAction(fn_name)
-                        action.triggered.connect(fn)
+            functions = inspect.getmembers(module, is_exposed)
+            if functions:
+                menu.addSeparator()
+                for fn_name, fn in functions:
+                    action = menu.addAction(fn_name)
+                    action.triggered.connect(fn)
 
             menu.exec_(QtGui.QCursor.pos())
 
@@ -609,6 +619,38 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 action.triggered.connect(functools.partial(self._add_part, cls_name))
 
             menu.exec_(QtGui.QCursor.pos())
+
+    def on_addToModule(self):
+        need_update = False
+        for item in self.treeWidget.selectedItems():
+            module = item.rig
+            if module:
+                for obj in pymel.selected():
+                    if obj in module.input:
+                        continue
+                    module.input.append(obj)
+                    need_update = True
+
+        # TODO: Faster by manually connecting to the inputs?
+        if need_update:
+            self.export_networks()
+            self.update_ui()
+
+    def on_removeFromModule(self):
+        need_update = False
+        for item in self.treeWidget.selectedItems():
+            module = item.rig
+            if module:
+                for obj in pymel.selected():
+                    if obj not in module.input:
+                        continue
+                    module.input.remove(obj)
+                    need_update = True
+
+        # TODO: Faster by manually connecting to the inputs?
+        if need_update:
+            self.export_networks()
+            self.update_ui()
 
     def on_mirror_jnts_LtoR(self):
         libSkeleton.mirror_jnts_l_to_r()

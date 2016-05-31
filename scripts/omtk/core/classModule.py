@@ -109,6 +109,9 @@ class Module(object):
 
     @libPython.memoized
     def get_module_name(self):
+        """
+        Name override for nomenclature when naming ctrl and rig elements.
+        """
         return self.name if self.name else self.__class__.__name__.lower()
 
     @libPython.memoized

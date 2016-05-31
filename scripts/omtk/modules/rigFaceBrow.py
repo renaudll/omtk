@@ -14,3 +14,6 @@ class FaceBrow(rigFaceAvarGrps.AvarGrpLftRgt):
 
     SHOW_IN_UI= True
     IS_SIDE_SPECIFIC = False
+
+    def get_module_name(self):
+        return 'brow'

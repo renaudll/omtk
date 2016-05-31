@@ -39,6 +39,9 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         self.ctrls = []
         self.ctrl_all = None
 
+    def get_module_name(self):
+        return 'Eyes'
+
     def get_distance_from_head(self, rig):
         return rig.get_head_length() * 2
 
@@ -120,7 +123,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
 
             # Build ctrl
             ctrl_name = nomenclature_jnt_anm.resolve()
-            ctrl.build(size=ctrl_default_size)
+            ctrl.build(rig, size=ctrl_default_size)
             ctrl.rename(ctrl_name)
             ctrl.setTranslation(ctrl_pos)
             ctrl.setParent(self.ctrl_all)

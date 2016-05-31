@@ -17,6 +17,9 @@ class FaceLids(rigFaceAvarGrps.AvarGrpUppLow):
 
     SHOW_IN_UI = True
 
+    def get_module_name(self):
+        return 'Lid'
+
     def get_multiplier_u(self):
         # Since the V go all around the sphere, it is too much range.
         # We'll restrict ourself only to a single quadrant.

@@ -62,7 +62,7 @@ class FK(Module):
         for input, ctrl in zip(self.chain_jnt, self.ctrls):
             ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
             ctrl_name = ctrl_nomenclature.resolve('fk')
-            ctrl.build(name=ctrl_name, refs=input)
+            ctrl.build(rig, name=ctrl_name, refs=input)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
         if self.create_spaceswitch:
@@ -134,7 +134,7 @@ class AdditiveFK(FK):
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
-            ctrl.build(name=name, refs=self.chain.start)
+            ctrl.build(rig, name=name, refs=self.chain.start)
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
 

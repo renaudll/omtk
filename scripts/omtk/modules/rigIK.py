@@ -80,8 +80,8 @@ class CtrlIkSwivel(BaseCtrl):
 
         return targets, target_names
 
-    def build(self, line_target=False, *args, **kwargs):
-        super(CtrlIkSwivel, self).build(*args, **kwargs)
+    def build(self, rig, line_target=False, *args, **kwargs):
+        super(CtrlIkSwivel, self).build(rig, *args, **kwargs)
         assert (self.node is not None)
 
         # Create line
@@ -272,7 +272,7 @@ class IK(Module):
         if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
             self.ctrl_ik = self._CLASS_CTRL_IK()
         ctrl_ik_refs = [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
-        self.ctrl_ik.build(refs=ctrl_ik_refs, geometries=rig.get_meshes())  # refs is used by CtrlIkCtrl
+        self.ctrl_ik.build(rig, refs=ctrl_ik_refs, geometries=rig.get_meshes())  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
@@ -289,7 +289,7 @@ class IK(Module):
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
             self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
         ctrl_swivel_ref = jnt_elbow
-        self.ctrl_swivel.build(refs=ctrl_swivel_ref)
+        self.ctrl_swivel.build(rig, refs=ctrl_swivel_ref)
         self.ctrl_swivel.setParent(self.grp_anm)
         self.ctrl_swivel.rename(nomenclature_anm.resolve('swivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')

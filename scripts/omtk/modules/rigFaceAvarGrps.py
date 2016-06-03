@@ -229,7 +229,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             avar.unbuild()
         super(AvarGrp, self).unbuild()
 
-
+    '''
     def create_ctrl_macro(self, rig, ctrl, ref, sensibility=1.0):
 
         # HACK: Negative scale to the ctrls are a true mirror of each others.
@@ -272,6 +272,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             # TODO: Flip ctrl to avar connection
 
         return ctrl
+    '''
 
     def get_ctrls(self, **kwargs):
         for ctrl in super(AvarGrp, self).get_ctrls(**kwargs):

@@ -113,6 +113,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.treeWidget_jnts.itemSelectionChanged.connect(self.on_influence_selection_changed)
 
         self.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
+        self.lineEdit_search_modules.textChanged.connect(self.on_module_query_changed)
         self.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
 
         #Right click menu
@@ -429,6 +430,29 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         self.treeWidget_jnts.expandAll()
 
+    def refresh_ui_modules(self, query_regex=None):
+        if query_regex is None:
+            query_raw = self.lineEdit_search_modules.text()
+            query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
+
+        def fn_can_show(qItem, query_regex):
+            # Always shows non-module
+            if not hasattr(qItem, 'rig'):
+                return True
+            if not isinstance(qItem.rig, classModule.Module):
+                return True
+
+            module = qItem.rig  # Retrieve monkey-patched data
+            module_name = str(module)
+
+            return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
+
+        #unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
+        #selectableBrush = QtGui.QBrush(QtCore.Qt.white)
+        for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
+            can_show = fn_can_show(qt_item, query_regex)
+            qt_item.setHidden(not can_show)
+
     #
     # Events
     #
@@ -551,6 +575,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def on_query_changed(self, *args, **kwargs):
         self.refresh_ui_jnts()
+
+    def on_module_query_changed(self, *args, **kwargs):
+        self.refresh_ui_modules()
 
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):

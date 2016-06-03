@@ -77,6 +77,9 @@ class Limb(Module):
         self.sysFK.name = '{0}_Fk'.format(self.name) # Hack
         self.sysFK.build(rig, constraint=False, **kwargs)
 
+        #Lock X and Y axis on the elbow/knee ctrl
+        libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
+
         # Store the offset between the ik ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
         self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()

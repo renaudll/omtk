@@ -112,7 +112,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     def __init__(self, *args, **kwargs):
         super(AvarGrp, self).__init__(*args, **kwargs)
         self.avars = []
-        self.preDeform = True
+        self.preDeform = False
 
     @libPython.cached_property()
     def jnts(self):
@@ -228,51 +228,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         for avar in self.avars:
             avar.unbuild()
         super(AvarGrp, self).unbuild()
-
-    '''
-    def create_ctrl_macro(self, rig, ctrl, ref, sensibility=1.0):
-
-        # HACK: Negative scale to the ctrls are a true mirror of each others.
-        need_flip = ref.getTranslation(space='world').x < 0
-
-        ctrl.setParent(self.grp_anm)
-        #ctrl.setMatrix(ref.getMatrix(worldSpace=True))
-
-        # Compute ctrl position
-        jnt_head = rig.get_head_jnt()
-        ref_tm = jnt_head.getMatrix(worldSpace=True)
-
-        pos = pymel.datatypes.Point(ref.getTranslation(space='world'))
-        pos_local = pos * ref_tm.inverse()
-        pos_local.y = - rig.get_face_macro_ctrls_distance_from_head()
-        pos_shape = pos_local * ref_tm
-
-        # HACK: Move the ctrl shape outside of the face
-        # TODO: Allow the ctrl rotation to be done in-place.
-        ctrl.setTranslation(pos, space='world')
-
-        try:
-            pos_z = pos_shape.z
-            for shape in ctrl.getShapes():
-                num_cvs = shape.numCVs()
-                for i in range(num_cvs):
-                    pos = shape.getCV(i, space='world')
-                    pos.z = pos_z
-                    shape.setCV(i, pos, space='world')
-        except RuntimeError, e:  # TODO: Find why it happen
-            log.warning("Can't tweak ctrl shape for {0}: {1}".format(
-                ctrl.node.name(),
-                str(e)
-            ))
-
-        if need_flip:
-            ctrl.offset.scaleX.set(-1)
-        else:
-            pass
-            # TODO: Flip ctrl to avar connection
-
-        return ctrl
-    '''
 
     def get_ctrls(self, **kwargs):
         for ctrl in super(AvarGrp, self).get_ctrls(**kwargs):
@@ -397,6 +352,12 @@ class AvarGrpOnSurface(AvarGrp):
 
         return plane_transform
 
+    def validate(self, rig):
+        super(AvarGrpOnSurface, self).validate(rig)
+        for jnt in self.jnts:
+            if not rig.get_farest_affected_mesh(jnt):
+                raise Exception("Can't find mesh affected by input {0}".format(jnt))
+
 #
 # AvarGrp Upp/Low
 #
@@ -440,7 +401,7 @@ class AvarGrpUppLow(AvarGrpOnSurface):
         # Create upp avar
         ref = self.jnt_upp_mid
         if ref:
-            avar_upp_name = '{0}Upp'.format(self.get_module_name())
+            avar_upp_name = rig.nomenclature(ref.name(), tokens=['{0}Upp'.format(self.get_module_name())]).resolve()
             if not self.avar_upp:
                 self.avar_upp = self.create_abstract_avar(rig, self._CLS_CTRL_UPP, ref, name=avar_upp_name)
             self.build_abstract_avar(rig, self._CLS_CTRL_UPP, self.avar_upp)
@@ -452,7 +413,7 @@ class AvarGrpUppLow(AvarGrpOnSurface):
         # Create low avar
         ref = self.jnt_low_mid
         if ref:
-            avar_low_name = '{0}Low'.format(self.get_module_name())
+            avar_low_name = rig.nomenclature(ref.name(), tokens=['{0}Low'.format(self.get_module_name())]).resolve()
             if not self.avar_low:
                 self.avar_low = self.create_abstract_avar(rig, self._CLS_CTRL_LOW, ref, name=avar_low_name)
             self.build_abstract_avar(rig, self._CLS_CTRL_LOW, self.avar_low)

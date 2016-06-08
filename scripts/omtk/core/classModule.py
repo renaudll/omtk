@@ -101,9 +101,9 @@ class Module(object):
                 new_nomenclature.add_tokens(self.__class__.__name__)
 
             if self.IS_SIDE_SPECIFIC:
-                side = old_nomenclature.get_side()
+                side = old_nomenclature.side
                 if side:
-                    new_nomenclature.add_prefix(side)
+                    new_nomenclature.side = side
 
             return new_nomenclature.resolve()
 
@@ -240,7 +240,7 @@ class Module(object):
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name='net_{0}'.format(self.name))
 
-    def validate(self):
+    def validate(self, rig):
         """
         Check if the module can be built with it's current configuration.
         In case of error, an exception will be raised with the necessary informations.

@@ -26,6 +26,9 @@ class SqueezeNomenclature(className.BaseName):
     root_proxy_name = 'Proxy_Grp'
     root_fx_name = 'FX_Grp'
 
+    SIDE_L = 'L'
+    SIDE_R = 'R'
+
     def _get_tokens(self, name):
         """
         In Squeeze nomenclature, the last token is always the type of the object.
@@ -195,14 +198,9 @@ class RigSqueeze(classRig.Rig):
 
             # Resolve name
             # TODO: Handle name conflict
-            nomenclature = module.get_nomenclature_anm(self)
-            tokens = []
-            side = nomenclature.get_side()
-            if side:
-                tokens.append(side)
-            tokens += [module.__class__.__name__]
-
-            attr_src_name = '_'.join(tokens)
+            nomenclature_anm = module.get_nomenclature_anm(self)
+            nomenclature_attr = self.nomenclature(tokens=[module.__class__.__name__], side=nomenclature_anm.side)
+            attr_src_name = nomenclature_attr.resolve()
             attr_dst = module.grp_rig.attr(module.kAttrName_State)
 
             if not self.grp_anm.hasAttr(self.GROUP_NAME_IKFK, checkShape=False):
@@ -224,15 +222,15 @@ class RigSqueeze(classRig.Rig):
         # Set ctrls colors
         #
         color_by_side = {
-            'l': 13,  # Red
-            'r': 6  # Blue
+            self.nomenclature.SIDE_L: 13,  # Red
+            self.nomenclature.SIDE_R: 6  # Blue
         }
         epsilon = 0.1
         if module.grp_anm:
             nomenclature_anm = module.get_nomenclature_anm(self)
             for ctrl in module.get_ctrls(recursive=True):
                 nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                side = nomenclature_ctrl.get_side()
+                side = nomenclature_ctrl.side
                 color = color_by_side.get(side, None)
                 if color:
                     ctrl.drawOverride.overrideEnabled.set(1)
@@ -240,5 +238,3 @@ class RigSqueeze(classRig.Rig):
 
     def unbuild(self, *args, **kwargs):
         super(RigSqueeze, self).unbuild()
-
-

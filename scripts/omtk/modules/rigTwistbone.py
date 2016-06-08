@@ -143,7 +143,7 @@ class Twistbone(Module):
         splineIK.ikHandle.dTwistControlEnable.set(1)
         splineIK.ikHandle.dWorldUpType.set(4) # Object Rotation Up (Start End)
         #TODO : Find a better way to define the foward axis than the side string
-        if nomenclature_rig.get_side() == 'r':
+        if nomenclature_rig.side == nomenclature_rig.SIDE_R:
             splineIK.ikHandle.dForwardAxis.set(1)
             #splineIK.ikHandle.dWorldUpAxis.set(1)
         pymel.connectAttr(upnode_s.xformMatrix, splineIK.ikHandle.dWorldUpMatrix)

@@ -361,7 +361,7 @@ class InteractiveCtrl(BaseCtrl):
         if obj_mesh is None:
             obj_mesh = parent.get_farest_affected_mesh(ref)
         if obj_mesh is None:
-            pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
+            pymel.warning("Can't find mesh affected by {0}. Skipping doritos ctrl setup.".format(ref))
             return False
 
         super(InteractiveCtrl, self).build(parent, **kwargs)

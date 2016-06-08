@@ -11,6 +11,10 @@ class BaseName(object):
     Store a name as a collection of string 'tokens'.
     Note that since maya don't support compounds and having the same name on multiple nodes can cause issues,
     we need to support multiple number of tokens.
+    Also some specific tokens can exist:
+    - Side: Generally L/R token
+    - Prefix: Always the first token
+    - Suffix: Always the last token
     """
     separator = '_'
 
@@ -32,11 +36,27 @@ class BaseName(object):
     side_l_tokens = ['l', "left"]
     side_r_tokens = ['r', "right"]
 
-    def __init__(self, name=None, prefix=None, suffix=None):
-        self.tokens = self._get_tokens(name) if name else []
-        # prefix and suffix are automatically handled
-        self.prefix = prefix
-        self.suffix = suffix
+    SIDE_L = 'l'
+    SIDE_R = 'r'
+
+    def __init__(self, name=None, tokens=None, prefix=None, suffix=None, side=None):
+        self.tokens = []
+        self.prefix = None
+        self.suffix = None
+        self.side = None
+
+        if name:
+            self.build_from_string(name)
+
+        # Apply manual overrides
+        if tokens:
+            self.tokens = tokens
+        if prefix:
+            self.prefix = prefix
+        if suffix:
+            self.suffix = suffix
+        if side:
+            self.side = side
 
     def copy(self):
         inst = self.__class__()
@@ -78,6 +98,22 @@ class BaseName(object):
 
     def _get_tokens(self, name):
         return name.split(self.separator)
+
+    def build_from_string(self, name):
+        raw_tokens = name.split(self.separator)
+        self.tokens = []
+        #self.prefix = None
+        #self.suffix = None
+        self.side = None
+
+        for token in raw_tokens:
+            if self._is_side(token):
+                if self._is_side_l(token):
+                    self.side = self.SIDE_L
+                elif self._is_side_r(token):
+                    self.side = self.SIDE_R
+            else:
+                self.tokens.append(token)
 
     def _join_tokens(self, tokens):
         return self.separator.join(tokens)
@@ -126,9 +162,11 @@ class BaseName(object):
                 return "r"
         return None
 
-    @libPython.memoized
     def resolve(self, *args):
         tokens = []
+
+        if self.side:
+            tokens.append(self.side)
 
         if self.prefix:
             tokens.append(self.prefix)

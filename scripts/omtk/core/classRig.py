@@ -197,7 +197,7 @@ class Rig(object):
         In case of error, an exception will be raised with the necessary informations.
         """
         for module in self.modules:
-            module.validate()
+            module.validate(self)
         return True
 
     def get_potential_influences(self):

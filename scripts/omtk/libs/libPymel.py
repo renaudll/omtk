@@ -203,6 +203,26 @@ def isinstance_of_shape(obj, cls=pymel.nodetypes.Shape):
     if isinstance(obj, pymel.nodetypes.Transform):
         return any((shape for shape in obj.getShapes() if isinstance(shape, cls)))
 
+def create_zero_grp(obj):
+    zero_grp = pymel.createNode('transform')
+    new_name = obj.name() + '_' + 'zero_grp'
+    zero_grp.rename(new_name)
+
+    # Note: Removed for performance
+    zero_grp.setMatrix(obj.getMatrix(worldSpace=True))
+
+    parent = obj.getParent()
+    if parent:
+        zero_grp.setParent(parent)
+
+    obj.setParent(zero_grp)
+
+    return zero_grp
+
+def zero_out_objs(objs):
+    for o in objs:
+        create_zero_grp(o)
+
 #
 # pymel.datatypes extensions.
 #

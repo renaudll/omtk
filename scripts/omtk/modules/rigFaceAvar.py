@@ -405,7 +405,8 @@ class AvarSimple(AbstractAvar):
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
         jnt_tm = self.get_jnt_tm()
-        doritos_pos = self.get_ctrl_tm(rig).translate
+        ctrl_tm = self.get_ctrl_tm(rig)
+        doritos_pos = ctrl_tm .translate
 
         #
         # Build stack
@@ -441,7 +442,7 @@ class AvarSimple(AbstractAvar):
             ctrl_name = nomenclature_anm.resolve()
             if not isinstance(self.ctrl, self._CLS_CTRL):
                 self.ctrl = self._CLS_CTRL()
-            self.ctrl.build(rig, self.jnt, grp_rig=self.grp_rig, name=ctrl_name, size=ctrl_size)
+            self.ctrl.build(rig, self.jnt, ref_tm=ctrl_tm, grp_rig=self.grp_rig, name=ctrl_name, size=ctrl_size)
             self.ctrl.setTranslation(doritos_pos)
             self.ctrl.setParent(self.grp_anm)
 

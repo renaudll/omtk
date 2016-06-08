@@ -354,7 +354,7 @@ class InteractiveCtrl(BaseCtrl):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
-    def build(self, parent, ref, grp_rig=None, obj_mesh=None, **kwargs):
+    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, **kwargs):
         # todo: Simplify the setup, too many nodes
 
         # Resolve geometry to attach to
@@ -370,7 +370,9 @@ class InteractiveCtrl(BaseCtrl):
         nomenclature_rig = parent.nomenclature(suffix=parent.nomenclature.type_rig)
         #nomenclature_rig = self.get_nomenclature_rig(parent)
 
-        ref_tm = ref.getMatrix(worldSpace=True)
+        # TODO: Only use position instead of PyNode or Matrix?
+        if ref_tm is None:
+            ref_tm = ref.getMatrix(worldSpace=True)
 
         need_flip = ref_tm.translate.x < 0
 

@@ -58,14 +58,11 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         pos_s = pymel.datatypes.Point(jnt.getTranslation(space='world'))
         pos_e = pymel.datatypes.Point(10,0,0) * ref
         dir = pos_e - pos_s
-        result = libRigging.ray_cast(pos_s, dir, geos)
+        result = libRigging.ray_cast_farthest(pos_s, dir, geos)
         if not result:
             raise Exception("Can't resolve doritos location for {0}".format(self))
 
-        result = next(iter(reversed(result)))
         tm = pymel.datatypes.Matrix([1,0,0,0, 0,1,0,0, 0,0,1,0, result.x, result.y, result.z, 1])
-        #sl = pymel.spaceLocator()
-        #sl.setMatrix(tm)
         return tm
 
     def build(self, *args, **kwargs):

@@ -298,15 +298,6 @@ class AbstractAvar(classModule.Module):
         pass
         #raise NotImplementedError
 
-    def connect_matrix(self, attr_tm):
-        util_decomposeMatrix = libRigging.create_utility_node('decomposeMatrix', inputMatrix=attr_tm)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateX, self.attr_lr)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateY, self.attr_ud)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateZ, self.attr_fb)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateY, self.attr_yw)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateX, self.attr_pt)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateZ, self.attr_rl)
-
     #
     # Ctrl connection
     #
@@ -362,12 +353,6 @@ class AbstractAvar(classModule.Module):
             attr_rl=self.attr_rl if rl else None
         )
 
-# todo: Create an Avar for each possibilities?
-# This include:
-# - No ctrl
-# - A ctrl that affect other avars, so only the doritos setup
-# - A ctrl that affect an influence (AvarSimple)
-# - A ctrl that affect an influence, driven on a surface (AvarFollicle)
 
 class AvarSimple(AbstractAvar):
     """
@@ -376,7 +361,6 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
     _CLS_CTRL = CtrlFaceMicro
-    SHOW_IN_UI= True
 
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
@@ -406,7 +390,7 @@ class AvarSimple(AbstractAvar):
 
         jnt_tm = self.get_jnt_tm()
         ctrl_tm = self.get_ctrl_tm(rig)
-        doritos_pos = ctrl_tm .translate
+        doritos_pos = ctrl_tm.translate
 
         #
         # Build stack
@@ -442,7 +426,13 @@ class AvarSimple(AbstractAvar):
             ctrl_name = nomenclature_anm.resolve()
             if not isinstance(self.ctrl, self._CLS_CTRL):
                 self.ctrl = self._CLS_CTRL()
-            self.ctrl.build(rig, self.jnt, ref_tm=ctrl_tm, grp_rig=self.grp_rig, name=ctrl_name, size=ctrl_size)
+
+            # Hack: clean me!
+            if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+                self.ctrl.build(rig, self.jnt, ref_tm=ctrl_tm, grp_rig=self.grp_rig, name=ctrl_name, size=ctrl_size)
+            else:
+                self.ctrl.build(rig, name=ctrl_name, size=ctrl_size)
+
             self.ctrl.setTranslation(doritos_pos)
             self.ctrl.setParent(self.grp_anm)
 
@@ -450,8 +440,10 @@ class AvarSimple(AbstractAvar):
             self.connect_ctrl(self.ctrl)
 
             # Calibrate ctrl
-            if create_doritos and callibrate_doritos:
-                self.calibrate()
+            # Hack: clean me!
+            if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+                if create_doritos and callibrate_doritos:
+                    self.calibrate()
 
     def calibrate(self):
         """
@@ -460,6 +452,10 @@ class AvarSimple(AbstractAvar):
         if not self.ctrl:
             log.warning("Can't calibrate, found no ctrl for {0}".format(self))
             return False
+
+        # Hack: clean me!
+        if not isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+            pass
 
         influence = self.jnt
         if not influence:
@@ -483,7 +479,7 @@ class AvarSimple(AbstractAvar):
 
 class AvarFollicle(AvarSimple):
     """
-    This represent a deformation point on the face that move accordingly to nurbsSurface.
+    A deformation point on the face that move accordingly to nurbsSurface.
     """
     #_CLS_CTRL_MICRO = CtrlFaceMicro
 
@@ -493,8 +489,6 @@ class AvarFollicle(AvarSimple):
     _ATTR_NAME_V = 'surfaceV'
     _ATTR_NAME_U_MULT = 'uMultiplier'
     _ATTR_NAME_V_MULT = 'vMultiplier'
-
-    SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
         super(AvarFollicle, self).__init__(*args, **kwargs)
@@ -823,6 +817,87 @@ class AvarFollicle(AvarSimple):
         pymel.connectAttr(self.attr_rl, layer_rot.rotateZ)
 
         return stack
+
+
+class AvarAim(AvarSimple):
+    """
+    A deformation point on the face that move accordingly to a specific node, usually a controller.
+    """
+    def __init__(self, *args, **kwargs):
+        super(AvarAim, self).__init__(*args, **kwargs)
+        self.target = None
+
+    def build_stack(self, rig, stack, aim_target=None, **kwargs):
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        # Build an aim node in-place for performance
+        # This separated node allow the joints to be driven by the avars.
+        aim_grp_name = nomenclature_rig.resolve('lookgrp')
+        aim_grp = pymel.createNode('transform', name=aim_grp_name)
+
+        aim_node_name = nomenclature_rig.resolve('looknode')
+        aim_node = pymel.createNode('transform', name=aim_node_name)
+        aim_node.setParent(aim_grp)
+
+        aim_target_name = nomenclature_rig.resolve('target')
+        aim_target = pymel.createNode('transform', name=aim_target_name)
+
+
+        aim_target.setParent(aim_grp)
+        self.target = aim_target
+
+        # Build an upnode for the eyes.
+        # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.
+        aim_upnode_name = nomenclature_rig.resolve('upnode')
+
+        aim_upnode = pymel.createNode('transform', name=aim_upnode_name)
+        #
+        aim_upnode.setParent(self.grp_rig)
+        pymel.parentConstraint(aim_grp, aim_upnode, maintainOffset=True)
+
+
+        pymel.aimConstraint(aim_target, aim_node,
+                            maintainOffset=True,
+                            aimVector=(0.0, 0.0, 1.0),
+                            upVector=(0.0, 1.0, 0.0),
+                            worldUpObject=aim_upnode,
+                            worldUpType='object'
+                            )
+
+        # Position objects
+        aim_grp.setParent(stack._layers[0])  # todo: add begin , end property
+        aim_grp.t.set(0,0,0)
+        aim_grp.r.set(0,0,0)
+        jnt_tm = self.jnt.getMatrix(worldSpace=True)
+        jnt_pos = jnt_tm.translate
+        aim_upnode_pos = pymel.datatypes.Point(0,1,0) + jnt_pos
+        aim_upnode.setTranslation(aim_upnode_pos, space='world')
+        aim_target_pos = pymel.datatypes.Point(0,0,1) + jnt_pos
+        aim_target.setTranslation(aim_target_pos, space='world')
+
+        pymel.parentConstraint(aim_node, stack, maintainOffset=True)
+
+        # Convert the rotation to avars to additional values can be added.
+        util_decomposeMatrix = libRigging.create_utility_node('decomposeMatrix', inputMatrix=aim_node.matrix)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateX, self.attr_lr)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateY, self.attr_ud)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateZ, self.attr_fb)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateY, self.attr_yw)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateX, self.attr_pt)
+        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateZ, self.attr_rl)
+
+    def build(self, rig, create_ctrl=True, **kwargs):
+        super(AvarAim, self).build(rig, create_ctrl=create_ctrl, **kwargs)
+
+        if create_ctrl:
+            pymel.pointConstraint(self.ctrl, self.target, maintainOffset=False)
+
+    def connect_ctrl(self, ctrl, **kwargs):
+        pass  # Nothing need to be connected since there's an aimConstraint
+
+    def unbuild(self):
+        super(AvarAim, self).unbuild()
+        self.target = None
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):

@@ -26,8 +26,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     """
     _CLS_AVAR = rigFaceAvar.AvarSimple
 
-    SHOW_IN_UI = False
-
     #
     # Influences properties
     #
@@ -112,7 +110,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     def __init__(self, *args, **kwargs):
         super(AvarGrp, self).__init__(*args, **kwargs)
         self.avars = []
-        self.preDeform = True
+        self.preDeform = False
 
     @libPython.cached_property()
     def jnts(self):
@@ -184,7 +182,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         mult_v = self.get_multiplier_v()
 
         # Define avars on first build
-        if not self.avars:
+        if not self.avars or len(filter(lambda x: isinstance(x, self._CLS_AVAR), self.avars)) != len(self.jnts):
             self.avars = []
             # Connect global avars to invidial avars
             for jnt in self.jnts:
@@ -314,7 +312,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
 class AvarGrpOnSurface(AvarGrp):
     _CLS_AVAR = rigFaceAvar.AvarFollicle
-    SHOW_IN_UI = True
 
     @libPython.cached_property()
     def surface(self):
@@ -397,6 +394,11 @@ class AvarGrpOnSurface(AvarGrp):
 
         return plane_transform
 
+class AvarGrpAim(AvarGrp):
+    _CLS_AVAR = rigFaceAvar.AvarAim
+    SHOW_IN_UI = False
+
+
 #
 # AvarGrp Upp/Low
 #
@@ -412,7 +414,6 @@ class BaseCtrlLow(classCtrl.InteractiveCtrl):
 class AvarGrpUppLow(AvarGrpOnSurface):
     _CLS_CTRL_UPP = BaseCtrlUpp
     _CLS_CTRL_LOW = BaseCtrlLow
-    SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
         #self.ctrl_upp = None
@@ -477,8 +478,6 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
     """
     _CLS_CTRL_LFT = BaseCtrlUpp
     _CLS_CTRL_RGT = BaseCtrlUpp
-
-    SHOW_IN_UI = True
 
     @libPython.cached_property()
     def jnts_l(self):
@@ -578,7 +577,6 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar.attr_fb)
 
             self.avar_r.calibrate()
-
 
     def unbuild(self):
         self.avar_l.unbuild()

@@ -1,5 +1,6 @@
 import pymel.core as pymel
 import logging
+import re
 logging.basicConfig()
 from classCtrl import BaseCtrl
 from omtk.libs import libPymel, libAttr, libPython
@@ -112,7 +113,9 @@ class Module(object):
         """
         Name override for nomenclature when naming ctrl and rig elements.
         """
-        return self.name if self.name else self.__class__.__name__.lower()
+        if self.name:
+            return self.name
+        return self.__class__.__name__.lower()
 
     @libPython.memoized
     def get_nomenclature_anm(self, rig):

@@ -1,12 +1,7 @@
 import pymel.core as pymel
-import collections
-from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
-from omtk.modules.rigIK import IK
-from omtk.modules.rigFK import FK
+from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
-from omtk.libs import libRigging, libCtrlShapes
-
 
 class CtrlEyes(BaseCtrl):
     def __createNode__(self, width=1.0, height=1.0, normal=(0,0,1), *args, **kwargs):
@@ -26,47 +21,52 @@ class CtrlEye(BaseCtrl):
     def __createNode__(self, normal=(0,0,1), *args, **kwargs):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
 
+class AvarEye(rigFaceAvar.AvarAim):
+    """
+    This avar is not designed to use any surface.
+    """
+    SHOW_IN_UI = False
+    _CLS_CTRL = CtrlEye
 
-class FaceEyes(rigFaceAvarGrps.AvarGrp):
+    def get_ctrl_tm(self, rig):
+        """
+        Find the chin location. This is the preffered location for the jaw doritos.
+        :return:
+        """
+        jnt_pos = self.jnt.getTranslation(space='world')
+        offset_z = rig.get_head_length() * 2
+        return pymel.datatypes.Matrix(
+            1,0,0,0,
+            0,1,0,0,
+            0,0,1,0,
+            jnt_pos.x,
+            jnt_pos.y,
+            jnt_pos.z + offset_z
+        )
+
+
+class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
+    _CLS_AVAR = AvarEye
 
     def __init__(self, *args, **kwargs):
         """
         Pre-declare here all the used members.
         """
         super(FaceEyes, self).__init__(*args, **kwargs)
-        self.ctrls = []
         self.ctrl_all = None
 
     def get_module_name(self):
         return 'Eyes'
 
-    def get_distance_from_head(self, rig):
-        return rig.get_head_length() * 2
-
     def build(self, rig, *args, **kwargs):
         if self.parent is None:
             raise Exception("Can't build FaceEyes, no parent found!")
 
-        super(FaceEyes, self).build(rig, create_ctrls=False, parent=True, *args, **kwargs)
+        super(FaceEyes, self).build(rig, parent=True, *args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-        pos_z = self.parent.getTranslation().z + self.get_distance_from_head(rig)
-        num_jnts = len(self.jnts)
-
-        # Build a grp for the upnodes
-        # Upnodes are ugly, however in this case it's better than trying to guess the joint orientation.
-        # We know that the upnodes of the eyes are always upp.
-        grp_parent_name = nomenclature_rig.resolve('parentGrp')
-        grp_parent = pymel.createNode('transform', name=grp_parent_name)
-        grp_parent.setParent(self.grp_rig)
-
-        # TODO: Don't parent if we are in pre-deform!
-        if self.parent:
-            pymel.parentConstraint(self.parent, grp_parent)
-            pymel.scaleConstraint(self.parent, grp_parent)
 
         # Resolve average position of each ctrls.
         # This is used as the position of the main ctrl.
@@ -77,9 +77,8 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         x_max = None
         y_min = None
         y_max = None
-        for jnt in self.jnts:
-            pos = jnt.getTranslation(space='world')
-            pos.z = pos_z
+        for avar in self.avars:
+            pos = avar.ctrl.getTranslation(space='world')
             ctrl_positions.append(pos)
             ctrl_pos_average += pos
             if x_min is None or pos.x < x_min:
@@ -104,65 +103,10 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 
-        # Define ctrls
-        ctrls = [None] * num_jnts
-        if self.ctrls:
-            for i, ctrl in enumerate(self.ctrls):
-                ctrls[i] = ctrl
-        self.ctrls = ctrls
-        for i, ctrl in enumerate(self.ctrls):
-            if not isinstance(ctrl, CtrlEye):
-                self.ctrls[i] = CtrlEye()
+        # Make all eyes ctrls follow the main ctrl
+        for avar in self.avars:
+            avar.ctrl.setParent(self.ctrl_all)
 
-        # Build ctrls
-        for jnt, ctrl, ctrl_pos, avar, in zip(self.jnts, self.ctrls, ctrl_positions, self.avars):
-            jnt_name = jnt.name()
-            jnt_pos = jnt.getTranslation(space='world')
-            nomenclature_jnt_anm = nomenclature_anm.rebuild(jnt_name)
-            nomenclature_jnt_rig = nomenclature_rig.rebuild(jnt_name)
-
-            # Build ctrl
-            ctrl_name = nomenclature_jnt_anm.resolve()
-            ctrl.build(rig, size=ctrl_default_size)
-            ctrl.rename(ctrl_name)
-            ctrl.setTranslation(ctrl_pos)
-            ctrl.setParent(self.ctrl_all)
-
-            # Build an aim node
-            # This separated node allow the joints to be driven by the avars.
-            looknode_offset_name = nomenclature_jnt_rig.resolve('looknode_offset')
-            looknode_offset = pymel.createNode('transform', name=looknode_offset_name)
-            #looknode_offset.setTranslation(jnt_pos)
-            looknode_offset.setParent(grp_parent)
-
-
-            looknode_name = nomenclature_jnt_rig.resolve('looknode')
-            looknode = pymel.createNode('transform', name=looknode_name)
-            #looknode.setTranslation(jnt_pos)
-            looknode.setParent(looknode_offset)
-
-            looknode_offset.setTranslation(jnt_pos, space='world')
-
-            # Build an upnode for the eyes.
-            # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.
-            upnode_name = nomenclature_jnt_rig.resolve('upnode')
-            upnode_pos = jnt_pos + pymel.datatypes.Vector(0, 1, 0)
-            upnode = pymel.createNode('transform', name=upnode_name)
-            upnode.setTranslation(upnode_pos)
-            upnode.setParent(grp_parent)
-
-            pymel.aimConstraint(ctrl, looknode,
-                                maintainOffset=True,
-                                upVector=(0.0, 1.0, 0.0),
-                                worldUpObject=upnode,
-                                worldUpType='object'
-                                )
-
-            # Convert the rotation to avars to additional values can be added.
-            avar.connect_matrix(looknode.matrix)
-
-
-        # TODO: Connect jnts to avars
 
     def unbuild(self):
         """

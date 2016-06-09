@@ -177,7 +177,10 @@ class Rig(object):
         """
         :return: True if any module dag nodes exist in the scene.
         """
-        return self.grp_anm is not None and self.grp_anm.exists()
+        for module in self.modules:
+            if module.is_built():
+                return True
+        return False
 
     def _clean_invalid_pynodes(self):
         fnCanDelete = lambda x: (isinstance(x, (pymel.PyNode, pymel.Attribute)) and not libPymel.is_valid_PyNode(x))
@@ -447,13 +450,8 @@ class Rig(object):
     # Facial and avars utility methods
     #
 
-    @libPython.memoized
-    def get_head_jnt(self, key=None):
-        """
-        Not the prettiest but used to find the head for facial rigging.
-        """
+    def _get_influence_by_pattern(self, whitelist, key=None):
         nomenclature = self._get_nomenclature_cls()
-        whitelist = ('head', 'face')
 
         for jnt in self.get_potential_influences():
             # Ignore non-joints
@@ -461,35 +459,27 @@ class Rig(object):
                 continue
 
             name = nomenclature(jnt.name())
-            basename = name.get_basename()
+            basename = name.get_basename().lower()
 
-            if basename.lower() in whitelist:
-                return jnt
+            for pattern in whitelist:
+                if pattern in basename:
+                    return jnt
 
-        #raise Warning("Can't resolve head joint!")
-        print "[classRigRoot.get_head_jnt] - Can't resolve head joint!"
+    @libPython.memoized
+    def get_head_jnt(self, key=None):
+        """
+        Not the prettiest but used to find the head for facial rigging.
+        """
+        whitelist = ('head', 'face')
+        return self._get_influence_by_pattern(whitelist, key=key)    
 
     @libPython.memoized
     def get_jaw_jnt(self, key=None):
         """
         Not the prettiest but used to find the jaw for facial rigging.
         """
-        nomenclature = self._get_nomenclature_cls()
         whitelist = ('jaw',)
-
-        for jnt in self.get_potential_influences():
-            # Ignore non-joints
-            if not isinstance(jnt, pymel.nodetypes.Joint):
-                continue
-
-            name = nomenclature(jnt.name())
-            basename = name.get_basename()
-
-            if basename.lower() in whitelist:
-                return jnt
-
-        #raise Exception("Can't resolve jaw joint!")
-        print "[classRigRoot.get_jaw_jnt] - Can't resolve head joint!"
+        return self._get_influence_by_pattern(whitelist, key=key)    
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):
@@ -550,7 +540,7 @@ class Rig(object):
         # TODO: FIX ME
         dir = pymel.datatypes.Point(0,1,0)
 
-        top = next(iter(libRigging.ray_cast(bot, dir, geometries)), None)
+        top = libRigging.ray_cast_farthest(bot, dir, geometries)
         if not top:
             pymel.warning("Can't resolve head top location using raycasts using {0} {1}!".format(
                 bot, dir

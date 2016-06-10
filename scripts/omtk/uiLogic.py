@@ -588,12 +588,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def on_remove(self):
         for item in self.treeWidget.selectedItems():
             module = item.rig
-            net = item.net if hasattr(item, "net") else None
+            #net = item.net if hasattr(item, "net") else None
             if module.is_built():
                 module.unbuild()
-            if net:
-                pymel.delete(net)
-        self._fetch_scene_data()
+            self.root.modules.remove(module)
+        self.export_networks()
         self.update_ui()
 
     def on_context_menu_request(self):

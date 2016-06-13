@@ -26,22 +26,17 @@ class AvarJaw(rigFaceAvar.AvarSimple):
 
     def get_ctrl_tm(self, rig):
         """
-        Find the chin location. This is the preffered location for the jaw doritos.
-        :return:
+        Find the chin location using raycast. This is the preffered location for the jaw doritos.
+        If raycast don't return any information, use the default behavior.
         """
-        # TODO: Prevent multiple calls? cached?
-        jnt = next(iter(self.jnts), None)
-        geos = rig.get_meshes()
-        if not geos:
-            return super(AvarJaw, self).get_ctrl_tm(rig)
 
-        ref = jnt.getMatrix(worldSpace=True)
-        pos_s = pymel.datatypes.Point(jnt.getTranslation(space='world'))
+        ref = self.jnt.getMatrix(worldSpace=True)
+        pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space='world'))
         pos_e = pymel.datatypes.Point(1,0,0) * ref
         dir = pos_e - pos_s
-        result = libRigging.ray_cast_farthest(pos_s, dir, geos)
+        result = rig.raycast_farthest(pos_s, dir)
         if not result:
-            raise Exception("Can't resolve doritos location for {0}".format(self))
+            return super(AvarJaw, self).get_ctrl_tm(rig)
 
         tm = pymel.datatypes.Matrix([1,0,0,0, 0,1,0,0, 0,0,1,0, result.x, result.y, result.z, 1])
         return tm

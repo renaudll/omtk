@@ -242,6 +242,20 @@ class Rig(object):
         key = lambda mesh: mesh in self.get_meshes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
+    def raycast_farthest(self, pos, dir):
+        """
+        Return the farest point on any of the rig registered geometries using provided position and direction.
+        """
+        geos = self.get_meshes()
+        if not geos:
+            return None
+
+        result = libRigging.ray_cast_farthest(pos, dir, geos)
+        if not result:
+            return None
+
+        return result
+
     @classModule.decorator_uiexpose
     def create_hierarchy(self):
         """

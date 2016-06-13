@@ -1,4 +1,6 @@
-import functools, re
+import os
+import functools
+import re
 import pymel.core as pymel
 from maya import OpenMaya
 import libSerialization
@@ -83,7 +85,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
         self.actionCreateModule.setEnabled(False)
 
-        self._fetch_scene_data()
+        self.import_networks()
         self.update_ui()
 
         self.actionBuild.triggered.connect(self.on_build)
@@ -288,13 +290,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             if isinstance(child, pymel.nodetypes.Transform):
                 qSubItem = self._fill_widget_influences_recursive2(qt_parent, child_data)
 
-    def _fetch_scene_data(self, *args, **kwargs):
-        self.roots = core.find()
-        self.root = next(iter(self.roots), None)
-        if self.root is None:
-            self.root = core.create()
-            self.roots = [self.root]
-
     def _show_parent_recursive(self, qt_parent_item):
         if qt_parent_item is not None:
             if qt_parent_item.isHidden:
@@ -341,13 +336,37 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         #self.updateData()
         self.update_ui()
 
+    @libPython.log_execution_time('import_networks')
+    def import_networks(self, *args, **kwargs):
+        path = '/home/rlessard/Desktop/test.json'
+
+        self.roots = core.find()
+        self.root = next(iter(self.roots), None)
+
+
+        # self.roots = None
+        # if os.path.exists(path):
+        #     self.roots = libSerialization.import_json_file_maya(path)
+        # self.root = next(iter(self.roots), None) if self.roots else None
+        #
+        # if self.root is None:
+        #     self.root = core.create()
+        #     self.roots = [self.root]
+
+    @libPython.log_execution_time('export_networks')
     def export_networks(self):
+        path = '/home/rlessard/Desktop/test.json'
+
         try:
             pymel.delete(self.root._network)
         except AttributeError:
             pass
+
         net = libSerialization.export_network(self.root) # Export part and only part
         return net
+
+        # libSerialization.export_json_file_maya(path)
+
 
     #
     # Publics
@@ -520,7 +539,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def on_update(self, *args, **kwargs):
         #TODO - Fix the reload problem which cause isinstance function check to fail with an existing network
         import omtk; reload(omtk); omtk._reload()
-        self._fetch_scene_data()
+        self.import_networks()
         self.update_ui()
 
     def on_module_selection_changed(self):

@@ -275,7 +275,19 @@ class AbstractAvar(classModule.Module):
         """
         :return: The ctrl transformation.
         """
-        return self.jnt.getMatrix(worldSpace=True)
+        tm = self.jnt.getMatrix(worldSpace=True)
+
+        # We always try to position the controller on the surface of the face.
+        # The face is always looking at the positive Z axis.
+        pos = tm.translate
+        dir = pymel.datatypes.Point(0,0,1)
+        result = rig.raycast_farthest(pos, dir)
+        if result:
+            tm.a30 = result.x
+            tm.a31 = result.y
+            tm.a32 = result.z
+
+        return tm
 
     def validate(self):
         super(AbstractAvar, self).validate()

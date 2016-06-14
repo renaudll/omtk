@@ -451,8 +451,8 @@ class LegIk(IK):
 class Leg(rigLimb.Limb):
     _CLASS_SYS_IK = LegIk
 
-    def validate(self):
-        super(Leg, self).validate()
+    def validate(self, rig):
+        super(Leg, self).validate(rig)
 
         num_inputs = len(self.input)
         if num_inputs < 5 or num_inputs > 6:

@@ -26,14 +26,17 @@ class SqueezeNomenclature(className.BaseName):
     root_proxy_name = 'Proxy_Grp'
     root_fx_name = 'FX_Grp'
 
-    def _get_tokens(self, name):
+    SIDE_L = 'L'
+    SIDE_R = 'R'
+
+    def build_from_string(self, name):
         """
         In Squeeze nomenclature, the last token is always the type of the object.
-        :param name:
-        :return:
         """
-        tokens = super(SqueezeNomenclature, self)._get_tokens(name)
-        return tokens[:-1] if tokens else None
+        super(SqueezeNomenclature, self).build_from_string(name)
+
+        if len(self.tokens) > 1:
+            self.tokens = self.tokens[:-1]
 
     def _join_tokens(self, tokens):
         """
@@ -72,21 +75,15 @@ class RigSqueeze(classRig.Rig):
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
 
-    def get_potential_influences(self):
-        influences = super(RigSqueeze, self).get_potential_influences()
-        jnt_whitelist = ['.*_Jnt', '.*_Jne', '.*_JEnd']
-        #jnt_blacklist = ['.*_Jne', '.*JEnd']
+    _influence_whitelist = ('.*_Jnt', '.*_Jne', '.*_JEnd')
+    def _is_influence(self, obj):
 
-        # We know we can safely ignore
-        def can_show(jnt):
-            # Filter joints
-            if isinstance(jnt, pymel.nodetypes.Joint):
-                name = jnt.nodeName()
-                if any(True for pattern in jnt_whitelist if re.match(pattern, name, re.IGNORECASE)):
-                    return True
-            return False
+        if isinstance(obj, pymel.nodetypes.Joint):
+            name = obj.nodeName()
+            if any(True for pattern in self._influence_whitelist if re.match(pattern, name, re.IGNORECASE)):
+                return True
 
-        return filter(can_show, influences)
+        return super(RigSqueeze, self)._is_influence(obj)
 
     def pre_build(self):
         super(RigSqueeze, self).pre_build(create_grp_jnt=False)
@@ -195,14 +192,9 @@ class RigSqueeze(classRig.Rig):
 
             # Resolve name
             # TODO: Handle name conflict
-            nomenclature = module.get_nomenclature_anm(self)
-            tokens = []
-            side = nomenclature.get_side()
-            if side:
-                tokens.append(side)
-            tokens += [module.__class__.__name__]
-
-            attr_src_name = '_'.join(tokens)
+            nomenclature_anm = module.get_nomenclature_anm(self)
+            nomenclature_attr = self.nomenclature(tokens=[module.__class__.__name__], side=nomenclature_anm.side)
+            attr_src_name = nomenclature_attr.resolve()
             attr_dst = module.grp_rig.attr(module.kAttrName_State)
 
             if not self.grp_anm.hasAttr(self.GROUP_NAME_IKFK, checkShape=False):
@@ -224,15 +216,15 @@ class RigSqueeze(classRig.Rig):
         # Set ctrls colors
         #
         color_by_side = {
-            'l': 13,  # Red
-            'r': 6  # Blue
+            self.nomenclature.SIDE_L: 13,  # Red
+            self.nomenclature.SIDE_R: 6  # Blue
         }
         epsilon = 0.1
         if module.grp_anm:
             nomenclature_anm = module.get_nomenclature_anm(self)
             for ctrl in module.get_ctrls(recursive=True):
                 nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                side = nomenclature_ctrl.get_side()
+                side = nomenclature_ctrl.side
                 color = color_by_side.get(side, None)
                 if color:
                     ctrl.drawOverride.overrideEnabled.set(1)
@@ -240,5 +232,3 @@ class RigSqueeze(classRig.Rig):
 
     def unbuild(self, *args, **kwargs):
         super(RigSqueeze, self).unbuild()
-
-

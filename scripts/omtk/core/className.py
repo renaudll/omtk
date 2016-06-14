@@ -1,4 +1,3 @@
-from omtk.libs import libPython
 from maya import cmds
 import copy
 
@@ -8,9 +7,39 @@ import copy
 class BaseName(object):
     """
     This class handle the naming of object.
-    Store a name as a collection of string 'tokens'.
-    Note that since maya don't support compounds and having the same name on multiple nodes can cause issues,
-    we need to support multiple number of tokens.
+    Store a name as a list of 'tokens'
+    When resolved, the tokens are joinned using a 'separator' (normally an underscore)
+
+    Also some specific properties exists:
+    - Side: Generally L/R token
+    - Prefix: Always the first token
+    - Suffix: Always the last token
+
+    You can resolve a BaseName instance from a string.
+    >>> name = BaseName('l_eye_jnt')
+    >>> name.resolve()
+    'l_eye_jnt'
+
+    You can build a BaseName instance manually.
+    >>> name = BaseName(tokens=('eye',), suffix='jnt', side=BaseName.SIDE_L)
+    >>> name.resolve()
+    'l_eye_jnt'
+    >>> name = BaseName(tokens=('eye',), suffix='jnt', prefix='rig', side=BaseName.SIDE_L)
+    >>> name.resolve()
+    'rig_l_eye_jnt'
+
+    You can override a BaseName public properties.
+    >>> name = BaseName()
+    >>> name.tokens = ('eye',)
+    >>> name.resolve()
+    'eye'
+    >>> name.suffix = 'jnt'
+    >>> name.resolve()
+    'eye_jnt'
+    >>> name.side = name.SIDE_L
+    >>> name.resolve()
+    'l_eye_jnt'
+
     """
     separator = '_'
 
@@ -29,16 +58,32 @@ class BaseName(object):
     layer_rig_name = 'layer_rig'
     layer_geo_name = 'layer_geo'
 
-    side_l_tokens = ['l', "left"]
-    side_r_tokens = ['r', "right"]
+    SIDE_L = 'l'
+    SIDE_R = 'r'
 
-    def __init__(self, name=None, prefix=None, suffix=None):
-        self.tokens = self._get_tokens(name) if name else []
-        # prefix and suffix are automatically handled
-        self.prefix = prefix
-        self.suffix = suffix
+    def __init__(self, name=None, tokens=None, prefix=None, suffix=None, side=None):
+        self.tokens = []
+        self.prefix = None
+        self.suffix = None
+        self.side = None
+
+        if name:
+            self.build_from_string(name)
+
+        # Apply manual overrides
+        if tokens:
+            self.tokens = tokens
+        if prefix:
+            self.prefix = prefix
+        if suffix:
+            self.suffix = suffix
+        if side:
+            self.side = side
 
     def copy(self):
+        """
+        Return a copy of the name object.
+        """
         inst = self.__class__()
         inst.tokens = copy.copy(self.tokens)
         inst.prefix = self.prefix
@@ -56,7 +101,7 @@ class BaseName(object):
         return: The part name.
         """
         for token in self.tokens:
-            if not self._is_side(token):
+            if not self.get_side_from_token(token):
                 return token
 
     def remove_extra_tokens(self):
@@ -69,15 +114,24 @@ class BaseName(object):
 
         new_tokens = []
         for token in self.tokens:
-            if self._is_side(token):
+            if self.get_side_from_token(token):
                 new_tokens.append(token)
             elif not found_base_token and token == basename:
                 new_tokens.append(token)
 
         self.tokens = new_tokens
 
-    def _get_tokens(self, name):
-        return name.split(self.separator)
+    def build_from_string(self, name):
+        raw_tokens = self._get_tokens(name)
+        self.tokens = []
+        #self.prefix = None
+        #self.suffix = None
+        self.side = None
+
+        self.add_tokens(*raw_tokens)
+
+    def _get_tokens(self, val):
+        return val.split(self.separator)
 
     def _join_tokens(self, tokens):
         return self.separator.join(tokens)
@@ -85,7 +139,11 @@ class BaseName(object):
     def add_tokens(self, *args):
         for arg in args:
             for token in arg.split(self.separator):
-                self.tokens.append(token)
+                side = self.get_side_from_token(token)
+                if side:
+                    self.side = side
+                else:
+                    self.tokens.append(token)
 
     def add_suffix(self, suffix):
         self.tokens.append(suffix)
@@ -101,16 +159,21 @@ class BaseName(object):
             return name + str(i)
         return name
 
-    def _is_side_l(self, token):
+    @classmethod
+    def get_side_from_token(cls, token):
         token_lower = token.lower()
-        return any(True for pattern in self.side_l_tokens if token_lower == pattern.lower())
-
-    def _is_side_r(self, token):
-        token_lower = token.lower()
-        return any(True for pattern in self.side_r_tokens if token_lower == pattern.lower())
+        if token_lower == cls.SIDE_L.lower():
+            return cls.SIDE_L
+        if token_lower == cls.SIDE_R.lower():
+            return cls.SIDE_R
 
     def _is_side(self, token):
-        return self._is_side_l(token) or self._is_side_r(token)
+        side = self._is_side_l(token)
+        if side:
+            return side
+        side = self._is_side_r(token)
+        if side:
+            return side
 
     def get_tokens(self):
         """
@@ -126,12 +189,15 @@ class BaseName(object):
                 return "r"
         return None
 
-    @libPython.memoized
     def resolve(self, *args):
         tokens = []
 
         if self.prefix:
             tokens.append(self.prefix)
+
+        if self.side:
+            tokens.append(self.side)
+
         tokens.extend(self.tokens)
         tokens.extend(args)
         if self.suffix:

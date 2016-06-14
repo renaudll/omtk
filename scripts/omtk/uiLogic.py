@@ -192,7 +192,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         # Set QTreeWidgetItem red if the module fail validation
         try:
-            module.validate()
+            if isinstance(module, classRig.Rig):
+                module.validate()
+            else:
+                module.validate(self.root)
             color = color_valid
         except Exception, e:
             pymel.warning("Module {0} failed validation: {1}".format(module, str(e)))

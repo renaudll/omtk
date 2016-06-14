@@ -60,12 +60,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpUppLow):
         # If we are using the lips in the main deformer, we'll do shenanigans with the jaw.
         if not self.preDeform:
             jnt_head = rig.get_head_jnt()
-            if not jnt_head:
-                raise Exception("Can't resolve head.")
-
             jnt_jaw = rig.get_jaw_jnt()
-            if not jnt_jaw:
-                raise Exception("Can't resolve jaw.")
 
             for avar in self.avars_upp:
                 pymel.parentConstraint(jnt_head, avar._stack._layers[0], maintainOffset=True)

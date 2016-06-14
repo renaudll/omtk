@@ -360,8 +360,7 @@ class InteractiveCtrl(BaseCtrl):
         # Resolve geometry to attach to
         if obj_mesh is None:
             obj_mesh = parent.get_farest_affected_mesh(ref)
-        if obj_mesh is None:
-            obj_mesh = next(iter(parent.get_meshes()), None)
+
         if obj_mesh is None:
             raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
 

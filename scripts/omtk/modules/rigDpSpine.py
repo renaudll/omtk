@@ -52,8 +52,8 @@ class DpSpine(Module):
         self.jnt_squash_mid = None
         self.enable_squash = True
 
-    def validate(self):
-        super(DpSpine, self).validate()
+    def validate(self, rig):
+        super(DpSpine, self).validate(rig)
         if len(self.jnts) != 3:
             raise Exception("DpSpine need exactly 3 joints.")
 

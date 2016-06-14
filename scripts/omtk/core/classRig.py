@@ -200,15 +200,20 @@ class Rig(object):
         In case of error, an exception will be raised with the necessary informations.
         """
         for module in self.modules:
-            module.validate()
+            module.validate(self)
+        return True
+
+    def _is_influence(self, jnt):
         return True
 
     def get_potential_influences(self):
         """
         Return all objects that are being seem as potential influences for the rig.
         Mainly used by the uiLogic.
+        :key: Provide a function for filtering the results.
         """
-        return pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
+        result = pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
+        return filter(self._is_influence, result)
 
     @libPython.memoized
     def get_meshes(self):
@@ -485,7 +490,10 @@ class Rig(object):
         Not the prettiest but used to find the head for facial rigging.
         """
         whitelist = ('head', 'face')
-        return self._get_influence_by_pattern(whitelist, key=key)    
+        node = self._get_influence_by_pattern(whitelist, key=key)
+        if not node:
+            raise Exception("Can't resolve head influence.")
+        return node
 
     @libPython.memoized
     def get_jaw_jnt(self, key=None):
@@ -493,7 +501,10 @@ class Rig(object):
         Not the prettiest but used to find the jaw for facial rigging.
         """
         whitelist = ('jaw',)
-        return self._get_influence_by_pattern(whitelist, key=key)    
+        node = self._get_influence_by_pattern(whitelist, key=key)
+        if not node:
+            raise Exception("Can't resolve jaw influence.")
+        return node
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):

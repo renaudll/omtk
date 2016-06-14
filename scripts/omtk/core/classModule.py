@@ -102,9 +102,9 @@ class Module(object):
                 new_nomenclature.add_tokens(self.__class__.__name__)
 
             if self.IS_SIDE_SPECIFIC:
-                side = old_nomenclature.get_side()
+                side = old_nomenclature.side
                 if side:
-                    new_nomenclature.add_prefix(side)
+                    new_nomenclature.side = side
 
             return new_nomenclature.resolve()
 
@@ -122,8 +122,10 @@ class Module(object):
         """
         :return: The nomenclature to use for animation controllers.
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_anm)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_anm
+        )
         return name
 
     @libPython.memoized
@@ -131,8 +133,10 @@ class Module(object):
         """
         :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_anm_grp)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_anm_grp
+        )
         return name
 
     @libPython.memoized
@@ -140,16 +144,20 @@ class Module(object):
         """
         :return: The nomenclature to use for rig objects.
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_rig)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_rig
+        )
         return name
 
     def get_nomenclature_rig_grp(self, rig):
         """
         :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_rig_grp)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_rig_grp
+        )
         return name
 
     @libPython.memoized
@@ -157,8 +165,10 @@ class Module(object):
         """
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_jnt)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_jnt
+        )
         return name
 
     @property
@@ -243,7 +253,7 @@ class Module(object):
     def __createMayaNetwork__(self):
         return pymel.createNode('network', name='net_{0}'.format(self.name))
 
-    def validate(self):
+    def validate(self, rig):
         """
         Check if the module can be built with it's current configuration.
         In case of error, an exception will be raised with the necessary informations.

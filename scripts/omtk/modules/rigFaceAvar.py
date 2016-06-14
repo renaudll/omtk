@@ -289,8 +289,8 @@ class AbstractAvar(classModule.Module):
 
         return tm
 
-    def validate(self):
-        super(AbstractAvar, self).validate()
+    def validate(self, rig):
+        super(AbstractAvar, self).validate(rig)
 
         if not self.jnts:
             raise Exception("Can't build AvarGrp with zero joints!")

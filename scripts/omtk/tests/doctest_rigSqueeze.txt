@@ -1,0 +1,23 @@
+>>> from omtk.rigs.rigSqueeze import SqueezeNomenclature
+
+# Construct a naming from scratch
+>>> n = SqueezeNomenclature(tokens=['Eye', 'Jnt'], side=SqueezeNomenclature.SIDE_L)
+>>> n.resolve()
+'L_Eye_Jnt'
+
+# Construct a naming from another existing naming
+>>> n = SqueezeNomenclature('L_Eye_Jnt')
+>>> n.prefix is None
+True
+>>> n.suffix is None
+True
+>>> n.side is None
+False
+
+# Adding of tokens using suffix
+>>> n = SqueezeNomenclature(tokens=['Eye'], side=SqueezeNomenclature.SIDE_L, suffix='Jnt')
+>>> n.resolve()
+'L_Eye_Jnt'
+>>> n.tokens.append('Micro')
+>>> n.resolve()
+'L_Eye_Micro_Jnt'

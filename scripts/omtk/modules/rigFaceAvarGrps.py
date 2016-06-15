@@ -186,16 +186,13 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             self.avars = []
             # Connect global avars to invidial avars
             for jnt in self.jnts:
-                inn = [jnt]
-                if self.surface:
-                    inn.append(self.surface)
-
-                sys_facepnt = self._CLS_AVAR(inn)
-
-                self.avars.append(sys_facepnt)
+                avar = self.create_avar(rig, jnt)
+                self.avars.append(avar)
 
         # Build avars and connect them to global avars
         for jnt, avar in zip(self.jnts, self.avars):
+            self.configure_avar(rig, avar)
+
             # HACK: Set module name using rig nomenclature.
             # TODO: Do this in the back-end
             avar.name = rig.nomenclature(jnt.name()).resolve()
@@ -250,6 +247,26 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         return avar
 
+    def create_avar(self, rig, ref):
+        """
+        Factory method to create a standard avar for this group.
+        """
+        influences = [ref]
+        '''
+        if self.surface:
+            influences.append(self.surface)
+        '''
+        avar = self._CLS_AVAR(influences)
+        return avar
+
+    def configure_avar(self, rig, avar):
+        """
+        This method is called as soon as we access or create an avar.
+        Use it to configure the avar automatically.
+        """
+        if avar.surface is None and self.surface:
+            avar.surface = self.surface
+
     def build_abstract_avar(self, rig, cls, avar):
         avar._CLS_CTRL = cls  # Hack
         avar.build(
@@ -268,24 +285,50 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 class AvarGrpOnSurface(AvarGrp):
     _CLS_AVAR = rigFaceAvar.AvarFollicle
 
+    def __init__(self):
+        super(AvarGrpOnSurface, self).__init__()
+        self.surface = None
+
+    '''
     @libPython.cached_property()
     def surface(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
+    '''
 
-    def build(self, rig, **kwargs):
-        # Create the plane if it doesn't exist!
+    def handle_surface(self, rig):
+        """
+        Create the surface that the follicle will slide on if necessary.
+        :return:
+        """
+        # Hack: In the past, surface were provided as an input.
+        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
+        if surface:
+            self.input.remove(surface)
+        self.surface = surface
+
         if self.surface is None:
             log.warning("Can't find surface for {0}, creating one...".format(self))
-            new_surface = self.create_surface()
-            self.input.append(new_surface)
-            del self._cache['surface']
+            self.surface = self.create_surface(rig)
+            #self.input.append(new_surface)
+            #del self._cache['surface']
+
+    def build(self, rig, **kwargs):
+        self.handle_surface(rig)
 
         super(AvarGrpOnSurface, self).build(rig, **kwargs)
 
     @classModule.decorator_uiexpose
-    def create_surface(self):
+    def create_surface(self, rig, name='Surface'):
+        '''
+        if name is None:
+            name = self.name
+        '''
+        nomenclature = self.get_nomenclature_rig(rig).copy()
+        nomenclature.add_tokens(name)
+
         root = pymel.createNode('transform')
         pymel.addAttr(root, longName='bendUpp', k=True)
         pymel.addAttr(root, longName='bendLow', k=True)
@@ -316,24 +359,24 @@ class AvarGrpOnSurface(AvarGrp):
         pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
 
         # Rename all the things!
-        root.rename('{0}_Surface_Grp'.format(self.name))
-        plane_transform.rename('{0}_Surface'.format(self.name))
-        bend_upp_deformer.rename('{0}_UppBend'.format(self.name))
-        bend_low_deformer.rename('{0}_LowBend'.format(self.name))
-        bend_side_deformer.rename('{0}_SideBend'.format(self.name))
-        bend_upp_handle.rename('{0}_UppBendHandle'.format(self.name))
-        bend_low_handle.rename('{0}_LowBendHandle'.format(self.name))
-        bend_side_handle.rename('{0}_SideBendHandle'.format(self.name))
+        root.rename(nomenclature.resolve('SurfaceGrp'))
+        plane_transform.rename(nomenclature.resolve('Surface'))
+        bend_upp_deformer.rename(nomenclature.resolve('UppBend'))
+        bend_low_deformer.rename(nomenclature.resolve('LowBend'))
+        bend_side_deformer.rename(nomenclature.resolve('SideBend'))
+        bend_upp_handle.rename(nomenclature.resolve('UppBendHandle'))
+        bend_low_handle.rename(nomenclature.resolve('LowBendHandle'))
+        bend_side_handle.rename(nomenclature.resolve('SideBendHandle'))
 
         # Try to guess the desired position
-        min_x = 0
-        max_x = 0
+        min_x = None
+        max_x = None
         pos = pymel.datatypes.Vector()
         for jnt in self.jnts:
             pos += jnt.getTranslation(space='world')
-            if pos.x < min_x:
-                mix_x = pos.x
-            if pos.x > max_x:
+            if min_x is None or pos.x < min_x:
+                min_x = pos.x
+            if max_x is None or pos.x > max_x:
                 max_x = pos.x
         pos /= len(self.jnts)
 
@@ -345,7 +388,7 @@ class AvarGrpOnSurface(AvarGrp):
 
         pymel.select(root)
 
-        self.input.append(plane_transform)
+        #self.input.append(plane_transform)
 
         return plane_transform
 

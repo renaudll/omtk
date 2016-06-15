@@ -45,6 +45,7 @@ class FK(Module):
             self.ctrls= filter(None, self.ctrls)
         except (AttributeError, TypeError):
             pass
+        super(FK, self).__callbackNetworkPostBuild__()
 
     def build(self, rig, constraint=True, parent=True, *args, **kwargs):
         super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)

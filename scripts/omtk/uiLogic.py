@@ -400,8 +400,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self.treeWidget.addTopLevelItem(qItem)
             self.treeWidget.expandItem(qItem)
 
-
-
     def update_ui_jnts(self, *args, **kwargs):
         # Resolve text query
         query_raw = self.lineEdit_search_jnt.text()

@@ -135,6 +135,7 @@ class AbstractAvar(classModule.Module):
 
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
+        self.surface = None  # todo: Move to AvarFollicle
         self.avar_network = None
         self.init_avars()
 
@@ -244,12 +245,13 @@ class AbstractAvar(classModule.Module):
     # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
     #
 
+    '''
     @libPython.cached_property()
     def surface(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
         objs = filter(fn_is_nurbsSurface, self.input)
         return next(iter(objs), None)
-
+    '''
 
     @libPython.memoized
     def get_base_uv(self):
@@ -257,7 +259,6 @@ class AbstractAvar(classModule.Module):
 
         fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, pos)
         return fol_u, fol_v
-
 
     def get_jnt_tm(self):
         """
@@ -269,7 +270,6 @@ class AbstractAvar(classModule.Module):
         return pymel.datatypes.Matrix(
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
         )
-
 
     def get_ctrl_tm(self, rig):
         """

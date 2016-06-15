@@ -72,6 +72,24 @@ class Module(object):
         except (AttributeError, TypeError):
             pass
 
+        # Hack: Workaround a bug in the ui that can propagate invalid characters in the module...
+        REGEX_PATTERN = '( *)<.*>( *)'
+        if re.match('.*{0}.*'.format(REGEX_PATTERN), self.name):
+            new_name = re.sub(REGEX_PATTERN, '', self.name)
+            log.warning("Invalid characters in Module name. Replacing {0} by {1}".format(self.name, new_name))
+            self.name = new_name
+
+    def __getNetworkName__(self):
+        """
+        Determine the name of the maya network.
+        Override this to customize.
+        Returns: The desired network name for this instance.
+        """
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
+
+    def __createMayaNetwork__(self):
+        return pymel.createNode('network', name='net_{0}'.format(self.name))
+
     def is_built(self):
         """
         Check in maya the existence of the grp_anm and grp_rig properties.
@@ -239,19 +257,6 @@ class Module(object):
     def __str__(self):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
 
-    #
-    # libSerialization implementation
-    #
-    def __getNetworkName__(self):
-        """
-        Determine the name of the maya network.
-        Override this to customize.
-        Returns: The desired network name for this instance.
-        """
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
-
-    def __createMayaNetwork__(self):
-        return pymel.createNode('network', name='net_{0}'.format(self.name))
 
     def validate(self, rig):
         """

@@ -309,24 +309,25 @@ class IK(Module):
         # Adjust the ratio in percentage so animators understand that 0.03 is 3%
         attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
 
+        # Create the ik_handle_target that will control the ik_handle
+        # This is allow us to override what control the main ik_handle
+        # Mainly used for the Leg setup
+        self._ik_handle_target = pymel.createNode('transform', name=nomenclature_rig.resolve('ikHandleTarget'))
+        self._ik_handle_target.setParent(self.grp_rig)
+        pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
+
         # Create and configure SoftIK solver
         rig_softIkNetwork = SoftIkNode()
         rig_softIkNetwork.build()
         pymel.connectAttr(attInRatio, rig_softIkNetwork.inRatio)
         pymel.connectAttr(attInStretch, rig_softIkNetwork.inStretch)
         pymel.connectAttr(self._ikChainGrp.worldMatrix, rig_softIkNetwork.inMatrixS)
-        pymel.connectAttr(self.ctrl_ik.worldMatrix, rig_softIkNetwork.inMatrixE)
+        pymel.connectAttr(self._ik_handle_target.worldMatrix, rig_softIkNetwork.inMatrixE)
         attr_distance = libFormula.parse('distance*globalScale',
                                          distance=self.chain_length,
                                          globalScale=self.grp_rig.globalScale)
         pymel.connectAttr(attr_distance, rig_softIkNetwork.inChainLength)
 
-        # Constraint effector
-        # Note that we create an ikHandleTarget node so that we can hijack the system later.
-        # For example if we are building a Leg and want to footroll to influence the ikHandle.
-        self._ik_handle_target = pymel.createNode('transform', name=nomenclature_rig.resolve('ikHandleTarget'))
-        self._ik_handle_target.setParent(self.grp_rig)
-        pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)

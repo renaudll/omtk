@@ -387,7 +387,8 @@ class LegIk(IK):
         # todo: cleaner!
         pymel.parentConstraint(self.ctrl_ik, root_footRoll, maintainOffset=True)
 
-        # Connect ikHandles to footroll
+        # Connect the footroll to the main ikHandle
+        # Note that we also need to hijack the softik network.
         fn_can_delete = lambda x: isinstance(x, pymel.nodetypes.Constraint) and \
                                   not isinstance(x, pymel.nodetypes.PoleVectorConstraint)
         pymel.delete(filter(fn_can_delete, self._ik_handle_target.getChildren()))

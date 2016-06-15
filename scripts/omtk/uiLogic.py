@@ -346,6 +346,12 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.roots = core.find()
         self.root = next(iter(self.roots), None)
 
+        # Create a rig instance if the scene is empty.
+        if self.root is None:
+            self.root = core.create()
+            self.roots = [self.root]
+            self.export_networks()  # Create network tree in the scene
+
 
         # self.roots = None
         # if os.path.exists(path):

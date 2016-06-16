@@ -24,9 +24,11 @@ class BaseName(object):
     >>> name = BaseName(tokens=('eye',), suffix='jnt', side=BaseName.SIDE_L)
     >>> name.resolve()
     'l_eye_jnt'
-    >>> name = BaseName(tokens=('eye',), suffix='jnt', prefix='rig', side=BaseName.SIDE_L)
+
+    You can add tokens at any time.
+    >>> name.add_tokens('upp')
     >>> name.resolve()
-    'rig_l_eye_jnt'
+    'l_eye_upp_jnt'
 
     You can override a BaseName public properties.
     >>> name = BaseName()
@@ -167,19 +169,11 @@ class BaseName(object):
         if token_lower == cls.SIDE_R.lower():
             return cls.SIDE_R
 
-    def _is_side(self, token):
-        side = self._is_side_l(token)
-        if side:
-            return side
-        side = self._is_side_r(token)
-        if side:
-            return side
-
     def get_tokens(self):
         """
         :return: All token without the side tokens.
         """
-        return [token for token in self.tokens if not self._is_side_l(token) and not self._is_side_r(token)]
+        return [token for token in self.tokens if not self.get_side_from_token(token)]
 
     def get_side(self):
         for token in self.tokens:

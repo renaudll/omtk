@@ -25,6 +25,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     Also global avars will be provided to controll all avars.
     """
     _CLS_AVAR = rigFaceAvar.AvarSimple
+    SHOW_IN_UI = True
 
     #
     # Influences properties
@@ -411,6 +412,7 @@ class BaseCtrlLow(classCtrl.InteractiveCtrl):
 class AvarGrpUppLow(AvarGrpOnSurface):
     _CLS_CTRL_UPP = BaseCtrlUpp
     _CLS_CTRL_LOW = BaseCtrlLow
+    SHOW_IN_UI = False
 
     def __init__(self, *args, **kwargs):
         #self.ctrl_upp = None
@@ -486,6 +488,7 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
     """
     _CLS_CTRL_LFT = BaseCtrlUpp
     _CLS_CTRL_RGT = BaseCtrlUpp
+    SHOW_IN_UI = False
 
     @libPython.cached_property()
     def jnts_l(self):

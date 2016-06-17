@@ -401,6 +401,7 @@ class AvarSimple(AbstractAvar):
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
         jnt_tm = self.get_jnt_tm()
+        jnt_pos = jnt_tm.translate
         ctrl_tm = self.get_ctrl_tm(rig)
         doritos_pos = ctrl_tm.translate
 
@@ -416,7 +417,8 @@ class AvarSimple(AbstractAvar):
         layer_offset_name = nomenclature_rig.resolve('offset')
         layer_offset = stack.add_layer()
         layer_offset.rename(layer_offset_name)
-        layer_offset.setMatrix(jnt_tm)
+        layer_offset.setTranslation(jnt_pos)
+        #layer_offset.setMatrix(jnt_tm)
 
         stack.setParent(self.grp_rig)
 
@@ -457,7 +459,7 @@ class AvarSimple(AbstractAvar):
                 if create_doritos and callibrate_doritos:
                     self.calibrate()
 
-    def calibrate(self):
+    def calibrate(self, **kwargs):
         """
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
@@ -466,27 +468,8 @@ class AvarSimple(AbstractAvar):
             return False
 
         # Hack: clean me!
-        if not isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-            pass
-
-        influence = self.jnt
-        if not influence:
-            log.warning("Can't calibrate, found no influence for {0}".format(self))
-            return False
-
-        if not self.ctrl.node.tx.isLocked():
-            sensitivity_tx = omtk.core.classCtrl._get_attr_sensibility(self.ctrl.node.tx, influence)
-            self.ctrl.attr_sensitivity_tx.set(sensitivity_tx)
-
-        if not self.ctrl.node.ty.isLocked():
-            sensitivity_ty = omtk.core.classCtrl._get_attr_sensibility(self.ctrl.node.ty, influence)
-            self.ctrl.attr_sensitivity_ty.set(sensitivity_ty)
-
-        if not self.ctrl.node.tz.isLocked():
-            sensitivity_tz = omtk.core.classCtrl._get_attr_sensibility(self.ctrl.node.tz, influence)
-            self.ctrl.attr_sensitivity_tz.set(sensitivity_tz)
-
-        return True
+        if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+            self.ctrl.calibrate(**kwargs)
 
 
 class AvarFollicle(AvarSimple):

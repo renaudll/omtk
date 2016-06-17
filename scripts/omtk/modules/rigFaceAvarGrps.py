@@ -286,8 +286,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 class AvarGrpOnSurface(AvarGrp):
     _CLS_AVAR = rigFaceAvar.AvarFollicle
 
-    def __init__(self):
-        super(AvarGrpOnSurface, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
         self.surface = None
 
     '''

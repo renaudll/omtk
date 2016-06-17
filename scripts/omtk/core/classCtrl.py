@@ -342,7 +342,7 @@ class InteractiveCtrl(BaseCtrl):
 
     def __init__(self, *args, **kwargs):
         super(InteractiveCtrl, self).__init__(*args, **kwargs)
-        self.influence = None  # The influence is used for callibration.
+        self.follicle = None  # Used for calibration
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
@@ -373,6 +373,7 @@ class InteractiveCtrl(BaseCtrl):
         # TODO: Only use position instead of PyNode or Matrix?
         if ref_tm is None:
             ref_tm = ref.getMatrix(worldSpace=True)
+        pos_ref = ref_tm.translate
 
         need_flip = ref_tm.translate.x < 0
 
@@ -381,7 +382,7 @@ class InteractiveCtrl(BaseCtrl):
         stack_name = nomenclature_rig.resolve('doritosStack')
         stack = classNode.Node(self)
         stack.build(name=stack_name)
-        stack.setMatrix(ref_tm )
+        stack.setTranslation(pos_ref)
 
         # Add sensibility attributes
         # The values will be computed when attach_ctrl will be called
@@ -393,17 +394,6 @@ class InteractiveCtrl(BaseCtrl):
                                                              defaultValue=1.0)
 
         log.info('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
-
-        # Resolve the doritos location
-        '''
-        if ctrl_tm is None:
-            ctrl_tm = self.jnt.getMatrix(worldSpace=True)
-        '''
-
-        # Find the closest point on the surface.
-        pos_ref = ref_tm.translate
-
-
 
         # Note that to only check in the Z axis, we'll do a raycast first.
         # If we success this will become our reference position.
@@ -429,6 +419,7 @@ class InteractiveCtrl(BaseCtrl):
         fol_name = nomenclature_rig.resolve('doritosFollicle')
         fol_shape = libRigging.create_follicle2(obj_mesh, u=fol_u, v=fol_v)
         fol = fol_shape.getParent()
+        self.follicle = fol
         fol.rename(fol_name)
         pymel.parentConstraint(fol, layer_fol, maintainOffset=True)
         fol = fol_shape.getParent()
@@ -564,6 +555,27 @@ class InteractiveCtrl(BaseCtrl):
         if grp_rig:
             stack.setParent(grp_rig)
             fol.setParent(grp_rig)
+
+    def calibrate(self, tx=True, ty=True, tz=True):
+        influence = self.follicle
+        if not influence:
+            log.warning("Can't calibrate {0}, found no influences.")
+            return
+
+        if tx and not self.node.tx.isLocked():
+            sensitivity_tx = _get_attr_sensibility(self.node.tx, influence)
+            print('Adjusting sensibility tx for {0} to {1}'.format(self.name, sensitivity_tx))
+            self.attr_sensitivity_tx.set(sensitivity_tx)
+
+        if ty and not self.node.ty.isLocked():
+            sensitivity_ty = _get_attr_sensibility(self.node.ty, influence)
+            print('Adjusting sensibility ty for {0} to {1}'.format(self.name, sensitivity_ty))
+            self.attr_sensitivity_ty.set(sensitivity_ty)
+
+        if tz and not self.node.tz.isLocked():
+            sensitivity_tz = _get_attr_sensibility(self.node.tz, influence)
+            print('Adjusting sensibility tz for {0} to {1}'.format(self.name, sensitivity_tz))
+            self.attr_sensitivity_tz.set(sensitivity_tz)
 
 
 def _get_attr_sensibility(attr, ref, step_size=0.1, epsilon=0.01, default=1.0):

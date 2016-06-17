@@ -1,8 +1,6 @@
 from maya import cmds
 import pymel.core as pymel
 import time
-
-from omtk.modules import rigFaceAvarGrps
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
@@ -478,11 +476,12 @@ class Rig(object):
                 continue
 
             name = nomenclature(jnt.name())
-            basename = name.get_basename().lower()
+            tokens = [token.lower() for token in name.tokens]
 
             for pattern in whitelist:
-                if pattern in basename:
-                    return jnt
+                for token in tokens:
+                    if pattern in token:
+                        return jnt
 
     @libPython.memoized
     def get_head_jnt(self, key=None):

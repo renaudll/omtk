@@ -3,6 +3,19 @@ import mayaunittest
 from maya import cmds
 import omtk
 
+def open_scene(path_local):
+    def deco_open(f):
+        def f_open(*args, **kwargs):
+            m_path_local = path_local # make mutable
+
+            path = os.path.join(os.path.dirname(__file__), m_path_local)
+            if not os.path.exists(path):
+                raise Exception("File does not exist on disk! {0}".format(path))
+
+            cmds.file(path, open=True, f=True)
+        return f_open
+    return deco_open
+
 class SampleTests(mayaunittest.TestCase):
 
     def test_create(self):
@@ -11,20 +24,14 @@ class SampleTests(mayaunittest.TestCase):
         self.assertTrue(isinstance(rig, omtk.core.classRig.Rig))
         self.assertTrue(rig.name == rig_name)
 
-    def test_rig_rlessard(self):
-        path = os.path.join(os.path.dirname(__file__), '../examples/rig_template_rlessard.ma')
-        self.assertTrue(os.path.exists(path))
-
-        cmds.file(path, open=True, f=True)
+    @open_scene("../examples/rig_squeeze_template01.ma")
+    def test_rig_squeeze(self):
         omtk.build_all()
         omtk.unbuild_all()
         omtk.build_all()
 
-    def test_leg(self):
-        path = os.path.join(os.path.dirname(__file__), '../examples/rig_leg.ma')
-        self.assertTrue(os.path.exists(path))
-
-        cmds.file(path, open=True, f=True)
+    @open_scene('../examples/rig_rlessard_template01.ma')
+    def test_rig_rlessard(self):
         omtk.build_all()
         omtk.unbuild_all()
         omtk.build_all()

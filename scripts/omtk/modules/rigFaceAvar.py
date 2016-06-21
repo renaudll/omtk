@@ -377,6 +377,15 @@ class AvarSimple(AbstractAvar):
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
 
+    def validate(self, rig):
+        super(AvarSimple, self).validate(rig)
+
+        # InteractiveCtrl need at least a skinned influence to bind itself to.
+        if issubclass(self._CLS_CTRL, classCtrl.InteractiveCtrl):
+            mesh = rig.get_farest_affected_mesh(self.jnt)
+            if not mesh:
+                raise Exception("Can't find mesh affected by {0}.".format(self.jnt))
+
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
         """
         The dag stack is a stock of dagnode that act as additive deformer to controler the final position of

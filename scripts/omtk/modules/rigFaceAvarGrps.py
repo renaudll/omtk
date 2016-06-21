@@ -27,6 +27,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     _CLS_AVAR = rigFaceAvar.AvarSimple
     SHOW_IN_UI = True
 
+    # Disable if the AvarGrp don't need any geometry to function.
+    # This is mainly a workaround a limitation of the design which doesn't allow access to the avars without building.
+    VALIDATE_MESH = True
+
     #
     # Influences properties
     #
@@ -165,6 +169,19 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         """
     '''
 
+    def validate(self, rig):
+        """
+        Ensure all influences are influencing a geometry.
+        This allow us to prevent the user to find out when building.
+        """
+        super(AvarGrp, self).validate(rig)
+
+        if self.VALIDATE_MESH:
+            for jnt in self.jnts:
+                mesh = rig.get_farest_affected_mesh(jnt)
+                if not mesh:
+                    raise Exception("Can't find mesh affected by {0}.".format(jnt))
+
     def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=None, constraint=True, **kwargs):
         if parent is None:
             parent = not self.preDeform
@@ -197,6 +214,17 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             # HACK: Set module name using rig nomenclature.
             # TODO: Do this in the back-end
             avar.name = rig.nomenclature(jnt.name()).resolve()
+
+            # HACK: Validate avars at runtime
+            # TODO: Find a way to validate before build without using VALIDATE_MESH
+            try:
+                avar.validate(rig)
+            except Exception, e:
+                log.warning("Can't build avar {0}, failed validation: {1}".format(
+                    avar.name,
+                    e
+                ))
+                continue
 
             avar.build(rig,
                        create_ctrl=create_ctrls,

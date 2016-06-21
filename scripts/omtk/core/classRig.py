@@ -194,11 +194,10 @@ class Rig(object):
 
     def validate(self):
         """
-        Check any module can be built with it's current configuration.
-        In case of error, an exception will be raised with the necessary informations.
+        Check if we are able to build the rig.
+        In case of errors an exception is raise with more informations.
+        Note that we don't check if each modules validates, this is up to them to determine if they want to build or not.
         """
-        for module in self.modules:
-            module.validate(self)
         return True
 
     def _is_influence(self, jnt):
@@ -338,11 +337,19 @@ class Rig(object):
                 self.layer_geo.color.set(12)  # Green?
                 self.layer_geo.displayType.set(2)  # Frozen
 
-    def build(self, **kwargs):
+    def build(self, skip_validation=False, **kwargs):
         # Aboard if already built
         if self.is_built():
             log.warning("Can't build {0} because it's already built!".format(self))
             return False
+
+        # Abord if validation fail
+        if not skip_validation:
+            try:
+                self.validate()
+            except Exception, e:
+                log.warning("Can't build {0} because it failed validation: {1}".format(self, e))
+                return False
 
         sTime = time.time()
 
@@ -358,6 +365,12 @@ class Rig(object):
 
         modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
         for module in modules:
+            if not skip_validation:
+                try:
+                    module.validate(self)
+                except Exception, e:
+                    log.warning("Can't build {0}: {1}".format(module, e))
+                    continue
             #try:
             if not module.is_built():
                 print("Building {0}...".format(module))

@@ -278,9 +278,6 @@ class Module(object):
         :return:
         """
 
-        if not self.input:
-            raise Exception("Can't build module with zero inputs. {0}".format(self))
-
         log.info('Building {0}'.format(self))
 
         # Disable segment scale compensate by default.

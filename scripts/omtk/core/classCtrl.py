@@ -564,17 +564,17 @@ class InteractiveCtrl(BaseCtrl):
 
         if tx and not self.node.tx.isLocked():
             sensitivity_tx = _get_attr_sensibility(self.node.tx, influence)
-            print('Adjusting sensibility tx for {0} to {1}'.format(self.name, sensitivity_tx))
+            print('Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.node.ty.isLocked():
             sensitivity_ty = _get_attr_sensibility(self.node.ty, influence)
-            print('Adjusting sensibility ty for {0} to {1}'.format(self.name, sensitivity_ty))
+            print('Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.node.tz.isLocked():
             sensitivity_tz = _get_attr_sensibility(self.node.tz, influence)
-            print('Adjusting sensibility tz for {0} to {1}'.format(self.name, sensitivity_tz))
+            print('Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
 

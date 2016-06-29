@@ -331,12 +331,13 @@ class AvarGrpOnSurface(AvarGrp):
         Create the surface that the follicle will slide on if necessary.
         :return:
         """
-        # Hack: In the past, surface were provided as an input.
-        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-        surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
-        if surface:
-            self.input.remove(surface)
-        self.surface = surface
+        # Hack: Provide backward compatibility for when surface was provided as an input.
+        if self.surface is None:
+            fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+            surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
+            if surface:
+                self.input.remove(surface)
+                self.surface = surface
 
         if self.surface is None:
             log.warning("Can't find surface for {0}, creating one...".format(self))

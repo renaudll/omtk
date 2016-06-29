@@ -1,4 +1,5 @@
 import rigSqueeze
+import re
 
 class SqueezeNomenclature_MAV(rigSqueeze.SqueezeNomenclature):
     # We define a new side used for CENTER
@@ -40,6 +41,10 @@ class SqueezeRig_MAV(rigSqueeze.RigSqueeze):
         Restaure default behavior (from classRig.Rig)
         :return:
         """
+        # Ignore any influence ending by DefJnt, those are used in a custom rig.
+        if re.match(".*_DefJnt$", obj.nodeName()):
+            return False
+
         return True
 
     def _get_nomenclature_cls(self):

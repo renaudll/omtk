@@ -1,0 +1,119 @@
+global proc shelf_omtk_anim () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "from omtk.animation import ikfkTools\nikfkTools.switchToIk()" 
+        -enableBackground 0
+        -align "center" 
+        -label "from omtk.animation import ikfkTools\nikfkTools.switchToIk()" 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "toIK" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from omtk.animation import ikfkTools\nikfkTools.switchToIk()"
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "from omtk.animation import ikfkTools\nikfkTools.switchToFk()" 
+        -enableBackground 0
+        -align "center" 
+        -label "from omtk.animation import ikfkTools\nikfkTools.switchToFk()" 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "toFK" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from omtk.animation import ikfkTools\nikfkTools.switchToFk()"
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "from omtk.animation import mirrorPose; reload(mirrorPose)\nimport pymel.core as pymel\nmirrorPose.mirror_objs(pymel.selected())" 
+        -enableBackground 0
+        -align "center" 
+        -label "from omtk.animation import mirrorPose; reload(mirrorPose)\nimport..." 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "flip" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from omtk.animation import mirrorPose; reload(mirrorPose)\nimport pymel.core as pymel\nmirrorPose.mirror_objs(pymel.selected())" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import pymel.core as pymel\npymel.select(pymel.ls('*_anm', type='transform'))" 
+        -enableBackground 0
+        -align "center" 
+        -label "import pymel.core as pymel\npymel.select(pymel.ls('*_anm', type='..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "slAllCtrl" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import pymel.core as pymel\npymel.select(pymel.ls('*_anm', type='transform'))" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 

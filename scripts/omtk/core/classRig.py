@@ -1,8 +1,6 @@
 from maya import cmds
 import pymel.core as pymel
 import time
-
-from omtk.modules import rigFaceAvarGrps
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
@@ -177,7 +175,10 @@ class Rig(object):
         """
         :return: True if any module dag nodes exist in the scene.
         """
-        return self.grp_anm is not None and self.grp_anm.exists()
+        for module in self.modules:
+            if module.is_built():
+                return True
+        return False
 
     def _clean_invalid_pynodes(self):
         fnCanDelete = lambda x: (isinstance(x, (pymel.PyNode, pymel.Attribute)) and not libPymel.is_valid_PyNode(x))
@@ -193,19 +194,23 @@ class Rig(object):
 
     def validate(self):
         """
-        Check any module can be built with it's current configuration.
-        In case of error, an exception will be raised with the necessary informations.
+        Check if we are able to build the rig.
+        In case of errors an exception is raise with more informations.
+        Note that we don't check if each modules validates, this is up to them to determine if they want to build or not.
         """
-        for module in self.modules:
-            module.validate()
+        return True
+
+    def _is_influence(self, jnt):
         return True
 
     def get_potential_influences(self):
         """
         Return all objects that are being seem as potential influences for the rig.
         Mainly used by the uiLogic.
+        :key: Provide a function for filtering the results.
         """
-        return pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
+        result = pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
+        return filter(self._is_influence, result)
 
     @libPython.memoized
     def get_meshes(self):
@@ -239,6 +244,28 @@ class Rig(object):
         key = lambda mesh: mesh in self.get_meshes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
+    def raycast_farthest(self, pos, dir):
+        """
+        Return the farest point on any of the rig registered geometries using provided position and direction.
+        """
+        geos = self.get_meshes()
+        if not geos:
+            return None
+
+        result = libRigging.ray_cast_farthest(pos, dir, geos)
+        if not result:
+            return None
+
+        return result
+
+    @classModule.decorator_uiexpose
+    def create_hierarchy(self):
+        """
+        Alias to pre_build that is exposed in the gui and hidden from subclassing.
+        :return:
+        """
+        self.pre_build()
+
     def pre_build(self, create_grp_jnt=True, create_grp_anm=True, create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
@@ -267,7 +294,7 @@ class Rig(object):
                 self.grp_anm = CtrlRoot()
             if not self.grp_anm.is_built():
                 grp_anm_size = CtrlRoot._get_recommended_radius(self)
-                self.grp_anm.build(size=grp_anm_size)
+                self.grp_anm.build(self, size=grp_anm_size)
             self.grp_anm.rename(self.nomenclature.root_anm_name)
 
         # Create grp_rig
@@ -275,7 +302,7 @@ class Rig(object):
             if not isinstance(self.grp_rig, Node):
                 self.grp_rig = Node()
             if not self.grp_rig.is_built():
-                self.grp_rig.build()
+                self.grp_rig.build(self)
                 self.grp_rig.rename(self.nomenclature.root_rig_name)
 
         # Create grp_geo
@@ -284,9 +311,10 @@ class Rig(object):
             if not isinstance(self.grp_geo, Node):
                 self.grp_geo = Node()
             if not self.grp_geo.is_built():
-                self.grp_geo.build()
+                self.grp_geo.build(self)
                 self.grp_geo.rename(self.nomenclature.root_geo_name)
-            all_geos.setParent(self.grp_geo)
+            #if all_geos:
+            #    all_geos.setParent(self.grp_geo)
 
         # Setup displayLayers
         if create_display_layers:
@@ -309,11 +337,19 @@ class Rig(object):
                 self.layer_geo.color.set(12)  # Green?
                 self.layer_geo.displayType.set(2)  # Frozen
 
-    def build(self, **kwargs):
+    def build(self, skip_validation=False, **kwargs):
         # Aboard if already built
         if self.is_built():
             log.warning("Can't build {0} because it's already built!".format(self))
             return False
+
+        # Abord if validation fail
+        if not skip_validation:
+            try:
+                self.validate()
+            except Exception, e:
+                log.warning("Can't build {0} because it failed validation: {1}".format(self, e))
+                return False
 
         sTime = time.time()
 
@@ -329,6 +365,12 @@ class Rig(object):
 
         modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
         for module in modules:
+            if not skip_validation:
+                try:
+                    module.validate(self)
+                except Exception, e:
+                    log.warning("Can't build {0}: {1}".format(module, e))
+                    continue
             #try:
             if not module.is_built():
                 print("Building {0}...".format(module))
@@ -438,13 +480,8 @@ class Rig(object):
     # Facial and avars utility methods
     #
 
-    @libPython.memoized
-    def get_head_jnt(self, key=None):
-        """
-        Not the prettiest but used to find the head for facial rigging.
-        """
+    def _get_influence_by_pattern(self, whitelist, key=None):
         nomenclature = self._get_nomenclature_cls()
-        whitelist = ('head', 'face')
 
         for jnt in self.get_potential_influences():
             # Ignore non-joints
@@ -452,35 +489,34 @@ class Rig(object):
                 continue
 
             name = nomenclature(jnt.name())
-            basename = name.get_basename()
+            tokens = [token.lower() for token in name.tokens]
 
-            if basename.lower() in whitelist:
-                return jnt
+            for pattern in whitelist:
+                for token in tokens:
+                    if pattern in token:
+                        return jnt
 
-        #raise Warning("Can't resolve head joint!")
-        print "[classRigRoot.get_head_jnt] - Can't resolve head joint!"
+    @libPython.memoized
+    def get_head_jnt(self, key=None):
+        """
+        Not the prettiest but used to find the head for facial rigging.
+        """
+        whitelist = ('head', 'face')
+        node = self._get_influence_by_pattern(whitelist, key=key)
+        if not node:
+            raise Exception("Can't resolve head influence.")
+        return node
 
     @libPython.memoized
     def get_jaw_jnt(self, key=None):
         """
         Not the prettiest but used to find the jaw for facial rigging.
         """
-        nomenclature = self._get_nomenclature_cls()
         whitelist = ('jaw',)
-
-        for jnt in self.get_potential_influences():
-            # Ignore non-joints
-            if not isinstance(jnt, pymel.nodetypes.Joint):
-                continue
-
-            name = nomenclature(jnt.name())
-            basename = name.get_basename()
-
-            if basename.lower() in whitelist:
-                return jnt
-
-        #raise Exception("Can't resolve jaw joint!")
-        print "[classRigRoot.get_jaw_jnt] - Can't resolve head joint!"
+        node = self._get_influence_by_pattern(whitelist, key=key)
+        if not node:
+            raise Exception("Can't resolve jaw influence.")
+        return node
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):
@@ -526,6 +562,9 @@ class Rig(object):
     @libPython.memoized
     def get_head_length(self):
         jnt_head = self.get_head_jnt()
+        if not jnt_head:
+            return None
+
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
         geometries = libRigging.get_affected_geometries(jnt_head)
@@ -538,10 +577,11 @@ class Rig(object):
         # TODO: FIX ME
         dir = pymel.datatypes.Point(0,1,0)
 
-        top = next(iter(libRigging.ray_cast(bot, dir, geometries)), None)
+        top = libRigging.ray_cast_farthest(bot, dir, geometries)
         if not top:
-            raise Exception("Can't resolve head top location using raycasts using {0} {1}!".format(
+            pymel.warning("Can't resolve head top location using raycasts using {0} {1}!".format(
                 bot, dir
             ))
+            return None
 
         return libPymel.distance_between_vectors(bot, top)

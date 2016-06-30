@@ -213,7 +213,7 @@ def addAttr_separator(obj, attr_name, *args, **kwargs):
     attr = addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
     attr.lock()
 
-#Lock/unlock Function#
+#Lock/unlock Function
 
 def lock_attrs(attr_list):
     for attr in attr_list:
@@ -223,17 +223,17 @@ def unlock_attrs(attr_list):
     for attr in attr_list:
         attr.unlock()
 
-def lock_trs(node):
-    lock_position(node)
-    lock_rotation(node)
-    lock_scale(node)
+def lock_trs(node, *args, **kwargs):
+    lock_translation(node, *args, **kwargs)
+    lock_rotation(node, *args, **kwargs)
+    lock_scale(node, *args, **kwargs)
 
-def unlock_trs(node):
-    unlock_position(node)
-    unlock_rotation(node)
-    unlock_scale(node)
+def unlock_trs(node, *args, **kwargs):
+    unlock_translation(node, *args, **kwargs)
+    unlock_rotation(node, *args, **kwargs)
+    unlock_scale(node, *args, **kwargs)
 
-def lock_position(node, x=True, y=True, z=True):
+def lock_translation(node, x=True, y=True, z=True):
     lock_list = []
     if x:
         translate_x = node.attr('translateX')
@@ -247,7 +247,7 @@ def lock_position(node, x=True, y=True, z=True):
 
     lock_attrs(lock_list)
 
-def unlock_position(node, x=True, y=True, z=True):
+def unlock_translation(node, x=True, y=True, z=True):
     unlock_list = []
     if x:
         translate_x = node.attr('translateX')
@@ -327,17 +327,17 @@ def unhide_attrs(attr_list):
     for attr in attr_list:
         attr.setKeyable(True)
 
-def hide_trs(node):
-    hide_position(node)
-    hide_rotation(node)
-    hide_scale(node)
+def hide_trs(node, *args, **kwargs):
+    hide_translation(node, *args, **kwargs)
+    hide_rotation(node, *args, **kwargs)
+    hide_scale(node, *args, **kwargs)
 
-def unhide_trs(node):
-    unhide_position(node)
-    unhide_rotation(node)
-    unhide_scale(node)
+def unhide_trs(node, *args, **kwargs):
+    unhide_translation(node, *args, **kwargs)
+    unhide_rotation(node, *args, **kwargs)
+    unhide_scale(node, *args, **kwargs)
 
-def hide_position(node, x=True, y=True, z=True):
+def hide_translation(node, x=True, y=True, z=True):
     hide_list = []
     if x:
         translate_x = node.attr('translateX')
@@ -351,7 +351,7 @@ def hide_position(node, x=True, y=True, z=True):
 
     hide_attrs(hide_list)
 
-def unhide_position(node, x=True, y=True, z=True):
+def unhide_translation(node, x=True, y=True, z=True):
     unhide_list = []
     if x:
         translate_x = node.attr('translateX')
@@ -421,13 +421,39 @@ def unhide_scale(node, x=True, y=True, z=True):
 
     unhide_attrs(unhide_list)
 
-def lock_hide_trs(node):
-    lock_trs(node)
-    hide_trs(node)
+#Lock/Hide shortcut
 
-def unlock_unhide_trs(node):
-    unlock_trs(node)
-    unhide_trs(node)
+def lock_hide_trs(node, *args, **kwargs):
+    lock_trs(node, *args, **kwargs)
+    hide_trs(node, *args, **kwargs)
+
+def unlock_unhide_trs(node, *args, **kwargs):
+    unlock_trs(node, *args, **kwargs)
+    unhide_trs(node, *args, **kwargs)
+
+def lock_hide_translation(node, x=True, y=True, z=True):
+    lock_translation(node, x, y, z)
+    hide_translation(node, x, y, z)
+
+def unlock_unhide_translation(node, x=True, y=True, z=True):
+    unlock_translation(node, x, y, z)
+    unhide_translation(node, x, y, z)
+
+def lock_hide_rotation(node, x=True, y=True, z=True):
+    lock_rotation(node, x, y, z)
+    hide_rotation(node, x, y, z)
+
+def unlock_unhide_rotation(node, x=True, y=True, z=True):
+    unlock_rotation(node, x, y, z)
+    unhide_rotation(node, x, y, z)
+
+def lock_hide_scale(node, x=True, y=True, z=True):
+    lock_scale(node, x, y, z)
+    hide_scale(node, x, y, z)
+
+def unlock_unhide_scale(node, x=True, y=True, z=True):
+    unlock_scale(node, x, y, z)
+    unhide_scale(node, x, y, z)
 
 def is_connected_to(attr_inn, attr_out, recursive=True):
     # TODO: Benchmark this function

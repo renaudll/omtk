@@ -45,12 +45,10 @@ class FK(Module):
             self.ctrls= filter(None, self.ctrls)
         except (AttributeError, TypeError):
             pass
+        super(FK, self).__callbackNetworkPostBuild__()
 
-    def build(self, rig, constraint=True, parent=True, create_spaceswitch=None, *args, **kwargs):
+    def build(self, rig, constraint=True, parent=True, *args, **kwargs):
         super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)
-
-        if create_spaceswitch is not None:
-            self.create_spaceswitch = create_spaceswitch
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
@@ -65,10 +63,10 @@ class FK(Module):
         for input, ctrl in zip(self.chain_jnt, self.ctrls):
             ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
             ctrl_name = ctrl_nomenclature.resolve('fk')
-            ctrl.build(name=ctrl_name, refs=input)
+            ctrl.build(rig, name=ctrl_name, refs=input)
             ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
-        if create_spaceswitch:
+        if self.create_spaceswitch:
             if self.sw_translate:
                 self.ctrls[0].create_spaceswitch(rig, self, self.parent, add_world=True)
             else:
@@ -137,7 +135,7 @@ class AdditiveFK(FK):
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
-            ctrl.build(name=name, refs=self.chain.start)
+            ctrl.build(rig, name=name, refs=self.chain.start)
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
 

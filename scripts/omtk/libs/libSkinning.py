@@ -301,3 +301,21 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
 
 
     mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+
+#TODO : Reset the bind pose at the same time to prevent any problem
+def reset_skin_cluster(skinCluster):
+    influenceObjs = skinCluster.influenceObjects()
+    pymel.skinCluster(skinCluster, e=True, unbindKeepHistory=True)
+    for obj in skinCluster.getOutputGeometry():
+        pymel.skinCluster(influenceObjs + [obj], tsb=True)
+
+def reset_selection_skin_cluster():
+    # Collect skinClusters
+    skinClusters = set()
+    for obj in pymel.selected():
+        skinCluster = get_skin_cluster(obj)
+        if skinCluster:
+            skinClusters.add(skinCluster)
+
+    for skinCluster in skinClusters:
+        reset_skin_cluster(skinCluster)

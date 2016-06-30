@@ -265,7 +265,6 @@ def create_shape_box_arm(refs, geometries):
 
 
 def create_shape_box_feet(refs, geometries, *args, **kwargs):
-    # TODO: Prevent crash when there's no provided geometries
     ref = next(iter(refs))
     ref_pos = ref.getTranslation(space='world')
     ref_tm = pymel.datatypes.Matrix(
@@ -296,7 +295,14 @@ def create_shape_box_feet(refs, geometries, *args, **kwargs):
 
     # Using all provided objects
     min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, filtered_geometries, parent_tm=ref_tm)
-    min_y = min(min_y, -ref_pos.y)
+    min_y = min(min_y, - ref_pos.y)
+
+    # If no geometry was provided, there won't be any width in the returned values.
+    if not geometries:
+        length = max_z - min_z
+        desired_width = length * 0.25
+        min_x = -desired_width
+        max_x = desired_width
 
     pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
     pos2 = pymel.datatypes.Point(min_x, min_y, max_z)

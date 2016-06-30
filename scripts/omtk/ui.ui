@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>909</width>
-    <height>565</height>
+    <width>1142</width>
+    <height>747</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,6 +28,9 @@
            <string>Loaded Modules</string>
           </property>
          </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEdit_search_modules"/>
         </item>
         <item>
          <widget class="QTreeWidget" name="treeWidget">
@@ -91,8 +94,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>909</width>
-     <height>25</height>
+     <width>1142</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>
@@ -110,7 +113,9 @@
    <addaction name="actionBuild"/>
    <addaction name="actionUnbuild"/>
    <addaction name="actionRebuild"/>
-   <addaction name="actionAdd"/>
+   <addaction name="actionCreateModule"/>
+   <addaction name="actionAddNodeToModule"/>
+   <addaction name="actionRemoveNodeFromModule"/>
    <addaction name="separator"/>
    <addaction name="actionImport"/>
    <addaction name="actionExport"/>
@@ -153,9 +158,9 @@
     <string>Update</string>
    </property>
   </action>
-  <action name="actionAdd">
+  <action name="actionCreateModule">
    <property name="text">
-    <string>Add</string>
+    <string>Add Module</string>
    </property>
   </action>
   <action name="actionMirrorJntsLToR">
@@ -172,6 +177,16 @@
    </property>
    <property name="toolTip">
     <string>Mirror Jnts R -&gt; L</string>
+   </property>
+  </action>
+  <action name="actionAddNodeToModule">
+   <property name="text">
+    <string>AddNodeToModule</string>
+   </property>
+  </action>
+  <action name="actionRemoveNodeFromModule">
+   <property name="text">
+    <string>RemoveNodeFromModule</string>
    </property>
   </action>
  </widget>

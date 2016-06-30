@@ -24,7 +24,7 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def __init__(self, *args, **kwargs):
         super(FaceNose, self).__init__(*args, **kwargs)
-        self.ctrl_main = None
+        self.avar_main = None
 
     @property
     def inf_nose_upp(self):
@@ -78,42 +78,32 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
         # Create a ctrl that will control the whole nose
+        ref = self.inf_nose_low
+        if not self.avar_main:
+            self.avar_main = self.create_abstract_avar(rig, self._CLS_CTRL, ref, name=self.name)
+        self.build_abstract_avar(rig, self._CLS_CTRL, self.avar_main)
+
+        '''
         ctrl_upp_name = nomenclature_anm.resolve()
         if not isinstance(self.ctrl_main, self._CLS_CTRL):
             self.ctrl_main = self._CLS_CTRL()
-        self.ctrl_main.build(name=ctrl_upp_name)
-        self.create_ctrl_macro(rig, self.ctrl_main, self.inf_nose_low)
-
-        self.ctrl_main.attach_to_avars(attr_ud=self.attr_ud,
-                                       attr_lr=self.attr_lr,
-                                       attr_fb=self.attr_fb,
-                                       attr_yw=self.avar_nose_low.attr_yw,
-                                       attr_pt=self.avar_nose_upp.attr_pt,
-                                       attr_rl=self.avar_nose_upp.attr_rl
-                                       )
-
-
-        self.avar_nose_low.attach_ctrl(rig, self.ctrl_main)
-
+        self.ctrl_main.build(rig, self.inf_nose_low, name=ctrl_upp_name)
+        #self.create_ctrl_macro(rig, self.ctrl_main, self.inf_nose_low)
         '''
-        #if not self.preDeform:
-            jnt_head = rig.get_head_jnt()
-            if not jnt_head:
-                raise Exception("Can't resolve head.")
 
-            jnt_jaw = rig.get_jaw_jnt()
-            if not jnt_jaw:
-                raise Exception("Can't resolve jaw.")
+        for avar in self.avars:
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_ud, avar.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_lr, avar.attr_lr)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_fb, avar.attr_fb)
 
-            for avar in self.avars_upp:
-                pymel.parentConstraint(jnt_head, avar._stack._layers[0], maintainOffset=True)
+        if self.avar_nose_upp:
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_pt, self.avar_nose_upp.attr_pt)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_rl, self.avar_nose_upp.attr_rl)
 
-            for avar in self.avars_low:
-                pymel.parentConstraint(jnt_jaw, avar._stack._layers[0], maintainOffset=True)
+        if self.avar_nose_low:
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_yw, self.avar_nose_low.attr_yw)
 
-            for avar in self.avars_corners:
-                pymel.parentConstraint(jnt_head, jnt_jaw, avar._stack._layers[0], maintainOffset=True)
-        '''
+        self.avar_main.calibrate()
 
         if self.parent:
             pymel.parentConstraint(self.parent, self.avar_nose_upp._stack._layers[0], maintainOffset=True)

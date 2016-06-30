@@ -18,5 +18,5 @@ def CallFnOnNetworkByClass(_sFn, _sCls):
         except Exception as e:
             print(str(e))
 
-switchToIk = functools.partial(CallFnOnNetworkByClass, 'switch_to_ik', 'Arm')
-switchToFk = functools.partial(CallFnOnNetworkByClass, 'switch_to_fk', 'Arm')
+switchToIk = functools.partial(CallFnOnNetworkByClass, 'switch_to_ik', 'Limb')
+switchToFk = functools.partial(CallFnOnNetworkByClass, 'switch_to_fk', 'Limb')

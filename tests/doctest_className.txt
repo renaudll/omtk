@@ -1,0 +1,23 @@
+>>> from omtk.core.className import BaseName
+
+# Construct a naming from scratch
+>>> n = BaseName(tokens=['eye', 'jnt'], side=BaseName.SIDE_L)
+>>> n.resolve()
+'l_eye_jnt'
+
+# Construct a naming from another existing naming
+>>> n = BaseName('l_eye_jnt')
+>>> n.prefix is None
+True
+>>> n.suffix is None
+True
+>>> n.side is None
+False
+
+# Adding of tokens using suffix
+>>> n = BaseName(tokens=['eye'], side=BaseName.SIDE_L, suffix='jnt')
+>>> n.resolve()
+'l_eye_jnt'
+>>> n.tokens.append('micro')
+>>> n.resolve()
+'l_eye_micro_jnt'

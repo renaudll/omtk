@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/sbourgoing/dev/omtk/scripts/omtk/ui.ui'
+# Form implementation generated from reading ui file '/home/rlessard/dev/omtk/scripts/omtk/ui.ui'
 #
-# Created: Wed Feb 24 13:15:16 2016
+# Created: Fri May 27 20:59:52 2016
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(909, 565)
+        MainWindow.resize(1142, 747)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_3 = QtGui.QVBoxLayout(self.centralwidget)
@@ -28,6 +28,9 @@ class Ui_MainWindow(object):
         self.label_modules = QtGui.QLabel(self.layoutWidget)
         self.label_modules.setObjectName("label_modules")
         self.verticalLayout_2.addWidget(self.label_modules)
+        self.lineEdit_search_modules = QtGui.QLineEdit(self.layoutWidget)
+        self.lineEdit_search_modules.setObjectName("lineEdit_search_modules")
+        self.verticalLayout_2.addWidget(self.lineEdit_search_modules)
         self.treeWidget = QtGui.QTreeWidget(self.layoutWidget)
         self.treeWidget.setObjectName("treeWidget")
         self.treeWidget.headerItem().setText(0, "1")
@@ -57,7 +60,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 909, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1142, 26))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
@@ -78,16 +81,22 @@ class Ui_MainWindow(object):
         self.actionExport.setObjectName("actionExport")
         self.actionUpdate = QtGui.QAction(MainWindow)
         self.actionUpdate.setObjectName("actionUpdate")
-        self.actionAdd = QtGui.QAction(MainWindow)
-        self.actionAdd.setObjectName("actionAdd")
+        self.actionCreateModule = QtGui.QAction(MainWindow)
+        self.actionCreateModule.setObjectName("actionCreateModule")
         self.actionMirrorJntsLToR = QtGui.QAction(MainWindow)
         self.actionMirrorJntsLToR.setObjectName("actionMirrorJntsLToR")
         self.actionMirrorJntsRToL = QtGui.QAction(MainWindow)
         self.actionMirrorJntsRToL.setObjectName("actionMirrorJntsRToL")
+        self.actionAddNodeToModule = QtGui.QAction(MainWindow)
+        self.actionAddNodeToModule.setObjectName("actionAddNodeToModule")
+        self.actionRemoveNodeFromModule = QtGui.QAction(MainWindow)
+        self.actionRemoveNodeFromModule.setObjectName("actionRemoveNodeFromModule")
         self.toolBar.addAction(self.actionBuild)
         self.toolBar.addAction(self.actionUnbuild)
         self.toolBar.addAction(self.actionRebuild)
-        self.toolBar.addAction(self.actionAdd)
+        self.toolBar.addAction(self.actionCreateModule)
+        self.toolBar.addAction(self.actionAddNodeToModule)
+        self.toolBar.addAction(self.actionRemoveNodeFromModule)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionImport)
         self.toolBar.addAction(self.actionExport)
@@ -113,9 +122,11 @@ class Ui_MainWindow(object):
         self.actionExport.setText(QtGui.QApplication.translate("MainWindow", "Export", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUpdate.setText(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUpdate.setToolTip(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionAdd.setText(QtGui.QApplication.translate("MainWindow", "Add", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionCreateModule.setText(QtGui.QApplication.translate("MainWindow", "Add Module", None, QtGui.QApplication.UnicodeUTF8))
         self.actionMirrorJntsLToR.setText(QtGui.QApplication.translate("MainWindow", "Mirror Jnts R <- L", None, QtGui.QApplication.UnicodeUTF8))
         self.actionMirrorJntsLToR.setToolTip(QtGui.QApplication.translate("MainWindow", "MirrorLToR", None, QtGui.QApplication.UnicodeUTF8))
         self.actionMirrorJntsRToL.setText(QtGui.QApplication.translate("MainWindow", "Mirror Jnts R -> L", None, QtGui.QApplication.UnicodeUTF8))
         self.actionMirrorJntsRToL.setToolTip(QtGui.QApplication.translate("MainWindow", "Mirror Jnts R -> L", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionAddNodeToModule.setText(QtGui.QApplication.translate("MainWindow", "AddNodeToModule", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionRemoveNodeFromModule.setText(QtGui.QApplication.translate("MainWindow", "RemoveNodeFromModule", None, QtGui.QApplication.UnicodeUTF8))
 

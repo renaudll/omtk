@@ -12,9 +12,38 @@ class CtrlJaw(rigFaceAvar.BaseCtrlFace):
         node.s.lock()
         return node
 
-    def attach_all_to_avars(self, avar):
-        attr_pt_inn = self.translateY
-        attr_yw_inn = self.translateX
+
+class AvarJaw(rigFaceAvar.AvarSimple):
+    """
+    This avar is not designed to use any surface.
+    """
+    SHOW_IN_UI = False
+    _CLS_CTRL = CtrlJaw
+    IS_SIDE_SPECIFIC = False
+
+    def get_module_name(self):
+        return 'Jaw'
+
+    def get_ctrl_tm(self, rig):
+        """
+        Find the chin location using raycast. This is the preffered location for the jaw doritos.
+        If raycast don't return any information, use the default behavior.
+        """
+
+        ref = self.jnt.getMatrix(worldSpace=True)
+        pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space='world'))
+        pos_e = pymel.datatypes.Point(1,0,0) * ref
+        dir = pos_e - pos_s
+        result = rig.raycast_farthest(pos_s, dir)
+        if not result:
+            return super(AvarJaw, self).get_ctrl_tm(rig)
+
+        tm = pymel.datatypes.Matrix([1,0,0,0, 0,1,0,0, 0,0,1,0, result.x, result.y, result.z, 1])
+        return tm
+
+    def connect_ctrl(self, ctrl, **kwargs):
+        attr_pt_inn = ctrl.translateY
+        attr_yw_inn = ctrl.translateX
 
         # UD Low
         attr_pt_low = libRigging.create_utility_node('multiplyDivide', input1X=attr_pt_inn, input2X=-1).outputX
@@ -26,45 +55,12 @@ class CtrlJaw(rigFaceAvar.BaseCtrlFace):
                                        ).outColorR
         '''
 
-        libRigging.connectAttr_withBlendWeighted(
-            attr_pt_low, avar.attr_pt
+        libRigging.connectAttr_withLinearDrivenKeys(
+            attr_pt_low, self.attr_pt, kv=[0.0, 0.0, 10.0]
         )
-        libRigging.connectAttr_withBlendWeighted(
-            attr_yw_inn, avar.attr_yw
+        libRigging.connectAttr_withLinearDrivenKeys(
+            attr_yw_inn, self.attr_yw, kv=[-5.0, 0.0, 5.0]
         )
-        
-
-class AvarJaw(rigFaceAvar.AvarSimple):
-    """
-    This avar is not designed to use any surface.
-    """
-    SHOW_IN_UI = True
-    _CLS_CTRL = CtrlJaw
-    IS_SIDE_SPECIFIC = False
-
-    def get_ctrl_tm(self):
-        """
-        Find the chin location. This is the preffered location for the jaw doritos.
-        :return:
-        """
-        # TODO: Prevent multiple calls? cached?
-        jnt = next(iter(self.jnts), None)
-        geos = libRigging.get_affected_geometries(jnt)  # TODO: Validate
-
-        ref = jnt.getMatrix(worldSpace=True)
-
-        pos_s = pymel.datatypes.Point(jnt.getTranslation(space='world'))
-        pos_e = pymel.datatypes.Point(10,0,0) * ref
-        dir = pos_e - pos_s
-        result = libRigging.ray_cast(pos_s, dir, geos)
-        if not result:
-            raise Exception("Can't resolve doritos location for {0}".format(self))
-
-        result = next(iter(reversed(result)))
-        tm = pymel.datatypes.Matrix([1,0,0,0, 0,1,0,0, 0,0,1,0, result.x, result.y, result.z, 1])
-        #sl = pymel.spaceLocator()
-        #sl.setMatrix(tm)
-        return tm
 
     def build(self, *args, **kwargs):
         super(AvarJaw, self).build(*args, **kwargs)
@@ -84,46 +80,9 @@ class AvarJaw(rigFaceAvar.AvarSimple):
 class FaceJaw(rigFaceAvarGrps.AvarGrp):
     """
     The Jaw is a special zone since it doesn't happen in pre-deform, it happen in the main skinCluster.
-    The Jaw global avars are made 
+    The Jaw global avars are made
     """
     _CLS_AVAR = AvarJaw
-    AVAR_LIPS_COMPRESS = 'avarLipsCompress'
-
-    def __init__(self, *args, **kwargs):
-        super(FaceJaw, self).__init__(*args, **kwargs)
-        self.preDeform = False # By default, the jaw is in the final skin deformer.
-
-        # attr_ud_scuplt is a combo sculpt that make the lips thinner when the jaw move uppward.
-        # see: Art of Moving Points page 207.
-        self.attr_ud_sculpt = None
-
-    def add_avars(self, attr_holder):
-        # HACK: For now we won't use any global avars on the Jaw since there's only one influence.
-        #super(FaceJaw, self).add_avars(attr_holder)
-        pass
-
-        self.attr_ud_sculpt = self.add_avar(attr_holder, self.AVAR_LIPS_COMPRESS)
-
-    def connect_global_avars(self):
-        pass
-
-        # Connect attr_lips_compress
-        # Note that if we are re-building a rig, this logic may already exist, in which case we'll skip it.
-        attr_pt_inn = self.avars[0].attr_pt
-        if not libAttr.is_connected_to(attr_pt_inn, self.attr_ud_sculpt):
-            attr_pt_inv = libRigging.create_utility_node('multiplyDivide',
-                                                         input1X=attr_pt_inn,  # todo: use global avar?
-                                                         input2X=-1.0/45,
-                                                        ).outputX
-            attr_lips_compress_out = libRigging.create_utility_node('condition',
-                                                                    operation=4,  # Less than
-                                                                    firstTerm=attr_pt_inn,
-                                                                    colorIfTrueR=attr_pt_inv,
-                                                                    colorIfFalseR=0.0
-                                                                    ).outColorR
-            pymel.connectAttr(attr_lips_compress_out, self.attr_ud_sculpt)
-
-
-
+    SHOW_IN_UI = True
 
 

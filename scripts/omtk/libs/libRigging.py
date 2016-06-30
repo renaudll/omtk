@@ -64,19 +64,77 @@ def create_utility_node(_sClass, *args, **kwargs):
 # CtrlShapes Backup
 #
 def hold_ctrl_shapes(transform, parent=None):
-    shapes = filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), transform.getShapes())
+    # Resolve each shape in it's most left position in the history.
+    # This allow us to transform with multiples shapes and deformed shape.
+    # If we encounter a deformed shape, we'll simple hold/fetch the Orig shape.
+
+    # Resolve all shapes (pymel.nodetypes.CurveShape only for now)
+    def is_shape(shape):
+        return isinstance(shape, pymel.nodetypes.CurveShape) and not shape.intermediateObject.get()
+    all_shapes = filter(is_shape, transform.getShapes())
+    if not all_shapes:
+        return
+
+    # Resolve only orig shape
+
+    def get_orig_shape(shape):
+        def is_shape_history(hist):
+            return is_shape(hist) and hist.getParent() == transform
+        return next(reversed(filter(is_shape_history, shape.listHistory())))
+    all_shapes = map(get_orig_shape, all_shapes)
+
+
+    dst_transform = pymel.duplicate(transform, parentOnly=True, returnRootsOnly=True)[0]
+
+    for src_shape in all_shapes:
+        # We use the duplicate command to duplicate the shape.
+        # However it has to be isolated in it's own transform so the duplicate method won't duplicate the other shapes.
+        # Theorically it's possible to create a new nurbsCurve and connect/disconnect it's create attribute.
+        # However without triggering a viewport refresh using the refresh command, the connect/disconnect trick don't work.
+
+        tmp1 = pymel.createNode('transform')
+        src_shape.setParent(tmp1, relative=True, shape=True)
+        tmp2 = pymel.duplicate(tmp1)[0]
+        dst_shape = tmp2.getShape()
+        pymel.delete(tmp1)
+
+        dst_shape.setParent(dst_transform, relative=True, shape=True)
+        if dst_shape.intermediateObject.get():
+            dst_shape.intermediateObject.set(False)
+        pymel.delete(tmp2)
+
+    '''
+    dst_shapes = []
+    for src_shape in all_shapes_orig:
+        #src_type = src_shape.longName.type()
+        dst_shape = pymel.createNode('nurbsCurve')
+        tmp = dst_shape.getParent()
+        pymel.nodeCast(src_shape, dst_shape)
+        pymel.delete(tmp)
+    '''
+
+    '''
     snapshot = pymel.duplicate(transform, parentOnly=True, returnRootsOnly=True)[0]
-    for shape in shapes:
+    for shape in all_shapes_orig:
         shape.setParent(snapshot, s=True, r=True)
+        if shape.intermediateObject.get():
+            shape.intermediateObject.set(False)
+    '''
+
     if parent:
-        snapshot.setParent(parent)
+        dst_transform.setParent(parent)
     else:
-        snapshot.setParent(world=True)
+        dst_transform.setParent(world=True)
 
     new_name = '_{0}'.format(transform.name())
-    cmds.rename(snapshot.longName(), new_name)  # For strange reasons, using .rename don't always work.
-    snapshot.template.set(True)
-    return snapshot
+    cmds.rename(dst_transform.longName(), new_name)  # For strange reasons, using .rename don't always work.
+    try:
+        pymel.makeIdentity(dst_transform, scale=True, apply=True)
+    except:
+        pass
+    dst_transform.template.set(True)
+
+    return dst_transform
 
 
 def fetch_ctrl_shapes(source, target):
@@ -494,11 +552,15 @@ def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
 
     return results
 
-def ray_cast_nearest(*args, **kwargs):
-    return next(iter(ray_cast(*args, **kwargs)), None)
+def ray_cast_nearest(pos, *args, **kwargs):
+    results = ray_cast(pos, *args, **kwargs)
+    results = sorted(results, key=lambda x: libPymel.distance_between_vectors(pos, x))
+    return next(iter(results), None)
 
-def ray_cast_farthest(*args, **kwargs):
-    return next(iter(reversed(ray_cast(*args, **kwargs))), None)
+def ray_cast_farthest(pos, *args, **kwargs):
+    results = ray_cast(pos, *args, **kwargs)
+    results = sorted(results, key=lambda x: libPymel.distance_between_vectors(pos, x))
+    return next(iter(reversed(results)), None)
 
 # TODO: Benchmark performances
 def snap(obj_dst, obj_src):
@@ -766,43 +828,26 @@ def get_multi_attr_available_slot(attr_multi):
         i += 1
     return attr_multi[i]
 
-def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs):
-    # Check on which attribute @attr_dst is connected to (if applicable).
-    attr_dst_input = next(iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)), None)
-
-    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
-    if attr_dst_input is None or not isinstance(attr_dst_input.node(), pymel.nodetypes.BlendWeighted):
-        util_blend = pymel.createNode('blendWeighted')
-
-        if attr_dst_input is not None:
-            next_available = util_blend.input.numElements()
-
-
-            pymel.connectAttr(attr_dst_input, util_blend.input[next_available])
-
-    else:
-        util_blend = attr_dst_input.node()
-
-    if multiplier:
-        attr_src = create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
-
-    next_input = get_multi_attr_available_slot(util_blend.input)
-    pymel.connectAttr(attr_src, next_input)
-
-    if not attr_dst.isDestination():
-        pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)
-
 def get_closest_point_on_mesh(mesh, pos):
+
+
+    # closestPointOnMesh ignores polymesh transforms
+    util_transformGeometry = create_utility_node('transformGeometry',
+                                                 inputGeometry=mesh.outMesh,
+                                                 transform=mesh.worldMatrix
+                                                 )
+
     # TODO: maybe support multiple uv sets?
     util_cpom = create_utility_node('closestPointOnMesh',
         inPosition=pos,
-        inMesh=mesh.worldMesh
+        inMesh=util_transformGeometry.outputGeometry
     )
 
     pos = util_cpom.position.get()
     u = util_cpom.parameterU.get()
     v = util_cpom.parameterV.get()
 
+    pymel.delete(util_transformGeometry)
     pymel.delete(util_cpom)
 
     return pos, u, v
@@ -849,7 +894,16 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
     elif isinstance(shape, pymel.nodetypes.Mesh):
-        pymel.connectAttr(shape.worldMesh, follicle_shape.inputMesh)
+        '''
+        # closestPointOnMesh ignores polymesh transforms
+        util_transformGeometry = create_utility_node('transformGeometry',
+                                                     inputGeometry=shape.outMesh,
+                                                     transform=shape.worldMatrix
+                                                     )
+        '''
+
+
+        pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception("Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(shape.type(), shape))
 
@@ -886,3 +940,146 @@ def get_average_pos_between_nodes(jnts):
             nearest_jnt = jnt
             nearest_distance = distance
     return nearest_jnt
+
+#
+# Driven Keys Methods
+#
+
+def create_animCurveU(type, kt, kv, kit=None, kot=None, kix=None, kiy=None, kox=None, koy=None, pre=0, pst=0):
+    """
+    :param type:
+    :param keys: A tuple containing the following values: key time, key value
+    :param pre:
+    :param post:
+    :return:
+    """
+    # Use a temporary node to create the curve
+    tmp = pymel.createNode('transform')
+
+    # Resolve the attributes we'll want to "connect"
+    att_src = tmp.sx
+    att_dst = None
+    if type == 'animCurveUU':
+        att_dst = tmp.sy
+    elif type == 'animCurveUL':
+        att_dst = tmp.tx
+    elif type == 'animCurveUA':
+        att_dst = tmp.rx
+    else:
+        raise NotImplemented("Unexpected animCurve type. Got {0}.".format(type))
+
+    # Create keys
+    for key_time, key_val in zip(kt, kv):
+        att_src.set(key_time)
+        att_dst.set(key_val)
+        pymel.setDrivenKeyframe(att_dst, cd=att_src)
+
+    # Get curve and delete tmp object
+    curve = next(iter(att_dst.inputs()))
+    pymel.disconnectAttr(curve.output, att_dst)
+    pymel.disconnectAttr(att_src, curve.input)
+    pymel.delete(tmp)
+
+    curve.setPreInfinityType(pre)
+    curve.setPostInfinityType(pst)
+
+    num_keys = len(kt)
+    if kit:
+        for i, ti in zip(range(num_keys), kit):
+            curve.setInTangentType(i, ti)
+    if kot:
+        for i, to in zip(range(num_keys), kot):
+            curve.setOutTangentType(i, to)
+    if kix and kiy:
+        for i, tix, tiy in zip(range(num_keys), kix, kiy):
+            curve.setTangent(i, tix, tiy, True)
+    if kox and koy:
+        for i, tox, toy in zip(range(num_keys), kox, koy):
+            curve.setTangent(i, tox, toy, False)
+
+    return curve
+
+def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs):
+    # Check on which attribute @attr_dst is connected to (if applicable).
+    attr_dst_input = next(iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)), None)
+
+    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
+    if attr_dst_input is None or not isinstance(attr_dst_input.node(), pymel.nodetypes.BlendWeighted):
+        util_blend = pymel.createNode('blendWeighted')
+
+        if attr_dst_input is not None:
+            next_available = util_blend.input.numElements()
+
+
+            pymel.connectAttr(attr_dst_input, util_blend.input[next_available])
+
+    else:
+        util_blend = attr_dst_input.node()
+
+    if multiplier:
+        attr_src = create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
+
+    next_input = get_multi_attr_available_slot(util_blend.input)
+    pymel.connectAttr(attr_src, next_input)
+
+    if not attr_dst.isDestination():
+        pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)
+
+def getAttrOutput(attr, plugs=True, skipBlendWeighted=False, **kwargs):
+    """
+    Extend the capabilities of pymel.Attribute.outputs() by provided additional skip.
+    :param attr:
+    :param plugs:
+    :param skipBlendWeighted:
+    :param kwargs:
+    :return:
+    """
+    attr_outs = attr.outputs(plugs=True, **kwargs)
+
+    # Skip BlendWeighted
+    if skipBlendWeighted:
+        attr_outs_filtered = []
+        for attr_out in attr_outs:
+            attr_out_node = attr_out.node()
+            if isinstance(attr_out_node, pymel.nodetypes.BlendWeighted):
+                for attr_out in attr_out_node.output.outputs(plugs=True, **kwargs):
+                    attr_outs_filtered.append(attr_out)
+            else:
+                attr_outs_filtered.append(attr_out)
+        attr_outs = attr_outs_filtered
+
+    if plugs:
+        return attr_outs
+    else:
+        return [attr.node() for attr in attr_outs]
+
+def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', force=True, kt=(-1.0,0.0,1.0), kv=(-1.0,0.0,1.0), kit=(4,2,4), kot=(4,2,4), pre='linear', pst='linear'):
+    # Skip if a connection already exist
+    for node in getAttrOutput(attr_src, plugs=False, skipBlendWeighted=True):
+        if 'animCurveU' in node.type():
+            drivenkey_outplugs = getAttrOutput(node.output, plugs=True, skipBlendWeighted=True)
+            for drivenkey_outplug in drivenkey_outplugs:
+                if drivenkey_outplug == attr_dst:
+                    if force:
+                        pymel.disconnectAttr(node.input)
+                        pymel.disconnectAttr(node.output)
+                        pymel.delete(node)
+                    else:
+                        print("Can't connect. Attribute {0} is already connected to {1} via {2}".format(
+                            attr_src.longName(),
+                            attr_dst.longName(),
+                            drivenkey_outplug.node().longName()
+                        ))
+                        return
+
+    animCurve = create_animCurveU('animCurveUU',
+                                  kt=kt,
+                                  kv=kv,
+                                  kit=kit, # Spline/Linear/Spline
+                                  kot=kot, # Spline/Linear/Spline
+                                  pre=pre,
+                                  pst=pst
+                                  )
+    animCurve.rename('{0}_{1}'.format(attr_src.node().name(), attr_src.longName()))
+    pymel.connectAttr(attr_src, animCurve.input)
+    return connectAttr_withBlendWeighted(animCurve.output, attr_dst)

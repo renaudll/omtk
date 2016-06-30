@@ -80,8 +80,8 @@ class CtrlIkSwivel(BaseCtrl):
 
         return targets, target_names
 
-    def build(self, line_target=False, *args, **kwargs):
-        super(CtrlIkSwivel, self).build(*args, **kwargs)
+    def build(self, rig, line_target=False, *args, **kwargs):
+        super(CtrlIkSwivel, self).build(rig, *args, **kwargs)
         assert (self.node is not None)
 
         # Create line
@@ -240,8 +240,10 @@ class IK(Module):
         # Todo: implement a duplicate method in omtk.libs.libPymel.PyNodeChain
         # Create ikChain and fkChain
         self._chain_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
+        i = 1
         for oInput, oIk, in zip(self.chain_jnt, self._chain_ik):
-            oIk.rename(nomenclature_rig.resolve('ik'))
+            oIk.rename(nomenclature_rig.resolve('{0:02}'.format(i)))
+            i += 1
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
 
 
@@ -270,7 +272,7 @@ class IK(Module):
         if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
             self.ctrl_ik = self._CLASS_CTRL_IK()
         ctrl_ik_refs = [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
-        self.ctrl_ik.build(refs=ctrl_ik_refs, geometries=rig.get_meshes())  # refs is used by CtrlIkCtrl
+        self.ctrl_ik.build(rig, refs=ctrl_ik_refs, geometries=rig.get_meshes())  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
@@ -287,7 +289,7 @@ class IK(Module):
         if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
             self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
         ctrl_swivel_ref = jnt_elbow
-        self.ctrl_swivel.build(refs=ctrl_swivel_ref)
+        self.ctrl_swivel.build(rig, refs=ctrl_swivel_ref)
         self.ctrl_swivel.setParent(self.grp_anm)
         self.ctrl_swivel.rename(nomenclature_anm.resolve('swivel'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
@@ -307,24 +309,25 @@ class IK(Module):
         # Adjust the ratio in percentage so animators understand that 0.03 is 3%
         attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
 
+        # Create the ik_handle_target that will control the ik_handle
+        # This is allow us to override what control the main ik_handle
+        # Mainly used for the Leg setup
+        self._ik_handle_target = pymel.createNode('transform', name=nomenclature_rig.resolve('ikHandleTarget'))
+        self._ik_handle_target.setParent(self.grp_rig)
+        pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
+
         # Create and configure SoftIK solver
         rig_softIkNetwork = SoftIkNode()
         rig_softIkNetwork.build()
         pymel.connectAttr(attInRatio, rig_softIkNetwork.inRatio)
         pymel.connectAttr(attInStretch, rig_softIkNetwork.inStretch)
         pymel.connectAttr(self._ikChainGrp.worldMatrix, rig_softIkNetwork.inMatrixS)
-        pymel.connectAttr(self.ctrl_ik.worldMatrix, rig_softIkNetwork.inMatrixE)
+        pymel.connectAttr(self._ik_handle_target.worldMatrix, rig_softIkNetwork.inMatrixE)
         attr_distance = libFormula.parse('distance*globalScale',
                                          distance=self.chain_length,
                                          globalScale=self.grp_rig.globalScale)
         pymel.connectAttr(attr_distance, rig_softIkNetwork.inChainLength)
 
-        # Constraint effector
-        # Note that we create an ikHandleTarget node so that we can hijack the system later.
-        # For example if we are building a Leg and want to footroll to influence the ikHandle.
-        self._ik_handle_target = pymel.createNode('transform', name=nomenclature_rig.resolve('ikHandleTarget'))
-        self._ik_handle_target.setParent(self.grp_rig)
-        pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
         attOutRatio = rig_softIkNetwork.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=rig_softIkNetwork.outRatio).outputX
         pymel.select(clear=True)

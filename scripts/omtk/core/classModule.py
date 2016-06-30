@@ -1,9 +1,31 @@
 import pymel.core as pymel
 import logging
+import re
 logging.basicConfig()
 from classCtrl import BaseCtrl
 from omtk.libs import libPymel, libAttr, libPython
 log = logging.getLogger('omtk')
+import functools
+
+#
+# Define decorators that can be used to expose function to the UI.
+#
+class decorator_uiexpose(object):
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+    def __repr__(self):
+        return self.func.__doc__
+    def __get__(self, obj, objtype):
+        fn = functools.partial(self.__call__, obj)
+        fn.__can_show__ = self.__can_show__
+        return fn
+    def __can_show__(self):
+        """
+        This method is used for duck-typing by the interface.
+        """
+        return True
 
 def getattrs_by_type(val, type, recursive=False):
     # TODO: Find a more eleguant way...
@@ -50,6 +72,24 @@ class Module(object):
         except (AttributeError, TypeError):
             pass
 
+        # Hack: Workaround a bug in the ui that can propagate invalid characters in the module...
+        REGEX_PATTERN = '( *)<.*>( *)'
+        if re.match('.*{0}.*'.format(REGEX_PATTERN), self.name):
+            new_name = re.sub(REGEX_PATTERN, '', self.name)
+            log.warning("Invalid characters in Module name. Replacing {0} by {1}".format(self.name, new_name))
+            self.name = new_name
+
+    def __getNetworkName__(self):
+        """
+        Determine the name of the maya network.
+        Override this to customize.
+        Returns: The desired network name for this instance.
+        """
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
+
+    def __createMayaNetwork__(self):
+        return pymel.createNode('network', name='net_{0}'.format(self.name))
+
     def is_built(self):
         """
         Check in maya the existence of the grp_anm and grp_rig properties.
@@ -57,9 +97,11 @@ class Module(object):
         """
         return (self.grp_anm is not None and self.grp_anm.exists()) or (self.grp_rig is not None and self.grp_rig.exists())
 
+    '''
     @property
     def outputs(self):
         return self.__dict__['_outputs']
+    '''
 
     def get_default_name(self, rig):
         """
@@ -78,23 +120,30 @@ class Module(object):
                 new_nomenclature.add_tokens(self.__class__.__name__)
 
             if self.IS_SIDE_SPECIFIC:
-                side = old_nomenclature.get_side()
+                side = old_nomenclature.side
                 if side:
-                    new_nomenclature.add_prefix(side)
+                    new_nomenclature.side = side
 
             return new_nomenclature.resolve()
 
     @libPython.memoized
     def get_module_name(self):
-        return self.name if self.name else self.__class__.__name__.lower()
+        """
+        Name override for nomenclature when naming ctrl and rig elements.
+        """
+        if self.name:
+            return self.name
+        return self.__class__.__name__.lower()
 
     @libPython.memoized
     def get_nomenclature_anm(self, rig):
         """
         :return: The nomenclature to use for animation controllers.
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_anm)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_anm
+        )
         return name
 
     @libPython.memoized
@@ -102,8 +151,10 @@ class Module(object):
         """
         :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_anm_grp)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_anm_grp
+        )
         return name
 
     @libPython.memoized
@@ -111,16 +162,20 @@ class Module(object):
         """
         :return: The nomenclature to use for rig objects.
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_rig)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_rig
+        )
         return name
 
     def get_nomenclature_rig_grp(self, rig):
         """
         :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_rig_grp)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_rig_grp
+        )
         return name
 
     @libPython.memoized
@@ -128,8 +183,10 @@ class Module(object):
         """
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
         """
-        name = rig.nomenclature(suffix=rig.nomenclature.type_jnt)
-        name.add_tokens(self.get_module_name())
+        name = rig.nomenclature(
+            name=self.get_module_name(),
+            suffix=rig.nomenclature.type_jnt
+        )
         return name
 
     @property
@@ -200,21 +257,8 @@ class Module(object):
     def __str__(self):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
 
-    #
-    # libSerialization implementation
-    #
-    def __getNetworkName__(self):
-        """
-        Determine the name of the maya network.
-        Override this to customize.
-        Returns: The desired network name for this instance.
-        """
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
 
-    def __createMayaNetwork__(self):
-        return pymel.createNode('network', name='net_{0}'.format(self.name))
-
-    def validate(self):
+    def validate(self, rig):
         """
         Check if the module can be built with it's current configuration.
         In case of error, an exception will be raised with the necessary informations.
@@ -233,9 +277,6 @@ class Module(object):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
-
-        if not self.input:
-            raise Exception("Can't build module with zero inputs. {0}".format(self))
 
         log.info('Building {0}'.format(self))
 
@@ -354,4 +395,5 @@ class Module(object):
             return [(first_joint, None)]
         else:
             return []
+
 

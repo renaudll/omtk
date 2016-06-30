@@ -15,7 +15,6 @@ import rigHand
 import rigDpSpine
 
 # Import face modules
-import rigDoritos
 import rigFaceAvar
 import rigFaceAvarGrps
 import rigFaceBrow
@@ -41,7 +40,6 @@ def _reload():
     reload(rigDpSpine)
 
     # Reload face modules
-    reload(rigDoritos)
     reload(rigFaceAvar)
     reload(rigFaceAvarGrps)
     reload(rigFaceBrow)
@@ -52,11 +50,11 @@ def _reload():
     reload(rigFaceEyes)
     reload(rigFaceNose)
 
-
-
+'''
 def create(cls_name, *args, **kwargs):
     cls = libPython.get_class_def(cls_name, classModule.Module)
     if cls is None:
         raise Exception("Can't find any module named {0}".format(cls_name))
     cls(*args, **kwargs)
     return cls
+'''

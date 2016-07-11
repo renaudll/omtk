@@ -1,5 +1,7 @@
 name = 'omtk'
 
+version = '0.0.2'
+
 requires = ['libSerialization']
 
 def commands():

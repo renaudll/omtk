@@ -105,7 +105,7 @@ class BaseCtrl(Node):
 
         # Create an intermediate parent if necessary
         if self._create_offset:
-            self.offset = self.add_layer('offset')
+            self.offset = self.append_layer('offset')
 
         # Fetch stored animations
         self.fetch_attr_all() # todo: still necessary?
@@ -277,7 +277,7 @@ class BaseCtrl(Node):
             offset += 1
             labels.insert(0, default_name)
 
-        layer_spaceSwitch = self.add_layer('spaceSwitch')
+        layer_spaceSwitch = self.append_layer('spaceSwitch')
         parent_constraint = pymel.parentConstraint(targets, layer_spaceSwitch, maintainOffset=True, **kwargs)
         attr_space = libAttr.addAttr(self.node, 'space', at='enum', enumName=':'.join(labels), k=True)
         atts_weights = parent_constraint.getWeightAliasList()
@@ -409,7 +409,7 @@ class InteractiveCtrl(BaseCtrl):
 
         # Create the layer_fol that will follow the geometry
         layer_fol_name = nomenclature_rig.resolve('doritosFol')
-        layer_fol = stack.add_layer()
+        layer_fol = stack.append_layer()
         layer_fol.rename(layer_fol_name)
         #layer_fol.setParent(self.grp_rig)
 

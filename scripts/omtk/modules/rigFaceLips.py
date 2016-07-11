@@ -68,10 +68,10 @@ class FaceLips(rigFaceAvarGrps.AvarGrpUppLow):
             for avar in self.avars_low:
                 pymel.parentConstraint(jnt_jaw, avar._stack._layers[0], maintainOffset=True)
 
+            # Note that since we are using two targets, we need to ensure the parent also follow
+            # the face to prevent any accidental flipping.
             for avar in self.avars_corners:
-                pymel.parentConstraint(jnt_head, jnt_jaw, avar._stack._layers[0], maintainOffset=True)
-
-
-
-
-
+                offset_layer = avar._stack.get_stack_start()
+                offset_flip_layer = avar._stack.preprend_layer(name='OffsetNotFlip')
+                pymel.parentConstraint(jnt_head, offset_flip_layer, maintainOffset=True)
+                pymel.parentConstraint(jnt_head, jnt_jaw, offset_layer, maintainOffset=True)

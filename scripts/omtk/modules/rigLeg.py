@@ -64,6 +64,8 @@ class LegIk(IK):
         self.pivot_foot_back = None
         self.pivot_foot_inn = None
         self.pivot_foot_out = None
+        self.pivot_foot_ankle = None
+        self.pivot_foot_toes_fk = None
 
         self.pivot_foot_heel_pos = None
         self.pivot_toes_heel_pos = None
@@ -275,6 +277,7 @@ class LegIk(IK):
         self.pivot_foot_inn = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootBankInn'))
         self.pivot_foot_out = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootBankOut'))
         self.pivot_foot_heel = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotFootHeel'))
+        self.pivot_foot_toes_fk = pymel.spaceLocator(name=nomenclature_rig.resolve('pivotToesFkRoll'))
 
         chain_footroll = [
             root_footRoll,
@@ -289,6 +292,7 @@ class LegIk(IK):
         ]
         libRigging.create_hyerarchy(chain_footroll)
         chain_footroll[0].setParent(self.grp_rig)
+        self.pivot_foot_toes_fk.setParent(self.pivot_foot_heel)
 
         self.pivot_foot_ankle.setTranslation(pos_pivot_ankle, space='world')
         self.pivot_foot_inn.setTranslation(pos_pivot_inn, space='world')
@@ -297,6 +301,7 @@ class LegIk(IK):
         self.pivot_foot_heel.setTranslation(pos_pivot_heel, space='world')
         self.pivot_foot_front.setTranslation(pos_pivot_front, space='world')
         self.pivot_toes_ankle.setTranslation(pos_pivot_ankle, space='world')
+        self.pivot_foot_toes_fk.setTranslation(pos_pivot_ankle, space='world')
         self.pivot_toes_heel.setTranslation(pos_pivot_heel, space='world')
 
         # Create attributes
@@ -313,6 +318,7 @@ class LegIk(IK):
         attr_inn_heel_roty  = libAttr.addAttr(attr_holder, longName=self.HEEL_ROTY_LONGNAME, niceName=self.HEEL_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
         attr_inn_toes_roty = libAttr.addAttr(attr_holder, longName=self.TOES_ROTY_LONGNAME, niceName=self.TOES_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
         attr_inn_front_roty = libAttr.addAttr(attr_holder, longName=self.FRONT_ROTY_LONGNAME, niceName=self.FRONT_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
+        attr_inn_toes_fk_rotx = libAttr.addAttr(attr_holder, longName=self.TOESFK_ROTX_LONGNAME, niceName=self.TOESFK_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
 
         attr_roll_auto_pos = libRigging.create_utility_node('condition', operation=2, firstTerm=attr_inn_roll_auto,
                                                             secondTerm=0,
@@ -363,6 +369,7 @@ class LegIk(IK):
         pymel.connectAttr(attr_inn_back_roty, self.pivot_foot_back.rotateY)
         pymel.connectAttr(attr_inn_ankle_rotz, self.pivot_toes_heel.rotateZ)
         pymel.connectAttr(attr_inn_toes_roty, self.pivot_foot_ankle.rotateY)
+        pymel.connectAttr(attr_inn_toes_fk_rotx, self.pivot_foot_toes_fk.rotateX)
 
         # Create ikHandles and parent them
         # Note that we are directly parenting them so the 'Preserve Child Transform' of the translate tool still work.
@@ -381,7 +388,7 @@ class LegIk(IK):
         ikHandle_toes, ikEffector_toes = pymel.ikHandle(startJoint=jnt_toes, endEffector=jnt_tip, solver='ikSCsolver')
         ikHandle_toes.rename(nomenclature_rig.resolve('ikHandle', 'toes'))
         ikHandle_toes.setParent(self.grp_rig)
-        ikHandle_toes.setParent(self.pivot_foot_heel)
+        ikHandle_toes.setParent(self.pivot_foot_toes_fk)
 
         # Hack: Re-constraint foot ikhandle
         # todo: cleaner!
@@ -439,14 +446,7 @@ class LegIk(IK):
         self.pivot_foot_back = None
         self.pivot_foot_inn = None
         self.pivot_foot_out = None
-
-        # Remove deprecated properties
-        # Delete me after 2016-06 (2 months)
-        self.pivot_front = None
-        self.pivot_back = None
-        self.pivot_ankle = None
-        self.pivot_inn = None
-        self.pivot_out = None
+        self.pivot_foot_toes_fk = None
 
 
 class Leg(rigLimb.Limb):

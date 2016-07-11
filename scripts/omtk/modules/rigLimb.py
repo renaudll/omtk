@@ -202,7 +202,7 @@ class Limb(Module):
         self.sysIK.ctrl_ik.node.setMatrix(self.offset_ctrl_ik * ctrl_ik_tm, worldSpace=True)
 
         # Position swivel
-        pos_ref = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
+        #pos_ref = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
         pos_s = self.sysFK.ctrls[0].getTranslation(space='world')
         pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
         pos_e = self.sysFK.ctrls[self.sysIK.iCtrlIndex].getTranslation(space='world')
@@ -214,7 +214,7 @@ class Limb(Module):
         pos_middle = (pos_e - pos_s) * length_ratio + pos_s
         dir_swivel = pos_m - pos_middle
         dir_swivel.normalize()
-        pos_swivel = dir_swivel * self.sysIK.swivelDistance + pos_ref
+        pos_swivel = (dir_swivel * self.sysIK.swivelDistance) + pos_middle
         self.sysIK.ctrl_swivel.node.setTranslation(pos_swivel, space='world')
 
     def snap_fk_to_ik(self):

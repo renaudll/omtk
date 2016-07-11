@@ -33,6 +33,13 @@ class CtrlIk(BaseCtrl):
 
 class CtrlIkSwivel(BaseCtrl):
 
+    def __init__(self):
+        super(CtrlIkSwivel, self).__init__()
+
+        self._line_locator = None
+        self._line_annotation = None
+
+
     def __createNode__(self, refs=None, size=None, line_target=True, offset=None, *args, **kwargs):
         # Resolve size automatically if refs are provided
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
@@ -51,21 +58,6 @@ class CtrlIkSwivel(BaseCtrl):
         make.degree.set(1)
         make.sections.set(4)
 
-        # Create line
-        if line_target is True:
-            # Create a spaceLocator so the annotation can hook itself to it.
-            locator_transform = pymel.spaceLocator()
-            locator_shape = locator_transform.getShape()
-            pymel.pointConstraint(ref, locator_transform)
-            locator_transform.setParent(node)
-            locator_transform.hide()
-
-            annotation_shape = pymel.createNode('annotationShape')
-            annotation_transform = annotation_shape.getParent()
-            annotation_shape.setParent(node, relative=True, shape=True)
-            pymel.connectAttr(locator_shape.worldMatrix, annotation_shape.dagObjectMatrix[0], force=True)
-            pymel.delete(annotation_transform)
-
         return node
 
     def get_spaceswitch_targets(self, rig, module, *args, **kwargs):
@@ -80,18 +72,26 @@ class CtrlIkSwivel(BaseCtrl):
 
         return targets, target_names
 
-    def build(self, rig, line_target=False, *args, **kwargs):
+    def build(self, rig, refs=None, line_target=True, *args, **kwargs):
         super(CtrlIkSwivel, self).build(rig, *args, **kwargs)
         assert (self.node is not None)
 
+        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+
         # Create line
-        if line_target is True:
-            ctrl_shape = self.node.getShape()
-            line_shape = pymel.createNode('annotationShape')
-            line_transform = line_shape.getParent()
-            pymel.connectAttr(ctrl_shape.worldMatrix, line_shape.dagObjectMatrix[0], force=True)
-            line_transform.setParent(self.offset)
-            pymel.pointConstraint(line_target, line_transform)
+        if line_target is True and ref is not None:
+            # Create a spaceLocator so the annotation can hook itself to it.
+            self._line_locator = pymel.spaceLocator()
+            locator_shape = self._line_locator.getShape()
+            pymel.pointConstraint(ref, self._line_locator)
+            self._line_locator.setParent(self.node)
+            self._line_locator.hide()
+
+            self._line_annotation = pymel.createNode('annotationShape')
+            annotation_transform = self._line_annotation.getParent()
+            self._line_annotation.setParent(self.node, relative=True, shape=True)
+            pymel.connectAttr(locator_shape.worldMatrix, self._line_annotation.dagObjectMatrix[0], force=True)
+            pymel.delete(annotation_transform)
 
         return self.node
 
@@ -292,6 +292,8 @@ class IK(Module):
         self.ctrl_swivel.build(rig, refs=ctrl_swivel_ref)
         self.ctrl_swivel.setParent(self.grp_anm)
         self.ctrl_swivel.rename(nomenclature_anm.resolve('swivel'))
+        self.ctrl_swivel._line_locator.rename(nomenclature_anm.resolve('swivelLineLoc'))
+        self.ctrl_swivel._line_annotation.rename(nomenclature_anm.resolve('swivelLineAnn'))
         self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
         self.ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')

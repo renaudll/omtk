@@ -393,7 +393,7 @@ class AvarSimple(AbstractAvar):
         """
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
-        layer_pos = stack.add_layer('pos')
+        layer_pos = stack.append_layer('pos')
         pymel.connectAttr(self.attr_lr, layer_pos.tx)
         pymel.connectAttr(self.attr_ud, layer_pos.ty)
         pymel.connectAttr(self.attr_fb, layer_pos.tz)
@@ -424,7 +424,7 @@ class AvarSimple(AbstractAvar):
 
         # Create an offset layer so everything start at the original position.
         layer_offset_name = nomenclature_rig.resolve('offset')
-        layer_offset = stack.add_layer()
+        layer_offset = stack.append_layer()
         layer_offset.rename(layer_offset_name)
         layer_offset.setTranslation(jnt_pos)
         #layer_offset.setMatrix(jnt_tm)
@@ -598,7 +598,7 @@ class AvarFollicle(AvarSimple):
                                                           inputMatrix=attr_finalTM
                                                           )
 
-        layer_follicle = stack.add_layer('follicleLayer')
+        layer_follicle = stack.append_layer('follicleLayer')
         pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
         pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle.rotate)
 
@@ -794,14 +794,14 @@ class AvarFollicle(AvarSimple):
         oob_offset = libRigging.create_utility_node('plusMinusAverage',
                                                     input3D=[oob_u_condition_out, oob_v_condition_out]).output3D
 
-        layer_oob = stack.add_layer('oobLayer')
+        layer_oob = stack.append_layer('oobLayer')
         pymel.connectAttr(oob_offset, layer_oob.t)
 
         #
         # Build Front/Back setup
         #
 
-        layer_fb = stack.add_layer('fbLayer')
+        layer_fb = stack.append_layer('fbLayer')
         attr_get_fb = libRigging.create_utility_node('multiplyDivide',
                                                      input1X=self.attr_fb,
                                                      input2X=self._attr_length_u).outputX
@@ -814,7 +814,7 @@ class AvarFollicle(AvarSimple):
         #  Create a layer before the ctrl to apply the YW, PT and RL avar.
         #
         nomenclature_rig = self.get_nomenclature_rig(rig)
-        layer_rot = stack.add_layer('rotLayer')
+        layer_rot = stack.append_layer('rotLayer')
 
         pymel.connectAttr(self.attr_yw, layer_rot.rotateY)
         pymel.connectAttr(self.attr_pt, layer_rot.rotateX)

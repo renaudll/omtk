@@ -142,7 +142,7 @@ class AdditiveFK(FK):
         for i, ctrl in enumerate(self.ctrls):
             #HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems
             if i == 0:
-                ctrl.offset = ctrl.add_layer("gimbal")
+                ctrl.offset = ctrl.append_layer("gimbal")
             attr_rotate_x = libRigging.create_utility_node('addDoubleLinear',
                                                            input1=ctrl.offset.rotateX.get(),
                                                            input2=ctrl_add.rotateX

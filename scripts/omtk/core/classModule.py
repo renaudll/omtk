@@ -215,7 +215,7 @@ class Module(object):
         """
         Return the first input joint. Usefull for system like Avars that only handle one influence.
         """
-        return next(iter(self.jnts), None)
+        return next(iter(filter(None, self.jnts)), None)  # Hack: remove filter, find why it happen
 
     @libPython.cached_property()
     def chains(self):

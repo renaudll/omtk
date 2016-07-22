@@ -21,7 +21,7 @@ class Ribbon(Module):
         self.ctrls = []
         self.width = 1.0
 
-    def build(self, rig, num_subdiv = 5, num_ctrl = None, degree=1, create_ctrl=True, constraint=False, rot_fol=False, *args, **kwargs):
+    def build(self, rig, num_subdiv = 5, num_ctrl = None, degree=3, create_ctrl=True, constraint=False, rot_fol=False, *args, **kwargs):
         super(Ribbon, self).build(rig, create_grp_anm=create_ctrl, *args, **kwargs)
         if num_ctrl is not None:
             self.num_ctrl = num_ctrl
@@ -84,7 +84,8 @@ class Ribbon(Module):
             self.ctrls = []
             for i, jnt in enumerate(self._ribbon_jnts):
                 ctrl_name = nomenclature_anm.resolve('fk' + str(i+1).zfill(2))
-                ctrl = CtrlRibbon(name=ctrl_name, create=True)
+                ctrl = CtrlRibbon(name=ctrl_name)
+                ctrl.build(rig)
                 ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
                 ctrl.setParent(self.grp_anm)
 

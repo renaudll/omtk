@@ -34,7 +34,10 @@ class AvarEye(rigFaceAvar.AvarAim):
         :return:
         """
         jnt_pos = self.jnt.getTranslation(space='world')
-        offset_z = rig.get_head_length() * 2
+        head_length = rig.get_head_length()
+        if not head_length:
+            pymel.warning("Can't resolve head length! The eyes ctrl location might be erroned.")
+        offset_z = head_length * 2 if head_length else 0
         return pymel.datatypes.Matrix(
             1,0,0,0,
             0,1,0,0,

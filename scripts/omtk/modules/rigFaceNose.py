@@ -2,7 +2,7 @@ from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
 from omtk.libs import libRigging
 import pymel.core as pymel
-
+from maya import cmds
 
 class CtrlNose(rigFaceAvar.CtrlFaceMicro):
     pass
@@ -28,13 +28,17 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
 
     @property
     def inf_nose_upp(self):
-        # TODO: FIX ME
-        return pymel.PyNode('NoseBend_Jnt')
+        dagpath = 'NoseBend_Jnt'  # TODO: FIX ME
+        if not cmds.objExists(dagpath):
+            raise Exception("Can't find {0}".format(dagpath))
+        return pymel.PyNode(dagpath)
 
     @property
     def inf_nose_low(self):
-        # TODO: FIX ME
-        return pymel.PyNode('Nose_Jnt')
+        dagpath = 'Nose_Jnt'  # TODO: FIX ME
+        if not cmds.objExists(dagpath):
+            raise Exception("Can't find {0}".format(dagpath))
+        return pymel.PyNode(dagpath)
 
     @property
     def influences_snear(self):
@@ -56,10 +60,6 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
     def avars_snear(self):
         return [avar for avar in self.avars if avar.jnt in self.influences_snear]
 
-    @property
-    def inf_nostrils(self):
-        raise NotImplementedError
-
     def connect_global_avars(self):
         for avar in self.avars:
             # HACK: Ignore nose bend pivot
@@ -79,6 +79,7 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
 
         # Create a ctrl that will control the whole nose
         ref = self.inf_nose_low
+
         if not self.avar_main:
             self.avar_main = self.create_abstract_avar(rig, self._CLS_CTRL, ref, name=self.name)
         self.build_abstract_avar(rig, self._CLS_CTRL, self.avar_main)

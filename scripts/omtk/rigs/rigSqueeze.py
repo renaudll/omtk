@@ -75,13 +75,13 @@ class RigSqueeze(classRig.Rig):
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
 
-    _influence_whitelist = ('.*_Jnt', '.*_Jne', '.*_JEnd')
+    _influence_whitelist = ('.*_Jnt',)
     def _is_influence(self, obj):
 
         if isinstance(obj, pymel.nodetypes.Joint):
             name = obj.nodeName()
-            if any(True for pattern in self._influence_whitelist if re.match(pattern, name, re.IGNORECASE)):
-                return True
+            if not any(True for pattern in self._influence_whitelist if re.match(pattern, name, re.IGNORECASE)):
+                return False
 
         return super(RigSqueeze, self)._is_influence(obj)
 

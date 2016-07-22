@@ -145,6 +145,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         Also the radius cannot be bigger than 3% of the head length.
         """
         ctrl_size = 1
+        EPSILON = 0.001 # prevent ctrl from dissapearing if two influences share the same location
         max_ctrl_size = None
 
         # Resolve maximum ctrl size from head joint
@@ -153,7 +154,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             max_ctrl_size = rig.get_head_length() * 0.03
 
         if len(self.jnts) > 1:
-            ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
+            new_ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
+            if new_ctrl_size > EPSILON:
+                ctrl_size = new_ctrl_size
+            
             if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
                 log.warning("Limiting ctrl size to {0}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
@@ -269,7 +273,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         """
         Factory method to create abstract avars that will controller other avars.
         """
-        input = [ref, self.surface]
+        input = filter(None, [ref, self.surface])
 
         avar = rigFaceAvar.AvarSimple(input, name=name)  # TODO: Replace by Abstract Avar
         avar._CLS_CTRL = cls

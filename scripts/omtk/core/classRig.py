@@ -371,16 +371,17 @@ class Rig(object):
                 except Exception, e:
                     log.warning("Can't build {0}: {1}".format(module, e))
                     continue
-            #try:
-            if not module.is_built():
-                print("Building {0}...".format(module))
-                module.build(self, **kwargs)
-                self.post_buid_module(module)
-                #except Exception, e:
-                #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
-                #    traceback.print_stack()
-                #    logging.error(str(e))
-                #    raise e
+            try:
+                if not module.is_built():
+                    print("Building {0}...".format(module))
+                    module.build(self, **kwargs)
+                    self.post_buid_module(module)
+            except Exception, e:
+                pymel.error(str(e))
+            #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
+            #    traceback.print_stack()
+            #    logging.error(str(e))
+            #    raise e
 
         # Connect global scale to jnt root
         if self.grp_rig:

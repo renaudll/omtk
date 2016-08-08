@@ -96,6 +96,7 @@ class RigSqueeze(classRig.Rig):
                 self.grp_all = pymel.PyNode(self.nomenclature.root_all_name)
             else:
                 self.grp_all = pymel.createNode('transform', name=self.nomenclature.root_all_name)
+            self.grp_master = self.grp_all
 
         if not libPymel.is_valid_PyNode(self.grp_model):
             if cmds.objExists(self.nomenclature.root_model_name):
@@ -116,12 +117,12 @@ class RigSqueeze(classRig.Rig):
                 self.grp_fx = pymel.createNode('transform', name=self.nomenclature.root_fx_name)
 
         #Parent all groups in the main grp_all
-        pymel.parent(self.grp_anm, self.grp_all) #grp_anm is not a Node, but a Ctrl
-        self.grp_rig.setParent(self.grp_all)
-        self.grp_fx.setParent(self.grp_all)
-        self.grp_model.setParent(self.grp_all)
-        self.grp_proxy.setParent(self.grp_all)
-        self.grp_geo.setParent(self.grp_all)
+        pymel.parent(self.grp_anm, self.grp_master) #grp_anm is not a Node, but a Ctrl
+        self.grp_rig.setParent(self.grp_master)
+        self.grp_fx.setParent(self.grp_master)
+        self.grp_model.setParent(self.grp_master)
+        self.grp_proxy.setParent(self.grp_master)
+        self.grp_geo.setParent(self.grp_master)
         '''
         if self.grp_jnt.getParent() is None:
             self.grp_jnt.setParent(self.grp_all)
@@ -174,8 +175,8 @@ class RigSqueeze(classRig.Rig):
         for child in self.grp_anm.getChildren():
             pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
 
-    def post_buid_module(self, module):
-        super(RigSqueeze, self).post_buid_module(module)
+    def post_build_module(self, module):
+        super(RigSqueeze, self).post_build_module(module)
 
         #
         # Connect all IK/FK attributes
@@ -211,24 +212,6 @@ class RigSqueeze(classRig.Rig):
             attr_src_inv = libRigging.create_utility_node('reverse', inputX=attr_src).outputX
 
             pymel.connectAttr(attr_src_inv, attr_dst)
-
-        #
-        # Set ctrls colors
-        #
-        color_by_side = {
-            self.nomenclature.SIDE_L: 13,  # Red
-            self.nomenclature.SIDE_R: 6  # Blue
-        }
-        epsilon = 0.1
-        if module.grp_anm:
-            nomenclature_anm = module.get_nomenclature_anm(self)
-            for ctrl in module.get_ctrls(recursive=True):
-                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                side = nomenclature_ctrl.side
-                color = color_by_side.get(side, None)
-                if color:
-                    ctrl.drawOverride.overrideEnabled.set(1)
-                    ctrl.drawOverride.overrideColor.set(color)
 
     def unbuild(self, *args, **kwargs):
         super(RigSqueeze, self).unbuild()

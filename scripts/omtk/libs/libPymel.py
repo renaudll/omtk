@@ -170,23 +170,24 @@ def ls(*args, **kwargs):
 
 # Wrapper for pymel.ls that return only objects without parents.
 def ls_root(*args, **kwargs):
-    return PyNodeChain(filter(lambda x: x.getParent() is None, iter(pymel.ls(*args, **kwargs))))
+    #TODO: Better finding of the root joint
+    return PyNodeChain(filter(lambda x: x.getParent() is None or type(x.getParent()) != pymel.nt.Joint, iter(pymel.ls(*args, **kwargs))))
 
 
-def ls_root_anms(**kwargs):
-    return ls_root('anm*', type='transform', **kwargs)
+def ls_root_anms(pattern='anm*', **kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_geos(**kwargs):
-    return ls_root('geo*', type='transform', **kwargs)
+def ls_root_geos(pattern='geo*',**kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_rigs(**kwargs):
-    return ls_root('rig*', type='transform', **kwargs)
+def ls_root_rigs(pattern='rig*',**kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_jnts(**kwargs):
-    return ls_root('jnt*', type='transform', **kwargs)
+def ls_root_jnts(pattern='jnt*',**kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
 #

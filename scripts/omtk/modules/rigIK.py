@@ -198,10 +198,9 @@ class IK(Module):
         self.iCtrlIndex = 2
         self.ctrl_ik = None
         self.ctrl_swivel = None
+        self.ctrl_swivel_quad = None
         self.chain_length = None
         self._chain_ik = None
-        #self._chain_quad_ik = None
-        self._quad_swivel = None
         self._soft_ik_network = None
 
     def _create_ctrl_ik(self, *args, **kwargs):
@@ -212,7 +211,7 @@ class IK(Module):
         pos_end = self.chain_jnt[end_index].getTranslation(space='world')
 
         chain_length = 0
-        for i in range(end_index):
+        for i in range(start_index, end_index):
             chain_length += self.chain_jnt[i+1].t.get().length()
 
         ratio = self.chain_jnt[start_index + 1].t.get().length() / chain_length
@@ -253,18 +252,6 @@ class IK(Module):
             i += 1
         self._chain_ik[0].setParent(self.parent)  # Trick the IK system (temporary solution)
 
-        #We need a second chain for the quadruped setup (spring solver tried setup)
-        '''
-        if self.iCtrlIndex == 3:
-            self._chain_quad_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
-            i = 1
-            for oInput, oIk, in zip(self.chain_jnt, self._chain_quad_ik):
-                oIk.rename(nomenclature_rig.resolve('quad{0:02}'.format(i)))
-                i += 1
-            self._chain_quad_ik[0].setParent(self._chain_ik[0])  #Quad chain is parented to the first joint of the ik chain
-        '''
-
-
         obj_s = self._chain_ik[0]
         obj_e = self._chain_ik[index_hand]
 
@@ -284,21 +271,12 @@ class IK(Module):
         # Create ikEffector
         ik_solver_name = nomenclature_rig.resolve('ikHandle')
         ik_effector_name = nomenclature_rig.resolve('ikEffector')
-        ''' (spring solver tried setup)
-        if self.iCtrlIndex == 3:
-            mel.eval('ikSpringSolver')
-            #The ikSpringSolver cause sometime set it's pole vector computation flipped from the start...
-            #but if the solver is not specified correctly, the pole vector setup will cause problem since the first calculation
-            #is not fine...
-            self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=obj_e, solver='ikSpringSolver')
-            #Switch to the ikSpringSolver
-            pymel.ikHandle(self._ik_handle, e=True, solver='ikSpringSolver')
-            #Should fix the double transform issue...will see http://juss-usa.blogspot.ca/2010/12/ik-spring-solver.html
-            self._ik_handle.splineIkOldStyle.set(True)
+        if self.iCtrlIndex >= 3:
+            self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=self._chain_ik[index_hand-1],
+                                                           solver='ikRPsolver')
         else:
-            self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=obj_e, solver='ikRPsolver')
-        '''
-        self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=self._chain_ik[index_hand-1], solver='ikRPsolver')
+            self._ik_handle, _ik_effector = pymel.ikHandle(startJoint=obj_s, endEffector=self._chain_ik[index_hand],
+                                                           solver='ikRPsolver')
         self._ik_handle.rename(ik_solver_name)
         self._ik_handle.setParent(self._ikChainGrp)
         _ik_effector.rename(ik_effector_name)
@@ -307,10 +285,6 @@ class IK(Module):
         if self.iCtrlIndex == 3:
             ik_solver_quad_name = nomenclature_rig.resolve('quadIkHandle')
             ik_effector_quad_name = nomenclature_rig.resolve('quadIkEffector')
-            ''' (spring solver tried setup)
-            self._ik_handle_quad, _ik_effector = pymel.ikHandle(startJoint=self._chain_quad_ik[1],
-                                                                endEffector=self._chain_quad_ik[self.iCtrlIndex], solver='ikRPsolver')
-            '''
             self._ik_handle_quad, _ik_effector = pymel.ikHandle(startJoint=self._chain_ik[1],
                                                                 endEffector=obj_e,
                                                                 solver='ikRPsolver')
@@ -350,15 +324,18 @@ class IK(Module):
         self.ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')
 
         #Create another swivel handle node for the quad chain setup
-        ''' (spring solver tried setup)
         if self.iCtrlIndex == 3:
-            self._quad_swivel = pymel.spaceLocator()
-            self._quad_swivel.rename(nomenclature_rig.resolve('quadSwivel'))
-            self._quad_swivel.setTranslation(quad_swivel_pos, space='world')
-            #self._quad_swivel.hide()
-            #Parent it to the second chain ik bone
-            self._quad_swivel.setParent(self._chain_ik[1])
-        '''
+            if not isinstance(self.ctrl_swivel_quad, self._CLASS_CTRL_SWIVEL):
+                self.ctrl_swivel_quad = self._CLASS_CTRL_SWIVEL()
+            ctrl_swivel_ref = self._chain_ik[self.iCtrlIndex - 1]
+            self.ctrl_swivel_quad.build(rig, refs=ctrl_swivel_ref)
+            self.ctrl_swivel_quad.setParent(self.grp_anm) #parent the quad swivel on the first one
+            self.ctrl_swivel_quad.rename(nomenclature_anm.resolve('swivelQuad'))
+            self.ctrl_swivel_quad._line_locator.rename(nomenclature_anm.resolve('swivelQuadLineLoc'))
+            self.ctrl_swivel_quad._line_annotation.rename(nomenclature_anm.resolve('swivelQuadLineAnn'))
+            self.ctrl_swivel_quad.offset.setTranslation(quad_swivel_pos, space='world')
+            self.swivelDistance = self.chain_length  # Used in ik/fk switch
+            self.ctrl_swivel_quad.create_spaceswitch(rig, self, self.parent, default_name='World')
 
         #
         # Create softIk node and connect user accessible attributes to it.
@@ -437,25 +414,11 @@ class IK(Module):
         if self.iCtrlIndex == 3:
             #Pole vector contraint the second ik handle on the first elbox of the first ik handle
             #HACK - Seem to give a cycle dependency warning when done, but it doesn't seem to create any problem...now
-            pymel.poleVectorConstraint(self._chain_ik[index_elbow], self._ik_handle_quad)
-
-        '''
-        # Connect to parent
-        if libPymel.is_valid_PyNode(self.parent):
-            pymel.parentConstraint(self.parent, self._ikChainGrp, maintainOffset=True)
-        '''
+            pymel.poleVectorConstraint(self.ctrl_swivel_quad, self._ik_handle_quad)
 
         if constraint:
             for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)
-            ''' (spring solver tried setup)
-            if self.iCtrlIndex == 3:
-                for source, target in zip(self._chain_quad_ik, self.chain):
-                    pymel.parentConstraint(source, target)
-            else:
-                for source, target in zip(self._chain_ik, self.chain):
-                    pymel.parentConstraint(source, target)
-            '''
 
     def unbuild(self):
         super(IK, self).unbuild()

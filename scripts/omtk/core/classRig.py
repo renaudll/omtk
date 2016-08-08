@@ -108,10 +108,11 @@ class Rig(object):
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
         self.modules = []
-        self.grp_anm = None
-        self.grp_geo = None
-        self.grp_jnt = None
-        self.grp_rig = None
+        self.grp_anm = None #Anim Grp, usually the root ctrl
+        self.grp_geo = None #Geometry grp
+        self.grp_jnt = None #Joint grp, usually the root jnt
+        self.grp_rig = None #Data grp
+        self.grp_master = None #Main grp of the rig
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
@@ -266,7 +267,8 @@ class Rig(object):
         """
         self.pre_build()
 
-    def pre_build(self, create_grp_jnt=True, create_grp_anm=True, create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
+    def pre_build(self, create_master_grp = True, create_grp_jnt=True, create_grp_anm=True,
+                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
         if create_grp_jnt:
@@ -288,6 +290,15 @@ class Rig(object):
         for jnt in all_jnts:
             jnt.segmentScaleCompensate.set(False)
 
+        # Create the master grp
+        if create_master_grp:
+            if not self.grp_master:
+                self.grp_master = next(iter(pymel.ls(self.name + '_' + self.nomenclature.type_rig)), None)
+                if not isinstance(self.grp_rig, Node):
+                    self.grp_master = Node()
+            if not self.grp_master.is_built():
+                self.grp_master.build(name=self.name + '_' + self.nomenclature.type_rig)
+
         # Create grp_anm
         if create_grp_anm:
             if not isinstance(self.grp_anm, CtrlRoot):
@@ -295,47 +306,59 @@ class Rig(object):
             if not self.grp_anm.is_built():
                 grp_anm_size = CtrlRoot._get_recommended_radius(self)
                 self.grp_anm.build(self, size=grp_anm_size)
-            self.grp_anm.rename(self.nomenclature.root_anm_name)
+                self.grp_anm.rename(self.nomenclature.root_anm_name)
 
         # Create grp_rig
         if create_grp_rig:
-            if not isinstance(self.grp_rig, Node):
-                self.grp_rig = Node()
+            if not self.grp_rig:
+                self.grp_rig = next(iter(pymel.ls(self.nomenclature.root_rig_name)), None)
+                if not isinstance(self.grp_rig, Node):
+                    self.grp_rig = Node()
             if not self.grp_rig.is_built():
-                self.grp_rig.build(self)
-                self.grp_rig.rename(self.nomenclature.root_rig_name)
+                self.grp_rig.build(name=self.nomenclature.root_rig_name)
 
         # Create grp_geo
         if create_grp_geo:
-            all_geos = libPymel.ls_root_geos()
-            if not isinstance(self.grp_geo, Node):
-                self.grp_geo = Node()
+            if not self.grp_geo:
+                self.grp_geo = next(iter(pymel.ls(self.nomenclature.root_geo_name)), None)
+                if not isinstance(self.grp_geo, Node):
+                    self.grp_geo = Node()
             if not self.grp_geo.is_built():
-                self.grp_geo.build(self)
-                self.grp_geo.rename(self.nomenclature.root_geo_name)
-            #if all_geos:
-            #    all_geos.setParent(self.grp_geo)
+                self.grp_geo.build(name = self.nomenclature.root_geo_name)
+
+        #Parent all grp on the master grp
+        if self.grp_master:
+            self.grp_jnt.setParent(self.grp_master.node)
+            self.grp_anm.setParent(self.grp_master.node)
+            self.grp_rig.setParent(self.grp_master.node)
+            self.grp_geo.setParent(self.grp_master.node)
 
         # Setup displayLayers
         if create_display_layers:
             if not pymel.objExists(self.nomenclature.layer_anm_name):
                 self.layer_anm = pymel.createDisplayLayer(name=self.nomenclature.layer_anm_name, number=1, empty=True)
-                pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm, noRecurse=True)
                 self.layer_anm.color.set(17)  # Yellow
+            else:
+                self.layer_anm = pymel.PyNode(self.nomenclature.layer_anm_name)
+            pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm, noRecurse=True)
 
             if not pymel.objExists(self.nomenclature.layer_rig_name):
                 self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
-                pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rig, noRecurse=True)
-                pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnt, noRecurse=True)
                 self.layer_rig.color.set(13)  # Red
                 #self.layer_rig.visibility.set(0)  # Hidden
                 self.layer_rig.displayType.set(2)  # Frozen
+            else:
+                self.layer_rig = pymel.PyNode(self.nomenclature.layer_rig_name)
+            pymel.editDisplayLayerMembers(self.layer_rig, self.grp_rig, noRecurse=True)
+            pymel.editDisplayLayerMembers(self.layer_rig, self.grp_jnt, noRecurse=True)
 
             if not pymel.objExists(self.nomenclature.layer_geo_name):
                 self.layer_geo = pymel.createDisplayLayer(name=self.nomenclature.layer_geo_name, number=1, empty=True)
-                pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
                 self.layer_geo.color.set(12)  # Green?
                 self.layer_geo.displayType.set(2)  # Frozen
+            else:
+                self.layer_geo = pymel.PyNode(self.nomenclature.layer_geo_name)
+            pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
 
     def build(self, skip_validation=False, **kwargs):
         # Aboard if already built
@@ -375,7 +398,7 @@ class Rig(object):
                 if not module.is_built():
                     print("Building {0}...".format(module))
                     module.build(self, **kwargs)
-                    self.post_buid_module(module)
+                    self.post_build_module(module)
             except Exception, e:
                 pymel.error(str(e))
             #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
@@ -384,7 +407,7 @@ class Rig(object):
             #    raise e
 
         # Connect global scale to jnt root
-        if self.grp_rig:
+        if self.grp_anm:
             if self.grp_jnt:
                 pymel.delete([module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
                 pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
@@ -396,7 +419,7 @@ class Rig(object):
 
         return True
 
-    def post_buid_module(self, module):
+    def post_build_module(self, module):
         # Raise warnings if a module leave junk in the scene.
         if module.grp_anm and not module.grp_anm.getChildren():
             cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
@@ -430,6 +453,24 @@ class Rig(object):
         if module.globalScale:
             pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
+        #
+        # Set ctrls colors
+        #
+        color_by_side = {
+            self.nomenclature.SIDE_L: 13,  # Red
+            self.nomenclature.SIDE_R: 6  # Blue
+        }
+        epsilon = 0.1
+        if module.grp_anm:
+            nomenclature_anm = module.get_nomenclature_anm(self)
+            for ctrl in module.get_ctrls(recursive=True):
+                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                side = nomenclature_ctrl.side
+                color = color_by_side.get(side, None)
+                if color:
+                    ctrl.drawOverride.overrideEnabled.set(1)
+                    ctrl.drawOverride.overrideColor.set(color)
+
 
     def unbuild(self, **kwargs):
         """
@@ -459,6 +500,7 @@ class Rig(object):
             self.layer_geo = None
         if libPymel.is_valid_PyNode(self.layer_rig):
             pymel.delete(self.layer_rig)
+            self.layer_rig = None
 
         # Remove any references to missing pynodes
         #HACK --> Remove clean invalid PyNode

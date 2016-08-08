@@ -180,7 +180,8 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            print "[setParent] {0} don't have an offset attribute, node will be parented instead".format(self)
+            return self.node.setParent(*args, **kwargs)
         return self.offset.setParent(*args, **kwargs)
 
     def setMatrix(self, *args, **kwargs):

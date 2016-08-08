@@ -490,7 +490,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 if isinstance(rig, classModule.Module):
                     self.root.pre_build()
                     rig.build(self.root)
-                    self.root.post_buid_module(rig)
+                    self.root.post_build_module(rig)
                 else:
                     rig.build()
             else:
@@ -576,7 +576,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 if isinstance(module, classModule.Module):
                     self.root.pre_build()
                     module.build(self.root)
-                    self.root.post_buid_module(module)
+                    self.root.post_build_module(module)
                 else:
                     module.build()
             else:

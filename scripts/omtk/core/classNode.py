@@ -25,6 +25,15 @@ class Node(object):
     def __createNode__(self, *args, **kwargs):
         return pymel.createNode('transform', *args, **kwargs)
 
+    def __getNetworkName__(self):
+        """
+        Determine the name of the maya network.
+        Override this to customize.
+        Returns: The desired network name for this instance.
+        """
+        #Need to call name function because the getAttr try to get the node (Pymel) name
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name())
+
     def is_built(self):
         return libPymel.is_valid_PyNode(self.node)
 

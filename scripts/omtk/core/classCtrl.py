@@ -75,7 +75,7 @@ class BaseCtrl(Node):
             else:
                 size = 1.0
 
-        transform, make = pymel.circle(*args, **kwargs)
+        transform, make = pymel.circle()
         make.radius.set(size)
         make.normal.set(normal)
 

@@ -184,7 +184,7 @@ class LegIk(IK):
         # Hack: Bypass pymel bug (see https://github.com/LumaPictures/pymel/issues/355)
         ctrl_ik_orientation = pymel.datatypes.TransformationMatrix(self._get_reference_plane()).rotate
 
-        super(LegIk, self).build(rig, ctrl_ik_orientation=ctrl_ik_orientation, **kwargs)
+        super(LegIk, self).build(rig, ctrl_ik_orientation=ctrl_ik_orientation, constraint_handle=False, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
@@ -455,9 +455,11 @@ class Leg(rigLimb.Limb):
     def validate(self, rig):
         super(Leg, self).validate(rig)
 
+        '''
         num_inputs = len(self.input)
-        if num_inputs < 5 or num_inputs > 6:
-            raise Exception("Expected 5 or 6 joints, got {0}".format(num_inputs))
+        if num_inputs < 5 or num_inputs > 7:
+            raise Exception("Expected between 5 to 7 joints, got {0}".format(num_inputs))
+        '''
 
         return True
 

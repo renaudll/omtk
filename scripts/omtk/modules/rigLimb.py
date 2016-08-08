@@ -68,6 +68,7 @@ class Limb(Module):
         # Create IK system
         if not isinstance(self.sysIK, self._CLASS_SYS_IK):
             self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
+            self.sysIK.iCtrlIndex = self.iCtrlIndex #Need to push iCtrlIndex since network value is here
         self.sysIK.name = '{0}_Ik'.format(self.name) # Hack
         self.sysIK.build(rig, constraint=False, **kwargs)
 
@@ -147,9 +148,11 @@ class Limb(Module):
         pymel.pointConstraint(chain_blend[0], chain_elbow[0], maintainOffset=False)
         pymel.aimConstraint(self.ctrl_elbow, chain_elbow[0], worldUpType=2,
                             worldUpObject=chain_blend[0])  # Object Rotation Up
-        pymel.aimConstraint(chain_blend[self.sysIK.iCtrlIndex], chain_elbow[index_elbow], worldUpType=2,
+        pymel.aimConstraint(chain_blend[self.sysIK.iCtrlIndex - 1], chain_elbow[index_elbow], worldUpType=2,
                             worldUpObject=chain_blend[index_elbow])  # Object Rotation Up
         pymel.pointConstraint(self.ctrl_elbow, chain_elbow[index_elbow], maintainOffset=False)
+        if self.sysIK.iCtrlIndex == 3:
+            pymel.parentConstraint(chain_blend[self.sysIK.iCtrlIndex-1], chain_elbow[self.sysIK.iCtrlIndex-1])
 
         # Constraint input chain
         # Note that we only constraint to the elbow chain until @iCtrlIndex.

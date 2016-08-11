@@ -219,6 +219,7 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[start_index + 1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
+    #TODO - Branch Quadruped in a separate module rigQuadruped which will inherit the base ik
     def build(self, rig, ctrl_ik_orientation=None, constraint=True, constraint_handle=True, *args, **kwargs):
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -290,7 +291,14 @@ class IK(Module):
                                                                 solver='ikRPsolver')
             self._ik_handle_quad.rename(ik_solver_quad_name)
             self._ik_handle_quad.setParent(self._ikChainGrp)
-            self._ik_handle.setParent(self._ik_handle_quad)
+
+            #Create a parent for the first base ikHandle to be able to setup the pitch attribute
+            ikHandleGrp_name = nomenclature_rig.resolve('ikHandleGrp')
+            self._ikHandleGrp = pymel.createNode('transform', name=ikHandleGrp_name, parent=self._ik_handle_quad)
+            self._ikHandleGrp.setMatrix(self._ik_handle_quad.getMatrix(worldSpace=True), worldSpace=True)
+
+            #self._ik_handle.setParent(ikHandleGrp)
+            pymel.parentConstraint(self._ikHandleGrp, self._ik_handle, maintainOffset=True)
             _ik_effector.rename(ik_effector_quad_name)
 
         # Create CtrlIK
@@ -342,13 +350,18 @@ class IK(Module):
         #
         oAttHolder = self.ctrl_ik
         fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
-        if self.iCtrlIndex <= 3:
-            attInRatio = fnAddAttr(oAttHolder, longName='softIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
-                                   maxValue=50, k=True)
-            attInStretch = fnAddAttr(oAttHolder, longName='stretch', niceName='Stretch', defaultValue=0, minValue=0,
-                                     maxValue=1.0, k=True)
-            # Adjust the ratio in percentage so animators understand that 0.03 is 3%
-            attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
+        attInRatio = fnAddAttr(oAttHolder, longName='softIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
+                               maxValue=50, k=True)
+        attInStretch = fnAddAttr(oAttHolder, longName='stretch', niceName='Stretch', defaultValue=0, minValue=0,
+                                 maxValue=1.0, k=True)
+        # Adjust the ratio in percentage so animators understand that 0.03 is 3%
+        attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
+
+        if self.iCtrlIndex == 3:
+            #TODO : Improve pitch limits
+            attPitch = fnAddAttr(oAttHolder, longName='pitch', niceName='Pitch', defaultValue=0, minValue=-90,
+                                     maxValue=90, k=True)
+            pymel.connectAttr(attPitch, self._ikHandleGrp.rotateX)
 
         # Create the ik_handle_target that will control the ik_handle
         # This is allow us to override what control the main ik_handle
@@ -357,44 +370,43 @@ class IK(Module):
         self._ik_handle_target.setParent(self.grp_rig)
         pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
 
-        if self.iCtrlIndex <= 3:
-            # Create and configure SoftIK solver
-            self._soft_ik_network = SoftIkNode()
-            self._soft_ik_network.build()
-            pymel.connectAttr(attInRatio, self._soft_ik_network.inRatio)
-            pymel.connectAttr(attInStretch, self._soft_ik_network.inStretch)
-            pymel.connectAttr(self._ikChainGrp.worldMatrix, self._soft_ik_network.inMatrixS)
-            pymel.connectAttr(self._ik_handle_target.worldMatrix, self._soft_ik_network.inMatrixE)
-            attr_distance = libFormula.parse('distance*globalScale',
-                                             distance=self.chain_length,
-                                             globalScale=self.grp_rig.globalScale)
-            pymel.connectAttr(attr_distance, self._soft_ik_network.inChainLength)
+        # Create and configure SoftIK solver
+        self._soft_ik_network = SoftIkNode()
+        self._soft_ik_network.build()
+        pymel.connectAttr(attInRatio, self._soft_ik_network.inRatio)
+        pymel.connectAttr(attInStretch, self._soft_ik_network.inStretch)
+        pymel.connectAttr(self._ikChainGrp.worldMatrix, self._soft_ik_network.inMatrixS)
+        pymel.connectAttr(self._ik_handle_target.worldMatrix, self._soft_ik_network.inMatrixE)
+        attr_distance = libFormula.parse('distance*globalScale',
+                                         distance=self.chain_length,
+                                         globalScale=self.grp_rig.globalScale)
+        pymel.connectAttr(attr_distance, self._soft_ik_network.inChainLength)
 
-            attOutRatio = self._soft_ik_network.outRatio
-            attOutRatioInv = libRigging.create_utility_node('reverse', inputX=self._soft_ik_network.outRatio).outputX
-            pymel.select(clear=True)
-            ik_to_use = self._ik_handle
-            if self.iCtrlIndex == 3:
-                ik_to_use = self._ik_handle_quad
-            pymel.select(self._ik_handle_target , self._ikChainGrp, ik_to_use)
-            pointConstraint = pymel.pointConstraint()
-            pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
-            pymel.select(pointConstraint)
-            weight_inn, weight_out = pointConstraint.getWeightAliasList()
-            pymel.connectAttr(attOutRatio, weight_inn)
-            pymel.connectAttr(attOutRatioInv, weight_out)
+        attOutRatio = self._soft_ik_network.outRatio
+        attOutRatioInv = libRigging.create_utility_node('reverse', inputX=self._soft_ik_network.outRatio).outputX
+        pymel.select(clear=True)
+        ik_to_use = self._ik_handle
+        if self.iCtrlIndex == 3:
+            ik_to_use = self._ik_handle_quad
+        pymel.select(self._ik_handle_target , self._ikChainGrp, ik_to_use)
+        pointConstraint = pymel.pointConstraint()
+        pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
+        pymel.select(pointConstraint)
+        weight_inn, weight_out = pointConstraint.getWeightAliasList()
+        pymel.connectAttr(attOutRatio, weight_inn)
+        pymel.connectAttr(attOutRatioInv, weight_out)
 
-            # Connect stretch
-            for i in range(1, self.iCtrlIndex+1):
-                obj = self._chain_ik[i]
-                util_get_t = libRigging.create_utility_node('multiplyDivide',
-                                                   input1X=self._soft_ik_network.outStretch,
-                                                   input1Y=self._soft_ik_network.outStretch,
-                                                   input1Z=self._soft_ik_network.outStretch,
-                                                   input2=obj.t.get())
-                pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
-                pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
-                pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
+        # Connect stretch
+        for i in range(1, self.iCtrlIndex+1):
+            obj = self._chain_ik[i]
+            util_get_t = libRigging.create_utility_node('multiplyDivide',
+                                               input1X=self._soft_ik_network.outStretch,
+                                               input1Y=self._soft_ik_network.outStretch,
+                                               input1Z=self._soft_ik_network.outStretch,
+                                               input2=obj.t.get())
+            pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
+            pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
+            pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
 
         # Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sx)

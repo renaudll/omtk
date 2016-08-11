@@ -341,8 +341,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     @libPython.log_execution_time('import_networks')
     def import_networks(self, *args, **kwargs):
-        path = '/home/rlessard/Desktop/test.json'
-
         self.roots = core.find()
         self.root = next(iter(self.roots), None)
 
@@ -352,20 +350,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self.roots = [self.root]
             self.export_networks()  # Create network tree in the scene
 
-
-        # self.roots = None
-        # if os.path.exists(path):
-        #     self.roots = libSerialization.import_json_file_maya(path)
-        # self.root = next(iter(self.roots), None) if self.roots else None
-        #
-        # if self.root is None:
-        #     self.root = core.create()
-        #     self.roots = [self.root]
-
     @libPython.log_execution_time('export_networks')
     def export_networks(self):
-        path = '/home/rlessard/Desktop/test.json'
-
         try:
             pymel.delete(self.root._network)
         except AttributeError:
@@ -374,16 +360,14 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         net = libSerialization.export_network(self.root) # Export part and only part
         return net
 
-        # libSerialization.export_json_file_maya(path)
-
-
     #
     # Publics
     #
 
     #Will only refresh tree view information without removing any items
     def refresh_ui(self):
-        self.refresh_ui_module()
+        self._refresh_ui_modules_checked()
+        self._refresh_ui_modules_visibility()
         self.refresh_ui_jnts()
 
     #Recreate tree views items
@@ -391,20 +375,14 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.update_ui_modules()
         self.update_ui_jnts()
 
-    def refresh_ui_module(self):
-        #Block the signal to make sure that the itemChanged event is not called when adjusting the check state
-        self.treeWidget.blockSignals(True)
-        for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
-            if hasattr(qt_item, "rig"):
-                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.rig.is_built() else QtCore.Qt.Unchecked)
-        self.treeWidget.blockSignals(False)
-
     def update_ui_modules(self, *args, **kwargs):
         self.treeWidget.clear()
         for root in self.roots:
             qItem = self._rig_to_tree_widget(root)
             self.treeWidget.addTopLevelItem(qItem)
             self.treeWidget.expandItem(qItem)
+
+        self.refresh_ui_modules()
 
     def update_ui_jnts(self, *args, **kwargs):
         # Resolve text query
@@ -419,8 +397,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             data = libPymel.get_tree_from_objs(all_potential_influences, sort=True)
 
             self._fill_widget_influences_recursive2(self.treeWidget_jnts.invisibleRootItem(), data)
-
-
 
         '''
         if all_jnt_roots:
@@ -456,7 +432,19 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
         self.treeWidget_jnts.expandAll()
 
-    def refresh_ui_modules(self, query_regex=None):
+    def refresh_ui_modules(self):
+        self._refresh_ui_modules_checked()
+        self._refresh_ui_modules_visibility()
+
+    def _refresh_ui_modules_checked(self):
+        #Block the signal to make sure that the itemChanged event is not called when adjusting the check state
+        self.treeWidget.blockSignals(True)
+        for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
+            if hasattr(qt_item, "rig"):
+                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.rig.is_built() else QtCore.Qt.Unchecked)
+        self.treeWidget.blockSignals(False)
+
+    def _refresh_ui_modules_visibility(self, query_regex=None):
         if query_regex is None:
             query_raw = self.lineEdit_search_modules.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
@@ -603,7 +591,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.refresh_ui_jnts()
 
     def on_module_query_changed(self, *args, **kwargs):
-        self.refresh_ui_modules()
+        self._refresh_ui_modules_visibility()
 
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):

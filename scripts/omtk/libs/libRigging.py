@@ -404,7 +404,7 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
 
 def get_affected_geometries(*objs):
     """
-    :param obj: A reference object, generally a pymel.nodetypes.Join.
+    :param obj: A reference object, generally a pymel.nodetypes.Joint.
     :return: The geometries affected by the object.
     """
     geometries = set()
@@ -829,7 +829,16 @@ def get_multi_attr_available_slot(attr_multi):
     return attr_multi[i]
 
 def get_closest_point_on_mesh(mesh, pos):
-
+    """
+    Return informations about the closest intersection between a point and a mesh polygons.
+    :param mesh: A pymel.nodetypes.Mesh to analyze.
+    :param pos: A pymel.datatypes.Vector world-space position.
+    :return: A 3-sized tuple containing:
+    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
+    - The u coordinate of the resulting position.
+    - The v coordinate of the resulting position.
+    If nothing is found, a 3-sized tuple containing all None values are returned.
+    """
 
     # closestPointOnMesh ignores polymesh transforms
     util_transformGeometry = create_utility_node('transformGeometry',
@@ -851,6 +860,29 @@ def get_closest_point_on_mesh(mesh, pos):
     pymel.delete(util_cpom)
 
     return pos, u, v
+
+def get_closest_point_on_meshes(meshes, pos):
+    """
+    Return informations about the closest intersection between a point and multiple mesh polygons.
+    :param mesh: A pymel.nodetypes.Mesh to analyze.
+    :param pos: A pymel.datatypes.Vector world-space position.
+    :return: A 4-sized tuple containing:
+    - A pymel.nodetypes.Mesh instance representing the closest mesh.
+    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
+    - The u coordinate of the resulting position.
+    - The v coordinate of the resulting position.
+    If nothing is found, a 4-sized tuple containing all None values are returned.
+    """
+    shortest_delta = None
+    return_val = (None, None, None, None)
+    for mesh in meshes:
+        closest_pos, closest_u, closest_v = get_closest_point_on_mesh(mesh, pos)
+        delta = libPymel.distance_between_vectors(pos, closest_pos)
+        if shortest_delta is None or delta < shortest_delta:
+            shortest_delta = delta
+            return_val = (mesh, closest_pos, closest_u, closest_v)
+    return return_val
+
 
 def get_closest_point_on_surface(nurbsSurface, pos):
     # closestPointOnSurface don't listen to transform so we'll need to duplicate the shape.

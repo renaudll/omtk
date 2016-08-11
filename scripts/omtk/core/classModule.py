@@ -191,6 +191,7 @@ class Module(object):
 
     @property
     def parent(self):
+        # TODO: We might want to search for specifically a joint in case the influence have intermediate objects.
         if not self.chain_jnt:
             return None
         first_input = next(iter(self.chain_jnt), None)
@@ -208,6 +209,7 @@ class Module(object):
     def jnts(self):
         fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         jnts = filter(fn_is_jnt, self.input)
+        jnts = sorted(jnts)
         return jnts
 
     @libPython.cached_property()

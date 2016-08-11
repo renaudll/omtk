@@ -179,8 +179,8 @@ class AbstractAvar(classModule.Module):
         Create a network to hold all the avars complex connection.
         This prevent Maya from deleting our connection when unbuilding.
         """
-        if self.grp_rig is None:
-            log.warning("Can't hold avars, no grp_rig found in {0}!".format(self))
+        if self.grp_rig is None or not self.grp_rig.exists():
+            log.warning("Can't hold avars, invalid grp_rig in {0}!".format(self))
             return
 
         self.avar_network = pymel.createNode('network')
@@ -205,6 +205,10 @@ class AbstractAvar(classModule.Module):
 
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
+            if not self.grp_rig.hasAttr(attr_name):
+                log.warning("Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
+                continue
+
             #attr_name = attr.longName()
             attr_src = self.grp_rig.attr(attr_name)
             attr_dst = self.avar_network.attr(attr_name)
@@ -391,8 +395,6 @@ class AvarSimple(AbstractAvar):
         The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
         the drived joint.
         """
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-
         layer_pos = stack.append_layer('pos')
         pymel.connectAttr(self.attr_lr, layer_pos.tx)
         pymel.connectAttr(self.attr_ud, layer_pos.ty)
@@ -403,15 +405,21 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, **kwargs):
+    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, **kwargs):
         super(AvarSimple, self).build(rig, create_grp_anm=create_ctrl, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
-        jnt_tm = self.get_jnt_tm()
+        # Resolve influence matrix
+        if jnt_tm is None:
+            jnt_tm = self.get_jnt_tm()
         jnt_pos = jnt_tm.translate
-        ctrl_tm = self.get_ctrl_tm(rig)
+
+        # Resolve ctrl matrix
+        # It can differ from the influence to prevent the controller to appear in the geometry.
+        if ctrl_tm is None:
+            ctrl_tm = self.get_ctrl_tm(rig)
         doritos_pos = ctrl_tm.translate
 
         #

@@ -7,7 +7,8 @@ OMTK also rely heavily on PyMel.
 
 ### Rules
 The following rules simplify the implementation of the system and must be respected for Omtk to work properly.
-- All joints point toward the X axis, Y is their up axis. This mean the roll axis is always x and the primary axis is y. 
+- All influences are in a separated hierarchy.
+- All joints point toward the X axis, Z is their up axis. This mean the roll axis is always x and the primary axis is z. 
 - The character should look toward the positive Z axis. 
 - Feets orientation and straight, always.
 - All python code should respect the PEP8 standards.

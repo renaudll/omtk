@@ -367,7 +367,11 @@ class InteractiveCtrl(BaseCtrl):
         if ref_tm is None:
             ref_tm = ref.getMatrix(worldSpace=True)
         pos_ref = ref_tm.translate
-        need_flip = ref_tm.translate.x < 0
+
+        # Determine if we need to flip the ctrl.
+        # This allow L and R ctrls to mirror each others if they move together.
+        ref_name = parent.nomenclature(ref.nodeName())
+        need_flip = ref_name.side == parent.nomenclature.SIDE_R
 
         # Resolve geometry to attach to.
         if obj_mesh is None:

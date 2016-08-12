@@ -62,6 +62,24 @@ class FaceLips(rigFaceAvarGrps.AvarGrpUppLow):
             jnt_head = rig.get_head_jnt()
             jnt_jaw = rig.get_jaw_jnt()
 
+            # Hack: To prevent ANY flipping, we'll create an aligned target for the head and the jaw.
+            # TODO: Find a cleaner way!
+            nomenclature_rig = self.get_nomenclature_rig(rig)
+
+            target_head_name = nomenclature_rig.resolve('targetHead')
+            target_head = pymel.createNode('transform', name=target_head_name)
+            target_head.setParent(self.grp_rig)
+            pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
+
+            target_jaw_name = nomenclature_rig.resolve('targetJaw')
+            target_jaw = pymel.createNode('transform', name=target_jaw_name)
+            target_jaw.setParent(self.grp_rig)
+            pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
+
+            #
+            # Create jaw constraints
+            #
+
             for avar in self.avars_upp:
                 pymel.parentConstraint(jnt_head, avar._stack._layers[0], maintainOffset=True)
 
@@ -73,5 +91,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpUppLow):
             for avar in self.avars_corners:
                 offset_layer = avar._stack.get_stack_start()
                 offset_flip_layer = avar._stack.preprend_layer(name='OffsetNotFlip')
+
+
+
                 pymel.parentConstraint(jnt_head, offset_flip_layer, maintainOffset=True)
-                pymel.parentConstraint(jnt_head, jnt_jaw, offset_layer, maintainOffset=True)
+                pymel.parentConstraint(target_head, target_jaw, offset_layer, maintainOffset=True)

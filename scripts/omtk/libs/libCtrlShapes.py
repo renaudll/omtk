@@ -176,12 +176,11 @@ def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None, filte
         #y = pos.y
         #z = pos.z
 
+        # Expand bounds using starting positions.
         pos_local = pymel.datatypes.Point(pos) * parent_tm_inv if parent_tm is not None else pos
-
         x_local = pos_local.x
         y_local = pos_local.y
         z_local = pos_local.z
-
         if min_x is None or x_local < min_x:
             min_x = x_local
         if max_x is None or x_local > max_x:
@@ -225,22 +224,31 @@ def create_shape_box_arm(refs, geometries):
     # TODO: Prevent crashes when there's no geometries
     ref = next(iter(refs))
     ref_tm = ref.getMatrix(worldSpace=True)
+    positions = [r.getTranslation(space='world') for r in refs]
 
-    positions = [ref.getTranslation(space='world') for ref in refs]
-    #HACK : Check the x_position to know in which direction we need to do the raycast
+    # Resolve raycast directions
+    dir_offset_tm = pymel.datatypes.Matrix(  # Remove translation from ref_tm to keep direction normalized.
+        ref_tm.a00, ref_tm.a01, ref_tm.a02, ref_tm.a03,
+        ref_tm.a10, ref_tm.a11, ref_tm.a12, ref_tm.a13,
+        ref_tm.a20, ref_tm.a21, ref_tm.a22, ref_tm.a23,
+        0,          0,          0,          1
+    )
     x_pos = ref.getTranslation(space='world').x
+    dirs = [
+        OpenMaya.MPoint(0,-1,0) * dir_offset_tm,
+        OpenMaya.MPoint(0,1,0) * dir_offset_tm,
+        OpenMaya.MPoint(0,0,-1) * dir_offset_tm,
+        OpenMaya.MPoint(0,0,1) * dir_offset_tm
+    ]
+    # HACK : Check the x_position to know in which direction we need to do the raycast
     if x_pos >= 0.0:
-        dirs = [
-            OpenMaya.MPoint(1,0,0) * ref_tm,
-            OpenMaya.MPoint(0,0,-1) * ref_tm,
-            OpenMaya.MPoint(0,0,1) * ref_tm
-        ]
+        dirs.append(
+            OpenMaya.MPoint(1,0,0) * dir_offset_tm,
+        )
     else:
-        dirs = [
-            OpenMaya.MPoint(-1,0,0) * ref_tm,
-            OpenMaya.MPoint(0,0,-1) * ref_tm,
-            OpenMaya.MPoint(0,0,1) * ref_tm
-        ]
+        dirs.append(
+            OpenMaya.MPoint(-1,0,0) * dir_offset_tm,
+        )
 
     min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
 

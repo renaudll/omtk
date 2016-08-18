@@ -170,6 +170,20 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     #
     # Privates
     #
+    def _can_build(self, data, verbose=True):
+        try:
+            if isinstance(data, classRig.Rig):
+                data.validate()
+            elif isinstance(data, classModule.Module):
+                data.validate(self.root)
+            else:
+                raise Exception("Unexpected datatype {0} for {1}".format(type(data), data))
+        except Exception, e:
+            if verbose:
+                pymel.warning("{0} failed validation: {1}".format(data, str(e)))
+            return False
+        return True
+
     def _rig_to_tree_widget(self, module):
         # HACK: bypass the stylecheet
         # see: http://forum.qt.io/topic/22219/item-view-stylesheet-bgcolor/12
@@ -191,15 +205,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         qItem.setText(0,str(module))
 
         # Set QTreeWidgetItem red if the module fail validation
-        try:
-            if isinstance(module, classRig.Rig):
-                module.validate()
-            else:
-                module.validate(self.root)
-            color = color_valid
-        except Exception, e:
-            pymel.warning("Module {0} failed validation: {1}".format(module, str(e)))
-            color = color_invalid
+        can_build = self._can_build(module, verbose=True)
+        color = color_valid if can_build else color_invalid
         qItem.setBackground(0, color)
 
         qItem._name = qItem.text(0)
@@ -559,6 +566,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             #Handle checkbox change
             module_is_built = module.is_built()
             if new_state:
+
+                # Validate before building anything
+                if not self._can_build(module, verbose=True):
+                    return
+
                 if module_is_built:
                     module.unbuild()
                 if isinstance(module, classModule.Module):
@@ -641,9 +653,15 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
                 return val.__can_show__()
 
             functions = inspect.getmembers(module, is_exposed)
+
             if functions:
                 menu.addSeparator()
                 for fn_name, fn in functions:
+
+                    # Always pass the rig as the first argument in an exposed module function.
+                    if isinstance(module, classModule.Module):
+                        fn = functools.partial(fn, self.root)
+
                     action = menu.addAction(fn_name)
                     action.triggered.connect(fn)
 

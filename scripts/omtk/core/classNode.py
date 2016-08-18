@@ -25,6 +25,11 @@ class Node(object):
     def __createNode__(self, *args, **kwargs):
         return pymel.createNode('transform', *args, **kwargs)
 
+    def exists(self):
+        if self.node is None:
+            return False
+        return self.node.exists()
+
     def is_built(self):
         return libPymel.is_valid_PyNode(self.node)
 

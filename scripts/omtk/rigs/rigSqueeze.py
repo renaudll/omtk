@@ -91,29 +91,21 @@ class RigSqueeze(classRig.Rig):
         #
         # Create specific group related to squeeze rig convention
         #
-        if not libPymel.is_valid_PyNode(self.grp_all):
-            if cmds.objExists(self.nomenclature.root_all_name):
-                self.grp_all = pymel.PyNode(self.nomenclature.root_all_name)
-            else:
-                self.grp_all = pymel.createNode('transform', name=self.nomenclature.root_all_name)
+        all_geos = libPymel.ls_root_geos()
 
-        if not libPymel.is_valid_PyNode(self.grp_model):
-            if cmds.objExists(self.nomenclature.root_model_name):
-                self.grp_model = pymel.PyNode(self.nomenclature.root_model_name)
-            else:
-                self.grp_model = pymel.createNode('transform', name=self.nomenclature.root_model_name)
+        def build_grp(cls, val, name):
+            if not isinstance(val, cls):
+                val = cls()
+            if not val.is_built():
+                val.build(self)
+                val.rename(name)
+            return val
 
-        if not libPymel.is_valid_PyNode(self.grp_proxy):
-            if cmds.objExists(self.nomenclature.root_proxy_name):
-                self.grp_proxy = pymel.PyNode(self.nomenclature.root_proxy_name)
-            else:
-                self.grp_proxy = pymel.createNode('transform', name=self.nomenclature.root_proxy_name)
-
-        if not libPymel.is_valid_PyNode(self.grp_fx):
-            if cmds.objExists(self.nomenclature.root_fx_name):
-                self.grp_fx = pymel.PyNode(self.nomenclature.root_fx_name)
-            else:
-                self.grp_fx = pymel.createNode('transform', name=self.nomenclature.root_fx_name)
+        # Build All_Grp
+        self.grp_all = build_grp(classRig.RigGrp, self.grp_all, self.nomenclature.root_all_name)
+        self.grp_model = build_grp(classRig.RigGrp, self.grp_model, self.nomenclature.root_model_name)
+        self.grp_proxy = build_grp(classRig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
+        self.grp_fx = build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
         #Parent all groups in the main grp_all
         pymel.parent(self.grp_anm, self.grp_all) #grp_anm is not a Node, but a Ctrl
@@ -174,8 +166,8 @@ class RigSqueeze(classRig.Rig):
         for child in self.grp_anm.getChildren():
             pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
 
-    def post_buid_module(self, module):
-        super(RigSqueeze, self).post_buid_module(module)
+    def post_build_module(self, module):
+        super(RigSqueeze, self).post_build_module(module)
 
         #
         # Connect all IK/FK attributes
@@ -230,5 +222,12 @@ class RigSqueeze(classRig.Rig):
                     ctrl.drawOverride.overrideEnabled.set(1)
                     ctrl.drawOverride.overrideColor.set(color)
 
-    def unbuild(self, *args, **kwargs):
-        super(RigSqueeze, self).unbuild()
+    def _unbuild_nodes(self):
+        self.grp_model = self._unbuild_node(self.grp_model)
+        self.grp_proxy = self._unbuild_node(self.grp_proxy)
+        self.grp_fx = self._unbuild_node(self.grp_fx)
+        super(RigSqueeze, self)._unbuild_nodes()
+        self.grp_all = self._unbuild_node(self.grp_all)
+
+
+

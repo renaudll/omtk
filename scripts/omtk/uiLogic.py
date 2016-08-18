@@ -184,29 +184,40 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             return False
         return True
 
+    _color_invalid = QtGui.QBrush(QtGui.QColor(255,45,45))
+    _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
+    _color_locked = QtGui.QBrush(QtGui.QColor(125, 125, 125))
+
+    def _get_module_color(self, module):
+        if isinstance(module, classModule.Module) and module.locked:
+            return self._color_locked
+        # Set QTreeWidgetItem red if the module fail validation
+        if not self._can_build(module, verbose=True):
+            return self._color_invalid
+        return self._color_valid
+
     def _rig_to_tree_widget(self, module):
-        # HACK: bypass the stylecheet
-        # see: http://forum.qt.io/topic/22219/item-view-stylesheet-bgcolor/12
-        color_invalid= QtGui.QBrush(QtGui.QColor(255,45,45))
-        color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
-
-        style_sheet_invalid = """
-        QTreeView::item
-        {
-           background-color: rgb(45,45,45);
-        }"""
-
         qItem = QtGui.QTreeWidgetItem(0)
         if hasattr(module, '_network'):
             qItem.net = module._network
         else:
             pymel.warning("{0} have no _network attributes".format(module))
         qItem.rig = module
-        qItem.setText(0,str(module))
 
-        # Set QTreeWidgetItem red if the module fail validation
-        can_build = self._can_build(module, verbose=True)
-        color = color_valid if can_build else color_invalid
+        # Set label
+        label = str(module)
+        if isinstance(module, classModule.Module) and module.locked:
+            label += ' (locked)'
+        qItem.setText(0, label)
+
+        # HACK: bypass the stylecheet
+        # see: http://forum.qt.io/topic/22219/item-view-stylesheet-bgcolor/12
+        #style_sheet_invalid = """
+        #QTreeView::item
+        #{
+        #   background-color: rgb(45,45,45);
+        #}"""
+        color = self._get_module_color(module)
         qItem.setBackground(0, color)
 
         qItem._name = qItem.text(0)
@@ -474,42 +485,96 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             can_show = fn_can_show(qt_item, query_regex)
             qt_item.setHidden(not can_show)
 
+    def _build_module(self, module):
+        if module.locked:
+            pymel.warning("Can't build locked module {0}".format(module))
+            return
+
+        self.root.pre_build()
+        module.build(self.root)
+        self.root.post_build_module(module)
+
+        return True
+
+    def _unbuild_module(self, module):
+        if module.locked:
+            pymel.warning("Can't unbuild locked module {0}".format(module))
+            return
+
+        module.unbuild()
+
+        return True
+
+    def _build(self, val):
+        if val.is_built():
+            pymel.warning("Can't build {0}, already built.".format(val))
+            return
+
+        if isinstance(val, classModule.Module):
+            self._build_module(val)
+        elif isinstance(val, classRig.Rig):
+            val.build()
+        else:
+            raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
+
+    def _unbuild(self, val):
+        if not val.is_built():
+            pymel.warning("Can't unbuild {0}, already unbuilt.".format(val))
+            return
+
+        if isinstance(val, classModule.Module):
+            self._unbuild_module(val)
+        elif isinstance(val, classRig.Rig):
+            val.unbuild()
+        else:
+            raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
+
     #
     # Events
     #
 
     def on_build(self):
         for qItem in self.treeWidget.selectedItems():
-            rig = qItem.rig
-            if not rig.is_built():
-                if isinstance(rig, classModule.Module):
-                    self.root.pre_build()
-                    rig.build(self.root)
-                    self.root.post_buid_module(rig)
-                else:
-                    rig.build()
-            else:
-                pymel.warning("Can't build {0}, already built.".format(rig))
+            val = qItem.rig
+            self._build(val)
         self._update_network(self.root)
         self.update_ui()
 
     def on_unbuild(self):
         for qItem in self.treeWidget.selectedItems():
-            rig = qItem.rig
-            if rig.is_built():
-                rig.unbuild()
-            else:
-                pymel.warning("Can't unbuild {0}, already unbuilt.".format(rig))
+            val = qItem.rig
+            self._unbuild(val)
         self._update_network(self.root)
         self.update_ui()
 
     def on_rebuild(self):
         for qItem in self.treeWidget.selectedItems():
-            rig = qItem.rig
-            if rig.is_built():
-                rig.unbuild()
-            rig.build()
+            val = qItem.rig
+            self._unbuild(val)
+            self._build(val)
         self._update_network(self.root)
+
+    def on_lock(self):
+        need_update = False
+        for item in self.treeWidget.selectedItems():
+            val = item.rig
+            if isinstance(val, classModule.Module) and not val.locked:
+                need_update = True
+                val.locked = True
+        if need_update:
+            self._update_network(self.root)
+            self.update_ui_modules()
+
+    def on_unlock(self):
+        need_update = False
+        for item in self.treeWidget.selectedItems():
+            val = item.rig
+            if isinstance(val, classModule.Module) and val.locked:
+                need_update = True
+                val.locked = False
+        if need_update:
+            self._update_network(self.root)
+            self.update_ui_modules()
 
     def on_import(self):
         path, _ = QtGui.QFileDialog.getOpenFileName(caption="File Save (.json)", filter="JSON (*.json)")
@@ -564,24 +629,10 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if item._checked != new_state:
             item._checked = new_state
             #Handle checkbox change
-            module_is_built = module.is_built()
             if new_state:
-
-                # Validate before building anything
-                if not self._can_build(module, verbose=True):
-                    return
-
-                if module_is_built:
-                    module.unbuild()
-                if isinstance(module, classModule.Module):
-                    self.root.pre_build()
-                    module.build(self.root)
-                    self.root.post_buid_module(module)
-                else:
-                    module.build()
+                self._build(module)
             else:
-                if module_is_built:
-                    module.unbuild()
+                self._unbuild(module)
             need_update = True
             self._update_network(self.root, item=item)
 
@@ -625,11 +676,16 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if self.treeWidget.selectedItems():
             menu = QtGui.QMenu()
             actionBuild = menu.addAction("Build")
-            actionBuild.triggered.connect(functools.partial(self.on_build))
+            actionBuild.triggered.connect(self.on_build)
             actionUnbuild = menu.addAction("Unbuild")
-            actionUnbuild.triggered.connect(functools.partial(self.on_unbuild))
+            actionUnbuild.triggered.connect(self.on_unbuild)
             actionRebuild = menu.addAction("Rebuild")
-            actionRebuild.triggered.connect(functools.partial(self.on_rebuild))
+            actionRebuild.triggered.connect(self.on_rebuild)
+            menu.addSeparator()
+            actionLock = menu.addAction("Lock")
+            actionLock.triggered.connect(self.on_lock)
+            action_unlock = menu.addAction("Unlock")
+            action_unlock.triggered.connect(self.on_unlock)
             menu.addSeparator()
             sel = self.treeWidget.selectedItems()
             if len(sel) == 1:

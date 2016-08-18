@@ -63,6 +63,32 @@ class CtrlRoot(BaseCtrl):
             z_max - z_min
         ) / 2.0
 
+class RigGrp(Node):
+    """
+    Simple Node re-implementation that throw whatever was parented to it outside before un-building and re-parent them after building.
+    """
+    # def __init__(self, *args, **kwargs):
+    #     self.extra = None  # Holder for any nodes that were parented to the group when un-building.
+    #     super(RigGrp, self).__init__(*args, **kwargs)
+
+    # def build(self, *args, **kwargs):
+    #     super(RigGrp, self).build(*args, **kwargs)
+    #
+    #     if self.extra:
+    #         for child in self.extra:
+    #             child.setParent(self.node)
+
+    def unbuild(self, *args, **kwargs):
+        if self.node:
+            children = self.node.getChildren()
+            if children:
+                #self.extra = children
+                for child in children:
+                    pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
+                    child.setParent(world=True)
+        super(RigGrp, self).unbuild(*args, **kwargs)
+
+
 class Rig(object):
     DEFAULT_NAME = 'untitled'
 
@@ -176,8 +202,18 @@ class Rig(object):
         :return: True if any module dag nodes exist in the scene.
         """
         for module in self.modules:
+            # Ignore the state of any locked module
+            if module.locked:
+                continue
             if module.is_built():
                 return True
+
+        if self.grp_anm and self.grp_anm.exists():
+            return True
+
+        if self.grp_rig and self.grp_rig.exists():
+            return True
+
         return False
 
     def _clean_invalid_pynodes(self):
@@ -299,8 +335,8 @@ class Rig(object):
 
         # Create grp_rig
         if create_grp_rig:
-            if not isinstance(self.grp_rig, Node):
-                self.grp_rig = Node()
+            if not isinstance(self.grp_rig, RigGrp):
+                self.grp_rig = RigGrp()
             if not self.grp_rig.is_built():
                 self.grp_rig.build(self)
                 self.grp_rig.rename(self.nomenclature.root_rig_name)
@@ -308,7 +344,7 @@ class Rig(object):
         # Create grp_geo
         if create_grp_geo:
             all_geos = libPymel.ls_root_geos()
-            if not isinstance(self.grp_geo, Node):
+            if not isinstance(self.grp_geo, RigGrp):
                 self.grp_geo = Node()
             if not self.grp_geo.is_built():
                 self.grp_geo.build(self)
@@ -365,6 +401,9 @@ class Rig(object):
 
         modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
         for module in modules:
+            if not module.is_built():
+                continue
+
             if not skip_validation:
                 try:
                     module.validate(self)
@@ -372,10 +411,11 @@ class Rig(object):
                     log.warning("Can't build {0}: {1}".format(module, e))
                     continue
             try:
-                if not module.is_built():
+                # Skip any locked module
+                if not module.locked:
                     print("Building {0}...".format(module))
                     module.build(self, **kwargs)
-                    self.post_buid_module(module)
+                self.post_build_module(module)
             except Exception, e:
                 pymel.error(str(e))
             #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
@@ -396,7 +436,7 @@ class Rig(object):
 
         return True
 
-    def post_buid_module(self, module):
+    def post_build_module(self, module):
         # Raise warnings if a module leave junk in the scene.
         if module.grp_anm and not module.grp_anm.getChildren():
             cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
@@ -430,35 +470,56 @@ class Rig(object):
         if module.globalScale:
             pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
+    def _unbuild_node(self, val):
+        if isinstance(val, Node):
+            if val.is_built():
+                val.unbuild()
+            return val
+        elif isinstance(val, pymel.PyNode):
+            pymel.delete(val)
+            return None
+        else:
+            pymel.warning("Unexpected datatype {0} for {1}".format(type(val), val))
+
+    def _unbuild_modules(self, **kwargs):
+        # Unbuild all children
+        for module in self.modules:
+            if not module.is_built():
+                continue
+
+            # If we are unbuilding a rig and encounter 'locked' modules, this is a problem
+            # because we cannot touch it, however we need to free the grp_anm and grp_rig to
+            # delete them properly.
+            # In that situation we'll unparent the module grp_anm and grp_rig node.
+            if module.locked:
+                if module.grp_anm and module.grp_anm.exists() and module.grp_anm.getParent() == self.grp_anm.node:
+                    pymel.warning("Ejecting {0} from {1} before deletion".format(module.grp_anm.name(), self.grp_anm.name()))
+                    module.grp_anm.setParent(world=True)
+                if module.grp_rig and module.grp_rig.exists() and module.grp_rig.getParent() == self.grp_rig.node:
+                    pymel.warning("Ejecting {0} from {1} before deletion".format(module.grp_rig.name(), self.grp_rig.name()))
+                    module.grp_rig.setParent(world=True)
+            else:
+                module.unbuild(**kwargs)
+
+    def _unbuild_nodes(self):
+        # Delete anm_grp
+        self.grp_anm = self._unbuild_node(self.grp_anm)
+        self.grp_rig = self._unbuild_node(self.grp_rig)
+        self.grp_geo = self._unbuild_node(self.grp_geo)
+
+        # Delete the displayLayers
+        self.layer_anm = self._unbuild_node(self.layer_anm)
+        self.layer_geo = self._unbuild_node(self.layer_geo)
+        self.layer_rig = self._unbuild_node(self.layer_rig)
 
     def unbuild(self, **kwargs):
         """
         :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
         :return: True if successful.
         """
-        # Unbuild all children
-        for child in self.modules:
-            if child.is_built():
-                child.unbuild(**kwargs)
 
-        # Delete anm_grp
-        if isinstance(self.grp_anm, CtrlRoot) and self.grp_anm.is_built():
-            self.grp_anm.unbuild()
-
-        # Delete the rig group if it isnt used anymore
-        if libPymel.is_valid_PyNode(self.grp_rig) and len(self.grp_rig.getChildren()) == 0:
-            pymel.delete(self.grp_rig)
-            self.grp_rig = None
-
-        # Delete the displayLayers
-        if libPymel.is_valid_PyNode(self.layer_anm):
-            pymel.delete(self.layer_anm)
-            self.layer_anm = None
-        if libPymel.is_valid_PyNode(self.layer_geo):
-            pymel.delete(self.layer_geo)
-            self.layer_geo = None
-        if libPymel.is_valid_PyNode(self.layer_rig):
-            pymel.delete(self.layer_rig)
+        self._unbuild_modules(**kwargs)
+        self._unbuild_nodes()
 
         # Remove any references to missing pynodes
         #HACK --> Remove clean invalid PyNode

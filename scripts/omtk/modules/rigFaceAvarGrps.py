@@ -154,7 +154,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         max_ctrl_size = None
 
         # Resolve maximum ctrl size from head joint
-        head_length = rig.get_head_length()
+        try:
+            head_length = rig.get_head_length()
+        except Exception, e:
+            head_length = None
+            log.warning(e)
         if head_length:
             max_ctrl_size = rig.get_head_length() * 0.03
 
@@ -196,6 +200,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 mesh = rig.get_farest_affected_mesh(jnt)
                 if not mesh:
                     raise Exception("Can't find mesh affected by {0}.".format(jnt))
+
+        # Try to resolve the head joint.
+        # With strict=True, an exception will be raised if nothing is found.
+        rig.get_head_jnt(strict=True)
 
     def _need_to_define_avars(self):
         """
@@ -310,7 +318,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 yield ctrl
 
     @classModule.decorator_uiexpose
-    def calibrate(self):
+    def calibrate(self, rig):
         for avar in self.avars:
             avar.calibrate()
 

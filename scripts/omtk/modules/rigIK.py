@@ -12,7 +12,7 @@ from omtk.libs import libPymel
 class CtrlIk(BaseCtrl):
     kAttrName_State = 'ikFk'
 
-    def __createNode__(self, *args, **kwargs):
+    def __createNode__(self, geometries=None, *args, **kwargs):
         return super(CtrlIk, self).__createNode__(multiplier=1.5, *args, **kwargs)
 
     def __init__(self, *args, **kwargs):
@@ -216,7 +216,7 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
-    def build(self, rig, ctrl_ik_orientation=None, constraint=False, *args, **kwargs):
+    def build(self, rig, ctrl_ik_orientation=None, constraint=True, *args, **kwargs):
         nomenclature_anm = self.get_nomenclature_anm(rig)
         nomenclature_rig = self.get_nomenclature_rig(rig)
 

@@ -220,7 +220,7 @@ def _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=None, filte
 
     return min_x, max_x, min_y, max_y, min_z, max_z
 
-def create_shape_box_arm(refs, geometries):
+def create_shape_box_arm(refs, geometries, epsilon=0.01, default_size=1.0):
     # TODO: Prevent crashes when there's no geometries
     ref = next(iter(refs))
     ref_tm = ref.getMatrix(worldSpace=True)
@@ -251,6 +251,16 @@ def create_shape_box_arm(refs, geometries):
         )
 
     min_x, max_x, min_y, max_y, min_z, max_z = _get_bounds_using_raycast(positions, dirs, geometries, parent_tm=ref_tm)
+
+    # Ensure a minimum size for the ctrl
+    if (max_x - min_x) < epsilon:
+        max_x = default_size
+    if (max_y - min_y) < epsilon:
+        min_y = -default_size * 0.5
+        max_y = default_size * 0.5
+    if (max_z - min_z) < epsilon:
+        min_z = -default_size * 0.5
+        max_z = default_size * 0.5
 
     # Convert our bouding box
     #min_x = 0

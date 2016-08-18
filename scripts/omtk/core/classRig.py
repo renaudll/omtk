@@ -498,14 +498,17 @@ class Rig(object):
                         return jnt
 
     @libPython.memoized
-    def get_head_jnt(self, key=None):
+    def get_head_jnt(self, key=None, strict=True):
         """
         Not the prettiest but used to find the head for facial rigging.
         """
         whitelist = ('head', 'face')
         node = self._get_influence_by_pattern(whitelist, key=key)
         if not node:
-            raise Exception("Can't resolve head influence.")
+            if strict:
+                raise Exception("Can't resolve head influence.")
+            else:
+                return None
         return node
 
     @libPython.memoized

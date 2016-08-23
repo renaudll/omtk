@@ -15,6 +15,14 @@ from omtk.libs.libQt import QtCore, QtGui, getMayaWindow
 
 import ui; reload(ui)
 
+class MetadataType:
+    """
+    Used to quickly determine what metadata have been monkey-patched to a QWidget.
+    """
+    Rig = 0
+    Module = 1
+    Influece = 2
+    Mesh = 3
 
 def get_all_QTreeWidgetItem(widget, qt_item=None):
     """
@@ -95,11 +103,15 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.actionExport.triggered.connect(self.on_export)
         self.actionUpdate.triggered.connect(self.on_update)
         self.actionCreateModule.triggered.connect(self.on_btn_add_pressed)
-        self.actionMirrorJntsLToR.triggered.connect(self.on_mirror_jnts_LtoR)
-        self.actionMirrorJntsRToL.triggered.connect(self.on_mirror_jnts_RtoL)
+        self.actionMirrorJntsLToR.triggered.connect(self.on_mirror_influences_l_to_r)
+        self.actionMirrorJntsRToL.triggered.connect(self.on_mirror_influences_r_to_l)
+        self.actionMirrorSelection.triggered.connect(self.on_mirror_selection)
         self.actionAddNodeToModule.triggered.connect(self.on_addToModule)
         self.actionRemoveNodeFromModule.triggered.connect(self.on_removeFromModule)
-
+        self.actionSelectGrpMeshes.triggered.connect(self.on_SelectGrpMeshes)
+        self.actionUpdateModulesView.triggered.connect(self.update_ui_modules)
+        self.actionUpdateInfluencesView.triggered.connect(self.update_ui_jnts)
+        self.actionUpdateMeshesView.triggered.connect(self.update_ui_meshes)
 
         self.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
         self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -113,9 +125,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         self.treeWidget_jnts.setStyleSheet(self._STYLE_SHEET)
         self.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.treeWidget_jnts.itemSelectionChanged.connect(self.on_influence_selection_changed)
+        self.treeWidget_meshes.itemSelectionChanged.connect(self.on_mesh_selection_changed)
 
         self.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
         self.lineEdit_search_modules.textChanged.connect(self.on_module_query_changed)
+        self.lineEdit_search_meshes.textChanged.connect(self.on_meshes_query_changed)
         self.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
 
         #Right click menu
@@ -249,41 +263,18 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def _set_icon_from_type(self, obj, qItem):
         if isinstance(obj, pymel.nodetypes.Joint):
             qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
+        elif isinstance(obj, pymel.nodetypes.Transform):
+            self._set_icon_from_type(obj.getShape(), qItem)
+        elif isinstance(obj, pymel.nodetypes.NurbsCurve):
+            qItem.setIcon(0, QtGui.QIcon(":/nurbsCurve.svg"))
+        elif isinstance(obj, pymel.nodetypes.NurbsSurface):
+            qItem.setIcon(0, QtGui.QIcon(":/nurbsSurface.svg"))
+        elif isinstance(obj, pymel.nodetypes.Mesh):
+            qItem.setIcon(0, QtGui.QIcon(":/mesh.svg"))
         else:
-            if getattr(obj, "getShape"):
-                if isinstance(obj.getShape(), pymel.nodetypes.NurbsSurface):
-                    qItem.setIcon(0, QtGui.QIcon(":/nurbsSurface.svg"))
-                elif isinstance(obj.getShape(), pymel.nodetypes.NurbsCurve):
-                    qItem.setIcon(0, QtGui.QIcon(":/nurbsCurve.svg"))
-                else:
-                    qItem.setIcon(0, QtGui.QIcon(":/question.png"))
+            qItem.setIcon(0, QtGui.QIcon(":/question.png"))
 
-    def _fill_widget_influences_recursive(self, qt_parent, obj):
-        obj_name = obj.stripNamespace()
-
-        fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
-        networks = libSerialization.getConnectedNetworks(obj, key=fnFilter)
-
-        textBrush = QtGui.QBrush(QtCore.Qt.white)
-
-        if self._is_influence(obj):
-            qItem = QtGui.QTreeWidgetItem(0)
-            qItem.obj = obj
-            qItem.networks = networks
-            qItem.setText(0, obj_name)
-            qItem.setForeground(0, textBrush)
-            self._set_icon_from_type(obj, qItem)
-            qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
-            if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
-                qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
-            qt_parent.addChild(qItem)
-            qt_parent = qItem
-
-        for sub_jnt in obj.getChildren():
-            if isinstance(sub_jnt, pymel.nodetypes.Transform):
-                qSubItem = self._fill_widget_influences_recursive(qt_parent, sub_jnt)
-
-    def _fill_widget_influences_recursive2(self, qt_parent, data):
+    def _fill_widget_influences(self, qt_parent, data):
         obj, children_data = data
         if obj:
             obj_name = obj.stripNamespace()
@@ -293,7 +284,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
             textBrush = QtGui.QBrush(QtCore.Qt.white)
 
-            if self._is_influence(obj):
+            if self._is_influence(obj):  # todo: listen to the Rig class
                 qItem = QtGui.QTreeWidgetItem(0)
                 qItem.obj = obj
                 qItem.networks = networks
@@ -309,7 +300,34 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         for child_data in children_data:
             child = child_data[0]
             if isinstance(child, pymel.nodetypes.Transform):
-                qSubItem = self._fill_widget_influences_recursive2(qt_parent, child_data)
+                self._fill_widget_influences(qt_parent, child_data)
+
+    def _fill_widget_meshes(self, qt_parent, mesh, influences):
+        textBrush = QtGui.QBrush(QtCore.Qt.white)
+
+        # Add mesh
+        item_mesh = QtGui.QTreeWidgetItem(0)
+        item_mesh.setText(0, str(mesh))
+        item_mesh.setForeground(0, textBrush)
+        self._set_icon_from_type(mesh.getParent(), item_mesh)
+        qt_parent.addChild(item_mesh)
+
+        # Monkey-patch mesh QWidget
+        item_mesh.metadata_type = MetadataType.Mesh
+        item_mesh.metadata_data = mesh
+
+        # Add influences
+        if influences:
+            for influence in influences:
+                item = QtGui.QTreeWidgetItem(0)
+                item.setText(0, str(influence))
+                item.setForeground(0, textBrush)
+                self._set_icon_from_type(influence, item)
+                item_mesh.addChild(item)
+
+                # Monkey-patch influence QWidget
+                item.metadata_type = MetadataType.Influece
+                item.metadata_data = influence
 
     def _show_parent_recursive(self, qt_parent_item):
         if qt_parent_item is not None:
@@ -392,6 +410,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def update_ui(self, *args, **kwargs):
         self.update_ui_modules()
         self.update_ui_jnts()
+        self.update_ui_meshes()
 
     def update_ui_modules(self, *args, **kwargs):
         self.treeWidget.clear()
@@ -405,16 +424,14 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
     def update_ui_jnts(self, *args, **kwargs):
         # Resolve text query
         query_raw = self.lineEdit_search_jnt.text()
-        query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         self.treeWidget_jnts.clear()
-        #all_jnt_roots = libPymel.ls_root(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
         all_potential_influences = self.root.get_potential_influences()
 
         if all_potential_influences :
             data = libPymel.get_tree_from_objs(all_potential_influences, sort=True)
 
-            self._fill_widget_influences_recursive2(self.treeWidget_jnts.invisibleRootItem(), data)
+            self._fill_widget_influences(self.treeWidget_jnts.invisibleRootItem(), data)
 
         '''
         if all_jnt_roots:
@@ -423,6 +440,30 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         '''
 
         self.refresh_ui_jnts()
+
+    def update_ui_meshes(self, *args, **kwargs):
+        self.treeWidget_meshes.clear()
+        # Hack: force cache to invalidate
+        try:
+            self.root.get_meshes.func.im_self.cache.clear()
+        except Exception, e:
+            pass
+        all_meshes = self.root.get_meshes()
+
+
+        if all_meshes:
+            widget_root = self.treeWidget_meshes.invisibleRootItem()
+
+            for mesh in all_meshes:
+                influences = None
+                from omtk.libs import libSkinning
+                skincluster = libSkinning.get_skin_cluster(mesh)
+                if skincluster:
+                    influences = sorted(skincluster.influenceObjects())
+
+                self._fill_widget_meshes(widget_root, mesh, influences)
+
+        self._refresh_ui_meshes_visibility()
 
     def refresh_ui_jnts(self, query_regex=None):
         if query_regex is None:
@@ -482,6 +523,21 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         #unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
         #selectableBrush = QtGui.QBrush(QtCore.Qt.white)
         for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
+            can_show = fn_can_show(qt_item, query_regex)
+            qt_item.setHidden(not can_show)
+
+    def _refresh_ui_meshes_visibility(self, query_regex=None):
+        if query_regex is None:
+            query_raw = self.lineEdit_search_meshes.text()
+            query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
+
+        def fn_can_show(qItem, query_regex):
+            if qItem.metadata_type == MetadataType.Influece:  # Always show influences
+                return True
+
+            return not query_regex or re.match(query_regex, qItem.text(0), re.IGNORECASE)
+
+        for qt_item in get_all_QTreeWidgetItem(self.treeWidget_meshes):
             can_show = fn_can_show(qt_item, query_regex)
             qt_item.setHidden(not can_show)
 
@@ -619,6 +675,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         else:
             self.actionCreateModule.setEnabled(False)
 
+    def on_mesh_selection_changed(self):
+        pymel.select([item.metadata_data.getParent() for item in self.treeWidget_meshes.selectedItems() if item.metadata_data.exists()])
+
     def on_module_changed(self, item):
         # todo: handle exception
         #Check first if the checkbox have changed
@@ -655,6 +714,9 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def on_module_query_changed(self, *args, **kwargs):
         self._refresh_ui_modules_visibility()
+
+    def on_meshes_query_changed(self, *args, **kwargs):
+        self._refresh_ui_meshes_visibility()
 
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):
@@ -766,11 +828,53 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             self.export_networks()
             self.update_ui()
 
-    def on_mirror_jnts_LtoR(self):
-        libSkeleton.mirror_jnts_l_to_r()
+    def _is_l_influence(self, root, inf):
+        inf_name = inf.stripNamespace()
+        nomenclature = root.nomenclature.build_from_string(inf_name)
+        return nomenclature.get_side() == nomenclature.SIDE_L
 
-    def on_mirror_jnts_RtoL(self):
-        libSkeleton.mirror_jnts_r_to_l()
+    def _is_r_influence(self, root, inf):
+        inf_name = inf.stripNamespace()
+        nomenclature = root.nomenclature.build_from_string(inf_name)
+        return nomenclature.get_side() == nomenclature.SIDE_R
+
+    def _get_l_influences(self):
+        objs = self.root.get_potential_influences()
+        fn_filter = functools.partial(self._is_l_influence, self.root)
+        return filter(fn_filter, objs)
+
+    def _get_r_influences(self):
+        objs = self.root.get_potential_influences()
+        fn_filter = functools.partial(self._is_r_influence, self.root)
+        return filter(fn_filter, objs)
+
+    def on_mirror_influences_l_to_r(self):
+        objs = self._get_l_influences()
+        if not objs:
+            pymel.warning('No joints found!')
+            return
+        libSkeleton.mirror_jnts(objs)
+
+    def on_mirror_influences_r_to_l(self):
+        objs = self._get_r_influences()
+        if not objs:
+            pymel.warning('No joints found!')
+            return
+        libSkeleton.mirror_jnts(objs)
+
+    def on_mirror_selection(self):
+        objs = pymel.selected(type='joint')
+        if not objs:
+            pymel.warning('No joints found!')
+            return
+        libSkeleton.mirror_jnt(objs)
+
+    def on_SelectGrpMeshes(self):
+        grp = self.root.grp_geo
+        if not grp or not grp.exists():
+            pymel.warning("Can't find influence grp!")
+        else:
+            pymel.select(grp)
 
     def focus_in_module(self, event):
         #Set back the text with the information about the module in it

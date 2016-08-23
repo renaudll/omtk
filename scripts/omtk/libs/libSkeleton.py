@@ -80,21 +80,11 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
         obj_dst.radius.set(obj_src.radius.get())
     return obj_dst
 
-def mirror_selected_joints():
-    for obj in pymel.selected():
-        mirror_obj(obj)
-
-def mirror_jnts_l_to_r(**kwargs):
-    jnts = sorted(pymel.ls('L_*_Jnt', type='joint') + pymel.ls('L_*_JEnd', type='joint') + \
-                pymel.ls('l_*_jnt', type='joint') + pymel.ls('l_*_jend', type='joint'), key=libPymel.get_num_parents)
-    for jnt in jnts:
-        mirror_jnt(jnt, **kwargs)
-
-def mirror_jnts_r_to_l(**kwargs):
-    jnts = sorted(pymel.ls('R_*_Jnt', type='joint') + pymel.ls('R_*_JEnd', type='joint') + \
-                pymel.ls('r_*_jnt', type='joint') + pymel.ls('r_*_jend', type='joint'), key=libPymel.get_num_parents)
-    for jnt in jnts:
-        mirror_jnt(jnt, **kwargs)
+def mirror_jnts(objs, **kwargs):
+    # Sort objects by hyerarchy so we mirror parents before their children.
+    objs = sorted(objs, key=libPymel.get_num_parents)
+    for obj in objs:
+        mirror_jnt(obj, **kwargs)
 
 def freeze_selected_joints_rotation():
     jnts = [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]

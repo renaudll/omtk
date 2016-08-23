@@ -866,7 +866,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
         if not objs:
             pymel.warning('No joints found!')
             return
-        libSkeleton.mirror_jnt(objs)
+        libSkeleton.mirror_jnts(objs)
 
     def on_SelectGrpMeshes(self):
         grp = self.root.grp_geo

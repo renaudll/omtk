@@ -829,21 +829,31 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def _is_l_influence(self, root, inf):
         inf_name = inf.stripNamespace()
-        nomenclature = root.nomenclature.build_from_string(inf_name)
-        return nomenclature.get_side() == nomenclature.SIDE_L
+        nomenclature = root.nomenclature()
+        nomenclature.build_from_string(inf_name)
+        return nomenclature.side == nomenclature.SIDE_L
 
     def _is_r_influence(self, root, inf):
         inf_name = inf.stripNamespace()
-        nomenclature = root.nomenclature.build_from_string(inf_name)
-        return nomenclature.get_side() == nomenclature.SIDE_R
+        nomenclature = root.nomenclature()
+        nomenclature.build_from_string(inf_name)
+        return nomenclature.side == nomenclature.SIDE_R
 
     def _get_l_influences(self):
         objs = self.root.get_potential_influences()
+        # Filter joints
+        fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
+        objs = filter(fn_filter, objs)
+        # Filter l side only
         fn_filter = functools.partial(self._is_l_influence, self.root)
         return filter(fn_filter, objs)
 
     def _get_r_influences(self):
         objs = self.root.get_potential_influences()
+        # Filter joints
+        fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
+        objs = filter(fn_filter, objs)
+        # Filter r side only
         fn_filter = functools.partial(self._is_r_influence, self.root)
         return filter(fn_filter, objs)
 

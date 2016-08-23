@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rlessard/packages/omtk/9.9.9/scripts/omtk/ui.ui'
 #
-# Created: Tue Aug 23 12:22:30 2016
+# Created: Tue Aug 23 12:24:52 2016
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -183,7 +183,7 @@ class Ui_MainWindow(object):
         self.menuRig.setTitle(QtGui.QApplication.translate("MainWindow", "Rig", None, QtGui.QApplication.UnicodeUTF8))
         self.menuJoint.setTitle(QtGui.QApplication.translate("MainWindow", "Modules", None, QtGui.QApplication.UnicodeUTF8))
         self.menuInfluences.setTitle(QtGui.QApplication.translate("MainWindow", "Influences", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionUpdate.setText(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionUpdate.setText(QtGui.QApplication.translate("MainWindow", "Update All", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUpdate.setToolTip(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
         self.actionImport.setText(QtGui.QApplication.translate("MainWindow", "Import", None, QtGui.QApplication.UnicodeUTF8))
         self.actionExport.setText(QtGui.QApplication.translate("MainWindow", "Export", None, QtGui.QApplication.UnicodeUTF8))

@@ -450,7 +450,6 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             pass
         all_meshes = self.root.get_meshes()
 
-
         if all_meshes:
             widget_root = self.treeWidget_meshes.invisibleRootItem()
 

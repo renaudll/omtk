@@ -205,7 +205,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionUpdate">
    <property name="text">
-    <string>Update</string>
+    <string>Update All</string>
    </property>
    <property name="toolTip">
     <string>Update</string>

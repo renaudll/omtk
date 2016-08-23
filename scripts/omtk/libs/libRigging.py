@@ -540,7 +540,13 @@ def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
 
     buffer_results = OpenMaya.MPointArray()
     for geometry in geometries:
+        # Resolve the MFnMesh, note that in some case (ex: a mesh with zero vertices), pymel will return a MFnDagNode.
+        # If this happen we'll want to ignore the mesh.
         mfn_geo = geometry.__apimfn__()
+        if not isinstance(mfn_geo, OpenMaya.MFnMesh):
+            pymel.warning("Can't proceed with raycast, mesh is invalid: {0}".format(geometry.__melobject__()))
+            continue
+
         mfn_geo.intersect(pos, dir, buffer_results, tolerance, OpenMaya.MSpace.kWorld)
         for i in range(buffer_results.length()):
             results.append(pymel.datatypes.Point(buffer_results[i]))

@@ -354,6 +354,8 @@ class InteractiveCtrl(BaseCtrl):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
+        self.follicle = None
+
     def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, **kwargs):
         # todo: Simplify the setup, too many nodes
 

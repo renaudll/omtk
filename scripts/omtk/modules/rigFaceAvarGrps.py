@@ -31,6 +31,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     # This is mainly a workaround a limitation of the design which doesn't allow access to the avars without building.
     VALIDATE_MESH = True
 
+    # Enable this flag if the module contain only one influence.
+    # ex: The FaceJaw module can accept two objects. The jaw and the jaw_end. However we consider the jaw_end as extra information for the positioning.
+    # TODO: Find a generic way to get the InteractiveCtrl follicle position.
+    SINGLE_INFLUENCE = False
+
     #
     # Influences properties
     #
@@ -149,7 +154,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         max_ctrl_size = None
 
         # Resolve maximum ctrl size from head joint
-        head_length = rig.get_head_length()
+        try:
+            head_length = rig.get_head_length()
+        except Exception, e:
+            head_length = None
+            log.warning(e)
         if head_length:
             max_ctrl_size = rig.get_head_length() * 0.03
 
@@ -166,12 +175,17 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         return ctrl_size
 
-    '''
-    def create_avar(self, cls):
+    def _get_avars_influences(self):
         """
-        Factory method to create a sub avar.
+        Return the influences that need to have avars associated with.
+        Normally for 3 influences, we create 3 avars.
+        However if the SINGLE_INFLUENCE flag is up, only the first influence will be rigged, the others
+        mights be handled upstream. (ex: FaceJaw).
         """
-    '''
+        if self.SINGLE_INFLUENCE:
+            return [self.jnt]
+        else:
+            return self.jnts
 
     def validate(self, rig):
         """
@@ -181,20 +195,51 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         super(AvarGrp, self).validate(rig)
 
         if self.VALIDATE_MESH:
-            for jnt in self.jnts:
+            avar_influences = self._get_avars_influences()
+            for jnt in avar_influences:
                 mesh = rig.get_farest_affected_mesh(jnt)
                 if not mesh:
                     raise Exception("Can't find mesh affected by {0}.".format(jnt))
 
-    def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=None, constraint=True, **kwargs):
-        if parent is None:
-            parent = not self.preDeform
+        # Try to resolve the head joint.
+        # With strict=True, an exception will be raised if nothing is found.
+        rig.get_head_jnt(strict=True)
 
-        if connect_global_scale is None:
-            connect_global_scale = self.preDeform
+    def _need_to_define_avars(self):
+        """
+        Check if we need to reset the property containing the avars associated with the influences.
+        It some rare cases it might be necessary to reset everything, however this would be considered a last-case
+        scenario since this could have unintended consequences as loosing any held information (like ctrl shapes).
+        """
+        # First build
+        if not self.avars:
+            return True
 
-        super(AvarGrp, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
+        # If the influence and avars count mismatch, we need to rebuild everything.
+        # Also if the desired avars type have changed, we need to rebuild everything.
+        avar_influences = self._get_avars_influences()
+        if len(filter(lambda x: isinstance(x, self._CLS_AVAR), self.avars)) != len(avar_influences):
+            log.warning("Mismatch between avars and jnts tables. Will reset the avars table.")
+            return True
 
+        return False
+
+    def _define_avars(self, rig):
+        """
+        For each influence, create it's associated avar instance.
+        """
+        avars = []
+        avar_influences = self._get_avars_influences()
+        # Connect global avars to invidial avars
+        for jnt in avar_influences:
+            avar = self.create_avar(rig, jnt)
+            avars.append(avar)
+        return avars
+
+    def _build_avars(self, rig, create_ctrls=True, constraint=True, connect_global_scale=None, **kwargs):
+        """
+        Call the .build() method on all avars.
+        """
         ctrl_size = self._get_default_ctrl_size(rig)
 
         # Resolve the U and V modifiers.
@@ -203,16 +248,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         mult_u = self.get_multiplier_u()
         mult_v = self.get_multiplier_v()
 
-        # Define avars on first build
-        if not self.avars or len(filter(lambda x: isinstance(x, self._CLS_AVAR), self.avars)) != len(self.jnts):
-            self.avars = []
-            # Connect global avars to invidial avars
-            for jnt in self.jnts:
-                avar = self.create_avar(rig, jnt)
-                self.avars.append(avar)
-
         # Build avars and connect them to global avars
-        for jnt, avar in zip(self.jnts, self.avars):
+        avar_influences = self._get_avars_influences()
+        for jnt, avar in zip(avar_influences, self.avars):
             self.configure_avar(rig, avar)
 
             # HACK: Set module name using rig nomenclature.
@@ -242,6 +280,21 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 avar.grp_anm.setParent(self.grp_anm)
             avar.grp_rig.setParent(self.grp_rig)
 
+    def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=None, constraint=True, **kwargs):
+        if parent is None:
+            parent = not self.preDeform
+
+        if connect_global_scale is None:
+            connect_global_scale = self.preDeform
+
+        super(AvarGrp, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
+
+        # Create avars if needed (this will get skipped if the module have already been built once)
+        if self._need_to_define_avars():
+            self.avars = self._define_avars(rig)
+
+        self._build_avars(rig, connect_global_scale=connect_global_scale, create_ctrls=create_ctrls, constraint=constraint, **kwargs)
+
         self.connect_global_avars()
 
         # If the deformation order is set to post (aka the deformer is in the final skinCluster)
@@ -265,7 +318,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 yield ctrl
 
     @classModule.decorator_uiexpose
-    def calibrate(self):
+    def calibrate(self, rig):
         for avar in self.avars:
             avar.calibrate()
 
@@ -506,8 +559,10 @@ class AvarGrpUppLow(AvarGrpOnSurface):
             self.avar_low.calibrate()
 
     def unbuild(self):
-        self.avar_upp.unbuild()
-        self.avar_low.unbuild()
+        if self.avar_upp:
+            self.avar_upp.unbuild()
+        if self.avar_low:
+            self.avar_low.unbuild()
 
         super(AvarGrpUppLow, self).unbuild()
 
@@ -625,6 +680,8 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
             self.avar_r.calibrate()
 
     def unbuild(self):
-        self.avar_l.unbuild()
-        self.avar_r.unbuild()
+        if self.avar_l:
+            self.avar_l.unbuild()
+        if self.avar_r:
+            self.avar_r.unbuild()
         super(AvarGrpLftRgt, self).unbuild()

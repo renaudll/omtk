@@ -26,10 +26,9 @@ class AvarJaw(rigFaceAvar.AvarSimple):
 
     def get_ctrl_tm(self, rig):
         """
-        Find the chin location using raycast. This is the preffered location for the jaw doritos.
+        Find the chin location using raycast. This is the prefered location for the jaw doritos.
         If raycast don't return any information, use the default behavior.
         """
-
         ref = self.jnt.getMatrix(worldSpace=True)
         pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space='world'))
         pos_e = pymel.datatypes.Point(1,0,0) * ref
@@ -84,5 +83,20 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
     """
     _CLS_AVAR = AvarJaw
     SHOW_IN_UI = True
+    SINGLE_INFLUENCE = True
+
+    def _build_avars(self, rig, **kwargs):
+        # If the rigger provided an extra influence (jaw_end), we'll use it to define the ctrl and influence position.
+        ctrl_tm = None
+        if len(self.jnts) > 1:
+            jnt_ref = self.jnts[-1]
+            print('Using {0} as the ctrl position reference.'.format(jnt_ref.name()))  # TODO: Add logging wrapper in module
+            p = jnt_ref.getTranslation(space='world')
+            ctrl_tm = pymel.datatypes.Matrix(1,   0,   0,   0,
+                                             0,   1,   0,   0,
+                                             0,   0,   1,   0,
+                                             p.x, p.y, p.z, 1)
+
+        super(FaceJaw, self)._build_avars(rig, ctrl_tm=ctrl_tm, **kwargs)
 
 

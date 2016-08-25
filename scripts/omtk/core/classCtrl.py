@@ -355,15 +355,10 @@ class InteractiveCtrl(BaseCtrl):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
+        self.follicle = None
+
     def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, **kwargs):
         # todo: Simplify the setup, too many nodes
-
-        # Resolve geometry to attach to
-        if obj_mesh is None:
-            obj_mesh = parent.get_farest_affected_mesh(ref)
-
-        if obj_mesh is None:
-            raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
 
         super(InteractiveCtrl, self).build(parent, **kwargs)
 
@@ -376,7 +371,29 @@ class InteractiveCtrl(BaseCtrl):
             ref_tm = ref.getMatrix(worldSpace=True)
         pos_ref = ref_tm.translate
 
-        need_flip = ref_tm.translate.x < 0
+        # Determine if we need to flip the ctrl.
+        # This allow L and R ctrls to mirror each others if they move together.
+        ref_name = parent.nomenclature(ref.nodeName())
+        need_flip = ref_name.side == parent.nomenclature.SIDE_R
+
+        # Resolve geometry to attach to.
+        if obj_mesh is None:
+            # We'll only check mesh affected by the influence.
+            meshes = libRigging.get_affected_geometries(ref)
+            # We'll make sure to remove any mesh that is not handled.
+            meshes = list(set(meshes) & set(parent.get_meshes()))
+            # We'll scan all available geometries and use the one with the shortest distance.
+            obj_mesh, fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_meshes(meshes, pos_ref)
+            # TODO: Make sure the follicle will be bound to the last geometry of the deformer stack.
+            # Otherwise the InteractiveCtrl may attach itself to a pre-deformation mesh and never move.
+            #obj_mesh = libRigging.get_farest_affected_mesh()
+        else:
+            fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, pos_ref)
+
+        if obj_mesh is None:
+            raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
+
+        log.info('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
 
         # Initialize external stack
         # Normally this would be hidden from animators.
@@ -393,8 +410,6 @@ class InteractiveCtrl(BaseCtrl):
                                                              defaultValue=1.0)
         self.attr_sensitivity_tz = libAttr.addAttr(stack, longName=self._ATTR_NAME_SENSITIVITY_TZ,
                                                              defaultValue=1.0)
-
-        log.info('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
 
         # Note that to only check in the Z axis, we'll do a raycast first.
         # If we success this will become our reference position.
@@ -413,8 +428,6 @@ class InteractiveCtrl(BaseCtrl):
         layer_fol = stack.append_layer()
         layer_fol.rename(layer_fol_name)
         #layer_fol.setParent(self.grp_rig)
-
-        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, pos_ref)
 
         # TODO: Validate that we don't need to inverse the rotation separately.
         fol_name = nomenclature_rig.resolve('doritosFollicle')

@@ -191,6 +191,7 @@ class Module(object):
 
     @property
     def parent(self):
+        # TODO: We might want to search for specifically a joint in case the influence have intermediate objects.
         if not self.chain_jnt:
             return None
         first_input = next(iter(self.chain_jnt), None)
@@ -208,6 +209,7 @@ class Module(object):
     def jnts(self):
         fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         jnts = filter(fn_is_jnt, self.input)
+        jnts = sorted(jnts)
         return jnts
 
     @libPython.cached_property()
@@ -240,6 +242,15 @@ class Module(object):
         self.grp_rig = None
         self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
         self.globalScale = None  # Each module is responsible for handling it scale!
+
+        # Sometimes the rigger might modify the module in a way which can prevent it from being un-built without causing issues.
+        # Use this flag to notify omtk that the module should not be un-built under any circumstances.
+        self.locked = False
+
+        # Use this flag to leave any note concerning the module.
+        # ie: Why this module might be locked.
+        # TODO: Support maya notes? (see attribute editor)
+        # self.note = ''
 
         if input:
             if not isinstance(input, list):
@@ -277,7 +288,6 @@ class Module(object):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
-
         log.info('Building {0}'.format(self))
 
         # Disable segment scale compensate by default.
@@ -327,7 +337,6 @@ class Module(object):
         This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
         """
-
         # Ensure that there's no more connections in the input chain
         for obj in self.input:
             if isinstance(obj, pymel.nodetypes.Transform):

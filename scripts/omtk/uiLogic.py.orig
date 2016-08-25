@@ -590,8 +590,21 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def on_build(self):
         for qItem in self.treeWidget.selectedItems():
+<<<<<<< HEAD
+            rig = qItem.rig
+            if not rig.is_built():
+                if isinstance(rig, classModule.Module):
+                    self.root.pre_build()
+                    rig.build(self.root)
+                    self.root.post_build_module(rig)
+                else:
+                    rig.build()
+            else:
+                pymel.warning("Can't build {0}, already built.".format(rig))
+=======
             val = qItem.rig
             self._build(val)
+>>>>>>> origin/master
         self._update_network(self.root)
         self.update_ui()
 
@@ -688,7 +701,18 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
             item._checked = new_state
             #Handle checkbox change
             if new_state:
+<<<<<<< HEAD
+                if module_is_built:
+                    module.unbuild()
+                if isinstance(module, classModule.Module):
+                    self.root.pre_build()
+                    module.build(self.root)
+                    self.root.post_build_module(module)
+                else:
+                    module.build()
+=======
                 self._build(module)
+>>>>>>> origin/master
             else:
                 self._unbuild(module)
             need_update = True

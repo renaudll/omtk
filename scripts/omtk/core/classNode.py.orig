@@ -25,6 +25,7 @@ class Node(object):
     def __createNode__(self, *args, **kwargs):
         return pymel.createNode('transform', *args, **kwargs)
 
+<<<<<<< HEAD
     def __getNetworkName__(self):
         """
         Determine the name of the maya network.
@@ -36,11 +37,12 @@ class Node(object):
             return 'net_{0}'.format(self.__class__.__name__)
         else:
             return 'net_{0}_{1}'.format(self.__class__.__name__, self.name())
-
+=======
     def exists(self):
         if self.node is None:
             return False
         return self.node.exists()
+>>>>>>> origin/master
 
     def is_built(self):
         return libPymel.is_valid_PyNode(self.node)

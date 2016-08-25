@@ -404,7 +404,7 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
 
 def get_affected_geometries(*objs):
     """
-    :param obj: A reference object, generally a pymel.nodetypes.Join.
+    :param obj: A reference object, generally a pymel.nodetypes.Joint.
     :return: The geometries affected by the object.
     """
     geometries = set()
@@ -540,7 +540,13 @@ def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
 
     buffer_results = OpenMaya.MPointArray()
     for geometry in geometries:
+        # Resolve the MFnMesh, note that in some case (ex: a mesh with zero vertices), pymel will return a MFnDagNode.
+        # If this happen we'll want to ignore the mesh.
         mfn_geo = geometry.__apimfn__()
+        if not isinstance(mfn_geo, OpenMaya.MFnMesh):
+            pymel.warning("Can't proceed with raycast, mesh is invalid: {0}".format(geometry.__melobject__()))
+            continue
+
         mfn_geo.intersect(pos, dir, buffer_results, tolerance, OpenMaya.MSpace.kWorld)
         for i in range(buffer_results.length()):
             results.append(pymel.datatypes.Point(buffer_results[i]))
@@ -645,7 +651,11 @@ def matrix_from_normal(up_vect, front_vect):
         0,0,0,1)
 '''
 
-def get_matrix_from_direction(look_vec, upp_vec):
+def get_matrix_from_direction(look_vec, upp_vec,
+                              look_axis=pymel.datatypes.Vector.xAxis,
+                              upp_axis=pymel.datatypes.Vector.zAxis):
+    #print look_axis, look_vec
+    #print upp_axis, upp_vec
     # Ensure we deal with normalized vectors
     look_vec.normalize()
     upp_vec.normalize()
@@ -654,12 +664,55 @@ def get_matrix_from_direction(look_vec, upp_vec):
     #recross in case up and front were not originally orthogonal:
     upp_vec = pymel.datatypes.Vector.cross(side_vec, look_vec)
 
+    #
+    # Build resulting matrix
+    #
+
+    tm = pymel.datatypes.Matrix(
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 1
+    )
+
+    # Add look component
+    axis = look_axis
+    vec = look_vec
+    tm += pymel.datatypes.Matrix(
+        axis.x * vec.x, axis.x * vec.y, axis.x * vec.z, 0,
+        axis.y * vec.x, axis.y * vec.y, axis.y * vec.z, 0,
+        axis.z * vec.x, axis.z * vec.y, axis.z * vec.z, 0,
+        0,              0,              0,              0
+    )
+
+    # Add upp component
+    axis = upp_axis
+    vec = upp_vec
+    tm += pymel.datatypes.Matrix(
+        axis.x * vec.x, axis.x * vec.y, axis.x * vec.z, 0,
+        axis.y * vec.x, axis.y * vec.y, axis.y * vec.z, 0,
+        axis.z * vec.x, axis.z * vec.y, axis.z * vec.z, 0,
+        0,              0,              0,              0
+    )
+
+    # Add side component
+    axis = look_axis.cross(upp_axis)
+    vec = side_vec
+    tm += pymel.datatypes.Matrix(
+        axis.x * vec.x, axis.x * vec.y, axis.x * vec.z, 0,
+        axis.y * vec.x, axis.y * vec.y, axis.y * vec.z, 0,
+        axis.z * vec.x, axis.z * vec.y, axis.z * vec.z, 0,
+        0,              0,              0,              0
+    )
+
+    return tm
+
     #the new matrix is
-    return pymel.datatypes.Matrix (
-        look_vec.x, look_vec.y, look_vec.z, 0,
-        upp_vec.x, upp_vec.y, upp_vec.z, 0,
-        side_vec.x, side_vec.y, side_vec.z, 0,
-        0, 0, 0, 1)
+    # return pymel.datatypes.Matrix (
+    #     look_vec.x, look_vec.y, look_vec.z, 0,
+    #     upp_vec.x, upp_vec.y, upp_vec.z, 0,
+    #     side_vec.x, side_vec.y, side_vec.z, 0,
+    #     0, 0, 0, 1)
 
 '''
 def debug_pos(pos):
@@ -672,7 +725,9 @@ def debug_tm(tm):
     l.s.set(10,10,10)
 '''
 
-def align_joints_to_view(joints, cam, affect_pos=True):
+def align_joints_to_view(joints, cam, affect_pos=True,
+                         look_axis=pymel.datatypes.Vector.xAxis,
+                         upp_axis=pymel.datatypes.Vector.zAxis):
     """
     Align the up axis of selected joints to the look axis of a camera.
     Similar to an existing functionnality in blender.
@@ -681,7 +736,6 @@ def align_joints_to_view(joints, cam, affect_pos=True):
     pos_start = joints[0].getTranslation(space='world')
 
     # Get camera direction
-    cam_tm = cam.getMatrix(worldSpace=True)
     cam_pos = cam.getTranslation(space='world')
     cam_upp = cam_pos - pos_start
     cam_upp.normalize()
@@ -695,19 +749,25 @@ def align_joints_to_view(joints, cam, affect_pos=True):
 
         pos_inn = positions_orig[0]
         pos_out = positions_orig[-1]
-        look_axis = pos_out - pos_inn
-        ref_tm = get_matrix_from_direction(look_axis, cam_upp)
+        dir = pos_out - pos_inn
+        ref_tm = get_matrix_from_direction(dir, cam_upp)
         ref_tm.translate = pos_inn
         ref_tm_inv = ref_tm.inverse()
 
         for i in range(len(joints)):
-            joint = joints[i]
             joint_pos = positions_orig[i]
             if i == 0:
                 positions.append(joint_pos)
             else:
                 joint_local_pos = (joint_pos - pos_start) * ref_tm_inv
-                joint_local_pos.z = 0
+
+                # Remove any translate out of the 2D plane
+                multiplier = look_axis + upp_axis
+                #joint_local_pos.z = 0
+                joint_local_pos.x *= multiplier.x
+                joint_local_pos.y *= multiplier.y
+                joint_local_pos.z *= multiplier.z
+
                 new_joint_pos = (joint_local_pos * ref_tm) + pos_start
                 positions.append(new_joint_pos)
     else:
@@ -737,7 +797,7 @@ def align_joints_to_view(joints, cam, affect_pos=True):
             # Next ref_y_axis will use parent correct up axis to prevent flipping
             cam_upp = y_axis
 
-            tm = get_matrix_from_direction(x_axis, y_axis)
+            tm = get_matrix_from_direction(x_axis, y_axis, look_axis=look_axis, upp_axis=upp_axis)
         else:
             tm = transforms[i-1].copy() # Last joint share the same rotation as it's parent
 
@@ -829,7 +889,16 @@ def get_multi_attr_available_slot(attr_multi):
     return attr_multi[i]
 
 def get_closest_point_on_mesh(mesh, pos):
-
+    """
+    Return informations about the closest intersection between a point and a mesh polygons.
+    :param mesh: A pymel.nodetypes.Mesh to analyze.
+    :param pos: A pymel.datatypes.Vector world-space position.
+    :return: A 3-sized tuple containing:
+    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
+    - The u coordinate of the resulting position.
+    - The v coordinate of the resulting position.
+    If nothing is found, a 3-sized tuple containing all None values are returned.
+    """
 
     # closestPointOnMesh ignores polymesh transforms
     util_transformGeometry = create_utility_node('transformGeometry',
@@ -851,6 +920,29 @@ def get_closest_point_on_mesh(mesh, pos):
     pymel.delete(util_cpom)
 
     return pos, u, v
+
+def get_closest_point_on_meshes(meshes, pos):
+    """
+    Return informations about the closest intersection between a point and multiple mesh polygons.
+    :param mesh: A pymel.nodetypes.Mesh to analyze.
+    :param pos: A pymel.datatypes.Vector world-space position.
+    :return: A 4-sized tuple containing:
+    - A pymel.nodetypes.Mesh instance representing the closest mesh.
+    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
+    - The u coordinate of the resulting position.
+    - The v coordinate of the resulting position.
+    If nothing is found, a 4-sized tuple containing all None values are returned.
+    """
+    shortest_delta = None
+    return_val = (None, None, None, None)
+    for mesh in meshes:
+        closest_pos, closest_u, closest_v = get_closest_point_on_mesh(mesh, pos)
+        delta = libPymel.distance_between_vectors(pos, closest_pos)
+        if shortest_delta is None or delta < shortest_delta:
+            shortest_delta = delta
+            return_val = (mesh, closest_pos, closest_u, closest_v)
+    return return_val
+
 
 def get_closest_point_on_surface(nurbsSurface, pos):
     # closestPointOnSurface don't listen to transform so we'll need to duplicate the shape.

@@ -329,8 +329,9 @@ class Rig(object):
         # Create the master grp
         if create_master_grp:
             if not self.grp_master:
-                if not isinstance(self.grp_master, RigGrp):
-                    self.grp_master = RigGrp()
+                self.grp_master = next(iter(pymel.ls(self.name + '_' + self.nomenclature.type_rig)), None)
+                if not isinstance(self.grp_master, Node):
+                    self.grp_master = Node()
             if not self.grp_master.is_built():
                 self.grp_master.build(name=self.name + '_' + self.nomenclature.type_rig)
 
@@ -341,26 +342,36 @@ class Rig(object):
             if not self.grp_anm.is_built():
                 grp_anm_size = CtrlRoot._get_recommended_radius(self)
                 self.grp_anm.build(self, size=grp_anm_size)
-            self.grp_anm.rename(self.nomenclature.root_anm_name)
+                self.grp_anm.rename(self.nomenclature.root_anm_name)
 
         # Create grp_rig
         if create_grp_rig:
+<<<<<<< HEAD
+            if not self.grp_rig:
+                self.grp_rig = next(iter(pymel.ls(self.nomenclature.root_rig_name)), None)
+                if not isinstance(self.grp_rig, Node):
+                    self.grp_rig = Node()
+=======
             if not isinstance(self.grp_rig, RigGrp):
                 self.grp_rig = RigGrp()
+>>>>>>> origin/master
             if not self.grp_rig.is_built():
-                self.grp_rig.build(self)
-                self.grp_rig.rename(self.nomenclature.root_rig_name)
+                self.grp_rig.build(name=self.nomenclature.root_rig_name)
 
         # Create grp_geo
         if create_grp_geo:
+<<<<<<< HEAD
+            if not self.grp_geo:
+                self.grp_geo = next(iter(pymel.ls(self.nomenclature.root_geo_name)), None)
+                if not isinstance(self.grp_geo, Node):
+                    self.grp_geo = Node()
+=======
             all_geos = libPymel.ls_root_geos()
             if not isinstance(self.grp_geo, RigGrp):
-                self.grp_geo = RigGrp()
+                self.grp_geo = Node()
+>>>>>>> origin/master
             if not self.grp_geo.is_built():
-                self.grp_geo.build(self)
-                self.grp_geo.rename(self.nomenclature.root_geo_name)
-            #if all_geos:
-            #    all_geos.setParent(self.grp_geo)
+                self.grp_geo.build(name = self.nomenclature.root_geo_name)
 
         #Parent all grp on the master grp
         if self.grp_master:
@@ -438,7 +449,11 @@ class Rig(object):
                 if not module.locked:
                     print("Building {0}...".format(module))
                     module.build(self, **kwargs)
+<<<<<<< HEAD
+                    self.post_build_module(module)
+=======
                 self.post_build_module(module)
+>>>>>>> origin/master
             except Exception, e:
                 pymel.error(str(e))
             #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
@@ -493,6 +508,26 @@ class Rig(object):
         if module.globalScale:
             pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
+<<<<<<< HEAD
+        #
+        # Set ctrls colors
+        #
+        color_by_side = {
+            self.nomenclature.SIDE_L: 13,  # Red
+            self.nomenclature.SIDE_R: 6  # Blue
+        }
+        epsilon = 0.1
+        if module.grp_anm:
+            nomenclature_anm = module.get_nomenclature_anm(self)
+            for ctrl in module.get_ctrls(recursive=True):
+                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                side = nomenclature_ctrl.side
+                color = color_by_side.get(side, None)
+                if color:
+                    ctrl.drawOverride.overrideEnabled.set(1)
+                    ctrl.drawOverride.overrideColor.set(color)
+
+=======
     def _unbuild_node(self, val):
         if isinstance(val, Node):
             if val.is_built():
@@ -530,14 +565,33 @@ class Rig(object):
         self.grp_rig = self._unbuild_node(self.grp_rig)
         self.grp_geo = self._unbuild_node(self.grp_geo)
 
+        # Delete the displayLayers
+        self.layer_anm = self._unbuild_node(self.layer_anm)
+        self.layer_geo = self._unbuild_node(self.layer_geo)
+        self.layer_rig = self._unbuild_node(self.layer_rig)
+>>>>>>> origin/master
+
     def unbuild(self, **kwargs):
         """
         :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
         :return: True if successful.
         """
 
+<<<<<<< HEAD
+        # Delete the displayLayers
+        if libPymel.is_valid_PyNode(self.layer_anm):
+            pymel.delete(self.layer_anm)
+            self.layer_anm = None
+        if libPymel.is_valid_PyNode(self.layer_geo):
+            pymel.delete(self.layer_geo)
+            self.layer_geo = None
+        if libPymel.is_valid_PyNode(self.layer_rig):
+            pymel.delete(self.layer_rig)
+            self.layer_rig = None
+=======
         self._unbuild_modules(**kwargs)
         self._unbuild_nodes()
+>>>>>>> origin/master
 
         # Remove any references to missing pynodes
         #HACK --> Remove clean invalid PyNode

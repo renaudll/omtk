@@ -68,7 +68,6 @@ class Limb(Module):
         # Create IK system
         if not isinstance(self.sysIK, self._CLASS_SYS_IK):
             self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
-            self.sysIK.iCtrlIndex = self.iCtrlIndex #Need to push iCtrlIndex since network value is here
         self.sysIK.name = '{0}_Ik'.format(self.name) # Hack
         self.sysIK.build(rig, constraint=False, **kwargs)
 

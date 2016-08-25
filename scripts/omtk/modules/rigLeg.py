@@ -1,18 +1,35 @@
 import pymel.core as pymel
 from maya import cmds
+from maya import mel
 
-from omtk.modules.rigArm import Arm
 from omtk.modules.rigIK import IK
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 from omtk.libs import libAttr
+from omtk.libs import libPymel
 
 class CtrlIkLeg(rigIK.CtrlIk):
+    """
+    Inherit of base CtrlIk to create a specific box shaped controller
+    """
     def __createNode__(self, refs=None, geometries=None, *args, **kwargs):
         return libCtrlShapes.create_shape_box_feet(refs, geometries, *args, **kwargs)
 
+class CtrlIkQuadSwivel(rigIK.CtrlIkSwivel):
+    """
+    Inherit of the base CtrlIkSwivel to add a new spaceswitch target
+    """
+    def get_spaceswitch_targets(self, rig, module, *args, **kwargs):
+        targets, target_names = super(CtrlIkQuadSwivel, self).get_spaceswitch_targets(rig, module, *args, **kwargs)
+
+        #Prevent crash when creating the first swivel from the base Ik class
+        if module._chain_quad_ik:
+            targets.append(module._chain_ik[1])
+            target_names.append("Calf")
+
+        return targets, target_names
 
 class LegIk(IK):
     """
@@ -102,6 +119,10 @@ class LegIk(IK):
         return tm
 
     def _get_recommended_pivot_heelfloor(self, pos_foot):
+        """
+        :param pos_foot: The position of the foot jnt
+        :return: The position of the heel pivot
+        """
         result = pymel.datatypes.Point(pos_foot)
         result.y = 0
         return result
@@ -179,12 +200,19 @@ class LegIk(IK):
 
         return pos
 
-    def build(self, rig, attr_holder=None, **kwargs):
+    def build(self, rig, attr_holder=None, constraint_handle=False, setup_softik=True, **kwargs):
+        """
+        Build the LegIk system
+        :param rig: The rig instance used to dictate certain parameters
+        :param attr_holder: The attribute holder object for all the footroll params
+        :param kwargs: More kwargs pass to the superclass
+        :return: Nothing
+        """
         # Compute ctrl_ik orientation
         # Hack: Bypass pymel bug (see https://github.com/LumaPictures/pymel/issues/355)
         ctrl_ik_orientation = pymel.datatypes.TransformationMatrix(self._get_reference_plane()).rotate
 
-        super(LegIk, self).build(rig, ctrl_ik_orientation=ctrl_ik_orientation, constraint_handle=False, **kwargs)
+        super(LegIk, self).build(rig, ctrl_ik_orientation=ctrl_ik_orientation, constraint_handle=constraint_handle, setup_softik=setup_softik, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
 
@@ -418,8 +446,12 @@ class LegIk(IK):
         pymel.connectAttr(self.grp_rig.globalScale, root_footRoll.scaleZ)
 
     def unbuild(self):
-        # Remember footroll locations in relation with a safe matrix
-        # The reference matrix is the ankle, maybe we should zero out the y axis.
+        """
+        Unbuild the system
+        Remember footroll locations in relation with a safe matrix
+        The reference matrix is the ankle, maybe we should zero out the y axis.
+        :return: Nothing
+        """
         tm_ref_inv = self._get_reference_plane().inverse()
 
         if self.pivot_foot_heel:
@@ -448,19 +480,134 @@ class LegIk(IK):
         self.pivot_foot_out = None
         self.pivot_foot_toes_fk = None
 
+class LegIkQuad(LegIk):
+    """
+    Quadruped ik system setup which inherit from the basic ik system
+    """
+    SHOW_IN_UI = False
+    _CLASS_CTRL_SWIVEL = CtrlIkQuadSwivel
+
+    def __init__(self, *args, **kwargs):
+        super(LegIkQuad, self).__init__(*args, **kwargs)
+        self.iCtrlIndex = 3
+        self.ctrl_swivel_quad = None
+        self._chain_quad_ik = None
+        self._ik_handle_quad = None
+
+    def create_ik_handle(self):
+        """
+        Override parent function to create a ikSpringSolver ik handle
+        :param nomencalture: The rig nomenclature used to name object
+        :return: Nothing, handle is stocked in a class variable
+        """
+        mel.eval('ikSpringSolver') #Solver need to be loaded before being used
+        return super(LegIkQuad, self).create_ik_handle(solver='ikSpringSolver')
+
+    def build(self, rig, constraint=True, constraint_handle=True, setup_softik=True, **kwargs):
+        """
+        :param rig: The rig instance used to dictate certain parameters
+        :param constraint: Bool to tell if we will constraint the chain bone on the ikchain
+        :param constraint_handle: Bool to tell if we will contraint the handle on the ik ctrl
+        :param setup_softik: Bool to tell if we setup the soft ik system
+        :param kwargs: More kwargs passed to the superclass
+        :return: Nothing
+        """
+        #Build the softik node after the setup for the quadruped
+        super(LegIkQuad, self).build(rig, constraint=False, constraint_handle=constraint_handle, setup_softik=setup_softik, **kwargs)
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        quad_swivel_pos = self.calc_swivel_pos(start_index=1, end_index=3)
+        heel_idx = self.iCtrlIndex - 1
+
+        #Create a second ik chain for the quadruped setup
+        self._chain_quad_ik = self.chain.duplicate()
+        i = 1
+        for oIk in self._chain_quad_ik:
+            oIk.rename(nomenclature_rig.resolve('QuadChain{0:02}'.format(i)))
+            i += 1
+        self._chain_quad_ik[0].setParent(self._chain_ik[0])
+
+        obj_e = self._chain_quad_ik[self.iCtrlIndex]
+
+        #We need a second ik solver for the quad chain
+        ik_solver_quad_name = nomenclature_rig.resolve('quadIkHandle')
+        ik_effector_quad_name = nomenclature_rig.resolve('quadIkEffector')
+        self._ik_handle_quad, _ik_effector = pymel.ikHandle(startJoint=self._chain_quad_ik[1],
+                                                            endEffector=obj_e,
+                                                            solver='ikRPsolver')
+        self._ik_handle_quad.rename(ik_solver_quad_name)
+        _ik_effector.rename(ik_effector_quad_name)
+        self._ik_handle_quad.setParent(self._ik_handle)
+
+        #Create another swivel handle node for the quad chain setup
+        if not isinstance(self.ctrl_swivel_quad, self._CLASS_CTRL_SWIVEL):
+            self.ctrl_swivel_quad = self._CLASS_CTRL_SWIVEL()
+        ctrl_swivel_ref = self._chain_ik[heel_idx]
+        self.ctrl_swivel_quad.build(rig, refs=ctrl_swivel_ref)
+        self.ctrl_swivel_quad.setParent(self.grp_anm) #parent the quad swivel on the first one
+        self.ctrl_swivel_quad.rename(nomenclature_anm.resolve('swivelQuad'))
+        self.ctrl_swivel_quad._line_locator.rename(nomenclature_anm.resolve('swivelQuadLineLoc'))
+        self.ctrl_swivel_quad._line_annotation.rename(nomenclature_anm.resolve('swivelQuadLineAnn'))
+        self.ctrl_swivel_quad.offset.setTranslation(quad_swivel_pos, space='world')
+        self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
+        self.ctrl_swivel_quad.create_spaceswitch(rig, self, self.parent, default_name='World')
+        #Set by default the space to calf
+        if self.ctrl_swivel_quad.space:
+            enum = self.ctrl_swivel_quad.space.getEnums()
+            calf_idx = enum.get('Calf', None)
+            if calf_idx:
+                self.ctrl_swivel_quad.space.set(calf_idx)
+
+        '''
+        if setup_softik:
+            self.setup_softik(self._ik_handle_quad)
+        '''
+
+        pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)
+
+        pymel.poleVectorConstraint(self.ctrl_swivel_quad, self._ik_handle_quad)
+
+        if constraint:
+            for source, target in zip(self._chain_quad_ik, self.chain):
+                pymel.parentConstraint(source, target)
 
 class Leg(rigLimb.Limb):
+    """
+    Basic leg system which use the LegIk class implementation.
+    """
     _CLASS_SYS_IK = LegIk
 
     def validate(self, rig):
+        """
+        Allow the ui to know if the module is valid to be builded or not
+        :param rig: The rig instance that dicdate certain parameters
+        :return: True or False depending if it pass the building validation
+        """
         super(Leg, self).validate(rig)
 
-        '''
         num_inputs = len(self.input)
-        if num_inputs < 5 or num_inputs > 7:
-            raise Exception("Expected between 5 to 7 joints, got {0}".format(num_inputs))
-        '''
+        if num_inputs < 5 or num_inputs > 6:
+            raise Exception("Expected between 5 to 6 joints, got {0}".format(num_inputs))
 
         return True
 
+class LegQuad(rigLimb.Limb):
+    """
+    Quadruped leg system which use the LegIkQuad class implementation
+    """
+    _CLASS_SYS_IK = LegIkQuad
 
+    def validate(self, rig):
+        """
+        Allow the ui to know if the module is valid to be builded or not
+        :param rig: The rig instance that dicdate certain parameters
+        :return: True or False depending if it pass the building validation
+        """
+        super(LegQuad, self).validate(rig)
+
+        num_inputs = len(self.input)
+        if num_inputs < 6 or num_inputs > 7:
+            raise Exception("Expected between 6 to 7 joints, got {0}".format(num_inputs))
+
+        return True

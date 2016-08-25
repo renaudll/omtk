@@ -86,7 +86,7 @@ class RigSqueeze(classRig.Rig):
         return super(RigSqueeze, self)._is_influence(obj)
 
     def pre_build(self):
-        super(RigSqueeze, self).pre_build(create_grp_jnt=False)
+        super(RigSqueeze, self).pre_build(create_master_grp=False, create_grp_jnt=False)
         
         #
         # Create specific group related to squeeze rig convention

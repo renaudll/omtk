@@ -48,6 +48,11 @@ class PyNodeChain(list):
     def chain(self):
         return self
 
+    def duplicate(self):
+        #Hack - Convert self into list even if self is a list to prevent duplicate self parameter in pymel.duplicate
+        new_chain = pymel.duplicate(list(self), renameChildren=True, parentOnly=True)
+        return PyNodeChain(new_chain)
+
     def setParent(self, new_parent, **kwargs):
         for node in self:
             if node != new_parent and node.getParent() != new_parent:

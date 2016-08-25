@@ -267,7 +267,7 @@ class Rig(object):
         """
         self.pre_build()
 
-    def pre_build(self, create_master_grp = True, create_grp_jnt=True, create_grp_anm=True,
+    def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
                   create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
         # Ensure we got a root joint
         # If needed, parent orphan joints to this one
@@ -294,7 +294,7 @@ class Rig(object):
         if create_master_grp:
             if not self.grp_master:
                 self.grp_master = next(iter(pymel.ls(self.name + '_' + self.nomenclature.type_rig)), None)
-                if not isinstance(self.grp_rig, Node):
+                if not isinstance(self.grp_master, Node):
                     self.grp_master = Node()
             if not self.grp_master.is_built():
                 self.grp_master.build(name=self.name + '_' + self.nomenclature.type_rig)

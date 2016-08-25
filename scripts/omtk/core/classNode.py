@@ -32,7 +32,10 @@ class Node(object):
         Returns: The desired network name for this instance.
         """
         #Need to call name function because the getAttr try to get the node (Pymel) name
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name())
+        if self.is_built():
+            return 'net_{0}'.format(self.__class__.__name__)
+        else:
+            return 'net_{0}_{1}'.format(self.__class__.__name__, self.name())
 
     def is_built(self):
         return libPymel.is_valid_PyNode(self.node)

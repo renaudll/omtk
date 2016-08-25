@@ -347,10 +347,10 @@ class Module(object):
         for ctrl in ctrls:
             ctrl.unbuild()
 
-        if self.grp_anm is not None:
+        if self.grp_anm is not None and libPymel.is_valid_PyNode(self.grp_anm):
             pymel.delete(self.grp_anm)
             self.grp_anm = None
-        if self.grp_rig is not None:
+        if self.grp_rig is not None and libPymel.is_valid_PyNode(self.grp_rig):
             pymel.delete(self.grp_rig)
             self.grp_rig = None
 

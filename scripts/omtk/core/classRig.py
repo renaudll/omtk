@@ -238,6 +238,10 @@ class Rig(object):
         return True
 
     def _is_influence(self, jnt):
+        # Ignore any joint in the rig group (like joint used with ikHandles)
+        if libPymel.is_valid_PyNode(self.grp_rig):
+            if libPymel.is_child_of(jnt, self.grp_rig.node):
+                return False
         return True
 
     def get_potential_influences(self):
@@ -247,7 +251,8 @@ class Rig(object):
         :key: Provide a function for filtering the results.
         """
         result = pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
-        return filter(self._is_influence, result)
+        result = filter(self._is_influence, result)
+        return result
 
     @libPython.memoized
     def get_meshes(self):

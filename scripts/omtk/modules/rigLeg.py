@@ -543,7 +543,7 @@ class LegIkQuad(LegIk):
         #Create another swivel handle node for the quad chain setup
         if not isinstance(self.ctrl_swivel_quad, self._CLASS_CTRL_SWIVEL):
             self.ctrl_swivel_quad = self._CLASS_CTRL_SWIVEL()
-        ctrl_swivel_ref = self._chain_ik[heel_idx]
+        ctrl_swivel_ref = self._chain_quad_ik[heel_idx]
         self.ctrl_swivel_quad.build(rig, refs=ctrl_swivel_ref)
         self.ctrl_swivel_quad.setParent(self.grp_anm) #parent the quad swivel on the first one
         self.ctrl_swivel_quad.rename(nomenclature_anm.resolve('swivelQuad'))
@@ -559,10 +559,10 @@ class LegIkQuad(LegIk):
             if calf_idx:
                 self.ctrl_swivel_quad.space.set(calf_idx)
 
-        '''
-        if setup_softik:
-            self.setup_softik(self._ik_handle_quad)
-        '''
+        attr_holder = self.ctrl_ik
+        libAttr.addAttr_separator(attr_holder, 'Quadruped', niceName='Quadruped')
+        attr_pitch = libAttr.addAttr(attr_holder, longName='pitch', k=True)
+        pymel.connectAttr(attr_pitch, self._chain_quad_ik[0].rotateZ)
 
         pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)
 

@@ -441,10 +441,6 @@ class IK(Module):
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
         self.ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')
 
-        #
-        # Create softIk node and connect user accessible attributes to it.
-        #
-
         # Create the ik_handle_target that will control the ik_handle
         # This is allow us to override what control the main ik_handle
         # Mainly used for the Leg setup
@@ -452,6 +448,9 @@ class IK(Module):
         self._ik_handle_target.setParent(self.grp_rig)
         pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
 
+        #
+        # Create softIk node and connect user accessible attributes to it.
+        #
         if setup_softik:
             self.setup_softik(self._ik_handle)
 

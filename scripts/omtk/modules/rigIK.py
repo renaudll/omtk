@@ -147,16 +147,14 @@ class CtrlIkSwivel(BaseCtrl):
 class SoftIkNode(Node):
     """
     Softik implementation class. Inherit of the base node class
+    Note that the SoftIkNode is a dagnode so it will be automatically cleaned when the module is un-built.
     """
-    def __createNode__(self, *args, **kwargs):
-        return pymel.createNode('network')
-
-    def build(self):
+    def build(self, **kwargs):
         """
         Build function for the softik node
         :return: Nothing
         """
-        super(SoftIkNode, self).build()
+        super(SoftIkNode, self).build(**kwargs)
         formula = libFormula.Formula()
         fn_add_attr = functools.partial(libAttr.addAttr, self.node, hasMinValue=True, hasMaxValue=True)
         formula.inMatrixS = fn_add_attr(longName='inMatrixS', dt='matrix')
@@ -260,7 +258,6 @@ class IK(Module):
         self.ctrl_swivel_quad = None
         self.chain_length = None
         self._chain_ik = None
-        self._soft_ik_network = None
 
     def _create_ctrl_ik(self, *args, **kwargs):
         """
@@ -290,12 +287,14 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[start_index + 1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
-    def setup_softik(self, ik_handle_to_constraint):
+    def setup_softik(self, rig, ik_handle_to_constraint):
         """
         Setup the softik system a ik system
         :param ik_handle_to_constraint: The ik handle used to be constrained to the soft ik
         :return: Nothing
         """
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+
         oAttHolder = self.ctrl_ik
         fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
         attInRatio = fnAddAttr(oAttHolder, longName='softIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
@@ -306,19 +305,22 @@ class IK(Module):
         attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
 
         # Create and configure SoftIK solver
-        self._soft_ik_network = SoftIkNode()
-        self._soft_ik_network.build()
-        pymel.connectAttr(attInRatio, self._soft_ik_network.inRatio)
-        pymel.connectAttr(attInStretch, self._soft_ik_network.inStretch)
-        pymel.connectAttr(self._ikChainGrp.worldMatrix, self._soft_ik_network.inMatrixS)
-        pymel.connectAttr(self._ik_handle_target.worldMatrix, self._soft_ik_network.inMatrixE)
+        soft_ik_network_name = nomenclature_rig.resolve('softik')
+        soft_ik_network = SoftIkNode()
+        soft_ik_network.build(name=soft_ik_network_name)
+        soft_ik_network.setParent(self.grp_rig)
+
+        pymel.connectAttr(attInRatio, soft_ik_network.inRatio)
+        pymel.connectAttr(attInStretch, soft_ik_network.inStretch)
+        pymel.connectAttr(self._ikChainGrp.worldMatrix, soft_ik_network.inMatrixS)
+        pymel.connectAttr(self._ik_handle_target.worldMatrix, soft_ik_network.inMatrixE)
         attr_distance = libFormula.parse('distance*globalScale',
                                          distance=self.chain_length,
                                          globalScale=self.grp_rig.globalScale)
-        pymel.connectAttr(attr_distance, self._soft_ik_network.inChainLength)
+        pymel.connectAttr(attr_distance, soft_ik_network.inChainLength)
 
-        attOutRatio = self._soft_ik_network.outRatio
-        attOutRatioInv = libRigging.create_utility_node('reverse', inputX=self._soft_ik_network.outRatio).outputX
+        attOutRatio = soft_ik_network.outRatio
+        attOutRatioInv = libRigging.create_utility_node('reverse', inputX=soft_ik_network.outRatio).outputX
         pymel.select(clear=True)
         pymel.select(self._ik_handle_target , self._ikChainGrp, ik_handle_to_constraint)
         pointConstraint = pymel.pointConstraint()
@@ -332,13 +334,15 @@ class IK(Module):
         for i in range(1, self.iCtrlIndex+1):
             obj = self._chain_ik[i]
             util_get_t = libRigging.create_utility_node('multiplyDivide',
-                                               input1X=self._soft_ik_network.outStretch,
-                                               input1Y=self._soft_ik_network.outStretch,
-                                               input1Z=self._soft_ik_network.outStretch,
+                                               input1X=soft_ik_network.outStretch,
+                                               input1Y=soft_ik_network.outStretch,
+                                               input1Z=soft_ik_network.outStretch,
                                                input2=obj.t.get())
             pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
             pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
             pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
+        
+        return soft_ik_network
 
     def create_ik_handle(self, solver='ikRPsolver'):
         """
@@ -453,7 +457,7 @@ class IK(Module):
         pymel.pointConstraint(self.ctrl_ik, self._ik_handle_target)
 
         if setup_softik:
-            self.setup_softik(self._ik_handle)
+            self.setup_softik(rig, self._ik_handle)
 
         # Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sx)
@@ -476,8 +480,6 @@ class IK(Module):
         :return:
         """
         super(IK, self).unbuild()
-        #TODO Make sure the soft ik network unbuilt correctly
-        #self._soft_ik_network.unbuild()
 
     def parent_to(self, parent):
         """

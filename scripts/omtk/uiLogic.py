@@ -41,7 +41,7 @@ def get_all_QTreeWidgetItem(widget, qt_item=None):
         for x in get_all_QTreeWidgetItem(widget, qt_sub_item):
             yield x
 
-class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
+class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
     #http://forums.cgsociety.org/archive/index.php?t-1096914.html
     #Use the intern maya ressources icon
     _STYLE_SHEET = \
@@ -85,6 +85,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
        """
 
     def __init__(self, parent=None):
+        #Try to kill latest Autorig ui window
+        try:
+            pymel.deleteUI('OpenRiggingToolkit')
+        except:
+            pass
         if parent is None: parent = getMayaWindow()
         super(AutoRig, self).__init__(parent)
         self.setupUi(self)
@@ -660,7 +665,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_MainWindow):
 
     def on_update(self, *args, **kwargs):
         #TODO - Fix the reload problem which cause isinstance function check to fail with an existing network
-        import omtk; reload(omtk); omtk._reload()
+        import omtk; reload(omtk); omtk._reload(kill_ui=False)
         self.import_networks()
         self.update_ui()
 

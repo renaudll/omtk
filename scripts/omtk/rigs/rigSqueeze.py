@@ -67,10 +67,11 @@ class RigSqueeze(classRig.Rig):
     def __init__(self, *args, **kwargs):
         super(RigSqueeze, self).__init__(*args, **kwargs)
 
-        self.grp_all = None
+        self.grp_master = None
         self.grp_model = None
         self.grp_proxy = None
         self.grp_fx = None
+        self.color_ctrl = True
 
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
@@ -93,21 +94,13 @@ class RigSqueeze(classRig.Rig):
         #
         all_geos = libPymel.ls_root_geos()
 
-        def build_grp(cls, val, name):
-            if not isinstance(val, cls):
-                val = cls()
-            if not val.is_built():
-                val.build(self)
-                val.rename(name)
-            return val
-
         # Build All_Grp
-        self.grp_master = self.grp_all = build_grp(classRig.RigGrp, self.grp_all, self.nomenclature.root_all_name)
-        self.grp_model = build_grp(classRig.RigGrp, self.grp_model, self.nomenclature.root_model_name)
-        self.grp_proxy = build_grp(classRig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
-        self.grp_fx = build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
+        self.grp_master = self.build_grp(classRig.RigGrp, self.grp_master, self.nomenclature.root_all_name)
+        self.grp_model = self.build_grp(classRig.RigGrp, self.grp_model, self.nomenclature.root_model_name)
+        self.grp_proxy = self.build_grp(classRig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
+        self.grp_fx = self.build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
-        #Parent all groups in the main grp_all
+        #Parent all groups in the main grp_master
         pymel.parent(self.grp_anm, self.grp_master) #grp_anm is not a Node, but a Ctrl
         self.grp_rig.setParent(self.grp_master)
         self.grp_fx.setParent(self.grp_master)
@@ -116,11 +109,11 @@ class RigSqueeze(classRig.Rig):
         self.grp_geo.setParent(self.grp_master)
         '''
         if self.grp_jnt.getParent() is None:
-            self.grp_jnt.setParent(self.grp_all)
+            self.grp_jnt.setParent(self.grp_master)
         '''
 
         #Lock and hide all attributes we don't want the animator to play with
-        libAttr.lock_hide_trs(self.grp_all)
+        libAttr.lock_hide_trs(self.grp_master)
         libAttr.lock_hide_trs(self.grp_rig)
         libAttr.lock_hide_trs(self.grp_fx)
         libAttr.lock_hide_trs(self.grp_model)
@@ -204,27 +197,9 @@ class RigSqueeze(classRig.Rig):
 
             pymel.connectAttr(attr_src_inv, attr_dst)
 
-        #
-        # Set ctrls colors
-        #
-        color_by_side = {
-            self.nomenclature.SIDE_L: 13,  # Red
-            self.nomenclature.SIDE_R: 6  # Blue
-        }
-        epsilon = 0.1
-        if module.grp_anm:
-            nomenclature_anm = module.get_nomenclature_anm(self)
-            for ctrl in module.get_ctrls(recursive=True):
-                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                side = nomenclature_ctrl.side
-                color = color_by_side.get(side, None)
-                if color:
-                    ctrl.drawOverride.overrideEnabled.set(1)
-                    ctrl.drawOverride.overrideColor.set(color)
-
     def _unbuild_nodes(self):
         self.grp_model = self._unbuild_node(self.grp_model)
         self.grp_proxy = self._unbuild_node(self.grp_proxy)
         self.grp_fx = self._unbuild_node(self.grp_fx)
         super(RigSqueeze, self)._unbuild_nodes()
-        self.grp_all = self._unbuild_node(self.grp_all)
+        self.grp_master = self._unbuild_node(self.grp_master)

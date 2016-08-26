@@ -87,9 +87,6 @@ class Module(object):
         """
         return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
 
-    def __createMayaNetwork__(self):
-        return pymel.createNode('network', name='net_{0}'.format(self.name))
-
     def is_built(self):
         """
         Check in maya the existence of the grp_anm and grp_rig properties.

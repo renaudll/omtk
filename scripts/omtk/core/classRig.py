@@ -91,6 +91,8 @@ class RigGrp(Node):
 
 class Rig(object):
     DEFAULT_NAME = 'untitled'
+    LEFT_CTRL_COLOR = 13 #Red
+    RIGHT_CTRL_COLOR = 6 #Blue
 
     #
     # className.BaseNomenclature implementation
@@ -142,6 +144,7 @@ class Rig(object):
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
+        self.color_ctrl = False #Bool to know if we want to colorize the ctrl
 
     def __str__(self):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
@@ -303,6 +306,14 @@ class Rig(object):
         """
         self.pre_build()
 
+    def build_grp(self, cls, val, name, *args, **kwargs):
+        if not isinstance(val, cls):
+            val = cls()
+        if not val.is_built():
+            val.build(self, *args, **kwargs)
+            val.rename(name)
+        return val
+
     def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
                   create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
         # Ensure we got a root joint
@@ -328,37 +339,19 @@ class Rig(object):
 
         # Create the master grp
         if create_master_grp:
-            if not self.grp_master:
-                if not isinstance(self.grp_master, RigGrp):
-                    self.grp_master = RigGrp()
-            if not self.grp_master.is_built():
-                self.grp_master.build(name=self.name + '_' + self.nomenclature.type_rig)
-
+            self.grp_master = self.build_grp(RigGrp, self.grp_master, self.name + '_' + self.nomenclature.type_rig)
         # Create grp_anm
         if create_grp_anm:
-            if not isinstance(self.grp_anm, CtrlRoot):
-                self.grp_anm = CtrlRoot()
-            if not self.grp_anm.is_built():
-                grp_anm_size = CtrlRoot._get_recommended_radius(self)
-                self.grp_anm.build(self, size=grp_anm_size)
-            self.grp_anm.rename(self.nomenclature.root_anm_name)
-
+            grp_anim_size = CtrlRoot._get_recommended_radius(self)
+            self.grp_anm = self.build_grp(CtrlRoot, self.grp_anm, self.nomenclature.root_anm_name, size=grp_anim_size)
         # Create grp_rig
         if create_grp_rig:
-            if not isinstance(self.grp_rig, RigGrp):
-                self.grp_rig = RigGrp()
-            if not self.grp_rig.is_built():
-                self.grp_rig.build(self)
-                self.grp_rig.rename(self.nomenclature.root_rig_name)
+            self.grp_rig = self.build_grp(RigGrp, self.grp_rig, self.nomenclature.root_rig_name)
 
         # Create grp_geo
         if create_grp_geo:
             all_geos = libPymel.ls_root_geos()
-            if not isinstance(self.grp_geo, RigGrp):
-                self.grp_geo = RigGrp()
-            if not self.grp_geo.is_built():
-                self.grp_geo.build(self)
-                self.grp_geo.rename(self.nomenclature.root_geo_name)
+            self.grp_geo = self.build_grp(RigGrp, self.grp_geo, self.nomenclature.root_geo_name)
             #if all_geos:
             #    all_geos.setParent(self.grp_geo)
 
@@ -424,7 +417,7 @@ class Rig(object):
 
         modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
         for module in modules:
-            if not module.is_built():
+            if module.is_built():
                 continue
 
             if not skip_validation:
@@ -433,6 +426,11 @@ class Rig(object):
                 except Exception, e:
                     log.warning("Can't build {0}: {1}".format(module, e))
                     continue
+            if not module.locked:
+                print("Building {0}...".format(module))
+                module.build(self, **kwargs)
+            self.post_build_module(module)
+            '''
             try:
                 # Skip any locked module
                 if not module.locked:
@@ -441,6 +439,7 @@ class Rig(object):
                 self.post_build_module(module)
             except Exception, e:
                 pymel.error(str(e))
+            '''
             #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
             #    traceback.print_stack()
             #    logging.error(str(e))
@@ -492,6 +491,10 @@ class Rig(object):
         # Connect globalScale attribute to each modules globalScale.
         if module.globalScale:
             pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
+
+        #Apply ctrl color if needed
+        if self.color_ctrl:
+            self.color_module_ctrl(module)
 
     def _unbuild_node(self, val):
         if isinstance(val, Node):
@@ -555,6 +558,26 @@ class Rig(object):
         for module in self.modules:
             if obj in module.input:
                 return module
+
+    def color_module_ctrl(self, module):
+        #
+        # Set ctrls colors
+        #
+        color_by_side = {
+            self.nomenclature.SIDE_L: self.LEFT_CTRL_COLOR,  # Red
+            self.nomenclature.SIDE_R: self.RIGHT_CTRL_COLOR  # Blue
+        }
+
+        epsilon = 0.1
+        if module.grp_anm:
+            nomenclature_anm = module.get_nomenclature_anm(self)
+            for ctrl in module.get_ctrls(recursive=True):
+                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                side = nomenclature_ctrl.side
+                color = color_by_side.get(side, None)
+                if color:
+                    ctrl.drawOverride.overrideEnabled.set(1)
+                    ctrl.drawOverride.overrideColor.set(color)
 
     #
     # Facial and avars utility methods

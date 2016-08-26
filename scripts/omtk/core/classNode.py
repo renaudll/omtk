@@ -10,6 +10,7 @@ class Node(object):
     """
     def __init__(self, data=None, create=False, *args, **kwargs):
         self.__dict__['node'] = data
+        self.__dict__['network_name'] = 'Rename_me'
         self._layers = []  # TODO: Use libPymel.PyNodeChain?
 
         if create is True:
@@ -17,7 +18,7 @@ class Node(object):
             assert(isinstance(self.node, pymel.PyNode))
 
     def __getattr__(self, attr_name):
-        if self.__dict__['node'] and not isinstance(self.__dict__['node'], pymel.PyNode):
+        if self.__dict__['node'] and not isinstance(self.__dict__['node'], pymel.PyNode) and not self.__dict__['node'] is None:
             raise TypeError("RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(type(self.__dict__['node']), self.__dict__['node']))
         elif hasattr(self.__dict__['node'], attr_name):
             return getattr(self.__dict__['node'], attr_name)
@@ -33,9 +34,8 @@ class Node(object):
         """
         #Need to call name function because the getAttr try to get the node (Pymel) name
         if self.is_built():
-            return 'net_{0}'.format(self.__class__.__name__)
-        else:
-            return 'net_{0}_{1}'.format(self.__class__.__name__, self.name())
+            self.network_name = self.name() #Keep the name of the node for better debugging
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.network_name)
 
     def exists(self):
         if self.node is None:

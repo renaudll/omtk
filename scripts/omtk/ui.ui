@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>OpenRiggingToolkit</class>
+ <widget class="QMainWindow" name="OpenRiggingToolkit">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -20,7 +20,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QLabel" name="label_modules">
@@ -57,7 +57,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QLabel" name="label_jnts">
@@ -107,7 +107,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
          <widget class="QLabel" name="label">
@@ -135,6 +135,11 @@
           <property name="selectionMode">
            <enum>QAbstractItemView::ContiguousSelection</enum>
           </property>
+          <column>
+           <property name="text">
+            <string notr="true">1</string>
+           </property>
+          </column>
          </widget>
         </item>
         <item>
@@ -149,11 +154,6 @@
      </widget>
     </item>
    </layout>
-   <zorder>splitter</zorder>
-   <zorder>treeWidget_meshes</zorder>
-   <zorder>label</zorder>
-   <zorder>lineEdit_search_meshes</zorder>
-   <zorder>label_jnts</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -353,8 +353,8 @@
      <y>104</y>
     </hint>
     <hint type="destinationlabel">
-     <x>527</x>
-     <y>104</y>
+     <x>-1</x>
+     <y>-1</y>
     </hint>
    </hints>
   </connection>

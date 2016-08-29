@@ -258,6 +258,7 @@ class IK(Module):
         self.ctrl_swivel_quad = None
         self.chain_length = None
         self._chain_ik = None
+        self.swivelDistance = None
 
     def _create_ctrl_ik(self, *args, **kwargs):
         """
@@ -287,10 +288,11 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[start_index + 1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
-    def setup_softik(self, rig, ik_handle_to_constraint):
+    def setup_softik(self, rig, ik_handle_to_constraint, stretch_chain):
         """
         Setup the softik system a ik system
-        :param ik_handle_to_constraint: The ik handle used to be constrained to the soft ik
+        :param ik_handle_to_constraint: The ik handle to constraint on the soft ik network (Can be more than one)
+        :param stretch_chain: The chain on which the stretch will be connected
         :return: Nothing
         """
         nomenclature_rig = self.get_nomenclature_rig(rig)
@@ -321,18 +323,17 @@ class IK(Module):
 
         attOutRatio = soft_ik_network.outRatio
         attOutRatioInv = libRigging.create_utility_node('reverse', inputX=soft_ik_network.outRatio).outputX
-        pymel.select(clear=True)
-        pymel.select(self._ik_handle_target , self._ikChainGrp, ik_handle_to_constraint)
-        pointConstraint = pymel.pointConstraint()
-        pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
-        pymel.select(pointConstraint)
-        weight_inn, weight_out = pointConstraint.getWeightAliasList()
-        pymel.connectAttr(attOutRatio, weight_inn)
-        pymel.connectAttr(attOutRatioInv, weight_out)
+        #TODO: Improve softik ratio when using multiple ik handle. Not the same ratio will be used depending of the angle
+        for handle in ik_handle_to_constraint:
+            pointConstraint = pymel.pointConstraint(self._ik_handle_target, self._ikChainGrp, handle)
+            pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
+            weight_inn, weight_out = pointConstraint.getWeightAliasList()[-2:] #Ensure to get the latest target added
+            pymel.connectAttr(attOutRatio, weight_inn)
+            pymel.connectAttr(attOutRatioInv, weight_out)
 
         # Connect stretch
         for i in range(1, self.iCtrlIndex+1):
-            obj = self._chain_ik[i]
+            obj = stretch_chain[i]
             util_get_t = libRigging.create_utility_node('multiplyDivide',
                                                input1X=soft_ik_network.outStretch,
                                                input1Y=soft_ik_network.outStretch,
@@ -356,6 +357,39 @@ class IK(Module):
                                                        solver=solver)
         return ik_handle, ik_effector
 
+    def setup_swivel_ctrl(self, rig, base_ctrl, ref, pos, ik_handle, name='swivel', constraint=True, **kwargs):
+        '''
+        Create the swivel ctrl for the ik system
+        :param rig: The rig instance used to dictate certain parameters
+        :param base_ctrl: The ctrl used to setup the swivel, create one if needed
+        :param ref: Reference object to position the swivel
+        :param pos: The computed position of the swivel
+        :param ik_handle: The handle to pole vector constraint
+        :param name: Part name used to resolve the object rig name
+        :param constraint: Do we contraint the ik handle to the swivel ctrl
+        :param kwargs: Additionnal parameters
+        :return: The created ctrl swivel
+        '''
+        nomenclature_anm = self.get_nomenclature_anm(rig)
+
+        ctrl_swivel = base_ctrl
+        if not isinstance(base_ctrl, self._CLASS_CTRL_SWIVEL):
+            ctrl_swivel = self._CLASS_CTRL_SWIVEL()
+        ctrl_swivel.build(rig, refs=ref)
+        ctrl_swivel.setParent(self.grp_anm)
+        ctrl_swivel.rename(nomenclature_anm.resolve(name))
+        ctrl_swivel._line_locator.rename(nomenclature_anm.resolve(name+'LineLoc'))
+        ctrl_swivel._line_annotation.rename(nomenclature_anm.resolve(name+'LineAnn'))
+        ctrl_swivel.offset.setTranslation(pos, space='world')
+        ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')
+
+        if constraint:
+            #Pole vector contraint the swivel to the ik handle
+            pymel.poleVectorConstraint(ctrl_swivel, self._ik_handle)
+
+        return ctrl_swivel
+
+
     def build(self, rig, ctrl_ik_orientation=None, constraint=True, constraint_handle=True, setup_softik=True, *args, **kwargs):
         """
         Build the ik system when needed
@@ -376,6 +410,9 @@ class IK(Module):
 
         jnt_elbow = self.chain_jnt[index_elbow]
         jnt_hand = self.chain_jnt[index_hand]
+
+        #Compute swivel pos before any operation is done on the bones
+        swivel_pos = self.calc_swivel_pos()
 
         # Create a group for the ik system
         # This group will be parentConstrained to the module parent.
@@ -401,9 +438,6 @@ class IK(Module):
         # Compute chain length
         self.chain_length = libPymel.PyNodeChain(self.chain[:self.iCtrlIndex+1]).length()
         #self.chain_length = self.chain.length()
-
-        # Compute swivel position
-        p3SwivelPos = self.calc_swivel_pos()
 
         # Create ikChain
         self._chain_ik[0].setParent(self._ikChainGrp)
@@ -432,19 +466,6 @@ class IK(Module):
 
         self.ctrl_ik.create_spaceswitch(rig, self, self.parent, default_name='World')
 
-        # Create CtrlIkSwivel
-        if not isinstance(self.ctrl_swivel, self._CLASS_CTRL_SWIVEL):
-            self.ctrl_swivel = self._CLASS_CTRL_SWIVEL()
-        ctrl_swivel_ref = jnt_elbow
-        self.ctrl_swivel.build(rig, refs=ctrl_swivel_ref)
-        self.ctrl_swivel.setParent(self.grp_anm)
-        self.ctrl_swivel.rename(nomenclature_anm.resolve('swivel'))
-        self.ctrl_swivel._line_locator.rename(nomenclature_anm.resolve('swivelLineLoc'))
-        self.ctrl_swivel._line_annotation.rename(nomenclature_anm.resolve('swivelLineAnn'))
-        self.ctrl_swivel.offset.setTranslation(p3SwivelPos, space='world')
-        self.swivelDistance = self.chain_length  # Used in ik/fk switch
-        self.ctrl_swivel.create_spaceswitch(rig, self, self.parent, default_name='World')
-
         # Create the ik_handle_target that will control the ik_handle
         # This is allow us to override what control the main ik_handle
         # Mainly used for the Leg setup
@@ -456,18 +477,22 @@ class IK(Module):
         # Create softIk node and connect user accessible attributes to it.
         #
         if setup_softik:
-            self.setup_softik(rig, self._ik_handle)
+            self.setup_softik(rig, [self._ik_handle], self._chain_ik)
 
         # Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sx)
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sy)
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sz)
 
+        #Setup swivel
+        self.ctrl_swivel = self.setup_swivel_ctrl(rig, self.ctrl_swivel, jnt_elbow, swivel_pos, self._ik_handle)
+        self.swivelDistance = self.chain_length  # Used in ik/fk switch
+        #pymel.poleVectorConstraint(flip_swivel_ref, self._ik_handle)
+
         # Connect rig -> anm
         if constraint_handle:
             pymel.pointConstraint(self.ctrl_ik, self._ik_handle, maintainOffset=True)
         pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)
-        pymel.poleVectorConstraint(self.ctrl_swivel, self._ik_handle)
 
         if constraint:
             for source, target in zip(self._chain_ik, self.chain):
@@ -478,6 +503,10 @@ class IK(Module):
         Unbuild the ik system and reset the needed parameters
         :return:
         """
+        self.chain_length = None
+        self._chain_ik = None
+        self.swivelDistance = None
+
         super(IK, self).unbuild()
 
     def parent_to(self, parent):

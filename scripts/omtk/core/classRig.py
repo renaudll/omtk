@@ -362,10 +362,14 @@ class Rig(object):
 
         #Parent all grp on the master grp
         if self.grp_master:
-            self.grp_jnt.setParent(self.grp_master.node)
-            self.grp_anm.setParent(self.grp_master.node)
-            self.grp_rig.setParent(self.grp_master.node)
-            self.grp_geo.setParent(self.grp_master.node)
+            if self.grp_jnt:
+                self.grp_jnt.setParent(self.grp_master.node)
+            if self.grp_anm:
+                self.grp_anm.setParent(self.grp_master.node)
+            if self.grp_rig:
+                self.grp_rig.setParent(self.grp_master.node)
+            if self.grp_geo:
+                self.grp_geo.setParent(self.grp_master.node)
 
         # Setup displayLayers
         if create_display_layers:

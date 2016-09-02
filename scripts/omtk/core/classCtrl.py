@@ -312,8 +312,8 @@ class BaseCtrl(Node):
                 targets.append(target)
                 target_names.append(target_name)
 
-        if add_world and libPymel.is_valid_PyNode(rig.grp_jnt):
-            targets.append(rig.grp_jnt)
+        if add_world and libPymel.is_valid_PyNode(rig.grp_rig):
+            targets.append(rig.grp_rig)
             target_names.append(world_name)
 
         return targets, target_names

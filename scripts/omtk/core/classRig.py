@@ -78,21 +78,29 @@ class RigGrp(Node):
     #         for child in self.extra:
     #             child.setParent(self.node)
 
-    def unbuild(self, *args, **kwargs):
+    def unbuild(self, keep_if_children=False, *args, **kwargs):
+        '''
+        :param keep_if_children: Will not unbuild the node if it's have children attached on it
+        :param args: Additionnal arguments
+        :param kwargs: Addition keyword arguments
+        '''
         if self.node:
-            children = self.node.getChildren()
-            if children:
-                #self.extra = children
-                for child in children:
-                    pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
-                    child.setParent(world=True)
-        super(RigGrp, self).unbuild(*args, **kwargs)
+            if not keep_if_children:
+                children = self.node.getChildren()
+                if children:
+                    #self.extra = children
+                    for child in children:
+                        pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
+                        child.setParent(world=True)
+                super(RigGrp, self).unbuild(*args, **kwargs)
 
 
 class Rig(object):
     DEFAULT_NAME = 'untitled'
-    LEFT_CTRL_COLOR = 13 #Red
-    RIGHT_CTRL_COLOR = 6 #Blue
+    LEFT_CTRL_COLOR = 13  # Red
+    RIGHT_CTRL_COLOR = 6  # Blue
+    CENTER_CTRL_COLOR = 17  # Yellow
+
 
     #
     # className.BaseNomenclature implementation
@@ -321,22 +329,22 @@ class Rig(object):
 
     def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
                   create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
-        # Ensure we got a root joint
-        # If needed, parent orphan joints to this one
+        # Look for a root joint
         if create_grp_jnt:
+            # For now, we will determine the root jnt by it's name used in each rig. Not the best solution,
+            # but currently the safer since we want to support multiple deformation layer
             if not libPymel.is_valid_PyNode(self.grp_jnt):
-                self.grp_jnt = next(iter(libPymel.ls_root(type='joint')), None)
-                '''
+                # self.grp_jnt = next(iter(libPymel.ls_root(type='joint')), None)
                 if cmds.objExists(self.nomenclature.root_jnt_name):
                     self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
                 else:
-                    self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
-                '''
-            #all_root_jnts.setParent(self.grp_jnt)
+                    log.warning("Could not find any root joint, master ctrl will not drive anything")
+                    # self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
 
-        # Ensure all joinst have segmentScaleComprensate deactivated.
+        # Ensure all joints have segmentScaleComprensate deactivated.
         # This allow us to scale adequately and support video game rigs.
-        # If for any mean stretch and squash are necessary, implement them on a new joint chains parented to the skeletton.
+        # If for any mean stretch and squash are necessary, implement
+        # them on a new joint chains parented to the skeletton.
         # TODO: Move elsewere?
         all_jnts = libPymel.ls(type='joint')
         for jnt in all_jnts:
@@ -383,7 +391,7 @@ class Rig(object):
             if not pymel.objExists(self.nomenclature.layer_rig_name):
                 self.layer_rig = pymel.createDisplayLayer(name=self.nomenclature.layer_rig_name, number=1, empty=True)
                 self.layer_rig.color.set(13)  # Red
-                #self.layer_rig.visibility.set(0)  # Hidden
+                # self.layer_rig.visibility.set(0)  # Hidden
                 self.layer_rig.displayType.set(2)  # Frozen
             else:
                 self.layer_rig = pymel.PyNode(self.nomenclature.layer_rig_name)
@@ -501,14 +509,14 @@ class Rig(object):
         if module.globalScale:
             pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
-        #Apply ctrl color if needed
+        # Apply ctrl color if needed
         if self.color_ctrl:
             self.color_module_ctrl(module)
 
-    def _unbuild_node(self, val):
+    def _unbuild_node(self, val, keep_if_children=False):
         if isinstance(val, Node):
             if val.is_built():
-                val.unbuild()
+                val.unbuild(keep_if_children=keep_if_children)
             return val
         elif isinstance(val, pymel.PyNode):
             pymel.delete(val)
@@ -540,7 +548,8 @@ class Rig(object):
         # Delete anm_grp
         self.grp_anm = self._unbuild_node(self.grp_anm)
         self.grp_rig = self._unbuild_node(self.grp_rig)
-        self.grp_geo = self._unbuild_node(self.grp_geo)
+        self.grp_geo = self._unbuild_node(self.grp_geo, keep_if_children=True)
+        self.grp_master = self._unbuild_node(self.grp_master, keep_if_children=True)
 
     def unbuild(self, **kwargs):
         """
@@ -583,10 +592,9 @@ class Rig(object):
             for ctrl in module.get_ctrls(recursive=True):
                 nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
                 side = nomenclature_ctrl.side
-                color = color_by_side.get(side, None)
-                if color:
-                    ctrl.drawOverride.overrideEnabled.set(1)
-                    ctrl.drawOverride.overrideColor.set(color)
+                color = color_by_side.get(side, self.CENTER_CTRL_COLOR)
+                ctrl.drawOverride.overrideEnabled.set(1)
+                ctrl.drawOverride.overrideColor.set(color)
 
     #
     # Facial and avars utility methods

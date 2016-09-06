@@ -19,6 +19,7 @@ class SqueezeNomenclature(className.BaseName):
     root_anm_name = 'Ctrls_Grp'
     root_geo_name = 'Render_Grp'
     root_rig_name = 'Data_Grp'
+    root_jnt_name = 'Root_Jnt'
 
     #Specific to Rig Squeeze
     root_all_name = "All_Grp"
@@ -87,7 +88,7 @@ class RigSqueeze(classRig.Rig):
         return super(RigSqueeze, self)._is_influence(obj)
 
     def pre_build(self):
-        super(RigSqueeze, self).pre_build(create_master_grp=False, create_grp_jnt=False)
+        super(RigSqueeze, self).pre_build(create_master_grp=False)
         
         #
         # Create specific group related to squeeze rig convention
@@ -100,8 +101,8 @@ class RigSqueeze(classRig.Rig):
         self.grp_proxy = self.build_grp(classRig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
         self.grp_fx = self.build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
-        #Parent all groups in the main grp_master
-        pymel.parent(self.grp_anm, self.grp_master) #grp_anm is not a Node, but a Ctrl
+        # Parent all groups in the main grp_master
+        pymel.parent(self.grp_anm, self.grp_master) # grp_anm is not a Node, but a Ctrl
         self.grp_rig.setParent(self.grp_master)
         self.grp_fx.setParent(self.grp_master)
         self.grp_model.setParent(self.grp_master)
@@ -112,7 +113,7 @@ class RigSqueeze(classRig.Rig):
             self.grp_jnt.setParent(self.grp_master)
         '''
 
-        #Lock and hide all attributes we don't want the animator to play with
+        # Lock and hide all attributes we don't want the animator to play with
         libAttr.lock_hide_trs(self.grp_master)
         libAttr.lock_hide_trs(self.grp_rig)
         libAttr.lock_hide_trs(self.grp_fx)
@@ -121,8 +122,8 @@ class RigSqueeze(classRig.Rig):
         libAttr.lock_hide_trs(self.grp_geo)
         libAttr.hide_scale(self.grp_anm)
 
-        #Hide some group
-        #self.grp_jnt.visibility.set(False)
+        # Hide some group
+        # self.grp_jnt.visibility.set(False)
         self.grp_rig.visibility.set(False)
         self.grp_fx.visibility.set(False)
         self.grp_model.visibility.set(False)
@@ -133,21 +134,21 @@ class RigSqueeze(classRig.Rig):
         if not self.grp_anm.hasAttr(self.GROUP_NAME_DISPLAY, checkShape=False):
             libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_DISPLAY)
 
-        #Display Mesh
+        # Display Mesh
         if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_MESH, checkShape=False):
             attr_displayMesh = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_MESH, at='short', k=True,
                                                hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
         else:
             attr_displayMesh = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_MESH)
 
-        #Display Ctrl
+        # Display Ctrl
         if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_CTRL, checkShape=False):
             attr_displayCtrl = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_CTRL, at='short', k=True,
                                                hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
         else:
             attr_displayCtrl = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_CTRL)
 
-        #Display Proxy
+        # Display Proxy
         if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_PROXY, checkShape=False):
             attr_displayProxy = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_PROXY, at='short', k=True,
                                                hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
@@ -198,8 +199,7 @@ class RigSqueeze(classRig.Rig):
             pymel.connectAttr(attr_src_inv, attr_dst)
 
     def _unbuild_nodes(self):
-        self.grp_model = self._unbuild_node(self.grp_model)
-        self.grp_proxy = self._unbuild_node(self.grp_proxy)
-        self.grp_fx = self._unbuild_node(self.grp_fx)
+        self.grp_model = self._unbuild_node(self.grp_model, keep_if_children=True)
+        self.grp_proxy = self._unbuild_node(self.grp_proxy, keep_if_children=True)
+        self.grp_fx = self._unbuild_node(self.grp_fx, keep_if_children=True)
         super(RigSqueeze, self)._unbuild_nodes()
-        self.grp_master = self._unbuild_node(self.grp_master)

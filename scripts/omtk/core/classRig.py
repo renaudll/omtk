@@ -144,15 +144,15 @@ class Rig(object):
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
         self.modules = []
-        self.grp_anm = None #Anim Grp, usually the root ctrl
-        self.grp_geo = None #Geometry grp
-        self.grp_jnt = None #Joint grp, usually the root jnt
-        self.grp_rig = None #Data grp
-        self.grp_master = None #Main grp of the rig
+        self.grp_anm = None # Anim Grp, usually the root ctrl
+        self.grp_geo = None # Geometry grp
+        self.grp_jnt = None # Joint grp, usually the root jnt
+        self.grp_rig = None # Data grp
+        self.grp_master = None # Main grp of the rig
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
-        self.color_ctrl = False #Bool to know if we want to colorize the ctrl
+        self._color_ctrl = False # Bool to know if we want to colorize the ctrl
 
     def __str__(self):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
@@ -510,7 +510,7 @@ class Rig(object):
             pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
         # Apply ctrl color if needed
-        if self.color_ctrl:
+        if self._color_ctrl:
             self.color_module_ctrl(module)
 
     def _unbuild_node(self, val, keep_if_children=False):

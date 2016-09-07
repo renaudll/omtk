@@ -72,7 +72,7 @@ class RigSqueeze(classRig.Rig):
         self.grp_model = None
         self.grp_proxy = None
         self.grp_fx = None
-        self.color_ctrl = True
+        self._color_ctrl = True
 
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature

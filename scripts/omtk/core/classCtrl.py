@@ -316,6 +316,11 @@ class BaseCtrl(Node):
             targets.append(rig.grp_rig)
             target_names.append(world_name)
 
+        # Add the master ctrl as a spaceswitch target
+        if libPymel.is_valid_PyNode(rig.grp_anm):
+            targets.append(rig.grp_anm)
+            target_names.append('Master')
+
         return targets, target_names
 
 

@@ -227,18 +227,21 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
     vert_index = 0
     while not it_geometry.isDone():
         memory_location = (chunk_size * vert_index)
-        old_weight = old_weights[memory_location]
-        if old_weight:
+        source_weight = old_weights[memory_location]
+        if source_weight:
+            # Get the current weights already assigned to the target weight
+            target_memory_location = memory_location + 1
+            cur_target_weights = [old_weights[i] for i in range(target_memory_location, target_memory_location + len(targets))]
             # Resolve weight using the vtx/cv position
             pos = OpenMaya.MVector(it_geometry.position(OpenMaya.MSpace.kWorld))  # MVector allow us to use .length()
             weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos)
 
-            # Ensure the total of the new weights match the old weights
+            # Ensure the total of the new weights match the source weights + current target weight
             total_weights = 0.0
             for weight in weights:
                 total_weights += weight
-            ratio = old_weight / total_weights
-            weights= [weight * ratio for weight in weights]
+            ratio = source_weight / total_weights
+            weights = [(weight * ratio) + cur_target_weights[i] for i, weight in enumerate(weights)]
 
             # Write weights
             for i, weight in enumerate(weights):

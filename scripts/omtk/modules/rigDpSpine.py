@@ -86,6 +86,7 @@ class DpSpine(Module):
         self.ctrl_ik_dwn.build(rig, name=ctrl_ik_dwn_name, refs=jnt_dwn)
         self.ctrl_ik_dwn.setTranslation(pos_dwn_world)
         self.ctrl_ik_dwn.setParent(self.grp_anm)
+        self.ctrl_ik_dwn.node.rotateOrder.set(1)
 
         ctrl_ik_upp_name = nomenclature_anm.resolve('ChestA')
         if not isinstance(self.ctrl_ik_upp, self._CLASS_CTRL_IK):
@@ -93,6 +94,7 @@ class DpSpine(Module):
         self.ctrl_ik_upp.build(rig, name=ctrl_ik_upp_name, refs=jnt_upp)
         self.ctrl_ik_upp.setTranslation(pos_upp_world)
         self.ctrl_ik_upp.setParent(self.ctrl_ik_dwn)
+        self.ctrl_ik_upp.node.rotateOrder.set(1)
 
         # Ensure the ctrl_ik_upp pivot is a the middle.
         ctrl_ik_upp_pivot = pos_mid_world - pos_upp_world
@@ -108,6 +110,7 @@ class DpSpine(Module):
         self.ctrl_fk_dwn.build(rig, name=ctrl_fk_dwn_name, refs=jnt_dwn)
         self.ctrl_fk_dwn.setTranslation(pos_dwn_world)
         self.ctrl_fk_dwn.setParent(self.ctrl_ik_dwn)
+        self.ctrl_fk_dwn.node.rotateOrder.set(1)
 
         ctrl_fk_upp_name = nomenclature_anm.resolve('ChestB')
         if not isinstance(self.ctrl_fk_upp, self._CLASS_CTRL_FK):
@@ -115,6 +118,7 @@ class DpSpine(Module):
         self.ctrl_fk_upp.build(rig, name=ctrl_fk_upp_name, refs=jnt_upp)
         self.ctrl_fk_upp.setTranslation(pos_upp_world)
         self.ctrl_fk_upp.setParent(self.ctrl_ik_upp)
+        self.ctrl_fk_upp.node.rotateOrder.set(1)
 
         ctrl_fk_mid_name = nomenclature_anm.resolve('Middle1')
         if not isinstance(self.ctrl_fk_mid, self._CLASS_CTRL_FK):
@@ -122,6 +126,7 @@ class DpSpine(Module):
         self.ctrl_fk_mid.build(rig, name=ctrl_fk_mid_name, refs=jnt_mid)
         self.ctrl_fk_mid.setTranslation(pos_mid_world)
         self.ctrl_fk_mid.setParent(self.ctrl_ik_dwn)
+        self.ctrl_fk_mid.node.rotateOrder.set(1)
 
         # Ensure the ctrl_fk_mid follow ctrl_ik_upp and ctrl_ik_dwn
         # Note that this is evil, a parentConstraint should never have two targets.

@@ -2,7 +2,7 @@ import pymel.core as pymel
 import collections
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
-from omtk.modules import rigIK
+from omtk.core import consts_omtk
 from omtk.modules.rigIK import IK
 from omtk.modules.rigFK import FK
 from omtk.libs import libRigging
@@ -78,7 +78,10 @@ class Limb(Module):
         self.sysFK.build(rig, constraint=False, **kwargs)
 
         #Lock X and Y axis on the elbow/knee ctrl
-        libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
+        if rig._up_axis == consts_omtk.Axis.y:
+            libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
+        elif rig._up_axis == consts_omtk.Axis.z:
+            libAttr.lock_hide_rotation(self.sysFK.ctrls[1], y=False)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
@@ -146,17 +149,13 @@ class Limb(Module):
             self.ctrl_elbow.rename(ctrl_elbow_name)
             self.ctrl_elbow.setParent(self.grp_anm)
             pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
-
             pymel.pointConstraint(chain_blend[0], chain_elbow[0], maintainOffset=False)
-
-
             pymel.aimConstraint(self.ctrl_elbow, chain_elbow[i-1], worldUpType=2,
                                 worldUpObject=chain_blend[i-1])  # Object Rotation Up
-
             pymel.aimConstraint(chain_blend[i+1], chain_elbow[i], worldUpType=2,
-                                worldUpObject=chain_blend[i+1])  # Object Rotation Up
+                                worldUpObject=chain_blend[i])  # Object Rotation Up
             pymel.pointConstraint(self.ctrl_elbow, chain_elbow[i], maintainOffset=False)
-        #Constraint the last elbow joint on the blend joint at the ctrl index
+        # Constraint the last elbow joint on the blend joint at the ctrl index
         pymel.parentConstraint(chain_blend[self.sysIK.iCtrlIndex], chain_elbow[self.sysIK.iCtrlIndex])
 
         # Constraint input chain

@@ -294,7 +294,8 @@ class BaseCtrl(Node):
             ).outColorR
             pymel.connectAttr(att_enabled, att_weight)
 
-    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, world_name='World'):
+    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, add_root=True,
+                                root_name='Root', world_name='World'):
         targets = []
         target_names = []
 
@@ -319,7 +320,7 @@ class BaseCtrl(Node):
         # Add the master ctrl as a spaceswitch target
         if libPymel.is_valid_PyNode(rig.grp_anm):
             targets.append(rig.grp_anm)
-            target_names.append('Master')
+            target_names.append(root_name)
 
         return targets, target_names
 

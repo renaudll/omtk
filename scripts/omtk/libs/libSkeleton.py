@@ -83,8 +83,9 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
 def mirror_jnts(objs, **kwargs):
     # Sort objects by hyerarchy so we mirror parents before their children.
     objs = sorted(objs, key=libPymel.get_num_parents)
-    for obj in objs:
-        mirror_jnt(obj, **kwargs)
+    with pymel.UndoChunk():
+        for obj in objs:
+            mirror_jnt(obj, **kwargs)
 
 def freeze_selected_joints_rotation():
     jnts = [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]

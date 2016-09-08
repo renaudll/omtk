@@ -160,44 +160,6 @@ class RigSqueeze(classRig.Rig):
         for child in self.grp_anm.getChildren():
             pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
 
-    def post_build_module(self, module):
-        super(RigSqueeze, self).post_build_module(module)
-
-        #
-        # Connect all IK/FK attributes
-        # TODO: Ensure all attributes are correctly transfered
-        #
-        if isinstance(module, rigLimb.Limb):
-            # Inverse IK/FK state.
-            # At Squeeze, 0 is IK and 1 is FK, strange.
-            module.STATE_IK = 0.0
-            module.STATE_FK = 1.0
-
-            pymel.delete(module.ctrl_attrs)
-            module.ctrl_attrs = None
-
-            # Resolve name
-            # TODO: Handle name conflict
-            nomenclature_anm = module.get_nomenclature_anm(self)
-            nomenclature_attr = self.nomenclature(tokens=[module.__class__.__name__], side=nomenclature_anm.side)
-            attr_src_name = nomenclature_attr.resolve()
-            attr_dst = module.grp_rig.attr(module.kAttrName_State)
-
-            if not self.grp_anm.hasAttr(self.GROUP_NAME_IKFK, checkShape=False):
-                libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_IKFK)
-
-            attr_src = None
-            if not self.grp_anm.hasAttr(attr_src_name, checkShape=False):
-                attr_src = libAttr.addAttr(self.grp_anm, longName=attr_src_name, at='short', k=True,
-                              hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
-            else:
-                attr_src = self.grp_anm.attr(attr_src_name)
-
-            # Note that at Squeeze, 0 is for IK and 1 is for FK so we'll need to reverse it.
-            attr_src_inv = libRigging.create_utility_node('reverse', inputX=attr_src).outputX
-
-            pymel.connectAttr(attr_src_inv, attr_dst)
-
     def _unbuild_nodes(self):
         self.grp_model = self._unbuild_node(self.grp_model, keep_if_children=True)
         self.grp_proxy = self._unbuild_node(self.grp_proxy, keep_if_children=True)

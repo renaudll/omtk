@@ -301,10 +301,102 @@ class AbstractAvar(classModule.Module):
 
         return True
 
+    def create_surface(self, rig, name='Surface'):
+        '''
+        if name is None:
+            name = self.name
+        '''
+        nomenclature = self.get_nomenclature_rig(rig).copy()
+        nomenclature.add_tokens(name)
+
+        root = pymel.createNode('transform')
+        pymel.addAttr(root, longName='bendUpp', k=True)
+        pymel.addAttr(root, longName='bendLow', k=True)
+        pymel.addAttr(root, longName='bendSide', k=True)
+
+        # Create Guide
+        plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
+
+        # Create Bends
+        bend_side_deformer, bend_side_handle = pymel.nonLinear(plane_transform, type='bend')
+        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type='bend')
+        bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type='bend')
+
+        plane_transform.r.set(0,-90,0)
+        bend_side_handle.r.set(90, 90, 0)
+        bend_upp_handle.r.set(180, 90, 0)
+        bend_low_handle.r.set(180, 90, 0)
+        bend_upp_deformer.highBound.set(0)  # create pymel warning
+        bend_low_deformer.lowBound.set(0)  # create pymel warning
+
+        plane_transform.setParent(root)
+        bend_side_handle.setParent(root)
+        bend_upp_handle.setParent(root)
+        bend_low_handle.setParent(root)
+
+        pymel.connectAttr(root.bendSide, bend_side_deformer.curvature)
+        pymel.connectAttr(root.bendUpp, bend_upp_deformer.curvature)
+        pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
+
+        # Rename all the things!
+        root.rename(nomenclature.resolve('SurfaceGrp'))
+        plane_transform.rename(nomenclature.resolve('Surface'))
+        bend_upp_deformer.rename(nomenclature.resolve('UppBend'))
+        bend_low_deformer.rename(nomenclature.resolve('LowBend'))
+        bend_side_deformer.rename(nomenclature.resolve('SideBend'))
+        bend_upp_handle.rename(nomenclature.resolve('UppBendHandle'))
+        bend_low_handle.rename(nomenclature.resolve('LowBendHandle'))
+        bend_side_handle.rename(nomenclature.resolve('SideBendHandle'))
+
+        # Try to guess the desired position
+        min_x = None
+        max_x = None
+        pos = pymel.datatypes.Vector()
+        for jnt in self.jnts:
+            pos += jnt.getTranslation(space='world')
+            if min_x is None or pos.x < min_x:
+                min_x = pos.x
+            if max_x is None or pos.x > max_x:
+                max_x = pos.x
+        pos /= len(self.jnts)
+
+        length_x = max_x-min_x
+        root.setTranslation(pos)
+        root.scaleX.set(length_x)
+        root.scaleY.set(length_x*0.5)
+        root.scaleZ.set(length_x)
+
+        pymel.select(root)
+
+        #self.input.append(plane_transform)
+
+        return plane_transform
+
+    def handle_surface(self, rig):
+        """
+        Create the surface that the follicle will slide on if necessary.
+        :return:
+        """
+        # Hack: Provide backward compatibility for when surface was provided as an input.
+        if self.surface is None:
+            fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+            surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
+            if surface:
+                self.input.remove(surface)
+                self.surface = surface
+
+        if self.surface is None:
+            log.warning("Can't find surface for {0}, creating one...".format(self))
+            self.surface = self.create_surface(rig)
+            #self.input.append(new_surface)
+            #del self._cache['surface']
+
     def build(self, rig, mult_u=1.0, mult_v=1.0, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
+        self.handle_surface(rig)
+
         super(AbstractAvar, self).build(rig, **kwargs)
 
         self.add_avars(self.grp_rig)
@@ -318,9 +410,20 @@ class AbstractAvar(classModule.Module):
     # Ctrl connection
     #
 
+    def need_flip_lr(self, rig):
+        """
+        We might want to flip the lr Avar if they are on the right side.
+        This ensure that if we move Avars from two sides in local, they correctly mirror each others.
+        Note that we use the nomenclature to detect side to prevent precision errors.
+        :param rig: A Rig instance.
+        :return: True if the avar is at the right side. False if it is on the left or center.
+        """
+        nomenclature = self.get_nomenclature_anm(rig)
+        return nomenclature.side == rig.nomenclature.SIDE_R
+
     # todo: merge with .connect_ctrl
-    def _connect_ctrl(self, ctrl, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
-        need_flip = ctrl.getTranslation(space='world').x < 0
+    def _connect_ctrl(self, rig, ctrl, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
+        need_flip = self.need_flip_lr(rig)
 
         if attr_ud:
             attr_inn_ud = ctrl.translateY
@@ -358,8 +461,9 @@ class AbstractAvar(classModule.Module):
 
             libRigging.connectAttr_withBlendWeighted(attr_inn_rl, attr_rl)
 
-    def connect_ctrl(self, ctrl, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
+    def connect_ctrl(self, rig, ctrl, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
         self._connect_ctrl(
+            rig,
             ctrl,
             attr_ud=self.attr_ud if ud else None,
             attr_lr=self.attr_lr if lr else None,
@@ -377,9 +481,6 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
     _CLS_CTRL = CtrlFaceMicro
-
-    def __init__(self, *args, **kwargs):
-        super(AvarSimple, self).__init__(*args, **kwargs)
 
     def validate(self, rig):
         super(AvarSimple, self).validate(rig)
@@ -405,7 +506,7 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, **kwargs):
+    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  **kwargs):
         super(AvarSimple, self).build(rig, create_grp_anm=create_ctrl, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
@@ -460,7 +561,15 @@ class AvarSimple(AbstractAvar):
 
             # Hack: clean me!
             if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-                self.ctrl.build(rig, self.jnt, ref_tm=ctrl_tm, grp_rig=self.grp_rig, name=ctrl_name, size=ctrl_size)
+                self.ctrl.build(
+                    rig, self.jnt,
+                    ref_tm=ctrl_tm,
+                    name=ctrl_name,
+                    size=ctrl_size,
+                    obj_mesh=obj_mesh,
+                    grp_rig=self.grp_rig,
+                    flip_lr=self.need_flip_lr(rig)
+                )
             else:
                 self.ctrl.build(rig, name=ctrl_name, size=ctrl_size)
 
@@ -468,7 +577,7 @@ class AvarSimple(AbstractAvar):
             self.ctrl.setParent(self.grp_anm)
 
             # Connect ctrl to avars
-            self.connect_ctrl(self.ctrl)
+            self.connect_ctrl(rig, self.ctrl)
 
             # Calibrate ctrl
             # Hack: clean me!
@@ -517,11 +626,22 @@ class AvarFollicle(AvarSimple):
 
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
         """
-        The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
-        the drived joint.
+        The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
+        The decision of using transforms instead of multMatrix nodes is for clarity.
+        Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
         """
         # TODO: Maybe use sub-classing to differenciate when we need to use a surface or not.
         nomenclature_rig = self.get_nomenclature_rig(rig)
+
+        #
+        # Create a simple setup that will extract the base U and V of the base influence using the stack parent. (the 'offset' node)
+        #
+        util = libRigging.create_utility_node('closestPointOnSurface',
+            inPosition=stack.getParent().t,
+            inputSurface=self.surface.getShape().worldSpace
+        )
+        self._attr_u_base = util.parameterU
+        self._attr_v_base = util.parameterV
 
         #
         # Create follicle setup
@@ -533,11 +653,8 @@ class AvarFollicle(AvarSimple):
         # Determine the follicle U and V on the reference nurbsSurface.
         # jnt_pos = self.jnt.getTranslation(space='world')
         # fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, jnt_pos)
-        fol_u, fol_v = self.get_base_uv()
-
-        # Create and connect follicle-related parameters
-        u_base = fol_u  # fol_influence.parameterU.get()
-        v_base = 0.5  # fol_influence.parameterV.get()
+        base_u_val = self._attr_u_base.get()
+        base_v_val = self._attr_v_base.get()
 
         # Resolve the length of each axis of the surface
         self._attr_length_u, self._attr_length_v, arcdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
@@ -545,14 +662,20 @@ class AvarFollicle(AvarSimple):
         arcdimension_transform.rename(nomenclature_rig.resolve('arcdimension'))
         arcdimension_transform.setParent(self.grp_rig)
 
-        # Create the bind pose follicle
+        #
+        # Create two follicle.
+        # - influenceFollicle: Affected by the ud and lr Avar
+        # - bindPoseFollicle: A follicle that stay in place and keep track of the original position.
+        # We'll then compute the delta of the position of the two follicles.
+        # This allow us to move or resize the plane without affecting the built rig. (if the rig is in neutral pose)
+        #
         offset_name = nomenclature_rig.resolve('bindPoseRef')
         obj_offset = pymel.createNode('transform', name=offset_name)
         obj_offset.setParent(stack._layers[0])
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
         # fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
-        fol_offset_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_offset_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
         fol_offset = fol_offset_shape.getParent()
         fol_offset.rename(fol_offset_name)
         pymel.parentConstraint(fol_offset, obj_offset, maintainOffset=False)
@@ -564,7 +687,7 @@ class AvarFollicle(AvarSimple):
         influence.setParent(stack._layers[0])
 
         fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
-        fol_influence_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_influence_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
         fol_influence = fol_influence_shape.getParent()
         fol_influence.rename(fol_influence_name)
         pymel.parentConstraint(fol_influence, influence, maintainOffset=False)
@@ -606,12 +729,16 @@ class AvarFollicle(AvarSimple):
                                                           inputMatrix=attr_finalTM
                                                           )
 
+        #
+        # Create the 1st (follicleLayer) that will contain the extracted position from the ud and lr Avar.
+        #
         layer_follicle = stack.append_layer('follicleLayer')
         pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
-        pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle.rotate)
 
-        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=u_base)
-        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=v_base)
+        libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=self._attr_u_base.get())
+        libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=self._attr_v_base.get())
+        pymel.connectAttr(self._attr_u_base, self.grp_rig.attr(self._ATTR_NAME_U_BASE))
+        pymel.connectAttr(self._attr_v_base, self.grp_rig.attr(self._ATTR_NAME_V_BASE))
 
         attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
         attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V)
@@ -653,32 +780,21 @@ class AvarFollicle(AvarSimple):
         pymel.connectAttr(self._attr_v_base, fol_offset.parameterV)
 
         #
-        # The OOB layer (out-of-bound) allow the follicle to go outside it's original plane.
-        # HACK: If the UD value is out the nurbsPlane UV range (0-1), ie 1.1, we'll want to still offset the follicle.
+        # The second layer (oobLayer for out-of-bound) that allow the follicle to go outside it's original plane.
+        # If the UD value is out the nurbsPlane UV range (0-1), ie 1.1, we'll want to still offset the follicle.
         # For that we'll compute a delta between a small increment (0.99 and 1.0) and multiply it.
         #
         nomenclature_rig = self.get_nomenclature_rig(rig)
         oob_step_size = 0.001  # TODO: Expose a Maya attribute?
-        jnt_tm = self.jnt.getMatrix(worldSpace=True)
-
-        '''
-        inf_clamped_v_name= nomenclature_rig.resolve('influenceClampedVRef')
-        inf_clamped_v = pymel.createNode('transform', name=inf_clamped_v_name)
-        inf_clamped_v.setParent(stack._layers[0])
-
-        inf_clamped_u_name= nomenclature_rig.resolve('influenceClampedURef')
-        inf_clamped_u = pymel.createNode('transform', name=inf_clamped_u_name)
-        inf_clamped_u.setParent(stack._layers[0])
-        '''
 
         fol_clamped_v_name = nomenclature_rig.resolve('influenceClampedV')
-        fol_clamped_v_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_clamped_v_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
         fol_clamped_v = fol_clamped_v_shape.getParent()
         fol_clamped_v.rename(fol_clamped_v_name)
         fol_clamped_v.setParent(self.grp_rig)
 
         fol_clamped_u_name = nomenclature_rig.resolve('influenceClampedU')
-        fol_clamped_u_shape = libRigging.create_follicle2(self.surface, u=fol_u, v=fol_v)
+        fol_clamped_u_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
         fol_clamped_u = fol_clamped_u_shape.getParent()
         fol_clamped_u.rename(fol_clamped_u_name)
         fol_clamped_u.setParent(self.grp_rig)
@@ -806,7 +922,7 @@ class AvarFollicle(AvarSimple):
         pymel.connectAttr(oob_offset, layer_oob.t)
 
         #
-        # Build Front/Back setup
+        # Create the third layer that apply the translation provided by the fb Avar.
         #
 
         layer_fb = stack.append_layer('fbLayer')
@@ -819,17 +935,38 @@ class AvarFollicle(AvarSimple):
         pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
 
         #
-        #  Create a layer before the ctrl to apply the YW, PT and RL avar.
+        # Create the 4th layer (folRot) that apply the rotation provided by the follicle controlled by the ud and lr Avar.
+        # This is necessary since we don't want to rotation to affect the oobLayer and fbLayer.
         #
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-        layer_rot = stack.append_layer('rotLayer')
+        layer_follicle_rot = stack.append_layer('folRot')
+        pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle_rot.rotate)
 
+        #
+        # Create a 5th layer that apply the yw, pt, rl and Avar.
+        #
+        layer_rot = stack.append_layer('rotLayer')
         pymel.connectAttr(self.attr_yw, layer_rot.rotateY)
         pymel.connectAttr(self.attr_pt, layer_rot.rotateX)
         pymel.connectAttr(self.attr_rl, layer_rot.rotateZ)
 
         return stack
 
+
+class AvarFollicleGlobal(AvarFollicle):
+    def get_jnt_tm(self):
+        """
+        Return a transform at the center of the surface used by the avar.
+        This prevent the avar from using the geometry itself to slide (ex: the lips global ctrl)
+        :param rig:
+        :return:
+        """
+        pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
+        return pymel.datatypes.Matrix(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            pos.x, pos.y, pos.z, 1
+        )
 
 class AvarAim(AvarSimple):
     """

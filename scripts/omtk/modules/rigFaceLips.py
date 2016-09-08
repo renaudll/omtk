@@ -6,17 +6,7 @@ from omtk.libs import libCtrlShapes
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 
-class CtrlLipsUpp(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_upp()
-
-
-class CtrlLipsLow(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_low()
-
-
-class FaceLips(rigFaceAvarGrps.AvarGrpUppLow):
+class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     """
     Lips have the same behavior than an AvarGrpUppLow.
     However the lip curl is also connected between the macro avars and the micro avars.
@@ -24,9 +14,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpUppLow):
     """
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
-
-    _CLS_CTRL_UPP = CtrlLipsUpp
-    _CLS_CTRL_LOW = CtrlLipsLow
 
     @property
     def avars_corners(self):
@@ -91,8 +78,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpUppLow):
             for avar in self.avars_corners:
                 offset_layer = avar._stack.get_stack_start()
                 offset_flip_layer = avar._stack.preprend_layer(name='OffsetNotFlip')
-
-
 
                 pymel.parentConstraint(jnt_head, offset_flip_layer, maintainOffset=True)
                 pymel.parentConstraint(target_head, target_jaw, offset_layer, maintainOffset=True)

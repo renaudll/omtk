@@ -9,11 +9,12 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceBrow(rigFaceAvarGrps.AvarGrpLftRgt):
+class FaceBrow(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     _CLS_CTRL = CtrlBrow
 
     SHOW_IN_UI= True
     IS_SIDE_SPECIFIC = False
+    CREATE_MACRO_AVAR_HORIZONTAL = False
 
     def get_module_name(self):
         return 'brow'

@@ -220,5 +220,59 @@ global proc shelf_omtk () {
         -commandRepeatable 1
         -flat 1
     ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Build Selected Joints"
+        -enableBackground 0
+        -align "center"
+        -label "Build Selected Joints"
+        -labelOffset 0
+        -font "plainLabelFont"
+        -imageOverlayLabel "BuildSel"
+        -overlayLabelColor 0.8 0.8 0.8
+        -overlayLabelBackColor 0 0 0 0.2
+        -image "pythonFamily.png"
+        -image1 "pythonFamily.png"
+        -style "iconOnly"
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()"
+        -sourceType "python"
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Unbuild Selected Joints"
+        -enableBackground 0
+        -align "center"
+        -label "Unbuild Selected Joints"
+        -labelOffset 0
+        -font "plainLabelFont"
+        -imageOverlayLabel "UnbuildSel"
+        -overlayLabelColor 0.8 0.8 0.8
+        -overlayLabelBackColor 0 0 0 0.2
+        -image "pythonFamily.png"
+        -image1 "pythonFamily.png"
+        -style "iconOnly"
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk; reload(omtk); omtk._reload(); omtk.unbuild_selected()"
+        -sourceType "python"
+        -commandRepeatable 1
+        -flat 1
+    ;
 
 } 

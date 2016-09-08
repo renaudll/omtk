@@ -397,3 +397,26 @@ def create_triangle_low():
     node.rotateOrder.setKeyable(True)
 
     return node
+
+def create_triangle_left():
+    p1 = [0.577, 0, 0]
+    p2 = [-0.288, -0.5, 0]
+    p3 = [-0.288, 0.5, 0]
+    node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
+    return node
+
+def create_triangle_right():
+    p1 = [-0.577, 0, 0]
+    p2 = [0.288, -0.5, 0]
+    p3 = [0.288, 0.5, 0]
+    node = pymel.curve(d=1, p=[p1, p2, p3, p1] )
+
+    # Expose the rotateOrder
+    node.rotateOrder.setKeyable(True)
+
+    return node
+

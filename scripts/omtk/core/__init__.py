@@ -11,6 +11,7 @@ import className
 import classNode
 import classRig
 from omtk.libs import libPython
+
 log = logging.getLogger('omtk')
 
 # Load configuration file
@@ -77,6 +78,52 @@ def unbuild_all():
         # Write changes to scene
         network = libSerialization.export_network(rigroot)
         pymel.select(network)
+
+import libSerialization
+
+def _get_modules_from_selection(sel=None):
+    if sel is None:
+        sel = pymel.selected()
+
+    # Resolve the rig network from the selection
+    fn_is_rig = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Rig')
+    rig_networks = libSerialization.getConnectedNetworks(sel, key=fn_is_rig)
+    rig_network = next(iter(rig_networks), None)
+    if rig_network is None:
+        pymel.warning("Found no module related to selection.")
+        return None, None
+
+    rig = libSerialization.import_network(rig_network)
+
+    # Resolve selected modules
+    is_module_selected = lambda x: any(True for inf in x.input if inf in sel)
+    modules = filter(is_module_selected, rig.modules)
+
+    return rig, modules
+
+def build_selected(sel=None):
+    rig, modules = _get_modules_from_selection()
+    if not rig or not modules:
+        return
+
+    is_module_unbuilt = lambda x: not x.is_built()
+    modules = filter(is_module_unbuilt , modules)
+
+    # Build selected modules
+    for module in modules:
+        module.build(rig)
+
+def unbuild_selected(sel=None):
+    rig, modules = _get_modules_from_selection()
+    if not rig or not modules:
+        return
+
+    is_module_built = lambda x: x.is_built()
+    modules = filter(is_module_built , modules)
+
+    # Build selected modules
+    for module in modules:
+        module.unbuild(rig)
 
 def detect(*args, **kwargs):
     """

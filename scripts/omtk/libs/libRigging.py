@@ -50,7 +50,7 @@ def connect_or_set_attr(_attr, _val):
 
 
 def create_utility_node(_sClass, *args, **kwargs):
-    uNode = pymel.shadingNode(_sClass, asUtility=True)
+    uNode = pymel.createNode(_sClass)
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
@@ -899,6 +899,11 @@ def get_closest_point_on_mesh(mesh, pos):
     - The v coordinate of the resulting position.
     If nothing is found, a 3-sized tuple containing all None values are returned.
     """
+    if isinstance(mesh, pymel.nodetypes.Transform):
+        mesh = mesh.getShape()
+
+    if not isinstance(mesh, pymel.nodetypes.Mesh):
+        raise IOError("Unexpected datatype. Expected Mesh, got {0}".format(type(mesh)))
 
     # closestPointOnMesh ignores polymesh transforms
     util_transformGeometry = create_utility_node('transformGeometry',
@@ -921,30 +926,13 @@ def get_closest_point_on_mesh(mesh, pos):
 
     return pos, u, v
 
-def get_closest_point_on_meshes(meshes, pos):
-    """
-    Return informations about the closest intersection between a point and multiple mesh polygons.
-    :param mesh: A pymel.nodetypes.Mesh to analyze.
-    :param pos: A pymel.datatypes.Vector world-space position.
-    :return: A 4-sized tuple containing:
-    - A pymel.nodetypes.Mesh instance representing the closest mesh.
-    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
-    - The u coordinate of the resulting position.
-    - The v coordinate of the resulting position.
-    If nothing is found, a 4-sized tuple containing all None values are returned.
-    """
-    shortest_delta = None
-    return_val = (None, None, None, None)
-    for mesh in meshes:
-        closest_pos, closest_u, closest_v = get_closest_point_on_mesh(mesh, pos)
-        delta = libPymel.distance_between_vectors(pos, closest_pos)
-        if shortest_delta is None or delta < shortest_delta:
-            shortest_delta = delta
-            return_val = (mesh, closest_pos, closest_u, closest_v)
-    return return_val
-
-
 def get_closest_point_on_surface(nurbsSurface, pos):
+    if isinstance(nurbsSurface, pymel.nodetypes.Transform):
+        nurbsSurface = nurbsSurface.getShape()
+
+    if not isinstance(nurbsSurface, pymel.nodetypes.NurbsSurface):
+        raise IOError("Unexpected datatype. Expected NurbsSurface, got {0}".format(type(nurbsSurface)))
+
     # closestPointOnSurface don't listen to transform so we'll need to duplicate the shape.
     util_cpos = create_utility_node('closestPointOnSurface',
         inPosition=pos,
@@ -965,6 +953,60 @@ def get_closest_point_on_surface(nurbsSurface, pos):
 
     return pos, u, v
 
+def get_closest_point_on_shape(shape, pos):
+    if isinstance(shape, pymel.nodetypes.Transform):
+        shape = shape.getShape()
+
+    if isinstance(shape, pymel.nodetypes.Mesh):
+        return get_closest_point_on_mesh(shape, pos)
+    elif isinstance(shape, pymel.nodetypes.NurbsSurface):
+        return get_closest_point_on_surface(shape, pos)
+    else:
+        raise IOError("Unexpected datatype. Expected Mesh or NurbsSurface, got {0}".format(type(shape)))
+
+def get_closest_point_on_shapes(meshes, pos):
+    """
+    Return informations about the closest intersection between a point and multiple mesh polygons.
+    :param mesh: A pymel.nodetypes.Mesh to analyze.
+    :param pos: A pymel.datatypes.Vector world-space position.
+    :return: A 4-sized tuple containing:
+    - A pymel.nodetypes.Mesh instance representing the closest mesh.
+    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
+    - The u coordinate of the resulting position.
+    - The v coordinate of the resulting position.
+    If nothing is found, a 4-sized tuple containing all None values are returned.
+    """
+    shortest_delta = None
+    return_val = (None, None, None, None)
+    for mesh in meshes:
+        closest_pos, closest_u, closest_v = get_closest_point_on_shape(mesh, pos)
+        delta = libPymel.distance_between_vectors(pos, closest_pos)
+        if shortest_delta is None or delta < shortest_delta:
+            shortest_delta = delta
+            return_val = (mesh, closest_pos, closest_u, closest_v)
+    return return_val
+
+
+def get_point_on_surface_from_uv(shape, u, v):
+    follicle_shape = pymel.createNode('follicle')
+    follicle_shape.parameterU.set(u)
+    follicle_shape.parameterV.set(v)
+
+    if isinstance(shape, pymel.nodetypes.Transform):
+        shape = shape.getShape()
+
+    if isinstance(shape, pymel.nodetypes.NurbsSurface):
+        pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
+    elif isinstance(shape, pymel.nodetypes.Mesh):
+        pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
+    else:
+        raise Exception("Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(type(shape), shape))
+
+    pos = follicle_shape.outTranslate.get()
+    pymel.delete(follicle_shape)
+
+    return pos
+
 # TODO: write an alternative method that work when the mesh have no UVs using pointOnMesh constraint.
 def create_follicle2(shape, u=0, v=0, connect_transform=True):
     """
@@ -976,8 +1018,14 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
     :return: The created follicle shape.
     """
     follicle_shape = pymel.createNode('follicle')
-    follicle_shape.parameterU.set(u)
-    follicle_shape.parameterV.set(v)
+    if isinstance(u, pymel.Attribute):
+        pymel.connectAttr(u, follicle_shape.parameterU)
+    else:
+        follicle_shape.parameterU.set(u)
+    if isinstance(v, pymel.Attribute):
+        pymel.connectAttr(v, follicle_shape.parameterV)
+    else:
+        follicle_shape.parameterV.set(v)
 
     # HACK: If a transform was provided, use the first surface.
     if isinstance(shape, pymel.nodetypes.Transform):

@@ -14,6 +14,25 @@ from omtk.modules import rigFaceAvar
 
 log = logging.getLogger('omtk')
 
+
+class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, **kwargs):
+        return libCtrlShapes.create_triangle_upp()
+
+class CtrlFaceLow(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, **kwargs):
+        return libCtrlShapes.create_triangle_low()
+
+class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, **kwargs):
+        # todo: find the best shape
+        transform, _ = libCtrlShapes.create_shape_circle()
+        return transform
+
+class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, **kwargs):
+        return libCtrlShapes.create_triangle_left()
+
 def _find_mid_avar(avars):
     jnts = [avar.jnt for avar in avars]
     nearest_jnt = get_average_pos_between_nodes(jnts)
@@ -25,6 +44,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     Also global avars will be provided to controll all avars.
     """
     _CLS_AVAR = rigFaceAvar.AvarSimple
+    _CLS_AVAR_ALL = rigFaceAvar.AvarFollicleGlobal
     SHOW_IN_UI = True
 
     # Disable if the AvarGrp don't need any geometry to function.
@@ -76,6 +96,34 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     def jnt_low_mid(self):
         return get_average_pos_between_nodes(self.jnts_low)
 
+    @libPython.cached_property()
+    def jnts_l(self):
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
+        return filter(fn_filter, self.jnts)
+
+    @libPython.cached_property()
+    def jnts_r(self):
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
+        return filter(fn_filter, self.jnts)
+
+    @libPython.cached_property()
+    def jnt_l_mid(self):
+        """
+        :return: The left most joint (highest positive distance in x)
+        """
+        fn_get_pos_x = lambda x: x.getTranslation(space='world').x
+        return next(iter(reversed(sorted(self.jnts_l, key=fn_get_pos_x))), None)
+
+    @libPython.cached_property()
+    def jnt_r_mid(self):
+        """
+        :return: The right most joint (highest negative distance in x)
+        """
+        fn_get_pos_x = lambda x: x.getTranslation(space='world').x
+        return next(iter(sorted(self.jnts_r, key=fn_get_pos_x)), None)
+
     #
     # Avar properties
     # Note that theses are only accessible after the avars have been built.
@@ -112,6 +160,32 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     @property
     def avar_out(self):
         return self.avars[-1] if self.avars else None
+
+    @libPython.cached_property()
+    def avars_l(self):
+        """
+        There are two ways to separate avars in left and right side
+        :return:
+        """
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x >= middle.x
+        return filter(fn_filter, self.avars)
+
+    @libPython.cached_property()
+    def avars_r(self):
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x < middle.x
+        return filter(fn_filter, self.avars)
+
+    @libPython.cached_property()
+    def avar_l_mid(self):
+        fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
+        return next(iter(reversed(sorted(self.avars_l, key=fn_get_avar_pos_x))), None)
+
+    @libPython.cached_property()
+    def avar_r_mid(self):
+        fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
+        return next(iter(sorted(self.avars_l, key=fn_get_avar_pos_x)), None)
 
     #
     #
@@ -322,13 +396,16 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         for avar in self.avars:
             avar.calibrate()
 
-    def create_abstract_avar(self, rig, cls, ref, name=None, **kwargs):
+    def create_abstract_avar(self, rig, cls, ref, name=None, cls_avar=None, **kwargs):
         """
         Factory method to create abstract avars that will controller other avars.
         """
+        if cls_avar is None:
+            cls_avar = rigFaceAvar.AvarSimple
+
         input = filter(None, [ref, self.surface])
 
-        avar = rigFaceAvar.AvarSimple(input, name=name)  # TODO: Replace by Abstract Avar
+        avar = cls_avar(input, name=name)  # TODO: Replace by Abstract Avar
         avar._CLS_CTRL = cls
 
         return avar
@@ -353,13 +430,22 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         if avar.surface is None and self.surface:
             avar.surface = self.surface
 
-    def build_abstract_avar(self, rig, cls, avar):
-        avar._CLS_CTRL = cls  # Hack
+    def build_abstract_avar(self, rig, cls_ctrl, avar, **kwargs):
+        """
+        Factory method that create an avar that is not affiliated with any influence and is only used for connections.
+        :param rig: The parent rig.
+        :param cls_ctrl: The class definition to use for the ctrl.
+        :param avar: The avar class instance to use.
+        :param kwargs: Any additional keyword arguments will be sent to the avar build method.
+        :return:
+        """
+        avar._CLS_CTRL = cls_ctrl  # Hack, find a more elephant way.
         avar.build(
             rig,
             grp_rig=self.grp_rig,
             callibrate_doritos=False,  # We'll callibrate ourself since we're connecting manually.
-            constraint=False  # We are only using the avar to control
+            constraint=False,  # We are only using the avar to control
+            **kwargs
         )
         if avar.grp_anm:
             avar.grp_anm.setParent(self.grp_anm)
@@ -368,8 +454,105 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         return avar
 
+    #
+    # AvarGrps can be decomposed in quadrants.
+    # This allow us generically support modules that have a left/right/upp/low side. (ex: eyelids, lips, etc)
+    #
+
+    def build_and_connect_abstract_avar(self, rig, avar, children_avars, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, calibrate=True):
+        self.build_abstract_avar(rig, cls_ctrl, avar)
+
+        for child_avar in children_avars:
+            if connect_ud:
+                libRigging.connectAttr_withLinearDrivenKeys(avar.attr_ud, child_avar.attr_ud)
+            if connect_lr:
+                libRigging.connectAttr_withLinearDrivenKeys(avar.attr_lr, child_avar.attr_lr)
+            if connect_fb:
+                libRigging.connectAttr_withLinearDrivenKeys(avar.attr_fb, child_avar.attr_fb)
+
+        if calibrate:
+            avar.calibrate()
+
+    def create_abstract_avar_center(self, rig, cls_ctrl, ref=None):
+        """
+        A center abstract Avar is used to control ALL the avars.
+        ex: Controlling the whole eye or mouth section.
+        """
+        if ref is None:
+            ref = self.parent
+        if ref is None:
+            raise Exception("Can't build abstract avar for the global section. No reference influence found!")
+
+        name = '{0}_All'.format(self.get_module_name())
+        avar = self.create_abstract_avar(rig, cls_ctrl, ref, cls_avar=self._CLS_AVAR_ALL)
+        avar.name = name
+
+        return avar
+
+    def create_abstract_avar_left_side(self, rig, cls_ctrl, ref=None):
+        if ref is None:
+            ref = self.jnt_l_mid
+        if ref is None:
+            raise Exception("Can't build abstract avar for the left section. No reference influence found!")
+
+        name = 'L_{0}'.format(self.get_module_name())
+        avar = self.create_abstract_avar(rig, cls_ctrl, ref, cls_avar=self._CLS_AVAR)
+        avar.name = name
+
+        return avar
+
+    def create_abstract_avar_right_side(self, rig, avar, cls_ctrl, ref=None):
+        if ref is None:
+            ref = self.jnt_r_mid
+        if ref is None:
+            raise Exception("Can't build abstract avar for the left section. No reference influence found!")
+
+        # Create l ctrl
+        name = 'R_{0}'.format(self.get_module_name())
+        avar = self.create_abstract_avar(rig, cls_ctrl, ref, cls_avar=self._CLS_AVAR)
+        avar.name = name
+
+        avar.calibrate()
+
+        return avar
+
+    def create_abstract_avar_upp_side(self, rig, avar, cls_ctrl, ref=None):
+        if ref is None:
+            ref = self.jnt_upp_mid
+        if ref is None:
+            raise Exception("Can't build abstract avar for the upper section. No reference influence found!")
+
+        # Resolve avar name
+        avar_upp_basename = '{0}Upp'.format(self.get_module_name())
+        nomenclature_upp = rig.nomenclature(ref.name())
+        nomenclature_upp.tokens = [avar_upp_basename]
+        avar_upp_name = nomenclature_upp.resolve()
+
+        avar = self.create_abstract_avar(rig, cls_ctrl, ref)
+        avar.name = avar_upp_name
+
+        return avar
+
+    def create_abstract_avar_low_side(self, rig, avar, cls_ctrl, ref=None):
+        if ref is None:
+            ref = self.jnt_low_mid
+        if ref is None:
+            raise Exception("Can't build abstract avar for the lower section. No reference influence found!")
+
+        # Resolve avar name
+        avar_low_basename = '{0}Low'.format(self.get_module_name())
+        nomenclature_low = rig.nomenclature(ref.name())
+        nomenclature_low.tokens = [avar_low_basename]
+        avar_low_name = nomenclature_low.resolve()
+
+        avar = self.create_abstract_avar(rig, cls_ctrl, ref)
+        avar.name = avar_low_name
+
+        return avar
+
 class AvarGrpOnSurface(AvarGrp):
     _CLS_AVAR = rigFaceAvar.AvarFollicle
+    _CLS_AVAR_ALL = rigFaceAvar.AvarFollicleGlobal
 
     def __init__(self, *args, **kwargs):
         super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
@@ -383,245 +566,39 @@ class AvarGrpOnSurface(AvarGrp):
         return next(iter(objs), None)
     '''
 
-    def handle_surface(self, rig):
-        """
-        Create the surface that the follicle will slide on if necessary.
-        :return:
-        """
-        # Hack: Provide backward compatibility for when surface was provided as an input.
-        if self.surface is None:
-            fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-            surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
-            if surface:
-                self.input.remove(surface)
-                self.surface = surface
-
-        if self.surface is None:
-            log.warning("Can't find surface for {0}, creating one...".format(self))
-            self.surface = self.create_surface(rig)
-            #self.input.append(new_surface)
-            #del self._cache['surface']
-
-    def build(self, rig, **kwargs):
-        self.handle_surface(rig)
-
-        super(AvarGrpOnSurface, self).build(rig, **kwargs)
-
     @classModule.decorator_uiexpose
-    def create_surface(self, rig, name='Surface'):
-        '''
-        if name is None:
-            name = self.name
-        '''
-        nomenclature = self.get_nomenclature_rig(rig).copy()
-        nomenclature.add_tokens(name)
-
-        root = pymel.createNode('transform')
-        pymel.addAttr(root, longName='bendUpp', k=True)
-        pymel.addAttr(root, longName='bendLow', k=True)
-        pymel.addAttr(root, longName='bendSide', k=True)
-
-        # Create Guide
-        plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
-
-        # Create Bends
-        bend_side_deformer, bend_side_handle = pymel.nonLinear(plane_transform, type='bend')
-        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type='bend')
-        bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type='bend')
-
-        plane_transform.r.set(0,-90,0)
-        bend_side_handle.r.set(90, 90, 0)
-        bend_upp_handle.r.set(180, 90, 0)
-        bend_low_handle.r.set(180, 90, 0)
-        bend_upp_deformer.highBound.set(0)  # create pymel warning
-        bend_low_deformer.lowBound.set(0)  # create pymel warning
-
-        plane_transform.setParent(root)
-        bend_side_handle.setParent(root)
-        bend_upp_handle.setParent(root)
-        bend_low_handle.setParent(root)
-
-        pymel.connectAttr(root.bendSide, bend_side_deformer.curvature)
-        pymel.connectAttr(root.bendUpp, bend_upp_deformer.curvature)
-        pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
-
-        # Rename all the things!
-        root.rename(nomenclature.resolve('SurfaceGrp'))
-        plane_transform.rename(nomenclature.resolve('Surface'))
-        bend_upp_deformer.rename(nomenclature.resolve('UppBend'))
-        bend_low_deformer.rename(nomenclature.resolve('LowBend'))
-        bend_side_deformer.rename(nomenclature.resolve('SideBend'))
-        bend_upp_handle.rename(nomenclature.resolve('UppBendHandle'))
-        bend_low_handle.rename(nomenclature.resolve('LowBendHandle'))
-        bend_side_handle.rename(nomenclature.resolve('SideBendHandle'))
-
-        # Try to guess the desired position
-        min_x = None
-        max_x = None
-        pos = pymel.datatypes.Vector()
-        for jnt in self.jnts:
-            pos += jnt.getTranslation(space='world')
-            if min_x is None or pos.x < min_x:
-                min_x = pos.x
-            if max_x is None or pos.x > max_x:
-                max_x = pos.x
-        pos /= len(self.jnts)
-
-        length_x = max_x-min_x
-        root.setTranslation(pos)
-        root.scaleX.set(length_x)
-        root.scaleY.set(length_x*0.5)
-        root.scaleZ.set(length_x)
-
-        pymel.select(root)
-
-        #self.input.append(plane_transform)
-
-        return plane_transform
+    def create_surface(self, *args, **kwargs):
+        """
+        Expose the function in the ui, using the decorator.
+        """
+        return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
 
 class AvarGrpAim(AvarGrp):
     _CLS_AVAR = rigFaceAvar.AvarAim
     SHOW_IN_UI = False
 
-#
-# AvarGrp Upp/Low
-#
-
-class BaseCtrlUpp(classCtrl.InteractiveCtrl):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_upp()
-
-class BaseCtrlLow(classCtrl.InteractiveCtrl):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_low()
-
-class AvarGrpUppLow(AvarGrpOnSurface):
-    _CLS_CTRL_UPP = BaseCtrlUpp
-    _CLS_CTRL_LOW = BaseCtrlLow
+class AvarGrpAreaOnSurface(AvarGrpOnSurface):
+    """
+    This module will build AvarGrps with extra abstract avars.
+    """
+    _CLS_CTRL_LFT = CtrlFaceHorizontal
+    _CLS_CTRL_RGT = CtrlFaceHorizontal  # the negative scale of it's parent will flip it's shape
+    _CLS_CTRL_UPP = CtrlFaceUpp
+    _CLS_CTRL_LOW = CtrlFaceLow
+    _CLS_CTRL_ALL = CtrlFaceAll
     SHOW_IN_UI = False
 
-    def __init__(self, *args, **kwargs):
-        #self.ctrl_upp = None
-        #self.ctrl_low = None
-        self.avar_upp = None
-        self.avar_low = None
-
-        super(AvarGrpUppLow, self).__init__(*args, **kwargs)
-
-    def add_avars(self, attr_holder):
-        pass
-
-    def connect_global_avars(self):
-        pass
-
-    def connect_macro_avar(self, avar_macro, avar_micros):
-        for avar_micro in avar_micros:
-            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_ud, avar_micro.attr_ud)
-
-    def build(self, rig, **kwargs):
-        super(AvarGrpUppLow, self).build(rig, **kwargs)
-
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-
-        # Create upp avar
-        ref = self.jnt_upp_mid
-        if ref:
-            # Resolve avar name
-            avar_upp_basename = '{0}Upp'.format(self.get_module_name())
-            nomenclature_upp = rig.nomenclature(ref.name())
-            nomenclature_upp.tokens = [avar_upp_basename]
-            avar_upp_name = nomenclature_upp.resolve()
-
-            #avar_upp_name = rig.nomenclature(ref.name(), tokens=['{0}Upp'.format(self.get_module_name())]).resolve()
-            if not self.avar_upp:
-                self.avar_upp = self.create_abstract_avar(rig, self._CLS_CTRL_UPP, ref)
-            self.avar_upp.name = avar_upp_name
-            self.build_abstract_avar(rig, self._CLS_CTRL_UPP, self.avar_upp)
-
-            self.connect_macro_avar(self.avar_upp, self.avars_upp)
-
-            self.avar_upp.calibrate()
-
-        # Create low avar
-        ref = self.jnt_low_mid
-        if ref:
-            avar_low_basename = '{0}Low'.format(self.get_module_name())
-            nomenclature_low = rig.nomenclature(ref.name())
-            nomenclature_low.tokens = [avar_low_basename]
-            avar_low_name = nomenclature_low.resolve()
-            if not self.avar_low:
-                self.avar_low = self.create_abstract_avar(rig, self._CLS_CTRL_LOW, ref)
-            self.avar_low.name = avar_low_name
-            self.build_abstract_avar(rig, self._CLS_CTRL_LOW, self.avar_low)
-
-            self.connect_macro_avar(self.avar_low, self.avars_low)
-
-            self.avar_low.calibrate()
-
-    def unbuild(self):
-        if self.avar_upp:
-            self.avar_upp.unbuild()
-        if self.avar_low:
-            self.avar_low.unbuild()
-
-        super(AvarGrpUppLow, self).unbuild()
-
-#
-# AvarGrp Lft/Rgt
-#
-
-class AvarGrpLftRgt(AvarGrpOnSurface):
-    """
-    This module receive targets from all sides of the face (left and right) and create ctrls for each sides.
-    """
-    _CLS_CTRL_LFT = BaseCtrlUpp
-    _CLS_CTRL_RGT = BaseCtrlUpp
-    SHOW_IN_UI = False
-
-    @libPython.cached_property()
-    def jnts_l(self):
-        fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= 0
-        return filter(fn_filter, self.jnts)
-
-    @libPython.cached_property()
-    def jnts_r(self):
-        fn_filter = lambda jnt: jnt.getTranslation(space='world').x < 0
-        return filter(fn_filter, self.jnts)
-
-    @libPython.cached_property()
-    def jnt_l_mid(self):
-        i = (len(self.jnts_l)-1) / 2
-        return self.jnts_l[i] if self.jnts_l else None
-
-    @libPython.cached_property()
-    def jnt_r_mid(self):
-        i = (len(self.jnts_r)-1) / 2
-        return self.jnts_r[i] if self.jnts_r else None
-
-    @libPython.cached_property()
-    def avars_l(self):
-        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x >= 0
-        return filter(fn_filter, self.avars)
-
-    @libPython.cached_property()
-    def avars_r(self):
-        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x < 0
-        return filter(fn_filter, self.avars)
-
-    @libPython.cached_property()
-    def avar_l_mid(self):
-        i = (len(self.avars_l)-1) / 2
-        return self.avars_l[i] if self.avars_l else None
-
-    @libPython.cached_property()
-    def avar_r_mid(self):
-        i = (len(self.avars_r)-1) / 2
-        return self.avars_r[i] if self.avars_l else None
+    CREATE_MACRO_AVAR_HORIZONTAL = True
+    CREATE_MACRO_AVAR_VERTICAL = True
+    CREATE_MACRO_AVAR_ALL = True
 
     def __init__(self, *args, **kwargs):
-        super(AvarGrpLftRgt, self).__init__(*args, **kwargs)
+        super(AvarGrpAreaOnSurface, self).__init__(*args, **kwargs)
+        self.avar_all = None
         self.avar_l = None
         self.avar_r = None
+        self.avar_upp = None
+        self.avar_low = None
 
     def add_avars(self, attr_holder):
         pass
@@ -638,50 +615,114 @@ class AvarGrpLftRgt(AvarGrpOnSurface):
         base_u, base_v = self.get_base_uv()
         return abs(base_u - 0.5) * 2.0
 
+    def build_and_connect_abstract_avar_all(self, rig, avar_parent, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, calibrate=True):
+        self.handle_surface(rig)  # ensure we have a surface
+        pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
+        jnt_tm = pymel.datatypes.Matrix(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            pos.x, pos.y, pos.z, 1
+        )
+
+        self.build_abstract_avar(rig, cls_ctrl, avar_parent, jnt_tm=jnt_tm, ctrl_tm=jnt_tm, obj_mesh=self.surface)
+
+        for avar_child in avar_children:
+            if connect_ud:
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, avar_child.attr_ud)
+            if connect_lr:
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, avar_child.attr_lr)
+            if connect_fb:
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, avar_child.attr_fb)
+
+        if calibrate:
+            avar_parent.calibrate()
+
+    def build_and_connect_abstract_avar_horizontal(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, calibrate=True):
+        self.build_abstract_avar(rig, cls_ctrl, avar_parent)
+
+        pos_s = avar_middle.jnt.getTranslation(space='world')
+        pos_e = avar_parent.jnt.getTranslation(space='world')
+
+        for avar_child in avar_children:
+            # We don't want to connect the middle Avar.
+            if avar_child == avar_middle:
+                continue
+
+            pos = avar_child.jnt.getTranslation(space='world')
+
+            # Resolve the delta using the x axis.
+            # We ensure that the delta is always between 0 and 1.
+            delta = (pos.x - pos_s.x) / (pos_e.x - pos_s.x)
+            delta = max(0, delta)
+            delta = min(delta, 1)
+
+            if connect_ud:
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, avar_child.attr_ud,  kv=(-delta,0.0,delta))
+            if connect_lr:
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, avar_child.attr_lr,  kv=(-delta,0.0,delta))
+            if connect_fb:
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, avar_child.attr_fb,  kv=(-delta,0.0,delta))
+
+        if calibrate:
+            avar_parent.calibrate()
+
+    def build_and_connect_abstract_avar_vertical(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, **kwargs):
+        self.build_and_connect_abstract_avar(
+            rig,
+            avar_parent,
+            avar_children,
+            cls_ctrl,
+            connect_ud=False, connect_lr=False, connect_fb=True,
+            **kwargs
+        )
+
     def build(self, rig, **kwargs):
-        super(AvarGrpLftRgt, self).build(rig, **kwargs)
+        super(AvarGrpAreaOnSurface, self).build(rig, **kwargs)
 
-        # Adjust LR multiplier
-        '''
-        for avar in self.avars:
-            avar._attr_u_mult_inn.set(mult_lr)
-        '''
-
-        # Create left avar
-        if self.jnt_l_mid:
-            # Create l ctrl
-            name = 'L_{0}'.format(self.get_module_name())
+        # Create left avar if necessary
+        ref = self.jnt_l_mid
+        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref :
             if not self.avar_l:
-                self.avar_l = self.create_abstract_avar(rig, self._CLS_CTRL_LFT, self.jnt_l_mid)
-            self.avar_l.name = name
-            self.build_abstract_avar(rig, self._CLS_CTRL_LFT, self.avar_l)
+                self.avar_l = self.create_abstract_avar_left_side(rig, self._CLS_CTRL_LFT, ref)
+            self.build_and_connect_abstract_avar_horizontal(rig, self.avar_l, self.avar_mid, self.avars_l, self._CLS_CTRL_LFT)
 
-            for avar in self.avars_l:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar.attr_ud)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_lr, avar.attr_lr)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar.attr_fb)
-
-            self.avar_l.calibrate()
-
-        # Create right avar
-        if self.jnt_r_mid:
+        # Create right avar if necessary
+        ref = self.jnt_r_mid
+        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             # Create l ctrl
-            name = 'R_{0}'.format(self.get_module_name())
             if not self.avar_r:
-                self.avar_r = self.create_abstract_avar(rig, self._CLS_CTRL_RGT, self.jnt_r_mid)
-            self.avar_r.name = name
-            self.build_abstract_avar(rig, self._CLS_CTRL_RGT, self.avar_r)
+                self.avar_r = self.create_abstract_avar_right_side(rig, self._CLS_CTRL_RGT, ref)
+            self.build_and_connect_abstract_avar_horizontal(rig, self.avar_r, self.avar_mid, self.avars_r, self._CLS_CTRL_RGT)
 
-            for avar in self.avars_r:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar.attr_ud)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_lr, avar.attr_lr)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar.attr_fb)
+        # Create upp avar if necessary
+        ref = self.jnt_upp_mid
+        if self.CREATE_MACRO_AVAR_VERTICAL and ref:
+            if self.avar_upp is None:
+                self.avar_upp = self.create_abstract_avar_upp_side(rig, self._CLS_CTRL_UPP, ref)
+            self.build_and_connect_abstract_avar_vertical(rig, self.avar_upp, self.avar_mid, self.avars_upp, self._CLS_CTRL_UPP)
 
-            self.avar_r.calibrate()
+        # Create low avar if necessary
+        ref = self.jnt_low_mid
+        if self.CREATE_MACRO_AVAR_VERTICAL and ref:
+            if self.avar_low is None:
+                self.avar_low = self.create_abstract_avar_low_side(rig, self._CLS_CTRL_LOW, ref)
+            self.build_and_connect_abstract_avar_vertical(rig, self.avar_low, self.avar_mid, self.avars_low, self._CLS_CTRL_LOW)
+
+        # Create all avar if necessary
+        ref = self.parent
+        if self.CREATE_MACRO_AVAR_ALL and ref:
+            if not self.avar_all:
+                self.avar_all = self.create_abstract_avar_center(rig, self._CLS_CTRL_ALL, ref)
+            self.build_and_connect_abstract_avar_all(rig, self.avar_all, self.avars, self._CLS_CTRL_ALL)
 
     def unbuild(self):
         if self.avar_l:
             self.avar_l.unbuild()
         if self.avar_r:
             self.avar_r.unbuild()
-        super(AvarGrpLftRgt, self).unbuild()
+        if self.avar_upp:
+            self.avar_upp.unbuild()
+        if self.avar_low:
+            self.avar_low.unbuild()
+        super(AvarGrpAreaOnSurface, self).unbuild()

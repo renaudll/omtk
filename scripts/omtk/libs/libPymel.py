@@ -208,6 +208,8 @@ def isinstance_of_transform(obj, cls=pymel.nodetypes.Transform):
 def isinstance_of_shape(obj, cls=pymel.nodetypes.Shape):
     if isinstance(obj, pymel.nodetypes.Transform):
         return any((shape for shape in obj.getShapes() if isinstance(shape, cls)))
+    elif isinstance(obj, pymel.nodetypes.Shape):
+        return isinstance(obj, cls)
 
 def create_zero_grp(obj):
     zero_grp = pymel.createNode('transform')

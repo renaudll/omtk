@@ -362,8 +362,21 @@ class InteractiveCtrl(BaseCtrl):
 
         self.follicle = None
 
-    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, **kwargs):
+    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, **kwargs):
+        """
+        Create an Interactive controller that follow a geometry.
+        :param parent: ???
+        :param ref:
+        :param ref_tm:
+        :param grp_rig:
+        :param obj_mesh:
+        :param u_coord:
+        :param v_coord:
+        :param kwargs:
+        :return:
+        """
         # todo: Simplify the setup, too many nodes
+
 
         super(InteractiveCtrl, self).build(parent, **kwargs)
 
@@ -376,24 +389,20 @@ class InteractiveCtrl(BaseCtrl):
             ref_tm = ref.getMatrix(worldSpace=True)
         pos_ref = ref_tm.translate
 
-        # Determine if we need to flip the ctrl.
-        # This allow L and R ctrls to mirror each others if they move together.
-        ref_name = parent.nomenclature(ref.nodeName())
-        need_flip = ref_name.side == parent.nomenclature.SIDE_R
-
-        # Resolve geometry to attach to.
+        # Resolve u and v coordinates
+        # todo: check if we really want to resolve the u and v ourself since it's now connected.
         if obj_mesh is None:
-            # We'll only check mesh affected by the influence.
-            meshes = libRigging.get_affected_geometries(ref)
-            # We'll make sure to remove any mesh that is not handled.
-            meshes = list(set(meshes) & set(parent.get_meshes()))
             # We'll scan all available geometries and use the one with the shortest distance.
-            obj_mesh, fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_meshes(meshes, pos_ref)
-            # TODO: Make sure the follicle will be bound to the last geometry of the deformer stack.
-            # Otherwise the InteractiveCtrl may attach itself to a pre-deformation mesh and never move.
-            #obj_mesh = libRigging.get_farest_affected_mesh()
+            meshes = libRigging.get_affected_geometries(ref)
+            meshes = list(set(meshes) & set(parent.get_meshes()))
+            obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
         else:
-            fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, pos_ref)
+            _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
+
+        if u_coord is None:
+            u_coord = out_u
+        if v_coord is None:
+            v_coord = out_v
 
         if obj_mesh is None:
             raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
@@ -436,7 +445,7 @@ class InteractiveCtrl(BaseCtrl):
 
         # TODO: Validate that we don't need to inverse the rotation separately.
         fol_name = nomenclature_rig.resolve('doritosFollicle')
-        fol_shape = libRigging.create_follicle2(obj_mesh, u=fol_u, v=fol_v)
+        fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
         fol = fol_shape.getParent()
         self.follicle = fol
         fol.rename(fol_name)
@@ -489,7 +498,7 @@ class InteractiveCtrl(BaseCtrl):
                                                          input2Z=self.attr_sensitivity_tz
                                                          ).output
 
-        if need_flip:
+        if flip_lr:
             attr_doritos_tx = libRigging.create_utility_node('multiplyDivide',
                                                              input1X=attr_ctrl_inv_t.outputX,
                                                              input2X=-1
@@ -506,7 +515,7 @@ class InteractiveCtrl(BaseCtrl):
 
         # Apply scaling on the ctrl parent.
         # This is were the 'black magic' happen.
-        if need_flip:
+        if flip_lr:
             attr_ctrl_offset_sx_inn = libRigging.create_utility_node('multiplyDivide',
                                                                      input1X=self.attr_sensitivity_tx,
                                                                      input2X=-1
@@ -533,12 +542,6 @@ class InteractiveCtrl(BaseCtrl):
             cp.set(0,0,0)
 
         # Counter-scale the shape
-        '''
-        if need_flip:
-            attr_adjustement_sx_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_sensibility_lr_inv, input2X=-1).outputX
-        else:
-            attr_adjustement_sx_inn = attr_sensibility_lr_inv
-        '''
         attr_adjustement_sx_inn = attr_sensibility_lr_inv
         attr_adjustement_sy_inn = attr_sensibility_ud_inv
         attr_adjustement_sz_inn = attr_sensibility_fb_inv

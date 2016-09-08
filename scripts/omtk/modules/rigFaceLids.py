@@ -1,6 +1,7 @@
 from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
 from omtk.libs import libCtrlShapes
+from omtk.libs import libPymel
 import pymel.core as pymel
 
 class CtrlLidUpp(rigFaceAvar.BaseCtrlFace):
@@ -12,7 +13,7 @@ class CtrlLidLow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 
-class FaceLids(rigFaceAvarGrps.AvarGrpUppLow):
+class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     """
     FaceLids behave the same a a standard AvarGrp with an Upp and Low section.
     However to adapt ourself to non-symetrical eyes, we use two surface to slide on.
@@ -29,6 +30,28 @@ class FaceLids(rigFaceAvarGrps.AvarGrpUppLow):
         self.surface_low = None
 
     def handle_surface(self, rig):
+        """
+        Create a separated surface for the upper and lower lids.
+        This allow the rigger to easily tweak how each lids react which may be necessary with hyper-realistic characters.
+
+        If the user provided it's own surface (via the input property), we'll use it for the upper AND lower lids.
+        This is mainly to support custom surface like spheres for very cartoony characters.
+        """
+        # Get all surfaces provided by the input property.
+        def get_surface(obj):
+            if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface):
+                return obj
+        surfaces = filter(None, map(get_surface, self.input))
+
+        # If the user provided surface, pop them out of the input property and store them in the surface_[upp/low] property.
+        if surfaces:
+            surface = next(iter(surfaces), None)
+            for surface in surfaces:
+                self.input.remove(surface)
+            self.surface_upp = surface
+            self.surface_low = surface
+
+        # Create surfaces if they were not provided
         if self.surface_upp is None:
             pymel.warning("Can't find surface for {0}, creating one.".format(self))
             self.surface_upp = self.create_surface(rig, name='SurfaceUpp')
@@ -36,6 +59,9 @@ class FaceLids(rigFaceAvarGrps.AvarGrpUppLow):
         if self.surface_low is None:
             pymel.warning("Can't find surface for {0}, creating one.".format(self))
             self.surface_low = self.create_surface(rig, name='SurfaceLow')
+
+        # We still provide the surface property in case we need a controller to be connected directly to it.
+        self.surface = self.surface_upp
 
     def configure_avar(self, rig, avar):
         inf = avar.jnt

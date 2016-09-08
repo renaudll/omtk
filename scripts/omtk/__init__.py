@@ -27,7 +27,6 @@ from rigs import *
 import libs
 from libs import *
 
-import libSerialization
 from omtk.libs import libPython
 
 import uiLogic

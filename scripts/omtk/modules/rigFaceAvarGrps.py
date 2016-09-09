@@ -15,6 +15,17 @@ from omtk.modules import rigFaceAvar
 
 log = logging.getLogger('omtk')
 
+class BaseCtrlUpp(object):
+    """
+    Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
+    """
+    pass
+
+class BaseCtrlLow(object):
+    """
+    Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
+    """
+    pass
 
 class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
@@ -376,9 +387,12 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         self.connect_global_avars()
 
     def _parent_avar(self, rig, avar, parent):
-        layer_offset = avar._stack._layers[0]
-        pymel.parentConstraint(parent, layer_offset, maintainOffset=True)
-        pymel.scaleConstraint(parent, layer_offset, maintainOffset=True)
+        try:
+            layer_offset = avar._stack._layers[0]
+            pymel.parentConstraint(parent, layer_offset, maintainOffset=True)
+            pymel.scaleConstraint(parent, layer_offset, maintainOffset=True)
+        except Exception, e:
+            print(str(e))
 
     def _parent_avars(self, rig, parent):
         # If the deformation order is set to post (aka the deformer is in the final skinCluster)
@@ -478,8 +492,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     # This allow us generically support modules that have a left/right/upp/low side. (ex: eyelids, lips, etc)
     #
 
-    def _build_avar_macro(self, rig, avar, children_avars, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True):
-        self.build_abstract_avar(rig, cls_ctrl, avar)
+    def _build_avar_macro(self, rig, avar, children_avars, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, **kwargs):
+        self.build_abstract_avar(rig, cls_ctrl, avar, **kwargs)
 
         for child_avar in children_avars:
             if connect_ud:
@@ -672,7 +686,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
         return next(iter(parent_avars), None)
 
-    def _build_avar_macro_all(self, rig, avar_parent, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False, follow_mesh=True):
+    def __build_avar_macro_all(self, rig, avar_parent, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False, follow_mesh=True):
         self.handle_surface(rig)  # ensure we have a surface
         pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
         jnt_tm = pymel.datatypes.Matrix(
@@ -692,31 +706,14 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             if connect_fb:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, avar_child.attr_fb)
 
-    def _build_avar_macro_horizontal(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=False, connect_lr=True, connect_fb=False):
-        self.build_abstract_avar(rig, cls_ctrl, avar_parent)
-
-        pos_s = avar_middle.jnt.getTranslation(space='world')
-        pos_e = avar_parent.jnt.getTranslation(space='world')
-
-        for avar_child in avar_children:
-            # We don't want to connect the middle Avar.
-            if avar_child == avar_middle:
-                continue
-
-            pos = avar_child.jnt.getTranslation(space='world')
-
-            # Compute the ratio between the middle and the corner.
-            # ex: In the lips, we want the lips to stretch when the corner are taken appart.
-            ratio = (pos.x - pos_s.x) / (pos_e.x - pos_s.x)
-            ratio = max(0, ratio)
-            ratio = min(ratio, 1)
-
-            if connect_ud:
-                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, avar_child.attr_ud)
-            if connect_lr:
-                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, avar_child.attr_lr,  kv=(-ratio,0.0,ratio))
-            if connect_fb:
-                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, avar_child.attr_fb)
+    def _build_avar_macro_horizontal(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, **kwargs):
+        self._build_avar_macro(
+            rig,
+            avar_parent,
+            avar_children,
+            cls_ctrl,
+            **kwargs
+        )
 
     def _build_avar_macro_vertical(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, **kwargs):
         self._build_avar_macro(
@@ -727,50 +724,39 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             **kwargs
         )
 
-    def _build_avars(self, rig, **kwargs):
-        # TODO: Some calls might need to be move
-        super(AvarGrpAreaOnSurface, self)._build_avars(rig, **kwargs)
-
+    def _build_avar_macro_l(self, rig, **kwargs):
         # Create left avar if necessary
         ref = self.jnt_l_mid
-        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref :
+        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             if not self.avar_l:
                 self.avar_l = self.create_avar_macro_left(rig, self._CLS_CTRL_LFT, ref)
-            self._build_avar_macro_horizontal(rig, self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(rig, self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, **kwargs)
 
-            # Connect the corner other avars
-            avar_l_corner = self.get_avar_l_corner()
-            if avar_l_corner:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
-
-        # Create right avar if necessary
+    def _build_avar_macro_r(self, rig, **kwargs):# Create right avar if necessary
         ref = self.jnt_r_mid
         if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             # Create l ctrl
             if not self.avar_r:
                 self.avar_r = self.create_avar_macro_right(rig, self._CLS_CTRL_RGT, ref)
-            self._build_avar_macro_horizontal(rig, self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(rig, self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, **kwargs)
 
-            avar_r_corner = self.get_avar_r_corner()
-            if avar_r_corner:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
-
+    def _build_avar_macro_upp(self, rig, **kwargs):
         # Create upp avar if necessary
         ref = self.jnt_upp_mid
         if self.CREATE_MACRO_AVAR_VERTICAL and ref:
             if self.avar_upp is None:
                 self.avar_upp = self.create_avar_macro_upp(rig, self._CLS_CTRL_UPP, ref)
-            self._build_avar_macro_vertical(rig, self.avar_upp, self.get_avar_mid(), self.get_avars_upp(), self._CLS_CTRL_UPP)
+            self._build_avar_macro_vertical(rig, self.avar_upp, self.get_avar_mid(), self.get_avars_upp(), self._CLS_CTRL_UPP, **kwargs)
 
+    def _build_avar_macro_low(self, rig, **kwargs):
         # Create low avar if necessary
         ref = self.jnt_low_mid
         if self.CREATE_MACRO_AVAR_VERTICAL and ref:
             if self.avar_low is None:
                 self.avar_low = self.create_avar_macro_low(rig, self._CLS_CTRL_LOW, ref)
-            self._build_avar_macro_vertical(rig, self.avar_low, self.get_avar_mid(), self.get_avars_low(), self._CLS_CTRL_LOW)
+            self._build_avar_macro_vertical(rig, self.avar_low, self.get_avar_mid(), self.get_avars_low(), self._CLS_CTRL_LOW, **kwargs)
 
+    def _build_avar_macro_all(self, rig, **kwargs):
         # Create all avar if necessary
         # Note that the use can provide an influence.
         # If no influence was found, we'll create an 'abstract' avar that doesn't move anything.
@@ -785,7 +771,21 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             if ref:
                 if not self.avar_all:
                     self.avar_all = self.create_avar_macro_all(rig, self._CLS_CTRL_ALL, ref)
-                self._build_avar_macro_all(rig, self.avar_all, self.avars, self._CLS_CTRL_ALL, constraint=constraint, follow_mesh=False)
+                self.__build_avar_macro_all(rig, self.avar_all, self.avars, self._CLS_CTRL_ALL, constraint=constraint, follow_mesh=False, **kwargs)
+
+    def _build_avars(self, rig, **kwargs):
+        # TODO: Some calls might need to be move
+        super(AvarGrpAreaOnSurface, self)._build_avars(rig, **kwargs)
+
+        self._build_avar_macro_l(rig)
+
+        self._build_avar_macro_r(rig)
+
+        self._build_avar_macro_upp(rig)
+
+        self._build_avar_macro_low(rig)
+
+        self._build_avar_macro_all(rig)
 
     def unbuild(self):
         if self.avar_l:

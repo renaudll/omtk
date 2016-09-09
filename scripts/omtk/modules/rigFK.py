@@ -3,6 +3,7 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
 from omtk.libs import libRigging, libCtrlShapes
+from omtk.core import consts_omtk
 
 class CtrlFk(BaseCtrl):
     def __createNode__(self, *args, **kwargs):
@@ -125,6 +126,12 @@ class AdditiveFK(FK):
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
+        # Ensure to create the finger ctrl in the good orientation
+        if nomenclature_anm.side == rig.nomenclature.SIDE_L:
+            normal_data = {consts_omtk.Axis.x: (1, 0, 0), consts_omtk.Axis.y: (0, 1, 0), consts_omtk.Axis.z: (0, 0, 1)}
+        else:
+            normal_data = {consts_omtk.Axis.x: (-1, 0, 0), consts_omtk.Axis.y: (0, -1, 0), consts_omtk.Axis.z: (0, 0, -1)}
+
         # TODO: Support multiple additive ctrls
         # TODO: Rename
         self.additive_ctrls = filter(None, self.additive_ctrls)
@@ -135,7 +142,7 @@ class AdditiveFK(FK):
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
-            ctrl.build(rig, name=name, refs=self.chain.start)
+            ctrl.build(rig, name=name, refs=self.chain.start, normal=normal_data[rig._up_axis])
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
 

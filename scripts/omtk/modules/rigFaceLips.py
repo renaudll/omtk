@@ -6,6 +6,12 @@ from omtk.libs import libCtrlShapes
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 
+class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
+    pass
+
+class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
+    pass
+
 class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     """
     Lips have the same behavior than an AvarGrpUppLow.
@@ -14,6 +20,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     """
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
+    _CLS_CTRL_UPP = CtrlLipsUpp
+    _CLS_CTRL_LOW = CtrlLipsLow
 
     @property
     def avars_corners(self):
@@ -36,17 +44,15 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_ud, kv=[0.01, 0.0, -0.01])
             libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_fb, kv=[0.01, 0.0, -0.01])
 
-    def build(self, rig, **kwargs):
-        """
-        The Lips rig have additional controllers to open all the upper or lower lips together.
-        """
-        # Normally the lips are in preDeform.
-        # If it is not the case, we'll handle constraining ourself with the head and jaw.
-        super(FaceLips, self).build(rig, parent=False, **kwargs)
+    def _parent_avars(self, rig, parent):
+        super(FaceLips, self)._parent_avars(rig, parent)
 
         # If we are using the lips in the main deformer, we'll do shenanigans with the jaw.
         if not self.preDeform:
-            jnt_head = rig.get_head_jnt()
+            # Resolve the head influence
+            jnt_head = self.parent
+            #jnt_head = rig.get_head_jnt()
+
             jnt_jaw = rig.get_jaw_jnt()
 
             # Hack: To prevent ANY flipping, we'll create an aligned target for the head and the jaw.
@@ -67,17 +73,19 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             # Create jaw constraints
             #
 
-            for avar in self.avars_upp:
-                pymel.parentConstraint(jnt_head, avar._stack._layers[0], maintainOffset=True)
+            for avar in self.get_avars_upp():
+                pymel.parentConstraint(target_head, avar._stack._layers[0], maintainOffset=True)
 
-            for avar in self.avars_low:
-                pymel.parentConstraint(jnt_jaw, avar._stack._layers[0], maintainOffset=True)
+            for avar in self.get_avars_low():
+                pymel.parentConstraint(target_jaw, avar._stack._layers[0], maintainOffset=True)
 
             # Note that since we are using two targets, we need to ensure the parent also follow
             # the face to prevent any accidental flipping.
+            # todo: use a layer AFTER the offset node instead of before...
             for avar in self.avars_corners:
                 offset_layer = avar._stack.get_stack_start()
                 offset_flip_layer = avar._stack.preprend_layer(name='OffsetNotFlip')
 
                 pymel.parentConstraint(jnt_head, offset_flip_layer, maintainOffset=True)
                 pymel.parentConstraint(target_head, target_jaw, offset_layer, maintainOffset=True)
+

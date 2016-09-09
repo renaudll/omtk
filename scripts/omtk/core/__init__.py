@@ -1,6 +1,7 @@
 import logging
 import os
 import inspect
+import contextlib
 import libSerialization
 import json
 import pymel.core as pymel
@@ -101,29 +102,62 @@ def _get_modules_from_selection(sel=None):
 
     return rig, modules
 
+@contextlib.contextmanager
+def with_preserve_selection():
+    sel = pymel.selected()
+    yield True
+    if sel:
+        pymel.select(sel)
+    else:
+        pymel.select(clear=True)
+
 def build_selected(sel=None):
-    rig, modules = _get_modules_from_selection()
-    if not rig or not modules:
-        return
+    with with_preserve_selection():
+        rig, modules = _get_modules_from_selection()
+        if not rig or not modules:
+            return
 
-    is_module_unbuilt = lambda x: not x.is_built()
-    modules = filter(is_module_unbuilt , modules)
+        is_module_unbuilt = lambda x: not x.is_built()
+        modules = filter(is_module_unbuilt , modules)
 
-    # Build selected modules
-    for module in modules:
-        module.build(rig)
+        # Build selected modules
+        rig.pre_build()
+        for module in modules:
+            module.build(rig)
+            rig.post_build_module(module)
+
+        # Re-export network
+        if hasattr(rig, '_network'):
+            pymel.delete(rig._network)
+        libSerialization.export_network(rig)
 
 def unbuild_selected(sel=None):
+    with with_preserve_selection():
+        rig, modules = _get_modules_from_selection()
+        if not rig or not modules:
+            return
+
+        is_module_built = lambda x: x.is_built()
+        modules = filter(is_module_built , modules)
+
+        # Build selected modules
+        for module in modules:
+            module.unbuild()
+
+        # Re-export network
+        if hasattr(rig, '_network'):
+            pymel.delete(rig._network)
+        libSerialization.export_network(rig)
+
+def calibrate_selected(sel=None):
     rig, modules = _get_modules_from_selection()
     if not rig or not modules:
         return
 
-    is_module_built = lambda x: x.is_built()
-    modules = filter(is_module_built , modules)
-
     # Build selected modules
     for module in modules:
-        module.unbuild(rig)
+        if hasattr(module, 'calibrate') and hasattr(module.calibrate, '__call__'):
+            module.calibrate(rig)
 
 def detect(*args, **kwargs):
     """

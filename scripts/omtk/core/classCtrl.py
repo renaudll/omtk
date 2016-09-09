@@ -362,7 +362,7 @@ class InteractiveCtrl(BaseCtrl):
 
         self.follicle = None
 
-    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, **kwargs):
+    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, follow_mesh=True, **kwargs):
         """
         Create an Interactive controller that follow a geometry.
         :param parent: ???
@@ -444,24 +444,28 @@ class InteractiveCtrl(BaseCtrl):
         #layer_fol.setParent(self.grp_rig)
 
         # TODO: Validate that we don't need to inverse the rotation separately.
-        fol_name = nomenclature_rig.resolve('doritosFollicle')
-        fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
-        fol = fol_shape.getParent()
-        self.follicle = fol
-        fol.rename(fol_name)
-        pymel.parentConstraint(fol, layer_fol, maintainOffset=True)
-        fol = fol_shape.getParent()
-        fol.setParent(self.grp_rig)
+        fol_mesh = None
+        if follow_mesh:
+            fol_name = nomenclature_rig.resolve('doritosFollicle')
+            fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
+            fol_mesh = fol_shape.getParent()
+            self.follicle = fol_mesh
+            fol_mesh.rename(fol_name)
+            pymel.parentConstraint(fol_mesh, layer_fol, maintainOffset=True)
+            fol_mesh.setParent(self.grp_rig)
 
-        # HACK: Fix rotation issues.
-        # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
-        # any deformation can affect the normal of the faces.
-        jnt_head = parent.get_head_jnt()
-        if jnt_head:
-            pymel.disconnectAttr(layer_fol.rx)
-            pymel.disconnectAttr(layer_fol.ry)
-            pymel.disconnectAttr(layer_fol.rz)
-            pymel.orientConstraint(jnt_head, layer_fol, maintainOffset=True)
+            # HACK: Fix rotation issues.
+            # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
+            # any deformation can affect the normal of the faces.
+            jnt_head = parent.get_head_jnt()
+            if jnt_head:
+                pymel.disconnectAttr(layer_fol.rx)
+                pymel.disconnectAttr(layer_fol.ry)
+                pymel.disconnectAttr(layer_fol.rz)
+                pymel.orientConstraint(jnt_head, layer_fol, maintainOffset=True)
+        else:
+            self.follicle = layer_fol
+            pymel.parentConstraint(ref, layer_fol, maintainOffset=True)
 
         #
         # Constraint a specic controller to the avar doritos stack.
@@ -576,12 +580,13 @@ class InteractiveCtrl(BaseCtrl):
         # Clean dag junk
         if grp_rig:
             stack.setParent(grp_rig)
-            fol.setParent(grp_rig)
+            if fol_mesh:
+                fol_mesh.setParent(grp_rig)
 
     def calibrate(self, tx=True, ty=True, tz=True):
         influence = self.follicle
         if not influence:
-            log.warning("Can't calibrate {0}, found no influences.")
+            log.warning("Can't calibrate {0}, found no influences.".format(self))
             return
 
         if tx and not self.node.tx.isLocked():

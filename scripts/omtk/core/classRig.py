@@ -101,6 +101,10 @@ class Rig(object):
     RIGHT_CTRL_COLOR = 6  # Blue
     CENTER_CTRL_COLOR = 17  # Yellow
 
+    AVAR_NAME_UPP = 'Upp'
+    AVAR_NAME_LOW = 'Low'
+    AVAR_NAME_ALL = 'All'
+
 
     #
     # className.BaseNomenclature implementation
@@ -498,11 +502,11 @@ class Rig(object):
                 ctrl.offset.s.lock()
 
         # Parent modules grp_anm to main grp_anm
-        if module.grp_anm:
+        if libPymel.is_valid_PyNode(module.grp_anm) and libPymel.is_valid_PyNode(self.grp_anm):
             module.grp_anm.setParent(self.grp_anm)
 
         # Constraint modules grp_rig to main grp_rig
-        if module.grp_rig is not None:
+        if libPymel.is_valid_PyNode(module.grp_rig) and libPymel.is_valid_PyNode(self.grp_rig):
             module.grp_rig.setParent(self.grp_rig)
 
         # Connect globalScale attribute to each modules globalScale.

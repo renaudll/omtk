@@ -73,9 +73,8 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
             libRigging.connectAttr_withBlendWeighted(self.attr_pt, avar.attr_pt)
             libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
 
-    def build(self, rig, **kwargs):
-        super(FaceNose, self).build(rig, **kwargs)
-        nomenclature_anm = self.get_nomenclature_anm(rig)
+    def _build_avars(self, rig, **kwargs):
+        super(FaceNose, self)._build_avars(rig, **kwargs)
 
         # Create a ctrl that will control the whole nose
         ref = self.inf_nose_low
@@ -104,8 +103,6 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
         if self.avar_nose_low:
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_yw, self.avar_nose_low.attr_yw)
 
-        self.avar_main.calibrate()
-
         if self.parent:
             pymel.parentConstraint(self.parent, self.avar_nose_upp._stack._layers[0], maintainOffset=True)
 
@@ -116,6 +113,12 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
 
             avar_inn = avar._stack._layers[0]
             pymel.parentConstraint(nose_upp_out, avar_inn, maintainOffset=True)
+
+    def calibrate(self, rig):
+        super(FaceNose, self).calibrate(rig)
+
+        if self.avar_main:
+            self.avar_main.calibrate()
 
     def unbuild(self):
         super(FaceNose, self).unbuild()

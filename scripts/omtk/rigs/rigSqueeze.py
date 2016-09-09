@@ -30,6 +30,10 @@ class SqueezeNomenclature(className.BaseName):
     SIDE_L = 'L'
     SIDE_R = 'R'
 
+    AVAR_NAME_UPP = 'Upp'
+    AVAR_NAME_LOW = 'Low'
+    AVAR_NAME_ALL = 'Master'
+
     def build_from_string(self, name):
         """
         In Squeeze nomenclature, the last token is always the type of the object.

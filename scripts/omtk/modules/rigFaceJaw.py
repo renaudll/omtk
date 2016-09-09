@@ -40,7 +40,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         tm = pymel.datatypes.Matrix([1,0,0,0, 0,1,0,0, 0,0,1,0, result.x, result.y, result.z, 1])
         return tm
 
-    def connect_ctrl(self, ctrl, **kwargs):
+    def connect_ctrl(self, rig, ctrl, **kwargs):
         attr_pt_inn = ctrl.translateY
         attr_yw_inn = ctrl.translateX
 

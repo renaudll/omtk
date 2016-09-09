@@ -70,7 +70,7 @@ class BaseName(object):
         self.side = None
 
         if name:
-            self.build_from_string(name)
+            self.tokens = self._get_tokens(name)  # We use _get_tokens because build_from_string may be overriden (see RigSqueeze for example)
 
         # Apply manual overrides
         if tokens:

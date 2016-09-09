@@ -20,78 +20,7 @@ log = logging.getLogger('omtk')
 
 
 class BaseCtrlFace(classCtrl.InteractiveCtrl):
-    # TODO: inverse? link_to_avar in the avar?
-
-    '''
-    def attach_to_avars(self, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
-        need_flip = self.getTranslation(space='world').x < 0
-
-        if attr_ud:
-            attr_inn_ud = self.translateY
-            libRigging.connectAttr_withBlendWeighted(attr_inn_ud, attr_ud)
-
-        if attr_lr:
-            attr_inn_lr = self.translateX
-
-            if need_flip:
-                attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_lr, attr_lr)
-
-        if attr_fb:
-            attr_inn_fb = self.translateZ
-            libRigging.connectAttr_withBlendWeighted(attr_inn_fb, attr_fb)
-
-        if attr_yw:
-            attr_inn_yw = self.rotateY
-
-            if need_flip:
-                attr_inn_yw = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_yw, input2X=-1).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_yw, attr_yw)
-
-        if attr_pt:
-            attr_inn_pt = self.rotateX
-            libRigging.connectAttr_withBlendWeighted(attr_inn_pt, attr_pt)
-
-        if attr_rl:
-            attr_inn_rl = self.rotateZ
-
-            if need_flip:
-                attr_inn_rl = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_rl, input2X=-1).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_rl, attr_rl)
-
-    def attach_all_to_avars(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
-        self.attach_to_avars(
-            attr_ud=avar.attr_ud if ud else None,
-            attr_lr=avar.attr_lr if lr else None,
-            attr_fb=avar.attr_fb if fb else None,
-            attr_yw=avar.attr_yw if yw else None,
-            attr_pt=avar.attr_pt if pt else None,
-            attr_rl=avar.attr_rl if rl else None
-        )
-
-    # TODO: deprecated, replace with link_to_avar
-    def connect_avars(self, attr_ud, attr_lr, attr_fb):
-        attr_inn_ud = self.translateY
-        attr_inn_lr = self.translateX
-        attr_inn_fb = self.translateZ
-
-        need_flip = self.getTranslation(space='world').x < 0
-        if need_flip:
-            attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
-
-        libRigging.connectAttr_withBlendWeighted(attr_inn_ud, attr_ud)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_lr, attr_lr)
-        libRigging.connectAttr_withBlendWeighted(attr_inn_fb, attr_fb)
-    '''
-
-    '''
-    def hold_shapes(self):
-        log.warning("Can't hold shapes for {0}, not supported. (fix me!)".format(self))
-    '''
-
+    pass
 
 class CtrlFaceMicro(BaseCtrlFace):
     """
@@ -506,7 +435,7 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  **kwargs):
+    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
         super(AvarSimple, self).build(rig, create_grp_anm=create_ctrl, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
@@ -556,19 +485,39 @@ class AvarSimple(AbstractAvar):
         # Create the ctrl
         if create_ctrl:
             ctrl_name = nomenclature_anm.resolve()
+
+            # Create a new ctrl instance if it was never initialized or if the ctrl type mismatch.
+            # This can happen when rebuilding from an old generated version.
+            # When this happen, we want to notify the user, we also want to at least preserve old shape if possible.
             if not isinstance(self.ctrl, self._CLS_CTRL):
+                log.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                    self._CLS_CTRL, type(self.ctrl)
+                ))
+                old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
                 self.ctrl = self._CLS_CTRL()
+                if old_shapes:
+                    self.ctrl.shapes = old_shapes
 
             # Hack: clean me!
             if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+                # Resolve which object will the InteractiveCtrl track.
+                # If we don't want to follow a particular geometry, we'll use the end of the stack.
+                # Otherwise the influence will be used (to also resolve the geometry).
+                # todo: it could be better to resolve the geometry ourself
+                if not follow_mesh:
+                    ref = stack.node
+                else:
+                    ref = self.jnt
+
                 self.ctrl.build(
-                    rig, self.jnt,
+                    rig, ref,
                     ref_tm=ctrl_tm,
                     name=ctrl_name,
                     size=ctrl_size,
                     obj_mesh=obj_mesh,
                     grp_rig=self.grp_rig,
-                    flip_lr=self.need_flip_lr(rig)
+                    flip_lr=self.need_flip_lr(rig),
+                    follow_mesh=follow_mesh
                 )
             else:
                 self.ctrl.build(rig, name=ctrl_name, size=ctrl_size)
@@ -579,11 +528,13 @@ class AvarSimple(AbstractAvar):
             # Connect ctrl to avars
             self.connect_ctrl(rig, self.ctrl)
 
+            '''
             # Calibrate ctrl
             # Hack: clean me!
             if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
                 if create_doritos and callibrate_doritos:
                     self.calibrate()
+            '''
 
     def calibrate(self, **kwargs):
         """
@@ -636,8 +587,12 @@ class AvarFollicle(AvarSimple):
         #
         # Create a simple setup that will extract the base U and V of the base influence using the stack parent. (the 'offset' node)
         #
+        # Hack: We can't trust the local translate of the right corner of the lips since an 'OffsetNotFlip' parent is inserted. -_- #fixme
+        util_decompose = libRigging.create_utility_node('decomposeMatrix',
+            inputMatrix=stack.getParent().worldMatrix
+        )
         util = libRigging.create_utility_node('closestPointOnSurface',
-            inPosition=stack.getParent().t,
+            inPosition=util_decompose.outputTranslate,
             inputSurface=self.surface.getShape().worldSpace
         )
         self._attr_u_base = util.parameterU
@@ -952,22 +907,6 @@ class AvarFollicle(AvarSimple):
         return stack
 
 
-class AvarFollicleGlobal(AvarFollicle):
-    def get_jnt_tm(self):
-        """
-        Return a transform at the center of the surface used by the avar.
-        This prevent the avar from using the geometry itself to slide (ex: the lips global ctrl)
-        :param rig:
-        :return:
-        """
-        pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
-        return pymel.datatypes.Matrix(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            pos.x, pos.y, pos.z, 1
-        )
-
 class AvarAim(AvarSimple):
     """
     A deformation point on the face that move accordingly to a specific node, usually a controller.
@@ -1041,7 +980,7 @@ class AvarAim(AvarSimple):
         if create_ctrl:
             pymel.pointConstraint(self.ctrl, self.target, maintainOffset=False)
 
-    def connect_ctrl(self, ctrl, **kwargs):
+    def connect_ctrl(self, rig, ctrl, **kwargs):
         pass  # Nothing need to be connected since there's an aimConstraint
 
     def unbuild(self):

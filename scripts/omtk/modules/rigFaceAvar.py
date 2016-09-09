@@ -301,30 +301,10 @@ class AbstractAvar(classModule.Module):
 
         return plane_transform
 
-    def handle_surface(self, rig):
-        """
-        Create the surface that the follicle will slide on if necessary.
-        :return:
-        """
-        # Hack: Provide backward compatibility for when surface was provided as an input.
-        if self.surface is None:
-            fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-            surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
-            if surface:
-                self.input.remove(surface)
-                self.surface = surface
-
-        if self.surface is None:
-            log.warning("Can't find surface for {0}, creating one...".format(self))
-            self.surface = self.create_surface(rig)
-            #self.input.append(new_surface)
-            #del self._cache['surface']
-
     def build(self, rig, mult_u=1.0, mult_v=1.0, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
-        self.handle_surface(rig)
 
         super(AbstractAvar, self).build(rig, **kwargs)
 

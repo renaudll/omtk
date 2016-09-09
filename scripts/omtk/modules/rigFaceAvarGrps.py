@@ -400,7 +400,28 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         for avar in self.get_all_avars():
             self._parent_avar(rig, avar, parent)
 
+    def handle_surface(self, rig):
+        """
+        Create the surface that the follicle will slide on if necessary.
+        :return:
+        """
+        # Hack: Provide backward compatibility for when surface was provided as an input.
+        if self.surface is None:
+            fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+            surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
+            if surface:
+                self.input.remove(surface)
+                self.surface = surface
+
+        if self.surface is None:
+            log.warning("Can't find surface for {0}, creating one...".format(self))
+            self.surface = self.create_surface(rig)
+            #self.input.append(new_surface)
+            #del self._cache['surface']
+
     def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True, **kwargs):
+        self.handle_surface(rig)
+
         super(AvarGrp, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
 
         self._create_avars(rig)
@@ -436,9 +457,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         if cls_avar is None:
             cls_avar = rigFaceAvar.AvarSimple
 
-        input = filter(None, [ref, self.surface])
+        #input = filter(None, [ref, self.surface])
 
-        avar = cls_avar(input, name=name)  # TODO: Replace by Abstract Avar
+        avar = cls_avar([ref], name=name)  # TODO: Replace by Abstract Avar
+        avar.surface = self.surface
         avar._CLS_CTRL = cls
 
         return avar
@@ -687,7 +709,6 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return next(iter(parent_avars), None)
 
     def __build_avar_macro_all(self, rig, avar_parent, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False, follow_mesh=True):
-        self.handle_surface(rig)  # ensure we have a surface
         pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
         jnt_tm = pymel.datatypes.Matrix(
             1, 0, 0, 0,
@@ -728,7 +749,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         # Create left avar if necessary
         ref = self.jnt_l_mid
         if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
-            if not self.avar_l:
+            if not self.avar_l or not isinstance(self.avar_l, self._CLS_AVAR):
                 self.avar_l = self.create_avar_macro_left(rig, self._CLS_CTRL_LFT, ref)
             self._build_avar_macro_horizontal(rig, self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, **kwargs)
 
@@ -736,7 +757,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         ref = self.jnt_r_mid
         if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             # Create l ctrl
-            if not self.avar_r:
+            if not self.avar_r or not isinstance(self.avar_r, self._CLS_AVAR):
                 self.avar_r = self.create_avar_macro_right(rig, self._CLS_CTRL_RGT, ref)
             self._build_avar_macro_horizontal(rig, self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, **kwargs)
 
@@ -744,7 +765,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         # Create upp avar if necessary
         ref = self.jnt_upp_mid
         if self.CREATE_MACRO_AVAR_VERTICAL and ref:
-            if self.avar_upp is None:
+            if self.avar_upp is None or not isinstance(self.avar_upp, self._CLS_AVAR):
                 self.avar_upp = self.create_avar_macro_upp(rig, self._CLS_CTRL_UPP, ref)
             self._build_avar_macro_vertical(rig, self.avar_upp, self.get_avar_mid(), self.get_avars_upp(), self._CLS_CTRL_UPP, **kwargs)
 
@@ -752,7 +773,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         # Create low avar if necessary
         ref = self.jnt_low_mid
         if self.CREATE_MACRO_AVAR_VERTICAL and ref:
-            if self.avar_low is None:
+            if self.avar_low is None or not isinstance(self.avar_low, self._CLS_AVAR):
                 self.avar_low = self.create_avar_macro_low(rig, self._CLS_CTRL_LOW, ref)
             self._build_avar_macro_vertical(rig, self.avar_low, self.get_avar_mid(), self.get_avars_low(), self._CLS_CTRL_LOW, **kwargs)
 
@@ -769,7 +790,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
                 ref = self.parent
 
             if ref:
-                if not self.avar_all:
+                if not self.avar_all or not isinstance(self.avar_low, self._CLS_AVAR):
                     self.avar_all = self.create_avar_macro_all(rig, self._CLS_CTRL_ALL, ref)
                 self.__build_avar_macro_all(rig, self.avar_all, self.avars, self._CLS_CTRL_ALL, constraint=constraint, follow_mesh=False, **kwargs)
 

@@ -85,6 +85,9 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
     SHOW_IN_UI = True
     SINGLE_INFLUENCE = True
 
+    def handle_surface(self, rig):
+        pass  # todo: better class schema!
+
     def _build_avars(self, rig, **kwargs):
         # If the rigger provided an extra influence (jaw_end), we'll use it to define the ctrl and influence position.
         ctrl_tm = None

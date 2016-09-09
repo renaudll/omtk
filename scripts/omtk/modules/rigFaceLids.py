@@ -13,6 +13,7 @@ class CtrlLidLow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 
+
 class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     """
     FaceLids behave the same a a standard AvarGrp with an Upp and Low section.

@@ -60,6 +60,9 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         super(FaceEyes, self).__init__(*args, **kwargs)
         self.ctrl_all = None
 
+    def handle_surface(self, rig):
+        pass  # todo: better class schema!
+
     def get_module_name(self):
         return 'Eyes'
 

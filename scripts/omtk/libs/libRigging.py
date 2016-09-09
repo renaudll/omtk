@@ -1003,7 +1003,8 @@ def get_point_on_surface_from_uv(shape, u, v):
         raise Exception("Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(type(shape), shape))
 
     pos = follicle_shape.outTranslate.get()
-    pymel.delete(follicle_shape)
+    follicle_transform = follicle_shape.getParent()
+    pymel.delete(follicle_transform)
 
     return pos
 

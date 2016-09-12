@@ -3,6 +3,7 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
 from omtk.libs import libRigging, libCtrlShapes
+from omtk.core import consts_omtk
 
 class CtrlFk(BaseCtrl):
     def __createNode__(self, *args, **kwargs):
@@ -28,7 +29,7 @@ class FK(Module):
 
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
-        self.ctrls = None
+        self.ctrls = []
         self.sw_translate=False
         self.create_spaceswitch = True
 
@@ -47,42 +48,50 @@ class FK(Module):
             pass
         super(FK, self).__callbackNetworkPostBuild__()
 
-    def build(self, rig, constraint=True, parent=True, *args, **kwargs):
+    def build(self, rig, constraint=True, parent=True, create_grp_anm=True, *args, **kwargs):
         super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
         # Define ctrls
-        if not self.ctrls:
-            self.ctrls = []
-            for input in self.chain_jnt:
-                ctrl = CtrlFk()
-                self.ctrls.append(ctrl)
+        num_ctrls = 0
+        if self.ctrls:
+            num_ctrls = len(self.ctrls)
+        chain_first_ctrl_idx = 0
+        for i, chain in enumerate(self.chains):
+            if not self.ctrls or chain_first_ctrl_idx + len(chain) > num_ctrls:
+                for input in chain:
+                    ctrl = CtrlFk()
+                    self.ctrls.append(ctrl)
+                    num_ctrls += 1
 
-        # Create ctrls
-        for input, ctrl in zip(self.chain_jnt, self.ctrls):
-            ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
-            ctrl_name = ctrl_nomenclature.resolve('fk')
-            ctrl.build(rig, name=ctrl_name, refs=input)
-            ctrl.setMatrix(input.getMatrix(worldSpace=True))
+            # Create ctrls
+            for input, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
+                ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
+                ctrl_name = ctrl_nomenclature.resolve('fk')
+                ctrl.build(rig, name=ctrl_name, refs=input)
+                ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
-        if self.create_spaceswitch:
-            if self.sw_translate:
-                self.ctrls[0].create_spaceswitch(rig, self, self.parent, add_world=True)
-            else:
-                self.ctrls[0].create_spaceswitch(rig, self, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
+            if self.create_spaceswitch:
+                if self.sw_translate:
+                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(rig, self, self.parent, add_world=True)
+                else:
+                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(rig, self, self.parent,
+                                                                        skipTranslate=['x', 'y', 'z'], add_world=True)
 
-        self.ctrls[0].setParent(self.grp_anm)
-        for i in range(1, len(self.ctrls)):
-            self.ctrls[i].setParent(self.ctrls[i - 1])
+            self.ctrls[chain_first_ctrl_idx].setParent(self.grp_anm)
+            for j in range(chain_first_ctrl_idx + 1, chain_first_ctrl_idx + len(chain)):
+                self.ctrls[j].setParent(self.ctrls[j - 1])
 
-        # Connect jnt -> anm
-        if constraint is True:
-            for inn, ctrl in zip(self.chain_jnt, self.ctrls):
-                pymel.parentConstraint(ctrl, inn)
-                pymel.connectAttr(ctrl.scaleX, inn.scaleX)
-                pymel.connectAttr(ctrl.scaleY, inn.scaleY)
-                pymel.connectAttr(ctrl.scaleZ, inn.scaleZ)
+            # Connect jnt -> anm
+            if constraint is True:
+                for inn, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
+                    pymel.parentConstraint(ctrl, inn)
+                    pymel.connectAttr(ctrl.scaleX, inn.scaleX)
+                    pymel.connectAttr(ctrl.scaleY, inn.scaleY)
+                    pymel.connectAttr(ctrl.scaleZ, inn.scaleZ)
+
+            chain_first_ctrl_idx += len(chain)
 
         '''
         # Connect to parent
@@ -124,6 +133,12 @@ class AdditiveFK(FK):
 
         nomenclature_anm = self.get_nomenclature_anm(rig)
 
+        # Ensure to create the finger ctrl in the good orientation
+        if nomenclature_anm.side == rig.nomenclature.SIDE_L:
+            normal_data = {consts_omtk.Axis.x: (1, 0, 0), consts_omtk.Axis.y: (0, 1, 0), consts_omtk.Axis.z: (0, 0, 1)}
+        else:
+            normal_data = {consts_omtk.Axis.x: (-1, 0, 0), consts_omtk.Axis.y: (0, -1, 0), consts_omtk.Axis.z: (0, 0, -1)}
+
         # TODO: Support multiple additive ctrls
         # TODO: Rename
         self.additive_ctrls = filter(None, self.additive_ctrls)
@@ -134,7 +149,7 @@ class AdditiveFK(FK):
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
-            ctrl.build(rig, name=name, refs=self.chain.start)
+            ctrl.build(rig, name=name, refs=self.chain.start, normal=normal_data[rig._up_axis])
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
 

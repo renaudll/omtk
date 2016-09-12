@@ -318,24 +318,26 @@ class Module(object):
         log.warning("{0} parent is not in any module!".format(self))
         return self.parent
 
-    def unbuild(self):
+    def unbuild(self, disconnect_attr=True):
         """
         Call unbuild on each individual ctrls
         This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
+        :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
         # Ensure that there's no more connections in the input chain
-        for obj in self.input:
-            if isinstance(obj, pymel.nodetypes.Transform):
-                libAttr.disconnectAttr(obj.tx)
-                libAttr.disconnectAttr(obj.ty)
-                libAttr.disconnectAttr(obj.tz)
-                libAttr.disconnectAttr(obj.rx)
-                libAttr.disconnectAttr(obj.ry)
-                libAttr.disconnectAttr(obj.rz)
-                libAttr.disconnectAttr(obj.sx)
-                libAttr.disconnectAttr(obj.sy)
-                libAttr.disconnectAttr(obj.sz)
+        if disconnect_attr:
+            for obj in self.input:
+                if isinstance(obj, pymel.nodetypes.Transform):
+                    libAttr.disconnectAttr(obj.tx)
+                    libAttr.disconnectAttr(obj.ty)
+                    libAttr.disconnectAttr(obj.tz)
+                    libAttr.disconnectAttr(obj.rx)
+                    libAttr.disconnectAttr(obj.ry)
+                    libAttr.disconnectAttr(obj.rz)
+                    libAttr.disconnectAttr(obj.sx)
+                    libAttr.disconnectAttr(obj.sy)
+                    libAttr.disconnectAttr(obj.sz)
 
         # Delete the ctrls in reverse hyerarchy order.
         ctrls = self.get_ctrls()

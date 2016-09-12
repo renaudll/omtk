@@ -5,6 +5,7 @@ from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
 from omtk.core import classModule
+from omtk.core import consts_omtk
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -148,15 +149,16 @@ class Rig(object):
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
         self.modules = []
-        self.grp_anm = None # Anim Grp, usually the root ctrl
-        self.grp_geo = None # Geometry grp
-        self.grp_jnt = None # Joint grp, usually the root jnt
-        self.grp_rig = None # Data grp
-        self.grp_master = None # Main grp of the rig
+        self.grp_anm = None  # Anim Grp, usually the root ctrl
+        self.grp_geo = None  # Geometry grp
+        self.grp_jnt = None  # Joint grp, usually the root jnt
+        self.grp_rig = None  # Data grp
+        self.grp_master = None  # Main grp of the rig
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
-        self._color_ctrl = False # Bool to know if we want to colorize the ctrl
+        self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
+        self._up_axis = consts_omtk.Axis.z  # This is the axis that will point in the bending direction
 
     def __str__(self):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)

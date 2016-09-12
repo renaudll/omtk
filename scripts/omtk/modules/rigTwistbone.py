@@ -177,7 +177,6 @@ class Twistbone(Module):
                 for subjnt in self.subjnts:
                     if subjnt in influenceObjects:
                         continue
-
                     skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                     subjnt.lockInfluenceWeights.set(False)
 
@@ -214,6 +213,10 @@ class Twistbone(Module):
 
     def unbuild(self, delete=True):
         '''
+        Unbuild the twist bone
+        '''
+
+        '''
         # Remove twistbones skin
         for mesh in self.get_farest_affected_mesh():
             libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
@@ -224,8 +227,8 @@ class Twistbone(Module):
             pymel.disconnectAttr(jnt.scaleY)
             pymel.disconnectAttr(jnt.scaleZ)
 
-
-        super(Twistbone, self).unbuild()
+        #Don't disconnect input attribute when unbuilding twist bones
+        super(Twistbone, self).unbuild(disconnect_attr=False)
 
         self.start = None
         self.end = None

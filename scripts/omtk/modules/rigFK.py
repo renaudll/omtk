@@ -26,6 +26,7 @@ class CtrlFk(BaseCtrl):
 
 class FK(Module):
     DEFAULT_NAME_USE_FIRST_INPUT = True
+    _CLS_CTRL = CtrlFk
 
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
@@ -61,7 +62,7 @@ class FK(Module):
         for i, chain in enumerate(self.chains):
             if not self.ctrls or chain_first_ctrl_idx + len(chain) > num_ctrls:
                 for input in chain:
-                    ctrl = CtrlFk()
+                    ctrl = self._CLS_CTRL()
                     self.ctrls.append(ctrl)
                     num_ctrls += 1
 

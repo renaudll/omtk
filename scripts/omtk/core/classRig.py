@@ -597,11 +597,12 @@ class Rig(object):
             nomenclature_anm = module.get_nomenclature_anm(self)
             for ctrl in module.get_ctrls():
                 if libPymel.is_valid_PyNode(ctrl):
-                    nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                    side = nomenclature_ctrl.side
-                    color = color_by_side.get(side, self.CENTER_CTRL_COLOR)
-                    ctrl.drawOverride.overrideEnabled.set(1)
-                    ctrl.drawOverride.overrideColor.set(color)
+                    if not ctrl.drawOverride.overrideEnabled.get():
+                        nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                        side = nomenclature_ctrl.side
+                        color = color_by_side.get(side, self.CENTER_CTRL_COLOR)
+                        ctrl.drawOverride.overrideEnabled.set(1)
+                        ctrl.drawOverride.overrideColor.set(color)
 
     #
     # Facial and avars utility methods
@@ -624,18 +625,22 @@ class Rig(object):
                         return jnt
 
     @libPython.memoized
-    def get_head_jnt(self, key=None, strict=True):
+    def get_head_jnt(self, strict=True):
         from omtk.modules import rigHead
         for module in self.modules:
             if isinstance(module, rigHead.Head):
                 return module.jnt
+        if strict:
+            raise Exception("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
 
     @libPython.memoized
-    def get_jaw_jnt(self, key=None):
+    def get_jaw_jnt(self, strict=False):
         from omtk.modules import rigFaceJaw
         for module in self.modules:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 return module.jnt
+        if strict:
+            raise Exception("Cannot found Jaw in rig! Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):

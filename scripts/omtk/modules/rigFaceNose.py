@@ -16,6 +16,7 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
 
     Note that this was done reallllly quickly and cleanup may be needed in the future.
     """
+    # TODO: Implement AvarGrpAreaOnSurface class
     #_DEFORMATION_ORDER = 'post'
     #_CLS_AVAR = AvarJaw
     SHOW_IN_UI = True

@@ -378,9 +378,9 @@ class InteractiveCtrl(BaseCtrl):
         """
 
         # HACK: Ensure flipped shapes are correctly restaured...
+        # This is necessary since when holded, the scale of the ctrl is set to identity.
+        # However ctrl from the right side have an inverted scale on the x axis. -_-
         if flip_lr and libPymel.is_valid_PyNode(self.shapes):
-            print("!!!")
-            #self.shapes.ry.set(0)
             self.shapes.sx.set(-1)
             pymel.makeIdentity(self.shapes, rotate=True, scale=True, apply=True)
 

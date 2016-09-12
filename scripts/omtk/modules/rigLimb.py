@@ -239,3 +239,13 @@ class Limb(Module):
         attr_state = libAttr.get_settable_attr(self.attState)
         if attr_state:
             attr_state.set(self.STATE_FK)
+
+    def iter_ctrls(self):
+        for ctrl in super(Limb, self).iter_ctrls():
+            yield ctrl
+        for ctrl in self.sysIK.iter_ctrls():
+            yield ctrl
+        for ctrl in self.sysFK.iter_ctrls():
+            yield ctrl
+        yield self.ctrl_attrs
+        yield self.ctrl_elbow

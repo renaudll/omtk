@@ -824,7 +824,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
             if ref:
                 if not self.avar_all or not isinstance(self.avar_low, self._CLS_AVAR):
-                    self.avar_all = self.create_avar_macro_all(rig, self._CLS_CTRL_ALL, ref, cls_avar=self._CLS_AVAR) # TODO: PRESERVE CTRL IF THE CLASS CHANGE (FACTORY?) !!!!!!!!!
+                    self.avar_all = self.create_avar_macro_all(rig, self._CLS_CTRL_ALL, ref, cls_avar=self._CLS_AVAR)
                 self.__build_avar_macro_all(rig, self.avar_all, self.avars, self._CLS_CTRL_ALL, constraint=constraint, follow_mesh=False, **kwargs)
 
     def _build_avars(self, rig, **kwargs):

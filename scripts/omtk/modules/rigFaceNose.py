@@ -80,7 +80,7 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
         ref = self.inf_nose_low
 
         if not self.avar_main:
-            self.avar_main = self.create_abstract_avar(rig, self._CLS_CTRL, ref, name=self.name)
+            self.avar_main = self.create_avar_macro(rig, self._CLS_CTRL, ref, name=self.name)
         self.build_abstract_avar(rig, self._CLS_CTRL, self.avar_main)
 
         '''

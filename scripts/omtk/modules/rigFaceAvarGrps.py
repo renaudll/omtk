@@ -28,20 +28,32 @@ class BaseCtrlLow(object):
     pass
 
 class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
+    """
+    Base controller class for an avar controlling the top portion of an AvarGrp.
+    """
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
 class CtrlFaceLow(rigFaceAvar.BaseCtrlFace):
+    """
+    Base controller class for an avar controlling the bottom portion of an AvarGrp.
+    """
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
 
 class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
+    """
+    Base controller class for an avar controlling all the avars of an AvarGrp.
+    """
     def __createNode__(self, **kwargs):
         # todo: find the best shape
         transform, _ = libCtrlShapes.create_shape_circle(normal=(0,0,1))
         return transform
 
 class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
+    """
+    Base controller class for an avar controlling the left or right porsion of an AvarGrp.
+    """
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_left()
 
@@ -52,10 +64,11 @@ def _find_mid_avar(avars):
 
 class AvarGrp(rigFaceAvar.AbstractAvar):
     """
-    Base class for a group of 'avars' that share similar properties.
-    Also global avars will be provided to controll all avars.
+    Base class for a group of 'avars' that share the same surface and proeprties.
     """
+    # Define the class to use for all avars.
     _CLS_AVAR = rigFaceAvar.AvarSimple
+    
     SHOW_IN_UI = True
 
     # Disable if the AvarGrp don't need any geometry to function.
@@ -71,54 +84,64 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     # Influences properties
     #
 
+    # todo: replace property by function
     @property
     def jnt_inn(self):
         # TODO: Find a better way
         return self.jnts[0]
 
+    # todo: replace property by function
     @property
     def jnt_mid(self):
         # TODO: Find a better way
         i = (len(self.jnts)-1) / 2
         return self.jnts[i]
 
+    # todo: replace property by function
     @property
     def jnt_out(self):
         # TODO: Find a better way
         return self.jnts[-1]
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnts_upp(self):
         # TODO: Find a better way
         fnFilter = lambda jnt: 'upp' in jnt.name().lower()
         return filter(fnFilter, self.jnts)
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnt_upp_mid(self):
         return get_average_pos_between_nodes(self.jnts_upp)
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnts_low(self):
         # TODO: Find a better way
         fnFilter = lambda jnt: 'low' in jnt.name().lower()
         return filter(fnFilter, self.jnts)
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnt_low_mid(self):
         return get_average_pos_between_nodes(self.jnts_low)
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnts_l(self):
         middle = libRigging.get_average_pos_between_vectors(self.jnts)
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
         return filter(fn_filter, self.jnts)
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnts_r(self):
         middle = libRigging.get_average_pos_between_vectors(self.jnts)
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
         return filter(fn_filter, self.jnts)
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnt_l_mid(self):
         """
@@ -127,6 +150,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         fn_get_pos_x = lambda x: x.getTranslation(space='world').x
         return next(iter(reversed(sorted(self.jnts_l, key=fn_get_pos_x))), None)
 
+    # todo: replace property by function
     @libPython.cached_property()
     def jnt_r_mid(self):
         """
@@ -152,11 +176,21 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         return list(self._iter_all_avars())
 
     def get_avars_upp(self):
+        """
+        Return all the avars controlling the AvarGrp upper area.
+        ex: For lips, this will return the upper lip influences (without any corners).
+        :return: A list of Avar instances.
+        """
         # TODO: Find a better way
         fnFilter = lambda avar: 'upp' in avar.name.lower()
         return filter(fnFilter, self.avars)
 
     def get_avars_low(self):
+        """
+        Return all the avars controlling the AvarGrp lower area.
+        ex: For the lips, this will return the lower lip influences (without any corners).
+        :return: Al list of Avar instrances.
+        """
         # TODO: Find a better way
         fnFilter = lambda avar: 'low' in avar.name.lower()
         return filter(fnFilter, self.avars)
@@ -295,7 +329,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         # With strict=True, an exception will be raised if nothing is found.
         rig.get_head_jnt(strict=True)
 
-    def _need_to_define_avars(self):
+    def _can_create_micro_avars(self):
         """
         Check if we need to reset the property containing the avars associated with the influences.
         It some rare cases it might be necessary to reset everything, however this would be considered a last-case
@@ -314,7 +348,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         return False
 
-    def _define_avars(self, rig):
+    def _create_micro_avars(self, rig):
         """
         For each influence, create it's associated avar instance.
         """
@@ -322,7 +356,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         avar_influences = self._get_avars_influences()
         # Connect global avars to invidial avars
         for jnt in avar_influences:
-            avar = self.create_avar(rig, jnt)
+            avar = self.create_avar_micro(rig, jnt)
             avars.append(avar)
         return avars
 
@@ -331,8 +365,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         Create the avars objects if they were never created (generally on first build).
         """
         # Create avars if needed (this will get skipped if the module have already been built once)
-        if self._need_to_define_avars():
-            self.avars = self._define_avars(rig)
+        if self._can_create_micro_avars():
+            self.avars = self._create_micro_avars(rig)
 
     def _build_avars(self, rig, parent=None, connect_global_scale=None, create_ctrls=True, constraint=True, **kwargs):
         """
@@ -450,7 +484,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         for avar in self.avars:
             avar.calibrate()
 
-    def create_abstract_avar(self, rig, cls, ref, name=None, cls_avar=None, **kwargs):
+    def create_avar_macro(self, rig, cls, ref, name=None, cls_avar=None, **kwargs):
         """
         Factory method to create abstract avars that will controller other avars.
         """
@@ -465,7 +499,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         return avar
 
-    def create_avar(self, rig, ref):
+    def create_avar_micro(self, rig, ref):
         """
         Factory method to create a standard avar for this group.
         """
@@ -536,10 +570,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             raise Exception("Can't build abstract avar for the global section. No reference influence found!")
 
         name = self.get_module_name() + rig.AVAR_NAME_ALL
-        avar = self.create_abstract_avar(rig, cls_ctrl, ref,
-            cls_avar=self._CLS_AVAR,
-            name=name
-        )
+        avar = self.create_avar_macro(rig, cls_ctrl, ref,
+                                      cls_avar=self._CLS_AVAR,
+                                      name=name
+                                      )
 
         return avar
 
@@ -550,10 +584,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             raise Exception("Can't build abstract avar for the left section. No reference influence found!")
 
         name = 'L_{0}'.format(self.get_module_name())
-        avar = self.create_abstract_avar(rig, cls_ctrl, ref,
-            cls_avar=self._CLS_AVAR,
-            name=name
-        )
+        avar = self.create_avar_macro(rig, cls_ctrl, ref,
+                                      cls_avar=self._CLS_AVAR,
+                                      name=name
+                                      )
 
         return avar
 
@@ -565,10 +599,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         # Create l ctrl
         name = 'R_{0}'.format(self.get_module_name())
-        avar = self.create_abstract_avar(rig, cls_ctrl, ref,
-            cls_avar=self._CLS_AVAR,
-            name=name
-        )
+        avar = self.create_avar_macro(rig, cls_ctrl, ref,
+                                      cls_avar=self._CLS_AVAR,
+                                      name=name
+                                      )
 
         return avar
 
@@ -584,7 +618,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         nomenclature_upp.tokens = [avar_upp_basename]
         avar_upp_name = nomenclature_upp.resolve()
 
-        avar = self.create_abstract_avar(rig, cls_ctrl, ref, name=avar_upp_name)
+        avar = self.create_avar_macro(rig, cls_ctrl, ref, name=avar_upp_name)
 
         return avar
 
@@ -600,7 +634,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         nomenclature_low.tokens = [avar_low_basename]
         avar_low_name = nomenclature_low.resolve()
 
-        avar = self.create_abstract_avar(rig, cls_ctrl, ref, name=avar_low_name)
+        avar = self.create_avar_macro(rig, cls_ctrl, ref, name=avar_low_name)
 
         return avar
 
@@ -791,7 +825,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
             if ref:
                 if not self.avar_all or not isinstance(self.avar_low, self._CLS_AVAR):
-                    self.avar_all = self.create_avar_macro_all(rig, self._CLS_CTRL_ALL, ref)
+                    self.avar_all = self.create_avar_macro_all(rig, self._CLS_CTRL_ALL, ref) # TODO: PRESERVE CTRL IF THE CLASS CHANGE (FACTORY?) !!!!!!!!!
                 self.__build_avar_macro_all(rig, self.avar_all, self.avars, self._CLS_CTRL_ALL, constraint=constraint, follow_mesh=False, **kwargs)
 
     def _build_avars(self, rig, **kwargs):

@@ -89,7 +89,7 @@ class BaseCtrl(Node):
             return False
         return self.node.exists()  # PyNode
 
-    def build(self, parent, name=None, *args, **kwargs):
+    def build(self, parent, name=None, fetch_shapes=True, *args, **kwargs):
         """
         Create ctrl setup, also fetch animation and shapes if necessary.
         """
@@ -375,9 +375,15 @@ class InteractiveCtrl(BaseCtrl):
         :param kwargs:
         :return:
         """
+
+        # HACK: Ensure flipped shapes are correctly restaured...
+        if flip_lr and libPymel.is_valid_PyNode(self.shapes):
+            print("!!!")
+            #self.shapes.ry.set(0)
+            self.shapes.sx.set(-1)
+            pymel.makeIdentity(self.shapes, rotate=True, scale=True, apply=True)
+
         # todo: Simplify the setup, too many nodes
-
-
         super(InteractiveCtrl, self).build(parent, **kwargs)
 
         #nomenclature_anm = self.get_nomenclature_anm(parent)

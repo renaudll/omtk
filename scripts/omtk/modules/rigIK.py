@@ -517,4 +517,9 @@ class IK(Module):
         """
         pymel.parentConstraint(parent, self._ikChainGrp, maintainOffset=True)
 
-
+    def iter_ctrls(self):
+        for ctrl in super(IK, self).iter_ctrls():
+            yield ctrl
+        yield self.ctrl_ik
+        yield self.ctrl_swivel
+        yield self.ctrl_swivel_quad

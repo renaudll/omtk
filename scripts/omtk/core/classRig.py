@@ -496,7 +496,7 @@ class Rig(object):
         # Prevent animators from accidentaly moving offset nodes
         # TODO: Lock more?
         for ctrl in module.get_ctrls():
-            if ctrl.offset:
+            if libPymel.is_valid_PyNode(ctrl) and hasattr(ctrl, 'offset') and ctrl.offset:
                 ctrl.offset.t.lock()
                 ctrl.offset.r.lock()
                 ctrl.offset.s.lock()
@@ -593,12 +593,13 @@ class Rig(object):
         epsilon = 0.1
         if module.grp_anm:
             nomenclature_anm = module.get_nomenclature_anm(self)
-            for ctrl in module.get_ctrls(recursive=True):
-                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                side = nomenclature_ctrl.side
-                color = color_by_side.get(side, self.CENTER_CTRL_COLOR)
-                ctrl.drawOverride.overrideEnabled.set(1)
-                ctrl.drawOverride.overrideColor.set(color)
+            for ctrl in module.get_ctrls():
+                if libPymel.is_valid_PyNode(ctrl):
+                    nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                    side = nomenclature_ctrl.side
+                    color = color_by_side.get(side, self.CENTER_CTRL_COLOR)
+                    ctrl.drawOverride.overrideEnabled.set(1)
+                    ctrl.drawOverride.overrideColor.set(color)
 
     #
     # Facial and avars utility methods
@@ -622,28 +623,17 @@ class Rig(object):
 
     @libPython.memoized
     def get_head_jnt(self, key=None, strict=True):
-        """
-        Not the prettiest but used to find the head for facial rigging.
-        """
-        whitelist = ('head', 'face')
-        node = self._get_influence_by_pattern(whitelist, key=key)
-        if not node:
-            if strict:
-                raise Exception("Can't resolve head influence.")
-            else:
-                return None
-        return node
+        from omtk.modules import rigHead
+        for module in self.modules:
+            if isinstance(module, rigHead.Head):
+                return module.jnt
 
     @libPython.memoized
     def get_jaw_jnt(self, key=None):
-        """
-        Not the prettiest but used to find the jaw for facial rigging.
-        """
-        whitelist = ('jaw',)
-        node = self._get_influence_by_pattern(whitelist, key=key)
-        if not node:
-            raise Exception("Can't resolve jaw influence.")
-        return node
+        from omtk.modules import rigFaceJaw
+        for module in self.modules:
+            if isinstance(module, rigFaceJaw.FaceJaw):
+                return module.jnt
 
     @libPython.memoized
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):

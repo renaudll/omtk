@@ -116,11 +116,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             target_head = pymel.createNode('transform', name=target_head_name)
             target_head.setParent(self.grp_rig)
             pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
+            pymel.scaleConstraint(jnt_head, target_head, maintainOffset=True)
 
             target_jaw_name = nomenclature_rig.resolve('targetJaw')
             target_jaw = pymel.createNode('transform', name=target_jaw_name)
             target_jaw.setParent(self.grp_rig)
             pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
+            pymel.scaleConstraint(jnt_jaw, target_jaw, maintainOffset=True)
+
 
             #
             # Create jaw constraints

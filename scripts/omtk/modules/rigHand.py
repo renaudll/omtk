@@ -217,12 +217,12 @@ class Hand(Module):
 
         super(Hand, self).unbuild()
 
-    def get_ctrls(self, **kwargs):
-        for ctrl in super(Hand, self).get_ctrls(**kwargs):
+    def iter_ctrls(self):
+        for ctrl in super(Hand, self).iter_ctrls():
             yield ctrl
         for sys in self.sysFingers:
-            for ctrl in sys.get_ctrls(**kwargs):
+            for ctrl in sys.iter_ctrls():
                 yield ctrl
         for sys in self.fk_sys_metacarpals:
-            for ctrl in sys.get_ctrls(**kwargs):
+            for ctrl in sys.iter_ctrls():
                 yield ctrl

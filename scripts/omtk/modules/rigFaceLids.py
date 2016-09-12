@@ -78,3 +78,4 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         # Since the V go all around the sphere, it is too much range.
         # We'll restrict ourself only to a single quadrant.
         return 0.25
+

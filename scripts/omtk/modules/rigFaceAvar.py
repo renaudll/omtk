@@ -382,6 +382,10 @@ class AbstractAvar(classModule.Module):
             attr_rl=self.attr_rl if rl else None
         )
 
+    def iter_ctrls(self):
+        for ctrl in super(AbstractAvar, self).iter_ctrls():
+            yield ctrl
+        yield self.ctrl
 
 class AvarSimple(AbstractAvar):
     """
@@ -470,11 +474,15 @@ class AvarSimple(AbstractAvar):
             # This can happen when rebuilding from an old generated version.
             # When this happen, we want to notify the user, we also want to at least preserve old shape if possible.
             if not isinstance(self.ctrl, self._CLS_CTRL):
-                log.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
-                    self._CLS_CTRL, type(self.ctrl)
-                ))
-                old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
+                old_shapes = None
+                if self.ctrl is not None:
+                    log.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                        self._CLS_CTRL, type(self.ctrl)
+                    ))
+                    old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
+
                 self.ctrl = self._CLS_CTRL()
+
                 if old_shapes:
                     self.ctrl.shapes = old_shapes
 

@@ -120,3 +120,8 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         :return:
         """
         super(FaceEyes, self).unbuild()
+
+    def iter_ctrls(self):
+        for ctrl in super(FaceEyes, self).iter_ctrls():
+            yield ctrl
+        yield self.ctrl_all

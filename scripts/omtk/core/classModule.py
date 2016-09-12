@@ -27,20 +27,6 @@ class decorator_uiexpose(object):
         """
         return True
 
-def getattrs_by_type(val, type, recursive=False):
-    # TODO: Find a more eleguant way...
-    for key, val in val.__dict__.iteritems():
-        if isinstance(val, type):
-            yield val
-        elif isinstance(val, list):
-            for subval in val:
-                if isinstance(subval, type):
-                    yield subval
-        elif isinstance(val, Module):
-            if recursive:
-                for subval in getattrs_by_type(val, type):
-                    yield subval
-
 class Module(object):
     """
     A Module is built from at least one input, specific via the constructor.
@@ -249,6 +235,10 @@ class Module(object):
         # TODO: Support maya notes? (see attribute editor)
         # self.note = ''
 
+        # By default, this array is used to store the ctrls the module use.
+        # If you define additional properties, don't forget to implement them in the iter_ctrls method.
+        self.ctrls = []
+
         if input:
             if not isinstance(input, list):
                 raise IOError("Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
@@ -348,7 +338,8 @@ class Module(object):
                 libAttr.disconnectAttr(obj.sz)
 
         # Delete the ctrls in reverse hyerarchy order.
-        ctrls = self.get_ctrls(recursive=True)
+        ctrls = self.get_ctrls()
+        ctrls = filter(libPymel.is_valid_PyNode, ctrls)
         ctrls = reversed(sorted(ctrls, key=libPymel.get_num_parents))
         for ctrl in ctrls:
             ctrl.unbuild()
@@ -382,11 +373,19 @@ class Module(object):
         if self.grp_anm:
             pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
 
-    def get_ctrls(self, recursive=False):
-        ctrls = getattrs_by_type(self, BaseCtrl, recursive=recursive)
-        for ctrl in ctrls:
-            if ctrl.exists():
-                yield ctrl
+    def iter_ctrls(self):
+        """
+        Iterate though all the ctrl implemented by the module.
+        :return: A generator of BaseCtrl instances.
+        """
+        for ctrl in self.ctrls:
+            yield ctrl
+
+    def get_ctrls(self):
+        """
+        :return: A list of BaseCtrl instances implemented by the module.
+        """
+        return list(self.iter_ctrls())
 
     def get_pin_locations(self):
         """

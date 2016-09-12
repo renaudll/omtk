@@ -273,6 +273,16 @@ class DpSpine(Module):
             (self.ctrl_fk_dwn.node, 'Cog')
         )
 
+    def iter_ctrls(self):
+        for ctrl in super(DpSpine, self).iter_ctrls():
+            yield ctrl
+
+        yield self.ctrl_ik_upp
+        yield self.ctrl_ik_dwn
+        yield self.ctrl_fk_upp
+        yield self.ctrl_fk_mid
+        yield self.ctrl_fk_dwn
+
 
 
 

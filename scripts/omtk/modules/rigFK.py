@@ -94,7 +94,6 @@ class FK(Module):
     def unbuild(self):
         super(FK, self).unbuild()
 
-
 class CtrlFkAdd(BaseCtrl):
     def __createNode__(self, size=None, refs=None, *args, **kwargs):
         # Resolve size automatically if refs are provided.
@@ -165,3 +164,10 @@ class AdditiveFK(FK):
     def unbuild(self):
         #self.additive_ctrls = []
         super(AdditiveFK, self).unbuild()
+
+    def iter_ctrls(self):
+        for ctrl in super(AdditiveFK, self).iter_ctrls():
+            yield ctrl
+        for ctrl in self.additive_ctrls:
+            yield ctrl
+

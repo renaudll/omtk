@@ -21,7 +21,7 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     def _build_avar_macro_l(self, rig, jnt_tm=None, ctrl_tm=None, **kwargs):
         # Find the middle of l squint.
-        pos = libRigging.get_average_pos_between_vectors(self.jnts_l)
+        pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())
         jnt_tm = pymel.datatypes.Matrix(
             1, 0, 0, 0,
             0, 1, 0, 0,
@@ -33,7 +33,7 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     def _build_avar_macro_r(self, rig, jnt_tm=None, ctrl_tm=None, **kwargs):
         # Find the middle of r squint.
-        pos = libRigging.get_average_pos_between_vectors(self.jnts_r)
+        pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
         jnt_tm = pymel.datatypes.Matrix(
             1, 0, 0, 0,
             0, 1, 0, 0,

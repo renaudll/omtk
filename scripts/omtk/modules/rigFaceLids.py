@@ -66,7 +66,7 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     def configure_avar(self, rig, avar):
         inf = avar.jnt
-        if inf in self.jnts_upp:
+        if inf in self.get_jnts_upp():
             avar.surface = self.surface_upp
         else:
             avar.surface = self.surface_low

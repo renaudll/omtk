@@ -51,7 +51,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_fb, kv=[0.01, 0.0, -0.01])
 
     def _build_avar_macro_horizontal(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=False, connect_lr=True, connect_fb=False):
-        self.build_abstract_avar(rig, cls_ctrl, avar_parent)
+        self._build_avar_macro(rig, cls_ctrl, avar_parent)
 
         pos_s = avar_middle.jnt.getTranslation(space='world')
         pos_e = avar_parent.jnt.getTranslation(space='world')
@@ -78,7 +78,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     def _build_avar_macro_l(self, rig):
         # Create left avar if necessary
-        ref = self.jnt_l_mid
+        ref = self.get_jnt_l_mid()
         if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             if not self.avar_l:
                 self.avar_l = self.create_avar_macro_left(rig, self._CLS_CTRL_LFT, ref)
@@ -91,7 +91,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
 
     def _build_avar_macro_r(self, rig):# Create right avar if necessary
-        ref = self.jnt_r_mid
+        ref = self.get_jnt_r_mid()
         if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             # Create l ctrl
             if not self.avar_r:

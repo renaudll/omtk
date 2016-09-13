@@ -83,7 +83,7 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
         if not self.avar_main:
             #self.avar_main = self.create_avar_macro(rig, self._CLS_CTRL, ref, name=self.name)
             self.avar_main = self._create_avar(rig, ref, cls_ctrl=self._CLS_CTRL, name=self.name)
-        self.build_abstract_avar(rig, self._CLS_CTRL, self.avar_main)
+        self._build_avar_macro(rig, self._CLS_CTRL, self.avar_main)
 
         '''
         ctrl_upp_name = nomenclature_anm.resolve()

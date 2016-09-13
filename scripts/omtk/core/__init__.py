@@ -12,6 +12,7 @@ import className
 import classNode
 import classRig
 from omtk.libs import libPython
+from omtk.libs import libPymel
 
 log = logging.getLogger('omtk')
 
@@ -83,22 +84,49 @@ def unbuild_all():
 import libSerialization
 
 def _get_modules_from_selection(sel=None):
+    def get_rig_network_from_module(network):
+        for plug in network.message.outputs(plugs=True):
+            plug_node = plug.node()
+            if not isinstance(plug_node, pymel.nodetypes.Network):
+                continue
+            if libSerialization.isNetworkInstanceOfClass(plug_node, 'Rig'):
+                return plug_node
+        return None
+
+    def is_module_child_of_rig(network):
+        """
+        Allow us to recognize module directly connected to a 'Rig' network.
+        This way we can ignore 'sub-modules' (ex: individual avars)
+        :param network: The network to analyse.
+        :return: True if the network is directly connected to a 'Rig' network.
+        """
+        return get_rig_network_from_module(network) is not None
+
     if sel is None:
         sel = pymel.selected()
 
     # Resolve the rig network from the selection
-    fn_is_rig = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Rig')
-    rig_networks = libSerialization.getConnectedNetworks(sel, key=fn_is_rig)
-    rig_network = next(iter(rig_networks), None)
-    if rig_network is None:
+    module_networks = libSerialization.getConnectedNetworks(sel, key=is_module_child_of_rig)
+    if not module_networks:
         pymel.warning("Found no module related to selection.")
         return None, None
 
-    rig = libSerialization.import_network(rig_network)
+    # Resolve rig
+    rig_networks = set()
+    for module in module_networks:
+        rig_network = get_rig_network_from_module(module)
+        rig_networks.add(rig_network)
+    rig_network = next(iter(rig_networks), None)
+    if not rig_network:
+        pymel.warning("Found no rig related to selection.")
+        return None, None
 
-    # Resolve selected modules
-    is_module_selected = lambda x: any(True for inf in x.input if inf in sel)
-    modules = filter(is_module_selected, rig.modules)
+    # Deserialize the rig and find the associated networks
+    rig = libSerialization.import_network(rig_network)
+    modules = []
+    for module in rig.modules:
+        if module._network in module_networks:
+            modules.append(module)
 
     return rig, modules
 
@@ -106,6 +134,7 @@ def _get_modules_from_selection(sel=None):
 def with_preserve_selection():
     sel = pymel.selected()
     yield True
+    sel = filter(libPymel.is_valid_PyNode, sel)
     if sel:
         pymel.select(sel)
     else:

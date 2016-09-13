@@ -444,12 +444,26 @@ class AvarSimple(AbstractAvar):
         stack.build(name=dag_stack_name)
         self._stack = stack
 
-        # Create an offset layer so everything start at the original position.
+        # Create an offset layer that define the starting point of the Avar.
+        # It is important that the offset is in this specific node since it will serve as
+        # a reference to re-computer the base u and v parameter if the rigger change the
+        # size of the surface when the system is build.
         layer_offset_name = nomenclature_rig.resolve('offset')
         layer_offset = stack.append_layer()
         layer_offset.rename(layer_offset_name)
         layer_offset.setTranslation(jnt_pos)
         #layer_offset.setMatrix(jnt_tm)
+
+        # Create a 'parentSpace' and 'parent' layer that will be used for constraining (see rigFaceLips)
+        # Note that this is not the best way, however it work for now...
+        # todo: cleanup
+        layer_parentspace_name = nomenclature_rig.resolve('parentSpace')
+        layer_parentspace = stack.append_layer()
+        layer_parentspace.rename(layer_parentspace_name)
+
+        layer_parent_name = nomenclature_rig.resolve('parent')
+        layer_parent = stack.append_layer()
+        layer_parent.rename(layer_parent_name)
 
         stack.setParent(self.grp_rig)
 
@@ -576,11 +590,11 @@ class AvarFollicle(AvarSimple):
         # Create a simple setup that will extract the base U and V of the base influence using the stack parent. (the 'offset' node)
         #
         # Hack: We can't trust the local translate of the right corner of the lips since an 'OffsetNotFlip' parent is inserted. -_- #fixme
-        util_decompose = libRigging.create_utility_node('decomposeMatrix',
-            inputMatrix=stack.getParent().worldMatrix
-        )
+        # util_decompose = libRigging.create_utility_node('decomposeMatrix',
+        #     inputMatrix=stack.getParent().matrix
+        # )
         util = libRigging.create_utility_node('closestPointOnSurface',
-            inPosition=util_decompose.outputTranslate,
+            inPosition=stack.getParent().t,
             inputSurface=self.surface.getShape().worldSpace
         )
         self._attr_u_base = util.parameterU

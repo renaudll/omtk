@@ -125,3 +125,11 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         for ctrl in super(FaceEyes, self).iter_ctrls():
             yield ctrl
         yield self.ctrl_all
+
+
+    def calibrate(self, rig):
+        """
+        It is not possible to calibrate the eyes since they have no avar on surface.
+        This will hide the function from the UI.
+        """
+        pass

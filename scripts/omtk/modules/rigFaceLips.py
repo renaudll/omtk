@@ -23,11 +23,17 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
 
-    @property
-    def avars_corners(self):
-        # TODO: Find a better way
+    def get_avars_corners(self):
+        # todo: move upper?
         fnFilter = lambda avar: 'corner' in avar.name.lower()
-        return filter(fnFilter, self.avars)
+        result = filter(fnFilter, self.avars)
+
+        if self.avar_l:
+            result.append(self.avar_l)
+        if self.avar_r:
+            result.append(self.avar_r)
+
+        return result
 
     def get_module_name(self):
         return 'Lip'
@@ -98,9 +104,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
 
     def _parent_avars(self, rig, parent):
+        # If we are using the lips in the main deformer, we'll do shenanigans with the jaw.
         super(FaceLips, self)._parent_avars(rig, parent)
 
-        # If we are using the lips in the main deformer, we'll do shenanigans with the jaw.
         if not self.preDeform:
             # Resolve the head influence
             jnt_head = self.parent
@@ -114,12 +120,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
             target_head_name = nomenclature_rig.resolve('targetHead')
             target_head = pymel.createNode('transform', name=target_head_name)
+            target_head.setTranslation(jnt_head.getTranslation(space='world'))
             target_head.setParent(self.grp_rig)
             pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
             pymel.scaleConstraint(jnt_head, target_head, maintainOffset=True)
 
             target_jaw_name = nomenclature_rig.resolve('targetJaw')
             target_jaw = pymel.createNode('transform', name=target_jaw_name)
+            target_jaw.setTranslation(jnt_jaw.getTranslation(space='world'))
             target_jaw.setParent(self.grp_rig)
             pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
             pymel.scaleConstraint(jnt_jaw, target_jaw, maintainOffset=True)
@@ -128,20 +136,37 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             #
             # Create jaw constraints
             #
+            def delete_constraints(obj):
+                for child in obj.getChildren():
+                    if isinstance(child, pymel.nodetypes.Constraint):
+                        pymel.delete(child)
+
+            def do_parenting(parentspace_layer, parentspace_targets, parent_layer, parent_targets):
+                delete_constraints(parentspace_layer)
+                delete_constraints(parent_layer)
+                if parentspace_targets:
+                    pymel.parentConstraint(parentspace_targets, parentspace_layer, maintainOffset=True)
+                if parent_targets:
+                    pymel.parentConstraint(parent_targets, parent_layer, maintainOffset=True)
 
             for avar in self.get_avars_upp():
-                pymel.parentConstraint(target_head, avar._stack._layers[0], maintainOffset=True)
+                parentspace_layer = avar._stack._layers[1]
+                parent_layer = avar._stack._layers[2]
+                do_parenting(parentspace_layer, None, parent_layer, target_head)
 
             for avar in self.get_avars_low():
-                pymel.parentConstraint(target_jaw, avar._stack._layers[0], maintainOffset=True)
+                parentspace_layer = avar._stack._layers[1]
+                parent_layer = avar._stack._layers[2]
+                do_parenting(parentspace_layer, None, parent_layer, target_jaw)
 
             # Note that since we are using two targets, we need to ensure the parent also follow
             # the face to prevent any accidental flipping.
-            # todo: use a layer AFTER the offset node instead of before...
-            for avar in self.avars_corners:
-                offset_layer = avar._stack.get_stack_start()
-                offset_flip_layer = avar._stack.preprend_layer(name='OffsetNotFlip')
-
-                pymel.parentConstraint(jnt_head, offset_flip_layer, maintainOffset=True)
-                pymel.parentConstraint(target_head, target_jaw, offset_layer, maintainOffset=True)
+            # todo: do it in the layer chain instead of with maya constraint,
+            # this add a lot of node and is not really efficient/stable!
+            for avar in self.get_avars_corners():
+                parentspace_layer = avar._stack._layers[1]  # parentspace layer, used to prevent flipping on multiple constraint
+                parent_layer = avar._stack._layers[2] # parent layer
+                do_parenting(parentspace_layer, target_head, parent_layer, [target_head, target_jaw])
+                #pymel.parentConstraint(target_head, parentspace_layer, maintainOffset=True)
+                #pymel.parentConstraint(target_head, target_jaw, parent_layer, maintainOffset=True)
 

@@ -176,6 +176,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         return list(self._iter_all_avars())
 
     def get_avars_upp(self):
+        return self.get_avars_micro_upp()
+
+    def get_avars_micro_upp(self):
         """
         Return all the avars controlling the AvarGrp upper area.
         ex: For lips, this will return the upper lip influences (without any corners).
@@ -186,6 +189,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         return filter(fnFilter, self.avars)
 
     def get_avars_low(self):
+        return self.get_avars_micro_low()
+
+    def get_avars_micro_low(self):
         """
         Return all the avars controlling the AvarGrp lower area.
         ex: For the lips, this will return the lower lip influences (without any corners).
@@ -197,11 +203,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
     @property
     def avar_upp_mid(self):
-        return _find_mid_avar(self.get_avars_upp())
+        return _find_mid_avar(self.get_avars_micro_upp())
 
     @property
     def avar_low_mid(self):
-        return _find_mid_avar(self.get_avars_low())
+        return _find_mid_avar(self.get_avars_micro_low())
 
     @libPython.memoized
     def get_avar_inn(self):
@@ -423,9 +429,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
     def _parent_avar(self, rig, avar, parent):
         try:
-            layer_offset = avar._stack._layers[0]
-            pymel.parentConstraint(parent, layer_offset, maintainOffset=True)
-            pymel.scaleConstraint(parent, layer_offset, maintainOffset=True)
+            layer_parent = avar._stack._layers[2] # parent layer
+            pymel.parentConstraint(parent, layer_parent, maintainOffset=True)
+            pymel.scaleConstraint(parent, layer_parent, maintainOffset=True)
         except Exception, e:
             print(str(e))
 
@@ -800,7 +806,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         if self.CREATE_MACRO_AVAR_VERTICAL and ref:
             if self.avar_upp is None or not isinstance(self.avar_upp, self._CLS_AVAR):
                 self.avar_upp = self.create_avar_macro_upp(rig, self._CLS_CTRL_UPP, ref, cls_avar=self._CLS_AVAR)
-            self._build_avar_macro_vertical(rig, self.avar_upp, self.get_avar_mid(), self.get_avars_upp(), self._CLS_CTRL_UPP, **kwargs)
+            self._build_avar_macro_vertical(rig, self.avar_upp, self.get_avar_mid(), self.get_avars_micro_upp(), self._CLS_CTRL_UPP, **kwargs)
 
     def _build_avar_macro_low(self, rig, **kwargs):
         # Create low avar if necessary
@@ -808,7 +814,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         if self.CREATE_MACRO_AVAR_VERTICAL and ref:
             if self.avar_low is None or not isinstance(self.avar_low, self._CLS_AVAR):
                 self.avar_low = self.create_avar_macro_low(rig, self._CLS_CTRL_LOW, ref, cls_avar=self._CLS_AVAR)
-            self._build_avar_macro_vertical(rig, self.avar_low, self.get_avar_mid(), self.get_avars_low(), self._CLS_CTRL_LOW, **kwargs)
+            self._build_avar_macro_vertical(rig, self.avar_low, self.get_avar_mid(), self.get_avars_micro_low(), self._CLS_CTRL_LOW, **kwargs)
 
     def _build_avar_macro_all(self, rig, **kwargs):
         # Create all avar if necessary
@@ -854,6 +860,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             self.avar_all.unbuild()
         super(AvarGrpAreaOnSurface, self).unbuild()
 
+    @classModule.decorator_uiexpose
     def calibrate(self, rig):
         """
         Ensure macro avars are correctly calibrated.
@@ -871,3 +878,15 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             self.avar_low.calibrate()
         if self.avar_all:
             self.avar_all.calibrate()
+
+    def get_avars_upp(self):
+        result = super(AvarGrpAreaOnSurface, self).get_avars_upp()
+        if self.avar_upp:
+            result.append(self.avar_upp)
+        return result
+
+    def get_avars_low(self):
+        result = super(AvarGrpAreaOnSurface, self).get_avars_low()
+        if self.avar_low:
+            result.append(self.avar_low)
+        return result

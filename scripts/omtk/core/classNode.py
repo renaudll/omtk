@@ -1,6 +1,6 @@
 import pymel.core as pymel
+
 from omtk.libs import libPymel
-from omtk.libs import libRigging
 
 
 class Node(object):

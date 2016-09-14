@@ -1,11 +1,9 @@
 import pymel.core as pymel
-import collections
-
-from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
 
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
+from omtk.modules import rigFaceAvar
+from omtk.modules import rigFaceAvarGrps
 
 class CtrlSquint(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):

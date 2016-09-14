@@ -1,9 +1,7 @@
-import pymel.core as pymel
 import collections
-from omtk.core.classModule import Module
+
 from omtk.core.classCtrl import BaseCtrl
-from omtk.modules.rigIK import IK
-from omtk.modules.rigFK import FK
+from omtk.core.classModule import Module
 from omtk.libs import libRigging, libCtrlShapes
 
 
@@ -48,9 +46,9 @@ class MyModule(Module):
 
         raise NotImplementedError
 
-    def unbuild(self):
+    def unbuild(self, rig):
         """
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(MyModule, self).unbuild()
+        super(MyModule, self).unbuild(rig)

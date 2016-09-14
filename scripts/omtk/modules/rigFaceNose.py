@@ -120,9 +120,9 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
         super(FaceNose, self).calibrate(rig)
 
         if self.avar_main:
-            self.avar_main.calibrate()
+            self.avar_main.calibrate(rig)
 
-    def unbuild(self):
-        super(FaceNose, self).unbuild()
+    def unbuild(self, rig):
+        super(FaceNose, self).unbuild(rig)
         self.ctrl_main = None
 

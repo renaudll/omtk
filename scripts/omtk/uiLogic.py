@@ -1,11 +1,15 @@
-import os
+import datetime
 import functools
+import inspect
+import logging
 import re
+
+import libSerialization
 import pymel.core as pymel
 from maya import OpenMaya
-import libSerialization
+
 import core
-import inspect
+import ui
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk.libs import libPymel
@@ -13,7 +17,10 @@ from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.libs.libQt import QtCore, QtGui, getMayaWindow
 
-import ui; reload(ui)
+reload(ui)
+
+log = logging.getLogger('omtk')
+
 
 class MetadataType:
     """
@@ -23,6 +30,7 @@ class MetadataType:
     Module = 1
     Influece = 2
     Mesh = 3
+
 
 def get_all_QTreeWidgetItem(widget, qt_item=None):
     """
@@ -41,11 +49,12 @@ def get_all_QTreeWidgetItem(widget, qt_item=None):
         for x in get_all_QTreeWidgetItem(widget, qt_sub_item):
             yield x
 
-class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
-    #http://forums.cgsociety.org/archive/index.php?t-1096914.html
-    #Use the intern maya ressources icon
+
+class AutoRig(QtGui.QMainWindow):
+    # http://forums.cgsociety.org/archive/index.php?t-1096914.html
+    # Use the intern maya ressources icon
     _STYLE_SHEET = \
-    """
+        """
 
           QTreeView::item::selected
           {
@@ -85,65 +94,96 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
        """
 
     def __init__(self, parent=None):
-        #Try to kill latest Autorig ui window
+        # Try to kill latest Autorig ui window
         try:
             pymel.deleteUI('OpenRiggingToolkit')
         except:
             pass
         if parent is None: parent = getMayaWindow()
         super(AutoRig, self).__init__(parent)
-        self.setupUi(self)
+        self.ui = ui.Ui_OpenRiggingToolkit()
+        self.ui.setupUi(self)
 
         self._is_modifying = False
-        self.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
-        self.actionCreateModule.setEnabled(False)
+        self.ui.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
+        self.ui.actionCreateModule.setEnabled(False)
 
         self.import_networks()
         self.update_ui()
 
-        self.actionBuild.triggered.connect(self.on_build)
-        self.actionUnbuild.triggered.connect(self.on_unbuild)
-        self.actionRebuild.triggered.connect(self.on_rebuild)
-        self.actionImport.triggered.connect(self.on_import)
-        self.actionExport.triggered.connect(self.on_export)
-        self.actionUpdate.triggered.connect(self.on_update)
-        self.actionCreateModule.triggered.connect(self.on_btn_add_pressed)
-        self.actionMirrorJntsLToR.triggered.connect(self.on_mirror_influences_l_to_r)
-        self.actionMirrorJntsRToL.triggered.connect(self.on_mirror_influences_r_to_l)
-        self.actionMirrorSelection.triggered.connect(self.on_mirror_selection)
-        self.actionAddNodeToModule.triggered.connect(self.on_addToModule)
-        self.actionRemoveNodeFromModule.triggered.connect(self.on_removeFromModule)
-        self.actionSelectGrpMeshes.triggered.connect(self.on_SelectGrpMeshes)
-        self.actionUpdateModulesView.triggered.connect(self.update_ui_modules)
-        self.actionUpdateInfluencesView.triggered.connect(self.update_ui_jnts)
-        self.actionUpdateMeshesView.triggered.connect(self.update_ui_meshes)
+        #
+        # Configure logging view
+        #
 
-        self.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
-        self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.treeWidget.itemChanged.connect(self.on_module_changed)
-        self.treeWidget.itemDoubleClicked.connect(self.on_module_double_clicked)
-        self.treeWidget.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.treeWidget.focusInEvent = self.focus_in_module
-        self.treeWidget.setAutoFillBackground(True)
-        self.treeWidget.setStyleSheet(self._STYLE_SHEET)
+        # Used to store the logging handlers
+        self._logging_handlers = []
+        # Used to store the records so our TableView can filter them
+        self._logging_records = []
+        # Used to store what log level we are interested.
+        # We use a separated value here since we might want to keep other log handlers active (external files, script editor, etc)
+        self._logging_level = logging.WARNING
 
-        self.treeWidget_jnts.setStyleSheet(self._STYLE_SHEET)
-        self.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.treeWidget_jnts.itemSelectionChanged.connect(self.on_influence_selection_changed)
-        self.treeWidget_meshes.itemSelectionChanged.connect(self.on_mesh_selection_changed)
+        table_model = UiLoggerModel(self, self._logging_records)
+        table_proxy_model = UiLoggerProxyModel(self)
+        table_proxy_model.setSourceModel(table_model)
+        table_proxy_model.setDynamicSortFilter(False)
+        self.ui.tableView_logs.setModel(table_proxy_model)
+        #self.ui.tableView_logs.setModel(self._table_log_model)
 
-        self.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
-        self.lineEdit_search_modules.textChanged.connect(self.on_module_query_changed)
-        self.lineEdit_search_meshes.textChanged.connect(self.on_meshes_query_changed)
-        self.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
+        self.ui.tableView_logs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.ui.tableView_logs.horizontalHeader().setStretchLastSection(True)
 
-        #Right click menu
-        self.treeWidget_jnts.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.connect(self.treeWidget_jnts, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
+        #
+        # Connect events
+        #
+
+        self.ui.actionBuild.triggered.connect(self.on_build)
+        self.ui.actionUnbuild.triggered.connect(self.on_unbuild)
+        self.ui.actionRebuild.triggered.connect(self.on_rebuild)
+        self.ui.actionImport.triggered.connect(self.on_import)
+        self.ui.actionExport.triggered.connect(self.on_export)
+        self.ui.actionUpdate.triggered.connect(self.on_update)
+        self.ui.actionCreateModule.triggered.connect(self.on_btn_add_pressed)
+        self.ui.actionMirrorJntsLToR.triggered.connect(self.on_mirror_influences_l_to_r)
+        self.ui.actionMirrorJntsRToL.triggered.connect(self.on_mirror_influences_r_to_l)
+        self.ui.actionMirrorSelection.triggered.connect(self.on_mirror_selection)
+        self.ui.actionAddNodeToModule.triggered.connect(self.on_addToModule)
+        self.ui.actionRemoveNodeFromModule.triggered.connect(self.on_removeFromModule)
+        self.ui.actionSelectGrpMeshes.triggered.connect(self.on_SelectGrpMeshes)
+        self.ui.actionUpdateModulesView.triggered.connect(self.update_ui_modules)
+        self.ui.actionUpdateInfluencesView.triggered.connect(self.update_ui_jnts)
+        self.ui.actionUpdateMeshesView.triggered.connect(self.update_ui_meshes)
+        self.ui.actionChangeLogLevel.triggered.connect(self.update_log_search_level)
+        self.ui.actionUpdateLogSearchQuery.triggered.connect(self.update_log_search_query)
+        self.ui.actionClearLogs.triggered.connect(self.on_log_clear)
+        self.ui.actionSaveLogs.triggered.connect(self.on_log_save)
+
+        self.ui.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
+        self.ui.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.ui.treeWidget.itemChanged.connect(self.on_module_changed)
+        self.ui.treeWidget.itemDoubleClicked.connect(self.on_module_double_clicked)
+        self.ui.treeWidget.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.ui.treeWidget.focusInEvent = self.focus_in_module
+        self.ui.treeWidget.setAutoFillBackground(True)
+        self.ui.treeWidget.setStyleSheet(self._STYLE_SHEET)
+
+        self.ui.treeWidget_jnts.setStyleSheet(self._STYLE_SHEET)
+        self.ui.treeWidget_jnts.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.ui.treeWidget_jnts.itemSelectionChanged.connect(self.on_influence_selection_changed)
+        self.ui.treeWidget_meshes.itemSelectionChanged.connect(self.on_mesh_selection_changed)
+
+        self.ui.lineEdit_search_jnt.textChanged.connect(self.on_query_changed)
+        self.ui.lineEdit_search_modules.textChanged.connect(self.on_module_query_changed)
+        self.ui.lineEdit_search_meshes.textChanged.connect(self.on_meshes_query_changed)
+        self.ui.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
+
+        # Right click menu
+        self.ui.treeWidget_jnts.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.connect(self.ui.treeWidget_jnts, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
                      self.on_btn_add_pressed)
 
-        self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.connect(self.treeWidget, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
+        self.ui.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.connect(self.ui.treeWidget, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"),
                      self.on_context_menu_request)
 
         self.callbacks_events = []
@@ -154,23 +194,22 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
     def create_callbacks(self):
         self.remove_callbacks()
-        #Disable to prevent performance drop when CTRL-Z and the tool is open
-        #TODO - Reactivate back when the tool will be stable ?
+        # Disable to prevent performance drop when CTRL-Z and the tool is open
+        # TODO - Reactivate back when the tool will be stable ?
         self.callbacks_events = \
-        [
-            # OpenMaya.MEventMessage.addEventCallback("Undo", self.update_ui),
-            # OpenMaya.MEventMessage.addEventCallback("Redo", self.update_ui)
-        ]
+            [
+                # OpenMaya.MEventMessage.addEventCallback("Undo", self.update_ui),
+                # OpenMaya.MEventMessage.addEventCallback("Redo", self.update_ui)
+            ]
         self.callbacks_scene = \
-        [
-            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterOpen, self.on_update),
-            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterNew, self.on_update)
-        ]
+            [
+                OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterOpen, self.on_update),
+                OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterNew, self.on_update)
+            ]
 
         # self.callbacks_nodes = OpenMaya.MDGMessage.addNodeRemovedCallback(
         #     self.callback_network_deleted, 'network'  # TODO: Restrict to network nodes
         # )
-
 
     def remove_callbacks(self):
         for callback_id in self.callbacks_events:
@@ -203,7 +242,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
             return False
         return True
 
-    _color_invalid = QtGui.QBrush(QtGui.QColor(255,45,45))
+    _color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
     _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
     _color_locked = QtGui.QBrush(QtGui.QColor(125, 125, 125))
 
@@ -231,11 +270,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
         # HACK: bypass the stylecheet
         # see: http://forum.qt.io/topic/22219/item-view-stylesheet-bgcolor/12
-        #style_sheet_invalid = """
-        #QTreeView::item
-        #{
+        # style_sheet_invalid = """
+        # QTreeView::item
+        # {
         #   background-color: rgb(45,45,45);
-        #}"""
+        # }"""
         color = self._get_module_color(module)
         qItem.setBackground(0, color)
 
@@ -263,7 +302,8 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
         Supported influences are joints and nurbsSurface.
         :return:
         """
-        return libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        return libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or libPymel.isinstance_of_shape(obj,
+                                                                                                            pymel.nodetypes.NurbsSurface)
 
     def _set_icon_from_type(self, obj, qItem):
         if isinstance(obj, pymel.nodetypes.Joint):
@@ -343,12 +383,12 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
     def _can_show_QTreeWidgetItem(self, qItem, query_regex):
         obj = qItem.obj  # Retrieve monkey-patched data
         obj_name = obj.stripNamespace()
-        #print obj_name
+        # print obj_name
 
         if not re.match(query_regex, obj_name, re.IGNORECASE):
             return False
 
-        if self.checkBox_hideAssigned.isChecked():
+        if self.ui.checkBox_hideAssigned.isChecked():
             if qItem.networks:
                 return False
 
@@ -357,27 +397,27 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
     def _update_network(self, module, item=None):
         if hasattr(module, "_network"):
             pymel.delete(module._network)
-        new_network = libSerialization.export_network(module) #TODO : Automatic update
-        #If needed, update the network item net property to match the new exported network
+        new_network = libSerialization.export_network(module)  # TODO : Automatic update
+        # If needed, update the network item net property to match the new exported network
         if item:
             item.net = new_network
 
-    #Block signals need to be called in a function because if called in a signal, it will block it
+    # Block signals need to be called in a function because if called in a signal, it will block it
     def _set_text_block(self, item, str):
-        self.treeWidget.blockSignals(True)
+        self.ui.treeWidget.blockSignals(True)
         if hasattr(item, "rig"):
             item.setText(0, str)
-        self.treeWidget.blockSignals(False)
+        self.ui.treeWidget.blockSignals(False)
 
     def _add_part(self, cls_name):
-        #part = _cls(pymel.selected())
+        # part = _cls(pymel.selected())
         self.root.add_module(cls_name, pymel.selected())
         net = self.export_networks()
         pymel.select(net)
-        #Add manually the Rig to the root list instead of importing back all network
-        #if not self.root in self.roots:
+        # Add manually the Rig to the root list instead of importing back all network
+        # if not self.root in self.roots:
         #    self.roots.append(self.root)
-        #self.updateData()
+        # self.updateData()
         self.update_ui()
 
     @libPython.log_execution_time('import_networks')
@@ -398,56 +438,56 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
         except AttributeError:
             pass
 
-        net = libSerialization.export_network(self.root) # Export part and only part
+        net = libSerialization.export_network(self.root)  # Export part and only part
         return net
 
     #
     # Publics
     #
 
-    #Will only refresh tree view information without removing any items
+    # Will only refresh tree view information without removing any items
     def refresh_ui(self):
         self._refresh_ui_modules_checked()
         self._refresh_ui_modules_visibility()
         self.refresh_ui_jnts()
 
-    #Recreate tree views items
+    # Recreate tree views items
     def update_ui(self, *args, **kwargs):
         self.update_ui_modules()
         self.update_ui_jnts()
         self.update_ui_meshes()
 
     def update_ui_modules(self, *args, **kwargs):
-        self.treeWidget.clear()
+        self.ui.treeWidget.clear()
         for root in self.roots:
             qItem = self._rig_to_tree_widget(root)
-            self.treeWidget.addTopLevelItem(qItem)
-            self.treeWidget.expandItem(qItem)
+            self.ui.treeWidget.addTopLevelItem(qItem)
+            self.ui.treeWidget.expandItem(qItem)
 
         self.refresh_ui_modules()
 
     def update_ui_jnts(self, *args, **kwargs):
         # Resolve text query
-        query_raw = self.lineEdit_search_jnt.text()
+        query_raw = self.ui.lineEdit_search_jnt.text()
 
-        self.treeWidget_jnts.clear()
+        self.ui.treeWidget_jnts.clear()
         all_potential_influences = self.root.get_potential_influences()
 
-        if all_potential_influences :
+        if all_potential_influences:
             data = libPymel.get_tree_from_objs(all_potential_influences, sort=True)
 
-            self._fill_widget_influences(self.treeWidget_jnts.invisibleRootItem(), data)
+            self._fill_widget_influences(self.ui.treeWidget_jnts.invisibleRootItem(), data)
 
         '''
         if all_jnt_roots:
             for jnt in all_jnt_roots:
-                self._fill_widget_influences_recursive(self.treeWidget_jnts.invisibleRootItem(), jnt)
+                self._fill_widget_influences_recursive(self.ui.treeWidget_jnts.invisibleRootItem(), jnt)
         '''
 
         self.refresh_ui_jnts()
 
     def update_ui_meshes(self, *args, **kwargs):
-        self.treeWidget_meshes.clear()
+        self.ui.treeWidget_meshes.clear()
         # Hack: force cache to invalidate
         try:
             self.root.get_meshes.func.im_self.cache.clear()
@@ -456,7 +496,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
         all_meshes = self.root.get_meshes()
 
         if all_meshes:
-            widget_root = self.treeWidget_meshes.invisibleRootItem()
+            widget_root = self.ui.treeWidget_meshes.invisibleRootItem()
 
             for mesh in all_meshes:
                 influences = None
@@ -471,45 +511,45 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
     def refresh_ui_jnts(self, query_regex=None):
         if query_regex is None:
-            query_raw = self.lineEdit_search_jnt.text()
+            query_raw = self.ui.lineEdit_search_jnt.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
         selectableBrush = QtGui.QBrush(QtCore.Qt.white)
-        for qt_item in get_all_QTreeWidgetItem(self.treeWidget_jnts):
+        for qt_item in get_all_QTreeWidgetItem(self.ui.treeWidget_jnts):
             can_show = self._can_show_QTreeWidgetItem(qt_item, query_regex)
             qt_item.setHidden(not can_show)
             if can_show:
                 qt_item.setForeground(0, selectableBrush)
                 flags = qt_item.flags()
-                if not flags & QtCore.Qt.ItemIsSelectable: #Make selectable
+                if not flags & QtCore.Qt.ItemIsSelectable:  # Make selectable
                     flags ^= QtCore.Qt.ItemIsSelectable
                     qt_item.setFlags(flags)
                 self._show_parent_recursive(qt_item.parent())
             else:
                 qt_item.setForeground(0, unselectableBrush)
                 flags = qt_item.flags()
-                if flags & QtCore.Qt.ItemIsSelectable: #Make selectable
+                if flags & QtCore.Qt.ItemIsSelectable:  # Make selectable
                     flags ^= QtCore.Qt.ItemIsSelectable
                     qt_item.setFlags(flags)
 
-        self.treeWidget_jnts.expandAll()
+        self.ui.treeWidget_jnts.expandAll()
 
     def refresh_ui_modules(self):
         self._refresh_ui_modules_checked()
         self._refresh_ui_modules_visibility()
 
     def _refresh_ui_modules_checked(self):
-        #Block the signal to make sure that the itemChanged event is not called when adjusting the check state
-        self.treeWidget.blockSignals(True)
-        for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
+        # Block the signal to make sure that the itemChanged event is not called when adjusting the check state
+        self.ui.treeWidget.blockSignals(True)
+        for qt_item in get_all_QTreeWidgetItem(self.ui.treeWidget):
             if hasattr(qt_item, "rig"):
                 qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.rig.is_built() else QtCore.Qt.Unchecked)
-        self.treeWidget.blockSignals(False)
+        self.ui.treeWidget.blockSignals(False)
 
     def _refresh_ui_modules_visibility(self, query_regex=None):
         if query_regex is None:
-            query_raw = self.lineEdit_search_modules.text()
+            query_raw = self.ui.lineEdit_search_modules.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
@@ -524,15 +564,15 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
             return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
 
-        #unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
-        #selectableBrush = QtGui.QBrush(QtCore.Qt.white)
-        for qt_item in get_all_QTreeWidgetItem(self.treeWidget):
+        # unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
+        # selectableBrush = QtGui.QBrush(QtCore.Qt.white)
+        for qt_item in get_all_QTreeWidgetItem(self.ui.treeWidget):
             can_show = fn_can_show(qt_item, query_regex)
             qt_item.setHidden(not can_show)
 
     def _refresh_ui_meshes_visibility(self, query_regex=None):
         if query_regex is None:
-            query_raw = self.lineEdit_search_meshes.text()
+            query_raw = self.ui.lineEdit_search_meshes.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
@@ -541,7 +581,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
             return not query_regex or re.match(query_regex, qItem.text(0), re.IGNORECASE)
 
-        for qt_item in get_all_QTreeWidgetItem(self.treeWidget_meshes):
+        for qt_item in get_all_QTreeWidgetItem(self.ui.treeWidget_meshes):
             can_show = fn_can_show(qt_item, query_regex)
             qt_item.setHidden(not can_show)
 
@@ -594,21 +634,21 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
     #
 
     def on_build(self):
-        for qItem in self.treeWidget.selectedItems():
+        for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.rig
             self._build(val)
         self._update_network(self.root)
         self.update_ui()
 
     def on_unbuild(self):
-        for qItem in self.treeWidget.selectedItems():
+        for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.rig
             self._unbuild(val)
         self._update_network(self.root)
         self.update_ui()
 
     def on_rebuild(self):
-        for qItem in self.treeWidget.selectedItems():
+        for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.rig
             self._unbuild(val)
             self._build(val)
@@ -616,7 +656,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
     def on_lock(self):
         need_update = False
-        for item in self.treeWidget.selectedItems():
+        for item in self.ui.treeWidget.selectedItems():
             val = item.rig
             if isinstance(val, classModule.Module) and not val.locked:
                 need_update = True
@@ -627,7 +667,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
     def on_unlock(self):
         need_update = False
-        for item in self.treeWidget.selectedItems():
+        for item in self.ui.treeWidget.selectedItems():
             val = item.rig
             if isinstance(val, classModule.Module) and val.locked:
                 need_update = True
@@ -664,34 +704,37 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
             libSerialization.export_json_file_maya(all_rigs, path)
 
     def on_update(self, *args, **kwargs):
-        #TODO - Fix the reload problem which cause isinstance function check to fail with an existing network
-        import omtk; reload(omtk); omtk._reload(kill_ui=False)
+        # TODO - Fix the reload problem which cause isinstance function check to fail with an existing network
+        import omtk;
+        reload(omtk);
+        omtk._reload(kill_ui=False)
         self.import_networks()
         self.update_ui()
 
     def on_module_selection_changed(self):
-        pymel.select([item.net for item in self.treeWidget.selectedItems() if hasattr(item, 'net')])
+        pymel.select([item.net for item in self.ui.treeWidget.selectedItems() if hasattr(item, 'net')])
 
     def on_influence_selection_changed(self):
-        pymel.select([item.obj for item in self.treeWidget_jnts.selectedItems() if item.obj.exists()])
-        if self.treeWidget_jnts.selectedItems():
-            self.actionCreateModule.setEnabled(True)
+        pymel.select([item.obj for item in self.ui.treeWidget_jnts.selectedItems() if item.obj.exists()])
+        if self.ui.treeWidget_jnts.selectedItems():
+            self.ui.actionCreateModule.setEnabled(True)
         else:
-            self.actionCreateModule.setEnabled(False)
+            self.ui.actionCreateModule.setEnabled(False)
 
     def on_mesh_selection_changed(self):
-        pymel.select([item.metadata_data.getParent() for item in self.treeWidget_meshes.selectedItems() if item.metadata_data.exists()])
+        pymel.select([item.metadata_data.getParent() for item in self.ui.treeWidget_meshes.selectedItems() if
+                      item.metadata_data.exists()])
 
     def on_module_changed(self, item):
         # todo: handle exception
-        #Check first if the checkbox have changed
+        # Check first if the checkbox have changed
         need_update = False
         new_state = item.checkState(0) == QtCore.Qt.Checked
         new_text = item.text(0)
         module = item.rig
         if item._checked != new_state:
             item._checked = new_state
-            #Handle checkbox change
+            # Handle checkbox change
             if new_state:
                 self._build(module)
             else:
@@ -699,17 +742,17 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
             need_update = True
             self._update_network(self.root, item=item)
 
-        #Check if the name have changed
+        # Check if the name have changed
         if (item._name != new_text):
             item._name = new_text
             module.name = new_text
 
-            #Update directly the network value instead of re-exporting it
+            # Update directly the network value instead of re-exporting it
             if hasattr(item, "net"):
                 name_attr = item.net.attr("name")
                 name_attr.set(new_text)
 
-        #Ensure to only refresh the UI and not recreate all
+        # Ensure to only refresh the UI and not recreate all
         if need_update:
             self.refresh_ui()
 
@@ -725,13 +768,13 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):
             self._set_text_block(item, item.rig.name)
-            self._is_modifying = True #Flag to know that we are currently modifying the name
-            self.treeWidget.editItem(item, 0)
+            self._is_modifying = True  # Flag to know that we are currently modifying the name
+            self.ui.treeWidget.editItem(item, 0)
 
     def on_remove(self):
-        for item in self.treeWidget.selectedItems():
+        for item in self.ui.treeWidget.selectedItems():
             module = item.rig
-            #net = item.net if hasattr(item, "net") else None
+            # net = item.net if hasattr(item, "net") else None
             if module.is_built():
                 module.unbuild()
             self.root.modules.remove(module)
@@ -739,7 +782,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
         self.update_ui()
 
     def on_context_menu_request(self):
-        if self.treeWidget.selectedItems():
+        if self.ui.treeWidget.selectedItems():
             menu = QtGui.QMenu()
             actionBuild = menu.addAction("Build")
             actionBuild.triggered.connect(self.on_build)
@@ -753,11 +796,11 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
             action_unlock = menu.addAction("Unlock")
             action_unlock.triggered.connect(self.on_unlock)
             menu.addSeparator()
-            sel = self.treeWidget.selectedItems()
+            sel = self.ui.treeWidget.selectedItems()
             if len(sel) == 1:
                 actionRemove = menu.addAction("Rename")
-                #actionRemove.triggered.connect(functools.partial(self.treeWidget.editItem, sel[0], 0))
-                actionRemove.triggered.connect(functools.partial(self.treeWidget.itemDoubleClicked.emit, sel[0], 0))
+                # actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.editItem, sel[0], 0))
+                actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0))
             actionRemove = menu.addAction("Remove")
             actionRemove.triggered.connect(functools.partial(self.on_remove))
 
@@ -770,7 +813,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
                 fn = getattr(val, '__can_show__')
                 if fn is None:
                     return False
-                #if not inspect.ismethod(fn):
+                # if not inspect.ismethod(fn):
                 #    return False
                 return val.__can_show__()
 
@@ -790,7 +833,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
             menu.exec_(QtGui.QCursor.pos())
 
     def on_btn_add_pressed(self):
-        if self.treeWidget_jnts.selectedItems():
+        if self.ui.treeWidget_jnts.selectedItems():
             menu = QtGui.QMenu()
             cls_name = [cls.__name__ for cls in libPython.get_sub_classes(classModule.Module) if cls.SHOW_IN_UI]
             for name in sorted(cls_name):
@@ -802,7 +845,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
     def on_addToModule(self):
         need_update = False
-        for item in self.treeWidget.selectedItems():
+        for item in self.ui.treeWidget.selectedItems():
             module = item.rig
             if module:
                 for obj in pymel.selected():
@@ -818,7 +861,7 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
 
     def on_removeFromModule(self):
         need_update = False
-        for item in self.treeWidget.selectedItems():
+        for item in self.ui.treeWidget.selectedItems():
             module = item.rig
             if module:
                 for obj in pymel.selected():
@@ -891,20 +934,108 @@ class AutoRig(QtGui.QMainWindow, ui.Ui_OpenRiggingToolkit):
             pymel.select(grp)
 
     def focus_in_module(self, event):
-        #Set back the text with the information about the module in it
+        # Set back the text with the information about the module in it
         if self._is_modifying:
-            sel = self.treeWidget.selectedItems()
+            sel = self.ui.treeWidget.selectedItems()
             if sel:
                 self._set_text_block(sel[0], str(sel[0].rig))
-                #sel[0].setText(0, str(sel[0].rig))
+                # sel[0].setText(0, str(sel[0].rig))
             self._is_modifying = False
         self.focusInEvent(event)
 
+    #
+    # Logging implementation
+    #
+
+    def create_logger_handler(self):
+        class QtHandler(logging.Handler):
+            def __init__(self):
+                logging.Handler.__init__(self)
+
+            def emit(self_, record):
+                self._logging_records.append(record)
+                self.ui.tableView_logs.model().reset()
+
+        handler = QtHandler()
+
+        # handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+        log.addHandler(handler)
+        log.setLevel(logging.DEBUG)
+        self._logging_handlers.append(handler)
+
+    def remove_logger_handler(self):
+        if self._logging_handlers:
+            for handler in self._logging_handlers:
+                log.removeHandler(handler)
+            self._logging_handlers = []
+
+    def update_log_search_query(self):
+        query = self.ui.lineEdit_log_search.text()
+        self.ui.tableView_logs.model().set_log_query(query)
+
+    def update_log_search_level(self):
+        index = self.ui.comboBox_log_level.currentIndex()
+        model = self.ui.tableView_logs.model()
+        if index == 0:
+            model.set_loglevel_filter(logging.ERROR)
+        elif index == 1:
+            model.set_loglevel_filter(logging.WARNING)
+        elif index == 2:
+            model.set_loglevel_filter(logging.INFO)
+        elif index == 3:
+            model.set_loglevel_filter(logging.DEBUG)
+
+    def _save_logs(self, path):
+        with open(path, 'w') as fp:
+            # Write header
+            fp.write('Date,Level,Message\n')
+
+            # Write content
+            for record in self._logging_records:
+                fp.write('{0},{1},{2}\n'.format(
+                    str(datetime.datetime.fromtimestamp(record.created)),
+                    log_level_to_str(record.levelno),
+                    record.message
+                ))
+
+    def on_log_save(self):
+        default_name = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm%S")
+        if self.root:
+            default_name = '{0}_{1}'.format(default_name, self.root.name)
+
+        path, _ = QtGui.QFileDialog.getSaveFileName(self, "Save logs", '{0}.log'.format(default_name), ".log")
+        if path:
+            self._save_logs(path)
+
+    def on_log_clear(self):
+        del self._logging_records[:]
+        self.ui.tableView_logs.model().reset()
+
+    #
+    # QMainWindow show/close events
+    #
+
+    def showEvent(self, *args, **kwargs):
+        super(AutoRig, self).showEvent(*args, **kwargs)
+        self.create_logger_handler()
+
+        log.info('Opened OMTK GUI')
+
     def closeEvent(self, *args, **kwargs):
+        log.info('Closed OMTK GUI')
+
+        self.remove_logger_handler()
         self.remove_callbacks()
         super(AutoRig, self).closeEvent(*args, **kwargs)
 
+        #
+        # Logger handling
+        #
+
+
 gui = None
+
+
 def show():
     global gui
 
@@ -918,3 +1049,143 @@ def show():
     gui.move(pFrame.topLeft())
 
     gui.show()
+
+
+def log_level_to_str(level):
+    if level >= logging.CRITICAL:
+        return 'Critical'
+    if level >= logging.ERROR:
+        return 'Error'
+    if level >= logging.WARNING:
+        return 'Warning'
+    return 'Info'
+
+class UiLoggerModel(QtCore.QAbstractTableModel):
+    HEADER = ('Date', 'Type', 'Message')
+
+    ROW_LEVEL = 1
+    ROW_MESSAGE = 2
+    ROW_DATE = 0
+
+    COLOR_FOREGROUND_ERROR = QtGui.QColor(0, 0, 0)
+    COLOR_FOREGROUND_WARNING = QtGui.QColor(255, 255, 0)
+    COLOR_FOREGROUND_INFO = None
+    COLOR_FOREGROUND_DEBUG = QtGui.QColor(128, 128, 128)
+
+    COLOR_BACKGROUND_ERROR = QtGui.QColor(255, 0, 0)
+    COLOR_BACKGROUND_WARNING = None
+    COLOR_BACKGROUND_INFO = None
+    COLOR_BACKGROUND_DEBUG = None
+
+    def __init__(self, parent, data, *args):
+        super(UiLoggerModel, self).__init__(parent, *args)
+        self.items = data
+        self.header = self.HEADER
+
+    def rowCount(self, parent):
+        return len(self.items)
+
+    def columnCount(self, parent):
+        return len(self.header)
+
+    def data(self, index, role):
+        if not index.isValid():
+            return None
+
+        if role == QtCore.Qt.ForegroundRole:
+            record = self.items[index.row()]
+            level = record.levelno
+            if level >= logging.ERROR:
+                return self.COLOR_FOREGROUND_ERROR
+            if level >= logging.WARNING:
+                return self.COLOR_FOREGROUND_WARNING
+            if level <= logging.DEBUG:
+                return self.COLOR_FOREGROUND_DEBUG
+            return self.COLOR_FOREGROUND_INFO
+
+        if role == QtCore.Qt.BackgroundColorRole:
+            record = self.items[index.row()]
+            level = record.levelno
+            if level >= logging.ERROR:
+                return self.COLOR_BACKGROUND_ERROR
+            if level >= logging.WARNING:
+                return self.COLOR_BACKGROUND_WARNING
+            if level <= logging.DEBUG:
+                return self.COLOR_BACKGROUND_DEBUG
+            return self.COLOR_BACKGROUND_INFO
+
+        if role != QtCore.Qt.DisplayRole:
+            return None
+
+        record = self.items[index.row()]
+        col_index = index.column()
+        if col_index == self.ROW_LEVEL:
+            level = record.levelno
+            return log_level_to_str(level)
+        elif col_index == self.ROW_MESSAGE:
+            return record.message
+        elif col_index == self.ROW_DATE:
+            return str(datetime.datetime.fromtimestamp(record.created))
+        else:
+            Exception("Unexpected row. Expected 0 or 1, got {0}".format(
+                col_index
+            ))
+
+    def headerData(self, col, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self.header[col]
+        return None
+
+    def add(self, item):
+        num_items = len(self.items)
+        self.beginInsertRows(QtCore.QModelIndex(), num_items, num_items)
+        self.items.append(item)
+        self.endInsertRows()
+        #
+        # top = self.createIndex(num_items, 0, 0)
+        # bot = self.createIndex(num_items, len(self.header), 0)
+        # self.dataChanged.emit(top, bot)
+
+    '''
+    def sort(self, col, order):
+        """sort table by given column number col"""
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        self.data = sorted(self.data,
+                           key=operator.itemgetter(col))
+        if order == Qt.DescendingOrder:
+            self.data.reverse()
+        self.emit(SIGNAL("layoutChanged()"))
+    '''
+
+class UiLoggerProxyModel(QtGui.QSortFilterProxyModel):
+    def __init__(self, *args, **kwargs):
+        super(UiLoggerProxyModel, self).__init__(*args, **kwargs)
+        self._log_level_interest = logging.WARNING
+        self._log_search_query = None
+
+    def set_loglevel_filter(self, loglevel, update=True):
+        self._log_level_interest = loglevel
+        if update:
+            self.reset()
+
+    def set_log_query(self, query, update=True):
+        self._log_search_query = query if query else None
+        if update:
+            self.reset()
+
+    def filterAcceptsRow(self, source_row, index):
+        model = self.sourceModel()
+        record = model.items[source_row]
+
+        # Filter using query
+        if self._log_search_query:
+            query = self._log_search_query.lower()
+            if not query in record.message.lower():
+                return False
+
+        # Filter using log level
+        level = record.levelno
+        if level < self._log_level_interest:
+            return False
+
+        return True

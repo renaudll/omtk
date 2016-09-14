@@ -81,8 +81,6 @@ def unbuild_all():
         network = libSerialization.export_network(rigroot)
         pymel.select(network)
 
-import libSerialization
-
 def _get_modules_from_selection(sel=None):
     def get_rig_network_from_module(network):
         for plug in network.message.outputs(plugs=True):
@@ -171,7 +169,7 @@ def unbuild_selected(sel=None):
 
         # Build selected modules
         for module in modules:
-            module.unbuild()
+            module.unbuild(rig)
 
         # Re-export network
         if hasattr(rig, '_network'):

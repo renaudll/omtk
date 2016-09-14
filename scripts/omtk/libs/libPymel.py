@@ -299,7 +299,7 @@ class SegmentCollection(object):
         num_segments = len(self.segments)
         for i, segment in enumerate(self.segments):
             distance_normalized = segment.closest_point_normalized_distance(pos)
-            if distance_normalized >= bound_min and distance_normalized <= bound_max:
+            if bound_min <= distance_normalized <= bound_max:
                 return segment, distance_normalized
             elif i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
                 return segment, 0.0

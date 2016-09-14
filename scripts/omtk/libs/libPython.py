@@ -1,4 +1,5 @@
-import os, types, imp, logging, re
+import imp
+import logging
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
@@ -16,11 +17,11 @@ def does_module_exist(module_name):
 def frange(start, end=None, inc=None):
     "A range function, that does accept float increments..."
 
-    if end == None:
+    if end is None:
         end = start + 0.0
         start = 0.0
 
-    if inc == None:
+    if inc is None:
         inc = 1.0
 
     L = []

@@ -1,9 +1,10 @@
-from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
+import pymel.core as pymel
+
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
-from omtk.libs import libAttr
-import pymel.core as pymel
+from omtk.modules import rigFaceAvar
+from omtk.modules import rigFaceAvarGrps
+
 
 class CtrlJaw(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):

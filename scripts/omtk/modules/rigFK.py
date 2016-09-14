@@ -101,8 +101,8 @@ class FK(Module):
             #pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
         '''
 
-    def unbuild(self):
-        super(FK, self).unbuild()
+    def unbuild(self, rig):
+        super(FK, self).unbuild(rig)
 
 class CtrlFkAdd(BaseCtrl):
     def __createNode__(self, size=None, refs=None, *args, **kwargs):
@@ -176,10 +176,6 @@ class AdditiveFK(FK):
 
         # Constraint the fk ctrls in position to the additive fk ctrls
         pymel.pointConstraint(ctrl_add, self.ctrls[0].offset)
-
-    def unbuild(self):
-        #self.additive_ctrls = []
-        super(AdditiveFK, self).unbuild()
 
     def iter_ctrls(self):
         for ctrl in super(AdditiveFK, self).iter_ctrls():

@@ -1,4 +1,3 @@
-import pymel.core as pymel
 import logging
 log = logging.getLogger('omtk')
 

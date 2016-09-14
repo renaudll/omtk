@@ -1,8 +1,9 @@
-import pymel.core as pymel
 import logging
 import re
+
+import pymel.core as pymel
+
 logging.basicConfig()
-from classCtrl import BaseCtrl
 from omtk.libs import libPymel, libAttr, libPython
 log = logging.getLogger('omtk')
 import functools
@@ -43,6 +44,38 @@ class Module(object):
 
     # Set to true if the module default name need to use it's first input.
     DEFAULT_NAME_USE_FIRST_INPUT = False
+
+    #
+    # Logging implementation
+    #
+
+    def debug(self, rig, msg):
+        """
+        Redirect a debug message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.debug(msg)
+
+    def info(self, rig, msg):
+        """
+        Redirect an information message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.info(msg)
+
+    def warning(self, rig, msg):
+        """
+        Redirect an warning message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.warning(msg)
+
+    def error(self, rig, msg):
+        """
+        Redirect an error message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.error(msg)
 
     #
     # libSerialization implementation
@@ -275,8 +308,7 @@ class Module(object):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
-        log.info('Building {0}'.format(self))
-
+        self.info(rig, "Building")
         # Disable segment scale compensate by default.
         # Otherwise we might have scale issues since the rig won't propagate uniform scale change.
         if segmentScaleCompensate is not None:
@@ -312,19 +344,23 @@ class Module(object):
         if module:
             desired_parent = module.get_parent(self.parent)
             if desired_parent:
-                log.info("{0} will be parented to module {1}, {2}".format(self, module, desired_parent))
+                self.debug(rig, "Will be parented to {0}, {1}".format(module, desired_parent))
                 return desired_parent
 
-        log.warning("{0} parent is not in any module!".format(self))
+        if libPymel.is_valid_PyNode(self.parent):
+            self.debug(rig, "Can't recommend a parent. {0} is not in any known module.".format(self.parent))
+
         return self.parent
 
-    def unbuild(self, disconnect_attr=True):
+    def unbuild(self, rig, disconnect_attr=True):
         """
         Call unbuild on each individual ctrls
         This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
         :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
+        self.info(rig, "Un-building")
+
         # Ensure that there's no more connections in the input chain
         if disconnect_attr:
             for obj in self.input:

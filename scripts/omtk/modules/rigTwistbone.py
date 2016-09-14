@@ -1,10 +1,10 @@
 import pymel.core as pymel
+
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.modules.rigSplineIK import SplineIK
-import re
 
 
 class NonRollJoint(Node):
@@ -211,7 +211,7 @@ class Twistbone(Module):
                 results.add(mesh)
         return results
 
-    def unbuild(self, delete=True):
+    def unbuild(self, rig, delete=True):
         '''
         Unbuild the twist bone
         '''
@@ -228,7 +228,7 @@ class Twistbone(Module):
             pymel.disconnectAttr(jnt.scaleZ)
 
         #Don't disconnect input attribute when unbuilding twist bones
-        super(Twistbone, self).unbuild(disconnect_attr=False)
+        super(Twistbone, self).unbuild(rig, disconnect_attr=False)
 
         self.start = None
         self.end = None

@@ -498,7 +498,7 @@ class IK(Module):
             for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         """
         Unbuild the ik system and reset the needed parameters
         :return:
@@ -507,7 +507,7 @@ class IK(Module):
         self._chain_ik = None
         self.swivelDistance = None
 
-        super(IK, self).unbuild()
+        super(IK, self).unbuild(rig)
 
     def parent_to(self, parent):
         """

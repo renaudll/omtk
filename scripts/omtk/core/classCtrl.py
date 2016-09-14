@@ -1,13 +1,14 @@
 import collections
 import logging as log
+import logging
 
 import pymel.core as pymel
+
 from classNode import Node
 from omtk.core import classNode
-from omtk.libs import libRigging, libAttr, libPymel
-from omtk.libs import libPymel
 from omtk.libs import libAttr
-import logging
+from omtk.libs import libPymel
+from omtk.libs import libRigging
 
 log = logging.getLogger('omtk')
 
@@ -215,17 +216,23 @@ class BaseCtrl(Node):
     def hold_attrs_all(self):
         """
         Hold all ctrl keyable attributes.
+        Note that if an attribute is locked or non-keyable, we'll only hold it's value.
         """
-        # TODO: Hold all keyable attributes.
-        self.tx = libAttr.hold_attrs(self.node.translateX)
-        self.ty = libAttr.hold_attrs(self.node.translateY)
-        self.tz = libAttr.hold_attrs(self.node.translateZ)
-        self.rx = libAttr.hold_attrs(self.node.rotateX)
-        self.ry = libAttr.hold_attrs(self.node.rotateY)
-        self.rz = libAttr.hold_attrs(self.node.rotateZ)
-        self.sx = libAttr.hold_attrs(self.node.scaleX)
-        self.sy = libAttr.hold_attrs(self.node.scaleY)
-        self.sz = libAttr.hold_attrs(self.node.scaleZ)
+        def _hold_attr(attr):
+            if attr.isLocked() or not attr.isKeyable():
+                return attr.get()
+            else:
+                return libAttr.hold_attrs(attr)
+
+        self.tx = _hold_attr(self.node.translateX)
+        self.ty = _hold_attr(self.node.translateY)
+        self.tz = _hold_attr(self.node.translateZ)
+        self.rx = _hold_attr(self.node.rotateX)
+        self.ry = _hold_attr(self.node.rotateY)
+        self.rz = _hold_attr(self.node.rotateZ)
+        self.sx = _hold_attr(self.node.scaleX)
+        self.sy = _hold_attr(self.node.scaleY)
+        self.sz = _hold_attr(self.node.scaleZ)
 
     def fetch_attr_all(self):
         """
@@ -251,13 +258,13 @@ class BaseCtrl(Node):
         nomenclature = rig.nomenclature
 
         if parent is None:
-            log.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
+            module.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
             return
 
         # Resolve spaceswitch targets
         targets, labels = self.get_spaceswitch_targets(rig, module, parent, add_world=add_world)
         if not targets:
-            log.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
+            module.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
             return
 
         if default_name is None:
@@ -414,7 +421,7 @@ class InteractiveCtrl(BaseCtrl):
         if obj_mesh is None:
             raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
 
-        log.info('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
+        parent.debug('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
 
         # Initialize external stack
         # Normally this would be hidden from animators.
@@ -590,7 +597,8 @@ class InteractiveCtrl(BaseCtrl):
             if fol_mesh:
                 fol_mesh.setParent(grp_rig)
 
-    def calibrate(self, tx=True, ty=True, tz=True):
+    def calibrate(self, rig, module, tx=True, ty=True, tz=True):
+        # TODO: use correct logger
         influence = self.follicle
         if not influence:
             log.warning("Can't calibrate {0}, found no influences.".format(self))
@@ -598,17 +606,17 @@ class InteractiveCtrl(BaseCtrl):
 
         if tx and not self.node.tx.isLocked():
             sensitivity_tx = _get_attr_sensibility(self.node.tx, influence)
-            print('Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
+            module.debug(rig, 'Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.node.ty.isLocked():
             sensitivity_ty = _get_attr_sensibility(self.node.ty, influence)
-            print('Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
+            module.debug(rig, 'Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.node.tz.isLocked():
             sensitivity_tz = _get_attr_sensibility(self.node.tz, influence)
-            print('Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
+            module.debug(rig, 'Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
 

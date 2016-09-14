@@ -1,8 +1,11 @@
-import re, math, collections
-from omtk.libs import libRigging
-from maya import cmds
-import pymel.core as pymel
 import logging;
+import math
+import re
+
+import pymel.core as pymel
+from maya import cmds
+
+from omtk.libs import libRigging
 
 log = logging.getLogger(__name__);
 log.setLevel(logging.INFO)
@@ -17,11 +20,11 @@ class Operator(object):
         return True
 
     @staticmethod
-    def execute(*args, **kwargs):
+    def execute(arg1, arg2):
         raise NotImplementedError
 
     @staticmethod
-    def create(*args, **kwargs):
+    def create(arg1, arg2):
         raise NotImplementedError
 
 

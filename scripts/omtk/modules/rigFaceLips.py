@@ -1,10 +1,8 @@
 import pymel.core as pymel
-import functools
-from omtk.libs import libAttr
+
 from omtk.libs import libRigging
-from omtk.libs import libCtrlShapes
-from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
+
 
 class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
     pass
@@ -22,6 +20,16 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     SHOW_IN_UI = True
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
+
+    def validate(self, rig):
+        """
+        If we are using the preDeform flag, we will need to validate that we can find the Jaw influence!
+        """
+        super(FaceLips, self).validate(rig)
+
+        if self.preDeform:
+            if rig.get_jaw_jnt() is None:
+                return Exception("Can't resolve jaw influence!")
 
     def get_avars_corners(self):
         # todo: move upper?
@@ -113,6 +121,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             #jnt_head = rig.get_head_jnt()
 
             jnt_jaw = rig.get_jaw_jnt()
+            if not jnt_jaw:
+                self.error(rig, "Failed parenting avars, no jaw influence found!")
+                return
 
             # Hack: To prevent ANY flipping, we'll create an aligned target for the head and the jaw.
             # TODO: Find a cleaner way!

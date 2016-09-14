@@ -1,21 +1,16 @@
-from omtk.libs import libPython
-from omtk.core import classModule
-from maya import cmds
-
 # Import body modules
+import rigArm
+import rigDpSpine
 import rigFK
+import rigHand
+import rigHead
 import rigIK
+import rigLeg
+import rigLimb
+import rigNeck
 import rigRibbon
 import rigSplineIK
 import rigTwistbone
-import rigLimb
-import rigArm
-import rigLeg
-import rigHand
-import rigDpSpine
-import rigNeck
-import rigHead
-
 # Import face modules
 import rigFaceAvar
 import rigFaceAvarGrps

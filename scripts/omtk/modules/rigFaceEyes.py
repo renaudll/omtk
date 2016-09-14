@@ -114,12 +114,12 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
             avar.ctrl.setParent(self.ctrl_all)
 
 
-    def unbuild(self):
+    def unbuild(self, rig):
         """
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(FaceEyes, self).unbuild()
+        super(FaceEyes, self).unbuild(rig)
 
     def iter_ctrls(self):
         for ctrl in super(FaceEyes, self).iter_ctrls():

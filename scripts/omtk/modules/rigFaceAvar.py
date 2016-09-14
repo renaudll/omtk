@@ -6,9 +6,8 @@ import logging
 
 import pymel.core as pymel
 
-import omtk.core.classCtrl
-from omtk.core import classModule
 from omtk.core import classCtrl
+from omtk.core import classModule
 from omtk.core import classNode
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
@@ -103,13 +102,13 @@ class AbstractAvar(classModule.Module):
         self.attr_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
         self.attr_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
 
-    def hold_avars(self):
+    def hold_avars(self, rig):
         """
         Create a network to hold all the avars complex connection.
         This prevent Maya from deleting our connection when unbuilding.
         """
         if self.grp_rig is None or not self.grp_rig.exists():
-            log.warning("Can't hold avars, invalid grp_rig in {0}!".format(self))
+            self.warning(rig, "Can't hold avars, invalid grp_rig in {0}!".format(self))
             return
 
         self.avar_network = pymel.createNode('network')
@@ -135,7 +134,7 @@ class AbstractAvar(classModule.Module):
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                log.warning("Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
+                self.warning(rig, "Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
                 continue
 
             #attr_name = attr.longName()
@@ -167,11 +166,11 @@ class AbstractAvar(classModule.Module):
             pymel.delete(self.avar_network)
             self.avar_network = None
 
-    def unbuild(self):
-        self.hold_avars()
+    def unbuild(self, rig):
+        self.hold_avars(rig)
         self.init_avars()
 
-        super(AbstractAvar, self).unbuild()
+        super(AbstractAvar, self).unbuild(rig)
 
         # TODO: cleanup junk connections that Maya didn't delete by itself?
     #
@@ -490,7 +489,7 @@ class AvarSimple(AbstractAvar):
             if not isinstance(self.ctrl, self._CLS_CTRL):
                 old_shapes = None
                 if self.ctrl is not None:
-                    log.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                    self.warning(rig, "Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
                         self._CLS_CTRL, type(self.ctrl)
                     ))
                     old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
@@ -538,17 +537,17 @@ class AvarSimple(AbstractAvar):
                     self.calibrate()
             '''
 
-    def calibrate(self, **kwargs):
+    def calibrate(self, rig, **kwargs):
         """
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
         if not self.ctrl:
-            log.warning("Can't calibrate, found no ctrl for {0}".format(self))
+            self.warning(rig, "Can't calibrate, found no ctrl for {0}".format(self))
             return False
 
         # Hack: clean me!
         if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-            self.ctrl.calibrate(**kwargs)
+            self.ctrl.calibrate(rig, self, **kwargs)
 
 
 class AvarFollicle(AvarSimple):
@@ -985,8 +984,8 @@ class AvarAim(AvarSimple):
     def connect_ctrl(self, rig, ctrl, **kwargs):
         pass  # Nothing need to be connected since there's an aimConstraint
 
-    def unbuild(self):
-        super(AvarAim, self).unbuild()
+    def unbuild(self, rig):
+        super(AvarAim, self).unbuild(rig)
         self.target = None
 
 

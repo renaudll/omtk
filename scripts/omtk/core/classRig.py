@@ -1,6 +1,8 @@
+import traceback
+import time
+import logging
 from maya import cmds
 import pymel.core as pymel
-import time
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
@@ -9,7 +11,6 @@ from omtk.core import consts_omtk
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
-import logging
 log = logging.getLogger('omtk')
 
 class CtrlRoot(BaseCtrl):
@@ -51,7 +52,7 @@ class CtrlRoot(BaseCtrl):
         geometries = rig.get_meshes()
 
         if not geometries:
-            log.warning("Can't find any geometry in the scene.")
+            rig.warning("Can't find any geometry in the scene.")
             return min_size
 
         geometries_mel = [geo.__melobject__() for geo in geometries]
@@ -106,6 +107,39 @@ class Rig(object):
     AVAR_NAME_LOW = 'Low'
     AVAR_NAME_ALL = 'All'
 
+    def __init__(self, name=None):
+        self.name = name if name else self.DEFAULT_NAME
+        self.modules = []
+        self.grp_anm = None  # Anim Grp, usually the root ctrl
+        self.grp_geo = None  # Geometry grp
+        self.grp_jnt = None  # Joint grp, usually the root jnt
+        self.grp_rig = None  # Data grp
+        self.grp_master = None  # Main grp of the rig
+        self.layer_anm = None
+        self.layer_geo = None
+        self.layer_rig = None
+        self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
+        self._up_axis = consts_omtk.Axis.z  # This is the axis that will point in the bending direction
+
+    #
+    # Logging implementation
+    #
+
+    def debug(self, msg):
+        msg = '[{0}] {1}'.format(self.name, msg)
+        log.debug(msg)
+
+    def info(self, msg):
+        msg = '[{0}] {1}'.format(self.name, msg)
+        log.info(msg)
+
+    def warning(self, msg):
+        msg = '[{0}] {1}'.format(self.name, msg)
+        log.warning(msg)
+
+    def error(self, msg):
+        msg = '[{0}] {1}'.format(self.name, msg)
+        log.error(msg)
 
     #
     # className.BaseNomenclature implementation
@@ -145,20 +179,6 @@ class Rig(object):
 
     def __iter__(self):
         return iter(self.modules)
-
-    def __init__(self, name=None):
-        self.name = name if name else self.DEFAULT_NAME
-        self.modules = []
-        self.grp_anm = None  # Anim Grp, usually the root ctrl
-        self.grp_geo = None  # Geometry grp
-        self.grp_jnt = None  # Joint grp, usually the root jnt
-        self.grp_rig = None  # Data grp
-        self.grp_master = None  # Main grp of the rig
-        self.layer_anm = None
-        self.layer_geo = None
-        self.layer_rig = None
-        self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
-        self._up_axis = consts_omtk.Axis.z  # This is the axis that will point in the bending direction
 
     def __str__(self):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
@@ -282,7 +302,7 @@ class Rig(object):
             meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
         if not meshes:
-            log.warning("Found no mesh under the mesh group, scanning the whole scene.")
+            self.warning("Found no mesh under the mesh group, scanning the whole scene.")
             shapes = pymel.ls(type='mesh')
             meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
@@ -344,7 +364,7 @@ class Rig(object):
                 if cmds.objExists(self.nomenclature.root_jnt_name):
                     self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
                 else:
-                    log.warning("Could not find any root joint, master ctrl will not drive anything")
+                    self.warning("Could not find any root joint, master ctrl will not drive anything")
                     # self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
 
         # Ensure all joints have segmentScaleComprensate deactivated.
@@ -415,7 +435,7 @@ class Rig(object):
     def build(self, skip_validation=False, **kwargs):
         # Aboard if already built
         if self.is_built():
-            log.warning("Can't build {0} because it's already built!".format(self))
+            self.warning("Can't build {0} because it's already built!".format(self))
             return False
 
         # Abord if validation fail
@@ -423,8 +443,10 @@ class Rig(object):
             try:
                 self.validate()
             except Exception, e:
-                log.warning("Can't build {0} because it failed validation: {1}".format(self, e))
+                self.warning("Can't build {0} because it failed validation: {1}".format(self, e))
                 return False
+
+        self.info("Building")
 
         sTime = time.time()
 
@@ -447,12 +469,16 @@ class Rig(object):
                 try:
                     module.validate(self)
                 except Exception, e:
-                    log.warning("Can't build {0}: {1}".format(module, e))
+                    self.warning("Can't build {0}: {1}".format(module, e))
                     continue
+
             if not module.locked:
-                print("Building {0}...".format(module))
-                module.build(self, **kwargs)
-            self.post_build_module(module)
+                try:
+                    module.build(self, **kwargs)
+                    self.post_build_module(module)
+                except Exception, e:
+                    self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
+                    traceback.print_exc()
             '''
             try:
                 # Skip any locked module
@@ -548,7 +574,11 @@ class Rig(object):
                     pymel.warning("Ejecting {0} from {1} before deletion".format(module.grp_rig.name(), self.grp_rig.name()))
                     module.grp_rig.setParent(world=True)
             else:
-                module.unbuild(**kwargs)
+                try:
+                    module.unbuild(self, **kwargs)
+                except Exception, e:
+                    self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
+                    traceback.print_exc()
 
     def _unbuild_nodes(self):
         # Delete anm_grp
@@ -562,6 +592,7 @@ class Rig(object):
         :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
         :return: True if successful.
         """
+        self.info("Un-building")
 
         self._unbuild_modules(**kwargs)
         self._unbuild_nodes()
@@ -625,31 +656,33 @@ class Rig(object):
                         return jnt
 
     @libPython.memoized
-    def get_head_jnt(self, strict=True):
+    def get_head_jnt(self):
         from omtk.modules import rigHead
         for module in self.modules:
             if isinstance(module, rigHead.Head):
                 return module.jnt
-        if strict:
-            raise Exception("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
+        self.error("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
+        return None
 
     @libPython.memoized
-    def get_jaw_jnt(self, strict=False):
+    def get_jaw_jnt(self):
         from omtk.modules import rigFaceJaw
         for module in self.modules:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 return module.jnt
-        if strict:
-            raise Exception("Cannot found Jaw in rig! Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+        self.error("Cannot found Jaw in rig! Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+        return None
 
     @libPython.memoized
-    def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2):
+    def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2, default_distance=20):
         """
         :return: The recommended distance between the head middle and the face macro ctrls.
         """
-        return 20
-        '''
         jnt_head = self.get_head_jnt()
+        if not jnt_head:
+            log.warning("Cannot resolve desired macro avars distance from head. Using default ({0})".format(default_distance))
+            return default_distance
+
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
         geometries = libRigging.get_affected_geometries(jnt_head)
@@ -681,13 +714,12 @@ class Rig(object):
         distance = libPymel.distance_between_vectors(middle, front)
 
         return distance * multiplier
-        '''
 
     @libPython.memoized
     def get_head_length(self):
         jnt_head = self.get_head_jnt()
         if not jnt_head:
-            return None
+            self.warning("Can't resolve head length!")
 
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
@@ -703,7 +735,7 @@ class Rig(object):
 
         top = libRigging.ray_cast_farthest(bot, dir, geometries)
         if not top:
-            pymel.warning("Can't resolve head top location using raycasts using {0} {1}!".format(
+            self.warning("Can't resolve head top location using raycasts using {0} {1}!".format(
                 bot, dir
             ))
             return None

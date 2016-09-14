@@ -2,13 +2,13 @@ import pymel.core as pymel
 from maya import cmds
 from maya import mel
 
-from omtk.modules.rigIK import IK
+from omtk.libs import libAttr
+from omtk.libs import libCtrlShapes
+from omtk.libs import libRigging
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
-from omtk.libs import libRigging
-from omtk.libs import libCtrlShapes
-from omtk.libs import libAttr
-from omtk.libs import libPymel
+from omtk.modules.rigIK import IK
+
 
 class CtrlIkLeg(rigIK.CtrlIk):
     """
@@ -445,7 +445,7 @@ class LegIk(IK):
         pymel.connectAttr(self.grp_rig.globalScale, root_footRoll.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, root_footRoll.scaleZ)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         """
         Unbuild the system
         Remember footroll locations in relation with a safe matrix
@@ -469,7 +469,7 @@ class LegIk(IK):
         if self.pivot_foot_out:
             self.pivot_foot_out_pos = (self.pivot_foot_out.getMatrix(worldSpace=True) * tm_ref_inv).translate
 
-        super(LegIk, self).unbuild()
+        super(LegIk, self).unbuild(rig)
 
         self.pivot_foot_heel = None
         self.pivot_toes_heel = None
@@ -634,12 +634,12 @@ class LegIkQuad(LegIk):
             for source, target in zip(self._chain_quad_ik, self.chain):
                 pymel.parentConstraint(source, target)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         self._chain_quad_ik = None
         self._ik_handle_quad = None
         self.quad_swivel_distance = None
 
-        super(LegIkQuad, self).unbuild()
+        super(LegIkQuad, self).unbuild(rig)
 
 
 

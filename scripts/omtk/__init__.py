@@ -1,6 +1,6 @@
-import logging
 import os
 import sys
+
 import pymel.core as pymel
 
 # Load dependencies (including git submodules) in sys.path

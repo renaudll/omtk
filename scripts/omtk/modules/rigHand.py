@@ -208,21 +208,23 @@ class Hand(Module):
 
         pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         for sysFinger in self.sysFingers:
-            sysFinger.unbuild()
+            sysFinger.unbuild(rig)
 
         for ctrl_meta in self.fk_sys_metacarpals:
-            ctrl_meta.unbuild()
+            ctrl_meta.unbuild(rig)
 
-        super(Hand, self).unbuild()
+        super(Hand, self).unbuild(rig)
 
     def iter_ctrls(self):
         for ctrl in super(Hand, self).iter_ctrls():
             yield ctrl
-        for sys in self.sysFingers:
-            for ctrl in sys.iter_ctrls():
-                yield ctrl
-        for sys in self.fk_sys_metacarpals:
-            for ctrl in sys.iter_ctrls():
-                yield ctrl
+        if self.sysFingers:
+            for sys in self.sysFingers:
+                for ctrl in sys.iter_ctrls():
+                    yield ctrl
+        if self.fk_sys_metacarpals:
+            for sys in self.fk_sys_metacarpals:
+                for ctrl in sys.iter_ctrls():
+                    yield ctrl

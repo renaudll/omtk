@@ -1,15 +1,13 @@
-import copy
 import itertools
 import logging
 
 import pymel.core as pymel
 
 from omtk.core import classModule
-from omtk.core import classCtrl
+from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.libs import libCtrlShapes
 from omtk.libs.libRigging import get_average_pos_between_nodes
 from omtk.modules import rigFaceAvar
 
@@ -260,9 +258,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             head_length = rig.get_head_length()
         except Exception, e:
             head_length = None
-            log.warning(e)
+            self.warning(e)
         if head_length:
-            max_ctrl_size = rig.get_head_length() * 0.03
+            max_ctrl_size = rig.get_head_length() * 0.05
 
         if len(self.jnts) > 1:
             new_ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
@@ -270,14 +268,14 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 ctrl_size = new_ctrl_size
             
             if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
-                log.warning("Limiting ctrl size to {0}".format(max_ctrl_size))
+                self.debug(rig, "Limiting ctrl size to {0}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
         else:
-            log.warning("Can't automatically resolve ctrl size, using default {0}".format(ctrl_size))
+            self.warning(rig, "Can't automatically resolve ctrl size, using default {0}".format(ctrl_size))
 
         return ctrl_size
 
-    def _get_avars_influences(self):
+    def _get_avars_influences(self, rig):
         """
         Return the influences that need to have avars associated with.
         Normally for 3 influences, we create 3 avars.
@@ -297,7 +295,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         super(AvarGrp, self).validate(rig)
 
         if self.VALIDATE_MESH:
-            avar_influences = self._get_avars_influences()
+            avar_influences = self._get_avars_influences(rig)
             for jnt in avar_influences:
                 mesh = rig.get_farest_affected_mesh(jnt)
                 if not mesh:
@@ -305,9 +303,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         # Try to resolve the head joint.
         # With strict=True, an exception will be raised if nothing is found.
-        rig.get_head_jnt(strict=True)
+        if rig.get_head_jnt() is None:
+            raise Exception("Can't resolve the head influence!")
 
-    def _can_create_micro_avars(self):
+    def _can_create_micro_avars(self, rig):
         """
         Check if we need to reset the property containing the avars associated with the influences.
         It some rare cases it might be necessary to reset everything, however this would be considered a last-case
@@ -319,9 +318,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         # If the influence and avars count mismatch, we need to rebuild everything.
         # Also if the desired avars type have changed, we need to rebuild everything.
-        avar_influences = self._get_avars_influences()
+        avar_influences = self._get_avars_influences(rig)
         if len(filter(lambda x: isinstance(x, self._CLS_AVAR), self.avars)) != len(avar_influences):
-            log.warning("Mismatch between avars and jnts tables. Will reset the avars table.")
+            self.warning(rig, "Mismatch between avars and jnts tables. Will reset the avars table.")
             return True
 
         return False
@@ -331,7 +330,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         For each influence, create it's associated avar instance.
         """
         avars = []
-        avar_influences = self._get_avars_influences()
+        avar_influences = self._get_avars_influences(rig)
         # Connect global avars to invidial avars
         for jnt in avar_influences:
             #avar = self.create_avar_micro(rig, jnt)
@@ -344,7 +343,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         Create the avars objects if they were never created (generally on first build).
         """
         # Create avars if needed (this will get skipped if the module have already been built once)
-        if self._can_create_micro_avars():
+        if self._can_create_micro_avars(rig):
             self.avars = self._create_micro_avars(rig)
 
     def _build_avars(self, rig, parent=None, connect_global_scale=None, create_ctrls=True, constraint=True, **kwargs):
@@ -363,7 +362,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         mult_v = self.get_multiplier_v()
 
         # Build avars and connect them to global avars
-        avar_influences = self._get_avars_influences()
+        avar_influences = self._get_avars_influences(rig)
         for jnt, avar in zip(avar_influences, self.avars):
             self.configure_avar(rig, avar)
 
@@ -389,7 +388,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         try:
             avar.validate(rig)
         except Exception, e:
-            log.warning("Can't build avar {0}, failed validation: {1}".format(
+            self.warning(rig, "Can't build avar {0}, failed validation: {1}".format(
                 avar.name,
                 e
             ))
@@ -464,7 +463,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 self.surface = surface
 
         if self.surface is None:
-            log.warning("Can't find surface for {0}, creating one...".format(self))
+            self.warning(rig, "Can't find surface for {0}, creating one...".format(self))
             self.surface = self.create_surface(rig)
             #self.input.append(new_surface)
             #del self._cache['surface']
@@ -495,10 +494,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         self.calibrate(rig)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         for avar in self.avars:
-            avar.unbuild()
-        super(AvarGrp, self).unbuild()
+            avar.unbuild(rig)
+        super(AvarGrp, self).unbuild(rig)
 
     def iter_ctrls(self):
         for ctrl in super(AvarGrp, self).iter_ctrls():
@@ -510,7 +509,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     @classModule.decorator_uiexpose
     def calibrate(self, rig):
         for avar in self.avars:
-            avar.calibrate()
+            avar.calibrate(rig)
 
     def _create_avar(self, rig, ref, cls_avar=None, cls_ctrl=None, old_val=None, name=None, **kwargs):
         """
@@ -524,7 +523,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         :return:
         """
         if cls_avar is None:
-            #log.warning("No avar class specified for {0}, using default.".format(self))
+            #self.warning("No avar class specified for {0}, using default.".format(self))
             cls_avar = rigFaceAvar.AvarSimple
 
         avar = cls_avar([ref], name=name)
@@ -537,7 +536,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         # It is possible that the old avar type don't match the desired one.
         # When this happen, we'll try at least to save the ctrl instance so the shapes match.
         if old_val is not None and type(old_val) != cls_avar:
-            log.warning("Unexpected avar type. Expected {0}, got {1}. Will preserve ctrl.".format(
+            self.warning(rig, "Unexpected avar type. Expected {0}, got {1}. Will preserve ctrl.".format(
                 cls_avar, type(old_val)
             ))
             avar.ctrl = old_val.ctrl
@@ -631,19 +630,19 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         base_u, base_v = self.get_base_uv()
         return abs(base_u - 0.5) * 2.0
 
-    def _get_avars_influences(self):
+    def _get_avars_influences(self, rig):
         """
         If the rigger provided an influence for the 'all' Avar, don't create an Avar for it. We will handle it manually.
         :return:
         """
-        influences = super(AvarGrpAreaOnSurface, self)._get_avars_influences()
-        influence_all = self.get_influence_all()
+        influences = super(AvarGrpAreaOnSurface, self)._get_avars_influences(rig)
+        influence_all = self.get_influence_all(rig)
         if influence_all and influence_all in influences:
             influences.remove(influence_all)
         return influences
 
     @libPython.memoized
-    def get_influence_all(self):
+    def get_influence_all(self, rig):
         """
         If the rigger provided in the module input a parent for all the other inputs it will be considered as an influence for the 'all' macro avar.
         """
@@ -653,7 +652,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
                 parent_avars.append(avar)
 
         if len(parent_avars) > 1:
-            log.warning("Invalid hierarchy when scanning for all macro avar. Guess will be taken.")
+            self.warning(rig, "Invalid hierarchy when scanning for all macro avar. Guess will be taken.")
 
         return next(iter(parent_avars), None)
 
@@ -815,7 +814,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         if self.CREATE_MACRO_AVAR_ALL:
             # Resolve reference.
             # The rigger can provide it manually, otherwise the parent will be used.
-            ref = self.get_influence_all()
+            ref = self.get_influence_all(rig)
             constraint = True if ref else False
             if ref is None:
                 ref = self.parent
@@ -839,18 +838,18 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
         self._build_avar_macro_all(rig)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         if self.avar_l:
-            self.avar_l.unbuild()
+            self.avar_l.unbuild(rig)
         if self.avar_r:
-            self.avar_r.unbuild()
+            self.avar_r.unbuild(rig)
         if self.avar_upp:
-            self.avar_upp.unbuild()
+            self.avar_upp.unbuild(rig)
         if self.avar_low:
-            self.avar_low.unbuild()
+            self.avar_low.unbuild(rig)
         if self.avar_all:
-            self.avar_all.unbuild()
-        super(AvarGrpAreaOnSurface, self).unbuild()
+            self.avar_all.unbuild(rig)
+        super(AvarGrpAreaOnSurface, self).unbuild(rig)
 
     @classModule.decorator_uiexpose
     def calibrate(self, rig):
@@ -861,15 +860,15 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         super(AvarGrpAreaOnSurface, self).calibrate(rig)
 
         if self.avar_l:
-            self.avar_l.calibrate()
+            self.avar_l.calibrate(rig)
         if self.avar_r:
-            self.avar_r.calibrate()
+            self.avar_r.calibrate(rig)
         if self.avar_upp:
-            self.avar_upp.calibrate()
+            self.avar_upp.calibrate(rig)
         if self.avar_low:
-            self.avar_low.calibrate()
+            self.avar_low.calibrate(rig)
         if self.avar_all:
-            self.avar_all.calibrate()
+            self.avar_all.calibrate(rig)
 
     def get_avars_upp(self):
         result = super(AvarGrpAreaOnSurface, self).get_avars_upp()

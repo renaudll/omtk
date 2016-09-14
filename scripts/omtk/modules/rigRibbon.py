@@ -109,7 +109,7 @@ class Ribbon(Module):
         '''
 
 
-    def unbuild(self):
-        super(Ribbon, self).unbuild()
+    def unbuild(self, rig):
+        super(Ribbon, self).unbuild(rig)
 
         self.ctrls = []

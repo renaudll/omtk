@@ -1,7 +1,8 @@
-import math
 import pymel.core as pymel
+
 from omtk.core.classModule import Module
-from omtk.libs import libRigging, libPymel, libPython, libFormula
+from omtk.libs import libRigging, libPymel
+
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class SplineIK(Module):
@@ -61,9 +62,9 @@ class SplineIK(Module):
                     pymel.connectAttr(squash, jnt.sz, force=True)
 
 
-    def unbuild(self, **kwargs):
+    def unbuild(self, rig):
         # hack: the ikEffector is parented to the bone chain and need to be deleted manually
         if libPymel.is_valid_PyNode(self.ikEffector):
             pymel.delete(self.ikEffector)
 
-        super(SplineIK, self).unbuild(**kwargs)
+        super(SplineIK, self).unbuild(rig)

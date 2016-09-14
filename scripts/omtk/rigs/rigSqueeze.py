@@ -1,12 +1,12 @@
 import re
 
 import pymel.core as pymel
-from maya import cmds
 
 from omtk import className
 from omtk import classRig
-from omtk.libs import libRigging, libAttr, libPymel
-from omtk.modules import rigLimb
+from omtk.libs import libAttr
+from omtk.libs import libPymel
+
 
 class SqueezeNomenclature(className.BaseName):
     type_anm = 'Ctrl'

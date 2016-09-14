@@ -185,13 +185,13 @@ class Limb(Module):
 
         self.attState = attr_ik_weight  # Expose state
 
-    def unbuild(self):
-        if self.sysIK.is_built():
-            self.sysIK.unbuild()
-        if self.sysFK.is_built():
-            self.sysFK.unbuild()
+    def unbuild(self, rig):
+        if self.sysIK and self.sysIK.is_built():
+            self.sysIK.unbuild(rig)
+        if self.sysFK and self.sysFK.is_built():
+            self.sysFK.unbuild(rig)
 
-        super(Limb, self).unbuild()
+        super(Limb, self).unbuild(rig)
 
         self.attState = None
 
@@ -243,9 +243,11 @@ class Limb(Module):
     def iter_ctrls(self):
         for ctrl in super(Limb, self).iter_ctrls():
             yield ctrl
-        for ctrl in self.sysIK.iter_ctrls():
-            yield ctrl
-        for ctrl in self.sysFK.iter_ctrls():
-            yield ctrl
+        if self.sysIK:
+            for ctrl in self.sysIK.iter_ctrls():
+                yield ctrl
+        if self.sysFK:
+            for ctrl in self.sysFK.iter_ctrls():
+                yield ctrl
         yield self.ctrl_attrs
         yield self.ctrl_elbow

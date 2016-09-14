@@ -246,7 +246,7 @@ class DpSpine(Module):
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleZ)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         # Restore the original skin and remove the squash joints
         if self.jnt_squash_dwn and self.jnt_squash_dwn.exists():
             jnt_dwn = self.chain_jnt[0]
@@ -260,7 +260,7 @@ class DpSpine(Module):
 
         self.jnt_squash_dwn = None
         self.jnt_squash_dwn = None
-        super(DpSpine, self).unbuild()
+        super(DpSpine, self).unbuild(rig)
 
     def get_parent(self, parent):
         if parent == self.chain_jnt[0]:

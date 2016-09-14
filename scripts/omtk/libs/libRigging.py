@@ -1,10 +1,11 @@
+import logging
+
+import pymel.core as pymel
+from maya import OpenMaya
 from maya import cmds
 from maya import mel
-import pymel.core as pymel
-import logging
-import libPymel
+
 import libPython
-from maya import OpenMaya
 from omtk.libs import libPymel
 
 '''

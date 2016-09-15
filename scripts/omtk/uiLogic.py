@@ -3,6 +3,7 @@ import functools
 import inspect
 import logging
 import re
+import traceback
 
 import libSerialization
 import pymel.core as pymel
@@ -601,7 +602,7 @@ class AutoRig(QtGui.QMainWindow):
             pymel.warning("Can't unbuild locked module {0}".format(module))
             return
 
-        module.unbuild()
+        module.unbuild(self.root)
 
         return True
 
@@ -610,24 +611,32 @@ class AutoRig(QtGui.QMainWindow):
             pymel.warning("Can't build {0}, already built.".format(val))
             return
 
-        if isinstance(val, classModule.Module):
-            self._build_module(val)
-        elif isinstance(val, classRig.Rig):
-            val.build()
-        else:
-            raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
+        try:
+            if isinstance(val, classModule.Module):
+                self._build_module(val)
+            elif isinstance(val, classRig.Rig):
+                val.build()
+            else:
+                raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
+        except Exception, e:
+            log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
+            traceback.print_exc()
 
     def _unbuild(self, val):
         if not val.is_built():
             pymel.warning("Can't unbuild {0}, already unbuilt.".format(val))
             return
 
-        if isinstance(val, classModule.Module):
-            self._unbuild_module(val)
-        elif isinstance(val, classRig.Rig):
-            val.unbuild()
-        else:
-            raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
+        try:
+            if isinstance(val, classModule.Module):
+                self._unbuild_module(val)
+            elif isinstance(val, classRig.Rig):
+                val.unbuild()
+            else:
+                raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
+        except Exception, e:
+            log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
+            traceback.print_exc()
 
     #
     # Events

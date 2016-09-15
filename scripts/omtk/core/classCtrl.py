@@ -421,7 +421,11 @@ class InteractiveCtrl(BaseCtrl):
         if obj_mesh is None:
             raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
 
-        parent.debug('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
+        if self.jnt:
+            parent.debug('Creating doritos on {0} using {1} as reference'.format(obj_mesh, self.jnt))
+        else:
+            parent.debug('Creating doritos on {0}'.format(obj_mesh))
+
 
         # Initialize external stack
         # Normally this would be hidden from animators.

@@ -50,6 +50,157 @@ def get_all_QTreeWidgetItem(widget, qt_item=None):
         for x in get_all_QTreeWidgetItem(widget, qt_sub_item):
             yield x
 
+def log_level_to_str(level):
+    if level >= logging.CRITICAL:
+        return 'Critical'
+    if level >= logging.ERROR:
+        return 'Error'
+    if level >= logging.WARNING:
+        return 'Warning'
+    return 'Info'
+
+class UiLoggerModel(QtCore.QAbstractTableModel):
+    HEADER = ('Date', 'Type', 'Message')
+
+    ROW_LEVEL = 1
+    ROW_MESSAGE = 2
+    ROW_DATE = 0
+
+    COLOR_FOREGROUND_ERROR = QtGui.QColor(0, 0, 0)
+    COLOR_FOREGROUND_WARNING = QtGui.QColor(255, 255, 0)
+    COLOR_FOREGROUND_INFO = None
+    COLOR_FOREGROUND_DEBUG = QtGui.QColor(128, 128, 128)
+
+    COLOR_BACKGROUND_ERROR = QtGui.QColor(255, 0, 0)
+    COLOR_BACKGROUND_WARNING = None
+    COLOR_BACKGROUND_INFO = None
+    COLOR_BACKGROUND_DEBUG = None
+
+    def __init__(self, parent, data, *args):
+        super(UiLoggerModel, self).__init__(parent, *args)
+        self.items = data
+        self.header = self.HEADER
+
+    def rowCount(self, parent):
+        return len(self.items)
+
+    def columnCount(self, parent):
+        return len(self.header)
+
+    def data(self, index, role):
+        if not index.isValid():
+            return None
+
+        if role == QtCore.Qt.ForegroundRole:
+            record = self.items[index.row()]
+            level = record.levelno
+            if level >= logging.ERROR:
+                return self.COLOR_FOREGROUND_ERROR
+            if level >= logging.WARNING:
+                return self.COLOR_FOREGROUND_WARNING
+            if level <= logging.DEBUG:
+                return self.COLOR_FOREGROUND_DEBUG
+            return self.COLOR_FOREGROUND_INFO
+
+        if role == QtCore.Qt.BackgroundColorRole:
+            record = self.items[index.row()]
+            level = record.levelno
+            if level >= logging.ERROR:
+                return self.COLOR_BACKGROUND_ERROR
+            if level >= logging.WARNING:
+                return self.COLOR_BACKGROUND_WARNING
+            if level <= logging.DEBUG:
+                return self.COLOR_BACKGROUND_DEBUG
+            return self.COLOR_BACKGROUND_INFO
+
+        if role != QtCore.Qt.DisplayRole:
+            return None
+
+        record = self.items[index.row()]
+        col_index = index.column()
+        if col_index == self.ROW_LEVEL:
+            level = record.levelno
+            return log_level_to_str(level)
+        elif col_index == self.ROW_MESSAGE:
+            return record.message
+        elif col_index == self.ROW_DATE:
+            return str(datetime.datetime.fromtimestamp(record.created))
+        else:
+            Exception("Unexpected row. Expected 0 or 1, got {0}".format(
+                col_index
+            ))
+
+    def headerData(self, col, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self.header[col]
+        return None
+
+    def add(self, item):
+        num_items = len(self.items)
+        self.beginInsertRows(QtCore.QModelIndex(), num_items, num_items)
+        self.items.append(item)
+        self.endInsertRows()
+        #
+        # top = self.createIndex(num_items, 0, 0)
+        # bot = self.createIndex(num_items, len(self.header), 0)
+        # self.dataChanged.emit(top, bot)
+
+    '''
+    def sort(self, col, order):
+        """sort table by given column number col"""
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        self.data = sorted(self.data,
+                           key=operator.itemgetter(col))
+        if order == Qt.DescendingOrder:
+            self.data.reverse()
+        self.emit(SIGNAL("layoutChanged()"))
+    '''
+
+class UiLoggerProxyModel(QtGui.QSortFilterProxyModel):
+    def __init__(self, *args, **kwargs):
+        super(UiLoggerProxyModel, self).__init__(*args, **kwargs)
+        self._log_level_interest = logging.WARNING
+        self._log_search_query = None
+
+    def set_loglevel_filter(self, loglevel, update=True):
+        self._log_level_interest = loglevel
+        if update:
+            self.reset()
+
+    def set_log_query(self, query, update=True):
+        self._log_search_query = query if query else None
+        if update:
+            self.reset()
+
+    def filterAcceptsRow(self, source_row, index):
+        model = self.sourceModel()
+        record = model.items[source_row]
+
+        # Filter using query
+        if self._log_search_query:
+            query = self._log_search_query.lower()
+            if not query in record.message.lower():
+                return False
+
+        # Filter using log level
+        level = record.levelno
+        if level < self._log_level_interest:
+            return False
+
+        return True
+
+# class QTreeWidgetItem_CustomTooltip(QtGui.QTreeWidgetItem):
+#     """
+#     A custom QTreeWidgetItem that implement a tooltip for each individual item.
+#     """
+#     def __init__(self, *args, **kwargs):
+#         super(QTreeWidgetItem_CustomTooltip, self).__init__(*args, **kwargs)
+#         self.tooltip = None
+#
+#     def data(self, column, role):
+#         if role == QtCore.Qt.ToolTipRole:
+#             return self._tooltip
+#         return super(QTreeWidgetItem_CustomTooltip, self).data(column, role)
 
 class AutoRig(QtGui.QMainWindow):
     # http://forums.cgsociety.org/archive/index.php?t-1096914.html
@@ -109,9 +260,6 @@ class AutoRig(QtGui.QMainWindow):
         self.ui.checkBox_hideAssigned.setCheckState(QtCore.Qt.Checked)
         self.ui.actionCreateModule.setEnabled(False)
 
-        self.import_networks()
-        self.update_ui()
-
         #
         # Configure logging view
         #
@@ -133,6 +281,16 @@ class AutoRig(QtGui.QMainWindow):
 
         self.ui.tableView_logs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
         self.ui.tableView_logs.horizontalHeader().setStretchLastSection(True)
+
+        self.create_logger_handler()
+        log.info('Opened OMTK GUI')
+
+        #
+        # First update
+        #
+
+        self.import_networks()
+        self.update_ui()
 
         #
         # Connect events
@@ -230,6 +388,7 @@ class AutoRig(QtGui.QMainWindow):
     # Privates
     #
     def _can_build(self, data, verbose=True):
+        validate_message = None
         try:
             if isinstance(data, classRig.Rig):
                 data.validate()
@@ -239,21 +398,32 @@ class AutoRig(QtGui.QMainWindow):
                 raise Exception("Unexpected datatype {0} for {1}".format(type(data), data))
         except Exception, e:
             if verbose:
+                validate_message  = str(e)
                 pymel.warning("{0} failed validation: {1}".format(data, str(e)))
-            return False
-        return True
+            return False, validate_message
+        return True, validate_message
 
     _color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
     _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
     _color_locked = QtGui.QBrush(QtGui.QColor(125, 125, 125))
 
-    def _get_module_color(self, module):
+    def _set_QTreeWidgetItem_color(self, qItem, module):
+        desired_color = None
+
+        # Set QTreeWidgetItem gray if the module fail validation
         if isinstance(module, classModule.Module) and module.locked:
             return self._color_locked
+
         # Set QTreeWidgetItem red if the module fail validation
-        if not self._can_build(module, verbose=True):
-            return self._color_invalid
-        return self._color_valid
+        can_build, validation_message = self._can_build(module, verbose=True)
+        if not can_build:
+            desired_color = self._color_invalid
+            msg = 'Validation failed for {0}: {1}'.format(module, validation_message)
+            log.warning(msg)
+            qItem.setToolTip(0, msg)
+
+        if desired_color:
+            qItem.setBackground(0, desired_color)
 
     def _rig_to_tree_widget(self, module):
         qItem = QtGui.QTreeWidgetItem(0)
@@ -276,8 +446,7 @@ class AutoRig(QtGui.QMainWindow):
         # {
         #   background-color: rgb(45,45,45);
         # }"""
-        color = self._get_module_color(module)
-        qItem.setBackground(0, color)
+        self._set_QTreeWidgetItem_color(qItem, module)
 
         qItem._name = qItem.text(0)
         qItem._checked = module.is_built()
@@ -1030,9 +1199,6 @@ class AutoRig(QtGui.QMainWindow):
 
     def showEvent(self, *args, **kwargs):
         super(AutoRig, self).showEvent(*args, **kwargs)
-        self.create_logger_handler()
-
-        log.info('Opened OMTK GUI')
 
     def closeEvent(self, *args, **kwargs):
         log.info('Closed OMTK GUI')
@@ -1045,9 +1211,7 @@ class AutoRig(QtGui.QMainWindow):
         # Logger handling
         #
 
-
 gui = None
-
 
 def show():
     global gui
@@ -1062,143 +1226,3 @@ def show():
     gui.move(pFrame.topLeft())
 
     gui.show()
-
-
-def log_level_to_str(level):
-    if level >= logging.CRITICAL:
-        return 'Critical'
-    if level >= logging.ERROR:
-        return 'Error'
-    if level >= logging.WARNING:
-        return 'Warning'
-    return 'Info'
-
-class UiLoggerModel(QtCore.QAbstractTableModel):
-    HEADER = ('Date', 'Type', 'Message')
-
-    ROW_LEVEL = 1
-    ROW_MESSAGE = 2
-    ROW_DATE = 0
-
-    COLOR_FOREGROUND_ERROR = QtGui.QColor(0, 0, 0)
-    COLOR_FOREGROUND_WARNING = QtGui.QColor(255, 255, 0)
-    COLOR_FOREGROUND_INFO = None
-    COLOR_FOREGROUND_DEBUG = QtGui.QColor(128, 128, 128)
-
-    COLOR_BACKGROUND_ERROR = QtGui.QColor(255, 0, 0)
-    COLOR_BACKGROUND_WARNING = None
-    COLOR_BACKGROUND_INFO = None
-    COLOR_BACKGROUND_DEBUG = None
-
-    def __init__(self, parent, data, *args):
-        super(UiLoggerModel, self).__init__(parent, *args)
-        self.items = data
-        self.header = self.HEADER
-
-    def rowCount(self, parent):
-        return len(self.items)
-
-    def columnCount(self, parent):
-        return len(self.header)
-
-    def data(self, index, role):
-        if not index.isValid():
-            return None
-
-        if role == QtCore.Qt.ForegroundRole:
-            record = self.items[index.row()]
-            level = record.levelno
-            if level >= logging.ERROR:
-                return self.COLOR_FOREGROUND_ERROR
-            if level >= logging.WARNING:
-                return self.COLOR_FOREGROUND_WARNING
-            if level <= logging.DEBUG:
-                return self.COLOR_FOREGROUND_DEBUG
-            return self.COLOR_FOREGROUND_INFO
-
-        if role == QtCore.Qt.BackgroundColorRole:
-            record = self.items[index.row()]
-            level = record.levelno
-            if level >= logging.ERROR:
-                return self.COLOR_BACKGROUND_ERROR
-            if level >= logging.WARNING:
-                return self.COLOR_BACKGROUND_WARNING
-            if level <= logging.DEBUG:
-                return self.COLOR_BACKGROUND_DEBUG
-            return self.COLOR_BACKGROUND_INFO
-
-        if role != QtCore.Qt.DisplayRole:
-            return None
-
-        record = self.items[index.row()]
-        col_index = index.column()
-        if col_index == self.ROW_LEVEL:
-            level = record.levelno
-            return log_level_to_str(level)
-        elif col_index == self.ROW_MESSAGE:
-            return record.message
-        elif col_index == self.ROW_DATE:
-            return str(datetime.datetime.fromtimestamp(record.created))
-        else:
-            Exception("Unexpected row. Expected 0 or 1, got {0}".format(
-                col_index
-            ))
-
-    def headerData(self, col, orientation, role):
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return self.header[col]
-        return None
-
-    def add(self, item):
-        num_items = len(self.items)
-        self.beginInsertRows(QtCore.QModelIndex(), num_items, num_items)
-        self.items.append(item)
-        self.endInsertRows()
-        #
-        # top = self.createIndex(num_items, 0, 0)
-        # bot = self.createIndex(num_items, len(self.header), 0)
-        # self.dataChanged.emit(top, bot)
-
-    '''
-    def sort(self, col, order):
-        """sort table by given column number col"""
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        self.data = sorted(self.data,
-                           key=operator.itemgetter(col))
-        if order == Qt.DescendingOrder:
-            self.data.reverse()
-        self.emit(SIGNAL("layoutChanged()"))
-    '''
-
-class UiLoggerProxyModel(QtGui.QSortFilterProxyModel):
-    def __init__(self, *args, **kwargs):
-        super(UiLoggerProxyModel, self).__init__(*args, **kwargs)
-        self._log_level_interest = logging.WARNING
-        self._log_search_query = None
-
-    def set_loglevel_filter(self, loglevel, update=True):
-        self._log_level_interest = loglevel
-        if update:
-            self.reset()
-
-    def set_log_query(self, query, update=True):
-        self._log_search_query = query if query else None
-        if update:
-            self.reset()
-
-    def filterAcceptsRow(self, source_row, index):
-        model = self.sourceModel()
-        record = model.items[source_row]
-
-        # Filter using query
-        if self._log_search_query:
-            query = self._log_search_query.lower()
-            if not query in record.message.lower():
-                return False
-
-        # Filter using log level
-        level = record.levelno
-        if level < self._log_level_interest:
-            return False
-
-        return True

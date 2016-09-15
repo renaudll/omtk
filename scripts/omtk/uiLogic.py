@@ -784,9 +784,13 @@ class AutoRig(QtGui.QMainWindow):
         for item in self.ui.treeWidget.selectedItems():
             module = item.rig
             # net = item.net if hasattr(item, "net") else None
-            if module.is_built():
-                module.unbuild()
-            self.root.modules.remove(module)
+            try:
+                if module.is_built():
+                    module.unbuild(self.root)
+                self.root.modules.remove(module)
+            except Exception, e:
+                log.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
+                traceback.print_exc()
         self.export_networks()
         self.update_ui()
 

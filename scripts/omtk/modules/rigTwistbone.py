@@ -5,6 +5,8 @@ from omtk.core.classNode import Node
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.modules.rigSplineIK import SplineIK
+from omtk.modules.rigRibbon import Ribbon
+import re
 
 
 class NonRollJoint(Node):
@@ -16,7 +18,7 @@ class NonRollJoint(Node):
     """
     Used for quaternion extraction.
     """
-    def build(self, *args, **kwargs):
+    def build(self, nomenclature=None, *args, **kwargs):
         super(NonRollJoint, self).build(*args, **kwargs)
 
         pymel.select(clear=True)
@@ -33,6 +35,19 @@ class NonRollJoint(Node):
         self.ikHandle.poleVectorY.set(0)
         self.ikHandle.poleVectorZ.set(0)
 
+        # Name stuff, if no nomenclature, cry
+        node_name = nomenclature.resolve('nonroll') if nomenclature else 'nonroll'
+        start_name = nomenclature.resolve('nonrollStart') if nomenclature else 'nonrollStart'
+        end_name = nomenclature.resolve('nonrollEnd') if nomenclature else 'nonrollEnd'
+        ik_handle_name = nomenclature.resolve('nonrollIkHdl') if nomenclature else 'nonrollIkHdl'
+        ik_effector_name = nomenclature.resolve('nonrollIkEff') if nomenclature else 'nonrollIkEff'
+
+        self.node.rename(node_name)
+        self.start.rename(start_name)
+        self.end.rename(end_name)
+        self.ikHandle.rename(ik_handle_name)
+        self.ikEffector.rename(ik_effector_name)
+
         # Set Hierarchy
         self.start.setParent(self.node)
         self.ikHandle.setParent(self.node)
@@ -46,123 +61,165 @@ class Twistbone(Module):
         self.ikCurve = None
         self.subjnts = []
         self.auto_skin = True
+        self.create_bend = True
+        self._sys_ribbon = None
+        self.ctrls = []
 
         super(Twistbone, self).__init__(*args, **kwargs)
+
+    def setup_bend(self, spline_ik_module):
+        pass
+
 
     def build(self, rig, orient_ik_ctrl=True, create_boxes=True, *args, **kwargs):
         if len(self.chain_jnt) < 2:
             raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.chain_jnt), self.chain_jnt))
 
-        super(Twistbone, self).build(rig, create_grp_anm=False, *args, **kwargs)
+        super(Twistbone, self).build(rig, create_grp_anm=self.create_bend, *args, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig(rig)
         nomenclature_jnt = self.get_nomenclature_jnt(rig)
 
+        top_parent = self.chain[0].getParent()
         jnt_s = self.chain_jnt[0]
         jnt_e = self.chain_jnt[1]
 
         # Create curve from input joints (we'll use maya splineIKEffector for our upnodes.
         num_steps = 2
         self.ikCurve = libRigging.create_nurbsCurve_from_joints(jnt_s, jnt_e, 2 if num_steps > 2 else 1)
-        self.ikCurve.rename(self.name + "_crv")
+        self.ikCurve.rename(self.name + "_twistCrv")
         pymel.parentConstraint(jnt_s, self.ikCurve, maintainOffset=True)
 
-        # Generate Subjoints if necessary
+        # Generate Subjoints if necessary, they will be use on the ribbon that will serve for bendy bones
         if not self.subjnts:
-            self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 4)
+            self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 3)
+        self.subjnts[0].setParent(jnt_s)
 
-            #TODO : Use the nomeclature system to name the bones
-            for i, sub_jnt in enumerate(self.subjnts):
-                sub_jnt.segmentScaleCompensate.set(0) #Remove segment scale compensate
-                #Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
-                jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
-                sub_jnt.rename(jnt_name)
+        # We need four joint for the spline ik to correctly extract the twist data
+        _driverjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, 4)
+        _driverjnts[0].setParent(self.grp_rig)
+
+        # Rename the skinning subjnts
+        for i, sub_jnt in enumerate(self.subjnts):
+            sub_jnt.segmentScaleCompensate.set(0)  # Remove segment scale compensate
+            # Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
+            jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            sub_jnt.rename(jnt_name)
+
+        for i, driver_jnt in enumerate(_driverjnts):
+            driver_jnt.segmentScaleCompensate.set(0) # Remove segment scale compensate
+            jnt_name = nomenclature_jnt.resolve("twistDriver{0:02d}".format(i))
+            driver_jnt.rename(jnt_name)
 
         # Create splineIK
-        #Do not connect the stretch to prevent scaling problem
-        #TODO : If a stretch system exist on the input, we need to find a way to connect it to the twist system
-        splineIK = SplineIK(self.subjnts +[self.ikCurve], name=nomenclature_rig.resolve("splineik"))
+        # Do not connect the stretch to prevent scaling problem
+        # TODO : If a stretch system exist on the input, we need to find a way to connect it to the twist system
+        splineIK = SplineIK(_driverjnts + [self.ikCurve], name=nomenclature_rig.resolve("splineik"))
         splineIK.bStretch = False
         splineIK.build(rig, create_grp_anm=False, stretch=False)
         self.ikCurve.setParent(splineIK.grp_rig)
 
-        nonroll_1 = NonRollJoint()
-        nonroll_1.build()
-        nonroll_1.rename(nomenclature_rig.resolve('nonroll_s'))
-        nonroll_1.start.rename(nomenclature_jnt.resolve("nonroll_s_start"))
-        nonroll_1.end.rename(nomenclature_jnt.resolve("nonroll_s_end"))
-        jnt_s_parent = jnt_s.getParent()
-        nonroll_1.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
-        if jnt_s_parent:
-            pymel.parentConstraint(jnt_s_parent, nonroll_1.node, maintainOffset=True, skipTranslate=['x', 'y', 'z'])
-            pymel.pointConstraint(jnt_s, nonroll_1.node)
+        # Create Ribbon
+        if self.create_bend:
+            sys_ribbon = Ribbon(self.subjnts, name=nomenclature_rig.resolve("bendRibbon"))
+            sys_ribbon.build(rig, create_ctrl=False, degree=3, num_ctrl=3, no_subdiv=False, rot_fol=False)
+            self.ctrls = sys_ribbon.create_ctrls(rig, no_extremity=True)
+            for ctrl in enumerate(self.ctrls):
+                ctrl.setParent(self.grp_anm)
+                # Parent constraint the controller to follow correctly the twist driver
+                ctrl._layers[0].unlock()
+                pymel.parentConstraint(_driverjnts[1 + i], ctrl._layers[0])
+            sys_ribbon.grp_rig.setParent(self.grp_rig)
+            # Parent the two extremity of the ribbon to the twist driver associated
+            pymel.parentConstraint(_driverjnts[0], sys_ribbon._ribbon_jnts[0], mo=True)
+            pymel.parentConstraint(_driverjnts[1], sys_ribbon._ribbon_jnts[-1], mo=True)
 
-        pymel.parentConstraint(jnt_s, nonroll_1.ikHandle, maintainOffset=True)
+        # Create the first non roll system
+        nonroll_sys_start = NonRollJoint()
+        nonroll_sys_start.build(nomenclature_rig)
+        nonroll_sys_start.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
+        if top_parent:
+            # pymel.parentConstraint(top_parent, nonroll_sys_start.node, maintainOffset=True, skipTranslate=['x', 'y', 'z'])
+            pymel.orientConstraint(top_parent, nonroll_sys_start.node, maintainOffset=True)
+            pymel.pointConstraint(jnt_s, nonroll_sys_start.node)
+        pymel.parentConstraint(jnt_s, nonroll_sys_start.ikHandle, maintainOffset=True)
 
-        nonroll_2 = NonRollJoint()
-        nonroll_2.build()
-        nonroll_2.rename(nomenclature_rig.resolve('nonroll_e'))
-        nonroll_2.start.rename(nomenclature_jnt.resolve("nonroll_e_start"))
-        nonroll_2.end.rename(nomenclature_jnt.resolve("nonroll_e_end"))
-        nonroll_2.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
-        nonroll_2.setTranslation(jnt_e.getTranslation(space='world'), space='world')
-        pymel.parentConstraint(jnt_s, nonroll_2.node, maintainOffset=True, skipTranslate=['x', 'y', 'z'])
-        pymel.pointConstraint(jnt_e, nonroll_2.node)
-        pymel.parentConstraint(jnt_e, nonroll_2.ikHandle, maintainOffset=True)
+        # Create the second non-roll system
+        nonroll_sys_end = NonRollJoint()
+        nonroll_sys_end.build(nomenclature_rig)
+        nonroll_sys_end.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
+        nonroll_sys_end.setTranslation(jnt_e.getTranslation(space='world'), space='world')
+        pymel.orientConstraint(jnt_s, nonroll_sys_start.node, maintainOffset=True)
+        pymel.pointConstraint(jnt_e, nonroll_sys_end.node)
+        pymel.parentConstraint(jnt_e, nonroll_sys_end.ikHandle, maintainOffset=True)
 
+        # Parent the first driver jnt to the rig group of the non-roll joint
+        if self.create_bend:
+            _driverjnts[0].setParent(nonroll_sys_end.node)
+            # Remove the joint orient after parenting to prevent any problem
+            for driver in _driverjnts:
+                driver.jointOrient.set(0,0,0)
+            _driverjnts[-1].rotate.set(0,0,0)
+
+        # Extract the rotation of the end non-roll with a transform
         twist_info = pymel.createNode('transform')
-        twist_info.rename('twist_info')
-        twist_info.setMatrix(nonroll_2.start.getMatrix(worldSpace=True), worldSpace=True)
-        twist_info.setParent(nonroll_2.start)
-        pymel.aimConstraint(nonroll_2.end, twist_info, worldUpType=2, worldUpObject=jnt_e)
+        twist_info.rename(nomenclature_rig.resolve('twist_info'))
+        twist_info.setMatrix(nonroll_sys_end.start.getMatrix(worldSpace=True), worldSpace=True)
+        twist_info.setParent(nonroll_sys_end.start)
+        pymel.aimConstraint(nonroll_sys_end.end, twist_info, worldUpType=2, worldUpObject=jnt_e)
 
+        # Create a reference that will have a similar parent to nonroll_sys_start.start jnt
         ref_end = pymel.createNode('transform')
-        ref_end.rename('ref_end')
-        ref_end.setMatrix(nonroll_2.getMatrix(worldSpace=True), worldSpace=True)
-        ref_end.setParent(nonroll_2.node)
+        ref_end.rename(nomenclature_rig.resolve('ref_end'))
+        ref_end.setMatrix(nonroll_sys_end.getMatrix(worldSpace=True), worldSpace=True)
+        ref_end.setParent(nonroll_sys_end.node)
         pymel.connectAttr(twist_info.rotate, ref_end.rotate)
 
-        # Create the upnodes
+        # HACK Create the upnodes to drive the ik spline twist controls (Obj Rot Up Start/End)
+        # with world as parent to prevent a bug with ik spline in maya
         upnode_s = pymel.createNode('transform', name='upnode_s')
         upnode_s.setMatrix(jnt_s.getMatrix(worldSpace=True))
         upnode_e = pymel.createNode('transform', name='upnode_e')
         upnode_e.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
         upnode_e.setTranslation(jnt_e.getTranslation(space='world'), space='world')
 
-        pymel.parentConstraint(nonroll_1.start, upnode_s)
+        # Constraint the upnode on their twist extractor
+        pymel.parentConstraint(nonroll_sys_start.start, upnode_s)
         pymel.parentConstraint(ref_end, upnode_e)
 
         # Cleanup
-        nonroll_1.setParent(self.grp_rig)
-        nonroll_2.setParent(self.grp_rig)
+        nonroll_sys_start.setParent(self.grp_rig)
+        nonroll_sys_end.setParent(self.grp_rig)
         upnode_s.setParent(self.grp_rig)
         upnode_e.setParent(self.grp_rig)
         splineIK.grp_rig.setParent(self.grp_rig)
 
         # Configure splineIK upnodes parameters
         splineIK.ikHandle.dTwistControlEnable.set(1)
-        splineIK.ikHandle.dWorldUpType.set(4) # Object Rotation Up (Start End)
-        #TODO : Find a better way to define the foward axis than the side string
+        splineIK.ikHandle.dWorldUpType.set(4)  # Object Rotation Up (Start End)
+        # TODO : Find a better way to define the foward axis than the side string
         if nomenclature_rig.side == nomenclature_rig.SIDE_R:
             splineIK.ikHandle.dForwardAxis.set(1)
-            #splineIK.ikHandle.dWorldUpAxis.set(1)
+            # splineIK.ikHandle.dWorldUpAxis.set(1)
         pymel.connectAttr(upnode_s.xformMatrix, splineIK.ikHandle.dWorldUpMatrix)
         pymel.connectAttr(upnode_e.xformMatrix, splineIK.ikHandle.dWorldUpMatrixEnd)
 
-        #Compute the Stretch
+        # Compute the Stretch
         attr_stretch_raw = libRigging.create_stretch_node_between_2_bones(jnt_s, jnt_e, self.grp_rig.globalScale)
 
-        #for subjnt in self.subjnts[1:]:
         pymel.connectAttr(attr_stretch_raw, self.subjnts[0].scaleX)
 
-        #Connect global scale
+        # Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)
         pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleZ)
 
-        # Unparent the twistbones so they squash correctly, even in a Game-Engine scenario.
-        if self.subjnts[0].getParent() != self.chain_jnt.start:
-            self.subjnts[0].setParent(self.chain_jnt.start)
+        for driver, jnt in zip(_driverjnts, self.subjnts):
+            # If we have the bend, just orient constraint cause the subjnt are constrained to the follicle of the ribbon
+            if self.create_bend:
+                pymel.orientConstraint(driver, jnt, mo=False)
+            else:
+                pymel.parentConstraint(driver, jnt, mo=False)
 
         if self.auto_skin:
             skin_deformers = self.get_skinClusters_from_inputs()
@@ -180,7 +237,6 @@ class Twistbone(Module):
                     skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                     subjnt.lockInfluenceWeights.set(False)
 
-            # TODO : Automatically skin the twistbones
             for mesh in self.get_farest_affected_meshes(rig):
                 print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
                 libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
@@ -227,7 +283,7 @@ class Twistbone(Module):
             pymel.disconnectAttr(jnt.scaleY)
             pymel.disconnectAttr(jnt.scaleZ)
 
-        #Don't disconnect input attribute when unbuilding twist bones
+        # Don't disconnect input attribute when unbuilding twist bones
         super(Twistbone, self).unbuild(rig, disconnect_attr=False)
 
         self.start = None

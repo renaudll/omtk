@@ -490,7 +490,8 @@ class AutoRig(QtGui.QMainWindow):
             qItem.setIcon(0, QtGui.QIcon(":/question.png"))
 
     def _fill_widget_influences(self, qt_parent, data):
-        obj, children_data = data
+        obj = pymel.PyNode(data.val) if data.val else None
+        #obj, children_data = data
         if obj:
             obj_name = obj.stripNamespace()
 
@@ -512,10 +513,12 @@ class AutoRig(QtGui.QMainWindow):
                 qt_parent.addChild(qItem)
                 qt_parent = qItem
 
-        for child_data in children_data:
-            child = child_data[0]
-            if isinstance(child, pymel.nodetypes.Transform):
-                self._fill_widget_influences(qt_parent, child_data)
+        for child_data in data.children:
+            self._fill_widget_influences(qt_parent, child_data)
+        #for child_data in children_data:
+            #child = child_data[0]
+            #if isinstance(child, pymel.nodetypes.Transform):
+                #self._fill_widget_influences(qt_parent, child_data)
 
     def _fill_widget_meshes(self, qt_parent, mesh, influences):
         textBrush = QtGui.QBrush(QtCore.Qt.white)
@@ -588,6 +591,15 @@ class AutoRig(QtGui.QMainWindow):
         # if not self.root in self.roots:
         #    self.roots.append(self.root)
         # self.updateData()
+
+        # Hack: Delete all cache since adding a module can push other module to validate/unvalidate.
+        # ex: FaceAvarGrp need a Head module to work.
+        # for module in self.root.modules:
+        #     try:
+        #         del module._cache
+        #     except AttributeError:
+        #         pass
+
         self.update_ui()
 
     @libPython.log_execution_time('import_networks')
@@ -636,6 +648,7 @@ class AutoRig(QtGui.QMainWindow):
 
         self.refresh_ui_modules()
 
+    @libPython.log_execution_time('update_ui_jnts')
     def update_ui_jnts(self, *args, **kwargs):
         # Resolve text query
         query_raw = self.ui.lineEdit_search_jnt.text()
@@ -647,6 +660,7 @@ class AutoRig(QtGui.QMainWindow):
             data = libPymel.get_tree_from_objs(all_potential_influences, sort=True)
 
             self._fill_widget_influences(self.ui.treeWidget_jnts.invisibleRootItem(), data)
+            self.ui.treeWidget_jnts.sortItems(0, QtCore.Qt.AscendingOrder)
 
         '''
         if all_jnt_roots:

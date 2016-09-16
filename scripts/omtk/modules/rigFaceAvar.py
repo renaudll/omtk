@@ -222,10 +222,12 @@ class AbstractAvar(classModule.Module):
         return tm
 
     def validate(self, rig):
-        super(AbstractAvar, self).validate(rig)
+        super(AbstractAvar, self).validate(rig, support_no_inputs=True)
 
+        '''
         if not self.jnts:
             raise Exception("Can't build AvarGrp with zero joints!")
+        '''
 
         return True
 
@@ -398,7 +400,7 @@ class AvarSimple(AbstractAvar):
         super(AvarSimple, self).validate(rig)
 
         # InteractiveCtrl need at least a skinned influence to bind itself to.
-        if issubclass(self._CLS_CTRL, classCtrl.InteractiveCtrl):
+        if self.jnt and issubclass(self._CLS_CTRL, classCtrl.InteractiveCtrl):
             mesh = rig.get_farest_affected_mesh(self.jnt)
             if not mesh:
                 raise Exception("Can't find mesh affected by {0}.".format(self.jnt))
@@ -472,7 +474,7 @@ class AvarSimple(AbstractAvar):
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
-        if constraint:
+        if self.jnt and constraint:
             pymel.parentConstraint(stack.node, self.jnt, maintainOffset=True)
 
         #
@@ -593,7 +595,7 @@ class AvarFollicle(AvarSimple):
         #     inputMatrix=stack.getParent().matrix
         # )
         util = libRigging.create_utility_node('closestPointOnSurface',
-            inPosition=stack.getParent().t,
+            inPosition=stack.get_stack_start().t,  # Note: The first node of the stack is always the 'offset' node.
             inputSurface=self.surface.getShape().worldSpace
         )
         self._attr_u_base = util.parameterU

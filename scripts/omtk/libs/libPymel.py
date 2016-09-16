@@ -113,56 +113,64 @@ def get_chains_from_objs(objs):
                     chain.append(obj)
     return [PyNodeChain(chain) for chain in chains]
 
+def iter_parents(obj):
+    while obj.getParent() is not None:
+        obj = obj.getParent()
+        yield obj
+
 def get_parents(obj):
+    return list(iter_parents(obj))
+    '''
     parents = []
     while obj.getParent() is not None:
         parent = obj.getParent()
         parents.append(parent)
         obj = parent
     return parents
+    '''
+
+
+class Tree(object):
+    __slots__ = ('val', 'children', 'parent')
+    def __init__(self, val):
+        self.val = val
+        self.children = []
+        self.parent = None
+    def append(self, tree):
+        self.children.append(tree)
+        tree.parent = self
+
+    def __repr__(self):
+        return '<Tree {0}>'.format(self.val)
 
 def get_tree_from_objs(objs, sort=False):
     """
     Sort all provided objects in a tree fashion.
-    Each elements is a tuple of size 2, containing the object and it's children.
     Support missing objects between hierarchy.
-    Note that to help recursive functions, the first entry is always None, representing the root node.
-    ex:
-    (None,
-        [
-            ('parent1',
-                [
-                    ('child1', [])
-                ]
-            )
-        ]
-    )
+    Note that tree root value will always be None, representing the root node.
     """
-    data_by_obj = {}
-    ischild_by_obj = {}
-    for obj in objs:
-        data_by_obj[obj] = (obj, [])
-        ischild_by_obj[obj] = False
+    dagpaths = sorted([obj.fullPath() for obj in objs])
 
-    for obj in objs:
-        parents = get_parents(obj)
+    root = Tree(None)
 
-        for parent in parents:
-            if parent in objs:
-                data_by_obj[parent][1].append(data_by_obj[obj])
-                ischild_by_obj[obj] = True
-                break
+    def dag_is_child_of(dag_parent, dag_child):
+        return dag_child.startswith(dag_parent + '|')
 
-    if sort:
-        for obj, data in data_by_obj.iteritems():
-            data_by_obj[obj] = sorted(data)
+    last_knot = root
+    for dagpath in dagpaths:
+        knot = Tree(dagpath)
 
-    tree = []
-    for obj, ischild in sorted(ischild_by_obj.iteritems()):
-        if not ischild:
-            tree.append(data_by_obj[obj])
+        # Resolve the new knot parent
+        p = last_knot
+        while not (p.val is None or dag_is_child_of(p.val, dagpath)):
+            p = p.parent
+        p.append(knot)
 
-    return (None, tree)
+        # Save the last knot, since we are iterating in alphabetical order,
+        # we can assume that the next knot parent can be found using this knot.
+        last_knot = knot
+
+    return root
 
 
 #

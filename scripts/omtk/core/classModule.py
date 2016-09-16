@@ -289,12 +289,12 @@ class Module(object):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
 
 
-    def validate(self, rig):
+    def validate(self, rig, support_no_inputs=False):
         """
         Check if the module can be built with it's current configuration.
         In case of error, an exception will be raised with the necessary informations.
         """
-        if not self.input:
+        if not self.input and not support_no_inputs:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
         return True
 

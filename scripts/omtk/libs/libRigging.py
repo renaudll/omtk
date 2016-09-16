@@ -479,6 +479,7 @@ def get_recommended_ctrl_size(obj, default_value=1.0, weight_x=0.0, weight_neg_x
         geometries = set()
         for skinCluster in skinClusters:
             geometries.update(skinCluster.getOutputGeometry())
+        geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries)  # Ensure we only deal with meshes
 
         # Create a number of raycast for each geometry. Use the longuest distance.
         # Note that we are not using the negative Y axis, this give bettern result for example on shoulders.

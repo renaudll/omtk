@@ -27,9 +27,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         """
         super(FaceLips, self).validate(rig)
 
-        if self.preDeform:
-            if rig.get_jaw_jnt() is None:
-                return Exception("Can't resolve jaw influence!")
+        if not self.preDeform:
+            if rig.get_jaw_jnt(strict=False) is None:
+                raise Exception("Can't resolve jaw. Please create a Jaw module.")
 
     def get_avars_corners(self):
         # todo: move upper?

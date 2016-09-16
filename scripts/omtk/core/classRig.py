@@ -656,21 +656,23 @@ class Rig(object):
                         return jnt
 
     @libPython.memoized
-    def get_head_jnt(self, strict=False):
+    def get_head_jnt(self, strict=True):
         from omtk.modules import rigHead
         for module in self.modules:
             if isinstance(module, rigHead.Head):
                 return module.jnt
-        self.warning("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
+        if strict:
+            self.warning("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
         return None
 
     @libPython.memoized
-    def get_jaw_jnt(self):
+    def get_jaw_jnt(self, strict=True):
         from omtk.modules import rigFaceJaw
         for module in self.modules:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 return module.jnt
-        self.warning("Cannot found Jaw in rig! Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+        if strict:
+            self.warning("Cannot found Jaw in rig! Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
         return None
 
     @libPython.memoized

@@ -106,14 +106,14 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_main.attr_yw, self.avar_nose_low.attr_yw)
 
         if self.parent:
-            pymel.parentConstraint(self.parent, self.avar_nose_upp._stack._layers[0], maintainOffset=True)
+            pymel.parentConstraint(self.parent, self.avar_nose_upp._grp_offset, maintainOffset=True)
 
         nose_upp_out = self.avar_nose_upp._stack.node
         for avar in self.avars:
             if avar is self.avar_nose_upp:
                 continue
 
-            avar_inn = avar._stack._layers[0]
+            avar_inn = avar._grp_offset
             pymel.parentConstraint(nose_upp_out, avar_inn, maintainOffset=True)
 
     def calibrate(self, rig):

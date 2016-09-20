@@ -1,6 +1,8 @@
 import pymel.core as pymel
 
 from omtk.libs import libRigging
+from omtk.libs import libPython
+from omtk.libs import libAttr
 from omtk.modules import rigFaceAvarGrps
 
 
@@ -111,24 +113,79 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
 
-    def _parent_avars(self, rig, parent):
-        # If we are using the lips in the main deformer, we'll do shenanigans with the jaw.
-        super(FaceLips, self)._parent_avars(rig, parent)
+    @libPython.memoized
+    def _get_mouth_width(self):
+        min_x = max_x = 0
+        for avar in self.get_avars_corners():
+            x = avar._grp_offset.tx.get()
+            min_x = min(min_x, x)
+            max_x = max(max_x, x)
+        return max_x - min_x
+
+    def _create_extractor(self, rig, avar, default_ratio, target_head, target_jaw):
+        """
+        Create an attribute on the avar grp_rig to contain the ratio.
+        Note that this ratio is preserved when un-building/building.
+        """
+        attr_ratio = libAttr.addAttr(avar.grp_rig, longName='influenceJaw')
+        attr_ratio.showInChannelBox(True)
+        attr_ratio.set(default_ratio)  # TODO: Define the ratio
+        attr_ratio_inv = libRigging.create_utility_node('plusMinusAverage', operation=2, input1D=[1.0, attr_ratio]).output1D
+
+        nomenclature_rig = avar.get_nomenclature_rig(rig)
+        grp_parent = avar._grp_parent
+        grp_parent_pos = grp_parent.getTranslation(space='world')  # grp_offset is always in world coordinates
+
+        grp_ref_name = nomenclature_rig.resolve('jawRef' + avar.name)
+        grp_ref = pymel.createNode('transform', name=grp_ref_name)
+        grp_ref.t.set(grp_parent_pos)
+        grp_ref.setParent(avar.grp_rig)
+
+        # Create constraints
+        constraint_pr = pymel.parentConstraint(target_head, target_jaw, grp_ref, maintainOffset=True)
+        constraint_s = pymel.scaleConstraint(target_head, target_jaw, grp_ref)
+        weight_pr_head, weight_pr_jaw = constraint_pr.getWeightAliasList()
+        weight_s_head, weight_s_jaw = constraint_s.getWeightAliasList()
+        pymel.connectAttr(attr_ratio, weight_pr_jaw)
+        pymel.connectAttr(attr_ratio, weight_s_jaw)
+        pymel.connectAttr(attr_ratio_inv, weight_pr_head)
+        pymel.connectAttr(attr_ratio_inv, weight_s_head)
+
+        # Extract deformation delta
+        attr_delta_tm = libRigging.create_utility_node('multMatrix', matrixIn=[
+            grp_ref.worldMatrix,
+            grp_parent.worldInverseMatrix
+        ]).matrixSum
+
+        util_delta_decompose = libRigging.create_utility_node('decomposeMatrix', inputMatrix=attr_delta_tm)
+
+        # Connect to the stack
+        # Note that we want the
+        stack = avar._stack
+        layer_jaw_r = stack.prepend_layer(name='jawRotate')
+        layer_jaw_t = stack.prepend_layer(name='jawTranslate')
+
+        pymel.connectAttr(util_delta_decompose.outputTranslate, layer_jaw_t.t)
+        pymel.connectAttr(util_delta_decompose.outputRotate, layer_jaw_r.r)
+
+    def build(self, rig, **kwargs):
+        super(FaceLips, self).build(rig, **kwargs)
 
         if not self.preDeform:
             # Resolve the head influence
             jnt_head = self.parent
-            #jnt_head = rig.get_head_jnt()
+            if not jnt_head:
+                self.error(rig, "Failed parenting avars, no head influence found!")
+                return
 
             jnt_jaw = rig.get_jaw_jnt()
             if not jnt_jaw:
                 self.error(rig, "Failed parenting avars, no jaw influence found!")
                 return
 
-            # Hack: To prevent ANY flipping, we'll create an aligned target for the head and the jaw.
-            # TODO: Find a cleaner way!
             nomenclature_rig = self.get_nomenclature_rig(rig)
 
+            # Note #2: A common target for the head
             target_head_name = nomenclature_rig.resolve('targetHead')
             target_head = pymel.createNode('transform', name=target_head_name)
             target_head.setTranslation(jnt_head.getTranslation(space='world'))
@@ -136,6 +193,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
             pymel.scaleConstraint(jnt_head, target_head, maintainOffset=True)
 
+            # Note #3: A common target for the jaw
             target_jaw_name = nomenclature_rig.resolve('targetJaw')
             target_jaw = pymel.createNode('transform', name=target_jaw_name)
             target_jaw.setTranslation(jnt_jaw.getTranslation(space='world'))
@@ -143,41 +201,22 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
             pymel.scaleConstraint(jnt_jaw, target_jaw, maintainOffset=True)
 
-
-            #
-            # Create jaw constraints
-            #
-            def delete_constraints(obj):
-                for child in obj.getChildren():
-                    if isinstance(child, pymel.nodetypes.Constraint):
-                        pymel.delete(child)
-
-            def do_parenting(parentspace_layer, parentspace_targets, parent_layer, parent_targets):
-                delete_constraints(parentspace_layer)
-                delete_constraints(parent_layer)
-                if parentspace_targets:
-                    pymel.parentConstraint(parentspace_targets, parentspace_layer, maintainOffset=True)
-                if parent_targets:
-                    pymel.parentConstraint(parent_targets, parent_layer, maintainOffset=True)
+            # For each avars, create an extractor node and extract the delta from the bind pose.
+            # We'll then feed this into the stack layers.
+            mouth_width = self._get_mouth_width()
+            for avar in self.get_avars_corners():
+                self._create_extractor(rig, avar, 0.5, target_head, target_jaw)
 
             for avar in self.get_avars_upp():
-                parentspace_layer = avar._stack._layers[1]
-                parent_layer = avar._stack._layers[2]
-                do_parenting(parentspace_layer, None, parent_layer, target_head)
+                avar_pos_x = avar._grp_offset.tx.get()
+                ratio = abs(avar_pos_x / mouth_width)
+                ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
+                ratio = 1.0 - libRigging.interp_football(ratio)  # apply football shape
+                self._create_extractor(rig, avar, ratio, target_head, target_jaw)
 
             for avar in self.get_avars_low():
-                parentspace_layer = avar._stack._layers[1]
-                parent_layer = avar._stack._layers[2]
-                do_parenting(parentspace_layer, None, parent_layer, target_jaw)
-
-            # Note that since we are using two targets, we need to ensure the parent also follow
-            # the face to prevent any accidental flipping.
-            # todo: do it in the layer chain instead of with maya constraint,
-            # this add a lot of node and is not really efficient/stable!
-            for avar in self.get_avars_corners():
-                parentspace_layer = avar._stack._layers[1]  # parentspace layer, used to prevent flipping on multiple constraint
-                parent_layer = avar._stack._layers[2] # parent layer
-                do_parenting(parentspace_layer, target_head, parent_layer, [target_head, target_jaw])
-                #pymel.parentConstraint(target_head, parentspace_layer, maintainOffset=True)
-                #pymel.parentConstraint(target_head, target_jaw, parent_layer, maintainOffset=True)
-
+                avar_pos_x = avar._grp_offset.tx.get()
+                ratio = abs(avar_pos_x / mouth_width)
+                ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
+                ratio = libRigging.interp_football(ratio)  # apply football shape
+                self._create_extractor(rig, avar, ratio, target_head, target_jaw)

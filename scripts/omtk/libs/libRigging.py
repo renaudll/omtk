@@ -1,4 +1,5 @@
 import logging
+import math
 
 import pymel.core as pymel
 from maya import OpenMaya
@@ -273,6 +274,14 @@ def interp_linear(r, s, e):
 
 def interp_linear_multiple(ratios, s, e):
     return [interp_linear(ratio, s, e) for ratio in ratios]
+
+def interp_football(ratio):
+    """
+    https://www.wolframalpha.com/input/?i=cos(x%2B1*pi%2F2)%5E0.5
+    """
+    return math.cos(ratio/2.0*math.pi)**0.5
+
+
 
 def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
     """

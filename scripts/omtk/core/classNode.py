@@ -85,7 +85,41 @@ class Node(object):
 
         return new_layer
 
-    def preprend_layer(self, name=None):
+    def insert_layer(self, i, name=None):
+        """
+        Insert an object in the stack before a provided index.
+        :param i: The index for the new object.
+        :param name: The name of the object to insert.
+        >>> my_stack = Node()
+        >>> my_stack.build()
+        >>> layer_1 = my_stack.append_layer(name='layer_1')
+        >>> layer_3 = my_stack.append_layer(name='layer_3')
+        >>> layer_2 = my_stack.insert(1, name='layer_2')
+        >>> layer_2.getParent() == layer_1
+        True
+        >>> layer_3.getParent() == layer_2
+        True
+        """
+        new_layer = pymel.createNode('transform')
+        if name:
+            new_name = self.node.name() + '_' + name
+            new_layer.rename(new_name)
+
+        if i == 0:
+            return self.prepend_layer(name=name)
+        elif i > len(self._layers)-1:  # todo: add __len__ functionality?
+            return self.append_layer(name=name)  # note: we are reproducing the list.insert functionality
+        else:
+            # Faster than setMatrix
+            new_layer.setParent(self._layers[i-1])
+            new_layer.t.set(0,0,0)
+            new_layer.r.set(0,0,0)
+            new_layer.s.set(0,0,0)
+            self._layers[i].setParent(new_layer)
+            self._layers.insert(i, new_layer)
+            return new_layer
+
+    def prepend_layer(self, name=None):
         """
         Utility method to manage the stack of parent of a node datatype.
         Note that the .node is always last in the chain.
@@ -95,8 +129,8 @@ class Node(object):
         >>> my_stack.build()
         >>> my_stack.node.getParent() is None
         True
-        >>> layer_2 = my_stack.preprend_layer(name='layer_2')
-        >>> layer_1 = my_stack.preprend_layer(name='layer_1')
+        >>> layer_2 = my_stack.prepend_layer(name='layer_2')
+        >>> layer_1 = my_stack.prepend_layer(name='layer_1')
         >>> layer_2.getParent() == layer_1
         True
         """

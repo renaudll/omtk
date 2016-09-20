@@ -396,6 +396,13 @@ class AvarSimple(AbstractAvar):
     """
     _CLS_CTRL = CtrlFaceMicro
 
+    def __init__(self, *args, **kwargs):
+        super(AvarSimple, self).__init__(*args, **kwargs)
+
+        self._stack = None
+        self._grp_offset = None
+        self._grp_parent = None
+
     def validate(self, rig):
         super(AvarSimple, self).validate(rig)
 
@@ -449,24 +456,23 @@ class AvarSimple(AbstractAvar):
         # It is important that the offset is in this specific node since it will serve as
         # a reference to re-computer the base u and v parameter if the rigger change the
         # size of the surface when the system is build.
-        layer_offset_name = nomenclature_rig.resolve('offset')
-        layer_offset = stack.append_layer()
-        layer_offset.rename(layer_offset_name)
-        layer_offset.setTranslation(jnt_pos)
+        grp_offset_name = nomenclature_rig.resolve('offset')
+        self._grp_offset = pymel.createNode('transform', name=grp_offset_name)
+        self._grp_offset.rename(grp_offset_name)
+        self._grp_offset.setParent(self.grp_rig)
         #layer_offset.setMatrix(jnt_tm)
 
-        # Create a 'parentSpace' and 'parent' layer that will be used for constraining (see rigFaceLips)
-        # Note that this is not the best way, however it work for now...
-        # todo: cleanup
-        layer_parentspace_name = nomenclature_rig.resolve('parentSpace')
-        layer_parentspace = stack.append_layer()
-        layer_parentspace.rename(layer_parentspace_name)
+        # Create a parent layer for constraining.
+        # Do not use dual constraint here since it can result in flipping issues.
+        grp_parent_name = nomenclature_rig.resolve('parent')
+        self._grp_parent = pymel.createNode('transform', name=grp_parent_name)
+        self._grp_parent.setParent(self._grp_offset)
+        self._grp_parent.rename(grp_parent_name)
 
-        layer_parent_name = nomenclature_rig.resolve('parent')
-        layer_parent = stack.append_layer()
-        layer_parent.rename(layer_parent_name)
+        stack.setParent(self._grp_parent)
 
-        stack.setParent(self.grp_rig)
+        # Move the grp_offset to it's desired position.
+        self._grp_offset.setTranslation(jnt_pos)
 
         # The rest of the stack is built in another function.
         # This allow easier override by sub-classes.
@@ -595,7 +601,7 @@ class AvarFollicle(AvarSimple):
         #     inputMatrix=stack.getParent().matrix
         # )
         util = libRigging.create_utility_node('closestPointOnSurface',
-            inPosition=stack.get_stack_start().t,  # Note: The first node of the stack is always the 'offset' node.
+            inPosition=self._grp_offset.t,  # Note: The first node of the stack is always the 'offset' node.
             inputSurface=self.surface.getShape().worldSpace
         )
         self._attr_u_base = util.parameterU
@@ -629,7 +635,7 @@ class AvarFollicle(AvarSimple):
         #
         offset_name = nomenclature_rig.resolve('bindPoseRef')
         obj_offset = pymel.createNode('transform', name=offset_name)
-        obj_offset.setParent(stack._layers[0])
+        obj_offset.setParent(self._grp_offset)
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
         # fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
@@ -642,7 +648,7 @@ class AvarFollicle(AvarSimple):
         # Create the influence follicle
         influence_name = nomenclature_rig.resolve('influenceRef')
         influence = pymel.createNode('transform', name=influence_name)
-        influence.setParent(stack._layers[0])
+        influence.setParent(self._grp_offset)
 
         fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
         fol_influence_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
@@ -956,7 +962,7 @@ class AvarAim(AvarSimple):
                             )
 
         # Position objects
-        aim_grp.setParent(stack._layers[0])  # todo: add begin , end property
+        aim_grp.setParent(self._grp_offset)  # todo: add begin , end property
         aim_grp.t.set(0,0,0)
         aim_grp.r.set(0,0,0)
         jnt_tm = self.jnt.getMatrix(worldSpace=True)

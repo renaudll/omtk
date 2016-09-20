@@ -452,9 +452,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
     def _parent_avar(self, rig, avar, parent):
         try:
-            layer_parent = avar._stack._layers[2] # parent layer
-            pymel.parentConstraint(parent, layer_parent, maintainOffset=True)
-            pymel.scaleConstraint(parent, layer_parent, maintainOffset=True)
+            avar_grp_parent = avar._grp_parent
+            pymel.parentConstraint(parent, avar_grp_parent, maintainOffset=True)
+            pymel.scaleConstraint(parent, avar_grp_parent, maintainOffset=True)
         except Exception, e:
             print(str(e))
 
@@ -803,11 +803,12 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
                 except AttributeError:
                     pass
 
-    def _build_avar_macro_horizontal(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True):
+    def _build_avar_macro_horizontal(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, **kwargs):
         self._build_avar_macro(
             rig,
             cls_ctrl,
-            avar_parent
+            avar_parent,
+            **kwargs
         )
         for child_avar in avar_children:
             if connect_ud:
@@ -817,11 +818,12 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             if connect_fb:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, child_avar.attr_fb)
 
-    def _build_avar_macro_vertical(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True):
+    def _build_avar_macro_vertical(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, **kwargs):
         self._build_avar_macro(
             rig,
             cls_ctrl,
-            avar_parent
+            avar_parent,
+            **kwargs
         )
         for child_avar in avar_children:
             if connect_ud:

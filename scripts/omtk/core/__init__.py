@@ -5,6 +5,7 @@ import contextlib
 import libSerialization
 import json
 import pymel.core as pymel
+import functools
 
 import classCtrl
 import classModule
@@ -146,6 +147,18 @@ def build_selected(sel=None):
 
         is_module_unbuilt = lambda x: not x.is_built()
         modules = filter(is_module_unbuilt , modules)
+
+        def can_build_module(rig, module):
+            try:
+                module.validate(rig)
+                return True
+            except Exception, e:
+                pymel.warning("Can't build {0}: {1}".format(module.name, str(e)))
+                return False
+        modules = filter(functools.partial(can_build_module, rig), modules)
+
+        if not modules:
+            return
 
         # Build selected modules
         rig.pre_build()

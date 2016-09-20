@@ -335,11 +335,17 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             # However the old value will be passed by so the factory method can handle specific tricky cases.
             elif not isinstance(avar, self._CLS_AVAR):
                 self.warning(rig, "Unexpected Avar type for {0}. Expected {1}, got {2}.".format(avar.name, self._CLS_AVAR.__name__, type(avar).__name___))
-                new_avars = self._create_avar(rig, avar.jnt, cls_avar=self._CLS_AVAR, old_val=avar)
+                new_avar = self._create_avar(rig, avar.jnt, cls_avar=self._CLS_AVAR, old_val=avar)
+                new_avars.append(new_avar)
 
             # If the Avar already exist and is of the desired datatype, we'll keep it as is.
             else:
                 new_avars.append(avar)
+
+        for influence in avar_influences:
+            if not any(True for avar in new_avars if influence == avar.jnt):
+                new_avar = self._create_avar(rig, influence, cls_avar=self._CLS_AVAR)
+                new_avars.append(new_avar)
 
         return new_avars
 

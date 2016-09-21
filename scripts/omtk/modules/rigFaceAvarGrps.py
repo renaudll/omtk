@@ -60,7 +60,7 @@ def _find_mid_avar(avars):
     nearest_jnt = get_average_pos_between_nodes(jnts)
     return avars[jnts.index(nearest_jnt)] if nearest_jnt else None
 
-class AvarGrp(rigFaceAvar.AbstractAvar):
+class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from AbstractAvar exactly? Is inheriting from module more logical?
     """
     Base class for a group of 'avars' that share the same surface and proeprties.
     """
@@ -95,74 +95,30 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         self._grp_rig_avars_micro = None
 
     #
-    # Influences properties
-    #
-
-    @libPython.memoized
-    def get_jnts_upp(self):
-        # TODO: Find a better way
-        fnFilter = lambda jnt: 'upp' in jnt.name().lower()
-        return filter(fnFilter, self.jnts)
-
-    @libPython.memoized
-    def get_jnt_upp_mid(self):
-        return get_average_pos_between_nodes(self.get_jnts_upp())
-
-    @libPython.memoized
-    def get_jnts_low(self):
-        # TODO: Find a better way
-        fnFilter = lambda jnt: 'low' in jnt.name().lower()
-        return filter(fnFilter, self.jnts)
-
-    @libPython.memoized
-    def get_jnt_low_mid(self):
-        return get_average_pos_between_nodes(self.get_jnts_low())
-
-    @libPython.memoized
-    def get_jnts_l(self):
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
-        fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
-        return filter(fn_filter, self.jnts)
-
-    @libPython.memoized
-    def get_jnts_r(self):
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
-        fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
-        return filter(fn_filter, self.jnts)
-
-    @libPython.memoized
-    def get_jnt_l_mid(self):
-        """
-        :return: The left most joint (highest positive distance in x)
-        """
-        fn_get_pos_x = lambda x: x.getTranslation(space='world').x
-        return next(iter(reversed(sorted(self.get_jnts_l(), key=fn_get_pos_x))), None)
-
-    @libPython.memoized
-    def get_jnt_r_mid(self):
-        """
-        :return: The right most joint (highest negative distance in x)
-        """
-        fn_get_pos_x = lambda x: x.getTranslation(space='world').x
-        return next(iter(sorted(self.get_jnts_r(), key=fn_get_pos_x)), None)
-
-    #
     # Avar properties
     # Note that theses are only accessible after the avars have been built.
     #
 
     def _iter_all_avars(self):
+        """
+        Generator that return all avars, macro and micros.
+        Override this method if your module implement new avars.
+        :return: An iterator that yield avars.
+        """
         for avar in self.avars:
             yield avar
 
     def get_all_avars(self):
         """
-        :return: This will return ALL avars in the module, macros and micros.
+        :return: All macro and micro avars of the module.
         This is mainly used to automate the handling of avars and remove the need to abuse class inheritance.
         """
         return list(self._iter_all_avars())
 
     def get_avars_upp(self):
+        """
+        :return: All the upper section avars (micro and macros).
+        """
         return self.get_avars_micro_upp()
 
     def get_avars_micro_upp(self):
@@ -176,6 +132,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         return filter(fnFilter, self.avars)
 
     def get_avars_low(self):
+        """
+        :return: All the lower section avars (micro and macros).
+        """
         return self.get_avars_micro_low()
 
     def get_avars_micro_low(self):
@@ -196,39 +155,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     def avar_low_mid(self):
         return _find_mid_avar(self.get_avars_micro_low())
 
-    @libPython.memoized
-    def get_avar_inn(self):
-        return self.avars[0] if self.avars else None
-
-    @libPython.memoized
-    def get_avar_mid(self):
-        return _find_mid_avar(self.avars)
-
-    @libPython.memoized
-    def get_avar_out(self):
-        return self.avars[-1] if self.avars else None
-
-    @libPython.memoized
-    def get_avars_l(self):
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
-        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x >= middle.x
-        return filter(fn_filter, self.avars)
-
-    @libPython.memoized
-    def get_avars_r(self):
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
-        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x < middle.x
-        return filter(fn_filter, self.avars)
-
-    @libPython.memoized
-    def get_avar_l_corner(self):
-        fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
-        return next(iter(reversed(sorted(self.get_avars_l(), key=fn_get_avar_pos_x))), None)
-
-    @libPython.memoized
-    def get_avar_r_corner(self):
-        fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
-        return next(iter(sorted(self.get_avars_r(), key=fn_get_avar_pos_x)), None)
 
     @libPython.cached_property()
     def jnts(self):
@@ -633,6 +559,120 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         self.avar_upp = None
         self.avar_low = None
 
+    #
+    # Influence getter functions.
+    #
+
+    @libPython.memoized
+    def get_jnts_upp(self):
+        """
+        :return: The upper section influences.
+        """
+        # TODO: Find a better way
+        fnFilter = lambda jnt: 'upp' in jnt.name().lower()
+        return filter(fnFilter, self.jnts)
+
+    @libPython.memoized
+    def get_jnt_upp_mid(self):
+        """
+        :return: The middle influence of the upper section.
+        """
+        return get_average_pos_between_nodes(self.get_jnts_upp())
+
+    @libPython.memoized
+    def get_jnts_low(self):
+        """
+        :return: The upper side influences.
+        """
+        # TODO: Find a better way
+        fnFilter = lambda jnt: 'low' in jnt.name().lower()
+        return filter(fnFilter, self.jnts)
+
+    @libPython.memoized
+    def get_jnt_low_mid(self):
+        """
+        :return: The middle influence of the lower section.
+        """
+        return get_average_pos_between_nodes(self.get_jnts_low())
+
+    @libPython.memoized
+    def get_jnts_l(self):
+        """
+        :return: All the left side influences.
+        # TODO: Use the nomenclature instead of the position?
+        """
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
+        return filter(fn_filter, self.jnts)
+
+    @libPython.memoized
+    def get_jnts_r(self):
+        """
+        :return: All the right side influences.
+        # TODO: Use the nomenclature instead of the position?
+        """
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
+        return filter(fn_filter, self.jnts)
+
+    @libPython.memoized
+    def get_jnt_l_mid(self):
+        """
+        :return: The left most influence (highest positive distance in x)
+        """
+        fn_get_pos_x = lambda x: x.getTranslation(space='world').x
+        return next(iter(reversed(sorted(self.get_jnts_l(), key=fn_get_pos_x))), None)
+
+    @libPython.memoized
+    def get_jnt_r_mid(self):
+        """
+        :return: The right most influence (highest negative distance in x)
+        """
+        fn_get_pos_x = lambda x: x.getTranslation(space='world').x
+        return next(iter(sorted(self.get_jnts_r(), key=fn_get_pos_x)), None)
+
+    #
+    # Avars getter functions
+    #
+
+    @libPython.memoized
+    def get_avar_mid(self):
+        return _find_mid_avar(self.avars)
+
+    @libPython.memoized
+    def get_avars_l(self):
+        """
+        :return: All left section avars.
+        """
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x >= middle.x
+        return filter(fn_filter, self.avars)
+
+    @libPython.memoized
+    def get_avars_r(self):
+        """
+        :return: All right section avars.
+        """
+        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x < middle.x
+        return filter(fn_filter, self.avars)
+
+    @libPython.memoized
+    def get_avar_l_corner(self):
+        """
+        :return: The farthest avar in the positive X axis.
+        """
+        fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
+        return next(iter(reversed(sorted(self.get_avars_l(), key=fn_get_avar_pos_x))), None)
+
+    @libPython.memoized
+    def get_avar_r_corner(self):
+        """
+        :return: The farthest avar in the negative X axis.
+        """
+        fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
+        return next(iter(sorted(self.get_avars_r(), key=fn_get_avar_pos_x)), None)
+
     def _iter_all_avars(self):
         for avar in super(AvarGrpAreaOnSurface, self)._iter_all_avars():
             yield avar
@@ -648,6 +688,10 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             yield self.avar_all
 
     def add_avars(self, attr_holder):
+        """
+        An AvarGrp don't create any avar by default.
+        It is the responsibility of the inherited module to implement it if necessary.
+        """
         pass
 
     def connect_global_avars(self):

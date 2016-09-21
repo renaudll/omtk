@@ -1,8 +1,9 @@
-import pymel.core as pymel
 import logging
 import re
+
+import pymel.core as pymel
+
 logging.basicConfig()
-from classCtrl import BaseCtrl
 from omtk.libs import libPymel, libAttr, libPython
 log = logging.getLogger('omtk')
 import functools
@@ -27,20 +28,6 @@ class decorator_uiexpose(object):
         """
         return True
 
-def getattrs_by_type(val, type, recursive=False):
-    # TODO: Find a more eleguant way...
-    for key, val in val.__dict__.iteritems():
-        if isinstance(val, type):
-            yield val
-        elif isinstance(val, list):
-            for subval in val:
-                if isinstance(subval, type):
-                    yield subval
-        elif isinstance(val, Module):
-            if recursive:
-                for subval in getattrs_by_type(val, type):
-                    yield subval
-
 class Module(object):
     """
     A Module is built from at least one input, specific via the constructor.
@@ -57,6 +44,38 @@ class Module(object):
 
     # Set to true if the module default name need to use it's first input.
     DEFAULT_NAME_USE_FIRST_INPUT = False
+
+    #
+    # Logging implementation
+    #
+
+    def debug(self, rig, msg):
+        """
+        Redirect a debug message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.debug(msg)
+
+    def info(self, rig, msg):
+        """
+        Redirect an information message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.info(msg)
+
+    def warning(self, rig, msg):
+        """
+        Redirect an warning message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.warning(msg)
+
+    def error(self, rig, msg):
+        """
+        Redirect an error message to the rig logger.
+        """
+        msg = '[{0}] {1}'.format(self.name, msg)
+        rig.error(msg)
 
     #
     # libSerialization implementation
@@ -86,9 +105,6 @@ class Module(object):
         Returns: The desired network name for this instance.
         """
         return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
-
-    def __createMayaNetwork__(self):
-        return pymel.createNode('network', name='net_{0}'.format(self.name))
 
     def is_built(self):
         """
@@ -191,6 +207,7 @@ class Module(object):
 
     @property
     def parent(self):
+        # TODO: We might want to search for specifically a joint in case the influence have intermediate objects.
         if not self.chain_jnt:
             return None
         first_input = next(iter(self.chain_jnt), None)
@@ -208,6 +225,7 @@ class Module(object):
     def jnts(self):
         fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         jnts = filter(fn_is_jnt, self.input)
+        jnts = sorted(jnts)
         return jnts
 
     @libPython.cached_property()
@@ -215,7 +233,7 @@ class Module(object):
         """
         Return the first input joint. Usefull for system like Avars that only handle one influence.
         """
-        return next(iter(self.jnts), None)
+        return next(iter(filter(None, self.jnts)), None)  # Hack: remove filter, find why it happen
 
     @libPython.cached_property()
     def chains(self):
@@ -241,6 +259,19 @@ class Module(object):
         self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
         self.globalScale = None  # Each module is responsible for handling it scale!
 
+        # Sometimes the rigger might modify the module in a way which can prevent it from being un-built without causing issues.
+        # Use this flag to notify omtk that the module should not be un-built under any circumstances.
+        self.locked = False
+
+        # Use this flag to leave any note concerning the module.
+        # ie: Why this module might be locked.
+        # TODO: Support maya notes? (see attribute editor)
+        # self.note = ''
+
+        # By default, this array is used to store the ctrls the module use.
+        # If you define additional properties, don't forget to implement them in the iter_ctrls method.
+        self.ctrls = []
+
         if input:
             if not isinstance(input, list):
                 raise IOError("Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
@@ -258,12 +289,12 @@ class Module(object):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
 
 
-    def validate(self, rig):
+    def validate(self, rig, support_no_inputs=False):
         """
         Check if the module can be built with it's current configuration.
         In case of error, an exception will be raised with the necessary informations.
         """
-        if not self.input:
+        if not self.input and not support_no_inputs:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
         return True
 
@@ -277,9 +308,7 @@ class Module(object):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
-
-        log.info('Building {0}'.format(self))
-
+        self.info(rig, "Building")
         # Disable segment scale compensate by default.
         # Otherwise we might have scale issues since the rig won't propagate uniform scale change.
         if segmentScaleCompensate is not None:
@@ -315,42 +344,48 @@ class Module(object):
         if module:
             desired_parent = module.get_parent(self.parent)
             if desired_parent:
-                log.info("{0} will be parented to module {1}, {2}".format(self, module, desired_parent))
+                self.debug(rig, "Will be parented to {0}, {1}".format(module, desired_parent))
                 return desired_parent
 
-        log.warning("{0} parent is not in any module!".format(self))
+        if libPymel.is_valid_PyNode(self.parent):
+            self.debug(rig, "Can't recommend a parent. {0} is not in any known module.".format(self.parent))
+
         return self.parent
 
-    def unbuild(self):
+    def unbuild(self, rig, disconnect_attr=True):
         """
         Call unbuild on each individual ctrls
         This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
+        :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
+        self.info(rig, "Un-building")
 
         # Ensure that there's no more connections in the input chain
-        for obj in self.input:
-            if isinstance(obj, pymel.nodetypes.Transform):
-                libAttr.disconnectAttr(obj.tx)
-                libAttr.disconnectAttr(obj.ty)
-                libAttr.disconnectAttr(obj.tz)
-                libAttr.disconnectAttr(obj.rx)
-                libAttr.disconnectAttr(obj.ry)
-                libAttr.disconnectAttr(obj.rz)
-                libAttr.disconnectAttr(obj.sx)
-                libAttr.disconnectAttr(obj.sy)
-                libAttr.disconnectAttr(obj.sz)
+        if disconnect_attr:
+            for obj in self.input:
+                if isinstance(obj, pymel.nodetypes.Transform):
+                    libAttr.disconnectAttr(obj.tx)
+                    libAttr.disconnectAttr(obj.ty)
+                    libAttr.disconnectAttr(obj.tz)
+                    libAttr.disconnectAttr(obj.rx)
+                    libAttr.disconnectAttr(obj.ry)
+                    libAttr.disconnectAttr(obj.rz)
+                    libAttr.disconnectAttr(obj.sx)
+                    libAttr.disconnectAttr(obj.sy)
+                    libAttr.disconnectAttr(obj.sz)
 
         # Delete the ctrls in reverse hyerarchy order.
-        ctrls = self.get_ctrls(recursive=True)
+        ctrls = self.get_ctrls()
+        ctrls = filter(libPymel.is_valid_PyNode, ctrls)
         ctrls = reversed(sorted(ctrls, key=libPymel.get_num_parents))
         for ctrl in ctrls:
             ctrl.unbuild()
 
-        if self.grp_anm is not None:
+        if self.grp_anm is not None and libPymel.is_valid_PyNode(self.grp_anm):
             pymel.delete(self.grp_anm)
             self.grp_anm = None
-        if self.grp_rig is not None:
+        if self.grp_rig is not None and libPymel.is_valid_PyNode(self.grp_rig):
             pymel.delete(self.grp_rig)
             self.grp_rig = None
 
@@ -376,11 +411,19 @@ class Module(object):
         if self.grp_anm:
             pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
 
-    def get_ctrls(self, recursive=False):
-        ctrls = getattrs_by_type(self, BaseCtrl, recursive=recursive)
-        for ctrl in ctrls:
-            if ctrl.exists():
-                yield ctrl
+    def iter_ctrls(self):
+        """
+        Iterate though all the ctrl implemented by the module.
+        :return: A generator of BaseCtrl instances.
+        """
+        for ctrl in self.ctrls:
+            yield ctrl
+
+    def get_ctrls(self):
+        """
+        :return: A list of BaseCtrl instances implemented by the module.
+        """
+        return list(self.iter_ctrls())
 
     def get_pin_locations(self):
         """

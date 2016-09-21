@@ -34,7 +34,10 @@ class AvarEye(rigFaceAvar.AvarAim):
         :return:
         """
         jnt_pos = self.jnt.getTranslation(space='world')
-        offset_z = rig.get_head_length() * 2
+        head_length = rig.get_head_length()
+        if not head_length:
+            pymel.warning("Can't resolve head length! The eyes ctrl location might be erroned.")
+        offset_z = head_length * 2 if head_length else 0
         return pymel.datatypes.Matrix(
             1,0,0,0,
             0,1,0,0,
@@ -56,6 +59,9 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         """
         super(FaceEyes, self).__init__(*args, **kwargs)
         self.ctrl_all = None
+
+    def handle_surface(self, rig):
+        pass  # todo: better class schema!
 
     def get_module_name(self):
         return 'Eyes'
@@ -108,9 +114,22 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
             avar.ctrl.setParent(self.ctrl_all)
 
 
-    def unbuild(self):
+    def unbuild(self, rig):
         """
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(FaceEyes, self).unbuild()
+        super(FaceEyes, self).unbuild(rig)
+
+    def iter_ctrls(self):
+        for ctrl in super(FaceEyes, self).iter_ctrls():
+            yield ctrl
+        yield self.ctrl_all
+
+
+    def calibrate(self, rig):
+        """
+        It is not possible to calibrate the eyes since they have no avar on surface.
+        This will hide the function from the UI.
+        """
+        pass

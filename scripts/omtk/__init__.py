@@ -1,6 +1,6 @@
-import logging
 import os
 import sys
+
 import pymel.core as pymel
 
 # Load dependencies (including git submodules) in sys.path
@@ -27,12 +27,11 @@ from rigs import *
 import libs
 from libs import *
 
-import libSerialization
 from omtk.libs import libPython
 
 import uiLogic
 
-def _reload():
+def _reload(kill_ui=True):
     """
     Reload all module in their respective order.
     """
@@ -47,6 +46,13 @@ def _reload():
 
     reload(libs)
     libs._reload()
+
+    if kill_ui:
+        #Try to kill the window to prevent any close event error
+        try:
+            pymel.deleteUI('OpenRiggingToolkit')
+        except:
+            pass
 
     reload(uiLogic)
 

@@ -48,6 +48,11 @@ class PyNodeChain(list):
     def chain(self):
         return self
 
+    def duplicate(self):
+        #Hack - Convert self into list even if self is a list to prevent duplicate self parameter in pymel.duplicate
+        new_chain = pymel.duplicate(list(self), renameChildren=True, parentOnly=True)
+        return PyNodeChain(new_chain)
+
     def setParent(self, new_parent, **kwargs):
         for node in self:
             if node != new_parent and node.getParent() != new_parent:
@@ -108,56 +113,64 @@ def get_chains_from_objs(objs):
                     chain.append(obj)
     return [PyNodeChain(chain) for chain in chains]
 
+def iter_parents(obj):
+    while obj.getParent() is not None:
+        obj = obj.getParent()
+        yield obj
+
 def get_parents(obj):
+    return list(iter_parents(obj))
+    '''
     parents = []
     while obj.getParent() is not None:
         parent = obj.getParent()
         parents.append(parent)
         obj = parent
     return parents
+    '''
+
+
+class Tree(object):
+    __slots__ = ('val', 'children', 'parent')
+    def __init__(self, val):
+        self.val = val
+        self.children = []
+        self.parent = None
+    def append(self, tree):
+        self.children.append(tree)
+        tree.parent = self
+
+    def __repr__(self):
+        return '<Tree {0}>'.format(self.val)
 
 def get_tree_from_objs(objs, sort=False):
     """
     Sort all provided objects in a tree fashion.
-    Each elements is a tuple of size 2, containing the object and it's children.
     Support missing objects between hierarchy.
-    Note that to help recursive functions, the first entry is always None, representing the root node.
-    ex:
-    (None,
-        [
-            ('parent1',
-                [
-                    ('child1', [])
-                ]
-            )
-        ]
-    )
+    Note that tree root value will always be None, representing the root node.
     """
-    data_by_obj = {}
-    ischild_by_obj = {}
-    for obj in objs:
-        data_by_obj[obj] = (obj, [])
-        ischild_by_obj[obj] = False
+    dagpaths = sorted([obj.fullPath() for obj in objs])
 
-    for obj in objs:
-        parents = get_parents(obj)
+    root = Tree(None)
 
-        for parent in parents:
-            if parent in objs:
-                data_by_obj[parent][1].append(data_by_obj[obj])
-                ischild_by_obj[obj] = True
-                break
+    def dag_is_child_of(dag_parent, dag_child):
+        return dag_child.startswith(dag_parent + '|')
 
-    if sort:
-        for obj, data in data_by_obj.iteritems():
-            data_by_obj[obj] = sorted(data)
+    last_knot = root
+    for dagpath in dagpaths:
+        knot = Tree(dagpath)
 
-    tree = []
-    for obj, ischild in sorted(ischild_by_obj.iteritems()):
-        if not ischild:
-            tree.append(data_by_obj[obj])
+        # Resolve the new knot parent
+        p = last_knot
+        while not (p.val is None or dag_is_child_of(p.val, dagpath)):
+            p = p.parent
+        p.append(knot)
 
-    return (None, tree)
+        # Save the last knot, since we are iterating in alphabetical order,
+        # we can assume that the next knot parent can be found using this knot.
+        last_knot = knot
+
+    return root
 
 
 #
@@ -170,23 +183,24 @@ def ls(*args, **kwargs):
 
 # Wrapper for pymel.ls that return only objects without parents.
 def ls_root(*args, **kwargs):
-    return PyNodeChain(filter(lambda x: x.getParent() is None, iter(pymel.ls(*args, **kwargs))))
+    #TODO: Better finding of the root joint
+    return PyNodeChain(filter(lambda x: x.getParent() is None or type(x.getParent()) != pymel.nt.Joint, iter(pymel.ls(*args, **kwargs))))
 
 
-def ls_root_anms(**kwargs):
-    return ls_root('anm*', type='transform', **kwargs)
+def ls_root_anms(pattern='anm*', **kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_geos(**kwargs):
-    return ls_root('geo*', type='transform', **kwargs)
+def ls_root_geos(pattern='geo*',**kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_rigs(**kwargs):
-    return ls_root('rig*', type='transform', **kwargs)
+def ls_root_rigs(pattern='rig*',**kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_jnts(**kwargs):
-    return ls_root('jnt*', type='transform', **kwargs)
+def ls_root_jnts(pattern='jnt*',**kwargs):
+    return ls_root(pattern, type='transform', **kwargs)
 
 
 #
@@ -202,6 +216,8 @@ def isinstance_of_transform(obj, cls=pymel.nodetypes.Transform):
 def isinstance_of_shape(obj, cls=pymel.nodetypes.Shape):
     if isinstance(obj, pymel.nodetypes.Transform):
         return any((shape for shape in obj.getShapes() if isinstance(shape, cls)))
+    elif isinstance(obj, pymel.nodetypes.Shape):
+        return isinstance(obj, cls)
 
 def create_zero_grp(obj):
     zero_grp = pymel.createNode('transform')
@@ -291,7 +307,7 @@ class SegmentCollection(object):
         num_segments = len(self.segments)
         for i, segment in enumerate(self.segments):
             distance_normalized = segment.closest_point_normalized_distance(pos)
-            if distance_normalized >= bound_min and distance_normalized <= bound_max:
+            if bound_min <= distance_normalized <= bound_max:
                 return segment, distance_normalized
             elif i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
                 return segment, 0.0

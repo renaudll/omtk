@@ -1,4 +1,5 @@
-import pymel.core as pymel
+import logging
+log = logging.getLogger('omtk')
 
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
 from pymel import core as pymel
@@ -164,9 +165,13 @@ def hold_attrs(attr):
     """
     if isinstance(attr, pymel.Attribute):
         for input in attr.inputs(plugs=True):
-            if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
-                pymel.disconnectAttr(input, attr) # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
-                return input
+            if not attr.isLocked():
+                if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
+                    pymel.disconnectAttr(input, attr)  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
+                    return input
+            else:
+                log.warning("Input have been found on attr {0}, but it's locked. "
+                            "The animation curve will be lost and the current value will be used".format(attr))
         return attr.get()
     return attr
 

@@ -1,6 +1,8 @@
-import time
 import os
+import time
+
 from maya import OpenMayaUI
+
 from omtk.libs import libPython
 
 use_pyside = libPython.does_module_exist('PySide')
@@ -15,7 +17,6 @@ if use_pyqt4:
 	getMayaWindow = lambda: sip.wrapinstance(long(OpenMayaUI.MQtUtil.mainWindow()), QtCore.QObject)
 
 elif use_pyside:
-	import PySide
 	from PySide import QtCore, QtGui
 	import shiboken
 	uic = shiboken

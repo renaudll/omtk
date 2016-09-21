@@ -1,12 +1,12 @@
 import re
 
 import pymel.core as pymel
-from maya import cmds
 
 from omtk import className
 from omtk import classRig
-from omtk.libs import libRigging, libAttr, libPymel
-from omtk.modules import rigLimb
+from omtk.libs import libAttr
+from omtk.libs import libPymel
+
 
 class SqueezeNomenclature(className.BaseName):
     type_anm = 'Ctrl'
@@ -19,6 +19,7 @@ class SqueezeNomenclature(className.BaseName):
     root_anm_name = 'Ctrls_Grp'
     root_geo_name = 'Render_Grp'
     root_rig_name = 'Data_Grp'
+    root_jnt_name = 'Root_Jnt'
 
     #Specific to Rig Squeeze
     root_all_name = "All_Grp"
@@ -28,6 +29,10 @@ class SqueezeNomenclature(className.BaseName):
 
     SIDE_L = 'L'
     SIDE_R = 'R'
+
+    AVAR_NAME_UPP = 'Upp'
+    AVAR_NAME_LOW = 'Low'
+    AVAR_NAME_ALL = 'Master'
 
     def build_from_string(self, name):
         """
@@ -67,68 +72,53 @@ class RigSqueeze(classRig.Rig):
     def __init__(self, *args, **kwargs):
         super(RigSqueeze, self).__init__(*args, **kwargs)
 
-        self.grp_all = None
+        self.grp_master = None
         self.grp_model = None
         self.grp_proxy = None
         self.grp_fx = None
+        self._color_ctrl = True
 
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature
 
-    _influence_whitelist = ('.*_Jnt', '.*_Jne', '.*_JEnd')
+    _influence_whitelist = ('.*_Jnt',)
     def _is_influence(self, obj):
 
         if isinstance(obj, pymel.nodetypes.Joint):
             name = obj.nodeName()
-            if any(True for pattern in self._influence_whitelist if re.match(pattern, name, re.IGNORECASE)):
-                return True
+            if not any(True for pattern in self._influence_whitelist if re.match(pattern, name, re.IGNORECASE)):
+                return False
 
         return super(RigSqueeze, self)._is_influence(obj)
 
     def pre_build(self):
-        super(RigSqueeze, self).pre_build(create_grp_jnt=False)
+        super(RigSqueeze, self).pre_build(create_master_grp=False)
         
         #
         # Create specific group related to squeeze rig convention
         #
-        if not libPymel.is_valid_PyNode(self.grp_all):
-            if cmds.objExists(self.nomenclature.root_all_name):
-                self.grp_all = pymel.PyNode(self.nomenclature.root_all_name)
-            else:
-                self.grp_all = pymel.createNode('transform', name=self.nomenclature.root_all_name)
+        all_geos = libPymel.ls_root_geos()
 
-        if not libPymel.is_valid_PyNode(self.grp_model):
-            if cmds.objExists(self.nomenclature.root_model_name):
-                self.grp_model = pymel.PyNode(self.nomenclature.root_model_name)
-            else:
-                self.grp_model = pymel.createNode('transform', name=self.nomenclature.root_model_name)
+        # Build All_Grp
+        self.grp_master = self.build_grp(classRig.RigGrp, self.grp_master, self.nomenclature.root_all_name)
+        self.grp_model = self.build_grp(classRig.RigGrp, self.grp_model, self.nomenclature.root_model_name)
+        self.grp_proxy = self.build_grp(classRig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
+        self.grp_fx = self.build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
-        if not libPymel.is_valid_PyNode(self.grp_proxy):
-            if cmds.objExists(self.nomenclature.root_proxy_name):
-                self.grp_proxy = pymel.PyNode(self.nomenclature.root_proxy_name)
-            else:
-                self.grp_proxy = pymel.createNode('transform', name=self.nomenclature.root_proxy_name)
-
-        if not libPymel.is_valid_PyNode(self.grp_fx):
-            if cmds.objExists(self.nomenclature.root_fx_name):
-                self.grp_fx = pymel.PyNode(self.nomenclature.root_fx_name)
-            else:
-                self.grp_fx = pymel.createNode('transform', name=self.nomenclature.root_fx_name)
-
-        #Parent all groups in the main grp_all
-        pymel.parent(self.grp_anm, self.grp_all) #grp_anm is not a Node, but a Ctrl
-        self.grp_rig.setParent(self.grp_all)
-        self.grp_fx.setParent(self.grp_all)
-        self.grp_model.setParent(self.grp_all)
-        self.grp_proxy.setParent(self.grp_all)
-        self.grp_geo.setParent(self.grp_all)
+        # Parent all groups in the main grp_master
+        pymel.parent(self.grp_anm, self.grp_master) # grp_anm is not a Node, but a Ctrl
+        self.grp_rig.setParent(self.grp_master)
+        self.grp_fx.setParent(self.grp_master)
+        self.grp_model.setParent(self.grp_master)
+        self.grp_proxy.setParent(self.grp_master)
+        self.grp_geo.setParent(self.grp_master)
         '''
         if self.grp_jnt.getParent() is None:
-            self.grp_jnt.setParent(self.grp_all)
+            self.grp_jnt.setParent(self.grp_master)
         '''
 
-        #Lock and hide all attributes we don't want the animator to play with
-        libAttr.lock_hide_trs(self.grp_all)
+        # Lock and hide all attributes we don't want the animator to play with
+        libAttr.lock_hide_trs(self.grp_master)
         libAttr.lock_hide_trs(self.grp_rig)
         libAttr.lock_hide_trs(self.grp_fx)
         libAttr.lock_hide_trs(self.grp_model)
@@ -136,8 +126,8 @@ class RigSqueeze(classRig.Rig):
         libAttr.lock_hide_trs(self.grp_geo)
         libAttr.hide_scale(self.grp_anm)
 
-        #Hide some group
-        #self.grp_jnt.visibility.set(False)
+        # Hide some group
+        # self.grp_jnt.visibility.set(False)
         self.grp_rig.visibility.set(False)
         self.grp_fx.visibility.set(False)
         self.grp_model.visibility.set(False)
@@ -148,21 +138,21 @@ class RigSqueeze(classRig.Rig):
         if not self.grp_anm.hasAttr(self.GROUP_NAME_DISPLAY, checkShape=False):
             libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_DISPLAY)
 
-        #Display Mesh
+        # Display Mesh
         if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_MESH, checkShape=False):
             attr_displayMesh = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_MESH, at='short', k=True,
                                                hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
         else:
             attr_displayMesh = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_MESH)
 
-        #Display Ctrl
+        # Display Ctrl
         if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_CTRL, checkShape=False):
             attr_displayCtrl = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_CTRL, at='short', k=True,
                                                hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
         else:
             attr_displayCtrl = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_CTRL)
 
-        #Display Proxy
+        # Display Proxy
         if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_PROXY, checkShape=False):
             attr_displayProxy = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_PROXY, at='short', k=True,
                                                hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
@@ -174,61 +164,8 @@ class RigSqueeze(classRig.Rig):
         for child in self.grp_anm.getChildren():
             pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
 
-    def post_buid_module(self, module):
-        super(RigSqueeze, self).post_buid_module(module)
-
-        #
-        # Connect all IK/FK attributes
-        # TODO: Ensure all attributes are correctly transfered
-        #
-        if isinstance(module, rigLimb.Limb):
-            # Inverse IK/FK state.
-            # At Squeeze, 0 is IK and 1 is FK, strange.
-            module.STATE_IK = 0.0
-            module.STATE_FK = 1.0
-
-            pymel.delete(module.ctrl_attrs)
-            module.ctrl_attrs = None
-
-            # Resolve name
-            # TODO: Handle name conflict
-            nomenclature_anm = module.get_nomenclature_anm(self)
-            nomenclature_attr = self.nomenclature(tokens=[module.__class__.__name__], side=nomenclature_anm.side)
-            attr_src_name = nomenclature_attr.resolve()
-            attr_dst = module.grp_rig.attr(module.kAttrName_State)
-
-            if not self.grp_anm.hasAttr(self.GROUP_NAME_IKFK, checkShape=False):
-                libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_IKFK)
-
-            attr_src = None
-            if not self.grp_anm.hasAttr(attr_src_name, checkShape=False):
-                attr_src = libAttr.addAttr(self.grp_anm, longName=attr_src_name, at='short', k=True,
-                              hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
-            else:
-                attr_src = self.grp_anm.attr(attr_src_name)
-
-            # Note that at Squeeze, 0 is for IK and 1 is for FK so we'll need to reverse it.
-            attr_src_inv = libRigging.create_utility_node('reverse', inputX=attr_src).outputX
-
-            pymel.connectAttr(attr_src_inv, attr_dst)
-
-        #
-        # Set ctrls colors
-        #
-        color_by_side = {
-            self.nomenclature.SIDE_L: 13,  # Red
-            self.nomenclature.SIDE_R: 6  # Blue
-        }
-        epsilon = 0.1
-        if module.grp_anm:
-            nomenclature_anm = module.get_nomenclature_anm(self)
-            for ctrl in module.get_ctrls(recursive=True):
-                nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
-                side = nomenclature_ctrl.side
-                color = color_by_side.get(side, None)
-                if color:
-                    ctrl.drawOverride.overrideEnabled.set(1)
-                    ctrl.drawOverride.overrideColor.set(color)
-
-    def unbuild(self, *args, **kwargs):
-        super(RigSqueeze, self).unbuild()
+    def _unbuild_nodes(self):
+        self.grp_model = self._unbuild_node(self.grp_model, keep_if_children=True)
+        self.grp_proxy = self._unbuild_node(self.grp_proxy, keep_if_children=True)
+        self.grp_fx = self._unbuild_node(self.grp_fx, keep_if_children=True)
+        super(RigSqueeze, self)._unbuild_nodes()

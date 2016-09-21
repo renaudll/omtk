@@ -70,7 +70,7 @@ class BaseName(object):
         self.side = None
 
         if name:
-            self.build_from_string(name)
+            tokens = self.build_from_string(name)
 
         # Apply manual overrides
         if tokens:
@@ -174,14 +174,6 @@ class BaseName(object):
         :return: All token without the side tokens.
         """
         return [token for token in self.tokens if not self.get_side_from_token(token)]
-
-    def get_side(self):
-        for token in self.tokens:
-            if self._is_side_l(token):
-                return "l"
-            elif self._is_side_r(token):
-                return "r"
-        return None
 
     def resolve(self, *args):
         tokens = []

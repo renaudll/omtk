@@ -1,10 +1,10 @@
 import pymel.core as pymel
+
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.modules.rigSplineIK import SplineIK
-import re
 
 
 class NonRollJoint(Node):
@@ -177,7 +177,6 @@ class Twistbone(Module):
                 for subjnt in self.subjnts:
                     if subjnt in influenceObjects:
                         continue
-
                     skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                     subjnt.lockInfluenceWeights.set(False)
 
@@ -212,7 +211,11 @@ class Twistbone(Module):
                 results.add(mesh)
         return results
 
-    def unbuild(self, delete=True):
+    def unbuild(self, rig, delete=True):
+        '''
+        Unbuild the twist bone
+        '''
+
         '''
         # Remove twistbones skin
         for mesh in self.get_farest_affected_mesh():
@@ -224,8 +227,8 @@ class Twistbone(Module):
             pymel.disconnectAttr(jnt.scaleY)
             pymel.disconnectAttr(jnt.scaleZ)
 
-
-        super(Twistbone, self).unbuild()
+        #Don't disconnect input attribute when unbuilding twist bones
+        super(Twistbone, self).unbuild(rig, disconnect_attr=False)
 
         self.start = None
         self.end = None

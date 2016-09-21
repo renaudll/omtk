@@ -86,6 +86,7 @@ class DpSpine(Module):
         self.ctrl_ik_dwn.build(rig, name=ctrl_ik_dwn_name, refs=jnt_dwn)
         self.ctrl_ik_dwn.setTranslation(pos_dwn_world)
         self.ctrl_ik_dwn.setParent(self.grp_anm)
+        self.ctrl_ik_dwn.node.rotateOrder.set(1)
 
         ctrl_ik_upp_name = nomenclature_anm.resolve('ChestA')
         if not isinstance(self.ctrl_ik_upp, self._CLASS_CTRL_IK):
@@ -93,6 +94,7 @@ class DpSpine(Module):
         self.ctrl_ik_upp.build(rig, name=ctrl_ik_upp_name, refs=jnt_upp)
         self.ctrl_ik_upp.setTranslation(pos_upp_world)
         self.ctrl_ik_upp.setParent(self.ctrl_ik_dwn)
+        self.ctrl_ik_upp.node.rotateOrder.set(1)
 
         # Ensure the ctrl_ik_upp pivot is a the middle.
         ctrl_ik_upp_pivot = pos_mid_world - pos_upp_world
@@ -108,6 +110,7 @@ class DpSpine(Module):
         self.ctrl_fk_dwn.build(rig, name=ctrl_fk_dwn_name, refs=jnt_dwn)
         self.ctrl_fk_dwn.setTranslation(pos_dwn_world)
         self.ctrl_fk_dwn.setParent(self.ctrl_ik_dwn)
+        self.ctrl_fk_dwn.node.rotateOrder.set(1)
 
         ctrl_fk_upp_name = nomenclature_anm.resolve('ChestB')
         if not isinstance(self.ctrl_fk_upp, self._CLASS_CTRL_FK):
@@ -115,6 +118,7 @@ class DpSpine(Module):
         self.ctrl_fk_upp.build(rig, name=ctrl_fk_upp_name, refs=jnt_upp)
         self.ctrl_fk_upp.setTranslation(pos_upp_world)
         self.ctrl_fk_upp.setParent(self.ctrl_ik_upp)
+        self.ctrl_fk_upp.node.rotateOrder.set(1)
 
         ctrl_fk_mid_name = nomenclature_anm.resolve('Middle1')
         if not isinstance(self.ctrl_fk_mid, self._CLASS_CTRL_FK):
@@ -122,6 +126,7 @@ class DpSpine(Module):
         self.ctrl_fk_mid.build(rig, name=ctrl_fk_mid_name, refs=jnt_mid)
         self.ctrl_fk_mid.setTranslation(pos_mid_world)
         self.ctrl_fk_mid.setParent(self.ctrl_ik_dwn)
+        self.ctrl_fk_mid.node.rotateOrder.set(1)
 
         # Ensure the ctrl_fk_mid follow ctrl_ik_upp and ctrl_ik_dwn
         # Note that this is evil, a parentConstraint should never have two targets.
@@ -241,7 +246,7 @@ class DpSpine(Module):
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleZ)
 
-    def unbuild(self):
+    def unbuild(self, rig):
         # Restore the original skin and remove the squash joints
         if self.jnt_squash_dwn and self.jnt_squash_dwn.exists():
             jnt_dwn = self.chain_jnt[0]
@@ -255,7 +260,7 @@ class DpSpine(Module):
 
         self.jnt_squash_dwn = None
         self.jnt_squash_dwn = None
-        super(DpSpine, self).unbuild()
+        super(DpSpine, self).unbuild(rig)
 
     def get_parent(self, parent):
         if parent == self.chain_jnt[0]:
@@ -272,6 +277,16 @@ class DpSpine(Module):
             (self.ctrl_fk_upp.node, 'Chest'),
             (self.ctrl_fk_dwn.node, 'Cog')
         )
+
+    def iter_ctrls(self):
+        for ctrl in super(DpSpine, self).iter_ctrls():
+            yield ctrl
+
+        yield self.ctrl_ik_upp
+        yield self.ctrl_ik_dwn
+        yield self.ctrl_fk_upp
+        yield self.ctrl_fk_mid
+        yield self.ctrl_fk_dwn
 
 
 

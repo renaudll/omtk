@@ -1,13 +1,14 @@
 import collections
 import logging as log
+import logging
 
 import pymel.core as pymel
+
 from classNode import Node
 from omtk.core import classNode
-from omtk.libs import libRigging, libAttr, libPymel
-from omtk.libs import libPymel
 from omtk.libs import libAttr
-import logging
+from omtk.libs import libPymel
+from omtk.libs import libRigging
 
 log = logging.getLogger('omtk')
 
@@ -75,7 +76,7 @@ class BaseCtrl(Node):
             else:
                 size = 1.0
 
-        transform, make = pymel.circle(*args, **kwargs)
+        transform, make = pymel.circle()
         make.radius.set(size)
         make.normal.set(normal)
 
@@ -89,7 +90,7 @@ class BaseCtrl(Node):
             return False
         return self.node.exists()  # PyNode
 
-    def build(self, parent, name=None, *args, **kwargs):
+    def build(self, parent, name=None, fetch_shapes=True, *args, **kwargs):
         """
         Create ctrl setup, also fetch animation and shapes if necessary.
         """
@@ -105,7 +106,7 @@ class BaseCtrl(Node):
 
         # Create an intermediate parent if necessary
         if self._create_offset:
-            self.offset = self.add_layer('offset')
+            self.offset = self.append_layer('offset')
 
         # Fetch stored animations
         self.fetch_attr_all() # todo: still necessary?
@@ -180,7 +181,8 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            print "[setParent] {0} don't have an offset attribute, node will be parented instead".format(self)
+            return self.node.setParent(*args, **kwargs)
         return self.offset.setParent(*args, **kwargs)
 
     def setMatrix(self, *args, **kwargs):
@@ -214,17 +216,23 @@ class BaseCtrl(Node):
     def hold_attrs_all(self):
         """
         Hold all ctrl keyable attributes.
+        Note that if an attribute is locked or non-keyable, we'll only hold it's value.
         """
-        # TODO: Hold all keyable attributes.
-        self.tx = libAttr.hold_attrs(self.node.translateX)
-        self.ty = libAttr.hold_attrs(self.node.translateY)
-        self.tz = libAttr.hold_attrs(self.node.translateZ)
-        self.rx = libAttr.hold_attrs(self.node.rotateX)
-        self.ry = libAttr.hold_attrs(self.node.rotateY)
-        self.rz = libAttr.hold_attrs(self.node.rotateZ)
-        self.sx = libAttr.hold_attrs(self.node.scaleX)
-        self.sy = libAttr.hold_attrs(self.node.scaleY)
-        self.sz = libAttr.hold_attrs(self.node.scaleZ)
+        def _hold_attr(attr):
+            if attr.isLocked() or not attr.isKeyable():
+                return attr.get()
+            else:
+                return libAttr.hold_attrs(attr)
+
+        self.tx = _hold_attr(self.node.translateX)
+        self.ty = _hold_attr(self.node.translateY)
+        self.tz = _hold_attr(self.node.translateZ)
+        self.rx = _hold_attr(self.node.rotateX)
+        self.ry = _hold_attr(self.node.rotateY)
+        self.rz = _hold_attr(self.node.rotateZ)
+        self.sx = _hold_attr(self.node.scaleX)
+        self.sy = _hold_attr(self.node.scaleY)
+        self.sz = _hold_attr(self.node.scaleZ)
 
     def fetch_attr_all(self):
         """
@@ -250,13 +258,13 @@ class BaseCtrl(Node):
         nomenclature = rig.nomenclature
 
         if parent is None:
-            log.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
+            module.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
             return
 
         # Resolve spaceswitch targets
         targets, labels = self.get_spaceswitch_targets(rig, module, parent, add_world=add_world)
         if not targets:
-            log.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
+            module.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
             return
 
         if default_name is None:
@@ -277,7 +285,7 @@ class BaseCtrl(Node):
             offset += 1
             labels.insert(0, default_name)
 
-        layer_spaceSwitch = self.add_layer('spaceSwitch')
+        layer_spaceSwitch = self.append_layer('spaceSwitch')
         parent_constraint = pymel.parentConstraint(targets, layer_spaceSwitch, maintainOffset=True, **kwargs)
         attr_space = libAttr.addAttr(self.node, 'space', at='enum', enumName=':'.join(labels), k=True)
         atts_weights = parent_constraint.getWeightAliasList()
@@ -293,7 +301,8 @@ class BaseCtrl(Node):
             ).outColorR
             pymel.connectAttr(att_enabled, att_weight)
 
-    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, world_name='World'):
+    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, add_root=True,
+                                root_name='Root', world_name='World'):
         targets = []
         target_names = []
 
@@ -311,9 +320,14 @@ class BaseCtrl(Node):
                 targets.append(target)
                 target_names.append(target_name)
 
-        if add_world and libPymel.is_valid_PyNode(rig.grp_jnt):
-            targets.append(rig.grp_jnt)
+        if add_world and libPymel.is_valid_PyNode(rig.grp_rig):
+            targets.append(rig.grp_rig)
             target_names.append(world_name)
+
+        # Add the master ctrl as a spaceswitch target
+        if libPymel.is_valid_PyNode(rig.grp_anm):
+            targets.append(rig.grp_anm)
+            target_names.append(root_name)
 
         return targets, target_names
 
@@ -354,16 +368,30 @@ class InteractiveCtrl(BaseCtrl):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
-    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, **kwargs):
+        self.follicle = None
+
+    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, follow_mesh=True, **kwargs):
+        """
+        Create an Interactive controller that follow a geometry.
+        :param parent: ???
+        :param ref:
+        :param ref_tm:
+        :param grp_rig:
+        :param obj_mesh:
+        :param u_coord:
+        :param v_coord:
+        :param kwargs:
+        :return:
+        """
+
+        # HACK: Ensure flipped shapes are correctly restaured...
+        # This is necessary since when holded, the scale of the ctrl is set to identity.
+        # However ctrl from the right side have an inverted scale on the x axis. -_-
+        if flip_lr and libPymel.is_valid_PyNode(self.shapes):
+            self.shapes.sx.set(-1)
+            pymel.makeIdentity(self.shapes, rotate=True, scale=True, apply=True)
+
         # todo: Simplify the setup, too many nodes
-
-        # Resolve geometry to attach to
-        if obj_mesh is None:
-            obj_mesh = parent.get_farest_affected_mesh(ref)
-
-        if obj_mesh is None:
-            raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
-
         super(InteractiveCtrl, self).build(parent, **kwargs)
 
         #nomenclature_anm = self.get_nomenclature_anm(parent)
@@ -375,7 +403,29 @@ class InteractiveCtrl(BaseCtrl):
             ref_tm = ref.getMatrix(worldSpace=True)
         pos_ref = ref_tm.translate
 
-        need_flip = ref_tm.translate.x < 0
+        # Resolve u and v coordinates
+        # todo: check if we really want to resolve the u and v ourself since it's now connected.
+        if obj_mesh is None:
+            # We'll scan all available geometries and use the one with the shortest distance.
+            meshes = libRigging.get_affected_geometries(ref)
+            meshes = list(set(meshes) & set(parent.get_meshes()))
+            obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
+        else:
+            _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
+
+        if u_coord is None:
+            u_coord = out_u
+        if v_coord is None:
+            v_coord = out_v
+
+        if obj_mesh is None:
+            raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
+
+        if self.jnt:
+            parent.debug('Creating doritos on {0} using {1} as reference'.format(obj_mesh, self.jnt))
+        else:
+            parent.debug('Creating doritos on {0}'.format(obj_mesh))
+
 
         # Initialize external stack
         # Normally this would be hidden from animators.
@@ -393,8 +443,6 @@ class InteractiveCtrl(BaseCtrl):
         self.attr_sensitivity_tz = libAttr.addAttr(stack, longName=self._ATTR_NAME_SENSITIVITY_TZ,
                                                              defaultValue=1.0)
 
-        log.info('Creating doritos setup from {0} to {1}'.format(self.jnt, obj_mesh))
-
         # Note that to only check in the Z axis, we'll do a raycast first.
         # If we success this will become our reference position.
         '''
@@ -409,31 +457,33 @@ class InteractiveCtrl(BaseCtrl):
 
         # Create the layer_fol that will follow the geometry
         layer_fol_name = nomenclature_rig.resolve('doritosFol')
-        layer_fol = stack.add_layer()
+        layer_fol = stack.append_layer()
         layer_fol.rename(layer_fol_name)
         #layer_fol.setParent(self.grp_rig)
 
-        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_mesh(obj_mesh, pos_ref)
-
         # TODO: Validate that we don't need to inverse the rotation separately.
-        fol_name = nomenclature_rig.resolve('doritosFollicle')
-        fol_shape = libRigging.create_follicle2(obj_mesh, u=fol_u, v=fol_v)
-        fol = fol_shape.getParent()
-        self.follicle = fol
-        fol.rename(fol_name)
-        pymel.parentConstraint(fol, layer_fol, maintainOffset=True)
-        fol = fol_shape.getParent()
-        fol.setParent(self.grp_rig)
+        fol_mesh = None
+        if follow_mesh:
+            fol_name = nomenclature_rig.resolve('doritosFollicle')
+            fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
+            fol_mesh = fol_shape.getParent()
+            self.follicle = fol_mesh
+            fol_mesh.rename(fol_name)
+            pymel.parentConstraint(fol_mesh, layer_fol, maintainOffset=True)
+            fol_mesh.setParent(self.grp_rig)
 
-        # HACK: Fix rotation issues.
-        # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
-        # any deformation can affect the normal of the faces.
-        jnt_head = parent.get_head_jnt()
-        if jnt_head:
-            pymel.disconnectAttr(layer_fol.rx)
-            pymel.disconnectAttr(layer_fol.ry)
-            pymel.disconnectAttr(layer_fol.rz)
-            pymel.orientConstraint(jnt_head, layer_fol, maintainOffset=True)
+            # HACK: Fix rotation issues.
+            # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
+            # any deformation can affect the normal of the faces.
+            jnt_head = parent.get_head_jnt()
+            if jnt_head:
+                pymel.disconnectAttr(layer_fol.rx)
+                pymel.disconnectAttr(layer_fol.ry)
+                pymel.disconnectAttr(layer_fol.rz)
+                pymel.orientConstraint(jnt_head, layer_fol, maintainOffset=True)
+        else:
+            self.follicle = layer_fol
+            pymel.parentConstraint(ref, layer_fol, maintainOffset=True)
 
         #
         # Constraint a specic controller to the avar doritos stack.
@@ -470,7 +520,7 @@ class InteractiveCtrl(BaseCtrl):
                                                          input2Z=self.attr_sensitivity_tz
                                                          ).output
 
-        if need_flip:
+        if flip_lr:
             attr_doritos_tx = libRigging.create_utility_node('multiplyDivide',
                                                              input1X=attr_ctrl_inv_t.outputX,
                                                              input2X=-1
@@ -487,7 +537,7 @@ class InteractiveCtrl(BaseCtrl):
 
         # Apply scaling on the ctrl parent.
         # This is were the 'black magic' happen.
-        if need_flip:
+        if flip_lr:
             attr_ctrl_offset_sx_inn = libRigging.create_utility_node('multiplyDivide',
                                                                      input1X=self.attr_sensitivity_tx,
                                                                      input2X=-1
@@ -514,12 +564,6 @@ class InteractiveCtrl(BaseCtrl):
             cp.set(0,0,0)
 
         # Counter-scale the shape
-        '''
-        if need_flip:
-            attr_adjustement_sx_inn = libRigging.create_utility_node('multiplyDivide', input1X=attr_sensibility_lr_inv, input2X=-1).outputX
-        else:
-            attr_adjustement_sx_inn = attr_sensibility_lr_inv
-        '''
         attr_adjustement_sx_inn = attr_sensibility_lr_inv
         attr_adjustement_sy_inn = attr_sensibility_ud_inv
         attr_adjustement_sz_inn = attr_sensibility_fb_inv
@@ -554,27 +598,29 @@ class InteractiveCtrl(BaseCtrl):
         # Clean dag junk
         if grp_rig:
             stack.setParent(grp_rig)
-            fol.setParent(grp_rig)
+            if fol_mesh:
+                fol_mesh.setParent(grp_rig)
 
-    def calibrate(self, tx=True, ty=True, tz=True):
+    def calibrate(self, rig, module, tx=True, ty=True, tz=True):
+        # TODO: use correct logger
         influence = self.follicle
         if not influence:
-            log.warning("Can't calibrate {0}, found no influences.")
+            log.warning("Can't calibrate {0}, found no influences.".format(self))
             return
 
         if tx and not self.node.tx.isLocked():
             sensitivity_tx = _get_attr_sensibility(self.node.tx, influence)
-            print('Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
+            module.debug(rig, 'Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.node.ty.isLocked():
             sensitivity_ty = _get_attr_sensibility(self.node.ty, influence)
-            print('Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
+            module.debug(rig, 'Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.node.tz.isLocked():
             sensitivity_tz = _get_attr_sensibility(self.node.tz, influence)
-            print('Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
+            module.debug(rig, 'Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
 

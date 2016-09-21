@@ -36,6 +36,7 @@ class SqueezeNomenclature_MAV(rigSqueeze.SqueezeNomenclature):
 
 
 class SqueezeRig_MAV(rigSqueeze.RigSqueeze):
+    _influence_whitelist = ('C_.*', 'L_.*', 'R_.*', '.*_Jnt', 'Root')
     def _is_influence(self, obj):
         """
         Restaure default behavior (from classRig.Rig)
@@ -45,7 +46,7 @@ class SqueezeRig_MAV(rigSqueeze.RigSqueeze):
         if re.match(".*_DefJnt$", obj.nodeName()):
             return False
 
-        return True
+        return super(SqueezeRig_MAV, self)._is_influence(obj)
 
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature_MAV

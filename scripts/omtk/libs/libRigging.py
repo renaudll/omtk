@@ -337,7 +337,7 @@ def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
         pos_dwn_inn = edges_positions_dwn[i]
         is_first = i == 0
         is_before_last = i == num_edges - 2
-        is_last  = i == num_edges - 1
+        is_last = i == num_edges - 1
 
         # Add edge (note that we always add the first and last edge edge).
         if is_first or is_last or add_inside_edges:

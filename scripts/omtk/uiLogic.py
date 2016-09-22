@@ -1219,7 +1219,12 @@ class AutoRig(QtGui.QMainWindow):
 
         self.remove_logger_handler()
         self.remove_callbacks()
-        super(AutoRig, self).closeEvent(*args, **kwargs)
+        # Sometime calling the super close event cause this event :
+        # TypeError: super(type, obj): obj must be an instance or subtype of type
+        try:
+            super(AutoRig, self).closeEvent(*args, **kwargs)
+        except:
+            pass
 
         #
         # Logger handling

@@ -5,6 +5,7 @@ from omtk.core.classCtrl import BaseCtrl
 from omtk.core import consts_omtk
 from omtk.modules.rigIK import IK
 from omtk.modules.rigFK import FK
+from omtk.modules.rigTwistbone import Twistbone
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 from omtk.libs import libAttr
@@ -47,11 +48,14 @@ class Limb(Module):
     _CLASS_SYS_FK = FK
     _CLASS_CTRL_ATTR = BaseAttHolder
     _CLASS_CTRL_ELBOW = CtrlElbow
+    _CLASS_SYS_TWIST = Twistbone
 
     def __init__(self, *args, **kwargs):
         super(Limb, self).__init__(*args, **kwargs)
         self.sysIK = None
         self.sysFK = None
+        self.sys_twist = []
+        self.create_twist = True
         self.ctrl_elbow = None
         self.attState = None
         self.offset_ctrl_ik = None
@@ -77,7 +81,21 @@ class Limb(Module):
         self.sysFK.name = '{0}_Fk'.format(self.name) # Hack
         self.sysFK.build(rig, constraint=False, **kwargs)
 
-        #Lock X and Y axis on the elbow/knee ctrl
+        # Create twistbone system if needed
+        if self.create_twist:
+            num_twist_sys = self.sysIK.iCtrlIndex
+            # If the IK system is a quad, we need to have two twist system
+            for i in range(0, num_twist_sys):
+                cur_sys_twist = self.sys_twist[i] if i < len(self.sys_twist) else None
+                if not isinstance(cur_sys_twist, self._CLASS_SYS_TWIST):
+                    cur_sys_twist = self._CLASS_SYS_TWIST(self.chain_jnt[i:(i+2)])
+                    self.sys_twist.append(cur_sys_twist)
+                # Hack
+                twist_sys_name = self.chain_jnt[i].name().replace('_' + nomenclature_rig.type_jnt, "")
+                cur_sys_twist.name = '{0}'.format(twist_sys_name)
+                cur_sys_twist.build(rig, num_twist=3, create_bend=True, **kwargs)
+
+        # Lock X and Y axis on the elbow/knee ctrl
         if rig._up_axis == consts_omtk.Axis.y:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
         elif rig._up_axis == consts_omtk.Axis.z:
@@ -182,6 +200,10 @@ class Limb(Module):
         self.sysIK.grp_anm.setParent(self.grp_anm)
         self.sysIK.grp_rig.setParent(self.grp_rig)
         self.sysFK.grp_anm.setParent(self.grp_anm)
+        for sys_twist in self.sys_twist:
+            if sys_twist.create_bend:
+                sys_twist.grp_anm.setParent(self.grp_anm)
+            sys_twist.grp_rig.setParent(self.grp_rig)
 
         self.attState = attr_ik_weight  # Expose state
 
@@ -190,6 +212,8 @@ class Limb(Module):
             self.sysIK.unbuild(rig)
         if self.sysFK and self.sysFK.is_built():
             self.sysFK.unbuild(rig)
+        for twist_sys in self.sys_twist:
+            twist_sys.unbuild(rig)
 
         super(Limb, self).unbuild(rig)
 

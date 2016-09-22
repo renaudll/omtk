@@ -1,16 +1,16 @@
 # Import body modules
-import rigArm
-import rigDpSpine
-import rigFK
-import rigHand
-import rigHead
-import rigIK
-import rigLeg
-import rigLimb
-import rigNeck
 import rigRibbon
 import rigSplineIK
+import rigFK
+import rigIK
+import rigLimb
 import rigTwistbone
+import rigLeg
+import rigArm
+import rigDpSpine
+import rigHand
+import rigHead
+import rigNeck
 # Import face modules
 import rigFaceAvar
 import rigFaceAvarGrps

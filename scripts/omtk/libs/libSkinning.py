@@ -3,6 +3,8 @@ from maya import OpenMaya
 from omtk.libs import libPymel
 
 def get_skin_cluster(obj):
+    if isinstance(obj, pymel.nodetypes.SkinCluster):
+        return obj
     for hist in pymel.listHistory(obj):
         if isinstance(hist, pymel.nodetypes.SkinCluster):
             return hist
@@ -13,18 +15,17 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
     """
     Transfer skin weights from multiples joints to a specific joint.
     Took 0.193 in Makino.
-    :param obj: The skinned geometry.
+    :param obj: The skinned geometry or the Skin Cluster
     :param sources: An array of the joints to transfer from.
     :param target: The joint to transfer to.
     :return:
     """
-    # TODO: Allow the skinCluster to be specified in case a specific geometry is bound to multiple skinClusters.
     # TODO: automatically unlock influences?
     # TODO: add missing influences if necessary?
 
     # Validate obj type
-    if not isinstance(obj, pymel.nodetypes.Mesh):
-        raise IOError("Unsupported geometry. Expected Mesh, got {0}".format(type(obj)))
+    if not isinstance(obj, pymel.nodetypes.Mesh) and not isinstance(obj, pymel.nodetypes.SkinCluster):
+        raise IOError("Unsupported geometry. Expected Mesh or SkinCluster, got {0}".format(type(obj)))
 
     # Resolve skinCluster
     skinCluster = get_skin_cluster(obj)
@@ -60,11 +61,20 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
     if target.lockInfluenceWeights.get():
         target.lockInfluenceWeights.set(False)
 
+    # TODO - Support multiple geometry attached to same skin cluster
+    def get_obj_dagpath():
+        if isinstance(obj, pymel.nodetypes.Mesh):
+            return obj, obj.__apimdagpath__()
+        elif isinstance(obj, pymel.nodetypes.SkinCluster): # If it's not a mesh, it is a skinCluster
+            meshes = obj.outputGeometry.listConnections(type="mesh")
+            mesh = meshes[0].getShape() if meshes else None
+            dagpath = mesh.__apimdagpath__() if mesh else None
+            return mesh, dagpath
 
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
     mfnSkinCluster = skinCluster.__apimfn__()
-    geometryDagPath = obj.__apimdagpath__()
+    obj, geometryDagPath = get_obj_dagpath() # HACK Ensure to have a real mesh and not only a skinCluster
     component = pymel.api.toComponentMObject(geometryDagPath)
     mfnSkinCluster.getWeights(geometryDagPath, component, influences, old_weights)
 

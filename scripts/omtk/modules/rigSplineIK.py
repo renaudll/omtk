@@ -33,17 +33,19 @@ class SplineIK(Module):
         curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)), None)
 
         # Create ik solver
-        solver_name = nomenclature_rig.resolve('ikEffector')
+        handle_name = nomenclature_rig.resolve('ikHandle')
+        eff_name = nomenclature_rig.resolve('ikEffector')
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,
             startJoint=self._joints[0],
             endEffector=self._joints[-1],
             createCurve=False,
-            name=solver_name,
+            name=handle_name,
             parentCurve=False,
             snapCurve=False)
         self.ikHandle.setParent(self.grp_rig)
+        self.ikEffector.rename(eff_name)
 
         # Create stretch
         # Todo: use shape instead of transform as curve input?

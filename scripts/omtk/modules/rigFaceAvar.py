@@ -21,6 +21,7 @@ log = logging.getLogger('omtk')
 class BaseCtrlFace(classCtrl.InteractiveCtrl):
     pass
 
+
 class CtrlFaceMicro(BaseCtrlFace):
     """
     If you need specific ctrls for you module, you can inherit from BaseCtrl directly.
@@ -177,14 +178,6 @@ class AbstractAvar(classModule.Module):
     # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
     #
 
-    '''
-    @libPython.cached_property()
-    def surface(self):
-        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-        objs = filter(fn_is_nurbsSurface, self.input)
-        return next(iter(objs), None)
-    '''
-
     @libPython.memoized
     def get_base_uv(self):
         pos = self.get_jnt_tm().translate
@@ -222,20 +215,22 @@ class AbstractAvar(classModule.Module):
         return tm
 
     def validate(self, rig):
+        """
+        Check if the module can be built with it's current configuration.
+        Since AbstractAvar support having no influence at all (macro avars), we support having no inputs.
+        :param rig: The Rig instance associated with the module.
+        """
         super(AbstractAvar, self).validate(rig, support_no_inputs=True)
-
-        '''
-        if not self.jnts:
-            raise Exception("Can't build AvarGrp with zero joints!")
-        '''
-
         return True
 
     def create_surface(self, rig, name='Surface'):
-        '''
-        if name is None:
-            name = self.name
-        '''
+        """
+        Create a simple rig to deform a nurbsSurface, allowing the rigger to easily provide
+        a surface for the influence to slide on.
+        :param rig: The Rig instance associated with the module.
+        :param name: The suffix of the surface name to create.
+        :return: A pymel.nodetypes.Transform instance of the created surface.
+        """
         nomenclature = self.get_nomenclature_rig(rig).copy()
         nomenclature.add_tokens(name)
 
@@ -387,6 +382,7 @@ class AbstractAvar(classModule.Module):
         for ctrl in super(AbstractAvar, self).iter_ctrls():
             yield ctrl
         yield self.ctrl
+
 
 class AvarSimple(AbstractAvar):
     """

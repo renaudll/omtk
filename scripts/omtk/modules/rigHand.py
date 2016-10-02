@@ -228,3 +228,6 @@ class Hand(Module):
             for sys in self.fk_sys_metacarpals:
                 for ctrl in sys.iter_ctrls():
                     yield ctrl
+
+def register_plugin():
+    return Hand

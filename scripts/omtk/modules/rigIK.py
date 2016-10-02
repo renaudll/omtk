@@ -496,3 +496,6 @@ class IK(Module):
         yield self.ctrl_ik
         yield self.ctrl_swivel
         yield self.ctrl_swivel_quad
+
+def register_plugin():
+    return IK

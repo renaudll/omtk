@@ -173,3 +173,6 @@ class Ribbon(Module):
         super(Ribbon, self).unbuild(rig)
 
         self.ctrls = []
+
+def register_plugin():
+    return Ribbon

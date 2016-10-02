@@ -3,7 +3,6 @@ import sys
 
 import pymel.core as pymel
 
-# Load dependencies (including git submodules) in sys.path
 __dependencies__ = [
     ('deps',)
 ]
@@ -18,11 +17,13 @@ pymel.loadPlugin('matrixNodes', quiet=True)
 import core
 from core import *
 
+''''
 import modules
 from modules import *
 
 import rigs
 from rigs import *
+'''
 
 import libs
 from libs import *
@@ -38,14 +39,31 @@ def _reload(kill_ui=True):
     reload(core)
     core._reload()
 
+    '''
     reload(modules)
     modules._reload()
 
     reload(rigs)
     rigs._reload()
+    '''
 
     reload(libs)
     libs._reload()
+
+    import plugin_manager
+    reload(plugin_manager)
+    print(id(plugin_manager.plugin_manager.get_plugins()[0].__class__))
+    plugin_manager.plugin_manager.reload_all()
+    print(id(plugin_manager.plugin_manager.get_plugins()[0].__class__))
+
+
+    from ui import pluginmanager_window
+    reload(pluginmanager_window)
+    from ui import main_window
+    reload(main_window)
+    import uiLogic
+    reload(uiLogic)
+
 
     if kill_ui:
         #Try to kill the window to prevent any close event error

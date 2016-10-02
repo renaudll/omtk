@@ -288,6 +288,5 @@ class DpSpine(Module):
         yield self.ctrl_fk_mid
         yield self.ctrl_fk_dwn
 
-
-
-
+def register_plugin():
+    return DpSpine

@@ -363,18 +363,5 @@ class Twistbone(Module):
             self.subjnts = None
         '''
 
-    def validate(self, rig):
-        """
-        Allow the ui to know if the module is valid to be builded or not
-        :param rig: The rig instance that dicdate certain parameters
-        :return: True or False depending if it pass the building validation
-        """
-        super(Twistbone, self).validate(rig)
-
-        num_inputs = len(self.input)
-        if num_inputs != 2:
-            raise Exception("Expected 2 joints, got {0}".format(num_inputs))
-        if self.num_twist < 3:
-            raise Exception("Cannot support less than three twist, got {0}".format(self.num_twist))
-
-        return True
+def register_plugin():
+    return Twistbone

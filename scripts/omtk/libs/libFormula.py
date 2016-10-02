@@ -10,6 +10,43 @@ from omtk.libs import libRigging
 log = logging.getLogger(__name__);
 log.setLevel(logging.INFO)
 
+_ATTR_TYPES_NUMERIC_1D = (
+    'bool', 'long', 'short', 'byte', 'enum', 'float', 'double', 'doubleAngle', 'doubleLinear', 'time'
+)  # matrix, fltMatrix?
+
+_ATTR_TYPES_NUMERIC_2D = (
+    'float2', 'double2', 'long2', 'short2'
+)
+
+_ATTR_TYPES_NUMERIC_3D = (
+    'float3', 'double3', 'long3', 'short3'
+)
+
+_PYTHON2_TYPES_NUMERIC_1D = (
+    int, float
+)
+
+class DataTypes:
+    Numeric_1D = 0
+    Numeric_2D = 1
+    Numeric_3D = 2
+    Matrix = 3
+
+def get_datatype(val):
+    if isinstance(val, pymel.Attribute):
+        attr_type = val.type()
+        if attr_type in _ATTR_TYPES_NUMERIC_3D:
+            return DataTypes.Numeric_1D
+        if attr_type in _ATTR_TYPES_NUMERIC_2D:
+            return DataTypes.Numeric_2D
+        if attr_type in _ATTR_TYPES_NUMERIC_1D:
+            return DataTypes.Numeric_3D
+    else:
+        val_type = type(val)
+        if val_type in _PYTHON2_TYPES_NUMERIC_1D:
+            return DataTypes.Numeric_1D
+    raise NotImplementedError("Unsupported value {0}".format(val))
+
 
 class Operator(object):
     @staticmethod
@@ -28,6 +65,66 @@ class Operator(object):
         raise NotImplementedError
 
 
+
+
+def get_plusminusaverage_kwargs_for_args(arg1, arg2):
+    """
+    Maya plusMinusAverage node that different inputs depending on the datatype dimension. (input1D, input2D, input3D)
+    This function resolve the keyword arguments to use to successful use the plusMinusAverageNode
+    on two value of any supported datatype.
+    :param arg1:
+    :param arg2:
+    :return:
+    """
+    def get_attr_dimension(attr):
+        if not isinstance(attr, pymel.Attribute):
+            return None
+        attr_type = attr.type()
+        if attr_type in _ATTR_TYPES_NUMERIC_3D:
+            return 3
+        if attr_type in _ATTR_TYPES_NUMERIC_2D:
+            return 2
+        if attr_type in _ATTR_TYPES_NUMERIC_1D:
+            return 1
+        raise Exception("Unsupported attribute type {0}".format(attr_type))
+
+    def cast_attr_dimension(attr, dimension_out, dimension_inn=None):
+        if dimension_inn is None:
+            dimension_inn = get_attr_dimension(attr)
+            if dimension_inn is None:
+                dimension_inn = 1
+
+        # Do nothing if the data is already in the desired dimension
+        if dimension_inn is None or dimension_inn == dimension_out:
+            return attr
+
+        # We can cast single dimension to multiple dimension
+        if dimension_inn == 1:
+            return (attr,) * dimension_out
+
+        raise Exception("Unsupported dimension conversion from {0} to {1} for {2}.".format(
+            dimension_inn, dimension_out, attr
+        ))
+
+    arg1_dimension = get_attr_dimension(arg1)
+    arg2_dimension = get_attr_dimension(arg2)
+    dimension_out = max(arg1_dimension, arg2_dimension) if arg1_dimension and arg2_dimension else None
+
+    if arg1_dimension != dimension_out:
+        arg1 = cast_attr_dimension(arg1, dimension_out, arg1_dimension)
+    if arg2_dimension != dimension_out:
+        arg2 = cast_attr_dimension(arg2, dimension_out, arg2_dimension)
+
+    # Resolve keyword argument depending of the desired dimension.
+    if dimension_out is None or dimension_out == 1:
+        return {'input1D': [arg1, arg2]}
+    elif dimension_out == 2:
+        return {'input2D': [arg1, arg2]}
+    elif dimension_out == 3:
+        return {'input3D': [arg1, arg2]}
+    else:
+        raise Exception("Unexpected dimension {0}".format(dimension_out))
+
 class OperatorAddition(Operator):
     @staticmethod
     def execute(arg1, arg2):
@@ -35,8 +132,8 @@ class OperatorAddition(Operator):
 
     @staticmethod
     def create(arg1, arg2):
-        return libRigging.create_utility_node('plusMinusAverage', operation=1, input1D=[arg1, arg2]).output1D
-
+        kwargs = get_plusminusaverage_kwargs_for_args(arg1, arg2)
+        return libRigging.create_utility_node('plusMinusAverage', operation=1, **kwargs).output1D
 
 class OperatorSubstraction(Operator):
     @staticmethod
@@ -45,8 +142,8 @@ class OperatorSubstraction(Operator):
 
     @staticmethod
     def create(arg1, arg2):
-        return libRigging.create_utility_node('plusMinusAverage', operation=2, input1D=[arg1, arg2]).output1D
-
+        kwargs = get_plusminusaverage_kwargs_for_args(arg1, arg2)
+        return libRigging.create_utility_node('plusMinusAverage', operation=2, **kwargs).output1D
 
 class OperatorMultiplication(Operator):
     @staticmethod

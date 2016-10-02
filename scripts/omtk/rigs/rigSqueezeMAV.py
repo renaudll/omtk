@@ -1,5 +1,7 @@
-import rigSqueeze
 import re
+
+import rigSqueeze
+
 
 class SqueezeNomenclature_MAV(rigSqueeze.SqueezeNomenclature):
     # We define a new side used for CENTER
@@ -50,3 +52,6 @@ class SqueezeRig_MAV(rigSqueeze.RigSqueeze):
 
     def _get_nomenclature_cls(self):
         return SqueezeNomenclature_MAV
+
+def register_plugin():
+    return SqueezeRig_MAV

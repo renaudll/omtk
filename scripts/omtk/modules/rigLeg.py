@@ -7,7 +7,6 @@ from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
-from omtk.modules.rigIK import IK
 
 
 class CtrlIkLeg(rigIK.CtrlIk):
@@ -31,7 +30,7 @@ class CtrlIkQuadSwivel(rigIK.CtrlIkSwivel):
 
         return targets, target_names
 
-class LegIk(IK):
+class LegIk(rigIK.IK):
     """
     Create an IK chain with an embeded footroll.
     Two modes are supported:
@@ -682,3 +681,6 @@ class LegQuad(rigLimb.Limb):
             raise Exception("Expected between 6 to 7 joints, got {0}".format(num_inputs))
 
         return True
+
+def register_plugin():
+    return Leg

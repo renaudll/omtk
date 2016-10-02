@@ -1,19 +1,19 @@
+import contextlib
+import functools
+import inspect
+import json
 import logging
 import os
-import inspect
-import contextlib
-import libSerialization
-import json
-import pymel.core as pymel
-import functools
 
 import classCtrl
 import classModule
 import className
 import classNode
 import classRig
-from omtk.libs import libPython
+import libSerialization
+import pymel.core as pymel
 from omtk.libs import libPymel
+from omtk.libs import libPython
 
 log = logging.getLogger('omtk')
 

@@ -239,3 +239,6 @@ class Twistbone(Module):
             pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
             self.subjnts = None
         '''
+
+def register_plugin():
+    return Twistbone

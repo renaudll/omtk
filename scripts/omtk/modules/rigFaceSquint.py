@@ -39,3 +39,6 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             pos.x, pos.y, pos.z, 1
         )
         super(FaceSquint, self)._build_avar_macro_r(rig, jnt_tm=jnt_tm, ctrl_tm=jnt_tm, **kwargs)
+
+def register_plugin():
+    return FaceSquint

@@ -1,5 +1,6 @@
 import imp
 import logging
+import threading
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
@@ -192,3 +193,24 @@ def get_sub_classes(_cls):
         yield subcls
         for subsubcls in get_sub_classes(subcls):
             yield subsubcls
+
+class LazySingleton(object):
+    """A threadsafe singleton that initialises when first referenced."""
+    def __init__(self, instance_class, *nargs, **kwargs):
+        self.instance_class = instance_class
+        self.nargs = nargs
+        self.kwargs = kwargs
+        self.lock = threading.Lock()
+        self.instance = None
+
+    def __call__(self):
+        if self.instance is None:
+            try:
+                self.lock.acquire()
+                if self.instance is None:
+                    self.instance = self.instance_class(*self.nargs, **self.kwargs)
+                    self.nargs = None
+                    self.kwargs = None
+            finally:
+                self.lock.release()
+        return self.instance

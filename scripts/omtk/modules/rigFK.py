@@ -183,3 +183,5 @@ class AdditiveFK(FK):
         for ctrl in self.additive_ctrls:
             yield ctrl
 
+def register_plugin():
+    return FK

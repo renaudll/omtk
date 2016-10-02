@@ -220,3 +220,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                 ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
                 ratio = libRigging.interp_football(ratio)  # apply football shape
                 self._create_extractor(rig, avar, ratio, target_head, target_jaw)
+
+def register_plugin():
+    return FaceLips

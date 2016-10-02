@@ -126,3 +126,5 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
         super(FaceNose, self).unbuild(rig)
         self.ctrl_main = None
 
+def register_plugin():
+    return FaceNose

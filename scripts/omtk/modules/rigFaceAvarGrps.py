@@ -66,7 +66,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
     """
     # Define the class to use for all avars.
     _CLS_AVAR = rigFaceAvar.AvarSimple
-    
+
     SHOW_IN_UI = True
 
     # Disable if the AvarGrp don't need any geometry to function.
@@ -200,7 +200,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             new_ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
             if new_ctrl_size > EPSILON:
                 ctrl_size = new_ctrl_size
-            
+
             if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
                 self.debug(rig, "Limiting ctrl size to {0}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
@@ -991,3 +991,6 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         if self.avar_low:
             result.append(self.avar_low)
         return result
+
+def register_plugin():
+    return AvarGrpAreaOnSurface

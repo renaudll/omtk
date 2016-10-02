@@ -5,3 +5,6 @@ class CtrlNeck(rigFK.CtrlFk):
 
 class Neck(rigFK.FK):
     _CLS_CTRL = CtrlNeck
+
+def register_plugin():
+    return Neck

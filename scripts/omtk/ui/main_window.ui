@@ -48,9 +48,6 @@
           <attribute name="headerVisible">
            <bool>false</bool>
           </attribute>
-          <attribute name="headerVisible">
-           <bool>false</bool>
-          </attribute>
           <column>
            <property name="text">
             <string notr="true">1</string>
@@ -98,9 +95,6 @@
           <property name="rootIsDecorated">
            <bool>true</bool>
           </property>
-          <attribute name="headerVisible">
-           <bool>false</bool>
-          </attribute>
           <attribute name="headerVisible">
            <bool>false</bool>
           </attribute>
@@ -167,7 +161,7 @@
      <x>0</x>
      <y>0</y>
      <width>936</width>
-     <height>26</height>
+     <height>28</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -203,10 +197,18 @@
     <addaction name="actionMirrorJntsRToL"/>
     <addaction name="actionMirrorSelection"/>
    </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionPreferences"/>
+    <addaction name="actionShowPluginManager"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuRig"/>
    <addaction name="menuJoint"/>
    <addaction name="menuInfluences"/>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
@@ -412,6 +414,16 @@
   <action name="actionUpdateLogSearchQuery">
    <property name="text">
     <string>UpdateLogSearchQuery</string>
+   </property>
+  </action>
+  <action name="actionShowPluginManager">
+   <property name="text">
+    <string>Plugin Manager</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences</string>
    </property>
   </action>
  </widget>

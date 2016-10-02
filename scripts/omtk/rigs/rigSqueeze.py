@@ -169,3 +169,6 @@ class RigSqueeze(classRig.Rig):
         self.grp_proxy = self._unbuild_node(self.grp_proxy, keep_if_children=True)
         self.grp_fx = self._unbuild_node(self.grp_fx, keep_if_children=True)
         super(RigSqueeze, self)._unbuild_nodes()
+
+def register_plugin():
+    return RigSqueeze

@@ -34,7 +34,7 @@ class Plugin(object):
 
         try:
             # Load/Reload module
-            print("Loading module {0}".format(module_path))
+            log.debug("Loading module {0}".format(module_path))
             self.module = pkgutil.get_loader(module_path).load_module(module_path)
 
             # Ensure there is a register_plugin function
@@ -51,7 +51,6 @@ class Plugin(object):
             self.status = PluginStatus.Failed
             self.description = str(e)
             log.warning("Plugin {0} failed to load! {0}".format(self.name, self.description))
-            raise(e)
 
     @classmethod
     def from_module(cls, name, type_name):
@@ -76,7 +75,8 @@ class PluginType(object):
         root_package_name = 'omtk'
         package_name = root_package_name + '.' + self.type_name
         log.debug("Checking {0}".format(package_name))
-        package = importlib.import_module(package_name)
+        #package = importlib.import_module(package_name)
+        package = pkgutil.get_loader(package_name).load_module(package_name)
         for loader, modname, ispkg in pkgutil.walk_packages(package.__path__):
             log.debug("Found plugin {0}".format(modname))
             plugin = Plugin.from_module(modname, self.type_name)

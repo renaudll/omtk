@@ -24,33 +24,6 @@ class CtrlIk(BaseCtrl):
         """
         return super(CtrlIk, self).__createNode__(multiplier=1.5, *args, **kwargs)
 
-    def __init__(self, *args, **kwargs):
-        super(CtrlIk, self).__init__(*args, **kwargs)
-        self.m_attState = None
-
-    def build(self, *args, **kwargs):
-        """
-        Will create the ctrl node if needed
-        :param args: More args passed to the superclass
-        :param kwargs: More kwargs passed to the superclass
-        :return: The built node
-        """
-        super(CtrlIk, self).build(*args, **kwargs)
-        assert (self.node is not None)
-        pymel.addAttr(self.node, longName=self.kAttrName_State)
-        self.m_attState = getattr(self.node, self.kAttrName_State)
-        return self.node
-
-    def unbuild(self, *args, **kwargs):
-        """
-        Unbuild the node and reset it's attributes
-        :param args: More args passed to the superclass
-        :param kwargs: More kwargs passed to the superclass
-        :return:
-        """
-        super(CtrlIk, self).unbuild(*args, **kwargs)
-        self.m_attState = None
-
 
 class CtrlIkSwivel(BaseCtrl):
     """

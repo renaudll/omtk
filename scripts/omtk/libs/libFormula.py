@@ -227,7 +227,7 @@ _sorted_operators = [
 
 _all_operators = {}
 for operators in _sorted_operators: _all_operators.update(operators)
-_varDelimiters = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '(', ')', '.'] + _all_operators.keys()
+_varDelimiters = ['(', ')', '.'] + _all_operators.keys()
 _regex_splitVariables = '|'.join(re.escape(str) for str in _varDelimiters)
 
 _variables = {}
@@ -392,7 +392,7 @@ def parse(str, **inkwargs):
     # Convert parenthesis and operators to nested string lists
     # src: http://stackoverflow.com/questions/5454322/python-how-to-match-nested-parentheses-with-regex
     from omtk.deps import pyparsing  # make sure you have this installed
-    content = pyparsing.Word(pyparsing.alphanums + '.')
+    content = pyparsing.Word(pyparsing.alphanums + '.' + '_')
     for op in _all_operators.keys(): content |= op  # defined operators
     nestedExpr = pyparsing.nestedExpr(opener='(', closer=')', content=content)
     res = nestedExpr.parseString('({0})'.format(str))  # wrap all string in parenthesis, or it won't work

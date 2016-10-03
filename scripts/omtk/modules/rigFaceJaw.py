@@ -56,7 +56,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         '''
 
         libRigging.connectAttr_withLinearDrivenKeys(
-            attr_pt_low, self.attr_pt, kv=[0.0, 0.0, 45.0]
+            attr_pt_low, self.attr_pt, kv=[0.0, 0.0, 15.0]
         )
         libRigging.connectAttr_withLinearDrivenKeys(
             attr_yw_inn, self.attr_yw, kv=[-5.0, 0.0, 5.0]

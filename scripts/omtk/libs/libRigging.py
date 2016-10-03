@@ -1,4 +1,5 @@
 import logging
+import logging as log
 import math
 
 import pymel.core as pymel
@@ -51,8 +52,8 @@ def connect_or_set_attr(_attr, _val):
             raise TypeError
 
 
-def create_utility_node(_sClass, *args, **kwargs):
-    uNode = pymel.createNode(_sClass)
+def create_utility_node(_sClass, name=None, *args, **kwargs):
+    uNode = pymel.createNode(_sClass, name=name) if name else pymel.createNode(_sClass)
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
@@ -1235,3 +1236,23 @@ def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', for
     animCurve.rename('{0}_{1}'.format(attr_src.node().name(), attr_src.longName()))
     pymel.connectAttr(attr_src, animCurve.input)
     return connectAttr_withBlendWeighted(animCurve.output, attr_dst)
+
+
+def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01, default=1.0):
+    """
+    Return the distance that @ref move when @attr is changed.
+    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
+    Note that to compensate non-linear movement, a small value (@step_size) is used.
+    """
+    attr.set(0)
+    pos_s = ref.getTranslation(space='world')
+    attr.set(-step_size)  # HACK: Jaw only deforme the face in the negative direction...
+    pos_e = ref.getTranslation(space='world')
+    attr.set(0)
+    distance = libPymel.distance_between_vectors(pos_s, pos_e) / step_size
+
+    if distance > epsilon:
+        return distance
+    else:
+        log.warning("Can't detect sensibility for {0}".format(attr))
+        return default

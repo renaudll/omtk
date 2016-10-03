@@ -62,6 +62,17 @@ class AbstractAvar(classModule.Module):
 
     SHOW_IN_UI = False
 
+    # Define how many unit is moved in uv space in relation with the avars.
+    # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
+    # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
+    # However in production, we found that defining the range of avar using the whole is not flexible.
+    # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
+    # For this reason, we found that using a multiplier of 0.25 work best.
+    # This also help rigger visually since the surface plane have an edge at 0.25 location.
+    # todo: Move this to AvarFollicle.
+    _AVAR_DEFAULT_MULTIPLIER_U = 0.25
+    _AVAR_DEFAULT_MULTIPLIER_V = 0.25
+
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
         self.surface = None  # todo: Move to AvarFollicle
@@ -580,6 +591,60 @@ class AvarFollicle(AvarSimple):
         self._attr_length_v = None
         self._attr_length_u = None
 
+    def _get_follicle_relative_uv_attr(self, rig, mult_u=1.0, mult_v=1.0):
+        """
+        Resolve the relative parameterU and parameterV that will be sent to the follicles.
+        :param rig: The parent rig.
+        :return: A tuple containing two pymel.Attribute: the relative parameterU and relative parameterV.
+        """
+        # Apply custom multiplier
+        attr_u = libRigging.create_utility_node(
+            'multiplyDivide',
+            input1X=self.attr_lr,
+            input2X=self._attr_u_mult_inn
+        ).outputX
+
+        attr_v = libRigging.create_utility_node(
+            'multiplyDivide',
+            input1X=self.attr_ud,
+            input2X=self._attr_v_mult_inn
+        ).outputX
+
+        return attr_u, attr_v
+
+    def _get_follicle_absolute_uv_attr(self, rig, mult_u=1.0, mult_v=1.0):
+        """
+        Resolve the absolute parameterU and parameterV that will be sent to the follicles.
+        :param rig: The parent rig.
+        :param mult_u: Custom multiplier
+        :param mult_v:
+        :return: A tuple containing two pymel.Attribute: the absolute parameterU and relative parameterV.
+        """
+        # TODO: Move attribute definition outside this function.
+        attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
+        attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V)
+
+        attr_u_relative, attr_v_relative = self._get_follicle_relative_uv_attr(rig, mult_u=mult_u, mult_v=mult_v)
+
+        # Add base parameterU & parameterV
+        attr_u_cur = libRigging.create_utility_node(
+            'addDoubleLinear',
+            input1=self._attr_u_base,
+            input2=attr_u_relative
+        ).output
+
+        attr_v_cur = libRigging.create_utility_node(
+            'addDoubleLinear',
+            input1=self._attr_v_base,
+            input2=attr_v_relative
+        ).output
+
+        # TODO: Move attribute connection outside of this function.
+        pymel.connectAttr(attr_u_cur, attr_u_inn)
+        pymel.connectAttr(attr_v_cur, attr_v_inn)
+
+        return attr_u_inn, attr_v_inn
+
     def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
         """
         The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
@@ -600,6 +665,7 @@ class AvarFollicle(AvarSimple):
             inPosition=self._grp_offset.t,  # Note: The first node of the stack is always the 'offset' node.
             inputSurface=self.surface.getShape().worldSpace
         )
+
 
         self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=util.parameterU.get())
         self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=util.parameterV.get())
@@ -693,44 +759,18 @@ class AvarFollicle(AvarSimple):
                                                           )
 
         #
+        # Resolve the parameterU and parameterV
+        #
+        self._attr_u_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=self._AVAR_DEFAULT_MULTIPLIER_U)
+        self._attr_v_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=self._AVAR_DEFAULT_MULTIPLIER_V)
+        attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr(rig)
+
+        #
         # Create the 1st (follicleLayer) that will contain the extracted position from the ud and lr Avar.
         #
         layer_follicle = stack.append_layer('follicleLayer')
         pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
 
-        attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
-        attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V)
-
-        self._attr_u_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=mult_u)
-        self._attr_v_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=mult_v)
-
-        # Connect UD to V
-        attr_get_v_offset = libRigging.create_utility_node('multiplyDivide',
-                                                           input1X=self.attr_ud,
-                                                           input2X=0.5
-                                                           ).outputX
-        attr_get_v_multiplied = libRigging.create_utility_node('multiplyDivide',
-                                                               input1X=attr_get_v_offset,
-                                                               input2X=self._attr_v_mult_inn).outputX
-        attr_v_cur = libRigging.create_utility_node('addDoubleLinear',
-                                                    input1=self._attr_v_base,
-                                                    input2=attr_get_v_multiplied
-                                                    ).output
-        pymel.connectAttr(attr_v_cur, attr_v_inn)
-
-        # Connect LR to U
-        attr_get_u_offset = libRigging.create_utility_node('multiplyDivide',
-                                                           input1X=self.attr_lr,
-                                                           input2X=0.5
-                                                           ).outputX
-        attr_get_u_multiplied = libRigging.create_utility_node('multiplyDivide',
-                                                               input1X=attr_get_u_offset,
-                                                               input2X=self._attr_u_mult_inn).outputX
-        attr_u_cur = libRigging.create_utility_node('addDoubleLinear',
-                                                    input1=self._attr_u_base,
-                                                    input2=attr_get_u_multiplied
-                                                    ).output
-        pymel.connectAttr(attr_u_cur, attr_u_inn)
 
         pymel.connectAttr(attr_u_inn, fol_influence.parameterU)
         pymel.connectAttr(attr_v_inn, fol_influence.parameterV)
@@ -759,8 +799,8 @@ class AvarFollicle(AvarSimple):
 
         # Clamp the values so they never fully reach 0 or 1 for U and V.
         util_clamp_uv = libRigging.create_utility_node('clamp',
-                                                       inputR=attr_u_cur,
-                                                       inputG=attr_v_cur,
+                                                       inputR=attr_u_inn,
+                                                       inputG=attr_v_inn,
                                                        minR=oob_step_size,
                                                        minG=oob_step_size,
                                                        maxR=1.0 - oob_step_size,
@@ -769,9 +809,9 @@ class AvarFollicle(AvarSimple):
         clamped_v = util_clamp_uv.outputG
 
         pymel.connectAttr(clamped_v, fol_clamped_v.parameterV)
-        pymel.connectAttr(attr_u_cur, fol_clamped_v.parameterU)
+        pymel.connectAttr(attr_u_inn, fol_clamped_v.parameterU)
 
-        pymel.connectAttr(attr_v_cur, fol_clamped_u.parameterV)
+        pymel.connectAttr(attr_v_inn, fol_clamped_u.parameterV)
         pymel.connectAttr(clamped_u, fol_clamped_u.parameterU)
 
         # Compute the direction to add for U and V if we are out-of-bound.
@@ -792,28 +832,28 @@ class AvarFollicle(AvarSimple):
 
         condition_oob_u_neg = libRigging.create_utility_node('condition',
                                                              operation=4,  # less than
-                                                             firstTerm=attr_u_cur,
+                                                             firstTerm=attr_u_inn,
                                                              secondTerm=0.0,
                                                              colorIfTrueR=1.0,
                                                              colorIfFalseR=0.0,
                                                              ).outColorR
         condition_oob_u_pos = libRigging.create_utility_node('condition',  # greater than
                                                              operation=2,
-                                                             firstTerm=attr_u_cur,
+                                                             firstTerm=attr_u_inn,
                                                              secondTerm=1.0,
                                                              colorIfTrueR=1.0,
                                                              colorIfFalseR=0.0,
                                                              ).outColorR
         condition_oob_v_neg = libRigging.create_utility_node('condition',
                                                              operation=4,  # less than
-                                                             firstTerm=attr_v_cur,
+                                                             firstTerm=attr_v_inn,
                                                              secondTerm=0.0,
                                                              colorIfTrueR=1.0,
                                                              colorIfFalseR=0.0,
                                                              ).outColorR
         condition_oob_v_pos = libRigging.create_utility_node('condition',  # greater than
                                                              operation=2,
-                                                             firstTerm=attr_v_cur,
+                                                             firstTerm=attr_v_inn,
                                                              secondTerm=1.0,
                                                              colorIfTrueR=1.0,
                                                              colorIfFalseR=0.0,
@@ -821,11 +861,11 @@ class AvarFollicle(AvarSimple):
 
         # Compute the amount of oob
         oob_val_u_pos = libRigging.create_utility_node('plusMinusAverage', operation=2,
-                                                       input1D=[attr_u_cur, 1.0]).output1D
-        oob_val_u_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_u_cur, input2X=-1.0).outputX
+                                                       input1D=[attr_u_inn, 1.0]).output1D
+        oob_val_u_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_u_inn, input2X=-1.0).outputX
         oob_val_v_pos = libRigging.create_utility_node('plusMinusAverage', operation=2,
-                                                       input1D=[attr_v_cur, 1.0]).output1D
-        oob_val_v_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_v_cur, input2X=-1.0).outputX
+                                                       input1D=[attr_v_inn, 1.0]).output1D
+        oob_val_v_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_v_inn, input2X=-1.0).outputX
         oob_val_u = libRigging.create_utility_node('condition', operation=0, firstTerm=condition_oob_u_pos,
                                                    secondTerm=1.0, colorIfTrueR=oob_val_u_pos,
                                                    colorIfFalseR=oob_val_u_neg).outColorR

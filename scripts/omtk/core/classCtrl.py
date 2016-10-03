@@ -1,9 +1,8 @@
 import collections
-import logging as log
 import logging
+import logging as log
 
 import pymel.core as pymel
-
 from classNode import Node
 from omtk.core import classNode
 from omtk.libs import libAttr
@@ -609,36 +608,17 @@ class InteractiveCtrl(BaseCtrl):
             return
 
         if tx and not self.node.tx.isLocked():
-            sensitivity_tx = _get_attr_sensibility(self.node.tx, influence)
+            sensitivity_tx = libRigging.calibrate_attr_using_translation(self.node.tx, influence)
             module.debug(rig, 'Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.node.ty.isLocked():
-            sensitivity_ty = _get_attr_sensibility(self.node.ty, influence)
+            sensitivity_ty = libRigging.calibrate_attr_using_translation(self.node.ty, influence)
             module.debug(rig, 'Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.node.tz.isLocked():
-            sensitivity_tz = _get_attr_sensibility(self.node.tz, influence)
+            sensitivity_tz = libRigging.calibrate_attr_using_translation(self.node.tz, influence)
             module.debug(rig, 'Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
-
-def _get_attr_sensibility(attr, ref, step_size=0.1, epsilon=0.01, default=1.0):
-    """
-    Return the distance that @ref move when @attr is changed.
-    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
-    Note that to compensate non-linear movement, a small value (@step_size) is used.
-    """
-    attr.set(0)
-    pos_s = ref.getTranslation(space='world')
-    attr.set(-step_size)  # HACK: Jaw only deforme the face in the negative direction...
-    pos_e = ref.getTranslation(space='world')
-    attr.set(0)
-    distance = libPymel.distance_between_vectors(pos_s, pos_e) / step_size
-
-    if distance > epsilon:
-        return distance
-    else:
-        log.warning("Can't detect sensibility for {0}".format(attr))
-        return default

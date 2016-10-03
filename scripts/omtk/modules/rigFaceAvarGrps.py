@@ -171,10 +171,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
 
     def get_multiplier_u(self):
-        return 1.0
+        return self._AVAR_DEFAULT_MULTIPLIER_U
 
     def get_multiplier_v(self):
-        return 1.0
+        return self._AVAR_DEFAULT_MULTIPLIER_V
 
     def _get_default_ctrl_size(self, rig):
         """
@@ -260,7 +260,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             # Any existing Avar that don't have the desired datatype will be re-created.
             # However the old value will be passed by so the factory method can handle specific tricky cases.
             elif not isinstance(avar, self._CLS_AVAR):
-                self.warning(rig, "Unexpected Avar type for {0}. Expected {1}, got {2}.".format(avar.name, self._CLS_AVAR.__name__, type(avar).__name___))
+                self.warning(rig, "Unexpected Avar type for {0}. Expected {1}, got {2}.".format(avar.name, self._CLS_AVAR.__name__, type(avar).__name__))
                 new_avar = self._create_avar(rig, avar.jnt, cls_avar=self._CLS_AVAR, old_val=avar)
                 new_avars.append(new_avar)
 
@@ -415,7 +415,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             #self.input.append(new_surface)
             #del self._cache['surface']
 
-    def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True, create_grp_rig_macro=True, create_grp_rig_micro=True, create_grp_anm_macro=True, create_grp_anm_micro=True, **kwargs):
+    def build(self, rig, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True, create_grp_rig_macro=True, create_grp_rig_micro=True, create_grp_anm_macro=True, create_grp_anm_micro=True, calibrate=True, **kwargs):
         self.handle_surface(rig)
 
         super(AvarGrp, self).build(rig, connect_global_scale=connect_global_scale, parent=parent, **kwargs)
@@ -449,7 +449,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         if parent and self.parent:
             self._parent_avars(rig, self.parent)
 
-        self.calibrate(rig)
+        if calibrate:
+            self.calibrate(rig)
 
     def unbuild(self, rig):
         for avar in self.avars:
@@ -926,13 +927,20 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
             self._build_avar_macro(rig, self._CLS_CTRL_ALL, self.avar_all, jnt_tm=jnt_tm, ctrl_tm=jnt_tm, obj_mesh=self.surface, follow_mesh=follow_mesh, constraint=constraint)
 
-            for avar_child in self.avars:
-                if connect_ud:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud, avar_child.attr_ud)
-                if connect_lr:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_lr, avar_child.attr_lr)
-                if connect_fb:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_fb, avar_child.attr_fb)
+            self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
+
+    def _connect_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True):
+        """
+        Considering that self.avar_all exist, create the connections between this macro avars and it's micro avars.
+        """
+        for avar_child in self.avars:
+            if connect_ud:
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud, avar_child.attr_ud)
+            if connect_lr:
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_lr, avar_child.attr_lr)
+            if connect_fb:
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_fb, avar_child.attr_fb)
+
 
     def _build_avars(self, rig, **kwargs):
         # TODO: Some calls might need to be move

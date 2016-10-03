@@ -600,8 +600,11 @@ class AvarFollicle(AvarSimple):
             inPosition=self._grp_offset.t,  # Note: The first node of the stack is always the 'offset' node.
             inputSurface=self.surface.getShape().worldSpace
         )
-        self._attr_u_base = util.parameterU
-        self._attr_v_base = util.parameterV
+
+        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=util.parameterU.get())
+        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=util.parameterV.get())
+        pymel.connectAttr(util.parameterU, self.grp_rig.attr(self._ATTR_NAME_U_BASE))
+        pymel.connectAttr(util.parameterV, self.grp_rig.attr(self._ATTR_NAME_V_BASE))
 
         #
         # Create follicle setup
@@ -694,11 +697,6 @@ class AvarFollicle(AvarSimple):
         #
         layer_follicle = stack.append_layer('follicleLayer')
         pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
-
-        libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=self._attr_u_base.get())
-        libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=self._attr_v_base.get())
-        pymel.connectAttr(self._attr_u_base, self.grp_rig.attr(self._ATTR_NAME_U_BASE))
-        pymel.connectAttr(self._attr_v_base, self.grp_rig.attr(self._ATTR_NAME_V_BASE))
 
         attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
         attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V)

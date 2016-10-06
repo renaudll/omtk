@@ -61,20 +61,20 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
     if target.lockInfluenceWeights.get():
         target.lockInfluenceWeights.set(False)
 
-    # TODO - Support multiple geometry attached to same skin cluster
-    def get_obj_dagpath():
-        if isinstance(obj, pymel.nodetypes.Mesh):
-            return obj, obj.__apimdagpath__()
-        elif isinstance(obj, pymel.nodetypes.SkinCluster): # If it's not a mesh, it is a skinCluster
-            meshes = obj.outputGeometry.listConnections(type="mesh")
-            mesh = meshes[0].getShape() if meshes else None
-            dagpath = mesh.__apimdagpath__() if mesh else None
-            return mesh, dagpath
 
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
     mfnSkinCluster = skinCluster.__apimfn__()
-    obj, geometryDagPath = get_obj_dagpath() # HACK Ensure to have a real mesh and not only a skinCluster
+
+    # Hack: If for any reasons a skinCluster was provided, use the first shape.
+    if isinstance(obj, pymel.nodetypes.SkinCluster):
+        new_obj = next(iter(obj.getOutputGeometry()), None)
+        if new_obj is None:
+            pymel.warning("Can't transfert weights. No geometry found affected by {0}.".format(obj))
+            return
+        obj = new_obj
+
+    geometryDagPath = obj.__apimdagpath__()
     component = pymel.api.toComponentMObject(geometryDagPath)
     mfnSkinCluster.getWeights(geometryDagPath, component, influences, old_weights)
 

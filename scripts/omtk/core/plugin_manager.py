@@ -80,11 +80,10 @@ class PluginType(object):
 
         root_package_name = 'omtk'
         package_name = root_package_name + '.' + self.type_name
-        log.debug("Checking {0}".format(package_name))
-        #package = importlib.import_module(package_name)
+        #log.debug("Checking {0}".format(package_name))
         package = pkgutil.get_loader(package_name).load_module(package_name)
         for loader, modname, ispkg in pkgutil.walk_packages(package.__path__):
-            log.debug("Found plugin {0}".format(modname))
+            #log.debug("Found plugin {0}".format(modname))
             plugin = Plugin.from_module(modname, self.type_name)
             self._plugins.append(plugin)
 
@@ -107,8 +106,13 @@ class PluginManager(object):
     def get_plugins(self):
         return list(self.iter_plugins())
 
+    def iter_plugins_by_type(self, type_name):
+        for plugin in self.iter_plugins():
+            if plugin.type_name == type_name:
+                yield plugin
+
     def get_plugins_by_type(self, type_name):
-        return list(plugin for plugin in self.iter_plugins() if plugin.type_name == type_name)
+        return list(self.iter_plugins_by_type(type_name))
 
     def reload_all(self):
         for plugin in self.iter_plugins():

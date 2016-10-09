@@ -30,7 +30,6 @@ def _reload(kill_ui=True):
     libs._reload()
 
     from omtk.core import plugin_manager
-    reload(plugin_manager)
     plugin_manager.plugin_manager.reload_all()
 
     from ui import pluginmanager_window

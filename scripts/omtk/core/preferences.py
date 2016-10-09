@@ -14,7 +14,7 @@ def get_path_preferences():
     :return: The search path of the configuration file.
     """
     current_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    config_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
+    config_dir = os.path.abspath(os.path.join(current_dir, '..', '..', '..'))
     config_path = os.path.join(config_dir, CONFIG_FILENAME)
     return config_path
 

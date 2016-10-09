@@ -316,6 +316,7 @@ class AutoRig(QtGui.QMainWindow):
         self.ui.actionClearLogs.triggered.connect(self.on_log_clear)
         self.ui.actionSaveLogs.triggered.connect(self.on_log_save)
         self.ui.actionShowPluginManager.triggered.connect(self.on_show_pluginmanager)
+        self.ui.actionShowPreferences.triggered.connect(self.on_show_preferences)
 
         self.ui.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
         self.ui.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -1228,7 +1229,7 @@ class AutoRig(QtGui.QMainWindow):
 
         self.remove_logger_handler()
         self.remove_callbacks()
-        super(AutoRig, self).closeEvent(*args, **kwargs)
+        QtGui.QMainWindow.closeEvent(self, *args)
 
         #
         # Logger handling

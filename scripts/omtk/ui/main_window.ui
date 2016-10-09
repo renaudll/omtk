@@ -201,7 +201,7 @@
     <property name="title">
      <string>Settings</string>
     </property>
-    <addaction name="actionPreferences"/>
+    <addaction name="actionShowPreferences"/>
     <addaction name="actionShowPluginManager"/>
    </widget>
    <addaction name="menuFile"/>
@@ -421,7 +421,7 @@
     <string>Plugin Manager</string>
    </property>
   </action>
-  <action name="actionPreferences">
+  <action name="actionShowPreferences">
    <property name="text">
     <string>Preferences</string>
    </property>

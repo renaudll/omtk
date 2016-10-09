@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/packages/omtk/9.9.9/scripts/omtk/ui/main_window.ui'
 #
-# Created: Sun Oct  2 14:14:43 2016
+# Created: Sun Oct  9 16:01:18 2016
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -198,8 +198,8 @@ class Ui_OpenRiggingToolkit(object):
         self.actionUpdateLogSearchQuery.setObjectName("actionUpdateLogSearchQuery")
         self.actionShowPluginManager = QtGui.QAction(OpenRiggingToolkit)
         self.actionShowPluginManager.setObjectName("actionShowPluginManager")
-        self.actionPreferences = QtGui.QAction(OpenRiggingToolkit)
-        self.actionPreferences.setObjectName("actionPreferences")
+        self.actionShowPreferences = QtGui.QAction(OpenRiggingToolkit)
+        self.actionShowPreferences.setObjectName("actionShowPreferences")
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addSeparator()
@@ -213,7 +213,7 @@ class Ui_OpenRiggingToolkit(object):
         self.menuInfluences.addAction(self.actionMirrorJntsLToR)
         self.menuInfluences.addAction(self.actionMirrorJntsRToL)
         self.menuInfluences.addAction(self.actionMirrorSelection)
-        self.menuSettings.addAction(self.actionPreferences)
+        self.menuSettings.addAction(self.actionShowPreferences)
         self.menuSettings.addAction(self.actionShowPluginManager)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuRig.menuAction())
@@ -281,5 +281,5 @@ class Ui_OpenRiggingToolkit(object):
         self.actionChangeLogLevel.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "ChangeLogLevel", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUpdateLogSearchQuery.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "UpdateLogSearchQuery", None, QtGui.QApplication.UnicodeUTF8))
         self.actionShowPluginManager.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Plugin Manager", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionPreferences.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Preferences", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionShowPreferences.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Preferences", None, QtGui.QApplication.UnicodeUTF8))
 

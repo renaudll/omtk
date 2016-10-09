@@ -14,47 +14,42 @@ for dependency in __dependencies__:
 # HACK: Load matrixNodes.dll
 pymel.loadPlugin('matrixNodes', quiet=True)
 
-import core
-from core import *
-
-''''
-import modules
-from modules import *
-
-import rigs
-from rigs import *
-'''
-
-import libs
-from libs import *
-
-from omtk.libs import libPython
-
-import uiLogic
-
 def _reload(kill_ui=True):
     """
     Reload all module in their respective order.
     """
+    import core
     reload(core)
     core._reload()
 
+    import modules
+    reload(modules)
+
+    import libs
     reload(libs)
     libs._reload()
 
-    import plugin_manager
+    from omtk.core import plugin_manager
     reload(plugin_manager)
-
     plugin_manager.plugin_manager.reload_all()
 
     from ui import pluginmanager_window
     reload(pluginmanager_window)
 
+    from ui import preferences_window
+    reload(preferences_window)
+
     from ui import main_window
     reload(main_window)
 
-    import uiLogic
-    reload(uiLogic)
+    import preferences_window
+    reload(preferences_window)
+
+    import pluginmanager_window
+    reload(pluginmanager_window)
+
+    import main_window
+    reload(main_window)
 
     if kill_ui:
         #Try to kill the window to prevent any close event error
@@ -63,12 +58,12 @@ def _reload(kill_ui=True):
         except:
             pass
 
-    reload(uiLogic)
+    reload(main_window)
 
 def show():
     """
     Show a simple gui. Note that PySide or PyQt4 is needed.
     """
 
-    import uiLogic
-    uiLogic.show()
+    import main_window
+    main_window.show()

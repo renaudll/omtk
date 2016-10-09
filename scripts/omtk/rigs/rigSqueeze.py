@@ -2,8 +2,8 @@ import re
 
 import pymel.core as pymel
 
-from omtk import className
-from omtk import classRig
+from omtk.core import className
+from omtk.core import classRig
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 

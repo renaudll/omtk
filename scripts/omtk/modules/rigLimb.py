@@ -5,6 +5,7 @@ from omtk.core.classCtrl import BaseCtrl
 from omtk.core import consts_omtk
 from omtk.modules import rigIK
 from omtk.modules import rigFK
+from omtk.modules import rigTwistbone
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 from omtk.libs import libAttr
@@ -47,7 +48,7 @@ class Limb(Module):
     _CLASS_SYS_FK = rigFK.FK
     _CLASS_CTRL_ATTR = BaseAttHolder
     _CLASS_CTRL_ELBOW = CtrlElbow
-    _CLASS_SYS_TWIST = Twistbone
+    _CLASS_SYS_TWIST = rigTwistbone.Twistbone
 
     def __init__(self, *args, **kwargs):
         super(Limb, self).__init__(*args, **kwargs)

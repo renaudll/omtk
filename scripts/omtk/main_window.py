@@ -1032,11 +1032,11 @@ class AutoRig(QtGui.QMainWindow):
         if self.ui.treeWidget_jnts.selectedItems():
             menu = QtGui.QMenu()
 
-            from omtk.plugin_manager import plugin_manager
-            for plugin_name, plugin_cls in sorted(plugin_manager.get_plugins('modules').iteritems()):
-                if getattr(plugin_cls, 'SHOW_IN_UI', False):
-                    action = menu.addAction(plugin_name)
-                    action.triggered.connect(functools.partial(self._add_part, plugin_cls))
+            from omtk.core.plugin_manager import plugin_manager
+            for plugin in sorted(plugin_manager.get_plugins_by_type('modules')):
+                if getattr(plugin.cls, 'SHOW_IN_UI', False):
+                    action = menu.addAction(plugin.name)
+                    action.triggered.connect(functools.partial(self._add_part, plugin.cls))
 
             menu.exec_(QtGui.QCursor.pos())
 
@@ -1228,12 +1228,7 @@ class AutoRig(QtGui.QMainWindow):
 
         self.remove_logger_handler()
         self.remove_callbacks()
-        # Sometime calling the super close event cause this event :
-        # TypeError: super(type, obj): obj must be an instance or subtype of type
-        try:
-            super(AutoRig, self).closeEvent(*args, **kwargs)
-        except:
-            pass
+        super(AutoRig, self).closeEvent(*args, **kwargs)
 
         #
         # Logger handling

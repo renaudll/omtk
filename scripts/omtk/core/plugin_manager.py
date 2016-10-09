@@ -3,6 +3,7 @@ import sys
 import importlib
 import pkgutil
 import logging
+
 log = logging.getLogger('omtk')
 from omtk.libs import libPython
 
@@ -35,6 +36,11 @@ class Plugin(object):
         try:
             # Load/Reload module
             log.debug("Loading module {0}".format(module_path))
+
+            # Load module using import_module before using pkgutil
+            # src: https://bugs.python.org/issue25372
+            importlib.import_module(module_path)
+
             self.module = pkgutil.get_loader(module_path).load_module(module_path)
 
             # Ensure there is a register_plugin function
@@ -100,6 +106,9 @@ class PluginManager(object):
 
     def get_plugins(self):
         return list(self.iter_plugins())
+
+    def get_plugins_by_type(self, type_name):
+        return list(plugin for plugin in self.iter_plugins() if plugin.type_name == type_name)
 
     def reload_all(self):
         for plugin in self.iter_plugins():

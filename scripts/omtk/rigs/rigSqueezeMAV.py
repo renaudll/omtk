@@ -1,7 +1,6 @@
 import re
 
-import rigSqueeze
-
+from omtk.rigs import rigSqueeze
 
 class SqueezeNomenclature_MAV(rigSqueeze.SqueezeNomenclature):
     # We define a new side used for CENTER

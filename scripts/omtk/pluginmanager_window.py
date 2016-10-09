@@ -1,6 +1,6 @@
 from PySide import QtCore, QtGui
 
-import plugin_manager
+from omtk.core import plugin_manager
 from ui import pluginmanager_window
 
 class PluginListModel(QtCore.QAbstractTableModel):

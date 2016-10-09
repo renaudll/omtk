@@ -109,7 +109,7 @@ class PluginManagerWindow(QtGui.QMainWindow):
 
     def on_reload(self):
         for plugin in self.iter_selected_plugins():
-            plugin.load()
+            plugin.load(force=True)
         self._proxy_model.reset()
 
     def on_searchquery_changed(self, *args, **kwargs):

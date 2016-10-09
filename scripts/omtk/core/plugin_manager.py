@@ -25,7 +25,7 @@ class Plugin(object):
 
         self.load()
 
-    def load(self):
+    def load(self, force=False):
         self.cls = None
         self.module = None
         self.description = None
@@ -41,7 +41,9 @@ class Plugin(object):
             # src: https://bugs.python.org/issue25372
             importlib.import_module(module_path)
 
-            self.module = pkgutil.get_loader(module_path).load_module(module_path)
+            self.module = sys.modules.get(module_path, None)
+            if self.module is None or force:
+                self.module = pkgutil.get_loader(module_path).load_module(module_path)
 
             # Ensure there is a register_plugin function
             if not hasattr(self.module, 'register_plugin') or not hasattr(self.module.register_plugin, '__call__'):
@@ -81,7 +83,12 @@ class PluginType(object):
         root_package_name = 'omtk'
         package_name = root_package_name + '.' + self.type_name
         #log.debug("Checking {0}".format(package_name))
-        package = pkgutil.get_loader(package_name).load_module(package_name)
+
+        # Prevent reloading (for now)
+        package = sys.modules.get(package_name, None)
+        if package is None:
+            package = pkgutil.get_loader(package_name).load_module(package_name)
+
         for loader, modname, ispkg in pkgutil.walk_packages(package.__path__):
             #log.debug("Found plugin {0}".format(modname))
             plugin = Plugin.from_module(modname, self.type_name)

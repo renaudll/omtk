@@ -49,33 +49,33 @@ class Module(object):
     # Logging implementation
     #
 
-    def debug(self, rig, msg):
+    def debug(self, msg):
         """
         Redirect a debug message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        rig.debug(msg)
+        self.rig.debug(msg)
 
-    def info(self, rig, msg):
+    def info(self, msg):
         """
         Redirect an information message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        rig.info(msg)
+        self.rig.info(msg)
 
-    def warning(self, rig, msg):
+    def warning(self, msg):
         """
         Redirect an warning message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        rig.warning(msg)
+        self.rig.warning(msg)
 
-    def error(self, rig, msg):
+    def error(self, msg):
         """
         Redirect an error message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        rig.error(msg)
+        self.rig.error(msg)
 
     #
     # libSerialization implementation
@@ -119,7 +119,7 @@ class Module(object):
         return self.__dict__['_outputs']
     '''
 
-    def get_default_name(self, rig):
+    def get_default_name(self):
         """
         :return: Return an unique identifier using the inputs of the module.
         Note that this will crash if the module don't use any joint.
@@ -127,8 +127,8 @@ class Module(object):
         # todo: use className!
         ref = next(iter(self.chain), None)
         if ref:
-            old_nomenclature = rig.nomenclature(ref.nodeName())
-            new_nomenclature = rig.nomenclature()
+            old_nomenclature = self.rig.nomenclature(ref.nodeName())
+            new_nomenclature = self.rig.nomenclature()
 
             if self.DEFAULT_NAME_USE_FIRST_INPUT:
                 new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
@@ -152,56 +152,56 @@ class Module(object):
         return self.__class__.__name__.lower()
 
     @libPython.memoized
-    def get_nomenclature_anm(self, rig):
+    def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.
         """
-        name = rig.nomenclature(
+        name = self.rig.nomenclature(
             name=self.get_module_name(),
-            suffix=rig.nomenclature.type_anm
+            suffix=self.rig.nomenclature.type_anm
         )
         return name
 
     @libPython.memoized
-    def get_nomenclature_anm_grp(self, rig):
+    def get_nomenclature_anm_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
         """
-        name = rig.nomenclature(
+        name = self.rig.nomenclature(
             name=self.get_module_name(),
-            suffix=rig.nomenclature.type_anm_grp
+            suffix=self.rig.nomenclature.type_anm_grp
         )
         return name
 
     @libPython.memoized
-    def get_nomenclature_rig(self, rig):
+    def get_nomenclature_rig(self):
         """
         :return: The nomenclature to use for rig objects.
         """
-        name = rig.nomenclature(
+        name = self.rig.nomenclature(
             name=self.get_module_name(),
-            suffix=rig.nomenclature.type_rig
+            suffix=self.rig.nomenclature.type_rig
         )
         return name
 
-    def get_nomenclature_rig_grp(self, rig):
+    def get_nomenclature_rig_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
         """
-        name = rig.nomenclature(
+        name = self.rig.nomenclature(
             name=self.get_module_name(),
-            suffix=rig.nomenclature.type_rig_grp
+            suffix=self.rig.nomenclature.type_rig_grp
         )
         return name
 
     @libPython.memoized
-    def get_nomenclature_jnt(self, rig):
+    def get_nomenclature_jnt(self):
         """
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
         """
-        name = rig.nomenclature(
+        name = self.rig.nomenclature(
             name=self.get_module_name(),
-            suffix=rig.nomenclature.type_jnt
+            suffix=self.rig.nomenclature.type_jnt
         )
         return name
 
@@ -252,7 +252,8 @@ class Module(object):
         return next(iter(self.chains_jnt), None)
 
     # todo: since args is never used, maybe use to instead of _input?
-    def __init__(self, input=None, name=None, *args, **kwargs):
+    def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
+        self.rig = rig  # Reference to the parent rig instance.
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
@@ -289,16 +290,18 @@ class Module(object):
         return '{0} <{1}>'.format(self.name, self.__class__.__name__)
 
 
-    def validate(self, rig, support_no_inputs=False):
+    def validate(self, support_no_inputs=False):
         """
         Check if the module can be built with it's current configuration.
         In case of error, an exception will be raised with the necessary informations.
         """
+        if self.rig is None:
+            raise Exception("Can't resolve rig for module. {0}".format(self))
         if not self.input and not support_no_inputs:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
         return True
 
-    def build(self, rig, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True, segmentScaleCompensate=None, parent=True):
+    def build(self, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True, segmentScaleCompensate=None, parent=True):
         """
         Build the module following the provided rig rules.
         :param rig: The rig dictating the nomenclature and other settings.
@@ -308,7 +311,7 @@ class Module(object):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
-        self.info(rig, "Building")
+        self.info("Building")
         # Disable segment scale compensate by default.
         # Otherwise we might have scale issues since the rig won't propagate uniform scale change.
         if segmentScaleCompensate is not None:
@@ -317,10 +320,10 @@ class Module(object):
                     inn.segmentScaleCompensate.set(segmentScaleCompensate)
 
         if create_grp_anm:
-            grp_anm_name = self.get_nomenclature_anm_grp(rig).resolve()
+            grp_anm_name = self.get_nomenclature_anm_grp().resolve()
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            grp_rig_name = self.get_nomenclature_rig_grp(rig).resolve()
+            grp_rig_name = self.get_nomenclature_rig_grp().resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
 
             if connect_global_scale:
@@ -329,37 +332,37 @@ class Module(object):
                 self.globalScale = self.grp_rig.globalScale
 
         if parent and self.parent:
-            parent_obj = self.get_parent_obj(rig)
+            parent_obj = self.get_parent_obj()
             if parent_obj:
                 self.parent_to(parent_obj)
 
-    def get_parent_obj(self, rig):
+    def get_parent_obj(self):
         """
         :return: The object to act as the parent of the module if applicable.
         """
         if self.parent is None:
             return None
 
-        module = rig.get_module_by_input(self.parent)
+        module = self.rig.get_module_by_input(self.parent)
         if module:
             desired_parent = module.get_parent(self.parent)
             if desired_parent:
-                self.debug(rig, "Will be parented to {0}, {1}".format(module, desired_parent))
+                self.debug("Will be parented to {0}, {1}".format(module, desired_parent))
                 return desired_parent
 
         if libPymel.is_valid_PyNode(self.parent):
-            self.debug(rig, "Can't recommend a parent. {0} is not in any known module.".format(self.parent))
+            self.debug("Can't recommend a parent. {0} is not in any known module.".format(self.parent))
 
         return self.parent
 
-    def unbuild(self, rig, disconnect_attr=True):
+    def unbuild(self, disconnect_attr=True):
         """
         Call unbuild on each individual ctrls
         This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
         :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
-        self.info(rig, "Un-building")
+        self.info("Un-building")
 
         # Ensure that there's no more connections in the input chain
         if disconnect_attr:

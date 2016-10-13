@@ -25,7 +25,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
     def get_module_name(self):
         return 'Jaw'
 
-    def get_ctrl_tm(self, rig):
+    def get_ctrl_tm(self):
         """
         Find the chin location using raycast. This is the prefered location for the jaw doritos.
         If raycast don't return any information, use the default behavior.
@@ -34,14 +34,14 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space='world'))
         pos_e = pymel.datatypes.Point(1,0,0) * ref
         dir = pos_e - pos_s
-        result = rig.raycast_farthest(pos_s, dir)
+        result = self.rig.raycast_farthest(pos_s, dir)
         if not result:
-            return super(AvarJaw, self).get_ctrl_tm(rig)
+            return super(AvarJaw, self).get_ctrl_tm()
 
         tm = pymel.datatypes.Matrix([1,0,0,0, 0,1,0,0, 0,0,1,0, result.x, result.y, result.z, 1])
         return tm
 
-    def connect_ctrl(self, rig, ctrl, **kwargs):
+    def connect_ctrl(self, ctrl, **kwargs):
         attr_pt_inn = ctrl.translateY
         attr_yw_inn = ctrl.translateX
 
@@ -86,10 +86,10 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
     SHOW_IN_UI = True
     SINGLE_INFLUENCE = True
 
-    def handle_surface(self, rig):
+    def handle_surface(self):
         pass  # todo: better class schema!
 
-    def _build_avars(self, rig, **kwargs):
+    def _build_avars(self, **kwargs):
         # If the rigger provided an extra influence (jaw_end), we'll use it to define the ctrl and influence position.
         ctrl_tm = None
         if len(self.jnts) > 1:
@@ -101,6 +101,6 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
                                              0,   0,   1,   0,
                                              p.x, p.y, p.z, 1)
 
-        super(FaceJaw, self)._build_avars(rig, ctrl_tm=ctrl_tm, **kwargs)
+        super(FaceJaw, self)._build_avars(ctrl_tm=ctrl_tm, **kwargs)
 
 

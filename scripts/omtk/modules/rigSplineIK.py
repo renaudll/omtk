@@ -14,7 +14,7 @@ class SplineIK(Module):
         self.ikHandle = None
 
 
-    def build(self, rig, stretch=True, squash=False, *args, **kwargs):
+    def build(self, stretch=True, squash=False, *args, **kwargs):
         # TODO: Use self.chain_jnt
         self._joints = [input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
         self._curves = [input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
@@ -24,9 +24,9 @@ class SplineIK(Module):
         if len(self._curves) < 1:
             raise Exception("Can't build SplineIK. Expected at least one nurbsCurve, got {0}".format(self._curves))
 
-        super(SplineIK, self).build(rig, *args, **kwargs)
+        super(SplineIK, self).build(*args, **kwargs)
 
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # todo: handle multiple curves?
         curve = next(iter(self._curves), None)
@@ -62,9 +62,9 @@ class SplineIK(Module):
                     pymel.connectAttr(squash, jnt.sz, force=True)
 
 
-    def unbuild(self, rig):
+    def unbuild(self):
         # hack: the ikEffector is parented to the bone chain and need to be deleted manually
         if libPymel.is_valid_PyNode(self.ikEffector):
             pymel.delete(self.ikEffector)
 
-        super(SplineIK, self).unbuild(rig)
+        super(SplineIK, self).unbuild()

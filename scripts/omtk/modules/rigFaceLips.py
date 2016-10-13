@@ -23,14 +23,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
 
-    def validate(self, rig):
+    def validate(self):
         """
         If we are using the preDeform flag, we will need to validate that we can find the Jaw influence!
         """
-        super(FaceLips, self).validate(rig)
+        super(FaceLips, self).validate()
 
         if not self.preDeform:
-            if rig.get_jaw_jnt(strict=False) is None:
+            if self.rig.get_jaw_jnt(strict=False) is None:
                 raise Exception("Can't resolve jaw. Please create a Jaw module.")
 
     def get_avars_corners(self):
@@ -60,8 +60,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_ud, kv=[0.01, 0.0, -0.01])
             libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_fb, kv=[0.01, 0.0, -0.01])
 
-    def _build_avar_macro_horizontal(self, rig, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=False, connect_lr=True, connect_fb=False):
-        self._build_avar_macro(rig, cls_ctrl, avar_parent)
+    def _build_avar_macro_horizontal(self, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=False, connect_lr=True, connect_fb=False):
+        self._build_avar_macro(cls_ctrl, avar_parent)
 
         pos_s = avar_middle.jnt.getTranslation(space='world')
         pos_e = avar_parent.jnt.getTranslation(space='world')
@@ -86,13 +86,13 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             if connect_fb:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, avar_child.attr_fb)
 
-    def _build_avar_macro_l(self, rig):
+    def _build_avar_macro_l(self):
         # Create left avar if necessary
         ref = self.get_jnt_l_mid()
         if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             if not self.avar_l:
-                self.avar_l = self.create_avar_macro_left(rig, self._CLS_CTRL_LFT, ref)
-            self._build_avar_macro_horizontal(rig, self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
+                self.avar_l = self.create_avar_macro_left(self._CLS_CTRL_LFT, ref)
+            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
 
             # Connect the corner other avars
             avar_l_corner = self.get_avar_l_corner()
@@ -100,13 +100,13 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
 
-    def _build_avar_macro_r(self, rig):# Create right avar if necessary
+    def _build_avar_macro_r(self):# Create right avar if necessary
         ref = self.get_jnt_r_mid()
         if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
             # Create l ctrl
             if not self.avar_r:
-                self.avar_r = self.create_avar_macro_right(rig, self._CLS_CTRL_RGT, ref)
-            self._build_avar_macro_horizontal(rig, self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
+                self.avar_r = self.create_avar_macro_right(self._CLS_CTRL_RGT, ref)
+            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
 
             avar_r_corner = self.get_avar_r_corner()
             if avar_r_corner:
@@ -122,7 +122,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             max_x = max(max_x, x)
         return max_x - min_x
 
-    def _create_extractor(self, rig, avar, default_ratio, target_head, target_jaw):
+    def _create_extractor(self, avar, default_ratio, target_head, target_jaw):
         """
         Create an attribute on the avar grp_rig to contain the ratio.
         Note that this ratio is preserved when un-building/building.
@@ -132,7 +132,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         attr_ratio.set(default_ratio)  # TODO: Define the ratio
         attr_ratio_inv = libRigging.create_utility_node('plusMinusAverage', operation=2, input1D=[1.0, attr_ratio]).output1D
 
-        nomenclature_rig = avar.get_nomenclature_rig(rig)
+        nomenclature_rig = avar.get_nomenclature_rig()
         grp_parent = avar._grp_parent
         grp_parent_pos = grp_parent.getTranslation(space='world')  # grp_offset is always in world coordinates
 
@@ -168,22 +168,22 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         pymel.connectAttr(util_delta_decompose.outputTranslate, layer_jaw_t.t)
         pymel.connectAttr(util_delta_decompose.outputRotate, layer_jaw_r.r)
 
-    def build(self, rig, **kwargs):
-        super(FaceLips, self).build(rig, **kwargs)
+    def build(self, **kwargs):
+        super(FaceLips, self).build(**kwargs)
 
         if not self.preDeform:
             # Resolve the head influence
             jnt_head = self.parent
             if not jnt_head:
-                self.error(rig, "Failed parenting avars, no head influence found!")
+                self.error("Failed parenting avars, no head influence found!")
                 return
 
-            jnt_jaw = rig.get_jaw_jnt()
+            jnt_jaw = self.rig.get_jaw_jnt()
             if not jnt_jaw:
-                self.error(rig, "Failed parenting avars, no jaw influence found!")
+                self.error("Failed parenting avars, no jaw influence found!")
                 return
 
-            nomenclature_rig = self.get_nomenclature_rig(rig)
+            nomenclature_rig = self.get_nomenclature_rig()
 
             # Note #2: A common target for the head
             target_head_name = nomenclature_rig.resolve('targetHead')
@@ -205,18 +205,18 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             # We'll then feed this into the stack layers.
             mouth_width = self._get_mouth_width()
             for avar in self.get_avars_corners():
-                self._create_extractor(rig, avar, 0.5, target_head, target_jaw)
+                self._create_extractor(avar, 0.5, target_head, target_jaw)
 
             for avar in self.get_avars_upp():
                 avar_pos_x = avar._grp_offset.tx.get()
                 ratio = abs(avar_pos_x / mouth_width)
                 ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
                 ratio = 1.0 - libRigging.interp_football(ratio)  # apply football shape
-                self._create_extractor(rig, avar, ratio, target_head, target_jaw)
+                self._create_extractor(avar, ratio, target_head, target_jaw)
 
             for avar in self.get_avars_low():
                 avar_pos_x = avar._grp_offset.tx.get()
                 ratio = abs(avar_pos_x / mouth_width)
                 ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
                 ratio = libRigging.interp_football(ratio)  # apply football shape
-                self._create_extractor(rig, avar, ratio, target_head, target_jaw)
+                self._create_extractor(avar, ratio, target_head, target_jaw)

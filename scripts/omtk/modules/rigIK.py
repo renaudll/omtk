@@ -94,7 +94,7 @@ class CtrlIkSwivel(BaseCtrl):
 
         return node
 
-    def get_spaceswitch_targets(self, rig, module, *args, **kwargs):
+    def get_spaceswitch_targets(self, module, *args, **kwargs):
         """
         Add the Hand/Leg IK ctrl by default as a space-switch target to any swivel.
         :param rig: The rig instance in which we want the targets
@@ -103,7 +103,7 @@ class CtrlIkSwivel(BaseCtrl):
         :param kwargs: More kwargs pass to the super class
         :return: The spaceswitch usable targets and names
         """
-        targets, target_names = super(CtrlIkSwivel, self).get_spaceswitch_targets(rig, module, *args, **kwargs)
+        targets, target_names = super(CtrlIkSwivel, self).get_spaceswitch_targets(module, *args, **kwargs)
 
         # Add the Hand/Foot ctrl
         targets.append(module.ctrl_ik)
@@ -111,7 +111,7 @@ class CtrlIkSwivel(BaseCtrl):
 
         return targets, target_names
 
-    def build(self, rig, refs=None, line_target=True, *args, **kwargs):
+    def build(self, refs=None, line_target=True, *args, **kwargs):
         """
         Will create the ctrl node and it's line target if needed
         :param rig: The rig instance in which the ctrl is built
@@ -121,7 +121,7 @@ class CtrlIkSwivel(BaseCtrl):
         :param kwargs: More kwargs passed to the super class
         :return:
         """
-        super(CtrlIkSwivel, self).build(rig, *args, **kwargs)
+        super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
 
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
@@ -288,14 +288,14 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[start_index + 1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
-    def setup_softik(self, rig, ik_handle_to_constraint, stretch_chain):
+    def setup_softik(self, ik_handle_to_constraint, stretch_chain):
         """
         Setup the softik system a ik system
         :param ik_handle_to_constraint: The ik handle to constraint on the soft ik network (Can be more than one)
         :param stretch_chain: The chain on which the stretch will be connected
         :return: Nothing
         """
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
 
         oAttHolder = self.ctrl_ik
         fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
@@ -357,7 +357,7 @@ class IK(Module):
                                                        solver=solver)
         return ik_handle, ik_effector
 
-    def setup_swivel_ctrl(self, rig, base_ctrl, ref, pos, ik_handle, name='swivel', constraint=True, **kwargs):
+    def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, name='swivel', constraint=True, **kwargs):
         '''
         Create the swivel ctrl for the ik system
         :param rig: The rig instance used to dictate certain parameters
@@ -370,12 +370,12 @@ class IK(Module):
         :param kwargs: Additionnal parameters
         :return: The created ctrl swivel
         '''
-        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
 
         ctrl_swivel = base_ctrl
         if not isinstance(base_ctrl, self._CLASS_CTRL_SWIVEL):
             ctrl_swivel = self._CLASS_CTRL_SWIVEL()
-        ctrl_swivel.build(rig, refs=ref)
+        ctrl_swivel.build(refs=ref)
         ctrl_swivel.setParent(self.grp_anm)
         ctrl_swivel.rename(nomenclature_anm.resolve(name))
         ctrl_swivel._line_locator.rename(nomenclature_anm.resolve(name+'LineLoc'))
@@ -390,7 +390,7 @@ class IK(Module):
         return ctrl_swivel
 
 
-    def build(self, rig, ctrl_ik_orientation=None, constraint=True, constraint_handle=True, setup_softik=True, *args, **kwargs):
+    def build(self, ctrl_ik_orientation=None, constraint=True, constraint_handle=True, setup_softik=True, *args, **kwargs):
         """
         Build the ik system when needed
         :param rig: The rig instance used to dictate certain parameters
@@ -402,8 +402,8 @@ class IK(Module):
         :param kwargs: More kwargs passed to the superclass
         :return:
         """
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         index_elbow = 1 #The elbow will always be on the second bone
         index_hand = self.iCtrlIndex
@@ -420,7 +420,7 @@ class IK(Module):
         self._ikChainGrp = pymel.createNode('transform', name=ikChainGrp_name, parent=self.grp_rig)
         self._ikChainGrp.setMatrix(self.chain.start.getMatrix(worldSpace=True), worldSpace=True)
 
-        super(IK, self).build(rig, *args, **kwargs)
+        super(IK, self).build(*args, **kwargs)
 
         self._ikChainGrp.setParent(self.grp_rig)
 
@@ -453,7 +453,7 @@ class IK(Module):
         if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
             self.ctrl_ik = self._CLASS_CTRL_IK()
         ctrl_ik_refs = [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
-        self.ctrl_ik.build(rig, refs=ctrl_ik_refs, geometries=rig.get_meshes())  # refs is used by CtrlIkCtrl
+        self.ctrl_ik.build(refs=ctrl_ik_refs, geometries=self.rig.get_meshes())  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
         ctrl_ik_name = nomenclature_anm.resolve('ik')
         self.ctrl_ik.rename(ctrl_ik_name)
@@ -464,7 +464,7 @@ class IK(Module):
             ctrl_ik_orientation = obj_e.getRotation(space='world')
         self.ctrl_ik.offset.setRotation(ctrl_ik_orientation, space='world')
 
-        self.ctrl_ik.create_spaceswitch(rig, self, self.parent, default_name='World')
+        self.ctrl_ik.create_spaceswitch(self, self.parent, default_name='World')
 
         # Create the ik_handle_target that will control the ik_handle
         # This is allow us to override what control the main ik_handle
@@ -477,7 +477,7 @@ class IK(Module):
         # Create softIk node and connect user accessible attributes to it.
         #
         if setup_softik:
-            self.setup_softik(rig, [self._ik_handle], self._chain_ik)
+            self.setup_softik([self._ik_handle], self._chain_ik)
 
         # Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sx)
@@ -485,7 +485,7 @@ class IK(Module):
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sz)
 
         #Setup swivel
-        self.ctrl_swivel = self.setup_swivel_ctrl(rig, self.ctrl_swivel, jnt_elbow, swivel_pos, self._ik_handle)
+        self.ctrl_swivel = self.setup_swivel_ctrl(self.ctrl_swivel, jnt_elbow, swivel_pos, self._ik_handle)
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
         #pymel.poleVectorConstraint(flip_swivel_ref, self._ik_handle)
 
@@ -498,7 +498,7 @@ class IK(Module):
             for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)
 
-    def unbuild(self, rig):
+    def unbuild(self):
         """
         Unbuild the ik system and reset the needed parameters
         :return:
@@ -507,7 +507,7 @@ class IK(Module):
         self._chain_ik = None
         self.swivelDistance = None
 
-        super(IK, self).unbuild(rig)
+        super(IK, self).unbuild()
 
     def parent_to(self, parent):
         """

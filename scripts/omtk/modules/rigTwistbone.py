@@ -49,14 +49,14 @@ class Twistbone(Module):
 
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, rig, orient_ik_ctrl=True, create_boxes=True, *args, **kwargs):
+    def build(self, orient_ik_ctrl=True, create_boxes=True, *args, **kwargs):
         if len(self.chain_jnt) < 2:
             raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.chain_jnt), self.chain_jnt))
 
-        super(Twistbone, self).build(rig, create_grp_anm=False, *args, **kwargs)
+        super(Twistbone, self).build(create_grp_anm=False, *args, **kwargs)
 
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-        nomenclature_jnt = self.get_nomenclature_jnt(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
+        nomenclature_jnt = self.get_nomenclature_jnt()
 
         jnt_s = self.chain_jnt[0]
         jnt_e = self.chain_jnt[1]
@@ -83,7 +83,7 @@ class Twistbone(Module):
         #TODO : If a stretch system exist on the input, we need to find a way to connect it to the twist system
         splineIK = SplineIK(self.subjnts +[self.ikCurve], name=nomenclature_rig.resolve("splineik"))
         splineIK.bStretch = False
-        splineIK.build(rig, create_grp_anm=False, stretch=False)
+        splineIK.build(create_grp_anm=False, stretch=False)
         self.ikCurve.setParent(splineIK.grp_rig)
 
         nonroll_1 = NonRollJoint()
@@ -181,7 +181,7 @@ class Twistbone(Module):
                     subjnt.lockInfluenceWeights.set(False)
 
             # TODO : Automatically skin the twistbones
-            for mesh in self.get_farest_affected_meshes(rig):
+            for mesh in self.get_farest_affected_meshes():
                 print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
                 libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
@@ -203,15 +203,15 @@ class Twistbone(Module):
                     skinClusters.add(hist)
         return skinClusters
 
-    def get_farest_affected_meshes(self, rig):
+    def get_farest_affected_meshes(self):
         results = set()
         for jnt in self.jnts:
-            mesh = rig.get_farest_affected_mesh(jnt)
+            mesh = self.rig.get_farest_affected_mesh(jnt)
             if mesh:
                 results.add(mesh)
         return results
 
-    def unbuild(self, rig, delete=True):
+    def unbuild(self, delete=True):
         '''
         Unbuild the twist bone
         '''
@@ -228,7 +228,7 @@ class Twistbone(Module):
             pymel.disconnectAttr(jnt.scaleZ)
 
         #Don't disconnect input attribute when unbuilding twist bones
-        super(Twistbone, self).unbuild(rig, disconnect_attr=False)
+        super(Twistbone, self).unbuild(disconnect_attr=False)
 
         self.start = None
         self.end = None

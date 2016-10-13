@@ -74,16 +74,16 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
             libRigging.connectAttr_withBlendWeighted(self.attr_pt, avar.attr_pt)
             libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
 
-    def _build_avars(self, rig, **kwargs):
-        super(FaceNose, self)._build_avars(rig, **kwargs)
+    def _build_avars(self, **kwargs):
+        super(FaceNose, self)._build_avars(**kwargs)
 
         # Create a ctrl that will control the whole nose
         ref = self.inf_nose_low
 
         if not self.avar_main:
             #self.avar_main = self.create_avar_macro(rig, self._CLS_CTRL, ref, name=self.name)
-            self.avar_main = self._create_avar(rig, ref, cls_ctrl=self._CLS_CTRL, name=self.name)
-        self._build_avar_macro(rig, self._CLS_CTRL, self.avar_main)
+            self.avar_main = self._create_avar(ref, cls_ctrl=self._CLS_CTRL, name=self.name)
+        self._build_avar_macro(self._CLS_CTRL, self.avar_main)
 
         '''
         ctrl_upp_name = nomenclature_anm.resolve()
@@ -116,13 +116,13 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
             avar_inn = avar._grp_offset
             pymel.parentConstraint(nose_upp_out, avar_inn, maintainOffset=True)
 
-    def calibrate(self, rig):
-        super(FaceNose, self).calibrate(rig)
+    def calibrate(self):
+        super(FaceNose, self).calibrate()
 
         if self.avar_main:
-            self.avar_main.calibrate(rig)
+            self.avar_main.calibrate()
 
-    def unbuild(self, rig):
-        super(FaceNose, self).unbuild(rig)
+    def unbuild(self):
+        super(FaceNose, self).unbuild()
         self.ctrl_main = None
 

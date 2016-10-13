@@ -253,16 +253,16 @@ class BaseCtrl(Node):
     # SPACE SWITH LOGIC
     #
 
-    def create_spaceswitch(self, rig, module, parent, add_default=True, default_name=None, add_world=False, **kwargs):
+    def create_spaceswitch(self, module, parent, add_default=True, default_name=None, add_world=False, **kwargs):
         # TODO: Handle when parent is None?
-        nomenclature = rig.nomenclature
+        nomenclature = self.rig.nomenclature
 
         if parent is None:
             module.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
             return
 
         # Resolve spaceswitch targets
-        targets, labels = self.get_spaceswitch_targets(rig, module, parent, add_world=add_world)
+        targets, labels = self.get_spaceswitch_targets(module, parent, add_world=add_world)
         if not targets:
             module.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
             return
@@ -301,7 +301,7 @@ class BaseCtrl(Node):
             ).outColorR
             pymel.connectAttr(att_enabled, att_weight)
 
-    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, add_root=True,
+    def get_spaceswitch_targets(self, module, jnt, add_world=True, add_root=True,
                                 root_name='Root', world_name='World'):
         targets = []
         target_names = []
@@ -309,7 +309,7 @@ class BaseCtrl(Node):
         # Resolve modules
         modules = set()
         while jnt:
-            module = rig.get_module_by_input(jnt)
+            module = self.rig.get_module_by_input(jnt)
             if module:
                 modules.add(module)
                 #targets.update(module.get_pin_locations())
@@ -320,13 +320,13 @@ class BaseCtrl(Node):
                 targets.append(target)
                 target_names.append(target_name)
 
-        if add_world and libPymel.is_valid_PyNode(rig.grp_rig):
-            targets.append(rig.grp_rig)
+        if add_world and libPymel.is_valid_PyNode(self.rig.grp_rig):
+            targets.append(self.rig.grp_rig)
             target_names.append(world_name)
 
         # Add the master ctrl as a spaceswitch target
-        if libPymel.is_valid_PyNode(rig.grp_anm):
-            targets.append(rig.grp_anm)
+        if libPymel.is_valid_PyNode(self.rig.grp_anm):
+            targets.append(self.rig.grp_anm)
             target_names.append(root_name)
 
         return targets, target_names
@@ -601,7 +601,7 @@ class InteractiveCtrl(BaseCtrl):
             if fol_mesh:
                 fol_mesh.setParent(grp_rig)
 
-    def calibrate(self, rig, module, tx=True, ty=True, tz=True):
+    def calibrate(self, module, tx=True, ty=True, tz=True):
         # TODO: use correct logger
         influence = self.follicle
         if not influence:
@@ -610,17 +610,17 @@ class InteractiveCtrl(BaseCtrl):
 
         if tx and not self.node.tx.isLocked():
             sensitivity_tx = _get_attr_sensibility(self.node.tx, influence)
-            module.debug(rig, 'Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
+            module.debug('Adjusting sensibility tx for {0} to {1}'.format(self.name(), sensitivity_tx))
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.node.ty.isLocked():
             sensitivity_ty = _get_attr_sensibility(self.node.ty, influence)
-            module.debug(rig, 'Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
+            module.debug('Adjusting sensibility ty for {0} to {1}'.format(self.name(), sensitivity_ty))
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.node.tz.isLocked():
             sensitivity_tz = _get_attr_sensibility(self.node.tz, influence)
-            module.debug(rig, 'Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
+            module.debug('Adjusting sensibility tz for {0} to {1}'.format(self.name(), sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
 

@@ -38,17 +38,17 @@ class MyModule(Module):
         """
         super(MyModule, self).__init__(*args, **kwargs)
 
-    def build(self, rig, *args, **kwargs):
-        super(MyModule, self).build(rig, *args, **kwargs)
+    def build(self, *args, **kwargs):
+        super(MyModule, self).build(*args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         raise NotImplementedError
 
-    def unbuild(self, rig):
+    def unbuild(self):
         """
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(MyModule, self).unbuild(rig)
+        super(MyModule, self).unbuild()

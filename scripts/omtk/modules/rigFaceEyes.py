@@ -28,13 +28,13 @@ class AvarEye(rigFaceAvar.AvarAim):
     SHOW_IN_UI = False
     _CLS_CTRL = CtrlEye
 
-    def get_ctrl_tm(self, rig):
+    def get_ctrl_tm(self):
         """
         Find the chin location. This is the preffered location for the jaw doritos.
         :return:
         """
         jnt_pos = self.jnt.getTranslation(space='world')
-        head_length = rig.get_head_length()
+        head_length = self.rig.get_head_length()
         if not head_length:
             pymel.warning("Can't resolve head length! The eyes ctrl location might be erroned.")
         offset_z = head_length * 2 if head_length else 0
@@ -60,19 +60,19 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         super(FaceEyes, self).__init__(*args, **kwargs)
         self.ctrl_all = None
 
-    def handle_surface(self, rig):
+    def handle_surface(self):
         pass  # todo: better class schema!
 
     def get_module_name(self):
         return 'Eyes'
 
-    def build(self, rig, *args, **kwargs):
+    def build(self, *args, **kwargs):
         if self.parent is None:
             raise Exception("Can't build FaceEyes, no parent found!")
 
-        super(FaceEyes, self).build(rig, parent=True, *args, **kwargs)
+        super(FaceEyes, self).build(parent=True, *args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
 
         # Resolve average position of each ctrls.
         # This is used as the position of the main ctrl.
@@ -103,9 +103,9 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         if not isinstance(self.ctrl_all, CtrlEyes):
             self.ctrl_all = CtrlEyes()
         ctrl_all_name = nomenclature_anm.resolve()
-        self.ctrl_all.build(rig, width=width, height=height)
+        self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
-        self.ctrl_all.create_spaceswitch(rig, self, self.parent, add_default=True, default_name='Head', add_world=True)
+        self.ctrl_all.create_spaceswitch(self, self.parent, add_default=True, default_name='Head', add_world=True)
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 
@@ -114,12 +114,12 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
             avar.ctrl.setParent(self.ctrl_all)
 
 
-    def unbuild(self, rig):
+    def unbuild(self):
         """
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(FaceEyes, self).unbuild(rig)
+        super(FaceEyes, self).unbuild()
 
     def iter_ctrls(self):
         for ctrl in super(FaceEyes, self).iter_ctrls():
@@ -127,7 +127,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         yield self.ctrl_all
 
 
-    def calibrate(self, rig):
+    def calibrate(self):
         """
         It is not possible to calibrate the eyes since they have no avar on surface.
         This will hide the function from the UI.

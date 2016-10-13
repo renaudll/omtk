@@ -226,6 +226,7 @@ class Rig(object):
             raise Exception("Cannot resolve class name '{0}'".format(cls_name))
 
         instance = cls(*args, **kwargs)
+        instance.rig = self
 
         # Resolve name to use
         default_name = instance.get_default_name(self)

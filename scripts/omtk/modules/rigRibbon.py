@@ -21,13 +21,13 @@ class Ribbon(Module):
         self.ctrls = []
         self.width = 1.0
 
-    def build(self, rig, num_subdiv = 5, num_ctrl = None, degree=3, create_ctrl=True, constraint=False, rot_fol=False, *args, **kwargs):
-        super(Ribbon, self).build(rig, create_grp_anm=create_ctrl, *args, **kwargs)
+    def build(self, num_subdiv = 5, num_ctrl = None, degree=3, create_ctrl=True, constraint=False, rot_fol=False, *args, **kwargs):
+        super(Ribbon, self).build(create_grp_anm=create_ctrl, *args, **kwargs)
         if num_ctrl is not None:
             self.num_ctrl = num_ctrl
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         #Create the plane and align it with the selected bones
         plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
@@ -85,7 +85,7 @@ class Ribbon(Module):
             for i, jnt in enumerate(self._ribbon_jnts):
                 ctrl_name = nomenclature_anm.resolve('fk' + str(i+1).zfill(2))
                 ctrl = CtrlRibbon(name=ctrl_name)
-                ctrl.build(rig)
+                ctrl.build(self.rig)  # todo: remove rig dependency
                 ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
                 ctrl.setParent(self.grp_anm)
 
@@ -109,7 +109,7 @@ class Ribbon(Module):
         '''
 
 
-    def unbuild(self, rig):
-        super(Ribbon, self).unbuild(rig)
+    def unbuild(self):
+        super(Ribbon, self).unbuild()
 
         self.ctrls = []

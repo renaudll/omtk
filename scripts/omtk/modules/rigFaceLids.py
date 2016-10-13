@@ -30,7 +30,7 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         self.surface_upp = None
         self.surface_low = None
 
-    def handle_surface(self, rig):
+    def handle_surface(self):
         """
         Create a separated surface for the upper and lower lids.
         This allow the rigger to easily tweak how each lids react which may be necessary with hyper-realistic characters.
@@ -55,16 +55,16 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         # Create surfaces if they were not provided
         if self.surface_upp is None:
             pymel.warning("Can't find surface for {0}, creating one.".format(self))
-            self.surface_upp = self.create_surface(rig, name='SurfaceUpp')
+            self.surface_upp = self.create_surface(name='SurfaceUpp')
 
         if self.surface_low is None:
             pymel.warning("Can't find surface for {0}, creating one.".format(self))
-            self.surface_low = self.create_surface(rig, name='SurfaceLow')
+            self.surface_low = self.create_surface(name='SurfaceLow')
 
         # We still provide the surface property in case we need a controller to be connected directly to it.
         self.surface = self.surface_upp
 
-    def configure_avar(self, rig, avar):
+    def configure_avar(self, avar):
         inf = avar.jnt
         if inf in self.get_jnts_upp():
             avar.surface = self.surface_upp

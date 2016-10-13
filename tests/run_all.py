@@ -1,5 +1,6 @@
 """
-Usage: /usr/autodesk/maya2016/bin/mayapy ~/dev/omtk/tests/run_all.py
+Usage:
+/usr/autodesk/maya2016/bin/mayapy ~/packages/omtk/9.9.9/tests/run_all.py
 """
 import os
 import sys

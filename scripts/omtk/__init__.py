@@ -14,6 +14,8 @@ for dependency in __dependencies__:
 # HACK: Load matrixNodes.dll
 pymel.loadPlugin('matrixNodes', quiet=True)
 
+from core import *
+
 def _reload(kill_ui=True):
     """
     Reload all module in their respective order.
@@ -21,9 +23,6 @@ def _reload(kill_ui=True):
     import core
     reload(core)
     core._reload()
-
-    import modules
-    reload(modules)
 
     import libs
     reload(libs)

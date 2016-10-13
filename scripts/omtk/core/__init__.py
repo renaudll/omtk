@@ -31,7 +31,7 @@ def _reload():
     reload(classNode)
     reload(classCtrl)
     reload(classModule)
-    reload(classRig)
+    #reload(classRig)
 
     import plugin_manager
     reload(plugin_manager)

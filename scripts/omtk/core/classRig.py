@@ -216,14 +216,9 @@ class Rig(object):
             i += 1
         return str_format.format(name, i)
 
-    def add_module(self, cls_name, *args, **kwargs):
+    def add_module(self, cls, *args, **kwargs):
         #if not isinstance(part, Module):
         #    raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
-
-        # Resolve class to use.
-        cls = libPython.get_class_def(cls_name, base_class=classModule.Module, relative=True)
-        if cls is None:
-            raise Exception("Cannot resolve class name '{0}'".format(cls_name))
 
         instance = cls(*args, **kwargs)
         instance.rig = self

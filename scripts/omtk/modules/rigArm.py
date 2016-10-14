@@ -25,5 +25,5 @@ class Arm(rigLimb.Limb):
         super(Arm, self).__init__(*args, **kwargs)
         self.sysFootRoll = None
 
-
-
+def register_plugin():
+    return Arm

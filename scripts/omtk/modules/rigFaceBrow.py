@@ -43,3 +43,6 @@ class FaceBrow(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     def get_module_name(self):
         return 'brow'
+
+def register_plugin():
+    return FaceBrow

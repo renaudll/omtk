@@ -1,9 +1,2 @@
-import rigSqueeze
-import rigSqueezeMAV
-import rigCradle
-
-
-def _reload():
-    reload(rigSqueeze)
-    reload(rigSqueezeMAV)
-    reload(rigCradle)
+import pkgutil
+__path__ = pkgutil.extend_path(__path__, __name__)

@@ -79,3 +79,5 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         # We'll restrict ourself only to a single quadrant.
         return 0.25
 
+def register_plugin():
+    return FaceLids

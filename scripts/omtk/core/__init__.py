@@ -1,19 +1,19 @@
+import contextlib
+import functools
+import inspect
+import json
 import logging
 import os
-import inspect
-import contextlib
-import libSerialization
-import json
-import pymel.core as pymel
-import functools
 
 import classCtrl
 import classModule
 import className
 import classNode
 import classRig
-from omtk.libs import libPython
+import libSerialization
+import pymel.core as pymel
 from omtk.libs import libPymel
+from omtk.libs import libPython
 
 log = logging.getLogger('omtk')
 
@@ -31,17 +31,25 @@ def _reload():
     reload(classNode)
     reload(classCtrl)
     reload(classModule)
-    reload(classRig)
+    #reload(classRig)
+
+    import plugin_manager
+    reload(plugin_manager)
+
+    import preferences
+    reload(preferences)
 
 def create(*args, **kwargs):
     from libSerialization import core
     cls = classRig.Rig.__name__
 
-    rig_type = config.get('default_rig', None)
-    if rig_type is None:
-        cls = classRig.Rig
-    else:
-        cls = core.find_class_by_name(rig_type, base_class=classRig.Rig)
+    from omtk.core import preferences
+    cls = preferences.preferences.get_default_rig_class()
+    # rig_type = config.get('default_rig', None)
+    # if rig_type is None:
+    #     cls = classRig.Rig
+    # else:
+    #     cls = core.find_class_by_name(rig_type, base_class=classRig.Rig)
 
     return cls(*args, **kwargs)
 

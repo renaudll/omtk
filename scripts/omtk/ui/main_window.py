@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rlessard/dev/omtk/scripts/omtk/ui.ui'
+# Form implementation generated from reading ui file '/home/rll/packages/omtk/9.9.9/scripts/omtk/ui/main_window.ui'
 #
-# Created: Wed Sep 14 14:45:30 2016
+# Created: Sun Oct  9 16:01:18 2016
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -97,7 +97,7 @@ class Ui_OpenRiggingToolkit(object):
         self.verticalLayout_5.addWidget(self.splitter)
         OpenRiggingToolkit.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(OpenRiggingToolkit)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 936, 26))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 936, 28))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -107,6 +107,8 @@ class Ui_OpenRiggingToolkit(object):
         self.menuJoint.setObjectName("menuJoint")
         self.menuInfluences = QtGui.QMenu(self.menubar)
         self.menuInfluences.setObjectName("menuInfluences")
+        self.menuSettings = QtGui.QMenu(self.menubar)
+        self.menuSettings.setObjectName("menuSettings")
         OpenRiggingToolkit.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(OpenRiggingToolkit)
         self.statusbar.setObjectName("statusbar")
@@ -194,6 +196,10 @@ class Ui_OpenRiggingToolkit(object):
         self.actionChangeLogLevel.setObjectName("actionChangeLogLevel")
         self.actionUpdateLogSearchQuery = QtGui.QAction(OpenRiggingToolkit)
         self.actionUpdateLogSearchQuery.setObjectName("actionUpdateLogSearchQuery")
+        self.actionShowPluginManager = QtGui.QAction(OpenRiggingToolkit)
+        self.actionShowPluginManager.setObjectName("actionShowPluginManager")
+        self.actionShowPreferences = QtGui.QAction(OpenRiggingToolkit)
+        self.actionShowPreferences.setObjectName("actionShowPreferences")
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addSeparator()
@@ -207,10 +213,13 @@ class Ui_OpenRiggingToolkit(object):
         self.menuInfluences.addAction(self.actionMirrorJntsLToR)
         self.menuInfluences.addAction(self.actionMirrorJntsRToL)
         self.menuInfluences.addAction(self.actionMirrorSelection)
+        self.menuSettings.addAction(self.actionShowPreferences)
+        self.menuSettings.addAction(self.actionShowPluginManager)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuRig.menuAction())
         self.menubar.addAction(self.menuJoint.menuAction())
         self.menubar.addAction(self.menuInfluences.menuAction())
+        self.menubar.addAction(self.menuSettings.menuAction())
 
         self.retranslateUi(OpenRiggingToolkit)
         self.comboBox_log_level.setCurrentIndex(1)
@@ -238,6 +247,7 @@ class Ui_OpenRiggingToolkit(object):
         self.menuRig.setTitle(QtGui.QApplication.translate("OpenRiggingToolkit", "Rig", None, QtGui.QApplication.UnicodeUTF8))
         self.menuJoint.setTitle(QtGui.QApplication.translate("OpenRiggingToolkit", "Modules", None, QtGui.QApplication.UnicodeUTF8))
         self.menuInfluences.setTitle(QtGui.QApplication.translate("OpenRiggingToolkit", "Influences", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuSettings.setTitle(QtGui.QApplication.translate("OpenRiggingToolkit", "Settings", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Logs", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Search", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Level:", None, QtGui.QApplication.UnicodeUTF8))
@@ -270,4 +280,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionClearLogs.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "ClearLogs", None, QtGui.QApplication.UnicodeUTF8))
         self.actionChangeLogLevel.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "ChangeLogLevel", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUpdateLogSearchQuery.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "UpdateLogSearchQuery", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionShowPluginManager.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Plugin Manager", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionShowPreferences.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Preferences", None, QtGui.QApplication.UnicodeUTF8))
 

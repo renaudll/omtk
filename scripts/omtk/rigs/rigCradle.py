@@ -24,3 +24,7 @@ class RigCradle(classRig.Rig):
     def pre_build(self, create_master_grp=True, create_grp_jnt=True, create_grp_anm=True,
                   create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
         super(RigCradle, self).pre_build(create_master_grp=create_master_grp)
+
+
+def register_plugin():
+    return RigCradle

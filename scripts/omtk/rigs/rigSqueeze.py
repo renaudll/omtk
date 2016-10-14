@@ -2,8 +2,8 @@ import re
 
 import pymel.core as pymel
 
-from omtk import className
-from omtk import classRig
+from omtk.core import className
+from omtk.core import classRig
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 
@@ -169,3 +169,6 @@ class RigSqueeze(classRig.Rig):
         self.grp_proxy = self._unbuild_node(self.grp_proxy, keep_if_children=True)
         self.grp_fx = self._unbuild_node(self.grp_fx, keep_if_children=True)
         super(RigSqueeze, self)._unbuild_nodes()
+
+def register_plugin():
+    return RigSqueeze

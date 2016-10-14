@@ -256,13 +256,13 @@ class BaseCtrl(Node):
         nomenclature = module.rig.nomenclature
 
         if parent is None:
-            module.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
+            module.warning(rig, "Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
             return
 
         # Resolve spaceswitch targets
         targets, labels = self.get_spaceswitch_targets(module, parent, add_world=add_world)
         if not targets:
-            module.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
+            module.warning("Can't add space switch on {0}. No targets found!".format(rig, self.node.__melobject__()))
             return
 
         if default_name is None:

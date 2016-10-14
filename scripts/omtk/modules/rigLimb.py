@@ -3,9 +3,9 @@ import collections
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core import consts_omtk
-from omtk.modules.rigIK import IK
-from omtk.modules.rigFK import FK
-from omtk.modules.rigTwistbone import Twistbone
+from omtk.modules import rigIK
+from omtk.modules import rigFK
+from omtk.modules import rigTwistbone
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 from omtk.libs import libAttr
@@ -44,11 +44,11 @@ class CtrlElbow(BaseCtrl):
 
 class Limb(Module):
     kAttrName_State = 'fkIk'  # The name of the IK/FK attribute
-    _CLASS_SYS_IK = IK
-    _CLASS_SYS_FK = FK
+    _CLASS_SYS_IK = rigIK.IK
+    _CLASS_SYS_FK = rigFK.FK
     _CLASS_CTRL_ATTR = BaseAttHolder
     _CLASS_CTRL_ELBOW = CtrlElbow
-    _CLASS_SYS_TWIST = Twistbone
+    _CLASS_SYS_TWIST = rigTwistbone.Twistbone
 
     def __init__(self, *args, **kwargs):
         super(Limb, self).__init__(*args, **kwargs)
@@ -275,3 +275,6 @@ class Limb(Module):
                 yield ctrl
         yield self.ctrl_attrs
         yield self.ctrl_elbow
+
+def register_plugin():
+    return Limb

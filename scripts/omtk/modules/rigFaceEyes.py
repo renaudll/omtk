@@ -133,3 +133,6 @@ class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
         This will hide the function from the UI.
         """
         pass
+
+def register_plugin():
+    return FaceEyes

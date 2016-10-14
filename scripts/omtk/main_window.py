@@ -5,20 +5,19 @@ import logging
 import re
 import traceback
 
+import core
 import libSerialization
 import pymel.core as pymel
 from maya import OpenMaya
-
-import core
-import ui
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.libs.libQt import QtCore, QtGui, getMayaWindow
+from omtk.ui import main_window
 
-reload(ui)
+reload(main_window)
 
 log = logging.getLogger('omtk')
 
@@ -253,7 +252,7 @@ class AutoRig(QtGui.QMainWindow):
             pass
         if parent is None: parent = getMayaWindow()
         super(AutoRig, self).__init__(parent)
-        self.ui = ui.Ui_OpenRiggingToolkit()
+        self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
 
         self._is_modifying = False
@@ -316,6 +315,8 @@ class AutoRig(QtGui.QMainWindow):
         self.ui.actionUpdateLogSearchQuery.triggered.connect(self.update_log_search_query)
         self.ui.actionClearLogs.triggered.connect(self.on_log_clear)
         self.ui.actionSaveLogs.triggered.connect(self.on_log_save)
+        self.ui.actionShowPluginManager.triggered.connect(self.on_show_pluginmanager)
+        self.ui.actionShowPreferences.triggered.connect(self.on_show_preferences)
 
         self.ui.treeWidget.itemSelectionChanged.connect(self.on_module_selection_changed)
         self.ui.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -582,9 +583,9 @@ class AutoRig(QtGui.QMainWindow):
             item.setText(0, str)
         self.ui.treeWidget.blockSignals(False)
 
-    def _add_part(self, cls_name):
+    def _add_part(self, cls):
         # part = _cls(pymel.selected())
-        self.root.add_module(cls_name, pymel.selected())
+        self.root.add_module(cls, pymel.selected())
         net = self.export_networks()
         pymel.select(net)
         # Add manually the Rig to the root list instead of importing back all network
@@ -1031,11 +1032,12 @@ class AutoRig(QtGui.QMainWindow):
     def on_btn_add_pressed(self):
         if self.ui.treeWidget_jnts.selectedItems():
             menu = QtGui.QMenu()
-            cls_name = [cls.__name__ for cls in libPython.get_sub_classes(classModule.Module) if cls.SHOW_IN_UI]
-            for name in sorted(cls_name):
-                cls_name = name
-                action = menu.addAction(cls_name)
-                action.triggered.connect(functools.partial(self._add_part, cls_name))
+
+            from omtk.core.plugin_manager import plugin_manager
+            for plugin in sorted(plugin_manager.get_plugins_by_type('modules')):
+                if getattr(plugin.cls, 'SHOW_IN_UI', False):
+                    action = menu.addAction(plugin.name)
+                    action.triggered.connect(functools.partial(self._add_part, plugin.cls))
 
             menu.exec_(QtGui.QCursor.pos())
 
@@ -1207,6 +1209,14 @@ class AutoRig(QtGui.QMainWindow):
         del self._logging_records[:]
         self.ui.tableView_logs.model().reset()
 
+    def on_show_pluginmanager(self):
+        from omtk import pluginmanager_window
+        pluginmanager_window.show()
+
+    def on_show_preferences(self):
+        from omtk import preferences_window
+        preferences_window.show()
+
     #
     # QMainWindow show/close events
     #
@@ -1219,12 +1229,7 @@ class AutoRig(QtGui.QMainWindow):
 
         self.remove_logger_handler()
         self.remove_callbacks()
-        # Sometime calling the super close event cause this event :
-        # TypeError: super(type, obj): obj must be an instance or subtype of type
-        try:
-            super(AutoRig, self).closeEvent(*args, **kwargs)
-        except:
-            pass
+        QtGui.QMainWindow.closeEvent(self, *args)
 
         #
         # Logger handling

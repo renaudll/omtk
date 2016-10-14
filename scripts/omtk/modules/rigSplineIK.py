@@ -70,3 +70,6 @@ class SplineIK(Module):
             pymel.delete(self.ikEffector)
 
         super(SplineIK, self).unbuild()
+
+def register_plugin():
+    return SplineIK

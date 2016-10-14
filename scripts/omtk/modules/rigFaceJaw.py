@@ -103,4 +103,5 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
 
         super(FaceJaw, self)._build_avars(ctrl_tm=ctrl_tm, **kwargs)
 
-
+def register_plugin():
+    return FaceJaw

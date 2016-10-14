@@ -653,15 +653,5 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                 else:
                     ratio = 1.0
 
-                connect_avar(avar, ratio)
-
-        # Calibration is done manually since we need to setup the jaw influence.
-        if calibrate:
-            self.calibrate()
-
-    def calibrate(self, **kwargs):
-        # todo: automatically calibrate the jawRange...
-        #val = libRigging.calibrate_attr_using_translation(self._attr_inn_jaw_range, self.jnt, step_size=0.5)
-        #print "CALIBRATION RESULT: " + str(val)
-
-        super(FaceLips, self).calibrate(**kwargs)
+def register_plugin():
+    return FaceLips

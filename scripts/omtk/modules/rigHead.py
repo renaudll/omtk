@@ -8,3 +8,6 @@ class Head(rigFK.FK):
     Note that the influence assigned to the head module will be used by each 'face' modules.
     """
     _CLS_CTRL = CtrlHead
+
+def register_plugin():
+    return Head

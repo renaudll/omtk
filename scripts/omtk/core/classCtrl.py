@@ -1,10 +1,12 @@
 import collections
 import logging as log
 import logging
+import inspect
 
 import pymel.core as pymel
 
 from classNode import Node
+from omtk.core import consts_omtk
 from omtk.core import classNode
 from omtk.libs import libAttr
 from omtk.libs import libPymel
@@ -50,6 +52,14 @@ class BaseCtrl(Node):
         self.mirror_flip_pos_z = True
 
         self.offset = None  # An intermediate parent that store the original transform of the ctrl.
+        self.shapes = None  # The list of shape to be used by the ctrl
+        self.node = None
+
+        self.targets = []  # A list representing all the space switch target for the ctrl
+        self.targets_indexes = []  # A list representing all the space switch target indexes for the ctrl
+        # We need to keep the local index separately because self referencing break maya deletion mechanism (*%&?%*&)
+        self.local_index = consts_omtk.SpaceSwitchReservedIndex.local
+        self._reserved_index = []  # A list representing all the index already reserved for the space switch target
 
         super(BaseCtrl, self).__init__(create=create, *args, **kwargs)
 
@@ -117,15 +127,15 @@ class BaseCtrl(Node):
 
     def restore_bind_pose(self):
         val_by_att_names = {
-            'translateX':0,
-            'translateY':0,
-            'translateZ':0,
-            'rotateX':0,
-            'rotateY':0,
-            'rotateZ':0,
-            'scaleX':1,
-            'scaleY':1,
-            'scaleZ':1
+            'translateX': 0,
+            'translateY': 0,
+            'translateZ': 0,
+            'rotateX': 0,
+            'rotateY': 0,
+            'rotateZ': 0,
+            'scaleX': 1,
+            'scaleY': 1,
+            'scaleZ': 1
         }
         for attr_name, val in val_by_att_names.iteritems():
             if not self.node.hasAttr(attr_name):
@@ -164,7 +174,6 @@ class BaseCtrl(Node):
             pymel.delete(self.offset)
             self.offset = None
 
-
     def rename(self, _sName, *args, **kwargs):
         """
         Rename the internet network.
@@ -173,7 +182,6 @@ class BaseCtrl(Node):
             self.node.rename(_sName, *args, **kwargs)
         if self.offset is not None:
             self.offset.rename(_sName + '_offset')
-
 
     def setParent(self, *args, **kwargs):
         """
@@ -253,18 +261,68 @@ class BaseCtrl(Node):
     # SPACE SWITH LOGIC
     #
 
+    def get_bestmatch_index(self, target, reserved_idx=None):
+        """
+        This function will return the best match index depending of if the target that could be already know and a list
+        of reserved index (-3 = world, -2 = local, -1 = root)
+        :param target: The target we want to get the index for
+        :param reserved_idx: Should be a reserved index. Will be set when trying to get a specific reserved space target
+        :return: Return the index that the target will use in the space switch system
+        """
+
+        # Populate a list that represent all index already in use in the system
+        if not self._reserved_index:
+            self._reserved_index = [member[1] for member in inspect.getmembers(consts_omtk.SpaceSwitchReservedIndex)
+                                    if not member[0].startswith("__") and not member[0].endswith("__")]
+            if self.local_index not in self._reserved_index:
+                self._reserved_index.append(self.local_index)
+
+        # Keep all the indexes that were serialized
+        if self.targets_indexes:
+            for index in self.targets_indexes:
+                if index not in self._reserved_index:
+                    self._reserved_index.append(index)
+
+        # First, check if the target already have an index associated
+        for i, keep_target in enumerate(self.targets):
+            if keep_target == target:
+                return self.targets_indexes[i]
+
+        # If no index is found and a reserved type is used, return the good reserved index
+        if reserved_idx:
+            return reserved_idx
+
+        # If no index is found, find the next available one
+        new_max_idx = max(self._reserved_index) + 1
+        # Since reserved index are always negative, we know that the first possible index is 0
+        for i in xrange(0, new_max_idx + 1):
+            if i not in self._reserved_index:
+                self._reserved_index.append(i)  # Hack the reserved target list to include the new used index
+                return i
+
+        # Finally, if no index is still found, return the next possible one in the list
+        return new_max_idx
+
     def create_spaceswitch(self, rig, module, parent, add_default=True, default_name=None, add_world=False, **kwargs):
+        """
+        Create the space switch attribute on the controller using a list of target found from it's module hierarchy
+        :param rig: The rig instance that dictate parameters for it
+        :param module: The module on which we want to process space switch targets
+        :param parent: The parent used as the default (local) target
+        :param add_default: Is the default target will be added to the list of targets
+        :param default_name: The name of the default target
+        :param add_world: Is the world will be added as a target
+        :param kwargs: Additional parameters
+        :return: None
+        """
         # TODO: Handle when parent is None?
         nomenclature = rig.nomenclature
 
-        if parent is None:
-            module.warning("Can't add space switch on {0}. No parent found!".format(self.node.__melobject__()))
-            return
-
         # Resolve spaceswitch targets
-        targets, labels = self.get_spaceswitch_targets(rig, module, parent, add_world=add_world)
+        targets, labels, indexes = self.get_spaceswitch_targets(rig, module, parent,
+                                                                add_world=add_world, add_local=add_default)
         if not targets:
-            module.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
+            module.warning(rig, "Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
             return
 
         if default_name is None:
@@ -280,18 +338,42 @@ class BaseCtrl(Node):
                 name.remove_extra_tokens()
                 labels[i] = name.resolve()
 
-        offset = 0
-        if add_default:
-            offset += 1
-            labels.insert(0, default_name)
+        # Create the parent constraint before adding the local since local target will be set to itself
+        # to keep a serialized link to the local target
+        layer_space_switch = self.append_layer('spaceSwitch')
+        parent_constraint = pymel.parentConstraint(targets, layer_space_switch, maintainOffset=True, **kwargs)
 
-        layer_spaceSwitch = self.append_layer('spaceSwitch')
-        parent_constraint = pymel.parentConstraint(targets, layer_spaceSwitch, maintainOffset=True, **kwargs)
-        attr_space = libAttr.addAttr(self.node, 'space', at='enum', enumName=':'.join(labels), k=True)
+        # Build the enum string from the information we got
+        enum_string = ""
+        # Add the local option if needed
+        if add_default:
+            # We cannot self referencing since it will break maya deletion mechanism
+            # targets.append(self)
+            # indexes.append(default_index)
+            # labels.append(default_name)
+            enum_string += default_name + "=" + \
+                           str(self.local_index)
+
+        # The enum string will skip index if needed
+        for label, index in zip(labels, indexes):
+            if enum_string:
+                enum_string += ":"
+            enum_string += label + "=" + str(index)
+
+        # Update the serialized variable to make sure everything is up to date
+        for i, target in enumerate(targets):
+            if target not in self.targets:
+                self.targets.append(target)
+                if indexes[i] in self.targets_indexes:
+                    log.warning("Index ({0}) is already used for space switch on ctrl {1}. "
+                                "Strange behavior could happen".format(indexes[i], self.name()))
+                self.targets_indexes.append(indexes[i])
+
+        attr_space = libAttr.addAttr(self.node, 'space', at='enum', enumName=enum_string, k=True)
         atts_weights = parent_constraint.getWeightAliasList()
 
         for i, att_weight in enumerate(atts_weights):
-            index_to_match = i + offset
+            index_to_match = indexes[i]
             att_enabled = libRigging.create_utility_node(  #Equal
                 'condition',
                 firstTerm=attr_space,
@@ -301,35 +383,106 @@ class BaseCtrl(Node):
             ).outColorR
             pymel.connectAttr(att_enabled, att_weight)
 
-    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, add_root=True,
-                                root_name='Root', world_name='World'):
-        targets = []
+        # By Default, the active space will be local, else root and finally fallback on the first index found
+        if add_default:
+            self.node.space.set(default_name)
+        elif self._reserved_idx['root'] in self.targets_indexes:
+            self.node.space.set(self._reserved_idx['root'])
+        else:
+            if self.targets_indexes:
+                self.node.space.set(self.targets_indexes[0])
+
+    def get_spaceswitch_targets(self, rig, module, jnt, add_world=True, add_root=True, add_local=True,
+                                root_name='Root', world_name='World', **kwargs):
+        """
+        Return the list of target used by the space switch of a controller. It will try get all module pin location it
+        can find from it's jnt parameter
+        :param rig: The rig instance that dictate parameters for it
+        :param module: The module on which we want to process space switch targets
+        :param jnt: A list of joint that will be used to find associated modules to find space objects
+        :param add_world: Is the world will be added as a space switch target of the ctrl
+        :param add_root: Is the root will be added as a space switch target of the ctrl
+        :param add_local: Is the local option will be used. Local will be the same than the first module target
+        :param root_name: The name in the list of targets the root will take
+        :param world_name: The name in the list of targets the world will take
+        :param kwargs: Additional parameters
+        :return: The targets obj, name and index of the found space switch target
+        """
+
+        targets = []  # The target
         target_names = []
+        indexes = []
 
-        # Resolve modules
-        modules = set()
-        while jnt:
-            module = rig.get_module_by_input(jnt)
-            if module:
-                modules.add(module)
-                #targets.update(module.get_pin_locations())
-            jnt = jnt.getParent()
-
-        for module in modules:
-            for target, target_name in module.get_pin_locations():
-                targets.append(target)
-                target_names.append(target_name)
-
+        # Use the grp_rip node as the world target. It will always be the first target in the list
         if add_world and libPymel.is_valid_PyNode(rig.grp_rig):
             targets.append(rig.grp_rig)
             target_names.append(world_name)
+            # World will always be -1
+            indexes.append(self.get_bestmatch_index(rig.grp_rig, consts_omtk.SpaceSwitchReservedIndex.world))
 
         # Add the master ctrl as a spaceswitch target
         if libPymel.is_valid_PyNode(rig.grp_anm):
             targets.append(rig.grp_anm)
             target_names.append(root_name)
+            # The root will always be index 1, because we want to let local to be 0
+            indexes.append(self.get_bestmatch_index(rig.grp_anm, consts_omtk.SpaceSwitchReservedIndex.root))
 
-        return targets, target_names
+        # Resolve modules targets
+        first_module = True
+        while jnt:
+            module = rig.get_module_by_input(jnt)
+            # We will not add as a target the first modules target found if we add the local space
+            # The local space is an equivalent to not having any space activated so as if it follow it's parent which
+            # would be the first module found
+            if module and ((add_local and not first_module) or not add_local):
+                target, target_name = module.get_pin_locations(jnt)
+                if target and target not in targets:
+                    targets.append(target)
+                    target_names.append(target_name)
+                    indexes.append(self.get_bestmatch_index(target))
+            else:
+                first_module = False
+            jnt = jnt.getParent()
+
+        return targets, target_names, indexes
+
+    def get_spaceswitch_enum_targets(self):
+        """
+        Return a dictionnary representing the enum space switch attribute data (space name, index and object)
+        :return: A dictionary representing the data of the space switch style [index] = (name, target_obj)
+        """
+        space_attr = getattr(self.node, 'space', None)
+        dict_sw_data = {}
+
+        log.info("Processing {0}".format(self.node))
+
+        if space_attr:
+            enum_items = space_attr.getEnums().items()
+            enum_items.sort(key=lambda tup: tup[1])
+
+            all_enum_connections = [con for con in space_attr.listConnections(d=True, s=False)]
+            for name, index in enum_items:
+                target_found = False
+                for con in all_enum_connections:
+                    if con.secondTerm.get() == index:
+                        target_found = True
+                        out_connections = con.outColorR.listConnections(d=True, s=False)
+                        if out_connections:
+                            const = out_connections[0]
+                            const_target_weight_attr = con.outColorR.listConnections(d=True, s=False, p=True)[0]\
+                                .listConnections(d=True, s=False, p=True)
+                            for target in const.target:
+                                const_target_name = const_target_weight_attr[0].name(fullDagPath=True)
+                                target_name = target.targetWeight.name(fullDagPath=True)
+                                if target_name == const_target_name:
+                                    target_obj = target.targetParentMatrix.listConnections(s=True)[0]
+                                    dict_sw_data[index] = (name, target_obj)
+                if not target_found:
+                        dict_sw_data[index] = (name, None)
+        else:
+            log.warning("No space attribute found on {0}".format(self.node))
+
+        return dict_sw_data
 
 
 class InteractiveCtrl(BaseCtrl):

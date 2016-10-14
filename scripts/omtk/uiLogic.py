@@ -253,6 +253,8 @@ class AutoRig(QtGui.QMainWindow):
             pass
         if parent is None: parent = getMayaWindow()
         super(AutoRig, self).__init__(parent)
+        self.callbacks_events = []
+
         self.ui = ui.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
 

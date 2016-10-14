@@ -3,6 +3,7 @@ import collections
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
 from omtk.modules.rigRibbon import Ribbon
+from omtk.libs import libPymel
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
@@ -51,6 +52,10 @@ class DpSpine(Module):
         self.jnt_squash_dwn = None
         self.jnt_squash_mid = None
         self.enable_squash = True
+
+        # Space switch target objects that will be kept on unbuild
+        self.ctrl_ik_dwn_sw = None
+        self.ctrl_fk_upp_sw = None
 
     def validate(self, rig):
         super(DpSpine, self).validate(rig)
@@ -241,10 +246,31 @@ class DpSpine(Module):
             libSkinning.transfer_weights_replace(jnt_dwn, self.jnt_squash_dwn)
             libSkinning.transfer_weights_replace(jnt_mid, self.jnt_squash_mid)
 
-                #Ensure global scale is working correctly
+        #Ensure global scale is working correctly
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleX)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleZ)
+
+        self.setup_spaceswitch_objects(rig)
+
+    def setup_spaceswitch_objects(self, rig):
+        super(DpSpine, self).setup_spaceswitch_objects(rig)
+
+        nomenclature_rig = self.get_nomenclature_rig(rig)
+        # Create Space switch targets objects
+        if self.ctrl_ik_dwn_sw is None or not libPymel.is_valid_PyNode(self.ctrl_ik_dwn_sw):
+            self.ctrl_ik_dwn_sw = pymel.createNode("transform")
+            self.ctrl_ik_dwn_sw.rename(nomenclature_rig.resolve("ctrlHipASpaceObject"))
+        self.ctrl_ik_dwn_sw.setMatrix(self.ctrl_ik_dwn.getMatrix(ws=True), ws=True)
+        self.ctrl_ik_dwn_sw.setParent(self.grp_rig)
+        pymel.parentConstraint(self.ctrl_ik_dwn, self.ctrl_ik_dwn_sw)
+
+        if self.ctrl_fk_upp_sw is None or not libPymel.is_valid_PyNode(self.ctrl_fk_upp_sw):
+            self.ctrl_fk_upp_sw = pymel.createNode("transform")
+            self.ctrl_fk_upp_sw.rename(nomenclature_rig.resolve("ctrlChestBSpaceObject"))
+        self.ctrl_fk_upp_sw.setMatrix(self.ctrl_ik_dwn.getMatrix(ws=True), ws=True)
+        self.ctrl_fk_upp_sw.setParent(self.grp_rig)
+        pymel.parentConstraint(self.ctrl_ik_dwn, self.ctrl_fk_upp_sw)
 
     def unbuild(self, rig):
         # Restore the original skin and remove the squash joints
@@ -260,6 +286,9 @@ class DpSpine(Module):
 
         self.jnt_squash_dwn = None
         self.jnt_squash_dwn = None
+        # Unparent space switch object
+        self.ctrl_fk_upp_sw.setParent(None)
+        self.ctrl_ik_dwn_sw.setParent(None)
         super(DpSpine, self).unbuild(rig)
 
     def get_parent(self, parent):
@@ -270,13 +299,18 @@ class DpSpine(Module):
 
         return super(DpSpine, self).get_parent(parent)
 
-    def get_pin_locations(self):
-        if not self.ctrl_fk_upp or not self.ctrl_fk_dwn:
-            return ()
-        return (
-            (self.ctrl_fk_upp.node, 'Chest'),
-            (self.ctrl_fk_dwn.node, 'Cog')
-        )
+    def get_pin_locations(self, jnt=None):
+        """
+        This function will return self.ctrl_fk_upp and self.ctrl_fk_upp ctrl as space switch target
+        :param jnt: The jnt related to the ctrl we want to return
+        :return: The possible target for space switch
+        """
+        if jnt == self.chain_jnt[0]:
+            return self.ctrl_ik_dwn_sw, 'Cog'
+        elif jnt == self.chain_jnt[-1]:
+            return self.ctrl_fk_upp_sw, 'Chest'
+        else:
+            return None, None
 
     def iter_ctrls(self):
         for ctrl in super(DpSpine, self).iter_ctrls():

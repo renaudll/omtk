@@ -103,13 +103,14 @@ class CtrlIkSwivel(BaseCtrl):
         :param kwargs: More kwargs pass to the super class
         :return: The spaceswitch usable targets and names
         """
-        targets, target_names = super(CtrlIkSwivel, self).get_spaceswitch_targets(rig, module, *args, **kwargs)
+        targets, target_names, indexes = super(CtrlIkSwivel, self).get_spaceswitch_targets(rig, module, *args, **kwargs)
 
         # Add the Hand/Foot ctrl
-        targets.append(module.ctrl_ik)
+        targets.append(module.ctrl_ik_sw)
         target_names.append(None)
+        indexes.append(self.get_bestmatch_index(module.ctrl_ik_sw))
 
-        return targets, target_names
+        return targets, target_names, indexes
 
     def build(self, rig, refs=None, line_target=True, *args, **kwargs):
         """
@@ -259,6 +260,7 @@ class IK(Module):
         self.chain_length = None
         self._chain_ik = None
         self.swivelDistance = None
+        self.ctrl_ik_sw = None  # Object that will serve as space switch target and that will not be deleted on unbuild
 
     def _create_ctrl_ik(self, *args, **kwargs):
         """
@@ -498,6 +500,20 @@ class IK(Module):
             for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)
 
+        self.setup_spaceswitch_objects(rig)
+
+    def setup_spaceswitch_objects(self, rig):
+        super(IK, self).setup_spaceswitch_objects(rig)
+
+        # Create Space switch targets objects
+        if self.ctrl_ik_sw is None or not libPymel.is_valid_PyNode(self.ctrl_ik_sw):
+            self.ctrl_ik_sw = pymel.createNode("transform")
+            self.ctrl_ik_sw.rename(self.get_nomenclature_rig(rig).resolve("ctrlIkSpaceObject"))
+        self.ctrl_ik_sw.setMatrix(self.ctrl_ik.getMatrix(ws=True), ws=True)
+        self.ctrl_ik_sw.setParent(self.grp_rig)
+        pymel.parentConstraint(self.ctrl_ik, self.ctrl_ik_sw)
+
+
     def unbuild(self, rig):
         """
         Unbuild the ik system and reset the needed parameters
@@ -506,6 +522,7 @@ class IK(Module):
         self.chain_length = None
         self._chain_ik = None
         self.swivelDistance = None
+        self.ctrl_ik_sw.setParent(None)
 
         super(IK, self).unbuild(rig)
 

@@ -368,6 +368,7 @@ def parse(str, **inkwargs):
 
     # step 1: identify variables
     vars = (var.strip() for var in re.split(_regex_splitVariables, str))
+    vars = [var for var in vars if not var.isdigit()]
     vars = filter(lambda x: x, vars)
     # print 'found vars:', vars
 

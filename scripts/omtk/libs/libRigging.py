@@ -1169,6 +1169,7 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
     else:
         util_blend = attr_dst_input.node()
 
+    # todo: use blendWeighted for the multiplier?
     if multiplier:
         attr_src = create_utility_node('multiplyDivide', input1X=attr_src, input2X=multiplier).outputX
 
@@ -1177,6 +1178,41 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
 
     if not attr_dst.isDestination():
         pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)
+
+def _get_or_create_blendweighted_for_attr(attr):
+    # Check on which attribute @attr_dst is connected to (if applicable).
+    attr_dst_input = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
+
+    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
+    if attr_dst_input is None or not isinstance(attr_dst_input.node(), pymel.nodetypes.BlendWeighted):
+        util_blend = pymel.createNode('blendWeighted')
+
+        if attr_dst_input is not None:
+            next_available = util_blend.input.numElements()
+            pymel.connectAttr(attr_dst_input, util_blend.input[next_available])
+    else:
+        util_blend = attr_dst_input.node()
+
+    return util_blend
+
+def connectAttrs_withBlendWeighted(attrs_src, attr_dst, weights=None):
+    util_blend = _get_or_create_blendweighted_for_attr(attr_dst)
+    if not attr_dst.isDestination():
+        pymel.connectAttr(util_blend.output, attr_dst, force=True)
+
+    if weights is None:
+        weights = [None] * len(attrs_src)
+    for attr_src, weight in zip(attrs_src, weights):
+        attr_dst = get_multi_attr_available_slot(util_blend.input)
+        pymel.connectAttr(attr_src, attr_dst)
+        if weight is not None:
+            index_dst = attr_dst.index()
+            attr_weight = util_blend.weight[index_dst]
+            if isinstance(weight, pymel.Attribute):
+                pymel.connectAttr(weight, attr_weight)
+            else:
+                attr_weight.set(weight)
+
 
 def getAttrOutput(attr, plugs=True, skipBlendWeighted=False, **kwargs):
     """

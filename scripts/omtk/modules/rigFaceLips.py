@@ -525,7 +525,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     def _build_avar_macro_l(self, rig):
         # Create left avar if necessary
         ref = self.get_jnt_l_mid()
-        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
+        if self.create_macro_horizontal and ref:
             if not self.avar_l:
                 self.avar_l = self.create_avar_macro_left(rig, self._CLS_CTRL_LFT, ref)
             self._build_avar_macro_horizontal(rig, self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
@@ -538,7 +538,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     def _build_avar_macro_r(self, rig):# Create right avar if necessary
         ref = self.get_jnt_r_mid()
-        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
+        if self.create_macro_horizontal and ref:
             # Create l ctrl
             if not self.avar_r:
                 self.avar_r = self.create_avar_macro_right(rig, self._CLS_CTRL_RGT, ref)

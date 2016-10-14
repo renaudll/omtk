@@ -546,7 +546,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     _CLS_CTRL_UPP = CtrlFaceUpp
     _CLS_CTRL_LOW = CtrlFaceLow
     _CLS_CTRL_ALL = CtrlFaceAll
-    SHOW_IN_UI = False
+    SHOW_IN_UI = True
 
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = True
@@ -554,6 +554,9 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
     def __init__(self, *args, **kwargs):
         super(AvarGrpAreaOnSurface, self).__init__(*args, **kwargs)
+        self.create_macro_horizontal = self.CREATE_MACRO_AVAR_HORIZONTAL
+        self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
+        self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
         self.avar_all = None
         self.avar_l = None
         self.avar_r = None
@@ -805,7 +808,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         super(AvarGrpAreaOnSurface, self)._create_avars(rig)
 
         # Create horizontal macro avars
-        if self.CREATE_MACRO_AVAR_HORIZONTAL:
+        if self.create_macro_horizontal:
             # Create avar_l if necessary
             ref_l = self.get_jnt_l_mid()
             if ref_l:
@@ -819,7 +822,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
                     self.avar_r = self.create_avar_macro_right(rig, self._CLS_CTRL_RGT, ref_r, cls_avar=self._CLS_AVAR)
 
         # Create vertical macro avars
-        if self.CREATE_MACRO_AVAR_VERTICAL:
+        if self.create_macro_vertical:
             # Create avar_upp if necessary
             ref_upp = self.get_jnt_upp_mid()
             if ref_upp:
@@ -835,7 +838,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         # Create all macro avar
         # Note that the all macro avar can drive an influence or not, both are supported.
         # This allow the rigger to provided an additional falloff in case the whole section is moved.
-        if self.CREATE_MACRO_AVAR_ALL:
+        if self.create_macro_all:
             ref_all = self.get_influence_all(rig)
             if not self.avar_all or not isinstance(self.avar_all, self._CLS_AVAR):
                 self.avar_all = self.create_avar_macro_all(rig, self._CLS_CTRL_UPP, ref_all, cls_avar=self._CLS_AVAR)
@@ -887,32 +890,32 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     def _build_avar_macro_l(self, rig, **kwargs):
         # Create left avar if necessary
         ref = self.get_jnt_l_mid()
-        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
+        if self.create_macro_horizontal and ref:
             self._build_avar_macro_horizontal(rig, self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, **kwargs)
 
     def _build_avar_macro_r(self, rig, **kwargs):
         # Create right avar if necessary
         ref = self.get_jnt_r_mid()
-        if self.CREATE_MACRO_AVAR_HORIZONTAL and ref:
+        if self.create_macro_horizontal and ref:
             self._build_avar_macro_horizontal(rig, self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, **kwargs)
 
     def _build_avar_macro_upp(self, rig, **kwargs):
         # Create upp avar if necessary
         ref = self.get_jnt_upp_mid()
-        if self.CREATE_MACRO_AVAR_VERTICAL and ref:
+        if self.create_macro_vertical and ref:
             self._build_avar_macro_vertical(rig, self.avar_upp, self.get_avar_mid(), self.get_avars_micro_upp(), self._CLS_CTRL_UPP, **kwargs)
 
     def _build_avar_macro_low(self, rig, **kwargs):
         # Create low avar if necessary
         ref = self.get_jnt_low_mid()
-        if self.CREATE_MACRO_AVAR_VERTICAL and ref:
+        if self.create_macro_vertical and ref:
             self._build_avar_macro_vertical(rig, self.avar_low, self.get_avar_mid(), self.get_avars_micro_low(), self._CLS_CTRL_LOW, **kwargs)
 
     def _build_avar_macro_all(self, rig, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False, follow_mesh=True,  **kwargs):
         # Create all avar if necessary
         # Note that the use can provide an influence.
         # If no influence was found, we'll create an 'abstract' avar that doesn't move anything.
-        if self.CREATE_MACRO_AVAR_ALL:
+        if self.create_macro_all:
             # We'll always want to macro avar to be positionned at the center of the plane.
             pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
             jnt_tm = pymel.datatypes.Matrix(

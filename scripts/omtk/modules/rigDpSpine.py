@@ -52,20 +52,20 @@ class DpSpine(Module):
         self.jnt_squash_mid = None
         self.enable_squash = True
 
-    def validate(self, rig):
-        super(DpSpine, self).validate(rig)
+    def validate(self):
+        super(DpSpine, self).validate()
         if len(self.jnts) != 3:
             raise Exception("DpSpine need exactly 3 joints.")
 
-    def build(self, rig, *args, **kwargs):
+    def build(self, *args, **kwargs):
         if len(self.chain_jnt) != 3:
             raise Exception("Expected 3 joints. Got {0}.".format(len(self.chain)))
 
-        super(DpSpine, self).build(rig, *args, **kwargs)
+        super(DpSpine, self).build(*args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-        nomenclature_jnt = self.get_nomenclature_jnt(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
+        nomenclature_jnt = self.get_nomenclature_jnt()
 
         #
         # Create ctrls
@@ -83,7 +83,7 @@ class DpSpine(Module):
         ctrl_ik_dwn_name = nomenclature_anm.resolve('HipsA')
         if not isinstance(self.ctrl_ik_dwn, self._CLASS_CTRL_IK):
             self.ctrl_ik_dwn = self._CLASS_CTRL_IK()
-        self.ctrl_ik_dwn.build(rig, name=ctrl_ik_dwn_name, refs=jnt_dwn)
+        self.ctrl_ik_dwn.build(name=ctrl_ik_dwn_name, refs=jnt_dwn)
         self.ctrl_ik_dwn.setTranslation(pos_dwn_world)
         self.ctrl_ik_dwn.setParent(self.grp_anm)
         self.ctrl_ik_dwn.node.rotateOrder.set(1)
@@ -91,7 +91,7 @@ class DpSpine(Module):
         ctrl_ik_upp_name = nomenclature_anm.resolve('ChestA')
         if not isinstance(self.ctrl_ik_upp, self._CLASS_CTRL_IK):
             self.ctrl_ik_upp = self._CLASS_CTRL_IK()
-        self.ctrl_ik_upp.build(rig, name=ctrl_ik_upp_name, refs=jnt_upp)
+        self.ctrl_ik_upp.build(name=ctrl_ik_upp_name, refs=jnt_upp)
         self.ctrl_ik_upp.setTranslation(pos_upp_world)
         self.ctrl_ik_upp.setParent(self.ctrl_ik_dwn)
         self.ctrl_ik_upp.node.rotateOrder.set(1)
@@ -107,7 +107,7 @@ class DpSpine(Module):
         ctrl_fk_dwn_name = nomenclature_anm.resolve('HipsB')
         if not isinstance(self.ctrl_fk_dwn, self._CLASS_CTRL_FK):
             self.ctrl_fk_dwn = self._CLASS_CTRL_FK()
-        self.ctrl_fk_dwn.build(rig, name=ctrl_fk_dwn_name, refs=jnt_dwn)
+        self.ctrl_fk_dwn.build(name=ctrl_fk_dwn_name, refs=jnt_dwn)
         self.ctrl_fk_dwn.setTranslation(pos_dwn_world)
         self.ctrl_fk_dwn.setParent(self.ctrl_ik_dwn)
         self.ctrl_fk_dwn.node.rotateOrder.set(1)
@@ -115,7 +115,7 @@ class DpSpine(Module):
         ctrl_fk_upp_name = nomenclature_anm.resolve('ChestB')
         if not isinstance(self.ctrl_fk_upp, self._CLASS_CTRL_FK):
             self.ctrl_fk_upp = self._CLASS_CTRL_FK()
-        self.ctrl_fk_upp.build(rig, name=ctrl_fk_upp_name, refs=jnt_upp)
+        self.ctrl_fk_upp.build(name=ctrl_fk_upp_name, refs=jnt_upp)
         self.ctrl_fk_upp.setTranslation(pos_upp_world)
         self.ctrl_fk_upp.setParent(self.ctrl_ik_upp)
         self.ctrl_fk_upp.node.rotateOrder.set(1)
@@ -123,7 +123,7 @@ class DpSpine(Module):
         ctrl_fk_mid_name = nomenclature_anm.resolve('Middle1')
         if not isinstance(self.ctrl_fk_mid, self._CLASS_CTRL_FK):
             self.ctrl_fk_mid = self._CLASS_CTRL_FK()
-        self.ctrl_fk_mid.build(rig, name=ctrl_fk_mid_name, refs=jnt_mid)
+        self.ctrl_fk_mid.build(name=ctrl_fk_mid_name, refs=jnt_mid)
         self.ctrl_fk_mid.setTranslation(pos_mid_world)
         self.ctrl_fk_mid.setParent(self.ctrl_ik_dwn)
         self.ctrl_fk_mid.node.rotateOrder.set(1)
@@ -146,8 +146,8 @@ class DpSpine(Module):
         # Create ribbon rig
         #
 
-        sys_ribbon = Ribbon(self.chain_jnt, name=self.name)
-        sys_ribbon.build(rig, create_ctrl=False, degree=3)
+        sys_ribbon = Ribbon(self.chain_jnt, name=self.name, rig=self.rig)
+        sys_ribbon.build(create_ctrl=False, degree=3)
         sys_ribbon.grp_rig.setParent(self.grp_rig)
 
         # Constraint the ribbon joints to the ctrls
@@ -246,7 +246,7 @@ class DpSpine(Module):
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleZ)
 
-    def unbuild(self, rig):
+    def unbuild(self):
         # Restore the original skin and remove the squash joints
         if self.jnt_squash_dwn and self.jnt_squash_dwn.exists():
             jnt_dwn = self.chain_jnt[0]
@@ -260,7 +260,7 @@ class DpSpine(Module):
 
         self.jnt_squash_dwn = None
         self.jnt_squash_dwn = None
-        super(DpSpine, self).unbuild(rig)
+        super(DpSpine, self).unbuild()
 
     def get_parent(self, parent):
         if parent == self.chain_jnt[0]:

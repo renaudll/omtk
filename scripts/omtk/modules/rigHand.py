@@ -71,16 +71,16 @@ class Hand(Module):
 
         return sorted_chain
 
-    def build(self, rig, *args, **kwargs):
-        super(Hand, self).build(rig, parent=False, *args, **kwargs)
+    def build(self, *args, **kwargs):
+        super(Hand, self).build(parent=False, *args, **kwargs)
 
         # Resolve fingers and metacarpals
         #jnts_metacarpals = []
         #metacarpals_sys = []
         meta_index = 0 #We can have less metacarpals than finger chains
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # Create fingers systems if necessary
         for i, chain in enumerate(self.chains):
@@ -106,25 +106,25 @@ class Hand(Module):
             ctrl_meta = None
             if jnt_metacarpal:
                 if meta_index >= len(self.fk_sys_metacarpals):
-                    ctrl_meta = rigFK.FK([jnt_metacarpal])
-                    ctrl_meta.name = ctrl_meta.get_default_name(rig)
+                    ctrl_meta = rigFK.FK([jnt_metacarpal], rig=self.rig)
+                    ctrl_meta.name = ctrl_meta.get_default_name()
                     self.fk_sys_metacarpals.append(ctrl_meta)
 
                 ctrl_meta = self.fk_sys_metacarpals[meta_index]
                 ctrl_meta.create_spaceswitch = False
-                ctrl_meta.build(rig)
+                ctrl_meta.build()
                 ctrl_meta.grp_anm.setParent(self.grp_anm)
                 meta_index += 1
 
             # Rig fingers
             if not self.sysFingers or i >= len(self.sysFingers):
-                sysFinger = rigFK.AdditiveFK(jnts_phalanges)
-                sysFinger.name = sysFinger.get_default_name(rig)
+                sysFinger = rigFK.AdditiveFK(jnts_phalanges, rig=self.rig)
+                sysFinger.name = sysFinger.get_default_name()
                 self.sysFingers.append(sysFinger)
 
             sysFinger = self.sysFingers[i]
             sysFinger.create_spaceswitch = False
-            sysFinger.build(rig)
+            sysFinger.build()
             if ctrl_meta:
                 sysFinger.grp_anm.setParent(ctrl_meta.ctrls[0])
             else:
@@ -208,14 +208,14 @@ class Hand(Module):
 
         pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
 
-    def unbuild(self, rig):
+    def unbuild(self):
         for sysFinger in self.sysFingers:
-            sysFinger.unbuild(rig)
+            sysFinger.unbuild()
 
         for ctrl_meta in self.fk_sys_metacarpals:
-            ctrl_meta.unbuild(rig)
+            ctrl_meta.unbuild()
 
-        super(Hand, self).unbuild(rig)
+        super(Hand, self).unbuild()
 
     def iter_ctrls(self):
         for ctrl in super(Hand, self).iter_ctrls():

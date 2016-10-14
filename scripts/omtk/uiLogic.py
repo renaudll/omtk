@@ -393,7 +393,7 @@ class AutoRig(QtGui.QMainWindow):
             if isinstance(data, classRig.Rig):
                 data.validate()
             elif isinstance(data, classModule.Module):
-                data.validate(self.root)
+                data.validate()
             else:
                 raise Exception("Unexpected datatype {0} for {1}".format(type(data), data))
         except Exception, e:
@@ -775,7 +775,7 @@ class AutoRig(QtGui.QMainWindow):
             return
 
         self.root.pre_build()
-        module.build(self.root)
+        module.build()
         self.root.post_build_module(module)
 
         return True
@@ -785,7 +785,7 @@ class AutoRig(QtGui.QMainWindow):
             pymel.warning("Can't unbuild locked module {0}".format(module))
             return
 
-        module.unbuild(self.root)
+        module.unbuild()
 
         return True
 

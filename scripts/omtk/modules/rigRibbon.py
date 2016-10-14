@@ -28,16 +28,15 @@ class Ribbon(Module):
         self._follicles = []
         self.ribbon_chain_grp = None
 
-    def create_ctrls(self, rig, ctrls=None, no_extremity=False, constraint_rot=True, **kwargs):
+    def create_ctrls(self, ctrls=None, no_extremity=False, constraint_rot=True, **kwargs):
         """
         This function can be used to create controllers on the ribbon joints.
-        :param rig: The rig instance that dictate parameters
         :param no_extremity: Tell if we want extremity ctrls
         :param constraint_rot: Tell if we constraint the bones on the controllers
         :return: nothing
         """
         ctrls = ctrls if ctrls else self.ctrls
-        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
         real_index = 0
         for i, jnt in enumerate(self._ribbon_jnts):
             if no_extremity and i == 0 or i == (len(self._ribbon_jnts) - 1):
@@ -48,7 +47,7 @@ class Ribbon(Module):
             if not isinstance(ctrl, CtrlRibbon):
                 ctrl = CtrlRibbon()
                 ctrls.append(ctrl) # Only add the ctrl if it's created
-            ctrl.build(rig, name=ctrl_name, **kwargs)
+            ctrl.build(name=ctrl_name, **kwargs)
             ctrl.setMatrix(jnt.getMatrix(worldSpace=True), worldSpace=True)
             ctrl.setParent(self.grp_anm)
 
@@ -64,14 +63,13 @@ class Ribbon(Module):
 
         return ctrls
 
-    def attach_to_plane(self, rig, constraint_rot=True):
+    def attach_to_plane(self, constraint_rot=True):
         """
         Create follicle attached to the place for each input joint
-        :param rig: The rig that dictate parameters
         :param constraint_rot: Are the joints will be constraint in rotation on the follicle
         :return: Nothing
         """
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
         fol_v = 0.5  # Always in the center
 
         #split_value = 1.0 / (len(self.chain_jnt) - 1)
@@ -92,12 +90,12 @@ class Ribbon(Module):
 
             self._follicles.append(fol)
 
-    def build(self, rig, no_subdiv=False, num_ctrl = None, degree=3, create_ctrl=True, constraint=False, rot_fol=True, *args, **kwargs):
-        super(Ribbon, self).build(rig, create_grp_anm=create_ctrl, *args, **kwargs)
+    def build(self, no_subdiv=False, num_ctrl = None, degree=3, create_ctrl=True, constraint=False, rot_fol=True, *args, **kwargs):
+        super(Ribbon, self).build(create_grp_anm=create_ctrl, *args, **kwargs)
         if num_ctrl is not None:
             self.num_ctrl = num_ctrl
 
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # Create the plane and align it with the selected bones
         plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
@@ -116,7 +114,7 @@ class Ribbon(Module):
         self._ribbon_shape = plane_tran.getShape()
 
         # Create the follicule needed for the system on the skinned bones
-        self.attach_to_plane(rig, rot_fol)
+        self.attach_to_plane(rot_fol)
         # TODO : Support aim constraint for bones instead of follicle rotation?
 
         # Apply the skin on the plane and rename follicle from djRivet
@@ -154,7 +152,7 @@ class Ribbon(Module):
 
         # Create the ctrls that will drive the joints that will drive the ribbon.
         if create_ctrl:
-            self.ctrls = self.create_ctrls(self, rig, **kwargs)
+            self.ctrls = self.create_ctrls(self, **kwargs)
 
             # Global uniform scale support
             self.globalScale.connect(self.ribbon_chain_grp.scaleX)
@@ -169,7 +167,7 @@ class Ribbon(Module):
         '''
 
 
-    def unbuild(self, rig):
-        super(Ribbon, self).unbuild(rig)
+    def unbuild(self):
+        super(Ribbon, self).unbuild()
 
         self.ctrls = []

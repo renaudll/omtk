@@ -226,6 +226,7 @@ class Rig(object):
             raise Exception("Cannot resolve class name '{0}'".format(cls_name))
 
         instance = cls(*args, **kwargs)
+        instance.rig = self
 
         # Resolve name to use
         default_name = instance.get_default_name(self)
@@ -625,7 +626,7 @@ class Rig(object):
 
         epsilon = 0.1
         if module.grp_anm:
-            nomenclature_anm = module.get_nomenclature_anm(self)
+            nomenclature_anm = module.get_nomenclature_anm()
             for ctrl in module.get_ctrls():
                 if libPymel.is_valid_PyNode(ctrl):
                     if not ctrl.drawOverride.overrideEnabled.get():

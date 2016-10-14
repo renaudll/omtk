@@ -49,10 +49,10 @@ class FK(Module):
             pass
         super(FK, self).__callbackNetworkPostBuild__()
 
-    def build(self, rig, constraint=True, parent=True, create_grp_anm=True, *args, **kwargs):
-        super(FK, self).build(rig, create_grp_rig=False, *args, **kwargs)
+    def build(self, constraint=True, parent=True, create_grp_anm=True, *args, **kwargs):
+        super(FK, self).build(create_grp_rig=False, *args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
 
         # Define ctrls
         num_ctrls = 0
@@ -70,14 +70,14 @@ class FK(Module):
             for input, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
                 ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
                 ctrl_name = ctrl_nomenclature.resolve('fk')
-                ctrl.build(rig, name=ctrl_name, refs=input)
+                ctrl.build(name=ctrl_name, refs=input)
                 ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
             if self.create_spaceswitch:
                 if self.sw_translate:
-                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(rig, self, self.parent, add_world=True)
+                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(self, self.parent, add_world=True)
                 else:
-                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(rig, self, self.parent,
+                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(self, self.parent,
                                                                         skipTranslate=['x', 'y', 'z'], add_world=True)
 
             self.ctrls[chain_first_ctrl_idx].setParent(self.grp_anm)
@@ -100,9 +100,6 @@ class FK(Module):
             pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
             #pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
         '''
-
-    def unbuild(self, rig):
-        super(FK, self).unbuild(rig)
 
 class CtrlFkAdd(BaseCtrl):
     def __createNode__(self, size=None, refs=None, *args, **kwargs):
@@ -129,13 +126,13 @@ class AdditiveFK(FK):
         self.num_ctrls = 1
         self.additive_ctrls = []
 
-    def build(self, rig, *args, **kwargs):
-        super(AdditiveFK, self).build(rig, *args, **kwargs)
+    def build(self, *args, **kwargs):
+        super(AdditiveFK, self).build(*args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
 
         # Ensure to create the finger ctrl in the good orientation
-        if nomenclature_anm.side == rig.nomenclature.SIDE_L:
+        if nomenclature_anm.side == self.rig.nomenclature.SIDE_L:
             normal_data = {consts_omtk.Axis.x: (1, 0, 0), consts_omtk.Axis.y: (0, 1, 0), consts_omtk.Axis.z: (0, 0, 1)}
         else:
             normal_data = {consts_omtk.Axis.x: (-1, 0, 0), consts_omtk.Axis.y: (0, -1, 0), consts_omtk.Axis.z: (0, 0, -1)}
@@ -150,7 +147,7 @@ class AdditiveFK(FK):
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
-            ctrl.build(rig, name=name, refs=self.chain.start, normal=normal_data[rig._up_axis])
+            ctrl.build(name=name, refs=self.chain.start, normal=normal_data[self.rig._up_axis])
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
 

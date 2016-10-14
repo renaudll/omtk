@@ -79,7 +79,7 @@ class Twistbone(Module):
 
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, rig, orient_ik_ctrl=True, num_twist=None, create_bend=None, *args, **kwargs):
+    def build(self, orient_ik_ctrl=True, num_twist=None, create_bend=None, *args, **kwargs):
         if len(self.chain_jnt) < 2:
             raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.chain_jnt), self.chain_jnt))
 
@@ -90,10 +90,10 @@ class Twistbone(Module):
         if create_bend:
             self.create_bend = create_bend
 
-        super(Twistbone, self).build(rig, create_grp_anm=self.create_bend, *args, **kwargs)
+        super(Twistbone, self).build(create_grp_anm=self.create_bend, *args, **kwargs)
 
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-        nomenclature_jnt = self.get_nomenclature_jnt(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
+        nomenclature_jnt = self.get_nomenclature_jnt()
 
         top_parent = self.chain[0].getParent()
         jnt_s = self.chain_jnt[0]
@@ -165,9 +165,9 @@ class Twistbone(Module):
         before_mid_idx = math.floor((self.num_twist/2.0))
         if self.create_bend:
             # Create Ribbon
-            sys_ribbon = Ribbon(self.subjnts, name=nomenclature_rig.resolve("bendRibbon"))
-            sys_ribbon.build(rig, create_ctrl=False, degree=3, num_ctrl=self.num_twist, no_subdiv=False, rot_fol=False)
-            self.ctrls = sys_ribbon.create_ctrls(rig, ctrls=self.ctrls, no_extremity=True,
+            sys_ribbon = Ribbon(self.subjnts, name=nomenclature_rig.resolve("bendRibbon"), rig=self.rig)
+            sys_ribbon.build(create_ctrl=False, degree=3, num_ctrl=self.num_twist, no_subdiv=False, rot_fol=False)
+            self.ctrls = sys_ribbon.create_ctrls(ctrls=self.ctrls, no_extremity=True,
                                                  constraint_rot=False, refs=self.chain_jnt[1])
             # Point constraint the driver jnt on the ribbon jnt to drive the bending
             for i, driver in enumerate(driverjnts):
@@ -285,7 +285,7 @@ class Twistbone(Module):
                     skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                     subjnt.lockInfluenceWeights.set(False)
 
-            for mesh in self.get_farest_affected_meshes(rig):
+            for mesh in self.get_farest_affected_meshes():
                 print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
                 libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
@@ -326,15 +326,15 @@ class Twistbone(Module):
                         skinClusters.add(hist)
         return skinClusters
 
-    def get_farest_affected_meshes(self, rig):
+    def get_farest_affected_meshes(self):
         results = set()
         for jnt in self.jnts:
-            mesh = rig.get_farest_affected_mesh(jnt)
+            mesh = self.rig.get_farest_affected_mesh(jnt)
             if mesh:
                 results.add(mesh)
         return results
 
-    def unbuild(self, rig, delete=True):
+    def unbuild(self, delete=True):
         '''
         Unbuild the twist bone
         '''
@@ -351,7 +351,7 @@ class Twistbone(Module):
             pymel.disconnectAttr(jnt.scaleZ)
 
         # Don't disconnect input attribute when unbuilding twist bones
-        super(Twistbone, self).unbuild(rig, disconnect_attr=False)
+        super(Twistbone, self).unbuild(disconnect_attr=False)
 
         self.start = None
         self.end = None

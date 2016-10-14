@@ -13,6 +13,7 @@ def open_scene(path_local):
                 raise Exception("File does not exist on disk! {0}".format(path))
 
             cmds.file(path, open=True, f=True)
+            return f(*args, **kwargs)
         return f_open
     return deco_open
 

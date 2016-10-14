@@ -114,13 +114,13 @@ class AbstractAvar(classModule.Module):
         self.attr_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
         self.attr_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
 
-    def hold_avars(self, rig):
+    def hold_avars(self):
         """
         Create a network to hold all the avars complex connection.
         This prevent Maya from deleting our connection when unbuilding.
         """
         if self.grp_rig is None or not self.grp_rig.exists():
-            self.warning(rig, "Can't hold avars, invalid grp_rig in {0}!".format(self))
+            self.warning("Can't hold avars, invalid grp_rig in {0}!".format(self))
             return
 
         self.avar_network = pymel.createNode('network')
@@ -146,7 +146,7 @@ class AbstractAvar(classModule.Module):
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                self.warning(rig, "Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
+                self.warning("Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
                 continue
 
             #attr_name = attr.longName()
@@ -178,11 +178,11 @@ class AbstractAvar(classModule.Module):
             pymel.delete(self.avar_network)
             self.avar_network = None
 
-    def unbuild(self, rig):
-        self.hold_avars(rig)
+    def unbuild(self):
+        self.hold_avars()
         self.init_avars()
 
-        super(AbstractAvar, self).unbuild(rig)
+        super(AbstractAvar, self).unbuild()
 
         # TODO: cleanup junk connections that Maya didn't delete by itself?
     #
@@ -207,7 +207,7 @@ class AbstractAvar(classModule.Module):
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
         )
 
-    def get_ctrl_tm(self, rig):
+    def get_ctrl_tm(self):
         """
         :return: The ctrl transformation.
         """
@@ -217,7 +217,7 @@ class AbstractAvar(classModule.Module):
         # The face is always looking at the positive Z axis.
         pos = tm.translate
         dir = pymel.datatypes.Point(0,0,1)
-        result = rig.raycast_farthest(pos, dir)
+        result = self.rig.raycast_farthest(pos, dir)
         if result:
             tm.a30 = result.x
             tm.a31 = result.y
@@ -225,16 +225,16 @@ class AbstractAvar(classModule.Module):
 
         return tm
 
-    def validate(self, rig):
+    def validate(self):
         """
         Check if the module can be built with it's current configuration.
         Since AbstractAvar support having no influence at all (macro avars), we support having no inputs.
         :param rig: The Rig instance associated with the module.
         """
-        super(AbstractAvar, self).validate(rig, support_no_inputs=True)
+        super(AbstractAvar, self).validate(support_no_inputs=True)
         return True
 
-    def create_surface(self, rig, name='Surface'):
+    def create_surface(self, name='Surface'):
         """
         Create a simple rig to deform a nurbsSurface, allowing the rigger to easily provide
         a surface for the influence to slide on.
@@ -242,7 +242,7 @@ class AbstractAvar(classModule.Module):
         :param name: The suffix of the surface name to create.
         :return: A pymel.nodetypes.Transform instance of the created surface.
         """
-        nomenclature = self.get_nomenclature_rig(rig).copy()
+        nomenclature = self.get_nomenclature_rig().copy()
         nomenclature.add_tokens(name)
 
         root = pymel.createNode('transform')
@@ -308,17 +308,17 @@ class AbstractAvar(classModule.Module):
 
         return plane_transform
 
-    def build(self, rig, mult_u=1.0, mult_v=1.0, **kwargs):
+    def build(self, mult_u=1.0, mult_v=1.0, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
 
-        super(AbstractAvar, self).build(rig, **kwargs)
+        super(AbstractAvar, self).build(**kwargs)
 
         self.add_avars(self.grp_rig)
         self.fetch_avars()
 
-    def build_stack(self, rig, stack, **kwargs):
+    def build_stack(self, stack, **kwargs):
         pass
         #raise NotImplementedError
 
@@ -326,7 +326,7 @@ class AbstractAvar(classModule.Module):
     # Ctrl connection
     #
 
-    def need_flip_lr(self, rig):
+    def need_flip_lr(self):
         """
         We might want to flip the lr Avar if they are on the right side.
         This ensure that if we move Avars from two sides in local, they correctly mirror each others.
@@ -334,12 +334,12 @@ class AbstractAvar(classModule.Module):
         :param rig: A Rig instance.
         :return: True if the avar is at the right side. False if it is on the left or center.
         """
-        nomenclature = self.get_nomenclature_anm(rig)
-        return nomenclature.side == rig.nomenclature.SIDE_R
+        nomenclature = self.get_nomenclature_anm()
+        return nomenclature.side == self.rig.nomenclature.SIDE_R
 
     # todo: merge with .connect_ctrl
-    def _connect_ctrl(self, rig, ctrl, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
-        need_flip = self.need_flip_lr(rig)
+    def _connect_ctrl(self, ctrl, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
+        need_flip = self.need_flip_lr()
 
         if attr_ud:
             attr_inn_ud = ctrl.translateY
@@ -377,9 +377,8 @@ class AbstractAvar(classModule.Module):
 
             libRigging.connectAttr_withBlendWeighted(attr_inn_rl, attr_rl)
 
-    def connect_ctrl(self, rig, ctrl, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
+    def connect_ctrl(self, ctrl, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
         self._connect_ctrl(
-            rig,
             ctrl,
             attr_ud=self.attr_ud if ud else None,
             attr_lr=self.attr_lr if lr else None,
@@ -410,16 +409,16 @@ class AvarSimple(AbstractAvar):
         self._grp_offset = None
         self._grp_parent = None
 
-    def validate(self, rig):
-        super(AvarSimple, self).validate(rig)
+    def validate(self):
+        super(AvarSimple, self).validate()
 
         # InteractiveCtrl need at least a skinned influence to bind itself to.
         if self.jnt and issubclass(self._CLS_CTRL, classCtrl.InteractiveCtrl):
-            mesh = rig.get_farest_affected_mesh(self.jnt)
+            mesh = self.rig.get_farest_affected_mesh(self.jnt)
             if not mesh:
                 raise Exception("Can't find mesh affected by {0}.".format(self.jnt))
 
-    def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
+    def build_stack(self, stack, mult_u=1.0, mult_v=1.0):
         """
         The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
         the drived joint.
@@ -434,11 +433,11 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, rig, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
-        super(AvarSimple, self).build(rig, create_grp_anm=create_ctrl, parent=False)
+    def build(self, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
+        super(AvarSimple, self).build(create_grp_anm=create_ctrl, parent=False)
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # Resolve influence matrix
         if jnt_tm is None:
@@ -448,7 +447,7 @@ class AvarSimple(AbstractAvar):
         # Resolve ctrl matrix
         # It can differ from the influence to prevent the controller to appear in the geometry.
         if ctrl_tm is None:
-            ctrl_tm = self.get_ctrl_tm(rig)
+            ctrl_tm = self.get_ctrl_tm()
         doritos_pos = ctrl_tm.translate
 
         #
@@ -483,7 +482,7 @@ class AvarSimple(AbstractAvar):
 
         # The rest of the stack is built in another function.
         # This allow easier override by sub-classes.
-        self.build_stack(rig, stack)
+        self.build_stack(stack)
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
@@ -504,7 +503,7 @@ class AvarSimple(AbstractAvar):
             if not isinstance(self.ctrl, self._CLS_CTRL):
                 old_shapes = None
                 if self.ctrl is not None:
-                    self.warning(rig, "Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                    self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
                         self._CLS_CTRL, type(self.ctrl)
                     ))
                     old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
@@ -526,23 +525,23 @@ class AvarSimple(AbstractAvar):
                     ref = self.jnt
 
                 self.ctrl.build(
-                    rig, ref,
+                    ref,
                     ref_tm=ctrl_tm,
                     name=ctrl_name,
                     size=ctrl_size,
                     obj_mesh=obj_mesh,
                     grp_rig=self.grp_rig,
-                    flip_lr=self.need_flip_lr(rig),
+                    flip_lr=self.need_flip_lr(),
                     follow_mesh=follow_mesh
                 )
             else:
-                self.ctrl.build(rig, name=ctrl_name, size=ctrl_size)
+                self.ctrl.build(name=ctrl_name, size=ctrl_size)
 
             self.ctrl.setTranslation(doritos_pos)
             self.ctrl.setParent(self.grp_anm)
 
             # Connect ctrl to avars
-            self.connect_ctrl(rig, self.ctrl)
+            self.connect_ctrl(self.ctrl)
 
             '''
             # Calibrate ctrl
@@ -552,17 +551,17 @@ class AvarSimple(AbstractAvar):
                     self.calibrate()
             '''
 
-    def calibrate(self, rig, **kwargs):
+    def calibrate(self, **kwargs):
         """
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
         if not self.ctrl:
-            self.warning(rig, "Can't calibrate, found no ctrl for {0}".format(self))
+            self.warning("Can't calibrate, found no ctrl for {0}".format(self))
             return False
 
         # Hack: clean me!
         if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-            self.ctrl.calibrate(rig, self, **kwargs)
+            self.ctrl.calibrate(self, **kwargs)
 
 
 class AvarFollicle(AvarSimple):
@@ -591,10 +590,9 @@ class AvarFollicle(AvarSimple):
         self._attr_length_v = None
         self._attr_length_u = None
 
-    def _get_follicle_relative_uv_attr(self, rig, mult_u=1.0, mult_v=1.0):
+    def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """
         Resolve the relative parameterU and parameterV that will be sent to the follicles.
-        :param rig: The parent rig.
         :return: A tuple containing two pymel.Attribute: the relative parameterU and relative parameterV.
         """
         # Apply custom multiplier
@@ -612,10 +610,9 @@ class AvarFollicle(AvarSimple):
 
         return attr_u, attr_v
 
-    def _get_follicle_absolute_uv_attr(self, rig, mult_u=1.0, mult_v=1.0):
+    def _get_follicle_absolute_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """
         Resolve the absolute parameterU and parameterV that will be sent to the follicles.
-        :param rig: The parent rig.
         :param mult_u: Custom multiplier
         :param mult_v:
         :return: A tuple containing two pymel.Attribute: the absolute parameterU and relative parameterV.
@@ -624,7 +621,7 @@ class AvarFollicle(AvarSimple):
         attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
         attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V)
 
-        attr_u_relative, attr_v_relative = self._get_follicle_relative_uv_attr(rig, mult_u=mult_u, mult_v=mult_v)
+        attr_u_relative, attr_v_relative = self._get_follicle_relative_uv_attr(mult_u=mult_u, mult_v=mult_v)
 
         # Add base parameterU & parameterV
         attr_u_cur = libRigging.create_utility_node(
@@ -645,14 +642,14 @@ class AvarFollicle(AvarSimple):
 
         return attr_u_inn, attr_v_inn
 
-    def build_stack(self, rig, stack, mult_u=1.0, mult_v=1.0):
+    def build_stack(self, stack, mult_u=1.0, mult_v=1.0):
         """
         The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
         The decision of using transforms instead of multMatrix nodes is for clarity.
         Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
         """
         # TODO: Maybe use sub-classing to differenciate when we need to use a surface or not.
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
 
         #
         # Create a simple setup that will extract the base U and V of the base influence using the stack parent. (the 'offset' node)
@@ -763,7 +760,7 @@ class AvarFollicle(AvarSimple):
         #
         self._attr_u_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=self._AVAR_DEFAULT_MULTIPLIER_U)
         self._attr_v_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=self._AVAR_DEFAULT_MULTIPLIER_V)
-        attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr(rig)
+        attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr()
 
         #
         # Create the 1st (follicleLayer) that will contain the extracted position from the ud and lr Avar.
@@ -782,7 +779,7 @@ class AvarFollicle(AvarSimple):
         # If the UD value is out the nurbsPlane UV range (0-1), ie 1.1, we'll want to still offset the follicle.
         # For that we'll compute a delta between a small increment (0.99 and 1.0) and multiply it.
         #
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_rig = self.get_nomenclature_rig()
         oob_step_size = 0.001  # TODO: Expose a Maya attribute?
 
         fol_clamped_v_name = nomenclature_rig.resolve('influenceClampedV')
@@ -958,8 +955,8 @@ class AvarAim(AvarSimple):
         super(AvarAim, self).__init__(*args, **kwargs)
         self.target = None
 
-    def build_stack(self, rig, stack, aim_target=None, **kwargs):
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+    def build_stack(self, stack, aim_target=None, **kwargs):
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # Build an aim node in-place for performance
         # This separated node allow the joints to be driven by the avars.
@@ -1017,17 +1014,17 @@ class AvarAim(AvarSimple):
         libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateX, self.attr_pt)
         libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateZ, self.attr_rl)
 
-    def build(self, rig, create_ctrl=True, **kwargs):
-        super(AvarAim, self).build(rig, create_ctrl=create_ctrl, **kwargs)
+    def build(self, create_ctrl=True, **kwargs):
+        super(AvarAim, self).build(create_ctrl=create_ctrl, **kwargs)
 
         if create_ctrl:
             pymel.pointConstraint(self.ctrl, self.target, maintainOffset=False)
 
-    def connect_ctrl(self, rig, ctrl, **kwargs):
+    def connect_ctrl(self, ctrl, **kwargs):
         pass  # Nothing need to be connected since there's an aimConstraint
 
-    def unbuild(self, rig):
-        super(AvarAim, self).unbuild(rig)
+    def unbuild(self):
+        super(AvarAim, self).unbuild()
         self.target = None
 
 

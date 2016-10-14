@@ -63,23 +63,23 @@ class Limb(Module):
         self.STATE_IK = 1.0
         self.STATE_FK = 0.0
 
-    def build(self, rig, *args, **kwargs):
-        super(Limb, self).build(rig, *args, **kwargs)
+    def build(self, *args, **kwargs):
+        super(Limb, self).build(*args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm(rig)
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # Create IK system
         if not isinstance(self.sysIK, self._CLASS_SYS_IK):
-            self.sysIK = self._CLASS_SYS_IK(self.chain_jnt)
+            self.sysIK = self._CLASS_SYS_IK(self.chain_jnt, rig=self.rig)
         self.sysIK.name = '{0}_Ik'.format(self.name) # Hack
-        self.sysIK.build(rig, constraint=False, **kwargs)
+        self.sysIK.build(constraint=False, **kwargs)
 
         # Create FK system
         if not isinstance(self.sysFK, self._CLASS_SYS_FK):
-            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt)
+            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt, rig=self.rig)
         self.sysFK.name = '{0}_Fk'.format(self.name) # Hack
-        self.sysFK.build(rig, constraint=False, **kwargs)
+        self.sysFK.build(constraint=False, **kwargs)
 
         # Create twistbone system if needed
         if self.create_twist:
@@ -88,17 +88,17 @@ class Limb(Module):
             for i in range(0, num_twist_sys):
                 cur_sys_twist = self.sys_twist[i] if i < len(self.sys_twist) else None
                 if not isinstance(cur_sys_twist, self._CLASS_SYS_TWIST):
-                    cur_sys_twist = self._CLASS_SYS_TWIST(self.chain_jnt[i:(i+2)])
+                    cur_sys_twist = self._CLASS_SYS_TWIST(self.chain_jnt[i:(i+2)], rig=self.rig)
                     self.sys_twist.append(cur_sys_twist)
                 # Hack
                 twist_sys_name = self.chain_jnt[i].name().replace('_' + nomenclature_rig.type_jnt, "")
                 cur_sys_twist.name = '{0}'.format(twist_sys_name)
-                cur_sys_twist.build(rig, num_twist=3, create_bend=True, **kwargs)
+                cur_sys_twist.build(num_twist=3, create_bend=True, **kwargs)
 
         # Lock X and Y axis on the elbow/knee ctrl
-        if rig._up_axis == consts_omtk.Axis.y:
+        if self.rig._up_axis == consts_omtk.Axis.y:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
-        elif rig._up_axis == consts_omtk.Axis.z:
+        elif self.rig._up_axis == consts_omtk.Axis.z:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], y=False)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
@@ -118,7 +118,7 @@ class Limb(Module):
         ctrl_attrs_name = nomenclature_anm.resolve('atts')
         if not isinstance(self.ctrl_attrs, self._CLASS_CTRL_ATTR):
             self.ctrl_attrs = self._CLASS_CTRL_ATTR()
-        self.ctrl_attrs.build(rig, name=ctrl_attrs_name, refs=jnt_hand)
+        self.ctrl_attrs.build(name=ctrl_attrs_name, refs=jnt_hand)
         self.ctrl_attrs.setParent(self.grp_anm)
         pymel.parentConstraint(jnt_hand, self.ctrl_attrs.offset)
 
@@ -163,7 +163,7 @@ class Limb(Module):
             if not isinstance(self.ctrl_elbow, self._CLASS_CTRL_ELBOW):
                 self.ctrl_elbow = self._CLASS_CTRL_ELBOW(create_offset=True)
             ctrl_elbow_ref = self.chain_jnt[i]  # jnt_elbow
-            self.ctrl_elbow.build(rig, refs=ctrl_elbow_ref)
+            self.ctrl_elbow.build(refs=ctrl_elbow_ref)
             self.ctrl_elbow.rename(ctrl_elbow_name)
             self.ctrl_elbow.setParent(self.grp_anm)
             pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
@@ -207,15 +207,15 @@ class Limb(Module):
 
         self.attState = attr_ik_weight  # Expose state
 
-    def unbuild(self, rig):
+    def unbuild(self):
         if self.sysIK and self.sysIK.is_built():
-            self.sysIK.unbuild(rig)
+            self.sysIK.unbuild()
         if self.sysFK and self.sysFK.is_built():
-            self.sysFK.unbuild(rig)
+            self.sysFK.unbuild()
         for twist_sys in self.sys_twist:
-            twist_sys.unbuild(rig)
+            twist_sys.unbuild()
 
-        super(Limb, self).unbuild(rig)
+        super(Limb, self).unbuild()
 
         self.attState = None
 

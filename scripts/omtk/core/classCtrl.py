@@ -368,10 +368,10 @@ class InteractiveCtrl(BaseCtrl):
 
         self.follicle = None
 
-    def build(self, parent, ref, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, follow_mesh=True, **kwargs):
+    def build(self, module, ref, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, follow_mesh=True, **kwargs):
         """
         Create an Interactive controller that follow a geometry.
-        :param parent: ???
+        :param module: ???
         :param ref:
         :param ref_tm:
         :param grp_rig:
@@ -390,10 +390,10 @@ class InteractiveCtrl(BaseCtrl):
             pymel.makeIdentity(self.shapes, rotate=True, scale=True, apply=True)
 
         # todo: Simplify the setup, too many nodes
-        super(InteractiveCtrl, self).build(parent, **kwargs)
+        super(InteractiveCtrl, self).build(module, **kwargs)
 
         #nomenclature_anm = self.get_nomenclature_anm(parent)
-        nomenclature_rig = parent.nomenclature(suffix=parent.nomenclature.type_rig)
+        nomenclature_rig = module.nomenclature(suffix=module.nomenclature.type_rig)
         #nomenclature_rig = self.get_nomenclature_rig(parent)
 
         # TODO: Only use position instead of PyNode or Matrix?
@@ -406,7 +406,7 @@ class InteractiveCtrl(BaseCtrl):
         if obj_mesh is None:
             # We'll scan all available geometries and use the one with the shortest distance.
             meshes = libRigging.get_affected_geometries(ref)
-            meshes = list(set(meshes) & set(parent.get_meshes()))
+            meshes = list(set(meshes) & set(module.get_meshes()))
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
         else:
             _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
@@ -420,9 +420,9 @@ class InteractiveCtrl(BaseCtrl):
             raise Exception("Can't find mesh affected by {0}. Skipping doritos ctrl setup.")
 
         if self.jnt:
-            parent.debug('Creating doritos on {0} using {1} as reference'.format(obj_mesh, self.jnt))
+            module.debug('Creating doritos on {0} using {1} as reference'.format(obj_mesh, self.jnt))
         else:
-            parent.debug('Creating doritos on {0}'.format(obj_mesh))
+            module.debug('Creating doritos on {0}'.format(obj_mesh))
 
 
         # Initialize external stack
@@ -473,7 +473,7 @@ class InteractiveCtrl(BaseCtrl):
             # HACK: Fix rotation issues.
             # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
             # any deformation can affect the normal of the faces.
-            jnt_head = parent.get_head_jnt()
+            jnt_head = module.get_head_jnt()
             if jnt_head:
                 pymel.disconnectAttr(layer_fol.rx)
                 pymel.disconnectAttr(layer_fol.ry)

@@ -260,7 +260,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             # Any existing Avar that don't have the desired datatype will be re-created.
             # However the old value will be passed by so the factory method can handle specific tricky cases.
             elif not isinstance(avar, self._CLS_AVAR):
-                self.warning("Unexpected Avar type for {0}. Expected {1}, got {2}.".format(avar.name, self._CLS_AVAR.__name__, type(avar).__name___))
+                self.warning("Unexpected Avar type for {0}. Expected {1}, got {2}.".format(avar.name, self._CLS_AVAR.__name__, type(avar).__name__))
                 new_avar = self._create_avar(avar.jnt, cls_avar=self._CLS_AVAR, old_val=avar)
                 new_avars.append(new_avar)
 

@@ -525,6 +525,7 @@ class AvarSimple(AbstractAvar):
                     ref = self.jnt
 
                 self.ctrl.build(
+                    self,
                     ref,
                     ref_tm=ctrl_tm,
                     name=ctrl_name,

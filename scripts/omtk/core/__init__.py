@@ -27,6 +27,10 @@ if os.path.exists(config_path):
     with open(config_path) as fp:
         config = json.load(fp)
 
+# Load plugins
+import plugin_manager
+plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (todo: remove it?)
+
 def _reload():
     reload(className)
     reload(classNode)
@@ -41,17 +45,8 @@ def _reload():
     reload(preferences)
 
 def create(*args, **kwargs):
-    from libSerialization import core
-    cls = classRig.Rig.__name__
-
     from omtk.core import preferences
     cls = preferences.preferences.get_default_rig_class()
-    # rig_type = config.get('default_rig', None)
-    # if rig_type is None:
-    #     cls = classRig.Rig
-    # else:
-    #     cls = core.find_class_by_name(rig_type, base_class=classRig.Rig)
-
     return cls(*args, **kwargs)
 
 def find():

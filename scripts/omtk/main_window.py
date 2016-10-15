@@ -497,7 +497,7 @@ class AutoRig(QtGui.QMainWindow):
             obj_name = obj.stripNamespace()
 
             fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, 'Module')
-            networks = libSerialization.getConnectedNetworks(obj, key=fnFilter)
+            networks = libSerialization.getConnectedNetworks(obj, key=fnFilter, recursive=False)
 
             textBrush = QtGui.QBrush(QtCore.Qt.white)
 

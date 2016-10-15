@@ -259,7 +259,7 @@ class BaseCtrl(Node):
     # SPACE SWITH LOGIC
     #
 
-def get_bestmatch_index(self, target, reserved_idx=None):
+    def get_bestmatch_index(self, target, reserved_idx=None):
         """
         This function will return the best match index depending of if the target that could be already know and a list
         of reserved index (-3 = world, -2 = local, -1 = root)

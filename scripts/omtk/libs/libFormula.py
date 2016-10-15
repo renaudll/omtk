@@ -156,7 +156,7 @@ class OperatorNotEqual(Operator):
 
     @staticmethod
     def create(*args, **kwargs):
-        return OperatorEqual(operation=1).outColorR
+        return libRigging.create_utility_node('condition', operation=1, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorGreater(Operator):
@@ -166,7 +166,7 @@ class OperatorGreater(Operator):
 
     @staticmethod
     def create(*args, **kwargs):
-        return OperatorEqual(operation=2, *args, **kwargs).outColorR
+        return libRigging.create_utility_node('condition', operation=2, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorGreaterOrEqual(Operator):
@@ -176,7 +176,7 @@ class OperatorGreaterOrEqual(Operator):
 
     @staticmethod
     def create(*args, **kwargs):
-        return OperatorEqual(operation=3, *args, **kwargs).outColorR
+        return libRigging.create_utility_node('condition', operation=3, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorSmaller(Operator):
@@ -186,7 +186,7 @@ class OperatorSmaller(Operator):
 
     @staticmethod
     def create(*args, **kwargs):
-        return OperatorEqual(operation=4, *args, **kwargs).outColorR
+        return libRigging.create_utility_node('condition', operation=4, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorSmallerOrEqual(Operator):
@@ -196,7 +196,7 @@ class OperatorSmallerOrEqual(Operator):
 
     @staticmethod
     def create(*args, **kwargs):
-        return OperatorEqual(operation=5, *args, **kwargs).outColorR
+        return libRigging.create_utility_node('condition', operation=5, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 # src: http://www.mathcentre.ac.uk/resources/workbooks/mathcentre/rules.pdf

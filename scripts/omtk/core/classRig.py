@@ -152,11 +152,11 @@ class Rig(object):
         return className.BaseName
 
     @property
-    def nomenclature(self, *args, **kwargs):
+    def nomenclature(self):
         """
         Singleton that will return the nomenclature to use.
         """
-        return self._get_nomenclature_cls(*args, **kwargs)
+        return self._get_nomenclature_cls()
 
     #
     # collections.MutableSequence implementation

@@ -295,9 +295,9 @@ class AutoRig(QtGui.QMainWindow):
         # Connect events
         #
 
-        self.ui.actionBuild.triggered.connect(self.on_build)
-        self.ui.actionUnbuild.triggered.connect(self.on_unbuild)
-        self.ui.actionRebuild.triggered.connect(self.on_rebuild)
+        self.ui.actionBuild.triggered.connect(self.on_build_selected)
+        self.ui.actionUnbuild.triggered.connect(self.on_unbuild_selected)
+        self.ui.actionRebuild.triggered.connect(self.on_rebuild_selected)
         self.ui.actionImport.triggered.connect(self.on_import)
         self.ui.actionExport.triggered.connect(self.on_export)
         self.ui.actionUpdate.triggered.connect(self.on_update)
@@ -581,6 +581,7 @@ class AutoRig(QtGui.QMainWindow):
         # If needed, update the network item net property to match the new exported network
         if item:
             item.net = new_network
+        return new_network
 
     # Block signals need to be called in a function because if called in a signal, it will block it
     def _set_text_block(self, item, str):
@@ -832,28 +833,34 @@ class AutoRig(QtGui.QMainWindow):
     # Events
     #
 
-    def on_build(self):
+    def get_selected_modules(self):
+        result = []
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.rig
+            result.append(val)
+        return result
+
+    def on_build_selected(self):
+        for val in self.get_selected_modules():
             self._build(val)
         self._update_network(self.root)
         self.update_ui()
 
-    def on_unbuild(self):
+    def on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.rig
             self._unbuild(val)
         self._update_network(self.root)
         self.update_ui()
 
-    def on_rebuild(self):
+    def on_rebuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.rig
             self._unbuild(val)
             self._build(val)
         self._update_network(self.root)
 
-    def on_lock(self):
+    def on_lock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item.rig
@@ -864,7 +871,7 @@ class AutoRig(QtGui.QMainWindow):
             self._update_network(self.root)
             self.update_ui_modules()
 
-    def on_unlock(self):
+    def on_unlock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item.rig
@@ -988,16 +995,16 @@ class AutoRig(QtGui.QMainWindow):
         if self.ui.treeWidget.selectedItems():
             menu = QtGui.QMenu()
             actionBuild = menu.addAction("Build")
-            actionBuild.triggered.connect(self.on_build)
+            actionBuild.triggered.connect(self.on_build_selected)
             actionUnbuild = menu.addAction("Unbuild")
-            actionUnbuild.triggered.connect(self.on_unbuild)
+            actionUnbuild.triggered.connect(self.on_unbuild_selected)
             actionRebuild = menu.addAction("Rebuild")
-            actionRebuild.triggered.connect(self.on_rebuild)
+            actionRebuild.triggered.connect(self.on_rebuild_selected)
             menu.addSeparator()
             actionLock = menu.addAction("Lock")
-            actionLock.triggered.connect(self.on_lock)
+            actionLock.triggered.connect(self.on_lock_selected)
             action_unlock = menu.addAction("Unlock")
-            action_unlock.triggered.connect(self.on_unlock)
+            action_unlock.triggered.connect(self.on_unlock_selected)
             menu.addSeparator()
             sel = self.ui.treeWidget.selectedItems()
             if len(sel) == 1:

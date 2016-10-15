@@ -491,7 +491,7 @@ class IK(Module):
         self.chain_length = None
         self._chain_ik = None
         self.swivelDistance = None
-        self.ctrl_ik_sw.setParent(None)
+        self.ctrl_ik_sw.setParent(world=True)
 
         super(IK, self).unbuild()
 

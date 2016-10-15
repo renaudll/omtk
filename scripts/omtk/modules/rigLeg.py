@@ -6,6 +6,7 @@ from maya import mel
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
+from omtk.libs import libPymel
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
 
@@ -24,14 +25,17 @@ class CtrlIkQuadSwivel(rigIK.CtrlIkSwivel):
     Inherit of the base CtrlIkSwivel to add a new spaceswitch target
     """
     def get_spaceswitch_targets(self, module, *args, **kwargs):
-        targets, target_names = super(CtrlIkQuadSwivel, self).get_spaceswitch_targets(module, *args, **kwargs)
+        targets, target_names, indexes = super(CtrlIkQuadSwivel, self).\
+            get_spaceswitch_targets(module, *args, **kwargs)
 
-        #Prevent crash when creating the first swivel from the base Ik class
-        if module._chain_quad_ik:
-            targets.append(module._chain_ik[1])
+        # Prevent crash when creating the first swivel from the base Ik class
+        if module.quad_swivel_sw:
+            # TODO - Confirm it correctly work
+            targets.append(module.chain[1])
             target_names.append("Calf")
+            indexes.append(self.get_bestmatch_index(module.quad_swivel_sw))
 
-        return targets, target_names
+        return targets, target_names, indexes
 
 class LegIk(rigIK.IK):
     """
@@ -497,6 +501,7 @@ class LegIkQuad(LegIk):
         self._chain_quad_ik = None
         self._ik_handle_quad = None
         self.quad_swivel_distance = None
+        self.quad_swivel_sw = None  # Object use as space switch pin location that will be kept on unbuild
 
     def create_ik_handle(self):
         """
@@ -643,10 +648,28 @@ class LegIkQuad(LegIk):
             for source, target in zip(self._chain_quad_ik, self.chain):
                 pymel.parentConstraint(source, target)
 
+        #self.setup_spaceswitch_objects(rig)
+
+    '''
+    TODO - Remove this after confirmation that ctrl space switch target is fine on self.chain[1] instead of an object
+    constrained on self._chain_quad_ik[1]
+    def setup_spaceswitch_objects(self):
+        super(LegIkQuad, self).setup_spaceswitch_objects()
+
+        # Create Space switch targets objects
+        if self.quad_swivel_sw is None or not libPymel.is_valid_PyNode(self.quad_swivel_sw):
+            self.quad_swivel_sw = pymel.createNode("transform")
+        self.quad_swivel_sw.rename(self.get_nomenclature_rig().resolve("quadCalfSpaceObject"))
+        self.quad_swivel_sw.setMatrix(self._chain_quad_ik[1].getMatrix(ws=True), ws=True)
+        self.quad_swivel_sw.setParent(self.grp_rig)
+        pymel.parentConstraint(self._chain_quad_ik[1], self.quad_swivel_sw)
+    '''
+
     def unbuild(self):
         self._chain_quad_ik = None
         self._ik_handle_quad = None
         self.quad_swivel_distance = None
+        self.quad_swivel_sw.setParent(None)
 
         super(LegIkQuad, self).unbuild()
 

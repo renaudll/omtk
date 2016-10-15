@@ -428,18 +428,28 @@ class Module(object):
         """
         return list(self.iter_ctrls())
 
-    def get_pin_locations(self):
+    def get_pin_locations(self, jnt=None):
         """
         Define which objs of the module a ctrl can hook itself too (space-switching).
         In the vast majority of cases, the desired behavior is to return the first joint in the inputs.
         Return a list of tuples of size 2.
         The first element is the object, the second element is the name to use.
         If the name is None, it will be reserved automatically.
+        :param jnt: The joint we want as a target. If None, will return the first input
         """
         first_joint = next((input for input in self.input if isinstance(input, pymel.nodetypes.Joint)), None)
         if first_joint:
-            return [(first_joint, None)]
+            to_return = None
+            if jnt and jnt == first_joint:
+                to_return = first_joint
+            return to_return, None
         else:
-            return []
+            return None, None
+
+    def setup_spaceswitch_objects(self, rig):
+        """
+        This function will be used to create the space switch target objects needed for a module
+        """
+        pass
 
 

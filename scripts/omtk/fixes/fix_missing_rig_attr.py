@@ -9,7 +9,8 @@ def run():
         if not libSerialization.isNetworkInstanceOfClass(net, 'Module'):
             continue
         if not net.hasAttr('rig'):
-            print("Add attribute 'rig' on {0}".format(net))
+            print("Adding attribute 'rig' on {0}".format(net))
             pymel.addAttr(net, longName='rig', niceName='rig', attributeType='message')
         if not net.rig.isDestination():
+            print("Connecting attribute 'rig' on {0}".format(net))
             pymel.connectAttr(net_rig.message, net.rig)

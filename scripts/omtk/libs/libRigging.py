@@ -595,7 +595,6 @@ def create_boxes():
         joint_data = JointData(jnt)
         if joint_data.is_valid():
             length = joint_data.length
-            print jnt, joint_data
             transform, make = pymel.polyCube(height=length, width=length*0.33, depth=length*0.33)
             r_offset = pymel.datatypes.Matrix(0, -1.0, -0.0, 0.0, 1.0, 0, 0.0, 0.0, 0.0, -0.0, 1.0, 0.0,
                                               joint_data.dir[0]*length*0.5,

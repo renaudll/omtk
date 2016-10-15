@@ -1,6 +1,7 @@
 import os
 import sys
 
+from core import *
 import pymel.core as pymel
 
 __dependencies__ = [
@@ -14,7 +15,6 @@ for dependency in __dependencies__:
 # HACK: Load matrixNodes.dll
 pymel.loadPlugin('matrixNodes', quiet=True)
 
-from core import *
 
 def _reload(kill_ui=True):
     """
@@ -51,13 +51,14 @@ def _reload(kill_ui=True):
     reload(main_window)
 
     if kill_ui:
-        #Try to kill the window to prevent any close event error
+        # Try to kill the window to prevent any close event error
         try:
             pymel.deleteUI('OpenRiggingToolkit')
         except:
             pass
 
     reload(main_window)
+
 
 def show():
     """

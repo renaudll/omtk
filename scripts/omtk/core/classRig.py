@@ -428,7 +428,7 @@ class Rig(object):
                 self.layer_geo = pymel.PyNode(self.nomenclature.layer_geo_name)
             pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
 
-    def build(self, skip_validation=False, **kwargs):
+    def build(self, skip_validation=False, strict=False, **kwargs):
         # Aboard if already built
         if self.is_built():
             self.warning("Can't build {0} because it's already built!".format(self))
@@ -463,9 +463,12 @@ class Rig(object):
 
             if not skip_validation:
                 try:
-                    module.validate(self)
+                    module.validate()
                 except Exception, e:
                     self.warning("Can't build {0}: {1}".format(module, e))
+                    if strict:
+                        traceback.print_exc()
+                        raise(e)
                     continue
 
             if not module.locked:
@@ -475,6 +478,8 @@ class Rig(object):
                 except Exception, e:
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                     traceback.print_exc()
+                    if strict:
+                        raise(e)
             '''
             try:
                 # Skip any locked module
@@ -499,7 +504,7 @@ class Rig(object):
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
 
-        print ("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
+        self.debug("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
         return True
 
@@ -552,7 +557,7 @@ class Rig(object):
         else:
             pymel.warning("Unexpected datatype {0} for {1}".format(type(val), val))
 
-    def _unbuild_modules(self, **kwargs):
+    def _unbuild_modules(self, strict=False, **kwargs):
         # Unbuild all children
         for module in self.modules:
             if not module.is_built():
@@ -575,6 +580,8 @@ class Rig(object):
                 except Exception, e:
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                     traceback.print_exc()
+                    if strict:
+                        raise(e)
 
     def _unbuild_nodes(self):
         # Delete anm_grp
@@ -583,14 +590,14 @@ class Rig(object):
         self.grp_geo = self._unbuild_node(self.grp_geo, keep_if_children=True)
         self.grp_master = self._unbuild_node(self.grp_master, keep_if_children=True)
 
-    def unbuild(self, **kwargs):
+    def unbuild(self, strict=False, **kwargs):
         """
         :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
         :return: True if successful.
         """
         self.info("Un-building")
 
-        self._unbuild_modules(**kwargs)
+        self._unbuild_modules(strict=strict, **kwargs)
         self._unbuild_nodes()
 
         # Remove any references to missing pynodes

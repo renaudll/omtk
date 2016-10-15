@@ -353,7 +353,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
     def _build_avar_macro(self, cls_ctrl, avar, constraint=False, **kwargs):
         """
         Factory method that create an avar that is not affiliated with any influence and is only used for connections.
-        :param rig: The parent rig.
         :param cls_ctrl: The class definition to use for the ctrl.
         :param avar: The Avar class instance to use.
         :param constraint: By default, a macro Avar don't affect it's influence (directly). This is False by default.
@@ -415,7 +414,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             #self.input.append(new_surface)
             #del self._cache['surface']
 
-    def build(self, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True, create_grp_rig_macro=True, create_grp_rig_micro=True, create_grp_anm_macro=True, create_grp_anm_micro=True, **kwargs):
+    def build(self, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True, create_grp_rig_macro=True, create_grp_rig_micro=True, create_grp_anm_macro=True, create_grp_anm_micro=True, calibrate=True, **kwargs):
         self.handle_surface()
 
         super(AvarGrp, self).build(connect_global_scale=connect_global_scale, parent=parent, **kwargs)
@@ -449,7 +448,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         if parent and self.parent:
             self._parent_avars(self.parent)
 
-        self.calibrate()
+        if calibrate:
+            self.calibrate()
 
     def unbuild(self):
         for avar in self.avars:
@@ -471,7 +471,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
     def _create_avar(self, ref=None, cls_avar=None, cls_ctrl=None, old_val=None, name=None, **kwargs):
         """
         Factory method to create an avar.
-        :param rig:
         :param ref:
         :param cls_avar:
         :param cls_ctrl:

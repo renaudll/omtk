@@ -28,6 +28,11 @@ class Plugin(object):
         self.load()
 
     def load(self, force=False):
+        """
+        Load the plugin, note that loading twice as no effect unless the force flag is used.
+        :param force: If True, the plugin module will be reloaded.
+        :return:
+        """
         self.cls = None
         self.module = None
         self.description = None
@@ -78,10 +83,20 @@ class Plugin(object):
             item_module = item
         else:
             raise NotImplementedError("Unexpected type {0} for value {1}.".format(type(item), item))
+        item_module_name = item_module.__name__
 
+        # Check for module import
+        # ex: import my_module
         for module_name, module in inspect.getmembers(self.module, inspect.ismodule):
             if module == item_module:
                 return True
+
+        # Check class in case of indirect module import
+        # ex: from my_module import my_class
+        for class_name, cls in inspect.getmembers(self.module, inspect.isclass):
+            if cls.__module__ == item_module_name:
+                return True
+
         return False
 
     def __repr__(self):
@@ -187,10 +202,9 @@ class PluginManager(object):
             for i in reversed(range(len(dirty_plugins))):
                 plugin = dirty_plugins[i]
                 if is_leaf(plugin):
-                    print (plugin)
                     result.append(dirty_plugins.pop(i))
 
-        return reversed(result)
+        return list(reversed(result))
 
     # def _extend_dependent_plugins(self, src_plugins):
     #     other_plugins = [plugin for plugin in self.iter_plugins() if not plugin in src_plugins]

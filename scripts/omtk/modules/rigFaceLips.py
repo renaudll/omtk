@@ -279,10 +279,10 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
         self._jaw_ref = None
 
-    def build_stack(self, rig, stack, **kwargs):
-        nomenclature_rig = self.get_nomenclature_rig(rig)
-        jnt_head = rig.get_head_jnt()
-        jnt_jaw = rig.get_jaw_jnt()
+    def build_stack(self, stack, **kwargs):
+        nomenclature_rig = self.get_nomenclature_rig()
+        jnt_head = self.rig.get_head_jnt()
+        jnt_jaw = self.rig.get_jaw_jnt()
 
         #
         # Create additional attributes to control the jaw layer
@@ -366,7 +366,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
             inputMatrix=attr_delta_tm
         )
 
-        super(FaceLipsAvar, self).build_stack(rig, stack, **kwargs)
+        super(FaceLipsAvar, self).build_stack(stack, **kwargs)
 
         #
         # Create jaw influence layer
@@ -380,10 +380,10 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         pymel.connectAttr(util_extract_jaw.outputTranslate, layer_jaw_t.t)
         pymel.connectAttr(util_extract_jaw.outputRotate, layer_jaw_r.r)
 
-    def _get_follicle_relative_uv_attr(self, rig, **kwargs):
-        nomenclature_rig = self.get_nomenclature_rig(rig)
+    def _get_follicle_relative_uv_attr(self, **kwargs):
+        nomenclature_rig = self.get_nomenclature_rig()
 
-        attr_u, attr_v = super(FaceLipsAvar, self)._get_follicle_relative_uv_attr(rig, **kwargs)
+        attr_u, attr_v = super(FaceLipsAvar, self)._get_follicle_relative_uv_attr(**kwargs)
 
         #
         # Create and connect Splitter Node

@@ -108,12 +108,19 @@ def get_plusminusaverage_kwargs_for_args(arg1, arg2):
 
     arg1_dimension = get_attr_dimension(arg1)
     arg2_dimension = get_attr_dimension(arg2)
-    dimension_out = max(arg1_dimension, arg2_dimension) if arg1_dimension and arg2_dimension else None
 
-    if arg1_dimension != dimension_out:
-        arg1 = cast_attr_dimension(arg1, dimension_out, arg1_dimension)
-    if arg2_dimension != dimension_out:
-        arg2 = cast_attr_dimension(arg2, dimension_out, arg2_dimension)
+    if arg1_dimension is None and arg2_dimension is None:
+        raise Exception("No dimension found for {0} and {1}. Bad optimization?".format(
+            arg1, arg2
+        ))
+
+    if arg1_dimension and arg2_dimension and arg1_dimension != arg2_dimension:
+        raise Exception("Uncompatible dimension for {0} ({2} for {4}) and {1} ({3} for {5})".format(
+            arg1, arg2, arg1_dimension, arg2_dimension, arg1.type(), arg2.type()
+        ))
+
+    # Resolve out dimension
+    dimension_out = arg1_dimension if arg1_dimension else arg2_dimension
 
     # Resolve keyword argument depending of the desired dimension.
     if dimension_out is None or dimension_out == 1:
@@ -249,11 +256,11 @@ class OperatorEqual(Operator):
 class OperatorNotEqual(Operator):
     @staticmethod
     def execute(arg1, arg2):
-        return arg1 != arg2;
+        return arg1 != arg2
 
     @staticmethod
-    def create(*args, **kwargs):
-        return OperatorEqual(operation=1).outColorR
+    def create(arg1, arg2):
+        return libRigging.create_utility_node('condition', operation=1, colorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorGreater(Operator):
@@ -262,8 +269,8 @@ class OperatorGreater(Operator):
         return arg1 > arg2
 
     @staticmethod
-    def create(*args, **kwargs):
-        return OperatorEqual(operation=2, *args, **kwargs).outColorR
+    def create(arg1, arg2):
+        return libRigging.create_utility_node('condition', operation=2, olorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorGreaterOrEqual(Operator):
@@ -272,8 +279,8 @@ class OperatorGreaterOrEqual(Operator):
         return arg1 >= arg2;
 
     @staticmethod
-    def create(*args, **kwargs):
-        return OperatorEqual(operation=3, *args, **kwargs).outColorR
+    def create(arg1, arg2):
+        return libRigging.create_utility_node('condition', operation=3, olorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorSmaller(Operator):
@@ -282,8 +289,8 @@ class OperatorSmaller(Operator):
         return arg1 < arg2;
 
     @staticmethod
-    def create(*args, **kwargs):
-        return OperatorEqual(operation=4, *args, **kwargs).outColorR
+    def create(arg1, arg2):
+        return libRigging.create_utility_node('condition', operation=4, olorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 class OperatorSmallerOrEqual(Operator):
@@ -292,8 +299,8 @@ class OperatorSmallerOrEqual(Operator):
         return arg1 <= arg2;
 
     @staticmethod
-    def create(*args, **kwargs):
-        return OperatorEqual(operation=5, *args, **kwargs).outColorR
+    def create(arg1, arg2):
+        return libRigging.create_utility_node('condition', operation=5, olorIfTrue=1.0, colorIfFalse=0.0).outColorR
 
 
 # src: http://www.mathcentre.ac.uk/resources/workbooks/mathcentre/rules.pdf

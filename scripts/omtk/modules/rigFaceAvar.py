@@ -229,7 +229,6 @@ class AbstractAvar(classModule.Module):
         """
         Check if the module can be built with it's current configuration.
         Since AbstractAvar support having no influence at all (macro avars), we support having no inputs.
-        :param rig: The Rig instance associated with the module.
         """
         super(AbstractAvar, self).validate(support_no_inputs=True)
         return True
@@ -238,7 +237,6 @@ class AbstractAvar(classModule.Module):
         """
         Create a simple rig to deform a nurbsSurface, allowing the rigger to easily provide
         a surface for the influence to slide on.
-        :param rig: The Rig instance associated with the module.
         :param name: The suffix of the surface name to create.
         :return: A pymel.nodetypes.Transform instance of the created surface.
         """
@@ -312,7 +310,6 @@ class AbstractAvar(classModule.Module):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
-
         super(AbstractAvar, self).build(**kwargs)
 
         self.add_avars(self.grp_rig)
@@ -331,7 +328,6 @@ class AbstractAvar(classModule.Module):
         We might want to flip the lr Avar if they are on the right side.
         This ensure that if we move Avars from two sides in local, they correctly mirror each others.
         Note that we use the nomenclature to detect side to prevent precision errors.
-        :param rig: A Rig instance.
         :return: True if the avar is at the right side. False if it is on the left or center.
         """
         nomenclature = self.get_nomenclature_anm()

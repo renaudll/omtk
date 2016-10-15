@@ -19,20 +19,25 @@ def open_scene(path_local):
 
 class SampleTests(mayaunittest.TestCase):
 
+    def _build_unbuild_build(self):
+        omtk.build_all(strict=True)
+        omtk.unbuild_all()
+        omtk.build_all(strict=True)
+
     def test_create(self):
         rig_name = 'TestRig'
         rig = omtk.create(name=rig_name)
         self.assertTrue(isinstance(rig, omtk.core.classRig.Rig))
         self.assertTrue(rig.name == rig_name)
 
-    @open_scene("../examples/rig_squeeze_template01.ma")
-    def test_rig_squeeze(self):
-        omtk.build_all()
-        omtk.unbuild_all()
-        omtk.build_all()
+    # @open_scene("../examples/rig_squeeze_template01.ma")
+    # def test_rig_squeeze(self):
+    #     self._build_unbuild_build()
+    #
+    # @open_scene('../examples/rig_rlessard_template01.ma')
+    # def test_rig_rlessard(self):
+    #     self._build_unbuild_build()
 
-    @open_scene('../examples/rig_rlessard_template01.ma')
-    def test_rig_rlessard(self):
-        omtk.build_all()
-        omtk.unbuild_all()
-        omtk.build_all()
+    @open_scene('../examples/rig_squeeze_facial01.ma')
+    def test_rig_squeeze_facial(self):
+        self._build_unbuild_build()

@@ -70,7 +70,6 @@ class CtrlIkSwivel(BaseCtrl):
     def get_spaceswitch_targets(self, module, *args, **kwargs):
         """
         Add the Hand/Leg IK ctrl by default as a space-switch target to any swivel.
-        :param rig: The rig instance in which we want the targets
         :param module: The module instance in which we want to find targets
         :param args: More args passer to the super class
         :param kwargs: More kwargs pass to the super class
@@ -88,7 +87,6 @@ class CtrlIkSwivel(BaseCtrl):
     def build(self, refs=None, line_target=True, *args, **kwargs):
         """
         Will create the ctrl node and it's line target if needed
-        :param rig: The rig instance in which the ctrl is built
         :param refs: The reference used to attach the line target
         :param line_target: Bool to tell if we want a line target
         :param args: More args passed to the super class
@@ -335,7 +333,6 @@ class IK(Module):
     def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, name='swivel', constraint=True, **kwargs):
         '''
         Create the swivel ctrl for the ik system
-        :param rig: The rig instance used to dictate certain parameters
         :param base_ctrl: The ctrl used to setup the swivel, create one if needed
         :param ref: Reference object to position the swivel
         :param pos: The computed position of the swivel
@@ -368,7 +365,6 @@ class IK(Module):
     def build(self, ctrl_ik_orientation=None, constraint=True, constraint_handle=True, setup_softik=True, *args, **kwargs):
         """
         Build the ik system when needed
-        :param rig: The rig instance used to dictate certain parameters
         :param ctrl_ik_orientation: The ik ctrl orientation override
         :param constraint: Bool to tell if we constraint the chain_jnt to the system
         :param constraint_handle: Bool to tell if we constraint the ik handle to the ik ctrl
@@ -434,6 +430,8 @@ class IK(Module):
         self.ctrl_ik.rename(ctrl_ik_name)
         self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
 
+        self.setup_spaceswitch_objects()
+
         # Set ctrl_ik_orientation
         if ctrl_ik_orientation is None:
             ctrl_ik_orientation = obj_e.getRotation(space='world')
@@ -472,8 +470,6 @@ class IK(Module):
         if constraint:
             for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)
-
-        self.setup_spaceswitch_objects()
 
     def setup_spaceswitch_objects(self,):
         super(IK, self).setup_spaceswitch_objects()

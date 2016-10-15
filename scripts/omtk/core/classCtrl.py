@@ -313,7 +313,7 @@ class BaseCtrl(Node):
         :return: None
         """
         # TODO: Handle when parent is None?
-        nomenclature = self.rig.nomenclature
+        nomenclature = module.rig.nomenclature
 
         # Resolve spaceswitch targets
         targets, labels, indexes = self.get_spaceswitch_targets(module, parent,
@@ -544,7 +544,7 @@ class InteractiveCtrl(BaseCtrl):
         super(InteractiveCtrl, self).build(**kwargs)
 
         #nomenclature_anm = self.get_nomenclature_anm(parent)
-        nomenclature_rig = module.nomenclature(suffix=module.nomenclature.type_rig)
+        nomenclature_rig = module.rig.nomenclature(suffix=module.rig.nomenclature.type_rig)
         #nomenclature_rig = self.get_nomenclature_rig(parent)
 
         # TODO: Only use position instead of PyNode or Matrix?
@@ -557,7 +557,7 @@ class InteractiveCtrl(BaseCtrl):
         if obj_mesh is None:
             # We'll scan all available geometries and use the one with the shortest distance.
             meshes = libRigging.get_affected_geometries(ref)
-            meshes = list(set(meshes) & set(module.get_meshes()))
+            meshes = list(set(meshes) & set(module.rig.get_meshes()))
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
         else:
             _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
@@ -624,7 +624,7 @@ class InteractiveCtrl(BaseCtrl):
             # HACK: Fix rotation issues.
             # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
             # any deformation can affect the normal of the faces.
-            jnt_head = module.get_head_jnt()
+            jnt_head = module.rig.get_head_jnt()
             if jnt_head:
                 pymel.disconnectAttr(layer_fol.rx)
                 pymel.disconnectAttr(layer_fol.ry)

@@ -304,7 +304,6 @@ class Module(object):
     def build(self, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True, segmentScaleCompensate=None, parent=True):
         """
         Build the module following the provided rig rules.
-        :param rig: The rig dictating the nomenclature and other settings.
         :param create_grp_anm: If True, a group for all the animation controller will be created.
         :param create_grp_rig: If True, a group for all the rig data will be created/
         :param segmentScaleCompensate: If provided, the segmentScaleCompensation attribute of all the inputs will be modified.
@@ -446,7 +445,7 @@ class Module(object):
         else:
             return None, None
 
-    def setup_spaceswitch_objects(self, rig):
+    def setup_spaceswitch_objects(self):
         """
         This function will be used to create the space switch target objects needed for a module
         """

@@ -43,6 +43,7 @@ def _reload():
 
     import plugin_manager
     reload(plugin_manager)
+    plugin_manager.plugin_manager.reload_all()
 
     import preferences
     reload(preferences)

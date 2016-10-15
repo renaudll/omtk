@@ -2,7 +2,7 @@ import pymel.core as pymel
 import collections
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core import consts_omtk
+from omtk.core import constants
 from omtk.modules import rigIK
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
@@ -96,9 +96,9 @@ class Limb(Module):
                 cur_sys_twist.build(num_twist=3, create_bend=True, **kwargs)
 
         # Lock X and Y axis on the elbow/knee ctrl
-        if self.rig._up_axis == consts_omtk.Axis.y:
+        if self.rig._up_axis == constants.Axis.y:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
-        elif self.rig._up_axis == consts_omtk.Axis.z:
+        elif self.rig._up_axis == constants.Axis.z:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], y=False)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
@@ -275,6 +275,7 @@ class Limb(Module):
                 yield ctrl
         yield self.ctrl_attrs
         yield self.ctrl_elbow
+
 
 def register_plugin():
     return Limb

@@ -493,7 +493,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         # It is possible that the old avar type don't match the desired one.
         # When this happen, we'll try at least to save the ctrl instance so the shapes match.
         if old_val is not None and type(old_val) != cls_avar:
-            self.warning("Unexpected avar type. Expected {0}, got {1}. ".format(
+            self.debug("Unexpected avar type. Expected {0}, got {1}. ".format(
                 cls_avar.__name__, type(old_val).__name__
             ))
             avar.ctrl = old_val.ctrl
@@ -948,7 +948,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
         self._build_avar_macro_all()
 
-    def unbuild(self,):
+    def unbuild(self):
         if self.avar_l:
             self.avar_l.unbuild()
         if self.avar_r:

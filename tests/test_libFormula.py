@@ -21,21 +21,33 @@ class SampleTests(mayaunittest.TestCase):
         t = self._create_pymel_node(*args, **kwargs)
         return t.tx, t.ty, t.tz, t.rx, t.ry, t.rz, t.sx, t.sy, t.sz
 
-    def _execute_formula(self, formula, expected_value):
-        result = libFormula.parse(formula)
-        self.assertEqual(result, expected_value)
-
     def test_add(self):
-        self._execute_formula('2+3', 5)
+        v = libFormula.parse('2+3')
+        self.assertEqual(v, 5)
 
     def test_sub(self):
-        self._execute_formula('5-3', 2)
+        v = libFormula.parse('5-3')
+        self.assertEqual(v, 2)
 
     def test_mul(self):
-        self._execute_formula('2*3', 6)
+        v = libFormula.parse('2*3')
+        self.assertEqual(v, 6)
 
     def test_div(self):
-        self._execute_formula('6/2', 3)
+        v = libFormula.parse('6/2')
+        self.assertEqual(v, 3)
+
+    def test_operation_priority(self):
+        v = libFormula.parse("a+3*(6+(3*b))", a=4, b=7)
+        self.assertEqual(v, 85)
+
+        # usage of '-'
+        v = libFormula.parse("-2^1.0*-1.0+3.3")
+        self.assertEqual(v, 5.3)
+
+        # usage of '-'
+        v = libFormula.parse("-2*(1.0-(3^(3*-1.0)))")
+        self.assertAlmostEqual(v, -1.925925925925926)
 
     def test_add_pymel(self):
         a, b, c, _, _, _, _, _, _ = self._create_pymel_attrs(1, 2, 3)
@@ -52,14 +64,11 @@ class SampleTests(mayaunittest.TestCase):
         result = libFormula.parse('a*b*c', a=a, b=b, c=c)
         self.assertEqual(result.get(), 24)
 
-    def test_add3D_pymel(self):
-        t = self._create_pymel_node(1, 2, 3, 4, 5, 6, 7, 8, 9)
-        a = t.t
-        b = t.r
-        c = t.s
-        result = libFormula.parse('a+b+c', a=a, b=b, c=c)
-        print(result.get())
-
-
-
+    # def test_add3D_pymel(self):
+    #     t = self._create_pymel_node(1, 2, 3, 4, 5, 6, 7, 8, 9)
+    #     a = t.t
+    #     b = t.r
+    #     c = t.s
+    #     result = libFormula.parse('a+b+c', a=a, b=b, c=c)
+    #     print(result.get())
 

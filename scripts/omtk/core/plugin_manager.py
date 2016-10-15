@@ -41,15 +41,17 @@ class Plugin(object):
         module_path = '{0}.{1}.{2}'.format(self.root_package_name, self.type_name, self.name)
 
         try:
-            # Load/Reload module
-            log.debug("Loading module {0}".format(module_path))
-
             # Load module using import_module before using pkgutil
             # src: https://bugs.python.org/issue25372
             importlib.import_module(module_path)
 
             self.module = sys.modules.get(module_path, None)
             if self.module is None or force:
+                if force:
+                    log.debug("Reloading module {0}".format(module_path))
+                else:
+                    log.debug("Loading module {0}".format(module_path))
+
                 self.module = pkgutil.get_loader(module_path).load_module(module_path)
 
             # Ensure there is a register_plugin function
@@ -83,6 +85,11 @@ class Plugin(object):
             item_module = item
         else:
             raise NotImplementedError("Unexpected type {0} for value {1}.".format(type(item), item))
+
+        # If there's no associated module, we deduct that it cannot be contained.
+        if item.module is None:
+            return False
+
         item_module_name = item_module.__name__
 
         # Check for module import
@@ -139,21 +146,32 @@ class PluginManager(object):
     def unregister_plugin_type(self, plugin_type):
         self._plugin_types.pop(plugin_type.type_name, None)
 
-    def iter_plugins(self):
+    def iter_plugins(self, key=None):
         for plugin_type in self._plugin_types.values():
             for plugin in plugin_type()._plugins:
-                yield plugin
+                if key is None or key(plugin):
+                    yield plugin
 
-    def get_plugins(self):
-        return list(self.iter_plugins())
+    def get_plugins(self, key=None):
+        return list(self.iter_plugins(key=None))
 
-    def iter_plugins_by_type(self, type_name):
-        for plugin in self.iter_plugins():
-            if plugin.type_name == type_name:
-                yield plugin
+    def iter_loaded_plugins_by_type(self, type_name):
+        def fn_filter(plugin):
+            return plugin.status == PluginStatus.Loaded
+        for plugin in self.iter_plugins(key=fn_filter):
+            yield plugin
 
-    def get_plugins_by_type(self, type_name):
-        return list(self.iter_plugins_by_type(type_name))
+    def get_loaded_plugins_by_type(self, type_name):
+        return list(self.iter_loaded_plugins_by_type(type_name))
+
+    def iter_plugins_by_status(self, status):
+        def fn_filter(plugin):
+            return plugin.status == status
+        for plugin in self.iter_plugins(key=fn_filter):
+            yield plugin
+
+    def get_failed_plugins(self):
+        return list(self.iter_plugins_by_status(PluginStatus.Failed))
 
     def reload_all(self, force=True):
         for plugin in self.get_plugins_sorted():
@@ -241,18 +259,28 @@ class PluginManager(object):
             print(format_str.format(*row))
 
 
-class ModulePlugin(PluginType):
+class ModulePluginType(PluginType):
     type_name = 'modules'
 
-class RigPlugin(PluginType):
+class RigPluginType(PluginType):
     type_name = 'rigs'
 
-# Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
-for path in os.environ.get('OMTK_PLUGINS', '').split(os.pathsep):
-    if not path in sys.path:
-        log.info("Adding to sys.path {0}".format(path))
-        sys.path.append(path)
+# class UnitTestPluginType(PluginType):
+#     type_name = 'tests'
 
-plugin_manager = PluginManager()
-plugin_manager.register_plugin_type(ModulePlugin)
-plugin_manager.register_plugin_type(RigPlugin)
+def initialize():
+    # Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
+    plugin_dirs = os.environ.get('OMTK_PLUGINS', '').split(os.pathsep)
+    plugin_dirs = filter(None, plugin_dirs)
+    for path in plugin_dirs:
+        if not path in sys.path:
+            log.info("Adding to sys.path {0}".format(path))
+            sys.path.append(path)
+
+    pm = PluginManager()
+    pm.register_plugin_type(ModulePluginType)
+    pm.register_plugin_type(RigPluginType)
+    #pm.register_plugin_type(UnitTestPluginType)
+    return pm
+
+plugin_manager = initialize()

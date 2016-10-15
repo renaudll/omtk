@@ -3,7 +3,7 @@ from maya import cmds, OpenMaya
 from omtk.libs import libPython
 import libSerialization
 from omtk.core import classCtrl
-from omtk.core import consts_omtk
+from omtk.core import constants
 
 def list_from_MMatrix(m):
     # TODO: There's got to be a better way!
@@ -30,11 +30,11 @@ def list_from_MMatrix(m):
 
 def mirror_matrix_axis(m, axis):
     m_flip = OpenMaya.MMatrix()
-    if axis == consts_omtk.Axis.x:
+    if axis == constants.Axis.x:
         OpenMaya.MScriptUtil.createMatrixFromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip)
-    elif axis == consts_omtk.Axis.y:
+    elif axis == constants.Axis.y:
         OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip)
-    elif axis == consts_omtk.Axis.z:
+    elif axis == constants.Axis.z:
         OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], m_flip)
     else:
         raise Exception("Unsupported axis. Got {0}".format(axis))
@@ -45,11 +45,11 @@ def mirror_matrix_axis(m, axis):
 def flip_matrix_axis_pos(m, axis):
     data = list_from_MMatrix(m)
 
-    if axis == consts_omtk.Axis.x:
+    if axis == constants.Axis.x:
         data[12] *= -1.0
-    elif axis == consts_omtk.Axis.y:
+    elif axis == constants.Axis.y:
         data[13] *= -1.0
-    elif axis == consts_omtk.Axis.z:
+    elif axis == constants.Axis.z:
         data[14] *= -1.0
     else:
         raise Exception("Unsupported axis. Got {0}".format(axis))
@@ -67,15 +67,15 @@ def flip_matrix_axis_rot(m, axis):
     """
     data = list_from_MMatrix(m)
 
-    if axis == consts_omtk.Axis.x:
+    if axis == constants.Axis.x:
         data[0] *= -1.0
         data[1] *= -1.0
         data[2] *= -1.0
-    elif axis == consts_omtk.Axis.y:
+    elif axis == constants.Axis.y:
         data[4] *= -1.0
         data[5] *= -1.0
         data[6] *= -1.0
-    elif axis == consts_omtk.Axis.z:
+    elif axis == constants.Axis.z:
         data[8] *= -1.0
         data[9] *= -1.0
         data[10] *= -1.0
@@ -146,27 +146,27 @@ def mirror_matrix(m,
         raise Exception(
             "When mirroring, please at least flip one axis, otherwise you might end of with a right handed matrix!")
     if mirror_x:
-        m = mirror_matrix_axis(m, consts_omtk.Axis.x)
+        m = mirror_matrix_axis(m, constants.Axis.x)
     if mirror_y:
-        m = mirror_matrix_axis(m, consts_omtk.Axis.y)
+        m = mirror_matrix_axis(m, constants.Axis.y)
     if mirror_z:
-        m = mirror_matrix_axis(m, consts_omtk.Axis.z)
+        m = mirror_matrix_axis(m, constants.Axis.z)
 
     # Flip rotation axises if necessary
     if flip_rot_x:
-        flip_matrix_axis_rot(m, consts_omtk.Axis.x)
+        flip_matrix_axis_rot(m, constants.Axis.x)
     if flip_rot_y:
-        flip_matrix_axis_rot(m, consts_omtk.Axis.y)
+        flip_matrix_axis_rot(m, constants.Axis.y)
     if flip_rot_z:
-        flip_matrix_axis_rot(m, consts_omtk.Axis.z)
+        flip_matrix_axis_rot(m, constants.Axis.z)
 
     # Flip position if necessary
     if flip_pos_x:
-        m = flip_matrix_axis_pos(m, consts_omtk.Axis.x)
+        m = flip_matrix_axis_pos(m, constants.Axis.x)
     if flip_pos_y:
-        m = flip_matrix_axis_pos(m, consts_omtk.Axis.y)
+        m = flip_matrix_axis_pos(m, constants.Axis.y)
     if flip_pos_z:
-        m = flip_matrix_axis_pos(m, consts_omtk.Axis.z)
+        m = flip_matrix_axis_pos(m, constants.Axis.z)
 
     return m
 

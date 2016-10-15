@@ -4,7 +4,7 @@ import inspect
 
 import pymel.core as pymel
 from classNode import Node
-from omtk.core import consts_omtk
+from omtk.core import constants
 from omtk.core import classNode
 from omtk.libs import libAttr
 from omtk.libs import libPymel
@@ -56,7 +56,7 @@ class BaseCtrl(Node):
         self.targets = []  # A list representing all the space switch target for the ctrl
         self.targets_indexes = []  # A list representing all the space switch target indexes for the ctrl
         # We need to keep the local index separately because self referencing break maya deletion mechanism (*%&?%*&)
-        self.local_index = consts_omtk.SpaceSwitchReservedIndex.local
+        self.local_index = constants.SpaceSwitchReservedIndex.local
         self._reserved_index = []  # A list representing all the index already reserved for the space switch target
 
         super(BaseCtrl, self).__init__(create=create, *args, **kwargs)
@@ -270,7 +270,7 @@ class BaseCtrl(Node):
 
         # Populate a list that represent all index already in use in the system
         if not self._reserved_index:
-            self._reserved_index = [member[1] for member in inspect.getmembers(consts_omtk.SpaceSwitchReservedIndex)
+            self._reserved_index = [member[1] for member in inspect.getmembers(constants.SpaceSwitchReservedIndex)
                                     if not member[0].startswith("__") and not member[0].endswith("__")]
             if self.local_index not in self._reserved_index:
                 self._reserved_index.append(self.local_index)
@@ -414,14 +414,14 @@ class BaseCtrl(Node):
             targets.append(module.rig.grp_rig)
             target_names.append(world_name)
             # World will always be -1
-            indexes.append(self.get_bestmatch_index(module.rig.grp_rig, consts_omtk.SpaceSwitchReservedIndex.world))
+            indexes.append(self.get_bestmatch_index(module.rig.grp_rig, constants.SpaceSwitchReservedIndex.world))
 
         # Add the master ctrl as a spaceswitch target
         if libPymel.is_valid_PyNode(module.rig.grp_anm):
             targets.append(module.rig.grp_anm)
             target_names.append(root_name)
             # The root will always be index 1, because we want to let local to be 0
-            indexes.append(self.get_bestmatch_index(module.rig.grp_anm, consts_omtk.SpaceSwitchReservedIndex.root))
+            indexes.append(self.get_bestmatch_index(module.rig.grp_anm, constants.SpaceSwitchReservedIndex.root))
 
         # Resolve modules targets
         first_module = True

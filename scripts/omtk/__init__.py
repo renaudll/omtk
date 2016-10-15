@@ -1,7 +1,6 @@
-import os
 import sys
 
-from core import *
+from .core import *
 import pymel.core as pymel
 
 __dependencies__ = [
@@ -14,7 +13,6 @@ for dependency in __dependencies__:
 
 # HACK: Load matrixNodes.dll
 pymel.loadPlugin('matrixNodes', quiet=True)
-
 
 def _reload(kill_ui=True):
     """

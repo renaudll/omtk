@@ -352,6 +352,12 @@ class AutoRig(QtGui.QMainWindow):
 
         self.create_callbacks()
 
+        from omtk.core import plugin_manager
+        pm = plugin_manager.plugin_manager
+        failed_plugins = pm.get_failed_plugins()
+        if failed_plugins:
+            log.warning("The following plugins failed to load: {0}".format(', '.join(str(p) for p in failed_plugins)))
+
     def create_callbacks(self):
         self.remove_callbacks()
         # Disable to prevent performance drop when CTRL-Z and the tool is open
@@ -1034,7 +1040,7 @@ class AutoRig(QtGui.QMainWindow):
             menu = QtGui.QMenu()
 
             from omtk.core.plugin_manager import plugin_manager
-            for plugin in sorted(plugin_manager.get_plugins_by_type('modules')):
+            for plugin in sorted(plugin_manager.get_loaded_plugins_by_type('modules')):
                 if getattr(plugin.cls, 'SHOW_IN_UI', False):
                     action = menu.addAction(plugin.name)
                     action.triggered.connect(functools.partial(self._add_part, plugin.cls))

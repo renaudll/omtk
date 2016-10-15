@@ -560,8 +560,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     def build(self, calibrate=True, use_football_interpolation=False, **kwargs):
         """
-
-
         :param calibrate:
         :param use_football_interpolation: If True, the resolved influence of the jaw on
         each lips avar will give a 'football' shape. It is False by default since we take
@@ -652,6 +650,12 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                     ratio = 1.0 - libRigging.interp_football(ratio)  # apply football shape
                 else:
                     ratio = 1.0
+
+                connect_avar(avar, ratio)
+
+        # Calibration is done manually since we need to setup the jaw influence.
+        if calibrate:
+            self.calibrate()
 
 def register_plugin():
     return FaceLips

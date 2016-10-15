@@ -117,7 +117,6 @@ class Ribbon(Module):
         self.attach_to_plane(rot_fol)
         # TODO : Support aim constraint for bones instead of follicle rotation?
 
-        # Apply the skin on the plane and rename follicle from djRivet
         follicles_grp = pymel.createNode("transform")
         follicle_grp_name = nomenclature_rig.resolve("follicleGrp")
         follicles_grp.rename(follicle_grp_name)

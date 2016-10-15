@@ -15,8 +15,8 @@ class PreferencesWindow(QtGui.QDialog):
         self.ui.setupUi(self)
 
         # Fill the QComboBox
-        self.rig_plugins = plugin_manager.plugin_manager.get_plugins_by_type('rigs')
-        rig_plugins_names = [plugin.cls.__name__ for plugin in self.rig_plugins]
+        self.rig_plugins = plugin_manager.plugin_manager.get_loaded_plugins_by_type('rigs')
+        rig_plugins_names = [plugin.cls.__name__ for plugin in self.rig_plugins if plugin]
         labels = ['Default'] + rig_plugins_names
 
         self.ui.comboBox.addItems(labels)

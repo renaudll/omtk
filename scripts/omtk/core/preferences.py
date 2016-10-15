@@ -45,7 +45,7 @@ class Preferences(object):
     def get_default_rig_class(self):
         from omtk.core import plugin_manager
         if self.default_rig:
-            for plugin in plugin_manager.plugin_manager.iter_plugins_by_type('rigs'):
+            for plugin in plugin_manager.plugin_manager.iter_loaded_plugins_by_type('rigs'):
                 if plugin.cls.__name__ == self.default_rig:
                     return plugin.cls
             log.warning("Can't find default rig type {0}.".format(self.default_rig))

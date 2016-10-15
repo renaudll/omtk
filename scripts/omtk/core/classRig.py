@@ -7,7 +7,7 @@ from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
 from omtk.core import classModule
-from omtk.core import consts_omtk
+from omtk.core import constants
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -119,7 +119,7 @@ class Rig(object):
         self.layer_geo = None
         self.layer_rig = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
-        self._up_axis = consts_omtk.Axis.z  # This is the axis that will point in the bending direction
+        self._up_axis = constants.Axis.z  # This is the axis that will point in the bending direction
 
     #
     # Logging implementation
@@ -224,7 +224,7 @@ class Rig(object):
         instance.rig = self
 
         # Resolve name to use
-        default_name = instance.get_default_name(self)
+        default_name = instance.get_default_name()
         default_name = self._get_unique_name(default_name)  # Ensure name is unique
         instance.name = default_name
 
@@ -576,7 +576,7 @@ class Rig(object):
                     module.grp_rig.setParent(world=True)
             else:
                 try:
-                    module.unbuild(self, **kwargs)
+                    module.unbuild(**kwargs)
                 except Exception, e:
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                     traceback.print_exc()

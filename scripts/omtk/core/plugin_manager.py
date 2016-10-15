@@ -1,8 +1,10 @@
 import os
+import copy
 import sys
 import importlib
 import pkgutil
 import logging
+import inspect
 
 log = logging.getLogger('omtk')
 from omtk.libs import libPython
@@ -65,6 +67,23 @@ class Plugin(object):
         plugin = Plugin(name, type_name=type_name)
         return plugin
 
+    def __contains__(self, item):  # arm, fk
+        """
+        Return True if item is used in this module.
+        Mainly used for efficient reloading.
+        """
+        if isinstance(item, Plugin):
+            item_module = item.module
+        elif inspect.ismodule(item):
+            item_module = item
+        else:
+            raise NotImplementedError("Unexpected type {0} for value {1}.".format(type(item), item))
+
+        for module_name, module in inspect.getmembers(self.module, inspect.ismodule):
+            if module == item_module:
+                return True
+        return False
+
     def __repr__(self):
         return '<Plugin "{0}">'.format(self.name)
 
@@ -121,9 +140,67 @@ class PluginManager(object):
     def get_plugins_by_type(self, type_name):
         return list(self.iter_plugins_by_type(type_name))
 
-    def reload_all(self):
-        for plugin in self.iter_plugins():
-            plugin.load()
+    def reload_all(self, force=True):
+        for plugin in self.get_plugins_sorted():
+            plugin.load(force=force)
+
+    def _iter_dependent_plugins(self, plugin):
+        for cur_plugin in self.get_plugins():
+            # Ignore self
+            if cur_plugin is plugin:
+                continue
+            if cur_plugin in plugin:
+                yield(cur_plugin)
+
+    def _get_dependent_plugins(self, plugin):
+        return list(self._iter_dependent_plugins(plugin))
+
+    def get_plugins_sorted(self):
+        """
+        Sorting plugins is hard since their dependencies are tree-like and using
+        recursively to traverse this tree can cause performance issues.
+        For this reason, implementing __cmp__ in the Plugin type is not enough, we need to be aware
+        of all the other plugins to correctly sort them.
+        IK ->            -> Arm
+             \          /
+              -> Limb ->
+             /          \
+        FK ->            -> Leg
+        :return:
+        """
+        plugins = self.get_plugins()
+        dirty_plugins = copy.copy(plugins)
+        result = []
+
+        def is_leaf(plugin):
+            for p in dirty_plugins:
+                # Ignore self
+                if p is plugin:
+                    continue
+                # If the plugin is used somewhere, it is not a leaf.
+                if plugin in p:
+                    return False
+            return True
+
+        while dirty_plugins:
+            # Find any plugins that have no dependencies.
+            for i in reversed(range(len(dirty_plugins))):
+                plugin = dirty_plugins[i]
+                if is_leaf(plugin):
+                    print (plugin)
+                    result.append(dirty_plugins.pop(i))
+
+        return reversed(result)
+
+    # def _extend_dependent_plugins(self, src_plugins):
+    #     other_plugins = [plugin for plugin in self.iter_plugins() if not plugin in src_plugins]
+    #
+    #     result = copy.copy(src_plugins)
+    #     for plugin in src_plugins:
+    #         for other_plugin in other_plugins:
+    #             if plugin in other_plugin:
+    #                 result.append(other_plugin)
+    #     return sorted(result)
 
     def get_summary(self):
         header_row = ('TYPE', 'NAME', 'DESC', 'STATUS')

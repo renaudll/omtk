@@ -410,28 +410,28 @@ class BaseCtrl(Node):
         indexes = []
 
         # Use the grp_rip node as the world target. It will always be the first target in the list
-        if add_world and libPymel.is_valid_PyNode(rig.grp_rig):
-            targets.append(rig.grp_rig)
+        if add_world and libPymel.is_valid_PyNode(module.rig.grp_rig):
+            targets.append(module.rig.grp_rig)
             target_names.append(world_name)
             # World will always be -1
-            indexes.append(self.get_bestmatch_index(rig.grp_rig, consts_omtk.SpaceSwitchReservedIndex.world))
+            indexes.append(self.get_bestmatch_index(module.rig.grp_rig, consts_omtk.SpaceSwitchReservedIndex.world))
 
         # Add the master ctrl as a spaceswitch target
         if libPymel.is_valid_PyNode(module.rig.grp_anm):
             targets.append(module.rig.grp_anm)
             target_names.append(root_name)
             # The root will always be index 1, because we want to let local to be 0
-            indexes.append(self.get_bestmatch_index(rig.grp_anm, consts_omtk.SpaceSwitchReservedIndex.root))
+            indexes.append(self.get_bestmatch_index(module.rig.grp_anm, consts_omtk.SpaceSwitchReservedIndex.root))
 
         # Resolve modules targets
         first_module = True
         while jnt:
-            module = rig.get_module_by_input(jnt)
+            m = module.rig.get_module_by_input(jnt)
             # We will not add as a target the first modules target found if we add the local space
             # The local space is an equivalent to not having any space activated so as if it follow it's parent which
             # would be the first module found
-            if module and ((add_local and not first_module) or not add_local):
-                target, target_name = module.get_pin_locations(jnt)
+            if m and ((add_local and not first_module) or not add_local):
+                target, target_name = m.get_pin_locations(jnt)
                 if target and target not in targets:
                     targets.append(target)
                     target_names.append(target_name)
@@ -541,7 +541,7 @@ class InteractiveCtrl(BaseCtrl):
             pymel.makeIdentity(self.shapes, rotate=True, scale=True, apply=True)
 
         # todo: Simplify the setup, too many nodes
-        super(InteractiveCtrl, self).build(module, **kwargs)
+        super(InteractiveCtrl, self).build(**kwargs)
 
         #nomenclature_anm = self.get_nomenclature_anm(parent)
         nomenclature_rig = module.nomenclature(suffix=module.nomenclature.type_rig)

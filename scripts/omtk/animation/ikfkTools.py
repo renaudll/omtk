@@ -5,8 +5,8 @@ import pymel.core as pymel
 
 
 def CallFnOnNetworkByClass(_sFn, _sCls):
-    fnFilter = lambda x: libSerialization.isNetworkInstanceOfClass(x, _sCls)
-    networks = libSerialization.getConnectedNetworks(pymel.selected(), key=fnFilter)
+    fnFilter = lambda x: libSerialization.is_network_from_class(x, _sCls)
+    networks = libSerialization.get_connected_networks(pymel.selected(), key=fnFilter)
     for network in networks:
         rigPart = libSerialization.import_network(network)
 

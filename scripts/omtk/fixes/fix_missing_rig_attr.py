@@ -3,10 +3,10 @@ import libSerialization
 
 def run():
     nets = pymel.ls(type='network')
-    net_rig = next(iter(net for net in nets if libSerialization.isNetworkInstanceOfClass(net, 'Rig')), None)
+    net_rig = next(iter(net for net in nets if libSerialization.is_network_from_class(net, 'Rig')), None)
 
     for net in nets:
-        if not libSerialization.isNetworkInstanceOfClass(net, 'Module'):
+        if not libSerialization.is_network_from_class(net, 'Module'):
             continue
         if not net.hasAttr('rig'):
             print("Adding attribute 'rig' on {0}".format(net))

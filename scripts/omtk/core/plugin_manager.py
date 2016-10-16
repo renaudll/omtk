@@ -106,6 +106,12 @@ class Plugin(object):
 
         return False
 
+    def __cmp__(self, other):
+        """
+        Ensure we can sort plugins by their names.
+        """
+        return cmp(self.name, other.name)
+
     def __repr__(self):
         return '<Plugin "{0}">'.format(self.name)
 
@@ -157,7 +163,7 @@ class PluginManager(object):
 
     def iter_loaded_plugins_by_type(self, type_name):
         def fn_filter(plugin):
-            return plugin.status == PluginStatus.Loaded
+            return plugin.status == PluginStatus.Loaded and plugin.type_name == type_name
         for plugin in self.iter_plugins(key=fn_filter):
             yield plugin
 

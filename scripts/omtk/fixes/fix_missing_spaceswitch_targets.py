@@ -11,8 +11,8 @@ def patch_spaceswitch_data_into_network(sel=None):
     if sel is None:
         sel = pymel.selected()
 
-    networks = libSerialization.getConnectedNetworks(sel, key=lambda
-        net: libSerialization.isNetworkInstanceOfClass(net, 'BaseCtrl'))
+    networks = libSerialization.get_connected_networks(sel, key=lambda
+        net: libSerialization.is_network_from_class(net, 'BaseCtrl'))
 
     for net in networks:
         print net
@@ -64,7 +64,7 @@ def patch_spaceswitch_object_into_network():
     import omtk  # Import omtk to be able to do isinstance os certain module
 
     # Get the rig instance in the scene (Now support only the first one found
-    rig_net = libSerialization.getNetworksByClass('Rig')[0]
+    rig_net = libSerialization.get_networks_from_class('Rig')[0]
     rig_instance = libSerialization.import_network(rig_net)
 
     # Get all the module that we could need to patch

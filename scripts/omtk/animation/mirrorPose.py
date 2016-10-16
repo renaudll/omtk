@@ -172,8 +172,8 @@ def mirror_matrix(m,
 
 
 def get_obj_mirror_def(obj):
-    network_is_ctrl = lambda x: libSerialization.isNetworkInstanceOfClass(x, classCtrl.BaseCtrl.__name__.split('.')[-1])
-    networks = libSerialization.getConnectedNetworks([obj], key=network_is_ctrl, recursive=False)
+    network_is_ctrl = lambda x: libSerialization.is_network_from_class(x, classCtrl.BaseCtrl.__name__.split('.')[-1])
+    networks = libSerialization.get_connected_networks([obj], key=network_is_ctrl, recursive=False)
     network = next(iter(networks), None)
 
     if network:

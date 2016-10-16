@@ -60,7 +60,7 @@ def find():
     :return: All the rigs embedded in the current maya scene.
     """
     # TODO: Find why when a scene is open for a long time, this function is slower
-    networks = libSerialization.getNetworksByClass('Rig')
+    networks = libSerialization.get_networks_from_class('Rig')
     return [libSerialization.import_network(network, module='omtk') for network in networks]
 
 
@@ -77,7 +77,7 @@ def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
     """
-    networks = libSerialization.getNetworksByClass('Rig')
+    networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
         if rigroot.build(strict=strict):
@@ -88,7 +88,7 @@ def build_all(strict=False):
 # @libPython.profiler
 @libPython.log_execution_time('unbuild_all')
 def unbuild_all(strict=False):
-    networks = libSerialization.getNetworksByClass('Rig')
+    networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
         rigroot.unbuild(strict=strict)
@@ -104,7 +104,7 @@ def _get_modules_from_selection(sel=None):
             plug_node = plug.node()
             if not isinstance(plug_node, pymel.nodetypes.Network):
                 continue
-            if libSerialization.isNetworkInstanceOfClass(plug_node, 'Rig'):
+            if libSerialization.is_network_from_class(plug_node, 'Rig'):
                 return plug_node
         return None
 
@@ -121,7 +121,7 @@ def _get_modules_from_selection(sel=None):
         sel = pymel.selected()
 
     # Resolve the rig network from the selection
-    module_networks = libSerialization.getConnectedNetworks(sel, key=is_module_child_of_rig)
+    module_networks = libSerialization.get_connected_networks(sel, key=is_module_child_of_rig)
     if not module_networks:
         pymel.warning("Found no module related to selection.")
         return None, None

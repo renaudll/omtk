@@ -33,7 +33,7 @@ class WidgetListMeshes(QtGui.QWidget):
     def update_list(self):
         self.ui.treeWidget.clear()
 
-        if not self._rig:
+        if self._rig is None:
             return
 
         # Hack: force cache to invalidate

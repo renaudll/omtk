@@ -12,7 +12,6 @@ from omtk.libs import libRigging
 
 log = logging.getLogger('omtk')
 
-
 class BaseCtrl(Node):
     """
     A Ctrl is the layer between the rig and the animator.
@@ -70,17 +69,20 @@ class BaseCtrl(Node):
         return self.offset
     '''
 
-    def __createNode__(self, size=None, normal=(1,0,0), multiplier=1.0, refs=None, offset=None, *args, **kwargs):
+    def __createNode__(self, size=None, normal=(1,0,0), multiplier=1.0, refs=None, offset=None, geometries=None, *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
         size: The maximum dimension of the controller.
         """
+        # Hack: Ensure geometries are hashable
+        if isinstance(geometries, list):
+            geometries = tuple(geometries)
 
         # Resolve size automatically if refs are provided.
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if size is None:
             if ref is not None:
-                size = libRigging.get_recommended_ctrl_size(ref) * multiplier
+                size = libRigging.get_recommended_ctrl_size(ref, geometries=geometries) * multiplier
             else:
                 size = 1.0
 

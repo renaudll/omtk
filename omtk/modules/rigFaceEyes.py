@@ -49,6 +49,9 @@ class AvarEye(rigFaceAvar.AvarAim):
 
 
 class FaceEyes(rigFaceAvarGrps.AvarGrpAim):
+    """
+    Look-at setup with avars support.
+    """
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
     _CLS_AVAR = AvarEye

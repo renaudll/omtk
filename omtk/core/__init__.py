@@ -5,6 +5,7 @@ import json
 import logging
 import os
 
+import utils
 import constants
 import classCtrl
 import classModule
@@ -16,7 +17,6 @@ import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from . import plugin_manager
-
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
@@ -37,6 +37,7 @@ plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (
 
 def _reload():
     reload(constants)
+    reload(utils)
     reload(className)
     reload(classNode)
     reload(classCtrl)

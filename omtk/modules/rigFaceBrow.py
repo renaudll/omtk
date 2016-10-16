@@ -11,6 +11,9 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
 
 
 class FaceBrow(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+    """
+    AvarGrp customized for Brow rigging.
+    """
     _CLS_CTRL = CtrlBrow
 
     SHOW_IN_UI= True

@@ -18,6 +18,9 @@ class CtrlRibbon(BaseCtrl):
 
 
 class Ribbon(Module):
+    """
+    Generic ribbon setup.
+    """
     def __init__(self, *args, **kwargs):
         super(Ribbon, self).__init__(*args, **kwargs)
         self.num_ctrl = 3

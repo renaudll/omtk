@@ -25,6 +25,9 @@ class CtrlFk(BaseCtrl):
 
 
 class FK(Module):
+    """
+    A Simple FK with support for multiple hyerarchy.
+    """
     DEFAULT_NAME_USE_FIRST_INPUT = True
     _CLS_CTRL = CtrlFk
 
@@ -70,7 +73,7 @@ class FK(Module):
             for input, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
                 ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
                 ctrl_name = ctrl_nomenclature.resolve('fk')
-                ctrl.build(name=ctrl_name, refs=input)
+                ctrl.build(name=ctrl_name, refs=input, geometries=self.rig.get_meshes())
                 ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
             if self.create_spaceswitch:

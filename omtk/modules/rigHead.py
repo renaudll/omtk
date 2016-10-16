@@ -5,7 +5,7 @@ class CtrlHead(rigFK.CtrlFk):
 
 class Head(rigFK.FK):
     """
-    Note that the influence assigned to the head module will be used by each 'face' modules.
+    Simple FK setup customized for head rigging. Mandatory when using facial modules.
     """
     _CLS_CTRL = CtrlHead
 

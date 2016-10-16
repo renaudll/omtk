@@ -33,6 +33,7 @@ class WidgetListModules(QtGui.QWidget):
         super(WidgetListModules, self).__init__(parent=parent)
 
         self._rig = None
+        self._rigs = None
         self._is_modifying = False  # todo: document
 
         self.ui = widget_list_modules.Ui_Form()
@@ -74,6 +75,9 @@ class WidgetListModules(QtGui.QWidget):
 
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
+        if not self._rigs:
+            return
+
         for root in self._rigs:
             qItem = self._rig_to_tree_widget(root)
             self.ui.treeWidget.addTopLevelItem(qItem)
@@ -352,16 +356,32 @@ class WidgetListModules(QtGui.QWidget):
             if functions:
                 menu.addSeparator()
                 for fn_name, fn in functions:
-                    fn = functools.partial(self._execute_rcmenu_entry, fn)
-                    action = menu.addAction(fn_name)
+                    fn_nicename = fn_name.replace('_', ' ').title()
+
+                    fn = functools.partial(self._execute_rcmenu_entry, fn_name)
+                    action = menu.addAction(fn_nicename)
                     action.triggered.connect(fn)
 
             menu.exec_(QtGui.QCursor.pos())
 
-    def _execute_rcmenu_entry(self, fn):
-        fn()
+    def _execute_rcmenu_entry(self, fn_name):
+        need_export_network = False
+        for module in self.get_selected_modules():
+            # Resolve fn
+            if not hasattr(module, fn_name):
+                continue
 
-        if constants.UIExposeFlags.trigger_network_export in fn._flags:
+            fn = getattr(module, fn_name)
+            if not inspect.ismethod(fn):
+                continue
+
+            # Call fn
+            log.debug("Calling {0} on {1}".format(fn_name, module))
+            fn()
+            if constants.UIExposeFlags.trigger_network_export in fn._flags:
+                need_export_network = True
+
+        if need_export_network:
             self.needExportNetwork.emit()
 
     def on_module_double_clicked(self, item):

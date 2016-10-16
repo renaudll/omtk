@@ -2,6 +2,7 @@ import pymel.core as pymel
 
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
+from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.modules.rigRibbon import Ribbon
@@ -67,6 +68,9 @@ class NonRollJoint(Node):
 
 
 class Twistbone(Module):
+    """
+    Bi-directional twistbone setup on a ribbon.
+    """
     DEFAULT_NAME_USE_FIRST_INPUT = True
 
     def __init__(self, *args, **kwargs):
@@ -105,7 +109,7 @@ class Twistbone(Module):
 
         # Handle case where the number of twist change. The skin will be lost
         if self.subjnts and len(self.subjnts) != self.num_twist:
-            self.handle_num_twist_changed()
+            self.unassign_twist_weights()
             pymel.delete(self.subjnts)
             self.subjnts = []
             # Also invalidate ctrls
@@ -270,26 +274,31 @@ class Twistbone(Module):
             '''
 
         if self.auto_skin:
-            skin_deformers = self.get_skinClusters_from_inputs()
+            self.assign_twist_weights()
 
-            for skin_deformer in skin_deformers:
-                # Ensure the source joint is in the skinCluster influences
-                influenceObjects = skin_deformer.influenceObjects()
-                if self.chain_jnt.start not in influenceObjects:
+    @decorator_uiexpose()
+    def assign_twist_weights(self):
+        skin_deformers = self.get_skinClusters_from_inputs()
+
+        for skin_deformer in skin_deformers:
+            # Ensure the source joint is in the skinCluster influences
+            influenceObjects = skin_deformer.influenceObjects()
+            if self.chain_jnt.start not in influenceObjects:
+                continue
+
+            # Add new joints as influence.
+            for subjnt in self.subjnts:
+                if subjnt in influenceObjects:
                     continue
+                skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
+                subjnt.lockInfluenceWeights.set(False)
 
-                # Add new joints as influence.
-                for subjnt in self.subjnts:
-                    if subjnt in influenceObjects:
-                        continue
-                    skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
-                    subjnt.lockInfluenceWeights.set(False)
+        for mesh in self.get_farest_affected_meshes():
+            self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
+            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
 
-            for mesh in self.get_farest_affected_meshes():
-                print("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
-                libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
-
-    def handle_num_twist_changed(self):
+    @decorator_uiexpose()
+    def unassign_twist_weights(self):
         """
         Handle the skin transfert from the subjnts (twists) to the first input. Will be used if the number of twists
         change between builds
@@ -299,7 +308,7 @@ class Twistbone(Module):
             # Ensure that the start joint is in the skin cluster
             influenceObjects = skin_deformer.influenceObjects()
             if self.chain_jnt.start not in influenceObjects:
-                skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
+                skin_deformer.addInfluence(self.chain_jnt.start, lockWeights=True, weight=0.0)
                 self.chain_jnt.start.lockInfluenceWeights.set(False)
 
             # Ensure subjnts are transfert correctly

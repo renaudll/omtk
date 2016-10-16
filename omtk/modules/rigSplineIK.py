@@ -6,6 +6,9 @@ from omtk.libs import libRigging, libPymel
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class SplineIK(Module):
+    """
+    Generic ik setup on a spline.
+    """
     def __init__(self, *args, **kwargs):
         super(SplineIK, self).__init__(*args, **kwargs)
         self.bStretch = True

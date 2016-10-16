@@ -2,6 +2,7 @@ import pymel.core as pymel
 import collections
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classNode import Node
 from omtk.modules.rigRibbon import Ribbon
 from omtk.libs import libPymel
 from omtk.libs import libCtrlShapes
@@ -34,7 +35,7 @@ class Ctrl_DpSpine_FK(BaseCtrl):
 
 class DpSpine(Module):
     """
-    Spine setup similar to dpAutoRig.
+    Reproduction of the dpAutoRig spine.
     Note that the spline ctrls orientation follow the world axis by default.
     """
     IS_SIDE_SPECIFIC = False
@@ -258,16 +259,22 @@ class DpSpine(Module):
 
         nomenclature_rig = self.get_nomenclature_rig()
         # Create Space switch targets objects
-        if self.ctrl_ik_dwn_sw is None or not libPymel.is_valid_PyNode(self.ctrl_ik_dwn_sw):
-            self.ctrl_ik_dwn_sw = pymel.createNode("transform")
-            self.ctrl_ik_dwn_sw.rename(nomenclature_rig.resolve("ctrlHipASpaceObject"))
-        self.ctrl_ik_dwn_sw.setMatrix(self.ctrl_ik_dwn.getMatrix(ws=True), ws=True)
+        if not isinstance(self.ctrl_ik_dwn_sw, Node):
+            self.ctrl_ik_dwn_sw = Node()
+        if not self.ctrl_ik_dwn_sw.is_built():
+            self.ctrl_ik_dwn_sw.build(
+                name=nomenclature_rig.resolve('spaceTargetLow')
+            )
+            self.ctrl_ik_dwn_sw.setMatrix(self.ctrl_ik_dwn.getMatrix(ws=True), ws=True)
         self.ctrl_ik_dwn_sw.setParent(self.grp_rig)
         pymel.parentConstraint(self.ctrl_ik_dwn, self.ctrl_ik_dwn_sw)
 
-        if self.ctrl_fk_upp_sw is None or not libPymel.is_valid_PyNode(self.ctrl_fk_upp_sw):
-            self.ctrl_fk_upp_sw = pymel.createNode("transform")
-            self.ctrl_fk_upp_sw.rename(nomenclature_rig.resolve("ctrlChestBSpaceObject"))
+        if not isinstance(self.ctrl_fk_upp_sw, Node):
+            self.ctrl_fk_upp_sw = Node()
+        if not self.ctrl_fk_upp_sw.is_built():
+            self.ctrl_fk_upp_sw.build(
+                name=nomenclature_rig.resolve("spaceTargetUpp")
+            )
         self.ctrl_fk_upp_sw.setMatrix(self.ctrl_ik_dwn.getMatrix(ws=True), ws=True)
         self.ctrl_fk_upp_sw.setParent(self.grp_rig)
         pymel.parentConstraint(self.ctrl_ik_dwn, self.ctrl_fk_upp_sw)
@@ -286,10 +293,15 @@ class DpSpine(Module):
 
         self.jnt_squash_dwn = None
         self.jnt_squash_dwn = None
-        # Unparent space switch object
-        self.ctrl_fk_upp_sw.setParent(None)
-        self.ctrl_ik_dwn_sw.setParent(None)
+
+        # Hold space switch targets
+        self.ctrl_fk_upp_sw.unbuild()
+        self.ctrl_ik_dwn_sw.unbuild()
+
         super(DpSpine, self).unbuild()
+
+    def get_default_name(self):
+        return 'Spine'
 
     def get_parent(self, parent):
         if parent == self.chain_jnt[0]:

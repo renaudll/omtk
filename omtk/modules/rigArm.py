@@ -23,6 +23,9 @@ class ArmIk(rigIK.IK):
 
 
 class Arm(rigLimb.Limb):
+    """
+    IK/FK Setup customized for Arm riging.
+    """
     _CLASS_SYS_IK = ArmIk
 
     def __init__(self, *args, **kwargs):

@@ -471,8 +471,9 @@ def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
         ctrl_shape.cv[i].setPosition(cv_new_pos, space='world')
 '''
 
+# todo: check if memoized is really necessary?
 @libPython.memoized
-def get_recommended_ctrl_size(obj, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
+def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
                               weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0):
     """
     Return the recommended size of a controller if it was created for this obj.
@@ -482,14 +483,16 @@ def get_recommended_ctrl_size(obj, default_value=1.0, weight_x=0.0, weight_neg_x
     if isinstance(obj, pymel.nodetypes.Joint):
 
         # Collect all geometries affected by the joint.
-        skinClusters = set()
-        for hist in obj.listHistory(future=True):
-            if isinstance(hist, pymel.nodetypes.SkinCluster):
-                skinClusters.add(hist)
-        geometries = set()
-        for skinCluster in skinClusters:
-            geometries.update(skinCluster.getOutputGeometry())
-        geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries)  # Ensure we only deal with meshes
+        # todo: maybe filter only affected geometries?
+        if geometries is None:
+            skinClusters = set()
+            for hist in obj.listHistory(future=True):
+                if isinstance(hist, pymel.nodetypes.SkinCluster):
+                    skinClusters.add(hist)
+            geometries = set()
+            for skinCluster in skinClusters:
+                geometries.update(skinCluster.getOutputGeometry())
+            geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries)  # Ensure we only deal with meshes
 
         # Create a number of raycast for each geometry. Use the longuest distance.
         # Note that we are not using the negative Y axis, this give bettern result for example on shoulders.

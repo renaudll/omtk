@@ -449,9 +449,9 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
 class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     """
+    AvarGrp setup customized for lips rigging.
     Lips have the same behavior than an AvarGrpUppLow.
     However the lip curl is also connected between the macro avars and the micro avars.
-
     """
     _CLS_AVAR = FaceLipsAvar
     IS_SIDE_SPECIFIC = False
@@ -656,6 +656,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         # Calibration is done manually since we need to setup the jaw influence.
         if calibrate:
             self.calibrate()
+
 
 def register_plugin():
     return FaceLips

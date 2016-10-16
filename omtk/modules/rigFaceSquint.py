@@ -10,6 +10,9 @@ class CtrlSquint(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_upp()
 
 class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+    """
+    AvarGrp setup customized for squint rigging.
+    """
     _CLS_CTRL = CtrlSquint
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI= True

@@ -8,6 +8,7 @@ from omtk.core.classNode import Node
 from omtk.core import className
 from omtk.core import classModule
 from omtk.core import constants
+from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -352,7 +353,7 @@ class Rig(object):
 
         return result
 
-    @classModule.decorator_uiexpose(flags=[constants.UIExposeFlags.trigger_network_export])
+    @decorator_uiexpose(flags=[constants.UIExposeFlags.trigger_network_export])
     def create_hierarchy(self):
         """
         Alias to pre_build that is exposed in the gui and hidden from subclassing.
@@ -448,10 +449,10 @@ class Rig(object):
             pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
 
     def build(self, skip_validation=False, strict=False, **kwargs):
-        # Aboard if already built
-        if self.is_built():
-            self.warning("Can't build {0} because it's already built!".format(self))
-            return False
+        # # Aboard if already built
+        # if self.is_built():
+        #     self.warning("Can't build {0} because it's already built!".format(self))
+        #     return False
 
         # Abord if validation fail
         if not skip_validation:

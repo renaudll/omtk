@@ -59,6 +59,9 @@ class SqueezeNomenclature(className.BaseName):
         return super(SqueezeNomenclature, self)._join_tokens(new_tokens)
 
 class RigSqueeze(classRig.Rig):
+    """
+    Custom rig implementation in respect to Squeeze Studio nomenclature.
+    """
     #Ensure that all start with a lower case word and all other one are camel case
     GROUP_NAME_DISPLAY = 'display'
     ATTR_NAME_DISPLAY_MESH = 'displayMesh'

@@ -70,7 +70,7 @@ class CtrlIkSwivel(BaseCtrl):
     def get_spaceswitch_targets(self, module, *args, **kwargs):
         """
         Add the Hand/Leg IK ctrl by default as a space-switch target to any swivel.
-        :param module: The module instance in which we want to find targets
+        :param module: The parent module, generally an IK instance.
         :param args: More args passer to the super class
         :param kwargs: More kwargs pass to the super class
         :return: The spaceswitch usable targets and names
@@ -78,9 +78,9 @@ class CtrlIkSwivel(BaseCtrl):
         targets, target_names, indexes = super(CtrlIkSwivel, self).get_spaceswitch_targets(module, *args, **kwargs)
 
         # Add the Hand/Foot ctrl
-        targets.append(module.ctrl_ik_sw)
+        targets.append(module.ctrl_ik)
         target_names.append(None)
-        indexes.append(self.get_bestmatch_index(module.ctrl_ik_sw))
+        indexes.append(self.get_bestmatch_index(module.ctrl_ik))
 
         return targets, target_names, indexes
 
@@ -215,6 +215,7 @@ class SoftIkNode(Node):
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class IK(Module):
     """
+    Classical IK rig that support stretching and soft-ik.
     This is the base Ik module of the autorig. Support a basic 3 bones ik rotate-plane solver
     with the creation of a controller. Also used the softik implementation. Inherit of the module class
     to be able to used it in the autorig UI
@@ -231,7 +232,6 @@ class IK(Module):
         self.chain_length = None
         self._chain_ik = None
         self.swivelDistance = None
-        self.ctrl_ik_sw = None  # Object that will serve as space switch target and that will not be deleted on unbuild
 
     def _create_ctrl_ik(self, *args, **kwargs):
         """
@@ -361,7 +361,6 @@ class IK(Module):
 
         return ctrl_swivel
 
-
     def build(self, ctrl_ik_orientation=None, constraint=True, constraint_handle=True, setup_softik=True, *args, **kwargs):
         """
         Build the ik system when needed
@@ -471,17 +470,6 @@ class IK(Module):
             for source, target in zip(self._chain_ik, self.chain):
                 pymel.parentConstraint(source, target)
 
-    def setup_spaceswitch_objects(self,):
-        super(IK, self).setup_spaceswitch_objects()
-
-        # Create Space switch targets objects
-        if self.ctrl_ik_sw is None or not libPymel.is_valid_PyNode(self.ctrl_ik_sw):
-            self.ctrl_ik_sw = pymel.createNode("transform")
-            self.ctrl_ik_sw.rename(self.get_nomenclature_rig().resolve("ctrlIkSpaceObject"))
-        self.ctrl_ik_sw.setMatrix(self.ctrl_ik.getMatrix(ws=True), ws=True)
-        self.ctrl_ik_sw.setParent(self.grp_rig)
-        pymel.parentConstraint(self.ctrl_ik, self.ctrl_ik_sw)
-
 
     def unbuild(self):
         """
@@ -491,7 +479,6 @@ class IK(Module):
         self.chain_length = None
         self._chain_ik = None
         self.swivelDistance = None
-        self.ctrl_ik_sw.setParent(world=True)
 
         super(IK, self).unbuild()
 
@@ -509,6 +496,7 @@ class IK(Module):
         yield self.ctrl_ik
         yield self.ctrl_swivel
         yield self.ctrl_swivel_quad
+
 
 def register_plugin():
     return IK

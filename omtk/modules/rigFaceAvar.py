@@ -1029,5 +1029,6 @@ class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
         return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
 
+
 def register_plugin():
     return AvarFollicle

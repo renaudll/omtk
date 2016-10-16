@@ -3,7 +3,7 @@ import logging
 
 import pymel.core as pymel
 
-from omtk.core import classModule
+from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -463,7 +463,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             for ctrl in avar.iter_ctrls():
                 yield ctrl
 
-    @classModule.decorator_uiexpose
+    @decorator_uiexpose()
     def calibrate(self):
         for avar in self.avars:
             avar.calibrate()
@@ -524,7 +524,7 @@ class AvarGrpOnSurface(AvarGrp):
         return next(iter(objs), None)
     '''
 
-    @classModule.decorator_uiexpose
+    @decorator_uiexpose()
     def create_surface(self, *args, **kwargs):
         """
         Expose the function in the ui, using the decorator.
@@ -961,7 +961,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             self.avar_all.unbuild()
         super(AvarGrpAreaOnSurface, self).unbuild()
 
-    @classModule.decorator_uiexpose
+    @decorator_uiexpose()
     def calibrate(self):
         """
         Ensure macro avars are correctly calibrated.

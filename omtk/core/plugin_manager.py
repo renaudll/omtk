@@ -17,8 +17,9 @@ class PluginStatus:
 class Plugin(object):
     root_package_name = 'omtk'
 
-    def __init__(self, name, type_name):
-        self.name = name
+    def __init__(self, module_name, type_name):
+        self.name = module_name
+        self.module_name = module_name
         self.type_name = type_name
         self.module = None
         self.cls = None
@@ -38,7 +39,7 @@ class Plugin(object):
         self.description = None
 
         # Resolve full module path
-        module_path = '{0}.{1}.{2}'.format(self.root_package_name, self.type_name, self.name)
+        module_path = '{0}.{1}.{2}'.format(self.root_package_name, self.type_name, self.module_name)
 
         try:
             # Load module using import_module before using pkgutil
@@ -57,17 +58,20 @@ class Plugin(object):
             # Ensure there is a register_plugin function
             if not hasattr(self.module, 'register_plugin') or not hasattr(self.module.register_plugin, '__call__'):
                 raise Exception("Cannot register plugin {0}. No register_plugin function found!".format(
-                    self.name
+                    self.module_name
                 ))
 
             # Get module class
             self.cls = self.module.register_plugin()
+            self.name = self.cls.__name__
             self.description = self.cls.__doc__
+            if self.description:
+                self.description = next(iter(filter(None, self.description.split('\n'))), None)
             self.status = PluginStatus.Loaded
         except Exception, e:
             self.status = PluginStatus.Failed
             self.description = str(e)
-            log.warning("Plugin {0} failed to load! {0}".format(self.name, self.description))
+            log.warning("Plugin {0} failed to load! {0}".format(self.module_name, self.description))
 
     @classmethod
     def from_module(cls, name, type_name):
@@ -110,10 +114,10 @@ class Plugin(object):
         """
         Ensure we can sort plugins by their names.
         """
-        return cmp(self.name, other.name)
+        return cmp(self.module_name, other.name)
 
     def __repr__(self):
-        return '<Plugin "{0}">'.format(self.name)
+        return '<Plugin "{0}">'.format(self.module_name)
 
 class PluginType(object):
     type_name = None

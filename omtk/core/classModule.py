@@ -133,7 +133,7 @@ class Module(object):
             if self.DEFAULT_NAME_USE_FIRST_INPUT:
                 new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
             else:
-                new_nomenclature.add_tokens(self.__class__.__name__)
+                new_nomenclature.add_tokens(self.__class__.__name__.lower())
 
             if self.IS_SIDE_SPECIFIC:
                 side = old_nomenclature.side

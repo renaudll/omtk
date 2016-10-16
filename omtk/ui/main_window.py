@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/packages/omtk/9.9.9/omtk/ui/main_window.ui'
 #
-# Created: Sat Oct 15 22:25:35 2016
+# Created: Sun Oct 16 09:39:35 2016
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -94,7 +94,7 @@ class Ui_OpenRiggingToolkit(object):
         self.verticalLayout_4 = QtGui.QVBoxLayout(self.dockWidgetContents)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.widget_logger = WidgetLogger(self.dockWidgetContents)
-        self.widget_logger.setEnabled(False)
+        self.widget_logger.setEnabled(True)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -128,24 +128,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionMirrorJntsRToL.setObjectName("actionMirrorJntsRToL")
         self.actionMirrorSelection = QtGui.QAction(OpenRiggingToolkit)
         self.actionMirrorSelection.setObjectName("actionMirrorSelection")
-        self.actionSelectGrpJnts = QtGui.QAction(OpenRiggingToolkit)
-        self.actionSelectGrpJnts.setObjectName("actionSelectGrpJnts")
-        self.actionSelectGrpMeshes = QtGui.QAction(OpenRiggingToolkit)
-        self.actionSelectGrpMeshes.setObjectName("actionSelectGrpMeshes")
-        self.actionUpdateModulesView = QtGui.QAction(OpenRiggingToolkit)
-        self.actionUpdateModulesView.setObjectName("actionUpdateModulesView")
-        self.actionUpdateInfluencesView = QtGui.QAction(OpenRiggingToolkit)
-        self.actionUpdateInfluencesView.setObjectName("actionUpdateInfluencesView")
-        self.actionUpdateMeshesView = QtGui.QAction(OpenRiggingToolkit)
-        self.actionUpdateMeshesView.setObjectName("actionUpdateMeshesView")
-        self.actionSaveLogs = QtGui.QAction(OpenRiggingToolkit)
-        self.actionSaveLogs.setObjectName("actionSaveLogs")
-        self.actionClearLogs = QtGui.QAction(OpenRiggingToolkit)
-        self.actionClearLogs.setObjectName("actionClearLogs")
-        self.actionChangeLogLevel = QtGui.QAction(OpenRiggingToolkit)
-        self.actionChangeLogLevel.setObjectName("actionChangeLogLevel")
-        self.actionUpdateLogSearchQuery = QtGui.QAction(OpenRiggingToolkit)
-        self.actionUpdateLogSearchQuery.setObjectName("actionUpdateLogSearchQuery")
         self.actionShowPluginManager = QtGui.QAction(OpenRiggingToolkit)
         self.actionShowPluginManager.setObjectName("actionShowPluginManager")
         self.actionShowPreferences = QtGui.QAction(OpenRiggingToolkit)
@@ -197,16 +179,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionMirrorJntsLToR.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Mirror L -> R", None, QtGui.QApplication.UnicodeUTF8))
         self.actionMirrorJntsRToL.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Mirror R -> L", None, QtGui.QApplication.UnicodeUTF8))
         self.actionMirrorSelection.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Mirror using Selection", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionSelectGrpJnts.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "SelectGrpJnts", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionSelectGrpMeshes.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "SelectGrpMeshes", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionUpdateModulesView.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "UpdateModulesView", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionUpdateInfluencesView.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "UpdateInfluencesView", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionUpdateMeshesView.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "UpdateMeshesView", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionSaveLogs.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "SaveLogs", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionSaveLogs.setToolTip(QtGui.QApplication.translate("OpenRiggingToolkit", "SaveLogs", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionClearLogs.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "ClearLogs", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionChangeLogLevel.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "ChangeLogLevel", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionUpdateLogSearchQuery.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "UpdateLogSearchQuery", None, QtGui.QApplication.UnicodeUTF8))
         self.actionShowPluginManager.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Plugin Manager", None, QtGui.QApplication.UnicodeUTF8))
         self.actionShowPreferences.setText(QtGui.QApplication.translate("OpenRiggingToolkit", "Preferences", None, QtGui.QApplication.UnicodeUTF8))
 

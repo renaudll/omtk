@@ -216,20 +216,39 @@ class Rig(object):
             i += 1
         return str_format.format(name, i)
 
-    def add_module(self, cls, *args, **kwargs):
-        #if not isinstance(part, Module):
-        #    raise IOError("[Rig:AddPart] Unexpected type. Got '{0}'. {1}".format(type(part), part))
-
-        instance = cls(*args, **kwargs)
-        instance.rig = self
+    def add_module(self, inst, *args, **kwargs):
+        inst.rig = self
 
         # Resolve name to use
-        default_name = instance.get_default_name()
+        default_name = inst.get_default_name()
         default_name = self._get_unique_name(default_name)  # Ensure name is unique
-        instance.name = default_name
+        inst.name = default_name
 
-        self.modules.append(instance)
-        return instance
+        self.modules.append(inst)
+
+        self._invalidate_cache_by_module(inst)
+
+        return inst
+
+    def remove_module(self, inst):
+        self.modules.remove(inst)
+        self._invalidate_cache_by_module(inst)
+
+    def _invalidate_cache_by_module(self, inst):
+        # Some cached values might need to be invalidated depending on the module type.
+        from omtk.modules.rigFaceJaw import FaceJaw
+        if isinstance(inst, FaceJaw):
+            try:
+                del self._cache[self.get_jaw_jnt.__name__]
+            except LookupError:
+                pass
+
+        from omtk.modules.rigHead import Head
+        if isinstance(inst, Head):
+            try:
+                del self._cache[self.get_head_jnt.__name__]
+            except LookupError:
+                pass
 
     def is_built(self):
         """
@@ -658,7 +677,7 @@ class Rig(object):
                     if pattern in token:
                         return jnt
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_head_jnt(self, strict=True):
         from omtk.modules import rigHead
         for module in self.modules:

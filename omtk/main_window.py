@@ -53,11 +53,9 @@ class AutoRig(QtGui.QMainWindow):
         #
 
         self.import_networks()
-        self.update_ui()
+        #self.update_ui()
 
-        #
         # Connect events
-        #
         self.ui.actionBuildAll.triggered.connect(self.on_build_all)
         self.ui.actionRebuildAll.triggered.connect(self.on_rebuild_all)
         self.ui.actionUnbuildAll.triggered.connect(self.on_unbuild_all)
@@ -188,7 +186,8 @@ class AutoRig(QtGui.QMainWindow):
 
     def _add_part(self, cls):
         # part = _cls(pymel.selected())
-        self.root.add_module(cls, pymel.selected())
+        inst = cls(pymel.selected())
+        self.root.add_module(inst)
         net = self.export_networks()
         pymel.select(net)
         # Add manually the Rig to the root list instead of importing back all network

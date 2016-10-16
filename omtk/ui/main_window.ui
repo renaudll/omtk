@@ -152,7 +152,7 @@
      <item>
       <widget class="WidgetLogger" name="widget_logger" native="true">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -226,54 +226,6 @@
   <action name="actionMirrorSelection">
    <property name="text">
     <string>Mirror using Selection</string>
-   </property>
-  </action>
-  <action name="actionSelectGrpJnts">
-   <property name="text">
-    <string>SelectGrpJnts</string>
-   </property>
-  </action>
-  <action name="actionSelectGrpMeshes">
-   <property name="text">
-    <string>SelectGrpMeshes</string>
-   </property>
-  </action>
-  <action name="actionUpdateModulesView">
-   <property name="text">
-    <string>UpdateModulesView</string>
-   </property>
-  </action>
-  <action name="actionUpdateInfluencesView">
-   <property name="text">
-    <string>UpdateInfluencesView</string>
-   </property>
-  </action>
-  <action name="actionUpdateMeshesView">
-   <property name="text">
-    <string>UpdateMeshesView</string>
-   </property>
-  </action>
-  <action name="actionSaveLogs">
-   <property name="text">
-    <string>SaveLogs</string>
-   </property>
-   <property name="toolTip">
-    <string>SaveLogs</string>
-   </property>
-  </action>
-  <action name="actionClearLogs">
-   <property name="text">
-    <string>ClearLogs</string>
-   </property>
-  </action>
-  <action name="actionChangeLogLevel">
-   <property name="text">
-    <string>ChangeLogLevel</string>
-   </property>
-  </action>
-  <action name="actionUpdateLogSearchQuery">
-   <property name="text">
-    <string>UpdateLogSearchQuery</string>
    </property>
   </action>
   <action name="actionShowPluginManager">

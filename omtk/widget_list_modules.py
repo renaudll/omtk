@@ -406,11 +406,10 @@ class WidgetListModules(QtGui.QWidget):
             try:
                 if module.is_built():
                     module.unbuild()
-                self._rig.modules.remove(module)
+                self._rig.remove_module(module)
             except Exception, e:
                 log.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                 traceback.print_exc()
-
 
         self.needExportNetwork.emit()
 

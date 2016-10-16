@@ -31,4 +31,4 @@ build/
 *~.nib
 
 # Configuration file
-scripts/omtk/config.json
+config.json

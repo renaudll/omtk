@@ -233,6 +233,14 @@ class Module(object):
 
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
+        """
+        DO NOT CALL THIS DIRECTLY, use rig.add_module.
+        :param input: A pymel.general.PyNode list containing all the dagnode necessary for the module creation.
+        :param name: The name of the module.
+        :param rig: The parent of the module. Provided automatically by rig.add_module
+        :param args: TO REMOVE? #todo
+        :param kwargs: TO REMOVE? #todo
+        """
         self.rig = rig  # Reference to the parent rig instance.
         self.iCtrlIndex = 2
         self.grp_anm = None

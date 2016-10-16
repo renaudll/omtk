@@ -365,7 +365,7 @@ class Rig(object):
         if not isinstance(val, cls):
             val = cls()
         if not val.is_built():
-            val.build(self, *args, **kwargs)
+            val.build(*args, **kwargs)
             val.rename(name)
         return val
 
@@ -395,10 +395,13 @@ class Rig(object):
         # Create the master grp
         if create_master_grp:
             self.grp_master = self.build_grp(RigGrp, self.grp_master, self.name + '_' + self.nomenclature.type_rig)
+
         # Create grp_anm
         if create_grp_anm:
             grp_anim_size = CtrlRoot._get_recommended_radius(self)
             self.grp_anm = self.build_grp(CtrlRoot, self.grp_anm, self.nomenclature.root_anm_name, size=grp_anim_size)
+
+
         # Create grp_rig
         if create_grp_rig:
             self.grp_rig = self.build_grp(RigGrp, self.grp_rig, self.nomenclature.root_rig_name)
@@ -475,7 +478,6 @@ class Rig(object):
         #
         # Build
         #
-
         modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
         for module in modules:
             if module.is_built():

@@ -10,7 +10,7 @@ class Node(object):
     """
     def __init__(self, data=None, create=False, *args, **kwargs):
         self.__dict__['node'] = data
-        self.__dict__['network_name'] = 'Rename_me'
+        self.__dict__['_network_name'] = 'untitled'
         self._layers = []  # TODO: Use libPymel.PyNodeChain?
 
         if create is True:
@@ -32,10 +32,12 @@ class Node(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        #Need to call name function because the getAttr try to get the node (Pymel) name
+        # If the node is built, we'll store it's name in a private variable.
+        # This ensure that as long as the instance is in memory, built or unbuilt
+        # it will still have the correct name.
         if self.is_built():
-            self.network_name = self.name() #Keep the name of the node for better debugging
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.network_name)
+            self._network_name = self.nodeName()  # .name() can return full dagpath, cause warnings
+        return 'net_{0}_{1}'.format(self.__class__.__name__.lower(), self._network_name)
 
     def exists(self):
         if self.node is None:

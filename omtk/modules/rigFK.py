@@ -54,7 +54,6 @@ class FK(Module):
 
     def build(self, constraint=True, parent=True, create_grp_anm=True, *args, **kwargs):
         super(FK, self).build(create_grp_rig=False, *args, **kwargs)
-
         nomenclature_anm = self.get_nomenclature_anm()
 
         # Define ctrls

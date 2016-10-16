@@ -3,6 +3,7 @@ import mayaunittest
 from maya import cmds
 import pymel.core as pymel
 import omtk
+import libSerialization
 
 def open_scene(path_local):
     def deco_open(f):
@@ -20,10 +21,23 @@ def open_scene(path_local):
 
 class SampleTests(mayaunittest.TestCase):
 
+    def _get_holded_shapes(self):
+        shapes = []
+        for net in libSerialization.get_networks_from_class('BaseCtrl'):
+            if net.hasAttr('shapes'):
+                shapes.extend(net.shapes.inputs())
+        return shapes
+
     def _build_unbuild_build(self):
+        num_holder_shapes_before = len(self._get_holded_shapes())
+
         omtk.build_all(strict=True)
         omtk.unbuild_all()
         omtk.build_all(strict=True)
+
+        # Ensure no shapes are left after a rebuild.
+        num_holder_shapes_after = len(self._get_holded_shapes())
+        self.assertEqual(num_holder_shapes_before, num_holder_shapes_after)
 
     def test_create(self):
         rig_name = 'TestRig'

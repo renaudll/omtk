@@ -10,7 +10,7 @@ class decorator_uiexpose(object):
         self.flags = flags
     def __call__(self, fn, *args, **kwargs):
         def wrapped_f(*args, **kwargs):
-            fn(*args, **kwargs)
+            return fn(*args, **kwargs)
         wrapped_f.__can_show__ = self.__can_show__
         wrapped_f._flags = self.flags
         return wrapped_f

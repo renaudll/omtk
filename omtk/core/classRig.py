@@ -240,14 +240,14 @@ class Rig(object):
         if isinstance(inst, FaceJaw):
             try:
                 del self._cache[self.get_jaw_jnt.__name__]
-            except LookupError:
+            except (LookupError, AttributeError):
                 pass
 
         from omtk.modules.rigHead import Head
         if isinstance(inst, Head):
             try:
                 del self._cache[self.get_head_jnt.__name__]
-            except LookupError:
+            except (LookupError, AttributeError):
                 pass
 
     def is_built(self):
@@ -352,7 +352,7 @@ class Rig(object):
 
         return result
 
-    @classModule.decorator_uiexpose
+    @classModule.decorator_uiexpose(flags=[constants.UIExposeFlags.trigger_network_export])
     def create_hierarchy(self):
         """
         Alias to pre_build that is exposed in the gui and hidden from subclassing.

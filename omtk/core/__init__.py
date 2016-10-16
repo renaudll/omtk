@@ -5,6 +5,7 @@ import json
 import logging
 import os
 
+import constants
 import classCtrl
 import classModule
 import className
@@ -35,6 +36,7 @@ plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (
 
 
 def _reload():
+    reload(constants)
     reload(className)
     reload(classNode)
     reload(classCtrl)

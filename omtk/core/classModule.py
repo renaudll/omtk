@@ -11,16 +11,22 @@ import functools
 #
 # Define decorators that can be used to expose function to the UI.
 #
+
 class decorator_uiexpose(object):
-    def __init__(self, func):
-        self.func = func
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-    def __repr__(self):
-        return self.func.__doc__
+    def __init__(self, flags=None):
+        if flags is None:
+            flags = []
+        self.flags = flags
+    def __call__(self, fn, *args, **kwargs):
+        def wrapped_f(*args, **kwargs):
+            fn(*args, **kwargs)
+        wrapped_f.__can_show__ = self.__can_show__
+        wrapped_f._flags = self.flags
+        return wrapped_f
     def __get__(self, obj, objtype):
         fn = functools.partial(self.__call__, obj)
-        fn.__can_show__ = self.__can_show__
+        fn.__can_show__ = self.__can_show__  # todo: necessary?
+        fn._flags = self.flags  # todo: necessary?
         return fn
     def __can_show__(self):
         """

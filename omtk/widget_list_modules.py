@@ -13,6 +13,7 @@ from omtk.libs import libSkinning
 from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.libs import libPymel
+from omtk.core import constants
 from omtk.core import classModule
 from omtk.core import classRig
 
@@ -334,7 +335,7 @@ class WidgetListModules(QtGui.QWidget):
             actionRemove.triggered.connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
-            module = sel[0].rig
+            inst = sel[0].rig
 
             def is_exposed(val):
                 if not hasattr(val, '__can_show__'):
@@ -346,20 +347,22 @@ class WidgetListModules(QtGui.QWidget):
                 #    return False
                 return val.__can_show__()
 
-            functions = inspect.getmembers(module, is_exposed)
+            functions = inspect.getmembers(inst, is_exposed)
 
             if functions:
                 menu.addSeparator()
                 for fn_name, fn in functions:
-
-                    # Always pass the rig as the first argument in an exposed module function.
-                    if isinstance(module, classModule.Module):
-                        fn = functools.partial(fn, self._rig)
-
+                    fn = functools.partial(self._execute_rcmenu_entry, fn)
                     action = menu.addAction(fn_name)
                     action.triggered.connect(fn)
 
             menu.exec_(QtGui.QCursor.pos())
+
+    def _execute_rcmenu_entry(self, fn):
+        fn()
+
+        if constants.UIExposeFlags.trigger_network_export in fn._flags:
+            self.needExportNetwork.emit()
 
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):

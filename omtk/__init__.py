@@ -30,11 +30,38 @@ def _reload(kill_ui=True):
     reload(plugin_manager)
     plugin_manager.plugin_manager.reload_all()
 
+    import ui_shared
+    reload(ui_shared)
+
     from ui import pluginmanager_window
     reload(pluginmanager_window)
 
     from ui import preferences_window
     reload(preferences_window)
+
+    from ui import widget_list_influences
+    reload(widget_list_influences)
+
+    from ui import widget_list_modules
+    reload(widget_list_modules)
+
+    from ui import widget_list_meshes
+    reload(widget_list_meshes)
+
+    from ui import widget_logger
+    reload(widget_logger)
+
+    import widget_list_influences
+    reload(widget_list_influences)
+
+    import widget_list_modules
+    reload(widget_list_modules)
+
+    import widget_list_meshes
+    reload(widget_list_meshes)
+
+    import widget_logger
+    reload(widget_logger)
 
     from ui import main_window
     reload(main_window)

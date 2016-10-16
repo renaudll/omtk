@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>936</width>
-    <height>818</height>
+    <width>787</width>
+    <height>658</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,29 +30,13 @@
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout">
-          <item>
-           <widget class="QLineEdit" name="lineEdit_search_modules"/>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_update_modules">
-            <property name="text">
-             <string>Update</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QTreeWidget" name="treeWidget">
-          <attribute name="headerVisible">
-           <bool>false</bool>
-          </attribute>
-          <column>
-           <property name="text">
-            <string notr="true">1</string>
-           </property>
-          </column>
+         <widget class="WidgetListModules" name="widget_modules" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
          </widget>
         </item>
        </layout>
@@ -67,42 +51,13 @@
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <item>
-           <widget class="QLineEdit" name="lineEdit_search_jnt"/>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_update_influences">
-            <property name="text">
-             <string>Update</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox_hideAssigned">
-          <property name="text">
-           <string>Hide Assigned</string>
+         <widget class="WidgetListInfluences" name="widget_jnts" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QTreeWidget" name="treeWidget_jnts">
-          <property name="selectionMode">
-           <enum>QAbstractItemView::ContiguousSelection</enum>
-          </property>
-          <property name="rootIsDecorated">
-           <bool>true</bool>
-          </property>
-          <attribute name="headerVisible">
-           <bool>false</bool>
-          </attribute>
-          <column>
-           <property name="text">
-            <string notr="true">Joint Hierarchy</string>
-           </property>
-          </column>
          </widget>
         </item>
        </layout>
@@ -117,35 +72,12 @@
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <item>
-           <widget class="QLineEdit" name="lineEdit_search_meshes"/>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_update_meshes">
-            <property name="text">
-             <string>Update</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QTreeWidget" name="treeWidget_meshes">
-          <property name="selectionMode">
-           <enum>QAbstractItemView::ContiguousSelection</enum>
-          </property>
-          <column>
-           <property name="text">
-            <string notr="true">1</string>
-           </property>
-          </column>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_selectGrpMeshes">
-          <property name="text">
-           <string>Select Meshes Grp</string>
+         <widget class="WidgetListMeshes" name="widget_meshes" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
          </widget>
         </item>
@@ -160,7 +92,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>936</width>
+     <width>787</width>
      <height>28</height>
     </rect>
    </property>
@@ -177,9 +109,9 @@
     <property name="title">
      <string>Rig</string>
     </property>
-    <addaction name="actionBuild"/>
-    <addaction name="actionUnbuild"/>
-    <addaction name="actionRebuild"/>
+    <addaction name="actionBuildAll"/>
+    <addaction name="actionUnbuildAll"/>
+    <addaction name="actionRebuildAll"/>
    </widget>
    <widget class="QMenu" name="menuJoint">
     <property name="title">
@@ -218,89 +150,17 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_4">
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Logs</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>Search</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEdit_log_search"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Level:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="comboBox_log_level">
-         <property name="currentIndex">
-          <number>1</number>
-         </property>
-         <item>
-          <property name="text">
-           <string>Error</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Warning</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Info</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Debug</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButton_logs_save">
-         <property name="text">
-          <string>Save</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButton_logs_clear">
-         <property name="text">
-          <string>Clear</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QTableView" name="tableView_logs"/>
+      <widget class="WidgetLogger" name="widget_logger" native="true">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
@@ -323,17 +183,17 @@
     <string>Export</string>
    </property>
   </action>
-  <action name="actionBuild">
+  <action name="actionBuildAll">
    <property name="text">
     <string>Build All</string>
    </property>
   </action>
-  <action name="actionUnbuild">
+  <action name="actionUnbuildAll">
    <property name="text">
     <string>Unbuild All</string>
    </property>
   </action>
-  <action name="actionRebuild">
+  <action name="actionRebuildAll">
    <property name="text">
     <string>Rebuild All</string>
    </property>
@@ -355,7 +215,7 @@
   </action>
   <action name="actionMirrorJntsLToR">
    <property name="text">
-    <string>Mirror R &lt;- L</string>
+    <string>Mirror L -&gt; R</string>
    </property>
   </action>
   <action name="actionMirrorJntsRToL">
@@ -427,135 +287,32 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WidgetListModules</class>
+   <extends>QWidget</extends>
+   <header>..widget_list_modules.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetListInfluences</class>
+   <extends>QWidget</extends>
+   <header>..widget_list_influences.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetListMeshes</class>
+   <extends>QWidget</extends>
+   <header>..widget_list_meshes.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetLogger</class>
+   <extends>QWidget</extends>
+   <header>..widget_logger.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
- <connections>
-  <connection>
-   <sender>pushButton_selectGrpMeshes</sender>
-   <signal>pressed()</signal>
-   <receiver>actionSelectGrpMeshes</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>910</x>
-     <y>691</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_update_modules</sender>
-   <signal>pressed()</signal>
-   <receiver>actionUpdateModulesView</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>243</x>
-     <y>104</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_update_meshes</sender>
-   <signal>pressed()</signal>
-   <receiver>actionUpdateMeshesView</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>812</x>
-     <y>104</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_update_influences</sender>
-   <signal>pressed()</signal>
-   <receiver>actionUpdateInfluencesView</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>527</x>
-     <y>104</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButton_logs_clear</sender>
-   <signal>pressed()</signal>
-   <receiver>actionClearLogs</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>853</x>
-     <y>510</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButton_logs_save</sender>
-   <signal>pressed()</signal>
-   <receiver>actionSaveLogs</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>762</x>
-     <y>510</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>comboBox_log_level</sender>
-   <signal>currentIndexChanged(int)</signal>
-   <receiver>actionChangeLogLevel</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>456</x>
-     <y>480</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>lineEdit_log_search</sender>
-   <signal>textChanged(QString)</signal>
-   <receiver>actionUpdateLogSearchQuery</receiver>
-   <slot>trigger()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>480</x>
-     <y>572</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

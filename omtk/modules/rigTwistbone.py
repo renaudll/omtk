@@ -296,7 +296,9 @@ class Twistbone(Module):
 
         for mesh in self.get_farest_affected_meshes():
             self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
-            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
+            # Transfer weight, note that since we use force_straight line, the influence
+            # don't necessaryy need to be in their bind pose.
+            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts, force_straight_line=True)
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):

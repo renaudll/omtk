@@ -175,7 +175,7 @@ def _get_point_weights_from_segments_weights(segments, segments_weights, pos):
     return point_weights
 
 #@libPython.profiler
-def transfer_weights_from_segments(obj, source, targets, dropoff=2):
+def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_straight_line=False):
     """
     Automatically assign skin weights from source to destinations using the vertices position.
     """
@@ -209,7 +209,6 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
         return False
     jnt_dst_indexes = [influence_objects.index(target) for target in targets]
 
-
     # Store the affected joints only
     # This allow us to reference the index to navigate in the weights table.
     mint_influences = OpenMaya.MIntArray()
@@ -218,7 +217,42 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=2):
         mint_influences.append(dst_index)
     chunk_size = mint_influences.length()
 
-    segments = libPymel.SegmentCollection.from_transforms(targets)
+    # Resolve the positions to use for computing the segments.
+    knot_positions = []
+    for target in targets:
+        # todo: document why we are using OpenMaya here
+        mfn_transform = target.__apimfn__()
+        pos = OpenMaya.MVector(mfn_transform.getTranslation(OpenMaya.MSpace.kWorld))
+        knot_positions.append(pos)
+
+    if force_straight_line:
+        total_length = 0
+        num_positions = len(knot_positions)
+        # Resolve segment lengths
+        segment_lengths = []
+        for i in range(num_positions-1):
+            pos_s = knot_positions[i]
+            pos_e = knot_positions[i+1]
+            length = (pos_s - pos_e).length()
+            segment_lengths.append(length)
+            total_length += length
+
+        # Resolve segments ratios
+        segment_ratios = [0.0]
+        ratio_incr = 0
+        for length in segment_lengths:
+            ratio_incr += length / total_length
+            segment_ratios.append(ratio_incr)
+
+        # Compute new positions in a straight line.
+        pos_s = knot_positions[0]
+        pos_e = knot_positions[-1]
+        knot_positions = []
+        for ratio in segment_ratios:
+            pos = (pos_e - pos_s) * ratio + pos_s
+            knot_positions.append(pos)
+
+    segments = libPymel.SegmentCollection.from_positions(knot_positions)
 
     # Get weights
     old_weights = OpenMaya.MDoubleArray()

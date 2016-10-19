@@ -64,7 +64,9 @@ def find():
     """
     # TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.get_networks_from_class('Rig')
-    return [libSerialization.import_network(network, module='omtk') for network in networks]
+    results = [libSerialization.import_network(network, module='omtk') for network in networks]
+    results = filter(None, results)  # Prevent un-serializable networks from passing through.
+    return results
 
 
 def find_one():
@@ -83,6 +85,9 @@ def build_all(strict=False):
     networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
+        if not rigroot:
+            log.warning("Error importing rig network {0}".format(network))
+            continue
         if rigroot.build(strict=strict):
             pymel.delete(network)
             libSerialization.export_network(rigroot)
@@ -94,6 +99,9 @@ def unbuild_all(strict=False):
     networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
+        if not rigroot:
+            log.warning("Error importing rig network {0}".format(network))
+            continue
         rigroot.unbuild(strict=strict)
         pymel.delete(network)
         # Write changes to scene

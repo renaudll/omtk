@@ -1,7 +1,10 @@
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
-from omtk.libs import libPymel, libRigging, libSkinning
+from omtk.libs import libPymel
+from omtk.libs import libRigging
+from omtk.libs import libSkinning
+from omtk.libs import libPython
 
 
 class CtrlRibbon(BaseCtrl):
@@ -40,6 +43,15 @@ class Ribbon(Module):
         """
         ctrls = ctrls if ctrls else self.ctrls
         nomenclature_anm = self.get_nomenclature_anm()
+
+
+        # Ensure we have as many ctrls as needed.
+        desired_ctrls_count = len(self._ribbon_jnts)
+        if no_extremity:
+            desired_ctrls_count -= 2
+        ctrls = filter(None, ctrls)
+        libPython.resize_list(ctrls, desired_ctrls_count)
+
         real_index = 0
         for i, jnt in enumerate(self._ribbon_jnts):
             if no_extremity and i == 0 or i == (len(self._ribbon_jnts) - 1):
@@ -49,7 +61,7 @@ class Ribbon(Module):
             # Check if we already have an instance of the ctrl
             if not isinstance(ctrl, CtrlRibbon):
                 ctrl = CtrlRibbon()
-                ctrls.append(ctrl) # Only add the ctrl if it's created
+                ctrls[real_index] = ctrl
             ctrl.build(name=ctrl_name, **kwargs)
             ctrl.setMatrix(jnt.getMatrix(worldSpace=True), worldSpace=True)
             ctrl.setParent(self.grp_anm)

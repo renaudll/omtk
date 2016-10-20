@@ -5,6 +5,7 @@ from omtk.core.classNode import Node
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
+from omtk.libs import libPymel
 from omtk.modules.rigRibbon import Ribbon
 from omtk.libs import libAttr
 import math
@@ -295,7 +296,9 @@ class Twistbone(Module):
 
         for mesh in self.get_farest_affected_meshes():
             self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
-            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts)
+            # Transfer weight, note that since we use force_straight line, the influence
+            # don't necessaryy need to be in their bind pose.
+            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts, force_straight_line=True)
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):
@@ -353,6 +356,9 @@ class Twistbone(Module):
         for mesh in self.get_farest_affected_mesh():
             libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
         '''
+        # React if the user deleted some twist influences.
+        self.subjnts = filter(libPymel.is_valid_PyNode, self.subjnts)
+
         # Remove scaling from the subjnts before unbuilding, otherwise scale issue will occur.
         for jnt in self.subjnts:
             pymel.disconnectAttr(jnt.scaleX)

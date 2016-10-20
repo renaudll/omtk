@@ -421,8 +421,14 @@ class AutoRig(QtGui.QMainWindow):
 
     def closeEvent(self, *args, **kwargs):
         log.info('Closed OMTK GUI')
-        self.ui.widget_logger.remove_logger_handler()
-        self.remove_callbacks()
+        try:
+            self.ui.widget_logger.remove_logger_handler()
+        except Exception, e:
+            log.warning("Error removing logging handler: {0}:".format(e))
+        try:
+            self.remove_callbacks()
+        except Exception, e:
+            log.warning("Error removing callbacks: {0}".format(e))
         QtGui.QMainWindow.closeEvent(self, *args)
 
         #

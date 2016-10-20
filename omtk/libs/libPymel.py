@@ -275,7 +275,7 @@ class Segment(object):
             a.z + a_to_b.z * dist_norm
         )
 
-    def closest_point_normalized_distance(self, p):
+    def closest_point_normalized_distance(self, p, epsilon=0.001):
         """
         Same things as .closest_point but only return the distance relative from the length of a to b.
         Available for optimisation purpose.
@@ -289,7 +289,8 @@ class Segment(object):
         a_to_p_norm = a_to_p.normal()
         a_to_b_norm = a_to_b.normal()
         atp_dot_atb = a_to_p_norm * a_to_b_norm
-        return (atp_dot_atb * ap_length / ab_length) if ab_length > 0.001  else 0.0
+
+        return (atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon  else 0.0
 
 
 class SegmentCollection(object):
@@ -302,7 +303,7 @@ class SegmentCollection(object):
         self.knots.append(self.segments[-1].pos_e)
 
     def closest_segment(self, pos):
-        bound_min = -0.999999999999  # Damn float imprecision
+        bound_min = -0.000000000001  # Damn float imprecision
         bound_max = 1.0000000000001  # Damn float imprecision
         num_segments = len(self.segments)
         for i, segment in enumerate(self.segments):
@@ -382,6 +383,17 @@ class SegmentCollection(object):
             mfn_transform_e = obj_e.__apimfn__()
             pos_s = OpenMaya.MVector(mfn_transform_s.getTranslation(OpenMaya.MSpace.kWorld))
             pos_e = OpenMaya.MVector(mfn_transform_e.getTranslation(OpenMaya.MSpace.kWorld))
+            segment = Segment(pos_s, pos_e)
+            segments.append(segment)
+        return cls(segments)
+
+    @classmethod
+    def from_positions(cls, positions):
+        segments = []
+        num_positions = len(positions)
+        for i in range(num_positions-1):
+            pos_s = positions[i]
+            pos_e = positions[i+1]
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)

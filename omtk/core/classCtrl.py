@@ -51,6 +51,7 @@ class BaseCtrl(Node):
         self.offset = None  # An intermediate parent that store the original transform of the ctrl.
         self.shapes = None  # The list of shape to be used by the ctrl
         self.node = None
+        self.rotate_order = None  # Keep the axis order information on unbuild
 
         self.targets = []  # A list representing all the space switch target for the ctrl
         self.targets_indexes = []  # A list representing all the space switch target indexes for the ctrl
@@ -91,7 +92,7 @@ class BaseCtrl(Node):
         make.normal.set(normal)
 
         # Expose the rotateOrder
-        transform.rotateOrder.setKeyable(True)
+        # transform.rotateOrder.setKeyable(True)
 
         return transform
 
@@ -111,8 +112,12 @@ class BaseCtrl(Node):
         else:
             super(BaseCtrl, self).build(name=None, *args, **kwargs)
 
+        # The name keep since the last unbuild will have the priority over the name that could be set in the code
         if name:
             self.node.rename(name)
+
+        if self.rotate_order:
+            self.node.rotateOrder.set(self.rotate_order)
 
         # Create an intermediate parent if necessary
         if self._create_offset:
@@ -159,11 +164,12 @@ class BaseCtrl(Node):
 
     def unbuild(self, keep_shapes=True, *args, **kwargs):
         """
-        Delete ctrl setup, but store the animation and the shapes.
+        Delete ctrl setup, but store the animation, shapes and rotate order0.
         """
         if not libPymel.is_valid_PyNode(self.node):
             raise Exception("Can't hold ctrl attribute! Some information may be lost... {0}".format(self.node))
         else:
+            self.rotate_order = self.node.rotateOrder.get()
             self.hold_attrs_all()
             self.hold_shapes()
             super(BaseCtrl, self).unbuild(*args, **kwargs)
@@ -332,7 +338,7 @@ class BaseCtrl(Node):
             target = targets[i]
             label = labels[i]
 
-            if label is None:
+            if label is None and target is not None:
                 name = nomenclature(target.name())
                 name.remove_extra_tokens()
                 labels[i] = name.resolve()
@@ -407,23 +413,36 @@ class BaseCtrl(Node):
         :return: The targets obj, name and index of the found space switch target
         """
 
-        targets = []  # The target
+        targets = []
+        targets.extend(self.targets)  # The target
+        # Initialize the target name list with the same number of item than the targets keeped before
         target_names = []
+        for i in range(0, len(targets)):
+            target_names.append(None)
         indexes = []
+        indexes.extend(self.targets_indexes)
 
         # Use the grp_rip node as the world target. It will always be the first target in the list
         if add_world and libPymel.is_valid_PyNode(module.rig.grp_rig):
-            targets.append(module.rig.grp_rig)
-            target_names.append(world_name)
-            # World will always be -1
-            indexes.append(self.get_bestmatch_index(module.rig.grp_rig, constants.SpaceSwitchReservedIndex.world))
+            if module.rig.grp_rig not in targets:
+                targets.append(module.rig.grp_rig)
+                # World will always be -1
+                indexes.append(self.get_bestmatch_index(module.rig.grp_rig, constants.SpaceSwitchReservedIndex.world))
+                target_names.append(world_name)
+            else:
+                idx = targets.index(module.rig.grp_rig)
+                target_names[idx] = world_name
 
         # Add the master ctrl as a spaceswitch target
         if libPymel.is_valid_PyNode(module.rig.grp_anm):
-            targets.append(module.rig.grp_anm)
-            target_names.append(root_name)
-            # The root will always be index 1, because we want to let local to be 0
-            indexes.append(self.get_bestmatch_index(module.rig.grp_anm, constants.SpaceSwitchReservedIndex.root))
+            if module.rig.grp_anm not in targets:
+                targets.append(module.rig.grp_anm)
+                target_names.append(root_name)
+                # The root will always be index 1, because we want to let local to be 0
+                indexes.append(self.get_bestmatch_index(module.rig.grp_anm, constants.SpaceSwitchReservedIndex.root))
+            else:
+                idx = targets.index(module.rig.grp_anm)
+                target_names[idx] = root_name
 
         # Resolve modules targets
         first_module = True
@@ -434,13 +453,27 @@ class BaseCtrl(Node):
             # would be the first module found
             if m and ((add_local and not first_module) or not add_local):
                 target, target_name = m.get_pin_locations(jnt)
-                if target and target not in targets:
-                    targets.append(target)
-                    target_names.append(target_name)
-                    indexes.append(self.get_bestmatch_index(target))
+                if target:
+                    if target not in targets:
+                        targets.append(target)
+                        target_names.append(target_name)
+                        indexes.append(self.get_bestmatch_index(target))
+                    else:
+                        idx = targets.index(target)
+                        target_names[idx] = target_name
             else:
                 first_module = False
             jnt = jnt.getParent()
+
+        # Final check to ensure that not target is None. If one None target is found, we need to remove it and let the
+        # index in the space attribute to be free to fix manually
+        for i, t in reversed(list(enumerate(targets))):
+            if t is None:
+                log.warning("Space switch index {0} target is None on {1}, "
+                            "maybe a manual connection will be needed".format(indexes[i], self.name))
+                targets.pop(i)
+                target_names.pop(i)
+                indexes.pop(i)
 
         return targets, target_names, indexes
 
@@ -452,7 +485,7 @@ class BaseCtrl(Node):
         space_attr = getattr(self.node, 'space', None)
         dict_sw_data = {}
 
-        log.info("Processing {0}".format(self.node))
+        # log.info("Processing {0}".format(self.node))
 
         if space_attr:
             enum_items = space_attr.getEnums().items()
@@ -478,7 +511,8 @@ class BaseCtrl(Node):
                 if not target_found:
                         dict_sw_data[index] = (name, None)
         else:
-            log.warning("No space attribute found on {0}".format(self.node))
+            pass
+            # log.warning("No space attribute found on {0}".format(self.node))
 
         return dict_sw_data
 

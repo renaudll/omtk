@@ -51,7 +51,7 @@ class BaseCtrl(Node):
         self.offset = None  # An intermediate parent that store the original transform of the ctrl.
         self.shapes = None  # The list of shape to be used by the ctrl
         self.node = None
-        self.rotate_order = None  # Keep the axis order information on unbuild
+        self.rotateOrder = None  # Keep the axis order information on unbuild
 
         self.targets = []  # A list representing all the space switch target for the ctrl
         self.targets_indexes = []  # A list representing all the space switch target indexes for the ctrl
@@ -116,8 +116,8 @@ class BaseCtrl(Node):
         if name:
             self.node.rename(name)
 
-        if self.rotate_order:
-            self.node.rotateOrder.set(self.rotate_order)
+        if self.rotateOrder is not None:
+            self.node.rotateOrder.set(self.rotateOrder)
 
         # Create an intermediate parent if necessary
         if self._create_offset:
@@ -169,7 +169,7 @@ class BaseCtrl(Node):
         if not libPymel.is_valid_PyNode(self.node):
             raise Exception("Can't hold ctrl attribute! Some information may be lost... {0}".format(self.node))
         else:
-            self.rotate_order = self.node.rotateOrder.get()
+            self.rotateOrder = self.node.rotateOrder.get()
             self.hold_attrs_all()
             self.hold_shapes()
             super(BaseCtrl, self).unbuild(*args, **kwargs)

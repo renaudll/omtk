@@ -675,6 +675,8 @@ def get_matrix_from_direction(look_vec, upp_vec,
     upp_vec.normalize()
 
     side_vec = pymel.datatypes.Vector.cross(look_vec, upp_vec)
+    side_vec.normalize()
+
     #recross in case up and front were not originally orthogonal:
     upp_vec = pymel.datatypes.Vector.cross(side_vec, look_vec)
 

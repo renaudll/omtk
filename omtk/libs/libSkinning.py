@@ -46,6 +46,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
 
     if not sources:
         print "Abording transfering on {0}, nothing to transfer".format(obj.name())
+        return
 
     num_jnts = len(influence_jnts)
     jnt_src_indices = [influence_jnts.index(source) for source in sources]

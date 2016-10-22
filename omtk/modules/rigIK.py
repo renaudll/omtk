@@ -429,8 +429,6 @@ class IK(Module):
         self.ctrl_ik.rename(ctrl_ik_name)
         self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
 
-        self.setup_spaceswitch_objects()
-
         # Set ctrl_ik_orientation
         if ctrl_ik_orientation is None:
             ctrl_ik_orientation = obj_e.getRotation(space='world')

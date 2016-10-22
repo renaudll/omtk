@@ -185,8 +185,6 @@ class LegIkQuad(rigLeg.LegIk):
             for source, target in zip(self._chain_quad_ik, self.chain):
                 pymel.parentConstraint(source, target)
 
-        #self.setup_spaceswitch_objects(rig)
-
     '''
     TODO - Remove this after confirmation that ctrl space switch target is fine on self.chain[1] instead of an object
     constrained on self._chain_quad_ik[1]

@@ -166,7 +166,7 @@ class Ribbon(Module):
 
         # Create the ctrls that will drive the joints that will drive the ribbon.
         if create_ctrl:
-            self.ctrls = self.create_ctrls(self, **kwargs)
+            self.ctrls = self.create_ctrls(**kwargs)
 
             # Global uniform scale support
             self.globalScale.connect(self.ribbon_chain_grp.scaleX)

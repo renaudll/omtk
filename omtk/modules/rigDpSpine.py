@@ -54,10 +54,6 @@ class DpSpine(Module):
         self.jnt_squash_mid = None
         self.enable_squash = True
 
-        # Space switch target objects that will be kept on unbuild
-        self.ctrl_ik_dwn_sw = None
-        self.ctrl_fk_upp_sw = None
-
     def validate(self):
         super(DpSpine, self).validate()
         if len(self.jnts) != 3:
@@ -252,33 +248,6 @@ class DpSpine(Module):
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleY)
         pymel.connectAttr(self.grp_rig.globalScale, ref_parent.scaleZ)
 
-        self.setup_spaceswitch_objects()
-
-    def setup_spaceswitch_objects(self):
-        super(DpSpine, self).setup_spaceswitch_objects()
-
-        nomenclature_rig = self.get_nomenclature_rig()
-        # Create Space switch targets objects
-        if not isinstance(self.ctrl_ik_dwn_sw, Node):
-            self.ctrl_ik_dwn_sw = Node()
-        if not self.ctrl_ik_dwn_sw.is_built():
-            self.ctrl_ik_dwn_sw.build(
-                name=nomenclature_rig.resolve('spaceTargetLow')
-            )
-            self.ctrl_ik_dwn_sw.setMatrix(self.ctrl_ik_dwn.getMatrix(ws=True), ws=True)
-        self.ctrl_ik_dwn_sw.setParent(self.grp_rig)
-        pymel.parentConstraint(self.ctrl_ik_dwn, self.ctrl_ik_dwn_sw)
-
-        if not isinstance(self.ctrl_fk_upp_sw, Node):
-            self.ctrl_fk_upp_sw = Node()
-        if not self.ctrl_fk_upp_sw.is_built():
-            self.ctrl_fk_upp_sw.build(
-                name=nomenclature_rig.resolve("spaceTargetUpp")
-            )
-        self.ctrl_fk_upp_sw.setMatrix(self.ctrl_ik_dwn.getMatrix(ws=True), ws=True)
-        self.ctrl_fk_upp_sw.setParent(self.grp_rig)
-        pymel.parentConstraint(self.ctrl_ik_dwn, self.ctrl_fk_upp_sw)
-
     def unbuild(self):
         # Restore the original skin and remove the squash joints
         if self.jnt_squash_dwn and self.jnt_squash_dwn.exists():
@@ -293,10 +262,6 @@ class DpSpine(Module):
 
         self.jnt_squash_dwn = None
         self.jnt_squash_dwn = None
-
-        # Hold space switch targets
-        self.ctrl_fk_upp_sw.unbuild()
-        self.ctrl_ik_dwn_sw.unbuild()
 
         super(DpSpine, self).unbuild()
 
@@ -318,9 +283,9 @@ class DpSpine(Module):
         :return: The possible target for space switch
         """
         if jnt == self.chain_jnt[0]:
-            return self.ctrl_ik_dwn_sw, 'Cog'
+            return self.ctrl_ik_dwn, 'Cog'
         elif jnt == self.chain_jnt[-1]:
-            return self.ctrl_fk_upp_sw, 'Chest'
+            return self.ctrl_fk_upp, 'Chest'
         else:
             return None, None
 

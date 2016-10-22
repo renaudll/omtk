@@ -433,10 +433,4 @@ class Module(object):
         else:
             return None, None
 
-    def setup_spaceswitch_objects(self):
-        """
-        This function will be used to create the space switch target objects needed for a module
-        """
-        pass
-
 

@@ -116,6 +116,7 @@ class Rig(object):
         self.grp_jnt = None  # Joint grp, usually the root jnt
         self.grp_rig = None  # Data grp
         self.grp_master = None  # Main grp of the rig
+        self.grp_backup = None # Backup grp, contain anything we saved during unbuild.
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
@@ -370,7 +371,7 @@ class Rig(object):
         return val
 
     def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
-                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True):
+                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
         # Look for a root joint
         if create_grp_jnt:
             # For now, we will determine the root jnt by it's name used in each rig. Not the best solution,
@@ -413,6 +414,9 @@ class Rig(object):
             #if all_geos:
             #    all_geos.setParent(self.grp_geo)
 
+        if create_grp_backup:
+            self.grp_backup = self.build_grp(RigGrp, self.grp_backup, self.nomenclature.root_backup_name)
+
         #Parent all grp on the master grp
         if self.grp_master:
             if self.grp_jnt:
@@ -423,6 +427,8 @@ class Rig(object):
                 self.grp_rig.setParent(self.grp_master.node)
             if self.grp_geo:
                 self.grp_geo.setParent(self.grp_master.node)
+            if self.grp_backup:
+                self.grp_backup.setParent(self.grp_master.node)
 
         # Setup displayLayers
         if create_display_layers:
@@ -768,3 +774,11 @@ class Rig(object):
             return None
 
         return libPymel.distance_between_vectors(bot, top)
+
+    def hold_node(self, node):
+        if not (self.grp_backup and self.grp_backup.exists()):
+            self.grp_backup = self.build_grp(RigGrp, self.grp_backup, self.nomenclature.root_backup_name)
+            if self.grp_master and self.grp_master.exists():
+                self.grp_backup.setParent(self.grp_master)
+
+        node.setParent(self.grp_backup)

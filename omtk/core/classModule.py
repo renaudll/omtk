@@ -4,7 +4,9 @@ import re
 import pymel.core as pymel
 
 logging.basicConfig()
-from omtk.libs import libPymel, libAttr, libPython
+from omtk.libs import libPymel
+from omtk.libs import libPython
+from omtk.libs import libAttr
 log = logging.getLogger('omtk')
 import functools
 
@@ -312,6 +314,7 @@ class Module(object):
         if create_grp_rig:
             grp_rig_name = self.get_nomenclature_rig_grp().resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
+            libAttr.lock_hide_trs(self.grp_rig)
 
             if connect_global_scale:
                 # todo: keep it here?

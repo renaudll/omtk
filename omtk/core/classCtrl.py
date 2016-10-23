@@ -621,12 +621,29 @@ class InteractiveCtrl(BaseCtrl):
 
         # Add sensibility attributes
         # The values will be computed when attach_ctrl will be called
-        self.attr_sensitivity_tx = libAttr.addAttr(stack, longName=self._ATTR_NAME_SENSITIVITY_TX,
-                                                             defaultValue=1.0)
-        self.attr_sensitivity_ty = libAttr.addAttr(stack, longName=self._ATTR_NAME_SENSITIVITY_TY,
-                                                             defaultValue=1.0)
-        self.attr_sensitivity_tz = libAttr.addAttr(stack, longName=self._ATTR_NAME_SENSITIVITY_TZ,
-                                                             defaultValue=1.0)
+        libAttr.addAttr_separator(
+            module.grp_rig,
+            "ctrlCalibration"
+        )
+        self.attr_sensitivity_tx = libAttr.addAttr(
+            module.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TX,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_ty = libAttr.addAttr(
+            module.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TY,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_tz = libAttr.addAttr(
+            module.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TZ,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_tx.set(channelBox=True)
+        self.attr_sensitivity_ty.set(channelBox=True)
+        self.attr_sensitivity_tz.set(channelBox=True)
+
 
         # Note that to only check in the Z axis, we'll do a raycast first.
         # If we success this will become our reference position.

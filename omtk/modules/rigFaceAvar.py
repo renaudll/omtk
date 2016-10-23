@@ -123,7 +123,11 @@ class AbstractAvar(classModule.Module):
             self.warning("Can't hold avars, invalid grp_rig in {0}!".format(self))
             return
 
-        self.avar_network = pymel.createNode('network')
+        self.avar_network = pymel.createNode(
+            'transform',
+            name=self.get_nomenclature_rig().resolve('avarBackup')
+        )
+        self.rig.hold_node(self.avar_network)
         self.add_avars(self.avar_network)
 
         def attr_have_animcurve_input(attr):

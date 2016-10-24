@@ -55,6 +55,7 @@ class BaseName(object):
     root_geo_name = 'geos'
     root_jnt_name = 'jnts'
     root_rig_name = 'data'
+    root_backup_name = 'backup'
 
     layer_anm_name = 'layer_anm'
     layer_rig_name = 'layer_rig'

@@ -123,7 +123,11 @@ class AbstractAvar(classModule.Module):
             self.warning("Can't hold avars, invalid grp_rig in {0}!".format(self))
             return
 
-        self.avar_network = pymel.createNode('network')
+        self.avar_network = pymel.createNode(
+            'transform',
+            name=self.get_nomenclature_rig().resolve('avarBackup')
+        )
+        self.rig.hold_node(self.avar_network)
         self.add_avars(self.avar_network)
 
         def attr_have_animcurve_input(attr):
@@ -649,22 +653,37 @@ class AvarFollicle(AvarSimple):
         nomenclature_rig = self.get_nomenclature_rig()
 
         #
-        # Create a simple setup that will extract the base U and V of the base influence using the stack parent. (the 'offset' node)
+        # Extract the base U and V of the base influence using the stack parent. (the 'offset' node)
         #
-        # Hack: We can't trust the local translate of the right corner of the lips since an 'OffsetNotFlip' parent is inserted. -_- #fixme
-        # util_decompose = libRigging.create_utility_node('decomposeMatrix',
-        #     inputMatrix=stack.getParent().matrix
-        # )
-        util = libRigging.create_utility_node('closestPointOnSurface',
-            inPosition=self._grp_offset.t,  # Note: The first node of the stack is always the 'offset' node.
-            inputSurface=self.surface.getShape().worldSpace
+        surface_shape = self.surface.getShape()
+
+        util_get_base_uv_absolute = libRigging.create_utility_node(
+            'closestPointOnSurface',
+            inPosition=self._grp_offset.t,
+            inputSurface=surface_shape.worldSpace
         )
 
+        util_get_base_uv_normalized = libRigging.create_utility_node(
+            'setRange',
+            oldMinX=surface_shape.minValueU,
+            oldMaxX=surface_shape.maxValueU,
+            oldMinY=surface_shape.minValueV,
+            oldMaxY=surface_shape.maxValueV,
+            minX=0,
+            maxX=1,
+            minY=0,
+            maxY=1,
+            valueX=util_get_base_uv_absolute.parameterU,
+            valueY=util_get_base_uv_absolute.parameterV
+        )
+        attr_base_u_normalized = util_get_base_uv_normalized.outValueX
+        attr_base_v_normalized = util_get_base_uv_normalized.outValueY
 
-        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=util.parameterU.get())
-        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=util.parameterV.get())
-        pymel.connectAttr(util.parameterU, self.grp_rig.attr(self._ATTR_NAME_U_BASE))
-        pymel.connectAttr(util.parameterV, self.grp_rig.attr(self._ATTR_NAME_V_BASE))
+        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=attr_base_u_normalized.get())
+        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=attr_base_v_normalized.get())
+
+        pymel.connectAttr(attr_base_u_normalized, self.grp_rig.attr(self._ATTR_NAME_U_BASE))
+        pymel.connectAttr(attr_base_v_normalized, self.grp_rig.attr(self._ATTR_NAME_V_BASE))
 
         #
         # Create follicle setup

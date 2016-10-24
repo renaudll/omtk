@@ -572,7 +572,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
         if not self.preDeform:
             # Resolve the head influence
-            jnt_head = self.parent
+            jnt_head = self.rig.get_head_jnt()
             if not jnt_head:
                 self.error("Failed parenting avars, no head influence found!")
                 return

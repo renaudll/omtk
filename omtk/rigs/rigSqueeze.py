@@ -20,6 +20,7 @@ class SqueezeNomenclature(className.BaseName):
     root_geo_name = 'Render_Grp'
     root_rig_name = 'Data_Grp'
     root_jnt_name = 'Root_Jnt'
+    root_backup_name = 'Backup_Grp'
 
     #Specific to Rig Squeeze
     root_all_name = "All_Grp"

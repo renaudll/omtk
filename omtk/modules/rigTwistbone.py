@@ -84,7 +84,7 @@ class Twistbone(Module):
 
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, orient_ik_ctrl=True, num_twist=None, create_bend=None, *args, **kwargs):
+    def build(self, orient_ik_ctrl=True, num_twist=None, create_bend=None, realign=True, *args, **kwargs):
         if len(self.chain_jnt) < 2:
             raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.chain_jnt), self.chain_jnt))
 
@@ -119,6 +119,19 @@ class Twistbone(Module):
         # driver chain
         if not self.subjnts:
             self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, self.num_twist)
+        elif realign:
+            # Position the subjnts at equidistance from each others.
+            num_subjnts = len(self.subjnts)
+            base_tm = jnt_s.getMatrix(worldSpace=True)
+            sp = jnt_s.getTranslation(space='world')
+            ep = jnt_e.getTranslation(space='world')
+            delta = ep - sp
+            for i, subjnt in enumerate(self.subjnts):
+                ratio = float(i) / (num_subjnts-1)
+                tm = base_tm.copy()
+                tm.translate = delta * ratio + sp
+                subjnt.setMatrix(tm, worldSpace=True)
+
         self.subjnts[0].setParent(jnt_s)
 
         driver_grp = pymel.createNode('transform')
@@ -361,9 +374,15 @@ class Twistbone(Module):
 
         # Remove scaling from the subjnts before unbuilding, otherwise scale issue will occur.
         for jnt in self.subjnts:
-            pymel.disconnectAttr(jnt.scaleX)
-            pymel.disconnectAttr(jnt.scaleY)
-            pymel.disconnectAttr(jnt.scaleZ)
+            pymel.disconnectAttr(jnt.tx)
+            pymel.disconnectAttr(jnt.ty)
+            pymel.disconnectAttr(jnt.tz)
+            pymel.disconnectAttr(jnt.rx)
+            pymel.disconnectAttr(jnt.ry)
+            pymel.disconnectAttr(jnt.rz)
+            pymel.disconnectAttr(jnt.sx)
+            pymel.disconnectAttr(jnt.sy)
+            pymel.disconnectAttr(jnt.sz)
 
         # Don't disconnect input attribute when unbuilding twist bones
         super(Twistbone, self).unbuild(disconnect_attr=False)

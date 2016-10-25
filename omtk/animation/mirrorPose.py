@@ -1,3 +1,7 @@
+"""
+Warning: The mirror functionnality of OMTK is in alpha stage. Use it at your own risk!
+"""
+
 import pymel.core as pymel
 from maya import cmds, OpenMaya
 from omtk.libs import libPython
@@ -103,21 +107,12 @@ def get_name_friend(obj_src_name, separator='_'):
         tokens_dst.append(token)
 
     obj_dst_name = separator.join(tokens_dst)
+
     return obj_dst_name
 
 def get_ctrl_friend(obj_src):
     obj_src_name = obj_src.name()
     obj_dst_name = get_name_friend(obj_src_name)
-
-
-    '''
-    obj_dst_name = None
-    # TODO: find a better algorythm
-    if '_l_' in obj_src_name:
-        obj_dst_name = obj_src_name.replace('_l_', '_r_')
-    elif '_r_' in obj_src_name:
-        obj_dst_name = obj_src_name.replace('_r_', '_l_')
-    '''
 
     if obj_dst_name is None:
         print("Can't find ctrl friend of {0}".format(obj_src_name))
@@ -192,21 +187,9 @@ def get_obj_mirror_def(obj):
             )
         except pymel.MayaAttributeError as e:
             print(str(e))
-        '''
-        ctrl = libSerialization.import_network(network)
-        return (
-            ctrl.mirror_needed,
-            ctrl.mirror_flip_pos_x,
-            ctrl.mirror_flip_pos_y,
-            ctrl.mirror_flip_pos_z,
-            ctrl.mirror_flip_rot_x,
-            ctrl.mirror_flip_rot_y,
-            ctrl.mirror_flip_rot_z
-        )
-        '''
 
     # If we cannot resolve the ctrl data, take a guess?
-    raise Exception("Can't resolve mirror data for {0}".format(obj))
+    pymel.warning("Can't resolve mirror data for {0}".format(obj))
 
 
 # @libPython.profiler
@@ -225,24 +208,16 @@ def mirror_objs(objs):
         if obj_src is None:
             obj_src = obj_dst
 
+        # Resolve mirror definition
+        # If we didn't find any friend, we'll use a default mirror definition.
         data = get_obj_mirror_def(obj_dst)
-        m = obj_dst.__apimfn__().transformation().asMatrix()
+        if data is None:
+            continue
 
-        print 'Before: {0}'.format(list_from_MMatrix(m))
+        m = obj_dst.__apimfn__().transformation().asMatrix()
 
         m = mirror_matrix(m, *data)
 
-        print 'After: {0}'.format(list_from_MMatrix(m))
-
-        '''
-        if obj_src == obj_dst:
-            mirror_matrix(m, mirror=True, flip_rot_x=True)
-        else:
-            mirror_matrix(m, mirror=False,
-                          flip_pos_x=True, flip_pos_y=True, flip_pos_z=True,
-                          flip_rot_x=False, flip_rot_y=False, flip_rot_z=False
-                          )
-        '''
 
         tms_by_objs[obj_src] = OpenMaya.MTransformationMatrix(m)
 

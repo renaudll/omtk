@@ -308,7 +308,7 @@ class Rig(object):
         result = filter(self._is_influence, result)
         return result
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_meshes(self):
         """
         :return: All meshes under the mesh group. If found nothing, scan the whole scene.
@@ -372,6 +372,13 @@ class Rig(object):
 
     def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
                   create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
+        # Hack: Invalidate any cache before building anything.
+        # This ensure we always have fresh data.
+        try:
+            del self._cache
+        except AttributeError:
+            pass
+
         # Look for a root joint
         if create_grp_jnt:
             # For now, we will determine the root jnt by it's name used in each rig. Not the best solution,
@@ -696,7 +703,7 @@ class Rig(object):
             self.warning("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
         return None
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
         from omtk.modules import rigFaceJaw
         for module in self.modules:
@@ -706,7 +713,7 @@ class Rig(object):
             self.warning("Cannot found Jaw in rig! Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
         return None
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2, default_distance=20):
         """
         :return: The recommended distance between the head middle and the face macro ctrls.
@@ -748,7 +755,7 @@ class Rig(object):
 
         return distance * multiplier
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_head_length(self):
         jnt_head = self.get_head_jnt()
         if not jnt_head:

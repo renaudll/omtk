@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>OpenRiggingToolkit</class>
+ <widget class="QMainWindow" name="OpenRiggingToolkit">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>787</width>
+    <height>658</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Open Rigging Toolkit</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_5">
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QWidget" name="layoutWidget">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QLabel" name="label_modules">
+          <property name="text">
+           <string>Modules</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="WidgetListModules" name="widget_modules" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="layoutWidget">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QLabel" name="label_jnts">
+          <property name="text">
+           <string>Influences</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="WidgetListInfluences" name="widget_jnts" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="layoutWidget">
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Meshes</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="WidgetListMeshes" name="widget_meshes" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>787</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionImport"/>
+    <addaction name="actionExport"/>
+    <addaction name="separator"/>
+    <addaction name="actionUpdate"/>
+   </widget>
+   <widget class="QMenu" name="menuRig">
+    <property name="title">
+     <string>Rig</string>
+    </property>
+    <addaction name="actionBuildAll"/>
+    <addaction name="actionUnbuildAll"/>
+    <addaction name="actionRebuildAll"/>
+   </widget>
+   <widget class="QMenu" name="menuJoint">
+    <property name="title">
+     <string>Modules</string>
+    </property>
+    <addaction name="actionCreateModule"/>
+    <addaction name="actionAddNodeToModule"/>
+    <addaction name="actionRemoveNodeFromModule"/>
+   </widget>
+   <widget class="QMenu" name="menuInfluences">
+    <property name="title">
+     <string>Influences</string>
+    </property>
+    <addaction name="actionMirrorJntsLToR"/>
+    <addaction name="actionMirrorJntsRToL"/>
+    <addaction name="actionMirrorSelection"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionShowPreferences"/>
+    <addaction name="actionShowPluginManager"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuRig"/>
+   <addaction name="menuJoint"/>
+   <addaction name="menuInfluences"/>
+   <addaction name="menuSettings"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="dockWidget">
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <widget class="WidgetLogger" name="widget_logger" native="true">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <action name="actionUpdate">
+   <property name="text">
+    <string>Update All</string>
+   </property>
+   <property name="toolTip">
+    <string>Update</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>Import</string>
+   </property>
+  </action>
+  <action name="actionExport">
+   <property name="text">
+    <string>Export</string>
+   </property>
+  </action>
+  <action name="actionBuildAll">
+   <property name="text">
+    <string>Build All</string>
+   </property>
+  </action>
+  <action name="actionUnbuildAll">
+   <property name="text">
+    <string>Unbuild All</string>
+   </property>
+  </action>
+  <action name="actionRebuildAll">
+   <property name="text">
+    <string>Rebuild All</string>
+   </property>
+  </action>
+  <action name="actionCreateModule">
+   <property name="text">
+    <string>Create Module</string>
+   </property>
+  </action>
+  <action name="actionAddNodeToModule">
+   <property name="text">
+    <string>Add Selection</string>
+   </property>
+  </action>
+  <action name="actionRemoveNodeFromModule">
+   <property name="text">
+    <string>Remove Selection</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsLToR">
+   <property name="text">
+    <string>Mirror L -&gt; R</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsRToL">
+   <property name="text">
+    <string>Mirror R -&gt; L</string>
+   </property>
+  </action>
+  <action name="actionMirrorSelection">
+   <property name="text">
+    <string>Mirror using Selection</string>
+   </property>
+  </action>
+  <action name="actionShowPluginManager">
+   <property name="text">
+    <string>Plugin Manager</string>
+   </property>
+  </action>
+  <action name="actionShowPreferences">
+   <property name="text">
+    <string>Preferences</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WidgetListModules</class>
+   <extends>QWidget</extends>
+   <header>..widget_list_modules.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetListInfluences</class>
+   <extends>QWidget</extends>
+   <header>..widget_list_influences.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetListMeshes</class>
+   <extends>QWidget</extends>
+   <header>..widget_list_meshes.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetLogger</class>
+   <extends>QWidget</extends>
+   <header>..widget_logger.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

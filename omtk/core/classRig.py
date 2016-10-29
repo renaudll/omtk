@@ -312,6 +312,7 @@ class Rig(object):
     def get_meshes(self):
         """
         :return: All meshes under the mesh group. If found nothing, scan the whole scene.
+        Note that we support mesh AND nurbsSurfaces.
         """
         meshes = None
         if self.grp_geo and self.grp_geo.exists():
@@ -320,7 +321,7 @@ class Rig(object):
 
         if not meshes:
             self.warning("Found no mesh under the mesh group, scanning the whole scene.")
-            shapes = pymel.ls(type='mesh')
+            shapes = pymel.ls(type='surfaceShape')
             meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
         return meshes

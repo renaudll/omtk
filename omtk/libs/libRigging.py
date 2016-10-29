@@ -430,7 +430,7 @@ def get_affected_geometries(*objs):
 
             for skinCluster in skinClusters:
                 for geometry in skinCluster.getOutputGeometry():
-                    if isinstance(geometry, pymel.nodetypes.Mesh):  # Only Mesh are supported for now
+                    if isinstance(geometry, pymel.nodetypes.SurfaceShape):
                         geometries.add(geometry)
 
     return geometries
@@ -869,7 +869,7 @@ def align_selected_joints_to_persp():
     align_joints_to_view(sel, cam)
 
 def _filter_shape(obj, key):
-    if not isinstance(obj, pymel.nodetypes.Mesh):
+    if not isinstance(obj, pymel.nodetypes.SurfaceShape):
         return False
 
     if obj.intermediateObject.get():

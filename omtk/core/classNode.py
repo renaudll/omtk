@@ -70,8 +70,8 @@ class Node(object):
         """
         new_layer = pymel.createNode('transform')
         if name:
-            new_name = self.node.name() + '_' + name
-            new_layer.rename(new_name)
+            #new_name = self.node.name() + '_' + name
+            new_layer.rename(name)
 
         # Note: Removed for performance
         new_layer.setMatrix(self.node.getMatrix(worldSpace=True))

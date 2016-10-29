@@ -621,22 +621,23 @@ class InteractiveCtrl(BaseCtrl):
 
         # Add sensibility attributes
         # The values will be computed when attach_ctrl will be called
+        att_holder = stack.node
         libAttr.addAttr_separator(
-            module.grp_rig,
+            att_holder,
             "ctrlCalibration"
         )
         self.attr_sensitivity_tx = libAttr.addAttr(
-            module.grp_rig,
+            att_holder,
             longName=self._ATTR_NAME_SENSITIVITY_TX,
             defaultValue=1.0
         )
         self.attr_sensitivity_ty = libAttr.addAttr(
-            module.grp_rig,
+            att_holder,
             longName=self._ATTR_NAME_SENSITIVITY_TY,
             defaultValue=1.0
         )
         self.attr_sensitivity_tz = libAttr.addAttr(
-            module.grp_rig,
+            att_holder,
             longName=self._ATTR_NAME_SENSITIVITY_TZ,
             defaultValue=1.0
         )

@@ -58,7 +58,7 @@ class InteractiveAvar(Module):
 
         return stack
 
-    def _build_stack_ctrl(self, ref, obj_mesh, ref_parent=None, follow_mesh=True, flip_lr=False, u_coord=False, v_coord=False):
+    def _build_stack_ctrl(self, stack, ref, obj_mesh, ref_parent=None, follow_mesh=True, flip_lr=False, u_coord=False, v_coord=False):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Add sensibility attributes
@@ -101,7 +101,7 @@ class InteractiveAvar(Module):
 
         # Create the layer_fol that will follow the geometry
         layer_fol_name = nomenclature_rig.resolve('doritosFol')
-        layer_fol = self._stack_ctrl.append_layer()
+        layer_fol = stack.append_layer()
         layer_fol.rename(layer_fol_name)
         # layer_fol.setParent(self.grp_rig)
 
@@ -149,7 +149,7 @@ class InteractiveAvar(Module):
 
         # Cancel the ctrl translation
         layer_inverse_t_name = nomenclature_rig.resolve('inverseT')
-        layer_inverse_t = self._stack_ctrl.append_layer(
+        layer_inverse_t = stack.append_layer(
             name=layer_inverse_t_name,
         )
         attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.t,
@@ -177,7 +177,7 @@ class InteractiveAvar(Module):
 
         # Cancel the ctrl rotation
         layer_inverse_r_name = nomenclature_rig.resolve('inverseR')
-        layer_inverse_r = self._stack_ctrl.append_layer(
+        layer_inverse_r = stack.append_layer(
             name=layer_inverse_r_name,
         )
         attr_ctrl_inv_r = libRigging.create_utility_node(
@@ -256,11 +256,11 @@ class InteractiveAvar(Module):
         # Constraint ctrl
         # Note that it is really hard to controller in rotation a ctrl that follow a surface.
         # For this reason, we want to provide a ref_parent property that define a stable rotate reference.
-        pymel.parentConstraint(self._stack_ctrl.node, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
+        pymel.parentConstraint(stack.node, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
         pymel.orientConstraint(ref_parent, self.ctrl.offset, maintainOffset=False)
 
         # Clean dag junk
-        self._stack_ctrl.setParent(self.grp_rig)
+        stack.setParent(self.grp_rig)
 
     def get_jnt_tm(self):
         return self.jnt.getMatrix(worldSpace=True)
@@ -395,7 +395,7 @@ class InteractiveAvar(Module):
             self._stack_ctrl.setMatrix(jnt_tm, worldSpace=True)
             #self._stack_ctrl.setTranslation(pos_ref)
 
-            self._build_stack_ctrl(ref, obj_mesh, u_coord=u_coord, v_coord=v_coord, ref_parent=ref_parent)
+            self._build_stack_ctrl(self._stack_ctrl, ref, obj_mesh, u_coord=u_coord, v_coord=v_coord, ref_parent=ref_parent)
 
             self.ctrl.setTranslation(doritos_pos)
             self.ctrl.setParent(self.grp_anm)
@@ -445,7 +445,7 @@ class InteractiveAvarGrp(Module):
         super(InteractiveAvarGrp, self).__init__(*args, **kwargs)
 
     def _create_stack_influence(self, influence):
-        nomenclature_driver = self.get_nomenclature_rig().copy()
+        nomenclature_driver = self.get_nomenclature_rig().rebuild(influence.nodeName())
         nomenclature_driver.tokens.append('driver')
 
         stack = Node()
@@ -479,13 +479,20 @@ class InteractiveAvarGrp(Module):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Since we are gonna do direct connections, create a mirror of the influence tree.
+        grp_drivers = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('drivers'),
+            parent=self.grp_rig
+        )
         for input in self.input:
             driver_stack = self._create_stack_influence(input)
+            driver_stack.setParent(grp_drivers)
 
             m_name = nomenclature.rebuild(input.nodeName()).resolve()
             m = InteractiveAvar(
                 [input],
-                rig=self.rig
+                rig=self.rig,
+                name=m_name
             )
             m.build(
                 ref=input,

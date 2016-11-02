@@ -549,7 +549,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
                 libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def _get_mouth_width(self):
         min_x = max_x = 0
         for avar in self.get_avars_corners():

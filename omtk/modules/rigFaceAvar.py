@@ -193,7 +193,7 @@ class AbstractAvar(classModule.Module):
     # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
     #
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_base_uv(self):
         pos = self.get_jnt_tm().translate
 

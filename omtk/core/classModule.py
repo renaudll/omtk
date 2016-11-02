@@ -124,7 +124,7 @@ class Module(object):
 
             return new_nomenclature.resolve()
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_module_name(self):
         """
         Name override for nomenclature when naming ctrl and rig elements.
@@ -133,7 +133,7 @@ class Module(object):
             return self.name
         return self.__class__.__name__.lower()
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.
@@ -144,7 +144,7 @@ class Module(object):
         )
         return name
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_anm_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
@@ -155,7 +155,7 @@ class Module(object):
         )
         return name
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_rig(self):
         """
         :return: The nomenclature to use for rig objects.
@@ -176,7 +176,7 @@ class Module(object):
         )
         return name
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_jnt(self):
         """
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
@@ -314,7 +314,7 @@ class Module(object):
         if create_grp_rig:
             grp_rig_name = self.get_nomenclature_rig_grp().resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
-            libAttr.lock_hide_trs(self.grp_rig)
+            # libAttr.lock_hide_trs(self.grp_rig)  # This line break the hands!
 
             if connect_global_scale:
                 # todo: keep it here?

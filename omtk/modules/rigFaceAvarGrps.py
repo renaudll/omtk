@@ -565,7 +565,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     # Influence getter functions.
     #
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnts_upp(self):
         """
         :return: The upper section influences.
@@ -574,14 +574,14 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fnFilter = lambda jnt: 'upp' in jnt.name().lower()
         return filter(fnFilter, self.jnts)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnt_upp_mid(self):
         """
         :return: The middle influence of the upper section.
         """
         return get_average_pos_between_nodes(self.get_jnts_upp())
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnts_low(self):
         """
         :return: The upper side influences.
@@ -590,14 +590,14 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fnFilter = lambda jnt: 'low' in jnt.name().lower()
         return filter(fnFilter, self.jnts)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnt_low_mid(self):
         """
         :return: The middle influence of the lower section.
         """
         return get_average_pos_between_nodes(self.get_jnts_low())
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnts_l(self):
         """
         :return: All the left side influences.
@@ -607,7 +607,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
         return filter(fn_filter, self.jnts)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnts_r(self):
         """
         :return: All the right side influences.
@@ -617,7 +617,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
         return filter(fn_filter, self.jnts)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnt_l_mid(self):
         """
         :return: The left most influence (highest positive distance in x)
@@ -625,7 +625,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fn_get_pos_x = lambda x: x.getTranslation(space='world').x
         return next(iter(reversed(sorted(self.get_jnts_l(), key=fn_get_pos_x))), None)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_jnt_r_mid(self):
         """
         :return: The right most influence (highest negative distance in x)
@@ -637,11 +637,11 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     # Avars getter functions
     #
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_avar_mid(self):
         return _find_mid_avar(self.avars)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_avars_l(self):
         """
         :return: All left section avars.
@@ -650,7 +650,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x >= middle.x
         return filter(fn_filter, self.avars)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_avars_r(self):
         """
         :return: All right section avars.
@@ -659,7 +659,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x < middle.x
         return filter(fn_filter, self.avars)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_avar_l_corner(self):
         """
         :return: The farthest avar in the positive X axis.
@@ -667,7 +667,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
         return next(iter(reversed(sorted(self.get_avars_l(), key=fn_get_avar_pos_x))), None)
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_avar_r_corner(self):
         """
         :return: The farthest avar in the negative X axis.
@@ -719,7 +719,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             influences.remove(influence_all)
         return influences
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_influence_all(self):
         """
         If the rigger provided in the module input a parent for all the other inputs it will be considered as an influence for the 'all' macro avar.

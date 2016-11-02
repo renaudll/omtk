@@ -370,14 +370,28 @@ class Rig(object):
             val.rename(name)
         return val
 
-    def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
-                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
-        # Hack: Invalidate any cache before building anything.
-        # This ensure we always have fresh data.
+    def _clear_cache(self):
+        """
+        Some attributes in the a rig are cached.
+        This call remove any cache to ensure we only work with up-to-date values.
+        """
         try:
             del self._cache
         except AttributeError:
             pass
+        for module in self.modules:
+            # todo: implement _clear_cache on modules?
+            if module:
+                try:
+                    del module._cache
+                except AttributeError:
+                    pass
+
+    def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
+                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
+        # Hack: Invalidate any cache before building anything.
+        # This ensure we always have fresh data.
+        self._clear_cache()
 
         # Look for a root joint
         if create_grp_jnt:

@@ -40,6 +40,7 @@ class CtrlFaceLow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
+    ATTR_NAME_GLOBAL_SCALE = 'globalScale'
     """
     Base controller class for an avar controlling all the avars of an AvarGrp.
     """
@@ -362,7 +363,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         if cls_ctrl:
             avar._CLS_CTRL = cls_ctrl  # Hack, find a more elegant way.
         self._build_avar(avar,
-            callibrate_doritos=False,  # We'll callibrate ourself since we're connecting manually.
             constraint=constraint,
             **kwargs
         )
@@ -907,6 +907,72 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         if self.create_macro_vertical and ref:
             self._build_avar_macro_vertical(self.avar_low, self.get_avar_mid(), self.get_avars_micro_low(), self._CLS_CTRL_LOW, **kwargs)
 
+    def _connect_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True):
+        """
+        Connect the avar_all to their micro equivalent.
+        The avar_all is special as it support rotation and scale like if the micro avars were parented to it.
+        :param connect_ud: If True, will connect the avar_ud.
+        :param connect_lr: If True, will connect the avar_lr
+        :param connect_fb: If True, will connect the avar_fb.
+        :return:
+        """
+        influence_all = self.get_influence_all()
+        def _can_connect_avar_scale(avar):
+            """
+            Note that we don't connect the scale on the all_influence.
+            Since the all_influence contain an additional falloff for (ie) when we move the mouth,
+            it generally give better results if it is not scaled.
+            """
+            if influence_all and avar.jnt == influence_all:
+                return False
+            return True
+
+
+        for avar_child in self.avars:
+            # Connect avars
+            if connect_ud:
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud, avar_child.attr_ud)
+            if connect_lr:
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_lr, avar_child.attr_lr)
+            if connect_fb:
+                libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_fb, avar_child.attr_fb)
+
+            # Connect macro_all ctrl to each avar_child.
+            # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
+            # Using the rotate/scalePivot functionality, we are able to save some nodes.
+            attr_get_pivot_tm = libRigging.create_utility_node(
+                'multMatrix',
+                matrixIn=(
+                    self.avar_all._stack.node.worldMatrix,
+                    avar_child._grp_offset.worldInverseMatrix
+                )
+            ).matrixSum
+            attr_get_pivot = libRigging.create_utility_node(
+                'decomposeMatrix',
+                inputMatrix=attr_get_pivot_tm
+            ).outputTranslate
+            layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
+            layer_parent.t.set(0, 0, 0)  # Hack: why?
+            pymel.connectAttr(attr_get_pivot, layer_parent.rotatePivot)
+            pymel.connectAttr(attr_get_pivot, layer_parent.scalePivot)
+            pymel.connectAttr(self.avar_all.ctrl.node.r, layer_parent.r)
+
+            # Connect scale
+            if _can_connect_avar_scale(avar_child):
+                pymel.connectAttr(self.avar_all.ctrl.node.sx, layer_parent.sx)
+                pymel.connectAttr(self.avar_all.ctrl.node.sy, layer_parent.sy)
+                pymel.connectAttr(self.avar_all.ctrl.node.sz, layer_parent.sz)
+
+            # Hack: Ensure the micro avars ctrl follow in rotation the master ctrl.
+            # Note that currently this is very badly implemented.
+            # In the future, the InteractiveCtrl will be a module and this code will have to be redone properly.
+            # todo: refactor!
+            doritos_parent_layer = avar_child.ctrl.offset.rx.inputs()[0].target[0].targetRotate.inputs()[0].getParent()
+            for child in doritos_parent_layer.getChildren():
+                if isinstance(child, pymel.nodetypes.OrientConstraint):
+                    pymel.delete(child)
+            pymel.orientConstraint(self.avar_all.ctrl.node, doritos_parent_layer, maintainOffset=True)
+
     def _build_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False, follow_mesh=True,  **kwargs):
         # Create all avar if necessary
         # Note that the use can provide an influence.
@@ -921,18 +987,16 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
                 pos.x, pos.y, pos.z, 1
             )
 
-            # If we don't have any influence, we want to follow the surface instead of the character mesh..
+            # todo: This is badly designed, the 'avar_all' is following a point on the surface and not the mesh itself.
+            # This ensure consistency when working with objects like the mouth.
+            # In that case for the ctrl we don't want an InteractiveCtrl, we want a simple calibratable ctrl that will be constraint to the 'influence' of the avar.
             follow_mesh = True if self.avar_all.jnt else False
+
+            constraint = True if self.get_influence_all() else False
 
             self._build_avar_macro(self._CLS_CTRL_ALL, self.avar_all, jnt_tm=jnt_tm, ctrl_tm=jnt_tm, obj_mesh=self.surface, follow_mesh=follow_mesh, constraint=constraint)
 
-            for avar_child in self.avars:
-                if connect_ud:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud, avar_child.attr_ud)
-                if connect_lr:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_lr, avar_child.attr_lr)
-                if connect_fb:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_fb, avar_child.attr_fb)
+            self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
 
     def _build_avars(self, **kwargs):
         # TODO: Some calls might need to be move

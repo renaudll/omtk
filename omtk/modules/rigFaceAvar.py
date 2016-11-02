@@ -52,6 +52,11 @@ class AbstractAvar(classModule.Module):
     In an ideal facial setup, any movement in the face is driven by avars.
     Using driven-keys we can orchestrate all the secondary movements in the face.
     Any driven-key set between Avar attributes will be preserved if the rig is unbuilt.
+
+    Note that in the current implement, Avars implement their ctrl (generally an InteractiveCtrl).
+    HOWEVER this is not their responsibility since different controller setup can control avars.
+    ex: InteractiveCtrl, FK, Faceboards, Sliders, etc.
+    # todo: Separate the ctrl creation, build and connection from the Avar base-classes.
     """
     AVAR_NAME_UD = 'avar_ud'
     AVAR_NAME_LR = 'avar_lr'
@@ -104,6 +109,7 @@ class AbstractAvar(classModule.Module):
         Create the network that contain all our avars.
         For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
         when unbuilding they are really existing in an external network node.
+        :return: The avar attribute holder.
         """
         # Define macro avars
         libAttr.addAttr_separator(attr_holder, 'avars')
@@ -177,6 +183,9 @@ class AbstractAvar(classModule.Module):
         if libPymel.is_valid_PyNode(self.avar_network):
             for attr_name in pymel.listAttr(self.avar_network, userDefined=True):
                 attr_src = self.avar_network.attr(attr_name)
+                if not self.grp_rig.hasAttr(attr_dst, attr_name):
+                    self.warning("Can't fetch stored avar named {0}!".format(attr_name))
+                    continue
                 attr_dst = self.grp_rig.attr(attr_name)
                 libAttr.transfer_connections(attr_src, attr_dst)
             pymel.delete(self.avar_network)
@@ -433,7 +442,19 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True, callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
+    def build(self, constraint=True, create_ctrl=True, ctrl_size=None, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
+        """
+
+        :param constraint:
+        :param create_ctrl: Accommodate the rigger by creating and connecting a ctrl to the avar.
+        :param ctrl_size: DEPRECATED, PLEASE MOVE TO ._create_ctrl
+        :param ctrl_tm: DEPRECATED, PLEASE MOVE TO ._create_ctrl
+        :param jnt_tm:
+        :param obj_mesh: DEPRECATED, PLEASE MOVE TO ._create_ctrl
+        :param follow_mesh: DEPRECATED, PLEASE MOVE TO ._create_ctrl
+        :param kwargs:
+        :return:
+        """
         super(AvarSimple, self).build(create_grp_anm=create_ctrl, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm()
@@ -444,19 +465,13 @@ class AvarSimple(AbstractAvar):
             jnt_tm = self.get_jnt_tm()
         jnt_pos = jnt_tm.translate
 
-        # Resolve ctrl matrix
-        # It can differ from the influence to prevent the controller to appear in the geometry.
-        if ctrl_tm is None:
-            ctrl_tm = self.get_ctrl_tm()
-        doritos_pos = ctrl_tm.translate
-
         #
         # Build stack
+        # The stack resolve the influence final transform relative to it's parent and original bind-pose.
         #
         dag_stack_name = nomenclature_rig.resolve('stack')
         stack = classNode.Node()
         stack.build(name=dag_stack_name)
-        self._stack = stack
 
         # Create an offset layer that define the starting point of the Avar.
         # It is important that the offset is in this specific node since it will serve as
@@ -475,19 +490,40 @@ class AvarSimple(AbstractAvar):
         self._grp_parent.setParent(self._grp_offset)
         self._grp_parent.rename(grp_parent_name)
 
-        stack.setParent(self._grp_parent)
-
         # Move the grp_offset to it's desired position.
         self._grp_offset.setTranslation(jnt_pos)
 
         # The rest of the stack is built in another function.
         # This allow easier override by sub-classes.
+        self._stack = stack
         self.build_stack(stack)
+        self._stack.setParent(self._grp_offset)
+
+        # Take the result of the stack and add it on top of the bind-pose and parent group.
+        grp_output_name = nomenclature_rig.resolve('output')
+        self._grp_output = pymel.createNode('transform', name=grp_output_name )
+        self._grp_output.setParent(self._grp_parent)
+
+        attr_get_stack_local_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self._stack.node.worldMatrix,
+                self._grp_offset.worldInverseMatrix
+            )
+        ).matrixSum
+        util_get_stack_local_tm = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=attr_get_stack_local_tm
+        )
+        pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.t)
+        pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.r)
+        pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.s)
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
         if self.jnt and constraint:
-            pymel.parentConstraint(stack.node, self.jnt, maintainOffset=True)
+            pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
+            pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
 
         #
         # Create a doritos setup for the avar
@@ -495,62 +531,55 @@ class AvarSimple(AbstractAvar):
 
         # Create the ctrl
         if create_ctrl:
-            ctrl_name = nomenclature_anm.resolve()
-
-            # Create a new ctrl instance if it was never initialized or if the ctrl type mismatch.
-            # This can happen when rebuilding from an old generated version.
-            # When this happen, we want to notify the user, we also want to at least preserve old shape if possible.
-            if not isinstance(self.ctrl, self._CLS_CTRL):
-                old_shapes = None
-                if self.ctrl is not None:
-                    self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
-                        self._CLS_CTRL, type(self.ctrl)
-                    ))
-                    old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
-
-                self.ctrl = self._CLS_CTRL()
-
-                if old_shapes:
-                    self.ctrl.shapes = old_shapes
-
-            # Hack: clean me!
-            if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-                # Resolve which object will the InteractiveCtrl track.
-                # If we don't want to follow a particular geometry, we'll use the end of the stack.
-                # Otherwise the influence will be used (to also resolve the geometry).
-                # todo: it could be better to resolve the geometry ourself
-                if not follow_mesh:
-                    ref = stack.node
-                else:
-                    ref = self.jnt
-
-                self.ctrl.build(
-                    self,
-                    ref,
-                    ref_tm=ctrl_tm,
-                    name=ctrl_name,
-                    size=ctrl_size,
-                    obj_mesh=obj_mesh,
-                    grp_rig=self.grp_rig,
-                    flip_lr=self.need_flip_lr(),
-                    follow_mesh=follow_mesh
-                )
-            else:
-                self.ctrl.build(name=ctrl_name, size=ctrl_size)
-
-            self.ctrl.setTranslation(doritos_pos)
-            self.ctrl.setParent(self.grp_anm)
-
-            # Connect ctrl to avars
-            self.connect_ctrl(self.ctrl)
-
-            '''
-            # Calibrate ctrl
-            # Hack: clean me!
-            if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-                if create_doritos and callibrate_doritos:
-                    self.calibrate()
-            '''
+            self._create_ctrl(ctrl_tm=ctrl_tm, follow_mesh=follow_mesh, ctrl_size=ctrl_size, obj_mesh=obj_mesh)
+            # ctrl_name = nomenclature_anm.resolve()
+            #
+            # # Create a new ctrl instance if it was never initialized or if the ctrl type mismatch.
+            # # This can happen when rebuilding from an old generated version.
+            # # When this happen, we want to notify the user, we also want to at least preserve old shape if possible.
+            # if not isinstance(self.ctrl, self._CLS_CTRL):
+            #     old_shapes = None
+            #     if self.ctrl is not None:
+            #         self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+            #             self._CLS_CTRL, type(self.ctrl)
+            #         ))
+            #         old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
+            #
+            #     self.ctrl = self._CLS_CTRL()
+            #
+            #     if old_shapes:
+            #         self.ctrl.shapes = old_shapes
+            #
+            # # Hack: clean me!
+            # if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+            #     # Resolve which object will the InteractiveCtrl track.
+            #     # If we don't want to follow a particular geometry, we'll use the end of the stack.
+            #     # Otherwise the influence will be used (to also resolve the geometry).
+            #     # todo: it could be better to resolve the geometry ourself
+            #     if not follow_mesh:
+            #         ref = self._grp_output
+            #     else:
+            #         ref = self.jnt
+            #
+            #     self.ctrl.build(
+            #         self,
+            #         ref,
+            #         ref_tm=ctrl_tm,
+            #         name=ctrl_name,
+            #         size=ctrl_size,
+            #         obj_mesh=obj_mesh,
+            #         grp_rig=self.grp_rig,
+            #         flip_lr=self.need_flip_lr(),
+            #         follow_mesh=follow_mesh
+            #     )
+            # else:
+            #     self.ctrl.build(name=ctrl_name, size=ctrl_size)
+            #
+            # self.ctrl.setTranslation(doritos_pos)
+            # self.ctrl.setParent(self.grp_anm)
+            #
+            # # Connect ctrl to avars
+            # self.connect_ctrl(self.ctrl)
 
     def calibrate(self, **kwargs):
         """
@@ -564,6 +593,85 @@ class AvarSimple(AbstractAvar):
         if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
             self.ctrl.calibrate(self, **kwargs)
 
+    def _create_ctrl(self, ctrl_tm=None, follow_mesh=True, ctrl_size=None, obj_mesh=None):
+        """
+        Avars are not designed to build ctrl on their own.
+        However for simplicity sake (at least for now) we provide this method in the avar code.
+        In the futur, we should at least 1) extend this logic correctly or 2) use separacted modules to create and connect ctrls.
+        This should allow us to support all ways of controlling avars (ex: InteractiveFK, FK, FaceBoard, Sliders, etc)
+        """
+
+        # Resolve which object will the InteractiveCtrl track.
+        # If we don't want to follow a particular geometry, we'll use the end of the stack.
+        # Otherwise the influence will be used (to also resolve the geometry).
+        # todo: it could be better to resolve the geometry ourself
+        ref = self._grp_output if not follow_mesh else self.jnt
+
+        # Resolve ctrl matrix
+        # It can differ from the influence to prevent the controller to appear in the geometry.
+        if ctrl_tm is None:
+            ctrl_tm = self.get_ctrl_tm()
+        doritos_pos = ctrl_tm.translate
+
+        nomenclature_anm = self.get_nomenclature_anm()
+
+        # Create the ctrl
+        ctrl_name = nomenclature_anm.resolve()
+
+        # Create a new ctrl instance if it was never initialized or if the ctrl type mismatch.
+        # This can happen when rebuilding from an old generated version.
+        # When this happen, we want to notify the user, we also want to at least preserve old shape if possible.
+        if not isinstance(self.ctrl, self._CLS_CTRL):
+            old_shapes = None
+            if self.ctrl is not None:
+                self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                    self._CLS_CTRL, type(self.ctrl)
+                ))
+                old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
+
+            self.ctrl = self._CLS_CTRL()
+
+            if old_shapes:
+                self.ctrl.shapes = old_shapes
+
+        # Hack: clean me!
+        if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+            # Resolve which object will the InteractiveCtrl track.
+            # If we don't want to follow a particular geometry, we'll use the end of the stack.
+            # Otherwise the influence will be used (to also resolve the geometry).
+            # todo: it could be better to resolve the geometry ourself
+            if not follow_mesh:
+                ref = self._grp_output
+            else:
+                ref = self.jnt
+
+            self.ctrl.build(
+                self,
+                ref,
+                ref_tm=ctrl_tm,
+                name=ctrl_name,
+                size=ctrl_size,
+                obj_mesh=obj_mesh,
+                grp_rig=self.grp_rig,
+                flip_lr=self.need_flip_lr(),
+                follow_mesh=follow_mesh
+            )
+        else:
+            self.ctrl.build(name=ctrl_name, size=ctrl_size)
+
+        self.ctrl.setTranslation(doritos_pos)
+        self.ctrl.setParent(self.grp_anm)
+
+        # Connect ctrl to avars
+        self.connect_ctrl(self.ctrl)
+
+        '''
+        # Calibrate ctrl
+        # Hack: clean me!
+        if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
+            if create_doritos and callibrate_doritos:
+                self.calibrate()
+        '''
 
 class AvarFollicle(AvarSimple):
     """

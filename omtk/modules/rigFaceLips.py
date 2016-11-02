@@ -259,6 +259,12 @@ class SplitterNode(Node):
 
 
 class FaceLipsAvar(rigFaceAvar.AvarFollicle):
+    """
+    The Lips avar are special as they implement a Splitter mechanism that ensure the avars move in jaw space before moving in surface space.
+    For this reason, we implement a new avar, 'avar_ud_bypass' to skip the splitter mechanism if necessary. (ex: avar_all)
+    """
+    AVAR_NAME_UD_BYPASS = 'attr_ud_bypass'
+
     def __init__(self, *args, **kwargs):
         super(FaceLipsAvar, self).__init__(*args, **kwargs)
 
@@ -274,10 +280,22 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
         self._attr_inn_jaw_pt = None
 
+        self._jaw_ref = None
+
         # Allow the rigger to completely bypass the splitter node influence.
         self._attr_bypass_splitter = None
 
-        self._jaw_ref = None
+        # Define additional avars
+        self.attr_ud_bypass = None
+
+    def add_avars(self, attr_holder):
+        """
+        Create the network that contain all our avars.
+        For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
+        when unbuilding they are really existing in an external network node.
+        """
+        super(FaceLipsAvar, self).add_avars(attr_holder)
+        self.attr_ud_bypass = self.add_avar(attr_holder, self.AVAR_NAME_UD_BYPASS)
 
     def build_stack(self, stack, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()
@@ -444,6 +462,23 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         pymel.connectAttr(attr_jaw_ratio, weight_pr_head)
         pymel.connectAttr(attr_jaw_ratio, weight_s_head)
 
+        #
+        # Implement the 'bypass' avars.
+        # Thoses avars bypass the splitter, used in corner cases only.
+        #
+        attr_attr_ud_bypass_adjusted = libRigging.create_utility_node(
+            'multiplyDivide',
+            name=nomenclature_rig.resolve('getAdjustedUdBypass'),
+            input1X=self.attr_ud_bypass,
+            input2X=self._attr_v_mult_inn
+        ).outputX
+        attr_v = libRigging.create_utility_node(
+            'addDoubleLinear',
+            name=nomenclature_rig.resolve('addBypassAvar'),
+            input1=attr_v,
+            input2=attr_attr_ud_bypass_adjusted
+        ).output
+
         return attr_u, attr_v
 
 
@@ -557,6 +592,38 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             min_x = min(min_x, x)
             max_x = max(max_x, x)
         return min_x, max_x
+
+    def _connect_avar_macro_all(self, connect_ud=False, connect_lr=True, connect_fb=True):
+        """
+        # We'll connect the avar_ud ourself but will use the avar_ud_bypass instead.
+        """
+        # Since the avar_all ignore the splitter by connecting itself to attr_ud_bypass,
+        # we don't want to splitter to affect us.
+        self.avar_all._attr_bypass_splitter.set(1.0)
+
+        super(FaceLips, self)._connect_avar_macro_all(connect_ud=False, connect_lr=True, connect_fb=True)
+
+        for child_avar in self.avars:
+            # todo: do we need to validate the avar type? It should be FaceLipsAvar
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud, child_avar.attr_ud_bypass)
+
+
+        # Hack: Ensure the avar_all ctrl follow the stack output.
+        # This is not the best way since we want to be able to build avars withtout any controllers.
+        # However it will do for now.
+        # todo: refactor this shit
+        doritos_parent_layer = self.avar_all.ctrl.offset.rx.inputs()[0].target[0].targetRotate.inputs()[0].getParent()
+        for child in doritos_parent_layer.getChildren():
+            if isinstance(child, pymel.nodetypes.Constraint):
+                pymel.delete(child)
+        pymel.parentConstraint(self.avar_all._grp_output, doritos_parent_layer, maintainOffset=True)
+
+        # Hack 2: Ensure callibation work by also constraining the follicle.
+        # Damn is this part ugly...
+        ctrl_fol = self.avar_all.ctrl.follicle
+        pymel.disconnectAttr(ctrl_fol.t)
+        pymel.disconnectAttr(ctrl_fol.r)
+        pymel.parentConstraint(self.avar_all._grp_output, ctrl_fol, maintainOffset=True)
 
     def build(self, calibrate=True, use_football_interpolation=False, **kwargs):
         """

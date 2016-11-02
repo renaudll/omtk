@@ -97,7 +97,10 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
             i = jnt_dst_index + (v * num_jnts)
             new_weights[i] += total_weight
 
-    mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights, old_weights)
+    # Note: We don't use old_weights since it cause a crash in Windows.
+    # Please investigate further before using old_weights in the call.
+    # mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights, old_weights)
+    mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights)
 
 def transfer_weights_replace(source, target):
     """
@@ -297,7 +300,10 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         it_geometry.next()
         vert_index += 1
 
-    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+    # Note: We don't use old_weights since it cause a crash in Windows.
+    # Please investigate further before using old_weights in the call.
+    #mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights)
 
 
 def assign_weights_from_segments(shape, jnts, dropoff=1.5):
@@ -347,8 +353,10 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
         it_geometry.next()
         vert_index += 1
 
-
-    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+    # Note: We don't use old_weights since it cause a crash in Windows.
+    # Please investigate further before using old_weights in the call.
+    #mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights)
 
 #TODO : Reset the bind pose at the same time to prevent any problem
 def reset_skin_cluster(skinCluster):

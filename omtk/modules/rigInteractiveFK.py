@@ -251,7 +251,8 @@ class InteractiveAvar(Module):
         # Note that it is really hard to controller in rotation a ctrl that follow a surface.
         # For this reason, we want to provide a ref_parent property that define a stable rotate reference.
         pymel.parentConstraint(stack.node, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
-        pymel.orientConstraint(ref_parent, self.ctrl.offset, maintainOffset=False)
+        if ref_parent:
+            pymel.orientConstraint(ref_parent, self.ctrl.offset, maintainOffset=False)
 
         # Clean dag junk
         stack.setParent(self.grp_rig)
@@ -336,6 +337,7 @@ class InteractiveAvar(Module):
                     self.ctrl.shapes = old_shapes
 
             self.ctrl.build()
+            self.ctrl.rename(ctrl_name)
 
             flip_lr = False
             # Hack: clean me!
@@ -432,6 +434,8 @@ class InteractiveAvar(Module):
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
 class InteractiveAvarGrp(Module):
+    _CLS_CTRL = InteractiveFKCtrl
+
     def __init__(self, *args, **kwargs):
         """
         Pre-declare here all the used members.
@@ -478,12 +482,13 @@ class InteractiveAvarGrp(Module):
             driver_stack = self._create_stack_influence(input)
             driver_stack.setParent(grp_drivers)
 
-            m_name = nomenclature.rebuild(input.nodeName()).resolve()
+            m_name = self.rig.nomenclature(tokens=self.get_nomenclature().tokens + [input.nodeName()]).resolve()
             m = InteractiveAvar(
                 [input],
                 rig=self.rig,
                 name=m_name
             )
+            m._CLS_CTRL = self._CLS_CTRL
             m.build(
                 ref=input,
                 ref_parent=driver_stack._layer_offset,

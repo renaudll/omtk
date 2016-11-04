@@ -9,6 +9,7 @@ import pymel.core as pymel
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import classNode
+from omtk.models.modelInteractiveCtrl import ModelInteractiveCtrl
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -18,7 +19,7 @@ from omtk.libs import libRigging
 log = logging.getLogger('omtk')
 
 
-class BaseCtrlFace(classCtrl.InteractiveCtrl):
+class BaseCtrlFace(classCtrl.BaseCtrl):
     pass
 
 
@@ -64,19 +65,11 @@ class AbstractAvar(classModule.Module):
     AVAR_NAME_YAW = 'avar_yw'
     AVAR_NAME_PITCH = 'avar_pt'
     AVAR_NAME_ROLL = 'avar_rl'
+    AVAR_NAME_SY = 'avar_scale_ud'
+    AVAR_NAME_SX = 'avar_scale_lr'
+    AVAR_NAME_SZ = 'avar_scale_fb'
 
     SHOW_IN_UI = False
-
-    # Define how many unit is moved in uv space in relation with the avars.
-    # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
-    # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
-    # However in production, we found that defining the range of avar using the whole is not flexible.
-    # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
-    # For this reason, we found that using a multiplier of 0.25 work best.
-    # This also help rigger visually since the surface plane have an edge at 0.25 location.
-    # todo: Move this to AvarFollicle.
-    _AVAR_DEFAULT_MULTIPLIER_U = 0.25
-    _AVAR_DEFAULT_MULTIPLIER_V = 0.25
 
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
@@ -87,6 +80,18 @@ class AbstractAvar(classModule.Module):
         self._sys_doritos = None
         self.ctrl = None
 
+        # Define how many unit is moved in uv space in relation with the avars.
+        # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
+        # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
+        # However in production, we found that defining the range of avar using the whole is not flexible.
+        # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
+        # For this reason, we found that using a multiplier of 0.25 work best.
+        # This also help rigger visually since the surface plane have an edge at 0.25 location.
+        # todo: Move this to AvarFollicle.
+        self.multiplier_lr = 0.25
+        self.multiplier_ud = 0.25
+        self.multiplier_fb = 0.10
+
     def init_avars(self):
         self.attr_ud = None  # Up/Down
         self.attr_lr = None  # Left/Right
@@ -94,13 +99,16 @@ class AbstractAvar(classModule.Module):
         self.attr_yw = None  # Yaw
         self.attr_pt = None  # Pitch
         self.attr_rl = None  # Roll
+        self.attr_sx = None  # Up/Down scale
+        self.attr_sy = None  # Left/Right scale
+        self.attr_sz = None  # Front/Back scale
 
-    def add_avar(self, attr_holder, name):
+    def add_avar(self, attr_holder, name, defaultValue=0.0):
         """
         Add an avar in the internal avars network.
         An attribute will also be created on the grp_rig node.
         """
-        attr_rig = libAttr.addAttr(attr_holder, longName=name, k=True)
+        attr_rig = libAttr.addAttr(attr_holder, longName=name, k=True, defaultValue=defaultValue)
 
         return attr_rig
 
@@ -119,6 +127,9 @@ class AbstractAvar(classModule.Module):
         self.attr_yw = self.add_avar(attr_holder, self.AVAR_NAME_YAW)
         self.attr_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
         self.attr_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
+        self.attr_sx = self.add_avar(attr_holder, self.AVAR_NAME_SX, defaultValue=1.0)
+        self.attr_sy = self.add_avar(attr_holder, self.AVAR_NAME_SY, defaultValue=1.0)
+        self.attr_sz = self.add_avar(attr_holder, self.AVAR_NAME_SZ, defaultValue=1.0)
 
     def hold_avars(self):
         """
@@ -219,24 +230,6 @@ class AbstractAvar(classModule.Module):
         return pymel.datatypes.Matrix(
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
         )
-
-    def get_ctrl_tm(self):
-        """
-        :return: The ctrl transformation.
-        """
-        tm = self.jnt.getMatrix(worldSpace=True)
-
-        # We always try to position the controller on the surface of the face.
-        # The face is always looking at the positive Z axis.
-        pos = tm.translate
-        dir = pymel.datatypes.Point(0,0,1)
-        result = self.rig.raycast_farthest(pos, dir)
-        if result:
-            tm.a30 = result.x
-            tm.a31 = result.y
-            tm.a32 = result.z
-
-        return tm
 
     def validate(self):
         """
@@ -346,57 +339,6 @@ class AbstractAvar(classModule.Module):
         nomenclature = self.get_nomenclature_anm()
         return nomenclature.side == self.rig.nomenclature.SIDE_R
 
-    # todo: merge with .connect_ctrl
-    def _connect_ctrl(self, ctrl, attr_ud=None, attr_lr=None, attr_fb=None, attr_yw=None, attr_pt=None, attr_rl=None):
-        need_flip = self.need_flip_lr()
-
-        if attr_ud:
-            attr_inn_ud = ctrl.translateY
-            libRigging.connectAttr_withBlendWeighted(attr_inn_ud, attr_ud)
-
-        if attr_lr:
-            attr_inn_lr = ctrl.translateX
-
-            if need_flip:
-                attr_inn_lr = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_lr, input2X=-1).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_lr, attr_lr)
-
-        if attr_fb:
-            attr_inn_fb = ctrl.translateZ
-            libRigging.connectAttr_withBlendWeighted(attr_inn_fb, attr_fb)
-
-        if attr_yw:
-            attr_inn_yw = ctrl.rotateY
-
-            if need_flip:
-                attr_inn_yw = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_yw, input2X=-1).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_yw, attr_yw)
-
-        if attr_pt:
-            attr_inn_pt = ctrl.rotateX
-            libRigging.connectAttr_withBlendWeighted(attr_inn_pt, attr_pt)
-
-        if attr_rl:
-            attr_inn_rl = ctrl.rotateZ
-
-            if need_flip:
-                attr_inn_rl = libRigging.create_utility_node('multiplyDivide', input1X=attr_inn_rl, input2X=-1).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_rl, attr_rl)
-
-    def connect_ctrl(self, ctrl, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True):
-        self._connect_ctrl(
-            ctrl,
-            attr_ud=self.attr_ud if ud else None,
-            attr_lr=self.attr_lr if lr else None,
-            attr_fb=self.attr_fb if fb else None,
-            attr_yw=self.attr_yw if yw else None,
-            attr_pt=self.attr_pt if pt else None,
-            attr_rl=self.attr_rl if rl else None
-        )
-
     def iter_ctrls(self):
         for ctrl in super(AbstractAvar, self).iter_ctrls():
             yield ctrl
@@ -410,22 +352,23 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
     _CLS_CTRL = CtrlFaceMicro
+    _CLS_MODEL_CTRL = ModelInteractiveCtrl
 
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
 
+
         self._stack = None
         self._grp_offset = None
         self._grp_parent = None
+        self.model_ctrl = None
 
     def validate(self):
         super(AvarSimple, self).validate()
 
-        # InteractiveCtrl need at least a skinned influence to bind itself to.
-        if self.jnt and issubclass(self._CLS_CTRL, classCtrl.InteractiveCtrl):
-            mesh = self.rig.get_farest_affected_mesh(self.jnt)
-            if not mesh:
-                raise Exception("Can't find mesh affected by {0}.".format(self.jnt))
+        # Ensure our ctrl model validate
+        # if self._CLS_MODEL_CTRL:
+        #     self._CLS_MODEL_CTRL.validate(self)
 
     def build_stack(self, stack, mult_u=1.0, mult_v=1.0):
         """
@@ -442,11 +385,9 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, constraint=True, create_ctrl=True, ctrl_size=None, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
+    def build(self, constraint=True, ctrl_size=None, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
         """
-
         :param constraint:
-        :param create_ctrl: Accommodate the rigger by creating and connecting a ctrl to the avar.
         :param ctrl_size: DEPRECATED, PLEASE MOVE TO ._create_ctrl
         :param ctrl_tm: DEPRECATED, PLEASE MOVE TO ._create_ctrl
         :param jnt_tm:
@@ -455,9 +396,8 @@ class AvarSimple(AbstractAvar):
         :param kwargs:
         :return:
         """
-        super(AvarSimple, self).build(create_grp_anm=create_ctrl, parent=False)
+        super(AvarSimple, self).build(parent=False)
 
-        nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Resolve influence matrix
@@ -525,61 +465,86 @@ class AvarSimple(AbstractAvar):
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
 
-        #
-        # Create a doritos setup for the avar
+    def create_ctrl(self, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, connect=True, ctrl_tm=None, **kwargs):
+        """
+        An Avar is not made to contain a ctrl necessary.
+        However you can run this function to create a ctrl using a provided model.
+        """
         #
 
-        # Create the ctrl
-        if create_ctrl:
-            self._create_ctrl(ctrl_tm=ctrl_tm, follow_mesh=follow_mesh, ctrl_size=ctrl_size, obj_mesh=obj_mesh)
+        if self._CLS_MODEL_CTRL is None:
+            if not isinstance(self.ctrl, self._CLS_CTRL):
+                self.ctrl = self._CLS_CTRL()
+            self.ctrl.build(size=ctrl_size)
+
+            ctrl_name= self.get_nomenclature_anm().resolve()
+            self.ctrl.rename(ctrl_name)
+
+            if ctrl_tm:
+                self.ctrl.setMatrix(ctrl_tm)
+
+            self.ctrl.setParent(self.grp_rig)
+
+        elif issubclass(self._CLS_MODEL_CTRL, ModelInteractiveCtrl):
+            # By default, an InteractiveCtrl follow the rotation of the head.
+            if parent_rot is None:
+                parent_rot = self.rig.get_head_jnt()
+
+            if parent_scl is None:
+                parent_scl = self.rig.get_head_jnt()
+
+
             # ctrl_name = nomenclature_anm.resolve()
-            #
-            # # Create a new ctrl instance if it was never initialized or if the ctrl type mismatch.
-            # # This can happen when rebuilding from an old generated version.
-            # # When this happen, we want to notify the user, we also want to at least preserve old shape if possible.
-            # if not isinstance(self.ctrl, self._CLS_CTRL):
-            #     old_shapes = None
-            #     if self.ctrl is not None:
-            #         self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
-            #             self._CLS_CTRL, type(self.ctrl)
-            #         ))
-            #         old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
-            #
-            #     self.ctrl = self._CLS_CTRL()
-            #
-            #     if old_shapes:
-            #         self.ctrl.shapes = old_shapes
-            #
-            # # Hack: clean me!
-            # if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-            #     # Resolve which object will the InteractiveCtrl track.
-            #     # If we don't want to follow a particular geometry, we'll use the end of the stack.
-            #     # Otherwise the influence will be used (to also resolve the geometry).
-            #     # todo: it could be better to resolve the geometry ourself
-            #     if not follow_mesh:
-            #         ref = self._grp_output
-            #     else:
-            #         ref = self.jnt
-            #
-            #     self.ctrl.build(
-            #         self,
-            #         ref,
-            #         ref_tm=ctrl_tm,
-            #         name=ctrl_name,
-            #         size=ctrl_size,
-            #         obj_mesh=obj_mesh,
-            #         grp_rig=self.grp_rig,
-            #         flip_lr=self.need_flip_lr(),
-            #         follow_mesh=follow_mesh
-            #     )
-            # else:
-            #     self.ctrl.build(name=ctrl_name, size=ctrl_size)
-            #
-            # self.ctrl.setTranslation(doritos_pos)
-            # self.ctrl.setParent(self.grp_anm)
-            #
-            # # Connect ctrl to avars
+            self.model_ctrl = self._CLS_MODEL_CTRL(
+                self.input,
+                name=self.name,
+                rig=self.rig
+            )
+            self.model_ctrl._CLS_CTRL = self._CLS_CTRL
+            self.model_ctrl.build(
+                self,
+                ctrl_tm=ctrl_tm,
+                ctrl_size=ctrl_size,
+                flip_lr=self.need_flip_lr(),
+                parent_pos=parent_pos,
+                parent_rot=parent_rot,
+                parent_scl=parent_scl,
+                **kwargs
+            )
+            self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
+            if self.model_ctrl.grp_anm and self.grp_anm:
+                self.model_ctrl.grp_anm.setParent(self.grp_anm)
+            if self.model_ctrl.grp_rig and self.grp_rig:
+                self.model_ctrl.grp_rig.setParent(self.grp_rig)
+
+            #self.connect_ctrl(self.ctrl)
+            if connect:
+                self.model_ctrl.connect(self)
+
+        else:
+            self.model_ctrl = self._CLS_MODEL_CTRL(
+                self.input,
+                name=self.name,
+                rig=self.rig
+            )
+            self.model_ctrl._CLS_CTRL = self._CLS_CTRL
+            self.model_ctrl.build(
+                self,
+                ctrl_tm=ctrl_tm,
+                ctrl_size=ctrl_size,
+                **kwargs
+            )
+            self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
+            if self.model_ctrl.grp_anm and self.grp_anm:
+                self.model_ctrl.grp_anm.setParent(self.grp_anm)
+            if self.model_ctrl.grp_rig and self.grp_rig:
+                self.model_ctrl.grp_rig.setParent(self.grp_rig)
+
             # self.connect_ctrl(self.ctrl)
+            if connect:
+                self.model_ctrl.connect(self)
+
+
 
     def calibrate(self, **kwargs):
         """
@@ -589,89 +554,9 @@ class AvarSimple(AbstractAvar):
             self.warning("Can't calibrate, found no ctrl for {0}".format(self))
             return False
 
-        # Hack: clean me!
-        if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-            self.ctrl.calibrate(self, **kwargs)
+        if self.model_ctrl and hasattr(self.model_ctrl, 'calibrate'):
+            self.model_ctrl.calibrate()
 
-    def _create_ctrl(self, ctrl_tm=None, follow_mesh=True, ctrl_size=None, obj_mesh=None):
-        """
-        Avars are not designed to build ctrl on their own.
-        However for simplicity sake (at least for now) we provide this method in the avar code.
-        In the futur, we should at least 1) extend this logic correctly or 2) use separacted modules to create and connect ctrls.
-        This should allow us to support all ways of controlling avars (ex: InteractiveFK, FK, FaceBoard, Sliders, etc)
-        """
-
-        # Resolve which object will the InteractiveCtrl track.
-        # If we don't want to follow a particular geometry, we'll use the end of the stack.
-        # Otherwise the influence will be used (to also resolve the geometry).
-        # todo: it could be better to resolve the geometry ourself
-        ref = self._grp_output if not follow_mesh else self.jnt
-
-        # Resolve ctrl matrix
-        # It can differ from the influence to prevent the controller to appear in the geometry.
-        if ctrl_tm is None:
-            ctrl_tm = self.get_ctrl_tm()
-        doritos_pos = ctrl_tm.translate
-
-        nomenclature_anm = self.get_nomenclature_anm()
-
-        # Create the ctrl
-        ctrl_name = nomenclature_anm.resolve()
-
-        # Create a new ctrl instance if it was never initialized or if the ctrl type mismatch.
-        # This can happen when rebuilding from an old generated version.
-        # When this happen, we want to notify the user, we also want to at least preserve old shape if possible.
-        if not isinstance(self.ctrl, self._CLS_CTRL):
-            old_shapes = None
-            if self.ctrl is not None:
-                self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
-                    self._CLS_CTRL, type(self.ctrl)
-                ))
-                old_shapes = self.ctrl.shapes if hasattr(self.ctrl, 'shapes') else None
-
-            self.ctrl = self._CLS_CTRL()
-
-            if old_shapes:
-                self.ctrl.shapes = old_shapes
-
-        # Hack: clean me!
-        if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-            # Resolve which object will the InteractiveCtrl track.
-            # If we don't want to follow a particular geometry, we'll use the end of the stack.
-            # Otherwise the influence will be used (to also resolve the geometry).
-            # todo: it could be better to resolve the geometry ourself
-            if not follow_mesh:
-                ref = self._grp_output
-            else:
-                ref = self.jnt
-
-            self.ctrl.build(
-                self,
-                ref,
-                ref_tm=ctrl_tm,
-                name=ctrl_name,
-                size=ctrl_size,
-                obj_mesh=obj_mesh,
-                grp_rig=self.grp_rig,
-                flip_lr=self.need_flip_lr(),
-                follow_mesh=follow_mesh
-            )
-        else:
-            self.ctrl.build(name=ctrl_name, size=ctrl_size)
-
-        self.ctrl.setTranslation(doritos_pos)
-        self.ctrl.setParent(self.grp_anm)
-
-        # Connect ctrl to avars
-        self.connect_ctrl(self.ctrl)
-
-        '''
-        # Calibrate ctrl
-        # Hack: clean me!
-        if isinstance(self.ctrl, classCtrl.InteractiveCtrl):
-            if create_doritos and callibrate_doritos:
-                self.calibrate()
-        '''
 
 class AvarFollicle(AvarSimple):
     """
@@ -683,21 +568,40 @@ class AvarFollicle(AvarSimple):
     _ATTR_NAME_V_BASE = 'baseV'
     _ATTR_NAME_U = 'surfaceU'
     _ATTR_NAME_V = 'surfaceV'
-    _ATTR_NAME_U_MULT = 'uMultiplier'
-    _ATTR_NAME_V_MULT = 'vMultiplier'
+    _ATTR_NAME_MULT_LR = 'multiplierLr'
+    _ATTR_NAME_MULT_UD = 'multiplierUd'
+    _ATTR_NAME_MULT_FB = 'multiplierFb'
 
     def __init__(self, *args, **kwargs):
         super(AvarFollicle, self).__init__(*args, **kwargs)
 
         self._attr_u_base = None
         self._attr_v_base = None
-        self._attr_u_mult_inn = None
-        self._attr_v_mult_inn = None
+        self.attr_multiplier_lr = None
+        self.attr_multiplier_ud = None
+        self.attr_multiplier_fb = None
         #self.ctrl_micro = None
 
         # TODO: Move to build, we don't want 1000 member properties.
         self._attr_length_v = None
         self._attr_length_u = None
+
+    def _hold_uv_multiplier(self):
+        """
+        Save the current uv multipliers.
+        It is very rare that the rigger will tweak this advanced setting manually,
+        however for legacy reasons, it might be useful when upgrading an old rig.
+        """
+        if self.attr_multiplier_lr and self.attr_multiplier_lr.exists():
+            self.multiplier_lr = self.attr_multiplier_lr.get()
+        if self.attr_multiplier_ud and self.attr_multiplier_ud.exists():
+            self.multiplier_ud = self.attr_multiplier_ud.get()
+        if self.attr_multiplier_fb and self.attr_multiplier_fb.exists():
+            self.multiplier_fb = self.attr_multiplier_fb.get()
+
+    def unbuild(self):
+        self._hold_uv_multiplier()
+        super(AvarFollicle, self).unbuild()
 
     def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """
@@ -708,13 +612,13 @@ class AvarFollicle(AvarSimple):
         attr_u = libRigging.create_utility_node(
             'multiplyDivide',
             input1X=self.attr_lr,
-            input2X=self._attr_u_mult_inn
+            input2X=self.attr_multiplier_lr
         ).outputX
 
         attr_v = libRigging.create_utility_node(
             'multiplyDivide',
             input1X=self.attr_ud,
-            input2X=self._attr_v_mult_inn
+            input2X=self.attr_multiplier_ud
         ).outputX
 
         return attr_u, attr_v
@@ -882,8 +786,10 @@ class AvarFollicle(AvarSimple):
         #
         # Resolve the parameterU and parameterV
         #
-        self._attr_u_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_MULT, defaultValue=self._AVAR_DEFAULT_MULTIPLIER_U)
-        self._attr_v_mult_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_MULT, defaultValue=self._AVAR_DEFAULT_MULTIPLIER_V)
+        self.attr_multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR, defaultValue=self.multiplier_lr)
+        self.attr_multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD, defaultValue=self.multiplier_ud)
+        self.attr_multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB, defaultValue=self.multiplier_fb)
+
         attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr()
 
         #
@@ -1050,7 +956,7 @@ class AvarFollicle(AvarSimple):
                                                      input2X=self._attr_length_u).outputX
         attr_get_fb_adjusted = libRigging.create_utility_node('multiplyDivide',
                                                               input1X=attr_get_fb,
-                                                              input2X=0.1).outputX
+                                                              input2X=self.attr_multiplier_fb).outputX
         pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
 
         #
@@ -1061,95 +967,17 @@ class AvarFollicle(AvarSimple):
         pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle_rot.rotate)
 
         #
-        # Create a 5th layer that apply the yw, pt, rl and Avar.
+        # Create a 5th layer that apply the avar rotation and scale..
         #
         layer_rot = stack.append_layer('rotLayer')
         pymel.connectAttr(self.attr_yw, layer_rot.rotateY)
         pymel.connectAttr(self.attr_pt, layer_rot.rotateX)
         pymel.connectAttr(self.attr_rl, layer_rot.rotateZ)
+        pymel.connectAttr(self.attr_sx, layer_rot.scaleX)
+        pymel.connectAttr(self.attr_sy, layer_rot.scaleY)
+        pymel.connectAttr(self.attr_sz, layer_rot.scaleZ)
 
         return stack
-
-
-class AvarAim(AvarSimple):
-    """
-    A deformation point on the face that move accordingly to a specific node, usually a controller.
-    """
-    def __init__(self, *args, **kwargs):
-        super(AvarAim, self).__init__(*args, **kwargs)
-        self.target = None
-
-    def build_stack(self, stack, aim_target=None, **kwargs):
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        # Build an aim node in-place for performance
-        # This separated node allow the joints to be driven by the avars.
-        aim_grp_name = nomenclature_rig.resolve('lookgrp')
-        aim_grp = pymel.createNode('transform', name=aim_grp_name)
-
-        aim_node_name = nomenclature_rig.resolve('looknode')
-        aim_node = pymel.createNode('transform', name=aim_node_name)
-        aim_node.setParent(aim_grp)
-
-        aim_target_name = nomenclature_rig.resolve('target')
-        aim_target = pymel.createNode('transform', name=aim_target_name)
-
-
-        aim_target.setParent(aim_grp)
-        self.target = aim_target
-
-        # Build an upnode for the eyes.
-        # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.
-        aim_upnode_name = nomenclature_rig.resolve('upnode')
-
-        aim_upnode = pymel.createNode('transform', name=aim_upnode_name)
-        #
-        aim_upnode.setParent(self.grp_rig)
-        pymel.parentConstraint(aim_grp, aim_upnode, maintainOffset=True)
-
-
-        pymel.aimConstraint(aim_target, aim_node,
-                            maintainOffset=True,
-                            aimVector=(0.0, 0.0, 1.0),
-                            upVector=(0.0, 1.0, 0.0),
-                            worldUpObject=aim_upnode,
-                            worldUpType='object'
-                            )
-
-        # Position objects
-        aim_grp.setParent(self._grp_offset)  # todo: add begin , end property
-        aim_grp.t.set(0,0,0)
-        aim_grp.r.set(0,0,0)
-        jnt_tm = self.jnt.getMatrix(worldSpace=True)
-        jnt_pos = jnt_tm.translate
-        aim_upnode_pos = pymel.datatypes.Point(0,1,0) + jnt_pos
-        aim_upnode.setTranslation(aim_upnode_pos, space='world')
-        aim_target_pos = pymel.datatypes.Point(0,0,1) + jnt_pos
-        aim_target.setTranslation(aim_target_pos, space='world')
-
-        pymel.parentConstraint(aim_node, stack, maintainOffset=True)
-
-        # Convert the rotation to avars to additional values can be added.
-        util_decomposeMatrix = libRigging.create_utility_node('decomposeMatrix', inputMatrix=aim_node.matrix)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateX, self.attr_lr)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateY, self.attr_ud)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputTranslateZ, self.attr_fb)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateY, self.attr_yw)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateX, self.attr_pt)
-        libRigging.connectAttr_withBlendWeighted(util_decomposeMatrix.outputRotateZ, self.attr_rl)
-
-    def build(self, create_ctrl=True, **kwargs):
-        super(AvarAim, self).build(create_ctrl=create_ctrl, **kwargs)
-
-        if create_ctrl:
-            pymel.pointConstraint(self.ctrl, self.target, maintainOffset=False)
-
-    def connect_ctrl(self, ctrl, **kwargs):
-        pass  # Nothing need to be connected since there's an aimConstraint
-
-    def unbuild(self):
-        super(AvarAim, self).unbuild()
-        self.target = None
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):

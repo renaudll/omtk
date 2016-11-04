@@ -436,4 +436,32 @@ class Module(object):
         else:
             return None, None
 
+    def init_ctrl(self, cls, inst):
+        """
+        Factory method that initialize a class instance only if necessary.
+        If the instance already had been initialized in a previous build, it's correct value will be preserved,
+        :param cls: The desired class.
+        :param inst: The current value. This should always exist since defined in the module constructor.
+        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        """
+        # todo: validate cls
+        result = inst
+
+        if not isinstance(inst, cls):
+            old_shapes = None
+            if inst is not None:
+                self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                    cls, type(inst)
+                ))
+                old_shapes = inst.shapes if hasattr(inst, 'shapes') else None
+
+            result = cls()
+
+            if old_shapes:
+                result.shapes = old_shapes
+
+        return result
+
+
+
 

@@ -1,5 +1,6 @@
 import itertools
 import logging
+from collections import defaultdict
 
 import pymel.core as pymel
 
@@ -10,8 +11,14 @@ from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
 from omtk.modules import rigFaceAvar
+from omtk.models import modelInteractiveCtrl
 
 log = logging.getLogger('omtk')
+
+def _find_mid_avar(avars):
+    jnts = [avar.jnt for avar in avars]
+    nearest_jnt = get_average_pos_between_nodes(jnts)
+    return avars[jnts.index(nearest_jnt)] if nearest_jnt else None
 
 class BaseCtrlUpp(rigFaceAvar.BaseCtrlFace):
     """
@@ -19,11 +26,13 @@ class BaseCtrlUpp(rigFaceAvar.BaseCtrlFace):
     """
     pass
 
+
 class BaseCtrlLow(rigFaceAvar.BaseCtrlFace):
     """
     Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
     """
     pass
+
 
 class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
     """
@@ -32,12 +41,14 @@ class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
+
 class CtrlFaceLow(rigFaceAvar.BaseCtrlFace):
     """
     Base controller class for an avar controlling the bottom portion of an AvarGrp.
     """
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_low()
+
 
 class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
     ATTR_NAME_GLOBAL_SCALE = 'globalScale'
@@ -49,6 +60,7 @@ class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
         transform, _ = libCtrlShapes.create_shape_circle(normal=(0,0,1))
         return transform
 
+
 class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
     """
     Base controller class for an avar controlling the left or right porsion of an AvarGrp.
@@ -56,14 +68,10 @@ class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_left()
 
-def _find_mid_avar(avars):
-    jnts = [avar.jnt for avar in avars]
-    nearest_jnt = get_average_pos_between_nodes(jnts)
-    return avars[jnts.index(nearest_jnt)] if nearest_jnt else None
 
 class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from AbstractAvar exactly? Is inheriting from module more logical?
     """
-    Base class for a group of 'avars' that share the same surface and proeprties.
+    Base class for a group of 'avars' that share the same properties.
     """
     # Define the class to use for all avars.
     _CLS_AVAR = rigFaceAvar.AvarSimple
@@ -148,6 +156,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         fnFilter = lambda avar: 'low' in avar.name.lower()
         return filter(fnFilter, self.avars)
 
+
     @property
     def avar_upp_mid(self):
         return _find_mid_avar(self.get_avars_micro_upp())
@@ -156,11 +165,80 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
     def avar_low_mid(self):
         return _find_mid_avar(self.get_avars_micro_low())
 
+    #
+    # Influence properties
+    #
 
     @libPython.cached_property()
     def jnts(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         return filter(fn_is_nurbsSurface, self.input)
+
+    @libPython.memoized_instancemethod
+    def _get_absolute_parent_level_by_influences(self):
+        result = defaultdict(list)
+        for jnt in self.jnts:
+            level = libPymel.get_num_parents(jnt)
+            result[level].append(jnt)
+        return dict(result)
+
+    # todo: implement Tree datatype
+    def _get_highest_absolute_parent_level(self):
+        return min(self._get_absolute_parent_level_by_influences().keys())
+
+    def _get_hierarchy_depth(self):
+        return max(self._get_relative_parent_level_by_influences().keys())
+
+    def _can_create_tweak_avars(self):
+        # If the hierarchy depth is of only 1, the avar_all have priority.
+        # This is because there's a potential for ambiguity between the all_avar and tweak avars.
+        lowest_relative_parent_level = self._get_hierarchy_depth()
+        if lowest_relative_parent_level == 1 and self.get_influence_all():
+            return False
+        return True
+
+    @libPython.memoized_instancemethod
+    def _get_relative_parent_level_by_influences(self):
+        result = defaultdict(list)
+        objs_by_absolute_parent_level = self._get_absolute_parent_level_by_influences()
+        top_level = self._get_highest_absolute_parent_level()
+        for parent_level, objs in objs_by_absolute_parent_level.iteritems():
+            result[parent_level - top_level] = objs
+        return dict(result)
+
+    @libPython.memoized_instancemethod
+    def get_influence_all(self):
+        """
+        If the rigger provided a global parent for the influences in the module,
+        it will be considered as an influence for the 'all' macro avar.
+        """
+        objs_by_absolute_parent_level = self._get_absolute_parent_level_by_influences()
+        top_level = self._get_highest_absolute_parent_level()
+        root_objs = objs_by_absolute_parent_level[top_level]
+        if len(root_objs) == 1:
+            return root_objs[0]
+
+        return None
+
+    @libPython.memoized_instancemethod
+    def _get_micro_avar_by_influence(self, influence):
+        for avar in self.avars:
+            if influence in avar.input:
+                return avar
+
+    def _iter_tweak_avars(self):
+        influences_by_parent_level = self._get_relative_parent_level_by_influences()
+        top_level = self._get_hierarchy_depth()
+        for influence in influences_by_parent_level[top_level]:
+            parent_influence = influence.getParent()
+            avar = self._get_micro_avar_by_influence(influence)
+            avar_parent = self._get_micro_avar_by_influence(parent_influence)
+            if avar and avar_parent:
+                yield (avar, avar_parent)
+
+    #
+    # Avar methods
+    #
 
     def connect_global_avars(self):
         for avar in self.avars:
@@ -290,8 +368,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         if connect_global_scale is None:
             connect_global_scale = self.preDeform
 
-        ctrl_size = self._get_default_ctrl_size()
-
         # Resolve the U and V modifiers.
         # Note that this only applies to avars on a surface.
         # TODO: Move to AvarGrpOnSurface
@@ -307,15 +383,20 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             # TODO: Do this in the back-end
             avar.name = self.rig.nomenclature(jnt.name()).resolve()
 
-            self._build_avar_micro(None, avar,
+            self._build_avar_micro(avar,
                                    create_ctrl=create_ctrls,
                                    constraint=constraint,
-                                   ctrl_size=ctrl_size,
                                    mult_u=mult_u,
                                    mult_v=mult_v,
                                    connect_global_scale=connect_global_scale,
                                    **kwargs
                                    )
+
+        # Connect 'tweak' avars to their equivalent.
+        for avar_tweak, avar_micro in self._iter_tweak_avars():
+            libRigging.connectAttr_withBlendWeighted(avar_micro.attr_lr, avar_tweak.attr_lr)
+            libRigging.connectAttr_withBlendWeighted(avar_micro.attr_ud, avar_tweak.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(avar_micro.attr_fb, avar_tweak.attr_fb)
 
         self.connect_global_avars()
 
@@ -333,9 +414,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
 
         avar.build(**kwargs)
 
-    def _build_avar_micro(self, cls_ctrl, avar, **kwargs):
-        if cls_ctrl:
-            avar._CLS_CTRL = cls_ctrl  # Hack, find a more elegant way.
+    def _build_avar_micro(self, avar, **kwargs):
 
         self._build_avar(avar, **kwargs)
 
@@ -379,7 +458,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             else:
                 avar.grp_rig.setParent(self.grp_rig)  # todo: raise warning?
 
-        return avar#
+        return avar
 
     def _parent_avar(self, avar, parent):
         try:
@@ -394,6 +473,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         # we will want the offset node to follow it's original parent (ex: the head)
         for avar in self.get_all_avars():
             self._parent_avar(avar, parent)
+
+    def _create_avars_ctrls(self, **kwargs):
+        for avar in self.avars:
+            avar.create_ctrl(**kwargs)
 
     def handle_surface(self):
         """
@@ -443,7 +526,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
 
         self._create_avars()
 
-        self._build_avars(parent=parent, connect_global_scale=connect_global_scale, create_ctrls=create_ctrls, constraint=constraint)
+        self._build_avars(parent=parent, connect_global_scale=connect_global_scale, constraint=constraint)
+
+        if create_ctrls:
+            ctrl_size = self._get_default_ctrl_size()
+            self._create_avars_ctrls(ctrl_size=ctrl_size)
 
         if parent and self.parent:
             self._parent_avars(self.parent)
@@ -531,19 +618,91 @@ class AvarGrpOnSurface(AvarGrp):
         """
         return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
 
-class AvarGrpAim(AvarGrp):
-    _CLS_AVAR = rigFaceAvar.AvarAim
-    SHOW_IN_UI = False
+
+class ModelCtrlMacroAll(modelInteractiveCtrl.ModelInteractiveCtrl):
+    def connect(self, avar, **kwargs):
+        super(ModelCtrlMacroAll, self).connect(avar, **kwargs)
+
+        nomenclature_rig = self.get_nomenclature_rig()
+
+        # Compute the calibration automatically
+        attr_calibration_lr = libRigging.create_utility_node(
+            'multiplyDivide',
+            name=nomenclature_rig.resolve('getCalibrationLr'),
+            input1X=avar.attr_multiplier_lr,
+            input2X=avar._attr_length_u
+        ).outputX
+        attr_calibration_ud = libRigging.create_utility_node(
+            'multiplyDivide',
+            name=nomenclature_rig.resolve('getCalibrationUd'),
+            input1X=avar.attr_multiplier_ud,
+            input2X=avar._attr_length_v
+        ).outputX
+        attr_calibration_fb = libRigging.create_utility_node(
+            'multiplyDivide',
+            name=nomenclature_rig.resolve('getCalibrationFb'),
+            input1X=avar.attr_multiplier_fb,
+            input2X=avar._attr_length_u
+        ).outputX
+
+        pymel.connectAttr(attr_calibration_lr, self.attr_sensitivity_tx)
+        pymel.connectAttr(attr_calibration_ud, self.attr_sensitivity_ty)
+        pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
+
+    def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
+        parent_pos = avar._grp_output
+        # parent_rot = avar._grp_output
+        super(ModelCtrlMacroAll, self).build(
+            avar,
+            parent_pos=parent_pos,
+            parent_rot=parent_rot,
+            **kwargs)
+
+    def calibrate(self, **kwargs):
+        """
+        Since the avar_all macro follow directly the surface, we don't need to calibrate it.
+        """
+        pass
+
 
 class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     """
-    This module will build AvarGrps with extra abstract avars.
+    Highest-level surface-based AvarGrp module.
+    With additional features like:
+    - Horizontal macro avars (avar_l, avar_r)
+    - Vertical macro avars (avar_upp, avar_low)
+    - Global macro avar (avar_all)
+    - Ability to have 'tweak' avars that follow their parent only in translation.
+      Especially useful to have different falloff on translation than on rotation.
+
+    Here's examples of the type of hierarchy that the rigger can provide:
+    --------------------------------------------------------------------------------------------------------------------
+    | NAME                   | AVAR_ALL | AVAR_L   | AVAR_R   | AVAR_UPP | AVAR_LOW | NOTES
+    --------------------------------------------------------------------------------------------------------------------
+    ex #1:
+    | jnt_avar_01            | YES      | NO       | NO       | NO       | NO       |
+    | jnt_avar_02            | YES      | NO       | NO       | NO       | NO       |
+    | jnt_avar_03            | YES      | NO       | NO       | NO       | NO       |
+    ex #2:
+    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
+    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
+    |   jnt_avar_02          | YES      | NO       | NO       | NO       | NO       |
+    |   jnt_avar_upp         | YES      | NO       | NO       | YES      | NO       | Affected by avar_upp because of the 'upp' token.
+    |   jnt_avar_low         | YES      | NO       | NO       | NO       | YES      | Affected by avar_low because of the 'low' token.
+    |   l_jnt_avar           | YES      | YES      | NO       | NO       | NO       | Affected by avar_l because of the 'l' token.
+    |   r_jnt_avar           | YES      | NO       | YES      | NO       | NO       | Affected by avar_r because of the 'r' token.
+    ex #3:
+    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
+    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
+    |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO       | Affected by jnt_avar_01 in translation only.
     """
     _CLS_CTRL_LFT = CtrlFaceHorizontal
     _CLS_CTRL_RGT = CtrlFaceHorizontal  # the negative scale of it's parent will flip it's shape
     _CLS_CTRL_UPP = CtrlFaceUpp
     _CLS_CTRL_LOW = CtrlFaceLow
     _CLS_CTRL_ALL = CtrlFaceAll
+    _CLS_MODEL_CTRL_ALL = ModelCtrlMacroAll
+
     SHOW_IN_UI = True
 
     CREATE_MACRO_AVAR_HORIZONTAL = True
@@ -560,6 +719,14 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         self.avar_r = None
         self.avar_upp = None
         self.avar_low = None
+
+    def validate(self):
+        super(AvarGrpAreaOnSurface, self).validate()
+
+        # Ensure that we support the hyerarchy of the influences.
+        influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
+        if influence_hyearchy_deepness > 2:
+            raise Exception("Unsupported hierarchy depth! Please revise your inputs hierarchy.")
 
     #
     # Influence getter functions.
@@ -642,7 +809,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return _find_mid_avar(self.avars)
 
     @libPython.memoized_instancemethod
-    def get_avars_l(self):
+    def get_avars_micro_l(self):
         """
         :return: All left section avars.
         """
@@ -651,7 +818,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return filter(fn_filter, self.avars)
 
     @libPython.memoized_instancemethod
-    def get_avars_r(self):
+    def get_avars_micro_r(self):
         """
         :return: All right section avars.
         """
@@ -665,7 +832,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         :return: The farthest avar in the positive X axis.
         """
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
-        return next(iter(reversed(sorted(self.get_avars_l(), key=fn_get_avar_pos_x))), None)
+        return next(iter(reversed(sorted(self.get_avars_micro_l(), key=fn_get_avar_pos_x))), None)
 
     @libPython.memoized_instancemethod
     def get_avar_r_corner(self):
@@ -673,7 +840,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         :return: The farthest avar in the negative X axis.
         """
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
-        return next(iter(sorted(self.get_avars_r(), key=fn_get_avar_pos_x)), None)
+        return next(iter(sorted(self.get_avars_micro_r(), key=fn_get_avar_pos_x)), None)
 
     def _iter_all_avars(self):
         for avar in super(AvarGrpAreaOnSurface, self)._iter_all_avars():
@@ -720,19 +887,8 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return influences
 
     @libPython.memoized_instancemethod
-    def get_influence_all(self):
-        """
-        If the rigger provided in the module input a parent for all the other inputs it will be considered as an influence for the 'all' macro avar.
-        """
-        parent_avars = []
-        for avar in self.jnts:
-            if any(True for child in avar.getChildren() if child in self.jnts):
-                parent_avars.append(avar)
-
-        if len(parent_avars) > 1:
-            self.warning("Invalid hierarchy when scanning for all macro avar. Guess will be taken.")
-
-        return next(iter(parent_avars), None)
+    def get_influences_tweak(self):
+        return self._get_relative_parent_level_by_influences().get(2, [])
 
     def create_avar_macro_all(self, cls_ctrl, ref=None, cls_avar=None):
         """
@@ -840,6 +996,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             ref_all = self.get_influence_all()
             if not self.avar_all or not isinstance(self.avar_all, self._CLS_AVAR):
                 self.avar_all = self.create_avar_macro_all(self._CLS_CTRL_UPP, ref_all, cls_avar=self._CLS_AVAR)
+            self.avar_all._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_ALL
 
             # The avar_all is special since it CAN drive an influence.
             old_ref_all = self.avar_all.jnt
@@ -861,6 +1018,8 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             avar_parent,
             **kwargs
         )
+
+    def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True):
         for child_avar in avar_children:
             if connect_ud:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
@@ -869,12 +1028,14 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             if connect_fb:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, child_avar.attr_fb)
 
-    def _build_avar_macro_vertical(self, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=True, connect_lr=True, connect_fb=True, **kwargs):
+    def _build_avar_macro_vertical(self, avar_parent, avar_middle, avar_children, cls_ctrl, **kwargs):
         self._build_avar_macro(
             cls_ctrl,
             avar_parent,
             **kwargs
         )
+
+    def _connect_avar_macro_vertical(self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True):
         for child_avar in avar_children:
             if connect_ud:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
@@ -887,13 +1048,19 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         # Create left avar if necessary
         ref = self.get_jnt_l_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, **kwargs)
+            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(), self._CLS_CTRL_LFT, **kwargs)
+
+    def _connect_avar_macro_l(self):
+        self._connect_avar_macro_horizontal(self.avar_l, self.get_avars_micro_l())
 
     def _build_avar_macro_r(self, **kwargs):
         # Create right avar if necessary
         ref = self.get_jnt_r_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, **kwargs)
+            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(), self._CLS_CTRL_RGT, **kwargs)
+
+    def _connect_avar_macro_r(self):
+        self._connect_avar_macro_horizontal(self.avar_r, self.get_avars_micro_r())
 
     def _build_avar_macro_upp(self, **kwargs):
         # Create upp avar if necessary
@@ -901,11 +1068,17 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         if self.create_macro_vertical and ref:
             self._build_avar_macro_vertical(self.avar_upp, self.get_avar_mid(), self.get_avars_micro_upp(), self._CLS_CTRL_UPP, **kwargs)
 
+    def _connect_avar_macro_upp(self):
+        self._connect_avar_macro_vertical(self.avar_upp, self.get_avars_micro_upp())
+
     def _build_avar_macro_low(self, **kwargs):
         # Create low avar if necessary
         ref = self.get_jnt_low_mid()
         if self.create_macro_vertical and ref:
             self._build_avar_macro_vertical(self.avar_low, self.get_avar_mid(), self.get_avars_micro_low(), self._CLS_CTRL_LOW, **kwargs)
+
+    def _connect_avar_macro_low(self):
+        self._connect_avar_macro_vertical(self.avar_low, self.get_avars_micro_low())
 
     def _connect_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True):
         """
@@ -955,48 +1128,48 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             layer_parent.t.set(0, 0, 0)  # Hack: why?
             pymel.connectAttr(attr_get_pivot, layer_parent.rotatePivot)
             pymel.connectAttr(attr_get_pivot, layer_parent.scalePivot)
-            pymel.connectAttr(self.avar_all.ctrl.node.r, layer_parent.r)
+
+            # Connect rotation
+            # pymel.connectAttr(self.avar_all.ctrl.node.r, layer_parent.r)
+            pymel.connectAttr(self.avar_all.attr_pt, layer_parent.rx)
+            pymel.connectAttr(self.avar_all.attr_yw, layer_parent.ry)
+            pymel.connectAttr(self.avar_all.attr_rl, layer_parent.rz)
 
             # Connect scale
             if _can_connect_avar_scale(avar_child):
-                pymel.connectAttr(self.avar_all.ctrl.node.sx, layer_parent.sx)
-                pymel.connectAttr(self.avar_all.ctrl.node.sy, layer_parent.sy)
-                pymel.connectAttr(self.avar_all.ctrl.node.sz, layer_parent.sz)
+                pymel.connectAttr(self.avar_all.attr_sx, layer_parent.sx)
+                pymel.connectAttr(self.avar_all.attr_sy, layer_parent.sy)
+                pymel.connectAttr(self.avar_all.attr_sz, layer_parent.sz)
 
-            # Hack: Ensure the micro avars ctrl follow in rotation the master ctrl.
-            # Note that currently this is very badly implemented.
-            # In the future, the InteractiveCtrl will be a module and this code will have to be redone properly.
-            # todo: refactor!
-            doritos_parent_layer = avar_child.ctrl.offset.rx.inputs()[0].target[0].targetRotate.inputs()[0].getParent()
-            for child in doritos_parent_layer.getChildren():
-                if isinstance(child, pymel.nodetypes.OrientConstraint):
-                    pymel.delete(child)
-            pymel.orientConstraint(self.avar_all.ctrl.node, doritos_parent_layer, maintainOffset=True)
+    def _get_avar_macro_all_influence_tm(self):
+        influence_all = self.get_influence_all()
+        if influence_all:
+            pos = influence_all.getTranslation(space='world')
+        else:
+            # We'll always want to macro avar to be positionned at the center of the plane.
+            pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
 
-    def _build_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False, follow_mesh=True,  **kwargs):
+        jnt_tm = pymel.datatypes.Matrix(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            pos.x, pos.y, pos.z, 1
+        )
+        return jnt_tm
+
+    def _build_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False):
         # Create all avar if necessary
         # Note that the use can provide an influence.
         # If no influence was found, we'll create an 'abstract' avar that doesn't move anything.
         if self.create_macro_all:
             # We'll always want to macro avar to be positionned at the center of the plane.
-            pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
-            jnt_tm = pymel.datatypes.Matrix(
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                pos.x, pos.y, pos.z, 1
-            )
-
-            # todo: This is badly designed, the 'avar_all' is following a point on the surface and not the mesh itself.
-            # This ensure consistency when working with objects like the mouth.
-            # In that case for the ctrl we don't want an InteractiveCtrl, we want a simple calibratable ctrl that will be constraint to the 'influence' of the avar.
-            follow_mesh = True if self.avar_all.jnt else False
+            jnt_tm = self._get_avar_macro_all_influence_tm()
 
             constraint = True if self.get_influence_all() else False
 
-            self._build_avar_macro(self._CLS_CTRL_ALL, self.avar_all, jnt_tm=jnt_tm, ctrl_tm=jnt_tm, obj_mesh=self.surface, follow_mesh=follow_mesh, constraint=constraint)
+            self._build_avar_macro(self._CLS_CTRL_ALL, self.avar_all, jnt_tm=jnt_tm, constraint=constraint)
 
-            self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
+            # self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
 
     def _build_avars(self, **kwargs):
         # TODO: Some calls might need to be move
@@ -1011,6 +1184,68 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         self._build_avar_macro_low()
 
         self._build_avar_macro_all()
+
+    def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, **kwargs):
+        ctrl_tm = self._get_avar_macro_all_influence_tm()
+
+        # todo: This is badly designed, the 'avar_all' is following a point on the surface and not the mesh itself.
+        # This ensure consistency when working with objects like the mouth.
+        # In that case for the ctrl we don't want an InteractiveCtrl, we want a simple calibratable ctrl that will be constraint to the 'influence' of the avar.
+        follow_mesh = True if self.avar_all.jnt else False
+
+        parent_pos=self.avar_all._grp_output
+        parent_rot=self.avar_all._grp_output
+
+        self.avar_all.create_ctrl(
+            ctrl_tm=ctrl_tm,
+            follow_mesh=follow_mesh,
+            parent_pos=parent_pos,
+            parent_rot=parent_rot,
+            **kwargs
+        )
+
+    def _create_avars_ctrls(self, parent_rot=None, parent_scl=None, **kwargs):
+        parent_rot = self.rig.get_head_jnt()
+        parent_scl = None
+
+        # Since micro avars ctrls can be constraint to macro avars ctrls, we create the macro first.
+        if self.create_macro_all:
+            self._create_avar_macro_all_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
+            self._connect_avar_macro_all()
+            parent_rot = self.avar_all.model_ctrl._stack.get_stack_end()
+            parent_scl = self.avar_all.ctrl
+
+        if self.create_macro_horizontal:
+            self.avar_l.create_ctrl(
+                parent_rot=parent_rot,
+                parent_scl=parent_scl,
+                **kwargs
+            )
+            self._connect_avar_macro_l()
+
+            self.avar_r.create_ctrl(
+                parent_rot=parent_rot,
+                parent_scl=parent_scl,
+                **kwargs
+            )
+            self._connect_avar_macro_r()
+
+        if self.create_macro_vertical:
+            self.avar_upp.create_ctrl(
+                parent_rot=parent_rot,
+                parent_scl=parent_scl,
+                **kwargs
+            )
+            self._connect_avar_macro_upp()
+
+            self.avar_low.create_ctrl(
+                parent_rot=parent_rot,
+                parent_scl=parent_scl,
+                **kwargs
+            )
+            self._connect_avar_macro_low()
+
+        super(AvarGrpAreaOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
 
     def unbuild(self):
         if self.avar_l:
@@ -1055,6 +1290,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         if self.avar_low:
             result.append(self.avar_low)
         return result
+
 
 def register_plugin():
     return AvarGrpAreaOnSurface

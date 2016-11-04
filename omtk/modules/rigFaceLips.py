@@ -9,6 +9,7 @@ from omtk.libs import libFormula
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 from omtk.core.classNode import Node
+from omtk.models import modelInteractiveCtrl
 
 class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
     pass
@@ -470,7 +471,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
             'multiplyDivide',
             name=nomenclature_rig.resolve('getAdjustedUdBypass'),
             input1X=self.attr_ud_bypass,
-            input2X=self._attr_v_mult_inn
+            input2X=self.attr_multiplier_ud
         ).outputX
         attr_v = libRigging.create_utility_node(
             'addDoubleLinear',
@@ -531,31 +532,41 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_ud, kv=[0.01, 0.0, -0.01])
             libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_fb, kv=[0.01, 0.0, -0.01])
 
-    def _build_avar_macro_horizontal(self, avar_parent, avar_middle, avar_children, cls_ctrl, connect_ud=False, connect_lr=True, connect_fb=False):
-        self._build_avar_macro(cls_ctrl, avar_parent)
+    def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True):
+        """
+        Connect micro avars to horizontal macro avar. (avar_l and avar_r)
+        This configure the avar_lr connection differently depending on the position of each micro avars.
+        The result is that the micro avars react like an 'accordion' when their macro avar_lr change.
+        :param avar_parent: The macro avar, source of the connections.
+        :param avar_children: The micro avars, destination of the connections.
+        :param connect_ud: True if we want to connect the avar_ud.
+        :param connect_lr: True if we want to connect the avar_lr.
+        :param connect_fb: True if we want to connect the avar_fb.
+        """
+        # super(FaceLips, self)._connect_avar_macro_horizontal(avar_parent, avar_children, connect_ud=False, connect_lr=False, connect_fb=False)
 
-        pos_s = avar_middle.jnt.getTranslation(space='world')
-        pos_e = avar_parent.jnt.getTranslation(space='world')
+        if connect_lr:
+            avar_middle = self.get_avar_mid()
+            pos_s = avar_middle.jnt.getTranslation(space='world')
+            pos_e = avar_parent.jnt.getTranslation(space='world')
 
-        for avar_child in avar_children:
-            # We don't want to connect the middle Avar.
-            if avar_child == avar_middle:
-                continue
+            for avar_child in avar_children:
+                # We don't want to connect the middle Avar.
+                if avar_child == avar_middle:
+                    continue
 
-            pos = avar_child.jnt.getTranslation(space='world')
+                pos = avar_child.jnt.getTranslation(space='world')
 
-            # Compute the ratio between the middle and the corner.
-            # ex: In the lips, we want the lips to stretch when the corner are taken appart.
-            ratio = (pos.x - pos_s.x) / (pos_e.x - pos_s.x)
-            ratio = max(0, ratio)
-            ratio = min(ratio, 1)
+                # Compute the ratio between the middle and the corner.
+                # ex: In the lips, we want the lips to stretch when the corner are taken appart.
+                try:
+                    ratio = (pos.x - pos_s.x) / (pos_e.x - pos_s.x)
+                except ZeroDivisionError:
+                    continue
+                ratio = max(0, ratio)
+                ratio = min(ratio, 1)
 
-            if connect_ud:
-                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, avar_child.attr_ud)
-            if connect_lr:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, avar_child.attr_lr,  kv=(-ratio,0.0,ratio))
-            if connect_fb:
-                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, avar_child.attr_fb)
 
     def _build_avar_macro_l(self):
         # Create left avar if necessary
@@ -563,13 +574,16 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         if self.create_macro_horizontal and ref:
             if not self.avar_l:
                 self.avar_l = self.create_avar_macro_left(self._CLS_CTRL_LFT, ref)
-            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_l(), self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(), self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
 
-            # Connect the corner other avars
-            avar_l_corner = self.get_avar_l_corner()
-            if avar_l_corner:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
+    def _connect_avar_macro_l(self):
+        super(FaceLips, self)._connect_avar_macro_l()
+
+        # Connect the corner other avars
+        avar_l_corner = self.get_avar_l_corner()
+        if avar_l_corner:
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
 
     def _build_avar_macro_r(self):# Create right avar if necessary
         ref = self.get_jnt_r_mid()
@@ -577,12 +591,16 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             # Create l ctrl
             if not self.avar_r:
                 self.avar_r = self.create_avar_macro_right(self._CLS_CTRL_RGT, ref)
-            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_r(), self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(), self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
 
-            avar_r_corner = self.get_avar_r_corner()
-            if avar_r_corner:
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
-                libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
+    def _connect_avar_macro_r(self):
+        super(FaceLips, self)._connect_avar_macro_r()
+
+        # Connect the corner other avars
+        avar_r_corner = self.get_avar_r_corner()
+        if avar_r_corner:
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
 
     @libPython.memoized_instancemethod
     def _get_mouth_width(self):
@@ -611,19 +629,31 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         # Hack: Ensure the avar_all ctrl follow the stack output.
         # This is not the best way since we want to be able to build avars withtout any controllers.
         # However it will do for now.
-        # todo: refactor this shit
-        doritos_parent_layer = self.avar_all.ctrl.offset.rx.inputs()[0].target[0].targetRotate.inputs()[0].getParent()
-        for child in doritos_parent_layer.getChildren():
-            if isinstance(child, pymel.nodetypes.Constraint):
-                pymel.delete(child)
-        pymel.parentConstraint(self.avar_all._grp_output, doritos_parent_layer, maintainOffset=True)
+        # # todo: refactor this shit
+        # doritos_parent_layer = self.avar_all.model_ctrl.grp_rig
+        # for child in doritos_parent_layer.getChildren():
+        #     if isinstance(child, pymel.nodetypes.Constraint):
+        #         pymel.delete(child)
+        # pymel.parentConstraint(self.avar_all._grp_output, doritos_parent_layer, maintainOffset=True)
 
         # Hack 2: Ensure callibation work by also constraining the follicle.
-        # Damn is this part ugly...
-        ctrl_fol = self.avar_all.ctrl.follicle
-        pymel.disconnectAttr(ctrl_fol.t)
-        pymel.disconnectAttr(ctrl_fol.r)
-        pymel.parentConstraint(self.avar_all._grp_output, ctrl_fol, maintainOffset=True)
+        # # Damn is this part ugly...
+        # ctrl_fol = self.avar_all.ctrl.follicle
+        # pymel.disconnectAttr(ctrl_fol.t)
+        # pymel.disconnectAttr(ctrl_fol.r)
+        # pymel.parentConstraint(self.avar_all._grp_output, ctrl_fol, maintainOffset=True)
+
+    def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, **kwargs):
+        """
+        Since the avar_all ctrl don't follow the geometry, we'll want it to follow the avar influence.
+        This however create double transformation when rotating, it's not that much visible so it will do for now.
+        # todo: fix double transformation when rotating
+        :param parent_pos:
+        :param parent_rot:
+        """
+        # parent_pos = self.avar_all._grp_output
+        parent_rot = self.avar_all._grp_output
+        super(FaceLips, self)._create_avar_macro_all_ctrls(parent_pos=parent_pos, parent_rot=parent_rot, **kwargs)
 
     def build(self, calibrate=True, use_football_interpolation=False, **kwargs):
         """

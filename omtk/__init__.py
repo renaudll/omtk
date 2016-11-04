@@ -22,6 +22,10 @@ def _reload(kill_ui=True):
     reload(core)
     core._reload()
 
+    import models
+    reload(models)
+    models._reload()
+
     import libs
     reload(libs)
     libs._reload()

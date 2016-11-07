@@ -159,21 +159,14 @@ class ModelLookAt(BaseAvarCtrlModel):
         libRigging.connectAttr_withBlendWeighted(self._attr_out_pt, avar.attr_pt)
         libRigging.connectAttr_withBlendWeighted(self._attr_out_rl, avar.attr_rl)
 
-class AvarEye(rigFaceAvar.AvarSimple):
-    """
-    This avar is not designed to use any surface.
-    """
-    SHOW_IN_UI = False
-    _CLS_CTRL = CtrlEye
-    _CLS_MODEL_CTRL = ModelLookAt
-
 class FaceEyes(rigFaceAvarGrps.AvarGrp):
     """
     Look-at setup with avars support.
     """
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
-    _CLS_AVAR = AvarEye
+    _CLS_MODEL_CTRL_MICRO = ModelLookAt
+    _CLS_CTRL_MICRO = CtrlEye
 
     def __init__(self, *args, **kwargs):
         """

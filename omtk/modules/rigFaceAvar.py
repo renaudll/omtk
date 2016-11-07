@@ -351,7 +351,7 @@ class AvarSimple(AbstractAvar):
     By default it come with a Deformer driven by a doritos setup.
     A doritos setup allow the controller to always be on the surface of the face.
     """
-    _CLS_CTRL = CtrlFaceMicro
+    _CLS_CTRL = None  # By default, an avar don't have an ctrl.
     _CLS_MODEL_CTRL = ModelInteractiveCtrl
 
     def __init__(self, *args, **kwargs):
@@ -465,12 +465,14 @@ class AvarSimple(AbstractAvar):
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
 
-    def create_ctrl(self, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, connect=True, ctrl_tm=None, **kwargs):
+    def create_ctrl(self, parent, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, connect=True, ctrl_tm=None, **kwargs):
         """
         An Avar is not made to contain a ctrl necessary.
         However you can run this function to create a ctrl using a provided model.
         """
-        #
+        # Don't create anything if we don't have a _CLS_CTRL.
+        if self._CLS_CTRL is None:
+            return
 
         if self._CLS_MODEL_CTRL is None:
             if not isinstance(self.ctrl, self._CLS_CTRL):
@@ -485,64 +487,61 @@ class AvarSimple(AbstractAvar):
 
             self.ctrl.setParent(self.grp_rig)
 
-        elif issubclass(self._CLS_MODEL_CTRL, ModelInteractiveCtrl):
-            # By default, an InteractiveCtrl follow the rotation of the head.
-            if parent_rot is None:
-                parent_rot = self.rig.get_head_jnt()
-
-            if parent_scl is None:
-                parent_scl = self.rig.get_head_jnt()
-
-
-            # ctrl_name = nomenclature_anm.resolve()
-            self.model_ctrl = self._CLS_MODEL_CTRL(
-                self.input,
-                name=self.name,
-                rig=self.rig
-            )
-            self.model_ctrl._CLS_CTRL = self._CLS_CTRL
-            self.model_ctrl.build(
-                self,
-                ctrl_tm=ctrl_tm,
-                ctrl_size=ctrl_size,
-                flip_lr=self.need_flip_lr(),
-                parent_pos=parent_pos,
-                parent_rot=parent_rot,
-                parent_scl=parent_scl,
-                **kwargs
-            )
-            self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
-            if self.model_ctrl.grp_anm and self.grp_anm:
-                self.model_ctrl.grp_anm.setParent(self.grp_anm)
-            if self.model_ctrl.grp_rig and self.grp_rig:
-                self.model_ctrl.grp_rig.setParent(self.grp_rig)
-
-            #self.connect_ctrl(self.ctrl)
-            if connect:
-                self.model_ctrl.connect(self)
-
         else:
-            self.model_ctrl = self._CLS_MODEL_CTRL(
-                self.input,
-                name=self.name,
-                rig=self.rig
-            )
-            self.model_ctrl._CLS_CTRL = self._CLS_CTRL
-            self.model_ctrl.build(
-                self,
-                ctrl_tm=ctrl_tm,
-                ctrl_size=ctrl_size,
-                **kwargs
-            )
-            self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
-            if self.model_ctrl.grp_anm and self.grp_anm:
-                self.model_ctrl.grp_anm.setParent(self.grp_anm)
-            if self.model_ctrl.grp_rig and self.grp_rig:
-                self.model_ctrl.grp_rig.setParent(self.grp_rig)
+            if issubclass(self._CLS_MODEL_CTRL, ModelInteractiveCtrl):
+                # By default, an InteractiveCtrl follow the rotation of the head.
+                if parent_rot is None:
+                    parent_rot = self.rig.get_head_jnt()
+
+                if parent_scl is None:
+                    parent_scl = self.rig.get_head_jnt()
+
+
+                # ctrl_name = nomenclature_anm.resolve()
+                self.model_ctrl = self._CLS_MODEL_CTRL(
+                    self.input,
+                    name=self.name,
+                    rig=self.rig
+                )
+                self.model_ctrl._CLS_CTRL = self._CLS_CTRL
+                self.model_ctrl.build(
+                    self,
+                    ctrl_tm=ctrl_tm,
+                    ctrl_size=ctrl_size,
+                    flip_lr=self.need_flip_lr(),
+                    parent_pos=parent_pos,
+                    parent_rot=parent_rot,
+                    parent_scl=parent_scl,
+                    **kwargs
+                )
+                self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
+                if self.model_ctrl.grp_anm and self.grp_anm:
+                    self.model_ctrl.grp_anm.setParent(self.grp_anm)
+                if self.model_ctrl.grp_rig and self.grp_rig:
+                    self.model_ctrl.grp_rig.setParent(self.grp_rig)
+
+            else:
+                self.model_ctrl = self._CLS_MODEL_CTRL(
+                    self.input,
+                    name=self.name,
+                    rig=self.rig
+                )
+                self.model_ctrl._CLS_CTRL = self._CLS_CTRL
+                self.model_ctrl.build(
+                    self,
+                    ctrl_tm=ctrl_tm,
+                    ctrl_size=ctrl_size,
+                    **kwargs
+                )
+                self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
+                if self.model_ctrl.grp_anm and self.grp_anm:
+                    self.model_ctrl.grp_anm.setParent(self.grp_anm)
+                if self.model_ctrl.grp_rig and self.grp_rig:
+                    self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
             # self.connect_ctrl(self.ctrl)
             if connect:
-                self.model_ctrl.connect(self)
+                self.model_ctrl.connect(self, parent)
 
 
 

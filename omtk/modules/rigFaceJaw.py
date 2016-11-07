@@ -16,7 +16,7 @@ class CtrlJaw(rigFaceAvar.BaseCtrlFace):
 
 
 class ModelCtrlJaw(modelInteractiveCtrl.ModelInteractiveCtrl):
-    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+    def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         attr_pt_inn = self.ctrl.translateY
         attr_yw_inn = self.ctrl.translateX
 

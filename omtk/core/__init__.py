@@ -85,7 +85,7 @@ def build_all(strict=False):
     networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
-        if not rigroot:
+        if rigroot is None:
             log.warning("Error importing rig network {0}".format(network))
             continue
         if rigroot.build(strict=strict):
@@ -99,7 +99,7 @@ def unbuild_all(strict=False):
     networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
-        if not rigroot:
+        if rigroot is None:
             log.warning("Error importing rig network {0}".format(network))
             continue
         rigroot.unbuild(strict=strict)

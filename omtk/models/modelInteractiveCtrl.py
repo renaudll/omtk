@@ -235,41 +235,63 @@ class ModelInteractiveCtrl(Module):
         attr_sensibility_ud_inv = util_sensitivity_inv.outputY
         attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
 
-        # Add an inverse node that will counter animate the position of the ctrl.
-        # TODO: Rename
-        layer_doritos_name = nomenclature_rig.resolve('doritosInv')
-        layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
-        layer_doritos.setParent(self._stack.node)
 
-        # Create inverse attributes for the ctrl
-        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.t,
-                                                         input2=[-1, -1, -1]).output
-        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.r,
-                                                         input2=[-1, -1, -1]).output
-        attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide',
-                                                         input1=attr_ctrl_inv_t,
-                                                         input2X=self.attr_sensitivity_tx,
-                                                         input2Y=self.attr_sensitivity_ty,
-                                                         input2Z=self.attr_sensitivity_tz
-                                                         ).output
+        #
+        # Inverse translation
+        #
+        attr_ctrl_inv_t = libRigging.create_utility_node(
+            'multiplyDivide', input1=self.ctrl.node.t,
+            input2=[-1, -1, -1]
+        ).output
+
+        attr_ctrl_inv_t = libRigging.create_utility_node(
+            'multiplyDivide',
+            input1=attr_ctrl_inv_t,
+            input2X=self.attr_sensitivity_tx,
+            input2Y=self.attr_sensitivity_ty,
+            input2Z=self.attr_sensitivity_tz
+        ).output
+
+        layer_inv_t_name = nomenclature_rig.resolve('inverseT')
+        layer_inv_t = self._stack.append_layer(name=layer_inv_t_name)
 
         if flip_lr:
-            attr_doritos_tx = libRigging.create_utility_node('multiplyDivide',
-                                                             input1X=attr_ctrl_inv_t.outputX,
-                                                             input2X=-1
-                                                             ).outputX
+            attr_doritos_tx = libRigging.create_utility_node(
+                'multiplyDivide',
+                input1X=attr_ctrl_inv_t.outputX,
+                input2X=-1
+            ).outputX
         else:
             attr_doritos_tx = attr_ctrl_inv_t.outputX
         attr_doritos_ty = attr_ctrl_inv_t.outputY
         attr_doritos_tz = attr_ctrl_inv_t.outputZ
 
-        pymel.connectAttr(attr_doritos_tx, layer_doritos.tx)
-        pymel.connectAttr(attr_doritos_ty, layer_doritos.ty)
-        pymel.connectAttr(attr_doritos_tz, layer_doritos.tz)
-        pymel.connectAttr(attr_ctrl_inv_r, layer_doritos.r)
+        pymel.connectAttr(attr_doritos_tx, layer_inv_t.tx)
+        pymel.connectAttr(attr_doritos_ty, layer_inv_t.ty)
+        pymel.connectAttr(attr_doritos_tz, layer_inv_t.tz)
 
+        #
+        # Inverse rotation
+        # Add an inverse node that will counter animate the position of the ctrl.
+        # TODO: Rename
+        #
+        layer_inv_r_name = nomenclature_rig.resolve('inverseR')
+        layer_inv_r = self._stack.append_layer(name=layer_inv_r_name)
+        # layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
+        # layer_doritos.setParent(self._stack.node)
+
+        # Create inverse attributes for the ctrl
+
+        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.r,
+                                                         input2=[-1, -1, -1]).output
+
+        pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
+
+
+        #
         # Apply scaling on the ctrl parent.
         # This is were the 'black magic' happen.
+        #
         if flip_lr:
             attr_ctrl_offset_sx_inn = libRigging.create_utility_node('multiplyDivide',
                                                                      input1X=self.attr_sensitivity_tx,
@@ -339,11 +361,13 @@ class ModelInteractiveCtrl(Module):
         #
 
         # Position
-        pymel.parentConstraint(layer_doritos, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
+        stack_end = self._stack.get_stack_end()
+        pymel.parentConstraint(stack_end, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
 
         # Rotation
         if parent_rot is None:
-            parent_rot = layer_doritos.getParent()
+            parent_rot = stack_end
+            # parent_rot = layer_inv_r.getParent()
         pymel.orientConstraint(parent_rot, self.ctrl.offset, maintainOffset=True)
 
         # Scale

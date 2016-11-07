@@ -58,8 +58,6 @@ class AvarJaw(rigFaceAvar.AvarSimple):
     This avar is not designed to use any surface.
     """
     SHOW_IN_UI = False
-    _CLS_CTRL = CtrlJaw
-    _CLS_MODEL_CTRL = ModelCtrlJaw
     IS_SIDE_SPECIFIC = False
 
     def get_module_name(self):
@@ -87,6 +85,8 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
     The Jaw global avars are made
     """
     _CLS_AVAR = AvarJaw
+    _CLS_CTRL_MICRO = CtrlJaw
+    _CLS_MODEL_CTRL_MICRO = ModelCtrlJaw
     SHOW_IN_UI = True
     SINGLE_INFLUENCE = True
 

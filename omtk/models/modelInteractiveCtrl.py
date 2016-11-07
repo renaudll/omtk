@@ -389,7 +389,7 @@ class ModelInteractiveCtrl(Module):
 
             # todo: merge with .connect_ctrl
 
-    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+    def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         need_flip = avar.need_flip_lr()
 
         # Position

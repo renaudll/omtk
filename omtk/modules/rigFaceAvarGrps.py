@@ -80,10 +80,10 @@ class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
         if avar_tweak:
-            super(ModelMicroAvarCtrl, self).connect(avar,  ud=ud, fb=fb, lr=lr, yw=False, pt=False, rl=False, sx=False, sy=False, sz=False)
-            super(ModelMicroAvarCtrl, self).connect(avar_tweak, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz)
+            super(ModelMicroAvarCtrl, self).connect(avar,  avar_grp, ud=ud, fb=fb, lr=lr, yw=False, pt=False, rl=False, sx=False, sy=False, sz=False)
+            super(ModelMicroAvarCtrl, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=False, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz)
         else:
-            super(ModelMicroAvarCtrl, self).connect(avar, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz)
+            super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz)
 
 
 class ModelCtrlMacroAll(modelInteractiveCtrl.ModelInteractiveCtrl):
@@ -344,9 +344,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             max_ctrl_size = head_length * 0.05
 
         if len(self.jnts) > 1:
-            new_ctrl_size = min(libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)) / 2.0
-            if new_ctrl_size > EPSILON:
-                ctrl_size = new_ctrl_size
+            distances = [libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)]
+            distances = filter(lambda x: x > EPSILON, distances)
+            if distances:
+                ctrl_size = min(distances) / 2.0
 
             if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
                 self.debug("Limiting ctrl size to {0}".format(max_ctrl_size))

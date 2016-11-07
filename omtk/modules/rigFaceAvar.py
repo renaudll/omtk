@@ -167,7 +167,7 @@ class AbstractAvar(classModule.Module):
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                self.warning("Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
+                self.debug("Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
                 continue
 
             #attr_name = attr.longName()
@@ -194,7 +194,7 @@ class AbstractAvar(classModule.Module):
         if libPymel.is_valid_PyNode(self.avar_network):
             for attr_name in pymel.listAttr(self.avar_network, userDefined=True):
                 attr_src = self.avar_network.attr(attr_name)
-                if not self.grp_rig.hasAttr(attr_dst, attr_name):
+                if not self.grp_rig.hasAttr(attr_name):
                     self.warning("Can't fetch stored avar named {0}!".format(attr_name))
                     continue
                 attr_dst = self.grp_rig.attr(attr_name)
@@ -555,6 +555,11 @@ class AvarSimple(AbstractAvar):
 
         if self.model_ctrl and hasattr(self.model_ctrl, 'calibrate'):
             self.model_ctrl.calibrate()
+
+    def unbuild(self):
+        if self.model_ctrl:
+            self.model_ctrl.unbuild()
+        super(AvarSimple, self).unbuild()
 
 
 class AvarFollicle(AvarSimple):

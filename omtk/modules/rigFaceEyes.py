@@ -5,6 +5,12 @@ from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libRigging
 
+class AvarEye(rigFaceAvar.AvarSimple):
+    """
+    Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
+    """
+    pass
+
 class CtrlEyes(BaseCtrl):
     def __createNode__(self, width=1.0, height=1.0, normal=(0,0,1), *args, **kwargs):
         p1 = [0, height, 0]

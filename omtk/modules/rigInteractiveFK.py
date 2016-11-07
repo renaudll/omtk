@@ -148,10 +148,7 @@ class InteractiveAvar(Module):
         #
 
         # Cancel the ctrl translation
-        layer_inverse_t_name = nomenclature_rig.resolve('inverseT')
-        layer_inverse_t = stack.append_layer(
-            name=layer_inverse_t_name,
-        )
+        layer_inverse_t = stack.append_layer(name='inverseT')
         attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.t,
                                                          input2=[-1, -1, -1]).output
         attr_ctrl_inv_t = libRigging.create_utility_node('multiplyDivide',
@@ -176,10 +173,7 @@ class InteractiveAvar(Module):
         pymel.connectAttr(attr_doritos_tz, layer_inverse_t.tz)
 
         # Cancel the ctrl rotation
-        layer_inverse_r_name = nomenclature_rig.resolve('inverseR')
-        layer_inverse_r = stack.append_layer(
-            name=layer_inverse_r_name,
-        )
+        layer_inverse_r = stack.append_layer(name='inverseR')
         attr_ctrl_inv_r = libRigging.create_utility_node(
             'multiplyDivide',
             input1=self.ctrl.node.r,
@@ -454,18 +448,14 @@ class InteractiveAvarGrp(Module):
         )
 
         # Ensure the transforms start at zero.
-        stack._layer_offset = stack.append_layer(nomenclature_driver.resolve('parent'))
+        stack._layer_offset = stack.append_layer('parent')
         stack._layer_offset.setMatrix(influence.getMatrix(worldSpace=True))
         influence_parent = influence.getParent()
         if influence_parent:
             pymel.parentConstraint(influence_parent, stack._layer_offset, maintainOffset=True)
 
-        stack._layer_t = stack.append_layer(
-            name=nomenclature_driver.resolve('t')
-        )
-        stack._layer_r = stack.append_layer(
-            name=nomenclature_driver.resolve('r')
-        )
+        stack._layer_t = stack.append_layer(name='t')
+        stack._layer_r = stack.append_layer(name='r')
 
         pymel.parentConstraint(stack.node, influence, maintainOffset=False)
 

@@ -728,6 +728,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     _CLS_MODEL_CTRL_ALL = ModelCtrlMacroAll
 
     SHOW_IN_UI = True
+    UI_DISPLAY_NAME = 'AvarGrp'
 
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = True
@@ -1248,11 +1249,6 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         # todo: resolve ctrl_tm inside of the model?
         ctrl_tm = self._get_avar_macro_all_ctrl_tm()
 
-        # todo: This is badly designed, the 'avar_all' is following a point on the surface and not the mesh itself.
-        # This ensure consistency when working with objects like the mouth.
-        # In that case for the ctrl we don't want an InteractiveCtrl, we want a simple calibratable ctrl that will be constraint to the 'influence' of the avar.
-        follow_mesh = True if self.avar_all.jnt else False
-
         parent_pos=self.avar_all._grp_output
         # parent_rot=self.avar_all._grp_output
         parent_rot=None
@@ -1260,7 +1256,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         self.avar_all.create_ctrl(
             self,
             ctrl_tm=ctrl_tm,
-            follow_mesh=follow_mesh,
+            follow_mesh=False,
             parent_pos=parent_pos,
             parent_rot=parent_rot,
             **kwargs

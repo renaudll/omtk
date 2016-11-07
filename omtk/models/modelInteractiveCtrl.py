@@ -104,7 +104,7 @@ class ModelInteractiveCtrl(Module):
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
             if obj_mesh is None and follow_mesh:
-                raise Exception("Can't find mesh affected by {0}. ")
+                raise Exception("Can't find mesh affected by {0}. ".format(self.jnt))
 
         else:
             _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
@@ -252,8 +252,7 @@ class ModelInteractiveCtrl(Module):
             input2Z=self.attr_sensitivity_tz
         ).output
 
-        layer_inv_t_name = nomenclature_rig.resolve('inverseT')
-        layer_inv_t = self._stack.append_layer(name=layer_inv_t_name)
+        layer_inv_t = self._stack.append_layer(name='inverseT')
 
         if flip_lr:
             attr_doritos_tx = libRigging.create_utility_node(
@@ -275,8 +274,7 @@ class ModelInteractiveCtrl(Module):
         # Add an inverse node that will counter animate the position of the ctrl.
         # TODO: Rename
         #
-        layer_inv_r_name = nomenclature_rig.resolve('inverseR')
-        layer_inv_r = self._stack.append_layer(name=layer_inv_r_name)
+        layer_inv_r = self._stack.append_layer(name='inverseR')
         # layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
         # layer_doritos.setParent(self._stack.node)
 

@@ -199,6 +199,9 @@ class AbstractAvar(classModule.Module):
                     continue
                 attr_dst = self.grp_rig.attr(attr_name)
                 libAttr.transfer_connections(attr_src, attr_dst)
+
+            # Ensure Maya don't delete our networks when removing the backup node...
+            pymel.disconnectAttr(self.avar_network.message)
             pymel.delete(self.avar_network)
             self.avar_network = None
 
@@ -503,6 +506,11 @@ class AvarSimple(AbstractAvar):
                     name=self.name,
                     rig=self.rig
                 )
+
+                # Backward compatibility with old rigs.
+                if self.model_ctrl.ctrl is None and self.ctrl is not None:
+                    self.model_ctrl.ctrl = self.ctrl
+
                 self.model_ctrl._CLS_CTRL = self._CLS_CTRL
                 self.model_ctrl.build(
                     self,
@@ -558,7 +566,12 @@ class AvarSimple(AbstractAvar):
 
     def unbuild(self):
         if self.model_ctrl:
-            self.model_ctrl.unbuild()
+            # Note: The model un-build process is only to needed to de-initialize some variables.
+            # If it fail, notify the user but don't crash.
+            try:
+                self.model_ctrl.unbuild()
+            except Exception, e:
+                self.warning("Error unbuilding ctrl model: {0}".format(str(e)))
         super(AvarSimple, self).unbuild()
 
 

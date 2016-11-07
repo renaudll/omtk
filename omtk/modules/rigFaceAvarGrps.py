@@ -635,7 +635,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
 
     def _create_avar(self, ref=None, cls_avar=None, cls_ctrl=None, old_val=None, name=None, **kwargs):
         """
-        Factory method to create an avar.
+        Factory method to create an avar. Pass the old avar in parameter it's internal data can be preserved if necessary.
         :param ref:
         :param cls_avar:
         :param cls_ctrl:
@@ -662,6 +662,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
                 cls_avar.__name__, type(old_val).__name__
             ))
             avar.ctrl = old_val.ctrl
+            avar.avar_network = old_val.avar_network
 
         return avar
 
@@ -962,7 +963,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         avar_upp_name = nomenclature_upp.resolve()
 
         #avar = self.create_avar_macro(rig, cls_ctrl, ref, name=avar_upp_name)
-        avar =self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_upp, name=avar_upp_name)
+        avar = self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_upp, name=avar_upp_name)
 
         return avar
 
@@ -979,7 +980,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         avar_low_name = nomenclature_low.resolve()
 
         #avar = self.create_avar_macro(rig, cls_ctrl, ref, name=avar_low_name)
-        avar =self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_low, name=avar_low_name)
+        avar = self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_low, name=avar_low_name)
 
         return avar
 

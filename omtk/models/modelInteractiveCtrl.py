@@ -154,12 +154,6 @@ class ModelInteractiveCtrl(Module):
         #
         ctrl_name = nomenclature_anm.resolve()
         self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
-        self.ctrl.build(name=ctrl_name, size=ctrl_size)
-        self.ctrl.setParent(self.grp_anm)
-
-        #
-        # Create the follicle setup
-        #
 
         # HACK: Ensure flipped shapes are correctly restaured...
         # This is necessary since when holded, the scale of the ctrl is set to identity.
@@ -168,6 +162,12 @@ class ModelInteractiveCtrl(Module):
             self.ctrl.shapes.sx.set(-1)
             pymel.makeIdentity(self.ctrl.shapes, rotate=True, scale=True, apply=True)
 
+        self.ctrl.build(name=ctrl_name, size=ctrl_size)
+        self.ctrl.setParent(self.grp_anm)
+
+        #
+        # Create the follicle setup
+        #
 
         # Initialize external stack
         # Normally this would be hidden from animators.

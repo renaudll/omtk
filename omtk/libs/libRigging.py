@@ -430,7 +430,7 @@ def get_affected_geometries(*objs):
 
             for skinCluster in skinClusters:
                 for geometry in skinCluster.getOutputGeometry():
-                    if isinstance(geometry, pymel.nodetypes.Mesh):  # Only Mesh are supported for now
+                    if isinstance(geometry, pymel.nodetypes.SurfaceShape):
                         geometries.add(geometry)
 
     return geometries
@@ -515,14 +515,12 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
             dirs.append(OpenMaya.MVector(-ref_tm.a20, -ref_tm.a21, -ref_tm.a22))  # Z Axis
 
         length = 0
-        results = OpenMaya.MPointArray()
-        for geometry in geometries:
-            mfn_geo = geometry.__apimfn__()
-            for dir in dirs:
-                if mfn_geo.intersect(pos, dir, results, 1.0e-10, OpenMaya.MSpace.kWorld):
-                    cur_length = min((results[0].distanceTo(pos) for i in range(results.length())))
-                    if cur_length > length:
-                        length = cur_length
+        results = ray_cast(pos, dirs, geometries)
+        if results:
+            cur_lengh = min((result.distanceTo(pos) for result in results))
+            if cur_lengh > length:
+                length = cur_lengh
+
         if not length:
             length = obj.radius.get()
         return length
@@ -532,13 +530,14 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
     )
     return default_value
 
-def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
+
+def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
     """
     Simple pymel wrapper for the MFnGeometry intersect method.
     Note: Default tolerance is 1.0e-5. With the default MFnMesh.intersect valut of 1.0e10, sometime
     the raycase might misfire. Still doesn't know why.
     :param pos: Any OpenMaya.MPoint compatible type (ex: pymel.datatypes.Point)
-    :param dir: Any OpenMaya.MVector compatible type (ex: pymel.datatypes.Vector)
+    :param dirs: Any OpenMaya.MVector compatible type (ex: pymel.datatypes.Vector) or list.
     :param geometries: The geometries to intersect.
     :param debug: If True, spaceLocators will be created at intersection points.
     :return: pymel.datatypes.Point list containing the intersection points.
@@ -547,9 +546,14 @@ def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
     if type(pos) != OpenMaya.MPoint:
         pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
 
+    # Cast dir to list
+    if not isinstance(dirs, (list, tuple)):
+        dirs = [dirs]
+
     # Cast dir to OpenMaya.MVector if necessary.
-    if type(dir) != OpenMaya.MVector:
-        dir = OpenMaya.MVector(dir.x, dir.y, dir.z)
+    for i, dir in enumerate(dirs):
+        if not type(dir) == OpenMaya.MVector:
+            dirs[i] = OpenMaya.MVector(dir.x, dir.y, dir.z)
 
     results = []
 
@@ -557,12 +561,21 @@ def ray_cast(pos, dir, geometries, debug=False, tolerance=1.0e-5):
     for geometry in geometries:
         # Resolve the MFnMesh, note that in some case (ex: a mesh with zero vertices), pymel will return a MFnDagNode.
         # If this happen we'll want to ignore the mesh.
+        # todo: use a generic function?
         mfn_geo = geometry.__apimfn__()
-        if not isinstance(mfn_geo, OpenMaya.MFnMesh):
+
+        if isinstance(mfn_geo, OpenMaya.MFnMesh):
+            for dir in dirs:
+                mfn_geo.intersect(pos, dir, buffer_results, tolerance, OpenMaya.MSpace.kWorld)
+        elif isinstance(mfn_geo, OpenMaya.MFnNurbsSurface):
+            uArray = OpenMaya.MDoubleArray()
+            vArray = OpenMaya.MDoubleArray()
+            for dir in dirs:
+                mfn_geo.intersect(pos, dir, uArray, vArray, buffer_results, tolerance, OpenMaya.MSpace.kWorld)
+        else:
             pymel.warning("Can't proceed with raycast, mesh is invalid: {0}".format(geometry.__melobject__()))
             continue
 
-        mfn_geo.intersect(pos, dir, buffer_results, tolerance, OpenMaya.MSpace.kWorld)
         for i in range(buffer_results.length()):
             results.append(pymel.datatypes.Point(buffer_results[i]))
 
@@ -869,7 +882,7 @@ def align_selected_joints_to_persp():
     align_joints_to_view(sel, cam)
 
 def _filter_shape(obj, key):
-    if not isinstance(obj, pymel.nodetypes.Mesh):
+    if not isinstance(obj, pymel.nodetypes.SurfaceShape):
         return False
 
     if obj.intermediateObject.get():

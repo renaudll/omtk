@@ -59,6 +59,7 @@ class Node(object):
         Note that the .node is always last in the chain.
         This add a transform parent and put it last in the chain.
         # TODO: Use absolute name for the name property
+        # TODO: Use nomenclature for naming???
         >>> my_stack = Node()
         >>> my_stack.build()
         >>> my_stack.node.getParent() is None

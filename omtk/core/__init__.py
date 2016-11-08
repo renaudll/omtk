@@ -85,7 +85,7 @@ def build_all(strict=False):
     networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
-        if not rigroot:
+        if rigroot is None:
             log.warning("Error importing rig network {0}".format(network))
             continue
         if rigroot.build(strict=strict):
@@ -99,7 +99,7 @@ def unbuild_all(strict=False):
     networks = libSerialization.get_networks_from_class('Rig')
     for network in networks:
         rigroot = libSerialization.import_network(network)
-        if not rigroot:
+        if rigroot is None:
             log.warning("Error importing rig network {0}".format(network))
             continue
         rigroot.unbuild(strict=strict)
@@ -128,11 +128,15 @@ def _get_modules_from_selection(sel=None):
         """
         return get_rig_network_from_module(network) is not None
 
+    def fn_skip(network):
+        return libSerialization.is_network_from_class(network, 'Rig')
+
     if sel is None:
         sel = pymel.selected()
 
     # Resolve the rig network from the selection
-    module_networks = libSerialization.get_connected_networks(sel, key=is_module_child_of_rig)
+
+    module_networks = libSerialization.get_connected_networks(sel, key=is_module_child_of_rig, key_skip=fn_skip)
     if not module_networks:
         pymel.warning("Found no module related to selection.")
         return None, None

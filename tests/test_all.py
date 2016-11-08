@@ -45,6 +45,40 @@ class SampleTests(mayaunittest.TestCase):
         self.assertTrue(isinstance(rig, omtk.core.classRig.Rig))
         self.assertTrue(rig.name == rig_name)
 
+    @open_scene('./test_lips.ma')
+    def test_avar_connection_persistence(self):
+        import omtk
+        from omtk.modules import rigHead
+        from omtk.modules import rigFaceJaw
+        from omtk.modules import rigFaceLips
+        from omtk.libs import libRigging
+
+        # Create a base rig
+        rig = omtk.create()
+        rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
+        module_jaw = rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw')]))
+        module_lips = rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint')))
+        rig.build()
+
+        # Connect some avars
+        avar_src = next(iter(module_jaw.avars), None).attr_ud
+        for avar in module_lips.avars:
+            avar_dst = avar.attr_ud
+            libRigging.connectAttr_withLinearDrivenKeys(avar_src, avar_dst)
+
+        # Re-build the rig
+        rig.unbuild()
+        rig.build()
+
+        # Ensure the avars are still connected.
+        avar_src = next(iter(module_jaw.avars), None).attr_ud
+        avar_src.set(1.0)
+        for avar in module_lips.avars:
+            avar_dst = avar.attr_ud
+            self.assertEqual(avar_dst.get(), 1.0)
+
+
+
     # @open_scene("../examples/rig_squeeze_template01.ma")
     # def test_rig_squeeze(self):
     #     self._build_unbuild_build()

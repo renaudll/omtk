@@ -312,6 +312,7 @@ class Rig(object):
     def get_meshes(self):
         """
         :return: All meshes under the mesh group. If found nothing, scan the whole scene.
+        Note that we support mesh AND nurbsSurfaces.
         """
         meshes = None
         if self.grp_geo and self.grp_geo.exists():
@@ -320,7 +321,7 @@ class Rig(object):
 
         if not meshes:
             self.warning("Found no mesh under the mesh group, scanning the whole scene.")
-            shapes = pymel.ls(type='mesh')
+            shapes = pymel.ls(type='surfaceShape')
             meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
         return meshes
@@ -370,14 +371,28 @@ class Rig(object):
             val.rename(name)
         return val
 
-    def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
-                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
-        # Hack: Invalidate any cache before building anything.
-        # This ensure we always have fresh data.
+    def _clear_cache(self):
+        """
+        Some attributes in the a rig are cached.
+        This call remove any cache to ensure we only work with up-to-date values.
+        """
         try:
             del self._cache
         except AttributeError:
             pass
+        for module in self.modules:
+            # todo: implement _clear_cache on modules?
+            if module:
+                try:
+                    del module._cache
+                except AttributeError:
+                    pass
+
+    def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
+                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
+        # Hack: Invalidate any cache before building anything.
+        # This ensure we always have fresh data.
+        self._clear_cache()
 
         # Look for a root joint
         if create_grp_jnt:

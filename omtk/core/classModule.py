@@ -124,7 +124,7 @@ class Module(object):
 
             return new_nomenclature.resolve()
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_module_name(self):
         """
         Name override for nomenclature when naming ctrl and rig elements.
@@ -133,7 +133,7 @@ class Module(object):
             return self.name
         return self.__class__.__name__.lower()
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.
@@ -144,7 +144,7 @@ class Module(object):
         )
         return name
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_anm_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
@@ -155,7 +155,7 @@ class Module(object):
         )
         return name
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_rig(self):
         """
         :return: The nomenclature to use for rig objects.
@@ -176,7 +176,7 @@ class Module(object):
         )
         return name
 
-    @libPython.memoized
+    @libPython.memoized_instancemethod
     def get_nomenclature_jnt(self):
         """
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
@@ -314,7 +314,7 @@ class Module(object):
         if create_grp_rig:
             grp_rig_name = self.get_nomenclature_rig_grp().resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
-            libAttr.lock_hide_trs(self.grp_rig)
+            # libAttr.lock_hide_trs(self.grp_rig)  # This line break the hands!
 
             if connect_global_scale:
                 # todo: keep it here?
@@ -435,5 +435,33 @@ class Module(object):
             return to_return, None
         else:
             return None, None
+
+    def init_ctrl(self, cls, inst):
+        """
+        Factory method that initialize a class instance only if necessary.
+        If the instance already had been initialized in a previous build, it's correct value will be preserved,
+        :param cls: The desired class.
+        :param inst: The current value. This should always exist since defined in the module constructor.
+        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        """
+        # todo: validate cls
+        result = inst
+
+        if not isinstance(inst, cls):
+            old_shapes = None
+            if inst is not None:
+                self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                    cls, type(inst)
+                ))
+                old_shapes = inst.shapes if hasattr(inst, 'shapes') else None
+
+            result = cls()
+
+            if old_shapes:
+                result.shapes = old_shapes
+
+        return result
+
+
 
 

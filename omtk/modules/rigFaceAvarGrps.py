@@ -88,10 +88,7 @@ class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
 
 class ModelCtrlMacroAll(modelInteractiveCtrl.ModelInteractiveCtrl):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-        super(ModelCtrlMacroAll, self).connect(avar, avar_grp, ud=False, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True)
-
-        # Connect the ctrl to the udBypass instead of the ud.
-        libRigging.connectAttr_withBlendWeighted(self.ctrl.translateY, avar.attr_ud_bypass)
+        super(ModelCtrlMacroAll, self).connect(avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True)
 
         #
         # Compute the calibration automatically

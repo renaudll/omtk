@@ -365,7 +365,8 @@ class InteractiveAvar(Module):
             if obj_mesh is None:
                 # We'll scan all available geometries and use the one with the shortest distance.
                 meshes = libRigging.get_affected_geometries(ref)
-                meshes = list(set(meshes) & set(self.rig.get_meshes()))
+                #meshes = list(set(meshes) & set(self.rig.get_meshes())) #TODO check the & set([]) operator. It will empty the list on the fourth run
+                meshes = list(set(meshes))
                 obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
             else:
                 _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)

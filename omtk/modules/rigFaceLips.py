@@ -606,7 +606,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             max_x = max(max_x, x)
         return min_x, max_x
 
-    def _connect_avar_macro_all(self, connect_ud=False, connect_lr=True, connect_fb=True):
+    def _connect_avar_macro_all(self, **kwargs):
         """
         # We'll connect the avar_ud ourself but will use the avar_ud_bypass instead.
         """
@@ -614,29 +614,11 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         # we don't want to splitter to affect us.
         self.avar_all._attr_bypass_splitter.set(1.0)
 
-        super(FaceLips, self)._connect_avar_macro_all(connect_ud=False, connect_lr=True, connect_fb=True)
+        super(FaceLips, self)._connect_avar_macro_all(**kwargs)
 
         for child_avar in self.avars:
             # todo: do we need to validate the avar type? It should be FaceLipsAvar
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud, child_avar.attr_ud_bypass)
-
-
-        # Hack: Ensure the avar_all ctrl follow the stack output.
-        # This is not the best way since we want to be able to build avars withtout any controllers.
-        # However it will do for now.
-        # # todo: refactor this shit
-        # doritos_parent_layer = self.avar_all.model_ctrl.grp_rig
-        # for child in doritos_parent_layer.getChildren():
-        #     if isinstance(child, pymel.nodetypes.Constraint):
-        #         pymel.delete(child)
-        # pymel.parentConstraint(self.avar_all._grp_output, doritos_parent_layer, maintainOffset=True)
-
-        # Hack 2: Ensure callibation work by also constraining the follicle.
-        # # Damn is this part ugly...
-        # ctrl_fol = self.avar_all.ctrl.follicle
-        # pymel.disconnectAttr(ctrl_fol.t)
-        # pymel.disconnectAttr(ctrl_fol.r)
-        # pymel.parentConstraint(self.avar_all._grp_output, ctrl_fol, maintainOffset=True)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud_bypass, child_avar.attr_ud_bypass)
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, **kwargs):
         """

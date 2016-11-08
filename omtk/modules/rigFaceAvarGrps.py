@@ -87,8 +87,15 @@ class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
 
 
 class ModelCtrlMacroAll(modelInteractiveCtrl.ModelInteractiveCtrl):
-    def connect(self, avar, avar_grp, **kwargs):
-        super(ModelCtrlMacroAll, self).connect(avar, avar_grp, **kwargs)
+    def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+        super(ModelCtrlMacroAll, self).connect(avar, avar_grp, ud=False, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True)
+
+        # Connect the ctrl to the udBypass instead of the ud.
+        libRigging.connectAttr_withBlendWeighted(self.ctrl.translateY, avar.attr_ud_bypass)
+
+        #
+        # Compute the calibration automatically
+        #
 
         nomenclature_rig = self.get_nomenclature_rig()
 
@@ -308,15 +315,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
     # Avar methods
     #
 
-    def connect_global_avars(self):
-        for avar in self.avars:
-            libRigging.connectAttr_withBlendWeighted(self.attr_ud, avar.attr_ud)
-            libRigging.connectAttr_withBlendWeighted(self.attr_lr, avar.attr_lr)
-            libRigging.connectAttr_withBlendWeighted(self.attr_fb, avar.attr_fb)
-            libRigging.connectAttr_withBlendWeighted(self.attr_yw, avar.attr_yw)
-            libRigging.connectAttr_withBlendWeighted(self.attr_pt, avar.attr_pt)
-            libRigging.connectAttr_withBlendWeighted(self.attr_rl, avar.attr_rl)
-
     def get_multiplier_u(self):
         return 1.0
 
@@ -466,8 +464,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_lr, avar_tweak.attr_lr)
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_ud, avar_tweak.attr_ud)
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_fb, avar_tweak.attr_fb)
-
-        self.connect_global_avars()
 
     def _build_avar(self, avar, **kwargs):
         # HACK: Validate avars at runtime
@@ -887,9 +883,6 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         An AvarGrp don't create any avar by default.
         It is the responsibility of the inherited module to implement it if necessary.
         """
-        pass
-
-    def connect_global_avars(self):
         pass
 
     def get_multiplier_u(self):

@@ -99,7 +99,7 @@ def sortAttr(node):
 
 
 # TODO: finish
-def holdAttr(attr):
+def holdAttr(attr, delete=True):
     data = {
         'node':attr.node(),
         'longName':attr.longName(),
@@ -114,7 +114,8 @@ def holdAttr(attr):
         'hidden': attr.isHidden()
     }
 
-    pymel.deleteAttr(attr)
+    if delete:
+        pymel.deleteAttr(attr)
     return data
 
 
@@ -142,9 +143,13 @@ def fetchAttr(data):
             pymel.connectAttr(inn, attr[i])
 
     # Re-connect outputs
-    for i, output in enumerate(data['outputs']):
-        if output:
-            pymel.connectAttr(attr[i], output)
+    if not data['isMulti']:
+        for i, output in enumerate(data['outputs']):
+            pymel.connectAttr(attr, output)
+    else:
+        for i, output in enumerate(data['outputs']):
+            if output:
+                pymel.connectAttr(attr[i], output)
 
 
 # Normally we can use pymel.renameAttr but this work on multi-attributes also

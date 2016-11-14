@@ -523,7 +523,7 @@ class Rig(object):
 
             if not module.locked:
                 try:
-                    module.build(self, **kwargs)
+                    module.build(**kwargs)
                     self.post_build_module(module)
                 except Exception, e:
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))

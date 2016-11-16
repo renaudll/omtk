@@ -19,6 +19,57 @@ class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
     pass
 
 
+class MatrixBlendNode(Node):
+    """
+    Prevent flipping by using matrix to compute the average position between two reference objects.
+    """
+
+    def build(self, nomenclature_rig, targets, ref_tm, **kwargs):
+        super(MatrixBlendNode, self).build(**kwargs)
+
+        # Create unsafe targets
+        targets_unsafe = []
+        for i, target in enumerate(targets):
+            target_unsafe = pymel.createNode(
+                'transform',
+                name=nomenclature_rig.resolve('targetUnsafe{0}'.format(i)),
+                parent=self.node
+            )
+            targets_unsafe.append(target_unsafe)
+
+        # Move everything to it's final location
+        self.node.setMatrix(ref_tm)
+
+        # Create safe targets
+        targets_safe = []
+        for i, target, target_unsafe in zip(range(len(targets)), targets, targets_unsafe):
+            target_unsafe = targets_unsafe[i]
+            pymel.parentConstraint(target, target_unsafe, maintainOffset=True)
+
+            target_safe = pymel.createNode(
+                'transform',
+                name=nomenclature_rig.resolve('targetSafe{0}'.format(i)),
+                parent=self.node
+            )
+            util_tm_decompose = libRigging.create_utility_node(
+                'decomposeMatrix',
+                inputMatrix=target_unsafe.matrix
+            )
+            pymel.connectAttr(util_tm_decompose.outputTranslate, target_safe.translate)
+            pymel.connectAttr(util_tm_decompose.outputRotate, target_safe.rotate)
+            pymel.connectAttr(util_tm_decompose.outputScale, target_safe.scale)
+            targets_safe.append(target_safe)
+
+        result = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('output'),
+            parent=self.node
+        )
+        constraint = pymel.parentConstraint(targets_safe, result)
+
+        return result, constraint, targets_safe
+
+
 class SplitterNode(Node):
     """
     A splitter is a node network that take take the parameterV that is normally sent through the follicles and
@@ -302,6 +353,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         nomenclature_rig = self.get_nomenclature_rig()
         jnt_head = self.rig.get_head_jnt()
         jnt_jaw = self.rig.get_jaw_jnt()
+        jaw_pos = jnt_jaw.getTranslation(space='world')
 
         #
         # Create additional attributes to control the jaw layer
@@ -330,48 +382,35 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         )
 
         #
-        # Create reference objects used for calculations.
+        # Create reference objects used for jaw translation/rotation calculations.
         #
-
-        # Create a reference node that follow the head
-        self._target_head = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('innHead'),
-            parent=self.grp_rig
+        grp_parent_pos = self._grp_parent.getTranslation(space='world')  # grp_offset is always in world coordinates
+        blender_tm = pymel.datatypes.Matrix(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            grp_parent_pos.x, grp_parent_pos.y, grp_parent_pos.z, 1
         )
-        self._target_head.setTranslation(jnt_head.getTranslation(space='world'))
-        pymel.parentConstraint(jnt_head, self._target_head, maintainOffset=True)
-        pymel.scaleConstraint(jnt_head, self._target_head, maintainOffset=True)
+
+        blender = MatrixBlendNode()
+        self._jaw_ref, constraint, targets = blender.build(
+            nomenclature_rig,
+            [jnt_jaw, jnt_head],
+            blender_tm,
+            name = nomenclature_rig.resolve('jawBlender')
+        )
+        blender.node.setParent(self.grp_rig)
+        pymel.parentConstraint(jnt_head, blender.node, maintainOffset=True)
+        self._target_head, self._target_jaw = targets
+
 
         # Create a reference node that follow the jaw initial position
-        jaw_pos = jnt_jaw.getTranslation(space='world')
         self._target_jaw_bindpose = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('innJawBindPose'),
             parent=self.grp_rig
         )
         self._target_jaw_bindpose.setTranslation(jaw_pos)
-
-        # Create a reference node that follow the jaw
-        self._target_jaw = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('innJaw'),
-            parent=self._target_jaw_bindpose
-        )
-        self._target_jaw.t.set(0,0,0)
-        pymel.parentConstraint(jnt_jaw, self._target_jaw, maintainOffset=True)
-        pymel.scaleConstraint(jnt_jaw, self._target_jaw, maintainOffset=True)
-
-        # Create a node that contain the out jaw influence.
-        # Note that the out jaw influence can be modified by the splitter node.
-        grp_parent_pos = self._grp_parent.getTranslation(space='world')  # grp_offset is always in world coordinates
-        self._jaw_ref = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('outJawInfluence'),
-            parent=self.grp_rig
-        )
-        self._jaw_ref.t.set(grp_parent_pos)
-        pymel.parentConstraint(self._target_jaw, self._jaw_ref, maintainOffset=True)
 
         # Extract jaw influence
         attr_delta_tm = libRigging.create_utility_node('multMatrix', matrixIn=[
@@ -658,23 +697,23 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
             nomenclature_rig = self.get_nomenclature_rig()
 
-            # Note #2: A common target for the head
-            target_head_name = nomenclature_rig.resolve('targetHead')
-            target_head = pymel.createNode('transform', name=target_head_name)
-            target_head.setTranslation(jnt_head.getTranslation(space='world'))
-            target_head.setParent(self.grp_rig)
-            pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
-            pymel.scaleConstraint(jnt_head, target_head, maintainOffset=True)
-
-            # Note #3: A common target for the jaw
-            target_jaw_name = nomenclature_rig.resolve('targetJaw')
-            target_jaw = pymel.createNode('transform', name=target_jaw_name)
-            target_jaw.setTranslation(jnt_jaw.getTranslation(space='world'))
-            target_jaw.setParent(self.grp_rig)
-            pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
-            pymel.scaleConstraint(jnt_jaw, target_jaw, maintainOffset=True)
-
-            attr_bypass = libAttr.addAttr(self.grp_rig, 'bypassSplitter')
+            # # Note #2: A common target for the head
+            # target_head_name = nomenclature_rig.resolve('targetHead')
+            # target_head = pymel.createNode('transform', name=target_head_name)
+            # target_head.setTranslation(jnt_head.getTranslation(space='world'))
+            # target_head.setParent(self.grp_rig)
+            # pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
+            # pymel.scaleConstraint(jnt_head, target_head, maintainOffset=True)
+            #
+            # # Note #3: A common target for the jaw
+            # target_jaw_name = nomenclature_rig.resolve('targetJaw')
+            # target_jaw = pymel.createNode('transform', name=target_jaw_name)
+            # target_jaw.setTranslation(jnt_jaw.getTranslation(space='world'))
+            # target_jaw.setParent(self.grp_rig)
+            # pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
+            # pymel.scaleConstraint(jnt_jaw, target_jaw, maintainOffset=True)
+            #
+            # attr_bypass = libAttr.addAttr(self.grp_rig, 'bypassSplitter')
 
 
             # For each avars, create an extractor node and extract the delta from the bind pose.

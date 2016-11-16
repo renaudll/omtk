@@ -62,6 +62,9 @@ class ModelInteractiveCtrl(Module):
 
         return tm
 
+    def iter_ctrls(self):
+        yield self.ctrl
+
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, constraint=False, **kwargs):
         super(ModelInteractiveCtrl, self).build(**kwargs)
 

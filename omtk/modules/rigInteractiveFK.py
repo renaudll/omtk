@@ -1,12 +1,10 @@
-import collections
-
 import pymel.core as pymel
 
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
-from omtk.modules.rigFK import FK
-from omtk.libs import libRigging, libCtrlShapes
+from omtk.libs import libRigging
+from omtk.libs import libSkinning
 from omtk.libs import libPymel
 from omtk.libs import libAttr
 
@@ -15,7 +13,7 @@ class InteractiveFKCtrl(BaseCtrl):
     pass
 
 
-class InteractiveAvar(Module):
+class InteractiveFk(Module):
     """
     This represent a single deformer influence that is moved in space using avars.
     By default it come with a Deformer driven by a doritos setup.
@@ -27,7 +25,7 @@ class InteractiveAvar(Module):
     _ATTR_NAME_SENSITIVITY_TZ = 'sensitivityZ'
 
     def __init__(self, *args, **kwargs):
-        super(InteractiveAvar, self).__init__(*args, **kwargs)
+        super(InteractiveFk, self).__init__(*args, **kwargs)
 
         self.ctrl = None
         self._stack = None
@@ -36,7 +34,7 @@ class InteractiveAvar(Module):
         self._grp_parent = None
 
     def validate(self):
-        super(InteractiveAvar, self).validate()
+        super(InteractiveFk, self).validate()
 
         # InteractiveCtrl need at least a skinned influence to bind itself to.
         mesh = self.rig.get_farest_affected_mesh(self.jnt)
@@ -266,7 +264,7 @@ class InteractiveAvar(Module):
     def build(self, constraint=True, create_ctrl=True, ctrl_size=None, create_doritos=True,
               callibrate_doritos=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, ref=None,
               ref_tm=None, u_coord=None, v_coord=None, ref_parent=None, **kwargs):
-        super(InteractiveAvar, self).build(create_grp_anm=create_ctrl, parent=False)
+        super(InteractiveFk, self).build(create_grp_anm=create_ctrl, parent=False)
 
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
@@ -434,14 +432,14 @@ class InteractiveAvar(Module):
             self.debug('Adjusting sensibility tz for {0} to {1}'.format(self.ctrl.node.name(), sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
-class InteractiveAvarGrp(Module):
+class InteractiveFKGrp(Module):
     _CLS_CTRL = InteractiveFKCtrl
 
     def __init__(self, *args, **kwargs):
         """
         Pre-declare here all the used members.
         """
-        super(InteractiveAvarGrp, self).__init__(*args, **kwargs)
+        super(InteractiveFKGrp, self).__init__(*args, **kwargs)
 
     def _create_stack_influence(self, influence):
         nomenclature_driver = self.get_nomenclature_rig().rebuild(influence.nodeName())
@@ -467,7 +465,7 @@ class InteractiveAvarGrp(Module):
         return stack
 
     def build(self, *args, **kwargs):
-        super(InteractiveAvarGrp, self).build(*args, **kwargs)
+        super(InteractiveFKGrp, self).build(*args, **kwargs)
 
         nomenclature = self.rig.nomenclature()
         nomenclature_anm = self.get_nomenclature_anm()
@@ -479,12 +477,28 @@ class InteractiveAvarGrp(Module):
             name=nomenclature_rig.resolve('drivers'),
             parent=self.grp_rig
         )
-        for input in self.input:
+
+        # Create the plane and align it with the selected bones
+        plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
+        if plane_tran is None:
+            plane_name = nomenclature_rig.resolve("interactiveFKPlane")
+            plane_tran = libRigging.create_nurbs_plane_from_joints(self.jnts)
+            plane_tran.rename(plane_name)
+            plane_tran.setParent(self.grp_rig)
+
+        # TODO - Improve skinning smoothing by setting manually the skin...
+        pymel.skinCluster(list(self.jnts), plane_tran, dr=1.0, mi=2.0, omi=True)
+        try:
+            libSkinning.assign_weights_from_segments(plane_tran, self.jnts, dropoff=1.0)
+        except ZeroDivisionError, e:
+            pass
+
+        for input in self.jnts:
             driver_stack = self._create_stack_influence(input)
             driver_stack.setParent(grp_drivers)
 
             m_name = self.rig.nomenclature(tokens=self.get_nomenclature().tokens + [input.nodeName()]).resolve()
-            m = InteractiveAvar(
+            m = InteractiveFk(
                 [input],
                 rig=self.rig,
                 name=m_name
@@ -515,8 +529,8 @@ class InteractiveAvarGrp(Module):
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(InteractiveAvarGrp, self).unbuild()
+        super(InteractiveFKGrp, self).unbuild()
 
 
 def register_plugin():
-    return InteractiveAvarGrp
+    return InteractiveFKGrp

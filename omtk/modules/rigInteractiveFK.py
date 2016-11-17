@@ -487,11 +487,13 @@ class InteractiveFKGrp(Module):
             plane_tran.setParent(self.grp_rig)
 
         # TODO - Improve skinning smoothing by setting manually the skin...
+        '''
         pymel.skinCluster(list(self.jnts), plane_tran, dr=1.0, mi=2.0, omi=True)
         try:
             libSkinning.assign_weights_from_segments(plane_tran, self.jnts, dropoff=1.0)
         except ZeroDivisionError, e:
             pass
+        '''
 
         for input in self.jnts:
             driver_stack = self._create_stack_influence(input)
@@ -523,6 +525,40 @@ class InteractiveFKGrp(Module):
 
             m.grp_anm.setParent(self.grp_anm)
             m.grp_rig.setParent(self.grp_rig)
+
+            # TODO - Temp code to integrate clean. Support retraction and some function to multiple layer
+            '''
+            #Retarget ctrls follicle to final mesh
+            ctrls = pymel.ls('interactivefkgrp_layer1_*_anm')
+            pymel.select(ctrls)
+            main_surface = pymel.ls('layer2')[0]
+            follicles = pymel.ls('interactivefkgrp*_follicle_rigShape')
+            for fol in follicles:
+                pymel.disconnectAttr(fol.inputSurface)
+                pymel.connectAttr(main_surface.getShape().worldSpace[0], fol.inputSurface)
+
+            #Setup retraction
+            main_fol = pymel.ls('main_fol*', type='transform')
+            ctrl_fol = pymel.ls('interactivefkgrp*_*_follicle_rig')
+            pymel.select(ctrl_fol)
+            #main_fol[0].parameterU
+            retract_attr = pymel.ls('anms')[0].retract
+            #pymel.select(main_fol)
+            for fol in main_fol:
+                retract_md = pymel.createNode('multiplyDivide')
+                retract_md.operation.set(1)
+                retract_md.input2X.set(fol.parameterV.get())
+                pymel.connectAttr(retract_attr, retract_md.input1X)
+                pymel.connectAttr(retract_md.outputX, fol.parameterV)
+
+            #Main layer retract setup. doesn't work
+            retract_surface_grp = pymel.ls('layer_retraction_jnt01')[0]
+            retract_md = pymel.createNode('multiplyDivide')
+            retract_md.operation.set(1)
+            retract_md.input2X.set(1.0)
+            pymel.connectAttr(retract_attr, retract_md.input1X)
+            pymel.connectAttr(retract_md.outputX, retract_surface_grp.scaleX)
+            '''
 
     def unbuild(self):
         """

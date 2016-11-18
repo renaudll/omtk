@@ -441,6 +441,13 @@ class InteractiveFKGrp(Module):
         """
         super(InteractiveFKGrp, self).__init__(*args, **kwargs)
 
+    def validate(self):
+        super(InteractiveFKGrp, self).validate()
+
+        # InteractiveCtrl need at least a skinned influence to bind itself to.
+        if not any((self.rig.get_farest_affected_mesh(jnt) for jnt in self.jnts)):
+            raise Exception("Can't find mesh affected by inputs.")
+
     def _create_stack_influence(self, influence):
         nomenclature_driver = self.get_nomenclature_rig().rebuild(influence.nodeName())
         nomenclature_driver.tokens.append('driver')

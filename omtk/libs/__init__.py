@@ -17,6 +17,7 @@ import libRigging
 import libSkinning
 import libStringMap
 import libUtils
+import libHistory
 
 def _reload():
     reload(libAttr)
@@ -30,3 +31,4 @@ def _reload():
     reload(libSkinning)
     reload(libStringMap)
     reload(libUtils)
+    reload(libHistory)

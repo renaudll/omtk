@@ -86,7 +86,7 @@ class Module(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.get_module_name())
 
     def is_built(self):
         """
@@ -277,14 +277,17 @@ class Module(object):
         else:
             self.input = []
 
-        if name:
-            self.name = name
-        else:
-            self.name = 'RENAMEME'
+        self.name = name
+
+        # Note: Removed by rlessard: We need to be able to detect when no name was set!
+        # if name:
+        #     self.name = name
+        # else:
+        #     self.name = 'RENAMEME'
 
 
     def __str__(self):
-        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
+        return '{0} <{1}>'.format(self.get_module_name(), self.__class__.__name__)
 
 
     def validate(self, support_no_inputs=False):

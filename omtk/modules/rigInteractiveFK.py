@@ -1,31 +1,16 @@
-import collections
-
 import pymel.core as pymel
-
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classModule import Module
-from omtk.core.classNode import Node
-from omtk.modules.rigFK import FK
-from omtk.libs import libRigging, libCtrlShapes
-from omtk.libs import libPymel
-from omtk.libs import libAttr
+from omtk.core.classModuleMap import ModuleMap
+from omtk.libs import libRigging
+from omtk.libs import libHistory
 from omtk.models.modelInteractiveCtrl import ModelInteractiveCtrl
 
-from omtk.libs.libRigging import _filter_shape
-
-def get_history_farthest_sibling(shape, key=None):
-    affected_meshes = [hist for hist in shape.listHistory(future=True) if _filter_shape(hist, key)]
-
-    return next(iter(reversed(affected_meshes)), None)
-
-def get_history_previous_sibling(shape, key=None):
-    affected_meshes = [hist for hist in shape.listHistory() if hist != shape and _filter_shape(hist, key)]
-
-    return next(iter(affected_meshes), None)
-
+# todo: add calibation!
+# todo: support uniform scaling!
 
 class InteractiveFKCtrl(BaseCtrl):
     pass
+
 
 class InteractiveFKCtrlModel(ModelInteractiveCtrl):
     DEFAULT_NAME_USE_FIRST_INPUT = True
@@ -70,8 +55,8 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         meshes = list(set(meshes) & set(self.rig.get_meshes()))
         ref_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
-        pos_mesh = get_history_farthest_sibling(ref_mesh)
-        rot_mesh = get_history_previous_sibling(ref_mesh)
+        pos_mesh = libHistory.get_history_farthest_sibling(ref_mesh)
+        rot_mesh = libHistory.get_history_previous_sibling(ref_mesh)
 
         pos_fol = None
         if pos_mesh:
@@ -139,7 +124,7 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         )
         attr_inf_tm = libRigging.create_utility_node(
             'multMatrix',
-            name='getInfluenceLocalTM',
+            name=nomenclature_rig.resolve('getInfluenceLocalTM'),
             matrixIn=(
                 grp_offset.matrix,
                 grp_parent.matrix,
@@ -151,7 +136,7 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         ).matrixSum
         util_get_inf_tm = libRigging.create_utility_node(
             'decomposeMatrix',
-            name='decomposeInfluenceLocalTM',
+            name=nomenclature_rig.resolve('decomposeInfluenceLocalTM'),
             inputMatrix=attr_inf_tm
         )
         pymel.connectAttr(util_get_inf_tm.outputTranslate, grp_output.t)
@@ -165,39 +150,10 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         grp_parent.setParent(self.grp_rig)
         self.grp_rig.setParent(avar.grp_rig)
 
-class InteractiveFK(Module):
+
+class InteractiveFK(ModuleMap):
     _CLS_CTRL_MODEL = InteractiveFKCtrlModel
     _CLS_CTRL = InteractiveFKCtrl
-    DEFAULT_NAME_USE_FIRST_INPUT = True
-
-    def __init__(self, *args, **kwargs):
-        """
-        Pre-declare here all the used members.
-        """
-        super(InteractiveFK, self).__init__(*args, **kwargs)
-
-    def build(self, *args, **kwargs):
-        super(InteractiveFK, self).build(parent=False, *args, **kwargs)
-
-        for input in self.jnts:
-            #m_name = self.get_nomenclature().copy()
-            #m_name.tokens.append('ctrlModel')
-            m = self._CLS_CTRL_MODEL(
-                [input],
-                rig=self.rig,
-            )
-            m._CLS_CTRL = self._CLS_CTRL
-            m.name = m.get_default_name()
-            m.build(self)
-            m.grp_anm.setParent(self.grp_anm)  # todo: reduce cluttering by using direct connection and reducing grp_anm count
-            m.grp_rig.setParent(self.grp_rig)
-
-    def unbuild(self):
-        """
-        If you are using sub-modules, you might want to clean them here.
-        :return:
-        """
-        super(InteractiveFK, self).unbuild()
 
 
 def register_plugin():

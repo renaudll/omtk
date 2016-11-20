@@ -166,6 +166,7 @@ class Module(object):
         )
         return name
 
+    @libPython.memoized_instancemethod
     def get_nomenclature_rig_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
@@ -243,6 +244,12 @@ class Module(object):
         :param args: TO REMOVE? #todo
         :param kwargs: TO REMOVE? #todo
         """
+        # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
+        if name and not isinstance(name, basestring):
+            raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
+                type(name), name
+            ))
+
         self.rig = rig  # Reference to the parent rig instance.
         self.iCtrlIndex = 2
         self.grp_anm = None

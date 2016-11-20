@@ -1,7 +1,7 @@
 import pymel.core as pymel
 
 from omtk.libs import libPymel
-
+from omtk.libs import libRigging
 
 class Node(object):
     """
@@ -173,6 +173,27 @@ class Node(object):
         :return: The last node in the transform stack. Note that this does NOT return self.node.
         """
         return next(reversed(self._layers), None)
+
+    def extract_stack_tm(self):
+        """
+        :return: A matrix attribute containing the delta from the stack start (it's parent) and the stack end.
+        """
+        # todo: remove dependency on self.getParent()
+        stack_parent = self.getParent()
+
+        return libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self.getParent().worldInverseMatrix,
+                self.node.worldMatrix
+            )
+        ).matrixSum
+
+    def getParent(self, **kwargs):
+        if self._layers:
+            return self._layers[0].getParent(**kwargs)
+        else:
+            return self.node.getParent(**kwargs)
 
     def setParent(self, *args, **kwargs):
         """

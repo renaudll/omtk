@@ -31,17 +31,6 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
     DEFAULT_NAME_USE_FIRST_INPUT = True
 
     def build(self, avar, parent_pos=None, parent_rot=None, follow_mesh=False, constraint=False, cancel_r=False, **kwargs):
-        """
-
-        :param avar:
-        :param parent_pos:
-        :param parent_rot:
-        :param follow_mesh:
-        :param constraint:
-        :param cancel_r:
-        :param kwargs:
-        :return:
-        """
         nomenclature_rig = self.get_nomenclature_rig()
 
         pos_ref = self.jnt.getTranslation(space='world')
@@ -84,6 +73,7 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         pos_mesh = get_history_farthest_sibling(ref_mesh)
         rot_mesh = get_history_previous_sibling(ref_mesh)
 
+        pos_fol = None
         if pos_mesh:
             self.debug("Position parent will use follicle on {0} at {1},{2}.".format(
                 pos_mesh, out_u, out_v
@@ -169,28 +159,26 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         pymel.parentConstraint(grp_output, self.jnt, maintainOffset=True)
 
         # Cleanup
+        if pos_fol:
+            pos_fol.setParent(self.grp_rig)
         grp_offset.setParent(self.grp_rig)
         grp_parent.setParent(self.grp_rig)
         self.grp_rig.setParent(avar.grp_rig)
 
-class InteractiveAvarGrp(Module):
+class InteractiveFK(Module):
     _CLS_CTRL_MODEL = InteractiveFKCtrlModel
+    _CLS_CTRL = InteractiveFKCtrl
+    DEFAULT_NAME_USE_FIRST_INPUT = True
 
     def __init__(self, *args, **kwargs):
         """
         Pre-declare here all the used members.
         """
-        super(InteractiveAvarGrp, self).__init__(*args, **kwargs)
+        super(InteractiveFK, self).__init__(*args, **kwargs)
 
     def build(self, *args, **kwargs):
-        super(InteractiveAvarGrp, self).build(parent=False, *args, **kwargs)
+        super(InteractiveFK, self).build(parent=False, *args, **kwargs)
 
-        # Since we are gonna do direct connections, create a mirror of the influence tree.
-        # grp_drivers = pymel.createNode(
-        #     'transform',
-        #     name=nomenclature_rig.resolve('drivers'),
-        #     parent=self.grp_rig
-        # )
         for input in self.jnts:
             #m_name = self.get_nomenclature().copy()
             #m_name.tokens.append('ctrlModel')
@@ -198,8 +186,10 @@ class InteractiveAvarGrp(Module):
                 [input],
                 rig=self.rig,
             )
+            m._CLS_CTRL = self._CLS_CTRL
             m.name = m.get_default_name()
             m.build(self)
+            m.grp_anm.setParent(self.grp_anm)  # todo: reduce cluttering by using direct connection and reducing grp_anm count
             m.grp_rig.setParent(self.grp_rig)
 
     def unbuild(self):
@@ -207,8 +197,8 @@ class InteractiveAvarGrp(Module):
         If you are using sub-modules, you might want to clean them here.
         :return:
         """
-        super(InteractiveAvarGrp, self).unbuild()
+        super(InteractiveFK, self).unbuild()
 
 
 def register_plugin():
-    return InteractiveAvarGrp
+    return InteractiveFK

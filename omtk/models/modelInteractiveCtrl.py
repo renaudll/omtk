@@ -65,7 +65,9 @@ class ModelInteractiveCtrl(Module):
     def iter_ctrls(self):
         yield self.ctrl
 
-    def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, constraint=False, **kwargs):
+    def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
+              flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None,
+              parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, **kwargs):
         super(ModelInteractiveCtrl, self).build(**kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm()
@@ -242,51 +244,53 @@ class ModelInteractiveCtrl(Module):
         #
         # Inverse translation
         #
-        attr_ctrl_inv_t = libRigging.create_utility_node(
-            'multiplyDivide', input1=self.ctrl.node.t,
-            input2=[-1, -1, -1]
-        ).output
+        if cancel_t:
+            attr_ctrl_inv_t = libRigging.create_utility_node(
+                'multiplyDivide', input1=self.ctrl.node.t,
+                input2=[-1, -1, -1]
+            ).output
 
-        attr_ctrl_inv_t = libRigging.create_utility_node(
-            'multiplyDivide',
-            input1=attr_ctrl_inv_t,
-            input2X=self.attr_sensitivity_tx,
-            input2Y=self.attr_sensitivity_ty,
-            input2Z=self.attr_sensitivity_tz
-        ).output
-
-        layer_inv_t = self._stack.append_layer(name='inverseT')
-
-        if flip_lr:
-            attr_doritos_tx = libRigging.create_utility_node(
+            attr_ctrl_inv_t = libRigging.create_utility_node(
                 'multiplyDivide',
-                input1X=attr_ctrl_inv_t.outputX,
-                input2X=-1
-            ).outputX
-        else:
-            attr_doritos_tx = attr_ctrl_inv_t.outputX
-        attr_doritos_ty = attr_ctrl_inv_t.outputY
-        attr_doritos_tz = attr_ctrl_inv_t.outputZ
+                input1=attr_ctrl_inv_t,
+                input2X=self.attr_sensitivity_tx,
+                input2Y=self.attr_sensitivity_ty,
+                input2Z=self.attr_sensitivity_tz
+            ).output
 
-        pymel.connectAttr(attr_doritos_tx, layer_inv_t.tx)
-        pymel.connectAttr(attr_doritos_ty, layer_inv_t.ty)
-        pymel.connectAttr(attr_doritos_tz, layer_inv_t.tz)
+            layer_inv_t = self._stack.append_layer(name='inverseT')
+
+            if flip_lr:
+                attr_doritos_tx = libRigging.create_utility_node(
+                    'multiplyDivide',
+                    input1X=attr_ctrl_inv_t.outputX,
+                    input2X=-1
+                ).outputX
+            else:
+                attr_doritos_tx = attr_ctrl_inv_t.outputX
+            attr_doritos_ty = attr_ctrl_inv_t.outputY
+            attr_doritos_tz = attr_ctrl_inv_t.outputZ
+
+            pymel.connectAttr(attr_doritos_tx, layer_inv_t.tx)
+            pymel.connectAttr(attr_doritos_ty, layer_inv_t.ty)
+            pymel.connectAttr(attr_doritos_tz, layer_inv_t.tz)
 
         #
         # Inverse rotation
         # Add an inverse node that will counter animate the position of the ctrl.
         # TODO: Rename
         #
-        layer_inv_r = self._stack.append_layer(name='inverseR')
-        # layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
-        # layer_doritos.setParent(self._stack.node)
+        if cancel_r:
+            layer_inv_r = self._stack.append_layer(name='inverseR')
+            # layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
+            # layer_doritos.setParent(self._stack.node)
 
-        # Create inverse attributes for the ctrl
+            # Create inverse attributes for the ctrl
 
-        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.r,
-                                                         input2=[-1, -1, -1]).output
+            attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.r,
+                                                             input2=[-1, -1, -1]).output
 
-        pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
+            pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
 
 
         #

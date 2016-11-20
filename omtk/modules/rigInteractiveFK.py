@@ -51,11 +51,16 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         # Create two follicles, one for the position, one for the rotation.
         # The position follicle is on the farhest mesh in the construction history.
         # The rotation follicle is on the previous mesh in the construction history.
-        meshes = libRigging.get_affected_geometries(self.jnt)
-        meshes = list(set(meshes) & set(self.rig.get_meshes()))
+        meshes = libHistory.get_affected_shapes(self.jnt)
         ref_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
+        if not ref_mesh:
+            self.error("Can't find mesh for {0}. Abording".format(self))
+            return
+
         pos_mesh = libHistory.get_history_farthest_sibling(ref_mesh)
+        if pos_mesh is None:
+            pos_mesh = ref_mesh
         rot_mesh = libHistory.get_history_previous_sibling(ref_mesh)
 
         pos_fol = None
@@ -75,12 +80,17 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
             pymel.parentConstraint(pos_fol, parent_pos, maintainOffset=True)
         else:
             # Should not happen
-            raise Exception("Cannot resolve mesh for {0}".format(pos_mesh))
+            raise Exception("Cannot resolve mesh for {0}".format(self))
 
         # Resolve rot parent
         # If we found a previous mesh in the construction history, we'll follow it.
         # This will ensure proper behavior when handling multiples layers like on tentacle rigs.
         # Otherwise we'll constraint the rotation to the parent of the module itself.
+        parent_rot = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('rotLocal'),
+            parent=grp_offset
+        )
         if rot_mesh and rot_mesh != ref_mesh:
             self.debug("Rotation parent will use follicle on {0} at {1},{2}.".format(
                 rot_mesh, out_u, out_v
@@ -89,15 +99,12 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
             rot_fol.rename(nomenclature_rig.resolve('rotFollicle'))
             rot_fol.setParent(grp_parent)
 
-            parent_rot = pymel.createNode(
-                'transform',
-                name=nomenclature_rig.resolve('rotLocal'),
-                parent=grp_offset
-            )
+
             pymel.parentConstraint(rot_fol, parent_rot, maintainOffset=True)
         else:
             self.debug("Rotation parent will use {0}".format(self.parent))
-            parent_rot = self.parent
+            if self.parent:
+                pymel.parentConstraint(self.parent, parent_rot, maintainOffset=True)
 
         # if parent_rot:
         #     pymel.parentConstraint(parent_rot, grp_parent, maintainOffset=True)

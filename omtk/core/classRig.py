@@ -12,6 +12,7 @@ from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
+from omtk.libs import libHistory
 log = logging.getLogger('omtk')
 
 class CtrlRoot(BaseCtrl):
@@ -740,7 +741,7 @@ class Rig(object):
 
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
-        geometries = libRigging.get_affected_geometries(jnt_head)
+        geometries = libHistory.get_affected_shapes(jnt_head)
 
         # Resolve the top of the head location
         pos = pymel.datatypes.Point(ref_tm.translate)
@@ -778,7 +779,7 @@ class Rig(object):
 
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
-        geometries = libRigging.get_affected_geometries(jnt_head)
+        geometries = libHistory.get_affected_shapes(jnt_head)
 
         # Resolve the top of the head location
         bot = pymel.datatypes.Point(ref_tm.translate)

@@ -75,8 +75,8 @@ class ModuleMap(Module):
 
         return new_models
 
-    def build_model(self, model, parent_grp_anm=True, parent_grp_rig=True):
-        model.build(self)
+    def build_model(self, model, parent_grp_anm=True, parent_grp_rig=True, **kwargs):
+        model.build(self, **kwargs)
         # todo: reduce cluttering by using direct connection and reducing grp_anm count
 
         if parent_grp_anm and model.grp_anm and self.grp_anm:
@@ -86,13 +86,13 @@ class ModuleMap(Module):
             model.grp_rig.setParent(self.grp_rig)
 
     def build(self, **kwargs):
-        super(ModuleMap, self).build(**kwargs)
+        super(ModuleMap, self).build()
 
         self.models = self.init_models()
 
         # do we need a self.build_models() definition?
         for model in self.models:
-            self.build_model(model)
+            self.build_model(model, **kwargs)
 
     def unbuild(self, **kwargs):
         for model in self.models:

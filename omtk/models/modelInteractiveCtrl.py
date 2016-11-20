@@ -8,6 +8,7 @@ from omtk.core.classModule import Module
 from omtk.libs import libRigging
 from omtk.libs import libPymel
 from omtk.libs import libAttr
+from omtk.libs import libHistory
 
 
 class ModelInteractiveCtrl(Module):
@@ -104,7 +105,7 @@ class ModelInteractiveCtrl(Module):
         # todo: check if we really want to resolve the u and v ourself since it's now connected.
         if obj_mesh is None:
             # We'll scan all available geometries and use the one with the shortest distance.
-            meshes = libRigging.get_affected_geometries(ref)
+            meshes = libHistory.get_affected_shapes(ref)
             meshes = list(set(meshes) & set(self.rig.get_meshes()))
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
@@ -167,7 +168,7 @@ class ModelInteractiveCtrl(Module):
             self.ctrl.shapes.sx.set(-1)
             pymel.makeIdentity(self.ctrl.shapes, rotate=True, scale=True, apply=True)
 
-        self.ctrl.build(name=ctrl_name, size=ctrl_size)
+        self.ctrl.build(name=ctrl_name, refs=self.jnt)
         self.ctrl.setParent(self.grp_anm)
 
         #

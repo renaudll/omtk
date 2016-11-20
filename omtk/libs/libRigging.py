@@ -413,34 +413,12 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
 
     return libPymel.PyNodeChain(new_objs)
 
-def get_affected_geometries(*objs):
-    """
-    :param obj: A reference object, generally a pymel.nodetypes.Joint.
-    :return: The geometries affected by the object.
-    """
-    geometries = set()
-
-    for obj in objs:
-        if isinstance(obj, pymel.nodetypes.Joint):
-            # Collect all geometries affected by the joint.
-            skinClusters = set()
-            for hist in obj.listHistory(future=True):
-                if isinstance(hist, pymel.nodetypes.SkinCluster):
-                    skinClusters.add(hist)
-
-            for skinCluster in skinClusters:
-                for geometry in skinCluster.getOutputGeometry():
-                    if isinstance(geometry, pymel.nodetypes.SurfaceShape):
-                        geometries.add(geometry)
-
-    return geometries
-
 '''
 def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
     if not isinstance(ctrl_shape, pymel.nodetypes.NurbsCurve):
         raise Exception("Unexpected input, expected NurbsCurve, got {0}.".format(type(ctrl_shape)))
 
-    geometries = get_affected_geometries(ref)
+    geometries = libHistory.get_affected_shapes(ref)
     if not geometries:
         print "Cannot resize {0}, found no affected geometries!".format(ctrl_shape)
         return
@@ -472,7 +450,7 @@ def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
 '''
 
 # todo: check if memoized is really necessary?
-@libPython.memoized
+#@libPython.memoized
 def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
                               weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0):
     """

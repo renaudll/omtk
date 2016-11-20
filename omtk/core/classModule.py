@@ -134,6 +134,16 @@ class Module(object):
         return self.__class__.__name__.lower()
 
     @libPython.memoized_instancemethod
+    def get_nomenclature(self):
+        """
+        :return: The nomenclature to use for animation controllers.
+        """
+        name = self.rig.nomenclature(
+            name=self.get_module_name(),
+        )
+        return name
+
+    @libPython.memoized_instancemethod
     def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.

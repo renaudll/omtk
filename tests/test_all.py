@@ -75,8 +75,32 @@ class SampleTests(mayaunittest.TestCase):
         avar_src.set(1.0)
         for avar in module_lips.avars:
             avar_dst = avar.attr_ud
-            self.assertEqual(avar_dst.get(), 1.0)
+            self.assertAlmostEqual(avar_dst.get(), 1.0)
 
+    @open_scene('./test_lips.ma')
+    def test_avargrp_withsurface(self):
+        import omtk
+        from omtk.modules import rigHead
+        from omtk.modules import rigFaceJaw
+        from omtk.modules import rigFaceLips
+
+        # Create a base rig
+        rig = omtk.create()
+        rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
+        rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw')]))
+        rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips')]))
+
+        # Ensure there's only one nurbsSurface in the scene.
+        surface_shapes = [shape for shape in pymel.ls(type='nurbsSurface') if not shape.intermediateObject.get()]
+        self.assertEqual(len(surface_shapes ), 1)
+
+        rig.build()
+        rig.unbuild()
+        rig.build()
+
+        # Ensure there's still only one nurbsSurface in the scene.
+        surface_shapes = [shape for shape in pymel.ls(type='nurbsSurface') if not shape.intermediateObject.get()]
+        self.assertEqual(len(surface_shapes),1)
 
 
     # @open_scene("../examples/rig_squeeze_template01.ma")

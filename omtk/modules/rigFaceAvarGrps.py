@@ -1,3 +1,4 @@
+import copy
 import itertools
 import logging
 from collections import defaultdict
@@ -362,7 +363,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         if self.SINGLE_INFLUENCE:
             return [self.jnt]
         else:
-            return self.jnts
+            return copy.copy(self.jnts)  # copy to prevent modifying the cache accidentaly by reference.
 
     def validate(self):
         """
@@ -398,7 +399,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             # Any existing Avar that we don't reconize will be deleted.
             # Be aware that the .avars property only store MICRO Avars. Macro Avars need to be implemented in their own properties.
             if avar.jnt not in avar_influences:
-                    self.warning("Unexpected Avar {0} will be deleted.".format(avar.name))
+                self.warning("Unexpected Avar {0} will be deleted.".format(avar.name))
 
             # Any existing Avar that don't have the desired datatype will be re-created.
             # However the old value will be passed by so the factory method can handle specific tricky cases.

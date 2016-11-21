@@ -72,7 +72,7 @@ class MatrixBlendNode(Node):
 
 class SplitterNode(Node):
     """
-    A splitter is a node network that take take the parameterV that is normally sent through the follicles and
+    A splitter is a node network that take the parameterV that is normally sent through the follicles and
     split it between two destination: the follicles and the jaw ref constraint.
     The more the jaw is opened, the more we'll transfer to the jaw ref before sending to the follicle.
     This is mainly used to ensure that any lip movement created by the jaw is canceled when the
@@ -395,7 +395,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         blender = MatrixBlendNode()
         self._jaw_ref, constraint, targets = blender.build(
             nomenclature_rig,
-            [jnt_jaw, jnt_head],
+            [jnt_head, jnt_jaw],
             blender_tm,
             name = nomenclature_rig.resolve('jawBlender')
         )
@@ -497,10 +497,10 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         weight_s_head, weight_s_jaw = constraint_s.getWeightAliasList()
 
         # Connect splitter outputs
-        pymel.connectAttr(attr_jaw_ratio_inv, weight_pr_jaw)
-        pymel.connectAttr(attr_jaw_ratio_inv, weight_s_jaw)
-        pymel.connectAttr(attr_jaw_ratio, weight_pr_head)
-        pymel.connectAttr(attr_jaw_ratio, weight_s_head)
+        pymel.connectAttr(attr_jaw_ratio, weight_pr_jaw)
+        pymel.connectAttr(attr_jaw_ratio, weight_s_jaw)
+        pymel.connectAttr(attr_jaw_ratio_inv, weight_pr_head)
+        pymel.connectAttr(attr_jaw_ratio_inv, weight_s_head)
 
         #
         # Implement the 'bypass' avars.

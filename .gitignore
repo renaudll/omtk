@@ -32,3 +32,6 @@ build/
 
 # Configuration file
 config.json
+
+# NFS junk
+.nfs*

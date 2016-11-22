@@ -107,7 +107,7 @@ class Module(object):
         Note that this will crash if the module don't use any joint.
         """
         # todo: use className!
-        ref = next(iter(self.chain), None)
+        ref = next(iter(self.chain), None) if self.chain is not None else None
         if ref:
             old_nomenclature = self.rig.nomenclature(ref.nodeName())
             new_nomenclature = self.rig.nomenclature()

@@ -77,6 +77,13 @@ class SampleTests(mayaunittest.TestCase):
             avar_dst = avar.attr_ud
             self.assertAlmostEqual(avar_dst.get(), 1.0)
 
+    def _get_scene_surface_count(self):
+        """
+        :return: The number of non-intermediate surfaces in the scene.
+        """
+        surface_shapes = [shape for shape in pymel.ls(type='nurbsSurface') if not shape.intermediateObject.get()]
+        return len(surface_shapes)
+
     @open_scene('./test_lips.ma')
     def test_avargrp_withsurface(self):
         import omtk
@@ -91,16 +98,52 @@ class SampleTests(mayaunittest.TestCase):
         rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips')]))
 
         # Ensure there's only one nurbsSurface in the scene.
-        surface_shapes = [shape for shape in pymel.ls(type='nurbsSurface') if not shape.intermediateObject.get()]
-        self.assertEqual(len(surface_shapes ), 1)
+        self.assertEqual(self._get_scene_surface_count(), 1)
 
         rig.build()
         rig.unbuild()
         rig.build()
 
         # Ensure there's still only one nurbsSurface in the scene.
-        surface_shapes = [shape for shape in pymel.ls(type='nurbsSurface') if not shape.intermediateObject.get()]
-        self.assertEqual(len(surface_shapes),1)
+        self.assertEqual(self._get_scene_surface_count(), 1)
+
+    @open_scene('./test_lips.ma')
+    def test_avargrp_areaonsurface_withsurface(self):
+        """
+        Ensure there's always a nurbsSurface created for an AvarGrpOnSurface and that it is correctly propageted
+        to it's child avars.        :return:
+        """
+        import omtk
+        from omtk.modules import rigHead
+        from omtk.modules import rigFaceAvarGrps
+
+        # Create a base rig
+        rig = omtk.create()
+        rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
+        rig.add_module(rigFaceAvarGrps.AvarGrpAreaOnSurface(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips')]))
+
+        # Validate the state of the scene before testing.
+        self.assertEqual(self._get_scene_surface_count(), 1)
+
+        rig.build()
+
+        # Ensure there's one one nurbsSurface in the scene.
+        self.assertEqual(self._get_scene_surface_count(), 1)
+
+        rig.unbuild()
+
+        # Ensure there's still one nurbsSurface in the scene.
+        self.assertEqual(self._get_scene_surface_count(), 1)
+
+        # Remove all surfaces
+        pymel.delete(pymel.ls(type='nurbsSurface'))
+        self.assertEqual(self._get_scene_surface_count(), 0)
+
+        # Re-created the rig and ensure the new surface was correctly created.
+        rig.build()
+
+        # Ensure there's still one nurbsSurface in the scene.
+        self.assertEqual(self._get_scene_surface_count(), 1)
 
 
     # @open_scene("../examples/rig_squeeze_template01.ma")

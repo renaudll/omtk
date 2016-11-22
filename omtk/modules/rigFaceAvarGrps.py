@@ -556,14 +556,14 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         :return:
         """
         # Hack: Provide backward compatibility for when surface was provided as an input.
-        if self.surface is None:
+        if not libPymel.isinstance_of_shape(self.surface, pymel.nodetypes.NurbsSurface):
             fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
             surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
             if surface:
                 self.input.remove(surface)
                 self.surface = surface
 
-        if self.surface is None:
+        if not libPymel.isinstance_of_shape(self.surface, pymel.nodetypes.NurbsSurface):
             self.warning("Can't find surface for {0}, creating one...".format(self))
             self.surface = self.create_surface()
             #self.input.append(new_surface)

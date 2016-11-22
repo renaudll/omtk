@@ -11,6 +11,41 @@ from omtk.modules import rigFaceAvarGrps
 from omtk.core.classNode import Node
 from omtk.models import modelInteractiveCtrl
 
+def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix):
+    """
+    Create a utility node setup that prevent Maya from throwing a warning in case of division by zero.
+    Maya is stupid when trying to handle division by zero in nodes.
+    We can't use a condition after the multiplyDivide to deactivate it if the denominator is zero since
+    the multiplyDivide will still get evaluated and throw a warning.
+    For this reason we'll create TWO conditions, the second one will change the denominator to a non-zero value.
+    :param attr_inn: A numerical value or pymel.Attribute instance representing the numerator.
+    :param attr_out: A numerical value or pymel.Attribute instance representing the denominator.
+    :return: A pymel.Attribute containing the result of the operation.
+    """
+    # Create a condition that force the denominator to have a non-zero value.
+    attr_numerator_fake = libRigging.create_utility_node(
+        'condition',
+        name=nomenclature.resolve('{}SafePre'.format(suffix)),
+        firstTerm=attr_denominator,
+        colorIfFalseR=attr_denominator,
+        colorIfTrueR=0.01,
+    ).outColorR
+    attr_result = libRigging.create_utility_node(
+        'multiplyDivide',
+        name=nomenclature.resolve(suffix),
+        operation=2,  # division,
+        input1X=attr_numerator,
+        input2X=attr_numerator_fake
+    ).outputX
+    attr_result_safe = libRigging.create_utility_node(
+        'condition',
+        name=nomenclature.resolve('{}SafePost'.format(suffix)),
+        firstTerm=attr_denominator,
+        colorIfFalseR=attr_result,
+        colorIfTrueR=0.0
+    ).outColorR
+    return attr_result_safe
+
 class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
     pass
 
@@ -168,15 +203,6 @@ class SplitterNode(Node):
             input2X=attr_jaw_open_circle_ratio
         ).outputX
 
-        # We need this adjustment since we cheat the influence of the avar with the plane uvs.
-        # see AvarFollicle._get_follicle_relative_uv_attr for more information.
-        # attr_jaw_radius_demi = libRigging.create_utility_node(
-        #     'multiplyDivide',
-        #     name=nomenclature_rig.resolve('getJawRangeVRange'),
-        #     input1X=self.attr_inn_surface_range_v,
-        #     input2X=2.0
-        # ).outputX
-
         attr_jaw_v_range = libRigging.create_utility_node(
             'multiplyDivide',
             name=nomenclature_rig.resolve('getActiveJawRangeInSurfaceSpace'),
@@ -186,50 +212,35 @@ class SplitterNode(Node):
         ).outputX
 
         #
-        # Step 2: Resolve attr_out_jaw_ratio
+        # Step 2: Resolve the output jaw_ratio
         #
 
-        # Convert attr_jaw_default_ratio in uv space.
-        attr_jaw_default_ratio_v = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawDefaultRatioUvSpace'),
-            input1X=self.attr_inn_jaw_default_ratio,
-            input2X=attr_jaw_v_range
-        ).outputX
+        # Note that this can throw a zero division warning in Maya.
+        # To prevent that we'll use some black-magic-ugly-ass-trick.
+        attr_jaw_ratio_cancelation = create_safe_division(
+            self.attr_inn_surface_v,
+            attr_jaw_v_range,
+            nomenclature_rig,
+            'getJawRatioCancellation'
+        )
 
-        attr_jaw_uv_pos = libRigging.create_utility_node(
+        attr_jaw_ratio_out_raw = libRigging.create_utility_node(
             'plusMinusAverage',
-            name=nomenclature_rig.resolve('getCurrentJawUvPos'),
-            operation=2,  # substraction
-            input1D=(attr_jaw_default_ratio_v, self.attr_inn_surface_v)
+            name=nomenclature_rig.resolve('getJawRatioOutUnlimited'),
+            operation=2,  # substraction,
+            input1D=(
+                self.attr_inn_jaw_default_ratio,
+                attr_jaw_ratio_cancelation
+            )
         ).output1D
-
-        attr_jaw_ratio_out = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawRatioOut'),
-            operation=2,  # division
-            input1X=attr_jaw_uv_pos,
-            input2X=attr_jaw_v_range
-        ).outputX
 
         attr_jaw_ratio_out_limited = libRigging.create_utility_node(
             'clamp',
-            name=nomenclature_rig.resolve('getLimitedJawRatioOut'),
-            inputR=attr_jaw_ratio_out,
+            name=nomenclature_rig.resolve('getJawRatioOutLimited'),
+            inputR=attr_jaw_ratio_out_raw,
             minR=0.0,
             maxR=1.0
         ).outputR
-
-        # Prevent division by zero
-        attr_jaw_ratio_out_limited_safe = libRigging.create_utility_node(
-            'condition',
-            name=nomenclature_rig.resolve('getSafeJawRatioOut'),
-            operation=1,  # not equal
-            firstTerm=self.attr_inn_jaw_pt,
-            secondTerm=0,
-            colorIfTrueR=attr_jaw_ratio_out_limited,
-            colorIfFalseR=self.attr_inn_jaw_default_ratio
-        ).outColorR
 
         #
         # Step 3: Resolve attr_out_surface_u & attr_out_surface_v
@@ -293,7 +304,7 @@ class SplitterNode(Node):
         # Connect output jaw_ratio
         attr_output_jaw_ratio = libRigging.create_utility_node(
             'blendWeighted',
-            input=(attr_jaw_ratio_out_limited_safe, self.attr_inn_jaw_default_ratio),
+            input=(attr_jaw_ratio_out_limited, self.attr_inn_jaw_default_ratio),
             weight=(attr_inn_bypass_inv, self.attr_inn_bypass)
         ).output
         pymel.connectAttr(attr_output_jaw_ratio, self.attr_out_jaw_ratio)

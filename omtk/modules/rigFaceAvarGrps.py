@@ -279,6 +279,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         If the rigger provided a global parent for the influences in the module,
         it will be considered as an influence for the 'all' macro avar.
         """
+        # If there's only one influence, we'll handle it as a simple avar.
+        if len(self.jnts) <= 1:
+            return None
+
         objs_by_absolute_parent_level = self._get_absolute_parent_level_by_influences()
         top_level = self._get_highest_absolute_parent_level()
         root_objs = objs_by_absolute_parent_level[top_level]
@@ -392,6 +396,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         # For various reason, we may have a mismatch between the stored Avars the number of influences.
         # The best way to deal with this is to check each existing Avar and see if we need to created it or keep it.
         avar_influences = self._get_avars_influences()
+
+        if not avar_influences:
+            raise Exception("Found no avars!")
 
         new_avars = []
 

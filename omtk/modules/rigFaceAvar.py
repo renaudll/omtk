@@ -242,7 +242,7 @@ class AbstractAvar(classModule.Module):
         super(AbstractAvar, self).validate(support_no_inputs=True)
         return True
 
-    def create_surface(self, name='Surface'):
+    def create_surface(self, name='Surface', epsilon=0.001, default_scale=1.0):
         """
         Create a simple rig to deform a nurbsSurface, allowing the rigger to easily provide
         a surface for the influence to slide on.
@@ -302,9 +302,14 @@ class AbstractAvar(classModule.Module):
             if max_x is None or pos.x > max_x:
                 max_x = pos.x
         pos /= len(self.jnts)
-
-        length_x = max_x-min_x
         root.setTranslation(pos)
+
+        # Try to guess the scale
+        length_x = max_x-min_x
+        if len(self.jnts) <= 1 or length_x < epsilon:
+            log.debug("Cannot automatically resolve scale for surface. Using default value {0}".format(default_scale))
+            length_x = default_scale
+
         root.scaleX.set(length_x)
         root.scaleY.set(length_x*0.5)
         root.scaleZ.set(length_x)

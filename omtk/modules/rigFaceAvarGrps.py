@@ -410,18 +410,21 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
 
             # Any existing Avar that don't have the desired datatype will be re-created.
             # However the old value will be passed by so the factory method can handle specific tricky cases.
-            elif not isinstance(avar, self._CLS_AVAR):
-                self.warning("Unexpected Avar type for {0}. Expected {1}, got {2}.".format(avar.name, self._CLS_AVAR.__name__, type(avar).__name__))
-                new_avar = self._create_avar(avar.jnt, cls_avar=self._CLS_AVAR, old_val=avar)
-                new_avars.append(new_avar)
-
-            # If the Avar already exist and is of the desired datatype, we'll keep it as is.
             else:
-                new_avars.append(avar)
+                new_avar = self._init_avar(
+                    self._CLS_AVAR,
+                    avar,
+                    ref=avar.jnt
+                )
+                new_avars.append(new_avar)
 
         for influence in avar_influences:
             if not any(True for avar in new_avars if influence == avar.jnt):
-                new_avar = self._create_avar(influence, cls_avar=self._CLS_AVAR)
+                new_avar = self._init_avar(
+                    self._CLS_AVAR,
+                    None,  # no previous value
+                    ref=influence
+                )
                 new_avars.append(new_avar)
 
         return new_avars
@@ -569,12 +572,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             if surface:
                 self.input.remove(surface)
                 self.surface = surface
+                return True
 
-        if not libPymel.isinstance_of_shape(self.surface, pymel.nodetypes.NurbsSurface):
+            # Create surface if it doesn't exist.
             self.warning("Can't find surface for {0}, creating one...".format(self))
             self.surface = self.create_surface()
-            #self.input.append(new_surface)
-            #del self._cache['surface']
 
     def build(self, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True, create_grp_rig_macro=True, create_grp_rig_micro=True, create_grp_anm_macro=True, create_grp_anm_micro=True, calibrate=True, **kwargs):
         self.handle_surface()
@@ -634,38 +636,60 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         for avar in self.avars:
             avar.calibrate()
 
-    def _create_avar(self, ref=None, cls_avar=None, cls_ctrl=None, old_val=None, name=None, **kwargs):
+    def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, name=None):
         """
-        Factory method to create an avar. Pass the old avar in parameter it's internal data can be preserved if necessary.
-        :param ref:
-        :param cls_avar:
-        :param cls_ctrl:
-        :param old_val:
-        :param kwargs:
-        :return:
-        """
-        if cls_avar is None:
-            #self.warning("No avar class specified for {0}, using default.".format(self))
-            cls_avar = rigFaceAvar.AvarSimple
+        Factory method that initialize an avar instance only if necessary.
+        If the instance already had been initialized in a previous build, it's correct value will be preserved,
 
-        avar_inputs = [ref] if ref else []
-        avar = cls_avar(avar_inputs, name=name, rig=self.rig)
-        avar.surface = self.surface
+        This also handle the following checks
+        - Preserve ctrl information if we need to re-created the avar because of a type mismatch.
+        - Ensure that the avar always have a surface. # todo: implement this only on AvarGrpOnSurface.
+        :param cls: The desired class.
+        :param inst: The current value. This should always exist since defined in the module constructor.
+        :param ref:
+        :param cls_ctrl: The desired ctrl class. We might want to remove this for simplicity
+        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        """
+        # todo: remove this call when we know it is safe.
+        if cls is None:
+            self.warning("No avar class specified for {0}, using default.".format(self))
+            cls = rigFaceAvar.AvarSimple
+
+        # If the existing instance have the correct type, do nothing.
+        if type(inst) == cls:
+            # todo: validate inputs?
+            result = inst
+        else:
+            # Create/Recreate the ctrl instance.
+            # Preserve old ctrl if possible.
+            result_inputs = [ref] if ref else []
+            result = cls(result_inputs, rig=self.rig)
+
+            # It is possible that the old avar type don't match the desired one.
+            # When this happen, we'll try at least to save the ctrl instance so the shapes match.
+            if inst is not None:
+                self.debug("Unexpected avar type. Expected {0}, got {1}. ".format(
+                    cls.__name__, type(inst).__name__
+                ))
+                result.ctrl = inst.ctrl
+                result.avar_network = inst.avar_network
+
+        # Ensure the result instance always have the same surface as it's parent.
+        result.surface = self.surface
 
         # Apply cls_ctrl override if specified
         if cls_ctrl:
-            avar._CLS_CTRL = cls_ctrl
+            result._CLS_CTRL = cls_ctrl
 
-        # It is possible that the old avar type don't match the desired one.
-        # When this happen, we'll try at least to save the ctrl instance so the shapes match.
-        if old_val is not None and type(old_val) != cls_avar:
-            self.debug("Unexpected avar type. Expected {0}, got {1}. ".format(
-                cls_avar.__name__, type(old_val).__name__
-            ))
-            avar.ctrl = old_val.ctrl
-            avar.avar_network = old_val.avar_network
+        # Apply cls_ctrl_model override if specified
+        if cls_ctrl_model:
+            result._CLS_MODEL_CTRL = cls_ctrl_model
 
-        return avar
+        # Apply name override if specified
+        if name:
+            result.name = name
+
+        return result
 
     def configure_avar(self, avar):
         """
@@ -914,121 +938,125 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     def get_influences_tweak(self):
         return self._get_relative_parent_level_by_influences().get(2, [])
 
-    def create_avar_macro_all(self, cls_ctrl, ref=None, cls_avar=None):
-        """
-        A center abstract Avar is used to control ALL the avars.
-        ex: Controlling the whole eye or mouth section.
-        Note that is it supported to have NO influence for this avar.
-        """
-        name = self.get_module_name() + self.rig.AVAR_NAME_ALL
-        avar = self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_all, name=name)
-
-        return avar
-
-    def create_avar_macro_left(self, cls_ctrl, ref=None, cls_avar=None):
-        if ref is None:
-            ref = self.get_jnt_l_mid()
-        if ref is None:
-            raise Exception("Can't build abstract avar for the left section. No reference influence found!")
-
-        name = 'L_{0}'.format(self.get_module_name())
-        avar = self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_l, name=name)
-
-        return avar
-
-    def create_avar_macro_right(self, avar, cls_ctrl, ref=None, cls_avar=None):
-        if ref is None:
-            ref = self.get_jnt_r_mid()
-        if ref is None:
-            raise Exception("Can't build abstract avar for the left section. No reference influence found!")
-
-        # Create l ctrl
-        name = 'R_{0}'.format(self.get_module_name())
-        avar = self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_r, name=name)
-
-        return avar
-
-    def create_avar_macro_upp(self, avar, cls_ctrl, ref=None, cls_avar=None):
-        if ref is None:
-            ref = self.get_jnt_upp_mid()
-        if ref is None:
-            raise Exception("Can't build abstract avar for the upper section. No reference influence found!")
-
-        # Resolve avar name
-        avar_upp_basename = self.get_module_name() + self.rig.AVAR_NAME_UPP
-        nomenclature_upp = self.rig.nomenclature(ref.name())
-        nomenclature_upp.tokens = [avar_upp_basename]
-        avar_upp_name = nomenclature_upp.resolve()
-
-        #avar = self.create_avar_macro(rig, cls_ctrl, ref, name=avar_upp_name)
-        avar = self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_upp, name=avar_upp_name)
-
-        return avar
-
-    def create_avar_macro_low(self, avar, cls_ctrl, ref=None, cls_avar=None):
-        if ref is None:
-            ref = self.get_jnt_low_mid()
-        if ref is None:
-            raise Exception("Can't build abstract avar for the lower section. No reference influence found!")
-
-        # Resolve avar name
-        avar_low_basename = self.get_module_name() + self.rig.AVAR_NAME_LOW
-        nomenclature_low = self.rig.nomenclature(ref.name())
-        nomenclature_low.tokens = [avar_low_basename]
-        avar_low_name = nomenclature_low.resolve()
-
-        #avar = self.create_avar_macro(rig, cls_ctrl, ref, name=avar_low_name)
-        avar = self._create_avar(ref, cls_ctrl=cls_ctrl, cls_avar=cls_avar, old_val=self.avar_low, name=avar_low_name)
-
-        return avar
-
     def _create_avars(self):
         super(AvarGrpAreaOnSurface, self)._create_avars()
+
+        nomenclature_macro = self.get_nomenclature().copy()
+        nomenclature_macro.add_tokens('macro')
 
         # Create horizontal macro avars
         if self.create_macro_horizontal:
             # Create avar_l if necessary
             ref_l = self.get_jnt_l_mid()
             if ref_l:
-                if not self.avar_l or not isinstance(self.avar_l, self._CLS_AVAR):
-                    self.avar_l = self.create_avar_macro_left(self._CLS_CTRL_LFT, ref_l, cls_avar=self._CLS_AVAR)
+                # Resolve name
+                nomenclature = self.rig.nomenclature(self.get_module_name())
+                if self.IS_SIDE_SPECIFIC:
+                    side = ref_l.getTranslation(space='world').x > 0
+                    if side:  # left
+                        nomenclature.side = nomenclature.SIDE_L
+                        nomenclature.tokens.append('Out')
+                    else:
+                        nomenclature.side = nomenclature.SIDE_R
+                        nomenclature.tokens.append('Inn')
+                else:
+                    nomenclature.side = nomenclature.SIDE_L
+                avar_macro_l_name = nomenclature.resolve()
+
+                # avar_macro_l_name = 'L_{0}'.format(self.get_module_name())
+                self.avar_l = self._init_avar(
+                    self._CLS_AVAR,
+                    self.avar_l,
+                    ref=ref_l,
+                    cls_ctrl=self._CLS_CTRL_LFT,
+                    name=avar_macro_l_name
+                )
 
             # Create avar_r if necessary
             ref_r = self.get_jnt_r_mid()
             if ref_r:
-                if not self.avar_r or not isinstance(self.avar_r, self._CLS_AVAR):
-                    self.avar_r = self.create_avar_macro_right(self._CLS_CTRL_RGT, ref_r, cls_avar=self._CLS_AVAR)
+                # Resolve name
+                nomenclature = self.rig.nomenclature(self.get_module_name())
+                if self.IS_SIDE_SPECIFIC:
+                    side = ref_r.getTranslation(space='world').x > 0
+                    if side:  # left
+                        nomenclature.side = nomenclature.SIDE_L
+                        nomenclature.tokens.append('Inn')
+                    else:
+                        nomenclature.side = nomenclature.SIDE_R
+                        nomenclature.tokens.append('Out')
+                else:
+                    nomenclature.side = nomenclature.SIDE_R
+                avar_macro_r_name = nomenclature.resolve()
+
+                # avar_macro_r_name = 'R_{0}'.format(self.get_module_name())
+                self.avar_r = self._init_avar(
+                    self._CLS_AVAR,
+                    self.avar_r,
+                    ref=ref_r,
+                    cls_ctrl=self._CLS_CTRL_RGT,
+                    name=avar_macro_r_name
+                )
 
         # Create vertical macro avars
         if self.create_macro_vertical:
             # Create avar_upp if necessary
             ref_upp = self.get_jnt_upp_mid()
             if ref_upp:
-                if not self.avar_upp or not isinstance(self.avar_upp, self._CLS_AVAR):
-                    self.avar_upp = self.create_avar_macro_upp(self._CLS_CTRL_UPP, ref_upp, cls_avar=self._CLS_AVAR)
+                # Resolve avar name
+                avar_upp_basename = self.get_module_name() + self.rig.AVAR_NAME_UPP
+                nomenclature_upp = self.rig.nomenclature(ref_upp.name())
+                nomenclature_upp.tokens = [avar_upp_basename]
+                avar_upp_name = nomenclature_upp.resolve()
+
+                self.avar_upp = self._init_avar(
+                    self._CLS_AVAR,
+                    self.avar_upp,
+                    ref=ref_upp,
+                    cls_ctrl=self._CLS_CTRL_UPP,
+                    name=avar_upp_name
+                )
 
             # Create avar_low if necessary
             ref_low = self.get_jnt_low_mid()
             if ref_low:
-                if not self.avar_low or not isinstance(self.avar_low, self._CLS_AVAR):
-                    self.avar_low = self.create_avar_macro_low(self._CLS_CTRL_LOW, ref_low, cls_avar=self._CLS_AVAR)
+                # Resolve avar name
+                avar_low_basename = self.get_module_name() + self.rig.AVAR_NAME_LOW
+                nomenclature_low = self.rig.nomenclature(ref_low.name())
+                nomenclature_low.tokens = [avar_low_basename]
+                avar_low_name = nomenclature_low.resolve()
+
+                self.avar_low = self._init_avar(
+                    self._CLS_AVAR,
+                    self.avar_low,
+                    ref=ref_low,
+                    cls_ctrl=self._CLS_CTRL_LOW,
+                    name=avar_low_name
+                )
 
         # Create all macro avar
         # Note that the all macro avar can drive an influence or not, both are supported.
         # This allow the rigger to provided an additional falloff in case the whole section is moved.
         if self.create_macro_all:
-            ref_all = self.get_influence_all()
-            if not self.avar_all or not isinstance(self.avar_all, self._CLS_AVAR):
-                self.avar_all = self.create_avar_macro_all(self._CLS_CTRL_UPP, ref_all, cls_avar=self._CLS_AVAR)
-            self.avar_all._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_ALL
+            avar_all_ref = self.get_influence_all()
+            avar_all_name = self.get_module_name() + self.rig.AVAR_NAME_ALL
+            self.avar_all = self._init_avar(
+                self._CLS_AVAR,
+                self.avar_all,
+                ref=avar_all_ref,
+                cls_ctrl=self._CLS_CTRL_UPP,
+                cls_ctrl_model=self._CLS_MODEL_CTRL_ALL,
+                name=avar_all_name
+            )
+            self.avar_all.name = avar_all_name
 
             # The avar_all is special since it CAN drive an influence.
             old_ref_all = self.avar_all.jnt
-            if old_ref_all != ref_all:
+            if old_ref_all != avar_all_ref:
                 self.warning("Unexpected influence for avar {0}, expected {1}, got {2}. Will update the influence.".format(
-                    self.avar_all.name, ref_all, old_ref_all
+                    self.avar_all.name, avar_all_ref, old_ref_all
                 ))
-                self.avar_all.input = [ref_all if inf == old_ref_all else inf for inf in self.avar_all.input]
+                self.avar_all.input = [avar_all_ref if inf == old_ref_all else inf for inf in self.avar_all.input]
 
                 # Hack: Delete all cache since it may have used the old inputs.
                 try:

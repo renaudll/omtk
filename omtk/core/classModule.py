@@ -101,13 +101,23 @@ class Module(object):
         return self.__dict__['_outputs']
     '''
 
+    @libPython.memoized_instancemethod
+    def get_side(self):
+        """
+        Analyze the inputs of the module and try to return it's side.
+        :return: The side using the correct nomenclature.
+        """
+        ref = next(iter(self.chain), None) if self.chain else None
+        nomenclature = self.rig.nomenclature(ref.nodeName())
+        return nomenclature.side
+
     def get_default_name(self):
         """
         :return: Return an unique identifier using the inputs of the module.
         Note that this will crash if the module don't use any joint.
         """
         # todo: use className!
-        ref = next(iter(self.chain), None) if self.chain is not None else None
+        ref = next(iter(self.chain), None) if self.chain else None
         if ref:
             old_nomenclature = self.rig.nomenclature(ref.nodeName())
             new_nomenclature = self.rig.nomenclature()
@@ -118,9 +128,7 @@ class Module(object):
                 new_nomenclature.add_tokens(self.__class__.__name__.lower())
 
             if self.IS_SIDE_SPECIFIC:
-                side = old_nomenclature.side
-                if side:
-                    new_nomenclature.side = side
+                new_nomenclature.side = self.get_side()
 
             return new_nomenclature.resolve()
 
@@ -132,6 +140,16 @@ class Module(object):
         if self.name:
             return self.name
         return self.__class__.__name__.lower()
+
+    @libPython.memoized_instancemethod
+    def get_nomenclature(self):
+        """
+        :return: The nomenclature to use for animation controllers.
+        """
+        name = self.rig.nomenclature(
+            name=self.get_module_name()
+        )
+        return name
 
     @libPython.memoized_instancemethod
     def get_nomenclature_anm(self):
@@ -436,6 +454,10 @@ class Module(object):
         else:
             return None, None
 
+    #
+    # Initialization helper methods
+    #
+
     def init_ctrl(self, cls, inst):
         """
         Factory method that initialize a class instance only if necessary.
@@ -461,6 +483,37 @@ class Module(object):
                 result.shapes = old_shapes
 
         return result
+
+    def init_module(self, cls, inst, inputs=None, suffix=None):
+        """
+        Factory method that initialize a child module instance only if necessary.
+        If the instance already had been initialized in a previous build, it's correct value will be preserved,
+        :param cls: The desired class.
+        :param inst: The current value. This should always exist since defined in the module constructor.
+        :param inputs: The inputs to use for the module.
+        :param suffix: The token to use for the module name. This help prevent collision between
+        module objects and the child module objects. If nothing is provided, the same name will be used
+        which can result in collisions.
+        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        """
+        # todo: Validate inputs, we may need to modify the module if the inputs don't match!
+
+        result = inst
+
+        if not isinstance(inst, cls):
+            result = cls(inputs, rig=self.rig)
+
+        # Set the child module name.
+        if suffix is None:
+            result.name = self.name
+        else:
+            nomenclature = self.get_nomenclature().copy()
+            nomenclature.tokens.append(suffix)
+            result.name = nomenclature.resolve()
+
+        return result
+
+
 
 
 

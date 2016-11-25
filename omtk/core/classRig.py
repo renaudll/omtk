@@ -184,7 +184,14 @@ class Rig(object):
         return iter(self.modules)
 
     def __str__(self):
-        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
+        version = getattr(self, 'version', '')
+        if version:
+            version = ' v{}'.format(version)
+        return '{} <{}{}>'.format(
+            self.name,
+            self.__class__.__name__,
+            version
+        )
 
     #
     # libSerialization implementation

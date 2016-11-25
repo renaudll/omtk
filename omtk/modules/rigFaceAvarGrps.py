@@ -358,10 +358,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
                 ctrl_size = min(distances) / 2.0
 
             if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
-                self.debug("Limiting ctrl size to {0}".format(max_ctrl_size))
+                self.debug("Limiting ctrl size to {}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
         else:
-            self.warning("Can't automatically resolve ctrl size, using default {0}".format(ctrl_size))
+            self.debug("Not enough ctrls to guess size. Using default {}".format(ctrl_size))
 
         return ctrl_size
 

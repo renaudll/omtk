@@ -533,7 +533,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         return attr_u, attr_v
 
 
-class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp setup customized for lips rigging.
     Lips have the same behavior than an AvarGrpUppLow.
@@ -544,6 +544,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     SHOW_IN_UI = True
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
+    CREATE_MACRO_AVAR_HORIZONTAL = True
+    CREATE_MACRO_AVAR_VERTICAL = True
+    CREATE_MACRO_AVAR_ALL = True
 
     def validate(self):
         """

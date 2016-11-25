@@ -14,7 +14,7 @@ class CtrlEyeLidLow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceEyeLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp setup customized for Eyelids rigging.
     FaceLids behave the same a a standard AvarGrp with an Upp and Low section.
@@ -23,6 +23,9 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     _CLS_CTRL_UPP = CtrlEyeLidUpp
     _CLS_CTRL_LOW = CtrlEyeLidLow
     IS_SIDE_SPECIFIC=True
+    CREATE_MACRO_AVAR_HORIZONTAL = True
+    CREATE_MACRO_AVAR_VERTICAL = True
+    CREATE_MACRO_AVAR_ALL = True
 
     SHOW_IN_UI = True
 

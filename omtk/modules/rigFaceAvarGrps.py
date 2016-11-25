@@ -702,21 +702,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
 
 
 class AvarGrpOnSurface(AvarGrp):
-    _CLS_AVAR = rigFaceAvar.AvarFollicle
-
-    def __init__(self, *args, **kwargs):
-        super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
-        self.surface = None
-
-    @decorator_uiexpose()
-    def create_surface(self, *args, **kwargs):
-        """
-        Expose the function in the ui, using the decorator.
-        """
-        return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
-
-
-class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     """
     Highest-level surface-based AvarGrp module.
     With additional features like:
@@ -747,6 +732,27 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
     |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO       | Affected by jnt_avar_01 in translation only.
     """
+    _CLS_AVAR = rigFaceAvar.AvarFollicle
+
+    def __init__(self, *args, **kwargs):
+        super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
+        self.surface = None
+        self.create_macro_horizontal = self.CREATE_MACRO_AVAR_HORIZONTAL
+        self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
+        self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
+        self.avar_all = None
+        self.avar_l = None
+        self.avar_r = None
+        self.avar_upp = None
+        self.avar_low = None
+
+    @decorator_uiexpose()
+    def create_surface(self, *args, **kwargs):
+        """
+        Expose the function in the ui, using the decorator.
+        """
+        return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
+
     _CLS_CTRL_LFT = CtrlFaceMacroL
     _CLS_CTRL_RGT = CtrlFaceMacroR
     _CLS_CTRL_UPP = CtrlFaceUpp
@@ -761,19 +767,8 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
 
-    def __init__(self, *args, **kwargs):
-        super(AvarGrpAreaOnSurface, self).__init__(*args, **kwargs)
-        self.create_macro_horizontal = self.CREATE_MACRO_AVAR_HORIZONTAL
-        self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
-        self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
-        self.avar_all = None
-        self.avar_l = None
-        self.avar_r = None
-        self.avar_upp = None
-        self.avar_low = None
-
     def validate(self):
-        super(AvarGrpAreaOnSurface, self).validate()
+        super(AvarGrpOnSurface, self).validate()
 
         # Ensure that we support the hyerarchy of the influences.
         influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
@@ -895,7 +890,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return next(iter(sorted(self.get_avars_micro_r(), key=fn_get_avar_pos_x)), None)
 
     def _iter_all_avars(self):
-        for avar in super(AvarGrpAreaOnSurface, self)._iter_all_avars():
+        for avar in super(AvarGrpOnSurface, self)._iter_all_avars():
             yield avar
         if self.avar_l:
             yield self.avar_l
@@ -929,7 +924,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         If the rigger provided an influence for the 'all' Avar, don't create an Avar for it. We will handle it manually.
         :return:
         """
-        influences = super(AvarGrpAreaOnSurface, self)._get_avars_influences()
+        influences = super(AvarGrpOnSurface, self)._get_avars_influences()
         influence_all = self.get_influence_all()
         if influence_all and influence_all in influences:
             influences.remove(influence_all)
@@ -940,7 +935,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return self._get_relative_parent_level_by_influences().get(2, [])
 
     def _create_avars(self):
-        super(AvarGrpAreaOnSurface, self)._create_avars()
+        super(AvarGrpOnSurface, self)._create_avars()
 
         # Create horizontal macro avars
         if self.create_macro_horizontal:
@@ -1255,7 +1250,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
     def _build_avars(self, **kwargs):
         # TODO: Some calls might need to be move
-        super(AvarGrpAreaOnSurface, self)._build_avars(**kwargs)
+        super(AvarGrpOnSurface, self)._build_avars(**kwargs)
 
         self._build_avar_macro_l()
 
@@ -1335,7 +1330,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             )
             self._connect_avar_macro_low()
 
-        super(AvarGrpAreaOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
+        super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
 
     def unbuild(self):
         if self.avar_l:
@@ -1348,7 +1343,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             self.avar_low.unbuild()
         if self.avar_all:
             self.avar_all.unbuild()
-        super(AvarGrpAreaOnSurface, self).unbuild()
+        super(AvarGrpOnSurface, self).unbuild()
 
     @decorator_uiexpose()
     def calibrate(self):
@@ -1356,7 +1351,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         Ensure macro avars are correctly calibrated.
         This override might not be necessary if the design was better.
         """
-        super(AvarGrpAreaOnSurface, self).calibrate()
+        super(AvarGrpOnSurface, self).calibrate()
 
         if self.avar_l:
             self.avar_l.calibrate()
@@ -1370,17 +1365,17 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             self.avar_all.calibrate()
 
     def get_avars_upp(self):
-        result = super(AvarGrpAreaOnSurface, self).get_avars_upp()
+        result = super(AvarGrpOnSurface, self).get_avars_upp()
         if self.avar_upp:
             result.append(self.avar_upp)
         return result
 
     def get_avars_low(self):
-        result = super(AvarGrpAreaOnSurface, self).get_avars_low()
+        result = super(AvarGrpOnSurface, self).get_avars_low()
         if self.avar_low:
             result.append(self.avar_low)
         return result
 
 
 def register_plugin():
-    return AvarGrpAreaOnSurface
+    return AvarGrpOnSurface

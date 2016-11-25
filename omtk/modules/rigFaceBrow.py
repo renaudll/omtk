@@ -10,7 +10,7 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
-class FaceBrow(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceBrow(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp customized for Brow rigging.
     """

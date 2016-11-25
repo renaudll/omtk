@@ -9,7 +9,8 @@ import libSerialization
 cls_rename_map = (
     ('FaceLids', 'FaceEyeLids'),
     ('CtrlLidUpp', 'CtrlEyeLidUpp'),
-    ('CtrlLidLow', 'CtrlEyeLidLow')
+    ('CtrlLidLow', 'CtrlEyeLidLow'),
+    ('AvarGrpAreaOnSurface', 'AvarGrpOnSurface')
 )
 affected_attr_names = ('_class', '_class_namespace')
 

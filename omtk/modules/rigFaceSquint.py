@@ -9,7 +9,7 @@ class CtrlSquint(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
-class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceSquint(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp setup customized for squint rigging.
     """

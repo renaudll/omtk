@@ -8,6 +8,7 @@ from omtk.core.classNode import Node
 from omtk.core import className
 from omtk.core import classModule
 from omtk.core import constants
+from omtk.core import api
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -569,6 +570,9 @@ class Rig(object):
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
 
+        # Store the version of omtk used to build the rig.
+        self.version = api.get_version()
+
         self.debug("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
         return True
@@ -610,6 +614,9 @@ class Rig(object):
         # Apply ctrl color if needed
         if self._color_ctrl:
             self.color_module_ctrl(module)
+
+        # Store the version of omtk used to generate the rig.
+        module.version = api.get_version()
 
     def _unbuild_node(self, val, keep_if_children=False):
         if isinstance(val, Node):

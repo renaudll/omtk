@@ -1,3 +1,5 @@
+import os
+import re
 import contextlib
 import logging
 
@@ -10,6 +12,7 @@ log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
 
 __all__ = (
+    'get_version',
     'create',
     'find',
     'find_one',
@@ -19,6 +22,25 @@ __all__ = (
     'unbuild_selected',
     'calibrate_selected'
 )
+
+@libPython.memoized
+def get_version():
+    """
+    Read the REZ package associated with the project and return the current version.
+    This is used to analyze old rigs and recommend specific scripts to correct them if needed.
+    :return:
+    """
+    package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'package.py'))
+    if not os.path.exists(package_path):
+        raise Exception("Cannot find package file! {}".format(package_path))
+    regex_getversion = re.compile('^version *= [\'|"]*([0-9\.]*)[\'|"]$')
+    with open(package_path, 'r') as fp:
+        for line in fp:
+            line = line.strip('\n')
+            result = regex_getversion.match(line)
+            if result:
+                result = next(iter(result.groups()))
+                return result
 
 def create(*args, **kwargs):
     from omtk.core import preferences

@@ -9,6 +9,7 @@ import core
 import libSerialization
 import pymel.core as pymel
 from maya import OpenMaya
+from omtk.core import api
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk.libs import libPymel
@@ -47,6 +48,8 @@ class AutoRig(QtGui.QMainWindow):
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
 
+        version = api.get_version()
+        self.setWindowTitle('Open Rigging Toolkit {}'.format(version))
 
         #
         # First update

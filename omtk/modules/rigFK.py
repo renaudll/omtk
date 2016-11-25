@@ -27,8 +27,21 @@ class CtrlFk(BaseCtrl):
 class FK(Module):
     """
     A Simple FK with support for multiple hyerarchy.
+
+    Note that there's multiple way to name the ctrls.
+    1) Use the inputs as reference ( _NAME_CTRL_ENUMERATE = False )
+    ex: (module name is arm_l)
+    jnt_upperarm_l -> ctrl_arm_upperarm_l
+    jnt_forearm_l  -> ctrl_arm_forearm_l
+    2) Use enumeration ( _NAME_CTRL_ENUMERATE = True )
+    ex: (module name is arm_l)
+    jnt_upperarm_l -> ctrl_arm_01_l
+    jnt_forearm_l  -> ctrl_arm_02_l
+    ex:
     """
     DEFAULT_NAME_USE_FIRST_INPUT = True
+    _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name. Otherwise they will use their associated input name.
+    _NAME_CTRL_MERGE = True  # If set to true, it there's only one controller, it will use the name of the module.
     _CLS_CTRL = CtrlFk
 
     def __init__(self, *args, **kwargs):
@@ -70,9 +83,17 @@ class FK(Module):
                     num_ctrls += 1
 
             # Create ctrls
-            for input, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
-                ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
-                ctrl_name = ctrl_nomenclature.resolve('fk')
+            chain_length = len(chain)
+            for ctrl_index, input, ctrl in zip(range(chain_length), chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + chain_length]):
+                # Resolve ctrl name
+                if len(self.jnts) == 1 and self._NAME_CTRL_MERGE:
+                    ctrl_name = nomenclature_anm.resolve()
+                elif self._NAME_CTRL_ENUMERATE:
+                    ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(ctrl_index))
+                else:
+                    nomenclature = nomenclature_anm + self.rig.nomenclature(input.name())
+                    ctrl_name = nomenclature.resolve()
+
                 ctrl.build(name=ctrl_name, refs=input, geometries=self.rig.get_meshes())
                 ctrl.setMatrix(input.getMatrix(worldSpace=True))
 
@@ -149,7 +170,13 @@ class AdditiveFK(FK):
         #HACK - Temp since we don't support multiple ctrl for the moment
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
-            name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
+            # Resolve ctrl name
+            nomenclature = nomenclature_anm + self.rig.nomenclature(self.jnt.nodeName())
+            if self._NAME_CTRL_MERGE and len(self.additive_ctrls) == 1:
+                name = nomenclature.resolve("addFk", "{0:02d}".format(i))
+            else:
+                name = nomenclature.resolve("addFk")
+
             ctrl.build(name=name, refs=self.chain.start, normal=normal_data[self.rig._up_axis])
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)

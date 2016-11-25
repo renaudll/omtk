@@ -19,6 +19,8 @@ class Neck(rigFK.FK):
 
     _CLS_CTRL = CtrlNeck
     _CLASS_SYS_TWIST = rigTwistbone.Twistbone
+    _NAME_CTRL_MERGE = True  # By default we only expect one controller for the head. (Head_Ctrl > than Head_Head_Ctrl)
+    _NAME_CTRL_ENUMERATE = True  # If we find additional influences, we'll use enumeration.
 
     def build(self, *args, **kwargs):
         super(Neck, self).build(create_grp_rig=True, *args, **kwargs)

@@ -533,7 +533,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         return attr_u, attr_v
 
 
-class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp setup customized for lips rigging.
     Lips have the same behavior than an AvarGrpUppLow.
@@ -544,6 +544,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     SHOW_IN_UI = True
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
+    CREATE_MACRO_AVAR_HORIZONTAL = True
+    CREATE_MACRO_AVAR_VERTICAL = True
+    CREATE_MACRO_AVAR_ALL = True
 
     def validate(self):
         """
@@ -567,8 +570,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
         return result
 
-    def get_module_name(self):
-        return 'Lip'
+    def get_default_name(self):
+        return 'lip'
 
     def connect_macro_avar(self, avar_macro, avar_micros):
         for avar_micro in avar_micros:
@@ -705,44 +708,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
             if not jnt_jaw:
                 self.error("Failed parenting avars, no jaw influence found!")
                 return
-
-            nomenclature_rig = self.get_nomenclature_rig()
-
-            # # Note #2: A common target for the head
-            # target_head_name = nomenclature_rig.resolve('targetHead')
-            # target_head = pymel.createNode('transform', name=target_head_name)
-            # target_head.setTranslation(jnt_head.getTranslation(space='world'))
-            # target_head.setParent(self.grp_rig)
-            # pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
-            # pymel.scaleConstraint(jnt_head, target_head, maintainOffset=True)
-            #
-            # # Note #3: A common target for the jaw
-            # target_jaw_name = nomenclature_rig.resolve('targetJaw')
-            # target_jaw = pymel.createNode('transform', name=target_jaw_name)
-            # target_jaw.setTranslation(jnt_jaw.getTranslation(space='world'))
-            # target_jaw.setParent(self.grp_rig)
-            # pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
-            # pymel.scaleConstraint(jnt_jaw, target_jaw, maintainOffset=True)
-            #
-            # attr_bypass = libAttr.addAttr(self.grp_rig, 'bypassSplitter')
-
-
-            # For each avars, create an extractor node and extract the delta from the bind pose.
-            # We'll then feed this into the stack layers.
-            # This will apply jaw deformation to the rig.
-
-            # Moving the lips when they are influenced by the jaw is a hard task.
-            # This is because the jaw introduce movement in 'jaw' space while the
-            # standard avars introduce movement in 'surface' space.
-            # This mean that if we try to affect a deformation occuring in 'jaw' space
-            # with the 'surface' space (ex: moving the lips corners up when the jaw is open)
-            # this will not result in perfect results.
-
-            # To prevent this situation, taking in consideration that there's a one on one correlation
-            # between the lips and jaw deformation (ex: the football shape created by the jaw at 1.0
-            # is the same as if upp and low lips are set at 0.5 each), we'll always use the jaw space
-            # before using the lips space.
-
 
             min_x, max_x = self._get_mouth_width()
             mouth_width = max_x - min_x

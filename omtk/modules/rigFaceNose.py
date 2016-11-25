@@ -17,7 +17,7 @@ class ModelMicroAvarNose(modelInteractiveCtrl.ModelInteractiveCtrl):
         else:
             super(ModelMicroAvarNose, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz)
 
-class FaceNose(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     The Nose is composed of two zones. The uppernose and the lower nose.
     The uppernose is user specifically for it's yaw and pitch rotation.
@@ -25,7 +25,6 @@ class FaceNose(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
     Note that this was done reallllly quickly and cleanup may be needed in the future.
     """
-    # TODO: Implement AvarGrpAreaOnSurface class
     #_DEFORMATION_ORDER = 'post'
     #_CLS_AVAR = AvarJaw
     SHOW_IN_UI = True
@@ -35,6 +34,9 @@ class FaceNose(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     CREATE_MACRO_AVAR_ALL = True
     CREATE_MACRO_AVAR_HORIZONTAL = False
     CREATE_MACRO_AVAR_VERTICAL = False
+
+    def get_default_name(self):
+        return 'nose'
 
 
 def register_plugin():

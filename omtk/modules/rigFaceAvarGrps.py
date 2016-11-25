@@ -72,6 +72,14 @@ class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_left()
 
+class CtrlFaceMacroL(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, **kwargs):
+        return libCtrlShapes.create_triangle_left()
+
+class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self,  **kwargs):
+        return libCtrlShapes.create_triangle_right()
+
 
 #
 # Models
@@ -350,10 +358,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
                 ctrl_size = min(distances) / 2.0
 
             if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
-                self.debug("Limiting ctrl size to {0}".format(max_ctrl_size))
+                self.debug("Limiting ctrl size to {}".format(max_ctrl_size))
                 ctrl_size = max_ctrl_size
         else:
-            self.warning("Can't automatically resolve ctrl size, using default {0}".format(ctrl_size))
+            self.debug("Not enough ctrls to guess size. Using default {}".format(ctrl_size))
 
         return ctrl_size
 
@@ -453,10 +461,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         avar_influences = self._get_avars_influences()
         for jnt, avar in zip(avar_influences, self.avars):
             self.configure_avar(avar)
-
-            # HACK: Set module name using rig nomenclature.
-            # TODO: Do this in the back-end
-            avar.name = self.rig.nomenclature(jnt.name()).resolve()
 
             self._build_avar_micro(avar,
                                    create_ctrl=create_ctrls,
@@ -584,7 +588,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         super(AvarGrp, self).build(connect_global_scale=connect_global_scale, parent=parent, **kwargs)
 
         # We group the avars in 'micro' and 'macro' groups to make it easier for the animator to differentiate them.
-        nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_anm = self.get_nomenclature_anm_grp()
         if create_grp_anm_macro:
             name_grp_macro = nomenclature_anm.resolve('macro')
             self._grp_anm_avars_macro = pymel.createNode('transform', name=name_grp_macro)
@@ -595,7 +599,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             self._grp_anm_avars_micro.setParent(self.grp_anm)
 
         # We group the avars in 'micro' and 'macro' groups to make it easier for the rigger to differentiate them.
-        nomenclature_rig = self.get_nomenclature_rig()
+        nomenclature_rig = self.get_nomenclature_rig_grp()
         if create_grp_rig_macro:
             name_grp_macro = nomenclature_rig.resolve('macro')
             self._grp_rig_avars_macro = pymel.createNode('transform', name=name_grp_macro)
@@ -636,7 +640,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         for avar in self.avars:
             avar.calibrate()
 
-    def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, name=None):
+    def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, name=None, suffix=None):
         """
         Factory method that initialize an avar instance only if necessary.
         If the instance already had been initialized in a previous build, it's correct value will be preserved,
@@ -650,29 +654,22 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         :param cls_ctrl: The desired ctrl class. We might want to remove this for simplicity
         :return: The initialized instance. If the instance was already fine, it is returned as is.
         """
+        # Hack: Ensure ref is a list.
+        # todo: fix upstream
+        result_inputs = [ref] if ref else []
+
         # todo: remove this call when we know it is safe.
         if cls is None:
             self.warning("No avar class specified for {0}, using default.".format(self))
             cls = rigFaceAvar.AvarSimple
 
-        # If the existing instance have the correct type, do nothing.
-        if type(inst) == cls:
-            # todo: validate inputs?
-            result = inst
-        else:
-            # Create/Recreate the ctrl instance.
-            # Preserve old ctrl if possible.
-            result_inputs = [ref] if ref else []
-            result = cls(result_inputs, rig=self.rig)
+        result = self.init_module(cls, inst, inputs=result_inputs, suffix=suffix)
 
-            # It is possible that the old avar type don't match the desired one.
-            # When this happen, we'll try at least to save the ctrl instance so the shapes match.
-            if inst is not None:
-                self.debug("Unexpected avar type. Expected {0}, got {1}. ".format(
-                    cls.__name__, type(inst).__name__
-                ))
-                result.ctrl = inst.ctrl
-                result.avar_network = inst.avar_network
+        # It is possible that the old avar type don't match the desired one.
+        # When this happen, we'll try at least to save the ctrl instance so the shapes match.
+        if inst and result != inst:
+            result.ctrl = inst.ctrl
+            result.avar_network = inst.avar_network
 
         # Ensure the result instance always have the same surface as it's parent.
         result.surface = self.surface
@@ -688,6 +685,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         # Apply name override if specified
         if name:
             result.name = name
+        else:
+            ref = result.jnt
+            if ref:
+                result.name = (self.get_nomenclature() + self.rig.nomenclature(ref.nodeName())).resolve()
 
         return result
 
@@ -701,21 +702,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
 
 
 class AvarGrpOnSurface(AvarGrp):
-    _CLS_AVAR = rigFaceAvar.AvarFollicle
-
-    def __init__(self, *args, **kwargs):
-        super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
-        self.surface = None
-
-    @decorator_uiexpose()
-    def create_surface(self, *args, **kwargs):
-        """
-        Expose the function in the ui, using the decorator.
-        """
-        return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
-
-
-class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     """
     Highest-level surface-based AvarGrp module.
     With additional features like:
@@ -746,8 +732,29 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
     |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO       | Affected by jnt_avar_01 in translation only.
     """
-    _CLS_CTRL_LFT = CtrlFaceHorizontal
-    _CLS_CTRL_RGT = CtrlFaceHorizontal  # the negative scale of it's parent will flip it's shape
+    _CLS_AVAR = rigFaceAvar.AvarFollicle
+
+    def __init__(self, *args, **kwargs):
+        super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
+        self.surface = None
+        self.create_macro_horizontal = self.CREATE_MACRO_AVAR_HORIZONTAL
+        self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
+        self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
+        self.avar_all = None
+        self.avar_l = None
+        self.avar_r = None
+        self.avar_upp = None
+        self.avar_low = None
+
+    @decorator_uiexpose()
+    def create_surface(self, *args, **kwargs):
+        """
+        Expose the function in the ui, using the decorator.
+        """
+        return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
+
+    _CLS_CTRL_LFT = CtrlFaceMacroL
+    _CLS_CTRL_RGT = CtrlFaceMacroR
     _CLS_CTRL_UPP = CtrlFaceUpp
     _CLS_CTRL_LOW = CtrlFaceLow
     _CLS_CTRL_ALL = CtrlFaceAll
@@ -760,19 +767,8 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
 
-    def __init__(self, *args, **kwargs):
-        super(AvarGrpAreaOnSurface, self).__init__(*args, **kwargs)
-        self.create_macro_horizontal = self.CREATE_MACRO_AVAR_HORIZONTAL
-        self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
-        self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
-        self.avar_all = None
-        self.avar_l = None
-        self.avar_r = None
-        self.avar_upp = None
-        self.avar_low = None
-
     def validate(self):
-        super(AvarGrpAreaOnSurface, self).validate()
+        super(AvarGrpOnSurface, self).validate()
 
         # Ensure that we support the hyerarchy of the influences.
         influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
@@ -894,7 +890,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return next(iter(sorted(self.get_avars_micro_r(), key=fn_get_avar_pos_x)), None)
 
     def _iter_all_avars(self):
-        for avar in super(AvarGrpAreaOnSurface, self)._iter_all_avars():
+        for avar in super(AvarGrpOnSurface, self)._iter_all_avars():
             yield avar
         if self.avar_l:
             yield self.avar_l
@@ -928,7 +924,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         If the rigger provided an influence for the 'all' Avar, don't create an Avar for it. We will handle it manually.
         :return:
         """
-        influences = super(AvarGrpAreaOnSurface, self)._get_avars_influences()
+        influences = super(AvarGrpOnSurface, self)._get_avars_influences()
         influence_all = self.get_influence_all()
         if influence_all and influence_all in influences:
             influences.remove(influence_all)
@@ -939,10 +935,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         return self._get_relative_parent_level_by_influences().get(2, [])
 
     def _create_avars(self):
-        super(AvarGrpAreaOnSurface, self)._create_avars()
-
-        nomenclature_macro = self.get_nomenclature().copy()
-        nomenclature_macro.add_tokens('macro')
+        super(AvarGrpOnSurface, self)._create_avars()
 
         # Create horizontal macro avars
         if self.create_macro_horizontal:
@@ -951,14 +944,15 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             if ref_l:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
+                nomenclature.add_tokens('macro')
                 if self.IS_SIDE_SPECIFIC:
                     side = ref_l.getTranslation(space='world').x > 0
                     if side:  # left
                         nomenclature.side = nomenclature.SIDE_L
-                        nomenclature.tokens.append('Out')
+                        nomenclature.add_tokens('out')
                     else:
                         nomenclature.side = nomenclature.SIDE_R
-                        nomenclature.tokens.append('Inn')
+                        nomenclature.add_tokens('inn')
                 else:
                     nomenclature.side = nomenclature.SIDE_L
                 avar_macro_l_name = nomenclature.resolve()
@@ -977,14 +971,15 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             if ref_r:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
+                nomenclature.add_tokens('macro')
                 if self.IS_SIDE_SPECIFIC:
                     side = ref_r.getTranslation(space='world').x > 0
                     if side:  # left
                         nomenclature.side = nomenclature.SIDE_L
-                        nomenclature.tokens.append('Inn')
+                        nomenclature.add_tokens('inn')
                     else:
                         nomenclature.side = nomenclature.SIDE_R
-                        nomenclature.tokens.append('Out')
+                        nomenclature.add_tokens('out')
                 else:
                     nomenclature.side = nomenclature.SIDE_R
                 avar_macro_r_name = nomenclature.resolve()
@@ -1004,10 +999,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             ref_upp = self.get_jnt_upp_mid()
             if ref_upp:
                 # Resolve avar name
-                avar_upp_basename = self.get_module_name() + self.rig.AVAR_NAME_UPP
-                nomenclature_upp = self.rig.nomenclature(ref_upp.name())
-                nomenclature_upp.tokens = [avar_upp_basename]
-                avar_upp_name = nomenclature_upp.resolve()
+                avar_upp_name = self.get_nomenclature().resolve('macro', self.rig.AVAR_NAME_UPP)
 
                 self.avar_upp = self._init_avar(
                     self._CLS_AVAR,
@@ -1021,10 +1013,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             ref_low = self.get_jnt_low_mid()
             if ref_low:
                 # Resolve avar name
-                avar_low_basename = self.get_module_name() + self.rig.AVAR_NAME_LOW
-                nomenclature_low = self.rig.nomenclature(ref_low.name())
-                nomenclature_low.tokens = [avar_low_basename]
-                avar_low_name = nomenclature_low.resolve()
+                avar_low_name = self.get_nomenclature().resolve('macro', self.rig.AVAR_NAME_LOW)
 
                 self.avar_low = self._init_avar(
                     self._CLS_AVAR,
@@ -1039,7 +1028,9 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         # This allow the rigger to provided an additional falloff in case the whole section is moved.
         if self.create_macro_all:
             avar_all_ref = self.get_influence_all()
-            avar_all_name = self.get_module_name() + self.rig.AVAR_NAME_ALL
+            nomenclature = self.get_nomenclature_anm().copy()
+            nomenclature.add_tokens('macro', self.rig.AVAR_NAME_ALL)
+            avar_all_name = nomenclature.resolve()
             self.avar_all = self._init_avar(
                 self._CLS_AVAR,
                 self.avar_all,
@@ -1259,7 +1250,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
 
     def _build_avars(self, **kwargs):
         # TODO: Some calls might need to be move
-        super(AvarGrpAreaOnSurface, self)._build_avars(**kwargs)
+        super(AvarGrpOnSurface, self)._build_avars(**kwargs)
 
         self._build_avar_macro_l()
 
@@ -1339,7 +1330,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             )
             self._connect_avar_macro_low()
 
-        super(AvarGrpAreaOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
+        super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
 
     def unbuild(self):
         if self.avar_l:
@@ -1352,7 +1343,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             self.avar_low.unbuild()
         if self.avar_all:
             self.avar_all.unbuild()
-        super(AvarGrpAreaOnSurface, self).unbuild()
+        super(AvarGrpOnSurface, self).unbuild()
 
     @decorator_uiexpose()
     def calibrate(self):
@@ -1360,7 +1351,7 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
         Ensure macro avars are correctly calibrated.
         This override might not be necessary if the design was better.
         """
-        super(AvarGrpAreaOnSurface, self).calibrate()
+        super(AvarGrpOnSurface, self).calibrate()
 
         if self.avar_l:
             self.avar_l.calibrate()
@@ -1374,17 +1365,17 @@ class AvarGrpAreaOnSurface(AvarGrpOnSurface):
             self.avar_all.calibrate()
 
     def get_avars_upp(self):
-        result = super(AvarGrpAreaOnSurface, self).get_avars_upp()
+        result = super(AvarGrpOnSurface, self).get_avars_upp()
         if self.avar_upp:
             result.append(self.avar_upp)
         return result
 
     def get_avars_low(self):
-        result = super(AvarGrpAreaOnSurface, self).get_avars_low()
+        result = super(AvarGrpOnSurface, self).get_avars_low()
         if self.avar_low:
             result.append(self.avar_low)
         return result
 
 
 def register_plugin():
-    return AvarGrpAreaOnSurface
+    return AvarGrpOnSurface

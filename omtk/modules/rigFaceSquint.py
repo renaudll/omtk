@@ -9,7 +9,7 @@ class CtrlSquint(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
-class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceSquint(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp setup customized for squint rigging.
     """
@@ -19,6 +19,9 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = False
     CREATE_MACRO_AVAR_ALL = False
+
+    def get_default_name(self):
+        return 'squint'
 
     def _build_avar_macro_l(self, jnt_tm=None, ctrl_tm=None, **kwargs):
         # Find the middle of l squint.

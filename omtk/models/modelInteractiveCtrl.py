@@ -158,14 +158,13 @@ class ModelInteractiveCtrl(Module):
         ctrl_name = nomenclature_anm.resolve()
         self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
 
-        # HACK: Ensure flipped shapes are correctly restaured...
-        # This is necessary since when holded, the scale of the ctrl is set to identity.
-        # However ctrl from the right side have an inverted scale on the x axis. -_-
-        if flip_lr and libPymel.is_valid_PyNode(self.ctrl.shapes):
-            self.ctrl.shapes.sx.set(-1)
-            pymel.makeIdentity(self.ctrl.shapes, rotate=True, scale=True, apply=True)
-
         self.ctrl.build(name=ctrl_name, size=ctrl_size)
+
+        # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
+        if flip_lr:
+            self.ctrl.scaleX.set(-1)
+            pymel.makeIdentity(self.ctrl, rotate=True, scale=True, apply=True)
+
         self.ctrl.setParent(self.grp_anm)
 
         #

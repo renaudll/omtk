@@ -257,7 +257,7 @@ def lock_translation(node, x=True, y=True, z=True):
 
     lock_attrs(lock_list)
 
-def unlock_translation(node, x=True, y=True, z=True):
+def unlock_translation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
         translate_x = node.attr('translateX')
@@ -268,6 +268,9 @@ def unlock_translation(node, x=True, y=True, z=True):
     if z:
         translate_z = node.attr('translateZ')
         unlock_list.append(translate_z)
+    if xyz:
+        translate = node.attr('translate')
+        unlock_list.append(translate)
 
     unlock_attrs(unlock_list)
 
@@ -285,7 +288,7 @@ def lock_rotation(node, x=True, y=True, z=True):
 
     lock_attrs(lock_list)
 
-def unlock_rotation(node, x=True, y=True, z=True):
+def unlock_rotation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
         rotate_x = node.attr('rotateX')
@@ -296,6 +299,9 @@ def unlock_rotation(node, x=True, y=True, z=True):
     if z:
         rotate_z = node.attr('rotateZ')
         unlock_list.append(rotate_z)
+    if xyz:
+        rotate = node.attr('rotate')
+        unlock_list.append(rotate)
 
     unlock_attrs(unlock_list)
 
@@ -313,7 +319,7 @@ def lock_scale(node, x=True, y=True, z=True):
 
     lock_attrs(lock_list)
 
-def unlock_scale(node, x=True, y=True, z=True):
+def unlock_scale(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
         scale_x = node.attr('scaleX')
@@ -324,6 +330,9 @@ def unlock_scale(node, x=True, y=True, z=True):
     if z:
         scale_z = node.attr('scaleZ')
         unlock_list.append(scale_z)
+    if xyz:
+        scale = node.attr('scale')
+        unlock_list.append(scale)
 
     unlock_attrs(unlock_list)
 

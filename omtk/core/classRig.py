@@ -8,6 +8,7 @@ from omtk.core.classNode import Node
 from omtk.core import className
 from omtk.core import classModule
 from omtk.core import constants
+from omtk.core import api
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -183,7 +184,14 @@ class Rig(object):
         return iter(self.modules)
 
     def __str__(self):
-        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
+        version = getattr(self, 'version', '')
+        if version:
+            version = ' v{}'.format(version)
+        return '{} <{}{}>'.format(
+            self.name,
+            self.__class__.__name__,
+            version
+        )
 
     #
     # libSerialization implementation
@@ -223,7 +231,14 @@ class Rig(object):
 
         # Resolve name to use
         default_name = inst.get_default_name()
-        default_name = self._get_unique_name(default_name)  # Ensure name is unique
+
+        # Resolve the default name using the current nomenclature.
+        # This allow specific nomenclature from being applied.
+        # ex: At Squeeze, we always want the names in PascalCase.
+        default_name = self.nomenclature(default_name).resolve()
+
+        # Ensure name is unique
+        default_name = self._get_unique_name(default_name)
         inst.name = default_name
 
         self.modules.append(inst)
@@ -307,6 +322,14 @@ class Rig(object):
         result = pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
         result = filter(self._is_influence, result)
         return result
+
+    def get_influences(self, key=None):
+        result = set()
+        for module in self.modules:
+            for obj in module.input:
+                if key is None or key(obj):
+                    result.add(obj)
+        return list(result)
 
     @libPython.memoized_instancemethod
     def get_meshes(self):
@@ -554,6 +577,9 @@ class Rig(object):
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
 
+        # Store the version of omtk used to build the rig.
+        self.version = api.get_version()
+
         self.debug("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
         return True
@@ -595,6 +621,9 @@ class Rig(object):
         # Apply ctrl color if needed
         if self._color_ctrl:
             self.color_module_ctrl(module)
+
+        # Store the version of omtk used to generate the rig.
+        module.version = api.get_version()
 
     def _unbuild_node(self, val, keep_if_children=False):
         if isinstance(val, Node):

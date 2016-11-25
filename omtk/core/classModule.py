@@ -295,7 +295,14 @@ class Module(object):
 
 
     def __str__(self):
-        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
+        version = getattr(self, 'version', '')
+        if version:
+            version = ' v{}'.format(version)
+        return '{} <{}{}>'.format(
+            self.name,
+            self.__class__.__name__,
+            version
+        )
 
 
     def validate(self, support_no_inputs=False):

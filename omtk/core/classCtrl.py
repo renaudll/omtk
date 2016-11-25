@@ -159,6 +159,9 @@ class BaseCtrl(Node):
         self.shapes = libRigging.hold_ctrl_shapes(self.node)
 
     def fetch_shapes(self):
+        libAttr.unlock_rotation(self.shapes)
+        libAttr.unlock_scale(self.shapes)
+        pymel.makeIdentity(self.shapes, rotate=True, scale=True, apply=True)  # Ensure the shape don't have any extra transformation.
         libRigging.fetch_ctrl_shapes(self.shapes, self.node)
         self.shapes = None
 

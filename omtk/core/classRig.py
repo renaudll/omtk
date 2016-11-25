@@ -223,7 +223,14 @@ class Rig(object):
 
         # Resolve name to use
         default_name = inst.get_default_name()
-        default_name = self._get_unique_name(default_name)  # Ensure name is unique
+
+        # Resolve the default name using the current nomenclature.
+        # This allow specific nomenclature from being applied.
+        # ex: At Squeeze, we always want the names in PascalCase.
+        default_name = self.nomenclature(default_name).resolve()
+
+        # Ensure name is unique
+        default_name = self._get_unique_name(default_name)
         inst.name = default_name
 
         self.modules.append(inst)
@@ -307,6 +314,14 @@ class Rig(object):
         result = pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
         result = filter(self._is_influence, result)
         return result
+
+    def get_influences(self, key=None):
+        result = set()
+        for module in self.modules:
+            for obj in module.input:
+                if key is None or key(obj):
+                    result.add(obj)
+        return list(result)
 
     @libPython.memoized_instancemethod
     def get_meshes(self):

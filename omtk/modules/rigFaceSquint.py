@@ -20,6 +20,9 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     CREATE_MACRO_AVAR_VERTICAL = False
     CREATE_MACRO_AVAR_ALL = False
 
+    def get_default_name(self):
+        return 'squint'
+
     def _build_avar_macro_l(self, jnt_tm=None, ctrl_tm=None, **kwargs):
         # Find the middle of l squint.
         pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())

@@ -57,7 +57,7 @@ class Ribbon(Module):
             if no_extremity and i == 0 or i == (len(self._ribbon_jnts) - 1):
                 continue
             ctrl = ctrls[real_index] if real_index < len(ctrls) else None
-            ctrl_name = nomenclature_anm.resolve('fk' + str(real_index+1).zfill(2))
+            ctrl_name = nomenclature_anm.resolve(str(real_index+1).zfill(2))
             # Check if we already have an instance of the ctrl
             if not isinstance(ctrl, CtrlRibbon):
                 ctrl = CtrlRibbon()

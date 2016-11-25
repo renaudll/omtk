@@ -473,6 +473,39 @@ class AvarSimple(AbstractAvar):
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
 
+    def init_ctrl_model(self, cls, inst, inputs=None, cls_ctrl=None):
+        """
+        Factory method that initialize a child module instance only if necessary.
+        If the instance already had been initialized in a previous build, it's correct value will be preserved,
+        :param cls: The desired class.
+        :param inst: The current value. This should always exist since defined in the module constructor.
+        :param inputs: The inputs to use for the module.
+        :param suffix: The token to use for the module name. This help prevent collision between
+        module objects and the child module objects. If nothing is provided, the same name will be used
+        which can result in collisions.
+        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        """
+        # todo: Validate inputs, we may need to modify the module if the inputs don't match!
+
+        result = self.init_module(
+            cls, inst, inputs=inputs
+        )
+
+        # Ensure the model have the same name as it's parent module.
+        result.name = self.name
+
+        # Apply ctrl class override, otherwise use what was defined in the module.
+        if cls_ctrl:
+            result._CLS_CTRL = cls_ctrl
+        else:
+            result._CLS_CTRL = self._CLS_CTRL
+
+        # Backward compatibility with old rigs that didn't use the model approach.
+        if result.ctrl is None and self.ctrl is not None:
+            result.ctrl = self.ctrl
+
+        return result
+
     def create_ctrl(self, parent, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, connect=True, ctrl_tm=None, **kwargs):
         """
         An Avar is not made to contain a ctrl necessary.
@@ -482,7 +515,17 @@ class AvarSimple(AbstractAvar):
         if self._CLS_CTRL is None:
             return
 
-        if self._CLS_MODEL_CTRL is None:
+        # Init model ctrl
+        if self._CLS_MODEL_CTRL:
+            self.model_ctrl = self.init_ctrl_model(
+                self._CLS_MODEL_CTRL,
+                self.model_ctrl,
+                inputs=self.input,
+            )
+        else:
+            self.model_ctrl = None
+
+        if self.model_ctrl is None:
             if not isinstance(self.ctrl, self._CLS_CTRL):
                 self.ctrl = self._CLS_CTRL()
             self.ctrl.build(size=ctrl_size)
@@ -504,19 +547,6 @@ class AvarSimple(AbstractAvar):
                 if parent_scl is None:
                     parent_scl = self.rig.get_head_jnt()
 
-
-                # ctrl_name = nomenclature_anm.resolve()
-                self.model_ctrl = self._CLS_MODEL_CTRL(
-                    self.input,
-                    name=self.name,
-                    rig=self.rig
-                )
-
-                # Backward compatibility with old rigs.
-                if self.model_ctrl.ctrl is None and self.ctrl is not None:
-                    self.model_ctrl.ctrl = self.ctrl
-
-                self.model_ctrl._CLS_CTRL = self._CLS_CTRL
                 self.model_ctrl.build(
                     self,
                     ctrl_tm=ctrl_tm,
@@ -527,35 +557,27 @@ class AvarSimple(AbstractAvar):
                     parent_scl=parent_scl,
                     **kwargs
                 )
-                self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
-                if self.model_ctrl.grp_anm and self.grp_anm:
-                    self.model_ctrl.grp_anm.setParent(self.grp_anm)
-                if self.model_ctrl.grp_rig and self.grp_rig:
-                    self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
             else:
-                self.model_ctrl = self._CLS_MODEL_CTRL(
-                    self.input,
-                    name=self.name,
-                    rig=self.rig
-                )
-                self.model_ctrl._CLS_CTRL = self._CLS_CTRL
                 self.model_ctrl.build(
                     self,
                     ctrl_tm=ctrl_tm,
                     ctrl_size=ctrl_size,
                     **kwargs
                 )
-                self.ctrl = self.model_ctrl.ctrl  # Expose the ctrl in a backward compatible way.
-                if self.model_ctrl.grp_anm and self.grp_anm:
-                    self.model_ctrl.grp_anm.setParent(self.grp_anm)
-                if self.model_ctrl.grp_rig and self.grp_rig:
-                    self.model_ctrl.grp_rig.setParent(self.grp_rig)
+
+            # Expose the ctrl in a backward compatible way.
+            self.ctrl = self.model_ctrl.ctrl
+
+            if self.model_ctrl.grp_anm and self.grp_anm:
+                self.model_ctrl.grp_anm.setParent(self.grp_anm)
+
+            if self.model_ctrl.grp_rig and self.grp_rig:
+                self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
             # self.connect_ctrl(self.ctrl)
             if connect:
                 self.model_ctrl.connect(self, parent)
-
 
 
     def calibrate(self, **kwargs):

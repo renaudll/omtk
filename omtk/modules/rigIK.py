@@ -425,7 +425,7 @@ class IK(Module):
         ctrl_ik_refs = [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
         self.ctrl_ik.build(refs=ctrl_ik_refs, geometries=self.rig.get_meshes())  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
-        ctrl_ik_name = nomenclature_anm.resolve('ik')
+        ctrl_ik_name = nomenclature_anm.resolve()
         self.ctrl_ik.rename(ctrl_ik_name)
         self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
 

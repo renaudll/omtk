@@ -184,7 +184,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
     def handle_surface(self):
         pass  # todo: better class schema!
 
-    def get_module_name(self):
+    def get_default_name(self):
         return 'Eyes'
 
     def build(self, *args, **kwargs):

@@ -44,7 +44,7 @@ class FaceBrow(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         )
         super(FaceBrow, self)._build_avar_macro_r(jnt_tm=jnt_tm, ctrl_tm=jnt_tm, **kwargs)
 
-    def get_module_name(self):
+    def get_default_name(self):
         return 'brow'
 
 def register_plugin():

@@ -72,7 +72,7 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         else:
             avar.surface = self.surface_low
 
-    def get_module_name(self):
+    def get_default_name(self):
         return 'Lid'
 
     def get_multiplier_u(self):

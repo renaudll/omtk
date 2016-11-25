@@ -36,6 +36,9 @@ class FaceNose(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     CREATE_MACRO_AVAR_HORIZONTAL = False
     CREATE_MACRO_AVAR_VERTICAL = False
 
+    def get_default_name(self):
+        return 'nose'
+
 
 def register_plugin():
     return FaceNose

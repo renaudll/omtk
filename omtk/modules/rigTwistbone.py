@@ -97,12 +97,12 @@ class Twistbone(Module):
 
         super(Twistbone, self).build(create_grp_anm=self.create_bend, *args, **kwargs)
 
-        nomenclature_rig = self.get_nomenclature_rig()
-        nomenclature_jnt = self.get_nomenclature_jnt()
-
         top_parent = self.chain[0].getParent()
         jnt_s = self.chain_jnt[0]
         jnt_e = self.chain_jnt[1]
+
+        nomenclature_rig = self.get_nomenclature_rig()
+        nomenclature_jnt = self.rig.nomenclature(jnt_s.nodeName(), suffix=self.rig.nomenclature.type_jnt)  # Hack: find a better way!
 
         scalable_grp = pymel.createNode('transform')
         scalable_grp.setParent(self.grp_rig)
@@ -146,8 +146,13 @@ class Twistbone(Module):
         # Rename the skinning subjnts
         for i, sub_jnt in enumerate(self.subjnts):
             sub_jnt.segmentScaleCompensate.set(0)  # Remove segment scale compensate
+
             # Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
-            jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            # nomenclature_inf = nomenclature_jnt.copy()
+            # nomenclature_inf.add_tokens('twist', '{0:02d}'.format(i))
+            # jnt_name = nomenclature_inf.resolve()
+            # jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            jnt_name = nomenclature_jnt.resolve('{0:02d}'.format(i))
             sub_jnt.rename(jnt_name)
 
         driver_refs = []
@@ -183,7 +188,7 @@ class Twistbone(Module):
         before_mid_idx = math.floor((self.num_twist/2.0))
         if self.create_bend:
             # Create Ribbon
-            sys_ribbon = Ribbon(self.subjnts, name=nomenclature_rig.resolve("bendRibbon"), rig=self.rig)
+            sys_ribbon = self.init_module(Ribbon, None, inputs=self.subjnts)
             sys_ribbon.build(create_ctrl=False, degree=3, num_ctrl=self.num_twist, no_subdiv=False, rot_fol=False)
             self.ctrls = sys_ribbon.create_ctrls(ctrls=self.ctrls, no_extremity=True,
                                                  constraint_rot=False, refs=self.chain_jnt[1])

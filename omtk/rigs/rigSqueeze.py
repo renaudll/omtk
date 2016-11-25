@@ -35,14 +35,14 @@ class SqueezeNomenclature(className.BaseName):
     AVAR_NAME_LOW = 'Low'
     AVAR_NAME_ALL = 'Master'
 
-    def build_from_string(self, name):
-        """
-        In Squeeze nomenclature, the last token is always the type of the object.
-        """
-        super(SqueezeNomenclature, self).build_from_string(name)
-
-        if len(self.tokens) > 1:
-            self.tokens = self.tokens[:-1]
+    KNOWN_PREFIXES = []
+    KNOWN_SUFFIXES = [
+        'Ctrl',
+        'Jnt',
+        'Jne',
+        'JEnd',
+        'Mesh'
+    ]
 
     def _join_tokens(self, tokens):
         """

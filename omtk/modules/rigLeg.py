@@ -2,6 +2,7 @@ import logging
 
 import pymel.core as pymel
 from maya import cmds
+from omtk import constants
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
@@ -15,8 +16,8 @@ class CtrlIkLeg(rigIK.CtrlIk):
     """
     Inherit of base CtrlIk to create a specific box shaped controller
     """
-    def __createNode__(self, refs=None, geometries=None, *args, **kwargs):
-        return libCtrlShapes.create_shape_box_feet(refs, geometries, *args, **kwargs)
+    def __createNode__(self, *args, **kwargs):
+        return libCtrlShapes.create_shape_box_feet(*args, **kwargs)
 
 
 class LegIk(rigIK.IK):
@@ -189,6 +190,42 @@ class LegIk(rigIK.IK):
 
         return pos
 
+    def _get_ik_ctrl_tms(self):
+        """
+        Compute the desired rotation for the ik ctrl.
+        If the LEGACY_LEG_IK_CTRL_ORIENTATION is set, we'll simply align to the influence.
+        :return: A two-size tuple containing the transformation matrix for the ctrl offset and the ctrl itself.
+        """
+        if self.rig.LEGACY_LEG_IK_CTRL_ORIENTATION:
+            return super(LegIk, self)._get_ik_ctrl_tms()
+
+        inf_tm = self.input[self.iCtrlIndex].getMatrix(worldSpace=True)
+
+        # Resolve offset_tm
+        offset_tm = pymel.datatypes.Matrix()
+
+        # Resolve ctrl_tm
+        axis_dir = constants.Axis.x
+        inn_tm_dir = libRigging.get_matrix_axis(inf_tm, axis_dir)
+        # Ensure the ctrl look front
+        if inn_tm_dir.z < 0:
+            inn_tm_dir = pymel.datatypes.Vector(
+                inn_tm_dir.x * -1,
+                inn_tm_dir.y * -1,
+                inn_tm_dir.z * -1
+            )
+        inn_tm_upp = pymel.datatypes.Vector(0, 1, 0)
+
+        ctrl_tm = libRigging.get_matrix_from_direction(
+            inn_tm_dir,
+            inn_tm_upp,
+            look_axis=pymel.datatypes.Vector.zAxis,
+            upp_axis=pymel.datatypes.Vector.yAxis
+        )
+        ctrl_tm.translate = inf_tm.translate
+
+        return offset_tm, ctrl_tm
+
     def build(self, attr_holder=None, constraint_handle=False, setup_softik=True, **kwargs):
         """
         Build the LegIk system
@@ -197,10 +234,11 @@ class LegIk(rigIK.IK):
         :return: Nothing
         """
         # Compute ctrl_ik orientation
-        # Hack: Bypass pymel bug (see https://github.com/LumaPictures/pymel/issues/355)
-        ctrl_ik_orientation = pymel.datatypes.TransformationMatrix(self._get_reference_plane()).rotate
-
-        super(LegIk, self).build(ctrl_ik_orientation=ctrl_ik_orientation, constraint_handle=constraint_handle, setup_softik=setup_softik, **kwargs)
+        super(LegIk, self).build(
+            constraint_handle=constraint_handle,
+            setup_softik=setup_softik,
+            **kwargs
+        )
 
         nomenclature_rig = self.get_nomenclature_rig()
 

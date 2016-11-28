@@ -4,7 +4,7 @@ import inspect
 
 import pymel.core as pymel
 from classNode import Node
-from omtk.core import constants
+from omtk import constants
 from omtk.core import classNode
 from omtk.libs import libAttr
 from omtk.libs import libPymel

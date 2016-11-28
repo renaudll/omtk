@@ -11,7 +11,7 @@ class NomenclatureTestCase(mayaunittest.TestCase):
         # Construct a naming from another existing naming
         n = SqueezeNomenclature('L_Eye_Jnt')
         self.assertEqual(n.prefix, None)
-        self.assertEqual(n.suffix, None)
+        self.assertEqual(n.suffix, 'Jnt')
         self.assertEqual(n.side, n.SIDE_L)
 
         # Adding of tokens using suffix

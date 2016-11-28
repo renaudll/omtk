@@ -1,6 +1,7 @@
 import sys
 
 from .core import *
+import constants
 import pymel.core as pymel
 
 __dependencies__ = [
@@ -18,6 +19,9 @@ def _reload(kill_ui=True):
     """
     Reload all module in their respective order.
     """
+    import constants
+    reload(constants)
+
     import core
     reload(core)
     core._reload()

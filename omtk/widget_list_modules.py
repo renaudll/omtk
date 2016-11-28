@@ -9,11 +9,11 @@ from PySide import QtCore
 from PySide import QtGui
 from ui import widget_list_modules
 
+from omtk import constants
 from omtk.libs import libSkinning
 from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.libs import libPymel
-from omtk.core import constants
 from omtk.core import classModule
 from omtk.core import classRig
 

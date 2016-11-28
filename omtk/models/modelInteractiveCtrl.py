@@ -103,7 +103,7 @@ class ModelInteractiveCtrl(Module):
         if obj_mesh is None:
             # We'll scan all available geometries and use the one with the shortest distance.
             meshes = libRigging.get_affected_geometries(ref)
-            meshes = list(set(meshes) & set(self.rig.get_meshes()))
+            meshes = list(set(meshes) & set(self.rig.get_shapes()))
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
             if obj_mesh is None and follow_mesh:

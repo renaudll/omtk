@@ -74,7 +74,6 @@ class Node(object):
             new_name = self.node.name() + '_' + name
             new_layer.rename(new_name)
 
-        # Note: Removed for performance
         new_layer.setMatrix(self.node.getMatrix(worldSpace=True))
 
         if self._layers:

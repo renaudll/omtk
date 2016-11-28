@@ -3,11 +3,10 @@ import time
 import logging
 from maya import cmds
 import pymel.core as pymel
+from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
-from omtk.core import classModule
-from omtk.core import constants
 from omtk.core import api
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
@@ -109,6 +108,20 @@ class Rig(object):
     AVAR_NAME_LOW = 'Low'
     AVAR_NAME_ALL = 'All'
 
+    # Define what axis to use as the 'up' axis.
+    # This generally mean in which Axis will the Limb elbow/knee be pointing at.
+    # The default is Z since it work great with Maya default xyz axis order.
+    # However some riggers might prefer otherwise for personal or backward-compatibility reasons (omtk_cradle)
+    DEFAULT_UPP_AXIS = constants.Axis.z
+
+    # Define how to resolve the transform for IKCtrl on Arm and Leg.
+    # Before 0.4, the ctrl was using the same transform than it's offset.
+    # However animators don't like that since it mean that the 'Y' axis is not related to the world 'Y'.
+    # From 0.4 and after, there WILL be rotation values in the ik ctrl channel box.
+    # If thoses values are set to zero, this will align the hands and feet with the world.
+    LEGACY_ARM_IK_CTRL_ORIENTATION = False
+    LEGACY_LEG_IK_CTRL_ORIENTATION = False
+
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
         self.modules = []
@@ -122,7 +135,6 @@ class Rig(object):
         self.layer_geo = None
         self.layer_rig = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
-        self._up_axis = constants.Axis.z  # This is the axis that will point in the bending direction
 
     #
     # Logging implementation
@@ -332,28 +344,42 @@ class Rig(object):
         return list(result)
 
     @libPython.memoized_instancemethod
-    def get_meshes(self):
+    def get_shapes(self):
         """
         :return: All meshes under the mesh group. If found nothing, scan the whole scene.
         Note that we support mesh AND nurbsSurfaces.
         """
-        meshes = None
+        shapes = None
         if self.grp_geo and self.grp_geo.exists():
             shapes = self.grp_geo.listRelatives(allDescendents=True, shapes=True)
-            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+            shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
-        if not meshes:
+        if not shapes:
             self.warning("Found no mesh under the mesh group, scanning the whole scene.")
             shapes = pymel.ls(type='surfaceShape')
-            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+            shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
-        return meshes
+        return shapes
+
+    @libPython.memoized_instancemethod
+    def get_meshes(self):
+        """
+        :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
+        """
+        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.Mesh), self.get_shapes())
+
+    @libPython.memoized_instancemethod
+    def get_surfaces(self):
+        """
+        :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
+        """
+        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.NurbsSurface), self.get_shapes())
 
     def get_nearest_affected_mesh(self, jnt):
         """
         Return the immediate mesh affected by provided object in the geometry stack.
         """
-        key = lambda mesh: mesh in self.get_meshes()
+        key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_nearest_affected_mesh(jnt, key=key)
 
     def get_farest_affected_mesh(self, jnt):
@@ -361,14 +387,14 @@ class Rig(object):
         Return the last mesh affected by provided object in the geometry stack.
         Usefull to identify which mesh to use in the 'doritos' setup.
         """
-        key = lambda mesh: mesh in self.get_meshes()
+        key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
     def raycast_farthest(self, pos, dir):
         """
         Return the farest point on any of the rig registered geometries using provided position and direction.
         """
-        geos = self.get_meshes()
+        geos = self.get_shapes()
         if not geos:
             return None
 

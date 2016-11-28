@@ -41,7 +41,7 @@ class WidgetListMeshes(QtGui.QWidget):
         #     self._rig.get_meshes.func.im_self.cache.clear()
         # except Exception, e:
         #     pass
-        all_meshes = self._rig.get_meshes()
+        all_meshes = self._rig.get_shapes()
 
         if all_meshes:
             widget_root = self.ui.treeWidget.invisibleRootItem()

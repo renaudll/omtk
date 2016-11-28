@@ -6,7 +6,6 @@ import logging
 import os
 
 import utils
-import constants
 import classCtrl
 import classModule
 import className
@@ -32,7 +31,6 @@ plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (
 
 
 def _reload():
-    reload(constants)
     reload(api)  # this won't reload functions imported in the main module. Use api directly if you are debugging it.
     reload(utils)
     reload(className)

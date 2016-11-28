@@ -1,10 +1,11 @@
 import logging
 import pymel.core as pymel
 from omtk.core.classModule import Module
-from omtk.modules import rigFK
 from omtk.libs import libPython
 from omtk.libs import libPymel
 from omtk.libs import libRigging
+from omtk.modules import rigFK
+from omtk.modules import rigFKAdditive
 
 
 '''
@@ -134,7 +135,7 @@ class Hand(Module):
 
             # Rig fingers
             sys_finger = self.init_module(
-                rigFK.AdditiveFK,
+                rigFKAdditive.AdditiveFK,
                 sys_finger,
                 inputs=jnts_phalanges
             )

@@ -397,3 +397,10 @@ class SegmentCollection(object):
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)
+
+def get_rotation_from_matrix(tm):
+    """
+    Bypass pymel bug
+    see https://github.com/LumaPictures/pymel/issues/355
+    """
+    return pymel.datatypes.TransformationMatrix(tm).rotate

@@ -765,13 +765,23 @@ class Rig(object):
 
     @libPython.memoized_instancemethod
     def get_head_jnt(self, strict=True):
+        return next(iter(self.get_head_jnts(strict=strict)), None)
+
+    @libPython.memoized_instancemethod
+    def get_head_jnts(self, strict=True):
+        """
+        Necessary to support multiple heads on a character.
+        :param strict: Raise a warning if nothing is found.
+        :return: A list of pymel.general.PyNode instance that are into an Head Module.
+        """
+        result = []
         from omtk.modules import rigHead
         for module in self.modules:
             if isinstance(module, rigHead.Head):
-                return module.jnt
-        if strict:
+                result.append(module.jnt)
+        if strict and not result:
             self.warning("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
-        return None
+        return result
 
     @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):

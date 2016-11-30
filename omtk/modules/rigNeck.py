@@ -1,7 +1,7 @@
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
 from omtk.core.utils import decorator_uiexpose
-
+from omtk.libs import libPython
 
 class CtrlNeck(rigFK.CtrlFk):
     pass
@@ -15,42 +15,36 @@ class Neck(rigFK.FK):
     def __init__(self, *args, **kwarg):
         super(Neck, self).__init__(*args, **kwarg)
         self.create_twist = True
-        self.sys_twist = []
+        self.sys_twist = None
 
     _CLS_CTRL = CtrlNeck
     _CLASS_SYS_TWIST = rigTwistbone.Twistbone
     _NAME_CTRL_MERGE = True  # By default we only expect one controller for the head. (Head_Ctrl > than Head_Head_Ctrl)
     _NAME_CTRL_ENUMERATE = True  # If we find additional influences, we'll use enumeration.
 
+    @libPython.memoized_instancemethod
+    def _get_head_jnt(self):
+        neck_jnt = self.jnt
+        head_jnts = self.rig.get_head_jnts()
+        for child in neck_jnt.getChildren():
+            if child in head_jnts:
+                return child
+
     def build(self, *args, **kwargs):
         super(Neck, self).build(create_grp_rig=True, *args, **kwargs)
-
-        nomenclature_rig = self.get_nomenclature_rig()
-        head_jnt = self.rig.get_head_jnt()
-        num_twist = len(self.chain_jnt)
         
         # Create twistbone system if needed
         if self.create_twist:
-            if head_jnt:
-                # If the IK system is a quad, we need to have two twist system
-                for i in range(0, num_twist):
-                    start_jnt = self.chain[i]
-                    end_jnt = self.chain_jnt[i + 1] if i + 1 < len(self.chain_jnt) else head_jnt
-                    cur_sys_twist = self.sys_twist[i] if i < len(self.sys_twist) else None
-                    if not isinstance(cur_sys_twist, self._CLASS_SYS_TWIST):
-                        cur_sys_twist = self._CLASS_SYS_TWIST([start_jnt, end_jnt], rig=self.rig)
-                        self.sys_twist.append(cur_sys_twist)
-                    # Hack
-                    twist_sys_name = start_jnt.name().replace('_' + nomenclature_rig.type_jnt, "Twist")
-                    cur_sys_twist.name = '{0}'.format(twist_sys_name)
-                    cur_sys_twist.build(num_twist=3, create_bend=True, **kwargs)
-            else:
-                self.warning("Could not find the head joint. Neck Twist creation will be aborded")
+            jnt_s = self.jnt
+            jnt_e = self._get_head_jnt()
 
-        for sys_twist in self.sys_twist:
-            if sys_twist.create_bend:
-                sys_twist.grp_anm.setParent(self.grp_anm)
-            sys_twist.grp_rig.setParent(self.grp_rig)
+            twist_nomenclature = self.get_nomenclature().copy()
+            twist_nomenclature.add_tokens('bend')
+
+            self.sys_twist = self.init_module(self._CLASS_SYS_TWIST, self.sys_twist, inputs=[jnt_s, jnt_e])
+            self.sys_twist.name = twist_nomenclature.resolve()
+            self.sys_twist.build(num_twist=3, create_bend=False)
+            self.sys_twist.grp_rig.setParent(self.grp_rig)
 
     def unbuild(self):
         for twist_sys in self.sys_twist:
@@ -64,10 +58,14 @@ class Neck(rigFK.FK):
         :return: True or False depending if it pass the building validation
         """
         super(Neck, self).validate()
-        num_chain = len(self.chains)
+        num_jnts = len(self.jnts)
 
-        if num_chain != 1:
-            raise Exception("Expected one joint chain, got {0}".format(num_chain))
+        if num_jnts != 1:
+            raise Exception("Expected only one influences, got {}".format(num_jnts))
+
+        head_jnt = self._get_head_jnt()
+        if not head_jnt:
+            raise Exception("Cannot resolve Head influence from {}".format(self.jnt))
 
         return True
 

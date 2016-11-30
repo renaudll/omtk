@@ -638,7 +638,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
     @decorator_uiexpose()
     def calibrate(self):
         for avar in self.avars:
-            avar.calibrate()
+            if not self._is_tweak_avar(avar):  # tweak avar have no ctrl and should not be calibrated
+                avar.calibrate()
 
     def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, name=None, suffix=None):
         """
@@ -936,12 +937,15 @@ class AvarGrpOnSurface(AvarGrp):
 
     def _create_avars(self):
         super(AvarGrpOnSurface, self)._create_avars()
+        # todo: for horizontal and vertical avars, is ref really necessary? they are always abstract avars
 
         # Create horizontal macro avars
         if self.create_macro_horizontal:
             # Create avar_l if necessary
             ref_l = self.get_jnt_l_mid()
-            if ref_l:
+            if not ref_l:
+                self.warning("Cannot create macro avar 'L', found no matching influence.")
+            else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
                 nomenclature.add_tokens('macro')
@@ -968,7 +972,9 @@ class AvarGrpOnSurface(AvarGrp):
 
             # Create avar_r if necessary
             ref_r = self.get_jnt_r_mid()
-            if ref_r:
+            if not ref_r:
+                self.warning("Cannot create macro avar 'L', found no matching influence.")
+            else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
                 nomenclature.add_tokens('macro')
@@ -997,7 +1003,9 @@ class AvarGrpOnSurface(AvarGrp):
         if self.create_macro_vertical:
             # Create avar_upp if necessary
             ref_upp = self.get_jnt_upp_mid()
-            if ref_upp:
+            if not ref_upp:
+                self.warning("Cannot create macro avar '{}', found no matching influence.".format(self.rig.AVAR_NAME_UPP))
+            else:
                 # Resolve avar name
                 avar_upp_name = self.get_nomenclature().resolve('macro', self.rig.AVAR_NAME_UPP)
 
@@ -1011,7 +1019,9 @@ class AvarGrpOnSurface(AvarGrp):
 
             # Create avar_low if necessary
             ref_low = self.get_jnt_low_mid()
-            if ref_low:
+            if not ref_low:
+                self.warning("Cannot create macro avar '{}', found no matching influence.".format(self.rig.AVAR_NAME_LOW))
+            else:
                 # Resolve avar name
                 avar_low_name = self.get_nomenclature().resolve('macro', self.rig.AVAR_NAME_LOW)
 
@@ -1280,6 +1290,18 @@ class AvarGrpOnSurface(AvarGrp):
             **kwargs
         )
 
+    def _create_avar_macro_l_ctrls(self, **kwargs):
+        self.avar_l.create_ctrl(self, **kwargs)
+
+    def _create_avar_macro_r_ctrls(self, **kwargs):
+        self.avar_r.create_ctrl(self, **kwargs)
+
+    def _create_avar_macro_upp_ctrls(self, **kwargs):
+        self.avar_upp.create_ctrl(self, **kwargs)
+
+    def create_avar_macro_low_ctrls(self, **kwargs):
+        self.avar_low.create_ctrl(self, **kwargs)
+
     def _create_avars_ctrls(self, parent_rot=None, parent_scl=None, **kwargs):
         parent_rot = self.rig.get_head_jnt()
         parent_scl = None
@@ -1297,38 +1319,38 @@ class AvarGrpOnSurface(AvarGrp):
             parent_scl = self.avar_all.ctrl
 
         if self.create_macro_horizontal:
-            self.avar_l.create_ctrl(
-                self,
-                parent_rot=parent_rot,
-                parent_scl=parent_scl,
-                **kwargs
-            )
-            self._connect_avar_macro_l()
+            if self.avar_l:
+                self._create_avar_macro_l_ctrls(
+                    parent_rot=parent_rot,
+                    parent_scl=parent_scl,
+                    **kwargs
+                )
+                self._connect_avar_macro_l()
 
-            self.avar_r.create_ctrl(
-                self,
-                parent_rot=parent_rot,
-                parent_scl=parent_scl,
-                **kwargs
-            )
-            self._connect_avar_macro_r()
+            if self.avar_r:
+                self._create_avar_macro_r_ctrls(
+                    parent_rot=parent_rot,
+                    parent_scl=parent_scl,
+                    **kwargs
+                )
+                self._connect_avar_macro_r()
 
         if self.create_macro_vertical:
-            self.avar_upp.create_ctrl(
-                self,
-                parent_rot=parent_rot,
-                parent_scl=parent_scl,
-                **kwargs
-            )
-            self._connect_avar_macro_upp()
+            if self.avar_upp:
+                self._create_avar_macro_upp_ctrls(
+                    parent_rot=parent_rot,
+                    parent_scl=parent_scl,
+                    **kwargs
+                )
+                self._connect_avar_macro_upp()
 
-            self.avar_low.create_ctrl(
-                self,
-                parent_rot=parent_rot,
-                parent_scl=parent_scl,
-                **kwargs
-            )
-            self._connect_avar_macro_low()
+            if self.avar_low:
+                self.create_avar_macro_low_ctrls(
+                    parent_rot=parent_rot,
+                    parent_scl=parent_scl,
+                    **kwargs
+                )
+                self._connect_avar_macro_low()
 
         super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
 

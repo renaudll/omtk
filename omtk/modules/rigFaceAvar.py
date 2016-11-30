@@ -25,9 +25,8 @@ class BaseCtrlFace(classCtrl.BaseCtrl):
         Face ctrls CAN have non-uniform scaling. To circumvent this we'll remove the ctrl rotation when attaching.
         This is because the shape is fetch in local space (this allow an arm ctrl to snap to the right location if the arm length change).
         """
-        libAttr.unlock_rotation(self.shapes)
-        libAttr.unlock_scale(self.shapes)
-        pymel.makeIdentity(self.shapes, rotate=True, scale=True, apply=True)  # Ensure the shape don't have any extra transformation.
+        libPymel.makeIdentity_safe(self.shapes, rotate=True, scale=True, apply=True)
+
         super(BaseCtrlFace, self).fetch_shapes()
         # libRigging.fetch_ctrl_shapes(self.shapes, self.node)
         # self.shapes = None

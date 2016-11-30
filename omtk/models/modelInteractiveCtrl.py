@@ -163,7 +163,7 @@ class ModelInteractiveCtrl(Module):
         # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
             self.ctrl.scaleX.set(-1)
-            pymel.makeIdentity(self.ctrl, rotate=True, scale=True, apply=True)
+            libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
 
         self.ctrl.setParent(self.grp_anm)
 

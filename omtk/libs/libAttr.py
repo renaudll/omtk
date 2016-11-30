@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import logging
 log = logging.getLogger('omtk')
 
@@ -543,3 +544,38 @@ def get_settable_attr(attr):
         attr = get_input_attr_from_output_attr(attr)
     return attr
 
+#
+# Connection holding
+#
+
+def hold_connections(attrs):
+    """
+    Disconnect all inputs from the provided attributes but keep their in memory for ulterior re-connection.
+    :param attrs: A list of pymel.Attribute instances.
+    :return: A list of tuple containing the origin source and destination attribute for each entries.
+    """
+    result = []
+    for attr_dst in attrs:
+        attr_src = next(iter(attr_dst.inputs(plugs=True)), None)
+        if attr_src:
+            pymel.disconnectAttr(attr_src, attr_dst)
+            result.append((attr_src, attr_dst))
+    return result
+
+def fetch_connections(data):
+    """
+    Reconnect all attributes using returned data from the hold_connections function.
+    :param data: A list of tuple of size-two containing pymel.Attribute instances.
+    """
+    for attr_src, attr_dst in data:
+        pymel.connectAttr(attr_src, attr_dst)
+
+@contextmanager
+def context_disconnected_attrs(attrs):
+    """
+    A context (use with the 'with' statement) to apply instruction while ensuring the provided attributes are disconnected temporarily.
+    :param attrs: Redirected to hold_connections.
+    """
+    data = hold_connections(attrs)
+    yield True
+    fetch_connections(data)

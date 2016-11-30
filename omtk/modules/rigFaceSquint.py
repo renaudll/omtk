@@ -23,28 +23,29 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpOnSurface):
     def get_default_name(self):
         return 'squint'
 
-    def _build_avar_macro_l(self, jnt_tm=None, ctrl_tm=None, **kwargs):
-        # Find the middle of l squint.
+    def _create_avar_macro_l_ctrls(self, ctrl_tm=None, **kwargs):
+        # Find the middle of l eyebrow.
         pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())
-        jnt_tm = pymel.datatypes.Matrix(
+        ctrl_tm = pymel.datatypes.Matrix(
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             pos.x, pos.y, pos.z, 1
         )
-        super(FaceSquint, self)._build_avar_macro_l(jnt_tm=jnt_tm, ctrl_tm=jnt_tm, **kwargs)
 
+        super(FaceSquint, self)._create_avar_macro_l_ctrls(ctrl_tm=ctrl_tm)
 
-    def _build_avar_macro_r(self, jnt_tm=None, ctrl_tm=None, **kwargs):
-        # Find the middle of r squint.
+    def _create_avar_macro_r_ctrls(self, ctrl_tm=None, **kwargs):
+        # Find the middle of l eyebrow.
         pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
-        jnt_tm = pymel.datatypes.Matrix(
+        ctrl_tm = pymel.datatypes.Matrix(
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             pos.x, pos.y, pos.z, 1
         )
-        super(FaceSquint, self)._build_avar_macro_r(jnt_tm=jnt_tm, ctrl_tm=jnt_tm, **kwargs)
+
+        super(FaceSquint, self)._create_avar_macro_r_ctrls(ctrl_tm=ctrl_tm)
 
 def register_plugin():
     return FaceSquint

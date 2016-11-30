@@ -298,12 +298,18 @@ class Twistbone(Module):
     @decorator_uiexpose()
     def assign_twist_weights(self):
         skin_deformers = self.get_skinClusters_from_inputs()
+        meshes = set()
 
         for skin_deformer in skin_deformers:
             # Ensure the source joint is in the skinCluster influences
             influenceObjects = skin_deformer.influenceObjects()
             if self.chain_jnt.start not in influenceObjects:
                 continue
+
+            # Add skinCluster output geometries to the cache
+            for output_geometry in skin_deformer.getOutputGeometry():
+                if isinstance(output_geometry, pymel.nodetypes.Mesh):
+                    meshes.add(output_geometry)
 
             # Add new joints as influence.
             for subjnt in self.subjnts:
@@ -312,7 +318,7 @@ class Twistbone(Module):
                 skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                 subjnt.lockInfluenceWeights.set(False)
 
-        for mesh in self.get_farest_affected_meshes():
+        for mesh in meshes:
             self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
             # Transfer weight, note that since we use force_straight line, the influence
             # don't necessaryy need to be in their bind pose.
@@ -369,11 +375,9 @@ class Twistbone(Module):
         Unbuild the twist bone
         '''
 
-        '''
         # Remove twistbones skin
-        for mesh in self.get_farest_affected_mesh():
-            libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
-        '''
+        self.unassign_twist_weights()
+
         # React if the user deleted some twist influences.
         self.subjnts = filter(libPymel.is_valid_PyNode, self.subjnts)
 

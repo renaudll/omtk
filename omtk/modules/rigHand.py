@@ -234,7 +234,8 @@ class Hand(Module):
             sysFinger.unbuild()
 
         for ctrl_meta in self.fk_sys_metacarpals:
-            ctrl_meta.unbuild()
+            if ctrl_meta:  # might not exist!
+                ctrl_meta.unbuild()
 
         super(Hand, self).unbuild()
 

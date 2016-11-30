@@ -43,7 +43,9 @@ class Neck(rigFK.FK):
 
             self.sys_twist = self.init_module(self._CLASS_SYS_TWIST, self.sys_twist, inputs=[jnt_s, jnt_e])
             self.sys_twist.name = twist_nomenclature.resolve()
-            self.sys_twist.build(num_twist=3, create_bend=False)
+            self.sys_twist.build(num_twist=3, create_bend=True)
+            if self.sys_twist.grp_anm:
+                self.sys_twist.grp_anm.setParent(self.grp_anm)
             self.sys_twist.grp_rig.setParent(self.grp_rig)
 
     def unbuild(self):

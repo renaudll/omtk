@@ -49,8 +49,8 @@ class Neck(rigFK.FK):
             self.sys_twist.grp_rig.setParent(self.grp_rig)
 
     def unbuild(self):
-        for twist_sys in self.sys_twist:
-            twist_sys.unbuild()
+        if self.sys_twist:
+            self.sys_twist.unbuild()
             
         super(Neck, self).unbuild()
 

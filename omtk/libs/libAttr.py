@@ -194,7 +194,8 @@ def fetch_attr(source, target):
     if source is None:
         return
     elif isinstance(source, pymel.Attribute):
-        pymel.connectAttr(source, target)
+        if source.exists():
+            pymel.connectAttr(source, target)
     else:
         target.set(source)
 

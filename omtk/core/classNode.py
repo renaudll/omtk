@@ -23,6 +23,17 @@ class Node(object):
         elif hasattr(self.__dict__['node'], attr_name):
             return getattr(self.__dict__['node'], attr_name)
 
+    def __str__(self):
+        """
+        Since Maya2017, pymel try to convert to unicode if it does'nt recognize it.
+        This call is necessary to ensure that pymel recognize our custom class.
+        :return: The return of __melobject__()
+        """
+        if self.node and self.node.exists():
+            return self.node.__melobject__()
+        else:
+            return super(Node, self).__str__()
+
     def __createNode__(self, *args, **kwargs):
         return pymel.createNode('transform', *args, **kwargs)
 

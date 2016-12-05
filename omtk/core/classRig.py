@@ -507,7 +507,15 @@ class Rig(object):
         #
         # Build
         #
-        modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
+
+        # Filter any module that don't have an input.
+        modules = filter(lambda module: module.jnt, self.modules)
+
+        # Sort modules by ascending hierarchical order.
+        # This ensure modules are built in the proper order.
+        # This should not be necessary, however it can happen (ex: dpSpine provided space switch target only available after building it).
+        modules = sorted(modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
+
         for module in modules:
             if module.is_built():
                 continue

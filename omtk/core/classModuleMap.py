@@ -85,14 +85,16 @@ class ModuleMap(Module):
         if parent_grp_rig and model.grp_rig and self.grp_rig:
             model.grp_rig.setParent(self.grp_rig)
 
+    def build_models(self, **kwargs):
+        for model in self.models:
+            self.build_model(model, **kwargs)
+
     def build(self, **kwargs):
         super(ModuleMap, self).build()
 
         self.models = self.init_models()
 
-        # do we need a self.build_models() definition?
-        for model in self.models:
-            self.build_model(model, **kwargs)
+        self.build_models(**kwargs)
 
     def unbuild(self, **kwargs):
         for model in self.models:

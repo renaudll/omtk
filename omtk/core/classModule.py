@@ -223,9 +223,12 @@ class Module(object):
 
     @libPython.cached_property()
     def jnts(self):
+        """
+        :return: All module inputs of joint type, sorted in hierarchical order.
+        """
         fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         jnts = filter(fn_is_jnt, self.input)
-        jnts = sorted(jnts)
+        jnts = sorted(jnts, key=libPymel.get_num_parents)
         return jnts
 
     @libPython.cached_property()

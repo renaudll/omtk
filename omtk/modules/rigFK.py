@@ -1,6 +1,8 @@
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
+from omtk.libs import libPython
+from omtk.libs import libRigging
 
 class CtrlFk(BaseCtrl):
     def __createNode__(self, *args, **kwargs):
@@ -67,61 +69,51 @@ class FK(Module):
         super(FK, self).build(create_grp_rig=create_grp_rig, *args, **kwargs)
         nomenclature_anm = self.get_nomenclature_anm()
 
-        # Define ctrls
-        num_ctrls = 0
-        if self.ctrls:
-            num_ctrls = len(self.ctrls)
-        chain_first_ctrl_idx = 0
-        for i, chain in enumerate(self.chains):
-            if not self.ctrls or chain_first_ctrl_idx + len(chain) > num_ctrls:
-                for input in chain:
-                    ctrl = self._CLS_CTRL()
-                    self.ctrls.append(ctrl)
-                    num_ctrls += 1
+        # Initialize ctrls
+        libPython.resize_list(self.ctrls, len(self.jnts))
+        for i, ctrl in enumerate(self.ctrls):
+            self.ctrls[i] = self.init_ctrl(self._CLS_CTRL, ctrl)
 
-            # Create ctrls
-            chain_length = len(chain)
-            for ctrl_index, input, ctrl in zip(range(chain_length), chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + chain_length]):
-                # Resolve ctrl name
+        for i, chain in enumerate(self.chains):
+            # Build chain ctrls
+            chain_ctrls = []
+            for j, jnt in enumerate(chain):
+                jnt_index = self.jnts.index(jnt)  # todo: optimize performance by created a map?
+                ctrl = self.ctrls[jnt_index]
+                chain_ctrls.append(ctrl)
+
+                # Resolve ctrl name.
+                # TODO: Validate with multiple chains
                 if len(self.jnts) == 1 and self._NAME_CTRL_MERGE:
                     ctrl_name = nomenclature_anm.resolve()
                 elif self._NAME_CTRL_ENUMERATE:
                     ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(ctrl_index))
                 else:
-                    nomenclature = nomenclature_anm + self.rig.nomenclature(input.name())
+                    nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.name())
                     ctrl_name = nomenclature.resolve()
 
-                ctrl.build(name=ctrl_name, refs=input, geometries=self.rig.get_meshes())
-                ctrl.setMatrix(input.getMatrix(worldSpace=True))
+                ctrl.build(name=ctrl_name, refs=jnt, geometries=self.rig.get_meshes())
+                ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
 
-            if self.create_spaceswitch:
-                if self.sw_translate:
-                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(self, self.parent, add_world=True)
-                else:
-                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(self, self.parent,
-                                                                        skipTranslate=['x', 'y', 'z'], add_world=True)
+                # Build space-switch for first chain ctrl
+                if j == 0:
+                    if self.create_spaceswitch:
+                        if self.sw_translate:
+                            ctrl.create_spaceswitch(self, self.parent, add_world=True)
+                        else:
+                            ctrl.create_spaceswitch(self, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
 
-            self.ctrls[chain_first_ctrl_idx].setParent(self.grp_anm)
-            for j in range(chain_first_ctrl_idx + 1, chain_first_ctrl_idx + len(chain)):
-                self.ctrls[j].setParent(self.ctrls[j - 1])
+            if chain_ctrls:
+                chain_ctrls[0].setParent(self.grp_anm)
+                libRigging.create_hyerarchy(chain_ctrls)
 
-            # Connect jnt -> anm
-            if constraint is True:
-                for inn, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
-                    pymel.parentConstraint(ctrl, inn)
-                    pymel.connectAttr(ctrl.scaleX, inn.scaleX)
-                    pymel.connectAttr(ctrl.scaleY, inn.scaleY)
-                    pymel.connectAttr(ctrl.scaleZ, inn.scaleZ)
-
-            chain_first_ctrl_idx += len(chain)
-
-        '''
-        # Connect to parent
-        if parent and self.parent is not None:
-            pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
-            #pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
-        '''
-
+        # Constraint jnts to ctrls if necessary
+        if constraint is True:
+            for jnt, ctrl in zip(self.jnts, self.ctrls):
+                pymel.parentConstraint(ctrl, jnt, maintainOffset=True)
+                pymel.connectAttr(ctrl.scaleX, jnt.scaleX)
+                pymel.connectAttr(ctrl.scaleY, jnt.scaleY)
+                pymel.connectAttr(ctrl.scaleZ, jnt.scaleZ)
 
 
 def register_plugin():

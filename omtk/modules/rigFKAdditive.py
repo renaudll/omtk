@@ -3,7 +3,9 @@ import pymel.core as pymel
 from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
-from omtk.libs import libRigging, libCtrlShapes
+from omtk.libs import libRigging
+from omtk.libs import libCtrlShapes
+from omtk.libs import libPython
 from omtk.modules import rigFK
 
 class CtrlFkAdd(BaseCtrl):
@@ -42,8 +44,7 @@ class AdditiveFK(rigFK.FK):
         else:
             normal_data = {constants.Axis.x: (-1, 0, 0), constants.Axis.y: (0, -1, 0), constants.Axis.z: (0, 0, -1)}
 
-        # TODO: Support multiple additive ctrls
-        # TODO: Rename
+
         self.additive_ctrls = filter(None, self.additive_ctrls)
         if not self.additive_ctrls:
             ctrl_add = CtrlFkAdd()

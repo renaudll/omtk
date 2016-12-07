@@ -20,3 +20,14 @@ class UIExposeFlags:
     Flags used when exposing Rig or Module functionality in the ui.
     """
     trigger_network_export = 1
+
+class EnvironmentVariables:
+    """
+    Customize the behavior of OMTK by defining thoses environment variables.
+    """
+    # Force a specific rig type as default.
+    # Usefull for project-specific configurations.
+    OMTK_DEFAULT_RIG = 'OMTK_DEFAULT_RIG'
+
+    # Define additional location on disk to search for plugins.
+    OMTK_PLUGINS = 'OMTK_PLUGINS'

@@ -132,7 +132,8 @@ class Twistbone(Module):
                 tm.translate = delta * ratio + sp
                 subjnt.setMatrix(tm, worldSpace=True)
 
-        self.subjnts[0].setParent(jnt_s)
+        if self.subjnts[0].getParent() != jnt_s:
+            self.subjnts[0].setParent(jnt_s)
 
         driver_grp = pymel.createNode('transform')
         driver_grp.setParent(scalable_grp)

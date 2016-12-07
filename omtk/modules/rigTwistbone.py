@@ -347,7 +347,8 @@ class Twistbone(Module):
 
     def get_skinClusters_from_inputs(self):
         skinClusters = set()
-        for jnt in self.chain_jnt:
+        jnts = [jnt for jnt in self.chain_jnt if jnt and jnt.exists()]  # Only handle existing objects
+        for jnt in jnts:
             for hist in jnt.listHistory(future=True):
                 if isinstance(hist, pymel.nodetypes.SkinCluster):
                     skinClusters.add(hist)
@@ -355,11 +356,11 @@ class Twistbone(Module):
 
     def get_skinClusters_from_subjnts(self):
         skinClusters = set()
-        if self.subjnts:
-            for jnt in self.subjnts:
-                for hist in jnt.listHistory(future=True):
-                    if isinstance(hist, pymel.nodetypes.SkinCluster):
-                        skinClusters.add(hist)
+        jnts = [jnt for jnt in self.subjnts if jnt and jnt.exists()]  # Only handle existing objects
+        for jnt in self.jnts:
+            for hist in jnt.listHistory(future=True):
+                if isinstance(hist, pymel.nodetypes.SkinCluster):
+                    skinClusters.add(hist)
         return skinClusters
 
     def get_farest_affected_meshes(self):

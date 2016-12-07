@@ -305,13 +305,13 @@ class Limb(Module):
     @decorator_uiexpose()
     def assign_twist_weights(self):
         for module in self.sys_twist:
-            if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
+            if isinstance(module, self._CLASS_SYS_TWIST):
                 module.assign_twist_weights()
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):
         for module in self.sys_twist:
-            if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
+            if isinstance(module, self._CLASS_SYS_TWIST):
                 module.unassign_twist_weights()
 
 def register_plugin():

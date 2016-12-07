@@ -204,7 +204,8 @@ class LegIkQuad(rigLeg.LegIk):
         self._chain_quad_ik = None
         self._ik_handle_quad = None
         self.quad_swivel_distance = None
-        self.quad_swivel_sw.setParent(None)
+        if self.quad_swivel_sw:
+            self.quad_swivel_sw.setParent(None)
 
         super(LegIkQuad, self).unbuild()
 

@@ -1,10 +1,15 @@
+import logging
+
 import pymel.core as pymel
 from maya import mel
+from maya import cmds
+
+from omtk import constants
 from omtk.libs import libAttr
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
 from omtk.modules import rigLeg
-import logging
+
 log = logging.getLogger('omtk')
 
 class CtrlIkQuadSwivel(rigIK.CtrlIkSwivel):
@@ -38,7 +43,7 @@ class LegIkQuad(rigLeg.LegIk):
         self.ctrl_swivel_quad = None
         self._chain_quad_ik = None
         self._ik_handle_quad = None
-        self.quad_swivel_distance = None
+        # self.quad_swivel_distance = None
         self.quad_swivel_sw = None  # Object use as space switch pin location that will be kept on unbuild
 
     def create_ik_handle(self):
@@ -48,7 +53,8 @@ class LegIkQuad(rigLeg.LegIk):
         :return: Nothing, handle is stocked in a class variable
         """
         mel.eval('ikSpringSolver') # Solver need to be loaded before being used
-        return super(LegIkQuad, self).create_ik_handle(solver='ikSpringSolver')
+        ik_handle, ik_effector = super(LegIkQuad, self).create_ik_handle(solver='ikSpringSolver')
+        return ik_handle, ik_effector
 
 
     def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, constraint=True, mirror_setup=True, **kwargs):
@@ -120,6 +126,55 @@ class LegIkQuad(rigLeg.LegIk):
 
         return ctrl_swivel
 
+    def adjust_spring_solver_twist(self, obj_ref_s, obj_ref_e, obj_s, obj_e, ik_handle, epsilon=0.00000000001, max_iter=20, default_low=-180.0, default_high=180):
+        """
+        For strange reasons, creating the ikSpringSolver can generate a twist offset.
+        We are still not sure what is causing that so currently we are using a brute-force approach to resolve the offset.
+        :param epsilon: A float representing the minimum precision required.
+        :param max_iter: An int representing the maximum number of tries to take.
+        """
+        self.debug("Resolving {} twist offset with brute-force.".format(ik_handle))
+        attr = ik_handle.twist
+
+        # Store the direction we are trying to match.
+        dir_ref = obj_ref_e.getTranslation(space='world') - obj_ref_s.getTranslation(space='world')
+        dir_ref.normalize()
+
+        def take_guess(val):
+            attr.set(val)
+            dir = obj_e.getTranslation(space='world') - obj_s.getTranslation(space='world')
+            dir.normalize()
+            result = dir * dir_ref
+            return result
+
+        low = default_low
+        high = default_high
+        mid = (low + high) / 2.0
+        iter_count = 0
+        last_guess = None
+        for iter_count in range(max_iter):
+            iter_count += 1
+            if iter_count > max_iter:
+                raise Exception("Max iteration reached: {}".format(max_iter))
+
+            result = take_guess(mid)
+            result_low = take_guess(low)
+            result_high = take_guess(high)
+
+            if abs(1.0 - result) < epsilon:
+                self.debug("Resolved {} twist offset of {} using with {} iterations.".format(ik_handle, mid, iter_count))
+                return mid
+
+            if result_high > result_low:
+                low = mid
+            else:
+                high = mid
+
+            mid = (low + high) / 2.0
+
+        self.warning("Cannot resolve twist offset of {} with {} iterations.".format(ik_handle, max_iter))
+        return mid
+
     def build(self, constraint=True, constraint_handle=True, setup_softik=True, **kwargs):
         """
         :param constraint: Bool to tell if we will constraint the chain bone on the ikchain
@@ -132,13 +187,26 @@ class LegIkQuad(rigLeg.LegIk):
         super(LegIkQuad, self).build(constraint=False, constraint_handle=False, setup_softik=False, **kwargs)
         nomenclature_rig = self.get_nomenclature_rig()
 
+        # Hack: For strange reasons, creating the ikSpringSolver can make the leg flip.
+        # This is applicable after assigning the pole vectors.
+        # To bypass this, we'll look for flipping and compensate with the ikHandle 'twist' attribute.
+        self.adjust_spring_solver_twist(
+            self.jnts[0],
+            self.jnts[1],
+            self._chain_ik[0],
+            self._chain_ik[1],
+            self._ik_handle
+        )
+
         quad_swivel_pos = self.calc_swivel_pos(start_index=1, end_index=3)
         heel_idx = self.iCtrlIndex - 1
 
         # Create a second ik chain for the quadruped setup
         self._chain_quad_ik = self.chain.duplicate()
+
         for i, oIk in enumerate(self._chain_quad_ik):
             oIk.rename(nomenclature_rig.resolve('QuadChain{0:02}'.format(i)))
+
             # Constraint the bones after the iCtrlIdx to the first ik chain to make the foot roll work correctly
             if i > self.iCtrlIndex:
                 pymel.parentConstraint(self._chain_ik[i], self._chain_quad_ik[i])
@@ -166,7 +234,7 @@ class LegIkQuad(rigLeg.LegIk):
         # Create another swivel handle node for the quad chain setup
         self.ctrl_swivel_quad = self.setup_swivel_ctrl(self.ctrl_swivel_quad, self._chain_quad_ik[heel_idx],
                                                        quad_swivel_pos, self._ik_handle_quad, name='swivelQuad', mirror_setup=False)
-        self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
+        # self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
         # Set by default the space to calf
         if self.ctrl_swivel_quad.space:
             enum = self.ctrl_swivel_quad.space.getEnums()
@@ -174,6 +242,7 @@ class LegIkQuad(rigLeg.LegIk):
             if calf_idx:
                 self.ctrl_swivel_quad.space.set(calf_idx)
 
+        # Expose 'pitch' Quadruped-specific attribute.
         attr_holder = self.ctrl_ik
         libAttr.addAttr_separator(attr_holder, 'Quadruped', niceName='Quadruped')
         attr_pitch = libAttr.addAttr(attr_holder, longName='pitch', k=True)
@@ -203,7 +272,7 @@ class LegIkQuad(rigLeg.LegIk):
     def unbuild(self):
         self._chain_quad_ik = None
         self._ik_handle_quad = None
-        self.quad_swivel_distance = None
+        # self.quad_swivel_distance = None
         if self.quad_swivel_sw:
             self.quad_swivel_sw.setParent(None)
 

@@ -134,7 +134,7 @@ class Hand(Module):
                 self.fk_sys_metacarpals[i] = sys_metacarpal
 
             # Init finger module
-                self.sysFingers[i] = self.init_module(
+            self.sysFingers[i] = self.init_module(
                 rigFKAdditive.AdditiveFK,
                 self.sysFingers[i],
                 inputs=jnts_phalanges
@@ -153,7 +153,6 @@ class Hand(Module):
                 sys_finger.grp_anm.setParent(sys_metacarpal.ctrls[0])
             else:
                 sys_finger.grp_anm.setParent(self.grp_anm)
-
 
         # Rig the 'cup' setup
         sys_metacarpals = filter(None, self.fk_sys_metacarpals)

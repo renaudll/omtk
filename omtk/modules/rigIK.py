@@ -478,12 +478,12 @@ class IK(Module):
         ctrl_ik_t = obj_e.getTranslation(space='world')
         self.ctrl_ik.offset.setTranslation(ctrl_ik_t, space='world')
 
+        if ctrl_ik_offset_rot:
+            self.ctrl_ik.offset.setRotation(ctrl_ik_offset_rot)
+
         # Create space switch
         self.ctrl_ik.create_spaceswitch(self, self.parent, default_name='World')
 
-        # Hack: We do this after create_spaceswitch, otherwise the ctrl will still be zeroed.
-        if ctrl_ik_offset_rot:
-            self.ctrl_ik.offset.setRotation(ctrl_ik_offset_rot)
         if ctrl_ik_rot:
             self.ctrl_ik.node.setRotation(ctrl_ik_rot, space='world')
 
@@ -511,9 +511,12 @@ class IK(Module):
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sy)
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sz)
 
+
+
         #Setup swivel
         self.ctrl_swivel = self.setup_swivel_ctrl(self.ctrl_swivel, jnt_elbow, swivel_pos, self._ik_handle)
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
+
         #pymel.poleVectorConstraint(flip_swivel_ref, self._ik_handle)
 
         # Connect rig -> anm

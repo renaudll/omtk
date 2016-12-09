@@ -207,6 +207,7 @@ class LegIk(rigIK.IK):
         # Resolve ctrl_tm
         axis_dir = constants.Axis.x
         inn_tm_dir = libRigging.get_matrix_axis(inf_tm, axis_dir)
+        inn_tm_dir.y = 0  # Ensure the foot ctrl never have pitch values
         # Ensure the ctrl look front
         if inn_tm_dir.z < 0:
             inn_tm_dir = pymel.datatypes.Vector(

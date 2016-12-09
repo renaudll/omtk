@@ -623,7 +623,6 @@ class Rig(object):
             ))
             pymel.delete(module.grp_rig)
 
-
         # Prevent animators from accidentaly moving offset nodes
         # TODO: Lock more?
         for ctrl in module.get_ctrls():

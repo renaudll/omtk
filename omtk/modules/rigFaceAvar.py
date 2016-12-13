@@ -551,10 +551,10 @@ class AvarSimple(AbstractAvar):
             if issubclass(self._CLS_MODEL_CTRL, ModelInteractiveCtrl):
                 # By default, an InteractiveCtrl follow the rotation of the head.
                 if parent_rot is None:
-                    parent_rot = self.rig.get_head_jnt()
+                    parent_rot = self.get_head_jnt()
 
                 if parent_scl is None:
-                    parent_scl = self.rig.get_head_jnt()
+                    parent_scl = self.get_head_jnt()
 
                 self.model_ctrl.build(
                     self,

@@ -22,21 +22,13 @@ class Neck(rigFK.FK):
     _NAME_CTRL_MERGE = True  # By default we only expect one controller for the head. (Head_Ctrl > than Head_Head_Ctrl)
     _NAME_CTRL_ENUMERATE = True  # If we find additional influences, we'll use enumeration.
 
-    @libPython.memoized_instancemethod
-    def _get_head_jnt(self):
-        neck_jnt = self.jnt
-        head_jnts = self.rig.get_head_jnts()
-        for child in neck_jnt.getChildren():
-            if child in head_jnts:
-                return child
-
     def build(self, *args, **kwargs):
         super(Neck, self).build(create_grp_rig=True, *args, **kwargs)
         
         # Create twistbone system if needed
         if self.create_twist:
             jnt_s = self.jnt
-            jnt_e = self._get_head_jnt()
+            jnt_e = self.get_head_jnt()
 
             twist_nomenclature = self.get_nomenclature().copy()
             twist_nomenclature.add_tokens('bend')
@@ -65,7 +57,7 @@ class Neck(rigFK.FK):
         if num_jnts != 1:
             raise Exception("Expected only one influences, got {}".format(num_jnts))
 
-        head_jnt = self._get_head_jnt()
+        head_jnt = self.get_head_jnt()
         if not head_jnt:
             raise Exception("Cannot resolve Head influence from {}".format(self.jnt))
 

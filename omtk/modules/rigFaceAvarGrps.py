@@ -300,6 +300,18 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         return None
 
     @libPython.memoized_instancemethod
+    def get_influence_micros(self):
+        """
+        :return: Only the influence used in micro avars.
+        """
+        result = set()
+        for avar in self.avars:
+            if self._is_tweak_avar(avar):
+                continue
+            result.update(avar.jnts)
+        return list(result)
+
+    @libPython.memoized_instancemethod
     def _get_micro_avar_by_influence(self, influence):
         for avar in self.avars:
             if influence in avar.input:
@@ -343,8 +355,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         max_ctrl_size = None
 
         # Resolve maximum ctrl size from head joint
+        head_jnt = self.get_head_jnt()
         try:
-            head_length = self.rig.get_head_length()
+            head_length = self.rig.get_head_length(head_jnt)
         except Exception, e:
             head_length = None
             self.warning(str(e))
@@ -352,7 +365,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             max_ctrl_size = head_length * 0.05
 
         if len(self.jnts) > 1:
-            distances = [libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(self.jnts, 2)]
+            # Use only the micro influence as reference since the distance
+            # between micro and tweak avars can be very small.
+            jnts = self.get_influence_micros()
+            distances = [libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(jnts, 2)]
             distances = filter(lambda x: x > EPSILON, distances)
             if distances:
                 ctrl_size = min(distances) / 2.0
@@ -393,7 +409,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
 
         # Try to resolve the head joint.
         # With strict=True, an exception will be raised if nothing is found.
-        if self.rig.get_head_jnt(strict=False) is None:
+        if self.get_head_jnt(strict=False) is None:
             raise Exception("Can't resolve the head. Please create a Head module.")
 
     def _create_micro_avars(self):
@@ -1228,8 +1244,9 @@ class AvarGrpOnSurface(AvarGrp):
         # Ensure that the ctrl is affar from the head.
         # Resolve maximum ctrl size from head joint
         offset_z = 0
+        head_jnt = self.get_head_jnt()
         try:
-            head_length = self.rig.get_head_length()
+            head_length = self.rig.get_head_length(head_jnt)
         except Exception, e:
             head_length = None
             self.warning(str(e))
@@ -1303,7 +1320,7 @@ class AvarGrpOnSurface(AvarGrp):
         self.avar_low.create_ctrl(self, **kwargs)
 
     def _create_avars_ctrls(self, parent_rot=None, parent_scl=None, **kwargs):
-        parent_rot = self.rig.get_head_jnt()
+        parent_rot = self.get_head_jnt()
         parent_scl = None
 
         # Since micro avars ctrls can be constraint to macro avars ctrls, we create the macro first.

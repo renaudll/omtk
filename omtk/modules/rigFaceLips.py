@@ -362,8 +362,8 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
     def build_stack(self, stack, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()
-        jnt_head = self.rig.get_head_jnt()
-        jnt_jaw = self.rig.get_jaw_jnt()
+        jnt_head = self.get_head_jnt()
+        jnt_jaw = self.get_jaw_jnt()
         jaw_pos = jnt_jaw.getTranslation(space='world')
 
         #
@@ -555,7 +555,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         super(FaceLips, self).validate()
 
         if not self.preDeform:
-            if self.rig.get_jaw_jnt(strict=False) is None:
+            if self.get_jaw_jnt(strict=False) is None:
                 raise Exception("Can't resolve jaw. Please create a Jaw module.")
 
     def get_avars_corners(self):
@@ -699,12 +699,12 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
         if not self.preDeform:
             # Resolve the head influence
-            jnt_head = self.rig.get_head_jnt()
+            jnt_head = self.get_head_jnt()
             if not jnt_head:
                 self.error("Failed parenting avars, no head influence found!")
                 return
 
-            jnt_jaw = self.rig.get_jaw_jnt()
+            jnt_jaw = self.get_jaw_jnt()
             if not jnt_jaw:
                 self.error("Failed parenting avars, no jaw influence found!")
                 return

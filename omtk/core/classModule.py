@@ -254,6 +254,54 @@ class Module(object):
     def chain_jnt(self):
         return next(iter(self.chains_jnt), None)
 
+    @libPython.memoized_instancemethod
+    def get_head_jnt(self, strict=False):
+        """
+        Resolve the head influence related to the current module.
+        This is necessary as some rigs might have multiple heads!
+        :return: A pymel.PyNode representing the head influence to use. None if nothing is found.
+        """
+        head_jnts = self.rig.get_head_jnts(strict=strict)
+
+        # If any of the module influence are parented to an head, use this one.
+        for jnt in self.jnts:
+            for parent in libPymel.iter_parents(jnt):
+                if parent in head_jnts:
+                    return parent
+
+        # If no influence if found, take a guess.
+        default_head = next(iter(head_jnts), None)
+        if default_head:
+            self.warning("Cannot resolve head influence! Using default {}".format(default_head))
+        else:
+            self.warning("Cannot resolve head influence!")
+
+    @libPython.memoized_instancemethod
+    def get_jaw_jnt(self, strict=True):
+        """
+        Resolve the jaw influence related to the current module.
+        This is necessary as some rigs might have multiple jaws!
+        This start by resolving the head and they choosing a jaw module that have a child of the head as influence.
+        :return: A pymel.Attribute representing the head influence to use. None if nothing is found.
+        """
+        # Resolve head
+        head_jnt = self.get_head_jnt(strict=False)
+        if strict and not head_jnt:
+            self.warning("Cannot resolve jaw influence. No head was found!")
+            return
+
+        # Find a Jaw module that have influence under the head.
+        from omtk.modules import rigFaceJaw
+        for module in self.rig.modules:
+            if isinstance(module, rigFaceJaw.FaceJaw):
+                jnt = module.jnt
+                if libPymel.is_child_of(jnt, head_jnt):
+                    return jnt
+
+        if strict:
+            self.warning("Cannot found jaw influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+        return None
+
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
         """

@@ -338,6 +338,42 @@ def unlock_scale(node, x=True, y=True, z=True, xyz=True):
 
     unlock_attrs(unlock_list)
 
+
+def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=True, rz=True, sx=True, sy=True, sz=True, force=False):
+    """
+    Utility method to connect multiple attributes between two transform nodes.
+    :param src: The source transform.
+    :param dst: The destination transform.
+    :param tx: If True, will connect the translateX attribute.
+    :param ty: If True, will connect the translateY attribute.
+    :param tz: If True, will connect the translateZ attribute.
+    :param rx: If True, will connect the rotateX attribute.
+    :param ry: If True, will connect the rotateY attribute.
+    :param rz: If True, will connect the rotateZ attribute.
+    :param sx: If True, will connect the scaleX attribute.
+    :param sy: If True, will connect the scaleY attribute.
+    :param sz: If True, will connect the scaleZ attribute.
+    :param force: If True, will overwrite existing connections.
+    """
+    if tx:
+        pymel.connectAttr(src.translateX, dst.translateX, force=force)
+    if ty:
+        pymel.connectAttr(src.translateY, dst.translateY, force=force)
+    if tz:
+        pymel.connectAttr(src.translateZ, dst.translateZ, force=force)
+    if rx:
+        pymel.connectAttr(src.rotateX, dst.rotateX, force=force)
+    if ry:
+        pymel.connectAttr(src.rotateY, dst.rotateY, force=force)
+    if rz:
+        pymel.connectAttr(src.rotateZ, dst.rotateZ, force=force)
+    if sx:
+        pymel.connectAttr(src.scaleX, dst.scaleX, force=force)
+    if sy:
+        pymel.connectAttr(src.scaleY, dst.scaleY, force=force)
+    if sz:
+        pymel.connectAttr(src.scaleZ, dst.scaleZ, force=force)
+
 #Hide Function#
 
 def hide_attrs(attr_list):

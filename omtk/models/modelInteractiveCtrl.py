@@ -106,7 +106,7 @@ class ModelInteractiveCtrl(Module):
         if obj_mesh is None:
             # We'll scan all available geometries and use the one with the shortest distance.
             meshes = libHistory.get_affected_shapes(ref)
-            meshes = list(set(meshes) & set(self.rig.get_meshes()))
+            meshes = list(set(meshes) & set(self.rig.get_shapes()))
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
             if obj_mesh is None and follow_mesh:
@@ -365,15 +365,31 @@ class ModelInteractiveCtrl(Module):
         # Constraint grp_anm
         #
 
+        # Create an output object that will hold the world position of the ctrl offset.
+        # This allow us to create direct connection which simplify the dag tree for the animator
+        # and allow us to easily scale the whole setup to support non-uniform scaling.
+        grp_output = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('output'),
+            parent=self.grp_rig
+        )
+
         # Position
         stack_end = self._stack.get_stack_end()
-        pymel.parentConstraint(stack_end, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
+        pymel.parentConstraint(stack_end, grp_output, maintainOffset=False, skipRotate=['x', 'y', 'z'])
 
         # Rotation
         if parent_rot is None:
             parent_rot = stack_end
             # parent_rot = layer_inv_r.getParent()
-        pymel.orientConstraint(parent_rot, self.ctrl.offset, maintainOffset=True)
+        pymel.orientConstraint(parent_rot, grp_output, maintainOffset=True)
+
+        pymel.connectAttr(grp_output.tx, self.ctrl.offset.tx)
+        pymel.connectAttr(grp_output.ty, self.ctrl.offset.ty)
+        pymel.connectAttr(grp_output.tz, self.ctrl.offset.tz)
+        pymel.connectAttr(grp_output.rx, self.ctrl.offset.rx)
+        pymel.connectAttr(grp_output.ry, self.ctrl.offset.ry)
+        pymel.connectAttr(grp_output.rz, self.ctrl.offset.rz)
 
         # Scale
         if parent_scl:

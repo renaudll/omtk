@@ -82,7 +82,8 @@ class ModelLookAt(BaseAvarCtrlModel):
         Find the chin location. This is the preffered location for the jaw doritos.
         """
         jnt_pos = self.jnt.getTranslation(space='world')
-        head_length = self.rig.get_head_length()
+        head_jnt = self.get_head_jnt()
+        head_length = self.rig.get_head_length(head_jnt)
         if not head_length:
             pymel.warning("Can't resolve head length! The eyes ctrl location might be erroned.")
         offset_z = head_length * 2 if head_length else 0
@@ -184,7 +185,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
     def handle_surface(self):
         pass  # todo: better class schema!
 
-    def get_module_name(self):
+    def get_default_name(self):
         return 'Eyes'
 
     def build(self, *args, **kwargs):

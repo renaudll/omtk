@@ -1,6 +1,8 @@
 import functools
 import collections
+from pymel.util.enum import Enum
 import pymel.core as pymel
+from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
@@ -8,6 +10,16 @@ from omtk.libs import libRigging
 from omtk.libs import libAttr
 from omtk.libs import libFormula
 from omtk.libs import libPymel
+
+def _get_vector_from_axis(axis):
+    if axis == constants.Axis.x:
+        return pymel.datatypes.Vector.xAxis
+    if axis == constants.Axis.y:
+        return pymel.datatypes.Vector.yAxis
+    if axis == constants.Axis.z:
+        return pymel.datatypes.Vector.zAxis
+    raise IOError("Unexpected constant. Expected X, Y, or Z. Got {}".format(axis))
+
 
 class CtrlIk(BaseCtrl):
     """
@@ -344,9 +356,7 @@ class IK(Module):
         '''
         nomenclature_anm = self.get_nomenclature_anm()
 
-        ctrl_swivel = base_ctrl
-        if not isinstance(base_ctrl, self._CLASS_CTRL_SWIVEL):
-            ctrl_swivel = self._CLASS_CTRL_SWIVEL()
+        ctrl_swivel = self.init_ctrl(self._CLASS_CTRL_SWIVEL, base_ctrl)
         ctrl_swivel.build(refs=ref)
         ctrl_swivel.setParent(self.grp_anm)
         ctrl_swivel.rename(nomenclature_anm.resolve(name))
@@ -361,10 +371,35 @@ class IK(Module):
 
         return ctrl_swivel
 
-    def build(self, ctrl_ik_orientation=None, constraint=True, constraint_handle=True, setup_softik=True, *args, **kwargs):
+    def _get_ik_ctrl_tms(self):
+        """
+        Compute the desired rotation for the ik ctrl.
+        :return: A two-size tuple containing the transformation matrix for the ctrl offset and the ctrl itself.
+        """
+        inf_tm = self.input[self.iCtrlIndex].getMatrix(worldSpace=True)
+        return inf_tm, inf_tm
+
+    def _get_ik_ctrl_bound_refs_raycast(self):
+        """
+        Resolve what objects to use for computing the bound of the ik ctrl using raycasts.
+        Default behavior is to use the hand and any inputs after. (ex: toes)
+        :return: An array of pymel.general.PyNode instances.
+        """
+        return self.input[self.iCtrlIndex:-1]
+
+    def _get_ik_ctrl_bound_refs_extra(self):
+        """
+        Resolve what objects to use to expand the bound of the ik ctrl using world-space positions.
+        Default behavior is to use the hand and all it's children. (ex: fingers)
+        :return: An array of pymel.general.PyNode instances.
+        """
+        jnt_hand = self.input[self.iCtrlIndex]
+        return [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
+
+    def build(self, constraint=True, constraint_handle=True, setup_softik=True, *args, **kwargs):
         """
         Build the ik system when needed
-        :param ctrl_ik_orientation: The ik ctrl orientation override
+        :param ctrl_ik_orientation: A boolean to define if the ctrl should be zeroed.
         :param constraint: Bool to tell if we constraint the chain_jnt to the system
         :param constraint_handle: Bool to tell if we constraint the ik handle to the ik ctrl
         :param setup_softik: Bool to tell if we setup the soft ik on this system
@@ -419,22 +454,44 @@ class IK(Module):
         self._ik_handle.setParent(self._ikChainGrp)
         _ik_effector.rename(ik_effector_name)
 
+        # Resolve CtrlIK transform
+        ctrl_ik_offset_tm, ctrl_ik_tm = self._get_ik_ctrl_tms()
+        ctrl_ik_offset_rot = libPymel.get_rotation_from_matrix(ctrl_ik_offset_tm) if ctrl_ik_offset_tm else None
+        ctrl_ik_rot = libPymel.get_rotation_from_matrix(ctrl_ik_tm) if ctrl_ik_tm else None
+
         # Create CtrlIK
-        if not isinstance(self.ctrl_ik, self._CLASS_CTRL_IK):
-            self.ctrl_ik = self._CLASS_CTRL_IK()
-        ctrl_ik_refs = [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
-        self.ctrl_ik.build(refs=ctrl_ik_refs, geometries=self.rig.get_meshes())  # refs is used by CtrlIkCtrl
+        self.ctrl_ik = self.init_ctrl(self._CLASS_CTRL_IK, self.ctrl_ik)
+
+        refs_bound_raycast = self._get_ik_ctrl_bound_refs_raycast()
+        refs_bound_extra = self._get_ik_ctrl_bound_refs_extra()
+        self.ctrl_ik.build(
+            refs=refs_bound_extra,
+            refs_raycast=refs_bound_raycast,
+            geometries=self.rig.get_meshes(),
+            parent_tm=ctrl_ik_tm
+        )  # refs is used by CtrlIkCtrl
         self.ctrl_ik.setParent(self.grp_anm)
-        ctrl_ik_name = nomenclature_anm.resolve('ik')
+        ctrl_ik_name = nomenclature_anm.resolve()
         self.ctrl_ik.rename(ctrl_ik_name)
-        self.ctrl_ik.offset.setTranslation(obj_e.getTranslation(space='world'), space='world')
 
-        # Set ctrl_ik_orientation
-        if ctrl_ik_orientation is None:
-            ctrl_ik_orientation = obj_e.getRotation(space='world')
-        self.ctrl_ik.offset.setRotation(ctrl_ik_orientation, space='world')
+        # Define CtrlIK transform
+        ctrl_ik_t = obj_e.getTranslation(space='world')
+        self.ctrl_ik.offset.setTranslation(ctrl_ik_t, space='world')
 
+        if ctrl_ik_offset_rot:
+            self.ctrl_ik.offset.setRotation(ctrl_ik_offset_rot)
+
+        # Create space switch
         self.ctrl_ik.create_spaceswitch(self, self.parent, default_name='World')
+
+        if ctrl_ik_rot:
+            self.ctrl_ik.node.setRotation(ctrl_ik_rot, space='world')
+
+        # We may want to find a better way to handle node stack.
+        # if ctrl_ik_zeroed:
+        #     self.ctrl_ik.offset.setRotation(ctrl_ik_r, space='world')
+        # else:
+        #     self.ctrl_ik.node.setRotation(ctrl_ik_r, space='world')
 
         # Create the ik_handle_target that will control the ik_handle
         # This is allow us to override what control the main ik_handle
@@ -454,9 +511,12 @@ class IK(Module):
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sy)
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sz)
 
+
+
         #Setup swivel
         self.ctrl_swivel = self.setup_swivel_ctrl(self.ctrl_swivel, jnt_elbow, swivel_pos, self._ik_handle)
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
+
         #pymel.poleVectorConstraint(flip_swivel_ref, self._ik_handle)
 
         # Connect rig -> anm

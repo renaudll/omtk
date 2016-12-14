@@ -1,10 +1,11 @@
 import logging
 import pymel.core as pymel
 from omtk.core.classModule import Module
-from omtk.modules import rigFK
 from omtk.libs import libPython
 from omtk.libs import libPymel
 from omtk.libs import libRigging
+from omtk.modules import rigFK
+from omtk.modules import rigFKAdditive
 
 
 '''
@@ -74,72 +75,90 @@ class Hand(Module):
 
         return sorted_chain
 
+    def validate(self):
+        super(Hand, self).validate()
+
+        # Skip unsupported chain length
+        for chain in self.chains:
+            chain_length = len(chain)
+            if chain_length > 5:
+                raise Exception("Unsupported chain length for {0}. Expected 4 or less, got {1}".format(
+                    chain, chain_length
+                ))
+
     def build(self, *args, **kwargs):
         super(Hand, self).build(parent=False, *args, **kwargs)
 
         # Resolve fingers and metacarpals
         #jnts_metacarpals = []
         #metacarpals_sys = []
-        meta_index = 0 #We can have less metacarpals than finger chains
 
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
 
-        # Create fingers systems if necessary
-        for i, chain in enumerate(self.chains):
-            chain_length = len(chain)
+        # Resolve how many fingers we want.
+        # Note that a finger don't necessarily have a metacarpal.
+        # To properly preserve the mapping between the finger and the metacarpal, we
+        # ensure that self.fk_sys_metacarpals have the same numbers of elements than self.sysFingers.
+        num_fingers = len(self.chains)
+        libPython.resize_list(self.sysFingers, num_fingers)
+        libPython.resize_list(self.fk_sys_metacarpals, num_fingers)
 
-            # Skip unsupported chain length
-            if chain_length > 5:
-                logging.warning("Unsupported chain length for {0}. Expected 4 or less, got {1}".format(
-                        chain, chain_length
-                ))
-                continue
+        # Resolve the influences for each fingers.
+        # This compute a two-sized tuple that contain the influences for the metacarpal and the phalanges influences.
+        finger_entries = []
+        for chain in self.chains:
+            chain_length = len(chain)
 
             # Resolve phalanges and metacarpal from chain
             if chain_length == 5:
-                jnt_metacarpal = chain[0]
+                jnts_metacarpal = [chain[0]]
                 jnts_phalanges = chain[1:-1]
-                #jnts_metacarpals.append(jnt_metacarpal)
             else:
-                jnt_metacarpal = None
+                jnts_metacarpal = None
                 jnts_phalanges = chain[:-1]
 
-            # Rig metacarpals if necessary
-            ctrl_meta = None
-            if jnt_metacarpal:
-                if meta_index >= len(self.fk_sys_metacarpals):
-                    ctrl_meta = rigFK.FK([jnt_metacarpal], rig=self.rig)
-                    ctrl_meta.name = ctrl_meta.get_default_name()
-                    self.fk_sys_metacarpals.append(ctrl_meta)
+            finger_entries.append((jnts_metacarpal, jnts_phalanges))
 
-                ctrl_meta = self.fk_sys_metacarpals[meta_index]
-                ctrl_meta.create_spaceswitch = False
-                ctrl_meta.build()
-                ctrl_meta.grp_anm.setParent(self.grp_anm)
-                meta_index += 1
+        # Initialize modules
+        for i, finger_entry in enumerate(finger_entries):
+            jnts_metacarpal, jnts_phalanges = finger_entry
 
-            # Rig fingers
-            if not self.sysFingers or i >= len(self.sysFingers):
-                sysFinger = rigFK.AdditiveFK(jnts_phalanges, rig=self.rig)
-                sysFinger.name = sysFinger.get_default_name()
-                self.sysFingers.append(sysFinger)
-
-            sysFinger = self.sysFingers[i]
-            sysFinger.create_spaceswitch = False
-            sysFinger.build()
-            if ctrl_meta:
-                sysFinger.grp_anm.setParent(ctrl_meta.ctrls[0])
+            # Init metacarpal module
+            if jnts_metacarpal is None:
+                self.fk_sys_metacarpals[i] = None
             else:
-                sysFinger.grp_anm.setParent(self.grp_anm)
+                sys_metacarpal = self.fk_sys_metacarpals[i]
+                sys_metacarpal = self.init_module(rigFK.FK, sys_metacarpal, inputs=jnts_metacarpal)
+                sys_metacarpal._NAME_CTRL_MERGE = False  # Ensure we'll always use the input name.
+                self.fk_sys_metacarpals[i] = sys_metacarpal
 
-            #Keep the system to make sure it match the index of the metacarpal associated
-            #metacarpals_sys.append(sysFinger)
+            # Init finger module
+            self.sysFingers[i] = self.init_module(
+                rigFKAdditive.AdditiveFK,
+                self.sysFingers[i],
+                inputs=jnts_phalanges
+            )
+
+        # Build modules
+        for sys_metacarpal, sys_finger in zip(self.fk_sys_metacarpals, self.sysFingers):
+            if sys_metacarpal:
+                sys_metacarpal.create_spaceswitch = False
+                sys_metacarpal.build()
+                sys_metacarpal.grp_anm.setParent(self.grp_anm)
+
+            sys_finger.create_spaceswitch = False
+            sys_finger.build()
+            if sys_metacarpal:
+                sys_finger.grp_anm.setParent(sys_metacarpal.ctrls[0])
+            else:
+                sys_finger.grp_anm.setParent(self.grp_anm)
 
         # Rig the 'cup' setup
-        if self.fk_sys_metacarpals:
-            pos_inn = self.fk_sys_metacarpals[0].ctrls[0].getTranslation(space='world')
-            pos_out = self.fk_sys_metacarpals[-1].ctrls[0].getTranslation(space='world')
+        sys_metacarpals = filter(None, self.fk_sys_metacarpals)
+        if len(sys_metacarpals) >= 2:
+            pos_inn = sys_metacarpals[0].ctrls[0].getTranslation(space='world')
+            pos_out = sys_metacarpals[-1].ctrls[0].getTranslation(space='world')
             pos_mid = ((pos_out - pos_inn) / 2.0) + pos_inn
 
             # Resolve the metacarpal plane orientation
@@ -168,7 +187,7 @@ class Hand(Module):
             attr_cup = attr_holder.attr('cup')
 
 
-            for i, ctrl_metacarpal in enumerate(self.fk_sys_metacarpals):
+            for i, ctrl_metacarpal in enumerate(sys_metacarpals):
                 width = pos_inn.distanceTo(pos_out)
                 pos = ctrl_metacarpal.ctrls[0].getTranslation(space='world')
                 ratio = (pos - pos_inn).length() / width
@@ -216,7 +235,8 @@ class Hand(Module):
             sysFinger.unbuild()
 
         for ctrl_meta in self.fk_sys_metacarpals:
-            ctrl_meta.unbuild()
+            if ctrl_meta:  # might not exist!
+                ctrl_meta.unbuild()
 
         super(Hand, self).unbuild()
 
@@ -229,8 +249,9 @@ class Hand(Module):
                     yield ctrl
         if self.fk_sys_metacarpals:
             for sys in self.fk_sys_metacarpals:
-                for ctrl in sys.iter_ctrls():
-                    yield ctrl
+                if sys is not None:
+                    for ctrl in sys.iter_ctrls():
+                        yield ctrl
 
 def register_plugin():
     return Hand

@@ -8,6 +8,7 @@ from maya import cmds
 from maya import mel
 
 import libPython
+from omtk import constants
 from omtk.libs import libPymel
 
 '''
@@ -656,6 +657,41 @@ def matrix_from_normal(up_vect, front_vect):
         0,0,0,1)
 '''
 
+# todo: move to libPymel
+def get_matrix_axis_x(tm):
+    return pymel.datatypes.Vector(
+        tm.a00, tm.a01, tm.a02
+    )
+
+# todo: move to libPymel
+def get_matrix_axis_y(tm):
+    return pymel.datatypes.Vector(
+        tm.a10, tm.a11, tm.a12
+    )
+
+# todo: move to libPymel
+def get_matrix_axis_z(tm):
+    return pymel.datatypes.Vector(
+        tm.a20, tm.a21, tm.a22
+    )
+
+# todo: move to libPymel
+def get_matrix_axis(tm, axis):
+    fn = None
+    if axis == constants.Axis.x:
+        fn = get_matrix_axis_x
+    elif axis == constants.Axis.y:
+        fn = get_matrix_axis_y
+    elif axis == constants.Axis.z:
+        fn = get_matrix_axis_z
+    else:
+        raise IOError("Unexpected axis. Got {}".format(
+            axis
+        ))
+
+    return fn(tm)
+
+# todo: move to libPymel
 def get_matrix_from_direction(look_vec, upp_vec,
                               look_axis=pymel.datatypes.Vector.xAxis,
                               upp_axis=pymel.datatypes.Vector.zAxis):

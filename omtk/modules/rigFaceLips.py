@@ -11,6 +11,41 @@ from omtk.modules import rigFaceAvarGrps
 from omtk.core.classNode import Node
 from omtk.models import modelInteractiveCtrl
 
+def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix):
+    """
+    Create a utility node setup that prevent Maya from throwing a warning in case of division by zero.
+    Maya is stupid when trying to handle division by zero in nodes.
+    We can't use a condition after the multiplyDivide to deactivate it if the denominator is zero since
+    the multiplyDivide will still get evaluated and throw a warning.
+    For this reason we'll create TWO conditions, the second one will change the denominator to a non-zero value.
+    :param attr_inn: A numerical value or pymel.Attribute instance representing the numerator.
+    :param attr_out: A numerical value or pymel.Attribute instance representing the denominator.
+    :return: A pymel.Attribute containing the result of the operation.
+    """
+    # Create a condition that force the denominator to have a non-zero value.
+    attr_numerator_fake = libRigging.create_utility_node(
+        'condition',
+        name=nomenclature.resolve('{}SafePre'.format(suffix)),
+        firstTerm=attr_denominator,
+        colorIfFalseR=attr_denominator,
+        colorIfTrueR=0.01,
+    ).outColorR
+    attr_result = libRigging.create_utility_node(
+        'multiplyDivide',
+        name=nomenclature.resolve(suffix),
+        operation=2,  # division,
+        input1X=attr_numerator,
+        input2X=attr_numerator_fake
+    ).outputX
+    attr_result_safe = libRigging.create_utility_node(
+        'condition',
+        name=nomenclature.resolve('{}SafePost'.format(suffix)),
+        firstTerm=attr_denominator,
+        colorIfFalseR=attr_result,
+        colorIfTrueR=0.0
+    ).outColorR
+    return attr_result_safe
+
 class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
     pass
 
@@ -72,7 +107,7 @@ class MatrixBlendNode(Node):
 
 class SplitterNode(Node):
     """
-    A splitter is a node network that take take the parameterV that is normally sent through the follicles and
+    A splitter is a node network that take the parameterV that is normally sent through the follicles and
     split it between two destination: the follicles and the jaw ref constraint.
     The more the jaw is opened, the more we'll transfer to the jaw ref before sending to the follicle.
     This is mainly used to ensure that any lip movement created by the jaw is canceled when the
@@ -168,15 +203,6 @@ class SplitterNode(Node):
             input2X=attr_jaw_open_circle_ratio
         ).outputX
 
-        # We need this adjustment since we cheat the influence of the avar with the plane uvs.
-        # see AvarFollicle._get_follicle_relative_uv_attr for more information.
-        # attr_jaw_radius_demi = libRigging.create_utility_node(
-        #     'multiplyDivide',
-        #     name=nomenclature_rig.resolve('getJawRangeVRange'),
-        #     input1X=self.attr_inn_surface_range_v,
-        #     input2X=2.0
-        # ).outputX
-
         attr_jaw_v_range = libRigging.create_utility_node(
             'multiplyDivide',
             name=nomenclature_rig.resolve('getActiveJawRangeInSurfaceSpace'),
@@ -186,50 +212,35 @@ class SplitterNode(Node):
         ).outputX
 
         #
-        # Step 2: Resolve attr_out_jaw_ratio
+        # Step 2: Resolve the output jaw_ratio
         #
 
-        # Convert attr_jaw_default_ratio in uv space.
-        attr_jaw_default_ratio_v = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawDefaultRatioUvSpace'),
-            input1X=self.attr_inn_jaw_default_ratio,
-            input2X=attr_jaw_v_range
-        ).outputX
+        # Note that this can throw a zero division warning in Maya.
+        # To prevent that we'll use some black-magic-ugly-ass-trick.
+        attr_jaw_ratio_cancelation = create_safe_division(
+            self.attr_inn_surface_v,
+            attr_jaw_v_range,
+            nomenclature_rig,
+            'getJawRatioCancellation'
+        )
 
-        attr_jaw_uv_pos = libRigging.create_utility_node(
+        attr_jaw_ratio_out_raw = libRigging.create_utility_node(
             'plusMinusAverage',
-            name=nomenclature_rig.resolve('getCurrentJawUvPos'),
-            operation=2,  # substraction
-            input1D=(attr_jaw_default_ratio_v, self.attr_inn_surface_v)
+            name=nomenclature_rig.resolve('getJawRatioOutUnlimited'),
+            operation=2,  # substraction,
+            input1D=(
+                self.attr_inn_jaw_default_ratio,
+                attr_jaw_ratio_cancelation
+            )
         ).output1D
-
-        attr_jaw_ratio_out = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawRatioOut'),
-            operation=2,  # division
-            input1X=attr_jaw_uv_pos,
-            input2X=attr_jaw_v_range
-        ).outputX
 
         attr_jaw_ratio_out_limited = libRigging.create_utility_node(
             'clamp',
-            name=nomenclature_rig.resolve('getLimitedJawRatioOut'),
-            inputR=attr_jaw_ratio_out,
+            name=nomenclature_rig.resolve('getJawRatioOutLimited'),
+            inputR=attr_jaw_ratio_out_raw,
             minR=0.0,
             maxR=1.0
         ).outputR
-
-        # Prevent division by zero
-        attr_jaw_ratio_out_limited_safe = libRigging.create_utility_node(
-            'condition',
-            name=nomenclature_rig.resolve('getSafeJawRatioOut'),
-            operation=1,  # not equal
-            firstTerm=self.attr_inn_jaw_pt,
-            secondTerm=0,
-            colorIfTrueR=attr_jaw_ratio_out_limited,
-            colorIfFalseR=self.attr_inn_jaw_default_ratio
-        ).outColorR
 
         #
         # Step 3: Resolve attr_out_surface_u & attr_out_surface_v
@@ -293,7 +304,7 @@ class SplitterNode(Node):
         # Connect output jaw_ratio
         attr_output_jaw_ratio = libRigging.create_utility_node(
             'blendWeighted',
-            input=(attr_jaw_ratio_out_limited_safe, self.attr_inn_jaw_default_ratio),
+            input=(attr_jaw_ratio_out_limited, self.attr_inn_jaw_default_ratio),
             weight=(attr_inn_bypass_inv, self.attr_inn_bypass)
         ).output
         pymel.connectAttr(attr_output_jaw_ratio, self.attr_out_jaw_ratio)
@@ -351,8 +362,8 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
     def build_stack(self, stack, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()
-        jnt_head = self.rig.get_head_jnt()
-        jnt_jaw = self.rig.get_jaw_jnt()
+        jnt_head = self.get_head_jnt()
+        jnt_jaw = self.get_jaw_jnt()
         jaw_pos = jnt_jaw.getTranslation(space='world')
 
         #
@@ -395,7 +406,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         blender = MatrixBlendNode()
         self._jaw_ref, constraint, targets = blender.build(
             nomenclature_rig,
-            [jnt_jaw, jnt_head],
+            [jnt_head, jnt_jaw],
             blender_tm,
             name = nomenclature_rig.resolve('jawBlender')
         )
@@ -497,10 +508,10 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         weight_s_head, weight_s_jaw = constraint_s.getWeightAliasList()
 
         # Connect splitter outputs
-        pymel.connectAttr(attr_jaw_ratio_inv, weight_pr_jaw)
-        pymel.connectAttr(attr_jaw_ratio_inv, weight_s_jaw)
-        pymel.connectAttr(attr_jaw_ratio, weight_pr_head)
-        pymel.connectAttr(attr_jaw_ratio, weight_s_head)
+        pymel.connectAttr(attr_jaw_ratio, weight_pr_jaw)
+        pymel.connectAttr(attr_jaw_ratio, weight_s_jaw)
+        pymel.connectAttr(attr_jaw_ratio_inv, weight_pr_head)
+        pymel.connectAttr(attr_jaw_ratio_inv, weight_s_head)
 
         #
         # Implement the 'bypass' avars.
@@ -522,7 +533,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         return attr_u, attr_v
 
 
-class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp setup customized for lips rigging.
     Lips have the same behavior than an AvarGrpUppLow.
@@ -533,6 +544,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
     SHOW_IN_UI = True
     _CLS_CTRL_UPP = CtrlLipsUpp
     _CLS_CTRL_LOW = CtrlLipsLow
+    CREATE_MACRO_AVAR_HORIZONTAL = True
+    CREATE_MACRO_AVAR_VERTICAL = True
+    CREATE_MACRO_AVAR_ALL = True
 
     def validate(self):
         """
@@ -541,7 +555,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         super(FaceLips, self).validate()
 
         if not self.preDeform:
-            if self.rig.get_jaw_jnt(strict=False) is None:
+            if self.get_jaw_jnt(strict=False) is None:
                 raise Exception("Can't resolve jaw. Please create a Jaw module.")
 
     def get_avars_corners(self):
@@ -556,8 +570,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
         return result
 
-    def get_module_name(self):
-        return 'Lip'
+    def get_default_name(self):
+        return 'lip'
 
     def connect_macro_avar(self, avar_macro, avar_micros):
         for avar_micro in avar_micros:
@@ -685,53 +699,15 @@ class FaceLips(rigFaceAvarGrps.AvarGrpAreaOnSurface):
 
         if not self.preDeform:
             # Resolve the head influence
-            jnt_head = self.rig.get_head_jnt()
+            jnt_head = self.get_head_jnt()
             if not jnt_head:
                 self.error("Failed parenting avars, no head influence found!")
                 return
 
-            jnt_jaw = self.rig.get_jaw_jnt()
+            jnt_jaw = self.get_jaw_jnt()
             if not jnt_jaw:
                 self.error("Failed parenting avars, no jaw influence found!")
                 return
-
-            nomenclature_rig = self.get_nomenclature_rig()
-
-            # # Note #2: A common target for the head
-            # target_head_name = nomenclature_rig.resolve('targetHead')
-            # target_head = pymel.createNode('transform', name=target_head_name)
-            # target_head.setTranslation(jnt_head.getTranslation(space='world'))
-            # target_head.setParent(self.grp_rig)
-            # pymel.parentConstraint(jnt_head, target_head, maintainOffset=True)
-            # pymel.scaleConstraint(jnt_head, target_head, maintainOffset=True)
-            #
-            # # Note #3: A common target for the jaw
-            # target_jaw_name = nomenclature_rig.resolve('targetJaw')
-            # target_jaw = pymel.createNode('transform', name=target_jaw_name)
-            # target_jaw.setTranslation(jnt_jaw.getTranslation(space='world'))
-            # target_jaw.setParent(self.grp_rig)
-            # pymel.parentConstraint(jnt_jaw, target_jaw, maintainOffset=True)
-            # pymel.scaleConstraint(jnt_jaw, target_jaw, maintainOffset=True)
-            #
-            # attr_bypass = libAttr.addAttr(self.grp_rig, 'bypassSplitter')
-
-
-            # For each avars, create an extractor node and extract the delta from the bind pose.
-            # We'll then feed this into the stack layers.
-            # This will apply jaw deformation to the rig.
-
-            # Moving the lips when they are influenced by the jaw is a hard task.
-            # This is because the jaw introduce movement in 'jaw' space while the
-            # standard avars introduce movement in 'surface' space.
-            # This mean that if we try to affect a deformation occuring in 'jaw' space
-            # with the 'surface' space (ex: moving the lips corners up when the jaw is open)
-            # this will not result in perfect results.
-
-            # To prevent this situation, taking in consideration that there's a one on one correlation
-            # between the lips and jaw deformation (ex: the football shape created by the jaw at 1.0
-            # is the same as if upp and low lips are set at 0.5 each), we'll always use the jaw space
-            # before using the lips space.
-
 
             min_x, max_x = self._get_mouth_width()
             mouth_width = max_x - min_x

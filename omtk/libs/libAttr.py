@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import logging
 log = logging.getLogger('omtk')
 
@@ -193,7 +194,8 @@ def fetch_attr(source, target):
     if source is None:
         return
     elif isinstance(source, pymel.Attribute):
-        pymel.connectAttr(source, target)
+        if source.exists():
+            pymel.connectAttr(source, target)
     else:
         target.set(source)
 
@@ -257,7 +259,7 @@ def lock_translation(node, x=True, y=True, z=True):
 
     lock_attrs(lock_list)
 
-def unlock_translation(node, x=True, y=True, z=True):
+def unlock_translation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
         translate_x = node.attr('translateX')
@@ -268,6 +270,9 @@ def unlock_translation(node, x=True, y=True, z=True):
     if z:
         translate_z = node.attr('translateZ')
         unlock_list.append(translate_z)
+    if xyz:
+        translate = node.attr('translate')
+        unlock_list.append(translate)
 
     unlock_attrs(unlock_list)
 
@@ -285,7 +290,7 @@ def lock_rotation(node, x=True, y=True, z=True):
 
     lock_attrs(lock_list)
 
-def unlock_rotation(node, x=True, y=True, z=True):
+def unlock_rotation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
         rotate_x = node.attr('rotateX')
@@ -296,6 +301,9 @@ def unlock_rotation(node, x=True, y=True, z=True):
     if z:
         rotate_z = node.attr('rotateZ')
         unlock_list.append(rotate_z)
+    if xyz:
+        rotate = node.attr('rotate')
+        unlock_list.append(rotate)
 
     unlock_attrs(unlock_list)
 
@@ -313,7 +321,7 @@ def lock_scale(node, x=True, y=True, z=True):
 
     lock_attrs(lock_list)
 
-def unlock_scale(node, x=True, y=True, z=True):
+def unlock_scale(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
         scale_x = node.attr('scaleX')
@@ -324,6 +332,9 @@ def unlock_scale(node, x=True, y=True, z=True):
     if z:
         scale_z = node.attr('scaleZ')
         unlock_list.append(scale_z)
+    if xyz:
+        scale = node.attr('scale')
+        unlock_list.append(scale)
 
     unlock_attrs(unlock_list)
 
@@ -534,3 +545,38 @@ def get_settable_attr(attr):
         attr = get_input_attr_from_output_attr(attr)
     return attr
 
+#
+# Connection holding
+#
+
+def hold_connections(attrs):
+    """
+    Disconnect all inputs from the provided attributes but keep their in memory for ulterior re-connection.
+    :param attrs: A list of pymel.Attribute instances.
+    :return: A list of tuple containing the origin source and destination attribute for each entries.
+    """
+    result = []
+    for attr_dst in attrs:
+        attr_src = next(iter(attr_dst.inputs(plugs=True)), None)
+        if attr_src:
+            pymel.disconnectAttr(attr_src, attr_dst)
+            result.append((attr_src, attr_dst))
+    return result
+
+def fetch_connections(data):
+    """
+    Reconnect all attributes using returned data from the hold_connections function.
+    :param data: A list of tuple of size-two containing pymel.Attribute instances.
+    """
+    for attr_src, attr_dst in data:
+        pymel.connectAttr(attr_src, attr_dst)
+
+@contextmanager
+def context_disconnected_attrs(attrs):
+    """
+    A context (use with the 'with' statement) to apply instruction while ensuring the provided attributes are disconnected temporarily.
+    :param attrs: Redirected to hold_connections.
+    """
+    data = hold_connections(attrs)
+    yield True
+    fetch_connections(data)

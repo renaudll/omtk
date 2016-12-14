@@ -60,7 +60,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
     SHOW_IN_UI = False
     IS_SIDE_SPECIFIC = False
 
-    def get_module_name(self):
+    def get_default_name(self):
         return 'Jaw'
 
     def build(self, *args, **kwargs):

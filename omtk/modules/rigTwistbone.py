@@ -97,12 +97,12 @@ class Twistbone(Module):
 
         super(Twistbone, self).build(create_grp_anm=self.create_bend, *args, **kwargs)
 
-        nomenclature_rig = self.get_nomenclature_rig()
-        nomenclature_jnt = self.get_nomenclature_jnt()
-
         top_parent = self.chain[0].getParent()
         jnt_s = self.chain_jnt[0]
         jnt_e = self.chain_jnt[1]
+
+        nomenclature_rig = self.get_nomenclature_rig()
+        nomenclature_jnt = self.rig.nomenclature(jnt_s.nodeName(), suffix=self.rig.nomenclature.type_jnt)  # Hack: find a better way!
 
         scalable_grp = pymel.createNode('transform')
         scalable_grp.setParent(self.grp_rig)
@@ -132,7 +132,8 @@ class Twistbone(Module):
                 tm.translate = delta * ratio + sp
                 subjnt.setMatrix(tm, worldSpace=True)
 
-        self.subjnts[0].setParent(jnt_s)
+        if self.subjnts[0].getParent() != jnt_s:
+            self.subjnts[0].setParent(jnt_s)
 
         driver_grp = pymel.createNode('transform')
         driver_grp.setParent(scalable_grp)
@@ -146,8 +147,13 @@ class Twistbone(Module):
         # Rename the skinning subjnts
         for i, sub_jnt in enumerate(self.subjnts):
             sub_jnt.segmentScaleCompensate.set(0)  # Remove segment scale compensate
+
             # Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
-            jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            # nomenclature_inf = nomenclature_jnt.copy()
+            # nomenclature_inf.add_tokens('twist', '{0:02d}'.format(i))
+            # jnt_name = nomenclature_inf.resolve()
+            # jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            jnt_name = nomenclature_jnt.resolve('{0:02d}'.format(i))
             sub_jnt.rename(jnt_name)
 
         driver_refs = []
@@ -183,7 +189,7 @@ class Twistbone(Module):
         before_mid_idx = math.floor((self.num_twist/2.0))
         if self.create_bend:
             # Create Ribbon
-            sys_ribbon = Ribbon(self.subjnts, name=nomenclature_rig.resolve("bendRibbon"), rig=self.rig)
+            sys_ribbon = self.init_module(Ribbon, None, inputs=self.subjnts)
             sys_ribbon.build(create_ctrl=False, degree=3, num_ctrl=self.num_twist, no_subdiv=False, rot_fol=False)
             self.ctrls = sys_ribbon.create_ctrls(ctrls=self.ctrls, no_extremity=True,
                                                  constraint_rot=False, refs=self.chain_jnt[1])
@@ -293,12 +299,18 @@ class Twistbone(Module):
     @decorator_uiexpose()
     def assign_twist_weights(self):
         skin_deformers = self.get_skinClusters_from_inputs()
+        meshes = set()
 
         for skin_deformer in skin_deformers:
             # Ensure the source joint is in the skinCluster influences
             influenceObjects = skin_deformer.influenceObjects()
             if self.chain_jnt.start not in influenceObjects:
                 continue
+
+            # Add skinCluster output geometries to the cache
+            for output_geometry in skin_deformer.getOutputGeometry():
+                if isinstance(output_geometry, pymel.nodetypes.Mesh):
+                    meshes.add(output_geometry)
 
             # Add new joints as influence.
             for subjnt in self.subjnts:
@@ -307,7 +319,7 @@ class Twistbone(Module):
                 skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
                 subjnt.lockInfluenceWeights.set(False)
 
-        for mesh in self.get_farest_affected_meshes():
+        for mesh in meshes:
             self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
             # Transfer weight, note that since we use force_straight line, the influence
             # don't necessaryy need to be in their bind pose.
@@ -336,7 +348,8 @@ class Twistbone(Module):
 
     def get_skinClusters_from_inputs(self):
         skinClusters = set()
-        for jnt in self.chain_jnt:
+        jnts = [jnt for jnt in self.chain_jnt if jnt and jnt.exists()]  # Only handle existing objects
+        for jnt in jnts:
             for hist in jnt.listHistory(future=True):
                 if isinstance(hist, pymel.nodetypes.SkinCluster):
                     skinClusters.add(hist)
@@ -344,11 +357,11 @@ class Twistbone(Module):
 
     def get_skinClusters_from_subjnts(self):
         skinClusters = set()
-        if self.subjnts:
-            for jnt in self.subjnts:
-                for hist in jnt.listHistory(future=True):
-                    if isinstance(hist, pymel.nodetypes.SkinCluster):
-                        skinClusters.add(hist)
+        jnts = [jnt for jnt in self.subjnts if jnt and jnt.exists()]  # Only handle existing objects
+        for jnt in self.jnts:
+            for hist in jnt.listHistory(future=True):
+                if isinstance(hist, pymel.nodetypes.SkinCluster):
+                    skinClusters.add(hist)
         return skinClusters
 
     def get_farest_affected_meshes(self):
@@ -364,11 +377,9 @@ class Twistbone(Module):
         Unbuild the twist bone
         '''
 
-        '''
         # Remove twistbones skin
-        for mesh in self.get_farest_affected_mesh():
-            libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
-        '''
+        self.unassign_twist_weights()
+
         # React if the user deleted some twist influences.
         self.subjnts = filter(libPymel.is_valid_PyNode, self.subjnts)
 

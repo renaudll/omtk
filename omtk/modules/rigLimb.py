@@ -1,8 +1,8 @@
 import pymel.core as pymel
 import collections
+from omtk import constants
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core import constants
 from omtk.core.utils import decorator_uiexpose
 from omtk.modules import rigIK
 from omtk.modules import rigFK
@@ -10,6 +10,7 @@ from omtk.modules import rigTwistbone
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 from omtk.libs import libAttr
+from omtk.libs import libPython
 
 
 class BaseAttHolder(BaseCtrl):
@@ -73,36 +74,57 @@ class Limb(Module):
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
 
+        # Resolve IK system name
+
+
         # Create IK system
-        if not isinstance(self.sysIK, self._CLASS_SYS_IK):
-            self.sysIK = self._CLASS_SYS_IK(self.chain_jnt, rig=self.rig)
-        self.sysIK.name = '{0}_Ik'.format(self.name) # Hack
+        self.sysIK = self.init_module(
+            self._CLASS_SYS_IK,
+            self.sysIK,
+            inputs=self.chain_jnt,
+            suffix='ik'
+        )
         self.sysIK.build(constraint=False, **kwargs)
 
         # Create FK system
-        if not isinstance(self.sysFK, self._CLASS_SYS_FK):
-            self.sysFK = self._CLASS_SYS_FK(self.chain_jnt, rig=self.rig)
-        self.sysFK.name = '{0}_Fk'.format(self.name) # Hack
+        self.sysFK = self.init_module(
+            self._CLASS_SYS_FK,
+            self.sysFK,
+            inputs=self.chain_jnt,
+            suffix='fk'
+        )
         self.sysFK.build(constraint=False, **kwargs)
 
         # Create twistbone system if needed
         if self.create_twist:
             num_twist_sys = self.sysIK.iCtrlIndex
+            # Ensure the twistbone list have the proper size
+            libPython.resize_list(self.sys_twist, num_twist_sys)
+
             # If the IK system is a quad, we need to have two twist system
-            for i in range(0, num_twist_sys):
-                cur_sys_twist = self.sys_twist[i] if i < len(self.sys_twist) else None
-                if not isinstance(cur_sys_twist, self._CLASS_SYS_TWIST):
-                    cur_sys_twist = self._CLASS_SYS_TWIST(self.chain_jnt[i:(i+2)], rig=self.rig)
-                    self.sys_twist.append(cur_sys_twist)
-                # Hack
-                twist_sys_name = self.chain_jnt[i].name().replace('_' + nomenclature_rig.type_jnt, "")
-                cur_sys_twist.name = '{0}'.format(twist_sys_name)
-                cur_sys_twist.build(num_twist=3, create_bend=True, **kwargs)
+            for i, sys_twist in enumerate(self.sys_twist):
+                # Resolve module name
+                # todo: validate name
+                twist_nomenclature = self.get_nomenclature().copy()
+                twist_nomenclature.add_tokens('bend')
+                twist_nomenclature += self.rig.nomenclature(self.chain_jnt[i].name())
+                # twist_nomenclature = self.get_nomenclature() + self.rig.nomenclature(self.chain_jnt[i].name())
+
+                sys_twist = self.init_module(
+                    self._CLASS_SYS_TWIST,
+                    sys_twist,
+                    inputs=self.chain_jnt[i:(i+2)],
+                    # suffix='bend'
+                )
+                self.sys_twist[i] = sys_twist
+                sys_twist.name = twist_nomenclature.resolve()
+
+                sys_twist.build(num_twist=3, create_bend=True, **kwargs)
 
         # Lock X and Y axis on the elbow/knee ctrl
-        if self.rig._up_axis == constants.Axis.y:
+        if self.rig.DEFAULT_UPP_AXIS == constants.Axis.y:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
-        elif self.rig._up_axis == constants.Axis.z:
+        elif self.rig.DEFAULT_UPP_AXIS == constants.Axis.z:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], y=False)
 
         # Store the offset between the ik ctrl and it's joint equivalent.
@@ -283,13 +305,13 @@ class Limb(Module):
     @decorator_uiexpose()
     def assign_twist_weights(self):
         for module in self.sys_twist:
-            if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
+            if isinstance(module, self._CLASS_SYS_TWIST):
                 module.assign_twist_weights()
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):
         for module in self.sys_twist:
-            if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
+            if isinstance(module, self._CLASS_SYS_TWIST):
                 module.unassign_twist_weights()
 
 def register_plugin():

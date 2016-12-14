@@ -4,7 +4,7 @@ import inspect
 
 import pymel.core as pymel
 from classNode import Node
-from omtk.core import constants
+from omtk import constants
 from omtk.core import classNode
 from omtk.libs import libAttr
 from omtk.libs import libPymel
@@ -128,7 +128,8 @@ class BaseCtrl(Node):
             self.offset = self.append_layer('offset')
 
         # Fetch stored animations
-        self.fetch_attr_all() # todo: still necessary?
+        # Disabled for now, see method docstring.
+        # self.fetch_attr_all()
 
         # Fetch stored shapes
 
@@ -163,6 +164,9 @@ class BaseCtrl(Node):
         self.shapes = libRigging.hold_ctrl_shapes(self.node)
 
     def fetch_shapes(self):
+        # libAttr.unlock_rotation(self.shapes)
+        # libAttr.unlock_scale(self.shapes)
+        # pymel.makeIdentity(self.shapes, rotate=False, scale=True, apply=True)  # Ensure the shape don't have any extra transformation.
         libRigging.fetch_ctrl_shapes(self.shapes, self.node)
         self.shapes = None
 
@@ -255,17 +259,20 @@ class BaseCtrl(Node):
     def fetch_attr_all(self):
         """
         Fetch all ctrl keyable attributes.
+        Disabled for now as this can affect how things generate.
+        The fetch_attr_all should be called LAST after a Module generation.
         """
-        # Note: we're forced to use __dict__ since we don't self.tx to be interpreted as self.node.tx
-        libAttr.fetch_attr(self.__dict__.get('tx', None), self.node.translateX)
-        libAttr.fetch_attr(self.__dict__.get('ty', None), self.node.translateY)
-        libAttr.fetch_attr(self.__dict__.get('tz', None), self.node.translateZ)
-        libAttr.fetch_attr(self.__dict__.get('rx', None), self.node.rotateX)
-        libAttr.fetch_attr(self.__dict__.get('ry', None), self.node.rotateY)
-        libAttr.fetch_attr(self.__dict__.get('rz', None), self.node.rotateZ)
-        libAttr.fetch_attr(self.__dict__.get('sx', None), self.node.scaleX)
-        libAttr.fetch_attr(self.__dict__.get('sy', None), self.node.scaleY)
-        libAttr.fetch_attr(self.__dict__.get('sz', None), self.node.scaleZ)
+        pass
+        # # Note: we're forced to use __dict__ since we don't self.tx to be interpreted as self.node.tx
+        # libAttr.fetch_attr(self.__dict__.get('tx', None), self.node.translateX)
+        # libAttr.fetch_attr(self.__dict__.get('ty', None), self.node.translateY)
+        # libAttr.fetch_attr(self.__dict__.get('tz', None), self.node.translateZ)
+        # libAttr.fetch_attr(self.__dict__.get('rx', None), self.node.rotateX)
+        # libAttr.fetch_attr(self.__dict__.get('ry', None), self.node.rotateY)
+        # libAttr.fetch_attr(self.__dict__.get('rz', None), self.node.rotateZ)
+        # libAttr.fetch_attr(self.__dict__.get('sx', None), self.node.scaleX)
+        # libAttr.fetch_attr(self.__dict__.get('sy', None), self.node.scaleY)
+        # libAttr.fetch_attr(self.__dict__.get('sz', None), self.node.scaleZ)
 
     #
     # SPACE SWITH LOGIC

@@ -397,3 +397,40 @@ class SegmentCollection(object):
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)
+
+def get_rotation_from_matrix(tm):
+    """
+    Bypass pymel bug
+    see https://github.com/LumaPictures/pymel/issues/355
+    """
+    return pymel.datatypes.TransformationMatrix(tm).rotate
+
+def makeIdentity_safe(obj, translate=False, rotate=False, scale=False, apply=False, **kwargs):
+    """
+    Extended pymel.makeIdentity method that won't crash for idiotic reasons.
+    """
+    from . import libAttr
+
+    affected_attrs = []
+
+    # Ensure the shape don't have any extra transformation.
+    if apply:
+        if translate:
+            libAttr.unlock_translation(obj)
+            affected_attrs.extend([
+                obj.translate, obj.translateX, obj.translateY, obj.translateZ
+            ])
+        if rotate:
+            libAttr.unlock_rotation(obj)
+            affected_attrs.extend([
+                obj.rotate, obj.rotateX, obj.rotateY, obj.rotateZ
+            ])
+        if scale:
+            libAttr.unlock_scale(obj)
+            affected_attrs.extend([
+                obj.scale, obj.scaleX, obj.scaleY, obj.scaleZ
+            ])
+
+    # Make identify will faile if attributes are connected...
+    with libAttr.context_disconnected_attrs(affected_attrs):
+        pymel.makeIdentity(obj, apply=apply, translate=translate, rotate=rotate, scale=scale, **kwargs)

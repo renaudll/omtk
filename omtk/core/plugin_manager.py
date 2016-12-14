@@ -6,8 +6,10 @@ import pkgutil
 import logging
 import inspect
 
-log = logging.getLogger('omtk')
+from omtk import constants
 from omtk.libs import libPython
+
+log = logging.getLogger('omtk')
 
 class PluginStatus:
     Loaded = 'Loaded'
@@ -280,7 +282,7 @@ class RigPluginType(PluginType):
 
 def initialize():
     # Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
-    plugin_dirs = os.environ.get('OMTK_PLUGINS', '').split(os.pathsep)
+    plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, '').split(os.pathsep)
     plugin_dirs = filter(None, plugin_dirs)
     for path in plugin_dirs:
         if not path in sys.path:

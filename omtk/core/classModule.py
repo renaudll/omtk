@@ -101,13 +101,23 @@ class Module(object):
         return self.__dict__['_outputs']
     '''
 
+    @libPython.memoized_instancemethod
+    def get_side(self):
+        """
+        Analyze the inputs of the module and try to return it's side.
+        :return: The side using the correct nomenclature.
+        """
+        ref = next(iter(self.chain), None) if self.chain else None
+        nomenclature = self.rig.nomenclature(ref.nodeName())
+        return nomenclature.side
+
     def get_default_name(self):
         """
         :return: Return an unique identifier using the inputs of the module.
         Note that this will crash if the module don't use any joint.
         """
         # todo: use className!
-        ref = next(iter(self.chain), None)
+        ref = next(iter(self.chain), None) if self.chain else None
         if ref:
             old_nomenclature = self.rig.nomenclature(ref.nodeName())
             new_nomenclature = self.rig.nomenclature()
@@ -118,9 +128,7 @@ class Module(object):
                 new_nomenclature.add_tokens(self.__class__.__name__.lower())
 
             if self.IS_SIDE_SPECIFIC:
-                side = old_nomenclature.side
-                if side:
-                    new_nomenclature.side = side
+                new_nomenclature.side = self.get_side()
 
             return new_nomenclature.resolve()
 
@@ -139,7 +147,7 @@ class Module(object):
         :return: The nomenclature to use for animation controllers.
         """
         name = self.rig.nomenclature(
-            name=self.get_module_name(),
+            name=self.get_module_name()
         )
         return name
 
@@ -247,6 +255,54 @@ class Module(object):
         return next(iter(self.chains_jnt), None)
 
     @libPython.memoized_instancemethod
+    def get_head_jnt(self, strict=False):
+        """
+        Resolve the head influence related to the current module.
+        This is necessary as some rigs might have multiple heads!
+        :return: A pymel.PyNode representing the head influence to use. None if nothing is found.
+        """
+        head_jnts = self.rig.get_head_jnts(strict=strict)
+
+        # If any of the module influence are parented to an head, use this one.
+        for jnt in self.jnts:
+            for parent in libPymel.iter_parents(jnt):
+                if parent in head_jnts:
+                    return parent
+
+        # If no influence if found, take a guess.
+        default_head = next(iter(head_jnts), None)
+        if default_head:
+            self.warning("Cannot resolve head influence! Using default {}".format(default_head))
+        else:
+            self.warning("Cannot resolve head influence!")
+
+    @libPython.memoized_instancemethod
+    def get_jaw_jnt(self, strict=True):
+        """
+        Resolve the jaw influence related to the current module.
+        This is necessary as some rigs might have multiple jaws!
+        This start by resolving the head and they choosing a jaw module that have a child of the head as influence.
+        :return: A pymel.Attribute representing the head influence to use. None if nothing is found.
+        """
+        # Resolve head
+        head_jnt = self.get_head_jnt(strict=False)
+        if strict and not head_jnt:
+            self.warning("Cannot resolve jaw influence. No head was found!")
+            return
+
+        # Find a Jaw module that have influence under the head.
+        from omtk.modules import rigFaceJaw
+        for module in self.rig.modules:
+            if isinstance(module, rigFaceJaw.FaceJaw):
+                jnt = module.jnt
+                if libPymel.is_child_of(jnt, head_jnt):
+                    return jnt
+
+        if strict:
+            self.warning("Cannot found jaw influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+        return None
+
+    @libPython.memoized_instancemethod
     def get_surfaces(self):
         """
         :return: A list of all inputs of type pymel.nodetypes.NurbsSurface.
@@ -313,7 +369,14 @@ class Module(object):
 
 
     def __str__(self):
-        return '{0} <{1}>'.format(self.get_module_name(), self.__class__.__name__)
+        version = getattr(self, 'version', '')
+        if version:
+            version = ' v{}'.format(version)
+        return '{} <{}{}>'.format(
+            self.name,
+            self.__class__.__name__,
+            version
+        )
 
 
     def validate(self, support_no_inputs=False):
@@ -472,6 +535,10 @@ class Module(object):
         else:
             return None, None
 
+    #
+    # Initialization helper methods
+    #
+
     def init_ctrl(self, cls, inst):
         """
         Factory method that initialize a class instance only if necessary.
@@ -497,6 +564,37 @@ class Module(object):
                 result.shapes = old_shapes
 
         return result
+
+    def init_module(self, cls, inst, inputs=None, suffix=None):
+        """
+        Factory method that initialize a child module instance only if necessary.
+        If the instance already had been initialized in a previous build, it's correct value will be preserved,
+        :param cls: The desired class.
+        :param inst: The current value. This should always exist since defined in the module constructor.
+        :param inputs: The inputs to use for the module.
+        :param suffix: The token to use for the module name. This help prevent collision between
+        module objects and the child module objects. If nothing is provided, the same name will be used
+        which can result in collisions.
+        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        """
+        # todo: Validate inputs, we may need to modify the module if the inputs don't match!
+
+        result = inst
+
+        if not isinstance(inst, cls):
+            result = cls(inputs, rig=self.rig)
+
+        # Set the child module name.
+        if suffix is None:
+            result.name = self.name
+        else:
+            nomenclature = self.get_nomenclature().copy()
+            nomenclature.tokens.append(suffix)
+            result.name = nomenclature.resolve()
+
+        return result
+
+
 
 
 

@@ -1,10 +1,15 @@
+import logging
+
 import pymel.core as pymel
 from maya import mel
+from maya import cmds
+
+from omtk import constants
 from omtk.libs import libAttr
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
 from omtk.modules import rigLeg
-import logging
+
 log = logging.getLogger('omtk')
 
 class CtrlIkQuadSwivel(rigIK.CtrlIkSwivel):
@@ -38,7 +43,7 @@ class LegIkQuad(rigLeg.LegIk):
         self.ctrl_swivel_quad = None
         self._chain_quad_ik = None
         self._ik_handle_quad = None
-        self.quad_swivel_distance = None
+        # self.quad_swivel_distance = None
         self.quad_swivel_sw = None  # Object use as space switch pin location that will be kept on unbuild
 
     def create_ik_handle(self):
@@ -48,10 +53,11 @@ class LegIkQuad(rigLeg.LegIk):
         :return: Nothing, handle is stocked in a class variable
         """
         mel.eval('ikSpringSolver') # Solver need to be loaded before being used
-        return super(LegIkQuad, self).create_ik_handle(solver='ikSpringSolver')
+        ik_handle, ik_effector = super(LegIkQuad, self).create_ik_handle(solver='ikSpringSolver')
+        return ik_handle, ik_effector
 
 
-    def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, constraint=True, mirror_setup=True, **kwargs):
+    def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, constraint=True, mirror_setup=True, adjust_ik_handle_twist=True, **kwargs):
         """
         Create the swivel ctrl for the ik system. Redefined to add the possibility to create a mirror swivel setup
         to prevent flipping problem with pole vector when using ikSpringSolver
@@ -62,6 +68,7 @@ class LegIkQuad(rigLeg.LegIk):
         :param ik_handle: The handle to pole vector contraint
         :param constraint: Do we contraint the ik handle to the swivel ctrl
         :param mirror_setup: Is the swivel need a mirror setup (Hack to bypass ikSpringSolver flipping problem
+        :param adjust_ik_handle_twist: In some cases, the ikSpringSolver will flip when the poleVector is applied. If True, this will use brute-force to adjust it.
         :param kwargs: Additionnal parameters
         :return: The created ctrl swivel
         """
@@ -70,55 +77,119 @@ class LegIkQuad(rigLeg.LegIk):
         ctrl_swivel = super(LegIkQuad, self).setup_swivel_ctrl(base_ctrl, ref, pos, ik_handle, constraint=False, **kwargs)
         nomenclature_rig = self.get_nomenclature_rig()
 
-        flip_swivel_ref = None
-        if mirror_setup:
-            # HACK - In case the ikpringSolver is used, a flip can happen if the foot pos is behind the thigh pos
-            # Since we already have a plane, only compare the world Z pos to know if the foot is behind the thigh
-            thigh_pos = self.chain_jnt[0].getTranslation(space='world')
-            foot_pos = self.chain_jnt[self.iCtrlIndex].getTranslation(space='world')
-            # TODO - The check is not stable at all. The best we could do is to do real test on the bones
-            # if foot_pos.z < thigh_pos.z:
-            if foot_pos.z < thigh_pos.z and nomenclature_rig.side != nomenclature_rig.SIDE_R:  # Flip will occur
-                log.warning("Using the mirror swivel setup for {0}".format(self.name))
-                # The goal is to create a swivel ref that will be at the good position for the poleVectorContraint
-                # to not flip and drive it by the pole vector ctrl that is in the real position we really wanted
-                flip_swivel_ref = pymel.spaceLocator()
-                flip_swivel_ref.rename(nomenclature_rig.resolve('swivelFlipRefBack'))
-                flip_pos = pymel.dt.Vector(pos.x, pos.y, -pos.z)
-                flip_swivel_ref.setTranslation(flip_pos, space='world')
+        # flip_swivel_ref = None
+        # if mirror_setup:
+        #     # HACK - In case the ikpringSolver is used, a flip can happen if the foot pos is behind the thigh pos
+        #     # Since we already have a plane, only compare the world Z pos to know if the foot is behind the thigh
+        #     thigh_pos = self.chain_jnt[0].getTranslation(space='world')
+        #     foot_pos = self.chain_jnt[self.iCtrlIndex].getTranslation(space='world')
+        #     # TODO - The check is not stable at all. The best we could do is to do real test on the bones
+        #     # if foot_pos.z < thigh_pos.z:
+        #     if foot_pos.z < thigh_pos.z and nomenclature_rig.side != nomenclature_rig.SIDE_R:  # Flip will occur
+        #         log.warning("Using the mirror swivel setup for {0}".format(self.name))
+        #         # The goal is to create a swivel ref that will be at the good position for the poleVectorContraint
+        #         # to not flip and drive it by the pole vector ctrl that is in the real position we really wanted
+        #         flip_swivel_ref = pymel.spaceLocator()
+        #         flip_swivel_ref.rename(nomenclature_rig.resolve('swivelFlipRefBack'))
+        #         flip_pos = pymel.dt.Vector(pos.x, pos.y, -pos.z)
+        #         flip_swivel_ref.setTranslation(flip_pos, space='world')
+        #
+        #         # Setup a ref parent that will always look at the foot
+        #         ref_parent_name = nomenclature_rig.resolve('swivelParentFlipRef')
+        #         ref_parent = pymel.createNode('transform', name=ref_parent_name, parent=self.grp_rig)
+        #         ref_parent.setMatrix(self.chain_jnt[0].getMatrix(ws=True), ws=True)
+        #         pymel.pointConstraint(self.parent, ref_parent, mo=True)
+        #         pymel.aimConstraint(self.ctrl_ik, ref_parent, mo=True)
+        #         ref_parent.setParent(self.grp_rig)
+        #         # Parent the ref flipping swivel on it's parent
+        #         flip_swivel_ref.setParent(ref_parent)
+        #
+        #         # Create a ref that will be at the same position than the swivel ctrl
+        #         # and that will control the flipping swivel
+        #         ref_swivel_ctrl = pymel.spaceLocator()
+        #         ref_swivel_ctrl.rename(nomenclature_rig.resolve('swivelCtrlRef'))
+        #         ref_swivel_ctrl.setMatrix(ctrl_swivel.getMatrix(ws=True), ws=True)
+        #         pymel.pointConstraint(ctrl_swivel, ref_swivel_ctrl)
+        #         ref_swivel_ctrl.setParent(ref_parent)
+        #
+        #         # Now, mirror position from the ref swivel ctrl to the flipping swivel ctrl
+        #         inverse_MD = pymel.createNode('multiplyDivide')
+        #         inverse_MD.input2.set(-1.0, -1.0, -1.0)
+        #         ref_swivel_ctrl.translate.connect(inverse_MD.input1)
+        #         inverse_MD.output.connect(flip_swivel_ref.translate)
 
-                # Setup a ref parent that will always look at the foot
-                ref_parent_name = nomenclature_rig.resolve('swivelParentFlipRef')
-                ref_parent = pymel.createNode('transform', name=ref_parent_name, parent=self.grp_rig)
-                ref_parent.setMatrix(self.chain_jnt[0].getMatrix(ws=True), ws=True)
-                pymel.pointConstraint(self.parent, ref_parent, mo=True)
-                pymel.aimConstraint(self.ctrl_ik, ref_parent, mo=True)
-                ref_parent.setParent(self.grp_rig)
-                # Parent the ref flipping swivel on it's parent
-                flip_swivel_ref.setParent(ref_parent)
-
-                # Create a ref that will be at the same position than the swivel ctrl
-                # and that will control the flipping swivel
-                ref_swivel_ctrl = pymel.spaceLocator()
-                ref_swivel_ctrl.rename(nomenclature_rig.resolve('swivelCtrlRef'))
-                ref_swivel_ctrl.setMatrix(ctrl_swivel.getMatrix(ws=True), ws=True)
-                pymel.pointConstraint(ctrl_swivel, ref_swivel_ctrl)
-                ref_swivel_ctrl.setParent(ref_parent)
-
-                # Now, mirror position from the ref swivel ctrl to the flipping swivel ctrl
-                inverse_MD = pymel.createNode('multiplyDivide')
-                inverse_MD.input2.set(-1.0, -1.0, -1.0)
-                ref_swivel_ctrl.translate.connect(inverse_MD.input1)
-                inverse_MD.output.connect(flip_swivel_ref.translate)
 
         if constraint:
             # Pole vector contraint the swivel to the ik handle
-            if flip_swivel_ref: # Use the flipping ref if needed
-                pymel.poleVectorConstraint(flip_swivel_ref, ik_handle)
-            else:
-                pymel.poleVectorConstraint(ctrl_swivel, ik_handle)
+            # if flip_swivel_ref: # Use the flipping ref if needed
+            #     print 1
+            #     pymel.poleVectorConstraint(flip_swivel_ref, ik_handle)
+            # else:
+            print 2
+            pymel.poleVectorConstraint(ctrl_swivel, ik_handle)
+
+        if adjust_ik_handle_twist:
+            # Hack: For strange reasons, creating the ikSpringSolver can make the leg flip.
+            # This is applicable after assigning the pole vectors.
+            # To bypass this, we'll look for flipping and compensate with the ikHandle 'twist' attribute.
+            self.adjust_spring_solver_twist(
+                self.jnts[0],
+                self.jnts[1],
+                self._chain_ik[0],
+                self._chain_ik[1],
+                self._ik_handle
+            )
 
         return ctrl_swivel
+
+    def adjust_spring_solver_twist(self, obj_ref_s, obj_ref_e, obj_s, obj_e, ik_handle, epsilon=0.00000000001, max_iter=20, default_low=-180.0, default_high=180):
+        """
+        For strange reasons, creating the ikSpringSolver can generate a twist offset.
+        We are still not sure what is causing that so currently we are using a brute-force approach to resolve the offset.
+        :param epsilon: A float representing the minimum precision required.
+        :param max_iter: An int representing the maximum number of tries to take.
+        """
+        self.debug("Resolving {} twist offset with brute-force.".format(ik_handle))
+        attr = ik_handle.twist
+
+        # Store the direction we are trying to match.
+        dir_ref = obj_ref_e.getTranslation(space='world') - obj_ref_s.getTranslation(space='world')
+        dir_ref.normalize()
+
+        def take_guess(val):
+            attr.set(val)
+            dir = obj_e.getTranslation(space='world') - obj_s.getTranslation(space='world')
+            dir.normalize()
+            result = dir * dir_ref
+            return result
+
+        low = default_low
+        high = default_high
+        mid = (low + high) / 2.0
+        iter_count = 0
+        last_guess = None
+        for iter_count in range(max_iter):
+            iter_count += 1
+            if iter_count > max_iter:
+                raise Exception("Max iteration reached: {}".format(max_iter))
+
+            result = take_guess(mid)
+            result_low = take_guess(low)
+            result_high = take_guess(high)
+
+            if abs(1.0 - result) < epsilon:
+                self.debug("Resolved {} twist offset of {} using with {} iterations.".format(ik_handle, mid, iter_count))
+                return mid
+
+            if result_high > result_low:
+                low = mid
+            else:
+                high = mid
+
+            mid = (low + high) / 2.0
+
+        self.warning("Cannot resolve twist offset of {} with {} iterations.".format(ik_handle, max_iter))
+        return mid
 
     def build(self, constraint=True, constraint_handle=True, setup_softik=True, **kwargs):
         """
@@ -137,8 +208,10 @@ class LegIkQuad(rigLeg.LegIk):
 
         # Create a second ik chain for the quadruped setup
         self._chain_quad_ik = self.chain.duplicate()
+
         for i, oIk in enumerate(self._chain_quad_ik):
             oIk.rename(nomenclature_rig.resolve('QuadChain{0:02}'.format(i)))
+
             # Constraint the bones after the iCtrlIdx to the first ik chain to make the foot roll work correctly
             if i > self.iCtrlIndex:
                 pymel.parentConstraint(self._chain_ik[i], self._chain_quad_ik[i])
@@ -165,8 +238,9 @@ class LegIkQuad(rigLeg.LegIk):
 
         # Create another swivel handle node for the quad chain setup
         self.ctrl_swivel_quad = self.setup_swivel_ctrl(self.ctrl_swivel_quad, self._chain_quad_ik[heel_idx],
-                                                       quad_swivel_pos, self._ik_handle_quad, name='swivelQuad', mirror_setup=False)
-        self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
+                                                       quad_swivel_pos, self._ik_handle_quad, name='swivelQuad',
+                                                       mirror_setup=False, adjust_ik_handle_twist=False)
+        # self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
         # Set by default the space to calf
         if self.ctrl_swivel_quad.space:
             enum = self.ctrl_swivel_quad.space.getEnums()
@@ -174,6 +248,7 @@ class LegIkQuad(rigLeg.LegIk):
             if calf_idx:
                 self.ctrl_swivel_quad.space.set(calf_idx)
 
+        # Expose 'pitch' Quadruped-specific attribute.
         attr_holder = self.ctrl_ik
         libAttr.addAttr_separator(attr_holder, 'Quadruped', niceName='Quadruped')
         attr_pitch = libAttr.addAttr(attr_holder, longName='pitch', k=True)
@@ -203,8 +278,9 @@ class LegIkQuad(rigLeg.LegIk):
     def unbuild(self):
         self._chain_quad_ik = None
         self._ik_handle_quad = None
-        self.quad_swivel_distance = None
-        self.quad_swivel_sw.setParent(None)
+        # self.quad_swivel_distance = None
+        if self.quad_swivel_sw:
+            self.quad_swivel_sw.setParent(None)
 
         super(LegIkQuad, self).unbuild()
 

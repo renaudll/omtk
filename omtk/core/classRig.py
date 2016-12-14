@@ -3,17 +3,18 @@ import time
 import logging
 from maya import cmds
 import pymel.core as pymel
+from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
-from omtk.core import classModule
-from omtk.core import constants
+from omtk.core import api
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs import libHistory
 log = logging.getLogger('omtk')
+
 
 class CtrlRoot(BaseCtrl):
     """
@@ -109,6 +110,20 @@ class Rig(object):
     AVAR_NAME_LOW = 'Low'
     AVAR_NAME_ALL = 'All'
 
+    # Define what axis to use as the 'up' axis.
+    # This generally mean in which Axis will the Limb elbow/knee be pointing at.
+    # The default is Z since it work great with Maya default xyz axis order.
+    # However some riggers might prefer otherwise for personal or backward-compatibility reasons (omtk_cradle)
+    DEFAULT_UPP_AXIS = constants.Axis.z
+
+    # Define how to resolve the transform for IKCtrl on Arm and Leg.
+    # Before 0.4, the ctrl was using the same transform than it's offset.
+    # However animators don't like that since it mean that the 'Y' axis is not related to the world 'Y'.
+    # From 0.4 and after, there WILL be rotation values in the ik ctrl channel box.
+    # If thoses values are set to zero, this will align the hands and feet with the world.
+    LEGACY_ARM_IK_CTRL_ORIENTATION = False
+    LEGACY_LEG_IK_CTRL_ORIENTATION = False
+
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
         self.modules = []
@@ -122,7 +137,6 @@ class Rig(object):
         self.layer_geo = None
         self.layer_rig = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
-        self._up_axis = constants.Axis.z  # This is the axis that will point in the bending direction
 
     #
     # Logging implementation
@@ -184,7 +198,14 @@ class Rig(object):
         return iter(self.modules)
 
     def __str__(self):
-        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
+        version = getattr(self, 'version', '')
+        if version:
+            version = ' v{}'.format(version)
+        return '{} <{}{}>'.format(
+            self.name,
+            self.__class__.__name__,
+            version
+        )
 
     #
     # libSerialization implementation
@@ -224,7 +245,14 @@ class Rig(object):
 
         # Resolve name to use
         default_name = inst.get_default_name()
-        default_name = self._get_unique_name(default_name)  # Ensure name is unique
+
+        # Resolve the default name using the current nomenclature.
+        # This allow specific nomenclature from being applied.
+        # ex: At Squeeze, we always want the names in PascalCase.
+        default_name = self.nomenclature(default_name).resolve()
+
+        # Ensure name is unique
+        default_name = self._get_unique_name(default_name)
         inst.name = default_name
 
         self.modules.append(inst)
@@ -239,19 +267,31 @@ class Rig(object):
 
     def _invalidate_cache_by_module(self, inst):
         # Some cached values might need to be invalidated depending on the module type.
-        from omtk.modules.rigFaceJaw import FaceJaw
-        if isinstance(inst, FaceJaw):
-            try:
-                del self._cache[self.get_jaw_jnt.__name__]
-            except (LookupError, AttributeError):
-                pass
+        # from omtk.modules.rigFaceJaw import FaceJaw
+        # if isinstance(inst, FaceJaw):
+        #     try:
+        #         del self._cache[self.get_jaw_jnt.__name__]
+        #     except (LookupError, AttributeError):
+        #         pass
+        #
+        # from omtk.modules.rigHead import Head
+        # if isinstance(inst, Head):
+        #     try:
+        #         del self._cache[self.get_head_jnt.__name__]
+        #     except (LookupError, AttributeError):
+        #         pass
 
-        from omtk.modules.rigHead import Head
-        if isinstance(inst, Head):
-            try:
-                del self._cache[self.get_head_jnt.__name__]
-            except (LookupError, AttributeError):
-                pass
+        # Remove Module.get_head_jnt cache
+        try:
+            del inst._cache[inst.get_head_jnt.__name__]
+        except (LookupError, AttributeError):
+            pass
+
+        # Remove Module.get_jaw_jnt cache
+        try:
+            del inst._cache[inst.get_jaw_jnt.__name__]
+        except (LookupError, AttributeError):
+            pass
 
     def is_built(self):
         """
@@ -309,29 +349,55 @@ class Rig(object):
         result = filter(self._is_influence, result)
         return result
 
+    def get_influences(self, key=None):
+        result = set()
+        for module in self.modules:
+            for obj in module.input:
+                if key is None or key(obj):
+                    result.add(obj)
+        return list(result)
+
     @libPython.memoized_instancemethod
-    def get_meshes(self):
+    def get_influences_jnts(self):
+        return self.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
+
+    @libPython.memoized_instancemethod
+    def get_shapes(self):
         """
         :return: All meshes under the mesh group. If found nothing, scan the whole scene.
         Note that we support mesh AND nurbsSurfaces.
         """
-        meshes = None
+        shapes = None
         if self.grp_geo and self.grp_geo.exists():
             shapes = self.grp_geo.listRelatives(allDescendents=True, shapes=True)
-            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+            shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
-        if not meshes:
+        if not shapes:
             self.warning("Found no mesh under the mesh group, scanning the whole scene.")
             shapes = pymel.ls(type='surfaceShape')
-            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+            shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
-        return meshes
+        return shapes
+
+    @libPython.memoized_instancemethod
+    def get_meshes(self):
+        """
+        :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
+        """
+        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.Mesh), self.get_shapes())
+
+    @libPython.memoized_instancemethod
+    def get_surfaces(self):
+        """
+        :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
+        """
+        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.NurbsSurface), self.get_shapes())
 
     def get_nearest_affected_mesh(self, jnt):
         """
         Return the immediate mesh affected by provided object in the geometry stack.
         """
-        key = lambda mesh: mesh in self.get_meshes()
+        key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_nearest_affected_mesh(jnt, key=key)
 
     def get_farest_affected_mesh(self, jnt):
@@ -339,14 +405,14 @@ class Rig(object):
         Return the last mesh affected by provided object in the geometry stack.
         Usefull to identify which mesh to use in the 'doritos' setup.
         """
-        key = lambda mesh: mesh in self.get_meshes()
+        key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
     def raycast_farthest(self, pos, dir):
         """
         Return the farest point on any of the rig registered geometries using provided position and direction.
         """
-        geos = self.get_meshes()
+        geos = self.get_shapes()
         if not geos:
             return None
 
@@ -412,7 +478,7 @@ class Rig(object):
         # If for any mean stretch and squash are necessary, implement
         # them on a new joint chains parented to the skeletton.
         # TODO: Move elsewere?
-        all_jnts = libPymel.ls(type='joint')
+        all_jnts = self.get_influences_jnts()
         for jnt in all_jnts:
             jnt.segmentScaleCompensate.set(False)
 
@@ -539,20 +605,6 @@ class Rig(object):
                     traceback.print_exc()
                     if strict:
                         raise(e)
-            '''
-            try:
-                # Skip any locked module
-                if not module.locked:
-                    print("Building {0}...".format(module))
-                    module.build(self, **kwargs)
-                self.post_build_module(module)
-            except Exception, e:
-                pymel.error(str(e))
-            '''
-            #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
-            #    traceback.print_stack()
-            #    logging.error(str(e))
-            #    raise e
 
         # Connect global scale to jnt root
         if self.grp_anm:
@@ -562,6 +614,9 @@ class Rig(object):
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
+
+        # Store the version of omtk used to build the rig.
+        self.version = api.get_version()
 
         self.debug("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
@@ -579,7 +634,6 @@ class Rig(object):
                 module.grp_rig.longName(), module
             ))
             pymel.delete(module.grp_rig)
-
 
         # Prevent animators from accidentaly moving offset nodes
         # TODO: Lock more?
@@ -604,6 +658,9 @@ class Rig(object):
         # Apply ctrl color if needed
         if self._color_ctrl:
             self.color_module_ctrl(module)
+
+        # Store the version of omtk used to generate the rig.
+        module.version = api.get_version()
 
     def _unbuild_node(self, val, keep_if_children=False):
         if isinstance(val, Node):
@@ -717,15 +774,25 @@ class Rig(object):
                     if pattern in token:
                         return jnt
 
+    # @libPython.memoized_instancemethod
+    # def get_head_jnt(self, strict=True):
+    #     return next(iter(self.get_head_jnts(strict=strict)), None)
+
     @libPython.memoized_instancemethod
-    def get_head_jnt(self, strict=True):
+    def get_head_jnts(self, strict=True):
+        """
+        Necessary to support multiple heads on a character.
+        :param strict: Raise a warning if nothing is found.
+        :return: A list of pymel.general.PyNode instance that are into an Head Module.
+        """
+        result = []
         from omtk.modules import rigHead
         for module in self.modules:
             if isinstance(module, rigHead.Head):
-                return module.jnt
-        if strict:
+                result.append(module.jnt)
+        if strict and not result:
             self.warning("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
-        return None
+        return result
 
     @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
@@ -738,53 +805,13 @@ class Rig(object):
         return None
 
     @libPython.memoized_instancemethod
-    def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2, default_distance=20):
+    def get_head_length(self, jnt_head):
         """
-        :return: The recommended distance between the head middle and the face macro ctrls.
+        Resolve a head influence height using raycasts.
+        This is in the Rig class to increase performance using the caching mechanism.
+        :param jnt_head: The head influence to mesure.
+        :return: A float representing the head length. None if unsuccessful.
         """
-        jnt_head = self.get_head_jnt()
-        if not jnt_head:
-            log.warning("Cannot resolve desired macro avars distance from head. Using default ({0})".format(default_distance))
-            return default_distance
-
-        ref_tm = jnt_head.getMatrix(worldSpace=True)
-
-        geometries = libHistory.get_affected_shapes(jnt_head)
-
-        # Resolve the top of the head location
-        pos = pymel.datatypes.Point(ref_tm.translate)
-        #dir = pymel.datatypes.Point(1,0,0) * ref_tm
-        #dir = dir.normal()
-        # This is strange but not pointing to the world sometime don't work...
-        # TODO: FIX ME
-        dir = pymel.datatypes.Point(0,1,0)
-
-        top = next(iter(libRigging.ray_cast(pos, dir, geometries)), None)
-        if not top:
-            raise Exception("Can't resolve head top location using raycasts!")
-
-        # Resolve the middle of the head
-        middle = ((top-pos) * 0.5) + pos
-
-        # Find the front of the face
-        # For now, one raycase seem fine.
-        #dir = pymel.datatypes.Point(0,-1,0) * ref_tm
-        #dir.normalize()
-        dir = pymel.datatypes.Point(0,0,1)
-        front = next(iter(libRigging.ray_cast(middle, dir, geometries)), None)
-        if not front:
-            raise Exception("Can't resolve head front location using raycasts!")
-
-        distance = libPymel.distance_between_vectors(middle, front)
-
-        return distance * multiplier
-
-    @libPython.memoized_instancemethod
-    def get_head_length(self):
-        jnt_head = self.get_head_jnt()
-        if not jnt_head:
-            self.warning("Can't resolve head length!")
-
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
         geometries = libHistory.get_affected_shapes(jnt_head)
@@ -795,7 +822,7 @@ class Rig(object):
         #dir = dir.normal()
         # This is strange but not pointing to the world sometime don't work...
         # TODO: FIX ME
-        dir = pymel.datatypes.Point(0,1,0)
+        dir = pymel.datatypes.Point(0, 1, 0)
 
         top = libRigging.ray_cast_farthest(bot, dir, geometries)
         if not top:

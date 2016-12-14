@@ -122,6 +122,10 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
             **kwargs
         )
 
+        # todo: This whole setup might be overkill.
+        # Maybe use the skinCluster bindPreMatrix like in
+        # https://github.com/fsanges/weightedRibbon/blob/master/core.py#L234
+
         # Create a grp that contain the scale that we'll want to apply to the system.
         # This is currently only connected to the global scale.
         grp_scale = pymel.createNode(
@@ -187,7 +191,6 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         # Hack: Ensure the ctrl local matrix is affected by the global scale.
         #
 
-
         grp_output = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('output'),
@@ -216,6 +219,7 @@ class InteractiveFKCtrlModel(ModelInteractiveCtrl):
         pymel.connectAttr(util_get_inf_tm.outputScale, grp_output.s)
         pymel.parentConstraint(grp_output, self.jnt, maintainOffset=True)
         pymel.scaleConstraint(grp_output, self.jnt)
+
 
         # Cleanup
         if pos_fol:
@@ -249,12 +253,12 @@ class InteractiveFK(ModuleMap):
         common_parent = next(iter(reversed(sorted(parent_sets, key=libPymel.get_num_parents))), None)
         return common_parent
 
-    def validate(self):
-        # Ensure that all influences have a common parent for proprer scale handling.
-        if not self._get_parent():
-            raise Exception("Found no common parents for inputs.")
-
-        super(InteractiveFK, self).validate()
+    # def validate(self):
+    #     # Ensure that all influences have a common parent for proprer scale handling.
+    #     if not self._get_parent():
+    #         raise Exception("Found no common parents for inputs.")
+    #
+    #     super(InteractiveFK, self).validate()
 
     # def build_models(self, **kwargs):
     #     # Since all layers are blendshaped into each others, we don't
@@ -313,6 +317,26 @@ class InteractiveFK(ModuleMap):
     #             parent_scl=scale_grp,
     #             **kwargs
     #         )
+
+    def build(self, **kwargs):
+        nomenclature_rig = self.get_nomenclature_rig()
+
+        super(InteractiveFK, self).build(**kwargs)
+
+        # Handle scale
+        # There can be other layers influenced by this one so we don't want to apply it on the influences directly.
+        # A hacky way is to scale the nurbs surface.
+        grp_surface = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('surface'),
+            parent=self.grp_rig
+        )
+        for surface in self.get_surfaces():
+            surface.setParent(
+                grp_surface
+            )
+        if self.parent:
+            pymel.scaleConstraint(self.parent, grp_surface)
 
     def build_models(self, **kwargs):
         parent = self._get_parent()

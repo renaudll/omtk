@@ -216,15 +216,17 @@ class Module(object):
 
     @libPython.cached_property()
     def jnts(self):
-        fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
-        jnts = filter(fn_is_jnt, self.input)
+        """
+        :return: A list of all inputs of type pymel.nodetypes.Joint.
+        """
+        jnts = [obj for obj in self.input if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)]
         jnts = sorted(jnts)
         return jnts
 
     @libPython.cached_property()
     def jnt(self):
         """
-        Return the first input joint. Usefull for system like Avars that only handle one influence.
+        :return: The first input of type pymel.nodetypes.Joint.
         """
         return next(iter(filter(None, self.jnts)), None)  # Hack: remove filter, find why it happen
 
@@ -243,6 +245,20 @@ class Module(object):
     @libPython.cached_property()
     def chain_jnt(self):
         return next(iter(self.chains_jnt), None)
+
+    @libPython.memoized_instancemethod
+    def get_surfaces(self):
+        """
+        :return: A list of all inputs of type pymel.nodetypes.NurbsSurface.
+        """
+        return [obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)]
+
+    @libPython.memoized_instancemethod
+    def get_surface(self):
+        """
+        :return: The first input of type pymel.nodetypes.NurbsSurface.
+        """
+        return next(iter(self.get_surfaces()), None)
 
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, name=None, rig=None, *args, **kwargs):

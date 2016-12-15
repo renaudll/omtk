@@ -126,7 +126,6 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         self._layer_bind.setParent(self.grp_rig)
 
         # Create follicle to track the transform BEFORE the ctrl.
-        ref_before = None
         if create_follicle:
             # Resolve mesh if necessary.
             if not shape:
@@ -177,11 +176,6 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         # Create an output object that will hold the world position of the ctrl offset.
         # This allow us to create direct connection which simplify the dag tree for the animator
         # and allow us to easily scale the whole setup to support non-uniform scaling.
-        grp_output = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('output'),
-            parent=self.grp_rig
-        )
 
         pymel.connectAttr(self._layer_bind.tx, self.ctrl.offset.tx)
         pymel.connectAttr(self._layer_bind.ty, self.ctrl.offset.ty)
@@ -433,7 +427,7 @@ class InteractiveFK(Module):
                     v = 0.5
                 yield u_index, v_index, u, v
 
-    def create_layer_from_surface(self, num_u=3, num_v=1, min_u=0.0, max_u=1.0, min_v=0.0, max_v=1.0, format_str='U{:02d}V{:02d}', suffix=None):
+    def create_layer_from_surface(self, num_u=3, num_v=1, min_u=0.0, max_u=1.0, min_v=0.0, max_v=1.0, format_str='U{:02d}V{:02d}', cls_ctrl=None, suffix=None):
         """
         Create a new layer module by duplicating the reference surface and generating influences using predefined rules.
         Note that this does not add it to the layer stack.
@@ -471,6 +465,9 @@ class InteractiveFK(Module):
 
         # Assign inputs and return module
         module.input = jnts + [surface]
+        if cls_ctrl:
+            module._CLS_CTRL = cls_ctrl
+
         return module
 
     def init_layer(self, inst, inputs=None, suffix=None, cls_layer=None, cls_ctrl=None):
@@ -487,12 +484,17 @@ class InteractiveFK(Module):
         """
         # Build layers from inputs.
         data = self.get_influences_by_surfaces()
+
+        # Ensure we have at least as many slots allocated that we have groups.
+        num_layers = len(self.layers)
+        if num_layers < len(data):
+            libPython.resize_list(self.layers, num_layers)
+
         self.debug('Found {} layer groups'.format(len(data)))
         for i, sub_data in enumerate(data):
             self.debug('Creating layer {} using {}'.format(i + 1, sub_data))
             surface, influences = sub_data
-            layer = self.init_layer(None, inputs=[surface] + influences, suffix='layer{}'.format(i + 1))
-            self.layers.append(layer)
+            self.layers[i] = self.init_layer(self.layers[i], inputs=[surface] + influences, suffix='layer{}'.format(i + 1))
 
     def _build_layers(self, ctrl_size_max=None, ctrl_size_min=None):
         nomenclature_rig = self.get_nomenclature_rig()

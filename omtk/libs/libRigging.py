@@ -75,7 +75,7 @@ def hold_ctrl_shapes(transform, parent=None):
     # Resolve all shapes (pymel.nodetypes.CurveShape only for now)
     def is_shape(shape):
         return isinstance(shape, pymel.nodetypes.CurveShape) and not shape.intermediateObject.get()
-    all_shapes = filter(is_shape, transform.getShapes())
+    all_shapes = filter(is_shape, transform.getShapes(noIntermediate=True))
     if not all_shapes:
         return
 
@@ -179,6 +179,14 @@ def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
     attr_length_u = arcLengthDimension_shape.arcLength
     attr_length_v = arcLengthDimension_shape.arcLengthInV
     return attr_length_u, attr_length_v, arcLengthDimension_shape
+
+
+def get_surface_length(surface, u=1.0, v=1.0):
+    attr_u, attr_v, util= create_arclengthdimension_for_nurbsplane(surface, u=u, v=v)
+    length_u = attr_u.get()
+    length_v = attr_v.get()
+    pymel.delete(util)
+    return length_u, length_v
 
 def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
     """
@@ -971,7 +979,7 @@ def get_closest_point_on_mesh(mesh, pos):
 
 def get_closest_point_on_surface(nurbsSurface, pos):
     if isinstance(nurbsSurface, pymel.nodetypes.Transform):
-        nurbsSurface = nurbsSurface.getShape()
+        nurbsSurface = nurbsSurface.getShape(noIntermediate=True)
 
     if not isinstance(nurbsSurface, pymel.nodetypes.NurbsSurface):
         raise IOError("Unexpected datatype. Expected NurbsSurface, got {0}".format(type(nurbsSurface)))
@@ -998,7 +1006,7 @@ def get_closest_point_on_surface(nurbsSurface, pos):
 
 def get_closest_point_on_shape(shape, pos):
     if isinstance(shape, pymel.nodetypes.Transform):
-        shape = shape.getShape()
+        shape = shape.getShape(noIntermediate=True)
 
     if isinstance(shape, pymel.nodetypes.Mesh):
         return get_closest_point_on_mesh(shape, pos)
@@ -1036,7 +1044,7 @@ def get_point_on_surface_from_uv(shape, u, v):
     follicle_shape.parameterV.set(v)
 
     if isinstance(shape, pymel.nodetypes.Transform):
-        shape = shape.getShape()
+        shape = shape.getShape(noIntermediate=True)
 
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
@@ -1073,7 +1081,7 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
 
     # HACK: If a transform was provided, use the first surface.
     if isinstance(shape, pymel.nodetypes.Transform):
-        shape = shape.getShape()
+        shape = shape.getShape(noIntermediate=True)
 
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)

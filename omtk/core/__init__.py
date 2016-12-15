@@ -7,6 +7,7 @@ import os
 
 import utils
 import classCtrl
+import classCtrlModel
 import classModule
 import classModuleMap
 import className
@@ -37,6 +38,7 @@ def _reload():
     reload(className)
     reload(classNode)
     reload(classCtrl)
+    reload(classCtrlModel)
     reload(classModule)
     reload(classModuleMap)
     reload(classRig)

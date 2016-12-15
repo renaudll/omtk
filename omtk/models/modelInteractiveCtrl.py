@@ -5,13 +5,14 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core.classModule import Module
+from omtk.core import classCtrlModel
 from omtk.libs import libRigging
 from omtk.libs import libPymel
 from omtk.libs import libAttr
 from omtk.libs import libHistory
 
 
-class ModelInteractiveCtrl(Module):
+class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     """
     An InteractiveCtrl ctrl is directly constrained on a mesh via a layer_fol.
     To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
@@ -33,7 +34,6 @@ class ModelInteractiveCtrl(Module):
 
     def __init__(self, *args, **kwargs):
         super(ModelInteractiveCtrl, self).__init__(*args, **kwargs)
-        self.ctrl = None
         self.follicle = None  # Used for calibration
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
@@ -62,9 +62,6 @@ class ModelInteractiveCtrl(Module):
             tm.a32 = result.z
 
         return tm
-
-    def iter_ctrls(self):
-        yield self.ctrl
 
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
               flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None,

@@ -218,13 +218,14 @@ class LegIkQuad(rigLeg.LegIk):
 
         self._chain_quad_ik[0].setParent(self._chain_ik[0])
 
-        obj_e = self._chain_quad_ik[self.iCtrlIndex]
+        obj_e_ik = self._chain_ik[self.iCtrlIndex]
+        obj_e_quadik = self._chain_quad_ik[self.iCtrlIndex]
 
         # We need a second ik solver for the quad chain
         ik_solver_quad_name = nomenclature_rig.resolve('quadIkHandle')
         ik_effector_quad_name = nomenclature_rig.resolve('quadIkEffector')
         self._ik_handle_quad, _ik_effector = pymel.ikHandle(startJoint=self._chain_quad_ik[1],
-                                                            endEffector=obj_e,
+                                                            endEffector=obj_e_quadik,
                                                             solver='ikRPsolver')
         self._ik_handle_quad.rename(ik_solver_quad_name)
         _ik_effector.rename(ik_effector_quad_name)
@@ -254,7 +255,8 @@ class LegIkQuad(rigLeg.LegIk):
         attr_pitch = libAttr.addAttr(attr_holder, longName='pitch', k=True)
         pymel.connectAttr(attr_pitch, self._chain_quad_ik[0].rotateZ)
 
-        pymel.orientConstraint(self.ctrl_ik, obj_e, maintainOffset=True)
+
+        pymel.orientConstraint(obj_e_ik, obj_e_quadik, maintainOffset=True)
 
         if constraint:
             for source, target in zip(self._chain_quad_ik, self.chain):

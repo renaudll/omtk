@@ -168,10 +168,19 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         #     pymel.parentConstraint(self.parent, grp_offset, maintainOffset=True)
         attr_offset_tm = self._grp_offset.matrix
 
+
+        # Create a reference for the local bind pose
+        self._grp_local_bindpose = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('localBindPose'),
+            parent=self.grp_rig
+        )
+        self._grp_local_bindpose.setMatrix(self.jnt.getMatrix())
+
         # Create a reference to the previous deformation
         self._grp_bind = pymel.createNode(
             'transform',
-            name=nomenclature_rig.resolve('bind'),
+            name=nomenclature_rig.resolve('follicle'),
             parent=self.grp_rig
         )
         # self._layer_bind = self._stack.append_layer()
@@ -376,9 +385,18 @@ class InteractiveFKLayer(ModuleMap):
                 self.warning("Cannot compute offset for parent. Found no model associated with {}".format(model_parent))
                 continue
 
+
+
             parent_ctrl = parent_model.ctrl
-            parent_offset_grp = parent_model._grp_offset
+            parent_grp_offset = parent_model._grp_offset
             parent_grp_bind = parent_model._grp_bind
+
+            parent_grp_localBindPose = parent_model._grp_local_bindpose
+
+
+            attr_parent_local_bindpose = parent_grp_localBindPose.matrix
+            attr_parent_local_bindpose_inv = parent_grp_localBindPose.inverseMatrix
+
 
             attr_parent_world_bindpose_tm_inv = libRigging.create_utility_node(
                 'inverseMatrix',
@@ -401,6 +419,15 @@ class InteractiveFKLayer(ModuleMap):
                 inputMatrix=attr_local_bindpose_tm
             ).outputMatrix
 
+            attr_parent_offset_world_tm = libRigging.create_utility_node(
+                'multMatrix',
+                matrixIn=(
+                    attr_local_bindpose_tm,
+                    parent_grp_offset.matrix,
+                    attr_local_bindpose_tm_inv,
+                )
+            ).matrixSum
+
             attr_offset_tm = libRigging.create_utility_node(
                 'multMatrix',
                 name=nomenclature_rig.resolve('getOffsetTM'),
@@ -408,9 +435,8 @@ class InteractiveFKLayer(ModuleMap):
                     attr_local_bindpose_tm,
                     parent_ctrl.matrix,
                     attr_local_bindpose_tm_inv,
-
+                    attr_parent_offset_world_tm
                 )
-                #parent_offset_grp.matrix,
             ).matrixSum
 
             util_decompose_offset_tm = libRigging.create_utility_node(

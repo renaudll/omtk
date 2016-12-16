@@ -58,7 +58,7 @@ def create_utility_node(_sClass, name=None, *args, **kwargs):
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
-                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(_sClass,                                                                                                          sAttrName))
+                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(_sClass, sAttrName))
         else:
             connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
     return uNode
@@ -182,10 +182,10 @@ def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
 
 
 def get_surface_length(surface, u=1.0, v=1.0):
-    attr_u, attr_v, util= create_arclengthdimension_for_nurbsplane(surface, u=u, v=v)
+    attr_u, attr_v, util = create_arclengthdimension_for_nurbsplane(surface, u=u, v=v)
     length_u = attr_u.get()
     length_v = attr_v.get()
-    pymel.delete(util)
+    pymel.delete(util.getParent())
     return length_u, length_v
 
 def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
@@ -290,7 +290,6 @@ def interp_football(ratio):
     https://www.wolframalpha.com/input/?i=cos(x%2B1*pi%2F2)%5E0.5
     """
     return math.cos(ratio/2.0*math.pi)**0.5
-
 
 
 def create_nurbs_plane_from_joints(jnts, degree=1, width=1):

@@ -10,6 +10,7 @@ from PySide import QtGui
 from ui import widget_list_modules
 
 from omtk import constants
+from omtk import ui_shared
 from omtk.libs import libSkinning
 from omtk.libs import libQt
 from omtk.libs import libPython
@@ -17,13 +18,12 @@ from omtk.libs import libPymel
 from omtk.core import classModule
 from omtk.core import classRig
 
-import ui_shared
-
 log = logging.getLogger('omtk')
 
 class WidgetListModules(QtGui.QWidget):
-
     needExportNetwork = QtCore.Signal()
+    needImportNetwork = QtCore.Signal()
+    deletedRig = QtCore.Signal(object)
 
     _color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
     _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
@@ -33,7 +33,7 @@ class WidgetListModules(QtGui.QWidget):
         super(WidgetListModules, self).__init__(parent=parent)
 
         self._rig = None
-        self._rigs = None
+        self._rigs = []
         self._is_modifying = False  # todo: document
 
         self.ui = widget_list_modules.Ui_Form()
@@ -59,19 +59,32 @@ class WidgetListModules(QtGui.QWidget):
         if update:
             self.update()
 
+    def get_selected_items(self):
+        return self.ui.treeWidget.selectedItems()
+
     def get_selected_networks(self):
-        result = []
-        for item in self.ui.treeWidget.selectedItems():
-            if hasattr(item, 'net'):
-                result.append(item.net)
-        return result
+        return [item.net for item in self.get_selected_items() if hasattr(item, 'net')]
+
+    def get_selected_entries(self):
+        """
+        Return the metadata stored in each selected row. Whatever the metadata type (can be Rig or Module).
+        :return: A list of object instances.
+        """
+        return [item.rig for item in self.get_selected_items()]
 
     def get_selected_modules(self):
-        result = []
-        for item in self.ui.treeWidget.selectedItems():
-            val = item.rig
-            result.append(val)
-        return result
+        """
+        Return the Module instances stored in each selected rows.
+        :return: A list of Module instances.
+        """
+        return [item.rig for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Module]
+
+    def get_selected_rigs(self):
+        """
+        Return the Rig instances stored in each selected rows.
+        :return: A list of Rig instances.
+        """
+        return [item.rig for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Rig]
 
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
@@ -223,6 +236,7 @@ class WidgetListModules(QtGui.QWidget):
         qItem.setFlags(qItem.flags() | QtCore.Qt.ItemIsEditable)
         qItem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
         if isinstance(module, classRig.Rig):
+            qItem._meta_type = ui_shared.MetadataType.Rig
             qItem.setIcon(0, QtGui.QIcon(":/out_character.png"))
             sorted_modules = sorted(module, key=lambda mod: mod.name)
             for child in sorted_modules:
@@ -235,6 +249,8 @@ class WidgetListModules(QtGui.QWidget):
                     qInputItem.setFlags(qItem.flags() & QtCore.Qt.ItemIsSelectable)
                     qSubItem.addChild(qInputItem)
                 qItem.addChild(qSubItem)
+        elif isinstance(module, classModule.Module):
+            qItem._meta_type = ui_shared.MetadataType.Module
         return qItem
 
     def _set_QTreeWidgetItem_color(self, qItem, module):
@@ -279,7 +295,9 @@ class WidgetListModules(QtGui.QWidget):
             ui_shared._update_network(self._rig)
 
     def on_module_selection_changed(self):
-        pymel.select(self.get_selected_networks())
+        # Filter deleted networks
+        networks = [net for net in self.get_selected_networks() if net and net.exists()]
+        pymel.select(networks)
 
     def on_module_changed(self, item):
         # todo: handle exception
@@ -423,16 +441,42 @@ class WidgetListModules(QtGui.QWidget):
             self.update()
 
     def on_remove(self):
-        for item in self.ui.treeWidget.selectedItems():
-            module = item.rig
-            # net = item.net if hasattr(item, "net") else None
+        """
+        Remove any selected modules and rigs.
+        Removing module need the rig to be re-exported.
+        """
+
+        selected_rigs = self.get_selected_rigs()
+        selected_modules = [module for module in self.get_selected_modules() if module.rig not in selected_rigs]
+        need_reexport = False
+
+        # Remove all selected rigs second
+        for rig in selected_rigs:
+            try:
+                if rig.is_built():
+                    rig.unbuild()
+
+                # Manually delete network
+                network = rig._network
+                if network and network.exists():
+                    pymel.delete(network)
+
+                self.deletedRig.emit(rig)
+
+            except Exception, e:
+                log.error("Error removing {0}. Received {1}. {2}".format(rig, type(e).__name__, str(e).strip()))
+                traceback.print_exc()
+
+        # Remove all selected modules
+        for module in selected_modules:
             try:
                 if module.is_built():
                     module.unbuild()
-                self._rig.remove_module(module)
+                module.rig.remove_module(module)
+                need_reexport = True
             except Exception, e:
-                log.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
+                log.error("Error removing {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                 traceback.print_exc()
 
-        self.needExportNetwork.emit()
-
+        if need_reexport:
+            self.needExportNetwork.emit()

@@ -25,13 +25,13 @@ class BaseCtrlModel(classModule.Module):
     def iter_ctrls(self):
         yield self.ctrl
 
-    def build(self, parent, ctrl_size=None, **kwargs):
+    def build(self, module, ctrl_size=None, **kwargs):
         """
         Build the the ctrl and the necessary logic.
         :param ctrl_size: The desired ctrl size if supported.
         :param kwargs: Any additional keyword argument will be provided to the parent method.
         """
-        super(BaseCtrlModel, self).build()
+        super(BaseCtrlModel, self).build(**kwargs)
 
         # Create ctrl
         self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
@@ -78,8 +78,8 @@ class CtrlModelCalibratable(BaseCtrlModel):
         self._attr_sensitivity_ty_inv = None
         self._attr_sensitivity_tz_inv = None
 
-    def build(self, parent, **kwargs):
-        super(CtrlModelCalibratable, self).build(parent, **kwargs)
+    def build(self, module, **kwargs):
+        super(CtrlModelCalibratable, self).build(module, **kwargs)
 
         #
         # Add sensitivity attributes on the ctrl.

@@ -43,8 +43,14 @@ class AutoRig(QtGui.QMainWindow):
             pymel.deleteUI('OpenRiggingToolkit')
         except:
             pass
-        if parent is None: parent = getMayaWindow()
+        if parent is None:
+            parent = getMayaWindow()
         super(AutoRig, self).__init__(parent)
+
+        # Internal data
+        self.root = None
+        self.roots = []
+
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
 
@@ -75,7 +81,9 @@ class AutoRig(QtGui.QMainWindow):
         self.ui.actionShowPreferences.triggered.connect(self.on_show_preferences)
 
         # Connect widget signals
+        self.ui.widget_modules.needImportNetwork.connect(self.import_networks)
         self.ui.widget_modules.needExportNetwork.connect(self.export_networks)
+        self.ui.widget_modules.deletedRig.connect(self.on_rig_deleted)
         self.ui.widget_jnts.onRightClick.connect(self.on_btn_add_pressed)
 
         self.callbacks_events = []
@@ -219,15 +227,19 @@ class AutoRig(QtGui.QMainWindow):
             self.roots = [self.root]
             self.export_networks()  # Create network tree in the scene
 
+        self.update_internal_data()
+
+    def update_internal_data(self):
         self.ui.widget_modules.set_rigs(self.roots)
         self.ui.widget_jnts.set_rig(self.root)
         self.ui.widget_meshes.set_rig(self.root)
 
-
     @libPython.log_execution_time('export_networks')
     def export_networks(self, update=True):
         try:
-            pymel.delete(self.root._network)
+            network = self.root._network
+            if network and network.exists():
+                pymel.delete(network)
         except AttributeError:
             pass
 
@@ -296,6 +308,19 @@ class AutoRig(QtGui.QMainWindow):
         self.import_networks()
         self.update_ui()
 
+    def on_rig_deleted(self, rig):
+        """
+        Called from an internal widget to delete a rig.
+        We take in consideration that the rig is already unbuilt and we only need to cleanup.
+        """
+        need_update = False
+        if rig in self.roots:
+            self.roots.remove(rig)
+            need_update = True
+        if rig is self.root:
+            self.root = next(iter(self.roots), None)
+        if need_update:
+            self.update_internal_data()
 
     def on_btn_add_pressed(self):
         selected_items = self.ui.widget_jnts.get_selection()

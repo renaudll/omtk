@@ -190,6 +190,13 @@ class Rig(object):
     def __len__(self):
         return self.modules.__len__()
 
+    def __nonzero__(self):
+        """
+        Prevent an empty rig to be considered as False since it can still contain usefull informations.
+        :return: True, always.
+        """
+        return True
+
     def insert(self, index, value):
         self.modules.insert(index, value)
         value._parent = self # Store the parent for optimized network serialization (see libs.libSerialization)

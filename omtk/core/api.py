@@ -72,31 +72,23 @@ def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
     """
-    networks = libSerialization.get_networks_from_class('Rig')
-    for network in networks:
-        rigroot = libSerialization.import_network(network)
-        if rigroot is None:
-            log.warning("Error importing rig network {0}".format(network))
-            continue
-        if rigroot.build(strict=strict):
+    rigs = find()
+    for rig in rigs:
+        network = rig._network  # monkey-patched by libSerialization
+        if rig.build(strict=strict):
             pymel.delete(network)
-            libSerialization.export_network(rigroot)
+            libSerialization.export_network(rig)
 
 
 # @libPython.profiler
 @libPython.log_execution_time('unbuild_all')
 def unbuild_all(strict=False):
-    networks = libSerialization.get_networks_from_class('Rig')
-    for network in networks:
-        rigroot = libSerialization.import_network(network)
-        if rigroot is None:
-            log.warning("Error importing rig network {0}".format(network))
-            continue
-        rigroot.unbuild(strict=strict)
-        pymel.delete(network)
-        # Write changes to scene
-        network = libSerialization.export_network(rigroot)
-        pymel.select(network)
+    rigs = find()
+    for rig in rigs:
+        network = rig._network  # monkey-patched by libSerialization
+        if rig.unbuild(strict=strict):
+            pymel.delete(network)
+            network = libSerialization.export_network(rig)
 
 
 def _get_modules_from_selection(sel=None):

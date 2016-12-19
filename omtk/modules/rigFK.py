@@ -64,7 +64,6 @@ class FK(Module):
             pass
         super(FK, self).__callbackNetworkPostBuild__()
 
-
     def build(self, constraint=True, parent=True, create_grp_anm=True, create_grp_rig=False, *args, **kwargs):
         super(FK, self).build(create_grp_rig=create_grp_rig, *args, **kwargs)
         nomenclature_anm = self.get_nomenclature_anm()

@@ -420,17 +420,25 @@ class Module(object):
                 pymel.addAttr(self.grp_rig, longName='globalScale', defaultValue=1.0)
                 self.globalScale = self.grp_rig.globalScale
 
-        if parent and self.parent:
+        # Apply parenting if necessary.
+        # If the module input have no immediate parent, we'll at least ensure that is it parented to the anm grp.
+        if parent:
             parent_obj = self.get_parent_obj()
             if parent_obj:
                 self.parent_to(parent_obj)
 
-    def get_parent_obj(self):
+    def get_parent_obj(self, fallback_to_anm_grp=True):
         """
+        :param fallback_to_anm_grp: If True, if no parent is found, the anm group will be returned.
         :return: The object to act as the parent of the module if applicable.
         """
         if self.parent is None:
-            return None
+            if fallback_to_anm_grp:
+                self.debug("Found no immediate parent. Will be parented to the anm grp.")
+                return self.rig.grp_anm
+            else:
+                self.debug("Found no immediate parent. ")
+                return None
 
         module = self.rig.get_module_by_input(self.parent)
         if module:
@@ -438,9 +446,6 @@ class Module(object):
             if desired_parent:
                 self.debug("Will be parented to {0}, {1}".format(module, desired_parent))
                 return desired_parent
-
-        if libPymel.is_valid_PyNode(self.parent):
-            self.debug("Can't recommend a parent. {0} is not in any known module.".format(self.parent))
 
         return self.parent
 

@@ -339,11 +339,55 @@ class Rig(object):
         """
         return True
 
-    def _is_influence(self, jnt):
+    @libPython.memoized_instancemethod
+    def _get_all_input_shapes(self):
+        """
+        Used for quick lookup (see self._is_potential_deformable).
+        :return: All the module inputs shapes.
+        """
+        result = set()
+        for module in self.modules:
+            if module.input:
+                for input in module.input:
+                    if isinstance(input, pymel.nodetypes.Transform):
+                        result.update(input.getShapes(noIntermediate=True))
+                    elif not input.intermediateObject.get():
+                        result.add(input)
+        return result
+
+    def _is_potential_influence(self, jnt):
+        """
+        Take a potential influence and validate that it is not blacklisted.
+        Currently any influence under the rig group is automatically ignored.
+        :param mesh: A pymel.PyNode representing an influence object.
+        :return: True if the object is a good deformable candidate.
+        """
         # Ignore any joint in the rig group (like joint used with ikHandles)
         if libPymel.is_valid_PyNode(self.grp_rig):
             if libPymel.is_child_of(jnt, self.grp_rig.node):
                 return False
+        return True
+
+    def _is_potential_deformable(self, mesh):
+        """
+        Take a potential deformable shape and validate that it is not blacklisted.
+        Currently any deformable under the rig group is automatically ignored.
+        :param mesh: A pymel.PyNode representing a deformable object.
+        :return: True if the object is a good deformable candidate.
+        """
+        # Any intermediate shape is automatically discarded.
+        if isinstance(mesh, pymel.nodetypes.Shape) and mesh.intermediateObject.get():
+            return False
+
+        # Ignore any mesh in the rig group (like mesh used for ribbons)
+        if libPymel.is_valid_PyNode(self.grp_rig):
+            if libPymel.is_child_of(mesh, self.grp_rig.node):
+                return False
+
+        # Any mesh that is used as an input in a module is used for rigging.
+        if mesh in self._get_all_input_shapes():
+                return False
+
         return True
 
     def get_potential_influences(self):
@@ -353,7 +397,7 @@ class Rig(object):
         :key: Provide a function for filtering the results.
         """
         result = pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
-        result = filter(self._is_influence, result)
+        result = [obj for obj in result if self._is_potential_influence(obj)]
         return result
 
     def get_influences(self, key=None):
@@ -383,6 +427,9 @@ class Rig(object):
             self.warning("Found no mesh under the mesh group, scanning the whole scene.")
             shapes = pymel.ls(type='surfaceShape')
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
+
+        # Apply constraint.
+        shapes = [shape for shape in shapes if self._is_potential_deformable(shape)]
 
         return shapes
 
@@ -611,7 +658,7 @@ class Rig(object):
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                     traceback.print_exc()
                     if strict:
-                        raise(e)
+                        raise
 
         # Connect global scale to jnt root
         if self.grp_anm:

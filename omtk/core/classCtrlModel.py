@@ -25,18 +25,22 @@ class BaseCtrlModel(classModule.Module):
     def iter_ctrls(self):
         yield self.ctrl
 
-    def build(self, module, ctrl_size=None, **kwargs):
+    def build(self, module, ctrl_size=None, ctrl_name=None, **kwargs):
         """
         Build the the ctrl and the necessary logic.
         :param ctrl_size: The desired ctrl size if supported.
+        :param ctrl_name: The desired ctrl name. If nothing is provided, the ctrl name will be automatically resolved.
         :param kwargs: Any additional keyword argument will be provided to the parent method.
         """
         super(BaseCtrlModel, self).build(**kwargs)
 
+        if not ctrl_name:
+            ctrl_name=self.get_nomenclature_anm().resolve()
+
         # Create ctrl
         self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
         self.ctrl.build(
-            name=self.get_nomenclature_anm().resolve(),
+            name=ctrl_name,
             size=ctrl_size
         )
         self.ctrl.setParent(self.grp_anm)

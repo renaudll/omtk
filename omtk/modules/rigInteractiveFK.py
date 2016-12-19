@@ -1,3 +1,21 @@
+"""
+The InteractiveFK is a generic module that use layered 'ribbons' to easily rig anything.
+Common use cases are tentacles, ropes, props, clothing, tongue, etc.
+This module is also one of the few that support non-uniform scaling, making it perfect for crazy scenarios.
+
+You'll need to provide at least one surface for the system to work.
+The surface can be driven by various deformer, however the common use case is to provide a skinned surface.
+If you also provide the deformed surface influences as inputs, the InteractiveFK will automatically
+detect the surface and it's influence as a 'layer' and will rig it accordingly.
+
+You'll also want to provide the influences for the final deformer (generally a mesh).
+Again, the InteractiveFK will reconize that thoses inputs are not related to any surface and
+will ensure that they follow the last layer.
+
+Warning:
+Please note that to correctly support scaling, all the computation are done in LOCAL space.
+This mean that you CANNOT use the skinned surface influences to drive the final mesh.
+"""
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModuleMap import ModuleMap
@@ -8,9 +26,6 @@ from omtk.libs import libAttr
 from omtk.libs import libPython
 from omtk.libs import libHistory
 from omtk.libs import libPymel
-
-# todo: add calibation!
-# todo: support uniform scaling!
 
 
 def _get_immediate_skincluster(transform):
@@ -47,6 +62,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         self._stack = None
         self._grp_bind = None
         self._grp_offset = None
+        self._grp_output = None
 
     def get_default_tm_ctrl(self):
         pos_ref = self.jnt.getTranslation(space='world')
@@ -115,67 +131,13 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         # Create the 'bind' node that will follow the follicle in translation and something else in rotation.
         #
 
-        # Initialize external stack
-        # Normally this would be hidden from animators.
-        # stack_name = nomenclature_rig.resolve('stack')
-        # self._stack = Node(self)
-        # self._stack.build(name=stack_name)
-        # self._stack.setTranslation(pos)
-
         # Create the a group containing the local offset in case we have an hyerarchy to preserve.
         self._grp_offset = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('offset'),
             parent=self.grp_rig
         )
-        # if self.parent:
-        #     if not isinstance(self.parent, pymel.nodetypes.Joint):
-        #         self.warning("Cannot compute offset for parent. Unsupported node type {} for {}".format(
-        #             type(self.parent), self.parent
-        #         ))
-        #     else:
-        #         attr_parent_world_bindpose_tm_inv = libRigging.create_utility_node(
-        #             'inverseMatrix',
-        #             name=nomenclature_rig.resolve('getParentBindPose'),
-        #             inputMatrix=self.parent.bindPose
-        #         ).oututMatrix
-        #
-        #         attr_local_bindpose_tm = libRigging.create_utility_node(
-        #             'multMatrix',
-        #             name=nomenclature_rig.resolve('getLocalBindPose'),
-        #             matrixIn=(
-        #                 self.jnt.bindPose,
-        #                 attr_parent_world_bindpose_tm_inv
-        #             )
-        #         )
-        #
-        #         attr_local_bindpose_tm_inv = libRigging.create_utility_node(
-        #             'inverseMatrix',
-        #             name=nomenclature_rig.resolve('getLocalBindPoseInv'),
-        #             inputMatrix=attr_local_bindpose_tm
-        #         ).oututMatrix
-        #
-        #         libRigging.create_utility_node(
-        #             'multMatrix',
-        #             name=nomenclature_rig.resolve('getOffsetTM')
-        #             matrixIn=(
-        #                 attr_local_bindpose_tm,
-        #
-        #             )
-        #         )
-        #
-        #
-        #     pymel.parentConstraint(self.parent, grp_offset, maintainOffset=True)
         attr_offset_tm = self._grp_offset.matrix
-
-
-        # Create a reference for the local bind pose
-        self._grp_local_bindpose = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('localBindPose'),
-            parent=self.grp_rig
-        )
-        self._grp_local_bindpose.setMatrix(self.jnt.getMatrix())
 
         # Create a reference to the previous deformation
         self._grp_bind = pymel.createNode(
@@ -302,6 +264,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
 class InteractiveFKLayer(ModuleMap):
     _CLS_CTRL_MODEL = InteractiveFKCtrlModel
     _CLS_CTRL = InteractiveFKCtrl
+    _NAME_CTRL_ENUMERATE = True  # Same implementation than FK
 
     def __init__(self, *args, **kwargs):
         super(InteractiveFKLayer, self).__init__(*args, **kwargs)
@@ -316,15 +279,15 @@ class InteractiveFKLayer(ModuleMap):
         surface = self.get_surface()
         if not surface:
             raise Exception("Expected surface in inputs.")
-        if not surface in inputs:
+        if surface not in inputs:
             inputs.append(surface)
 
         return super(InteractiveFKLayer, self).init_model(model, inputs, **kwargs)
 
-    def build(self, **kwargs):
+    def build(self, parent=False, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()
 
-        super(InteractiveFKLayer, self).build(**kwargs)
+        super(InteractiveFKLayer, self).build(parent=False, **kwargs)
 
         # Create a group for all the influences
         grp_influences = pymel.createNode(
@@ -343,6 +306,7 @@ class InteractiveFKLayer(ModuleMap):
             surface.setParent(self.grp_rig)
 
     def build_models(self, constraint=False, calibrate=True, **kwargs):
+        nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Create a parent grp
@@ -354,9 +318,17 @@ class InteractiveFKLayer(ModuleMap):
             parent=self.grp_rig
         )
 
-        for model in self.models:
+        for i, (jnt, model) in enumerate(zip(self.jnts, self.models)):
+            # Resolve ctrl name.
+            if self._NAME_CTRL_ENUMERATE:
+                ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(i+1))
+            else:
+                nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.name())
+                ctrl_name = nomenclature.resolve()
+
             self.build_model(
                 model,
+                ctrl_name=ctrl_name,
                 **kwargs
             )
 
@@ -385,71 +357,85 @@ class InteractiveFKLayer(ModuleMap):
                 self.warning("Cannot compute offset for parent. Found no model associated with {}".format(model_parent))
                 continue
 
+            self._constraint_model_virtual_offset(model, parent_model)
 
+    def _constraint_model_virtual_offset(self, model, parent_model):
+        """
+        Create the equivalent of a parent constraint between two models.
+        This allow us to support fk-style functionnality.
+        :param model: A child InteractiveFKLayer instance.
+        :param parent_model: A parent InteractiveFKLayer instance.
+        """
+        nomenclature_rig = self.get_nomenclature_rig()
 
-            parent_ctrl = parent_model.ctrl
-            parent_grp_offset = parent_model._grp_offset
-            parent_grp_bind = parent_model._grp_bind
+        model_parent = parent_model.jnt
 
-            parent_grp_localBindPose = parent_model._grp_local_bindpose
-
-
-            attr_parent_local_bindpose = parent_grp_localBindPose.matrix
-            attr_parent_local_bindpose_inv = parent_grp_localBindPose.inverseMatrix
-
-
-            attr_parent_world_bindpose_tm_inv = libRigging.create_utility_node(
-                'inverseMatrix',
-                name=nomenclature_rig.resolve('getParentBindPose'),
-                inputMatrix=model_parent.bindPose
-            ).outputMatrix
-
-            attr_local_bindpose_tm = libRigging.create_utility_node(
-                'multMatrix',
-                name=nomenclature_rig.resolve('getLocalBindPose'),
-                matrixIn=(
-                    model.jnt.bindPose,
-                    attr_parent_world_bindpose_tm_inv
-                )
-            ).matrixSum
-
-            attr_local_bindpose_tm_inv = libRigging.create_utility_node(
-                'inverseMatrix',
-                name=nomenclature_rig.resolve('getLocalBindPoseInv'),
-                inputMatrix=attr_local_bindpose_tm
-            ).outputMatrix
-
-            attr_parent_offset_world_tm = libRigging.create_utility_node(
-                'multMatrix',
-                matrixIn=(
-                    attr_local_bindpose_tm,
-                    parent_grp_offset.matrix,
-                    attr_local_bindpose_tm_inv,
-                )
-            ).matrixSum
-
-            attr_offset_tm = libRigging.create_utility_node(
-                'multMatrix',
-                name=nomenclature_rig.resolve('getOffsetTM'),
-                matrixIn=(
-                    attr_local_bindpose_tm,
-                    parent_ctrl.matrix,
-                    attr_local_bindpose_tm_inv,
-                    attr_parent_offset_world_tm
-                )
-            ).matrixSum
-
-            util_decompose_offset_tm = libRigging.create_utility_node(
-                'decomposeMatrix',
-                inputMatrix=attr_offset_tm
+        parent_ctrl = parent_model.ctrl
+        parent_grp_offset = parent_model._grp_offset
+        attr_parent_world_bindpose_tm_inv = libRigging.create_utility_node(
+            'inverseMatrix',
+            name=nomenclature_rig.resolve('getParentBindPose'),
+            inputMatrix=model_parent.bindPose
+        ).outputMatrix
+        attr_local_bindpose_tm = libRigging.create_utility_node(
+            'multMatrix',
+            name=nomenclature_rig.resolve('getLocalBindPose'),
+            matrixIn=(
+                model.jnt.bindPose,
+                attr_parent_world_bindpose_tm_inv
             )
-            pymel.connectAttr(util_decompose_offset_tm.outputTranslate, model._grp_offset.translate)
-            pymel.connectAttr(util_decompose_offset_tm.outputRotate, model._grp_offset.rotate)
-            pymel.connectAttr(util_decompose_offset_tm.outputScale, model._grp_offset.scale)
+        ).matrixSum
+        attr_local_bindpose_tm_inv = libRigging.create_utility_node(
+            'inverseMatrix',
+            name=nomenclature_rig.resolve('getLocalBindPoseInv'),
+            inputMatrix=attr_local_bindpose_tm
+        ).outputMatrix
+        attr_parent_offset_world_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                attr_local_bindpose_tm,
+                parent_grp_offset.matrix,
+                attr_local_bindpose_tm_inv,
+            )
+        ).matrixSum
 
-    def parent_to(self, parent):
-        pymel.parentConstraint(parent, self._grp_parent, maintainOffset=True)
-        pymel.scaleConstraint(parent, self._grp_parent, maintainOffset=True)
+        #
+        # Compute the distorsion introduced by the bind.
+        #
+        attr_follicle_world_tm = model._grp_bind.matrix
+        attr_parent_follicle_world_tm_inv = parent_model._grp_bind.inverseMatrix
+        attr_follicle_delta_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                attr_follicle_world_tm,
+                attr_parent_follicle_world_tm_inv,
+                attr_local_bindpose_tm_inv,
+            )
+        ).matrixSum
+        attr_follicle_delta_tm_inv = libRigging.create_utility_node(
+            'inverseMatrix',
+            name=nomenclature_rig.resolve('getLocalBindPoseInv'),
+            inputMatrix=attr_follicle_delta_tm
+        ).outputMatrix
+        attr_offset_tm = libRigging.create_utility_node(
+            'multMatrix',
+            name=nomenclature_rig.resolve('getOffsetTM'),
+            matrixIn=(
+                attr_local_bindpose_tm,
+                attr_follicle_delta_tm,
+                parent_ctrl.matrix,
+                attr_follicle_delta_tm_inv,
+                attr_local_bindpose_tm_inv,
+                attr_parent_offset_world_tm
+            )
+        ).matrixSum
+        util_decompose_offset_tm = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=attr_offset_tm
+        )
+        pymel.connectAttr(util_decompose_offset_tm.outputTranslate, model._grp_offset.translate)
+        pymel.connectAttr(util_decompose_offset_tm.outputRotate, model._grp_offset.rotate)
+        pymel.connectAttr(util_decompose_offset_tm.outputScale, model._grp_offset.scale)
 
 
 class InteractiveFK(Module):
@@ -470,6 +456,8 @@ class InteractiveFK(Module):
 
         # The group that all surface will be parented to.
         self._grp_surfaces = None
+
+        self._grp_parent = None
 
     @property
     def parent(self):
@@ -657,8 +645,6 @@ class InteractiveFK(Module):
         if cls_ctrl:
             module._CLS_CTRL = cls_ctrl
 
-        nomenclature_rig = module.get_nomenclature_rig()
-
         return module
 
     def _init_layers(self):
@@ -672,7 +658,7 @@ class InteractiveFK(Module):
         # Ensure we have at least as many slots allocated that we have groups.
         num_layers = len(self.layers)
         num_data = len(data)
-        if num_layers < num_data :
+        if num_layers < num_data:
             libPython.resize_list(self.layers, num_data)
 
         self.debug('Found {} layer groups'.format(len(data)))
@@ -682,8 +668,6 @@ class InteractiveFK(Module):
             self.layers[i] = self.init_layer(self.layers[i], inputs=[surface] + influences, suffix='layer{}'.format(i + 1))
 
     def _build_layers(self, ctrl_size_max=None, ctrl_size_min=None):
-        nomenclature_rig = self.get_nomenclature_rig()
-
         layers = self.layers
         num_layers = len(layers)
 
@@ -767,10 +751,22 @@ class InteractiveFK(Module):
             ctrl_size_max=ctrl_size_max,
             ctrl_size_min=ctrl_size_min
         )
+        # Create a group that represent the original parent of everything.
+        # This allow use to supported non-uniform scaling by using direct connections instead of parent/scaleConstraint.
+        parent_obj = self.get_parent_obj()
+        self._grp_parent = pymel.createNode(
+            'transform',
+            name=nomenclature_rig_grp.resolve('parent'),
+            parent=self.grp_rig
+        )
+        # Rig parenting
+        if parent_obj:
+            self._grp_parent.setMatrix(parent_obj.getMatrix(worldSpace=True))
 
         # For each influence, create a follicle that will follow the final mesh.
         unassigned_influences = self._get_unassigned_influences()
         last_surface = self.layers[-1].get_surface()
+
         if unassigned_influences and last_surface:
             grp_follicles = pymel.createNode(
                 'transform',
@@ -778,8 +774,11 @@ class InteractiveFK(Module):
                 parent=self.grp_rig,
             )
 
-            for jnt in unassigned_influences:
+            for i, jnt in enumerate(unassigned_influences):
                 nomenclature = nomenclature_jnt + self.rig.nomenclature(jnt.nodeName())
+
+                # Get the final LOCAL transformation of the influence.
+                # If we have a parent, we'll want to convert it to WORLD transformation.
                 pos = jnt.getTranslation(space='world')
                 _, u, v = libRigging.get_closest_point_on_surface(last_surface, pos)
                 fol_shape = libRigging.create_follicle2(last_surface, u, v, connect_transform=True)
@@ -787,38 +786,35 @@ class InteractiveFK(Module):
                 fol_transform.rename(nomenclature.resolve())
                 fol_transform.setParent(grp_follicles)
 
-                pymel.parentConstraint(fol_transform, jnt, maintainOffset=True)
-                if self.parent:
-                    pymel.scaleConstraint(self.parent, jnt)
+                # Connect the influence.
+                # Note that we don't apply any scale constraining since we assume that all influence have
+                # the same common parent that drive the scale.
+                if parent_obj:
+                    # Use an extra object to match original influence transform.
+                    grp_output = pymel.createNode(
+                        'transform',
+                        name=nomenclature_jnt.resolve('output{}'.format(i)),
+                        parent=self._grp_parent
+                    )
+                    grp_output.setMatrix(jnt.getMatrix(worldSpace=True), worldSpace=True)
+                    pymel.parentConstraint(fol_transform, grp_output, maintainOffset=True)
 
-        # # Blendshape each layers together.
-        # all_surfaces = [self.preSurface] + [layer.get_surface() for layer in self.layers] + [self.postSurface]
-        # for a, b in itertools.izip(all_surfaces[:-1], all_surfaces[1:]):
-        #     pymel.blendShape(a, b, w=[0, 1], frontOfChain=True)
+                    # Hack: Reset joint orient so our direct connection work...
+                    # todo: use compose matrix?
+                    if isinstance(jnt, pymel.nodetypes.Joint):
+                        jnt.jointOrientX.set(0.0)
+                        jnt.jointOrientY.set(0.0)
+                        jnt.jointOrientZ.set(0.0)
 
-        # Manually parent the module with support for scaling.
-        if parent and self.parent:
-            self.parent_to(self.parent)
+                    libAttr.connect_transform_attrs(grp_output, jnt, sx=False, sy=False, sz=False)
 
-    def parent_to(self, parent):
-        nomenclature_rig = self.get_nomenclature_rig()
+                else:
+                    pymel.parentConstraint(fol_transform, jnt, maintainOffset=True)
 
-        grp_parent = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('parent'),
-            parent=self.grp_rig
-        )
-        pymel.parentConstraint(parent, grp_parent, maintainOffset=True)
-        pymel.scaleConstraint(parent, grp_parent, maintainOffset=True)
-
-        libAttr.connect_transform_attrs(grp_parent, self.grp_anm)
-
-        # last_surface = self.layers[-1].get_surface()
-        # pymel.parentConstraint(grp_parent, last_surface, maintainOffset=True)
-        # pymel.scaleConstraint(grp_parent, last_surface, maintainOffset=True)
-
-        # Same thing for self.grp_anm by use direct connection to keep the anim dag tree clean.
-        # libAttr.connect_transform_attrs(last_surface, self.grp_anm)
+        #Manually parent the module with support for scaling.
+        if parent:
+            pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
+            pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
 
 
 def register_plugin():

@@ -1330,3 +1330,15 @@ def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01, def
     else:
         log.warning("Can't detect sensibility for {0}".format(attr))
         return default
+
+def debug_matrix_attr(attr):
+    util_decompose = create_utility_node(
+        'decomposeMatrix',
+        inputMatrix=attr
+    )
+    loc = pymel.spaceLocator()
+    pymel.connectAttr(util_decompose.outputTranslate, loc.translate)
+    pymel.connectAttr(util_decompose.outputRotate, loc.rotate)
+    pymel.connectAttr(util_decompose.outputScale, loc.scale)
+    return loc
+

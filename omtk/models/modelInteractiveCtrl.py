@@ -66,7 +66,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
               flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None,
               parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, **kwargs):
-        super(ModelInteractiveCtrl, self).build(**kwargs)
+        super(ModelInteractiveCtrl, self).build(avar, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()

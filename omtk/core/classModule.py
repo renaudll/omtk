@@ -269,12 +269,21 @@ class Module(object):
                 if parent in head_jnts:
                     return parent
 
-        # If no influence if found, take a guess.
+        # If we didn't find any head influence in the current hierarchy
+        # but there's only one head, we are lucky. This might be a one-headed rig.
+        num_heads = len(head_jnts)
+        if num_heads == 1:
+            return head_jnts[0]
+        if num_heads == 0:
+            self.warning("Cannot resolve head influence!")
+            return None
+
+        # If no influence is found and there's multiple heads... take a wirld guess.
+        # todo: check with proximity
         default_head = next(iter(head_jnts), None)
         if default_head:
             self.warning("Cannot resolve head influence! Using default {}".format(default_head))
-        else:
-            self.warning("Cannot resolve head influence!")
+            return default_head
 
     @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):

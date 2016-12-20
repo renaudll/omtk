@@ -426,6 +426,7 @@ def create_triangle_right():
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
 
+    return node
 
 #
 # JG implement from fSanges controler shape bank

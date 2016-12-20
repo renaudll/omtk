@@ -437,6 +437,21 @@ class InteractiveFKLayer(ModuleMap):
         pymel.connectAttr(util_decompose_offset_tm.outputRotate, model._grp_offset.rotate)
         pymel.connectAttr(util_decompose_offset_tm.outputScale, model._grp_offset.scale)
 
+    def unbuild(self, **kwargs):
+        # Ensure surface is not destroyed by the unbuild process.
+        surface = self.get_surface()
+        if libPymel.is_child_of(surface, self.grp_rig):
+            surface.setParent(world=True)
+
+        # Ensure influences are not destroyed by the unbuild process.
+        influences = self.jnts
+        common_parent = libPymel.get_common_parents(influences)
+        for influence in influences:
+            if influence.getParent() == common_parent:
+                influence.setParent(world=True)
+
+        super(InteractiveFKLayer, self).unbuild(**kwargs)
+
 
 class InteractiveFK(Module):
     _CLS_LAYER = InteractiveFKLayer
@@ -447,12 +462,6 @@ class InteractiveFK(Module):
 
         # This will contain all the layers that take part in the system.
         self.layers = []
-
-        # # The preSurface define the 'bind' pose of the system.
-        # self.preSurface = None
-        #
-        # The postSurface define the 'final' shape of the system and inherit any scale.
-        self.postSurface = None
 
         # The group that all surface will be parented to.
         self._grp_surfaces = None
@@ -811,10 +820,17 @@ class InteractiveFK(Module):
                 else:
                     pymel.parentConstraint(fol_transform, jnt, maintainOffset=True)
 
-        #Manually parent the module with support for scaling.
-        if parent:
-            pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
-            pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
+        # Manually parent the module with support for scaling.
+        if parent_obj and parent_obj != self.grp_anm:
+            pymel.parentConstraint(parent_obj, self.grp_anm, maintainOffset=True)
+            pymel.scaleConstraint(parent_obj, self.grp_anm, maintainOffset=True)
+
+    def unbuild(self, **kwargs):
+        for layer in self.layers:
+            if layer.is_built():
+                layer.unbuild()
+
+        super(InteractiveFK, self).unbuild(**kwargs)
 
 
 def register_plugin():

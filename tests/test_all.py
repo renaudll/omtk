@@ -186,6 +186,18 @@ class SampleTests(mayaunittest.TestCase):
     def test_rig_rlessard(self):
         self._build_unbuild_build()
 
+    @open_scene('./test_interactivefk01.ma')
+    def test_interactivefk01(self):
+        self._build_unbuild_build()
+
+    @open_scene('./test_interactivefk02.ma')
+    def test_interactivefk02(self):
+        self._build_unbuild_build()
+
+    @open_scene('./test_interactivefk03.ma')
+    def test_interactivefk03(self):
+        self._build_unbuild_build()
+
     def test_ctrl_space_index_preservation(self):
         """
         Check that after a ctrl have been built once, if we change it's hierarchy's and

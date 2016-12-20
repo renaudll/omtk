@@ -487,7 +487,7 @@ class InteractiveFK(Module):
         # Ensure there's no useless surface in the inputs.
         unassigned_surfaces = self._get_unassigned_surfaces()
         if unassigned_surfaces:
-            raise Exception("Useless surface(s) found: {}".format(','.join((surface for surface in unassigned_surfaces))))
+            raise Exception("Useless surface(s) found: {}".format(', '.join((surface.name() for surface in unassigned_surfaces))))
 
         # todo: Ensure all surface have an identity matrix
         attr_to_check = {
@@ -585,7 +585,7 @@ class InteractiveFK(Module):
         surfaces = set(self.get_surfaces())
         for surface, _ in self.get_influences_by_surfaces():
             surfaces.discard(surface)
-        return list(surfaces)
+        return list(surfaces) if surfaces else []
 
     @staticmethod
     def iter_uvs(num_u, num_v, min_u=0.0, max_u=1.0, min_v=0.0, max_v=1.0):

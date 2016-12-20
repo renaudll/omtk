@@ -70,6 +70,14 @@ class BaseCtrl(Node):
         return self.offset
     '''
 
+    def _get_recommended_size(self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs):
+        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        if ref is not None:
+            return libRigging.get_recommended_ctrl_size(ref, geometries=geometries, **kwargs) * multiplier
+        else:
+            return default_size * multiplier
+
+
     def __createNode__(self, size=None, normal=(1,0,0), multiplier=1.0, refs=None, offset=None, geometries=None, *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
@@ -80,12 +88,8 @@ class BaseCtrl(Node):
             geometries = tuple(geometries)
 
         # Resolve size automatically if refs are provided.
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if size is None:
-            if ref is not None:
-                size = libRigging.get_recommended_ctrl_size(ref, geometries=geometries) * multiplier
-            else:
-                size = 1.0
+            size = self._get_recommended_size(refs, geometries, multiplier=multiplier)
 
         transform, make = pymel.circle()
         make.radius.set(size)

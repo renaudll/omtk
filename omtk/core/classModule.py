@@ -86,7 +86,7 @@ class Module(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.name)
+        return 'net_{0}_{1}'.format(self.__class__.__name__, self.get_module_name())
 
     def is_built(self):
         """
@@ -184,6 +184,7 @@ class Module(object):
         )
         return name
 
+    @libPython.memoized_instancemethod
     def get_nomenclature_rig_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
@@ -224,17 +225,16 @@ class Module(object):
     @libPython.cached_property()
     def jnts(self):
         """
-        :return: All module inputs of joint type, sorted in hierarchical order.
+        :return: A list of all inputs of type pymel.nodetypes.Joint.
         """
-        fn_is_jnt = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
-        jnts = filter(fn_is_jnt, self.input)
-        jnts = sorted(jnts, key=libPymel.get_num_parents)
+        jnts = [obj for obj in self.input if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)]
+        jnts = sorted(jnts)
         return jnts
 
     @libPython.cached_property()
     def jnt(self):
         """
-        Return the first input joint. Usefull for system like Avars that only handle one influence.
+        :return: The first input of type pymel.nodetypes.Joint.
         """
         return next(iter(filter(None, self.jnts)), None)  # Hack: remove filter, find why it happen
 
@@ -269,12 +269,21 @@ class Module(object):
                 if parent in head_jnts:
                     return parent
 
-        # If no influence if found, take a guess.
+        # If we didn't find any head influence in the current hierarchy
+        # but there's only one head, we are lucky. This might be a one-headed rig.
+        num_heads = len(head_jnts)
+        if num_heads == 1:
+            return head_jnts[0]
+        if num_heads == 0:
+            self.warning("Cannot resolve head influence!")
+            return None
+
+        # If no influence is found and there's multiple heads... take a wirld guess.
+        # todo: check with proximity
         default_head = next(iter(head_jnts), None)
         if default_head:
             self.warning("Cannot resolve head influence! Using default {}".format(default_head))
-        else:
-            self.warning("Cannot resolve head influence!")
+            return default_head
 
     @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
@@ -302,6 +311,20 @@ class Module(object):
             self.warning("Cannot found jaw influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
         return None
 
+    @libPython.memoized_instancemethod
+    def get_surfaces(self):
+        """
+        :return: A list of all inputs of type pymel.nodetypes.NurbsSurface.
+        """
+        return [obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)]
+
+    @libPython.memoized_instancemethod
+    def get_surface(self):
+        """
+        :return: The first input of type pymel.nodetypes.NurbsSurface.
+        """
+        return next(iter(self.get_surfaces()), None)
+
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
         """
@@ -312,6 +335,12 @@ class Module(object):
         :param args: TO REMOVE? #todo
         :param kwargs: TO REMOVE? #todo
         """
+        # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
+        if name and not isinstance(name, basestring):
+            raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
+                type(name), name
+            ))
+
         self.rig = rig  # Reference to the parent rig instance.
         self.iCtrlIndex = 2
         self.grp_anm = None
@@ -339,10 +368,13 @@ class Module(object):
         else:
             self.input = []
 
-        if name:
-            self.name = name
-        else:
-            self.name = 'RENAMEME'
+        self.name = name
+
+        # Note: Removed by rlessard: We need to be able to detect when no name was set!
+        # if name:
+        #     self.name = name
+        # else:
+        #     self.name = 'RENAMEME'
 
 
     def __str__(self):
@@ -397,17 +429,25 @@ class Module(object):
                 pymel.addAttr(self.grp_rig, longName='globalScale', defaultValue=1.0)
                 self.globalScale = self.grp_rig.globalScale
 
-        if parent and self.parent:
+        # Apply parenting if necessary.
+        # If the module input have no immediate parent, we'll at least ensure that is it parented to the anm grp.
+        if parent:
             parent_obj = self.get_parent_obj()
             if parent_obj:
                 self.parent_to(parent_obj)
 
-    def get_parent_obj(self):
+    def get_parent_obj(self, fallback_to_anm_grp=True):
         """
+        :param fallback_to_anm_grp: If True, if no parent is found, the anm group will be returned.
         :return: The object to act as the parent of the module if applicable.
         """
         if self.parent is None:
-            return None
+            if fallback_to_anm_grp:
+                self.debug("Found no immediate parent. Will be parented to the anm grp.")
+                return self.rig.grp_anm
+            else:
+                self.debug("Found no immediate parent. ")
+                return None
 
         module = self.rig.get_module_by_input(self.parent)
         if module:
@@ -415,9 +455,6 @@ class Module(object):
             if desired_parent:
                 self.debug("Will be parented to {0}, {1}".format(module, desired_parent))
                 return desired_parent
-
-        if libPymel.is_valid_PyNode(self.parent):
-            self.debug("Can't recommend a parent. {0} is not in any known module.".format(self.parent))
 
         return self.parent
 

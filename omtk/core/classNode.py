@@ -1,7 +1,7 @@
 import pymel.core as pymel
 
 from omtk.libs import libPymel
-
+from omtk.libs import libRigging
 
 class Node(object):
     """
@@ -22,6 +22,17 @@ class Node(object):
             raise TypeError("RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(type(self.__dict__['node']), self.__dict__['node']))
         elif hasattr(self.__dict__['node'], attr_name):
             return getattr(self.__dict__['node'], attr_name)
+
+    def __str__(self):
+        """
+        Since Maya2017, pymel try to convert to unicode if it does'nt recognize it.
+        This call is necessary to ensure that pymel recognize our custom class.
+        :return: The return of __melobject__()
+        """
+        if self.node and self.node.exists():
+            return self.node.__melobject__()
+        else:
+            return super(Node, self).__str__()
 
     def __createNode__(self, *args, **kwargs):
         return pymel.createNode('transform', *args, **kwargs)
@@ -172,6 +183,27 @@ class Node(object):
         :return: The last node in the transform stack. Note that this does NOT return self.node.
         """
         return next(reversed(self._layers), None)
+
+    def extract_stack_tm(self):
+        """
+        :return: A matrix attribute containing the delta from the stack start (it's parent) and the stack end.
+        """
+        # todo: remove dependency on self.getParent()
+        stack_parent = self.getParent()
+
+        return libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self.getParent().worldInverseMatrix,
+                self.node.worldMatrix
+            )
+        ).matrixSum
+
+    def getParent(self, **kwargs):
+        if self._layers:
+            return self._layers[0].getParent(**kwargs)
+        else:
+            return self.node.getParent(**kwargs)
 
     def setParent(self, *args, **kwargs):
         """

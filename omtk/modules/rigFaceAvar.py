@@ -615,6 +615,7 @@ class AvarFollicle(AvarSimple):
     """
     A deformation point on the face that move accordingly to nurbsSurface.
     """
+    SHOW_IN_UI = False
     #_CLS_CTRL_MICRO = CtrlFaceMicro
 
     _ATTR_NAME_U_BASE = 'baseU'
@@ -1037,3 +1038,6 @@ class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
         return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
 
+
+def register_plugin():
+    return AvarFollicle

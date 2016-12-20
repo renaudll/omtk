@@ -69,6 +69,7 @@ class SampleTests(mayaunittest.TestCase):
             'Hand',
             'Head',
             'IK',
+            'InteractiveFK',
             'Leg',
             'LegQuad',
             'Limb',

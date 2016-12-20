@@ -5,12 +5,14 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core.classModule import Module
+from omtk.core import classCtrlModel
 from omtk.libs import libRigging
 from omtk.libs import libPymel
 from omtk.libs import libAttr
+from omtk.libs import libHistory
 
 
-class ModelInteractiveCtrl(Module):
+class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     """
     An InteractiveCtrl ctrl is directly constrained on a mesh via a layer_fol.
     To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
@@ -32,7 +34,6 @@ class ModelInteractiveCtrl(Module):
 
     def __init__(self, *args, **kwargs):
         super(ModelInteractiveCtrl, self).__init__(*args, **kwargs)
-        self.ctrl = None
         self.follicle = None  # Used for calibration
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
@@ -62,11 +63,10 @@ class ModelInteractiveCtrl(Module):
 
         return tm
 
-    def iter_ctrls(self):
-        yield self.ctrl
-
-    def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None, flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, constraint=False, **kwargs):
-        super(ModelInteractiveCtrl, self).build(**kwargs)
+    def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
+              flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None,
+              parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, **kwargs):
+        super(ModelInteractiveCtrl, self).build(avar, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
@@ -102,7 +102,7 @@ class ModelInteractiveCtrl(Module):
         # todo: check if we really want to resolve the u and v ourself since it's now connected.
         if obj_mesh is None:
             # We'll scan all available geometries and use the one with the shortest distance.
-            meshes = libRigging.get_affected_geometries(ref)
+            meshes = libHistory.get_affected_shapes(ref)
             meshes = list(set(meshes) & set(self.rig.get_shapes()))
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
@@ -241,51 +241,53 @@ class ModelInteractiveCtrl(Module):
         #
         # Inverse translation
         #
-        attr_ctrl_inv_t = libRigging.create_utility_node(
-            'multiplyDivide', input1=self.ctrl.node.t,
-            input2=[-1, -1, -1]
-        ).output
+        if cancel_t:
+            attr_ctrl_inv_t = libRigging.create_utility_node(
+                'multiplyDivide', input1=self.ctrl.node.t,
+                input2=[-1, -1, -1]
+            ).output
 
-        attr_ctrl_inv_t = libRigging.create_utility_node(
-            'multiplyDivide',
-            input1=attr_ctrl_inv_t,
-            input2X=self.attr_sensitivity_tx,
-            input2Y=self.attr_sensitivity_ty,
-            input2Z=self.attr_sensitivity_tz
-        ).output
-
-        layer_inv_t = self._stack.append_layer(name='inverseT')
-
-        if flip_lr:
-            attr_doritos_tx = libRigging.create_utility_node(
+            attr_ctrl_inv_t = libRigging.create_utility_node(
                 'multiplyDivide',
-                input1X=attr_ctrl_inv_t.outputX,
-                input2X=-1
-            ).outputX
-        else:
-            attr_doritos_tx = attr_ctrl_inv_t.outputX
-        attr_doritos_ty = attr_ctrl_inv_t.outputY
-        attr_doritos_tz = attr_ctrl_inv_t.outputZ
+                input1=attr_ctrl_inv_t,
+                input2X=self.attr_sensitivity_tx,
+                input2Y=self.attr_sensitivity_ty,
+                input2Z=self.attr_sensitivity_tz
+            ).output
 
-        pymel.connectAttr(attr_doritos_tx, layer_inv_t.tx)
-        pymel.connectAttr(attr_doritos_ty, layer_inv_t.ty)
-        pymel.connectAttr(attr_doritos_tz, layer_inv_t.tz)
+            layer_inv_t = self._stack.append_layer(name='inverseT')
+
+            if flip_lr:
+                attr_doritos_tx = libRigging.create_utility_node(
+                    'multiplyDivide',
+                    input1X=attr_ctrl_inv_t.outputX,
+                    input2X=-1
+                ).outputX
+            else:
+                attr_doritos_tx = attr_ctrl_inv_t.outputX
+            attr_doritos_ty = attr_ctrl_inv_t.outputY
+            attr_doritos_tz = attr_ctrl_inv_t.outputZ
+
+            pymel.connectAttr(attr_doritos_tx, layer_inv_t.tx)
+            pymel.connectAttr(attr_doritos_ty, layer_inv_t.ty)
+            pymel.connectAttr(attr_doritos_tz, layer_inv_t.tz)
 
         #
         # Inverse rotation
         # Add an inverse node that will counter animate the position of the ctrl.
         # TODO: Rename
         #
-        layer_inv_r = self._stack.append_layer(name='inverseR')
-        # layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
-        # layer_doritos.setParent(self._stack.node)
+        if cancel_r:
+            layer_inv_r = self._stack.append_layer(name='inverseR')
+            # layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
+            # layer_doritos.setParent(self._stack.node)
 
-        # Create inverse attributes for the ctrl
+            # Create inverse attributes for the ctrl
 
-        attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.r,
-                                                         input2=[-1, -1, -1]).output
+            attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.r,
+                                                             input2=[-1, -1, -1]).output
 
-        pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
+            pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
 
 
         #
@@ -360,15 +362,31 @@ class ModelInteractiveCtrl(Module):
         # Constraint grp_anm
         #
 
+        # Create an output object that will hold the world position of the ctrl offset.
+        # This allow us to create direct connection which simplify the dag tree for the animator
+        # and allow us to easily scale the whole setup to support non-uniform scaling.
+        grp_output = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('output'),
+            parent=self.grp_rig
+        )
+
         # Position
         stack_end = self._stack.get_stack_end()
-        pymel.parentConstraint(stack_end, self.ctrl.offset, maintainOffset=False, skipRotate=['x', 'y', 'z'])
+        pymel.parentConstraint(stack_end, grp_output, maintainOffset=False, skipRotate=['x', 'y', 'z'])
 
         # Rotation
         if parent_rot is None:
             parent_rot = stack_end
             # parent_rot = layer_inv_r.getParent()
-        pymel.orientConstraint(parent_rot, self.ctrl.offset, maintainOffset=True)
+        pymel.orientConstraint(parent_rot, grp_output, maintainOffset=True)
+
+        pymel.connectAttr(grp_output.tx, self.ctrl.offset.tx)
+        pymel.connectAttr(grp_output.ty, self.ctrl.offset.ty)
+        pymel.connectAttr(grp_output.tz, self.ctrl.offset.tz)
+        pymel.connectAttr(grp_output.rx, self.ctrl.offset.rx)
+        pymel.connectAttr(grp_output.ry, self.ctrl.offset.ry)
+        pymel.connectAttr(grp_output.rz, self.ctrl.offset.rz)
 
         # Scale
         if parent_scl:

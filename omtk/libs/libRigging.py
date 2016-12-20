@@ -58,7 +58,7 @@ def create_utility_node(_sClass, name=None, *args, **kwargs):
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
-                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(_sClass,                                                                                                          sAttrName))
+                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(_sClass, sAttrName))
         else:
             connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
     return uNode
@@ -75,7 +75,7 @@ def hold_ctrl_shapes(transform, parent=None):
     # Resolve all shapes (pymel.nodetypes.CurveShape only for now)
     def is_shape(shape):
         return isinstance(shape, pymel.nodetypes.CurveShape) and not shape.intermediateObject.get()
-    all_shapes = filter(is_shape, transform.getShapes())
+    all_shapes = filter(is_shape, transform.getShapes(noIntermediate=True))
     if not all_shapes:
         return
 
@@ -180,6 +180,14 @@ def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
     attr_length_v = arcLengthDimension_shape.arcLengthInV
     return attr_length_u, attr_length_v, arcLengthDimension_shape
 
+
+def get_surface_length(surface, u=1.0, v=1.0):
+    attr_u, attr_v, util = create_arclengthdimension_for_nurbsplane(surface, u=u, v=v)
+    length_u = attr_u.get()
+    length_v = attr_v.get()
+    pymel.delete(util.getParent())
+    return length_u, length_v
+
 def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
     """
     Compute the stretch applied on a pymel.nodetypes.NurbsSurface.
@@ -282,7 +290,6 @@ def interp_football(ratio):
     https://www.wolframalpha.com/input/?i=cos(x%2B1*pi%2F2)%5E0.5
     """
     return math.cos(ratio/2.0*math.pi)**0.5
-
 
 
 def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
@@ -414,34 +421,12 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
 
     return libPymel.PyNodeChain(new_objs)
 
-def get_affected_geometries(*objs):
-    """
-    :param obj: A reference object, generally a pymel.nodetypes.Joint.
-    :return: The geometries affected by the object.
-    """
-    geometries = set()
-
-    for obj in objs:
-        if isinstance(obj, pymel.nodetypes.Joint):
-            # Collect all geometries affected by the joint.
-            skinClusters = set()
-            for hist in obj.listHistory(future=True):
-                if isinstance(hist, pymel.nodetypes.SkinCluster):
-                    skinClusters.add(hist)
-
-            for skinCluster in skinClusters:
-                for geometry in skinCluster.getOutputGeometry():
-                    if isinstance(geometry, pymel.nodetypes.SurfaceShape):
-                        geometries.add(geometry)
-
-    return geometries
-
 '''
 def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
     if not isinstance(ctrl_shape, pymel.nodetypes.NurbsCurve):
         raise Exception("Unexpected input, expected NurbsCurve, got {0}.".format(type(ctrl_shape)))
 
-    geometries = get_affected_geometries(ref)
+    geometries = libHistory.get_affected_shapes(ref)
     if not geometries:
         print "Cannot resize {0}, found no affected geometries!".format(ctrl_shape)
         return
@@ -473,7 +458,7 @@ def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
 '''
 
 # todo: check if memoized is really necessary?
-@libPython.memoized
+#@libPython.memoized
 def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
                               weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0):
     """
@@ -993,7 +978,7 @@ def get_closest_point_on_mesh(mesh, pos):
 
 def get_closest_point_on_surface(nurbsSurface, pos):
     if isinstance(nurbsSurface, pymel.nodetypes.Transform):
-        nurbsSurface = nurbsSurface.getShape()
+        nurbsSurface = nurbsSurface.getShape(noIntermediate=True)
 
     if not isinstance(nurbsSurface, pymel.nodetypes.NurbsSurface):
         raise IOError("Unexpected datatype. Expected NurbsSurface, got {0}".format(type(nurbsSurface)))
@@ -1020,7 +1005,7 @@ def get_closest_point_on_surface(nurbsSurface, pos):
 
 def get_closest_point_on_shape(shape, pos):
     if isinstance(shape, pymel.nodetypes.Transform):
-        shape = shape.getShape()
+        shape = shape.getShape(noIntermediate=True)
 
     if isinstance(shape, pymel.nodetypes.Mesh):
         return get_closest_point_on_mesh(shape, pos)
@@ -1058,7 +1043,7 @@ def get_point_on_surface_from_uv(shape, u, v):
     follicle_shape.parameterV.set(v)
 
     if isinstance(shape, pymel.nodetypes.Transform):
-        shape = shape.getShape()
+        shape = shape.getShape(noIntermediate=True)
 
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
@@ -1095,7 +1080,7 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
 
     # HACK: If a transform was provided, use the first surface.
     if isinstance(shape, pymel.nodetypes.Transform):
-        shape = shape.getShape()
+        shape = shape.getShape(noIntermediate=True)
 
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
@@ -1345,3 +1330,15 @@ def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01, def
     else:
         log.warning("Can't detect sensibility for {0}".format(attr))
         return default
+
+def debug_matrix_attr(attr):
+    util_decompose = create_utility_node(
+        'decomposeMatrix',
+        inputMatrix=attr
+    )
+    loc = pymel.spaceLocator()
+    pymel.connectAttr(util_decompose.outputTranslate, loc.translate)
+    pymel.connectAttr(util_decompose.outputRotate, loc.rotate)
+    pymel.connectAttr(util_decompose.outputScale, loc.scale)
+    return loc
+

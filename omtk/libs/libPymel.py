@@ -129,6 +129,24 @@ def get_parents(obj):
     return parents
     '''
 
+def get_common_parents(objs):
+    """
+    Return the first parent that all provided objects share.
+    :param objs: A list of pymel.PyNode instances.
+    :return: A pymel.PyNode instance.
+    """
+    parent_sets = set()
+    for jnt in objs:
+        parent_set = set(get_parents(jnt))
+        if not parent_sets:
+            parent_sets = parent_set
+        else:
+            parent_sets &= parent_set
+
+    result = next(iter(reversed(sorted(parent_sets, key=get_num_parents))), None)
+    if result and result in objs:
+        result = result.getParent()
+    return result
 
 class Tree(object):
     __slots__ = ('val', 'children', 'parent')

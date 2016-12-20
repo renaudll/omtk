@@ -7,7 +7,9 @@ import os
 
 import utils
 import classCtrl
+import classCtrlModel
 import classModule
+import classModuleMap
 import className
 import classNode
 import classRig
@@ -36,7 +38,9 @@ def _reload():
     reload(className)
     reload(classNode)
     reload(classCtrl)
+    reload(classCtrlModel)
     reload(classModule)
+    reload(classModuleMap)
     reload(classRig)
 
     import plugin_manager

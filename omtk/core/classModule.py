@@ -228,7 +228,6 @@ class Module(object):
         :return: A list of all inputs of type pymel.nodetypes.Joint.
         """
         jnts = [obj for obj in self.input if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)]
-        jnts = sorted(jnts)
         return jnts
 
     @libPython.cached_property()

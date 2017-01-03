@@ -159,10 +159,10 @@ def build_selected(sel=None):
         if not rig or not modules:
             return
 
-        is_module_unbuilt = lambda x: not x.is_built()
-        modules = filter(is_module_unbuilt, modules)
-
         def can_build_module(module):
+            if module.is_built():
+               return False
+
             try:
                 module.validate()
                 return True
@@ -170,16 +170,16 @@ def build_selected(sel=None):
                 pymel.warning("Can't build {0}: {1}".format(module.name, str(e)))
                 return False
 
-        modules = filter(can_build_module, modules)
-
+        modules = [module for module in modules if can_build_module(module)]
         if not modules:
             return
 
         # Build selected modules
         rig.pre_build()
         for module in modules:
-            module.build()
-            rig.post_build_module(module)
+            if can_build_module(module):
+                module.build()
+                rig.post_build_module(module)
 
         # Re-export network
         if hasattr(rig, '_network'):
@@ -193,10 +193,11 @@ def unbuild_selected(sel=None):
         if not rig or not modules:
             return
 
-        is_module_built = lambda x: x.is_built()
-        modules = filter(is_module_built, modules)
-
         # Build selected modules
+        modules = [module for module in modules if module.is_built()]
+        if not modules:
+            return
+
         for module in modules:
             module.unbuild()
 
@@ -204,6 +205,22 @@ def unbuild_selected(sel=None):
         if hasattr(rig, '_network'):
             pymel.delete(rig._network)
         libSerialization.export_network(rig)
+
+
+# def rebuild_selection():
+#     with with_preserve_selection():
+#         rig, modules = _get_modules_from_selection()
+#         if not rig or not modules:
+#             return
+#
+#         for module in modules:
+#             if module.is_built():
+#                 module.unbuild()
+#             module.build()
+#
+#         if hasattr(rig, '_network'):
+#             pymel.delete(rig._network)
+#         libSerialization.export_network(rig)
 
 
 def calibrate_selected(sel=None):

@@ -165,19 +165,18 @@ def renameAttr(node, oldname, newname):
     return True
 
 
-def hold_attrs(attr):
+def hold_attrs(attr, hold_curve=True):
     """
     Hold a specific @attr attribute.
     """
     if isinstance(attr, pymel.Attribute):
+        if not hold_curve or attr.isLocked() or not attr.isKeyable():
+            return attr.get()
+
         for input in attr.inputs(plugs=True):
-            if not attr.isLocked():
-                if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
-                    pymel.disconnectAttr(input, attr)  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
-                    return input
-            else:
-                log.warning("Input have been found on attr {0}, but it's locked. "
-                            "The animation curve will be lost and the current value will be used".format(attr))
+            if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
+                pymel.disconnectAttr(input, attr)  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
+                return input
         return attr.get()
     return attr
 

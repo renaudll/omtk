@@ -234,27 +234,20 @@ class BaseCtrl(Node):
             print "[setParent] {0} don't have an offset attribute".format(self)
         return self.offset.setRotation(*args, **kwargs)
 
-
     def hold_attrs_all(self):
         """
         Hold all ctrl keyable attributes.
         Note that if an attribute is locked or non-keyable, we'll only hold it's value.
         """
-        def _hold_attr(attr):
-            if attr.isLocked() or not attr.isKeyable():
-                return attr.get()
-            else:
-                return libAttr.hold_attrs(attr)
-
-        self.tx = _hold_attr(self.node.translateX)
-        self.ty = _hold_attr(self.node.translateY)
-        self.tz = _hold_attr(self.node.translateZ)
-        self.rx = _hold_attr(self.node.rotateX)
-        self.ry = _hold_attr(self.node.rotateY)
-        self.rz = _hold_attr(self.node.rotateZ)
-        self.sx = _hold_attr(self.node.scaleX)
-        self.sy = _hold_attr(self.node.scaleY)
-        self.sz = _hold_attr(self.node.scaleZ)
+        self.tx = libAttr.hold_attrs(self.node.translateX)
+        self.ty = libAttr.hold_attrs(self.node.translateY)
+        self.tz = libAttr.hold_attrs(self.node.translateZ)
+        self.rx = libAttr.hold_attrs(self.node.rotateX)
+        self.ry = libAttr.hold_attrs(self.node.rotateY)
+        self.rz = libAttr.hold_attrs(self.node.rotateZ)
+        self.sx = libAttr.hold_attrs(self.node.scaleX)
+        self.sy = libAttr.hold_attrs(self.node.scaleY)
+        self.sz = libAttr.hold_attrs(self.node.scaleZ)
 
     def fetch_attr_all(self):
         """

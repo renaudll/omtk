@@ -214,6 +214,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         """
         return self.get_avars_micro_upp()
 
+    @libPython.memoized_instancemethod
     def get_avars_micro_upp(self):
         """
         Return all the avars controlling the AvarGrp upper area.
@@ -230,6 +231,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         """
         return self.get_avars_micro_low()
 
+    @libPython.memoized_instancemethod
     def get_avars_micro_low(self):
         """
         Return all the avars controlling the AvarGrp lower area.
@@ -561,11 +563,17 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         except Exception, e:
             print(str(e))
 
-    def _parent_avars(self, parent):
+    def _parent_avars(self):
+        """
+        Parent each avars to their associated parent.
+        :return:
+        """
         # If the deformation order is set to post (aka the deformer is in the final skinCluster)
         # we will want the offset node to follow it's original parent (ex: the head)
         for avar in self.get_all_avars():
-            self._parent_avar(avar, parent)
+            avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False)
+            if avar_parent:
+                self._parent_avar(avar, avar_parent)
 
     def _create_avars_ctrls(self, **kwargs):
         for avar in self.avars:
@@ -633,8 +641,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             ctrl_size = self._get_default_ctrl_size()
             self._create_avars_ctrls(ctrl_size=ctrl_size)
 
-        if parent and self.parent:
-            self._parent_avars(self.parent)
+        if parent:
+            self._parent_avars()
 
         if calibrate:
             self.calibrate()
@@ -875,20 +883,56 @@ class AvarGrpOnSurface(AvarGrp):
     @libPython.memoized_instancemethod
     def get_avars_micro_l(self):
         """
-        :return: All left section avars.
+        Resolve all micro avars on the left side of the face that would be affected by a left macro avar.
+        Note that we explicitly ignoring any middle avars since no 'side' macro can affect the 'middle' avars.
+        :return: A list of avar instances.
         """
         middle = libRigging.get_average_pos_between_vectors(self.jnts)
-        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x >= middle.x
-        return filter(fn_filter, self.avars)
+        avar_corner_upp = self.get_avar_upp_corner()
+        avar_corner_low = self.get_avar_low_corner()
+
+        def fn_filter(avar):
+            # Ignore any vertical corner avars.
+            if avar_corner_upp and avar is avar_corner_upp:
+                return False
+            if avar_corner_low and avar is avar_corner_low:
+                return False
+
+            # Ignore right-sided avars.
+            pos = avar.jnt.getTranslation(space='world')
+            if pos.x < middle.x:
+                return False
+
+            return True
+
+        return [avar for avar in self.avars if avar and fn_filter(avar)]
 
     @libPython.memoized_instancemethod
     def get_avars_micro_r(self):
         """
-        :return: All right section avars.
+        Resolve all micro avars on the right side of the face that would be affected by a right macro avar.
+        Note that we explicitly ignoring any middle avars since no 'side' macro can affect the 'middle' avars.
+        :return: A list of avar instances.
         """
         middle = libRigging.get_average_pos_between_vectors(self.jnts)
-        fn_filter = lambda avar: avar.jnt.getTranslation(space='world').x < middle.x
-        return filter(fn_filter, self.avars)
+        avar_corner_upp = self.get_avar_upp_corner()
+        avar_corner_low = self.get_avar_low_corner()
+
+        def fn_filter(avar):
+            # Ignore any vertical corner avars.
+            if avar_corner_upp and avar is avar_corner_upp:
+                return False
+            if avar_corner_low and avar is avar_corner_low:
+                return False
+
+            # Ignore right-sided avars.
+            pos = avar.jnt.getTranslation(space='world')
+            if pos.x > middle.x:
+                return False
+
+            return True
+
+        return [avar for avar in self.avars if avar and fn_filter(avar)]
 
     @libPython.memoized_instancemethod
     def get_avar_l_corner(self):
@@ -905,6 +949,33 @@ class AvarGrpOnSurface(AvarGrp):
         """
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
         return next(iter(sorted(self.get_avars_micro_r(), key=fn_get_avar_pos_x)), None)
+
+    @libPython.memoized_instancemethod
+    def get_avar_upp_corner(self):
+        """
+        :return: The middle upp micro avar.
+        """
+        # middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        avars = self.get_avars_micro_upp()
+        middle = libRigging.get_average_pos_between_vectors([avar.jnt for avar in avars])
+        def get_distance(avar):
+            return abs(avar.jnt.getTranslation(space='world').x - middle.x)
+        avars = sorted(avars, key=get_distance)
+        return next(iter(avars), None)
+
+    @libPython.memoized_instancemethod
+    def get_avar_low_corner(self):
+        """
+        :return: The middle low micro avar.
+        """
+        avars = self.get_avars_micro_low()
+        middle = libRigging.get_average_pos_between_vectors([avar.jnt for avar in avars])
+
+        def get_distance(avar):
+            return abs(avar.jnt.getTranslation(space='world').x - middle.x)
+
+        avars = sorted(avars, key=get_distance)
+        return next(iter(avars), None)
 
     def _iter_all_avars(self):
         for avar in super(AvarGrpOnSurface, self)._iter_all_avars():

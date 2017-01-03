@@ -25,9 +25,11 @@ class CtrlEyes(BaseCtrl):
         node = pymel.curve(d=2, p=[p1, p2, p3, p4, p5, p6, p7, p8, p1] )
         return node
 
+
 class CtrlEye(BaseCtrl):
     def __createNode__(self, normal=(0,0,1), *args, **kwargs):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
+
 
 class BaseAvarCtrlModel(Module):
     _CLS_CTRL = BaseCtrl
@@ -60,6 +62,7 @@ class BaseAvarCtrlModel(Module):
 
     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         raise NotImplementedError
+
 
 class ModelLookAt(BaseAvarCtrlModel):
     """
@@ -166,6 +169,7 @@ class ModelLookAt(BaseAvarCtrlModel):
         libRigging.connectAttr_withBlendWeighted(self._attr_out_pt, avar.attr_pt)
         libRigging.connectAttr_withBlendWeighted(self._attr_out_rl, avar.attr_rl)
 
+
 class FaceEyes(rigFaceAvarGrps.AvarGrp):
     """
     Look-at setup with avars support.
@@ -187,6 +191,10 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
 
     def get_default_name(self):
         return 'Eyes'
+
+    def get_parent_obj(self, **kwargs):
+        result = self.get_head_jnt(strict=False)
+        return result or super(FaceEyes, self).get_parent_obj(**kwargs)
 
     def build(self, *args, **kwargs):
         if self.parent is None:
@@ -222,19 +230,17 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         height = max(ctrl_default_size, abs(y_max - y_min)) + ctrl_default_size
 
         # Define main ctrl
-        if not isinstance(self.ctrl_all, CtrlEyes):
-            self.ctrl_all = CtrlEyes()
+        self.ctrl_all = self.init_ctrl(CtrlEyes, self.ctrl_all)
         ctrl_all_name = nomenclature_anm.resolve()
         self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
-        self.ctrl_all.create_spaceswitch(self, self.parent, add_default=True, default_name='Head', add_world=True)
+        self.ctrl_all.create_spaceswitch(self, self.get_parent_obj(), add_default=True, default_name='Head', add_world=True)
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 
         # Make all eyes ctrls follow the main ctrl
         for avar in self.avars:
             avar.ctrl.setParent(self.ctrl_all)
-
 
     def unbuild(self):
         """
@@ -247,7 +253,6 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         for ctrl in super(FaceEyes, self).iter_ctrls():
             yield ctrl
         yield self.ctrl_all
-
 
     def calibrate(self):
         """

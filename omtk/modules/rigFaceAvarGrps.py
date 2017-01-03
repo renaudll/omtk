@@ -1401,10 +1401,12 @@ class AvarGrpOnSurface(AvarGrp):
                 parent_scl=parent_scl,
                 **kwargs
             )
+
             self._connect_avar_macro_all()
             # parent_rot = self.avar_all.model_ctrl._stack.get_stack_end()
             parent_rot = self.avar_all._grp_output
             parent_scl = self.avar_all.ctrl
+
 
         if self.create_macro_horizontal:
             if self.avar_l:

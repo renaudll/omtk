@@ -66,9 +66,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
               flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=None, parent_pos=None,
               parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, **kwargs):
-        super(ModelInteractiveCtrl, self).build(avar, **kwargs)
+        super(ModelInteractiveCtrl, self).build(avar, ctrl_size=ctrl_size, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
 
         #
@@ -152,20 +151,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         self.attr_sensitivity_tz.set(channelBox=True)
 
 
-        #
-        # Create the ctrl
-        #
-        ctrl_name = nomenclature_anm.resolve()
-        self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
-
-        self.ctrl.build(name=ctrl_name, size=ctrl_size)
-
         # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
             self.ctrl.scaleX.set(-1)
             libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
-
-        self.ctrl.setParent(self.grp_anm)
 
         #
         # Create the follicle setup

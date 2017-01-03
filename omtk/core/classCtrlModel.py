@@ -35,7 +35,7 @@ class BaseCtrlModel(classModule.Module):
         super(BaseCtrlModel, self).build(**kwargs)
 
         if not ctrl_name:
-            ctrl_name=self.get_nomenclature_anm().resolve()
+            ctrl_name = self.get_nomenclature_anm().resolve()
 
         # Create ctrl
         self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)

@@ -1053,7 +1053,9 @@ class AvarGrpOnSurface(AvarGrp):
     def _create_avars(self):
         super(AvarGrpOnSurface, self)._create_avars()
         # todo: for horizontal and vertical avars, is ref really necessary? they are always abstract avars
-        middle = self.get_pos_all_middle()
+        middle = self.get_head_jnt().getTranslation(space='world')
+        sl = pymel.spaceLocator()
+        sl.setTranslation(middle)
 
         # Create horizontal macro avars
         if self.create_macro_horizontal:

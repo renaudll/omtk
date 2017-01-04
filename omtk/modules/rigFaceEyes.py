@@ -43,7 +43,7 @@ class BaseAvarCtrlModel(Module):
         raise Exception("Cannot resolve ctrl transformation matrix!")
 
     # todo: implement correct build method that also create the ctrl.
-    def build(self, avar, ctrl_tm=None, ctrl_size=None, **kwargs):
+    def build(self, avar, ctrl_tm=None, ctrl_size=1.0, **kwargs):
         super(BaseAvarCtrlModel, self).build(**kwargs)
 
         # Resolve ctrl matrix
@@ -99,7 +99,7 @@ class ModelLookAt(BaseAvarCtrlModel):
             jnt_pos.z + offset_z
         )
 
-    def build(self, avar, ref=None, ref_tm=None,  ctrl_tm=None, ctrl_size=None, **kwargs):
+    def build(self, avar, ref=None, ref_tm=None,  ctrl_tm=None, ctrl_size=1.0, **kwargs):
         super(ModelLookAt, self).build(avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig()

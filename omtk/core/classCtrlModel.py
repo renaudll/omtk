@@ -25,7 +25,7 @@ class BaseCtrlModel(classModule.Module):
     def iter_ctrls(self):
         yield self.ctrl
 
-    def build(self, module, ctrl_size=None, ctrl_name=None, **kwargs):
+    def build(self, module, ctrl_size=1.0, ctrl_name=None, **kwargs):
         """
         Build the the ctrl and the necessary logic.
         :param ctrl_size: The desired ctrl size if supported.

@@ -408,7 +408,7 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, constraint=True, ctrl_size=None, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
+    def build(self, constraint=True, ctrl_size=1.0, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
         """
         :param constraint:
         :param ctrl_size: DEPRECATED, PLEASE MOVE TO ._create_ctrl
@@ -521,7 +521,7 @@ class AvarSimple(AbstractAvar):
 
         return result
 
-    def create_ctrl(self, parent, ctrl_size=None, parent_pos=None, parent_rot=None, parent_scl=None, connect=True, ctrl_tm=None, **kwargs):
+    def create_ctrl(self, parent, ctrl_size=1.0, parent_pos=None, parent_rot=None, parent_scl=None, connect=True, ctrl_tm=None, **kwargs):
         """
         An Avar is not made to contain a ctrl necessary.
         However you can run this function to create a ctrl using a provided model.

@@ -133,6 +133,8 @@ def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.data
     :param test_scale_value: The value to use when testing the scale.
     """
     influences = rig.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
+    ctrls = rig.get_ctrls()
+    objs = influences + ctrls
 
     # Ensure the rig translate correctly.
     if test_translate:
@@ -143,7 +145,7 @@ def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.data
             0, 0, 1, 0,
             test_translate_value.x, test_translate_value.y, test_translate_value.z, 1.0
         )
-        with verified_offset(influences, offset_tm, multiplier=test_translate_value.length()):
+        with verified_offset(objs, offset_tm, multiplier=test_translate_value.length()):
             rig.grp_anm.t.set(test_translate_value)
         rig.grp_anm.t.set(0, 0, 0)
 
@@ -156,7 +158,7 @@ def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.data
             ((0, 0, 180), pymel.datatypes.Matrix(-1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
         )
         for rot, offset_tm in offset_tms_by_rot:
-            with verified_offset(influences, offset_tm):
+            with verified_offset(objs, offset_tm):
                 rig.grp_anm.r.set(rot)
             rig.grp_anm.r.set(0,0,0)
 
@@ -170,7 +172,7 @@ def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.data
             0, 0, m, 0,
             0, 0, 0, 1
         )
-        with verified_offset(influences, scale_tm, multiplier=test_scale_value):
+        with verified_offset(objs, scale_tm, multiplier=test_scale_value):
             rig.grp_anm.globalScale.set(test_scale_value)
         rig.grp_anm.globalScale.set(1.0)
 

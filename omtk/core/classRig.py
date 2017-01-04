@@ -408,6 +408,18 @@ class Rig(object):
                     result.add(obj)
         return list(result)
 
+    def iter_ctrls(self, include_grp_anm=True):
+        if include_grp_anm and self.grp_anm and self.grp_anm.exists():
+            yield self.grp_anm
+        for module in self.modules:
+            if module.is_built():
+                for ctrl in module.iter_ctrls():
+                    if ctrl:
+                        yield ctrl
+
+    def get_ctrls(self, **kwargs):
+        return list(self.iter_ctrls(**kwargs))
+
     @libPython.memoized_instancemethod
     def get_influences_jnts(self):
         return self.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))

@@ -41,6 +41,12 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         self._stack = None
 
+    def parent_to(self, parent):
+        """
+        Bypass default parent mecanism since it is computer internally.
+        """
+        pass
+
     def get_default_tm_ctrl(self):
         """
         :return: The ctrl transformation.

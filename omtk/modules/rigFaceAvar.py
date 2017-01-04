@@ -361,6 +361,12 @@ class AbstractAvar(classModule.Module):
             yield ctrl
         yield self.ctrl
 
+    def parent_to(self, parent):
+        """
+        Do nothing when parenting since it's the ctrl model that handle how the parenting is done.
+        """
+        pass
+
 
 class AvarSimple(AbstractAvar):
     """

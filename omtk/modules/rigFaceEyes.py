@@ -114,6 +114,10 @@ class ModelLookAt(BaseAvarCtrlModel):
         aim_node = pymel.createNode('transform', name=aim_node_name)
         aim_node.setParent(aim_grp)
 
+        aim_grp.setMatrix(self.jnt.getMatrix(worldSpace=True))
+        if self.parent:
+            pymel.parentConstraint(self.parent, aim_grp, maintainOffset=False)
+
         aim_target_name = nomenclature_rig.resolve('target')
         aim_target = pymel.createNode('transform', name=aim_target_name)
         aim_target.setParent(aim_grp)
@@ -125,12 +129,12 @@ class ModelLookAt(BaseAvarCtrlModel):
         aim_upnode_name = nomenclature_rig.resolve('upnode')
 
         aim_upnode = pymel.createNode('transform', name=aim_upnode_name)
-        #
+
         aim_upnode.setParent(self.grp_rig)
         pymel.parentConstraint(aim_grp, aim_upnode, maintainOffset=True)
 
         pymel.aimConstraint(aim_target, aim_node,
-                            maintainOffset=False,
+                            maintainOffset=True,
                             aimVector=(0.0, 0.0, 1.0),
                             upVector=(0.0, 1.0, 0.0),
                             worldUpObject=aim_upnode,

@@ -359,10 +359,22 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # Create an output object that will hold the world position of the ctrl offset.
         # This allow us to create direct connection which simplify the dag tree for the animator
         # and allow us to easily scale the whole setup to support non-uniform scaling.
+
+        # Since the the model's ctrl will still be influenced by the root ctrl, we'll need to extract the offset
+        # relative to the root ctrl.
+        grp_parent = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('parent'),
+            parent=self.grp_rig
+        )
+        pymel.connectAttr(self.rig.grp_anm.t, grp_parent.t)
+        pymel.connectAttr(self.rig.grp_anm.r, grp_parent.r)
+        pymel.connectAttr(self.rig.grp_anm.s, grp_parent.s)
+
         grp_output = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('output'),
-            parent=self.grp_rig
+            parent=grp_parent
         )
 
         # Position

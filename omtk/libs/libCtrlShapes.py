@@ -381,10 +381,10 @@ def create_square(size=1.0, width=None, height=None, **kwargs):
     return node
 
 
-def create_triangle_upp():
-    p1 = [0, 0.577, 0]
-    p2 = [-0.5, -0.288, 0]
-    p3 = [0.5, -0.288, 0]
+def create_triangle_upp(size=1.0):
+    p1 = [0, 0.577*size, 0]
+    p2 = [-0.5*size, -0.288*size, 0]
+    p3 = [0.5*size, -0.288*size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder
@@ -393,10 +393,10 @@ def create_triangle_upp():
     return node
 
 
-def create_triangle_low():
-    p1 = [0, -0.577, 0]
-    p2 = [-0.5, 0.288, 0]
-    p3 = [0.5, 0.288, 0]
+def create_triangle_low(size=1.0):
+    p1 = [0, -0.577*size, 0]
+    p2 = [-0.5*size, 0.288*size, 0]
+    p3 = [0.5*size, 0.288*size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder
@@ -405,10 +405,10 @@ def create_triangle_low():
     return node
 
 
-def create_triangle_left():
-    p1 = [0.577, 0, 0]
-    p2 = [-0.288, -0.5, 0]
-    p3 = [-0.288, 0.5, 0]
+def create_triangle_left(size=1.0):
+    p1 = [0.577*size, 0, 0]
+    p2 = [-0.288*size, -0.5*size, 0]
+    p3 = [-0.288*size, 0.5*size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder
@@ -417,10 +417,10 @@ def create_triangle_left():
     return node
 
 
-def create_triangle_right():
-    p1 = [-0.577, 0, 0]
-    p2 = [0.288, -0.5, 0]
-    p3 = [0.288, 0.5, 0]
+def create_triangle_right(size=1.0):
+    p1 = [-0.577*size, 0, 0]
+    p2 = [0.288*size, -0.5*size, 0]
+    p3 = [0.288*size, 0.5*size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder

@@ -16,6 +16,7 @@ from omtk.models import modelInteractiveCtrl
 
 log = logging.getLogger('omtk')
 
+
 def _find_mid_avar(avars):
     jnts = [avar.jnt for avar in avars]
     nearest_jnt = get_average_pos_between_nodes(jnts)
@@ -24,6 +25,7 @@ def _find_mid_avar(avars):
 #
 # Ctrls
 #
+
 
 class BaseCtrlUpp(rigFaceAvar.BaseCtrlFace):
     """
@@ -38,20 +40,21 @@ class BaseCtrlLow(rigFaceAvar.BaseCtrlFace):
     """
     pass
 
+
 class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
     """
     Base controller class for an avar controlling the top portion of an AvarGrp.
     """
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_upp()
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_upp(size=size)
 
 
 class CtrlFaceLow(rigFaceAvar.BaseCtrlFace):
     """
     Base controller class for an avar controlling the bottom portion of an AvarGrp.
     """
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_low()
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_low(size=size)
 
 
 class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
@@ -59,9 +62,9 @@ class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
     """
     Base controller class for an avar controlling all the avars of an AvarGrp.
     """
-    def __createNode__(self, **kwargs):
+    def __createNode__(self, size=1.0, **kwargs):
         # todo: find the best shape
-        transform, _ = libCtrlShapes.create_shape_circle(normal=(0,0,1))
+        transform, _ = libCtrlShapes.create_shape_circle(size=size, normal=(0,0,1))
         return transform
 
 
@@ -69,16 +72,18 @@ class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
     """
     Base controller class for an avar controlling the left or right porsion of an AvarGrp.
     """
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_left()
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_left(size=size)
+
 
 class CtrlFaceMacroL(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_left()
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_left(size=size)
+
 
 class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self,  **kwargs):
-        return libCtrlShapes.create_triangle_right()
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_right(size=size)
 
 
 #
@@ -345,16 +350,15 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
     def get_multiplier_v(self):
         return 1.0
 
-    def _get_default_ctrl_size(self):
+    def _get_default_ctrl_size(self, jnts=None, max_ctrl_size=None, epsilon=0.001):
         """
         Resolve the desired ctrl size
         One thing we are sure is that ctrls should not overlay,
         so we'll max out their radius to half of the shortest distances between each.
         Also the radius cannot be bigger than 3% of the head length.
+        :param epsilon: Prevent ctrl from dissapearing if two influences share the same location
         """
-        ctrl_size = 1
-        EPSILON = 0.001 # prevent ctrl from dissapearing if two influences share the same location
-        max_ctrl_size = None
+        result = 1
 
         # Resolve maximum ctrl size from head joint
         head_jnt = self.get_head_jnt()
@@ -366,22 +370,23 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         if head_length:
             max_ctrl_size = head_length * 0.05
 
-        if len(self.jnts) > 1:
+        if jnts is None:
             # Use only the micro influence as reference since the distance
             # between micro and tweak avars can be very small.
-            jnts = self.get_influence_micros()
+           jnts = self.get_influence_micros()
+        if len(jnts) > 1:
             distances = [libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in itertools.permutations(jnts, 2)]
-            distances = filter(lambda x: x > EPSILON, distances)
+            distances = filter(lambda x: x > epsilon, distances)
             if distances:
-                ctrl_size = min(distances) / 2.0
+                result = min(distances) / 2.0
 
-            if max_ctrl_size is not None and ctrl_size > max_ctrl_size:
+            if max_ctrl_size is not None and result > max_ctrl_size:
                 self.debug("Limiting ctrl size to {}".format(max_ctrl_size))
-                ctrl_size = max_ctrl_size
+                result = max_ctrl_size
         else:
-            self.debug("Not enough ctrls to guess size. Using default {}".format(ctrl_size))
+            self.debug("Not enough ctrls to guess size. Using default {}".format(result))
 
-        return ctrl_size
+        return result
 
     def _get_avars_influences(self):
         """
@@ -842,7 +847,7 @@ class AvarGrpOnSurface(AvarGrp):
         :return: All the left side influences.
         # TODO: Use the nomenclature instead of the position?
         """
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        middle = self.get_pos_all_middle()
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
         return filter(fn_filter, self.jnts)
 
@@ -852,7 +857,7 @@ class AvarGrpOnSurface(AvarGrp):
         :return: All the right side influences.
         # TODO: Use the nomenclature instead of the position?
         """
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        middle = self.get_pos_all_middle()
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
         return filter(fn_filter, self.jnts)
 
@@ -887,7 +892,7 @@ class AvarGrpOnSurface(AvarGrp):
         Note that we explicitly ignoring any middle avars since no 'side' macro can affect the 'middle' avars.
         :return: A list of avar instances.
         """
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        middle = self.get_pos_all_middle()
         avar_corner_upp = self.get_avar_upp_corner()
         avar_corner_low = self.get_avar_low_corner()
 
@@ -914,7 +919,7 @@ class AvarGrpOnSurface(AvarGrp):
         Note that we explicitly ignoring any middle avars since no 'side' macro can affect the 'middle' avars.
         :return: A list of avar instances.
         """
-        middle = libRigging.get_average_pos_between_vectors(self.jnts)
+        middle = self.get_pos_all_middle()
         avar_corner_upp = self.get_avar_upp_corner()
         avar_corner_low = self.get_avar_low_corner()
 
@@ -955,9 +960,8 @@ class AvarGrpOnSurface(AvarGrp):
         """
         :return: The middle upp micro avar.
         """
-        # middle = libRigging.get_average_pos_between_vectors(self.jnts)
         avars = self.get_avars_micro_upp()
-        middle = libRigging.get_average_pos_between_vectors([avar.jnt for avar in avars])
+        middle = self.get_pos_upp_middle()
         def get_distance(avar):
             return abs(avar.jnt.getTranslation(space='world').x - middle.x)
         avars = sorted(avars, key=get_distance)
@@ -969,13 +973,37 @@ class AvarGrpOnSurface(AvarGrp):
         :return: The middle low micro avar.
         """
         avars = self.get_avars_micro_low()
-        middle = libRigging.get_average_pos_between_vectors([avar.jnt for avar in avars])
+        middle = self.get_pos_low_middle()
 
         def get_distance(avar):
             return abs(avar.jnt.getTranslation(space='world').x - middle.x)
 
         avars = sorted(avars, key=get_distance)
         return next(iter(avars), None)
+
+    @libPython.memoized_instancemethod
+    def get_pos_all_middle(self):
+        # type () -> pymel.datatypes.Vector
+        """
+        :return: The average position using all the influences.
+        """
+        return libRigging.get_average_pos_between_vectors(self.jnts)
+
+    @libPython.memoized_instancemethod
+    def get_pos_upp_middle(self):
+        # type () -> pymel.datatypes.Vector
+        """
+        :return: The average position using all the upper section influences.
+        """
+        return libRigging.get_average_pos_between_vectors([avar.jnt for avar in self.get_avars_micro_upp()])
+
+    @libPython.memoized_instancemethod
+    def get_pos_low_middle(self):
+        # type () -> pymel.datatypes.Vector
+        """
+        :return: The average position using all the lower section influences.
+        """
+        return libRigging.get_average_pos_between_vectors([avar.jnt for avar in self.get_avars_micro_low()])
 
     def _iter_all_avars(self):
         for avar in super(AvarGrpOnSurface, self)._iter_all_avars():
@@ -1025,6 +1053,7 @@ class AvarGrpOnSurface(AvarGrp):
     def _create_avars(self):
         super(AvarGrpOnSurface, self)._create_avars()
         # todo: for horizontal and vertical avars, is ref really necessary? they are always abstract avars
+        middle = self.get_pos_all_middle()
 
         # Create horizontal macro avars
         if self.create_macro_horizontal:
@@ -1037,7 +1066,7 @@ class AvarGrpOnSurface(AvarGrp):
                 nomenclature = self.rig.nomenclature(self.get_module_name())
                 nomenclature.add_tokens('macro')
                 if self.IS_SIDE_SPECIFIC:
-                    side = ref_l.getTranslation(space='world').x > 0
+                    side = ref_l.getTranslation(space='world').x > middle.x
                     if side:  # left
                         nomenclature.side = nomenclature.SIDE_L
                         nomenclature.add_tokens('out')
@@ -1066,7 +1095,7 @@ class AvarGrpOnSurface(AvarGrp):
                 nomenclature = self.rig.nomenclature(self.get_module_name())
                 nomenclature.add_tokens('macro')
                 if self.IS_SIDE_SPECIFIC:
-                    side = ref_r.getTranslation(space='world').x > 0
+                    side = ref_r.getTranslation(space='world').x > middle.x
                     if side:  # left
                         nomenclature.side = nomenclature.SIDE_L
                         nomenclature.add_tokens('inn')
@@ -1487,6 +1516,17 @@ class AvarGrpOnSurface(AvarGrp):
         if self.avar_low:
             result.append(self.avar_low)
         return result
+
+    def _get_default_ctrl_size(self, jnts=None, max_ctrl_size=None, epsilon=0.001):
+        if self.CREATE_MACRO_AVAR_VERTICAL:
+            jnts_upp = [avar.jnt for avar in self.get_avars_micro_upp()]
+            default_ctrl_size_upp = super(AvarGrpOnSurface, self)._get_default_ctrl_size(jnts=jnts_upp, max_ctrl_size=max_ctrl_size, epsilon=epsilon)
+
+            jnts_low = [avar.jnt for avar in self.get_avars_micro_low()]
+            default_ctrl_size_low = super(AvarGrpOnSurface, self)._get_default_ctrl_size(jnts=jnts_low, max_ctrl_size=max_ctrl_size, epsilon=epsilon)
+            return max(default_ctrl_size_upp, default_ctrl_size_low)
+        else:
+            return super(AvarGrpOnSurface, self)._get_default_ctrl_size(jnts=None, max_ctrl_size=None, epsilon=epsilon)
 
 
 def register_plugin():

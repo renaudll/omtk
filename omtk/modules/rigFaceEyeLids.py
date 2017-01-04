@@ -4,14 +4,15 @@ from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 import pymel.core as pymel
 
+
 class CtrlEyeLidUpp(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_upp()
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_upp(size=size)
 
 
 class CtrlEyeLidLow(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_low()
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_low(size=size)
 
 
 class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):

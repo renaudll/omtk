@@ -170,12 +170,19 @@ def interp_cubic(x):
     """
     return (x * x) * (3.0 - (2.0 * x))
 
-def _get_point_weights_from_segments_weights(segments, segments_weights, pos):
+INTERP_LINEAR, INTERP_CUBIC = range(2)
+
+def _get_point_weights_from_segments_weights(segments, segments_weights, pos, interp=INTERP_CUBIC):
     knot_index, ratio = segments.closest_segment_index(pos)
     knot_index_next = knot_index + 1 # TODO: Handle out of bound
     point_weights_inn = segments_weights[knot_index]
     point_weights_out = segments_weights[knot_index_next]
-    point_weights = [(weight_out - weight_inn)*interp_cubic(ratio) + weight_inn for weight_inn, weight_out in zip(point_weights_inn, point_weights_out)]
+    if interp == INTERP_LINEAR:
+        point_weights = [(weight_out - weight_inn)*ratio + weight_inn for weight_inn, weight_out in zip(point_weights_inn, point_weights_out)]
+    elif interp == INTERP_CUBIC:
+        point_weights = [(weight_out - weight_inn)*interp_cubic(ratio) + weight_inn for weight_inn, weight_out in zip(point_weights_inn, point_weights_out)]
+    else:
+        raise Exception("Unexpected interpolation method {}".format(interp))
     return point_weights
 
 #@libPython.profiler
@@ -306,7 +313,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
     mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights)
 
 
-def assign_weights_from_segments(shape, jnts, dropoff=1.5):
+def assign_weights_from_segments(shape, jnts, dropoff=1.5, interp=INTERP_CUBIC):
     # Resolve skinCluster
     skinCluster = get_skin_cluster(shape)
     if skinCluster is None:
@@ -343,7 +350,7 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
         # Resolve weight using the vtx/cv position
         memory_location = (chunk_size * vert_index) + jnt_indices[0]
         pos = OpenMaya.MVector(it_geometry.position(OpenMaya.MSpace.kWorld))  # MVector allow us to use .length()
-        weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos)
+        weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos, interp=interp)
 
         # Write weights
         for weight in weights:

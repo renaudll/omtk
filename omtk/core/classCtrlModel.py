@@ -206,4 +206,10 @@ class CtrlModelCalibratable(BaseCtrlModel):
             self.debug('Adjusting sensibility tz for {0} to {1}'.format(self, sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
+    def unbuild(self, **kwargs):
+        super(CtrlModelCalibratable, self).unbuild(**kwargs)
 
+        # todo: maybe hold sensitivity for faster rebuild?
+        self.attr_sensitivity_tx = None
+        self.attr_sensitivity_ty = None
+        self.attr_sensitivity_tz = None

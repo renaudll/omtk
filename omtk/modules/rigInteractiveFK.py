@@ -260,6 +260,11 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         index = skincluster.influenceObjects().index(self.jnt)
         pymel.connectAttr(attr_bind_tm_inv, skincluster.bindPreMatrix[index], force=True)
 
+    def unbuild(self, **kwargs):
+        super(InteractiveFKCtrlModel, self).unbuild(**kwargs)
+
+        self.follicle = None
+
 
 class InteractiveFKLayer(ModuleMap):
     _CLS_CTRL_MODEL = InteractiveFKCtrlModel

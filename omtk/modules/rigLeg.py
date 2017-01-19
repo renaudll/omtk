@@ -579,6 +579,7 @@ class LegIk(rigIK.IK):
         self.pivot_foot_back = None
         self.pivot_foot_inn = None
         self.pivot_foot_out = None
+        self.pivot_foot_ankle = None
         self.pivot_foot_toes_fk = None
 
 

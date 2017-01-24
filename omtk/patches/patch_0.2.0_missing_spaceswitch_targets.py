@@ -1,7 +1,11 @@
-import pymel.core as pymel
-import libSerialization
-from omtk.modules import rigDpSpine
 import logging
+
+import pymel.core as pymel
+
+from omtk.modules import rigDpSpine
+
+from omtk.vendor import libSerialization
+
 log = logging.getLogger('omtk')
 
 

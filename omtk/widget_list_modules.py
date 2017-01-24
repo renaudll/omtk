@@ -5,22 +5,20 @@ import traceback
 import logging
 
 import pymel.core as pymel
-from PySide import QtCore
-from PySide import QtGui
 from ui import widget_list_modules
 
 from omtk import constants
 from omtk import ui_shared
-from omtk.libs import libSkinning
 from omtk.libs import libQt
-from omtk.libs import libPython
-from omtk.libs import libPymel
 from omtk.core import classModule
 from omtk.core import classRig
 
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+
 log = logging.getLogger('omtk')
 
-class WidgetListModules(QtGui.QWidget):
+
+class WidgetListModules(QtWidgets.QWidget):
     needExportNetwork = QtCore.Signal()
     needImportNetwork = QtCore.Signal()
     deletedRig = QtCore.Signal(object)
@@ -155,7 +153,6 @@ class WidgetListModules(QtGui.QWidget):
             return False, validate_message
         return True, validate_message
 
-
     def _build_module(self, module):
         if module.locked:
             pymel.warning("Can't build locked module {0}".format(module))
@@ -209,7 +206,7 @@ class WidgetListModules(QtGui.QWidget):
             traceback.print_exc()
 
     def _rig_to_tree_widget(self, module):
-        qItem = QtGui.QTreeWidgetItem(0)
+        qItem = QtWidgets.QTreeWidgetItem(0)
         if hasattr(module, '_network'):
             qItem.net = module._network
         else:
@@ -243,7 +240,7 @@ class WidgetListModules(QtGui.QWidget):
                 qSubItem = self._rig_to_tree_widget(child)
                 qSubItem.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
                 for input in child.input:
-                    qInputItem = QtGui.QTreeWidgetItem(0)
+                    qInputItem = QtWidgets.QTreeWidgetItem(0)
                     qInputItem.setText(0, input.name())
                     ui_shared._set_icon_from_type(input, qInputItem)
                     qInputItem.setFlags(qItem.flags() & QtCore.Qt.ItemIsSelectable)
@@ -335,7 +332,7 @@ class WidgetListModules(QtGui.QWidget):
 
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
-            menu = QtGui.QMenu()
+            menu = QtWidgets.QMenu()
             actionBuild = menu.addAction("Build")
             actionBuild.triggered.connect(self.on_build_selected)
             actionUnbuild = menu.addAction("Unbuild")

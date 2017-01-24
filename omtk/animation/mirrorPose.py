@@ -5,10 +5,11 @@ Warning: The mirror functionnality of OMTK is in alpha stage. Use it at your own
 import pymel.core as pymel
 from maya import cmds, OpenMaya
 
-import libSerialization
 from omtk import constants
 from omtk.libs import libPython
 from omtk.core import classCtrl
+
+from omtk.vendor import libSerialization
 
 def list_from_MMatrix(m):
     # TODO: There's got to be a better way!

@@ -3,7 +3,6 @@ import re
 import contextlib
 import logging
 
-import libSerialization
 import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -52,6 +51,8 @@ def find():
     """
     :return: All the rigs embedded in the current maya scene.
     """
+    from omtk.vendor import libSerialization
+
     # TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.get_networks_from_class('Rig')
     results = [libSerialization.import_network(network, module='omtk') for network in networks]
@@ -72,6 +73,8 @@ def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
     """
+    from omtk.vendor import libSerialization
+
     rigs = find()
     for rig in rigs:
         network = rig._network  # monkey-patched by libSerialization
@@ -83,6 +86,8 @@ def build_all(strict=False):
 # @libPython.profiler
 @libPython.log_execution_time('unbuild_all')
 def unbuild_all(strict=False):
+    from omtk.vendor import libSerialization
+
     rigs = find()
     for rig in rigs:
         network = rig._network  # monkey-patched by libSerialization
@@ -92,6 +97,8 @@ def unbuild_all(strict=False):
 
 
 def _get_modules_from_selection(sel=None):
+    from omtk.vendor import libSerialization
+
     def get_rig_network_from_module(network):
         for plug in network.message.outputs(plugs=True):
             plug_node = plug.node()
@@ -154,6 +161,8 @@ def with_preserve_selection():
 
 
 def build_selected(sel=None):
+    from omtk.vendor import libSerialization
+
     with with_preserve_selection():
         rig, modules = _get_modules_from_selection()
         if not rig or not modules:
@@ -188,6 +197,8 @@ def build_selected(sel=None):
 
 
 def unbuild_selected(sel=None):
+    from omtk.vendor import libSerialization
+
     with with_preserve_selection():
         rig, modules = _get_modules_from_selection()
         if not rig or not modules:

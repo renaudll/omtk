@@ -1,51 +1,32 @@
-import datetime
 import functools
 import inspect
 import logging
-import re
-import traceback
 
 import core
-import libSerialization
+
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk.core import api
 from omtk.core import classModule
-from omtk.core import classRig
-from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
-from omtk.libs.libQt import QtCore, QtGui, getMayaWindow
 from omtk.ui import main_window
 
-import ui_shared
+from omtk.vendor import libSerialization
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 log = logging.getLogger('omtk')
 
 
-# class QTreeWidgetItem_CustomTooltip(QtGui.QTreeWidgetItem):
-#     """
-#     A custom QTreeWidgetItem that implement a tooltip for each individual item.
-#     """
-#     def __init__(self, *args, **kwargs):
-#         super(QTreeWidgetItem_CustomTooltip, self).__init__(*args, **kwargs)
-#         self.tooltip = None
-#
-#     def data(self, column, role):
-#         if role == QtCore.Qt.ToolTipRole:
-#             return self._tooltip
-#         return super(QTreeWidgetItem_CustomTooltip, self).data(column, role)
-
-class AutoRig(QtGui.QMainWindow):
+class AutoRig(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         # Try to kill latest Autorig ui window
         try:
-            pymel.deleteUI('OpenRiggingToolkit')
+            pymel.deleteUI(self.windowTitle())
         except:
             pass
-        if parent is None:
-            parent = getMayaWindow()
-        super(AutoRig, self).__init__(parent)
+
+        super(AutoRig, self).__init__()
 
         # Internal data
         self.root = None
@@ -62,7 +43,6 @@ class AutoRig(QtGui.QMainWindow):
         #
 
         self.import_networks()
-        #self.update_ui()
 
         # Connect events
         self.ui.actionBuildAll.triggered.connect(self.on_build_all)
@@ -131,10 +111,6 @@ class AutoRig(QtGui.QMainWindow):
         #     OpenMaya.MMessage.removeCallback(self.callbacks_nodes)
         #     self.callbacks_nodes = None
 
-    #
-    # Privates
-    #
-
     def on_build_all(self):
         raise NotImplementedError
 
@@ -146,7 +122,7 @@ class AutoRig(QtGui.QMainWindow):
 
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
-            menu = QtGui.QMenu()
+            menu = QtWidgets.QMenu()
             actionBuild = menu.addAction("Build")
             actionBuild.triggered.connect(self.on_build_selected)
             actionUnbuild = menu.addAction("Unbuild")
@@ -201,18 +177,6 @@ class AutoRig(QtGui.QMainWindow):
         self.root.add_module(inst)
         net = self.export_networks()
         pymel.select(net)
-        # Add manually the Rig to the root list instead of importing back all network
-        # if not self.root in self.roots:
-        #    self.roots.append(self.root)
-        # self.updateData()
-
-        # Hack: Delete all cache since adding a module can push other module to validate/unvalidate.
-        # ex: FaceAvarGrp need a Head module to work.
-        # for module in self.root.modules:
-        #     try:
-        #         del module._cache
-        #     except AttributeError:
-        #         pass
 
         self.update_ui()
 
@@ -250,10 +214,6 @@ class AutoRig(QtGui.QMainWindow):
 
         return net
 
-    #
-    # Publics
-    #
-
     # Will only refresh tree view information without removing any items
     def refresh_ui(self):
         self.ui.widget_modules.update_checked()
@@ -266,15 +226,8 @@ class AutoRig(QtGui.QMainWindow):
         self.ui.widget_jnts.update()
         self.ui.widget_meshes.update()
 
-    #
-    # Events
-    #
-
-
-
-
     def on_import(self):
-        path, _ = QtGui.QFileDialog.getOpenFileName(caption="File Save (.json)", filter="JSON (*.json)")
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(caption="File Save (.json)", filter="JSON (*.json)")
         if not path:
             return
 
@@ -296,7 +249,7 @@ class AutoRig(QtGui.QMainWindow):
     def on_export(self):
         all_rigs = core.find()
 
-        path, _ = QtGui.QFileDialog.getSaveFileName(caption="File Save (.json)", filter="JSON (*.json)")
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(caption="File Save (.json)", filter="JSON (*.json)")
         if path:
             libSerialization.export_json_file_maya(all_rigs, path)
 
@@ -327,7 +280,7 @@ class AutoRig(QtGui.QMainWindow):
         if not selected_items:
             return
 
-        menu = QtGui.QMenu()
+        menu = QtWidgets.QMenu()
 
         from omtk.core.plugin_manager import plugin_manager
         for plugin in sorted(plugin_manager.get_loaded_plugins_by_type('modules')):
@@ -457,7 +410,7 @@ class AutoRig(QtGui.QMainWindow):
             self.remove_callbacks()
         except Exception, e:
             log.warning("Error removing callbacks: {0}".format(e))
-        QtGui.QMainWindow.closeEvent(self, *args)
+        QtWidgets.QMainWindow.closeEvent(self, *args)
 
         #
         # Logger handling
@@ -472,8 +425,8 @@ def show():
 
     # Create a frame geo to easilly move it from the center
     pFrame = gui.frameGeometry()
-    pScreen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
-    ptCenter = QtGui.QApplication.desktop().screenGeometry(pScreen).center()
+    pScreen = QtWidgets.QApplication.desktop().screenNumber(QtWidgets.QApplication.desktop().cursor().pos())
+    ptCenter = QtWidgets.QApplication.desktop().screenGeometry(pScreen).center()
     pFrame.moveCenter(ptCenter)
     gui.move(pFrame.topLeft())
 

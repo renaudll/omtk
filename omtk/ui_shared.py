@@ -1,7 +1,8 @@
-from PySide import QtGui
-from PySide import QtCore
 import pymel.core as pymel
-import libSerialization
+
+from omtk.vendor import libSerialization
+from omtk.vendor.Qt import QtGui
+
 
 # todo: Move to a shared location
 class MetadataType:

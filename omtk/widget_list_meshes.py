@@ -1,15 +1,16 @@
 import re
 import pymel.core as pymel
-from PySide import QtCore
-from PySide import QtGui
 from ui import widget_list_meshes
 
 from omtk.libs import libSkinning
 from omtk.libs import libQt
 
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+
 import ui_shared
 
-class WidgetListMeshes(QtGui.QWidget):
+
+class WidgetListMeshes(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(WidgetListMeshes, self).__init__(parent=parent)
 
@@ -23,7 +24,6 @@ class WidgetListMeshes(QtGui.QWidget):
         self.ui.lineEdit_search.textChanged.connect(self.on_meshes_query_changed)
         self.ui.pushButton_selectGrpMeshes.pressed.connect(self.on_SelectGrpMeshes)
         self.ui.btn_update.pressed.connect(self.update)
-
 
     def set_rig(self, rig, update=True):
         self._rig = rig
@@ -61,7 +61,7 @@ class WidgetListMeshes(QtGui.QWidget):
         textBrush = QtGui.QBrush(QtCore.Qt.white)
 
         # Add mesh
-        item_mesh = QtGui.QTreeWidgetItem(0)
+        item_mesh = QtWidgets.QTreeWidgetItem(0)
         item_mesh.setText(0, str(mesh))
         item_mesh.setForeground(0, textBrush)
         ui_shared._set_icon_from_type(mesh.getParent(), item_mesh)
@@ -74,7 +74,7 @@ class WidgetListMeshes(QtGui.QWidget):
         # Add influences
         if influences:
             for influence in influences:
-                item = QtGui.QTreeWidgetItem(0)
+                item = QtWidgets.QTreeWidgetItem(0)
                 item.setText(0, str(influence))
                 item.setForeground(0, textBrush)
                 ui_shared._set_icon_from_type(influence, item)
@@ -83,7 +83,6 @@ class WidgetListMeshes(QtGui.QWidget):
                 # Monkey-patch influence QWidget
                 item.metadata_type = ui_shared.MetadataType.Influece
                 item.metadata_data = influence
-
 
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:

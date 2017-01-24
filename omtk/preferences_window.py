@@ -1,10 +1,11 @@
-from PySide import QtCore, QtGui
-
 from ui import preferences_window
 from omtk.core import plugin_manager
 from omtk.core import preferences
 
-class PreferencesWindow(QtGui.QDialog):
+from omtk.vendor.Qt import QtCore, QtWidgets
+
+
+class PreferencesWindow(QtWidgets.QDialog):
     searchQueryChanged = QtCore.Signal(str)
 
     def __init__(self, parent=None):
@@ -35,6 +36,7 @@ class PreferencesWindow(QtGui.QDialog):
             preferences.preferences.default_rig = self.rig_plugins[index-1].cls.__name__
 
         preferences.preferences.save()
+
 
 gui = PreferencesWindow()
 def show():

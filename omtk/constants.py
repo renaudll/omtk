@@ -15,11 +15,13 @@ class SpaceSwitchReservedIndex:
     local = -2
     root = -1
 
+
 class UIExposeFlags:
     """
     Flags used when exposing Rig or Module functionality in the ui.
     """
     trigger_network_export = 1
+
 
 class EnvironmentVariables:
     """

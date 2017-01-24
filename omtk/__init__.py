@@ -4,16 +4,9 @@ from .core import *
 import constants
 import pymel.core as pymel
 
-__dependencies__ = [
-    ('deps',)
-]
-current_dir = os.path.dirname(os.path.realpath(__file__))
-for dependency in __dependencies__:
-    path = os.path.realpath(os.path.join(current_dir, *dependency))
-    sys.path.append(path)
-
 # HACK: Load matrixNodes.dll
 pymel.loadPlugin('matrixNodes', quiet=True)
+
 
 def _reload(kill_ui=True):
     """
@@ -97,9 +90,5 @@ def _reload(kill_ui=True):
 
 
 def show():
-    """
-    Show a simple gui. Note that PySide or PyQt4 is needed.
-    """
-
     import main_window
     main_window.show()

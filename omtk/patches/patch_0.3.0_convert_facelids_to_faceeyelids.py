@@ -4,7 +4,7 @@ confusion with the FaceLips module.
 Run this script to convert a pre-0.3.0 scene.
 """
 
-import libSerialization
+from omtk.vendor import libSerialization
 
 cls_rename_map = (
     ('FaceLids', 'FaceEyeLids'),

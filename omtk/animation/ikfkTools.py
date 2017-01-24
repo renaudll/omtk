@@ -1,7 +1,8 @@
 import functools
 import logging
-import libSerialization
 import pymel.core as pymel
+
+from omtk.vendor import libSerialization
 
 def _get_module_networks_from_selection(module_name):
     """

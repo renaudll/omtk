@@ -69,7 +69,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
 
     # Hack: If for any reasons a skinCluster was provided, use the first shape.
     if isinstance(obj, pymel.nodetypes.SkinCluster):
-        new_obj = next(iter(obj.getOutputGeometry()), None)
+        new_obj = next((shape for shape in obj.getOutputGeometry() if isinstance(shape, pymel.nodetypes.Mesh)), None)
         if new_obj is None:
             pymel.warning("Can't transfert weights. No geometry found affected by {0}.".format(obj))
             return

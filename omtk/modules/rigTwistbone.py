@@ -344,7 +344,7 @@ class Twistbone(Module):
             for subjnt in self.subjnts:
                 if subjnt in influenceObjects:
                     to_transfer.append(subjnt)
-            libSkinning.transfer_weights(skin_deformer, to_transfer, self.chain_jnt.start)
+            libSkinning.transfer_weights(skin_deformer, to_transfer, self.chain_jnt.start, add_missing_influences=True)
 
     def get_skinClusters_from_inputs(self):
         skinClusters = set()
@@ -358,8 +358,8 @@ class Twistbone(Module):
     def get_skinClusters_from_subjnts(self):
         skinClusters = set()
         jnts = [jnt for jnt in self.subjnts if jnt and jnt.exists()]  # Only handle existing objects
-        for jnt in self.jnts:
-            for hist in jnt.listHistory(future=True):
+        for jnt in jnts:
+            for hist in jnt.listHistory(future=True, levels=1):
                 if isinstance(hist, pymel.nodetypes.SkinCluster):
                     skinClusters.add(hist)
         return skinClusters

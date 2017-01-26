@@ -122,9 +122,9 @@ class LegIkQuad(rigLeg.LegIk):
             if iter_count > max_iter:
                 raise Exception("Max iteration reached: {}".format(max_iter))
 
-            result = take_guess(mid)
             result_low = take_guess(low)
             result_high = take_guess(high)
+            result = take_guess(mid)  # note: it is important to take the mid guess last since we don't update the attr on exit
 
             if abs(1.0 - result) < epsilon:
                 self.debug("Resolved {} twist offset of {} using with {} iterations.".format(ik_handle, mid, iter_count))

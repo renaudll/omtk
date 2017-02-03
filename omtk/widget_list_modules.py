@@ -3,6 +3,7 @@ import functools
 import inspect
 import traceback
 import logging
+import itertools
 
 import pymel.core as pymel
 from ui import widget_list_modules
@@ -381,7 +382,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _execute_rcmenu_entry(self, fn_name):
         need_export_network = False
-        for module in self.get_selected_modules():
+        for module in itertools.chain(self.get_selected_modules() + self.get_selected_rigs()):
             # Resolve fn
             if not hasattr(module, fn_name):
                 continue

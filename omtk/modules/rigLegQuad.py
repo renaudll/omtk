@@ -190,7 +190,7 @@ class LegIkQuad(rigLeg.LegIk):
         # Create softIk node and connect user accessible attributes to it.
         #
         if setup_softik:
-            self.setup_softik([self._ik_handle, self._ik_handle_quad], self._chain_quad_ik)
+            self.setup_softik([self._ik_handle, self._ik_handle_quad], [self._chain_ik, self._chain_quad_ik])
 
         # Create another swivel handle node for the quad chain setup
         self.ctrl_swivel_quad = self.setup_swivel_ctrl(self.ctrl_swivel_quad, self._chain_quad_ik[heel_idx],

@@ -273,11 +273,11 @@ class IK(Module):
         dir_swivel = (self.chain_jnt[start_index + 1].getTranslation(space='world') - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
-    def setup_softik(self, ik_handle_to_constraint, stretch_chain):
+    def setup_softik(self, ik_handle_to_constraint, stretch_chains):
         """
         Setup the softik system a ik system
-        :param ik_handle_to_constraint: The ik handle to constraint on the soft ik network (Can be more than one)
-        :param stretch_chain: The chain on which the stretch will be connected
+        :param ik_handle_to_constraint: A list of ik handles to constraint on the soft-ik network.
+        :param stretch_chains: A list of chains to connect the stretch to.
         :return: Nothing
         """
         nomenclature_rig = self.get_nomenclature_rig()
@@ -317,17 +317,20 @@ class IK(Module):
             pymel.connectAttr(attOutRatioInv, weight_out)
 
         # Connect stretch
-        for i in range(1, self.iCtrlIndex+1):
-            obj = stretch_chain[i]
-            util_get_t = libRigging.create_utility_node('multiplyDivide',
-                                               input1X=soft_ik_network.outStretch,
-                                               input1Y=soft_ik_network.outStretch,
-                                               input1Z=soft_ik_network.outStretch,
-                                               input2=obj.t.get())
-            pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
-            pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
-            pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
-        
+        for stretch_chain in stretch_chains:
+            for i in range(1, self.iCtrlIndex+1):
+                obj = stretch_chain[i]
+                util_get_t = libRigging.create_utility_node(
+                    'multiplyDivide',
+                    input1X=soft_ik_network.outStretch,
+                    input1Y=soft_ik_network.outStretch,
+                    input1Z=soft_ik_network.outStretch,
+                    input2=obj.t.get()
+                )
+                pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
+                pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
+                pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
+
         return soft_ik_network
 
     def create_ik_handle(self, solver='ikRPsolver'):
@@ -504,7 +507,7 @@ class IK(Module):
         # Create softIk node and connect user accessible attributes to it.
         #
         if setup_softik:
-            self.setup_softik([self._ik_handle], self._chain_ik)
+            self.setup_softik([self._ik_handle], [self._chain_ik])
 
         # Connect global scale
         pymel.connectAttr(self.grp_rig.globalScale, self._ikChainGrp.sx)

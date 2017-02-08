@@ -307,8 +307,27 @@ class Module(object):
                     return jnt
 
         if strict:
-            self.warning("Cannot found jaw influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+            self.warning("Cannot found a {0} influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
         return None
+
+    @libPython.memoized_instancemethod
+    def get_jaw_module(self, strict=True):
+        """
+        Resolve the jaw module related to the current module with support for rigs with multiple jaw.
+        :param strict: If True, log a warning if no jaw module is found.
+        :return: A Module.FaceJaw instance.
+        """
+        from omtk.modules import rigFaceJaw
+
+        module_jaw = None
+
+        jnt_jaw = self.get_jaw_jnt()
+        if jnt_jaw:
+            module_jaw = next(iter(module for module in self.rig.modules if isinstance(module, rigFaceJaw.FaceJaw) and jnt_jaw in module.input), None)
+
+        if module_jaw is None and strict:
+            self.warning("Cannot found a {} module. Please create one!".format(rigFaceJaw.FaceJaw.__name__))
+        return module_jaw
 
     @libPython.memoized_instancemethod
     def get_surfaces(self):

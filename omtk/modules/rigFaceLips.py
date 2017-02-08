@@ -1,50 +1,13 @@
 import math
 
 import pymel.core as pymel
-
-from omtk.libs import libRigging
-from omtk.libs import libPython
+from omtk.core.classNode import Node
 from omtk.libs import libAttr
-from omtk.libs import libFormula
+from omtk.libs import libPython
+from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
-from omtk.core.classNode import Node
-from omtk.models import modelInteractiveCtrl
 
-def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix):
-    """
-    Create a utility node setup that prevent Maya from throwing a warning in case of division by zero.
-    Maya is stupid when trying to handle division by zero in nodes.
-    We can't use a condition after the multiplyDivide to deactivate it if the denominator is zero since
-    the multiplyDivide will still get evaluated and throw a warning.
-    For this reason we'll create TWO conditions, the second one will change the denominator to a non-zero value.
-    :param attr_inn: A numerical value or pymel.Attribute instance representing the numerator.
-    :param attr_out: A numerical value or pymel.Attribute instance representing the denominator.
-    :return: A pymel.Attribute containing the result of the operation.
-    """
-    # Create a condition that force the denominator to have a non-zero value.
-    attr_numerator_fake = libRigging.create_utility_node(
-        'condition',
-        name=nomenclature.resolve('{}SafePre'.format(suffix)),
-        firstTerm=attr_denominator,
-        colorIfFalseR=attr_denominator,
-        colorIfTrueR=0.01,
-    ).outColorR
-    attr_result = libRigging.create_utility_node(
-        'multiplyDivide',
-        name=nomenclature.resolve(suffix),
-        operation=2,  # division,
-        input1X=attr_numerator,
-        input2X=attr_numerator_fake
-    ).outputX
-    attr_result_safe = libRigging.create_utility_node(
-        'condition',
-        name=nomenclature.resolve('{}SafePost'.format(suffix)),
-        firstTerm=attr_denominator,
-        colorIfFalseR=attr_result,
-        colorIfTrueR=0.0
-    ).outColorR
-    return attr_result_safe
 
 class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
     pass
@@ -57,29 +20,37 @@ class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
 class MatrixBlendNode(Node):
     """
     Prevent flipping by using matrix to compute the average position between two reference objects.
+    Multiple outputs can be created using the same network (use the build_output() method)
     """
+    def __init__(self, targets, **kwargs):
+        super(MatrixBlendNode, self).__init__(**kwargs)
+        self.targets = targets
+        self.targets_unsafe = []
+        self.targets_safe = []
 
-    def build(self, nomenclature_rig, targets, ref_tm, **kwargs):
+    def build(self, nomenclature_rig, ref_tm, skipTranslate=None, skipRotate=None, **kwargs):
+        skipTranslate = skipTranslate or []  # prevent error when None is used
+        skipRotate = skipRotate or []  # prevent error when None is used
+
         super(MatrixBlendNode, self).build(**kwargs)
 
         # Create unsafe targets
-        targets_unsafe = []
-        for i, target in enumerate(targets):
+        self.targets_unsafe = []
+        for i, target in enumerate(self.targets):
             target_unsafe = pymel.createNode(
                 'transform',
                 name=nomenclature_rig.resolve('targetUnsafe{0}'.format(i)),
                 parent=self.node
             )
-            targets_unsafe.append(target_unsafe)
+            self.targets_unsafe.append(target_unsafe)
 
         # Move everything to it's final location
         self.node.setMatrix(ref_tm)
 
         # Create safe targets
-        targets_safe = []
-        for i, target, target_unsafe in zip(range(len(targets)), targets, targets_unsafe):
-            target_unsafe = targets_unsafe[i]
-            pymel.parentConstraint(target, target_unsafe, maintainOffset=True)
+        self.targets_safe = []
+        for i, (target, target_unsafe) in enumerate(zip(self.targets, self.targets_unsafe)):
+            pymel.parentConstraint(target, target_unsafe, maintainOffset=True, skipTranslate=skipTranslate, skipRotate=skipRotate)
 
             target_safe = pymel.createNode(
                 'transform',
@@ -93,16 +64,21 @@ class MatrixBlendNode(Node):
             pymel.connectAttr(util_tm_decompose.outputTranslate, target_safe.translate)
             pymel.connectAttr(util_tm_decompose.outputRotate, target_safe.rotate)
             pymel.connectAttr(util_tm_decompose.outputScale, target_safe.scale)
-            targets_safe.append(target_safe)
+            self.targets_safe.append(target_safe)
 
+        return self.targets_safe
+
+    def build_output(self, name, constraint=True, **kwargs):
         result = pymel.createNode(
             'transform',
-            name=nomenclature_rig.resolve('output'),
+            name=name,
             parent=self.node
         )
-        constraint = pymel.parentConstraint(targets_safe, result)
 
-        return result, constraint, targets_safe
+        if constraint:
+            pymel.parentConstraint(self.targets_safe, result, **kwargs)
+
+        return result
 
 
 class SplitterNode(Node):
@@ -217,7 +193,7 @@ class SplitterNode(Node):
 
         # Note that this can throw a zero division warning in Maya.
         # To prevent that we'll use some black-magic-ugly-ass-trick.
-        attr_jaw_ratio_cancelation = create_safe_division(
+        attr_jaw_ratio_cancelation = libRigging.create_safe_division(
             self.attr_inn_surface_v,
             attr_jaw_v_range,
             nomenclature_rig,
@@ -351,6 +327,18 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # Define additional avars
         self.attr_ud_bypass = None
 
+    def build(self, **kwargs):
+        # hack: Build the jaw first since we need it's avars
+        # todo: create a real dependency system between modules
+        # this is not common but should still be officially supported
+        module_jaw = self.get_jaw_module()
+        if module_jaw and not module_jaw.is_built():
+            self.info("Building {} before {} because of dependencies.".format(module_jaw, self))
+            module_jaw.build()
+            self.rig.post_build_module(module_jaw)
+
+        super(FaceLipsAvar, self).build(**kwargs)
+
     def add_avars(self, attr_holder):
         """
         Create the network that contain all our avars.
@@ -365,6 +353,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         jnt_head = self.get_head_jnt()
         jnt_jaw = self.get_jaw_jnt()
         jaw_pos = jnt_jaw.getTranslation(space='world')
+        jaw_module = self.get_jaw_module()
 
         #
         # Create additional attributes to control the jaw layer
@@ -394,7 +383,9 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
         #
         # Create reference objects used for jaw translation/rotation calculations.
+        # If there's jaw rotation, we want to be able to blend in/out of that rotation.
         #
+
         grp_parent_pos = self._grp_parent.getTranslation(space='world')  # grp_offset is always in world coordinates
         blender_tm = pymel.datatypes.Matrix(
             1, 0, 0, 0,
@@ -403,17 +394,18 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
             grp_parent_pos.x, grp_parent_pos.y, grp_parent_pos.z, 1
         )
 
-        blender = MatrixBlendNode()
-        self._jaw_ref, constraint, targets = blender.build(
+        blender = MatrixBlendNode([jnt_head, jnt_jaw])
+        targets = blender.build(
             nomenclature_rig,
-            [jnt_head, jnt_jaw],
             blender_tm,
-            name = nomenclature_rig.resolve('jawBlender')
+            name=nomenclature_rig.resolve('jawBlender'),
         )
+        self._target_head, self._target_jaw = targets
         blender.node.setParent(self.grp_rig)
         pymel.parentConstraint(jnt_head, blender.node, maintainOffset=True)
-        self._target_head, self._target_jaw = targets
 
+        # Create reference for the jaw rotation.
+        self._jaw_ref = blender.build_output(nomenclature_rig.resolve('outputR'), constraint=False)
 
         # Create a reference node that follow the jaw initial position
         self._target_jaw_bindpose = pymel.createNode(
@@ -443,11 +435,25 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         #
 
         # Add the jaw influence as a new stack layer.
-        layer_jaw_r = stack.prepend_layer(name='jawRotate')
-        layer_jaw_t = stack.prepend_layer(name='jawTranslate')
+        layer_jaw_r = stack.prepend_layer(name='jawArcR')
+        layer_jaw_t = stack.prepend_layer(name='jawArcT')
+        layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
 
         pymel.connectAttr(util_extract_jaw.outputTranslate, layer_jaw_t.t)
         pymel.connectAttr(util_extract_jaw.outputRotate, layer_jaw_r.r)
+
+        # Connect jaw translation avars to the "jawT" layer.
+        attr_get_jaw_t = libRigging.create_utility_node(
+            'multiplyDivide',
+            input1X=jaw_module.attr_lr,
+            input1Y=jaw_module.attr_ud,
+            input1Z=jaw_module.attr_fb,
+            input2X=self._attr_inn_jaw_ratio_default,
+            input2Y=self._attr_inn_jaw_ratio_default,
+            input2Z=self._attr_inn_jaw_ratio_default,
+            name=nomenclature_rig.resolve('getJawT')
+        ).output
+        pymel.connectAttr(attr_get_jaw_t, layer_jaw_t_to_t.translate)
 
     def _get_follicle_relative_uv_attr(self, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()

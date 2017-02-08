@@ -1342,3 +1342,38 @@ def debug_matrix_attr(attr):
     pymel.connectAttr(util_decompose.outputScale, loc.scale)
     return loc
 
+
+def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix):
+    """
+    Create a utility node setup that prevent Maya from throwing a warning in case of division by zero.
+    Maya is stupid when trying to handle division by zero in nodes.
+    We can't use a condition after the multiplyDivide to deactivate it if the denominator is zero since
+    the multiplyDivide will still get evaluated and throw a warning.
+    For this reason we'll create TWO conditions, the second one will change the denominator to a non-zero value.
+    :param attr_inn: A numerical value or pymel.Attribute instance representing the numerator.
+    :param attr_out: A numerical value or pymel.Attribute instance representing the denominator.
+    :return: A pymel.Attribute containing the result of the operation.
+    """
+    # Create a condition that force the denominator to have a non-zero value.
+    attr_numerator_fake = create_utility_node(
+        'condition',
+        name=nomenclature.resolve('{}SafePre'.format(suffix)),
+        firstTerm=attr_denominator,
+        colorIfFalseR=attr_denominator,
+        colorIfTrueR=0.01,
+    ).outColorR
+    attr_result = create_utility_node(
+        'multiplyDivide',
+        name=nomenclature.resolve(suffix),
+        operation=2,  # division,
+        input1X=attr_numerator,
+        input2X=attr_numerator_fake
+    ).outputX
+    attr_result_safe = create_utility_node(
+        'condition',
+        name=nomenclature.resolve('{}SafePost'.format(suffix)),
+        firstTerm=attr_denominator,
+        colorIfFalseR=attr_result,
+        colorIfTrueR=0.0
+    ).outColorR
+    return attr_result_safe

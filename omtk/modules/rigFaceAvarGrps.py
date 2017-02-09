@@ -477,8 +477,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         # Resolve the U and V modifiers.
         # Note that this only applies to avars on a surface.
         # TODO: Move to AvarGrpOnSurface
-        mult_u = self.get_multiplier_u()
-        mult_v = self.get_multiplier_v()
+        mult_u = self.get_multiplier_u() if self.surface else None
+        mult_v = self.get_multiplier_v() if self.surface else None
 
         # Build avars and connect them to global avars
         avar_influences = self._get_avars_influences()
@@ -720,6 +720,10 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
             if ref:
                 result.name = (self.get_nomenclature() + self.rig.nomenclature(ref.nodeName())).resolve()
 
+        # Keep a reference to the module parent.
+        # todo: implement a generic mechanism for all modules?
+        result._parent_module = self
+
         return result
 
     def configure_avar(self, avar):
@@ -763,6 +767,7 @@ class AvarGrpOnSurface(AvarGrp):
     |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO       | Affected by jnt_avar_01 in translation only.
     """
     _CLS_AVAR = rigFaceAvar.AvarFollicle
+    _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle  # Macro avars are always abstract (except the all macro which can potentially drive something)
 
     def __init__(self, *args, **kwargs):
         super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
@@ -1079,7 +1084,7 @@ class AvarGrpOnSurface(AvarGrp):
 
                 # avar_macro_l_name = 'L_{0}'.format(self.get_module_name())
                 self.avar_l = self._init_avar(
-                    self._CLS_AVAR,
+                    self._CLS_AVAR_MACRO,
                     self.avar_l,
                     ref=ref_l,
                     cls_ctrl=self._CLS_CTRL_LFT,
@@ -1108,7 +1113,7 @@ class AvarGrpOnSurface(AvarGrp):
 
                 # avar_macro_r_name = 'R_{0}'.format(self.get_module_name())
                 self.avar_r = self._init_avar(
-                    self._CLS_AVAR,
+                    self._CLS_AVAR_MACRO,
                     self.avar_r,
                     ref=ref_r,
                     cls_ctrl=self._CLS_CTRL_RGT,
@@ -1126,7 +1131,7 @@ class AvarGrpOnSurface(AvarGrp):
                 avar_upp_name = self.get_nomenclature().resolve('macro', self.rig.AVAR_NAME_UPP)
 
                 self.avar_upp = self._init_avar(
-                    self._CLS_AVAR,
+                    self._CLS_AVAR_MACRO,
                     self.avar_upp,
                     ref=ref_upp,
                     cls_ctrl=self._CLS_CTRL_UPP,
@@ -1142,7 +1147,7 @@ class AvarGrpOnSurface(AvarGrp):
                 avar_low_name = self.get_nomenclature().resolve('macro', self.rig.AVAR_NAME_LOW)
 
                 self.avar_low = self._init_avar(
-                    self._CLS_AVAR,
+                    self._CLS_AVAR_MACRO,
                     self.avar_low,
                     ref=ref_low,
                     cls_ctrl=self._CLS_CTRL_LOW,
@@ -1158,7 +1163,7 @@ class AvarGrpOnSurface(AvarGrp):
             nomenclature.add_tokens('macro', self.rig.AVAR_NAME_ALL)
             avar_all_name = nomenclature.resolve()
             self.avar_all = self._init_avar(
-                self._CLS_AVAR,
+                self._CLS_AVAR_MACRO,
                 self.avar_all,
                 ref=avar_all_ref,
                 cls_ctrl=self._CLS_CTRL_UPP,
@@ -1313,12 +1318,19 @@ class AvarGrpOnSurface(AvarGrp):
 
     @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):
+        """
+        Return the pivot matrix of the influence controller by the 'all' macro avar.
+        :return: A pymel.datatypes.Matrix instance.
+        """
         influence_all = self.get_influence_all()
         if influence_all:
             pos = influence_all.getTranslation(space='world')
-        else:
+        elif self.surface:
             # We'll always want to macro avar to be positionned at the center of the plane.
             pos = libRigging.get_point_on_surface_from_uv(self.surface, 0.5, 0.5)
+        else:
+            # If we are not controlling a specific influence and no surface exist, take our chance and use the first influence.
+            pos = self.jnt.getTranslation(space='world')
 
         jnt_tm = pymel.datatypes.Matrix(
             1, 0, 0, 0,
@@ -1436,7 +1448,6 @@ class AvarGrpOnSurface(AvarGrp):
             parent_rot = self.avar_all._grp_output
             parent_scl = self.avar_all.ctrl
 
-
         if self.create_macro_horizontal:
             if self.avar_l:
                 self._create_avar_macro_l_ctrls(
@@ -1505,15 +1516,15 @@ class AvarGrpOnSurface(AvarGrp):
         if self.avar_all:
             self.avar_all.calibrate()
 
-    def get_avars_upp(self):
+    def get_avars_upp(self, macro=True):
         result = super(AvarGrpOnSurface, self).get_avars_upp()
-        if self.avar_upp:
+        if macro and self.avar_upp:
             result.append(self.avar_upp)
         return result
 
-    def get_avars_low(self):
+    def get_avars_low(self, macro=True):
         result = super(AvarGrpOnSurface, self).get_avars_low()
-        if self.avar_low:
+        if macro and self.avar_low:
             result.append(self.avar_low)
         return result
 

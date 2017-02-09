@@ -159,9 +159,7 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("Can't build locked module {0}".format(module))
             return
 
-        self._rig.pre_build()
-        module.build()
-        self._rig.post_build_module(module)
+        self._rig.build([module])
 
         return True
 

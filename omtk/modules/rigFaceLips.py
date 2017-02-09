@@ -17,70 +17,6 @@ class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
     pass
 
 
-class MatrixBlendNode(Node):
-    """
-    Prevent flipping by using matrix to compute the average position between two reference objects.
-    Multiple outputs can be created using the same network (use the build_output() method)
-    """
-    def __init__(self, targets, **kwargs):
-        super(MatrixBlendNode, self).__init__(**kwargs)
-        self.targets = targets
-        self.targets_unsafe = []
-        self.targets_safe = []
-
-    def build(self, nomenclature_rig, ref_tm, skipTranslate=None, skipRotate=None, **kwargs):
-        skipTranslate = skipTranslate or []  # prevent error when None is used
-        skipRotate = skipRotate or []  # prevent error when None is used
-
-        super(MatrixBlendNode, self).build(**kwargs)
-
-        # Create unsafe targets
-        self.targets_unsafe = []
-        for i, target in enumerate(self.targets):
-            target_unsafe = pymel.createNode(
-                'transform',
-                name=nomenclature_rig.resolve('targetUnsafe{0}'.format(i)),
-                parent=self.node
-            )
-            self.targets_unsafe.append(target_unsafe)
-
-        # Move everything to it's final location
-        self.node.setMatrix(ref_tm)
-
-        # Create safe targets
-        self.targets_safe = []
-        for i, (target, target_unsafe) in enumerate(zip(self.targets, self.targets_unsafe)):
-            pymel.parentConstraint(target, target_unsafe, maintainOffset=True, skipTranslate=skipTranslate, skipRotate=skipRotate)
-
-            target_safe = pymel.createNode(
-                'transform',
-                name=nomenclature_rig.resolve('targetSafe{0}'.format(i)),
-                parent=self.node
-            )
-            util_tm_decompose = libRigging.create_utility_node(
-                'decomposeMatrix',
-                inputMatrix=target_unsafe.matrix
-            )
-            pymel.connectAttr(util_tm_decompose.outputTranslate, target_safe.translate)
-            pymel.connectAttr(util_tm_decompose.outputRotate, target_safe.rotate)
-            pymel.connectAttr(util_tm_decompose.outputScale, target_safe.scale)
-            self.targets_safe.append(target_safe)
-
-        return self.targets_safe
-
-    def build_output(self, name, constraint=True, **kwargs):
-        result = pymel.createNode(
-            'transform',
-            name=name,
-            parent=self.node
-        )
-
-        if constraint:
-            pymel.parentConstraint(self.targets_safe, result, **kwargs)
-
-        return result
-
-
 class SplitterNode(Node):
     """
     A splitter is a node network that take the parameterV that is normally sent through the follicles and
@@ -319,7 +255,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
         self._attr_inn_jaw_pt = None
 
-        self._jaw_ref = None
+        # self._jaw_ref = None
 
         # Allow the rigger to completely bypass the splitter node influence.
         self._attr_bypass_splitter = None
@@ -327,17 +263,14 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # Define additional avars
         self.attr_ud_bypass = None
 
-    def build(self, **kwargs):
-        # hack: Build the jaw first since we need it's avars
-        # todo: create a real dependency system between modules
-        # this is not common but should still be officially supported
-        module_jaw = self.get_jaw_module()
-        if module_jaw and not module_jaw.is_built():
-            self.info("Building {} before {} because of dependencies.".format(module_jaw, self))
-            module_jaw.build()
-            self.rig.post_build_module(module_jaw)
+        # Contain the final applied jaw out ratio.
+        # Used by the splitter network.
+        self.attr_jaw_out_ratio = None
 
-        super(FaceLipsAvar, self).build(**kwargs)
+        # Initialize in an AvarGrp init_avar method.
+        # Reference to the module containing the avar.
+        # todo: replace by a generic implementation for all modules? (ex: IK in Arm)
+        self._parent_module = None
 
     def add_avars(self, attr_holder):
         """
@@ -381,51 +314,8 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
             k=True
         )
 
-        #
-        # Create reference objects used for jaw translation/rotation calculations.
-        # If there's jaw rotation, we want to be able to blend in/out of that rotation.
-        #
-
-        grp_parent_pos = self._grp_parent.getTranslation(space='world')  # grp_offset is always in world coordinates
-        blender_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            grp_parent_pos.x, grp_parent_pos.y, grp_parent_pos.z, 1
-        )
-
-        blender = MatrixBlendNode([jnt_head, jnt_jaw])
-        targets = blender.build(
-            nomenclature_rig,
-            blender_tm,
-            name=nomenclature_rig.resolve('jawBlender'),
-        )
-        self._target_head, self._target_jaw = targets
-        blender.node.setParent(self.grp_rig)
-        pymel.parentConstraint(jnt_head, blender.node, maintainOffset=True)
-
-        # Create reference for the jaw rotation.
-        self._jaw_ref = blender.build_output(nomenclature_rig.resolve('outputR'), constraint=False)
-
-        # Create a reference node that follow the jaw initial position
-        self._target_jaw_bindpose = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('innJawBindPose'),
-            parent=self.grp_rig
-        )
-        self._target_jaw_bindpose.setTranslation(jaw_pos)
-
-        # Extract jaw influence
-        attr_delta_tm = libRigging.create_utility_node('multMatrix', matrixIn=[
-            self._jaw_ref.worldMatrix,
-            self._grp_parent.worldInverseMatrix
-        ]).matrixSum
-
-        util_extract_jaw = libRigging.create_utility_node(
-            'decomposeMatrix',
-            name=nomenclature_rig.resolve('getJawRotation'),
-            inputMatrix=attr_delta_tm
-        )
+        self._target_jaw_bindpose = self._parent_module._ref_jaw_predeform
+        self._attr_jaw_pitch = self._parent_module._attr_jaw_pt
 
         super(FaceLipsAvar, self).build_stack(stack, **kwargs)
 
@@ -434,20 +324,53 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # Create a reference object to extract the jaw displacement.
         #
 
+        # Compute the rotation introduced by the jaw.
+        attr_rotation_adjusted = libRigging.create_utility_node(
+            'multiplyDivide',
+            input1X=self._parent_module._attr_jaw_pt,
+            input1Y=self._parent_module._attr_jaw_yw,
+            input1Z=self._parent_module._attr_jaw_rl,
+            input2X=self.attr_jaw_out_ratio,
+            input2Y=self.attr_jaw_out_ratio,
+            input2Z=self.attr_jaw_out_ratio,
+        ).output
+
+        attr_rotation_tm = libRigging.create_utility_node(
+            'composeMatrix',
+            inputRotate=attr_rotation_adjusted
+        ).outputMatrix
+
+        # Compute the arc offset relative to the avar root
+        attr_get_arc_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self._grp_offset.matrix,  # todo: remove?
+                self._parent_module._ref_jaw_predeform.inverseMatrix,
+                attr_rotation_tm,
+                self._parent_module._ref_jaw_predeform.matrix,
+                self._grp_offset.inverseMatrix,  # todo: remove?
+            )
+        ).matrixSum
+
+        util_decompose_arc_tm = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=attr_get_arc_tm
+        )
+
         # Add the jaw influence as a new stack layer.
         layer_jaw_r = stack.prepend_layer(name='jawArcR')
         layer_jaw_t = stack.prepend_layer(name='jawArcT')
-        layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
 
-        pymel.connectAttr(util_extract_jaw.outputTranslate, layer_jaw_t.t)
-        pymel.connectAttr(util_extract_jaw.outputRotate, layer_jaw_r.r)
+        pymel.connectAttr(util_decompose_arc_tm.outputTranslate, layer_jaw_t.t)
+        pymel.connectAttr(util_decompose_arc_tm.outputRotate, layer_jaw_r.r)
 
         # Connect jaw translation avars to the "jawT" layer.
+        layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
         attr_get_jaw_t = libRigging.create_utility_node(
             'multiplyDivide',
-            input1X=jaw_module.attr_lr,
-            input1Y=jaw_module.attr_ud,
-            input1Z=jaw_module.attr_fb,
+            input1X=jaw_module.avar_all.attr_lr,
+            input1Y=jaw_module.avar_all.attr_ud,
+            input1Z=jaw_module.avar_all.attr_fb,
             input2X=self._attr_inn_jaw_ratio_default,
             input2Y=self._attr_inn_jaw_ratio_default,
             input2Z=self._attr_inn_jaw_ratio_default,
@@ -479,18 +402,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         ).distance
 
         # Resolve the jaw pitch. Used by the splitter.
-        attr_jaw_pitch = libRigging.create_utility_node(
-            'decomposeMatrix',
-            name=nomenclature_rig.resolve('getJawPitch'),
-            inputMatrix=libRigging.create_utility_node(
-                'multMatrix',
-                name=nomenclature_rig.resolve('extractJawPitch'),
-                matrixIn=(
-                    self._target_jaw.worldMatrix,
-                    self._grp_parent.worldInverseMatrix
-                )
-            ).matrixSum
-        ).outputRotateX
+        attr_jaw_pitch = self._attr_jaw_pitch
 
         # Connect the splitter inputs
         pymel.connectAttr(attr_u, splitter.attr_inn_surface_u)
@@ -505,19 +417,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         attr_v = splitter.attr_out_surface_v
 
         # Create constraint to controller the jaw reference
-        attr_jaw_ratio = splitter.attr_out_jaw_ratio
-        attr_jaw_ratio_inv = libRigging.create_utility_node('reverse', inputX=attr_jaw_ratio).outputX
-
-        constraint_pr = pymel.parentConstraint(self._target_head, self._target_jaw, self._jaw_ref, maintainOffset=True)
-        constraint_s = pymel.scaleConstraint(self._target_head, self._target_jaw, self._jaw_ref)
-        weight_pr_head, weight_pr_jaw = constraint_pr.getWeightAliasList()
-        weight_s_head, weight_s_jaw = constraint_s.getWeightAliasList()
-
-        # Connect splitter outputs
-        pymel.connectAttr(attr_jaw_ratio, weight_pr_jaw)
-        pymel.connectAttr(attr_jaw_ratio, weight_s_jaw)
-        pymel.connectAttr(attr_jaw_ratio_inv, weight_pr_head)
-        pymel.connectAttr(attr_jaw_ratio_inv, weight_s_head)
+        self.attr_jaw_out_ratio = splitter.attr_out_jaw_ratio
 
         #
         # Implement the 'bypass' avars.
@@ -564,15 +464,16 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             if self.get_jaw_jnt(strict=False) is None:
                 raise Exception("Can't resolve jaw. Please create a Jaw module.")
 
-    def get_avars_corners(self):
+    def get_avars_corners(self, macro=True):
         # todo: move upper?
         fnFilter = lambda avar: 'corner' in avar.name.lower()
         result = filter(fnFilter, self.avars)
 
-        if self.avar_l:
-            result.append(self.avar_l)
-        if self.avar_r:
-            result.append(self.avar_r)
+        if macro:
+            if self.avar_l:
+                result.append(self.avar_l)
+            if self.avar_r:
+                result.append(self.avar_r)
 
         return result
 
@@ -669,15 +570,15 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         """
         # We'll connect the avar_ud ourself but will use the avar_ud_bypass instead.
         """
-        # Since the avar_all ignore the splitter by connecting itself to attr_ud_bypass,
-        # we don't want to splitter to affect us.
-        self.avar_all._attr_bypass_splitter.set(1.0)
+        # # Since the avar_all ignore the splitter by connecting itself to attr_ud_bypass,
+        # # we don't want to splitter to affect us.
+        # self.avar_all._attr_bypass_splitter.set(1.0)
 
         super(FaceLips, self)._connect_avar_macro_all(**kwargs)
 
-        for child_avar in self.avars:
-            # todo: do we need to validate the avar type? It should be FaceLipsAvar
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud_bypass, child_avar.attr_ud_bypass)
+        # for child_avar in self.avars:
+        #     # todo: do we need to validate the avar type? It should be FaceLipsAvar
+        #     libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud_bypass, child_avar.attr_ud_bypass)
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, **kwargs):
         """
@@ -690,6 +591,18 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         # parent_pos = self.avar_all._grp_output
         parent_rot = self.avar_all._grp_output
         super(FaceLips, self)._create_avar_macro_all_ctrls(parent_pos=parent_pos, parent_rot=parent_rot, **kwargs)
+
+    def get_dependencies_modules(self):
+        return [self.get_jaw_module()]
+
+    def __init__(self, **kwargs):
+        super(FaceLips, self).__init__(**kwargs)
+
+        # Contain the jaw bind pos before any parenting.
+        self._ref_jaw_predeform = None
+
+        # Contain the jaw rotation relative to the bind pose.
+        self._attr_jaw_relative_rot = None
 
     def build(self, calibrate=True, use_football_interpolation=False, **kwargs):
         """
@@ -720,13 +633,11 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
             def connect_avar(avar, ratio):
                 avar._attr_inn_jaw_ratio_default.set(ratio)
-                #pymel.connectAttr(self._attr_inn_jaw_range, avar._attr_inn_jaw_range)
-                #pymel.connectAttr(self._attr_length_v, avar._attr_inn_jaw_range)
 
-            for avar in self.get_avars_corners():
+            for avar in self.get_avars_corners(macro=False):
                 connect_avar(avar, 0.5)
 
-            for avar in self.get_avars_upp():
+            for avar in self.get_avars_upp(macro=False):
                 if use_football_interpolation:
                     avar_pos_x = avar._grp_offset.tx.get()
                     ratio = abs(avar_pos_x - min_x / mouth_width)
@@ -737,7 +648,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
                 connect_avar(avar, ratio)
 
-            for avar in self.get_avars_low():
+            for avar in self.get_avars_low(macro=False):
                 if use_football_interpolation:
                     avar_pos_x = avar._grp_offset.tx.get()
                     ratio = abs(avar_pos_x - min_x / mouth_width)
@@ -751,6 +662,64 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         # Calibration is done manually since we need to setup the jaw influence.
         if calibrate:
             self.calibrate()
+
+    def _build_avars(self, **kwargs):
+        nomenclature_rig = self.get_nomenclature_rig()
+        jnt_head = self.get_head_jnt()
+        jnt_jaw = self.get_jaw_jnt()
+        pos_jaw = jnt_jaw.getTranslation(space='world')
+
+        #
+        # Build a network that evaluate the jaw transform in relation with it's bind pose.
+        # This will be used by avars to computer the 'jawArcT' and 'jawArcR' layer.
+        #
+        self._ref_jaw_predeform = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('refJawPreDeform'),
+            parent=self.grp_rig
+        )
+        self._ref_jaw_predeform.setTranslation(pos_jaw)
+
+        # Create jaw bind-pose reference
+        ref_head = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('refJawBefore'),
+            parent=self.grp_rig
+        )
+        ref_head.setTranslation(pos_jaw)
+        pymel.parentConstraint(jnt_head, ref_head, maintainOffset=True)
+
+        # Create jaw actual pose reference
+        ref_jaw = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('refJawAfter'),
+            parent=self.grp_rig
+        )
+        ref_jaw.setTranslation(pos_jaw)
+        pymel.parentConstraint(jnt_jaw, ref_jaw, maintainOffset=True)
+
+        # Extract the rotation
+        # By using matrix we make sure that there's no flipping introduced.
+        # This happen in maya when using constraint with multiple targets since
+        # Maya use individual values in it's computations.
+        attr_get_relative_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                ref_jaw.worldMatrix,
+                ref_head.worldInverseMatrix,
+            )
+        ).matrixSum
+
+        util_get_rotation_euler = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=attr_get_relative_tm
+        )
+
+        self._attr_jaw_pt = util_get_rotation_euler.outputRotateX
+        self._attr_jaw_yw = util_get_rotation_euler.outputRotateY
+        self._attr_jaw_rl = util_get_rotation_euler.outputRotateZ
+
+        super(FaceLips, self)._build_avars(**kwargs)
 
 
 def register_plugin():

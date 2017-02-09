@@ -62,6 +62,7 @@ class Module(object):
     #
     # libSerialization implementation
     #
+
     def __callbackNetworkPostBuild__(self):
         """
         Cleaning routine automatically called by libSerialization after a network import.
@@ -88,18 +89,9 @@ class Module(object):
         """
         return 'net_{0}_{1}'.format(self.__class__.__name__, self.get_module_name())
 
-    def is_built(self):
-        """
-        Check in maya the existence of the grp_anm and grp_rig properties.
-=        Returns: True if the rig think it have been built.
-        """
-        return (self.grp_anm is not None and self.grp_anm.exists()) or (self.grp_rig is not None and self.grp_rig.exists())
-
-    '''
-    @property
-    def outputs(self):
-        return self.__dict__['_outputs']
-    '''
+    #
+    # Nomenclature implementation
+    #
 
     @libPython.memoized_instancemethod
     def get_side(self):
@@ -388,13 +380,6 @@ class Module(object):
 
         self.name = name
 
-        # Note: Removed by rlessard: We need to be able to detect when no name was set!
-        # if name:
-        #     self.name = name
-        # else:
-        #     self.name = 'RENAMEME'
-
-
     def __str__(self):
         version = getattr(self, 'version', '')
         if version:
@@ -404,7 +389,6 @@ class Module(object):
             self.__class__.__name__,
             version
         )
-
 
     def validate(self, support_no_inputs=False):
         """
@@ -417,11 +401,20 @@ class Module(object):
             raise Exception("Can't build module with zero inputs. {0}".format(self))
         return True
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True, segmentScaleCompensate=None, parent=True):
+    def is_built(self):
+        """
+        Check in maya the existence of the grp_anm and grp_rig properties.
+        Returns: True if the rig think it have been built.
+        """
+        return (self.grp_anm is not None and self.grp_anm.exists()) or (self.grp_rig is not None and self.grp_rig.exists())
+
+    def build(self, create_grp_anm=True, create_grp_rig=True, grp_anm_name=None, grp_rig_name=None, connect_global_scale=True, segmentScaleCompensate=None, parent=True):
         """
         Build the module following the provided rig rules.
         :param create_grp_anm: If True, a group for all the animation controller will be created.
-        :param create_grp_rig: If True, a group for all the rig data will be created/
+        :param create_grp_rig: If True, a group for all the rig data will be created.
+        :param grp_anm_name: Override the name of the created anm group.
+        :param grp_rig_name: Override the name of the created rig group.
         :param segmentScaleCompensate: If provided, the segmentScaleCompensation attribute of all the inputs will be modified.
         :param parent: If True, the parent_to method will be automatically called.
         :return:
@@ -435,10 +428,10 @@ class Module(object):
                     inn.segmentScaleCompensate.set(segmentScaleCompensate)
 
         if create_grp_anm:
-            grp_anm_name = self.get_nomenclature_anm_grp().resolve()
+            grp_anm_name = grp_anm_name or self.get_nomenclature_anm_grp().resolve()
             self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
         if create_grp_rig:
-            grp_rig_name = self.get_nomenclature_rig_grp().resolve()
+            grp_rig_name = grp_rig_name or self.get_nomenclature_rig_grp().resolve()
             self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
             # libAttr.lock_hide_trs(self.grp_rig)  # This line break the hands!
 
@@ -475,6 +468,14 @@ class Module(object):
                 return desired_parent
 
         return self.parent
+
+    def get_dependencies_modules(self):
+        """
+        In some cases a module might need another one to be build first.
+        By implementing this method omtk will make sure it's dependent modules will be built.
+        :return: A list of Module instances to build before this module.
+        """
+        return None
 
     def unbuild(self, disconnect_attr=True):
         """
@@ -613,7 +614,7 @@ class Module(object):
 
         result = inst
 
-        if not isinstance(inst, cls):
+        if not type(inst) == cls:
             result = cls(inputs, rig=self.rig)
 
         # Set the child module name.

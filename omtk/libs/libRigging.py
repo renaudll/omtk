@@ -46,11 +46,7 @@ def connect_or_set_attr(_attr, _val):
         elif is_basic_type(_val):
             _attr.set(_val)
         else:
-            logging.error(
-                '[ConnectOrSetAttr] Invalid value for attribute {0} of type {1} and value {2}'.format(_attr.name(),
-                                                                                                      type(_val),
-                                                                                                      _val))
-            raise TypeError
+            raise TypeError('[ConnectOrSetAttr] Invalid value for attribute {} of type {} and value {}'.format(_attr.name(), type(_val), _val))
 
 
 def create_utility_node(_sClass, name=None, *args, **kwargs):

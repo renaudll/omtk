@@ -6,6 +6,7 @@ import logging
 import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
+from omtk.vendor import libSerialization
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
@@ -19,7 +20,10 @@ __all__ = (
     'unbuild_all',
     'build_selected',
     'unbuild_selected',
-    'calibrate_selected'
+    'calibrate_selected',
+    'build_modules_by_type',
+    'unbuild_modules_by_type',
+    'rebuild_modules_by_type'
 )
 
 @libPython.memoized
@@ -93,7 +97,30 @@ def unbuild_all(strict=False):
         network = rig._network  # monkey-patched by libSerialization
         if rig.unbuild(strict=strict):
             pymel.delete(network)
-            network = libSerialization.export_network(rig)
+            libSerialization.export_network(rig)
+
+
+def _iter_modules_by_type(module_type):
+    """
+    Yield all modules in the scene having a specific type.
+    :param module_type: A type (ex: Module.FaceJaw)
+    :yield: Module instances
+    """
+    rigs = find()
+    for rig in rigs:
+        yield rig, _iter_rig_modules_by_type(rig, module_type)
+
+
+def _iter_rig_modules_by_type(rig, module_type):
+    """
+    Yield all modules in a provided rig having a specific type.
+    :param rig: The rig to analyse.
+    :param module_type: A type (ex: Module.FaceJaw)
+    :yield: Module instances
+    """
+    for module in rig.modules:
+        if isinstance(module, module_type):
+            yield module
 
 
 def _get_modules_from_selection(sel=None):
@@ -161,34 +188,63 @@ def with_preserve_selection():
 
 
 def build_selected(sel=None):
-    from omtk.vendor import libSerialization
-
     with with_preserve_selection():
         rig, modules = _get_modules_from_selection()
         if not rig or not modules:
             return
 
-        def can_build_module(module):
-            if module.is_built():
-               return False
-
-            try:
-                module.validate()
-                return True
-            except Exception, e:
-                pymel.warning("Can't build {0}: {1}".format(module.name, str(e)))
-                return False
-
-        modules = [module for module in modules if can_build_module(module)]
+        modules = [module for module in modules if module.is_built()]
         if not modules:
             return
 
-        # Build selected modules
-        rig.pre_build()
+        rig.build(modules=modules)
+
+        # Re-export network
+        if hasattr(rig, '_network'):
+            pymel.delete(rig._network)
+        libSerialization.export_network(rig)
+
+
+def build_modules_by_type(module_type):
+    for rig, modules in _iter_modules_by_type(module_type):
+        modules = [module for module in modules if not module.is_built()]
+        if not modules:
+            continue
+
+        rig.build(modules=modules)
+
+        # Re-export network
+        if hasattr(rig, '_network'):
+            pymel.delete(rig._network)
+        libSerialization.export_network(rig)
+
+
+def unbuild_modules_by_type(module_type):
+    for rig, modules in _iter_modules_by_type(module_type):
+        modules = [module for module in modules if module.is_built()]
+        if not modules:
+            continue
+
         for module in modules:
-            if can_build_module(module):
-                module.build()
-                rig.post_build_module(module)
+            module.unbuild()
+
+        # Re-export network
+        if hasattr(rig, '_network'):
+            pymel.delete(rig._network)
+        libSerialization.export_network(rig)
+
+
+def rebuild_modules_by_type(module_type):
+    for rig, modules in _iter_modules_by_type(module_type):
+        modules = list(modules)
+        if not modules:
+            continue
+
+        for module in modules:
+            if module.is_built():
+                module.unbuild()
+
+        rig.build(modules=modules)
 
         # Re-export network
         if hasattr(rig, '_network'):

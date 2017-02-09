@@ -612,7 +612,15 @@ class Rig(object):
                 self.layer_geo = pymel.PyNode(self.nomenclature.layer_geo_name)
             pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
 
-    def build(self, skip_validation=False, strict=False, **kwargs):
+    def build(self, modules=None, skip_validation=False, strict=False, **kwargs):
+        """
+        Build the whole rig or part of the rig.
+        :param modules: The modules to build. If nothing is provided everything will be built.
+        :param skip_validation: If True, no final validation will be done. Don't use it.
+        :param strict: If True, an exception will immediately be raised if anything fail in the build process.
+        :param kwargs: Any additional keyword arguments will be passed on each modules build method.
+        :return: True if sucessfull, False otherwise.
+        """
         # # Aboard if already built
         # if self.is_built():
         #     self.warning("Can't build {0} because it's already built!".format(self))
@@ -635,18 +643,34 @@ class Rig(object):
         #
         self.pre_build()
 
+        #
+        # Resolve modules to build
+        #
 
-        #
-        # Build
-        #
+        # If no modules are provided, build everything.
+        if modules is None:
+            modules = self.modules
 
         # Filter any module that don't have an input.
-        modules = filter(lambda module: module.jnt, self.modules)
+        modules = filter(lambda module: module.jnt, modules)
 
         # Sort modules by ascending hierarchical order.
         # This ensure modules are built in the proper order.
         # This should not be necessary, however it can happen (ex: dpSpine provided space switch target only available after building it).
         modules = sorted(modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
+
+        # Finally, ensure that any module have it's dependencies satisfied.
+        for i in reversed(xrange(len(modules))):
+            module = modules[i]
+            dependencies = module.get_dependencies_modules()
+            if dependencies:
+                for dependency in dependencies:
+                    if not dependency in modules:
+                        modules.insert(i, dependency)
+
+        #
+        # Build modules
+        #
 
         for module in modules:
             if module.is_built():

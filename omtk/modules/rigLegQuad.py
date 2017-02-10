@@ -173,6 +173,11 @@ class LegIkQuad(rigLeg.LegIk):
                 pymel.parentConstraint(self._chain_ik[i], self._chain_quad_ik[i])
         self._chain_quad_ik[0].setParent(self._chain_ik[0])
 
+        # Hack: Since we are using direct connection on the first joint of the quad_ik chain,
+        # there might be situation where Maya will give an initial rotation of (180, 180, 180) instead of (0, 0, 0).
+        # To prevent this we'll manually make sure that the rotation is zeroed out.
+        self._chain_quad_ik[0].r.set(0, 0, 0)
+
         obj_e_ik = self._chain_ik[self.iCtrlIndex]
         obj_e_quadik = self._chain_quad_ik[self.iCtrlIndex]
 

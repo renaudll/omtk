@@ -1,3 +1,4 @@
+import copy
 import traceback
 import time
 import logging
@@ -612,7 +613,37 @@ class Rig(object):
                 self.layer_geo = pymel.PyNode(self.nomenclature.layer_geo_name)
             pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
 
-    def build(self, skip_validation=False, strict=False, **kwargs):
+    def _sort_modules_by_dependencies(self, modules):
+        """
+        Sort modules in a way that module that depend on other modules are after them in the list.
+        :param modules: A list of unsorted Module instances.
+        :return: A list of sorted Module instances.
+        """
+        unsorted_modules = set(copy.copy(modules))
+        sorted_modules = []
+        while unsorted_modules:
+            modules_without_dependencies = set()
+            for module in unsorted_modules:
+                dependencies = set(module.get_dependencies_modules() or []) & set(unsorted_modules)
+                if not dependencies:
+                    print module
+                    modules_without_dependencies.add(module)
+            unsorted_modules -= modules_without_dependencies
+
+            for module in modules_without_dependencies:
+                sorted_modules.append(module)
+
+        return sorted_modules
+
+    def build(self, modules=None, skip_validation=False, strict=False, **kwargs):
+        """
+        Build the whole rig or part of the rig.
+        :param modules: The modules to build. If nothing is provided everything will be built.
+        :param skip_validation: If True, no final validation will be done. Don't use it.
+        :param strict: If True, an exception will immediately be raised if anything fail in the build process.
+        :param kwargs: Any additional keyword arguments will be passed on each modules build method.
+        :return: True if sucessfull, False otherwise.
+        """
         # # Aboard if already built
         # if self.is_built():
         #     self.warning("Can't build {0} because it's already built!".format(self))
@@ -635,18 +666,41 @@ class Rig(object):
         #
         self.pre_build()
 
+        #
+        # Resolve modules to build
+        #
 
-        #
-        # Build
-        #
+        # If no modules are provided, build everything.
+        if modules is None:
+            modules = self.modules
 
         # Filter any module that don't have an input.
-        modules = filter(lambda module: module.jnt, self.modules)
+        modules = filter(lambda module: module.jnt, modules)
 
         # Sort modules by ascending hierarchical order.
         # This ensure modules are built in the proper order.
         # This should not be necessary, however it can happen (ex: dpSpine provided space switch target only available after building it).
-        modules = sorted(modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
+        modules = sorted(modules, key=(lambda x: libPymel.get_num_parents(x.chain_jnt.start)))
+
+        # Add modules dependencies
+        for i in reversed(xrange(len(modules))):
+            module = modules[i]
+            dependencies = module.get_dependencies_modules()
+            if dependencies:
+                for dependency in dependencies:
+                    if not dependency in modules:
+                        modules.insert(i, dependency)
+
+        # Sort modules by their dependencies
+        modules = self._sort_modules_by_dependencies(modules)
+
+        print("Will build modules in the specified order:")
+        for module in modules:
+            print(module)
+
+        #
+        # Build modules
+        #
 
         for module in modules:
             if module.is_built():

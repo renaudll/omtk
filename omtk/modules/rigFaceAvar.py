@@ -393,7 +393,7 @@ class AvarSimple(AbstractAvar):
         # if self._CLS_MODEL_CTRL:
         #     self._CLS_MODEL_CTRL.validate(self)
 
-    def build_stack(self, stack, mult_u=1.0, mult_v=1.0):
+    def build_stack(self, stack, mult_u=1.0, mult_v=1.0, parent_module=None):
         """
         The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
         the drived joint.
@@ -551,7 +551,7 @@ class AvarSimple(AbstractAvar):
             if ctrl_tm:
                 self.ctrl.setMatrix(ctrl_tm)
 
-            self.ctrl.setParent(self.grp_rig)
+            self.ctrl.setParent(self.grp_anm)
 
         else:
             if issubclass(self._CLS_MODEL_CTRL, ModelInteractiveCtrl):
@@ -570,6 +570,7 @@ class AvarSimple(AbstractAvar):
                     parent_pos=parent_pos,
                     parent_rot=parent_rot,
                     parent_scl=parent_scl,
+                    grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlModel'),  # prevent name collision on rig grp
                     **kwargs
                 )
 
@@ -715,7 +716,7 @@ class AvarFollicle(AvarSimple):
 
         return attr_u_inn, attr_v_inn
 
-    def build_stack(self, stack, mult_u=1.0, mult_v=1.0):
+    def build_stack(self, stack, mult_u=1.0, mult_v=1.0, parent_module=None):
         """
         The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
         The decision of using transforms instead of multMatrix nodes is for clarity.

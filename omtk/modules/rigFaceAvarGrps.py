@@ -1310,26 +1310,20 @@ class AvarGrpOnSurface(AvarGrp):
                 )
             ).matrixSum
 
-            u = libRigging.create_utility_node(
+            util_decompose_global_tm = libRigging.create_utility_node(
                 'decomposeMatrix',
                 inputMatrix=attr_global_tm
             )
 
-            pymel.connectAttr(u.outputTranslateX, layer_parent.tx)
-            pymel.connectAttr(u.outputTranslateY, layer_parent.ty)
-            pymel.connectAttr(u.outputTranslateZ, layer_parent.tz)
-            pymel.connectAttr(u.outputRotateX, layer_parent.rx)
-            pymel.connectAttr(u.outputRotateY, layer_parent.ry)
-            pymel.connectAttr(u.outputRotateZ, layer_parent.rz)
-            pymel.connectAttr(u.outputScaleX, layer_parent.sx)
-            pymel.connectAttr(u.outputScaleY, layer_parent.sy)
-            pymel.connectAttr(u.outputScaleZ, layer_parent.sz)
-            #
-            # # Connect scale
-            # if _can_connect_avar_scale(avar_child):
-            #     pymel.connectAttr(self.avar_all.attr_sx, layer_parent.sx)
-            #     pymel.connectAttr(self.avar_all.attr_sy, layer_parent.sy)
-            #     pymel.connectAttr(self.avar_all.attr_sz, layer_parent.sz)
+            pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
+            pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
+            pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
+            pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
+            pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
+            pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
+            pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
+            pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
+            pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
 
     @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):

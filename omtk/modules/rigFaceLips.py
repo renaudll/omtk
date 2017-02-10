@@ -481,16 +481,35 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         return 'lip'
 
     def connect_macro_avar(self, avar_macro, avar_micros):
-        for avar_micro in avar_micros:
-            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_ud, avar_micro.attr_ud)
-            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_lr, avar_micro.attr_lr)
-            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_fb, avar_micro.attr_fb)
-            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_pt)
+        pass
+        # for avar_micro in avar_micros:
+        #     libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_ud, avar_micro.attr_ud)
+        #     libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_lr, avar_micro.attr_lr)
+        #     libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_fb, avar_micro.attr_fb)
+        #     libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_pt)
+        #
+        #     # Add default FB avars to 'fake' a better lip curl pivot.
+        #     # see: Art of Moving Points page 146
+        #     libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_ud, kv=[0.01, 0.0, -0.01])
+        #     libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_fb, kv=[0.01, 0.0, -0.01])
+        #
+        # # Squeeze animator requested that the lips work like the animation mentor rig.
+        # # When the corner macros ud is 1.0, they won't follow the jaw anymore.
+        # # When the corner macros ud is -1.0, they won't follow the head anymore.
+        # libRigging.connectAttr_withLinearDrivenKeys(
+        #     self.avar_l.attr_ud,
+        #     self.get_avar_l_corner().attr_jaw_out_ratio,
+        #     kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
+        #     kot=(2, 2, 2), pre='linear', pst='linear'
+        # )
+        #
+        # libRigging.connectAttr_withLinearDrivenKeys(
+        #     self.avar_r.attr_ud,
+        #     self.get_avar_r_corner().attr_jaw_out_ratio,
+        #     kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
+        #     kot=(2, 2, 2), pre='linear', pst='linear'
+        # )
 
-            # Add default FB avars to 'fake' a better lip curl pivot.
-            # see: Art of Moving Points page 146
-            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_ud, kv=[0.01, 0.0, -0.01])
-            libRigging.connectAttr_withLinearDrivenKeys(avar_macro.attr_pt, avar_micro.attr_fb, kv=[0.01, 0.0, -0.01])
 
     def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True):
         """
@@ -565,20 +584,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             min_x = min(min_x, x)
             max_x = max(max_x, x)
         return min_x, max_x
-
-    def _connect_avar_macro_all(self, **kwargs):
-        """
-        # We'll connect the avar_ud ourself but will use the avar_ud_bypass instead.
-        """
-        # # Since the avar_all ignore the splitter by connecting itself to attr_ud_bypass,
-        # # we don't want to splitter to affect us.
-        # self.avar_all._attr_bypass_splitter.set(1.0)
-
-        super(FaceLips, self)._connect_avar_macro_all(**kwargs)
-
-        # for child_avar in self.avars:
-        #     # todo: do we need to validate the avar type? It should be FaceLipsAvar
-        #     libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud_bypass, child_avar.attr_ud_bypass)
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, **kwargs):
         """
@@ -658,6 +663,30 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                     ratio = 1.0
 
                 connect_avar(avar, ratio)
+
+        #
+        # Add custom default connections
+        #
+
+        # Squeeze animator requested that the lips work like the animation mentor rig.
+        # When the corner macros ud is 1.0, they won't follow the jaw anymore.
+        # When the corner macros ud is -1.0, they won't follow the head anymore.
+        avar_micro_corner_l = self.get_avar_l_corner()
+        avar_micro_corner_r = self.get_avar_r_corner()
+
+        libRigging.connectAttr_withLinearDrivenKeys(
+            self.avar_l.attr_ud,
+            avar_micro_corner_l._attr_inn_jaw_ratio_default,
+            kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
+            kot=(2, 2, 2), pre='linear', pst='linear'
+        )
+
+        libRigging.connectAttr_withLinearDrivenKeys(
+            self.avar_r.attr_ud,
+            avar_micro_corner_r._attr_inn_jaw_ratio_default,
+            kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
+            kot=(2, 2, 2), pre='linear', pst='linear'
+        )
 
         # Calibration is done manually since we need to setup the jaw influence.
         if calibrate:

@@ -1,3 +1,4 @@
+import copy
 import traceback
 import time
 import logging
@@ -612,6 +613,28 @@ class Rig(object):
                 self.layer_geo = pymel.PyNode(self.nomenclature.layer_geo_name)
             pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
 
+    def _sort_modules_by_dependencies(self, modules):
+        """
+        Sort modules in a way that module that depend on other modules are after them in the list.
+        :param modules: A list of unsorted Module instances.
+        :return: A list of sorted Module instances.
+        """
+        unsorted_modules = set(copy.copy(modules))
+        sorted_modules = []
+        while unsorted_modules:
+            modules_without_dependencies = set()
+            for module in unsorted_modules:
+                dependencies = set(module.get_dependencies_modules() or []) & set(unsorted_modules)
+                if not dependencies:
+                    print module
+                    modules_without_dependencies.add(module)
+            unsorted_modules -= modules_without_dependencies
+
+            for module in modules_without_dependencies:
+                sorted_modules.append(module)
+
+        return sorted_modules
+
     def build(self, modules=None, skip_validation=False, strict=False, **kwargs):
         """
         Build the whole rig or part of the rig.
@@ -657,9 +680,9 @@ class Rig(object):
         # Sort modules by ascending hierarchical order.
         # This ensure modules are built in the proper order.
         # This should not be necessary, however it can happen (ex: dpSpine provided space switch target only available after building it).
-        modules = sorted(modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
+        modules = sorted(modules, key=(lambda x: libPymel.get_num_parents(x.chain_jnt.start)))
 
-        # Finally, ensure that any module have it's dependencies satisfied.
+        # Add modules dependencies
         for i in reversed(xrange(len(modules))):
             module = modules[i]
             dependencies = module.get_dependencies_modules()
@@ -667,6 +690,13 @@ class Rig(object):
                 for dependency in dependencies:
                     if not dependency in modules:
                         modules.insert(i, dependency)
+
+        # Sort modules by their dependencies
+        modules = self._sort_modules_by_dependencies(modules)
+
+        print("Will build modules in the specified order:")
+        for module in modules:
+            print(module)
 
         #
         # Build modules

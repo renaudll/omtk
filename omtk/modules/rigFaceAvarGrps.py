@@ -576,7 +576,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         # If the deformation order is set to post (aka the deformer is in the final skinCluster)
         # we will want the offset node to follow it's original parent (ex: the head)
         for avar in self.get_all_avars():
-            avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False) or self.parent
+            avar_parent=self.parent
+            # avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False) or self.parent
             if avar_parent:
                 self._parent_avar(avar, avar_parent)
 
@@ -1264,6 +1265,7 @@ class AvarGrpOnSurface(AvarGrp):
         :return:
         """
         influence_all = self.get_influence_all()
+
         def _can_connect_avar_scale(avar):
             """
             Note that we don't connect the scale on the all_influence.
@@ -1285,36 +1287,49 @@ class AvarGrpOnSurface(AvarGrp):
                     avar_child._grp_offset.worldInverseMatrix
                 )
             ).matrixSum
-            attr_get_pivot = libRigging.create_utility_node(
-                'decomposeMatrix',
-                inputMatrix=attr_get_pivot_tm
-            ).outputTranslate
+
             layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
             layer_parent.t.set(0, 0, 0)  # Hack: why?
-            pymel.connectAttr(attr_get_pivot, layer_parent.rotatePivot)
-            pymel.connectAttr(attr_get_pivot, layer_parent.scalePivot)
 
-            # Connect rotation
-            # pymel.connectAttr(self.avar_all.ctrl.node.r, layer_parent.r)
-            pymel.connectAttr(self.avar_all.attr_pt, layer_parent.rx)
-            pymel.connectAttr(self.avar_all.attr_yw, layer_parent.ry)
-            pymel.connectAttr(self.avar_all.attr_rl, layer_parent.rz)
+            attr_get_all_stack_tm = libRigging.create_utility_node(
+                'multMatrix',
+                matrixIn=(
+                    self.avar_all._stack.node.worldMatrix,
+                    self.avar_all._grp_offset.inverseMatrix
+                )
+            ).matrixSum
 
-            # Connect scale
-            if _can_connect_avar_scale(avar_child):
-                pymel.connectAttr(self.avar_all.attr_sx, layer_parent.sx)
-                pymel.connectAttr(self.avar_all.attr_sy, layer_parent.sy)
-                pymel.connectAttr(self.avar_all.attr_sz, layer_parent.sz)
+            attr_global_tm = libRigging.create_utility_node(
+                'multMatrix',
+                matrixIn=(
+                    avar_child._grp_offset.matrix,
+                    self.avar_all._grp_offset.inverseMatrix,
+                    attr_get_all_stack_tm,
+                    self.avar_all._grp_offset.matrix,
+                    avar_child._grp_offset.inverseMatrix
+                )
+            ).matrixSum
 
-            # Connect avars
-            # Don't touch 'tweak' avars since they are connected individually to their 'micro' counterpart.
-            if not self._is_tweak_avar(avar_child):
-                if connect_ud:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_ud, avar_child.attr_ud)
-                if connect_lr:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_lr, avar_child.attr_lr)
-                if connect_fb:
-                    libRigging.connectAttr_withLinearDrivenKeys(self.avar_all.attr_fb, avar_child.attr_fb)
+            u = libRigging.create_utility_node(
+                'decomposeMatrix',
+                inputMatrix=attr_global_tm
+            )
+
+            pymel.connectAttr(u.outputTranslateX, layer_parent.tx)
+            pymel.connectAttr(u.outputTranslateY, layer_parent.ty)
+            pymel.connectAttr(u.outputTranslateZ, layer_parent.tz)
+            pymel.connectAttr(u.outputRotateX, layer_parent.rx)
+            pymel.connectAttr(u.outputRotateY, layer_parent.ry)
+            pymel.connectAttr(u.outputRotateZ, layer_parent.rz)
+            pymel.connectAttr(u.outputScaleX, layer_parent.sx)
+            pymel.connectAttr(u.outputScaleY, layer_parent.sy)
+            pymel.connectAttr(u.outputScaleZ, layer_parent.sz)
+            #
+            # # Connect scale
+            # if _can_connect_avar_scale(avar_child):
+            #     pymel.connectAttr(self.avar_all.attr_sx, layer_parent.sx)
+            #     pymel.connectAttr(self.avar_all.attr_sy, layer_parent.sy)
+            #     pymel.connectAttr(self.avar_all.attr_sz, layer_parent.sz)
 
     @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):

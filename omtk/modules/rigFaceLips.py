@@ -595,8 +595,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     def get_dependencies_modules(self):
         return [self.get_jaw_module()]
 
-    def __init__(self, **kwargs):
-        super(FaceLips, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(FaceLips, self).__init__(*args, **kwargs)
 
         # Contain the jaw bind pos before any parenting.
         self._ref_jaw_predeform = None

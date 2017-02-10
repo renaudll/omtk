@@ -570,7 +570,7 @@ class AvarSimple(AbstractAvar):
                     parent_pos=parent_pos,
                     parent_rot=parent_rot,
                     parent_scl=parent_scl,
-                    grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlmodel'),  # prevent name collision on rig grp
+                    grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlModel'),  # prevent name collision on rig grp
                     **kwargs
                 )
 

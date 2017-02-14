@@ -206,19 +206,11 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         if parent_rot:
             pymel.orientConstraint(parent_rot, layer_fol, maintainOffset=True)
 
-        # Constraint scale
-        if parent_scl:
-            pymel.connectAttr(parent_scl.scaleX, layer_fol.scaleX)
-            pymel.connectAttr(parent_scl.scaleY, layer_fol.scaleY)
-            pymel.connectAttr(parent_scl.scaleZ, layer_fol.scaleZ)
-
         #
         # Constraint a specic controller to the avar doritos stack.
         # Call this method after connecting the ctrl to the necessary avars.
         # The sensibility of the doritos will be automatically computed in this step if necessary.
         #
-
-
 
         # Create inverted attributes for sensibility
         util_sensitivity_inv = libRigging.create_utility_node('multiplyDivide', operation=2,
@@ -230,7 +222,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         attr_sensibility_lr_inv = util_sensitivity_inv.outputX
         attr_sensibility_ud_inv = util_sensitivity_inv.outputY
         attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
-
 
         #
         # Inverse translation
@@ -297,6 +288,20 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             attr_ctrl_offset_sx_inn = self.attr_sensitivity_tx
         attr_ctrl_offset_sy_inn = self.attr_sensitivity_ty
         attr_ctrl_offset_sz_inn = self.attr_sensitivity_tz
+
+        # Connect any additionel scale source.
+        if parent_scl:
+            u = libRigging.create_utility_node(
+                'multiplyDivide',
+                name=nomenclature_rig.resolve('getAbsoluteCtrlOffsetScale'),
+                input1X=attr_ctrl_offset_sx_inn,
+                input1Y=attr_ctrl_offset_sy_inn,
+                input1Z=attr_ctrl_offset_sz_inn,
+                input2X=parent_scl.scaleX,
+                input2Y=parent_scl.scaleY,
+                input2Z=parent_scl.scaleZ
+            )
+            attr_ctrl_offset_sx_inn, attr_ctrl_offset_sy_inn, attr_ctrl_offset_sz_inn = u.outputX, u.outputY, u.outputZ
 
         pymel.connectAttr(attr_ctrl_offset_sx_inn, self.ctrl.offset.scaleX)
         pymel.connectAttr(attr_ctrl_offset_sy_inn, self.ctrl.offset.scaleY)
@@ -393,14 +398,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         pymel.connectAttr(grp_output.rx, self.ctrl.offset.rx)
         pymel.connectAttr(grp_output.ry, self.ctrl.offset.ry)
         pymel.connectAttr(grp_output.rz, self.ctrl.offset.rz)
-
-        # Scale
-        if parent_scl:
-            # pymel.scaleConstraint(parent_scl, self.grp_anm)
-
-            pymel.connectAttr(parent_scl.scaleX, self.grp_anm.sx)
-            pymel.connectAttr(parent_scl.scaleY, self.grp_anm.sy)
-            pymel.connectAttr(parent_scl.scaleZ, self.grp_anm.sz)
 
         # Clean dag junk
         if grp_rig:

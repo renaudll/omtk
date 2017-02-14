@@ -559,8 +559,8 @@ class AvarSimple(AbstractAvar):
                 if parent_rot is None:
                     parent_rot = self.get_head_jnt()
 
-                if parent_scl is None:
-                    parent_scl = self.get_head_jnt()
+                # if parent_scl is None:
+                #     parent_scl = self.get_head_jnt()
 
                 self.model_ctrl.build(
                     self,

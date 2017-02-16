@@ -91,7 +91,7 @@ class LegIkQuad(rigLeg.LegIk):
 
         return ctrl_swivel
 
-    def adjust_spring_solver_twist(self, obj_ref_s, obj_ref_e, obj_s, obj_e, ik_handle, epsilon=0.00000000001, max_iter=20, default_low=-180.0, default_high=180):
+    def adjust_spring_solver_twist(self, obj_ref_s, obj_ref_e, obj_s, obj_e, ik_handle, epsilon=0.00000000001, max_iter=100, default_low=-180.0, default_high=180):
         """
         For strange reasons, creating the ikSpringSolver can generate a twist offset.
         We are still not sure what is causing that so currently we are using a brute-force approach to resolve the offset.

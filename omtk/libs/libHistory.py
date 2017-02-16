@@ -19,27 +19,46 @@ def _is_surface(shape):
 # Utility functions that compliment pymel.listHistory.
 #
 
-def _iter_history(shape, key=None, **kwargs):
+def _iter_history(shape, key=None, fn_stop=None, stop_at_shape=False, **kwargs):
+    """
+    Go through the history of the provided shapes and yield interesting elements.
+    :param shape: The starting po
+    :param key:
+    :param stop_at_shape: If True, we will stop iterating as soon as we encounter a shape. Note that if you provided a
+    transform, it will stop at the first encounter of the main shape.
+    :param kwargs:
+    :return:
+    """
+    # Determine what condition make us stop iterating though history.
+    if stop_at_shape:
+        shape_start = shape.getShape() if isinstance(shape, pymel.nodetypes.Transform) else shape
+        if fn_stop:
+            fn_stop = lambda shape: isinstance(shape, pymel.nodetypes.Shape) and shape != shape_start or fn_stop(shape)
+        else:
+            fn_stop = lambda shape: isinstance(shape, pymel.nodetypes.Shape) and shape != shape_start
+
     for hist in shape.listHistory(**kwargs):
         if hist == shape:
             continue
-        if _filter_shape(hist, key):
+        if fn_stop and fn_stop(hist):
+            return
+        if key and key(hist):
             yield hist
 
-def iter_history_foward(shape, key=None):
-    for hist in _iter_history(shape, key=key, future=True):
+def iter_history_foward(shape, **kwargs):
+    for hist in _iter_history(shape, future=True, **kwargs):
         yield hist
 
-def iter_history_backward(shape, key=None):
-    for hist in _iter_history(shape, key=key):
+def iter_history_backward(shape, **kwargs):
+    for hist in _iter_history(shape, **kwargs):
         yield hist
 
-def get_history_farthest_sibling(shape, key=None):
-    i = iter_history_foward(shape, key=key)
+def get_history_farthest_sibling(shape, **kwargs):
+    i = iter_history_foward(shape, **kwargs)
     return next(reversed(list(i)), None)
 
-def get_history_previous_sibling(shape, key=None):
-    i = iter_history_backward(shape, key=key)
+def get_history_previous_sibling(shape, **kwargs):
+    i = iter_history_backward(shape, **kwargs)
     return next(i, None)
 
 #

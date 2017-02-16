@@ -457,6 +457,19 @@ class InteractiveFKLayer(ModuleMap):
 
         super(InteractiveFKLayer, self).unbuild(**kwargs)
 
+        # We have connection from rig parts in the skinCluster bindPreMatrix,
+        # if we remove the rig, this would reset the bindPreMatrix and result in double transformation.
+        # To cancel that, we'll need to reset the bindPreMatrix attributes.
+        is_skin_cluster = lambda x: isinstance(x, pymel.nodetypes.SkinCluster)
+        for skin_cluster in libHistory.iter_history_backward(surface, key=is_skin_cluster, stop_at_shape=True):
+            attr_matrices = skin_cluster.matrix
+            attr_pre_matrices = skin_cluster.bindPreMatrix
+            num_elements = attr_matrices.numElements()
+            for i in range(num_elements):
+                attr_matrix = attr_matrices[i]
+                attr_pre_matrix = attr_pre_matrices[i]
+                attr_pre_matrix.set(attr_matrix.get().inverse())
+
 
 class InteractiveFK(Module):
     _CLS_LAYER = InteractiveFKLayer

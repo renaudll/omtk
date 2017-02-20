@@ -390,6 +390,16 @@ class Module(object):
             version
         )
 
+    def get_version(self):
+        if not hasattr(self, 'version'):
+            return None, None, None
+        version_info = str(self.version)
+        regex = '^[0-9]+\.[0-9]+\.[0-9]+$'
+        if not re.match(regex, version_info):
+            self.warning("Cannot understand version format: {}".format(version_info))
+            return None, None, None
+        return tuple(int(token) for token in version_info.split('.'))
+
     def validate(self, support_no_inputs=False):
         """
         Check if the module can be built with it's current configuration.
@@ -400,6 +410,14 @@ class Module(object):
         if not self.input and not support_no_inputs:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
         return True
+
+    def validate_version(self, major_version, minor_version, patch_version):
+        """
+        Sometimes specific module versions might have issues found in production.
+        This function check the current module version and raise an Exception if the current module version
+        is known to cause issues. This is to let the rigger know that he might need to rebuild.
+        """
+        pass
 
     def is_built(self):
         """
@@ -616,6 +634,8 @@ class Module(object):
 
         if not type(inst) == cls:
             result = cls(inputs, rig=self.rig)
+        else:
+            result.input = inputs  # ensure we have the correct inputs
 
         # Set the child module name.
         if suffix is None:

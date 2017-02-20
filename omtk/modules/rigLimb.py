@@ -76,13 +76,12 @@ class Limb(Module):
 
         # Resolve IK system name
 
-
         # Create IK system
         self.sysIK = self.init_module(
             self._CLASS_SYS_IK,
             self.sysIK,
             inputs=self.chain_jnt,
-            suffix='ik'
+            suffix='ik',
         )
         self.sysIK.build(constraint=False, **kwargs)
 
@@ -91,7 +90,7 @@ class Limb(Module):
             self._CLASS_SYS_FK,
             self.sysFK,
             inputs=self.chain_jnt,
-            suffix='fk'
+            suffix='fk',
         )
         self.sysFK.build(constraint=False, **kwargs)
 

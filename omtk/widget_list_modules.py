@@ -27,6 +27,7 @@ class WidgetListModules(QtWidgets.QWidget):
     _color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
     _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
     _color_locked = QtGui.QBrush(QtGui.QColor(125, 125, 125))
+    _color_warning = QtGui.QBrush(QtGui.QColor(125, 125, 45))
 
     def __init__(self, parent=None):
         super(WidgetListModules, self).__init__(parent=parent)
@@ -188,6 +189,8 @@ class WidgetListModules(QtWidgets.QWidget):
             log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
             traceback.print_exc()
 
+        self.update()
+
     def _unbuild(self, val):
         if not val.is_built():
             pymel.warning("Can't unbuild {0}, already unbuilt.".format(val))
@@ -204,6 +207,8 @@ class WidgetListModules(QtWidgets.QWidget):
             log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
             traceback.print_exc()
 
+        self.update()
+
     def _rig_to_tree_widget(self, module):
         qItem = QtWidgets.QTreeWidgetItem(0)
         if hasattr(module, '_network'):
@@ -211,12 +216,7 @@ class WidgetListModules(QtWidgets.QWidget):
         else:
             pymel.warning("{0} have no _network attributes".format(module))
         qItem.rig = module
-
-        # Set label
         label = str(module)
-        if isinstance(module, classModule.Module) and module.locked:
-            label += ' (locked)'
-        qItem.setText(0, label)
 
         # HACK: bypass the stylecheet
         # see: http://forum.qt.io/topic/22219/item-view-stylesheet-bgcolor/12
@@ -225,8 +225,40 @@ class WidgetListModules(QtWidgets.QWidget):
         # {
         #   background-color: rgb(45,45,45);
         # }"""
-        self._set_QTreeWidgetItem_color(qItem, module)
 
+        # Set QTreeWidgetItem gray if the module fail validation
+        if isinstance(module, classModule.Module):
+            if module.locked:
+                qItem.setBackground(0, self._color_locked)
+                label += ' (locked)'
+            elif module.is_built():
+                version_major, version_minor, version_patch = module.get_version()
+                if version_major is not None and version_minor is not None and version_patch is not None:
+                    warning_msg = ''
+                    try:
+                        module.validate_version(version_major, version_minor, version_patch)
+                    except Exception, e:
+                        warning_msg = 'v{}.{}.{} is known to have issues and need to be updated: {}'.format(
+                            version_major, version_minor, version_patch,
+                            str(e)
+                        )
+
+                    if warning_msg:
+                        desired_color = self._color_warning
+                        qItem.setToolTip(0, warning_msg)
+                        qItem.setBackground(0, desired_color)
+                        label += ' (problematic)'
+            else:
+                # Set QTreeWidgetItem red if the module fail validation
+                can_build, validation_message = self._can_build(module, verbose=True)
+                if not can_build:
+                    desired_color = self._color_invalid
+                    msg = 'Validation failed for {0}: {1}'.format(module, validation_message)
+                    log.warning(msg)
+                    qItem.setToolTip(0, msg)
+                    qItem.setBackground(0, desired_color)
+
+        qItem.setText(0, label)
         qItem._name = qItem.text(0)
         qItem._checked = module.is_built()
         qItem.setFlags(qItem.flags() | QtCore.Qt.ItemIsEditable)
@@ -248,24 +280,6 @@ class WidgetListModules(QtWidgets.QWidget):
         elif isinstance(module, classModule.Module):
             qItem._meta_type = ui_shared.MetadataType.Module
         return qItem
-
-    def _set_QTreeWidgetItem_color(self, qItem, module):
-        desired_color = None
-
-        # Set QTreeWidgetItem gray if the module fail validation
-        if isinstance(module, classModule.Module) and module.locked:
-            return self._color_locked
-
-        # Set QTreeWidgetItem red if the module fail validation
-        can_build, validation_message = self._can_build(module, verbose=True)
-        if not can_build:
-            desired_color = self._color_invalid
-            msg = 'Validation failed for {0}: {1}'.format(module, validation_message)
-            log.warning(msg)
-            qItem.setToolTip(0, msg)
-
-        if desired_color:
-            qItem.setBackground(0, desired_color)
 
     #
     # Events

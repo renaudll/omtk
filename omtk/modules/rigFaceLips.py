@@ -325,14 +325,15 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         #
 
         # Compute the rotation introduced by the jaw.
+        # Note that the splitter only affect the jaw pitch (rotateX).
         attr_rotation_adjusted = libRigging.create_utility_node(
             'multiplyDivide',
             input1X=self._parent_module._attr_jaw_pt,
             input1Y=self._parent_module._attr_jaw_yw,
             input1Z=self._parent_module._attr_jaw_rl,
             input2X=self.attr_jaw_out_ratio,
-            input2Y=self.attr_jaw_out_ratio,
-            input2Z=self.attr_jaw_out_ratio,
+            input2Y=self._attr_inn_jaw_ratio_default,
+            input2Z=self._attr_inn_jaw_ratio_default,
         ).output
 
         attr_rotation_tm = libRigging.create_utility_node(
@@ -463,6 +464,10 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         if not self.preDeform:
             if self.get_jaw_jnt(strict=False) is None:
                 raise Exception("Can't resolve jaw. Please create a Jaw module.")
+
+    def validate_version(self, major_version, minor_version, patch_version):
+        if major_version == 0 and minor_version == 4 and patch_version < 23:
+            raise Exception("See Task #67153")
 
     def get_avars_corners(self, macro=True):
         # todo: move upper?

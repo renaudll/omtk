@@ -186,14 +186,30 @@ class WidgetLogger(QtWidgets.QWidget):
 
     def create_logger_handler(self):
         class QtHandler(logging.Handler):
-            def __init__(self):
+            """Custom Qt Handler for our logger"""
+            def __init__(self, main_class):
+                """
+                Initialize the handler
+                """
                 logging.Handler.__init__(self)
+                self._main_class = main_class
 
-            def emit(self_, record):
-                self._logging_records.append(record)
-                self.ui.tableView_logs.model().reset()
+            def emit(self, record):
+                """
+                When the handler emit something, update the table view messages
+                :param record: The record that been emitted
+                :return:
+                """
+                # TODO - Find a solution for the problem where if the UI is not closed correctly,
+                # tableView_log is not valid
+                self._main_class._logging_records.append(record)
+                try:
+                    self._main_class.ui.tableView_logs.model().reset()
+                    self._main_class.ui.tableView_logs.scrollToBottom()
+                except:
+                    self._main_class.remove_logger_handler()
 
-        handler = QtHandler()
+        handler = QtHandler(self)
 
         # handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         log.addHandler(handler)

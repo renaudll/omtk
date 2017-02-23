@@ -12,6 +12,12 @@ def _reload(kill_ui=True):
     """
     Reload all module in their respective order.
     """
+    # Hack: prevent a crash related to loosing our OpenMaya.MSceneMessage events.
+    try:
+        pymel.deleteUI('OpenRiggingToolkit')
+    except:
+        pass
+
     import constants
     reload(constants)
 

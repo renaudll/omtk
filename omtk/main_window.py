@@ -20,12 +20,6 @@ log = logging.getLogger('omtk')
 
 class AutoRig(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
-        # Try to kill latest Autorig ui window
-        try:
-            pymel.deleteUI(self.windowTitle())
-        except:
-            pass
-
         super(AutoRig, self).__init__()
 
         # Internal data
@@ -72,21 +66,21 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.create_callbacks()
 
-        from omtk.core import plugin_manager
-        pm = plugin_manager.plugin_manager
-        failed_plugins = pm.get_failed_plugins()
-        if failed_plugins:
-            log.warning("The following plugins failed to load: {0}".format(', '.join(str(p) for p in failed_plugins)))
+        # from omtk.core import plugin_manager
+        # pm = plugin_manager.plugin_manager
+        # failed_plugins = pm.get_failed_plugins()
+        # if failed_plugins:
+        #     log.warning("The following plugins failed to load: {0}".format(', '.join(str(p) for p in failed_plugins)))
 
     def create_callbacks(self):
         self.remove_callbacks()
         # Disable to prevent performance drop when CTRL-Z and the tool is open
         # TODO - Reactivate back when the tool will be stable ?
-        self.callbacks_events = \
-            [
-                # OpenMaya.MEventMessage.addEventCallback("Undo", self.update_ui),
-                # OpenMaya.MEventMessage.addEventCallback("Redo", self.update_ui)
-            ]
+        # self.callbacks_events = \
+        #     [
+        #         OpenMaya.MEventMessage.addEventCallback("Undo", self.update_ui),
+        #         OpenMaya.MEventMessage.addEventCallback("Redo", self.update_ui)
+        #     ]
         self.callbacks_scene = \
             [
                 OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterOpen, self.on_update),
@@ -98,9 +92,9 @@ class AutoRig(QtWidgets.QMainWindow):
         # )
 
     def remove_callbacks(self):
-        for callback_id in self.callbacks_events:
-            OpenMaya.MEventMessage.removeCallback(callback_id)
-        self.callbacks_events = []
+        # for callback_id in self.callbacks_events:
+        #     OpenMaya.MEventMessage.removeCallback(callback_id)
+        # self.callbacks_events = []
 
         for callback_id in self.callbacks_scene:
             OpenMaya.MSceneMessage.removeCallback(callback_id)
@@ -254,10 +248,6 @@ class AutoRig(QtWidgets.QMainWindow):
             libSerialization.export_json_file_maya(all_rigs, path)
 
     def on_update(self, *args, **kwargs):
-        # TODO - Fix the reload problem which cause isinstance function check to fail with an existing network
-        import omtk
-        reload(omtk)
-        omtk._reload(kill_ui=False)
         self.import_networks()
         self.update_ui()
 
@@ -419,6 +409,12 @@ class AutoRig(QtWidgets.QMainWindow):
 gui = None
 
 def show():
+    # Try to kill latest Autorig ui window
+    try:
+        pymel.deleteUI('OpenRiggingToolkit')
+    except:
+        pass
+
     global gui
 
     gui = AutoRig()

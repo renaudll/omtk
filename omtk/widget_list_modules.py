@@ -53,6 +53,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.customContextMenuRequested.connect(self.on_context_menu_request)
         self.ui.btn_update.pressed.connect(self.update)
 
+
     def set_rigs(self, rig, update=True):
         self._rigs = rig
         self._rig = next(iter(self._rigs), None)
@@ -173,7 +174,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
         return True
 
-    def _build(self, val):
+    def _build(self, val, update=True):
         if val.is_built():
             pymel.warning("Can't build {0}, already built.".format(val))
             return
@@ -189,9 +190,10 @@ class WidgetListModules(QtWidgets.QWidget):
             log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
             traceback.print_exc()
 
-        self.update()
+        if update:
+            self.update()
 
-    def _unbuild(self, val):
+    def _unbuild(self, val, update=True):
         if not val.is_built():
             pymel.warning("Can't unbuild {0}, already unbuilt.".format(val))
             return
@@ -207,7 +209,8 @@ class WidgetListModules(QtWidgets.QWidget):
             log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
             traceback.print_exc()
 
-        self.update()
+        if update:
+            self.update()
 
     def _rig_to_tree_widget(self, module):
         qItem = QtWidgets.QTreeWidgetItem(0)
@@ -261,8 +264,11 @@ class WidgetListModules(QtWidgets.QWidget):
         qItem.setText(0, label)
         qItem._name = qItem.text(0)
         qItem._checked = module.is_built()
-        qItem.setFlags(qItem.flags() | QtCore.Qt.ItemIsEditable)
+
+        flags = qItem.flags() | QtCore.Qt.ItemIsEditable
+        qItem.setFlags(flags)
         qItem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
+
         if isinstance(module, classRig.Rig):
             qItem._meta_type = ui_shared.MetadataType.Rig
             qItem.setIcon(0, QtGui.QIcon(":/out_character.png"))
@@ -274,7 +280,7 @@ class WidgetListModules(QtWidgets.QWidget):
                     qInputItem = QtWidgets.QTreeWidgetItem(0)
                     qInputItem.setText(0, input.name())
                     ui_shared._set_icon_from_type(input, qInputItem)
-                    qInputItem.setFlags(qItem.flags() & QtCore.Qt.ItemIsSelectable)
+                    qInputItem.setFlags(flags)
                     qSubItem.addChild(qInputItem)
                 qItem.addChild(qSubItem)
         elif isinstance(module, classModule.Module):
@@ -320,10 +326,10 @@ class WidgetListModules(QtWidgets.QWidget):
             item._checked = new_state
             # Handle checkbox change
             if new_state:
-                self._build(module)
+                self._build(module, update=False)  # note: setting update=True on maya-2017 can cause Qt to crash...
             else:
-                self._unbuild(module)
-            need_update = True
+                self._unbuild(module, update=False)  # note: setting update=True on maya-2017 can cause Qt to crash...
+            # need_update = True
             ui_shared._update_network(self._rig, item=item)
 
         # Check if the name have changed
@@ -337,8 +343,8 @@ class WidgetListModules(QtWidgets.QWidget):
                 name_attr.set(new_text)
 
         # Ensure to only refresh the UI and not recreate all
-        if need_update:
-            self.refresh_ui()
+        # if need_update:
+        #     self.refresh_ui()
 
     def on_module_query_changed(self, *args, **kwargs):
         self._refresh_ui_modules_visibility()

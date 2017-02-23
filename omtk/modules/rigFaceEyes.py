@@ -239,7 +239,8 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         ctrl_all_name = nomenclature_anm.resolve()
         self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
-        self.ctrl_all.create_spaceswitch(self, self.get_parent_obj(), add_default=True, default_name='Head', add_world=True)
+        jnt_head = self.get_parent_obj()
+        self.ctrl_all.create_spaceswitch(self, jnt_head, add_local=True, local_label='Head', local_target=jnt_head, add_world=True)
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 

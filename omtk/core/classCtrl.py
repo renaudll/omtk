@@ -313,13 +313,14 @@ class BaseCtrl(Node):
         # Finally, if no index is still found, return the next possible one in the list
         return new_max_idx
 
-    def create_spaceswitch(self, module, parent, add_default=True, default_name=None, add_world=False, **kwargs):
+    def create_spaceswitch(self, module, parent, add_local=True, local_label=None, local_target=None, add_world=False, **kwargs):
         """
-        Create the space switch attribute on the controller using a list of target found from it's module hierarchy
+        Create the space switch attribute on the controller using a list of target found from it's module hierarchy.
         :param module: The module on which we want to process space switch targets
         :param parent: The parent used as the default (local) target
-        :param add_default: Is the default target will be added to the list of targets
-        :param default_name: The name of the default target
+        :param add_local: If True, a 'local' target will be used. Local is generally the absence of any constraint and always have the same index.
+        :param local_label: The name of the 'local' target
+        :param local_target: The objects to use as the local target. This is only used to cheat (see the FaceEyes module).
         :param add_world: Is the world will be added as a target
         :param kwargs: Additional parameters
         :return: None
@@ -327,15 +328,18 @@ class BaseCtrl(Node):
         # TODO: Handle when parent is None?
         nomenclature = module.rig.nomenclature
 
-        # Resolve spaceswitch targets
+        # Basically we resolve 3 list:
+        # - targets: Contain the space switch targets.
+        # - labels: Contain the visible text for each targets
+        # - indexes: Contain the stored logical index for each targets. Note that some indexes are reserved.
         targets, labels, indexes = self.get_spaceswitch_targets(module, parent,
-                                                                add_world=add_world, add_local=add_default)
+                                                                add_world=add_world, add_local=add_local)
         if not targets:
             module.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
             return
 
-        if default_name is None:
-            default_name = 'Local'
+        if local_label is None:
+            local_label = 'Local'
 
         # Resolve the niceName of the targets
         for i in range(len(targets)):
@@ -347,21 +351,32 @@ class BaseCtrl(Node):
                 name.remove_extra_tokens()
                 labels[i] = name.resolve()
 
-        # Create the parent constraint before adding the local since local target will be set to itself
-        # to keep a serialized link to the local target
-        layer_space_switch = self.append_layer('spaceSwitch')
-        parent_constraint = pymel.parentConstraint(targets, layer_space_switch, maintainOffset=True, **kwargs)
-
         # Build the enum string from the information we got
         enum_string = ""
         # Add the local option if needed
-        if add_default:
+        if add_local:
             # We cannot self referencing since it will break maya deletion mechanism
             # targets.append(self)
             # indexes.append(default_index)
             # labels.append(default_name)
-            enum_string += default_name + "=" + \
-                           str(self.local_index)
+
+            # In some case the user might have provided what we should use as the local target.
+            # This is used to cheat, for exemple the FaceEye module ctrl are parented to the world,
+            # however it make sense that their 'local' space is still the head.
+            if local_target:
+                # If the local_target exist in the list, we'll want to remove it.
+                if local_target in targets:
+                    index = targets.index(local_target)
+                    targets.pop(index)
+                    labels.pop(index)
+                    indexes.pop(index)
+
+                targets.append(local_target)
+                indexes.append(constants.SpaceSwitchReservedIndex.local)
+                labels.append(local_label)
+            else:
+                enum_string += local_label + "=" + \
+                               str(self.local_index)
 
         # The enum string will skip index if needed
         for label, index in zip(labels, indexes):
@@ -378,12 +393,17 @@ class BaseCtrl(Node):
                                 "Strange behavior could happen".format(indexes[i], self.name()))
                 self.targets_indexes.append(indexes[i])
 
+        # Create the parent constraint before adding the local since local target will be set to itself
+        # to keep a serialized link to the local target
+        layer_space_switch = self.append_layer('spaceSwitch')
+        parent_constraint = pymel.parentConstraint(targets, layer_space_switch, maintainOffset=True, **kwargs)
+
         attr_space = libAttr.addAttr(self.node, 'space', at='enum', enumName=enum_string, k=True)
         atts_weights = parent_constraint.getWeightAliasList()
 
         for i, att_weight in enumerate(atts_weights):
             index_to_match = indexes[i]
-            att_enabled = libRigging.create_utility_node(  #Equal
+            att_enabled = libRigging.create_utility_node(  # Equal
                 'condition',
                 firstTerm=attr_space,
                 secondTerm=index_to_match,
@@ -393,10 +413,10 @@ class BaseCtrl(Node):
             pymel.connectAttr(att_enabled, att_weight)
 
         # By Default, the active space will be local, else root and finally fallback on the first index found
-        if add_default:
-            self.node.space.set(default_name)
-        elif self._reserved_idx['root'] in self.targets_indexes:
-            self.node.space.set(self._reserved_idx['root'])
+        if add_local:
+            self.node.space.set(local_label)
+        elif constants.SpaceSwitchReservedIndex.root in self.targets_indexes:
+            self.node.space.set(constants.SpaceSwitchReservedIndex.root)
         else:
             if self.targets_indexes:
                 self.node.space.set(self.targets_indexes[0])

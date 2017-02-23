@@ -366,7 +366,7 @@ class IK(Module):
         ctrl_swivel._line_locator.rename(nomenclature_anm.resolve(name+'LineLoc'))
         ctrl_swivel._line_annotation.rename(nomenclature_anm.resolve(name+'LineAnn'))
         ctrl_swivel.offset.setTranslation(pos, space='world')
-        ctrl_swivel.create_spaceswitch(self, self.parent, default_name='World')
+        ctrl_swivel.create_spaceswitch(self, self.parent, local_label='World')
 
         if constraint:
             #Pole vector contraint the swivel to the ik handle
@@ -485,7 +485,7 @@ class IK(Module):
             self.ctrl_ik.offset.setRotation(ctrl_ik_offset_rot)
 
         # Create space switch
-        self.ctrl_ik.create_spaceswitch(self, self.parent, default_name='World')
+        self.ctrl_ik.create_spaceswitch(self, self.parent, local_label='World')
 
         if ctrl_ik_rot:
             self.ctrl_ik.node.setRotation(ctrl_ik_rot, space='world')

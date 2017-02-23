@@ -465,6 +465,20 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             if self.get_jaw_jnt(strict=False) is None:
                 raise Exception("Can't resolve jaw. Please create a Jaw module.")
 
+            # Ensure we are able to access the jaw module.
+            jaw_module = self.get_jaw_module()
+            if not jaw_module:
+                raise Exception("Can't resolve jaw module.")
+
+            # If the jaw module is already built, ensure it respect the minimum version requirement.
+            # Jaw-0.4.18 introducing support for the 'all' avar macro which we need.
+            if jaw_module.is_built():
+                version_major, version_minor, version_patch = jaw_module.get_version()
+                if version_major == 0 and version_minor == 4 and version_patch < 18:
+                    raise Exception("Associated Jaw module version is too low. Expected 0.4.18+, got {}.{}.{}".format(
+                        version_major, version_minor, version_patch
+                    ))
+
     def validate_version(self, major_version, minor_version, patch_version):
         if major_version == 0 and minor_version == 4 and patch_version < 23:
             raise Exception("See Task #67153")

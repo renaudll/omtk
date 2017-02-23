@@ -191,6 +191,11 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         super(FaceEyes, self).__init__(*args, **kwargs)
         self.ctrl_all = None
 
+    def validate_version(self, major_version, minor_version, patch_version):
+        # See internal task #67368
+        if major_version == 0 and minor_version == 4 and patch_version < 24:
+            raise Exception("This version have issues with the space-switch 'Head' target.")
+
     def handle_surface(self):
         pass  # todo: better class schema!
 

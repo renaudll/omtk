@@ -251,6 +251,7 @@ class WidgetListModules(QtWidgets.QWidget):
                         qItem.setToolTip(0, warning_msg)
                         qItem.setBackground(0, desired_color)
                         label += ' (problematic)'
+                        module.warning(warning_msg)
             else:
                 # Set QTreeWidgetItem red if the module fail validation
                 can_build, validation_message = self._can_build(module, verbose=True)

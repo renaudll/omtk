@@ -701,30 +701,42 @@ class Rig(object):
         #
         # Build modules
         #
+        current_namespace = cmds.namespaceInfo(currentNamespace=True)
 
-        for module in modules:
-            if module.is_built():
-                continue
-
-            if not skip_validation:
-                try:
-                    module.validate()
-                except Exception, e:
-                    self.warning("Can't build {0}: {1}".format(module, e))
-                    if strict:
-                        traceback.print_exc()
-                        raise(e)
+        try:
+            for module in modules:
+                if module.is_built():
                     continue
 
-            if not module.locked:
-                try:
-                    module.build(**kwargs)
-                    self.post_build_module(module)
-                except Exception, e:
-                    self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
-                    traceback.print_exc()
-                    if strict:
-                        raise
+                if not skip_validation:
+                    try:
+                        module.validate()
+                    except Exception, e:
+                        self.warning("Can't build {0}: {1}".format(module, e))
+                        if strict:
+                            traceback.print_exc()
+                            raise(e)
+                        continue
+
+                if not module.locked:
+                    try:
+                        # Switch namespace if needed
+                        module_namespace = module.get_inputs_namespace()
+                        module_namespace = module_namespace or ':'
+                        if module_namespace != current_namespace:
+                            cmds.namespace(setNamespace=':'+module_namespace)
+                            current_namespace = module_namespace
+
+                        module.build(**kwargs)
+                        self.post_build_module(module)
+                    except Exception, e:
+                        self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
+                        traceback.print_exc()
+                        if strict:
+                            raise
+        finally:
+            # Ensure we always return to the default namespace.
+            cmds.namespace(setNamespace=':')
 
         # Connect global scale to jnt root
         if self.grp_anm:

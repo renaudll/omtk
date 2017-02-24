@@ -214,6 +214,16 @@ class Module(object):
     # of the objects can be random if the user didn't care enough.
     #
 
+    def get_inputs_namespace(self):
+        """
+        Add support for namespaces. This allow for exemple a character with multiples head to have a different namespace
+        for each heads allowing the animator to easily copy/paste poses and animations using tools like studioLibrary.
+        """
+        for input in self.input:
+            namespace = input.namespace()
+            if namespace:
+                return namespace
+
     @libPython.cached_property()
     def jnts(self):
         """
@@ -409,6 +419,12 @@ class Module(object):
             raise Exception("Can't resolve rig for module. {0}".format(self))
         if not self.input and not support_no_inputs:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
+
+        # Ensure that IF we have namespaces, they are the same for all inputs.
+        namespaces = set(input.namespace() for input in self.input if input)
+        if len(namespaces) > 1:
+            raise Exception("Found multiple namespaces for inputs: {0}".format(', '.join('"{0}"'.format(namespace) for namespace in namespaces)))
+
         return True
 
     def validate_version(self, major_version, minor_version, patch_version):

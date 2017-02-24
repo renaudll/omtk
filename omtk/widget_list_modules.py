@@ -35,6 +35,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self._rig = None
         self._rigs = []
         self._is_modifying = False  # todo: document
+        self._listen_events = True
 
         self.ui = widget_list_modules.Ui_Form()
         self.ui.setupUi(self)
@@ -212,6 +213,68 @@ class WidgetListModules(QtWidgets.QWidget):
         if update:
             self.update()
 
+    def _update_qitem_module(self, qitem, module):
+        label = str(module)
+
+        # Add inputs namespace if any for clarity.
+        module_namespace = module.get_inputs_namespace()
+        if module_namespace:
+            label = '{0}:{1}'.format(module_namespace.strip(':'), label)
+
+        if module.locked:
+            qitem.setBackground(0, self._color_locked)
+            label += ' (locked)'
+        elif module.is_built():
+            version_major, version_minor, version_patch = module.get_version()
+            if version_major is not None and version_minor is not None and version_patch is not None:
+                warning_msg = ''
+                try:
+                    module.validate_version(version_major, version_minor, version_patch)
+                except Exception, e:
+                    warning_msg = 'v{}.{}.{} is known to have issues and need to be updated: {}'.format(
+                        version_major, version_minor, version_patch,
+                        str(e)
+                    )
+
+                if warning_msg:
+                    desired_color = self._color_warning
+                    qitem.setToolTip(0, warning_msg)
+                    qitem.setBackground(0, desired_color)
+                    label += ' (problematic)'
+                    module.warning(warning_msg)
+        else:
+            # Set QTreeWidgetItem red if the module fail validation
+            can_build, validation_message = self._can_build(module, verbose=True)
+            if not can_build:
+                desired_color = self._color_invalid
+                msg = 'Validation failed for {0}: {1}'.format(module, validation_message)
+                log.warning(msg)
+                qitem.setToolTip(0, msg)
+                qitem.setBackground(0, desired_color)
+
+        qitem.setText(0, label)
+        qitem._name = qitem.text(0)
+        qitem._checked = module.is_built()
+
+        flags = qitem.flags() | QtCore.Qt.ItemIsEditable
+        qitem.setFlags(flags)
+        qitem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
+        qitem._meta_type = ui_shared.MetadataType.Module
+
+    def _update_qitem_rig(self, qitem, rig):
+        label = str(rig)
+
+        qitem.setText(0, label)
+        qitem._name = qitem.text(0)
+        qitem._checked = rig.is_built()
+
+        flags = qitem.flags() | QtCore.Qt.ItemIsEditable
+        qitem.setFlags(flags)
+        qitem.setCheckState(0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked)
+
+        qitem._meta_type = ui_shared.MetadataType.Rig
+        qitem.setIcon(0, QtGui.QIcon(":/out_character.png"))
+
     def _rig_to_tree_widget(self, module):
         qItem = QtWidgets.QTreeWidgetItem(0)
         if hasattr(module, '_network'):
@@ -219,60 +282,12 @@ class WidgetListModules(QtWidgets.QWidget):
         else:
             pymel.warning("{0} have no _network attributes".format(module))
         qItem.rig = module
-        label = str(module)
 
-        # HACK: bypass the stylecheet
-        # see: http://forum.qt.io/topic/22219/item-view-stylesheet-bgcolor/12
-        # style_sheet_invalid = """
-        # QTreeView::item
-        # {
-        #   background-color: rgb(45,45,45);
-        # }"""
-
-        # Set QTreeWidgetItem gray if the module fail validation
         if isinstance(module, classModule.Module):
-            if module.locked:
-                qItem.setBackground(0, self._color_locked)
-                label += ' (locked)'
-            elif module.is_built():
-                version_major, version_minor, version_patch = module.get_version()
-                if version_major is not None and version_minor is not None and version_patch is not None:
-                    warning_msg = ''
-                    try:
-                        module.validate_version(version_major, version_minor, version_patch)
-                    except Exception, e:
-                        warning_msg = 'v{}.{}.{} is known to have issues and need to be updated: {}'.format(
-                            version_major, version_minor, version_patch,
-                            str(e)
-                        )
+            self._update_qitem_module(qItem, module)
+        elif isinstance(module, classRig.Rig):
+            self._update_qitem_rig(qItem, module)
 
-                    if warning_msg:
-                        desired_color = self._color_warning
-                        qItem.setToolTip(0, warning_msg)
-                        qItem.setBackground(0, desired_color)
-                        label += ' (problematic)'
-                        module.warning(warning_msg)
-            else:
-                # Set QTreeWidgetItem red if the module fail validation
-                can_build, validation_message = self._can_build(module, verbose=True)
-                if not can_build:
-                    desired_color = self._color_invalid
-                    msg = 'Validation failed for {0}: {1}'.format(module, validation_message)
-                    log.warning(msg)
-                    qItem.setToolTip(0, msg)
-                    qItem.setBackground(0, desired_color)
-
-        qItem.setText(0, label)
-        qItem._name = qItem.text(0)
-        qItem._checked = module.is_built()
-
-        flags = qItem.flags() | QtCore.Qt.ItemIsEditable
-        qItem.setFlags(flags)
-        qItem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
-
-        if isinstance(module, classRig.Rig):
-            qItem._meta_type = ui_shared.MetadataType.Rig
-            qItem.setIcon(0, QtGui.QIcon(":/out_character.png"))
             sorted_modules = sorted(module, key=lambda mod: mod.name)
             for child in sorted_modules:
                 qSubItem = self._rig_to_tree_widget(child)
@@ -281,11 +296,9 @@ class WidgetListModules(QtWidgets.QWidget):
                     qInputItem = QtWidgets.QTreeWidgetItem(0)
                     qInputItem.setText(0, input.name())
                     ui_shared._set_icon_from_type(input, qInputItem)
-                    qInputItem.setFlags(flags)
                     qSubItem.addChild(qInputItem)
                 qItem.addChild(qSubItem)
-        elif isinstance(module, classModule.Module):
-            qItem._meta_type = ui_shared.MetadataType.Module
+
         return qItem
 
     #
@@ -317,6 +330,9 @@ class WidgetListModules(QtWidgets.QWidget):
         pymel.select(networks)
 
     def on_module_changed(self, item):
+        if not self._listen_events:
+            return
+
         # todo: handle exception
         # Check first if the checkbox have changed
         need_update = False
@@ -342,6 +358,7 @@ class WidgetListModules(QtWidgets.QWidget):
             if hasattr(item, "net"):
                 name_attr = item.net.attr("name")
                 name_attr.set(new_text)
+                print 'new name is', new_text
 
         # Ensure to only refresh the UI and not recreate all
         # if need_update:
@@ -430,7 +447,10 @@ class WidgetListModules(QtWidgets.QWidget):
         if self._is_modifying:
             sel = self.ui.treeWidget.selectedItems()
             if sel:
-                self._set_text_block(sel[0], str(sel[0].rig))
+                self._listen_events = False
+                self._update_qitem_module(sel[0], sel[0].rig)
+                self._listen_events = True
+                # self._set_text_block(sel[0], str(sel[0].rig))
                 # sel[0].setText(0, str(sel[0].rig))
             self._is_modifying = False
         self.focusInEvent(event)

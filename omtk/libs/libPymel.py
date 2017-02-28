@@ -450,5 +450,5 @@ def makeIdentity_safe(obj, translate=False, rotate=False, scale=False, apply=Fal
             ])
 
     # Make identify will faile if attributes are connected...
-    with libAttr.context_disconnected_attrs(affected_attrs):
+    with libAttr.context_disconnected_attrs(affected_attrs, hold_inputs=True, hold_outputs=False):
         pymel.makeIdentity(obj, apply=apply, translate=translate, rotate=rotate, scale=scale, **kwargs)

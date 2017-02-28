@@ -511,7 +511,7 @@ def unlock_unhide_scale(node, x=True, y=True, z=True):
     unlock_scale(node, x, y, z)
     unhide_scale(node, x, y, z)
 
-def is_connected_to(attr_inn, attr_out, recursive=True):
+def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0):
     # TODO: Benchmark this function
     # TODO: Implement key for performance
     node = next(iter(attr_out.inputs()), None)
@@ -527,7 +527,9 @@ def is_connected_to(attr_inn, attr_out, recursive=True):
         if attr == attr_inn:
             return True
         else:
-            if is_connected_to(attr_inn, attr, recursive=recursive):
+            if depth >= max_depth:
+                return False
+            if is_connected_to(attr_inn, attr, recursive=recursive, max_depth=max_depth, depth=depth+1):
                 return True
 
     return False
@@ -584,18 +586,24 @@ def get_settable_attr(attr):
 # Connection holding
 #
 
-def hold_connections(attrs):
+def hold_connections(attrs, hold_inputs=True, hold_outputs=True):
     """
     Disconnect all inputs from the provided attributes but keep their in memory for ulterior re-connection.
     :param attrs: A list of pymel.Attribute instances.
     :return: A list of tuple containing the origin source and destination attribute for each entries.
     """
     result = []
-    for attr_dst in attrs:
-        attr_src = next(iter(attr_dst.inputs(plugs=True)), None)
-        if attr_src:
-            pymel.disconnectAttr(attr_src, attr_dst)
-            result.append((attr_src, attr_dst))
+    for attr in attrs:
+        if hold_inputs:
+            attr_src = next(iter(attr.inputs(plugs=True)), None)
+            if attr_src:
+                pymel.disconnectAttr(attr_src, attr)
+                result.append((attr_src, attr))
+        if hold_outputs:
+            for attr_dst in attr.outputs(plugs=True):
+                pymel.disconnectAttr(attr, attr_dst)
+                result.append((attr, attr_dst))
+
     return result
 
 def fetch_connections(data):
@@ -607,11 +615,11 @@ def fetch_connections(data):
         pymel.connectAttr(attr_src, attr_dst)
 
 @contextmanager
-def context_disconnected_attrs(attrs):
+def context_disconnected_attrs(attrs, hold_inputs=True, hold_outputs=True):
     """
     A context (use with the 'with' statement) to apply instruction while ensuring the provided attributes are disconnected temporarily.
     :param attrs: Redirected to hold_connections.
     """
-    data = hold_connections(attrs)
+    data = hold_connections(attrs, hold_inputs=hold_inputs, hold_outputs=hold_outputs)
     yield True
     fetch_connections(data)

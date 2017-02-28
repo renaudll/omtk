@@ -67,7 +67,7 @@ class RigSqueeze(classRig.Rig):
     GROUP_NAME_DISPLAY = 'display'
     ATTR_NAME_DISPLAY_MESH = 'displayMesh'
     ATTR_NAME_DISPLAY_CTRL = 'displayCtrl'
-    ATTR_NAME_DISPLAY_PROXY = 'displayProxy'
+    ATTR_NAME_DISPLAY_PROXY = 'displayProxy'  # not used anymore
     GROUP_NAME_IKFK = 'ikFkBlend'
     GROUP_NAME_FACE = 'facial'
     ATTR_NAME_FACE_MACRO = 'showMacroCtrls'
@@ -136,36 +136,104 @@ class RigSqueeze(classRig.Rig):
         self.grp_model.visibility.set(False)
 
         #
-        # Add root ctrl attributes specific to squeeze
+        # Add root ctrl attributes specific to squeeze while preserving existing connections.
         #
         if not self.grp_anm.hasAttr(self.GROUP_NAME_DISPLAY, checkShape=False):
             libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_DISPLAY)
 
-        # Display Mesh
-        if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_MESH, checkShape=False):
-            attr_displayMesh = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_MESH, at='short', k=True,
-                                               hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
-        else:
-            attr_displayMesh = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_MESH)
+        def _init_attr(obj, longName, attributeType, **kwargs):
+            """
+            Create an attribute if missing or invalid while preserving output connections.
+            :param obj: The object that hold the attribute.
+            :param longName: The longName (identifier) of the attribute.
+            :param at: The attributeType to use. Please don't provide the short form 'at'.
+            :param kwargs: Any additional keyword argument is redirected to pymel.addAttr.
+            :return: A pymel.Attribute instance.
+            """
+            attr = obj.attr(longName) if obj.hasAttr(longName) else None
+            need_update = attr is None or attr.type() != attributeType
+            if need_update:
+                connections = None
+                if attr is not None:
+                    connections = libAttr.hold_connections([attr], hold_inputs=False, hold_outputs=True)
+                    attr.delete()
 
-        # Display Ctrl
-        if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_CTRL, checkShape=False):
-            attr_displayCtrl = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_CTRL, at='short', k=True,
-                                               hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1)
-        else:
-            attr_displayCtrl = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_CTRL)
+                attr = libAttr.addAttr(
+                    self.grp_anm, longName=longName, at=attributeType, **kwargs
+                )
 
-        # Display Proxy
-        if not self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_PROXY, checkShape=False):
-            attr_displayProxy = libAttr.addAttr(self.grp_anm, longName=self.ATTR_NAME_DISPLAY_PROXY, at='short', k=True,
-                                               hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=0)
-        else:
-            attr_displayProxy = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_PROXY)
+                if connections:
+                    libAttr.fetch_connections(connections)
+            return attr
 
-        pymel.connectAttr(attr_displayMesh, self.grp_geo.visibility, force=True)
-        pymel.connectAttr(attr_displayProxy, self.grp_proxy.visibility, force=True)
-        for child in self.grp_anm.getChildren():
-            pymel.connectAttr(attr_displayCtrl, child.visibility, force=True)
+        from omtk.libs import libRigging
+
+        attr_display_mesh_output_attrs = {self.grp_geo.visibility}
+        attr_display_proxy_output_attrs = {self.grp_proxy.visibility}
+        attr_display_ctrl_output_attrs = set([children.visibility for children in self.grp_anm.getChildren()])
+
+        # In the past, the displayMesh attribute was a boolean and the displayProxy was also a boolean.
+        # Now we use an enum. This mean that we need to remap.
+        if self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_MESH):
+            attr_display_mesh = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_MESH)
+            if attr_display_mesh.type() == 'short':
+                for attr_dst in attr_display_mesh.outputs(plugs=True):
+                    attr_display_mesh_output_attrs.add(attr_dst)
+                    pymel.disconnectAttr(attr_display_mesh, attr_dst)
+
+        if self.grp_anm.hasAttr(self.ATTR_NAME_DISPLAY_PROXY):
+            attr_display_proxy = self.grp_anm.attr(self.ATTR_NAME_DISPLAY_PROXY)
+            for attr_dst in attr_display_proxy.outputs(plugs=True):
+                attr_display_proxy_output_attrs.add(attr_dst)
+                pymel.disconnectAttr(attr_display_proxy, attr_dst)
+            attr_display_proxy.delete()
+
+        # Create DisplayMesh attribute
+        attr_display_mesh = _init_attr(
+            self.grp_anm, self.ATTR_NAME_DISPLAY_MESH, 'enum',
+            k=True,
+            hasMinValue=True, hasMaxValue=True,
+            minValue=0, maxValue=1, defaultValue=0,
+            enumName='Mesh=0:Proxy=1'
+        )
+
+        # Create DisplayCtrl attribute
+        attr_display_ctrl = _init_attr(
+            self.grp_anm, self.ATTR_NAME_DISPLAY_CTRL, 'short',
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1
+        )
+
+        # Connect DisplayMesh attribute
+        for attr_dst in attr_display_mesh_output_attrs:
+            if not libAttr.is_connected_to(attr_display_mesh, attr_dst, max_depth=3):
+                self.debug("Connecting {} to {}".format(attr_display_mesh, attr_dst))
+                attr_proxy_display_inn = libRigging.create_utility_node(
+                    'condition',
+                    firstTerm=attr_display_mesh,
+                    secondTerm=0,
+                    colorIfTrueR=True,
+                    colorIfFalseR=False
+                ).outColorR
+                pymel.connectAttr(attr_proxy_display_inn, attr_dst, force=True)
+
+        for attr_dst in attr_display_proxy_output_attrs:
+            if not libAttr.is_connected_to(attr_display_mesh, attr_dst, max_depth=3):
+                self.debug("Connecting {} to {}".format(attr_display_mesh, attr_dst))
+                # attr_proxy_display_inn = libRigging.create_utility_node(
+                #     'condition',
+                #     firstTerm=attr_display_mesh,
+                #     secondTerm=0,
+                #     colorIfTrueR=True,
+                #     colorIfFalseR=False
+                # ).outColorR
+                pymel.connectAttr(attr_display_mesh, attr_dst, force=True)
+
+        # Connect DisplayCtrl attribute
+        for attr_dst in attr_display_ctrl_output_attrs:
+            if not libAttr.is_connected_to(attr_display_ctrl, attr_dst, max_depth=3):
+                self.debug("Connecting {} to {}".format(attr_display_ctrl, attr_dst))
+                pymel.connectAttr(attr_display_ctrl, attr_dst, force=True)
+
 
     def _unbuild_nodes(self):
         self.grp_model = self._unbuild_node(self.grp_model, keep_if_children=True)

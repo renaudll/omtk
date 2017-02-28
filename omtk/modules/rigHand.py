@@ -192,7 +192,7 @@ class Hand(Module):
                 pos = ctrl_metacarpal.ctrls[0].getTranslation(space='world')
                 ratio = (pos - pos_inn).length() / width
 
-                grp_pivot_name = nomenclature_rig.resolve(ctrl_metacarpal.input[0].name() + '_pivot')
+                grp_pivot_name = nomenclature_rig.resolve(ctrl_metacarpal.input[0].stripNamespace() + '_pivot')
                 grp_pivot = pymel.createNode('transform', name=grp_pivot_name)
                 grp_pivot.setMatrix(ref_tm)
                 grp_pivot.setParent(rig_metacarpal_center)

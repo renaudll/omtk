@@ -102,7 +102,7 @@ class Twistbone(Module):
         jnt_e = self.chain_jnt[1]
 
         nomenclature_rig = self.get_nomenclature_rig()
-        nomenclature_jnt = self.rig.nomenclature(jnt_s.nodeName(), suffix=self.rig.nomenclature.type_jnt)  # Hack: find a better way!
+        nomenclature_jnt = self.rig.nomenclature(jnt_s.stripNamespace(), suffix=self.rig.nomenclature.type_jnt)  # Hack: find a better way!
 
         scalable_grp = pymel.createNode('transform')
         scalable_grp.setParent(self.grp_rig)

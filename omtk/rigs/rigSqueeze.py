@@ -87,9 +87,8 @@ class RigSqueeze(classRig.Rig):
 
     _influence_whitelist = ('.*_Jnt',)
     def _is_potential_influence(self, obj):
-
         if isinstance(obj, pymel.nodetypes.Joint):
-            name = obj.nodeName()
+            name = obj.stripNamespace()
             if not any(True for pattern in self._influence_whitelist if re.match(pattern, name, re.IGNORECASE)):
                 return False
 

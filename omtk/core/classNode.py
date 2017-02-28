@@ -47,7 +47,7 @@ class Node(object):
         # This ensure that as long as the instance is in memory, built or unbuilt
         # it will still have the correct name.
         if self.is_built():
-            self._network_name = self.nodeName()  # .name() can return full dagpath, cause warnings
+            self._network_name = self.stripNamespace()  # .name() can return full dagpath, cause warnings
         return 'net_{0}_{1}'.format(self.__class__.__name__.lower(), self._network_name)
 
     def exists(self):

@@ -719,7 +719,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):  # todo: why do we inherit from Abstrac
         else:
             ref = result.jnt
             if ref:
-                result.name = (self.get_nomenclature() + self.rig.nomenclature(ref.nodeName())).resolve()
+                result.name = (self.get_nomenclature() + self.rig.nomenclature(ref.stripNamespace())).resolve()
 
         # Keep a reference to the module parent.
         # todo: implement a generic mechanism for all modules?
@@ -821,7 +821,7 @@ class AvarGrpOnSurface(AvarGrp):
         :return: The upper section influences.
         """
         # TODO: Find a better way
-        fnFilter = lambda jnt: 'upp' in jnt.name().lower()
+        fnFilter = lambda jnt: 'upp' in jnt.stripNamespace().lower()
         return filter(fnFilter, self.jnts)
 
     @libPython.memoized_instancemethod
@@ -837,7 +837,7 @@ class AvarGrpOnSurface(AvarGrp):
         :return: The upper side influences.
         """
         # TODO: Find a better way
-        fnFilter = lambda jnt: 'low' in jnt.name().lower()
+        fnFilter = lambda jnt: 'low' in jnt.stripNamespace().lower()
         return filter(fnFilter, self.jnts)
 
     @libPython.memoized_instancemethod

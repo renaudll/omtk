@@ -311,7 +311,7 @@ class IK(Module):
         #TODO: Improve softik ratio when using multiple ik handle. Not the same ratio will be used depending of the angle
         for handle in ik_handle_to_constraint:
             pointConstraint = pymel.pointConstraint(self._ik_handle_target, self._ikChainGrp, handle)
-            pointConstraint.rename(pointConstraint.name().replace('pointConstraint', 'softIkConstraint'))
+            pointConstraint.rename(pointConstraint.stripNamespace().replace('pointConstraint', 'softIkConstraint'))
             weight_inn, weight_out = pointConstraint.getWeightAliasList()[-2:] #Ensure to get the latest target added
             pymel.connectAttr(attOutRatio, weight_inn)
             pymel.connectAttr(attOutRatioInv, weight_out)

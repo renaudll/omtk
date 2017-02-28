@@ -88,7 +88,7 @@ class FK(Module):
                 elif self._NAME_CTRL_ENUMERATE:
                     ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(ctrl_index))
                 else:
-                    nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.name())
+                    nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace())
                     ctrl_name = nomenclature.resolve()
 
                 ctrl.build(name=ctrl_name, refs=jnt, geometries=self.rig.get_meshes())

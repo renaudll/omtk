@@ -880,7 +880,7 @@ class Rig(object):
             for ctrl in module.get_ctrls():
                 if libPymel.is_valid_PyNode(ctrl):
                     if not ctrl.drawOverride.overrideEnabled.get():
-                        nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                        nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.stripNamespace())
                         side = nomenclature_ctrl.side
                         color = color_by_side.get(side, self.CENTER_CTRL_COLOR)
                         ctrl.drawOverride.overrideEnabled.set(1)

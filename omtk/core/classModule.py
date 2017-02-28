@@ -100,7 +100,7 @@ class Module(object):
         :return: The side using the correct nomenclature.
         """
         ref = next(iter(self.chain), None) if self.chain else None
-        nomenclature = self.rig.nomenclature(ref.nodeName())
+        nomenclature = self.rig.nomenclature(ref.stripNamespace())
         return nomenclature.side
 
     def get_default_name(self):
@@ -111,7 +111,7 @@ class Module(object):
         # todo: use className!
         ref = next(iter(self.chain), None) if self.chain else None
         if ref:
-            old_nomenclature = self.rig.nomenclature(ref.nodeName())
+            old_nomenclature = self.rig.nomenclature(ref.stripNamespace())
             new_nomenclature = self.rig.nomenclature()
 
             if self.DEFAULT_NAME_USE_FIRST_INPUT:

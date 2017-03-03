@@ -11,6 +11,7 @@ class CtrlIkArm(rigIK.CtrlIk):
     def __createNode__(self, *args, **kwargs):
         return libCtrlShapes.create_shape_box_arm(*args, **kwargs)
 
+
 def get_spaceswitch_targets(self, module, *args, **kwargs):
     targets, labels, indexes = super(CtrlIkArm, self).get_spaceswitch_targets(module, *args, **kwargs)
     jnt_head = module.get_head_jnt()
@@ -19,6 +20,7 @@ def get_spaceswitch_targets(self, module, *args, **kwargs):
         labels.append(None)
         indexes.append(self.get_bestmatch_index(jnt_head))
     return targets, labels, indexes
+
 
 class ArmIk(rigIK.IK):
     _CLASS_CTRL_IK = CtrlIkArm
@@ -58,7 +60,9 @@ class ArmIk(rigIK.IK):
             inn_tm_dir,
             inn_tm_upp,
             look_axis=pymel.datatypes.Vector(1, 0, 0),
-            upp_axis=pymel.datatypes.Vector(0, -1, 0) if side == self.rig.nomenclature.SIDE_R else pymel.datatypes.Vector(0, 1, 0)
+            upp_axis=pymel.datatypes.Vector(0, -1,
+                                            0) if side == self.rig.nomenclature.SIDE_R else pymel.datatypes.Vector(0, 1,
+                                                                                                                   0)
         )
         ctrl_tm.translate = inf_tm.translate
 
@@ -74,6 +78,7 @@ class Arm(rigLimb.Limb):
     def __init__(self, *args, **kwargs):
         super(Arm, self).__init__(*args, **kwargs)
         self.sysFootRoll = None
+
 
 def register_plugin():
     return Arm

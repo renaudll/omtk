@@ -11,6 +11,7 @@ from omtk.core import classCtrl
 
 from omtk.vendor import libSerialization
 
+
 def list_from_MMatrix(m):
     # TODO: There's got to be a better way!
     # m = OpenMaya.MTransformationMatrix().asMatrix()
@@ -111,6 +112,7 @@ def get_name_friend(obj_src_name, separator='_'):
     obj_dst_name = separator.join(tokens_dst)
 
     return obj_dst_name
+
 
 def get_ctrl_friend(obj_src):
     obj_src_name = obj_src.name()
@@ -219,7 +221,6 @@ def mirror_objs(objs):
         m = obj_dst.__apimfn__().transformation().asMatrix()
 
         m = mirror_matrix(m, *data)
-
 
         tms_by_objs[obj_src] = OpenMaya.MTransformationMatrix(m)
 

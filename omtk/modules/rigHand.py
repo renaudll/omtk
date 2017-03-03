@@ -7,7 +7,6 @@ from omtk.libs import libRigging
 from omtk.modules import rigFK
 from omtk.modules import rigFKAdditive
 
-
 '''
 class Finger(Module):
     """
@@ -46,10 +45,12 @@ class Finger(Module):
         pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
 '''
 
+
 class Hand(Module):
     """
     Multiple FK setup customized for hand rigging. Include metacarpal controls.
     """
+
     def __init__(self, *args, **kwargs):
         super(Hand, self).__init__(*args, **kwargs)
         self.sysFingers = []
@@ -65,12 +66,12 @@ class Hand(Module):
         # TODO: Implement 'super' behavior in property
         chains = libPymel.get_chains_from_objs(self.input)
 
-        #TODO : Do we want to check the distance in the world or related to the parent ?
+        # TODO : Do we want to check the distance in the world or related to the parent ?
         def sort_chain(chain):
             local_tm = chain.end.getMatrix(worldSpace=True)
             return local_tm.translate.z
 
-        #Sorted by distance, but doesn't detect positive/negative value
+        # Sorted by distance, but doesn't detect positive/negative value
         sorted_chain = sorted(chains, key=sort_chain)
 
         return sorted_chain
@@ -90,8 +91,8 @@ class Hand(Module):
         super(Hand, self).build(parent=False, *args, **kwargs)
 
         # Resolve fingers and metacarpals
-        #jnts_metacarpals = []
-        #metacarpals_sys = []
+        # jnts_metacarpals = []
+        # metacarpals_sys = []
 
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
@@ -166,15 +167,15 @@ class Hand(Module):
             x = pos_out - pos_inn
             x.normalize()
             y = pymel.datatypes.Vector(parent_tm.a10, parent_tm.a11, parent_tm.a12)
-            z = x.cross(y) #Get the front vector
+            z = x.cross(y)  # Get the front vector
             z.normalize()
-            y = x.cross(z) #Ensure the up vector is orthogonal
+            y = x.cross(z)  # Ensure the up vector is orthogonal
             y.normalize()
             ref_tm = pymel.datatypes.Matrix(
-                    z.x, z.y, z.z, 0.0,
-                    y.x, y.y, y.z, 0.0,
-                    x.x, x.y, x.z, 0.0,
-                    pos_mid.x, pos_mid.y, pos_mid.z, 1.0
+                z.x, z.y, z.z, 0.0,
+                y.x, y.y, y.z, 0.0,
+                x.x, x.y, x.z, 0.0,
+                pos_mid.x, pos_mid.y, pos_mid.z, 1.0
             )
             rig_metacarpal_center = pymel.spaceLocator(name=nomenclature_rig.resolve('metacarpCenter'))
             rig_metacarpal_center.setMatrix(ref_tm)
@@ -186,13 +187,13 @@ class Hand(Module):
             pymel.addAttr(attr_holder, longName='cup', keyable=True)
             attr_cup = attr_holder.attr('cup')
 
-
             for i, ctrl_metacarpal in enumerate(sys_metacarpals):
                 width = pos_inn.distanceTo(pos_out)
                 pos = ctrl_metacarpal.ctrls[0].getTranslation(space='world')
                 ratio = (pos - pos_inn).length() / width
 
-                grp_pivot_name = nomenclature_rig.resolve(ctrl_metacarpal.input[0].stripNamespace().nodeName() + '_pivot')
+                grp_pivot_name = nomenclature_rig.resolve(
+                    ctrl_metacarpal.input[0].stripNamespace().nodeName() + '_pivot')
                 grp_pivot = pymel.createNode('transform', name=grp_pivot_name)
                 grp_pivot.setMatrix(ref_tm)
                 grp_pivot.setParent(rig_metacarpal_center)
@@ -223,7 +224,7 @@ class Hand(Module):
                 # pymel.parentConstraint(grp_pivot, sysFinger.grp_anm, maintainOffset=True, skipRotate=['x', 'y', 'z'])
                 # pymel.pointConstraint(grp_pos, sysFinger.grp_anm, maintainOffset=True)
 
-            #Connect Global scale
+            # Connect Global scale
             pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)
             pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleY)
             pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleZ)
@@ -252,6 +253,7 @@ class Hand(Module):
                 if sys is not None:
                     for ctrl in sys.iter_ctrls():
                         yield ctrl
+
 
 def register_plugin():
     return Hand

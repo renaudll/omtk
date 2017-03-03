@@ -12,12 +12,14 @@ from omtk.modules import rigLeg
 
 log = logging.getLogger('omtk')
 
+
 class CtrlIkQuadSwivel(rigIK.CtrlIkSwivel):
     """
     Inherit of the base CtrlIkSwivel to add a new spaceswitch target
     """
+
     def get_spaceswitch_targets(self, module, *args, **kwargs):
-        targets, target_names, indexes = super(CtrlIkQuadSwivel, self).\
+        targets, target_names, indexes = super(CtrlIkQuadSwivel, self). \
             get_spaceswitch_targets(module, *args, **kwargs)
 
         # Prevent crash when creating the first swivel from the base Ik class
@@ -52,11 +54,12 @@ class LegIkQuad(rigLeg.LegIk):
         :param nomencalture: The rig nomenclature used to name object
         :return: Nothing, handle is stocked in a class variable
         """
-        mel.eval('ikSpringSolver') # Solver need to be loaded before being used
+        mel.eval('ikSpringSolver')  # Solver need to be loaded before being used
         ik_handle, ik_effector = super(LegIkQuad, self).create_ik_handle(solver='ikSpringSolver')
         return ik_handle, ik_effector
 
-    def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, constraint=True, mirror_setup=True, adjust_ik_handle_twist=True, **kwargs):
+    def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, constraint=True, mirror_setup=True,
+                          adjust_ik_handle_twist=True, **kwargs):
         """
         Create the swivel ctrl for the ik system. Redefined to add the possibility to create a mirror swivel setup
         to prevent flipping problem with pole vector when using ikSpringSolver
@@ -72,7 +75,8 @@ class LegIkQuad(rigLeg.LegIk):
         :return: The created ctrl swivel
         """
         # Do not contraint the ik handle now since we could maybe need the flipping setup
-        ctrl_swivel = super(LegIkQuad, self).setup_swivel_ctrl(base_ctrl, ref, pos, ik_handle, constraint=False, **kwargs)
+        ctrl_swivel = super(LegIkQuad, self).setup_swivel_ctrl(base_ctrl, ref, pos, ik_handle, constraint=False,
+                                                               **kwargs)
 
         if constraint:
             pymel.poleVectorConstraint(ctrl_swivel, ik_handle)
@@ -91,7 +95,8 @@ class LegIkQuad(rigLeg.LegIk):
 
         return ctrl_swivel
 
-    def adjust_spring_solver_twist(self, obj_ref_s, obj_ref_e, obj_s, obj_e, ik_handle, epsilon=0.00000000001, max_iter=100, default_low=-180.0, default_high=180):
+    def adjust_spring_solver_twist(self, obj_ref_s, obj_ref_e, obj_s, obj_e, ik_handle, epsilon=0.00000000001,
+                                   max_iter=100, default_low=-180.0, default_high=180):
         """
         For strange reasons, creating the ikSpringSolver can generate a twist offset.
         We are still not sure what is causing that so currently we are using a brute-force approach to resolve the offset.
@@ -124,10 +129,12 @@ class LegIkQuad(rigLeg.LegIk):
 
             result_low = take_guess(low)
             result_high = take_guess(high)
-            result = take_guess(mid)  # note: it is important to take the mid guess last since we don't update the attr on exit
+            result = take_guess(
+                mid)  # note: it is important to take the mid guess last since we don't update the attr on exit
 
             if abs(1.0 - result) < epsilon:
-                self.debug("Resolved {} twist offset of {} using with {} iterations.".format(ik_handle, mid, iter_count))
+                self.debug(
+                    "Resolved {} twist offset of {} using with {} iterations.".format(ik_handle, mid, iter_count))
                 return mid
 
             if result_high > result_low:
@@ -215,7 +222,6 @@ class LegIkQuad(rigLeg.LegIk):
         attr_pitch = libAttr.addAttr(attr_holder, longName='pitch', k=True)
         pymel.connectAttr(attr_pitch, self._chain_quad_ik[0].rotateZ)
 
-
         pymel.orientConstraint(obj_e_ik, obj_e_quadik, maintainOffset=True)
 
         if constraint:
@@ -265,6 +271,7 @@ class LegQuad(rigLimb.Limb):
             raise Exception("Expected between 6 to 7 joints, got {0}".format(num_inputs))
 
         return True
+
 
 def register_plugin():
     return LegQuad

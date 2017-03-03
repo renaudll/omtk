@@ -23,7 +23,7 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     _CLS_CTRL_UPP = CtrlEyeLidUpp
     _CLS_CTRL_LOW = CtrlEyeLidLow
-    IS_SIDE_SPECIFIC=True
+    IS_SIDE_SPECIFIC = True
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
@@ -43,10 +43,12 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
         If the user provided it's own surface (via the input property), we'll use it for the upper AND lower lids.
         This is mainly to support custom surface like spheres for very cartoony characters.
         """
+
         # Get all surfaces provided by the input property.
         def get_surface(obj):
             if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface):
                 return obj
+
         surfaces = filter(None, map(get_surface, self.input))
 
         # If the user provided surface, pop them out of the input property and store them in the surface_[upp/low] property.
@@ -83,6 +85,7 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
         # Since the V go all around the sphere, it is too much range.
         # We'll restrict ourself only to a single quadrant.
         return 0.25
+
 
 def register_plugin():
     return FaceEyeLids

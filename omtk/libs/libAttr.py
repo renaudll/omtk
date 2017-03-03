@@ -1,48 +1,49 @@
 from contextlib import contextmanager
 import logging
+
 log = logging.getLogger('omtk')
 
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
 from pymel import core as pymel
 
 kwargsMap = {
-    'bool' : {'at':'double'},
-    'long' : {'at':'long'},
-    'short' : {'at':'short'},
-    'byte' : {'at':'byte'},
-    'char' : {'at':'char'},
-    'enum' : {'at':'enum'},
-    'float' : {'at':'float'},
-    'double' : {'at':'double'},
-    'doubleAngle' : {'at':'doubleAngle'},
-    'doubleLinear' : {'at':'doubleLinear'},
-    'string' : {'dt':'string'},
-    'stringArray' : {'dt':'stringArray'},
-    'compound' : {'at':'compound'},
-    'message' : {'at':'message'},
-    'time' : {'at':'time'},
-    'matrix' : {'dt':'matrix'},
-    'fltMatrix' : {'at':'fltMatrix'},
-    'reflectanceRGB' : {'dt':'reflectanceRGB'},
-    'reflectance' : {'at':'reflectance'},
-    'spectrumRGB' : {'dt':'spectrumRGB'},
-    'spectrum' : {'at':'spectrum'},
-    'float2' : {'dt':'float2'},
-    'float3' : {'dt':'float3'},
-    'double2' : {'dt':'double2'},
-    'double3' : {'dt':'double3'},
-    'long2' : {'dt':'long2'},
-    'long3' : {'dt':'long3'},
-    'short2' : {'dt':'short2'},
-    'short3' : {'dt':'short3'},
-    'doubleArray' : {'dt':'doubleArray'},
-    'Int32Array' : {'dt':'Int32Array'},
-    'vectorArray' : {'dt':'vectorArray'},
-    'nurbsCurve' : {'dt':'nurbsCurve'},
-    'nurbsSurface' : {'dt':'nurbsSurface'},
-    'mesh' : {'dt':'mesh'},
-    'lattice' : {'dt':'lattice'},
-    'pointArray' : {'dt':'pointArray'}
+    'bool': {'at': 'double'},
+    'long': {'at': 'long'},
+    'short': {'at': 'short'},
+    'byte': {'at': 'byte'},
+    'char': {'at': 'char'},
+    'enum': {'at': 'enum'},
+    'float': {'at': 'float'},
+    'double': {'at': 'double'},
+    'doubleAngle': {'at': 'doubleAngle'},
+    'doubleLinear': {'at': 'doubleLinear'},
+    'string': {'dt': 'string'},
+    'stringArray': {'dt': 'stringArray'},
+    'compound': {'at': 'compound'},
+    'message': {'at': 'message'},
+    'time': {'at': 'time'},
+    'matrix': {'dt': 'matrix'},
+    'fltMatrix': {'at': 'fltMatrix'},
+    'reflectanceRGB': {'dt': 'reflectanceRGB'},
+    'reflectance': {'at': 'reflectance'},
+    'spectrumRGB': {'dt': 'spectrumRGB'},
+    'spectrum': {'at': 'spectrum'},
+    'float2': {'dt': 'float2'},
+    'float3': {'dt': 'float3'},
+    'double2': {'dt': 'double2'},
+    'double3': {'dt': 'double3'},
+    'long2': {'dt': 'long2'},
+    'long3': {'dt': 'long3'},
+    'short2': {'dt': 'short2'},
+    'short3': {'dt': 'short3'},
+    'doubleArray': {'dt': 'doubleArray'},
+    'Int32Array': {'dt': 'Int32Array'},
+    'vectorArray': {'dt': 'vectorArray'},
+    'nurbsCurve': {'dt': 'nurbsCurve'},
+    'nurbsSurface': {'dt': 'nurbsSurface'},
+    'mesh': {'dt': 'mesh'},
+    'lattice': {'dt': 'lattice'},
+    'pointArray': {'dt': 'pointArray'}
 }
 
 
@@ -102,12 +103,12 @@ def sortAttr(node):
 # TODO: finish
 def holdAttr(attr, delete=True):
     data = {
-        'node':attr.node(),
-        'longName':attr.longName(),
-        'shortName':attr.shortName(),
+        'node': attr.node(),
+        'longName': attr.longName(),
+        'shortName': attr.shortName(),
         'niceName': pymel.attributeName(attr),
-        'inputs':attr.inputs(plugs=True),
-        'outputs':attr.outputs(plugs=True),
+        'inputs': attr.inputs(plugs=True),
+        'outputs': attr.outputs(plugs=True),
         'isMulti': attr.isMulti(),
         'type': attr.type(),
         'locked': attr.isLocked(),
@@ -126,13 +127,13 @@ def fetchAttr(data):
     kwargs = kwargsMap[data['type']]
 
     pymel.addAttr(node,
-        longName = data['longName'],
-        multi=data['isMulti'],
-        niceName = data['niceName'],
-        keyable = data['keyable'],
-        hidden = data['hidden'],
-        **kwargs
-    )
+                  longName=data['longName'],
+                  multi=data['isMulti'],
+                  niceName=data['niceName'],
+                  keyable=data['keyable'],
+                  hidden=data['hidden'],
+                  **kwargs
+                  )
     attr = node.attr(data['longName'])
 
     # Re-connect inputs
@@ -155,7 +156,7 @@ def fetchAttr(data):
 
 # Normally we can use pymel.renameAttr but this work on multi-attributes also
 def renameAttr(node, oldname, newname):
-    assert(isinstance(node, pymel.PyNode))
+    assert (isinstance(node, pymel.PyNode))
     if not node.hasAttr(oldname): return
     data = holdAttr(node.attr(oldname))
     data['longName'] = newname
@@ -175,7 +176,8 @@ def hold_attrs(attr, hold_curve=True):
 
         for input in attr.inputs(plugs=True):
             if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
-                pymel.disconnectAttr(input, attr)  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
+                pymel.disconnectAttr(input,
+                                     attr)  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
                 return input
         return attr.get()
     return attr
@@ -187,7 +189,7 @@ def fetch_attr(source, target):
     Returns: the destination attribute.
     """
     if target.isLocked():
-        #pymel.warning("Can't fetch locked attribute {0}.".format(target.__melobject__()))
+        # pymel.warning("Can't fetch locked attribute {0}.".format(target.__melobject__()))
         return
 
     if source is None:
@@ -215,7 +217,7 @@ def transfer_connections(attr_src, attr_dst):
 
 
 def addAttr(node, longName=None, *args, **kwargs):
-    assert(longName)
+    assert (longName)
     pymel.addAttr(node, longName=longName, *args, **kwargs)
     return node.attr(longName)
 
@@ -224,25 +226,30 @@ def addAttr_separator(obj, attr_name, *args, **kwargs):
     attr = addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
     attr.lock()
 
-#Lock/unlock Function
+
+# Lock/unlock Function
 
 def lock_attrs(attr_list):
     for attr in attr_list:
         attr.lock()
 
+
 def unlock_attrs(attr_list):
     for attr in attr_list:
         attr.unlock()
+
 
 def lock_trs(node, *args, **kwargs):
     lock_translation(node, *args, **kwargs)
     lock_rotation(node, *args, **kwargs)
     lock_scale(node, *args, **kwargs)
 
+
 def unlock_trs(node, *args, **kwargs):
     unlock_translation(node, *args, **kwargs)
     unlock_rotation(node, *args, **kwargs)
     unlock_scale(node, *args, **kwargs)
+
 
 def lock_translation(node, x=True, y=True, z=True):
     lock_list = []
@@ -257,6 +264,7 @@ def lock_translation(node, x=True, y=True, z=True):
         lock_list.append(translate_z)
 
     lock_attrs(lock_list)
+
 
 def unlock_translation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
@@ -275,6 +283,7 @@ def unlock_translation(node, x=True, y=True, z=True, xyz=True):
 
     unlock_attrs(unlock_list)
 
+
 def lock_rotation(node, x=True, y=True, z=True):
     lock_list = []
     if x:
@@ -288,6 +297,7 @@ def lock_rotation(node, x=True, y=True, z=True):
         lock_list.append(rotate_z)
 
     lock_attrs(lock_list)
+
 
 def unlock_rotation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
@@ -306,6 +316,7 @@ def unlock_rotation(node, x=True, y=True, z=True, xyz=True):
 
     unlock_attrs(unlock_list)
 
+
 def lock_scale(node, x=True, y=True, z=True):
     lock_list = []
     if x:
@@ -319,6 +330,7 @@ def lock_scale(node, x=True, y=True, z=True):
         lock_list.append(scale_z)
 
     lock_attrs(lock_list)
+
 
 def unlock_scale(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
@@ -338,7 +350,8 @@ def unlock_scale(node, x=True, y=True, z=True, xyz=True):
     unlock_attrs(unlock_list)
 
 
-def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=True, rz=True, sx=True, sy=True, sz=True, force=False):
+def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=True, rz=True, sx=True, sy=True, sz=True,
+                            force=False):
     """
     Utility method to connect multiple attributes between two transform nodes.
     :param src: The source transform.
@@ -373,25 +386,30 @@ def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=Tru
     if sz:
         pymel.connectAttr(src.scaleZ, dst.scaleZ, force=force)
 
-#Hide Function#
+
+# Hide Function#
 
 def hide_attrs(attr_list):
     for attr in attr_list:
         attr.setKeyable(False)
 
+
 def unhide_attrs(attr_list):
     for attr in attr_list:
         attr.setKeyable(True)
+
 
 def hide_trs(node, *args, **kwargs):
     hide_translation(node, *args, **kwargs)
     hide_rotation(node, *args, **kwargs)
     hide_scale(node, *args, **kwargs)
 
+
 def unhide_trs(node, *args, **kwargs):
     unhide_translation(node, *args, **kwargs)
     unhide_rotation(node, *args, **kwargs)
     unhide_scale(node, *args, **kwargs)
+
 
 def hide_translation(node, x=True, y=True, z=True):
     hide_list = []
@@ -407,6 +425,7 @@ def hide_translation(node, x=True, y=True, z=True):
 
     hide_attrs(hide_list)
 
+
 def unhide_translation(node, x=True, y=True, z=True):
     unhide_list = []
     if x:
@@ -420,6 +439,7 @@ def unhide_translation(node, x=True, y=True, z=True):
         unhide_list.append(translate_z)
 
     unhide_attrs(unhide_list)
+
 
 def hide_rotation(node, x=True, y=True, z=True):
     hide_list = []
@@ -435,6 +455,7 @@ def hide_rotation(node, x=True, y=True, z=True):
 
     hide_attrs(hide_list)
 
+
 def unhide_rotation(node, x=True, y=True, z=True):
     unhide_list = []
     if x:
@@ -448,6 +469,7 @@ def unhide_rotation(node, x=True, y=True, z=True):
         unhide_list.append(rotate_z)
 
     unhide_attrs(unhide_list)
+
 
 def hide_scale(node, x=True, y=True, z=True):
     hide_list = []
@@ -463,6 +485,7 @@ def hide_scale(node, x=True, y=True, z=True):
 
     hide_attrs(hide_list)
 
+
 def unhide_scale(node, x=True, y=True, z=True):
     unhide_list = []
     if x:
@@ -477,39 +500,48 @@ def unhide_scale(node, x=True, y=True, z=True):
 
     unhide_attrs(unhide_list)
 
-#Lock/Hide shortcut
+
+# Lock/Hide shortcut
 
 def lock_hide_trs(node, *args, **kwargs):
     lock_trs(node, *args, **kwargs)
     hide_trs(node, *args, **kwargs)
 
+
 def unlock_unhide_trs(node, *args, **kwargs):
     unlock_trs(node, *args, **kwargs)
     unhide_trs(node, *args, **kwargs)
+
 
 def lock_hide_translation(node, x=True, y=True, z=True):
     lock_translation(node, x, y, z)
     hide_translation(node, x, y, z)
 
+
 def unlock_unhide_translation(node, x=True, y=True, z=True):
     unlock_translation(node, x, y, z)
     unhide_translation(node, x, y, z)
+
 
 def lock_hide_rotation(node, x=True, y=True, z=True):
     lock_rotation(node, x, y, z)
     hide_rotation(node, x, y, z)
 
+
 def unlock_unhide_rotation(node, x=True, y=True, z=True):
     unlock_rotation(node, x, y, z)
     unhide_rotation(node, x, y, z)
+
 
 def lock_hide_scale(node, x=True, y=True, z=True):
     lock_scale(node, x, y, z)
     hide_scale(node, x, y, z)
 
+
 def unlock_unhide_scale(node, x=True, y=True, z=True):
     unlock_scale(node, x, y, z)
     unhide_scale(node, x, y, z)
+
 
 def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0):
     # TODO: Benchmark this function
@@ -529,22 +561,24 @@ def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0)
         else:
             if depth >= max_depth:
                 return False
-            if is_connected_to(attr_inn, attr, recursive=recursive, max_depth=max_depth, depth=depth+1):
+            if is_connected_to(attr_inn, attr, recursive=recursive, max_depth=max_depth, depth=depth + 1):
                 return True
 
     return False
+
 
 #
 # get_settable_attr
 #
 
 attr_inn_by_out_by_type = {
-    'reverse':{
+    'reverse': {
         'outputX': 'inputX',
         'outputY': 'inputY',
         'outputZ': 'inputZ'
     }
 }
+
 
 def get_input_attr_from_output_attr(attr_out):
     node = attr_out.node()
@@ -558,6 +592,7 @@ def get_input_attr_from_output_attr(attr_out):
 
     return next(iter(attr_out.inputs(plugs=True)), None)
 
+
 def get_settable_attr(attr):
     """
     If attr is not settable, navigate upp in the connection hierarchy until we find the settable attribute.
@@ -565,6 +600,7 @@ def get_settable_attr(attr):
     Note that in some case the attribute might have been piped in an utility node, if necessary we'll try to
     follow the connections through the utility node.
     """
+
     def is_attr_interesting(attr):
         if not attr:
             return True
@@ -581,6 +617,7 @@ def get_settable_attr(attr):
     while not is_attr_interesting(attr):
         attr = get_input_attr_from_output_attr(attr)
     return attr
+
 
 #
 # Connection holding
@@ -606,6 +643,7 @@ def hold_connections(attrs, hold_inputs=True, hold_outputs=True):
 
     return result
 
+
 def fetch_connections(data):
     """
     Reconnect all attributes using returned data from the hold_connections function.
@@ -613,6 +651,7 @@ def fetch_connections(data):
     """
     for attr_src, attr_dst in data:
         pymel.connectAttr(attr_src, attr_dst)
+
 
 @contextmanager
 def context_disconnected_attrs(attrs, hold_inputs=True, hold_outputs=True):

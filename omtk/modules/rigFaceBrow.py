@@ -1,9 +1,9 @@
 import pymel.core as pymel
 from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libCtrlShapes
-from omtk.libs import libPymel
 from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
+
 
 class CtrlBrow(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
@@ -16,7 +16,7 @@ class FaceBrow(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     _CLS_CTRL = CtrlBrow
 
-    SHOW_IN_UI= True
+    SHOW_IN_UI = True
     IS_SIDE_SPECIFIC = False
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = False
@@ -48,6 +48,7 @@ class FaceBrow(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def get_default_name(self):
         return 'brow'
+
 
 def register_plugin():
     return FaceBrow

@@ -67,7 +67,6 @@ class PluginListModel(QtCore.QAbstractTableModel):
 
 
 class PluginListFilterProxyModel(QtCore.QSortFilterProxyModel):
-
     def __init__(self, parent):
         super(PluginListFilterProxyModel, self).__init__(parent)
         self._search_query = None
@@ -130,7 +129,10 @@ class PluginManagerWindow(QtWidgets.QMainWindow):
         query = self.ui.lineEdit_search.text()
         self._proxy_model.set_search_query(query)
 
+
 gui = PluginManagerWindow()
+
+
 def show():
     global gui
     gui.show()

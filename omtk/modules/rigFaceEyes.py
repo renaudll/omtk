@@ -5,34 +5,37 @@ from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libRigging
 
+
 class AvarEye(rigFaceAvar.AvarSimple):
     """
     Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
     """
     pass
 
-class CtrlEyes(BaseCtrl):
-    def __createNode__(self, width=1.0, height=1.0, normal=(0,0,1), *args, **kwargs):
-        p1 = [0, height, 0]
-        p2 = [width*0.5, height*0.95, 0]
-        p3 = [width, 0, 0]
-        p4 = [width*0.5, -height*0.95, 0]
-        p5 = [0, -height, 0]
-        p6 = [-width*0.5, -height*0.95, 0]
-        p7 = [-width, 0, 0]
-        p8 = [-width*0.5, height*0.95, 0]
 
-        node = pymel.curve(d=2, p=[p1, p2, p3, p4, p5, p6, p7, p8, p1] )
+class CtrlEyes(BaseCtrl):
+    def __createNode__(self, width=1.0, height=1.0, normal=(0, 0, 1), *args, **kwargs):
+        p1 = [0, height, 0]
+        p2 = [width * 0.5, height * 0.95, 0]
+        p3 = [width, 0, 0]
+        p4 = [width * 0.5, -height * 0.95, 0]
+        p5 = [0, -height, 0]
+        p6 = [-width * 0.5, -height * 0.95, 0]
+        p7 = [-width, 0, 0]
+        p8 = [-width * 0.5, height * 0.95, 0]
+
+        node = pymel.curve(d=2, p=[p1, p2, p3, p4, p5, p6, p7, p8, p1])
         return node
 
 
 class CtrlEye(BaseCtrl):
-    def __createNode__(self, normal=(0,0,1), *args, **kwargs):
+    def __createNode__(self, normal=(0, 0, 1), *args, **kwargs):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
 
 
 class BaseAvarCtrlModel(Module):
     _CLS_CTRL = BaseCtrl
+
     def __init__(self, *args, **kwargs):
         super(BaseAvarCtrlModel, self).__init__(*args, **kwargs)
         self.ctrl = None
@@ -99,7 +102,7 @@ class ModelLookAt(BaseAvarCtrlModel):
             jnt_pos.z + offset_z
         )
 
-    def build(self, avar, ref=None, ref_tm=None,  ctrl_tm=None, ctrl_size=1.0, **kwargs):
+    def build(self, avar, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
         super(ModelLookAt, self).build(avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig()
@@ -245,7 +248,8 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
         jnt_head = self.get_parent_obj()
-        self.ctrl_all.create_spaceswitch(self, jnt_head, add_local=True, local_label='Head', local_target=jnt_head, add_world=True)
+        self.ctrl_all.create_spaceswitch(self, jnt_head, add_local=True, local_label='Head', local_target=jnt_head,
+                                         add_world=True)
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 

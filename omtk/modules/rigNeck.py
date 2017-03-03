@@ -1,7 +1,7 @@
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
 from omtk.core.utils import decorator_uiexpose
-from omtk.libs import libPython
+
 
 class CtrlNeck(rigFK.CtrlFk):
     pass
@@ -24,7 +24,7 @@ class Neck(rigFK.FK):
 
     def build(self, *args, **kwargs):
         super(Neck, self).build(create_grp_rig=True, *args, **kwargs)
-        
+
         # Create twistbone system if needed
         if self.create_twist:
             jnt_s = self.jnt
@@ -43,7 +43,7 @@ class Neck(rigFK.FK):
     def unbuild(self):
         if self.sys_twist:
             self.sys_twist.unbuild()
-            
+
         super(Neck, self).unbuild()
 
     def validate(self):

@@ -1,4 +1,3 @@
-
 def get_all_QTreeWidgetItem(widget, qt_item=None):
     """
     Iterate through all items of a provided QTreeWidgetItem.

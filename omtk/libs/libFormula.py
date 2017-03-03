@@ -495,5 +495,3 @@ def _test_squash2(step_size=10):
         pymel.connectAttr(attSquash, cyl.sy)
         pymel.connectAttr(attSquash, cyl.sz)
     return True
-
-

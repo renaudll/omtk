@@ -27,13 +27,14 @@ class NonRollJoint(Node):
     """
     Used for quaternion extraction.
     """
+
     def build(self, extract_world_up, name=None, *args, **kwargs):
         super(NonRollJoint, self).build(name=name, *args, **kwargs)
 
         pymel.select(clear=True)
         self.start = pymel.joint()
         self.end = pymel.joint()
-        self.end.setTranslation([1,0,0])
+        self.end.setTranslation([1, 0, 0])
         pymel.makeIdentity((self.start, self.end), apply=True, r=True)
 
         self.ikHandle, ikEffector = pymel.ikHandle(
@@ -102,7 +103,8 @@ class Twistbone(Module):
         jnt_e = self.chain_jnt[1]
 
         nomenclature_rig = self.get_nomenclature_rig()
-        nomenclature_jnt = self.rig.nomenclature(jnt_s.stripNamespace().nodeName(), suffix=self.rig.nomenclature.type_jnt)  # Hack: find a better way!
+        nomenclature_jnt = self.rig.nomenclature(jnt_s.stripNamespace().nodeName(),
+                                                 suffix=self.rig.nomenclature.type_jnt)  # Hack: find a better way!
 
         scalable_grp = pymel.createNode('transform')
         scalable_grp.setParent(self.grp_rig)
@@ -127,7 +129,7 @@ class Twistbone(Module):
             ep = jnt_e.getTranslation(space='world')
             delta = ep - sp
             for i, subjnt in enumerate(self.subjnts):
-                ratio = float(i) / (num_subjnts-1)
+                ratio = float(i) / (num_subjnts - 1)
                 tm = base_tm.copy()
                 tm.translate = delta * ratio + sp
                 subjnt.setMatrix(tm, worldSpace=True)
@@ -171,7 +173,7 @@ class Twistbone(Module):
             driver_jnt_ref.setParent(driver_jnt)
             driver_jnt_ref.setMatrix(driver_jnt.getMatrix(worldSpace=True), worldSpace=True)
             driver_jnt_ref.rename(driver_name + '_ref')
-            driver_refs.append(driver_jnt_ref) # Keep them to connect the ref on the subjnts later
+            driver_refs.append(driver_jnt_ref)  # Keep them to connect the ref on the subjnts later
             if self.create_bend:
                 if i != 0 and i != (len(driverjnts) - 1):  # There will be no ctrl for the first and last twist jnt
                     ctrl_driver = pymel.createNode("transform")
@@ -185,8 +187,8 @@ class Twistbone(Module):
             pymel.pointConstraint(jnt_s, driverjnts[0], mo=False)
             pymel.pointConstraint(jnt_e, driverjnts[-1], mo=False)
 
-        mid_idx = math.ceil((self.num_twist/2.0))
-        before_mid_idx = math.floor((self.num_twist/2.0))
+        mid_idx = math.ceil((self.num_twist / 2.0))
+        before_mid_idx = math.floor((self.num_twist / 2.0))
         if self.create_bend:
             # Create Ribbon
             sys_ribbon = self.init_module(Ribbon, None, inputs=self.subjnts)
@@ -199,7 +201,8 @@ class Twistbone(Module):
                 # Aim constraint the driver to create the bend effect. Skip the middle one if it as one
                 # TODO - Find a best way to determine the side
                 aim_vec = [1.0, 0.0, 0.0] if nomenclature_rig.side == nomenclature_rig.SIDE_L else [-1.0, 0.0, 0.0]
-                aim_vec_inverse = [-1.0, 0.0, 0.0] if nomenclature_rig.side == nomenclature_rig.SIDE_L else [1.0, 0.0, 0.0]
+                aim_vec_inverse = [-1.0, 0.0, 0.0] if nomenclature_rig.side == nomenclature_rig.SIDE_L else [1.0, 0.0,
+                                                                                                             0.0]
                 if mid_idx != before_mid_idx and i == (mid_idx - 1):
                     continue
                 if i <= mid_idx - 1:
@@ -209,7 +212,7 @@ class Twistbone(Module):
                     pymel.aimConstraint(sys_ribbon._follicles[i - 1], driver,
                                         mo=False, wut=2, wuo=jnt_s, aim=aim_vec_inverse, u=[0.0, 1.0, 0.0])
             for ctrl, ref in zip(self.ctrls, ctrl_refs):
-                #libAttr.lock_hide_rotation(ctrl)
+                # libAttr.lock_hide_rotation(ctrl)
                 libAttr.lock_hide_scale(ctrl)
                 ctrl.setParent(self.grp_anm)
                 pymel.parentConstraint(ref, ctrl.offset, mo=True)
@@ -323,7 +326,8 @@ class Twistbone(Module):
             self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
             # Transfer weight, note that since we use force_straight line, the influence
             # don't necessaryy need to be in their bind pose.
-            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts, force_straight_line=True)
+            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts,
+                                                       force_straight_line=True)
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):
@@ -407,6 +411,7 @@ class Twistbone(Module):
             pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
             self.subjnts = None
         '''
+
 
 def register_plugin():
     return Twistbone

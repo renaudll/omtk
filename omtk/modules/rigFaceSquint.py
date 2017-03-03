@@ -5,9 +5,11 @@ from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 
+
 class CtrlSquint(rigFaceAvar.BaseCtrlFace):
     def __createNode__(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
+
 
 class FaceSquint(rigFaceAvarGrps.AvarGrpOnSurface):
     """
@@ -15,7 +17,7 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     _CLS_CTRL = CtrlSquint
     IS_SIDE_SPECIFIC = False
-    SHOW_IN_UI= True
+    SHOW_IN_UI = True
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = False
     CREATE_MACRO_AVAR_ALL = False
@@ -46,6 +48,7 @@ class FaceSquint(rigFaceAvarGrps.AvarGrpOnSurface):
         )
 
         super(FaceSquint, self)._create_avar_macro_r_ctrls(ctrl_tm=ctrl_tm)
+
 
 def register_plugin():
     return FaceSquint

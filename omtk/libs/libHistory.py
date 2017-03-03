@@ -9,11 +9,14 @@ import pymel.core as pymel
 
 from omtk.libs.libRigging import _filter_shape
 
+
 def _is_mesh(shape):
     return isinstance(shape, pymel.nodetypes.Mesh)
 
+
 def _is_surface(shape):
     return isinstance(shape, pymel.nodetypes.NurbsSurface)
+
 
 #
 # Utility functions that compliment pymel.listHistory.
@@ -45,21 +48,26 @@ def _iter_history(shape, key=None, fn_stop=None, stop_at_shape=False, **kwargs):
         if key and key(hist):
             yield hist
 
+
 def iter_history_foward(shape, **kwargs):
     for hist in _iter_history(shape, future=True, **kwargs):
         yield hist
+
 
 def iter_history_backward(shape, **kwargs):
     for hist in _iter_history(shape, **kwargs):
         yield hist
 
+
 def get_history_farthest_sibling(shape, **kwargs):
     i = iter_history_foward(shape, **kwargs)
     return next(reversed(list(i)), None)
 
+
 def get_history_previous_sibling(shape, **kwargs):
     i = iter_history_backward(shape, **kwargs)
     return next(i, None)
+
 
 #
 # Utility functions to resolve skinning shapes from influences.
@@ -86,11 +94,14 @@ def iter_affected_shapes(objs, key=None):
                         if key is None or key(geometry):
                             yield geometry
 
+
 def get_affected_shapes(objs, key=None):
     return list(iter_affected_shapes(objs, key=key))
 
+
 def get_affected_meshes(objs):
     return list(iter_affected_shapes(objs, key=_is_mesh))
+
 
 def get_affected_surface(objs):
     return list(iter_affected_shapes(objs, key=_is_surface))

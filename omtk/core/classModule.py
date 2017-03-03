@@ -7,8 +7,9 @@ logging.basicConfig()
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
+
 log = logging.getLogger('omtk')
-import functools
+
 
 class Module(object):
     """
@@ -309,7 +310,8 @@ class Module(object):
                     return jnt
 
         if strict:
-            self.warning("Cannot found a {0} influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+            self.warning(
+                "Cannot found a {0} influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
         return None
 
     @libPython.memoized_instancemethod
@@ -325,7 +327,8 @@ class Module(object):
 
         jnt_jaw = self.get_jaw_jnt()
         if jnt_jaw:
-            module_jaw = next(iter(module for module in self.rig.modules if isinstance(module, rigFaceJaw.FaceJaw) and jnt_jaw in module.input), None)
+            module_jaw = next(iter(module for module in self.rig.modules if
+                                   isinstance(module, rigFaceJaw.FaceJaw) and jnt_jaw in module.input), None)
 
         if module_jaw is None and strict:
             self.warning("Cannot found a {} module. Please create one!".format(rigFaceJaw.FaceJaw.__name__))
@@ -383,7 +386,8 @@ class Module(object):
 
         if input:
             if not isinstance(input, list):
-                raise IOError("Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
+                raise IOError(
+                    "Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
             self.input = input
         else:
             self.input = []
@@ -423,7 +427,8 @@ class Module(object):
         # Ensure that IF we have namespaces, they are the same for all inputs.
         namespaces = set(input.namespace() for input in self.input if input)
         if len(namespaces) > 1:
-            raise Exception("Found multiple namespaces for inputs: {0}".format(', '.join('"{0}"'.format(namespace) for namespace in namespaces)))
+            raise Exception("Found multiple namespaces for inputs: {0}".format(
+                ', '.join('"{0}"'.format(namespace) for namespace in namespaces)))
 
         return True
 
@@ -440,9 +445,11 @@ class Module(object):
         Check in maya the existence of the grp_anm and grp_rig properties.
         Returns: True if the rig think it have been built.
         """
-        return (self.grp_anm is not None and self.grp_anm.exists()) or (self.grp_rig is not None and self.grp_rig.exists())
+        return (self.grp_anm is not None and self.grp_anm.exists()) or (
+        self.grp_rig is not None and self.grp_rig.exists())
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, grp_anm_name=None, grp_rig_name=None, connect_global_scale=True, segmentScaleCompensate=None, parent=True):
+    def build(self, create_grp_anm=True, create_grp_rig=True, grp_anm_name=None, grp_rig_name=None,
+              connect_global_scale=True, segmentScaleCompensate=None, parent=True):
         """
         Build the module following the provided rig rules.
         :param create_grp_anm: If True, a group for all the animation controller will be created.
@@ -662,9 +669,3 @@ class Module(object):
             result.name = nomenclature.resolve()
 
         return result
-
-
-
-
-
-

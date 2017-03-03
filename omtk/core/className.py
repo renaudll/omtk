@@ -1,6 +1,7 @@
 from maya import cmds
 import copy
 
+
 # todo: make tokens, suffix, prefix and side private. Use getter and setter functions were necessary.
 # todo: in add_tokens, reconize what is a suffix and what is a prefix
 
@@ -174,8 +175,8 @@ class BaseName(object):
     def build_from_string(self, name):
         raw_tokens = self._get_tokens(name)
         self.tokens = []
-        #self.prefix = None
-        #self.suffix = None
+        # self.prefix = None
+        # self.suffix = None
         self.side = None
 
         self.add_tokens(*raw_tokens)
@@ -270,4 +271,5 @@ class BaseName(object):
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

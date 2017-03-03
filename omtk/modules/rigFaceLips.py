@@ -29,6 +29,7 @@ class SplitterNode(Node):
     This create an 'approximation' that might be wrong if some translation also occur in the jaw.
     todo: test with corrective jaw translation
     """
+
     def __init__(self):
         super(SplitterNode, self).__init__()  # useless
         self.attr_inn_jaw_pt = None
@@ -62,7 +63,8 @@ class SplitterNode(Node):
         self.attr_inn_bypass = libAttr.addAttr(grp_splitter_inn, 'innBypassAmount')
 
         # The arc length in world space of the surface controlling the follicles.
-        self.attr_inn_surface_range_v = libAttr.addAttr(grp_splitter_inn, 'innSurfaceRangeV')  # How many degree does take the jaw to create 1 unit of surface deformation? (ex: 20)
+        self.attr_inn_surface_range_v = libAttr.addAttr(grp_splitter_inn,
+                                                        'innSurfaceRangeV')  # How many degree does take the jaw to create 1 unit of surface deformation? (ex: 20)
 
         # How much inn percent is the lips following the jaw by default.
         # Note that this value is expected to change at the output of the SplitterNode (see attr_out_jaw_ratio)
@@ -78,7 +80,8 @@ class SplitterNode(Node):
 
         self.attr_out_surface_u = libAttr.addAttr(grp_splitter_out, 'outSurfaceU')
         self.attr_out_surface_v = libAttr.addAttr(grp_splitter_out, 'outSurfaceV')
-        self.attr_out_jaw_ratio = libAttr.addAttr(grp_splitter_out, 'outJawRatio')  # How much percent this influence follow the jaw after cancellation.
+        self.attr_out_jaw_ratio = libAttr.addAttr(grp_splitter_out,
+                                                  'outJawRatio')  # How much percent this influence follow the jaw after cancellation.
 
         #
         # Connect inn and out network nodes so they can easily be found from the SplitterNode.
@@ -249,7 +252,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # Define how many degree create the same deformation as the full surface V.
 
         # Define the length
-        
+
         # Define the length of worldspace length of the surface v arc.
         self._attr_surface_length_v = None
 
@@ -529,8 +532,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         #     kot=(2, 2, 2), pre='linear', pst='linear'
         # )
 
-
-    def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True):
+    def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True,
+                                       connect_fb=True):
         """
         Connect micro avars to horizontal macro avar. (avar_l and avar_r)
         This configure the avar_lr connection differently depending on the position of each micro avars.
@@ -564,13 +567,15 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 ratio = max(0, ratio)
                 ratio = min(ratio, 1)
 
-                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, avar_child.attr_lr,  kv=(-ratio,0.0,ratio))
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, avar_child.attr_lr,
+                                                            kv=(-ratio, 0.0, ratio))
 
     def _build_avar_macro_l(self):
         # Create left avar if necessary
         ref = self.get_jnt_l_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(), self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(),
+                                              self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
 
     def _connect_avar_macro_l(self):
         super(FaceLips, self)._connect_avar_macro_l()
@@ -581,10 +586,11 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
 
-    def _build_avar_macro_r(self):# Create right avar if necessary
+    def _build_avar_macro_r(self):  # Create right avar if necessary
         ref = self.get_jnt_r_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(), self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(),
+                                              self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
 
     def _connect_avar_macro_r(self):
         super(FaceLips, self)._connect_avar_macro_r()

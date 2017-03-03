@@ -406,7 +406,9 @@ class AutoRig(QtWidgets.QMainWindow):
         # Logger handling
         #
 
+
 gui = None
+
 
 def show():
     # Try to kill latest Autorig ui window

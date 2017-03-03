@@ -1,21 +1,24 @@
 from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
 from omtk.models import modelInteractiveCtrl
-from omtk.libs import libRigging
-import pymel.core as pymel
-from maya import cmds
+
 
 class CtrlNose(rigFaceAvar.CtrlFaceMicro):
     pass
+
 
 class ModelMicroAvarNose(modelInteractiveCtrl.ModelInteractiveCtrl):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
         if avar_tweak:
-            super(ModelMicroAvarNose, self).connect(avar,  avar_grp, ud=ud, fb=fb, lr=False, yw=False, pt=False, rl=False, sx=False, sy=False, sz=False)
-            super(ModelMicroAvarNose, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz)
+            super(ModelMicroAvarNose, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=False, yw=False, pt=False,
+                                                    rl=False, sx=False, sy=False, sz=False)
+            super(ModelMicroAvarNose, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=lr, yw=yw, pt=pt,
+                                                    rl=rl, sx=sx, sy=sy, sz=sz)
         else:
-            super(ModelMicroAvarNose, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz)
+            super(ModelMicroAvarNose, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx,
+                                                    sy=sy, sz=sz)
+
 
 class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
     """
@@ -25,8 +28,8 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
 
     Note that this was done reallllly quickly and cleanup may be needed in the future.
     """
-    #_DEFORMATION_ORDER = 'post'
-    #_CLS_AVAR = AvarJaw
+    # _DEFORMATION_ORDER = 'post'
+    # _CLS_AVAR = AvarJaw
     SHOW_IN_UI = True
     IS_SIDE_SPECIFIC = False
     _CLS_CTRL = CtrlNose

@@ -14,6 +14,7 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs import libHistory
+
 log = logging.getLogger('omtk')
 
 
@@ -21,6 +22,7 @@ class CtrlRoot(BaseCtrl):
     """
     The main ctrl. Support global uniform scaling only.
     """
+
     def __init__(self, *args, **kwargs):
         super(CtrlRoot, self).__init__(create_offset=False, *args, **kwargs)
 
@@ -32,7 +34,7 @@ class CtrlRoot(BaseCtrl):
         node = pymel.circle(*args, **kwargs)[0]
         make = node.getShape().create.inputs()[0]
         make.radius.set(size)
-        make.normal.set((0,1,0))
+        make.normal.set((0, 1, 0))
 
         return node
 
@@ -46,7 +48,6 @@ class CtrlRoot(BaseCtrl):
             pymel.connectAttr(self.node.globalScale, self.node.sy)
             pymel.connectAttr(self.node.globalScale, self.node.sz)
             self.node.s.set(lock=True, channelBox=False)
-
 
     @staticmethod
     def _get_recommended_radius(rig, min_size=1.0):
@@ -69,10 +70,12 @@ class CtrlRoot(BaseCtrl):
             z_max - z_min
         ) / 2.0
 
+
 class RigGrp(Node):
     """
     Simple Node re-implementation that throw whatever was parented to it outside before un-building and re-parent them after building.
     """
+
     # def __init__(self, *args, **kwargs):
     #     self.extra = None  # Holder for any nodes that were parented to the group when un-building.
     #     super(RigGrp, self).__init__(*args, **kwargs)
@@ -94,7 +97,7 @@ class RigGrp(Node):
             if not keep_if_children:
                 children = self.node.getChildren()
                 if children:
-                    #self.extra = children
+                    # self.extra = children
                     for child in children:
                         pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
                         child.setParent(world=True)
@@ -133,7 +136,7 @@ class Rig(object):
         self.grp_jnt = None  # Joint grp, usually the root jnt
         self.grp_rig = None  # Data grp
         self.grp_master = None  # Main grp of the rig
-        self.grp_backup = None # Backup grp, contain anything we saved during unbuild.
+        self.grp_backup = None  # Backup grp, contain anything we saved during unbuild.
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
@@ -200,7 +203,7 @@ class Rig(object):
 
     def insert(self, index, value):
         self.modules.insert(index, value)
-        value._parent = self # Store the parent for optimized network serialization (see libs.libSerialization)
+        value._parent = self  # Store the parent for optimized network serialization (see libs.libSerialization)
 
     def __iter__(self):
         return iter(self.modules)
@@ -228,7 +231,6 @@ class Rig(object):
             self.modules = filter(None, self.modules)
         except (AttributeError, TypeError):
             pass
-
 
     #
     # Main implementation
@@ -387,7 +389,7 @@ class Rig(object):
 
         # Any mesh that is used as an input in a module is used for rigging.
         if mesh in self._get_all_input_shapes():
-                return False
+            return False
 
         return True
 
@@ -558,7 +560,6 @@ class Rig(object):
             grp_anim_size = CtrlRoot._get_recommended_radius(self)
             self.grp_anm = self.build_grp(CtrlRoot, self.grp_anm, self.nomenclature.root_anm_name, size=grp_anim_size)
 
-
         # Create grp_rig
         if create_grp_rig:
             self.grp_rig = self.build_grp(RigGrp, self.grp_rig, self.nomenclature.root_rig_name)
@@ -567,13 +568,13 @@ class Rig(object):
         if create_grp_geo:
             all_geos = libPymel.ls_root_geos()
             self.grp_geo = self.build_grp(RigGrp, self.grp_geo, self.nomenclature.root_geo_name)
-            #if all_geos:
+            # if all_geos:
             #    all_geos.setParent(self.grp_geo)
 
         if create_grp_backup:
             self.grp_backup = self.build_grp(RigGrp, self.grp_backup, self.nomenclature.root_backup_name)
 
-        #Parent all grp on the master grp
+        # Parent all grp on the master grp
         if self.grp_master:
             if self.grp_jnt:
                 self.grp_jnt.setParent(self.grp_master.node)
@@ -715,7 +716,7 @@ class Rig(object):
                         self.warning("Can't build {0}: {1}".format(module, e))
                         if strict:
                             traceback.print_exc()
-                            raise(e)
+                            raise (e)
                         continue
 
                 if not module.locked:
@@ -724,13 +725,14 @@ class Rig(object):
                         module_namespace = module.get_inputs_namespace()
                         module_namespace = module_namespace or ':'
                         if module_namespace != current_namespace:
-                            cmds.namespace(setNamespace=':'+module_namespace)
+                            cmds.namespace(setNamespace=':' + module_namespace)
                             current_namespace = module_namespace
 
                         module.build(**kwargs)
                         self.post_build_module(module)
                     except Exception, e:
-                        self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
+                        self.error(
+                            "Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                         traceback.print_exc()
                         if strict:
                             raise
@@ -741,7 +743,8 @@ class Rig(object):
         # Connect global scale to jnt root
         if self.grp_anm:
             if self.grp_jnt:
-                pymel.delete([module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
+                pymel.delete(
+                    [module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
                 pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
@@ -817,10 +820,12 @@ class Rig(object):
             # In that situation we'll unparent the module grp_anm and grp_rig node.
             if module.locked:
                 if module.grp_anm and module.grp_anm.exists() and module.grp_anm.getParent() == self.grp_anm.node:
-                    pymel.warning("Ejecting {0} from {1} before deletion".format(module.grp_anm.name(), self.grp_anm.name()))
+                    pymel.warning(
+                        "Ejecting {0} from {1} before deletion".format(module.grp_anm.name(), self.grp_anm.name()))
                     module.grp_anm.setParent(world=True)
                 if module.grp_rig and module.grp_rig.exists() and module.grp_rig.getParent() == self.grp_rig.node:
-                    pymel.warning("Ejecting {0} from {1} before deletion".format(module.grp_rig.name(), self.grp_rig.name()))
+                    pymel.warning(
+                        "Ejecting {0} from {1} before deletion".format(module.grp_rig.name(), self.grp_rig.name()))
                     module.grp_rig.setParent(world=True)
             else:
                 try:
@@ -829,7 +834,7 @@ class Rig(object):
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                     traceback.print_exc()
                     if strict:
-                        raise(e)
+                        raise (e)
 
     def _unbuild_nodes(self):
         # Delete anm_grp
@@ -849,7 +854,7 @@ class Rig(object):
         self._unbuild_nodes()
 
         # Remove any references to missing pynodes
-        #HACK --> Remove clean invalid PyNode
+        # HACK --> Remove clean invalid PyNode
         self._clean_invalid_pynodes()
         if self.modules is None:
             self.modules = []
@@ -950,8 +955,8 @@ class Rig(object):
 
         # Resolve the top of the head location
         bot = pymel.datatypes.Point(ref_tm.translate)
-        #dir = pymel.datatypes.Point(1,0,0) * ref_tm
-        #dir = dir.normal()
+        # dir = pymel.datatypes.Point(1,0,0) * ref_tm
+        # dir = dir.normal()
         # This is strange but not pointing to the world sometime don't work...
         # TODO: FIX ME
         dir = pymel.datatypes.Point(0, 1, 0)

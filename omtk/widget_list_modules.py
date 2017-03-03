@@ -54,7 +54,6 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.customContextMenuRequested.connect(self.on_context_menu_request)
         self.ui.btn_update.pressed.connect(self.update)
 
-
     def set_rigs(self, rig, update=True):
         self._rigs = rig
         self._rig = next(iter(self._rigs), None)
@@ -152,7 +151,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 raise Exception("Unexpected datatype {0} for {1}".format(type(data), data))
         except Exception, e:
             if verbose:
-                validate_message  = str(e)
+                validate_message = str(e)
                 pymel.warning("{0} failed validation: {1}".format(data, str(e)))
             return False, validate_message
         return True, validate_message
@@ -360,9 +359,9 @@ class WidgetListModules(QtWidgets.QWidget):
                 name_attr.set(new_text)
                 print 'new name is', new_text
 
-        # Ensure to only refresh the UI and not recreate all
-        # if need_update:
-        #     self.refresh_ui()
+                # Ensure to only refresh the UI and not recreate all
+                # if need_update:
+                #     self.refresh_ui()
 
     def on_module_query_changed(self, *args, **kwargs):
         self._refresh_ui_modules_visibility()

@@ -112,7 +112,7 @@ class Limb(Module):
                 sys_twist = self.init_module(
                     self._CLASS_SYS_TWIST,
                     sys_twist,
-                    inputs=self.chain_jnt[i:(i+2)],
+                    inputs=self.chain_jnt[i:(i + 2)],
                     # suffix='bend'
                 )
                 self.sys_twist[i] = sys_twist
@@ -128,12 +128,14 @@ class Limb(Module):
 
         # Store the offset between the ik ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
-        self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
+        self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.iCtrlIndex].getMatrix(
+            worldSpace=True).inverse()
 
         # Add attributes to the attribute holder.
         # Add ikFk state attribute on the grp_rig.
         # This is currently controlled by self.ctrl_attrs.
-        pymel.addAttr(self.grp_rig, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
+        pymel.addAttr(self.grp_rig, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0,
+                      maxValue=1, defaultValue=1, k=True)
         attr_ik_weight = self.grp_rig.attr(self.kAttrName_State)
         attr_fk_weight = libRigging.create_utility_node('reverse', inputX=attr_ik_weight).outputX
 
@@ -147,7 +149,8 @@ class Limb(Module):
         self.ctrl_attrs.setParent(self.grp_anm)
         pymel.parentConstraint(jnt_hand, self.ctrl_attrs.offset)
 
-        pymel.addAttr(self.ctrl_attrs, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1, k=True)
+        pymel.addAttr(self.ctrl_attrs, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0,
+                      maxValue=1, defaultValue=1, k=True)
         pymel.connectAttr(self.ctrl_attrs.attr(self.kAttrName_State), self.grp_rig.attr(self.kAttrName_State))
 
         # Create a chain for blending ikChain and fkChain
@@ -193,9 +196,9 @@ class Limb(Module):
             self.ctrl_elbow.setParent(self.grp_anm)
             pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
             pymel.pointConstraint(chain_blend[0], chain_elbow[0], maintainOffset=False)
-            pymel.aimConstraint(self.ctrl_elbow, chain_elbow[i-1], worldUpType=2,
-                                worldUpObject=chain_blend[i-1])  # Object Rotation Up
-            pymel.aimConstraint(chain_blend[i+1], chain_elbow[i], worldUpType=2,
+            pymel.aimConstraint(self.ctrl_elbow, chain_elbow[i - 1], worldUpType=2,
+                                worldUpObject=chain_blend[i - 1])  # Object Rotation Up
+            pymel.aimConstraint(chain_blend[i + 1], chain_elbow[i], worldUpType=2,
                                 worldUpObject=chain_blend[i])  # Object Rotation Up
             pymel.pointConstraint(self.ctrl_elbow, chain_elbow[i], maintainOffset=False)
         # Constraint the last elbow joint on the blend joint at the ctrl index
@@ -258,7 +261,7 @@ class Limb(Module):
         self.sysIK.ctrl_ik.node.setMatrix(self.offset_ctrl_ik * ctrl_ik_tm, worldSpace=True)
 
         # Position swivel
-        #pos_ref = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
+        # pos_ref = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
         pos_s = self.sysFK.ctrls[0].getTranslation(space='world')
         pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
         pos_e = self.sysFK.ctrls[self.sysIK.iCtrlIndex].getTranslation(space='world')
@@ -312,6 +315,7 @@ class Limb(Module):
         for module in self.sys_twist:
             if isinstance(module, self._CLASS_SYS_TWIST):
                 module.unassign_twist_weights()
+
 
 def register_plugin():
     return Limb

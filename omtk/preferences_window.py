@@ -24,7 +24,7 @@ class PreferencesWindow(QtWidgets.QDialog):
 
         default_rig_type_name = preferences.preferences.get_default_rig_class().__name__
         if default_rig_type_name in rig_plugins_names:
-            self.ui.comboBox.setCurrentIndex(rig_plugins_names.index(default_rig_type_name)+1)
+            self.ui.comboBox.setCurrentIndex(rig_plugins_names.index(default_rig_type_name) + 1)
 
         # Connect events
         self.ui.comboBox.currentIndexChanged.connect(self.on_default_rig_changed)
@@ -33,12 +33,14 @@ class PreferencesWindow(QtWidgets.QDialog):
         if index == 0:
             preferences.preferences.default_rig = None
         else:
-            preferences.preferences.default_rig = self.rig_plugins[index-1].cls.__name__
+            preferences.preferences.default_rig = self.rig_plugins[index - 1].cls.__name__
 
         preferences.preferences.save()
 
 
 gui = PreferencesWindow()
+
+
 def show():
     global gui
     gui.show()

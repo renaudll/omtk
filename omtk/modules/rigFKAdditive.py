@@ -8,6 +8,7 @@ from omtk.libs import libCtrlShapes
 from omtk.libs import libPython
 from omtk.modules import rigFK
 
+
 class CtrlFkAdd(BaseCtrl):
     def __createNode__(self, size=None, refs=None, *args, **kwargs):
         # Resolve size automatically if refs are provided.
@@ -44,12 +45,12 @@ class AdditiveFK(rigFK.FK):
         else:
             normal_data = {constants.Axis.x: (-1, 0, 0), constants.Axis.y: (0, -1, 0), constants.Axis.z: (0, 0, -1)}
 
-
         self.additive_ctrls = filter(None, self.additive_ctrls)
         if not self.additive_ctrls:
             ctrl_add = CtrlFkAdd()
             self.additive_ctrls.append(ctrl_add)
-        #HACK - Temp since we don't support multiple ctrl for the moment
+
+        # HACK - Temp since we don't support multiple ctrl for the moment
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             # Resolve ctrl name
@@ -64,7 +65,7 @@ class AdditiveFK(rigFK.FK):
             ctrl.setParent(self.grp_anm)
 
         for i, ctrl in enumerate(self.ctrls):
-            #HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems
+            # HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems
             if i == 0:
                 ctrl.offset = ctrl.append_layer("gimbal")
             attr_rotate_x = libRigging.create_utility_node('addDoubleLinear',
@@ -91,6 +92,7 @@ class AdditiveFK(rigFK.FK):
             yield ctrl
         for ctrl in self.additive_ctrls:
             yield ctrl
+
 
 def register_plugin():
     return AdditiveFK

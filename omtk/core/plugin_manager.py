@@ -11,10 +11,12 @@ from omtk.libs import libPython
 
 log = logging.getLogger('omtk')
 
+
 class PluginStatus:
     Loaded = 'Loaded'
     Unloaded = 'Unloaded'
     Failed = 'Failed'
+
 
 class Plugin(object):
     root_package_name = 'omtk'
@@ -121,6 +123,7 @@ class Plugin(object):
     def __repr__(self):
         return '<Plugin "{0}">'.format(self.module_name)
 
+
 class PluginType(object):
     type_name = None
 
@@ -135,7 +138,7 @@ class PluginType(object):
 
         root_package_name = 'omtk'
         package_name = root_package_name + '.' + self.type_name
-        #log.debug("Checking {0}".format(package_name))
+        # log.debug("Checking {0}".format(package_name))
 
         # Prevent reloading (for now)
         package = sys.modules.get(package_name, None)
@@ -143,9 +146,10 @@ class PluginType(object):
             package = pkgutil.get_loader(package_name).load_module(package_name)
 
         for loader, modname, ispkg in pkgutil.walk_packages(package.__path__):
-            #log.debug("Found plugin {0}".format(modname))
+            # log.debug("Found plugin {0}".format(modname))
             plugin = Plugin.from_module(modname, self.type_name)
             self._plugins.append(plugin)
+
 
 class PluginManager(object):
     def __init__(self):
@@ -170,6 +174,7 @@ class PluginManager(object):
     def iter_loaded_plugins_by_type(self, type_name):
         def fn_filter(plugin):
             return plugin.status == PluginStatus.Loaded and plugin.type_name == type_name
+
         for plugin in self.iter_plugins(key=fn_filter):
             yield plugin
 
@@ -179,6 +184,7 @@ class PluginManager(object):
     def iter_plugins_by_status(self, status):
         def fn_filter(plugin):
             return plugin.status == status
+
         for plugin in self.iter_plugins(key=fn_filter):
             yield plugin
 
@@ -195,7 +201,7 @@ class PluginManager(object):
             if cur_plugin is plugin:
                 continue
             if cur_plugin in plugin:
-                yield(cur_plugin)
+                yield (cur_plugin)
 
     def _get_dependent_plugins(self, plugin):
         return list(self._iter_dependent_plugins(plugin))
@@ -265,7 +271,8 @@ class PluginManager(object):
             column_widths.append(width)
 
         # Print rows
-        format_str = '| {0} |'.format(' | '.join('{{{0}:{1}}}'.format(i, width) for i, width in enumerate(column_widths)))
+        format_str = '| {0} |'.format(
+            ' | '.join('{{{0}:{1}}}'.format(i, width) for i, width in enumerate(column_widths)))
         print(format_str.format(*header_row))
         for row in rows:
             print(format_str.format(*row))
@@ -274,8 +281,10 @@ class PluginManager(object):
 class ModulePluginType(PluginType):
     type_name = 'modules'
 
+
 class RigPluginType(PluginType):
     type_name = 'rigs'
+
 
 # class UnitTestPluginType(PluginType):
 #     type_name = 'tests'
@@ -292,7 +301,8 @@ def initialize():
     pm = PluginManager()
     pm.register_plugin_type(ModulePluginType)
     pm.register_plugin_type(RigPluginType)
-    #pm.register_plugin_type(UnitTestPluginType)
+    # pm.register_plugin_type(UnitTestPluginType)
     return pm
+
 
 plugin_manager = initialize()

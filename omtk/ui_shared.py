@@ -14,50 +14,51 @@ class MetadataType:
     Influece = 2
     Mesh = 3
 
+
 # http://forums.cgsociety.org/archive/index.php?t-1096914.html
 # Use the intern maya ressources icon
 _STYLE_SHEET = \
-"""
+    """
 
-  QTreeView::item::selected
-  {
-     background-color: highlight;
-     color: rgb(40,40,40);
-  }
+      QTreeView::item::selected
+      {
+         background-color: highlight;
+         color: rgb(40,40,40);
+      }
 
-  QTreeView::branch
-  {
-       selection-background-color: highlight;
-       background-color: rgb(45,45,45);
-   }
+      QTreeView::branch
+      {
+           selection-background-color: highlight;
+           background-color: rgb(45,45,45);
+       }
 
-    QTreeView::branch:has-children:!has-siblings:closed,
-    QTreeView::branch:closed:has-children:has-siblings
-    {
-            border-image: none;
-            image: url(:/openObject.png);
-    }
+        QTreeView::branch:has-children:!has-siblings:closed,
+        QTreeView::branch:closed:has-children:has-siblings
+        {
+                border-image: none;
+                image: url(:/openObject.png);
+        }
 
-    QTreeView::branch:open:has-children:!has-siblings,
-    QTreeView::branch:open:has-children:has-siblings
-    {
-            border-image: none;
-            image: url(:/closeObject.png);
-    }
+        QTreeView::branch:open:has-children:!has-siblings,
+        QTreeView::branch:open:has-children:has-siblings
+        {
+                border-image: none;
+                image: url(:/closeObject.png);
+        }
 
-    QTreeView::indicator:checked
-    {
-        image: url(:/checkboxOn.png);
-    }
+        QTreeView::indicator:checked
+        {
+            image: url(:/checkboxOn.png);
+        }
 
-    QTreeView::indicator:unchecked
-    {
-        image: url(:/checkboxOff.png);
-    }
-"""
+        QTreeView::indicator:unchecked
+        {
+            image: url(:/checkboxOff.png);
+        }
+    """
 
 
-def _set_icon_from_type( obj, qItem):
+def _set_icon_from_type(obj, qItem):
     if isinstance(obj, pymel.nodetypes.Joint):
         qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
     elif isinstance(obj, pymel.nodetypes.Transform):

@@ -326,7 +326,7 @@ class InteractiveFKLayer(ModuleMap):
         for i, (jnt, model) in enumerate(zip(self.jnts, self.models)):
             # Resolve ctrl name.
             if self._NAME_CTRL_ENUMERATE:
-                ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(i+1))
+                ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(i + 1))
             else:
                 nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace().nodeName())
                 ctrl_name = nomenclature.resolve()
@@ -505,7 +505,8 @@ class InteractiveFK(Module):
         # Ensure there's no useless surface in the inputs.
         unassigned_surfaces = self._get_unassigned_surfaces()
         if unassigned_surfaces:
-            raise Exception("Useless surface(s) found: {}".format(', '.join((surface.name() for surface in unassigned_surfaces))))
+            raise Exception(
+                "Useless surface(s) found: {}".format(', '.join((surface.name() for surface in unassigned_surfaces))))
 
         # todo: Ensure all surface have an identity matrix
         attr_to_check = {
@@ -524,16 +525,18 @@ class InteractiveFK(Module):
                 attr = surface.attr(attr_name)
                 attr_val = attr.get()
                 if abs(attr_val - desired_val) > epsilon:
-                    raise Exception("Surface {} have invalid transform! Expected {} for {}, got {}.".format(surface, desired_val, attr_name, attr_val))
+                    raise Exception(
+                        "Surface {} have invalid transform! Expected {} for {}, got {}.".format(surface, desired_val,
+                                                                                                attr_name, attr_val))
 
-        # Ensure all provided surfaces have the same cv count.
-        # num_cvs = None
-        # for surface in surfaces:
-        #     cur_num_cvs = len(surface.cv)
-        #     if num_cvs is None:
-        #         num_cvs = cur_num_cvs
-        #     elif cur_num_cvs != num_cvs:
-        #         raise Exception("Not all input NurbsSurface have the same cv count!")
+                    # Ensure all provided surfaces have the same cv count.
+                    # num_cvs = None
+                    # for surface in surfaces:
+                    #     cur_num_cvs = len(surface.cv)
+                    #     if num_cvs is None:
+                    #         num_cvs = cur_num_cvs
+                    #     elif cur_num_cvs != num_cvs:
+                    #         raise Exception("Not all input NurbsSurface have the same cv count!")
 
     @libPython.memoized_instancemethod
     def get_influences_by_surfaces(self):
@@ -550,7 +553,8 @@ class InteractiveFK(Module):
         surfaces = self.get_surfaces()
 
         # Ensure we are working directly with shapes.
-        surfaces = [surface.getShape(noIntermediate=True) if isinstance(surface, pymel.nodetypes.Transform) else surface for surface in surfaces]
+        surfaces = [surface.getShape(noIntermediate=True) if isinstance(surface, pymel.nodetypes.Transform) else surface
+                    for surface in surfaces]
 
         # Sort the surface by their construction history.
         # If the surface are already blendshaped toguether, this will work.
@@ -565,6 +569,7 @@ class InteractiveFK(Module):
             # We might get lucky and have correctly named objects like layer0, layer1, etc.
             self.warning("Saw no relationship between {} and {}. Will sort them by name.".format(obj_a, obj_b))
             return cmp(obj_a.name(), obj_b.name())
+
         surfaces = sorted(surfaces, cmp=_fn_compare)
 
         for surface in surfaces:
@@ -616,19 +621,20 @@ class InteractiveFK(Module):
         """
         for u_index in range(num_u):
             if num_u > 1:
-                ratio = (u_index / float(num_u-1))
+                ratio = (u_index / float(num_u - 1))
                 u = libRigging.interp_linear(ratio, min_u, max_u)
             else:
                 u = 0.5
             for v_index in range(num_v):
                 if num_v > 1:
-                    ratio = (v_index / float(num_v-1))
+                    ratio = (v_index / float(num_v - 1))
                     v = libRigging.interp_linear(ratio, min_v, max_v)
                 else:
                     v = 0.5
                 yield u_index, v_index, u, v
 
-    def create_layer_from_surface(self, num_u=3, num_v=1, min_u=0.0, max_u=1.0, min_v=0.0, max_v=1.0, format_str='U{:02d}V{:02d}', cls_ctrl=None, suffix=None):
+    def create_layer_from_surface(self, num_u=3, num_v=1, min_u=0.0, max_u=1.0, min_v=0.0, max_v=1.0,
+                                  format_str='U{:02d}V{:02d}', cls_ctrl=None, suffix=None):
         """
         Create a new layer module by duplicating the reference surface and generating influences using predefined rules.
         Note that this does not add it to the layer stack.
@@ -651,7 +657,8 @@ class InteractiveFK(Module):
         )
 
         jnts = []
-        for u_index, v_index, u_coord, v_coord in self.iter_uvs(num_u, num_v, min_u=min_u, max_u=max_u, min_v=min_v, max_v=max_v):
+        for u_index, v_index, u_coord, v_coord in self.iter_uvs(num_u, num_v, min_u=min_u, max_u=max_u, min_v=min_v,
+                                                                max_v=max_v):
             pos = libRigging.get_point_on_surface_from_uv(surface, u_coord, v_coord)
             jnt = pymel.createNode(
                 'joint',
@@ -692,19 +699,21 @@ class InteractiveFK(Module):
         for i, sub_data in enumerate(data):
             self.debug('Creating layer {} using {}'.format(i + 1, sub_data))
             surface, influences = sub_data
-            self.layers[i] = self.init_layer(self.layers[i], inputs=[surface] + influences, suffix='layer{}'.format(i + 1))
+            self.layers[i] = self.init_layer(self.layers[i], inputs=[surface] + influences,
+                                             suffix='layer{}'.format(i + 1))
 
     def _build_layers(self, ctrl_size_max=None, ctrl_size_min=None):
         layers = self.layers
         num_layers = len(layers)
 
         for i in range(num_layers):
-            prev_layer = layers[i-1] if i > 0 else None
+            prev_layer = layers[i - 1] if i > 0 else None
             curr_layer = layers[i]
 
             # Define desired ctrl size
             ratio = float(i) / (num_layers - 1) if num_layers > 1 else 1
-            ctrl_size = libRigging.interp_linear(ratio, ctrl_size_max, ctrl_size_min) if ctrl_size_max and ctrl_size_min else None
+            ctrl_size = libRigging.interp_linear(ratio, ctrl_size_max,
+                                                 ctrl_size_min) if ctrl_size_max and ctrl_size_min else None
 
             shape = prev_layer.get_surface() if prev_layer else None
             shape_skinned = curr_layer.get_surface()

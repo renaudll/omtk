@@ -41,11 +41,11 @@ class CtrlFaceMicro(BaseCtrlFace):
         node = super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
 
         # Lock the Z axis to prevent the animator to affect it accidentaly using the transform gizmo.
-        #node.translateZ.lock()
+        # node.translateZ.lock()
 
         return node
 
-    # TODO: Disable hold shapes for now
+        # TODO: Disable hold shapes for now
 
 
 class CtrlFaceMacro(BaseCtrlFace):
@@ -179,7 +179,7 @@ class AbstractAvar(classModule.Module):
                 self.debug("Cannot hold missing attribute {0} in {1}".format(attr_name, self.grp_rig))
                 continue
 
-            #attr_name = attr.longName()
+            # attr_name = attr.longName()
             attr_src = self.grp_rig.attr(attr_name)
             attr_dst = self.avar_network.attr(attr_name)
             # libAttr.transfer_connections(attr_src, attr_dst)
@@ -221,6 +221,7 @@ class AbstractAvar(classModule.Module):
         super(AbstractAvar, self).unbuild()
 
         # TODO: cleanup junk connections that Maya didn't delete by itself?
+
     #
     # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
     #
@@ -274,7 +275,7 @@ class AbstractAvar(classModule.Module):
         bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type='bend')
         bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type='bend')
 
-        plane_transform.r.set(0,-90,0)
+        plane_transform.r.set(0, -90, 0)
         bend_side_handle.r.set(90, 90, 0)
         bend_upp_handle.r.set(180, 90, 0)
         bend_low_handle.r.set(180, 90, 0)
@@ -314,18 +315,18 @@ class AbstractAvar(classModule.Module):
         root.setTranslation(pos)
 
         # Try to guess the scale
-        length_x = max_x-min_x
+        length_x = max_x - min_x
         if len(self.jnts) <= 1 or length_x < epsilon:
             log.debug("Cannot automatically resolve scale for surface. Using default value {0}".format(default_scale))
             length_x = default_scale
 
         root.scaleX.set(length_x)
-        root.scaleY.set(length_x*0.5)
+        root.scaleY.set(length_x * 0.5)
         root.scaleZ.set(length_x)
 
         pymel.select(root)
 
-        #self.input.append(plane_transform)
+        # self.input.append(plane_transform)
 
         return plane_transform
 
@@ -340,7 +341,7 @@ class AbstractAvar(classModule.Module):
 
     def build_stack(self, stack, **kwargs):
         pass
-        #raise NotImplementedError
+        # raise NotImplementedError
 
     #
     # Ctrl connection
@@ -380,7 +381,6 @@ class AvarSimple(AbstractAvar):
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
 
-
         self._stack = None
         self._grp_offset = None
         self._grp_parent = None
@@ -408,7 +408,8 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, constraint=True, ctrl_size=1.0, ctrl_tm=None, jnt_tm=None, obj_mesh=None,  follow_mesh=True, **kwargs):
+    def build(self, constraint=True, ctrl_size=1.0, ctrl_tm=None, jnt_tm=None, obj_mesh=None, follow_mesh=True,
+              **kwargs):
         """
         :param constraint:
         :param ctrl_size: DEPRECATED, PLEASE MOVE TO ._create_ctrl
@@ -444,7 +445,7 @@ class AvarSimple(AbstractAvar):
         self._grp_offset = pymel.createNode('transform', name=grp_offset_name)
         self._grp_offset.rename(grp_offset_name)
         self._grp_offset.setParent(self.grp_rig)
-        #layer_offset.setMatrix(jnt_tm)
+        # layer_offset.setMatrix(jnt_tm)
 
         # Create a parent layer for constraining.
         # Do not use dual constraint here since it can result in flipping issues.
@@ -464,7 +465,7 @@ class AvarSimple(AbstractAvar):
 
         # Take the result of the stack and add it on top of the bind-pose and parent group.
         grp_output_name = nomenclature_rig.resolve('output')
-        self._grp_output = pymel.createNode('transform', name=grp_output_name )
+        self._grp_output = pymel.createNode('transform', name=grp_output_name)
         self._grp_output.setParent(self._grp_parent)
 
         attr_get_stack_local_tm = libRigging.create_utility_node(
@@ -521,7 +522,8 @@ class AvarSimple(AbstractAvar):
 
         return result
 
-    def create_ctrl(self, parent, ctrl_size=1.0, parent_pos=None, parent_rot=None, parent_scl=None, connect=True, ctrl_tm=None, **kwargs):
+    def create_ctrl(self, parent, ctrl_size=1.0, parent_pos=None, parent_rot=None, parent_scl=None, connect=True,
+                    ctrl_tm=None, **kwargs):
         """
         An Avar is not made to contain a ctrl necessary.
         However you can run this function to create a ctrl using a provided model.
@@ -545,7 +547,7 @@ class AvarSimple(AbstractAvar):
                 self.ctrl = self._CLS_CTRL()
             self.ctrl.build(size=ctrl_size)
 
-            ctrl_name= self.get_nomenclature_anm().resolve()
+            ctrl_name = self.get_nomenclature_anm().resolve()
             self.ctrl.rename(ctrl_name)
 
             if ctrl_tm:
@@ -570,7 +572,8 @@ class AvarSimple(AbstractAvar):
                     parent_pos=parent_pos,
                     parent_rot=parent_rot,
                     parent_scl=parent_scl,
-                    grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlModel'),  # prevent name collision on rig grp
+                    grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlModel'),
+                    # prevent name collision on rig grp
                     **kwargs
                 )
 
@@ -594,7 +597,6 @@ class AvarSimple(AbstractAvar):
             # self.connect_ctrl(self.ctrl)
             if connect:
                 self.model_ctrl.connect(self, parent)
-
 
     def calibrate(self, **kwargs):
         """
@@ -623,7 +625,7 @@ class AvarFollicle(AvarSimple):
     A deformation point on the face that move accordingly to nurbsSurface.
     """
     SHOW_IN_UI = False
-    #_CLS_CTRL_MICRO = CtrlFaceMicro
+    # _CLS_CTRL_MICRO = CtrlFaceMicro
 
     _ATTR_NAME_U_BASE = 'baseU'
     _ATTR_NAME_V_BASE = 'baseV'
@@ -641,7 +643,7 @@ class AvarFollicle(AvarSimple):
         self.attr_multiplier_lr = None
         self.attr_multiplier_ud = None
         self.attr_multiplier_fb = None
-        #self.ctrl_micro = None
+        # self.ctrl_micro = None
 
         # TODO: Move to build, we don't want 1000 member properties.
         self._attr_length_v = None
@@ -752,8 +754,10 @@ class AvarFollicle(AvarSimple):
         attr_base_u_normalized = util_get_base_uv_normalized.outValueX
         attr_base_v_normalized = util_get_base_uv_normalized.outValueY
 
-        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE, defaultValue=attr_base_u_normalized.get())
-        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE, defaultValue=attr_base_v_normalized.get())
+        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE,
+                                            defaultValue=attr_base_u_normalized.get())
+        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE,
+                                            defaultValue=attr_base_v_normalized.get())
 
         pymel.connectAttr(attr_base_u_normalized, self.grp_rig.attr(self._ATTR_NAME_U_BASE))
         pymel.connectAttr(attr_base_v_normalized, self.grp_rig.attr(self._ATTR_NAME_V_BASE))
@@ -772,7 +776,8 @@ class AvarFollicle(AvarSimple):
         base_v_val = self._attr_v_base.get()
 
         # Resolve the length of each axis of the surface
-        self._attr_length_u, self._attr_length_v, arcdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(self.surface)
+        self._attr_length_u, self._attr_length_v, arcdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(
+            self.surface)
         arcdimension_transform = arcdimension_shape.getParent()
         arcdimension_transform.rename(nomenclature_rig.resolve('arcdimension'))
         arcdimension_transform.setParent(self.grp_rig)
@@ -847,9 +852,12 @@ class AvarFollicle(AvarSimple):
         #
         # Resolve the parameterU and parameterV
         #
-        self.attr_multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR, defaultValue=self.multiplier_lr)
-        self.attr_multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD, defaultValue=self.multiplier_ud)
-        self.attr_multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB, defaultValue=self.multiplier_fb)
+        self.attr_multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR,
+                                                  defaultValue=self.multiplier_lr)
+        self.attr_multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD,
+                                                  defaultValue=self.multiplier_ud)
+        self.attr_multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB,
+                                                  defaultValue=self.multiplier_fb)
 
         attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr()
 
@@ -858,7 +866,6 @@ class AvarFollicle(AvarSimple):
         #
         layer_follicle = stack.append_layer('follicleLayer')
         pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
-
 
         pymel.connectAttr(attr_u_inn, fol_influence.parameterU)
         pymel.connectAttr(attr_v_inn, fol_influence.parameterV)

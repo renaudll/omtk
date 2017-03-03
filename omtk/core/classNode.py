@@ -3,11 +3,13 @@ import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libRigging
 
+
 class Node(object):
     """
     This class is a pymel.PyNode wrapper that extent it's functionnality.
     Note: We can't directly inherit from pymel.PyNode.
     """
+
     def __init__(self, data=None, create=False, *args, **kwargs):
         self.__dict__['node'] = data
         self.__dict__['_network_name'] = 'untitled'
@@ -15,11 +17,13 @@ class Node(object):
 
         if create is True:
             self.build(*args, **kwargs)
-            assert(isinstance(self.node, pymel.PyNode))
+            assert (isinstance(self.node, pymel.PyNode))
 
     def __getattr__(self, attr_name):
         if self.__dict__['node'] and not isinstance(self.__dict__['node'], pymel.PyNode) and not self.__dict__['node'] is None:
-            raise TypeError("RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(type(self.__dict__['node']), self.__dict__['node']))
+            raise TypeError(
+                "RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(type(self.__dict__['node']),
+                                                                                    self.__dict__['node']))
         elif hasattr(self.__dict__['node'], attr_name):
             return getattr(self.__dict__['node'], attr_name)
 
@@ -120,14 +124,14 @@ class Node(object):
 
         if i == 0:
             return self.prepend_layer(name=name)
-        elif i > len(self._layers)-1:  # todo: add __len__ functionality?
+        elif i > len(self._layers) - 1:  # todo: add __len__ functionality?
             return self.append_layer(name=name)  # note: we are reproducing the list.insert functionality
         else:
             # Faster than setMatrix
-            new_layer.setParent(self._layers[i-1])
-            new_layer.t.set(0,0,0)
-            new_layer.r.set(0,0,0)
-            new_layer.s.set(0,0,0)
+            new_layer.setParent(self._layers[i - 1])
+            new_layer.t.set(0, 0, 0)
+            new_layer.r.set(0, 0, 0)
+            new_layer.s.set(0, 0, 0)
             self._layers[i].setParent(new_layer)
             self._layers.insert(i, new_layer)
             return new_layer
@@ -225,9 +229,7 @@ class Node(object):
         else:
             self.node.setMatrix(*args, **kwargs)
 
-
     def unbuild(self, *args, **kwargs):
         pymel.delete(self.node)
         self.node = None
         self._layers = []
-

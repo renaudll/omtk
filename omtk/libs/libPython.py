@@ -4,6 +4,7 @@ import threading
 import time
 import functools
 import collections
+
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
 
@@ -38,6 +39,7 @@ def frange(start, end=None, inc=None):
 
     return L
 
+
 def resize_list(val, desired_size, default=None):
     list_size = len(val)
     if list_size > desired_size:
@@ -46,6 +48,7 @@ def resize_list(val, desired_size, default=None):
     elif list_size < desired_size:
         for i in range(desired_size - list_size):
             val.append(default)
+
 
 # forked from: https://wiki.python.org/moin/PythonDecoratorLibrary#Cached_Properties
 class cached_property(object):
@@ -111,6 +114,7 @@ class memoized(object):
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
 
 # src: https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 # modified to support kwargs
@@ -195,10 +199,12 @@ def log_execution_time(NAME):
 
     return deco_retry
 
+
 #
 # Taken from libSerialization
 #
 import sys
+
 
 def get_class_namespace(classe, relative=False):
     if not isinstance(classe, object):
@@ -214,6 +220,7 @@ def get_class_namespace(classe, relative=False):
             classe = classe.__bases__[0]
         return '.'.join(reversed(tokens))
 
+
 def get_class_def(class_name, base_class=object, relative=False):
     try:
         for cls in base_class.__subclasses__():
@@ -226,8 +233,9 @@ def get_class_def(class_name, base_class=object, relative=False):
                     return t
     except Exception as e:
         pass
-        #logging.warning("Error obtaining class definition for {0}: {1}".format(class_name, e))
+        # logging.warning("Error obtaining class definition for {0}: {1}".format(class_name, e))
     return None
+
 
 def create_class_instance(class_name):
     cls = get_class_def(class_name)
@@ -245,14 +253,17 @@ def create_class_instance(class_name):
         logging.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
         return None
 
+
 def get_sub_classes(_cls):
     for subcls in _cls.__subclasses__():
         yield subcls
         for subsubcls in get_sub_classes(subcls):
             yield subsubcls
 
+
 class LazySingleton(object):
     """A threadsafe singleton that initialises when first referenced."""
+
     def __init__(self, instance_class, *nargs, **kwargs):
         self.instance_class = instance_class
         self.nargs = nargs

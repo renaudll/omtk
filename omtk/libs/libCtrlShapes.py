@@ -173,6 +173,7 @@ def create_shape_box(size=1.0, r=None, h=None):
 
     return node
 
+
 def _batch_raycast_nearest(positions, dirs, geometries):
     results = []
 
@@ -185,6 +186,7 @@ def _batch_raycast_nearest(positions, dirs, geometries):
             results.append(ray_cast_pos)
 
     return results
+
 
 def _expand_bounds_using_positions(bounds, positions, parent_tm=None):
     min_x, max_x, min_y, max_y, min_z, max_z = bounds
@@ -210,6 +212,7 @@ def _expand_bounds_using_positions(bounds, positions, parent_tm=None):
             max_z = z_local
 
     return min_x, max_x, min_y, max_y, min_z, max_z
+
 
 def create_shape_box_arm(refs, geometries, refs_raycast=None, parent_tm=None, epsilon=0.01, default_size=1.0):
     # TODO: Prevent crashes when there's no geometries
@@ -351,7 +354,8 @@ def create_shape_box_feet(refs, geometries, refs_raycast=None, parent_tm=None, *
     pos7 = pymel.datatypes.Point(max_x, max_y, min_z)
     pos8 = pymel.datatypes.Point(max_x, max_y, max_z)
 
-    node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3, pos7] )
+    node = pymel.curve(d=1, p=[pos2, pos4, pos8, pos6, pos2, pos1, pos3, pos4, pos8, pos7, pos5, pos6, pos5, pos1, pos3,
+                               pos7])
 
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
@@ -382,9 +386,9 @@ def create_square(size=1.0, width=None, height=None, **kwargs):
 
 
 def create_triangle_upp(size=1.0):
-    p1 = [0, 0.577*size, 0]
-    p2 = [-0.5*size, -0.288*size, 0]
-    p3 = [0.5*size, -0.288*size, 0]
+    p1 = [0, 0.577 * size, 0]
+    p2 = [-0.5 * size, -0.288 * size, 0]
+    p3 = [0.5 * size, -0.288 * size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder
@@ -394,9 +398,9 @@ def create_triangle_upp(size=1.0):
 
 
 def create_triangle_low(size=1.0):
-    p1 = [0, -0.577*size, 0]
-    p2 = [-0.5*size, 0.288*size, 0]
-    p3 = [0.5*size, 0.288*size, 0]
+    p1 = [0, -0.577 * size, 0]
+    p2 = [-0.5 * size, 0.288 * size, 0]
+    p3 = [0.5 * size, 0.288 * size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder
@@ -406,9 +410,9 @@ def create_triangle_low(size=1.0):
 
 
 def create_triangle_left(size=1.0):
-    p1 = [0.577*size, 0, 0]
-    p2 = [-0.288*size, -0.5*size, 0]
-    p3 = [-0.288*size, 0.5*size, 0]
+    p1 = [0.577 * size, 0, 0]
+    p2 = [-0.288 * size, -0.5 * size, 0]
+    p3 = [-0.288 * size, 0.5 * size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder
@@ -418,15 +422,16 @@ def create_triangle_left(size=1.0):
 
 
 def create_triangle_right(size=1.0):
-    p1 = [-0.577*size, 0, 0]
-    p2 = [0.288*size, -0.5*size, 0]
-    p3 = [0.288*size, 0.5*size, 0]
+    p1 = [-0.577 * size, 0, 0]
+    p2 = [0.288 * size, -0.5 * size, 0]
+    p3 = [0.288 * size, 0.5 * size, 0]
     node = pymel.curve(d=1, p=[p1, p2, p3, p1])
 
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
 
     return node
+
 
 #
 # JG implement from fSanges controler shape bank
@@ -462,12 +467,13 @@ def pin(scale=(1, 1, 1), **kwargs):
               [-0.5, 4.0, 0.5], [0.5, 4.0, 0.5], [0.5, 4.0, 0.0], [-0.5, 4.0, 0.0], [-0.5, 4.0, -0.5], [0.0, 4.0, -0.5]]
     node = pymel.curve(p=points, d=1)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     node.rotateOrder.setKeyable(True)
     return node
 
 
-def sphere(scale=(1, 1, 1), **kwargs): #TODO replace older version? sphere is like the create_shape_attrholder with a better quality to it.
+def sphere(scale=(1, 1, 1),
+           **kwargs):  # TODO replace older version? sphere is like the create_shape_attrholder with a better quality to it.
     node = pymel.curve(d=1,
                        p=[(-1.402861684596246e-07, 1.0049703078450785, -1.8704823168125294e-07),
                           (0.26010531965842887, 0.9707267333923264, -1.8704823168125294e-07),
@@ -550,7 +556,7 @@ def sphere(scale=(1, 1, 1), **kwargs): #TODO replace older version? sphere is li
                           (-2.0484371532347723e-08, 0.0, -1.0049699337486149)])
 
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     node.rotateOrder.setKeyable(True)
 
     return node
@@ -597,7 +603,7 @@ def squareCrossDouble(scale=(1, 1, 1), **kwargs):
                           (0.0, 0.0, 0.0),
                           (0.0, 0.0, -1.0008597988963874)])
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     node.rotateOrder.setKeyable(True)
     return node
 
@@ -620,7 +626,7 @@ def squareCross(scale=(1, 1, 1), **kwargs):
                           (0.0, 1.0000556035094568, 0.0)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -683,7 +689,7 @@ def doubleNail(scale=(1, 1, 1), **kwargs):
                           (-18.620128438833536, 0.9926055308430259, 0.0)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -723,7 +729,7 @@ def belt(scale=(1, 1, 1), **kwargs):
 
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -784,7 +790,7 @@ def circle3D(scale=(1, 1, 1), **kwargs):
                        )
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -854,7 +860,7 @@ def circleCompass(scale=(1, 1, 1), **kwargs):
                           (-1.0158428554096877, 0.0, -5.120423080604854e-08)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -873,7 +879,7 @@ def circleX(scale=(1, 1, 1), **kwargs):
                           (-0.974928, 0.0, 0.222521), (-1.0, 0.0, -4.47035e-08)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -898,7 +904,7 @@ def circleXPins(scale=(1, 1, 1), **kwargs):
                           (4.47035e-08, 0.0, -1.0)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -965,7 +971,7 @@ def locator(scale=(1, 1, 1), **kwargs):
                           (0.0, 2.3754506894637157e-09, 0.9919077075245271)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -986,7 +992,7 @@ def cross(scale=(1, 1, 1), **kwargs):
                           (-0.33039471500877204, 0.0, -0.33039471500877204)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1021,7 +1027,7 @@ def arrow180(scale=(1, 1, 1), **kwargs):
                           (-0.23396981200934322, 0.0, -1.0045712258579862)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1036,7 +1042,7 @@ def angle(scale=(1, 1, 1), **kwargs):
 
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1064,7 +1070,7 @@ def crossArrow(scale=(1, 1, 1), **kwargs):
                           (-0.33191723850899185, 0.0, -0.8297930962724797), (0.0, 0.0, -0.9957517155269755)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1076,7 +1082,7 @@ def dir1Arrow(scale=(1, 1, 1), **kwargs):
                           (1.002558231449136, 0.0, 0.14061417856157238), (0.0, 0.0, -1.0106488071645405)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1092,7 +1098,7 @@ def dir2Arrow(scale=(1, 1, 1), **kwargs):
                           (0.0, 0.0, -1.0083199931523783)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1127,7 +1133,7 @@ def trident(scale=(1, 1, 1), **kwargs):
                           (0.10758603459519833, 0.0, 8.2738118369164e-09)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1141,7 +1147,7 @@ def pyramid(scale=(1, 1, 1), **kwargs):
                                (-0.6837338427562603, -0.9669454363473031, 1.1842623066705815)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1156,7 +1162,7 @@ def prism(scale=(1, 1, 1), **kwargs):
                           (-0.9909826622682584, 0.0, -0.9909826622682584), (0.0, -0.8970344394661268, 0.0)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1171,7 +1177,7 @@ def openCube(scale=(1, 1, 1), **kwargs):
                           (-1.0029460493847893, 0.0, -1.0029460493847893), (0.0, -0.9078636604654428, 0.0)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1193,7 +1199,7 @@ def arrowSphere(scale=(1, 1, 1), **kwargs):
                           (0.0959835, 0.677886, -0.751175), (0.336638, 0.677886, -0.751175), (0.0, 0.35, -1.001567)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1272,7 +1278,7 @@ def cubeBevel(scale=(1, 1, 1), **kwargs):
                           (0.8605132209141688, 0.8605132209141688, 0.9929006340552978)])
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1352,7 +1358,7 @@ def square3D(scale=(1, 1, 1), **kwargs):
     node = pymel.curve(p=points, d=1)
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1430,7 +1436,7 @@ def locatorCross(scale=(1, 1, 1), **kwargs):
     node = pymel.curve(d=1, p=points)
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node
 
 
@@ -1661,5 +1667,5 @@ def sphere_volume(scale=(1, 1, 1), **kwargs):
 
     node.rotateOrder.setKeyable(True)
     node.scale.set(scale)
-    pymel.makeIdentity(node,a=True, s=True)
+    pymel.makeIdentity(node, a=True, s=True)
     return node

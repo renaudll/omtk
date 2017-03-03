@@ -5,11 +5,13 @@ import os
 import inspect
 import json
 import logging
+
 log = logging.getLogger('omtk')
 
 from omtk import constants
 
 CONFIG_FILENAME = 'config.json'
+
 
 def get_path_preferences():
     """
@@ -19,6 +21,7 @@ def get_path_preferences():
     config_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
     config_path = os.path.join(config_dir, CONFIG_FILENAME)
     return config_path
+
 
 class Preferences(object):
     def __init__(self):
@@ -63,6 +66,7 @@ class Preferences(object):
         # If no match is found, return the base implementation
         from omtk.core import classRig
         return classRig.Rig
+
 
 preferences = Preferences()
 preferences.load()

@@ -1,10 +1,7 @@
-import collections
-
 import pymel.core as pymel
 
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
-from omtk.core.classModule import Module
 from omtk.core import classCtrlModel
 from omtk.libs import libRigging
 from omtk.libs import libPymel

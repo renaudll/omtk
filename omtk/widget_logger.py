@@ -187,6 +187,7 @@ class WidgetLogger(QtWidgets.QWidget):
     def create_logger_handler(self):
         class QtHandler(logging.Handler):
             """Custom Qt Handler for our logger"""
+
             def __init__(self, main_class):
                 """
                 Initialize the handler

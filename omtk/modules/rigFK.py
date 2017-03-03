@@ -4,6 +4,7 @@ from omtk.core.classModule import Module
 from omtk.libs import libPython
 from omtk.libs import libRigging
 
+
 class CtrlFk(BaseCtrl):
     def __createNode__(self, *args, **kwargs):
         '''
@@ -16,7 +17,7 @@ class CtrlFk(BaseCtrl):
         make = next(iter(node.inputs()), None)
         if make:
             # TODO: Multiply radius???
-            #make.radius.set(size)
+            # make.radius.set(size)
             make.degree.set(1)
             make.sections.set(8)
 
@@ -46,7 +47,7 @@ class FK(Module):
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = []
-        self.sw_translate=False
+        self.sw_translate = False
         self.create_spaceswitch = True
 
     #
@@ -59,7 +60,7 @@ class FK(Module):
         # Ensure there's no None value in the .ctrls array.
         # This can happen if the rigging delete the stored shape before rebuilding.
         try:
-            self.ctrls= filter(None, self.ctrls)
+            self.ctrls = filter(None, self.ctrls)
         except (AttributeError, TypeError):
             pass
         super(FK, self).__callbackNetworkPostBuild__()

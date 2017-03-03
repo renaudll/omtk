@@ -319,13 +319,13 @@ class AutoRig(QtWidgets.QMainWindow):
             self.update_ui()
 
     def _is_l_influence(self, root, inf):
-        inf_name = inf.stripNamespace()
+        inf_name = inf.stripNamespace().nodeName()
         nomenclature = root.nomenclature()
         nomenclature.build_from_string(inf_name)
         return nomenclature.side == nomenclature.SIDE_L
 
     def _is_r_influence(self, root, inf):
-        inf_name = inf.stripNamespace()
+        inf_name = inf.stripNamespace().nodeName()
         nomenclature = root.nomenclature()
         nomenclature.build_from_string(inf_name)
         return nomenclature.side == nomenclature.SIDE_R

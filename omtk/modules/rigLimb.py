@@ -106,7 +106,7 @@ class Limb(Module):
                 # todo: validate name
                 twist_nomenclature = self.get_nomenclature().copy()
                 twist_nomenclature.add_tokens('bend')
-                twist_nomenclature += self.rig.nomenclature(self.chain_jnt[i].stripNamespace())
+                twist_nomenclature += self.rig.nomenclature(self.chain_jnt[i].stripNamespace().nodeName())
                 # twist_nomenclature = self.get_nomenclature() + self.rig.nomenclature(self.chain_jnt[i].name())
 
                 sys_twist = self.init_module(
@@ -153,7 +153,7 @@ class Limb(Module):
         # Create a chain for blending ikChain and fkChain
         chain_blend = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         for input_, node in zip(self.chain_jnt, chain_blend):
-            blend_nomenclature = nomenclature_rig.rebuild(input_.stripNamespace())
+            blend_nomenclature = nomenclature_rig.rebuild(input_.stripNamespace().nodeName())
             node.rename(blend_nomenclature.resolve('blend'))
 
         # Blend ikChain with fkChain
@@ -176,7 +176,7 @@ class Limb(Module):
         # (witch should only be nodes already)
         chain_elbow = pymel.duplicate(self.chain_jnt[:self.sysIK.iCtrlIndex + 1], renameChildren=True, parentOnly=True)
         for input_, node in zip(self.chain_jnt, chain_elbow):
-            nomenclature_elbow = nomenclature_rig.rebuild(input_.stripNamespace())
+            nomenclature_elbow = nomenclature_rig.rebuild(input_.stripNamespace().nodeName())
             node.rename(nomenclature_elbow.resolve('elbow'))  # todo: find a better name???
         chain_elbow[0].setParent(self.grp_rig)
 

@@ -53,7 +53,7 @@ class AdditiveFK(rigFK.FK):
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             # Resolve ctrl name
-            nomenclature = nomenclature_anm + self.rig.nomenclature(self.jnt.stripNamespace())
+            nomenclature = nomenclature_anm + self.rig.nomenclature(self.jnt.stripNamespace().nodeName())
             if self._NAME_CTRL_MERGE and len(self.additive_ctrls) == 1:
                 name = nomenclature.resolve("addFk", "{0:02d}".format(i))
             else:

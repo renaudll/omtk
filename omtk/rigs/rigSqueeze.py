@@ -22,7 +22,7 @@ class SqueezeNomenclature(className.BaseName):
     root_jnt_name = 'Root_Jnt'
     root_backup_name = 'Backup_Grp'
 
-    #Specific to Rig Squeeze
+    # Specific to Rig Squeeze
     root_all_name = "All_Grp"
     root_model_name = 'Model_Grp'
     root_proxy_name = 'Proxy_Grp'
@@ -56,14 +56,15 @@ class SqueezeNomenclature(className.BaseName):
                 new_token = token.upper()
             new_tokens.append(new_token)
 
-        #tokens = [token.title() for token in tokens]
+        # tokens = [token.title() for token in tokens]
         return super(SqueezeNomenclature, self)._join_tokens(new_tokens)
+
 
 class RigSqueeze(classRig.Rig):
     """
     Custom rig implementation in respect to Squeeze Studio nomenclature.
     """
-    #Ensure that all start with a lower case word and all other one are camel case
+    # Ensure that all start with a lower case word and all other one are camel case
     GROUP_NAME_DISPLAY = 'display'
     ATTR_NAME_DISPLAY_MESH = 'displayMesh'
     ATTR_NAME_DISPLAY_CTRL = 'displayCtrl'
@@ -86,9 +87,10 @@ class RigSqueeze(classRig.Rig):
         return SqueezeNomenclature
 
     _influence_whitelist = ('.*_Jnt',)
+
     def _is_potential_influence(self, obj):
         if isinstance(obj, pymel.nodetypes.Joint):
-            name = obj.stripNamespace()
+            name = obj.stripNamespace().nodeName()
             if not any(True for pattern in self._influence_whitelist if re.match(pattern, name, re.IGNORECASE)):
                 return False
 
@@ -96,7 +98,7 @@ class RigSqueeze(classRig.Rig):
 
     def pre_build(self):
         super(RigSqueeze, self).pre_build(create_master_grp=False)
-        
+
         #
         # Create specific group related to squeeze rig convention
         #
@@ -109,7 +111,7 @@ class RigSqueeze(classRig.Rig):
         self.grp_fx = self.build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
         # Parent all groups in the main grp_master
-        pymel.parent(self.grp_anm, self.grp_master) # grp_anm is not a Node, but a Ctrl
+        pymel.parent(self.grp_anm, self.grp_master)  # grp_anm is not a Node, but a Ctrl
         self.grp_rig.setParent(self.grp_master)
         self.grp_fx.setParent(self.grp_master)
         self.grp_model.setParent(self.grp_master)
@@ -234,12 +236,12 @@ class RigSqueeze(classRig.Rig):
                 self.debug("Connecting {} to {}".format(attr_display_ctrl, attr_dst))
                 pymel.connectAttr(attr_display_ctrl, attr_dst, force=True)
 
-
     def _unbuild_nodes(self):
         self.grp_model = self._unbuild_node(self.grp_model, keep_if_children=True)
         self.grp_proxy = self._unbuild_node(self.grp_proxy, keep_if_children=True)
         self.grp_fx = self._unbuild_node(self.grp_fx, keep_if_children=True)
         super(RigSqueeze, self)._unbuild_nodes()
+
 
 def register_plugin():
     return RigSqueeze

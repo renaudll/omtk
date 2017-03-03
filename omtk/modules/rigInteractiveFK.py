@@ -328,7 +328,7 @@ class InteractiveFKLayer(ModuleMap):
             if self._NAME_CTRL_ENUMERATE:
                 ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(i+1))
             else:
-                nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace())
+                nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace().nodeName())
                 ctrl_name = nomenclature.resolve()
 
             self.build_model(
@@ -802,7 +802,7 @@ class InteractiveFK(Module):
             )
 
             for i, jnt in enumerate(unassigned_influences):
-                nomenclature = nomenclature_jnt + self.rig.nomenclature(jnt.stripNamespace())
+                nomenclature = nomenclature_jnt + self.rig.nomenclature(jnt.stripNamespace().nodeName())
 
                 # Get the final LOCAL transformation of the influence.
                 # If we have a parent, we'll want to convert it to WORLD transformation.

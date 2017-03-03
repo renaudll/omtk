@@ -60,7 +60,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
     def _fill_widget_influences(self, qt_parent, data):
         obj = pymel.PyNode(data.val) if data.val else None
         if obj:
-            obj_name = obj.stripNamespace()
+            obj_name = obj.name()
 
             fnFilter = lambda x: libSerialization.is_network_from_class(x, 'Module')
             networks = libSerialization.get_connected_networks(obj, key=fnFilter, recursive=False)
@@ -119,7 +119,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
 
     def _can_show_QTreeWidgetItem(self, qItem, query_regex):
         obj = qItem.obj  # Retrieve monkey-patched data
-        obj_name = obj.stripNamespace()
+        obj_name = obj.name()
         # print obj_name
 
         if not re.match(query_regex, obj_name, re.IGNORECASE):

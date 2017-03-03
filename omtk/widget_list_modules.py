@@ -369,6 +369,12 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
+            sel = self.ui.treeWidget.selectedItems()
+            try:
+                inst = sel[0].rig
+            except AttributeError:  # influence don't have a 'rig' attr
+                return
+
             menu = QtWidgets.QMenu()
             actionBuild = menu.addAction("Build")
             actionBuild.triggered.connect(self.on_build_selected)
@@ -382,7 +388,6 @@ class WidgetListModules(QtWidgets.QWidget):
             action_unlock = menu.addAction("Unlock")
             action_unlock.triggered.connect(self.on_unlock_selected)
             menu.addSeparator()
-            sel = self.ui.treeWidget.selectedItems()
             if len(sel) == 1:
                 actionRemove = menu.addAction("Rename")
                 # actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.editItem, sel[0], 0))
@@ -391,7 +396,6 @@ class WidgetListModules(QtWidgets.QWidget):
             actionRemove.triggered.connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
-            inst = sel[0].rig
 
             def is_exposed(val):
                 if not hasattr(val, '__can_show__'):
@@ -448,10 +452,10 @@ class WidgetListModules(QtWidgets.QWidget):
             sel = self.ui.treeWidget.selectedItems()
             if sel:
                 self._listen_events = False
-                self._update_qitem_module(sel[0], sel[0].rig)
+                selected_item = sel[0]
+                if isinstance(selected_item.rig, classModule.Module):
+                    self._update_qitem_module(selected_item, selected_item.rig)
                 self._listen_events = True
-                # self._set_text_block(sel[0], str(sel[0].rig))
-                # sel[0].setText(0, str(sel[0].rig))
             self._is_modifying = False
         self.focusInEvent(event)
 

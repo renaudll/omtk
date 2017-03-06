@@ -399,7 +399,7 @@ class Module(object):
         if version:
             version = ' v{}'.format(version)
         return '{} <{}{}>'.format(
-            self.name,
+            self.name.encode('utf-8'),
             self.__class__.__name__,
             version
         )

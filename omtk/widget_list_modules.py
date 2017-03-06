@@ -357,7 +357,6 @@ class WidgetListModules(QtWidgets.QWidget):
             if hasattr(item, "net"):
                 name_attr = item.net.attr("name")
                 name_attr.set(new_text)
-                print 'new name is', new_text
 
                 # Ensure to only refresh the UI and not recreate all
                 # if need_update:

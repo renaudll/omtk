@@ -151,7 +151,7 @@ class SampleTests(omtk_test.TestCase):
 
     @omtk_test.open_scene('../examples/rig_rlessard_template01.ma')
     def test_rig_rlessard(self):
-        self._build_unbuild_build_all(test_translate=False, test_rotate=False, test_scale=False)  # todo: re-enabled test t/r/s
+        self._build_unbuild_build_all(test_translate=True, test_rotate=True, test_scale=True)
 
     @omtk_test.open_scene('./test_interactivefk01.ma')
     def test_interactivefk01(self):

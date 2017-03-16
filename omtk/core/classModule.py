@@ -449,24 +449,33 @@ class Module(object):
         self.grp_rig is not None and self.grp_rig.exists())
 
     def build(self, create_grp_anm=True, create_grp_rig=True, grp_anm_name=None, grp_rig_name=None,
-              connect_global_scale=True, segmentScaleCompensate=None, parent=True):
+              connect_global_scale=True, parent=True):
         """
         Build the module following the provided rig rules.
         :param create_grp_anm: If True, a group for all the animation controller will be created.
         :param create_grp_rig: If True, a group for all the rig data will be created.
         :param grp_anm_name: Override the name of the created anm group.
         :param grp_rig_name: Override the name of the created rig group.
-        :param segmentScaleCompensate: If provided, the segmentScaleCompensation attribute of all the inputs will be modified.
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
         self.info("Building")
-        # Disable segment scale compensate by default.
-        # Otherwise we might have scale issues since the rig won't propagate uniform scale change.
-        if segmentScaleCompensate is not None:
-            for inn in self.input:
-                if inn.hasAttr('segmentScaleCompensate'):
-                    inn.segmentScaleCompensate.set(segmentScaleCompensate)
+
+        # Enable/Disable dangerous flags.
+        for inn in self.input:
+            # The inheritsTransform flag is evil and will prevent the rig from correctly scaling.
+            if isinstance(inn, pymel.nodetypes.Transform):
+                if not inn.inheritsTransform.get():
+                    self.warning("Enabling inheritsTransform for the best on {0}".format(inn))
+                    inn.inheritsTransform.set(True)
+
+                # The segmentScaleCompensate is not supported since we need to support video-game rigs at the best
+                # of our capacities. If you need non-uniform scaling in your module, please do it on leaf joints.
+                # Also this will prevent the rig from correctly propagating scaling.
+                if isinstance(inn, pymel.nodetypes.Joint):
+                    if inn.segmentScaleCompensate.get():
+                        self.info("Disabling segmentScaleCompensate on {0}".format(inn))
+                        inn.segmentScaleCompensate.set(False)
 
         if create_grp_anm:
             grp_anm_name = grp_anm_name or self.get_nomenclature_anm_grp().resolve()
@@ -576,6 +585,7 @@ class Module(object):
         """
         if self.grp_anm:
             pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
+            pymel.scaleConstraint(parent, self.grp_anm, maintainOffset=True)
 
     def iter_ctrls(self):
         """

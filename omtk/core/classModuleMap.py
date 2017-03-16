@@ -90,13 +90,12 @@ class ModuleMap(Module):
         for model in self.models:
             self.build_model(model, **kwargs)
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True, segmentScaleCompensate=None,
+    def build(self, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True,
               parent=True, **model_kwargs):
         super(ModuleMap, self).build(
             create_grp_anm=create_grp_anm,
             create_grp_rig=create_grp_rig,
             connect_global_scale=connect_global_scale,
-            segmentScaleCompensate=segmentScaleCompensate,
             parent=parent
         )
 

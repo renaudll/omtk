@@ -542,15 +542,6 @@ class Rig(object):
                     self.warning("Could not find any root joint, master ctrl will not drive anything")
                     # self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
 
-        # Ensure all joints have segmentScaleComprensate deactivated.
-        # This allow us to scale adequately and support video game rigs.
-        # If for any mean stretch and squash are necessary, implement
-        # them on a new joint chains parented to the skeletton.
-        # TODO: Move elsewere?
-        all_jnts = self.get_influences_jnts()
-        for jnt in all_jnts:
-            jnt.segmentScaleCompensate.set(False)
-
         # Create the master grp
         if create_master_grp:
             self.grp_master = self.build_grp(RigGrp, self.grp_master, self.name + '_' + self.nomenclature.type_rig)
@@ -627,7 +618,6 @@ class Rig(object):
             for module in unsorted_modules:
                 dependencies = set(module.get_dependencies_modules() or []) & set(unsorted_modules)
                 if not dependencies:
-                    print module
                     modules_without_dependencies.add(module)
             unsorted_modules -= modules_without_dependencies
 
@@ -695,9 +685,7 @@ class Rig(object):
         # Sort modules by their dependencies
         modules = self._sort_modules_by_dependencies(modules)
 
-        print("Will build modules in the specified order:")
-        for module in modules:
-            print(module)
+        log.debug("Will build modules in the specified order: {0}".format(', '.join([str(m) for m in modules])))
 
         #
         # Build modules

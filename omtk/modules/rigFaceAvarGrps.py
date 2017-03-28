@@ -186,6 +186,13 @@ class AvarGrp(
     # TODO: Find a generic way to get the InteractiveCtrl follicle position.
     SINGLE_INFLUENCE = False
 
+    # Set this flag to false if each avars need to have an individual parent.
+    # Please note that this have not been tested when used with 'tweak' avars.
+    # This flag have been added to diminish the chances of breaking something in production (see Task #70413),
+    # however we should check if it is possible to always have this behavior by default.
+    # todo: Find a generic way.
+    SINGLE_PARENT = True
+
     def __init__(self, *args, **kwargs):
         super(AvarGrp, self).__init__(*args, **kwargs)
 
@@ -587,7 +594,7 @@ class AvarGrp(
         # If the deformation order is set to post (aka the deformer is in the final skinCluster)
         # we will want the offset node to follow it's original parent (ex: the head)
         for avar in self.get_all_avars():
-            avar_parent = self.parent
+            avar_parent = avar.jnt.getParent() if self.SINGLE_PARENT else self.parent
             # avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False) or self.parent
             if avar_parent:
                 self._parent_avar(avar, avar_parent)

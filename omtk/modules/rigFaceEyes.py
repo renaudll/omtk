@@ -184,6 +184,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
     """
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
+    SINGLE_PARENT = True
     _CLS_MODEL_CTRL_MICRO = ModelLookAt
     _CLS_CTRL_MICRO = CtrlEye
 

@@ -594,7 +594,13 @@ class AvarGrp(
         # If the deformation order is set to post (aka the deformer is in the final skinCluster)
         # we will want the offset node to follow it's original parent (ex: the head)
         for avar in self.get_all_avars():
-            avar_parent = avar.jnt.getParent() if self.SINGLE_PARENT else self.parent
+            avar_parent = None
+            if self.SINGLE_PARENT:
+                if avar.jnt:
+                    avar_parent = avar.jnt.getParent()
+            else:
+                avar_parent = self.parent
+
             # avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False) or self.parent
             if avar_parent:
                 self._parent_avar(avar, avar_parent)

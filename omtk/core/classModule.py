@@ -265,12 +265,6 @@ class Module(object):
         """
         head_jnts = self.rig.get_head_jnts(strict=strict)
 
-        # If any of the module influence are parented to an head, use this one.
-        for jnt in self.jnts:
-            for parent in libPymel.iter_parents(jnt):
-                if parent in head_jnts:
-                    return parent
-
         # If we didn't find any head influence in the current hierarchy
         # but there's only one head, we are lucky. This might be a one-headed rig.
         num_heads = len(head_jnts)
@@ -280,7 +274,24 @@ class Module(object):
             self.warning("Cannot resolve head influence!")
             return None
 
-        # If no influence is found and there's multiple heads... take a wirld guess.
+        # If any of the module influence are parented to an head, use this one.
+        for jnt in self.jnts:
+            for parent in libPymel.iter_parents(jnt):
+                if parent in head_jnts:
+                    return parent
+
+        # If we didn't find something yet, check if there's only one head influence that is a child of our module.
+        # This work if our module is a neck module.
+        child_head_jnts = []
+        for head_jnt in head_jnts:
+            for jnt in self.jnts:
+                if libPymel.is_child_of(head_jnt, jnt):
+                    child_head_jnts.append(head_jnt)
+                    break
+        if len(child_head_jnts) == 1:
+            return child_head_jnts[0]
+
+        # If nothing work, take a guess.
         # todo: check with proximity
         default_head = next(iter(head_jnts), None)
         if default_head:
@@ -667,8 +678,13 @@ class Module(object):
 
         if not type(inst) == cls:
             result = cls(inputs, rig=self.rig)
-        else:
+        elif result.input != inputs:
             result.input = inputs  # ensure we have the correct inputs
+            # Hack: Ensure there's no issues related to cached properties (see task #70489)
+            try:
+                del self._cache
+            except AttributeError:
+                pass
 
         # Set the child module name.
         if suffix is None:

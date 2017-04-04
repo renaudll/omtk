@@ -77,6 +77,7 @@ class BaseName(object):
     layer_anm_name = 'layer_anm'
     layer_rig_name = 'layer_rig'
     layer_geo_name = 'layer_geo'
+    layer_jnt_name = 'layer_jnts'
 
     KNOWN_PREFIXES = []
     KNOWN_SUFFIXES = []

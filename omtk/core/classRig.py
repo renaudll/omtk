@@ -99,8 +99,9 @@ class RigGrp(Node):
                 if children:
                     # self.extra = children
                     for child in children:
-                        pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
-                        child.setParent(world=True)
+                        if not isinstance(child, pymel.nt.NurbsCurve):
+                            pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
+                            child.setParent(world=True)
                 super(RigGrp, self).unbuild(*args, **kwargs)
 
 
@@ -140,6 +141,7 @@ class Rig(object):
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
+        self.layer_jnt = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
 
     #
@@ -525,7 +527,8 @@ class Rig(object):
                     pass
 
     def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
-                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
+                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False,
+                  create_layer_jnt=False):
         # Hack: Invalidate any cache before building anything.
         # This ensure we always have fresh data.
         self._clear_cache()
@@ -604,6 +607,17 @@ class Rig(object):
             else:
                 self.layer_geo = pymel.PyNode(self.nomenclature.layer_geo_name)
             pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
+
+            if create_layer_jnt:
+                if not pymel.objExists(self.nomenclature.layer_jnt_name):
+                    self.layer_jnt = pymel.createDisplayLayer(name=self.nomenclature.layer_jnt_name, number=1,
+                                                              empty=True)
+                    self.layer_jnt.color.set(1)  # Black?
+                    self.layer_jnt.visibility.set(0)  # Hidden
+                    self.layer_jnt.displayType.set(2)  # Frozen
+                else:
+                    self.layer_jnt = pymel.PyNode(self.nomenclature.layer_geo_name)
+                pymel.editDisplayLayerMembers(self.layer_jnt, self.grp_jnt, noRecurse=True)
 
     def _sort_modules_by_dependencies(self, modules):
         """

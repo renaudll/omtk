@@ -419,6 +419,15 @@ class BaseCtrl(Node):
         else:
             if self.targets_indexes:
                 self.node.space.set(self.targets_indexes[0])
+        
+        # Sometimes Maya will be drunk and set a bad 'restRotate'.
+        # We'll want to ensure ourself that there's no rest offset. (see Task #70729)
+        parent_constraint.restTranslateX.set(0)
+        parent_constraint.restTranslateY.set(0)
+        parent_constraint.restTranslateZ.set(0)
+        parent_constraint.restRotateX.set(0)
+        parent_constraint.restRotateY.set(0)
+        parent_constraint.restRotateZ.set(0)
 
     def get_spaceswitch_targets(self, module, jnt, add_world=True, add_root=True, add_local=True,
                                 root_name='Root', world_name='World', **kwargs):

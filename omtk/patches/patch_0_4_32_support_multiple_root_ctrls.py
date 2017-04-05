@@ -55,5 +55,3 @@ def run():
             logging.info("Patching {0}".format(grp_parent))
             _patch_grp_parent(grp_parent, rig)
 
-
-run()

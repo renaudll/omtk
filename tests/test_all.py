@@ -62,7 +62,7 @@ class SampleTests(omtk_test.TestCase):
         rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
         module_jaw = rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw')]))
         module_lips = rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint')))
-        rig.build()
+        rig.build(strict=True)
 
         # Connect some avars
         avar_src = next(iter(module_jaw.avars), None).attr_ud
@@ -71,8 +71,8 @@ class SampleTests(omtk_test.TestCase):
             libRigging.connectAttr_withLinearDrivenKeys(avar_src, avar_dst)
 
         # Re-build the rig
-        rig.unbuild()
-        rig.build()
+        rig.unbuild(strict=True)
+        rig.build(strict=True)
 
         # Ensure the avars are still connected.
         avar_src = next(iter(module_jaw.avars), None).attr_ud
@@ -104,9 +104,9 @@ class SampleTests(omtk_test.TestCase):
         # Ensure there's only one nurbsSurface in the scene.
         self.assertEqual(self._get_scene_surface_count(), 1)
 
-        rig.build()
-        rig.unbuild()
-        rig.build()
+        rig.build(strict=True)
+        rig.unbuild(strict=True)
+        rig.build(strict=True)
 
         # Ensure there's still only one nurbsSurface in the scene.
         self.assertEqual(self._get_scene_surface_count(), 1)
@@ -129,12 +129,12 @@ class SampleTests(omtk_test.TestCase):
         # Validate the state of the scene before testing.
         self.assertEqual(self._get_scene_surface_count(), 1)
 
-        rig.build()
+        rig.build(strict=True)
 
         # Ensure there's one one nurbsSurface in the scene.
         self.assertEqual(self._get_scene_surface_count(), 1)
 
-        rig.unbuild()
+        rig.unbuild(strict=True)
 
         # Ensure there's still one nurbsSurface in the scene.
         self.assertEqual(self._get_scene_surface_count(), 1)
@@ -144,7 +144,7 @@ class SampleTests(omtk_test.TestCase):
         self.assertEqual(self._get_scene_surface_count(), 0)
 
         # Re-created the rig and ensure the new surface was correctly created.
-        rig.build()
+        rig.build(strict=True)
 
         # Ensure there's still one nurbsSurface in the scene.
         self.assertEqual(self._get_scene_surface_count(), 1)

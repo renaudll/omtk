@@ -23,8 +23,10 @@ __all__ = (
     'calibrate_selected',
     'build_modules_by_type',
     'unbuild_modules_by_type',
-    'rebuild_modules_by_type'
+    'rebuild_modules_by_type',
+    'run_macro'
 )
+
 
 @libPython.memoized
 def get_version():
@@ -44,6 +46,7 @@ def get_version():
             if result:
                 result = next(iter(result.groups()))
                 return result
+
 
 def create(*args, **kwargs):
     from omtk.core import preferences
@@ -176,6 +179,7 @@ def _get_modules_from_selection(sel=None):
 
     return rig, modules
 
+
 @contextlib.contextmanager
 def with_preserve_selection():
     sel = pymel.selected()
@@ -296,3 +300,20 @@ def calibrate_selected(sel=None):
     for module in modules:
         if hasattr(module, 'calibrate') and hasattr(module.calibrate, '__call__'):
             module.calibrate()
+
+
+def _get_macro_by_name(macro_name):
+    from omtk.core import plugin_manager
+    pm = plugin_manager.plugin_manager
+
+    for macro in pm.iter_loaded_plugins_by_type(plugin_manager.MacroPluginType.type_name):
+        if macro.module_name == macro_name:
+            return macro.cls()
+
+
+def run_macro(macro_name):
+    macro = _get_macro_by_name(macro_name)
+    if not macro:
+        pymel.warning("Cannot find macro with name {0}".format(macro_name))
+        return
+    macro.run()

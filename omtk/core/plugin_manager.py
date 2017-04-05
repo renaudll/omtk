@@ -286,6 +286,10 @@ class RigPluginType(PluginType):
     type_name = 'rigs'
 
 
+class MacroPluginType(PluginType):
+    type_name = 'macros'
+
+
 # class UnitTestPluginType(PluginType):
 #     type_name = 'tests'
 
@@ -301,6 +305,7 @@ def initialize():
     pm = PluginManager()
     pm.register_plugin_type(ModulePluginType)
     pm.register_plugin_type(RigPluginType)
+    pm.register_plugin_type(MacroPluginType)
     # pm.register_plugin_type(UnitTestPluginType)
     return pm
 

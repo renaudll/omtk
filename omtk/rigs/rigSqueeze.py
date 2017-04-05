@@ -8,6 +8,17 @@ from omtk.libs import libAttr
 from omtk.libs import libPymel
 
 
+class CtrlMaster(classRig.CtrlRoot):
+    """The CtrlMaster is another root ctrl requested by Squeeze."""
+
+    def build(self, create_global_scale_attr=False, *args, **kwargs):
+        return super(CtrlMaster, self).build(create_global_scale_attr=create_global_scale_attr, *args, **kwargs)
+        
+    @classmethod
+    def _get_recommended_radius(cls, rig, min_size=1.0, multiplier=1.25):
+        return super(CtrlMaster, cls)._get_recommended_radius(rig, min_size=1.0) * multiplier
+
+
 class SqueezeNomenclature(className.BaseName):
     type_anm = 'Ctrl'
     type_jnt = 'Jnt'
@@ -16,7 +27,8 @@ class SqueezeNomenclature(className.BaseName):
     type_anm_grp = 'CtrlGrp'
     type_rig_grp = 'Grp'
 
-    root_anm_name = 'Ctrls_Grp'
+    root_anm_name = 'Ctrls_Grp'  # todo: eventually rename to Main_Ctrl
+    root_anm_master_name = 'Master_Ctrl'
     root_geo_name = 'Render_Grp'
     root_rig_name = 'Data_Grp'
     root_jnt_name = 'Root_Jnt'
@@ -80,6 +92,7 @@ class RigSqueeze(classRig.Rig):
         self.grp_master = None
         self.grp_model = None
         self.grp_proxy = None
+        self.grp_anm_master = None  # Squeeze wanted a 2nd root ctrl. (see Task #70205)
         self.grp_fx = None
         self._color_ctrl = True
 
@@ -96,8 +109,21 @@ class RigSqueeze(classRig.Rig):
 
         return super(RigSqueeze, self)._is_potential_influence(obj)
 
-    def pre_build(self):
-        super(RigSqueeze, self).pre_build(create_master_grp=False)
+    def pre_build(self, create_grp_anm=True, create_display_layers=True, **kwargs):
+        super(RigSqueeze, self).pre_build(create_grp_anm=create_grp_anm, create_master_grp=False,
+                                          create_display_layers=create_display_layers, **kwargs)
+
+        if create_grp_anm:
+            grp_anim_size = CtrlMaster._get_recommended_radius(self)
+            self.grp_anm_master = self.build_grp(
+                CtrlMaster,
+                self.grp_anm_master,
+                self.nomenclature.root_anm_master_name,
+                size=grp_anim_size
+            )
+
+        if create_display_layers:
+            pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm_master, noRecurse=True)
 
         #
         # Create specific group related to squeeze rig convention
@@ -111,7 +137,8 @@ class RigSqueeze(classRig.Rig):
         self.grp_fx = self.build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
         # Parent all groups in the main grp_master
-        pymel.parent(self.grp_anm, self.grp_master)  # grp_anm is not a Node, but a Ctrl
+        pymel.parent(self.grp_anm_master, self.grp_master)
+        pymel.parent(self.grp_anm, self.grp_anm_master)  # grp_anm is not a Node, but a Ctrl
         self.grp_rig.setParent(self.grp_master)
         self.grp_fx.setParent(self.grp_master)
         self.grp_model.setParent(self.grp_master)
@@ -241,6 +268,12 @@ class RigSqueeze(classRig.Rig):
         self.grp_proxy = self._unbuild_node(self.grp_proxy, keep_if_children=True)
         self.grp_fx = self._unbuild_node(self.grp_fx, keep_if_children=True)
         super(RigSqueeze, self)._unbuild_nodes()
+
+    def iter_ctrls(self, include_grp_anm=True):
+        if include_grp_anm and self.grp_anm_master and self.grp_anm_master.is_built():
+            yield self.grp_anm_master
+        for ctrl in super(RigSqueeze, self).iter_ctrls(include_grp_anm=include_grp_anm):
+            yield ctrl
 
 
 def register_plugin():

@@ -38,19 +38,19 @@ class CtrlRoot(BaseCtrl):
 
         return node
 
-    def build(self, *args, **kwargs):
+    def build(self, create_global_scale_attr=True, *args, **kwargs):
         super(CtrlRoot, self).build(*args, **kwargs)
 
         # Add a globalScale attribute to replace the sx, sy and sz.
-        if not self.node.hasAttr('globalScale'):
+        if create_global_scale_attr and not self.node.hasAttr('globalScale'):
             pymel.addAttr(self.node, longName='globalScale', k=True, defaultValue=1.0, minValue=0.001)
             pymel.connectAttr(self.node.globalScale, self.node.sx)
             pymel.connectAttr(self.node.globalScale, self.node.sy)
             pymel.connectAttr(self.node.globalScale, self.node.sz)
             self.node.s.set(lock=True, channelBox=False)
 
-    @staticmethod
-    def _get_recommended_radius(rig, min_size=1.0):
+    @classmethod
+    def _get_recommended_radius(cls, rig, min_size=1.0):
         """
         Analyze the scene and return the recommended radius using the scene geometry.
         """
@@ -718,7 +718,7 @@ class Rig(object):
                         self.warning("Can't build {0}: {1}".format(module, e))
                         if strict:
                             traceback.print_exc()
-                            raise (e)
+                            raise e
                         continue
 
                 if not module.locked:
@@ -737,7 +737,7 @@ class Rig(object):
                             "Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                         traceback.print_exc()
                         if strict:
-                            raise
+                            raise e
         finally:
             # Ensure we always return to the default namespace.
             cmds.namespace(setNamespace=':')

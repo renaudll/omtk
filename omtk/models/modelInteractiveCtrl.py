@@ -359,24 +359,15 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         #
 
         # Create an output object that will hold the world position of the ctrl offset.
-        # This allow us to create direct connection which simplify the dag tree for the animator
-        # and allow us to easily scale the whole setup to support non-uniform scaling.
+        # We'll use direct connections to the animation controller to simplify the dag tree and support
+        # non-uniform scaling (which is really hard to do using constraints).
 
         # Since the the model's ctrl will still be influenced by the root ctrl, we'll need to extract the offset
         # relative to the root ctrl.
-        grp_parent = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('parent'),
-            parent=self.grp_rig
-        )
-        pymel.connectAttr(self.rig.grp_anm.t, grp_parent.t)
-        pymel.connectAttr(self.rig.grp_anm.r, grp_parent.r)
-        pymel.connectAttr(self.rig.grp_anm.s, grp_parent.s)
-
         grp_output = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('output'),
-            parent=grp_parent
+            parent=self.grp_rig
         )
 
         # Position
@@ -389,12 +380,21 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             # parent_rot = layer_inv_r.getParent()
         pymel.orientConstraint(parent_rot, grp_output, maintainOffset=True)
 
-        pymel.connectAttr(grp_output.tx, self.ctrl.offset.tx)
-        pymel.connectAttr(grp_output.ty, self.ctrl.offset.ty)
-        pymel.connectAttr(grp_output.tz, self.ctrl.offset.tz)
-        pymel.connectAttr(grp_output.rx, self.ctrl.offset.rx)
-        pymel.connectAttr(grp_output.ry, self.ctrl.offset.ry)
-        pymel.connectAttr(grp_output.rz, self.ctrl.offset.rz)
+        # Direct-connect the output group to the ctrl offset grp.
+        # Since the ctrl is a child of the master ctrl, we'll need to take it's parent in consideration.
+        util_get_ctrl_offset_local_trs = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=libRigging.create_utility_node(
+                'multMatrix',
+                matrixIn=(
+                    grp_output.worldMatrix,
+                    self.rig.grp_anm.worldInverseMatrix
+                )
+            ).matrixSum
+        )
+        pymel.connectAttr(util_get_ctrl_offset_local_trs.outputTranslate, self.ctrl.offset.translate)
+        pymel.connectAttr(util_get_ctrl_offset_local_trs.outputRotate, self.ctrl.offset.rotate)
+        pymel.connectAttr(util_get_ctrl_offset_local_trs.outputScale, self.ctrl.offset.scale)
 
         # Clean dag junk
         if grp_rig:

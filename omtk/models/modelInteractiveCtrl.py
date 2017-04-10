@@ -394,7 +394,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         )
         pymel.connectAttr(util_get_ctrl_offset_local_trs.outputTranslate, self.ctrl.offset.translate)
         pymel.connectAttr(util_get_ctrl_offset_local_trs.outputRotate, self.ctrl.offset.rotate)
-        pymel.connectAttr(util_get_ctrl_offset_local_trs.outputScale, self.ctrl.offset.scale)
 
         # Clean dag junk
         if grp_rig:

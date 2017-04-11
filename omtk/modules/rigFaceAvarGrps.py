@@ -598,6 +598,9 @@ class AvarGrp(
             if self.SINGLE_PARENT:
                 if avar.jnt:
                     avar_parent = avar.jnt.getParent()
+                else:
+                    # If we asked for a single parent for each avar but encounter an avar that don't have any influences, fallback to the module parent.
+                    avar_parent = self.parent
             else:
                 avar_parent = self.parent
 
@@ -746,7 +749,7 @@ class AvarGrp(
             ref = result.jnt
             if ref:
                 result.name = (
-                self.get_nomenclature() + self.rig.nomenclature(ref.stripNamespace().nodeName())).resolve()
+                    self.get_nomenclature() + self.rig.nomenclature(ref.stripNamespace().nodeName())).resolve()
 
         # Keep a reference to the module parent.
         # todo: implement a generic mechanism for all modules?

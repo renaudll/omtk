@@ -19,7 +19,7 @@ def export_yaml_file(data, path, mkdir=True, **kwargs):
     if mkdir:
         dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
-            os.makedirs(path)
+            os.makedirs(dirname)
 
     dicData = core.export_dict(data)
 

@@ -457,7 +457,7 @@ class Module(object):
         Returns: True if the rig think it have been built.
         """
         return (self.grp_anm is not None and self.grp_anm.exists()) or (
-        self.grp_rig is not None and self.grp_rig.exists())
+            self.grp_rig is not None and self.grp_rig.exists())
 
     def build(self, create_grp_anm=True, create_grp_rig=True, grp_anm_name=None, grp_rig_name=None,
               connect_global_scale=True, parent=True):
@@ -679,7 +679,7 @@ class Module(object):
         if not type(inst) == cls:
             result = cls(inputs, rig=self.rig)
         elif result.input != inputs:
-            result.input = inputs  # ensure we have the correct inputs
+            result.input = inputs if inputs is not None else []  # ensure we have the correct inputs
             # Hack: Ensure there's no issues related to cached properties (see task #70489)
             try:
                 del self._cache

@@ -331,6 +331,7 @@ class InteractiveFKLayer(ModuleMap):
                 nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace().nodeName())
                 ctrl_name = nomenclature.resolve()
 
+            # todo: apply ctrl-model refactoring
             self.build_model(
                 model,
                 ctrl_name=ctrl_name,

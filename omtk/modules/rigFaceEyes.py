@@ -102,8 +102,8 @@ class ModelLookAt(BaseAvarCtrlModel):
             jnt_pos.z + offset_z
         )
 
-    def build(self, avar, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(ModelLookAt, self).build(avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
+    def build(self, avar, ref=None, ref_tm=None, ctrl_tm=None, **kwargs):
+        super(ModelLookAt, self).build(avar, ctrl_tm=ctrl_tm, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig()
 

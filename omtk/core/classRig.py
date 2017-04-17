@@ -680,12 +680,12 @@ class Rig(object):
             modules = self.modules
 
         # Filter any module that don't have an input.
-        modules = filter(lambda module: module.jnt, modules)
+        # modules = filter(lambda module: module.jnt, modules)  # DISABLED FOR DEBUGGING, DO NOT COMMIT!
 
         # Sort modules by ascending hierarchical order.
         # This ensure modules are built in the proper order.
         # This should not be necessary, however it can happen (ex: dpSpine provided space switch target only available after building it).
-        modules = sorted(modules, key=(lambda x: libPymel.get_num_parents(x.chain_jnt.start)))
+        modules = sorted(modules, key=(lambda x: libPymel.get_num_parents(x.chain_jnt.start) if x.chain_jnt else None))
 
         # Add modules dependencies
         for i in reversed(xrange(len(modules))):
@@ -765,12 +765,12 @@ class Rig(object):
             cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
                 module.grp_anm.longName(), module
             ))
-            pymel.delete(module.grp_anm)
+            # pymel.delete(module.grp_anm)
         if module.grp_rig and not module.grp_rig.getChildren():
             cmds.warning("Found empty group {0}, please cleanup module {1}.".format(
                 module.grp_rig.longName(), module
             ))
-            pymel.delete(module.grp_rig)
+            # pymel.delete(module.grp_rig)
 
         # Prevent animators from accidentaly moving offset nodes
         # TODO: Lock more?

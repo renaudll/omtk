@@ -9,7 +9,51 @@ from omtk.libs import libAttr
 from omtk.libs import libHistory
 
 
-class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
+class BaseCalibratableCtrlModel(classCtrlModel.BaseCtrlModel):
+    _ATTR_NAME_SENSITIVITY_TX = 'sensitivityX'
+    _ATTR_NAME_SENSITIVITY_TY = 'sensitivityY'
+    _ATTR_NAME_SENSITIVITY_TZ = 'sensitivityZ'
+
+    def __init__(self, *args, **kwargs):
+        super(BaseCalibratableCtrlModel, self).__init__(*args, **kwargs)
+        self.attr_sensitivity_tx = None
+        self.attr_sensitivity_ty = None
+        self.attr_sensitivity_tz = None
+
+    def build(self, module, flip_lr=False, **kwargs):
+        super(BaseCalibratableCtrlModel, self).build(module, **kwargs)
+
+        # The values will be computed when attach_ctrl will be called
+        libAttr.addAttr_separator(
+            self.grp_rig,
+            "ctrlCalibration"
+        )
+        self.attr_sensitivity_tx = libAttr.addAttr(
+            self.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TX,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_ty = libAttr.addAttr(
+            self.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TY,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_tz = libAttr.addAttr(
+            self.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TZ,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_tx.set(channelBox=True)
+        self.attr_sensitivity_ty.set(channelBox=True)
+        self.attr_sensitivity_tz.set(channelBox=True)
+
+        # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
+        if flip_lr:
+            self.ctrl.scaleX.set(-1)
+            libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
+
+
+class ModelNonInteractiveCtrl(BaseCalibratableCtrlModel):
     """
     An InteractiveCtrl ctrl is directly constrained on a mesh via a layer_fol.
     To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
@@ -25,18 +69,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     3) Optionally call .calibrate()
     """
     _CLS_CTRL = BaseCtrl
-    _ATTR_NAME_SENSITIVITY_TX = 'sensitivityX'
-    _ATTR_NAME_SENSITIVITY_TY = 'sensitivityY'
-    _ATTR_NAME_SENSITIVITY_TZ = 'sensitivityZ'
 
     def __init__(self, *args, **kwargs):
-        super(ModelInteractiveCtrl, self).__init__(*args, **kwargs)
+        super(ModelNonInteractiveCtrl, self).__init__(*args, **kwargs)
         self.follicle = None  # Used for calibration
-        self.attr_sensitivity_tx = None
-        self.attr_sensitivity_ty = None
-        self.attr_sensitivity_tz = None
-        self.mesh = None
-
         self._stack = None
 
     def parent_to(self, parent):
@@ -68,77 +104,43 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         return tm
 
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
-              constraint=False, cancel_t=True, cancel_r=True, **kwargs):
-
-        # Resolve head
-        jnt_head = avar.get_head_jnt(strict=True)
-
-        if self.ctrl is None:
-            raise Exception("Cannot build {0}, no mesh assigned!".format(self))
-
-        # Store ctrl position
-        pos_ref = self.ctrl.getTranslation(space='world')
-        flip_lr = pos_ref.x < 0.0
-
-        # Store associated mesh if not provided.
-        if self.mesh is None:
-            # We'll scan all available geometries and use the one with the shortest distance.
-            meshes = libHistory.get_affected_shapes(avar.jnts)
-            meshes = list(set(meshes) & set(self.rig.get_shapes()))
-            self.mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
-        if self.mesh is None:
-            raise Exception("Cannot build {0}, no mesh assigned!".format(self))
-
-        # todo: resolve flip_lr ourself
-
-        super(ModelInteractiveCtrl, self).build(avar, **kwargs)
+              flip_lr=False, follow_mesh=True, ctrl_tm=None, parent_pos=None,
+              parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, **kwargs):
+        super(ModelNonInteractiveCtrl, self).build(avar, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig()
 
-        _, out_u, out_v = libRigging.get_closest_point_on_shape(self.mesh, pos_ref)
+        #
+        # Resolve necessary informations
+        #
 
-        # Resolve u and v coordinates if necesary.
-        if u_coord is None:
-            u_coord = out_u
-        if v_coord is None:
-            v_coord = out_v
+        # Resolve which object will the InteractiveCtrl track.
+        # If we don't want to follow a particular geometry, we'll use the end of the stack.
+        # Otherwise the influence will be used (to also resolve the geometry).
+        # todo: it could be better to resolve the geometry ourself
+        if ref is None:
+            ref = self.jnt
+
+        # Resolve ctrl matrix
+        # It can differ from the influence to prevent the controller to appear in the geometry.
+        # if ctrl_tm is None:
+        #     ctrl_tm = self.get_default_tm_ctrl()
+        # 
+        # if ctrl_tm is None and ref_tm:
+        #     ctrl_tm = ref_tm
+        # 
+        # if ctrl_tm is None and self.jnt:
+        #     ctrl_tm = self.jnt.getMatrix(worldSpace=True)
+        # 
+        # if ctrl_tm is None:
+        #     raise Exception("Cannot resolve ctrl transformation matrix!")
+
+        pos_ref = self.ctrl.getTranslation(space='world')
 
         if self.jnt:
-            self.debug('Creating doritos on {0} using {1} as reference'.format(self.mesh, self.jnt))
+            self.debug('Creating doritos on {0} using {1} as reference'.format(obj_mesh, self.jnt))
         else:
-            self.debug('Creating doritos on {0}'.format(self.mesh))
-
-        #
-        # Add attributes
-        #
-        # The values will be computed when attach_ctrl will be called
-        libAttr.addAttr_separator(
-            self.grp_rig,
-            "ctrlCalibration"
-        )
-        self.attr_sensitivity_tx = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TX,
-            defaultValue=1.0
-        )
-        self.attr_sensitivity_ty = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TY,
-            defaultValue=1.0
-        )
-        self.attr_sensitivity_tz = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TZ,
-            defaultValue=1.0
-        )
-        self.attr_sensitivity_tx.set(channelBox=True)
-        self.attr_sensitivity_ty.set(channelBox=True)
-        self.attr_sensitivity_tz.set(channelBox=True)
-
-        # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
-        if flip_lr:
-            self.ctrl.scaleX.set(-1)
-            libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
+            self.debug('Creating doritos on {0}'.format(obj_mesh))
 
         #
         # Create the follicle setup
@@ -164,20 +166,26 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # Constraint position
         # TODO: Validate that we don't need to inverse the rotation separately.
         # if parent_pos is None:
-        fol_mesh = None
-        fol_name = nomenclature_rig.resolve('follicle')
-        fol_shape = libRigging.create_follicle2(self.mesh, u=u_coord, v=v_coord)
-        fol_mesh = fol_shape.getParent()
-        self.follicle = fol_mesh
-        fol_mesh.rename(fol_name)
-        fol_mesh.setParent(self.grp_rig)
-        parent_pos = fol_mesh
-        pymel.parentConstraint(parent_pos, layer_fol, maintainOffset=True, skipRotate=['x', 'y', 'z'])
+        #     fol_mesh = None
+        #     if follow_mesh:
+        #         fol_name = nomenclature_rig.resolve('follicle')
+        #         fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
+        #         fol_mesh = fol_shape.getParent()
+        #         self.follicle = fol_mesh
+        #         fol_mesh.rename(fol_name)
+        #         fol_mesh.setParent(self.grp_rig)
+        #         parent_pos = fol_mesh
+        #     elif ref:
+        #         parent_pos = ref
+        # 
+        # if parent_pos:
+        #     pymel.parentConstraint(parent_pos, layer_fol, maintainOffset=True, skipRotate=['x', 'y', 'z'])
 
         # Constraint rotation
         # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
         # any deformation can affect the normal of the faces.
-        pymel.orientConstraint(jnt_head, layer_fol, maintainOffset=True)
+        if parent_rot:
+            pymel.orientConstraint(parent_rot, layer_fol, maintainOffset=True)
 
         #
         # Constraint a specic controller to the avar doritos stack.
@@ -262,18 +270,18 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         attr_ctrl_offset_sz_inn = self.attr_sensitivity_tz
 
         # Connect any additionel scale source.
-        # if parent_scl:
-        #     u = libRigging.create_utility_node(
-        #         'multiplyDivide',
-        #         name=nomenclature_rig.resolve('getAbsoluteCtrlOffsetScale'),
-        #         input1X=attr_ctrl_offset_sx_inn,
-        #         input1Y=attr_ctrl_offset_sy_inn,
-        #         input1Z=attr_ctrl_offset_sz_inn,
-        #         input2X=parent_scl.scaleX,
-        #         input2Y=parent_scl.scaleY,
-        #         input2Z=parent_scl.scaleZ
-        #     )
-        #     attr_ctrl_offset_sx_inn, attr_ctrl_offset_sy_inn, attr_ctrl_offset_sz_inn = u.outputX, u.outputY, u.outputZ
+        if parent_scl:
+            u = libRigging.create_utility_node(
+                'multiplyDivide',
+                name=nomenclature_rig.resolve('getAbsoluteCtrlOffsetScale'),
+                input1X=attr_ctrl_offset_sx_inn,
+                input1Y=attr_ctrl_offset_sy_inn,
+                input1Z=attr_ctrl_offset_sz_inn,
+                input2X=parent_scl.scaleX,
+                input2Y=parent_scl.scaleY,
+                input2Z=parent_scl.scaleZ
+            )
+            attr_ctrl_offset_sx_inn, attr_ctrl_offset_sy_inn, attr_ctrl_offset_sz_inn = u.outputX, u.outputY, u.outputZ
 
         pymel.connectAttr(attr_ctrl_offset_sx_inn, self.ctrl.offset.scaleX)
         pymel.connectAttr(attr_ctrl_offset_sy_inn, self.ctrl.offset.scaleY)
@@ -350,10 +358,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         pymel.parentConstraint(stack_end, grp_output, maintainOffset=False, skipRotate=['x', 'y', 'z'])
 
         # Rotation
-        # if parent_rot is None:
-        #     parent_rot = stack_end
-        # parent_rot = layer_inv_r.getParent()
-        pymel.orientConstraint(jnt_head, grp_output, maintainOffset=True)
+        if parent_rot is None:
+            parent_rot = stack_end
+            # parent_rot = layer_inv_r.getParent()
+        pymel.orientConstraint(parent_rot, grp_output, maintainOffset=True)
 
         # Direct-connect the output group to the ctrl offset grp.
         # Since the ctrl is a child of the master ctrl, we'll need to take it's parent in consideration.
@@ -371,10 +379,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         pymel.connectAttr(util_get_ctrl_offset_local_trs.outputRotate, self.ctrl.offset.rotate)
 
         # Clean dag junk
-        if grp_rig:
-            self._stack.setParent(grp_rig)
-            if fol_mesh:
-                fol_mesh.setParent(grp_rig)
+        # if grp_rig:
+        #     self._stack.setParent(grp_rig)
+        #     if fol_mesh:
+        #         fol_mesh.setParent(grp_rig)
 
         if constraint and self.jnt:
             pymel.parentConstraint(self.ctrl.node, self.jnt, maintainOffset=True)
@@ -437,7 +445,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sz)
 
     def unbuild(self):
-        super(ModelInteractiveCtrl, self).unbuild()
+        super(ModelNonInteractiveCtrl, self).unbuild()
         # TODO: Maybe hold and fetch the senstivity? Will a doritos will ever be serialzied?
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None

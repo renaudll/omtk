@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 
 import pymel.core as pymel
+from pymel.util.enum import Enum
 
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libCtrlShapes
@@ -13,6 +14,7 @@ from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
 from omtk.modules import rigFaceAvar
 from omtk.models import modelInteractiveCtrl
+from omtk.models import modelNonInteractiveCtrl
 
 log = logging.getLogger('omtk')
 
@@ -96,21 +98,22 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
 #
 
 class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
-    def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-        avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
-        if avar_tweak:
-            super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=False, pt=False, rl=False,
-                                                    sx=False, sy=False, sz=False)
-            super(ModelMicroAvarCtrl, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=False, yw=yw, pt=pt,
-                                                    rl=rl, sx=sx, sy=sy, sz=sz)
-        else:
-            super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx,
-                                                    sy=sy, sz=sz)
+    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+        # avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
+        avar_tweak = False  # todo: fix me!
+        # if avar_tweak:
+        #     super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=False, pt=False, rl=False,
+        #                                             sx=False, sy=False, sz=False)
+        #     super(ModelMicroAvarCtrl, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=False, yw=yw, pt=pt,
+        #                                             rl=rl, sx=sx, sy=sy, sz=sz)
+        # else:
+        super(ModelMicroAvarCtrl, self).connect(avar, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx,
+                                                sy=sy, sz=sz)
 
 
-class ModelCtrlMacroAll(modelInteractiveCtrl.ModelInteractiveCtrl):
-    def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-        super(ModelCtrlMacroAll, self).connect(avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
+class ModelCtrlMacroAll(modelNonInteractiveCtrl.ModelNonInteractiveCtrl):
+    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+        super(ModelCtrlMacroAll, self).connect(avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
                                                sx=True, sy=True, sz=True)
 
         #
@@ -144,13 +147,9 @@ class ModelCtrlMacroAll(modelInteractiveCtrl.ModelInteractiveCtrl):
         pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
 
     def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
-        parent_pos = avar._grp_output
+        parent_pos = avar.model_avar._grp_output
         # parent_rot = avar._grp_output
-        super(ModelCtrlMacroAll, self).build(
-            avar,
-            parent_pos=parent_pos,
-            parent_rot=parent_rot,
-            **kwargs)
+        super(ModelCtrlMacroAll, self).build(avar, **kwargs)
 
     def calibrate(self, **kwargs):
         """
@@ -766,6 +765,14 @@ class AvarGrp(
             avar.surface = self.surface
 
 
+enum_avar_type = Enum(
+    'AvarType', [
+        'simple',
+        'surface'
+    ]
+)
+
+
 class AvarGrpOnSurface(AvarGrp):
     """
     Highest-level surface-based AvarGrp module.
@@ -811,6 +818,7 @@ class AvarGrpOnSurface(AvarGrp):
         self.avar_r = None
         self.avar_upp = None
         self.avar_low = None
+        self.avar_type = enum_avar_type.simple
 
     @decorator_uiexpose()
     def create_surface(self, *args, **kwargs):
@@ -1457,7 +1465,7 @@ class AvarGrpOnSurface(AvarGrp):
         # todo: resolve ctrl_tm inside of the model?
         ctrl_tm = self._get_avar_macro_all_ctrl_tm()
 
-        parent_pos = self.avar_all._grp_output
+        parent_pos = self.avar_all.model_avar._grp_output
         # parent_rot=self.avar_all._grp_output
         parent_rot = None
 
@@ -1496,7 +1504,7 @@ class AvarGrpOnSurface(AvarGrp):
 
             self._connect_avar_macro_all()
             # parent_rot = self.avar_all.model_ctrl._stack.get_stack_end()
-            parent_rot = self.avar_all._grp_output
+            parent_rot = self.avar_all.model_avar._grp_output
             parent_scl = self.avar_all.ctrl
 
         if self.create_macro_horizontal:

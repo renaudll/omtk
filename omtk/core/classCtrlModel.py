@@ -25,7 +25,7 @@ class BaseCtrlModel(classModule.Module):
     def iter_ctrls(self):
         yield self.ctrl
 
-    def build(self, module, ctrl_size=1.0, ctrl_name=None, **kwargs):
+    def build(self, module, **kwargs):
         """
         Build the the ctrl and the necessary logic.
         :param ctrl_size: The desired ctrl size if supported.
@@ -33,17 +33,18 @@ class BaseCtrlModel(classModule.Module):
         :param kwargs: Any additional keyword argument will be provided to the parent method.
         """
         super(BaseCtrlModel, self).build(**kwargs)
+        # todo: don't create a anm_grp
 
-        if not ctrl_name:
-            ctrl_name = self.get_nomenclature_anm().resolve()
-
-        # Create ctrl
-        self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
-        self.ctrl.build(
-            name=ctrl_name,
-            size=ctrl_size
-        )
-        self.ctrl.setParent(self.grp_anm)
+        # if not ctrl_name:
+        #     ctrl_name = self.get_nomenclature_anm().resolve()
+        # 
+        # # Create ctrl
+        # self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
+        # self.ctrl.build(
+        #     name=ctrl_name,
+        #     size=ctrl_size
+        # )
+        # self.ctrl.setParent(self.grp_anm)
 
 
 class CtrlModelCalibratable(BaseCtrlModel):

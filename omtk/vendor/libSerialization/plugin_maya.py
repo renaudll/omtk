@@ -21,10 +21,13 @@ __all__ = (
 )
 
 # Pymel compatibility implementation
-core.types_dag.append(pymel.PyNode)
-core.types_dag.append(pymel.Attribute)
-core.types_dag.append(pymel.datatypes.Matrix)
-core.types_dag.append(pymel.datatypes.Vector)
+core.register_type_pymel(
+    pymel.PyNode,
+    pymel.Attribute,
+    pymel.datatypes.Matrix,
+    pymel.datatypes.Vector,
+    pymel.util.enum.EnumValue
+)
 
 
 #
@@ -120,6 +123,21 @@ def _create_attr(name, data):
         # we'll check it's value to know what attribute type to create.
         else:
             return _create_attr(name, data.get())
+    # (pymel.util.enum.Enum,) -> MFnEnumAttribute with enums
+    # Note that we don't check for inheritance as the Enum class is used a lot in pymel.
+    if data_type is pymel.util.enum.EnumValue:
+        fn = OpenMaya.MFnEnumAttribute()
+        fn.create(name, name, 0)
+
+        # Note: the _values type can contain a tuple or a EnumDict...
+        values = data.enumtype._values
+        if isinstance(values, tuple):
+            for value in values:
+                fn.addField(value.key, value.index)
+        else:
+            for index, key in values.iteritems():
+                fn.addField(key, index)
+        return fn
     # (pymel.general.PyNode,) -> MFnMessageAttribute
     # The order is important here as if we hit this, we don't deal with a pymel.general.Attribute.
     # Note that by using duct-typing we support any 'pymel-like' behavior.
@@ -134,6 +152,7 @@ def _create_attr(name, data):
         return fn
 
     pymel.error("Can't create MFnAttribute for {0} {1} {2}".format(name, data, data_type))
+
 
 def _add_attr(fnDependNode, name, data, cache=None):
     data_type = core.get_data_type(data)
@@ -216,6 +235,9 @@ def _set_attr(_plug, data, cache=None):
             _plug.child(1).setFloat(data.y)
             _plug.child(2).setFloat(data.z)
             return True
+        elif isinstance(data, pymel.util.enum.EnumValue):
+            _plug.setInt(data.index)
+            return True
         elif hasattr(data, 'exists'):  # pymel.PyNode
             # Hack: Don't crash with non-existent pymel.Attribute
             if not pymel.objExists(data.__melobject__()):
@@ -230,7 +252,7 @@ def _set_attr(_plug, data, cache=None):
             dagM.connect(plug, _plug)  # is connecting two times necessary?
             dagM.doIt()
         else:
-            raise Exception("Unknow TYPE {0}, {1}".format(type(data), data))
+            raise Exception("Unknow DAGNODE TYPE {0}, {1}".format(type(data), data))
     elif data_type == core.TYPE_NONE:
         return
 
@@ -249,7 +271,8 @@ def _get_network_attr(attr, fn_skip=None, cache=None):
         num_logical_elements = max(attr_indices)+1
         return [_get_network_attr(attr.elementByLogicalIndex(i), fn_skip=fn_skip, cache=cache) for i in range(num_logical_elements)]
 
-    if attr.type() == 'message':
+    attr_type = attr.type()
+    if attr_type == 'message':
         if not attr.isConnected():
             #log.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(attr))
             return None
@@ -260,6 +283,32 @@ def _get_network_attr(attr, fn_skip=None, cache=None):
         # Node
         else:
             return attr_input
+
+    # pymel.util.enum.Enum
+    if attr_type == 'enum':
+        # Restore the original enum
+        enum = pymel.util.enum.Enum('Enum', attr.getEnums())
+
+        # Try resolving the EnumValue by key
+        enum_key = attr.get(asString=True)
+        try:
+            return getattr(enum, enum_key)  # try with string (last resort)
+        except LookupError:
+            pass
+
+        # Try resolving the EnumValue by key index
+        enum_index = attr.get()
+        try:
+            return enum[enum_index]  # try with index
+        except LookupError:
+            pass
+
+        # If all fail, use any value...
+        default_value = next(enum._values.iteritems(), None)
+        log.warning("Can't find EnumValue in {} using index {} and key {}. Using default index {}.".format(
+            enum, enum_index, enum_key, default_value
+        ))
+        return default_value
 
     # pymel.Attribute
     if attr.isConnected():
@@ -413,7 +462,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
                 except KeyError:
                     pass
 
-    for attr_name, attr in attrs_by_longname.iteritems():
+    for attr_name, attr in sorted(attrs_by_longname.iteritems()):
         # logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
         val = _get_network_attr(attr, fn_skip=fn_skip, cache=cache)
         # if hasattr(obj, key):

@@ -164,7 +164,10 @@ class Limb(Module):
         if getattr(self.sysIK, '_chain_quad_ik', None):
             constraint_ik_chain = self.sysIK._chain_quad_ik
         for blend, oIk, oFk in zip(chain_blend, constraint_ik_chain, self.sysFK.ctrls):
-            constraint = pymel.parentConstraint(oIk, oFk, blend)
+            # Note that maintainOffset should not be necessary, however the rigLegQuad IK can be flipped in some
+            # rare cases. For now since prod need it we'll activate the flag (see Task #70938), however it would
+            # be appreciated if the ugliness of the rigLegQuad module don't bleed into the rigLimb module.
+            constraint = pymel.parentConstraint(oIk, oFk, blend, maintainOffset=True)
             attr_weight_ik, attr_weight_fk = constraint.getWeightAliasList()
             pymel.connectAttr(attr_ik_weight, attr_weight_ik)
             pymel.connectAttr(attr_fk_weight, attr_weight_fk)

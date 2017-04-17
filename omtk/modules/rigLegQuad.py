@@ -208,6 +208,7 @@ class LegIkQuad(rigLeg.LegIk):
         self.ctrl_swivel_quad = self.setup_swivel_ctrl(self.ctrl_swivel_quad, self._chain_quad_ik[heel_idx],
                                                        quad_swivel_pos, self._ik_handle_quad, name='swivelQuad',
                                                        mirror_setup=False, adjust_ik_handle_twist=False)
+
         # self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
         # Set by default the space to calf
         if self.ctrl_swivel_quad.space:
@@ -226,7 +227,10 @@ class LegIkQuad(rigLeg.LegIk):
 
         if constraint:
             for source, target in zip(self._chain_quad_ik, self.chain):
-                pymel.parentConstraint(source, target)
+                # Note that maintainOffset should not be necessary, however in some rare case even after all the
+                # adjustments we do, the rotation of the influence might be flipped for no particular reasons.
+                # (see Task #70938).
+                pymel.parentConstraint(source, target, maintainOffset=True)
 
     '''
     TODO - Remove this after confirmation that ctrl space switch target is fine on self.chain[1] instead of an object

@@ -39,12 +39,13 @@ class AvarLogicLinear(classModuleAvarLogic.BaseAvarRigConnectionModel):
         """
         :return: The deformer pivot transformation.
         """
-        # TODO: What do we do with the rotation?
-        tm = self.jnt.getMatrix(worldSpace=True)
-        pos = self.jnt.getTranslation(space='world')
-        return pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
-        )
+        # todo: do we want to handle rotation?
+        if self.jnt:
+            pos = self.jnt.getTranslation(space='world')
+            return pymel.datatypes.Matrix(
+                1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
+            )
+        raise Exception("Found no influence in {0}".format(self))
 
     def build(self, constraint=True, ctrl_tm=None, jnt_tm=None, obj_mesh=None, follow_mesh=True,
               **kwargs):

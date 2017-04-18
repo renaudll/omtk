@@ -17,15 +17,27 @@ class AvarTests(omtk_test.TestCase):
     def test_create_avar_abstract(self):
         """An 'invisible' avar than have no associated ctrl or ctrl_model."""
         rig = omtk.create()
-        mod = rig.add_module(rigFaceAvar.AbstractAvar(name='test'))
+        mod = rig.add_module(rigFaceAvar.Avar(name='test'))
         rig.build()
+
+    def test_create_avar_linear_abstract(self):
+        """
+        Create an avar that influence nothing but still have a ctrl.
+        Avars that follow this method: 'all' macro avar without any influences.
+        """
+        rig = omtk.create()
+        mod = rig.add_module(rigFaceAvar.Avar([], name='test'))
+        mod.model_avar_type = None
+        mod.model_ctrl_type = CtrlLogicLinear.name
+        rig.build()
+        mod.model_ctrl.connect(mod)  # todo: simplify?
 
     def test_create_avar_linear_linear(self):
         """Create an avar that have a linear ctrl model and a linear rig model."""
         # todo: test that it work consistently in all scales!
         jnt = pymel.joint()
         rig = omtk.create()
-        mod = rig.add_module(rigFaceAvar.AvarSimple([jnt], name='test'))
+        mod = rig.add_module(rigFaceAvar.Avar([jnt], name='test'))
         mod.model_avar_type = AvarLogicLinear.name
         mod.model_ctrl_type = CtrlLogicLinear.name
         rig.build()
@@ -35,7 +47,7 @@ class AvarTests(omtk_test.TestCase):
         """Create an avar that have a linear ctrl model but move an influence on a surface."""
         jnt = pymel.joint()
         rig = omtk.create()
-        mod = rig.add_module(rigFaceAvar.AvarSimple([jnt], name='test'))
+        mod = rig.add_module(rigFaceAvar.Avar([jnt], name='test'))
         mod.model_avar_type = AvarLogicSurface.name
         mod.model_ctrl_type = CtrlLogicLinear.name
         rig.build()
@@ -44,7 +56,7 @@ class AvarTests(omtk_test.TestCase):
     def test_create_avar_interactive_surface(self):
         jnt = pymel.joint()
         rig = omtk.create()
-        mod = rig.add_module(rigFaceAvar.AvarSimple([jnt], name='test'))
+        mod = rig.add_module(rigFaceAvar.Avar([jnt], name='test'))
         mod.model_avar_type = AvarLogicSurface.name
         mod.model_ctrl_type = CtrlLogicInteractive.name
 

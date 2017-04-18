@@ -7,6 +7,7 @@ import pymel.core as pymel
 from pymel.util.enum import Enum
 
 from omtk.core.utils import decorator_uiexpose
+from omtk.core import classModule
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -25,9 +26,7 @@ def _find_mid_avar(avars):
     return avars[jnts.index(nearest_jnt)] if nearest_jnt else None
 
 
-#
 # Ctrls
-#
 
 
 class BaseCtrlUpp(rigFaceAvar.BaseCtrlFace):
@@ -93,9 +92,7 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_right(size=size)
 
 
-#
 # Models
-#
 
 class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
@@ -158,17 +155,14 @@ class ModelCtrlMacroAll(modelNonInteractiveCtrl.ModelNonInteractiveCtrl):
         pass
 
 
-#
 # Models
-#
 
-class AvarGrp(
-    rigFaceAvar.AbstractAvar):  # todo: why do we inherit from AbstractAvar exactly? Is inheriting from module more logical?
+class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inheriting from module more logical?
     """
     Base class for a group of 'avars' that share the same properties.
     """
     # Define the class to use for all avars.
-    _CLS_AVAR = rigFaceAvar.AvarSimple
+    _CLS_AVAR = rigFaceAvar.Avar
     _CLS_CTRL_MICRO = rigFaceAvar.CtrlFaceMicro
     _CLS_CTRL_TWEAK = None  # In our case we hide the tweak avars by default since they are controlled using their parent controller.
     _CLS_MODEL_CTRL_MICRO = ModelMicroAvarCtrl
@@ -436,11 +430,10 @@ class AvarGrp(
         if self.get_head_jnt(strict=False) is None:
             raise Exception("Can't resolve the head. Please create a Head module.")
 
-    def _create_micro_avars(self):
+    def _init_avars(self):
         """
         For each influence, create it's associated avar instance.
         """
-
         # For various reason, we may have a mismatch between the stored Avars the number of influences.
         # The best way to deal with this is to check each existing Avar and see if we need to created it or keep it.
         avar_influences = self._get_avars_influences()
@@ -475,14 +468,13 @@ class AvarGrp(
                 )
                 new_avars.append(new_avar)
 
-        return new_avars
+        # Hack: There's no reason why a tweak avar might need a controller.
+        for avar in self.avars:
+            if self._is_tweak_avar(avar) and avar.ctrl_model_type:
+                log.info("Removing CtrlModel for {0}".format(avar))
+                avar.ctrl_model_type = None
 
-    def _create_avars(self):
-        """
-        Create the avars objects if they were never created (generally on first build).
-        """
-        # Create avars if needed (this will get skipped if the module have already been built once)
-        self.avars = self._create_micro_avars()
+        return new_avars
 
     def _build_avars(self, parent=None, connect_global_scale=None, constraint=True, **kwargs):
         if parent is None:
@@ -607,18 +599,21 @@ class AvarGrp(
                 self._parent_avar(avar, avar_parent)
 
     def _create_avars_ctrls(self, **kwargs):
-        for avar in self.avars:
-            if self._is_tweak_avar(avar):
-                if self._CLS_CTRL_TWEAK:
-                    avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_TWEAK
-                    avar._CLS_CTRL = self._CLS_CTRL_TWEAK
-                    avar.create_ctrl(self, **kwargs)
-            else:
-                if self._CLS_CTRL_MICRO:
-                    avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_MICRO
-                    avar._CLS_CTRL = self._CLS_CTRL_MICRO
-                    avar.create_ctrl(self, **kwargs)
-    
+        for avar in self._iter_all_avars():
+            if avar.model_ctrl:
+                avar.model_ctrl.connect(avar)
+        # for avar in self.avars:
+        #     if self._is_tweak_avar(avar):
+        #         if self._CLS_CTRL_TWEAK:
+        #             avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_TWEAK
+        #             avar._CLS_CTRL = self._CLS_CTRL_TWEAK
+        #             avar.create_ctrl(self, **kwargs)
+        #     else:
+        #         if self._CLS_CTRL_MICRO:
+        #             avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_MICRO
+        #             avar._CLS_CTRL = self._CLS_CTRL_MICRO
+        #             avar.create_ctrl(self, **kwargs)
+
     def _is_surface_avar(self, avar):
         """Utility function to detect if an Avar is linked to a surface."""
         if avar.model_avar:  # If the avar was built at least once.
@@ -632,6 +627,7 @@ class AvarGrp(
         This will create such surface if needed.
         :return:
         """
+        from omtk.modules_avar_logic import avar_surface  # todo: cleanup
         avars_surface = [avar for avar in self._iter_all_avars() if self._is_surface_avar(avar)]
 
         # If no avars use a surface, exit
@@ -665,7 +661,7 @@ class AvarGrp(
         # Ok, we need to act.
         surfaces = list(set([avar.surface for avar in avars_surface_valid]))
         num_surfaces = len(surfaces)
-        
+
         # First check if we HAVE one surface. We might be able to re-use it.
         if num_surfaces == 1:
             new_surface = surfaces[0]
@@ -676,7 +672,7 @@ class AvarGrp(
                 jnts.update(avar.jnts)
             nomenclature = self.get_nomenclature().copy()
             nomenclature.add_tokens('Surface')
-            new_surface = rigFaceAvar.create_surface(nomenclature, jnts)
+            new_surface = avar_surface.create_surface(nomenclature, jnts)
 
         else:
             raise Exception("Found multiple surfaces for {0}. Cowardly aborting. ".format(self))
@@ -714,7 +710,7 @@ class AvarGrp(
             self._grp_rig_avars_micro = pymel.createNode('transform', name=name_grp_micro)
             self._grp_rig_avars_micro.setParent(self.grp_rig)
 
-        self._create_avars()
+        self._init_avars()
 
         self._build_avars(parent=parent, connect_global_scale=connect_global_scale, constraint=constraint)
 
@@ -768,7 +764,7 @@ class AvarGrp(
         # todo: remove this call when we know it is safe.
         if cls is None:
             self.warning("No avar class specified for {0}, using default.".format(self))
-            cls = rigFaceAvar.AvarSimple
+            cls = rigFaceAvar.Avar
 
         result = self.init_module(cls, inst, inputs=result_inputs, suffix=suffix)
 
@@ -1083,9 +1079,11 @@ class AvarGrpOnSurface(AvarGrp):
         """
         return libRigging.get_average_pos_between_vectors([avar.jnt for avar in self.get_avars_micro_low()])
 
-    def _iter_all_avars(self):
+    def _iter_micro_avars(self):
         for avar in super(AvarGrpOnSurface, self)._iter_all_avars():
             yield avar
+
+    def _iter_macro_avars(self):
         if self.avar_l:
             yield self.avar_l
         if self.avar_r:
@@ -1097,6 +1095,12 @@ class AvarGrpOnSurface(AvarGrp):
         if self.avar_all:
             yield self.avar_all
 
+    def _iter_all_avars(self):
+        for avar in self._iter_micro_avars():
+            yield avar
+        for avar in self._iter_macro_avars():
+            yield avar
+
     def add_avars(self, attr_holder):
         """
         An AvarGrp don't create any avar by default.
@@ -1106,7 +1110,7 @@ class AvarGrpOnSurface(AvarGrp):
 
     def get_multiplier_u(self):
         """
-        Since we are using the same plane for the eyebrows, we want to attenget_multiplier_lruate the relation between the LR avar
+        Since we are using the same plane for the eyebrows, we want to attenuate the relation between the LR avar
         and the plane V coordinates.
         In the best case scenario, at LR -1, the V coordinates of the BrowInn are 0.5 both.
         """
@@ -1128,8 +1132,8 @@ class AvarGrpOnSurface(AvarGrp):
     def get_influences_tweak(self):
         return self._get_relative_parent_level_by_influences().get(2, [])
 
-    def _create_avars(self):
-        super(AvarGrpOnSurface, self)._create_avars()
+    def _init_avars(self):
+        super(AvarGrpOnSurface, self)._init_avars()
         # todo: for horizontal and vertical avars, is ref really necessary? they are always abstract avars
         middle = self.get_head_jnt().getTranslation(space='world')
 
@@ -1163,6 +1167,7 @@ class AvarGrpOnSurface(AvarGrp):
                     cls_ctrl=self._CLS_CTRL_LFT,
                     name=avar_macro_l_name
                 )
+                self.avar_l.model_avar_type = None  # There's nothing to drive with this avar.
 
             # Create avar_r if necessary
             ref_r = self.get_jnt_r_mid()
@@ -1192,6 +1197,7 @@ class AvarGrpOnSurface(AvarGrp):
                     cls_ctrl=self._CLS_CTRL_RGT,
                     name=avar_macro_r_name
                 )
+                self.avar_r.model_avar_type = None  # There's nothing to drive with this avar.
 
         # Create vertical macro avars
         if self.create_macro_vertical:
@@ -1211,6 +1217,7 @@ class AvarGrpOnSurface(AvarGrp):
                     cls_ctrl=self._CLS_CTRL_UPP,
                     name=avar_upp_name
                 )
+                self.avar_upp.model_avar_type = None  # There's nothing to drive with this avar.
 
             # Create avar_low if necessary
             ref_low = self.get_jnt_low_mid()
@@ -1228,6 +1235,7 @@ class AvarGrpOnSurface(AvarGrp):
                     cls_ctrl=self._CLS_CTRL_LOW,
                     name=avar_low_name
                 )
+                self.avar_low.model_avar_type = None  # There's nothing to drive with this avar.
 
         # Create all macro avar
         # Note that the all macro avar can drive an influence or not, both are supported.
@@ -1246,6 +1254,10 @@ class AvarGrpOnSurface(AvarGrp):
                 name=avar_all_name
             )
             self.avar_all.name = avar_all_name
+
+            # There MIGHT nothing to drive with this avar.
+            if not self.avar_all.jnt:
+                self.avar_all.model_avar_type = None
 
             # The avar_all is special since it CAN drive an influence.
             old_ref_all = self.avar_all.jnt
@@ -1358,55 +1370,55 @@ class AvarGrpOnSurface(AvarGrp):
                 return False
             return True
 
-        # todo: fix me before publishing!
-        # for avar_child in self.avars:
-        #     # Connect macro_all ctrl to each avar_child.
-        #     # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
-        #     # Using the rotate/scalePivot functionality, we are able to save some nodes.
-        #     attr_get_pivot_tm = libRigging.create_utility_node(
-        #         'multMatrix',
-        #         matrixIn=(
-        #             self.avar_all._stack.node.worldMatrix,
-        #             avar_child._grp_offset.worldInverseMatrix
-        #         )
-        #     ).matrixSum
-        # 
-        #     layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
-        #     layer_parent.t.set(0, 0, 0)  # Hack: why?
-        # 
-        #     attr_get_all_stack_tm = libRigging.create_utility_node(
-        #         'multMatrix',
-        #         matrixIn=(
-        #             self.avar_all._stack.node.worldMatrix,
-        #             self.avar_all._grp_offset.inverseMatrix
-        #         )
-        #     ).matrixSum
-        # 
-        #     attr_global_tm = libRigging.create_utility_node(
-        #         'multMatrix',
-        #         matrixIn=(
-        #             avar_child._grp_offset.matrix,
-        #             self.avar_all._grp_offset.inverseMatrix,
-        #             attr_get_all_stack_tm,
-        #             self.avar_all._grp_offset.matrix,
-        #             avar_child._grp_offset.inverseMatrix
-        #         )
-        #     ).matrixSum
-        # 
-        #     util_decompose_global_tm = libRigging.create_utility_node(
-        #         'decomposeMatrix',
-        #         inputMatrix=attr_global_tm
-        #     )
-        # 
-        #     pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
-        #     pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
-        #     pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
-        #     pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
-        #     pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
-        #     pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
-        #     pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
-        #     pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
-        #     pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
+            # todo: fix me before publishing!
+            # for avar_child in self.avars:
+            #     # Connect macro_all ctrl to each avar_child.
+            #     # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
+            #     # Using the rotate/scalePivot functionality, we are able to save some nodes.
+            #     attr_get_pivot_tm = libRigging.create_utility_node(
+            #         'multMatrix',
+            #         matrixIn=(
+            #             self.avar_all._stack.node.worldMatrix,
+            #             avar_child._grp_offset.worldInverseMatrix
+            #         )
+            #     ).matrixSum
+            # 
+            #     layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
+            #     layer_parent.t.set(0, 0, 0)  # Hack: why?
+            # 
+            #     attr_get_all_stack_tm = libRigging.create_utility_node(
+            #         'multMatrix',
+            #         matrixIn=(
+            #             self.avar_all._stack.node.worldMatrix,
+            #             self.avar_all._grp_offset.inverseMatrix
+            #         )
+            #     ).matrixSum
+            # 
+            #     attr_global_tm = libRigging.create_utility_node(
+            #         'multMatrix',
+            #         matrixIn=(
+            #             avar_child._grp_offset.matrix,
+            #             self.avar_all._grp_offset.inverseMatrix,
+            #             attr_get_all_stack_tm,
+            #             self.avar_all._grp_offset.matrix,
+            #             avar_child._grp_offset.inverseMatrix
+            #         )
+            #     ).matrixSum
+            # 
+            #     util_decompose_global_tm = libRigging.create_utility_node(
+            #         'decomposeMatrix',
+            #         inputMatrix=attr_global_tm
+            #     )
+            # 
+            #     pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
+            #     pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
+            #     pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
+            #     pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
+            #     pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
+            #     pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
+            #     pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
+            #     pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
+            #     pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
 
     @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):
@@ -1523,58 +1535,60 @@ class AvarGrpOnSurface(AvarGrp):
     def create_avar_macro_low_ctrls(self, **kwargs):
         self.avar_low.create_ctrl(self, **kwargs)
 
-    def _create_avars_ctrls(self, parent_rot=None, parent_scl=None, **kwargs):
-        parent_rot = self.get_head_jnt()
-        parent_scl = None
-
-        # Since micro avars ctrls can be constraint to macro avars ctrls, we create the macro first.
-        if self.create_macro_all:
-            self._create_avar_macro_all_ctrls(
-                parent_rot=parent_rot,
-                parent_scl=parent_scl,
-                **kwargs
-            )
-
-            self._connect_avar_macro_all()
-            # parent_rot = self.avar_all.model_ctrl._stack.get_stack_end()
-            parent_rot = self.avar_all.model_avar._grp_output
-            parent_scl = self.avar_all.ctrl
-
-        if self.create_macro_horizontal:
-            if self.avar_l:
-                self._create_avar_macro_l_ctrls(
-                    parent_rot=parent_rot,
-                    parent_scl=parent_scl,
-                    **kwargs
-                )
-                self._connect_avar_macro_l()
-
-            if self.avar_r:
-                self._create_avar_macro_r_ctrls(
-                    parent_rot=parent_rot,
-                    parent_scl=parent_scl,
-                    **kwargs
-                )
-                self._connect_avar_macro_r()
-
-        if self.create_macro_vertical:
-            if self.avar_upp:
-                self._create_avar_macro_upp_ctrls(
-                    parent_rot=parent_rot,
-                    parent_scl=parent_scl,
-                    **kwargs
-                )
-                self._connect_avar_macro_upp()
-
-            if self.avar_low:
-                self.create_avar_macro_low_ctrls(
-                    parent_rot=parent_rot,
-                    parent_scl=parent_scl,
-                    **kwargs
-                )
-                self._connect_avar_macro_low()
-
-        super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
+    # def _create_avars_ctrls(self, parent_rot=None, parent_scl=None, **kwargs):
+    #     
+    #     
+    #     parent_rot = self.get_head_jnt()
+    #     parent_scl = None
+    # 
+    #     # Since micro avars ctrls can be constraint to macro avars ctrls, we create the macro first.
+    #     if self.create_macro_all:
+    #         self._create_avar_macro_all_ctrls(
+    #             parent_rot=parent_rot,
+    #             parent_scl=parent_scl,
+    #             **kwargs
+    #         )
+    # 
+    #         self._connect_avar_macro_all()
+    #         # parent_rot = self.avar_all.model_ctrl._stack.get_stack_end()
+    #         parent_rot = self.avar_all.model_avar._grp_output
+    #         parent_scl = self.avar_all.ctrl
+    # 
+    #     if self.create_macro_horizontal:
+    #         if self.avar_l:
+    #             self._create_avar_macro_l_ctrls(
+    #                 parent_rot=parent_rot,
+    #                 parent_scl=parent_scl,
+    #                 **kwargs
+    #             )
+    #             self._connect_avar_macro_l()
+    # 
+    #         if self.avar_r:
+    #             self._create_avar_macro_r_ctrls(
+    #                 parent_rot=parent_rot,
+    #                 parent_scl=parent_scl,
+    #                 **kwargs
+    #             )
+    #             self._connect_avar_macro_r()
+    # 
+    #     if self.create_macro_vertical:
+    #         if self.avar_upp:
+    #             self._create_avar_macro_upp_ctrls(
+    #                 parent_rot=parent_rot,
+    #                 parent_scl=parent_scl,
+    #                 **kwargs
+    #             )
+    #             self._connect_avar_macro_upp()
+    # 
+    #         if self.avar_low:
+    #             self.create_avar_macro_low_ctrls(
+    #                 parent_rot=parent_rot,
+    #                 parent_scl=parent_scl,
+    #                 **kwargs
+    #             )
+    #             self._connect_avar_macro_low()
+    # 
+    #     super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
 
     def unbuild(self):
         if self.avar_l:

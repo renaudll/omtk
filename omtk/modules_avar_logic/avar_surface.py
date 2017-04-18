@@ -5,6 +5,83 @@ from omtk.libs import libAttr
 from omtk.libs import libPymel
 
 
+def create_surface(nomenclature, jnts, epsilon=0.001, default_scale=1.0):
+    """
+    Create a simple rig to deform a nurbsSurface, allowing the rigger to easily provide
+    a surface for the influence to slide on.
+    :param name: The suffix of the surface name to create.
+    :return: A pymel.nodetypes.Transform instance of the created surface.
+    """
+    root = pymel.createNode('transform')
+    pymel.addAttr(root, longName='bendUpp', k=True)
+    pymel.addAttr(root, longName='bendLow', k=True)
+    pymel.addAttr(root, longName='bendSide', k=True)
+
+    # Create Guide
+    plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
+
+    # Create Bends
+    bend_side_deformer, bend_side_handle = pymel.nonLinear(plane_transform, type='bend')
+    bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type='bend')
+    bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type='bend')
+
+    plane_transform.r.set(0, -90, 0)
+    bend_side_handle.r.set(90, 90, 0)
+    bend_upp_handle.r.set(180, 90, 0)
+    bend_low_handle.r.set(180, 90, 0)
+    bend_upp_deformer.highBound.set(0)  # create pymel warning
+    bend_low_deformer.lowBound.set(0)  # create pymel warning
+
+    plane_transform.setParent(root)
+    bend_side_handle.setParent(root)
+    bend_upp_handle.setParent(root)
+    bend_low_handle.setParent(root)
+
+    pymel.connectAttr(root.bendSide, bend_side_deformer.curvature)
+    pymel.connectAttr(root.bendUpp, bend_upp_deformer.curvature)
+    pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
+
+    # Rename all the things!
+    root.rename(nomenclature.resolve('SurfaceGrp'))
+    plane_transform.rename(nomenclature.resolve('Surface'))
+    bend_upp_deformer.rename(nomenclature.resolve('UppBend'))
+    bend_low_deformer.rename(nomenclature.resolve('LowBend'))
+    bend_side_deformer.rename(nomenclature.resolve('SideBend'))
+    bend_upp_handle.rename(nomenclature.resolve('UppBendHandle'))
+    bend_low_handle.rename(nomenclature.resolve('LowBendHandle'))
+    bend_side_handle.rename(nomenclature.resolve('SideBendHandle'))
+
+    # Try to guess the desired position
+    min_x = None
+    max_x = None
+    pos = pymel.datatypes.Vector()
+    for jnt in jnts:
+        pos += jnt.getTranslation(space='world')
+        if min_x is None or pos.x < min_x:
+            min_x = pos.x
+        if max_x is None or pos.x > max_x:
+            max_x = pos.x
+    pos /= len(jnts)
+    root.setTranslation(pos)
+
+    # Try to guess the scale
+    length_x = max_x - min_x
+    if len(jnts) <= 1 or length_x < epsilon:
+        log.debug(
+            "Cannot automatically resolve scale for surface. Using default value {0}".format(default_scale))
+        length_x = default_scale
+
+    root.scaleX.set(length_x)
+    root.scaleY.set(length_x * 0.5)
+    root.scaleZ.set(length_x)
+
+    pymel.select(root)
+
+    # self.input.append(plane_transform)
+
+    return root, plane_transform
+
+
 class AvarLogicSurface(avar_linear.AvarLogicLinear):
     """
     A deformation point on the face that move accordingly to nurbsSurface.
@@ -476,6 +553,7 @@ class AvarLogicSurface(avar_linear.AvarLogicLinear):
         pymel.connectAttr(self.avar.attr_sz, layer_rot.scaleZ)
 
         return stack
+
 
 def register_plugin():
     return AvarLogicSurface

@@ -55,7 +55,7 @@ class ModelCtrlJaw(modelInteractiveCtrl.ModelInteractiveCtrl):
         return tm
 
 
-class AvarJaw(rigFaceAvar.AvarSimple):
+class AvarJaw(rigFaceAvar.Avar):
     """
     This avar is not designed to use any surface.
     """
@@ -73,7 +73,7 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
     The Jaw global avars are made
     """
     _CLS_AVAR = AvarJaw
-    _CLS_AVAR_MACRO = rigFaceAvar.AvarSimple  # todo: use AbstractAvar???
+    _CLS_AVAR_MACRO = rigFaceAvar.Avar  # todo: use Avar???
     CREATE_MACRO_AVAR_ALL = True
     CREATE_MACRO_AVAR_HORIZONTAL = False
     CREATE_MACRO_AVAR_VERTICAL = False

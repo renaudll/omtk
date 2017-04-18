@@ -552,4 +552,4 @@ class CtrlLogicLinear(BaseCalibratableCtrlModel):
 
 
 def register_plugin():
-    return BaseCalibratableCtrlModel
+    return CtrlLogicLinear

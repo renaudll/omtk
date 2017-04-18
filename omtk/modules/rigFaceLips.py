@@ -236,7 +236,7 @@ class SplitterNode(Node):
         pymel.connectAttr(attr_output_surface_v, self.attr_out_surface_v)
 
 
-class FaceLipsAvar(rigFaceAvar.AvarFollicle):
+class FaceLipsAvar(rigFaceAvar.Avar):
     """
     The Lips avar are special as they implement a Splitter mechanism that ensure the avars move in jaw space before moving in surface space.
     For this reason, we implement a new avar, 'avar_ud_bypass' to skip the splitter mechanism if necessary. (ex: avar_all)

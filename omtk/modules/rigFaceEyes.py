@@ -6,7 +6,7 @@ from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libRigging
 
 
-class AvarEye(rigFaceAvar.AvarSimple):
+class AvarEye(rigFaceAvar.Avar):
     """
     Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
     """

@@ -21,94 +21,19 @@ from omtk.libs import libPymel
 log = logging.getLogger('omtk')
 
 
-def create_surface(nomenclature, jnts, epsilon=0.001, default_scale=1.0):
-    """
-    Create a simple rig to deform a nurbsSurface, allowing the rigger to easily provide
-    a surface for the influence to slide on.
-    :param name: The suffix of the surface name to create.
-    :return: A pymel.nodetypes.Transform instance of the created surface.
-    """
-    root = pymel.createNode('transform')
-    pymel.addAttr(root, longName='bendUpp', k=True)
-    pymel.addAttr(root, longName='bendLow', k=True)
-    pymel.addAttr(root, longName='bendSide', k=True)
-
-    # Create Guide
-    plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
-
-    # Create Bends
-    bend_side_deformer, bend_side_handle = pymel.nonLinear(plane_transform, type='bend')
-    bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type='bend')
-    bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type='bend')
-
-    plane_transform.r.set(0, -90, 0)
-    bend_side_handle.r.set(90, 90, 0)
-    bend_upp_handle.r.set(180, 90, 0)
-    bend_low_handle.r.set(180, 90, 0)
-    bend_upp_deformer.highBound.set(0)  # create pymel warning
-    bend_low_deformer.lowBound.set(0)  # create pymel warning
-
-    plane_transform.setParent(root)
-    bend_side_handle.setParent(root)
-    bend_upp_handle.setParent(root)
-    bend_low_handle.setParent(root)
-
-    pymel.connectAttr(root.bendSide, bend_side_deformer.curvature)
-    pymel.connectAttr(root.bendUpp, bend_upp_deformer.curvature)
-    pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
-
-    # Rename all the things!
-    root.rename(nomenclature.resolve('SurfaceGrp'))
-    plane_transform.rename(nomenclature.resolve('Surface'))
-    bend_upp_deformer.rename(nomenclature.resolve('UppBend'))
-    bend_low_deformer.rename(nomenclature.resolve('LowBend'))
-    bend_side_deformer.rename(nomenclature.resolve('SideBend'))
-    bend_upp_handle.rename(nomenclature.resolve('UppBendHandle'))
-    bend_low_handle.rename(nomenclature.resolve('LowBendHandle'))
-    bend_side_handle.rename(nomenclature.resolve('SideBendHandle'))
-
-    # Try to guess the desired position
-    min_x = None
-    max_x = None
-    pos = pymel.datatypes.Vector()
-    for jnt in jnts:
-        pos += jnt.getTranslation(space='world')
-        if min_x is None or pos.x < min_x:
-            min_x = pos.x
-        if max_x is None or pos.x > max_x:
-            max_x = pos.x
-    pos /= len(jnts)
-    root.setTranslation(pos)
-
-    # Try to guess the scale
-    length_x = max_x - min_x
-    if len(jnts) <= 1 or length_x < epsilon:
-        log.debug(
-            "Cannot automatically resolve scale for surface. Using default value {0}".format(default_scale))
-        length_x = default_scale
-
-    root.scaleX.set(length_x)
-    root.scaleY.set(length_x * 0.5)
-    root.scaleZ.set(length_x)
-
-    pymel.select(root)
-
-    # self.input.append(plane_transform)
-
-    return root, plane_transform
-
-
 def _create_enum_from_plugin_type(plugin_type_name):
     pm = plugin_manager.plugin_manager
     plugins = pm.get_loaded_plugins_by_type(plugin_type_name)
     enum = Enum(plugin_type_name, [plugin.cls.name for plugin in plugins])
     return enum
 
+
 def _get_plugin_by_class_name(plugin_type_name, plugin_name):
     pm = plugin_manager.plugin_manager
     for plugin in pm.iter_loaded_plugins_by_type(plugin_type_name):
         if plugin.cls.name == plugin_name:
             return plugin.cls
+
 
 g_enum_module_avar_logic = _create_enum_from_plugin_type(plugin_manager.ModuleAvarLogicType.type_name)
 g_enum_module_ctrl_logic = _create_enum_from_plugin_type(plugin_manager.ModuleCtrlLogicType.type_name)
@@ -150,7 +75,7 @@ class CtrlFaceMacro(BaseCtrlFace):
         return libCtrlShapes.create_square(normal=normal, **kwargs)
 
 
-class AbstractAvar(classModule.Module):
+class Avar(classModule.Module):
     """
     This low-level module is a direct interpretation of "The Art of Moving Points" of "Brian Tindal".
     A can be moved in space using it's UD (Up/Down), IO (Inn/Out) and FB (FrontBack) attributes.
@@ -175,14 +100,24 @@ class AbstractAvar(classModule.Module):
 
     SHOW_IN_UI = False
 
+    """
+    This represent a single deformer influence that is moved in space using avars.
+    By default it come with a Deformer driven by a doritos setup.
+    A doritos setup allow the controller to always be on the surface of the face.
+    """
+    _CLS_CTRL = BaseCtrlFace  # By default, an avar don't have an ctrl.
+
     def __init__(self, *args, **kwargs):
-        super(AbstractAvar, self).__init__(*args, **kwargs)
+        super(Avar, self).__init__(*args, **kwargs)
         self.avar_network = None
         self.init_avars()
 
         self.ctrl = None
+        
         self.model_ctrl = None
         self.model_avar = None
+        self.model_avar_type = None  # by default nothing is set, it is the responsability of the AvarGrp module
+        self.model_ctrl_type = None  # by default nothing is set, it is the responsability of the AvarGrp module
 
     def init_avars(self):
         self.attr_ud = None  # Up/Down
@@ -301,35 +236,77 @@ class AbstractAvar(classModule.Module):
         self.hold_avars()
         self.init_avars()
 
-        super(AbstractAvar, self).unbuild()
+        if self.model_ctrl:
+            # Note: The model un-build process is only to needed to de-initialize some variables.
+            # If it fail, notify the user but don't crash.
+            # try:
+            self.model_ctrl.unbuild()
+            # except Exception, e:
+            #     self.warning("Error unbuilding ctrl model: {0}".format(str(e)))
+        if self.model_avar:
+            self.model_avar.unbuild()
 
+        super(Avar, self).unbuild()
+        
     def validate(self):
         """
         Check if the module can be built with it's current configuration.
-        Since AbstractAvar support having no influence at all (macro avars), we support having no inputs.
+        Since Avar support having no influence at all (macro avars), we support having no inputs.
         """
-        super(AbstractAvar, self).validate(support_no_inputs=True)
+        super(Avar, self).validate(support_no_inputs=True)
         return True
 
     def build(self, mult_u=1.0, mult_v=1.0, create_grp_anm=False, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
-        super(AbstractAvar, self).build(create_grp_anm=create_grp_anm, **kwargs)
+        super(Avar, self).build(create_grp_anm=create_grp_anm, **kwargs)
 
         self.add_avars(self.grp_rig)
         self.fetch_avars()
 
+        cls_model_avar = self.get_model_avar_class()
+        if cls_model_avar:
+            # Hack: If there is no influence on the avar, there's no valid reason to build an avar_logic.
+            if not self.jnt:
+                self.warning("Cannot create an AvarLogic instance for {0}. No influences to control!".format(self))
+            else:
+                self.model_avar = self.init_model_avar(cls_model_avar, self.model_avar, inputs=self.input)
+                self.model_avar.build()
+                self.model_avar.grp_rig.setParent(self.grp_rig)
 
-class AvarSimple(AbstractAvar):
-    """
-    This represent a single deformer influence that is moved in space using avars.
-    By default it come with a Deformer driven by a doritos setup.
-    A doritos setup allow the controller to always be on the surface of the face.
-    """
-    _CLS_CTRL = BaseCtrlFace  # By default, an avar don't have an ctrl.
-    _CLS_MODEL_CTRL = CtrlLogicInteractive  # todo: remove, we give the responsability to the rigger now
-    _CLS_MODEL_AVAR = AvarRigConnectionModelLinear  # todo: remove, we give the responsability to the rigger now
+        cls_model_ctrl = self.get_model_ctrl_class()
+        if cls_model_ctrl:
+            # Resolve ctrl transform.
+            ctrl_tm = self.get_default_ctrl_tm()
+
+            # Create the avar ctrl
+            ctrl_name = self.get_nomenclature_anm().resolve()
+            self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
+            self.ctrl.build(
+                name=ctrl_name
+            )
+            # size = ctrl_size  # todo: resolve ctrl_size
+            self.ctrl.setParent(self.grp_anm)
+            self.ctrl.setMatrix(ctrl_tm)
+
+            # Init model ctrl
+
+            self.model_ctrl = self.init_model_ctrl(
+                cls_model_ctrl,
+                self.model_ctrl
+            )
+            if self.model_ctrl:
+                self.model_ctrl.build(self)
+
+            # Expose the ctrl in a backward compatible way.
+            # self.ctrl = self.model_ctrl.ctrl
+
+            if self.model_ctrl.grp_anm and self.grp_anm:
+                self.model_ctrl.grp_anm.setParent(self.grp_anm)
+
+            if self.model_ctrl.grp_rig and self.grp_rig:
+                self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
     # todo: keep?
     def need_flip_lr(self):
@@ -343,7 +320,7 @@ class AvarSimple(AbstractAvar):
         return nomenclature.side == self.rig.nomenclature.SIDE_R
 
     def iter_ctrls(self):
-        for ctrl in super(AbstractAvar, self).iter_ctrls():
+        for ctrl in super(Avar, self).iter_ctrls():
             yield ctrl
         yield self.ctrl
 
@@ -351,23 +328,7 @@ class AvarSimple(AbstractAvar):
         """
         Do nothing when parenting since it's the ctrl model that handle how the parenting is done.
         """
-        pass
-
-    def __init__(self, *args, **kwargs):
-        super(AvarSimple, self).__init__(*args, **kwargs)
-
-        self.model_avar_type = g_enum_module_avar_logic.Linear
-        self.model_ctrl_type = g_enum_module_ctrl_logic.Linear
-
-        self.model_avar = None
-        self.model_ctrl = None
-
-    def validate(self):
-        super(AvarSimple, self).validate()
-
-        # Ensure our ctrl model validate
-        # if self._CLS_MODEL_CTRL:
-        #     self._CLS_MODEL_CTRL.validate(self)
+        pass 
 
     def build_stack(self, stack, mult_u=1.0, mult_v=1.0, parent_module=None):
         """
@@ -384,67 +345,13 @@ class AvarSimple(AbstractAvar):
 
         return stack
 
-    def build(self, constraint=True, follow_mesh=True, create_grp_anm=True, **kwargs):
-        """
-        :param constraint:
-        :param ctrl_size: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param ctrl_tm: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param jnt_tm:
-        :param obj_mesh: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param follow_mesh: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param kwargs:
-        :return:
-        """
-        super(AvarSimple, self).build(create_grp_anm=create_grp_anm, parent=False, **kwargs)
-
-        cls_model_avar = self.get_model_avar_class()
-        self.model_avar = self.init_model_avar(cls_model_avar, self.model_avar, inputs=self.input)
-        self.model_avar.build()
-        self.model_avar.grp_rig.setParent(self.grp_rig)
-
-        # we take in consideration that an AvarSimple HAVE a controller.
-
-        # Resovle ctrl transform.
-        ctrl_tm = self.get_default_ctrl_tm()
-
-        # Create the avar ctrl
-        ctrl_name = self.get_nomenclature_anm().resolve()
-        self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
-        self.ctrl.build(
-            name=ctrl_name
-        )
-        # size = ctrl_size  # todo: resolve ctrl_size
-        self.ctrl.setParent(self.grp_anm)
-        self.ctrl.setMatrix(ctrl_tm)
-
-        # Init model ctrl
-        cls_model_ctrl = self.get_model_ctrl_class()
-        self.model_ctrl = self.init_model_ctrl(
-            cls_model_ctrl,
-            self.model_ctrl
-        )
-        if self.model_ctrl:
-            self.model_ctrl.build(self)
-
-        # Expose the ctrl in a backward compatible way.
-        # self.ctrl = self.model_ctrl.ctrl
-
-        if self.model_ctrl.grp_anm and self.grp_anm:
-            self.model_ctrl.grp_anm.setParent(self.grp_anm)
-
-        if self.model_ctrl.grp_rig and self.grp_rig:
-            self.model_ctrl.grp_rig.setParent(self.grp_rig)
-
-            # nomenclature_rig = self.get_nomenclature_rig()
-            # 
-            # Resolve influence matrix
-            # if jnt_tm is None:
-            #     jnt_tm = self.get_jnt_tm()
-            # jnt_pos = jnt_tm.translate
-
     def get_model_ctrl_class(self):
         plugin_type_name = plugin_manager.ModuleCtrlLogicType.type_name
         plugin_cls_name = self.model_ctrl_type
+        # If nothing is defined, this mean that we don't want an avar logic.
+        if plugin_cls_name is None:
+            return None
+
         cls = _get_plugin_by_class_name(plugin_type_name, plugin_cls_name)
         if cls is None:
             raise Exception("Missing {0} plugin named {1}".format(plugin_type_name, plugin_cls_name))
@@ -485,7 +392,11 @@ class AvarSimple(AbstractAvar):
 
     def get_model_avar_class(self):
         plugin_type_name = plugin_manager.ModuleAvarLogicType.type_name
-        plugin_cls_name = self.model_avar_type 
+        plugin_cls_name = self.model_avar_type
+        # If nothing is defined, this mean that we don't want an avar logic.
+        if plugin_cls_name is None:
+            return None
+
         cls = _get_plugin_by_class_name(plugin_type_name, plugin_cls_name)
         if cls is None:
             raise Exception("Missing {0} plugin named {1}".format(plugin_type_name, plugin_cls_name))
@@ -506,7 +417,7 @@ class AvarSimple(AbstractAvar):
     def get_default_ctrl_tm(self):
         if self.jnt is None:
             self.warning("Cannot resolve ctrl matrix with no inputs!")
-            return None
+            return pymel.datatypes.Matrix()  # return identify matrix for now
 
         tm = self.jnt.getMatrix(worldSpace=True)
 
@@ -544,24 +455,19 @@ class AvarSimple(AbstractAvar):
     #     if self.model_ctrl and hasattr(self.model_ctrl, 'calibrate'):
     #         self.model_ctrl.calibrate()
 
-    def unbuild(self):
-        if self.model_ctrl:
-            # Note: The model un-build process is only to needed to de-initialize some variables.
-            # If it fail, notify the user but don't crash.
-            # try:
-            self.model_ctrl.unbuild()
-            # except Exception, e:
-            #     self.warning("Error unbuilding ctrl model: {0}".format(str(e)))
-        if self.model_avar:
-            self.model_avar.unbuild()
-        super(AvarSimple, self).unbuild()
+
+class AbstractAvar(Avar):
+    """Deprecated, defined for backward compatibility."""
+    pass
 
 
-class AvarFollicle(AvarSimple):
-    """
-    Only here for backward compatiblity. todo: remove?
-    """
-    SHOW_IN_UI = False
+class AvarSimple(Avar):
+    """Deprecated, defined for backward compatibility."""
+    pass
+
+
+class AvarFollicle(Avar):
+    """Deprecated, defined for backward compatibility."""
     pass
 
 

@@ -26,6 +26,7 @@ from omtk.libs import libAttr
 from omtk.libs import libPython
 from omtk.libs import libHistory
 from omtk.libs import libPymel
+from omtk.libs import libSkinning
 
 
 def _get_immediate_skincluster(transform):
@@ -257,7 +258,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
 
         surface = self.get_surface()
         skincluster = _get_immediate_skincluster(surface)
-        index = skincluster.influenceObjects().index(self.jnt)
+        index = libSkinning.get_skin_cluster_influence_objects(skincluster).index(self.jnt)
         pymel.connectAttr(attr_bind_tm_inv, skincluster.bindPreMatrix[index], force=True)
 
     def unbuild(self, **kwargs):
@@ -578,7 +579,7 @@ class InteractiveFK(Module):
                 self.warning("Found no skinCluster for {}".format(surface))
                 continue
 
-            cur_influences = set(skincluster.influenceObjects())
+            cur_influences = set(libSkinning.get_skin_cluster_influence_objects(skincluster))
             cur_jnts = list(jnts & cur_influences)
             unassigned_jnts -= cur_influences
 

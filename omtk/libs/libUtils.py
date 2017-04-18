@@ -1,5 +1,6 @@
 import pymel.core as pymel
 import logging
+from omtk.libs import libSkinning
 
 '''
 This method will create a locator at the center of the selection.
@@ -77,5 +78,5 @@ def getSkinBones():
     for oCurObj in pymel.selected():
         oSkinCluster = getSkinCluster(oCurObj)
         if oSkinCluster is not None:
-            aInfluences += oSkinCluster.influenceObjects()
+            aInfluences += libSkinning.get_skin_cluster_influence_objects(oSkinCluster)
     pymel.select(aInfluences)

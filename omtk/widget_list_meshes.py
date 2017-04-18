@@ -51,7 +51,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
 
                 skincluster = libSkinning.get_skin_cluster(mesh)
                 if skincluster:
-                    influences = sorted(skincluster.influenceObjects())
+                    influences = sorted(libSkinning.get_skin_cluster_influence_objects(skincluster))
 
                 self._fill_widget_meshes(widget_root, mesh, influences)
 

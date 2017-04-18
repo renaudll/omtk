@@ -306,7 +306,7 @@ class Twistbone(Module):
 
         for skin_deformer in skin_deformers:
             # Ensure the source joint is in the skinCluster influences
-            influenceObjects = skin_deformer.influenceObjects()
+            influenceObjects = libSkinning.get_skin_cluster_influence_objects(skin_deformer)
             if self.chain_jnt.start not in influenceObjects:
                 continue
 
@@ -338,7 +338,7 @@ class Twistbone(Module):
         """
         for skin_deformer in self.get_skinClusters_from_subjnts():
             # Ensure that the start joint is in the skin cluster
-            influenceObjects = skin_deformer.influenceObjects()
+            influenceObjects = libSkinning.get_skin_cluster_influence_objects(skin_deformer)
             if self.chain_jnt.start not in influenceObjects:
                 skin_deformer.addInfluence(self.chain_jnt.start, lockWeights=True, weight=0.0)
                 self.chain_jnt.start.lockInfluenceWeights.set(False)

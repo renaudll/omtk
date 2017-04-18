@@ -12,6 +12,18 @@ def get_skin_cluster(obj):
     return None
 
 
+def get_skin_cluster_influence_objects(skincluster):
+    """
+    Wrapper around pymel that wrap OpenMaya.MFnSkinCluster.influenceObjects() which crash when 
+    a skinCluster have zero influences.
+    :param skincluster: A pymel.nodetypes.SkinCluster instance. 
+    :return: A list in pymel.PyNode instances.
+    """
+    try:
+        return skincluster.influenceObjects()
+    except RuntimeError:
+        return []
+
 # @decorators.profiler
 def transfer_weights(obj, sources, target, add_missing_influences=False):
     """
@@ -35,7 +47,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
         raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
 
     # Resolve influence indices
-    influence_jnts = skinCluster.influenceObjects()
+    influence_jnts = get_skin_cluster_influence_objects(skinCluster)
 
     # Add target if missing, otherwise thrown an error.
     if target not in influence_jnts:
@@ -211,7 +223,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
 
     # Resolve source indices
-    influence_objects = skinCluster.influenceObjects()
+    influence_objects = get_skin_cluster_influence_objects(skinCluster)
     try:
         jnt_src_index = influence_objects.index(source)
     except ValueError:
@@ -331,7 +343,7 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5, interp=INTERP_CUBIC):
         raise Exception("Can't find skinCluster on {0}".format(shape.__melobject__()))
 
     # Resolve influence indices
-    influence_objects = skinCluster.influenceObjects()
+    influence_objects = get_skin_cluster_influence_objects(skinCluster)
     jnt_indices = [influence_objects.index(jnt) for jnt in jnts]
 
     # Create the OpenMaya influence MIntArray
@@ -379,7 +391,7 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5, interp=INTERP_CUBIC):
 
 # TODO : Reset the bind pose at the same time to prevent any problem
 def reset_skin_cluster(skinCluster):
-    influenceObjs = skinCluster.influenceObjects()
+    influenceObjs = get_skin_cluster_influence_objects(skinCluster)
     pymel.skinCluster(skinCluster, e=True, unbindKeepHistory=True)
     for obj in skinCluster.getOutputGeometry():
         pymel.skinCluster(influenceObjs + [obj], tsb=True)

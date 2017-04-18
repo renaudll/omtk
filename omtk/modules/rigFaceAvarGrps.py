@@ -484,7 +484,7 @@ class AvarGrp(
         # Create avars if needed (this will get skipped if the module have already been built once)
         self.avars = self._create_micro_avars()
 
-    def _build_avars(self, parent=None, connect_global_scale=None, create_ctrls=True, constraint=True, **kwargs):
+    def _build_avars(self, parent=None, connect_global_scale=None, constraint=True, **kwargs):
         if parent is None:
             parent = not self.preDeform
 
@@ -503,7 +503,6 @@ class AvarGrp(
             self.configure_avar(avar)
 
             self._build_avar_micro(avar,
-                                   create_ctrl=create_ctrls,
                                    constraint=constraint,
                                    mult_u=mult_u,
                                    mult_v=mult_v,
@@ -619,24 +618,72 @@ class AvarGrp(
                     avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_MICRO
                     avar._CLS_CTRL = self._CLS_CTRL_MICRO
                     avar.create_ctrl(self, **kwargs)
+    
+    def _is_surface_avar(self, avar):
+        """Utility function to detect if an Avar is linked to a surface."""
+        if avar.model_avar:  # If the avar was built at least once.
+            return isinstance(avar.model_avar, rigFaceAvar.AvarRigConnectionModelSurface)
+        else:  # If the avar was never built.
+            return avar.model_avar_type == rigFaceAvar.EnumAvarCtrlTypes.Surface
 
     def handle_surface(self):
         """
-        Create the surface that the follicle will slide on if necessary.
+        There's really good reasons where we want to use the same surface for each avars.
+        This will create such surface if needed.
         :return:
         """
-        # Hack: Provide backward compatibility for when surface was provided as an input.
-        if not libPymel.isinstance_of_shape(self.surface, pymel.nodetypes.NurbsSurface):
-            fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-            surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
-            if surface:
-                self.input.remove(surface)
-                self.surface = surface
-                return True
+        avars_surface = [avar for avar in self._iter_all_avars() if self._is_surface_avar(avar)]
 
-            # Create surface if it doesn't exist.
-            self.warning("Can't find surface for {0}, creating one...".format(self))
-            self.surface = self.create_surface()
+        # If no avars use a surface, exit
+        if not avars_surface:
+            return
+
+        # Identify which avars are missing their surfaces.
+        avars_surface_valid = set()
+        avars_surface_invalid = set()
+
+        for avar in avars_surface:
+            if libPymel.isinstance_of_shape(self.surface, pymel.nodetypes.NurbsSurface):
+                avars_surface_valid.add(avar)
+            else:
+                # Hack: Provide backward compatibility for when surface was provided as an input.
+                surface = next(
+                    (obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)),
+                    None)
+                if surface:
+                    self.input.remove(surface)
+                    self.surface = surface
+                    avars_surface_valid.add(avar)
+
+                else:
+                    avars_surface_invalid.add(avar)
+
+        # If all surface avars have their surface, exit.
+        if not avars_surface_invalid:
+            return
+
+        # Ok, we need to act.
+        surfaces = list(set([avar.surface for avar in avars_surface_valid]))
+        num_surfaces = len(surfaces)
+        
+        # First check if we HAVE one surface. We might be able to re-use it.
+        if num_surfaces == 1:
+            new_surface = surfaces[0]
+
+        elif num_surfaces == 0:
+            jnts = set()
+            for avar in avars_surface:
+                jnts.update(avar.jnts)
+            nomenclature = self.get_nomenclature().copy()
+            nomenclature.add_tokens('Surface')
+            new_surface = rigFaceAvar.create_surface(nomenclature, jnts)
+
+        else:
+            raise Exception("Found multiple surfaces for {0}. Cowardly aborting. ".format(self))
+
+        # Apply the surface on problematic avars.
+        for avar in avars_surface_invalid:
+            avar.surface = new_surface
 
     def build(self, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True,
               create_grp_rig_macro=True, create_grp_rig_micro=True, create_grp_anm_macro=True,
@@ -695,8 +742,9 @@ class AvarGrp(
 
     @decorator_uiexpose()
     def calibrate(self):
-        for avar in self.avars:
-            if not self._is_tweak_avar(avar):  # tweak avar have no ctrl and should not be calibrated
+        # todo: remove this? expose it in the ui?
+        for avar in self._iter_all_avars():
+            if self._is_surface_avar(avar):
                 avar.calibrate()
 
     def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, name=None, suffix=None):
@@ -765,14 +813,6 @@ class AvarGrp(
             avar.surface = self.surface
 
 
-enum_avar_type = Enum(
-    'AvarType', [
-        'simple',
-        'surface'
-    ]
-)
-
-
 class AvarGrpOnSurface(AvarGrp):
     """
     Highest-level surface-based AvarGrp module.
@@ -818,14 +858,6 @@ class AvarGrpOnSurface(AvarGrp):
         self.avar_r = None
         self.avar_upp = None
         self.avar_low = None
-        self.avar_type = enum_avar_type.simple
-
-    @decorator_uiexpose()
-    def create_surface(self, *args, **kwargs):
-        """
-        Expose the function in the ui, using the decorator.
-        """
-        return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
 
     _CLS_CTRL_LFT = CtrlFaceMacroL
     _CLS_CTRL_RGT = CtrlFaceMacroR
@@ -1326,54 +1358,55 @@ class AvarGrpOnSurface(AvarGrp):
                 return False
             return True
 
-        for avar_child in self.avars:
-            # Connect macro_all ctrl to each avar_child.
-            # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
-            # Using the rotate/scalePivot functionality, we are able to save some nodes.
-            attr_get_pivot_tm = libRigging.create_utility_node(
-                'multMatrix',
-                matrixIn=(
-                    self.avar_all._stack.node.worldMatrix,
-                    avar_child._grp_offset.worldInverseMatrix
-                )
-            ).matrixSum
-
-            layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
-            layer_parent.t.set(0, 0, 0)  # Hack: why?
-
-            attr_get_all_stack_tm = libRigging.create_utility_node(
-                'multMatrix',
-                matrixIn=(
-                    self.avar_all._stack.node.worldMatrix,
-                    self.avar_all._grp_offset.inverseMatrix
-                )
-            ).matrixSum
-
-            attr_global_tm = libRigging.create_utility_node(
-                'multMatrix',
-                matrixIn=(
-                    avar_child._grp_offset.matrix,
-                    self.avar_all._grp_offset.inverseMatrix,
-                    attr_get_all_stack_tm,
-                    self.avar_all._grp_offset.matrix,
-                    avar_child._grp_offset.inverseMatrix
-                )
-            ).matrixSum
-
-            util_decompose_global_tm = libRigging.create_utility_node(
-                'decomposeMatrix',
-                inputMatrix=attr_global_tm
-            )
-
-            pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
-            pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
-            pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
-            pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
-            pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
-            pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
-            pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
-            pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
-            pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
+        # todo: fix me before publishing!
+        # for avar_child in self.avars:
+        #     # Connect macro_all ctrl to each avar_child.
+        #     # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
+        #     # Using the rotate/scalePivot functionality, we are able to save some nodes.
+        #     attr_get_pivot_tm = libRigging.create_utility_node(
+        #         'multMatrix',
+        #         matrixIn=(
+        #             self.avar_all._stack.node.worldMatrix,
+        #             avar_child._grp_offset.worldInverseMatrix
+        #         )
+        #     ).matrixSum
+        # 
+        #     layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
+        #     layer_parent.t.set(0, 0, 0)  # Hack: why?
+        # 
+        #     attr_get_all_stack_tm = libRigging.create_utility_node(
+        #         'multMatrix',
+        #         matrixIn=(
+        #             self.avar_all._stack.node.worldMatrix,
+        #             self.avar_all._grp_offset.inverseMatrix
+        #         )
+        #     ).matrixSum
+        # 
+        #     attr_global_tm = libRigging.create_utility_node(
+        #         'multMatrix',
+        #         matrixIn=(
+        #             avar_child._grp_offset.matrix,
+        #             self.avar_all._grp_offset.inverseMatrix,
+        #             attr_get_all_stack_tm,
+        #             self.avar_all._grp_offset.matrix,
+        #             avar_child._grp_offset.inverseMatrix
+        #         )
+        #     ).matrixSum
+        # 
+        #     util_decompose_global_tm = libRigging.create_utility_node(
+        #         'decomposeMatrix',
+        #         inputMatrix=attr_global_tm
+        #     )
+        # 
+        #     pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
+        #     pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
+        #     pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
+        #     pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
+        #     pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
+        #     pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
+        #     pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
+        #     pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
+        #     pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
 
     @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):
@@ -1442,7 +1475,7 @@ class AvarGrpOnSurface(AvarGrp):
 
             constraint = True if self.get_influence_all() else False
 
-            self._build_avar_macro(self._CLS_CTRL_ALL, self.avar_all, jnt_tm=jnt_tm, constraint=constraint)
+            self._build_avar_macro(self._CLS_CTRL_ALL, self.avar_all, constraint=constraint)
 
             # self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
 
@@ -1555,25 +1588,6 @@ class AvarGrpOnSurface(AvarGrp):
         if self.avar_all:
             self.avar_all.unbuild()
         super(AvarGrpOnSurface, self).unbuild()
-
-    @decorator_uiexpose()
-    def calibrate(self):
-        """
-        Ensure macro avars are correctly calibrated.
-        This override might not be necessary if the design was better.
-        """
-        super(AvarGrpOnSurface, self).calibrate()
-
-        if self.avar_l:
-            self.avar_l.calibrate()
-        if self.avar_r:
-            self.avar_r.calibrate()
-        if self.avar_upp:
-            self.avar_upp.calibrate()
-        if self.avar_low:
-            self.avar_low.calibrate()
-        if self.avar_all:
-            self.avar_all.calibrate()
 
     def get_avars_upp(self, macro=True):
         result = super(AvarGrpOnSurface, self).get_avars_upp()

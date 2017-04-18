@@ -376,7 +376,6 @@ class Module(object):
             ))
 
         self.rig = rig  # Reference to the parent rig instance.
-        self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
         self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point

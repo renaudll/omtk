@@ -153,11 +153,18 @@ class ModelNonInteractiveCtrl(BaseCalibratableCtrlModel):
         self._stack.build(name=stack_name)
         self._stack.setTranslation(pos_ref)
 
-        # Create the layer_fol that will follow the geometry
-        layer_fol_name = nomenclature_rig.resolve('doritosFol')
-        layer_fol = self._stack.append_layer()
-        layer_fol.rename(layer_fol_name)
-        layer_fol.setParent(self.grp_rig)
+        # Create the layer that is influenced by the avar values.
+        layer_avar_name = nomenclature_rig.resolve('avars')
+        layer_avar = self._stack.append_layer()
+        layer_avar.rename(layer_avar_name)
+        layer_avar.setParent(self.grp_rig)
+
+        pymel.connectAttr(avar.attr_lr, layer_avar.tx)
+        pymel.connectAttr(avar.attr_ud, layer_avar.ty)
+        pymel.connectAttr(avar.attr_fb, layer_avar.tz)
+        pymel.connectAttr(avar.attr_yw, layer_avar.ry)
+        pymel.connectAttr(avar.attr_pt, layer_avar.rx)
+        pymel.connectAttr(avar.attr_rl, layer_avar.rz)
 
         #
         # Constraint grp_rig
@@ -185,7 +192,7 @@ class ModelNonInteractiveCtrl(BaseCalibratableCtrlModel):
         # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
         # any deformation can affect the normal of the faces.
         if parent_rot:
-            pymel.orientConstraint(parent_rot, layer_fol, maintainOffset=True)
+            pymel.orientConstraint(parent_rot, layer_avar, maintainOffset=True)
 
         #
         # Constraint a specic controller to the avar doritos stack.

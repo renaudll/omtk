@@ -4,12 +4,9 @@ This is necessary when the relationship between the ctrl and the influence is mo
 """
 import pymel.core as pymel
 
-from . import classModule
-from . import classNode
+from omtk.core import classModule
 from omtk.libs import libAttr
 from omtk.libs import libRigging
-from omtk.libs import libHistory
-from omtk.libs import libPython
 
 
 class BaseCtrlModel(classModule.Module):

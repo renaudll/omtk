@@ -290,6 +290,14 @@ class MacroPluginType(PluginType):
     type_name = 'macros'
 
 
+class ModuleAvarLogicType(PluginType):
+    type_name = 'modules_avar_logic'
+
+
+class ModuleCtrlLogicType(PluginType):
+    type_name = 'modules_ctrl_logic'
+
+
 # class UnitTestPluginType(PluginType):
 #     type_name = 'tests'
 
@@ -306,6 +314,8 @@ def initialize():
     pm.register_plugin_type(ModulePluginType)
     pm.register_plugin_type(RigPluginType)
     pm.register_plugin_type(MacroPluginType)
+    pm.register_plugin_type(ModuleAvarLogicType)
+    pm.register_plugin_type(ModuleCtrlLogicType)
     # pm.register_plugin_type(UnitTestPluginType)
     return pm
 

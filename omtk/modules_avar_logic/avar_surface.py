@@ -4,6 +4,9 @@ from omtk.libs import libRigging
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 
+import logging
+log = logging.getLogger('omtk')
+
 
 def create_surface(nomenclature, jnts, epsilon=0.001, default_scale=1.0):
     """

@@ -599,7 +599,7 @@ class Module(object):
 
     def iter_ctrls(self):
         """
-        Iterate though all the ctrl implemented by the module.
+        Iterate through all the ctrl implemented by the module.
         :return: A generator of BaseCtrl instances.
         """
         for ctrl in self.ctrls:
@@ -610,6 +610,15 @@ class Module(object):
         :return: A list of BaseCtrl instances implemented by the module.
         """
         return list(self.iter_ctrls())
+
+    def iter_submodules(self):
+        """
+        Iterate through all children modules.
+        Please yield element in the order that they need to be unbuild.
+        :return: A generator of Module instances.
+        """
+        return
+        yield
 
     def get_pin_locations(self, jnt=None):
         """

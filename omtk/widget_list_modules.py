@@ -4,6 +4,7 @@ import inspect
 import traceback
 import logging
 import itertools
+import collections
 
 import pymel.core as pymel
 from ui import widget_list_modules
@@ -274,6 +275,35 @@ class WidgetListModules(QtWidgets.QWidget):
         qitem._meta_type = ui_shared.MetadataType.Rig
         qitem.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
+    def _create_tree_widget_module(self, module):
+        qitem = QtWidgets.QTreeWidgetItem(0)
+        qitem.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
+
+        # Set network metadata
+        if hasattr(module, '_network'):
+            qitem.net = module._network
+        else:
+            pymel.warning("{0} have no _network attributes".format(module))
+
+        # Set module metadata
+        qitem.rig = module
+
+        self._update_qitem_module(qitem, module)
+
+        # In advanced mode, list module sub-modules
+        for submodule in module.iter_submodules():
+            qsubitem = self._create_tree_widget_module(submodule)
+            qitem.addChild(qsubitem)
+
+        # List module inputs
+        for input in module.input:
+            qInputItem = QtWidgets.QTreeWidgetItem(0)
+            qInputItem.setText(0, input.name())
+            ui_shared._set_icon_from_type(input, qInputItem)
+            qitem.addChild(qInputItem)
+
+        return qitem
+
     def _rig_to_tree_widget(self, module):
         qItem = QtWidgets.QTreeWidgetItem(0)
         if hasattr(module, '_network'):
@@ -289,13 +319,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
             sorted_modules = sorted(module, key=lambda mod: mod.name)
             for child in sorted_modules:
-                qSubItem = self._rig_to_tree_widget(child)
-                qSubItem.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
-                for input in child.input:
-                    qInputItem = QtWidgets.QTreeWidgetItem(0)
-                    qInputItem.setText(0, input.name())
-                    ui_shared._set_icon_from_type(input, qInputItem)
-                    qSubItem.addChild(qInputItem)
+                qSubItem = self._create_tree_widget_module(child)
                 qItem.addChild(qSubItem)
 
         return qItem
@@ -365,6 +389,44 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_module_query_changed(self, *args, **kwargs):
         self._refresh_ui_modules_visibility()
 
+    def _iter_modules(self, entity):
+        """Recursively return all modules and submodules starting with provided entity."""
+        yield entity
+        if isinstance(entity, classRig.Rig):
+            for child in entity.modules:
+                for entry in self._iter_modules(child):
+                    yield entry
+        elif isinstance(entity, classModule.Module):
+            for child in entity.iter_submodules():
+                for entry in self._iter_modules(child):
+                    yield entry
+        else:
+            raise Exception("Unsupported entity type {0} for {1}.".format(type(entity), entity))
+
+    def _get_actions(self, entities):
+        """Recursively scan for actions stored inside entities."""
+
+        def _is_exposed(val):
+            if not hasattr(val, '__can_show__'):
+                return False
+            fn = getattr(val, '__can_show__')
+            if fn is None:
+                return False
+            # if not inspect.ismethod(fn):
+            #    return False
+            return val.__can_show__()
+
+        result = collections.defaultdict(list)
+
+        for entity in entities:
+            for entry in self._iter_modules(entity):
+                functions = inspect.getmembers(entry, _is_exposed)
+                if functions:
+                    for fn_name, fn in functions:
+                        result[fn_name].append(fn)
+
+        return result
+
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
             sel = self.ui.treeWidget.selectedItems()
@@ -394,43 +456,23 @@ class WidgetListModules(QtWidgets.QWidget):
             actionRemove.triggered.connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
-
-            def is_exposed(val):
-                if not hasattr(val, '__can_show__'):
-                    return False
-                fn = getattr(val, '__can_show__')
-                if fn is None:
-                    return False
-                # if not inspect.ismethod(fn):
-                #    return False
-                return val.__can_show__()
-
-            functions = inspect.getmembers(inst, is_exposed)
-
-            if functions:
+            actions_map = self._get_actions([qitem.rig for qitem in sel])
+            if actions_map:
                 menu.addSeparator()
-                for fn_name, fn in functions:
+                for fn_name in sorted(actions_map.keys()):
                     fn_nicename = fn_name.replace('_', ' ').title()
 
-                    fn = functools.partial(self._execute_rcmenu_entry, fn_name)
+                    fn_ = functools.partial(self._execute_rcmenu_entry, fn_name)
                     action = menu.addAction(fn_nicename)
-                    action.triggered.connect(fn)
+                    action.triggered.connect(fn_)
 
             menu.exec_(QtGui.QCursor.pos())
 
     def _execute_rcmenu_entry(self, fn_name):
         need_export_network = False
-        for module in itertools.chain(self.get_selected_modules() + self.get_selected_rigs()):
-            # Resolve fn
-            if not hasattr(module, fn_name):
-                continue
-
-            fn = getattr(module, fn_name)
-            if not inspect.ismethod(fn):
-                continue
-
-            # Call fn
-            log.debug("Calling {0} on {1}".format(fn_name, module))
+        entities = itertools.chain(self.get_selected_modules() + self.get_selected_rigs())
+        action_map = self._get_actions(entities)
+        for fn in action_map[fn_name]:
             fn()
             if constants.UIExposeFlags.trigger_network_export in fn._flags:
                 need_export_network = True

@@ -131,6 +131,10 @@ class AvarLogicLinear(classModuleAvarLogic.BaseAvarRigConnectionModel):
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
 
+    def parent_to(self, parent):
+        pymel.parentConstraint(parent, self._grp_parent, maintainOffset=True)
+        pymel.scaleConstraint(parent, self._grp_parent, maintainOffset=True)
+
 
 def register_plugin():
     return AvarLogicLinear

@@ -1357,7 +1357,7 @@ def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', for
     return connectAttr_withBlendWeighted(animCurve.output, attr_dst)
 
 
-def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01, default=1.0):
+def calibrate_attr_using_translation(attr, ref, step_size=1.0, epsilon=0.01, default=1.0):
     """
     Return the distance that @ref move when @attr is changed.
     This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.

@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 
 import pymel.core as pymel
-from pymel.util.enum import Enum
 
 from omtk.core.utils import decorator_uiexpose
 from omtk.core import classModule
@@ -14,8 +13,6 @@ from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
 from omtk.modules import rigFaceAvar
-from omtk.models import modelInteractiveCtrl
-from omtk.models import modelNonInteractiveCtrl
 
 log = logging.getLogger('omtk')
 
@@ -94,79 +91,76 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
 
 # Models
 
-class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
-    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-        # avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
-        avar_tweak = False  # todo: fix me!
-        # if avar_tweak:
-        #     super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=False, pt=False, rl=False,
-        #                                             sx=False, sy=False, sz=False)
-        #     super(ModelMicroAvarCtrl, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=False, yw=yw, pt=pt,
-        #                                             rl=rl, sx=sx, sy=sy, sz=sz)
-        # else:
-        super(ModelMicroAvarCtrl, self).connect(avar, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx,
-                                                sy=sy, sz=sz)
-
-
-class ModelCtrlMacroAll(modelNonInteractiveCtrl.ModelNonInteractiveCtrl):
-    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-        super(ModelCtrlMacroAll, self).connect(avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
-                                               sx=True, sy=True, sz=True)
-
-        #
-        # Compute the calibration automatically
-        #
-
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        # Compute the calibration automatically
-        attr_calibration_lr = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getCalibrationLr'),
-            input1X=avar.attr_multiplier_lr,
-            input2X=avar._attr_length_u
-        ).outputX
-        attr_calibration_ud = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getCalibrationUd'),
-            input1X=avar.attr_multiplier_ud,
-            input2X=avar._attr_length_v
-        ).outputX
-        attr_calibration_fb = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getCalibrationFb'),
-            input1X=avar.attr_multiplier_fb,
-            input2X=avar._attr_length_u
-        ).outputX
-
-        pymel.connectAttr(attr_calibration_lr, self.attr_sensitivity_tx)
-        pymel.connectAttr(attr_calibration_ud, self.attr_sensitivity_ty)
-        pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
-
-    def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
-        parent_pos = avar.model_avar._grp_output
-        # parent_rot = avar._grp_output
-        super(ModelCtrlMacroAll, self).build(avar, **kwargs)
-
-    def calibrate(self, **kwargs):
-        """
-        Since the avar_all macro follow directly the surface, we don't need to calibrate it.
-        """
-        pass
+# class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
+#     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+#         # avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
+#         avar_tweak = False  # todo: fix me!
+#         # if avar_tweak:
+#         #     super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=False, pt=False, rl=False,
+#         #                                             sx=False, sy=False, sz=False)
+#         #     super(ModelMicroAvarCtrl, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=False, yw=yw, pt=pt,
+#         #                                             rl=rl, sx=sx, sy=sy, sz=sz)
+#         # else:
+#         super(ModelMicroAvarCtrl, self).connect(avar, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx,
+#                                                 sy=sy, sz=sz)
+# 
+# 
+# class ModelCtrlMacroAll(modelNonInteractiveCtrl.ModelNonInteractiveCtrl):
+#     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+#         super(ModelCtrlMacroAll, self).connect(avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
+#                                                sx=True, sy=True, sz=True)
+# 
+#         #
+#         # Compute the calibration automatically
+#         #
+# 
+#         nomenclature_rig = self.get_nomenclature_rig()
+# 
+#         # Compute the calibration automatically
+#         attr_calibration_lr = libRigging.create_utility_node(
+#             'multiplyDivide',
+#             name=nomenclature_rig.resolve('getCalibrationLr'),
+#             input1X=avar.attr_multiplier_lr,
+#             input2X=avar._attr_length_u
+#         ).outputX
+#         attr_calibration_ud = libRigging.create_utility_node(
+#             'multiplyDivide',
+#             name=nomenclature_rig.resolve('getCalibrationUd'),
+#             input1X=avar.attr_multiplier_ud,
+#             input2X=avar._attr_length_v
+#         ).outputX
+#         attr_calibration_fb = libRigging.create_utility_node(
+#             'multiplyDivide',
+#             name=nomenclature_rig.resolve('getCalibrationFb'),
+#             input1X=avar.attr_multiplier_fb,
+#             input2X=avar._attr_length_u
+#         ).outputX
+# 
+#         pymel.connectAttr(attr_calibration_lr, self.attr_sensitivity_tx)
+#         pymel.connectAttr(attr_calibration_ud, self.attr_sensitivity_ty)
+#         pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
+# 
+#     def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
+#         parent_pos = avar.model_avar._grp_output
+#         # parent_rot = avar._grp_output
+#         super(ModelCtrlMacroAll, self).build(avar, **kwargs)
+# 
+#     def calibrate(self, **kwargs):
+#         """
+#         Since the avar_all macro follow directly the surface, we don't need to calibrate it.
+#         """
+#         pass
 
 
 # Models
 
-class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inheriting from module more logical?
+class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly? Is inheriting from module more logical?
     """
     Base class for a group of 'avars' that share the same properties.
     """
     # Define the class to use for all avars.
     _CLS_AVAR = rigFaceAvar.Avar
     _CLS_CTRL_MICRO = rigFaceAvar.CtrlFaceMicro
-    _CLS_CTRL_TWEAK = None  # In our case we hide the tweak avars by default since they are controlled using their parent controller.
-    _CLS_MODEL_CTRL_MICRO = ModelMicroAvarCtrl
-    _CLS_MODEL_CTRL_TWEAK = None
 
     SHOW_IN_UI = True
 
@@ -201,6 +195,15 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
         self._grp_anm_avars_micro = None
         self._grp_rig_avars_macro = None
         self._grp_rig_avars_micro = None
+
+        self.model_avar_type = None
+        self.model_ctrl_type = None
+        
+    def parent_to(self, parent):
+        """
+        Handle manually by each individual avars. 
+        """
+        pass
 
     #
     # Avar properties
@@ -474,6 +477,8 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
                 log.info("Removing CtrlModel for {0}".format(avar))
                 avar.ctrl_model_type = None
 
+        self.avars = new_avars
+
         return new_avars
 
     def _build_avars(self, parent=None, connect_global_scale=None, constraint=True, **kwargs):
@@ -492,8 +497,6 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
         # Build avars and connect them to global avars
         avar_influences = self._get_avars_influences()
         for jnt, avar in zip(avar_influences, self.avars):
-            self.configure_avar(avar)
-
             self._build_avar_micro(avar,
                                    constraint=constraint,
                                    mult_u=mult_u,
@@ -511,14 +514,7 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
     def _build_avar(self, avar, **kwargs):
         # HACK: Validate avars at runtime
         # TODO: Find a way to validate before build without using VALIDATE_MESH
-        try:
-            avar.validate()
-        except Exception, e:
-            self.warning("Can't build avar {0}, failed validation: {1}".format(
-                avar.name,
-                e
-            ))
-            return None
+        avar.validate()
 
         avar.build(**kwargs)
 
@@ -602,24 +598,25 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
         for avar in self._iter_all_avars():
             if avar.model_ctrl:
                 avar.model_ctrl.connect(avar)
-        # for avar in self.avars:
-        #     if self._is_tweak_avar(avar):
-        #         if self._CLS_CTRL_TWEAK:
-        #             avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_TWEAK
-        #             avar._CLS_CTRL = self._CLS_CTRL_TWEAK
-        #             avar.create_ctrl(self, **kwargs)
-        #     else:
-        #         if self._CLS_CTRL_MICRO:
-        #             avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_MICRO
-        #             avar._CLS_CTRL = self._CLS_CTRL_MICRO
-        #             avar.create_ctrl(self, **kwargs)
+                # for avar in self.avars:
+                #     if self._is_tweak_avar(avar):
+                #         if self._CLS_CTRL_TWEAK:
+                #             avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_TWEAK
+                #             avar._CLS_CTRL = self._CLS_CTRL_TWEAK
+                #             avar.create_ctrl(self, **kwargs)
+                #     else:
+                #         if self._CLS_CTRL_MICRO:
+                #             avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_MICRO
+                #             avar._CLS_CTRL = self._CLS_CTRL_MICRO
+                #             avar.create_ctrl(self, **kwargs)
 
     def _is_surface_avar(self, avar):
         """Utility function to detect if an Avar is linked to a surface."""
+        from omtk.modules_avar_logic import avar_surface
         if avar.model_avar:  # If the avar was built at least once.
-            return isinstance(avar.model_avar, rigFaceAvar.AvarRigConnectionModelSurface)
+            return isinstance(avar.model_avar, avar_surface.AvarLogicSurface)
         else:  # If the avar was never built.
-            return avar.model_avar_type == rigFaceAvar.EnumAvarCtrlTypes.Surface
+            return avar.model_avar_type == avar_surface.AvarLogicSurface.name
 
     def handle_surface(self):
         """
@@ -672,19 +669,19 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
                 jnts.update(avar.jnts)
             nomenclature = self.get_nomenclature().copy()
             nomenclature.add_tokens('Surface')
-            new_surface = avar_surface.create_surface(nomenclature, jnts)
+            _, new_surface = avar_surface.create_surface(nomenclature, jnts)
 
         else:
             raise Exception("Found multiple surfaces for {0}. Cowardly aborting. ".format(self))
 
         # Apply the surface on problematic avars.
         for avar in avars_surface_invalid:
-            avar.surface = new_surface
+            avar.input.append(new_surface)
+            # avar.surface = new_surface
 
     def build(self, connect_global_scale=None, create_ctrls=True, parent=True, constraint=True,
               create_grp_rig_macro=True, create_grp_rig_micro=True, create_grp_anm_macro=True,
               create_grp_anm_micro=True, calibrate=True, **kwargs):
-        self.handle_surface()
 
         super(AvarGrp, self).build(connect_global_scale=connect_global_scale, parent=parent, **kwargs)
 
@@ -711,18 +708,24 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
             self._grp_rig_avars_micro.setParent(self.grp_rig)
 
         self._init_avars()
+        self.handle_surface()
 
         self._build_avars(parent=parent, connect_global_scale=connect_global_scale, constraint=constraint)
 
-        if create_ctrls:
-            ctrl_size = self._get_default_ctrl_size()
-            self._create_avars_ctrls(ctrl_size=ctrl_size)
+        # if create_ctrls:
+        #     ctrl_size = self._get_default_ctrl_size()
+        #     self._create_avars_ctrls(ctrl_size=ctrl_size)
 
         if parent:
             self._parent_avars()
 
-        if calibrate:
-            self.calibrate()
+        self.connect_ctrls_to_avars()
+
+        # Apply post-build actions
+        # todo: do we need a post-build action for the avar model
+        for avar in self._iter_all_avars():
+            if avar.model_ctrl:
+                avar.model_ctrl.post_build()
 
     def unbuild(self):
         for avar in self.avars:
@@ -736,14 +739,8 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
             for ctrl in avar.iter_ctrls():
                 yield ctrl
 
-    @decorator_uiexpose()
-    def calibrate(self):
-        # todo: remove this? expose it in the ui?
-        for avar in self._iter_all_avars():
-            if self._is_surface_avar(avar):
-                avar.calibrate()
-
-    def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, name=None, suffix=None):
+    def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, model_ctrl_type=None, model_avar_type=None, name=None,
+                   suffix=None):
         """
         Factory method that initialize an avar instance only if necessary.
         If the instance already had been initialized in a previous build, it's correct value will be preserved,
@@ -755,6 +752,8 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
         :param inst: The current value. This should always exist since defined in the module constructor.
         :param ref:
         :param cls_ctrl: The desired ctrl class. We might want to remove this for simplicity
+        :param model_ctrl_type: A string representing the desired modules_ctrl_logic class.
+        :param model_avar_type: A string representing the desired modules_avar_logic class.
         :return: The initialized instance. If the instance was already fine, it is returned as is.
         """
         # Hack: Ensure ref is a list.
@@ -781,9 +780,19 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
         if cls_ctrl:
             result._CLS_CTRL = cls_ctrl
 
-        # Apply cls_ctrl_model override if specified
-        if cls_ctrl_model:
-            result._CLS_MODEL_CTRL = cls_ctrl_model
+        # Apply model_ctrl_type override if specified
+        if model_ctrl_type:
+            result.model_ctrl_type = model_ctrl_type
+        # Otherwise listen to the AvarGrp definition if the avar is new
+        elif result.model_ctrl is None:
+            result.model_ctrl_type = self.model_ctrl_type
+
+        # Apply model_avar_type override if specified
+        if result.model_avar:
+            result.model_avar_type = model_avar_type
+        # Otherwise listen to the AvarGrp definition if the avar is new
+        elif result.model_avar is None:
+            result.model_avar_type = self.model_avar_type
 
         # Apply name override if specified
         if name:
@@ -799,14 +808,6 @@ class AvarGrp(classModule):  # todo: why do we inherit from Avar exactly? Is inh
         result._parent_module = self
 
         return result
-
-    def configure_avar(self, avar):
-        """
-        This method is called as soon as we access or create an avar.
-        Use it to configure the avar automatically.
-        """
-        if avar.surface is None and self.surface:
-            avar.surface = self.surface
 
 
 class AvarGrpOnSurface(AvarGrp):
@@ -855,12 +856,17 @@ class AvarGrpOnSurface(AvarGrp):
         self.avar_upp = None
         self.avar_low = None
 
+    def iter_submodules(self, recursive=False):
+        for avar in self._iter_all_avars():
+            if avar:
+                yield avar
+
     _CLS_CTRL_LFT = CtrlFaceMacroL
     _CLS_CTRL_RGT = CtrlFaceMacroR
     _CLS_CTRL_UPP = CtrlFaceUpp
     _CLS_CTRL_LOW = CtrlFaceLow
     _CLS_CTRL_ALL = CtrlFaceAll
-    _CLS_MODEL_CTRL_ALL = ModelCtrlMacroAll
+    # _CLS_MODEL_CTRL_ALL = ModelCtrlMacroAll
 
     SHOW_IN_UI = True
     UI_DISPLAY_NAME = 'AvarGrp'
@@ -1250,14 +1256,15 @@ class AvarGrpOnSurface(AvarGrp):
                 self.avar_all,
                 ref=avar_all_ref,
                 cls_ctrl=self._CLS_CTRL_UPP,
-                cls_ctrl_model=self._CLS_MODEL_CTRL_ALL,
                 name=avar_all_name
             )
             self.avar_all.name = avar_all_name
 
-            # There MIGHT nothing to drive with this avar.
+            # Hack: There MIGHT nothing to drive with this avar.
             if not self.avar_all.jnt:
                 self.avar_all.model_avar_type = None
+                from omtk.modules_ctrl_logic import ctrl_linear
+                self.avar_all.model_ctrl_type = ctrl_linear.CtrlLogicLinear.name
 
             # The avar_all is special since it CAN drive an influence.
             old_ref_all = self.avar_all.jnt
@@ -1492,18 +1499,26 @@ class AvarGrpOnSurface(AvarGrp):
             # self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
 
     def _build_avars(self, **kwargs):
-        # TODO: Some calls might need to be move
+        # todo: cleanup
         super(AvarGrpOnSurface, self)._build_avars(**kwargs)
 
-        self._build_avar_macro_l()
+        if self.create_macro_horizontal:
+            self._build_avar_macro_l()
+            self._connect_avar_macro_l()
 
-        self._build_avar_macro_r()
+            self._build_avar_macro_r()
+            self._connect_avar_macro_r()
 
-        self._build_avar_macro_upp()
+        if self.create_macro_vertical:
+            self._build_avar_macro_upp()
+            self._connect_avar_macro_upp()
 
-        self._build_avar_macro_low()
+            self._build_avar_macro_low()
+            self._connect_avar_macro_low()
 
-        self._build_avar_macro_all()
+        if self.create_macro_all:
+            self._build_avar_macro_all()
+            self._connect_avar_macro_all()
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, ctrl_tm=None, **kwargs):
         # Note: Since the avar_all might not have any influence, we resolve the ctrl_tm outside of the model.
@@ -1534,6 +1549,83 @@ class AvarGrpOnSurface(AvarGrp):
 
     def create_avar_macro_low_ctrls(self, **kwargs):
         self.avar_low.create_ctrl(self, **kwargs)
+
+    def connect(self, ctrl, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+        need_flip = avar.need_flip_lr()
+
+        # Position
+        if ud:
+            attr_inn_ud = ctrl.translateY
+            libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
+
+        if lr:
+            attr_inn_lr = ctrl.translateX
+
+            if need_flip:
+                attr_inn_lr = libRigging.create_utility_node(
+                    'multiplyDivide',
+                    input1X=attr_inn_lr,
+                    input2X=-1
+                ).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)
+
+        if fb:
+            attr_inn_fb = ctrl.translateZ
+            libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
+
+        # Rotation
+        if yw:
+            attr_inn_yw = ctrl.rotateY
+
+            if need_flip:
+                attr_inn_yw = libRigging.create_utility_node(
+                    'multiplyDivide',
+                    input1X=attr_inn_yw,
+                    input2X=-1
+                ).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_yw)
+
+        if pt:
+            attr_inn_pt = ctrl.rotateX
+            libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_pt)
+
+        if rl:
+            attr_inn_rl = ctrl.rotateZ
+
+            if need_flip:
+                attr_inn_rl = libRigging.create_utility_node(
+                    'multiplyDivide',
+                    input1X=attr_inn_rl,
+                    input2X=-1
+                ).outputX
+
+            libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
+
+        # Scale
+        if sx:
+            attr_inn = ctrl.scaleX
+            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sx)
+        if sy:
+            attr_inn = ctrl.scaleY
+            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sy)
+        if sz:
+            attr_inn = ctrl.scaleZ
+            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sz)
+
+    def connect_ctrls_to_avars(self):
+        for avar in self._iter_all_avars():
+            # todo: _iter_micro_avars should not return any tweak avar
+            if self._is_tweak_avar(avar):
+                continue
+
+            avar_tweak = self._get_micro_tweak_avars_dict().get(avar)
+            if avar_tweak:
+                self.connect(avar.ctrl, avar, sx=False, sy=False, sz=False)
+                self.connect(avar_tweak.ctrl, avar, ud=False, fb=False, lr=False)
+            else:
+                self.connect(avar.ctrl, avar)
 
     # def _create_avars_ctrls(self, parent_rot=None, parent_scl=None, **kwargs):
     #     

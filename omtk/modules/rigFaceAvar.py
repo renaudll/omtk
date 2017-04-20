@@ -10,10 +10,6 @@ from pymel.util.enum import Enum
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import plugin_manager
-from omtk.core import classModuleCtrlLogic
-from omtk.core import classModuleAvarLogic
-from omtk.modules_ctrl_logic.ctrl_interactive import CtrlLogicInteractive
-from omtk.modules_ctrl_logic.ctrl_linear import CtrlLogicLinear
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -33,10 +29,6 @@ def _get_plugin_by_class_name(plugin_type_name, plugin_name):
     for plugin in pm.iter_loaded_plugins_by_type(plugin_type_name):
         if plugin.cls.name == plugin_name:
             return plugin.cls
-
-
-g_enum_module_avar_logic = _create_enum_from_plugin_type(plugin_manager.ModuleAvarLogicType.type_name)
-g_enum_module_ctrl_logic = _create_enum_from_plugin_type(plugin_manager.ModuleCtrlLogicType.type_name)
 
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
@@ -113,11 +105,17 @@ class Avar(classModule.Module):
         self.init_avars()
 
         self.ctrl = None
-        
+
         self.model_ctrl = None
         self.model_avar = None
         self.model_avar_type = None  # by default nothing is set, it is the responsability of the AvarGrp module
         self.model_ctrl_type = None  # by default nothing is set, it is the responsability of the AvarGrp module
+
+    def iter_submodules(self):
+        if self.model_ctrl:
+            yield self.model_ctrl
+        if self.model_avar:
+            yield self.model_avar
 
     def init_avars(self):
         self.attr_ud = None  # Up/Down
@@ -247,36 +245,81 @@ class Avar(classModule.Module):
             self.model_avar.unbuild()
 
         super(Avar, self).unbuild()
-        
+
     def validate(self):
         """
         Check if the module can be built with it's current configuration.
         Since Avar support having no influence at all (macro avars), we support having no inputs.
         """
+        # Validate model_ctrl
+        self._handle_init_model_ctrl()
+        if self.model_ctrl:
+            self.model_ctrl.validate()
+
+        # Validate model_avar
+        self._handle_init_model_avar()
+        if self.model_avar:
+            self.model_avar.validate()
+
         super(Avar, self).validate(support_no_inputs=True)
         return True
 
-    def build(self, mult_u=1.0, mult_v=1.0, create_grp_anm=False, **kwargs):
+    def _handle_init_model_ctrl(self):
+        """
+        This method is separated from build since we need to initialize the ctrl logic for validation.
+        """
+        cls = self.get_model_ctrl_class()
+
+        # If we need to remove an existing model_ctrl.
+        if cls is None:
+            self.model_ctrl = None
+            return
+
+        self.model_ctrl = self.init_model_ctrl(
+            cls,
+            self.model_ctrl,
+            inputs=self.input
+        )
+
+    def _handle_init_model_avar(self):
+        """
+        This method is separated from build since we need to initialize the avar logic for validation.
+        """
+        cls = self.get_model_avar_class()
+
+        # If we need to remove an existing model_avar.
+        if cls is None:
+            self.model_avar = None
+            return
+
+        self.model_avar = self.init_model_avar(
+            cls,
+            self.model_avar,
+            inputs=self.input
+        )
+
+    def build(self, mult_u=1.0, mult_v=1.0, constraint=False, **kwargs):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
+        :param mult_u: deprecated, remove it!
+        :param mult_v: deprecated, remove it!
+        :param constraint: Unused, removed it?
         """
-        super(Avar, self).build(create_grp_anm=create_grp_anm, **kwargs)
+        cls_model_ctrl = self.get_model_ctrl_class()
+
+        super(Avar, self).build(create_grp_anm=(cls_model_ctrl is not None), **kwargs)
 
         self.add_avars(self.grp_rig)
         self.fetch_avars()
 
-        cls_model_avar = self.get_model_avar_class()
-        if cls_model_avar:
-            # Hack: If there is no influence on the avar, there's no valid reason to build an avar_logic.
-            if not self.jnt:
-                self.warning("Cannot create an AvarLogic instance for {0}. No influences to control!".format(self))
-            else:
-                self.model_avar = self.init_model_avar(cls_model_avar, self.model_avar, inputs=self.input)
-                self.model_avar.build()
-                self.model_avar.grp_rig.setParent(self.grp_rig)
+        self._handle_init_model_avar()
+        if self.model_avar:
+            self.model_avar.build()
+            self.model_avar.grp_rig.setParent(self.grp_rig)
+            self.model_avar.parent_to(self.get_parent_obj())
 
-        cls_model_ctrl = self.get_model_ctrl_class()
-        if cls_model_ctrl:
+        self._handle_init_model_ctrl()
+        if self.model_ctrl:
             # Resolve ctrl transform.
             ctrl_tm = self.get_default_ctrl_tm()
 
@@ -291,13 +334,8 @@ class Avar(classModule.Module):
             self.ctrl.setMatrix(ctrl_tm)
 
             # Init model ctrl
-
-            self.model_ctrl = self.init_model_ctrl(
-                cls_model_ctrl,
-                self.model_ctrl
-            )
-            if self.model_ctrl:
-                self.model_ctrl.build(self)
+            self.model_ctrl.ctrl = self.ctrl
+            self.model_ctrl.build(self)
 
             # Expose the ctrl in a backward compatible way.
             # self.ctrl = self.model_ctrl.ctrl
@@ -323,12 +361,6 @@ class Avar(classModule.Module):
         for ctrl in super(Avar, self).iter_ctrls():
             yield ctrl
         yield self.ctrl
-
-    def parent_to(self, parent):
-        """
-        Do nothing when parenting since it's the ctrl model that handle how the parenting is done.
-        """
-        pass 
 
     def build_stack(self, stack, mult_u=1.0, mult_v=1.0, parent_module=None):
         """
@@ -391,6 +423,11 @@ class Avar(classModule.Module):
         return result
 
     def get_model_avar_class(self):
+        # Hack: If there is no influence on the avar, there's no valid reason to build an avar_logic.
+        if not self.jnt:
+            self.warning("Cannot create an AvarLogic instance for {0}. No influences to control!".format(self))
+            return None
+
         plugin_type_name = plugin_manager.ModuleAvarLogicType.type_name
         plugin_cls_name = self.model_avar_type
         # If nothing is defined, this mean that we don't want an avar logic.
@@ -444,16 +481,16 @@ class Avar(classModule.Module):
         if connect and self.model_ctrl:
             self.model_ctrl.connect(self)
 
-    # def calibrate(self, **kwargs):
-    #     """
-    #     Apply micro movement on the doritos and analyse the reaction on the mesh.
-    #     """
-    #     if not self.ctrl:
-    #         self.warning("Can't calibrate, found no ctrl for {0}".format(self))
-    #         return False
-    # 
-    #     if self.model_ctrl and hasattr(self.model_ctrl, 'calibrate'):
-    #         self.model_ctrl.calibrate()
+            # def calibrate(self, **kwargs):
+            #     """
+            #     Apply micro movement on the doritos and analyse the reaction on the mesh.
+            #     """
+            #     if not self.ctrl:
+            #         self.warning("Can't calibrate, found no ctrl for {0}".format(self))
+            #         return False
+            # 
+            #     if self.model_ctrl and hasattr(self.model_ctrl, 'calibrate'):
+            #         self.model_ctrl.calibrate()
 
 
 class AbstractAvar(Avar):

@@ -32,7 +32,7 @@ def _get_holded_shapes():
 def open_scene(path_local):
     def deco_open(f):
         def f_open(*args, **kwargs):
-            m_path_local = path_local # make mutable
+            m_path_local = path_local  # make mutable
 
             path = os.path.abspath(os.path.join(os.path.dirname(sys.modules[f.__module__].__file__), m_path_local))
             if not os.path.exists(path):
@@ -40,7 +40,9 @@ def open_scene(path_local):
 
             cmds.file(path, open=True, f=True)
             return f(*args, **kwargs)
+
         return f_open
+
     return deco_open
 
 
@@ -48,6 +50,7 @@ def save_on_assert():
     """
     Backup the current scene if an exception is raise. Let the exception propagate afteward.
     """
+
     def deco(f):
         try:
             f()
@@ -66,6 +69,7 @@ def save_on_assert():
             raise
 
     return deco
+
 
 def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0):
     """
@@ -95,86 +99,8 @@ def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0)
     # Compare position
     distance = a_pos.distanceTo(b_pos)
     if distance > t_epsilon:
-       raise Exception("{} != {} (distance {} > epsilon {})".format(a_pos, b_pos, distance, t_epsilon))
+        raise Exception("{} != {} (distance {} > epsilon {})".format(a_pos, b_pos, distance, t_epsilon))
 
-
-@contextmanager
-def verified_offset(objs, offset_tm, **kwargs):
-    """
-    Context that store the world matrix of provided object.
-    An offset matrix is also provided that will be used to determine the desired world matrix of the objects.
-    If when leaving the context the matrices don't match, an Exeption is raised.
-    Use this function to test for scaling issue, flipping and double transformation.
-    :param objs:
-    :param offset_tm:
-    :param kwargs:
-    """
-    # Store the base matrices
-    old_tms = [obj.getMatrix(worldSpace=True) for obj in objs]
-    yield True
-    # Verify the matrices matches
-    for obj, old_tm in zip(objs, old_tms):
-        new_tm = obj.getMatrix(worldSpace=True)
-        desired_tm = old_tm * offset_tm
-        try:
-            assertMatrixAlmostEqual(new_tm, desired_tm, **kwargs)
-        except Exception, e:
-            raise Exception("Invalid transform for {}. {}".format(obj, e))
-
-
-def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.datatypes.Vector(1, 0, 0), test_rotate=True, test_scale=True, test_scale_value=2.0):
-    """
-    Build a specific rig and verify the following:
-    - Is the rig scaling correctly?
-    :param rig: The rig to scale.
-    :param test_translate: If True, the rig will be verified for translation.
-    :param test_translate_value: The value to use when testing the translation.
-    :param test_scale: If True, the rig will be verified for scaling.
-    :param test_scale_value: The value to use when testing the scale.
-    """
-    influences = rig.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
-    ctrls = rig.get_ctrls()
-    objs = influences + ctrls
-
-    # Ensure the rig translate correctly.
-    if test_translate:
-        print("Validating translate...")
-        offset_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            test_translate_value.x, test_translate_value.y, test_translate_value.z, 1.0
-        )
-        with verified_offset(objs, offset_tm, multiplier=test_translate_value.length()):
-            rig.grp_anm.t.set(test_translate_value)
-        rig.grp_anm.t.set(0, 0, 0)
-
-    if test_rotate:
-        print("Validating rotate...")
-        offset_tms_by_rot = (
-            ((90, 90, 90), pymel.datatypes.Matrix(0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
-            ((180, 0, 0), pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
-            ((0, 180, 0), pymel.datatypes.Matrix(-1.0, 0.0, -0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
-            ((0, 0, 180), pymel.datatypes.Matrix(-1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
-        )
-        for rot, offset_tm in offset_tms_by_rot:
-            with verified_offset(objs, offset_tm):
-                rig.grp_anm.r.set(rot)
-            rig.grp_anm.r.set(0,0,0)
-
-    # Ensure we the rig scale correctly.
-    if test_scale:
-        print("Validating scale...")
-        m = test_scale_value
-        scale_tm = pymel.datatypes.Matrix(
-            m, 0, 0, 0,
-            0, m, 0, 0,
-            0, 0, m, 0,
-            0, 0, 0, 1
-        )
-        with verified_offset(objs, scale_tm, multiplier=test_scale_value):
-            rig.grp_anm.globalScale.set(test_scale_value)
-        rig.grp_anm.globalScale.set(1.0)
 
 class TestCase(unittest.TestCase):
     def _test_build_rig(self, rig, **kwargs):
@@ -188,7 +114,7 @@ class TestCase(unittest.TestCase):
         :param test_scale_value: The value to use when testing the scale.
         """
         rig.build(strict=True)
-        validate_built_rig(rig, **kwargs)
+        self.validate_built_rig(rig, **kwargs)
 
     def _test_unbuild_rig(self, rig, test_shapes=True):
         """
@@ -221,3 +147,93 @@ class TestCase(unittest.TestCase):
         # Ensure no shapes are left after a rebuild.
         num_holder_shapes_after = len(_get_holded_shapes())
         self.assertEqual(num_holder_shapes_before, num_holder_shapes_after)
+
+    @contextmanager
+    def verified_offset(self, objs, offset_tm, pivot_tm=None, **kwargs):
+        """
+        Context that store the world matrix of provided object.
+        An offset matrix is also provided that will be used to determine the desired world matrix of the objects.
+        If when leaving the context the matrices don't match, an Exeption is raised.
+        Use this function to test for scaling issue, flipping and double transformation.
+        :param objs:
+        :param offset_tm:
+        :param kwargs:
+        """
+
+        # Store the base matrices
+        old_tms = [obj.getMatrix(worldSpace=True) for obj in objs]
+        yield True
+        # Verify the matrices matches
+        for obj, old_tm in zip(objs, old_tms):
+            new_tm = obj.getMatrix(worldSpace=True)
+            if pivot_tm:
+                desired_tm = old_tm * pivot_tm.inverse() * offset_tm * pivot_tm
+            else:
+                desired_tm = old_tm * offset_tm
+            try:
+                assertMatrixAlmostEqual(new_tm, desired_tm, **kwargs)
+            except Exception, e:
+                raise Exception("Invalid transform for {}. {}".format(obj, e))
+
+    def validate_built_rig(self, rig, test_translate=True, test_translate_value=pymel.datatypes.Vector(1, 0, 0),
+                           test_rotate=True, test_scale=True, test_scale_value=2.0):
+        """
+        Build a specific rig and verify the following:
+        - Is the rig scaling correctly?
+        :param rig: The rig to scale.
+        :param test_translate: If True, the rig will be verified for translation.
+        :param test_translate_value: The value to use when testing the translation.
+        :param test_scale: If True, the rig will be verified for scaling.
+        :param test_scale_value: The value to use when testing the scale.
+        """
+        influences = rig.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
+        ctrls = rig.get_ctrls()
+        objs = influences + ctrls
+
+        # Ensure the rig translate correctly.
+        if test_translate:
+            print("Validating translate...")
+            offset_tm = pymel.datatypes.Matrix(
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                test_translate_value.x, test_translate_value.y, test_translate_value.z, 1.0
+            )
+            with self.verified_offset(objs, offset_tm, multiplier=test_translate_value.length()):
+                rig.grp_anm.t.set(test_translate_value)
+            rig.grp_anm.t.set(0, 0, 0)
+
+        if test_rotate:
+            print("Validating rotate...")
+            offset_tms_by_rot = (
+                ((90, 90, 90),
+                 pymel.datatypes.Matrix(0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0)),
+                ((180, 0, 0),
+                 pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0)),
+                ((0, 180, 0),
+                 pymel.datatypes.Matrix(-1.0, 0.0, -0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0)),
+                ((0, 0, 180),
+                 pymel.datatypes.Matrix(-1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0)),
+            )
+            for rot, offset_tm in offset_tms_by_rot:
+                with self.verified_offset(objs, offset_tm):
+                    rig.grp_anm.r.set(rot)
+                rig.grp_anm.r.set(0, 0, 0)
+
+        # Ensure we the rig scale correctly.
+        if test_scale:
+            print("Validating scale...")
+            m = test_scale_value
+            scale_tm = pymel.datatypes.Matrix(
+                m, 0, 0, 0,
+                0, m, 0, 0,
+                0, 0, m, 0,
+                0, 0, 0, 1
+            )
+            with self.verified_offset(objs, scale_tm, multiplier=test_scale_value):
+                rig.grp_anm.globalScale.set(test_scale_value)
+            rig.grp_anm.globalScale.set(1.0)

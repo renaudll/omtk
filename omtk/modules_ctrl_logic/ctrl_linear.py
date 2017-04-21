@@ -82,6 +82,9 @@ class CtrlLogicLinear(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
         pymel.connectAttr(module.attr_pt, layer_avar.rx)
         pymel.connectAttr(module.attr_yw, layer_avar.ry)
         pymel.connectAttr(module.attr_rl, layer_avar.rz)
+        pymel.connectAttr(module.attr_sx, layer_avar.sx)
+        pymel.connectAttr(module.attr_sy, layer_avar.sy)
+        pymel.connectAttr(module.attr_sz, layer_avar.sz)
 
     def _connect_output_tr(self):
         # Position

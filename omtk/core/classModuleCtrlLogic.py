@@ -190,66 +190,6 @@ class CtrlModelCalibratable(BaseCtrlModel):
         attr_ctrl_offset_sy_inn = self.attr_sensitivity_ty
         attr_ctrl_offset_sz_inn = self.attr_sensitivity_tz
 
-        # attr_ctrl_local_noscale = libRigging.create_utility_node(
-        #     'composeMatrix',
-        #     name=nomenclature_rig.resolve('getCtrlLocalNoScale'),
-        #     inputTranslate=self.ctrl.translate,
-        #     inputRotate=self.ctrl.rotate
-        # ).outputMatrix
-        # 
-        # attr_ctrl_pure_tm = libRigging.create_utility_node(
-        #     'multMatrix',
-        #     name=nomenclature_rig.resolve('getCtrlDryTm'),
-        #     matrixIn=(
-        #         attr_ctrl_local_noscale,
-        #         self._grp_output.worldMatrix
-        #     )
-        # ).matrixSum
-        # 
-        # attr_ctrl_pure_tm_inv = libRigging.create_utility_node(
-        #     'inverseMatrix',
-        #     name=nomenclature_rig.resolve('getCtrlDryTmInv'),
-        #     inputMatrix=attr_ctrl_pure_tm,
-        # ).outputMatrix
-        # 
-        # attr_sensibility_tm = libRigging.create_utility_node(
-        #     'composeMatrix',
-        #     name=nomenclature_rig.resolve('getCtrlSensibilityTm'),
-        #     inputScaleX=attr_ctrl_offset_sx_inn,
-        #     inputScaleY=attr_ctrl_offset_sy_inn,
-        #     inputScaleZ=attr_ctrl_offset_sz_inn
-        # ).outputMatrix
-        # 
-        # attr_ctrl_scale_tm = libRigging.create_utility_node(
-        #     'multMatrix',
-        #     name=nomenclature_rig.resolve('getCtrlScaleTm'),
-        #     matrixIn=(
-        #         attr_sensibility_tm,
-        #         self._grp_parent.worldMatrix,
-        #         attr_ctrl_pure_tm_inv
-        #     )
-        # ).matrixSum
-        # 
-        # util_decompose_ctrl_scale = libRigging.create_utility_node(
-        #     'decomposeMatrix',
-        #     inputMatrix=attr_ctrl_scale_tm
-        # )
-
-        # if flip_lr:
-        #     a = libRigging.create_utility_node(
-        #         'multiplyDivide',
-        #         input1=util_decompose_ctrl_scale.outputScale,
-        #         input2X=-1,
-        #         input2Y=1,
-        #         input2Z=-1,
-        #     )
-        #     pymel.connectAttr(a.outputX, self.ctrl.offset.scaleX)
-        #     pymel.connectAttr(a.outputY, self.ctrl.offset.scaleY)
-        #     pymel.connectAttr(a.outputZ, self.ctrl.offset.scaleZ)
-        # else:
-        #     pymel.connectAttr(util_decompose_ctrl_scale.outputScaleX, self.ctrl.offset.scaleX)
-        #     pymel.connectAttr(util_decompose_ctrl_scale.outputScaleY, self.ctrl.offset.scaleY)
-        #     pymel.connectAttr(util_decompose_ctrl_scale.outputScaleZ, self.ctrl.offset.scaleZ)
         pymel.connectAttr(attr_ctrl_offset_sx_inn, self.ctrl.offset.scaleX)
         pymel.connectAttr(attr_ctrl_offset_sy_inn, self.ctrl.offset.scaleY)
         pymel.connectAttr(attr_ctrl_offset_sz_inn, self.ctrl.offset.scaleZ)
@@ -576,4 +516,4 @@ class CtrlLogicFaceCalibratable(CtrlModelCalibratable):
         pos_ref_local = pos_ref * jnt_head.getMatrix(worldSpace=True).inverse()
         need_flip = pos_ref_local.x < 0
 
-        super(CtrlLogicFaceCalibratable, self).build(avar, flip_lr=need_flip)
+        super(CtrlLogicFaceCalibratable, self).build(avar, flip_lr=need_flip, **kwargs)

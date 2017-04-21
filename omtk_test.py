@@ -95,11 +95,11 @@ def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0)
         b_axis.normalize()
         diff = abs(1.0 - a_axis.dot(b_axis))
         if diff > r_epsilon:
-            raise Exception("{} != {} (dot product {} > epsilon {})".format(a_axis, b_axis, diff, r_epsilon))
+            raise Exception("row #{} {} != {} (dot product {} > epsilon {})".format(i, a_axis, b_axis, diff, r_epsilon))
     # Compare position
     distance = a_pos.distanceTo(b_pos)
     if distance > t_epsilon:
-        raise Exception("{} != {} (distance {} > epsilon {})".format(a_pos, b_pos, distance, t_epsilon))
+        raise Exception("row #4 {} != {} (distance {} > epsilon {})".format(a_pos, b_pos, distance, t_epsilon))
 
 
 class TestCase(unittest.TestCase):
@@ -207,17 +207,33 @@ class TestCase(unittest.TestCase):
             print("Validating rotate...")
             offset_tms_by_rot = (
                 ((90, 90, 90),
-                 pymel.datatypes.Matrix(0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                        1.0)),
+                 pymel.datatypes.Matrix(
+                     0.0, 0.0, -1.0, 0.0,
+                     0.0, 1.0, 0.0, 0.0,
+                     1.0, 0.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0, 1.0
+                 )),
                 ((180, 0, 0),
-                 pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
-                                        1.0)),
+                 pymel.datatypes.Matrix(
+                     1.0, 0.0, 0.0, 0.0,
+                     0.0, -1.0, 0.0, 0.0,
+                     0.0, -0.0, -1.0, 0.0,
+                     0.0, 0.0, 0.0, 1.0
+                 )),
                 ((0, 180, 0),
-                 pymel.datatypes.Matrix(-1.0, 0.0, -0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
-                                        1.0)),
+                 pymel.datatypes.Matrix(
+                     -1.0, 0.0, -0.0, 0.0,
+                     0.0, 1.0, 0.0, 0.0,
+                     0.0, 0.0, -1.0, 0.0,
+                     0.0, 0.0, 0.0, 1.0
+                 )),
                 ((0, 0, 180),
-                 pymel.datatypes.Matrix(-1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-                                        1.0)),
+                 pymel.datatypes.Matrix(
+                     -1.0, 0.0, 0.0, 0.0,
+                     -0.0, -1.0, 0.0, 0.0,
+                     0.0, 0.0, 1.0, 0.0,
+                     0.0, 0.0, 0.0, 1.0
+                 )),
             )
             for rot, offset_tm in offset_tms_by_rot:
                 with self.verified_offset(objs, offset_tm):

@@ -32,6 +32,9 @@ class AvarLogicLinear(classModuleAvarLogic.BaseAvarRigConnectionModel):
         pymel.connectAttr(self.avar.attr_yw, layer_pos.ry)
         pymel.connectAttr(self.avar.attr_pt, layer_pos.rx)
         pymel.connectAttr(self.avar.attr_rl, layer_pos.rz)
+        pymel.connectAttr(self.avar.attr_sx, layer_pos.sx)
+        pymel.connectAttr(self.avar.attr_sy, layer_pos.sy)
+        pymel.connectAttr(self.avar.attr_sz, layer_pos.sz)
 
         return stack
 

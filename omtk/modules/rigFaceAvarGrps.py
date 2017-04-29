@@ -183,8 +183,6 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         Override this method if your module implement new avars.
         :return: An iterator that yield avars.
         """
-        for avar in self.avars:
-            yield avar
         for avar in self._iter_micro_avars():
             yield avar
         for avar in self._iter_macro_avars():

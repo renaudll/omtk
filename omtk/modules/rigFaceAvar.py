@@ -184,10 +184,11 @@ class AbstractAvar(classModule.Module):
             attr_dst = self.avar_network.attr(attr_name)
             # libAttr.transfer_connections(attr_src, attr_dst)
 
-            if attr_have_animcurve_input(attr_src):
-                attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
-                pymel.disconnectAttr(attr_src_inn, attr_src)
-                pymel.connectAttr(attr_src_inn, attr_dst)
+            # if attr_have_animcurve_input(attr_src):
+            attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
+            if attr_src_inn:
+                    pymel.disconnectAttr(attr_src_inn, attr_src)
+                    pymel.connectAttr(attr_src_inn, attr_dst)
 
             # Transfer output connections
             for attr_src_out in attr_src.outputs(plugs=True):

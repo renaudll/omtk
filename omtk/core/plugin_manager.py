@@ -5,6 +5,7 @@ import importlib
 import pkgutil
 import logging
 import inspect
+import traceback
 
 from omtk import constants
 from omtk.libs import libPython
@@ -74,8 +75,10 @@ class Plugin(object):
             self.status = PluginStatus.Loaded
         except Exception, e:
             self.status = PluginStatus.Failed
-            self.description = str(e)
-            log.warning("Plugin {0} failed to load! {0}".format(self.module_name, self.description))
+            self.description = e.message
+            log.warning("Plugin {0} failed to load! {1}".format(self.module_name, self.description))
+            exc_info = sys.exc_info()
+            traceback.print_exception(*exc_info)
 
     @classmethod
     def from_module(cls, name, type_name):

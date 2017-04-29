@@ -18,6 +18,8 @@ import libSkinning
 import libStringMap
 import libUtils
 import libHistory
+import libPluginManager
+
 
 def _reload():
     reload(libAttr)
@@ -32,3 +34,4 @@ def _reload():
     reload(libStringMap)
     reload(libUtils)
     reload(libHistory)
+    reload(libPluginManager)

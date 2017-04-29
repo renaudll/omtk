@@ -66,7 +66,7 @@ class AvarJaw(rigFaceAvar.Avar):
         return 'Jaw'
 
 
-class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
+class FaceJaw(rigFaceAvarGrps.AvarGrp):
     """
     AvarGrp customized for jaw rigging. Necessary for some facial modules.
     The Jaw is a special zone since it doesn't happen in pre-deform, it happen in the main skinCluster.

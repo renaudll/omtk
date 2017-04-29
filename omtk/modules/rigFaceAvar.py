@@ -5,7 +5,6 @@ This is the foundation for the facial animation modules.
 import logging
 
 import pymel.core as pymel
-from pymel.util.enum import Enum
 
 from omtk.core import classCtrl
 from omtk.core import classModule
@@ -13,22 +12,9 @@ from omtk.core import plugin_manager
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
+from omtk.libs import libPluginManager
 
 log = logging.getLogger('omtk')
-
-
-def _create_enum_from_plugin_type(plugin_type_name):
-    pm = plugin_manager.plugin_manager
-    plugins = pm.get_loaded_plugins_by_type(plugin_type_name)
-    enum = Enum(plugin_type_name, [plugin.cls.name for plugin in plugins])
-    return enum
-
-
-def _get_plugin_by_class_name(plugin_type_name, plugin_name):
-    pm = plugin_manager.plugin_manager
-    for plugin in pm.iter_loaded_plugins_by_type(plugin_type_name):
-        if plugin.cls.name == plugin_name:
-            return plugin.cls
 
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
@@ -106,10 +92,18 @@ class Avar(classModule.Module):
 
         self.ctrl = None
 
+        enum_model_avar = libPluginManager.create_pymel_enum_from_plugin_type(
+            plugin_manager.ModuleAvarLogicType.type_name, add_null=True
+        )
+        enum_model_ctrl = libPluginManager.create_pymel_enum_from_plugin_type(
+            plugin_manager.ModuleCtrlLogicType.type_name, add_null=True
+        )
+
         self.model_ctrl = None
         self.model_avar = None
-        self.model_avar_type = None  # by default nothing is set, it is the responsability of the AvarGrp module
-        self.model_ctrl_type = None  # by default nothing is set, it is the responsability of the AvarGrp module
+
+        self.model_avar_type = enum_model_avar.None  # by default nothing is set, it is the responsability of the AvarGrp module
+        self.model_ctrl_type = enum_model_ctrl.None  # by default nothing is set, it is the responsability of the AvarGrp module
 
     def iter_submodules(self):
         if self.model_ctrl:
@@ -380,11 +374,12 @@ class Avar(classModule.Module):
     def get_model_ctrl_class(self):
         plugin_type_name = plugin_manager.ModuleCtrlLogicType.type_name
         plugin_cls_name = self.model_ctrl_type
+
         # If nothing is defined, this mean that we don't want an avar logic.
-        if plugin_cls_name is None:
+        if plugin_cls_name is None or plugin_cls_name == libPluginManager.NONE_PLUGIN_TYPE:
             return None
 
-        cls = _get_plugin_by_class_name(plugin_type_name, plugin_cls_name)
+        cls = libPluginManager.get_plugin_by_class_name(plugin_type_name, plugin_cls_name)
         if cls is None:
             raise Exception("Missing {0} plugin named {1}".format(plugin_type_name, plugin_cls_name))
         return cls
@@ -431,10 +426,10 @@ class Avar(classModule.Module):
         plugin_type_name = plugin_manager.ModuleAvarLogicType.type_name
         plugin_cls_name = self.model_avar_type
         # If nothing is defined, this mean that we don't want an avar logic.
-        if plugin_cls_name is None:
+        if plugin_cls_name is None or plugin_cls_name == libPluginManager.NONE_PLUGIN_TYPE:
             return None
 
-        cls = _get_plugin_by_class_name(plugin_type_name, plugin_cls_name)
+        cls = libPluginManager.get_plugin_by_class_name(plugin_type_name, plugin_cls_name)
         if cls is None:
             raise Exception("Missing {0} plugin named {1}".format(plugin_type_name, plugin_cls_name))
         return cls

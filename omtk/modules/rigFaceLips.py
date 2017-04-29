@@ -443,7 +443,7 @@ class FaceLipsAvar(rigFaceAvar.Avar):
         return attr_u, attr_v
 
 
-class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
+class FaceLips(rigFaceAvarGrps.AvarGrp):
     """
     AvarGrp setup customized for lips rigging.
     Lips have the same behavior than an AvarGrpUppLow.

@@ -5,12 +5,13 @@ from collections import defaultdict
 
 import pymel.core as pymel
 
-from omtk.core.utils import decorator_uiexpose
 from omtk.core import classModule
+from omtk.core import plugin_manager
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
+from omtk.libs import libPluginManager
 from omtk.libs.libRigging import get_average_pos_between_nodes
 from omtk.modules import rigFaceAvar
 
@@ -24,21 +25,6 @@ def _find_mid_avar(avars):
 
 
 # Ctrls
-
-
-class BaseCtrlUpp(rigFaceAvar.BaseCtrlFace):
-    """
-    Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
-    """
-    pass
-
-
-class BaseCtrlLow(rigFaceAvar.BaseCtrlFace):
-    """
-    Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
-    """
-    pass
-
 
 class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
     """
@@ -91,75 +77,40 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
 
 # Models
 
-# class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
-#     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-#         # avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
-#         avar_tweak = False  # todo: fix me!
-#         # if avar_tweak:
-#         #     super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=False, pt=False, rl=False,
-#         #                                             sx=False, sy=False, sz=False)
-#         #     super(ModelMicroAvarCtrl, self).connect(avar_tweak, avar_grp, ud=False, fb=False, lr=False, yw=yw, pt=pt,
-#         #                                             rl=rl, sx=sx, sy=sy, sz=sz)
-#         # else:
-#         super(ModelMicroAvarCtrl, self).connect(avar, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx,
-#                                                 sy=sy, sz=sz)
-# 
-# 
-# class ModelCtrlMacroAll(modelNonInteractiveCtrl.ModelNonInteractiveCtrl):
-#     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-#         super(ModelCtrlMacroAll, self).connect(avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
-#                                                sx=True, sy=True, sz=True)
-# 
-#         #
-#         # Compute the calibration automatically
-#         #
-# 
-#         nomenclature_rig = self.get_nomenclature_rig()
-# 
-#         # Compute the calibration automatically
-#         attr_calibration_lr = libRigging.create_utility_node(
-#             'multiplyDivide',
-#             name=nomenclature_rig.resolve('getCalibrationLr'),
-#             input1X=avar.attr_multiplier_lr,
-#             input2X=avar._attr_length_u
-#         ).outputX
-#         attr_calibration_ud = libRigging.create_utility_node(
-#             'multiplyDivide',
-#             name=nomenclature_rig.resolve('getCalibrationUd'),
-#             input1X=avar.attr_multiplier_ud,
-#             input2X=avar._attr_length_v
-#         ).outputX
-#         attr_calibration_fb = libRigging.create_utility_node(
-#             'multiplyDivide',
-#             name=nomenclature_rig.resolve('getCalibrationFb'),
-#             input1X=avar.attr_multiplier_fb,
-#             input2X=avar._attr_length_u
-#         ).outputX
-# 
-#         pymel.connectAttr(attr_calibration_lr, self.attr_sensitivity_tx)
-#         pymel.connectAttr(attr_calibration_ud, self.attr_sensitivity_ty)
-#         pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
-# 
-#     def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
-#         parent_pos = avar.model_avar._grp_output
-#         # parent_rot = avar._grp_output
-#         super(ModelCtrlMacroAll, self).build(avar, **kwargs)
-# 
-#     def calibrate(self, **kwargs):
-#         """
-#         Since the avar_all macro follow directly the surface, we don't need to calibrate it.
-#         """
-#         pass
-
-
-# Models
-
 class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly? Is inheriting from module more logical?
     """
-    Base class for a group of 'avars' that share the same properties.
+    Highest-level surface-based AvarGrp module.
+    With additional features like:
+    - Horizontal macro avars (avar_l, avar_r)
+    - Vertical macro avars (avar_upp, avar_low)
+    - Global macro avar (avar_all)
+    - Ability to have 'tweak' avars that follow their parent only in translation.
+      Especially useful to have different falloff on translation than on rotation.
+
+    Here's examples of the type of hierarchy that the rigger can provide:
+    --------------------------------------------------------------------------------------------------------------------
+    | NAME                   | AVAR_ALL | AVAR_L   | AVAR_R   | AVAR_UPP | AVAR_LOW | NOTES
+    --------------------------------------------------------------------------------------------------------------------
+    ex #1:
+    | jnt_avar_01            | YES      | NO       | NO       | NO       | NO       |
+    | jnt_avar_02            | YES      | NO       | NO       | NO       | NO       |
+    | jnt_avar_03            | YES      | NO       | NO       | NO       | NO       |
+    ex #2:
+    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
+    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
+    |   jnt_avar_02          | YES      | NO       | NO       | NO       | NO       |
+    |   jnt_avar_upp         | YES      | NO       | NO       | YES      | NO       | Affected by avar_upp because of the 'upp' token.
+    |   jnt_avar_low         | YES      | NO       | NO       | NO       | YES      | Affected by avar_low because of the 'low' token.
+    |   l_jnt_avar           | YES      | YES      | NO       | NO       | NO       | Affected by avar_l because of the 'l' token.
+    |   r_jnt_avar           | YES      | NO       | YES      | NO       | NO       | Affected by avar_r because of the 'r' token.
+    ex #3:
+    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
+    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
+    |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO       | Affected by jnt_avar_01 in translation only.
     """
     # Define the class to use for all avars.
     _CLS_AVAR = rigFaceAvar.Avar
+    _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle  # Macro avars are always abstract (except the all macro which can potentially drive something)
     _CLS_CTRL_MICRO = rigFaceAvar.CtrlFaceMicro
 
     SHOW_IN_UI = True
@@ -183,6 +134,13 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
     def __init__(self, *args, **kwargs):
         super(AvarGrp, self).__init__(*args, **kwargs)
 
+        enum_model_avar = libPluginManager.create_pymel_enum_from_plugin_type(
+            plugin_manager.ModuleAvarLogicType.type_name, add_null=True
+        )
+        enum_model_ctrl = libPluginManager.create_pymel_enum_from_plugin_type(
+            plugin_manager.ModuleCtrlLogicType.type_name, add_null=True
+        )
+
         # This property contain all the MICRO Avars.
         # Micro Avars directly drive the input influence of the Module.
         # Macro Avars indirectly drive nothing by themself but are generally connected to Micro Avars.
@@ -196,19 +154,28 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         self._grp_rig_avars_macro = None
         self._grp_rig_avars_micro = None
 
-        self.model_avar_type = None
-        self.model_ctrl_type = None
-        
+        self.model_avar_type = enum_model_avar.None
+        self.model_ctrl_type = enum_model_ctrl.None
+
+        self.surface = None  # todo: remove
+        self.create_macro_horizontal = self.CREATE_MACRO_AVAR_HORIZONTAL
+        self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
+        self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
+        self.avar_all = None
+        self.avar_l = None
+        self.avar_r = None
+        self.avar_upp = None
+        self.avar_low = None
+
     def parent_to(self, parent):
         """
         Handle manually by each individual avars. 
         """
         pass
 
-    #
-    # Avar properties
-    # Note that theses are only accessible after the avars have been built.
-    #
+    def _iter_micro_avars(self):
+        for avar in self.avars:
+            yield avar
 
     def _iter_all_avars(self):
         """
@@ -218,6 +185,10 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         """
         for avar in self.avars:
             yield avar
+        for avar in self._iter_micro_avars():
+            yield avar
+        for avar in self._iter_macro_avars():
+            yield avar
 
     def get_all_avars(self):
         """
@@ -226,11 +197,14 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         """
         return list(self._iter_all_avars())
 
-    def get_avars_upp(self):
+    def get_avars_upp(self, macro=True):
         """
         :return: All the upper section avars (micro and macros).
         """
-        return self.get_avars_micro_upp()
+        result = self.get_avars_micro_upp()
+        if macro and self.avar_upp:
+            result.append(self.avar_upp)
+        return result
 
     @libPython.memoized_instancemethod
     def get_avars_micro_upp(self):
@@ -243,11 +217,14 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         fnFilter = lambda avar: 'upp' in avar.name.lower()
         return filter(fnFilter, self.avars)
 
-    def get_avars_low(self):
+    def get_avars_low(self, macro=True):
         """
         :return: All the lower section avars (micro and macros).
         """
-        return self.get_avars_micro_low()
+        result = self.get_avars_micro_low()
+        if macro and self.avar_low:
+            result.append(self.avar_low)
+        return result
 
     @libPython.memoized_instancemethod
     def get_avars_micro_low(self):
@@ -410,9 +387,14 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         mights be handled upstream. (ex: FaceJaw).
         """
         if self.SINGLE_INFLUENCE:
-            return [self.jnt]
+            influences = [self.jnt]
         else:
-            return copy.copy(self.jnts)  # copy to prevent modifying the cache accidentaly by reference.
+            influences = copy.copy(self.jnts)  # copy to prevent modifying the cache accidentaly by reference.
+
+        influence_all = self.get_influence_all()
+        if influence_all and influence_all in influences:
+            influences.remove(influence_all)
+        return influences
 
     def validate(self):
         """
@@ -433,55 +415,22 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         if self.get_head_jnt(strict=False) is None:
             raise Exception("Can't resolve the head. Please create a Head module.")
 
-    def _init_avars(self):
-        """
-        For each influence, create it's associated avar instance.
-        """
-        # For various reason, we may have a mismatch between the stored Avars the number of influences.
-        # The best way to deal with this is to check each existing Avar and see if we need to created it or keep it.
-        avar_influences = self._get_avars_influences()
-
-        if not avar_influences:
-            raise Exception("Found no avars!")
-
-        new_avars = []
-
-        for avar in self.avars:
-            # Any existing Avar that we don't reconize will be deleted.
-            # Be aware that the .avars property only store MICRO Avars. Macro Avars need to be implemented in their own properties.
-            if avar.jnt not in avar_influences:
-                self.warning("Unexpected Avar {0} will be deleted.".format(avar.name))
-
-            # Any existing Avar that don't have the desired datatype will be re-created.
-            # However the old value will be passed by so the factory method can handle specific tricky cases.
-            else:
-                new_avar = self._init_avar(
-                    self._CLS_AVAR,
-                    avar,
-                    ref=avar.jnt
-                )
-                new_avars.append(new_avar)
-
-        for influence in avar_influences:
-            if not any(True for avar in new_avars if influence == avar.jnt):
-                new_avar = self._init_avar(
-                    self._CLS_AVAR,
-                    None,  # no previous value
-                    ref=influence
-                )
-                new_avars.append(new_avar)
-
-        # Hack: There's no reason why a tweak avar might need a controller.
-        for avar in self.avars:
-            if self._is_tweak_avar(avar) and avar.ctrl_model_type:
-                log.info("Removing CtrlModel for {0}".format(avar))
-                avar.ctrl_model_type = None
-
-        self.avars = new_avars
-
-        return new_avars
+        # Ensure that we support the hyerarchy of the influences.
+        influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
+        if influence_hyearchy_deepness > 2:
+            raise Exception("Unsupported hierarchy depth! Please revise your inputs hierarchy.")
 
     def _build_avars(self, parent=None, connect_global_scale=None, constraint=True, **kwargs):
+        if self.create_macro_horizontal:
+            self._build_avar_macro_l()
+            self._build_avar_macro_r()
+
+        if self.create_macro_vertical:
+            self._build_avar_macro_upp()
+            self._build_avar_macro_low()
+
+        if self.create_macro_all:
+            self._build_avar_macro_all()
         if parent is None:
             parent = not self.preDeform
 
@@ -490,7 +439,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
         # Resolve the U and V modifiers.
         # Note that this only applies to avars on a surface.
-        # TODO: Move to AvarGrpOnSurface
+        # TODO: Move to AvarGrp
         mult_u = self.get_multiplier_u() if self.surface else None
         mult_v = self.get_multiplier_v() if self.surface else None
 
@@ -510,6 +459,18 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_lr, avar_tweak.attr_lr)
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_ud, avar_tweak.attr_ud)
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_fb, avar_tweak.attr_fb)
+
+        # Build 'macro' avars
+        if self.create_macro_horizontal:
+            self._build_avar_macro_l()
+            self._build_avar_macro_r()
+
+        if self.create_macro_vertical:
+            self._build_avar_macro_upp()
+            self._build_avar_macro_low()
+
+        if self.create_macro_all:
+            self._build_avar_macro_all()
 
     def _build_avar(self, avar, **kwargs):
         # HACK: Validate avars at runtime
@@ -711,6 +672,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         self.handle_surface()
 
         self._build_avars(parent=parent, connect_global_scale=connect_global_scale, constraint=constraint)
+        self.connect_macro_avars_to_micro_avars()
 
         # if create_ctrls:
         #     ctrl_size = self._get_default_ctrl_size()
@@ -728,6 +690,19 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
                 avar.model_ctrl.post_build()
 
     def unbuild(self):
+        # Unbuild macro avars
+        if self.avar_l:
+            self.avar_l.unbuild()
+        if self.avar_r:
+            self.avar_r.unbuild()
+        if self.avar_upp:
+            self.avar_upp.unbuild()
+        if self.avar_low:
+            self.avar_low.unbuild()
+        if self.avar_all:
+            self.avar_all.unbuild()
+
+        # Unbuild micro avars
         for avar in self.avars:
             avar.unbuild()
         super(AvarGrp, self).unbuild()
@@ -747,7 +722,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
         This also handle the following checks
         - Preserve ctrl information if we need to re-created the avar because of a type mismatch.
-        - Ensure that the avar always have a surface. # todo: implement this only on AvarGrpOnSurface.
+        - Ensure that the avar always have a surface. # todo: implement this only on AvarGrp.
         :param cls: The desired class.
         :param inst: The current value. This should always exist since defined in the module constructor.
         :param ref:
@@ -809,53 +784,6 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
         return result
 
-
-class AvarGrpOnSurface(AvarGrp):
-    """
-    Highest-level surface-based AvarGrp module.
-    With additional features like:
-    - Horizontal macro avars (avar_l, avar_r)
-    - Vertical macro avars (avar_upp, avar_low)
-    - Global macro avar (avar_all)
-    - Ability to have 'tweak' avars that follow their parent only in translation.
-      Especially useful to have different falloff on translation than on rotation.
-
-    Here's examples of the type of hierarchy that the rigger can provide:
-    --------------------------------------------------------------------------------------------------------------------
-    | NAME                   | AVAR_ALL | AVAR_L   | AVAR_R   | AVAR_UPP | AVAR_LOW | NOTES
-    --------------------------------------------------------------------------------------------------------------------
-    ex #1:
-    | jnt_avar_01            | YES      | NO       | NO       | NO       | NO       |
-    | jnt_avar_02            | YES      | NO       | NO       | NO       | NO       |
-    | jnt_avar_03            | YES      | NO       | NO       | NO       | NO       |
-    ex #2:
-    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
-    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
-    |   jnt_avar_02          | YES      | NO       | NO       | NO       | NO       |
-    |   jnt_avar_upp         | YES      | NO       | NO       | YES      | NO       | Affected by avar_upp because of the 'upp' token.
-    |   jnt_avar_low         | YES      | NO       | NO       | NO       | YES      | Affected by avar_low because of the 'low' token.
-    |   l_jnt_avar           | YES      | YES      | NO       | NO       | NO       | Affected by avar_l because of the 'l' token.
-    |   r_jnt_avar           | YES      | NO       | YES      | NO       | NO       | Affected by avar_r because of the 'r' token.
-    ex #3:
-    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
-    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
-    |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO       | Affected by jnt_avar_01 in translation only.
-    """
-    _CLS_AVAR = rigFaceAvar.AvarFollicle
-    _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle  # Macro avars are always abstract (except the all macro which can potentially drive something)
-
-    def __init__(self, *args, **kwargs):
-        super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
-        self.surface = None
-        self.create_macro_horizontal = self.CREATE_MACRO_AVAR_HORIZONTAL
-        self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
-        self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
-        self.avar_all = None
-        self.avar_l = None
-        self.avar_r = None
-        self.avar_upp = None
-        self.avar_low = None
-
     def iter_submodules(self, recursive=False):
         for avar in self._iter_all_avars():
             if avar:
@@ -875,13 +803,6 @@ class AvarGrpOnSurface(AvarGrp):
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
 
-    def validate(self):
-        super(AvarGrpOnSurface, self).validate()
-
-        # Ensure that we support the hyerarchy of the influences.
-        influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
-        if influence_hyearchy_deepness > 2:
-            raise Exception("Unsupported hierarchy depth! Please revise your inputs hierarchy.")
 
     #
     # Influence getter functions.
@@ -1085,10 +1006,6 @@ class AvarGrpOnSurface(AvarGrp):
         """
         return libRigging.get_average_pos_between_vectors([avar.jnt for avar in self.get_avars_micro_low()])
 
-    def _iter_micro_avars(self):
-        for avar in super(AvarGrpOnSurface, self)._iter_all_avars():
-            yield avar
-
     def _iter_macro_avars(self):
         if self.avar_l:
             yield self.avar_l
@@ -1101,19 +1018,7 @@ class AvarGrpOnSurface(AvarGrp):
         if self.avar_all:
             yield self.avar_all
 
-    def _iter_all_avars(self):
-        for avar in self._iter_micro_avars():
-            yield avar
-        for avar in self._iter_macro_avars():
-            yield avar
-
-    def add_avars(self, attr_holder):
-        """
-        An AvarGrp don't create any avar by default.
-        It is the responsibility of the inherited module to implement it if necessary.
-        """
-        pass
-
+    '''
     def get_multiplier_u(self):
         """
         Since we are using the same plane for the eyebrows, we want to attenuate the relation between the LR avar
@@ -1122,24 +1027,55 @@ class AvarGrpOnSurface(AvarGrp):
         """
         base_u, base_v = self.get_base_uv()
         return abs(base_u - 0.5) * 2.0
-
-    def _get_avars_influences(self):
-        """
-        If the rigger provided an influence for the 'all' Avar, don't create an Avar for it. We will handle it manually.
-        :return:
-        """
-        influences = super(AvarGrpOnSurface, self)._get_avars_influences()
-        influence_all = self.get_influence_all()
-        if influence_all and influence_all in influences:
-            influences.remove(influence_all)
-        return influences
+    '''
 
     @libPython.memoized_instancemethod
     def get_influences_tweak(self):
         return self._get_relative_parent_level_by_influences().get(2, [])
 
     def _init_avars(self):
-        super(AvarGrpOnSurface, self)._init_avars()
+        # For various reason, we may have a mismatch between the stored Avars the number of influences.
+        # The best way to deal with this is to check each existing Avar and see if we need to created it or keep it.
+        avar_influences = self._get_avars_influences()
+
+        if not avar_influences:
+            raise Exception("Found no avars!")
+
+        new_avars = []
+
+        for avar in self.avars:
+            # Any existing Avar that we don't reconize will be deleted.
+            # Be aware that the .avars property only store MICRO Avars. Macro Avars need to be implemented in their own properties.
+            if avar.jnt not in avar_influences:
+                self.warning("Unexpected Avar {0} will be deleted.".format(avar.name))
+
+            # Any existing Avar that don't have the desired datatype will be re-created.
+            # However the old value will be passed by so the factory method can handle specific tricky cases.
+            else:
+                new_avar = self._init_avar(
+                    self._CLS_AVAR,
+                    avar,
+                    ref=avar.jnt
+                )
+                new_avars.append(new_avar)
+
+        for influence in avar_influences:
+            if not any(True for avar in new_avars if influence == avar.jnt):
+                new_avar = self._init_avar(
+                    self._CLS_AVAR,
+                    None,  # no previous value
+                    ref=influence
+                )
+                new_avars.append(new_avar)
+
+        # Hack: There's no reason why a tweak avar might need a controller.
+        for avar in self.avars:
+            if self._is_tweak_avar(avar) and avar.ctrl_model_type:
+                log.info("Removing CtrlModel for {0}".format(avar))
+                avar.ctrl_model_type = None
+
+        self.avars = new_avars
+
         # todo: for horizontal and vertical avars, is ref really necessary? they are always abstract avars
         middle = self.get_head_jnt().getTranslation(space='world')
 
@@ -1498,26 +1434,25 @@ class AvarGrpOnSurface(AvarGrp):
 
             # self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
 
-    def _build_avars(self, **kwargs):
-        # todo: cleanup
-        super(AvarGrpOnSurface, self)._build_avars(**kwargs)
 
+    def connect_macro_avars_to_micro_avars(self):
+        """
+        Macro avars are meant to be connected to micro avars.
+        This connection define secondary movement in the face.
+        However there's various methods to achieve this (like driven keys, datapoints, etc).
+        The choosed method might vary between riggers and productions.
+        OMTK create create basic connection to get people started, however it is important for the AvarGrp
+        to understand when the user have modified thoses connections since we don't want to destroy or modify it work.
+        """
         if self.create_macro_horizontal:
-            self._build_avar_macro_l()
             self._connect_avar_macro_l()
-
-            self._build_avar_macro_r()
             self._connect_avar_macro_r()
 
         if self.create_macro_vertical:
-            self._build_avar_macro_upp()
             self._connect_avar_macro_upp()
-
-            self._build_avar_macro_low()
             self._connect_avar_macro_low()
 
         if self.create_macro_all:
-            self._build_avar_macro_all()
             self._connect_avar_macro_all()
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, ctrl_tm=None, **kwargs):
@@ -1620,6 +1555,10 @@ class AvarGrpOnSurface(AvarGrp):
             if self._is_tweak_avar(avar):
                 continue
 
+            # If the avar have no ctrl_model, there's nothing to connect.
+            if not avar.model_ctrl:
+                continue
+
             avar_tweak = self._get_micro_tweak_avars_dict().get(avar)
             if avar_tweak:
                 self.connect(avar.ctrl, avar, sx=False, sy=False, sz=False)
@@ -1680,48 +1619,25 @@ class AvarGrpOnSurface(AvarGrp):
     #             )
     #             self._connect_avar_macro_low()
     # 
-    #     super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
+    #     super(AvarGrp, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
 
-    def unbuild(self):
-        if self.avar_l:
-            self.avar_l.unbuild()
-        if self.avar_r:
-            self.avar_r.unbuild()
-        if self.avar_upp:
-            self.avar_upp.unbuild()
-        if self.avar_low:
-            self.avar_low.unbuild()
-        if self.avar_all:
-            self.avar_all.unbuild()
-        super(AvarGrpOnSurface, self).unbuild()
 
-    def get_avars_upp(self, macro=True):
-        result = super(AvarGrpOnSurface, self).get_avars_upp()
-        if macro and self.avar_upp:
-            result.append(self.avar_upp)
-        return result
-
-    def get_avars_low(self, macro=True):
-        result = super(AvarGrpOnSurface, self).get_avars_low()
-        if macro and self.avar_low:
-            result.append(self.avar_low)
-        return result
 
     def _get_default_ctrl_size(self, jnts=None, max_ctrl_size=None, epsilon=0.001):
         if self.CREATE_MACRO_AVAR_VERTICAL:
             jnts_upp = [avar.jnt for avar in self.get_avars_micro_upp()]
-            default_ctrl_size_upp = super(AvarGrpOnSurface, self)._get_default_ctrl_size(jnts=jnts_upp,
-                                                                                         max_ctrl_size=max_ctrl_size,
-                                                                                         epsilon=epsilon)
+            default_ctrl_size_upp = super(AvarGrp, self)._get_default_ctrl_size(jnts=jnts_upp,
+                                                                                max_ctrl_size=max_ctrl_size,
+                                                                                epsilon=epsilon)
 
             jnts_low = [avar.jnt for avar in self.get_avars_micro_low()]
-            default_ctrl_size_low = super(AvarGrpOnSurface, self)._get_default_ctrl_size(jnts=jnts_low,
-                                                                                         max_ctrl_size=max_ctrl_size,
-                                                                                         epsilon=epsilon)
+            default_ctrl_size_low = super(AvarGrp, self)._get_default_ctrl_size(jnts=jnts_low,
+                                                                                max_ctrl_size=max_ctrl_size,
+                                                                                epsilon=epsilon)
             return max(default_ctrl_size_upp, default_ctrl_size_low)
         else:
-            return super(AvarGrpOnSurface, self)._get_default_ctrl_size(jnts=None, max_ctrl_size=None, epsilon=epsilon)
+            return super(AvarGrp, self)._get_default_ctrl_size(jnts=None, max_ctrl_size=None, epsilon=epsilon)
 
 
 def register_plugin():
-    return AvarGrpOnSurface
+    return AvarGrp

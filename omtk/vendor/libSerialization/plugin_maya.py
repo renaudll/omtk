@@ -435,7 +435,13 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
         return None
 
     # HACK: Get latest definition
-    cls_def = getattr(sys.modules[cls_def.__module__], cls_def.__name__)
+    cls_module_name = cls_def.__module__
+    try:
+        cls_module = sys.modules[cls_module_name]
+    except KeyError:
+        raise Exception("Cannot find a module named {0}".format(cls_module_name))
+
+    cls_def = getattr(cls_module, cls_def.__name__)
     obj = cls_def()
 
     # Monkey patch the network if supported

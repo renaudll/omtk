@@ -21,7 +21,7 @@ class ModelMicroAvarNose(modelInteractiveCtrl.ModelInteractiveCtrl):
                                                 sy=sy, sz=sz)
 
 
-class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
+class FaceNose(rigFaceAvarGrps.AvarGrp):
     """
     The Nose is composed of two zones. The uppernose and the lower nose.
     The uppernose is user specifically for it's yaw and pitch rotation.

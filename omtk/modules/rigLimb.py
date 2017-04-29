@@ -3,7 +3,6 @@ import collections
 from omtk import constants
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.utils import decorator_uiexpose
 from omtk.modules import rigIK
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
@@ -67,6 +66,14 @@ class Limb(Module):
         self.ctrl_attrs = None
         self.STATE_IK = 1.0
         self.STATE_FK = 0.0
+
+    def iter_submodules(self):
+        if self.sysIK:
+            yield self.sysIK
+        if self.sysFK:
+            yield self.sysFK
+        for sys_twist in self.sys_twist:
+            yield sys_twist
 
     def build(self, *args, **kwargs):
         super(Limb, self).build(*args, **kwargs)
@@ -236,15 +243,7 @@ class Limb(Module):
         self.attState = attr_ik_weight  # Expose state
 
     def unbuild(self):
-        for twist_sys in self.sys_twist:
-            twist_sys.unbuild()
-        if self.sysIK and self.sysIK.is_built():
-            self.sysIK.unbuild()
-        if self.sysFK and self.sysFK.is_built():
-            self.sysFK.unbuild()
-
         super(Limb, self).unbuild()
-
         self.attState = None
 
     def parent_to(self, parent):
@@ -303,18 +302,6 @@ class Limb(Module):
                 yield ctrl
         yield self.ctrl_attrs
         yield self.ctrl_elbow
-
-    @decorator_uiexpose()
-    def assign_twist_weights(self):
-        for module in self.sys_twist:
-            if isinstance(module, self._CLASS_SYS_TWIST):
-                module.assign_twist_weights()
-
-    @decorator_uiexpose()
-    def unassign_twist_weights(self):
-        for module in self.sys_twist:
-            if isinstance(module, self._CLASS_SYS_TWIST):
-                module.unassign_twist_weights()
 
 
 def register_plugin():

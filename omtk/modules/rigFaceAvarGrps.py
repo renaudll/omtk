@@ -687,24 +687,6 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
             if avar.model_ctrl:
                 avar.model_ctrl.post_build()
 
-    def unbuild(self):
-        # Unbuild macro avars
-        if self.avar_l:
-            self.avar_l.unbuild()
-        if self.avar_r:
-            self.avar_r.unbuild()
-        if self.avar_upp:
-            self.avar_upp.unbuild()
-        if self.avar_low:
-            self.avar_low.unbuild()
-        if self.avar_all:
-            self.avar_all.unbuild()
-
-        # Unbuild micro avars
-        for avar in self.avars:
-            avar.unbuild()
-        super(AvarGrp, self).unbuild()
-
     def iter_ctrls(self):
         for ctrl in super(AvarGrp, self).iter_ctrls():
             yield ctrl

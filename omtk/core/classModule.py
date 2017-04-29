@@ -546,6 +546,10 @@ class Module(object):
         """
         self.info("Un-building")
 
+        # Unbuild any sub-module first
+        for module in self.iter_submodules():
+            module.unbuild()
+
         # Ensure that there's no more connections in the input chain
         if disconnect_attr:
             for obj in self.input:

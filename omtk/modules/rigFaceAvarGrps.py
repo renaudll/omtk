@@ -525,35 +525,35 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
         return avar
 
-    def _parent_avar(self, avar, parent):
-        try:
-            avar_grp_parent = avar._grp_parent
-            pymel.parentConstraint(parent, avar_grp_parent, maintainOffset=True)
-            pymel.scaleConstraint(parent, avar_grp_parent, maintainOffset=True)
-        except Exception, e:
-            print(str(e))
-
-    def _parent_avars(self):
-        """
-        Parent each avars to their associated parent.
-        :return:
-        """
-        # If the deformation order is set to post (aka the deformer is in the final skinCluster)
-        # we will want the offset node to follow it's original parent (ex: the head)
-        for avar in self.get_all_avars():
-            avar_parent = None
-            if self.SINGLE_PARENT:
-                if avar.jnt:
-                    avar_parent = avar.jnt.getParent()
-                else:
-                    # If we asked for a single parent for each avar but encounter an avar that don't have any influences, fallback to the module parent.
-                    avar_parent = self.parent
-            else:
-                avar_parent = self.parent
-
-            # avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False) or self.parent
-            if avar_parent:
-                self._parent_avar(avar, avar_parent)
+    # def _parent_avar(self, avar, parent):
+    #     try:
+    #         avar_grp_parent = avar._grp_parent
+    #         pymel.parentConstraint(parent, avar_grp_parent, maintainOffset=True)
+    #         pymel.scaleConstraint(parent, avar_grp_parent, maintainOffset=True)
+    #     except Exception, e:
+    #         print(str(e))
+    # 
+    # def _parent_avars(self):
+    #     """
+    #     Parent each avars to their associated parent.
+    #     :return:
+    #     """
+    #     # If the deformation order is set to post (aka the deformer is in the final skinCluster)
+    #     # we will want the offset node to follow it's original parent (ex: the head)
+    #     for avar in self.get_all_avars():
+    #         avar_parent = None
+    #         if self.SINGLE_PARENT:
+    #             if avar.jnt:
+    #                 avar_parent = avar.jnt.getParent()
+    #             else:
+    #                 # If we asked for a single parent for each avar but encounter an avar that don't have any influences, fallback to the module parent.
+    #                 avar_parent = self.parent
+    #         else:
+    #             avar_parent = self.parent
+    # 
+    #         # avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False) or self.parent
+    #         if avar_parent:
+    #             self._parent_avar(avar, avar_parent)
 
     def _create_avars_ctrls(self, **kwargs):
         for avar in self._iter_all_avars():
@@ -678,8 +678,8 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         #     ctrl_size = self._get_default_ctrl_size()
         #     self._create_avars_ctrls(ctrl_size=ctrl_size)
 
-        if parent:
-            self._parent_avars()
+        # if parent:
+        #     self._parent_avars()
 
         self.connect_ctrls_to_avars()
 
@@ -1551,6 +1551,9 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
     def connect_ctrls_to_avars(self):
         for avar in self._iter_all_avars():
+            if not avar.ctrl:
+                continue
+
             # todo: _iter_micro_avars should not return any tweak avar
             if self._is_tweak_avar(avar):
                 continue
@@ -1562,7 +1565,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
             avar_tweak = self._get_micro_tweak_avars_dict().get(avar)
             if avar_tweak:
                 self.connect(avar.ctrl, avar, sx=False, sy=False, sz=False)
-                self.connect(avar_tweak.ctrl, avar, ud=False, fb=False, lr=False)
+                self.connect(avar.ctrl, avar_tweak, ud=False, fb=False, lr=False)
             else:
                 self.connect(avar.ctrl, avar)
 

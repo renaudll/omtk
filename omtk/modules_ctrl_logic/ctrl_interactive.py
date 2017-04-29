@@ -76,7 +76,7 @@ class CtrlLogicInteractive(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
 
         return tm
 
-    def build(self, avar, **kwargs):
+    def build(self, avar, cancel_r=False, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # # todo: use property?
@@ -88,7 +88,7 @@ class CtrlLogicInteractive(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
         # pos_ref_local = pos_ref * jnt_head.getMatrix(worldSpace=True).inverse()
         # need_flip = pos_ref_local.x < 0
 
-        super(CtrlLogicInteractive, self).build(avar, **kwargs)
+        super(CtrlLogicInteractive, self).build(avar, cancel_r=cancel_r, **kwargs)
 
         # Create the follicle setup
         fol_name = nomenclature_rig.resolve('follicle')
@@ -110,7 +110,7 @@ class CtrlLogicInteractive(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
             'multMatrix',
             name=nomenclature_rig.resolve('getFollicleLocalTm'),
             matrixIn=(
-                layer_fol.worldMatrix,
+                fol_transform.worldMatrix,
                 self._grp_parent.worldInverseMatrix
             )
         ).matrixSum

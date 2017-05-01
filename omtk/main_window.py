@@ -66,11 +66,59 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.create_callbacks()
 
+        self.ui.btn_create_rig_default.pressed.connect(functools.partial(self.set_current_widget, 1))
+        self.ui.btn_create_rig_template.pressed.connect(functools.partial(self.set_current_widget, 1))
+
+        # Initialize rig definition view
+        from . import model_rig_definitions
+        view = self.ui.tableView_types_rig
+        model = model_rig_definitions.RigDefinitionsModel()
+        view.setModel(model)
+
+        # Select default rig
+        from omtk.core import preferences
+        default_rig_def = preferences.preferences.get_default_rig_class()
+        row = model.entries.index(default_rig_def)
+        view.selectRow(row)
+
+        # Initialize rig template view
+        from . import model_rig_templates
+        view = self.ui.tableView_types_template
+        model = model_rig_templates.RigTemplatesModel()
+        view.setModel(model)
+
         # from omtk.core import plugin_manager
         # pm = plugin_manager.plugin_manager
         # failed_plugins = pm.get_failed_plugins()
         # if failed_plugins:
         #     log.warning("The following plugins failed to load: {0}".format(', '.join(str(p) for p in failed_plugins)))
+
+    def set_current_widget(self, index):
+        old_index = self.ui.stackedWidget.currentIndex()
+        # self.ui.stackedWidget.setCurrentIndex(index)
+        transition_duration = 500
+        width = self.ui.stackedWidget.width()
+        height = self.ui.stackedWidget.height()
+        widgets_pages = [self.ui.page_1, self.ui.page_2]
+        num_widgets = len(widgets_pages)
+        for page in widgets_pages:
+            page.show()
+
+        old_positions = [QtCore.QRect(width * (i - old_index), 0, width, height) for i in range(num_widgets)]
+        new_positions = [QtCore.QRect(width * (i - index), 0, width, height) for i in range(num_widgets)]
+
+        self._qt_animation = QtCore.QParallelAnimationGroup()  # member variable necessary to bypass garbage collection
+        for widget, old_pos, new_pos in zip(widgets_pages, old_positions, new_positions):
+            animation = QtCore.QPropertyAnimation(widget, "geometry")
+            animation.setDuration(transition_duration)
+            animation.setStartValue(old_pos)
+            animation.setEndValue(new_pos)
+            animation.setEasingCurve(QtCore.QEasingCurve.InOutSine)
+            animation.start()
+            self._qt_animation.addAnimation(animation)
+            self._qt_animation.finished.connect(functools.partial(self.ui.stackedWidget.setCurrentWidget, widgets_pages[index]))
+
+        self._qt_animation.start()
 
     def create_callbacks(self):
         self.remove_callbacks()

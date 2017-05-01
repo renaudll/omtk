@@ -51,7 +51,7 @@ class Preferences(object):
         from omtk.core import plugin_manager
 
         # Listen to an environment variable to drive the default rig for specific projects.
-        default_rig = self.default_rig
+        default_rig = self.default_rig if self.default_rig else 'RigStandard'
 
         default_rig_override = os.environ.get(constants.EnvironmentVariables.OMTK_DEFAULT_RIG, None)
         if default_rig_override:
@@ -63,9 +63,7 @@ class Preferences(object):
                     return plugin.cls
             log.warning("Can't find default rig type {0}.".format(default_rig))
 
-        # If no match is found, return the base implementation
-        from omtk.core import classRig
-        return classRig.Rig
+        raise Exception("No Rig definition found!")
 
 
 preferences = Preferences()

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rlessard/packages/omtk/0.4.999/omtk/ui/preferences_window.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/omtk/ui/preferences_window.ui'
 #
-# Created: Tue Jan 24 10:18:37 2017
+# Created: Sat Apr 29 23:30:58 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!

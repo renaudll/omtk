@@ -12,6 +12,37 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
+        -annotation "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 1 0 0 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "reload_scene.png" 
+        -image1 "reload_scene.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
         -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.get_networks_from_class('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n" 
         -enableBackground 0
         -highlightColor 0.321569 0.521569 0.65098 
@@ -23,11 +54,10 @@ global proc shelf_omtk () {
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "Build" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_rig_build_all.png" 
+        -image1 "omtk_rig_build_all.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
@@ -55,11 +85,10 @@ global proc shelf_omtk () {
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "Unbuild" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_rig_unbuild_all.png" 
+        -image1 "omtk_rig_unbuild_all.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
@@ -87,11 +116,10 @@ global proc shelf_omtk () {
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "Show" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_rig_show.png" 
+        -image1 "omtk_rig_show.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
@@ -108,26 +136,25 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
+        -annotation "Build Selected Joints" 
         -enableBackground 0
         -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
-        -label "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True..." 
+        -label "Build Selected Joints" 
         -labelOffset 0
         -rotation 0
         -flipX 0
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "reset" 
-        -overlayLabelColor 1 0 0 
+        -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_rig_build_selection.png" 
+        -image1 "omtk_rig_build_selection.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
+        -command "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -140,26 +167,211 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "import omtk\nomtk._reload()\nimport pymel.core as pymel\np = omtk.rigging.autorig.classPoint.LineDeformer(pymel.PyNode('curve1'))\np.Build()\n\n" 
+        -annotation "Unbuild Selected Joints" 
         -enableBackground 0
         -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
-        -label "import omtk\nomtk._reload()\nimport pymel.core as pymel\np = omtk.r..." 
+        -label "Unbuild Selected Joints" 
         -labelOffset 0
         -rotation 0
         -flipX 0
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "reload" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_rig_unbuild_selection.png" 
+        -image1 "omtk_rig_unbuild_selection.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import libSerialization; reload(libSerialization); libSerialization._reload()\nimport omtk; reload(omtk); omtk._reload()" 
+        -command "import omtk; reload(omtk); omtk._reload(); omtk.unbuild_selected()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "omtk_rig_rebuild_selection.png" 
+        -image1 "omtk_rig_rebuild_selection.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "CalibrateSel Selected Joints" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "CalibrateSel Selected Joints" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "omtk_rig_ctrl_calibrate.png" 
+        -image1 "omtk_rig_ctrl_calibrate.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk; reload(omtk); omtk._reload(); omtk.calibrate_selected()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Give selected transform shapes to the next selected controller. Only Valid if two transform selected." 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Controller Match" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "omtk_rig_ctrl_swap.png" 
+        -image1 "omtk_rig_ctrl_swap.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from sstk.maya.apis import maya_app; maya_app.run_app(\"MayaAppControllerMatcher\")" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Bake Selected Ctrls" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "from omtk.libs import libRigging\n\ndef _fix_ctrl_shape(ctrl):\n   ..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "omtk_rig_ctrl_bake.png" 
+        -image1 "omtk_rig_ctrl_bake.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk\n\omtk.run_macro('ctrls_bake_selected')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Mirror shapes of Ctrl to another controller. Using the prefix ['L','R']" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Controller Mirror" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "omtk_rig_ctrl_mirror.png" 
+        -image1 "omtk_rig_ctrl_mirror.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from sstk.maya.apis import maya_app; maya_app.run_app(\"MayaAppMirrorController\")" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import omtk\nomtk.run_macro(\"avar_selection_toggle\")" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import omtk\nomtk.run_macro(\"avar_selection_toggle\")" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "omtk_rig_select_avar.png" 
+        -image1 "omtk_rig_select_avar.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk\nomtk.run_macro(\"avar_selection_toggle\")" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -183,11 +395,10 @@ global proc shelf_omtk () {
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "toIK" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_anm_switch_ik.png" 
+        -image1 "omtk_anm_switch_ik.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
@@ -215,11 +426,10 @@ global proc shelf_omtk () {
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "toFK" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_anm_switch_fk.png" 
+        -image1 "omtk_anm_switch_fk.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
@@ -247,11 +457,10 @@ global proc shelf_omtk () {
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "flip" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
+        -image "omtk_anm_ctrl_mirror.png" 
+        -image1 "omtk_anm_ctrl_mirror.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
@@ -260,165 +469,4 @@ global proc shelf_omtk () {
         -commandRepeatable 1
         -flat 1
     ;
-    shelfButton
-        -enableCommandRepeat 1
-        -enable 1
-        -width 35
-        -height 35
-        -manage 1
-        -visible 1
-        -preventOverride 0
-        -annotation "Build Selected Joints" 
-        -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
-        -align "center" 
-        -label "Build Selected" 
-        -labelOffset 0
-        -rotation 0
-        -flipX 0
-        -flipY 0
-        -useAlpha 1
-        -font "plainLabelFont" 
-        -imageOverlayLabel "c build" 
-        -overlayLabelColor 0.8 0.8 0.8 
-        -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
-        -style "iconOnly" 
-        -marginWidth 1
-        -marginHeight 1
-        -command "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('modules_build_selected')" 
-        -sourceType "python" 
-        -commandRepeatable 1
-        -flat 1
-    ;
-    shelfButton
-        -enableCommandRepeat 1
-        -enable 1
-        -width 35
-        -height 35
-        -manage 1
-        -visible 1
-        -preventOverride 0
-        -annotation "Unbuild Selected Joints" 
-        -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
-        -align "center" 
-        -label "Unbuild Selected" 
-        -labelOffset 0
-        -rotation 0
-        -flipX 0
-        -flipY 0
-        -useAlpha 1
-        -font "plainLabelFont" 
-        -imageOverlayLabel "c unbuild" 
-        -overlayLabelColor 0.8 0.8 0.8 
-        -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
-        -style "iconOnly" 
-        -marginWidth 1
-        -marginHeight 1
-        -command "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('modules_unbuild_selected')" 
-        -sourceType "python" 
-        -commandRepeatable 1
-        -flat 1
-    ;
-    shelfButton
-        -enableCommandRepeat 1
-        -enable 1
-        -width 35
-        -height 35
-        -manage 1
-        -visible 1
-        -preventOverride 0
-        -annotation "CalibrateSel Selected" 
-        -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
-        -align "center" 
-        -label "CalibrateSel Selected Joints" 
-        -labelOffset 0
-        -rotation 0
-        -flipX 0
-        -flipY 0
-        -useAlpha 1
-        -font "plainLabelFont" 
-        -imageOverlayLabel "c calib" 
-        -overlayLabelColor 0.8 0.8 0.8 
-        -overlayLabelBackColor 0 0 0 0.2 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
-        -style "iconOnly" 
-        -marginWidth 1
-        -marginHeight 1
-        -command "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('ctrls_calibrate_selected')" 
-        -sourceType "python" 
-        -commandRepeatable 1
-        -flat 1
-    ;
-    shelfButton
-        -enableCommandRepeat 1
-        -enable 1
-        -width 35
-        -height 35
-        -manage 1
-        -visible 1
-        -preventOverride 0
-        -annotation "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('ctrls_match_selected')" 
-        -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
-        -align "center" 
-        -label "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('ctrls_..." 
-        -labelOffset 0
-        -rotation 0
-        -flipX 0
-        -flipY 0
-        -useAlpha 1
-        -font "plainLabelFont" 
-        -imageOverlayLabel "c match" 
-        -overlayLabelColor 0.8 0.8 0.8 
-        -overlayLabelBackColor 0 0 0 0.5 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
-        -style "iconOnly" 
-        -marginWidth 1
-        -marginHeight 1
-        -command "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('ctrls_match_selected')" 
-        -sourceType "python" 
-        -commandRepeatable 1
-        -flat 1
-    ;
-    shelfButton
-        -enableCommandRepeat 1
-        -enable 1
-        -width 35
-        -height 35
-        -manage 1
-        -visible 1
-        -preventOverride 0
-        -annotation "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('ctrls_mirror_selected')" 
-        -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
-        -align "center" 
-        -label "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('ctrls_..." 
-        -labelOffset 0
-        -rotation 0
-        -flipX 0
-        -flipY 0
-        -useAlpha 1
-        -font "plainLabelFont" 
-        -imageOverlayLabel "c mirror" 
-        -overlayLabelColor 0.8 0.8 0.8 
-        -overlayLabelBackColor 0 0 0 0.5 
-        -image "pythonFamily.png" 
-        -image1 "pythonFamily.png" 
-        -style "iconOnly" 
-        -marginWidth 1
-        -marginHeight 1
-        -command "import omtk; reload(omtk); omtk._reload()\nomtk.run_macro('ctrls_mirror_selected')" 
-        -sourceType "python" 
-        -commandRepeatable 1
-        -flat 1
-    ;
-
 } 

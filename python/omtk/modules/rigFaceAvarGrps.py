@@ -1,18 +1,16 @@
 import copy
 import itertools
 import logging
-from collections import defaultdict
-
 import pymel.core as pymel
-
+from collections import defaultdict
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
-from omtk.modules import rigFaceAvar
 from omtk.models import modelInteractiveCtrl
+from omtk.modules import rigFaceAvar
 
 log = logging.getLogger('omtk')
 
@@ -604,11 +602,16 @@ class AvarGrp(
             else:
                 avar_parent = self.parent
 
-            # avar_parent = avar.get_parent_obj(fallback_to_anm_grp=False) or self.parent
+            # Hack: If the parent is the 'all' influence, we want to skip it since the 'all' influence is used in the stack.
+            # Otherwise this will result in double-transformation.
+            all_influence = self.get_influence_all()
+            if avar_parent and avar_parent == all_influence:
+                avar_parent = avar_parent.getParent()
+
             if avar_parent:
                 self._parent_avar(avar, avar_parent)
 
-    def _create_avars_ctrls(self, **kwargs):
+    def _create_avars_ctrls(self, connect=False, **kwargs):
         for avar in self.avars:
             if self._is_tweak_avar(avar):
                 if self._CLS_CTRL_TWEAK:
@@ -764,6 +767,21 @@ class AvarGrp(
         """
         if avar.surface is None and self.surface:
             avar.surface = self.surface
+
+    def _need_to_connect_macro_avar(self, avar):
+        """
+        Macro avars are made to control micro avars.
+        In the first build, it is necessary to create default connection so the rigger got something that work.
+        However with time it is normal than a rigger remove this connection or replace it with other type of connection.
+        This call check if the avar is connected to at least another avar. If True, no connection is needed. 
+        """
+        def _is_obj_avar(obj):
+            return obj.hasAttr('avar_lr')  # ugly but it work
+        attr_holder = avar.grp_rig
+        for hist in attr_holder.listHistory(future=True):
+            if isinstance(hist, pymel.nodetypes.Transform) and _is_obj_avar(hist):
+                return False
+        return True
 
 
 class AvarGrpOnSurface(AvarGrp):
@@ -1233,6 +1251,8 @@ class AvarGrpOnSurface(AvarGrp):
     def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True,
                                        connect_fb=True):
         for child_avar in avar_children:
+            if not self._need_to_connect_macro_avar(child_avar):
+                continue
             if connect_ud:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
             if connect_lr:
@@ -1250,6 +1270,8 @@ class AvarGrpOnSurface(AvarGrp):
     def _connect_avar_macro_vertical(self, avar_parent, avar_children, connect_ud=True, connect_lr=True,
                                      connect_fb=True):
         for child_avar in avar_children:
+            if not self._need_to_connect_macro_avar(child_avar):
+                continue
             if connect_ud:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
             if connect_lr:
@@ -1319,6 +1341,10 @@ class AvarGrpOnSurface(AvarGrp):
             return True
 
         for avar_child in self.avars:
+            # Hack: Tweak avars are affected by their parent avar which is already affected by the all influence.
+            if self._is_tweak_avar(avar_child):
+                continue
+
             # Connect macro_all ctrl to each avar_child.
             # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
             # Using the rotate/scalePivot functionality, we are able to save some nodes.
@@ -1506,6 +1532,8 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
+                # if self._need_to_connect_macro_avar(self.avar_l):
+                #     self.info("Creating default connection for {0}".format(self.avar_l))
                 self._connect_avar_macro_l()
 
             if self.avar_r:
@@ -1514,6 +1542,8 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
+                # if self._need_to_connect_macro_avar(self.avar_r):
+                #     self.info("Creating default connection for {0}".format(self.avar_r))
                 self._connect_avar_macro_r()
 
         if self.create_macro_vertical:
@@ -1523,6 +1553,8 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
+                # if self._need_to_connect_macro_avar(self.avar_upp):
+                #     self.info("Creating default connection for {0}".format(self.avar_upp))
                 self._connect_avar_macro_upp()
 
             if self.avar_low:
@@ -1531,6 +1563,8 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
+                # if self._need_to_connect_macro_avar(self.avar_low):
+                #     self.info("Creating default connection for {0}".format(self.avar_low))
                 self._connect_avar_macro_low()
 
         super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)

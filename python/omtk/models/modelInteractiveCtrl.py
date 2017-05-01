@@ -57,7 +57,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # We always try to position the controller on the surface of the face.
         # The face is always looking at the positive Z axis.
         pos = tm.translate
-        dir = pymel.datatypes.Point(0,0,1)
+        dir = pymel.datatypes.Point(0, 0, 1)
         result = self.rig.raycast_farthest(pos, dir)
         if result:
             tm.a30 = result.x
@@ -151,7 +151,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         self.attr_sensitivity_tx.set(channelBox=True)
         self.attr_sensitivity_ty.set(channelBox=True)
         self.attr_sensitivity_tz.set(channelBox=True)
-
 
         # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
@@ -270,7 +269,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                                                              input2=[-1, -1, -1]).output
 
             pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
-
 
         #
         # Apply scaling on the ctrl parent.
@@ -427,7 +425,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             attr_inn_fb = self.ctrl.translateZ
             libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
 
-
         # Rotation
         if yw:
             attr_inn_yw = self.ctrl.rotateY
@@ -463,6 +460,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sz)
 
     def unbuild(self):
+        # Ensure the shape stay consistent between rebuild.
+        self._fix_ctrl_shape()
+
         super(ModelInteractiveCtrl, self).unbuild()
         # TODO: Maybe hold and fetch the senstivity? Will a doritos will ever be serialzied?
         self.attr_sensitivity_tx = None
@@ -560,6 +560,3 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             sensitivity_tz = libRigging.calibrate_attr_using_translation(self.ctrl.node.tz, influence)
             self.debug('Adjusting sensibility tz for {0} to {1}'.format(self, sensitivity_tz))
             self.attr_sensitivity_tz.set(sensitivity_tz)
-
-
-

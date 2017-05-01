@@ -555,6 +555,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 # We don't want to connect the middle Avar.
                 if avar_child == avar_middle:
                     continue
+                
+                if not self._need_to_connect_macro_avar(avar_child):
+                    continue
 
                 pos = avar_child.jnt.getTranslation(space='world')
 
@@ -582,7 +585,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
         # Connect the corner other avars
         avar_l_corner = self.get_avar_l_corner()
-        if avar_l_corner:
+        if avar_l_corner and self._need_to_connect_macro_avar(avar_l_corner):
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
 
@@ -597,7 +600,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
         # Connect the corner other avars
         avar_r_corner = self.get_avar_r_corner()
-        if avar_r_corner:
+        if avar_r_corner and self._need_to_connect_macro_avar(avar_r_corner):
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
 

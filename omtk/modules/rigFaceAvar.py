@@ -19,6 +19,15 @@ from omtk.libs import libRigging
 log = logging.getLogger('omtk')
 
 
+def _connect_with_blend(attr_src, attr_dst, attr_amount):
+    """Quick function that create two attributes with a blend factor."""
+    attr_blended = libRigging.create_utility_node(
+        'multiplyDivide',
+        input1X=attr_src,
+        input2X=attr_amount,
+    ).outputX
+    pymel.connectAttr(attr_blended, attr_dst)
+
 class BaseCtrlFace(classCtrl.BaseCtrl):
     def fetch_shapes(self):
         """
@@ -187,8 +196,8 @@ class AbstractAvar(classModule.Module):
             # if attr_have_animcurve_input(attr_src):
             attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
             if attr_src_inn:
-                    pymel.disconnectAttr(attr_src_inn, attr_src)
-                    pymel.connectAttr(attr_src_inn, attr_dst)
+                pymel.disconnectAttr(attr_src_inn, attr_src)
+                pymel.connectAttr(attr_src_inn, attr_dst)
 
             # Transfer output connections
             for attr_src_out in attr_src.outputs(plugs=True):
@@ -387,6 +396,20 @@ class AvarSimple(AbstractAvar):
         self._grp_parent = None
         self.model_ctrl = None
 
+        # In normal cases, an avar influence a joint.
+        # However it is possible that the rigger might want to use other means (like blendshapes)
+        # for translation/rotation/scale, even per axis!
+        # For this reason we'll expose filters that enable/disable an avar influence.
+        self.affect_tx = True
+        self.affect_ty = True
+        self.affect_tz = True
+        self.affect_rx = True
+        self.affect_ry = True
+        self.affect_rz = True
+        self.affect_sx = True
+        self.affect_sy = True
+        self.affect_sz = True
+
     def validate(self):
         super(AvarSimple, self).validate()
 
@@ -400,12 +423,13 @@ class AvarSimple(AbstractAvar):
         the drived joint.
         """
         layer_pos = stack.append_layer('pos')
-        pymel.connectAttr(self.attr_lr, layer_pos.tx)
-        pymel.connectAttr(self.attr_ud, layer_pos.ty)
-        pymel.connectAttr(self.attr_fb, layer_pos.tz)
-        pymel.connectAttr(self.attr_yw, layer_pos.ry)
-        pymel.connectAttr(self.attr_pt, layer_pos.rx)
-        pymel.connectAttr(self.attr_rl, layer_pos.rz)
+
+        _connect_with_blend(self.attr_lr, layer_pos.tx, self.affect_tx)
+        _connect_with_blend(self.attr_ud, layer_pos.ty, self.affect_ty)
+        _connect_with_blend(self.attr_fb, layer_pos.tz, self.affect_tz)
+        _connect_with_blend(self.attr_yw, layer_pos.ry, self.affect_rx)
+        _connect_with_blend(self.attr_pt, layer_pos.rx, self.affect_ry)
+        _connect_with_blend(self.attr_rl, layer_pos.rz, self.affect_rz)
 
         return stack
 
@@ -422,6 +446,24 @@ class AvarSimple(AbstractAvar):
         :return:
         """
         super(AvarSimple, self).build(parent=False)
+
+        _avar_filter_kwargs = {
+            'defaultValue': 1.0,
+            'hasMinValue': True,
+            'hasMaxValue': True,
+            'minValue': 0.0,
+            'maxValue': 1.0,
+            'keyable': True
+        }
+        self.affect_tx = libAttr.addAttr(self.grp_rig, longName='affectTx', **_avar_filter_kwargs)
+        self.affect_ty = libAttr.addAttr(self.grp_rig, longName='affectTy', **_avar_filter_kwargs)
+        self.affect_tz = libAttr.addAttr(self.grp_rig, longName='affectTz', **_avar_filter_kwargs)
+        self.affect_rx = libAttr.addAttr(self.grp_rig, longName='affectRx', **_avar_filter_kwargs)
+        self.affect_ry = libAttr.addAttr(self.grp_rig, longName='affectRy', **_avar_filter_kwargs)
+        self.affect_rz = libAttr.addAttr(self.grp_rig, longName='affectRz', **_avar_filter_kwargs)
+        self.affect_sx = libAttr.addAttr(self.grp_rig, longName='affectSx', **_avar_filter_kwargs)
+        self.affect_sy = libAttr.addAttr(self.grp_rig, longName='affectSy', **_avar_filter_kwargs)
+        self.affect_sz = libAttr.addAttr(self.grp_rig, longName='affectSz', **_avar_filter_kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig()
 
@@ -480,9 +522,18 @@ class AvarSimple(AbstractAvar):
             'decomposeMatrix',
             inputMatrix=attr_get_stack_local_tm
         )
-        pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.t)
-        pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.r)
-        pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.s)
+        # pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.t)
+        # pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.r)
+        # pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.s)
+        _connect_with_blend(util_get_stack_local_tm.outputTranslateX, self._grp_output.translateX, self.affect_tx)
+        _connect_with_blend(util_get_stack_local_tm.outputTranslateY, self._grp_output.translateY, self.affect_ty)
+        _connect_with_blend(util_get_stack_local_tm.outputTranslateZ, self._grp_output.translateZ, self.affect_tz)
+        _connect_with_blend(util_get_stack_local_tm.outputRotateX, self._grp_output.rotateX, self.affect_rx)
+        _connect_with_blend(util_get_stack_local_tm.outputRotateY, self._grp_output.rotateY, self.affect_ry)
+        _connect_with_blend(util_get_stack_local_tm.outputRotateZ, self._grp_output.rotateZ, self.affect_rz)
+        _connect_with_blend(util_get_stack_local_tm.outputScaleX, self._grp_output.scaleX, self.affect_sx)
+        _connect_with_blend(util_get_stack_local_tm.outputScaleY, self._grp_output.scaleY, self.affect_sy)
+        _connect_with_blend(util_get_stack_local_tm.outputScaleZ, self._grp_output.scaleZ, self.affect_sz)
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
@@ -611,6 +662,26 @@ class AvarSimple(AbstractAvar):
             self.model_ctrl.calibrate()
 
     def unbuild(self):
+        # Hold avars filter
+        if isinstance(self.affect_tx, pymel.Attribute):
+            self.affect_tx = self.affect_tx.get()
+        if isinstance(self.affect_ty, pymel.Attribute):
+            self.affect_ty = self.affect_ty.get()
+        if isinstance(self.affect_tz, pymel.Attribute):
+            self.affect_tz = self.affect_tz.get()
+        if isinstance(self.affect_rx, pymel.Attribute):
+            self.affect_rx = self.affect_rx.get()
+        if isinstance(self.affect_ry, pymel.Attribute):
+            self.affect_ry = self.affect_ry.get()
+        if isinstance(self.affect_rz, pymel.Attribute):
+            self.affect_rz = self.affect_rz.get()
+        if isinstance(self.affect_sx, pymel.Attribute):
+            self.affect_sx = self.affect_sx.get()
+        if isinstance(self.affect_sy, pymel.Attribute):
+            self.affect_sy = self.affect_sy.get()
+        if isinstance(self.affect_sz, pymel.Attribute):
+            self.affect_sz = self.affect_sz.get()
+
         if self.model_ctrl:
             # Note: The model un-build process is only to needed to de-initialize some variables.
             # If it fail, notify the user but don't crash.

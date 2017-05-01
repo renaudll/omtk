@@ -6,6 +6,7 @@ from omtk.core import className
 from omtk.core import classRig
 from omtk.libs import libAttr
 from omtk.libs import libPymel
+from omtk.libs import libRigging
 
 
 class CtrlMaster(classRig.CtrlRoot):
@@ -13,7 +14,7 @@ class CtrlMaster(classRig.CtrlRoot):
 
     def build(self, create_global_scale_attr=False, *args, **kwargs):
         return super(CtrlMaster, self).build(create_global_scale_attr=create_global_scale_attr, *args, **kwargs)
-        
+
     @classmethod
     def _get_recommended_radius(cls, rig, min_size=1.0, multiplier=1.25):
         return super(CtrlMaster, cls)._get_recommended_radius(rig, min_size=1.0) * multiplier
@@ -109,6 +110,87 @@ class RigSqueeze(classRig.Rig):
 
         return super(RigSqueeze, self)._is_potential_influence(obj)
 
+    def _init_attr(self, obj, longName, attributeType, **kwargs):
+        """
+        Create an attribute if missing or invalid while preserving output connections.
+        :param obj: The object that hold the attribute.
+        :param longName: The longName (identifier) of the attribute.
+        :param at: The attributeType to use. Please don't provide the short form 'at'.
+        :param kwargs: Any additional keyword argument is redirected to pymel.addAttr.
+        :return: A pymel.Attribute instance.
+        """
+        attr = obj.attr(longName) if obj.hasAttr(longName) else None
+        need_update = attr is None or attr.type() != attributeType
+        if need_update:
+            connections = None
+            if attr is not None:
+                connections = libAttr.hold_connections([attr], hold_inputs=False, hold_outputs=True)
+                attr.delete()
+
+            attr = libAttr.addAttr(
+                self.grp_anm, longName=longName, at=attributeType, **kwargs
+            )
+
+            if connections:
+                libAttr.fetch_connections(connections)
+        return attr
+
+    def _init_attr_display_ctrl(self):
+        """
+        Initialize an attribute that allow animators to control if the controllers are visibles.
+        Note that this exclude the root ctrls.
+        :return: A pymel.Attribute instance.
+        """
+        return self._init_attr(
+            self.grp_anm, self.ATTR_NAME_DISPLAY_CTRL, 'short',
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1
+        )
+
+    def _init_attr_display_mesh(self):
+        return self._init_attr(
+            self.grp_anm, self.ATTR_NAME_DISPLAY_MESH, 'enum',
+            k=True,
+            hasMinValue=True, hasMaxValue=True,
+            minValue=0, maxValue=1, defaultValue=0,
+            enumName='Mesh=0:Proxy=1'
+        )
+
+    def _init_attr_face_module_visiblity_driver(self):
+        attr_display_ctrl = self._init_attr_display_ctrl()
+        attr_display_mesh = self._init_attr_display_mesh()
+
+        condition_attrs = {
+            'operation': 2,  # greater than
+            'firstTerm': attr_display_ctrl,
+            'secondTerm': attr_display_mesh,
+            'colorIfTrueR': True,
+            'colorIfFalseR': False
+        }
+
+        # Re-use the condition matching the requirements.
+        def _filter(obj):
+            if not isinstance(obj, pymel.nodetypes.Condition):
+                return False
+            for attr_name, attr_val in condition_attrs.iteritems():
+                attr = obj.attr(attr_name)
+                if attr.isDestination():
+                    if next(iter(attr.inputs(plugs=True)), None) != attr_val:
+                        return False
+                else:
+                    if attr.get() != attr_val:
+                        return False
+            return True
+
+        condition = next(iter(node for node in attr_display_ctrl.outputs() if _filter(node)), None)
+
+        if condition is None:
+            condition = libRigging.create_utility_node(
+                'condition',
+                **condition_attrs
+            )
+
+        return condition.outColorR
+
     def pre_build(self, create_grp_anm=True, create_display_layers=True, **kwargs):
         super(RigSqueeze, self).pre_build(create_grp_anm=create_grp_anm, create_master_grp=False,
                                           create_display_layers=create_display_layers, **kwargs)
@@ -170,36 +252,11 @@ class RigSqueeze(classRig.Rig):
         if not self.grp_anm.hasAttr(self.GROUP_NAME_DISPLAY, checkShape=False):
             libAttr.addAttr_separator(self.grp_anm, self.GROUP_NAME_DISPLAY)
 
-        def _init_attr(obj, longName, attributeType, **kwargs):
-            """
-            Create an attribute if missing or invalid while preserving output connections.
-            :param obj: The object that hold the attribute.
-            :param longName: The longName (identifier) of the attribute.
-            :param at: The attributeType to use. Please don't provide the short form 'at'.
-            :param kwargs: Any additional keyword argument is redirected to pymel.addAttr.
-            :return: A pymel.Attribute instance.
-            """
-            attr = obj.attr(longName) if obj.hasAttr(longName) else None
-            need_update = attr is None or attr.type() != attributeType
-            if need_update:
-                connections = None
-                if attr is not None:
-                    connections = libAttr.hold_connections([attr], hold_inputs=False, hold_outputs=True)
-                    attr.delete()
-
-                attr = libAttr.addAttr(
-                    self.grp_anm, longName=longName, at=attributeType, **kwargs
-                )
-
-                if connections:
-                    libAttr.fetch_connections(connections)
-            return attr
-
-        from omtk.libs import libRigging
-
         attr_display_mesh_output_attrs = {self.grp_geo.visibility}
         attr_display_proxy_output_attrs = {self.grp_proxy.visibility}
-        attr_display_ctrl_output_attrs = set([children.visibility for children in self.grp_anm.getChildren()])
+        # attr_display_ctrl_output_attrs = set(
+        #     [children.visibility for children in self.grp_anm.getChildren(type='transform')]
+        # )
 
         # In the past, the displayMesh attribute was a boolean and the displayProxy was also a boolean.
         # Now we use an enum. This mean that we need to remap.
@@ -218,19 +275,10 @@ class RigSqueeze(classRig.Rig):
             attr_display_proxy.delete()
 
         # Create DisplayMesh attribute
-        attr_display_mesh = _init_attr(
-            self.grp_anm, self.ATTR_NAME_DISPLAY_MESH, 'enum',
-            k=True,
-            hasMinValue=True, hasMaxValue=True,
-            minValue=0, maxValue=1, defaultValue=0,
-            enumName='Mesh=0:Proxy=1'
-        )
+        attr_display_mesh = self._init_attr_display_mesh()
 
         # Create DisplayCtrl attribute
-        attr_display_ctrl = _init_attr(
-            self.grp_anm, self.ATTR_NAME_DISPLAY_CTRL, 'short',
-            k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=1, defaultValue=1
-        )
+        attr_display_ctrl = self._init_attr_display_ctrl()
 
         # Connect DisplayMesh attribute
         for attr_dst in attr_display_mesh_output_attrs:
@@ -257,11 +305,32 @@ class RigSqueeze(classRig.Rig):
                 # ).outColorR
                 pymel.connectAttr(attr_display_mesh, attr_dst, force=True)
 
-        # Connect DisplayCtrl attribute
-        for attr_dst in attr_display_ctrl_output_attrs:
-            if not libAttr.is_connected_to(attr_display_ctrl, attr_dst, max_depth=3):
-                self.debug("Connecting {} to {}".format(attr_display_ctrl, attr_dst))
-                pymel.connectAttr(attr_display_ctrl, attr_dst, force=True)
+                # Connect DisplayCtrl attribute
+                # for attr_dst in attr_display_ctrl_output_attrs:
+                #     if not libAttr.is_connected_to(attr_display_ctrl, attr_dst, max_depth=3):
+                #         self.debug("Connecting {} to {}".format(attr_display_ctrl, attr_dst))
+                #         pymel.connectAttr(attr_display_ctrl, attr_dst, force=True)
+
+    def _is_face_module(self, module):
+        """Check if a module is a face module. """
+        # todo: find a better way?
+        return 'Face' in module.__class__.__name__
+
+    def post_build_module(self, module):
+        super(RigSqueeze, self).post_build_module(module)
+
+        # Connect the module visibility switch.
+        # The kind of connection will depend if we are connecting a 'body' module or a 'face' module.
+        attr_display_ctrl = self._init_attr_display_ctrl()
+        attr_display_mesh = self._init_attr_display_mesh()
+        if module.grp_anm:
+            # Face module visibility is shown when 'DisplayMesh' is set to zero AND 'DisplayCtrl' is set to 1.
+            if self._is_face_module(module):
+                attr_proxy_display_inn = self._init_attr_face_module_visiblity_driver()
+                pymel.connectAttr(attr_proxy_display_inn, module.grp_anm.visibility, force=True)
+            # Body module visibility is shown when 'DisplayCtrl' is set to 1.
+            else:
+                pymel.connectAttr(attr_display_ctrl, module.grp_anm.visibility)
 
     def _unbuild_nodes(self):
         self.grp_model = self._unbuild_node(self.grp_model, keep_if_children=True)

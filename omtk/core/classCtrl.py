@@ -11,6 +11,7 @@ from omtk.libs import libRigging
 
 log = logging.getLogger('omtk')
 
+
 class BaseCtrl(Node):
     """
     A Ctrl is the layer between the rig and the animator.
@@ -32,6 +33,26 @@ class BaseCtrl(Node):
         self.sx = None
         self.sy = None
         self.sz = None
+
+        # Reserve channels to preserve the transform limits
+        self.minTransXLimit = None
+        self.maxTransXLimit = None
+        self.minTransYLimit = None
+        self.maxTransYLimit = None
+        self.minTransZLimit = None
+        self.maxTransZLimit = None
+        self.minRotXLimit = None
+        self.maxRotXLimit = None
+        self.minRotYLimit = None
+        self.maxRotYLimit = None
+        self.minRotZLimit = None
+        self.maxRotZLimit = None
+        self.minScaleXLimit = None
+        self.maxScaleXLimit = None
+        self.minScaleYLimit = None
+        self.maxScaleYLimit = None
+        self.minScaleZLimit = None
+        self.maxScaleZLimit = None
 
         # Store information concerning how the ctrl should mirror.
         # For more information see the omtk.animation.mirrorPose module.
@@ -76,8 +97,8 @@ class BaseCtrl(Node):
         else:
             return default_size * multiplier
 
-
-    def __createNode__(self, size=None, normal=(1,0,0), multiplier=1.0, refs=None, offset=None, geometries=None, *args, **kwargs):
+    def __createNode__(self, size=None, normal=(1, 0, 0), multiplier=1.0, refs=None, offset=None, geometries=None,
+                       *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
         size: The maximum dimension of the controller.
@@ -129,6 +150,7 @@ class BaseCtrl(Node):
         # Fetch stored animations
         # Disabled for now, see method docstring.
         # self.fetch_attr_all()
+        self.fetch_transform_limits()
 
         # Fetch stored shapes
 
@@ -169,6 +191,83 @@ class BaseCtrl(Node):
         libRigging.fetch_ctrl_shapes(self.shapes, self.node)
         self.shapes = None
 
+    def hold_transform_limits(self):
+        """Store internally any limits set on the controller."""
+        self.minTransXLimit = self.node.minTransXLimit.get() if self.node.minTransXLimitEnable.get() else None
+        self.maxTransXLimit = self.node.maxTransXLimit.get() if self.node.maxTransXLimitEnable.get() else None
+        self.minTransYLimit = self.node.minTransYLimit.get() if self.node.minTransYLimitEnable.get() else None
+        self.maxTransYLimit = self.node.maxTransYLimit.get() if self.node.maxTransYLimitEnable.get() else None
+        self.minTransZLimit = self.node.minTransZLimit.get() if self.node.minTransZLimitEnable.get() else None
+        self.maxTransZLimit = self.node.maxTransZLimit.get() if self.node.maxTransZLimitEnable.get() else None
+        self.minRotXLimit = self.node.minRotXLimit.get() if self.node.minRotXLimitEnable.get() else None
+        self.maxRotXLimit = self.node.maxRotXLimit.get() if self.node.maxRotXLimitEnable.get() else None
+        self.minRotYLimit = self.node.minRotYLimit.get() if self.node.minRotYLimitEnable.get() else None
+        self.maxRotYLimit = self.node.maxRotYLimit.get() if self.node.maxRotYLimitEnable.get() else None
+        self.minRotZLimit = self.node.minRotZLimit.get() if self.node.minRotZLimitEnable.get() else None
+        self.maxRotZLimit = self.node.maxRotZLimit.get() if self.node.maxRotZLimitEnable.get() else None
+        self.minScaleXLimit = self.node.minScaleXLimit.get() if self.node.minScaleXLimitEnable.get() else None
+        self.maxScaleXLimit = self.node.maxScaleXLimit.get() if self.node.maxScaleXLimitEnable.get() else None
+        self.minScaleYLimit = self.node.minScaleYLimit.get() if self.node.minScaleYLimitEnable.get() else None
+        self.maxScaleYLimit = self.node.maxScaleYLimit.get() if self.node.maxScaleYLimitEnable.get() else None
+        self.minScaleZLimit = self.node.minScaleZLimit.get() if self.node.minScaleZLimitEnable.get() else None
+        self.maxScaleZLimit = self.node.maxScaleZLimit.get() if self.node.maxScaleZLimitEnable.get() else None
+
+    def fetch_transform_limits(self):
+        self.node.minTransXLimitEnable.set(self.minTransXLimit is not None)
+        if self.minTransXLimit is not None:
+            self.node.minTransXLimit.set(self.minTransXLimit)
+        self.node.maxTransXLimitEnable.set(self.maxTransXLimit is not None)
+        if self.maxTransXLimit is not None:
+            self.node.maxTransXLimit.set(self.maxTransXLimit)
+        self.node.minTransYLimitEnable.set(self.minTransYLimit is not None)
+        if self.minTransYLimit is not None:
+            self.node.minTransYLimit.set(self.minTransYLimit)
+        self.node.maxTransYLimitEnable.set(self.maxTransYLimit is not None)
+        if self.maxTransYLimit is not None:
+            self.node.maxTransYLimit.set(self.maxTransYLimit)
+        self.node.minTransZLimitEnable.set(self.minTransZLimit is not None)
+        if self.minTransZLimit is not None:
+            self.node.minTransZLimit.set(self.minTransZLimit)
+        self.node.maxTransZLimitEnable.set(self.maxTransZLimit is not None)
+        if self.maxTransZLimit is not None:
+            self.node.maxTransZLimit.set(self.maxTransZLimit)
+        self.node.minRotXLimitEnable.set(self.minRotXLimit is not None)
+        if self.minRotXLimit is not None:
+            self.node.minRotXLimit.set(self.minRotXLimit)
+        self.node.maxRotXLimitEnable.set(self.maxRotXLimit is not None)
+        if self.maxRotXLimit is not None:
+            self.node.maxRotXLimit.set(self.maxRotXLimit)
+        self.node.minRotYLimitEnable.set(self.minRotYLimit is not None)
+        if self.minRotYLimit is not None:
+            self.node.minRotYLimit.set(self.minRotYLimit)
+        self.node.maxRotYLimitEnable.set(self.maxRotYLimit is not None)
+        if self.maxRotYLimit is not None:
+            self.node.maxRotYLimit.set(self.maxRotYLimit)
+        self.node.minRotZLimitEnable.set(self.minRotZLimit is not None)
+        if self.minRotZLimit is not None:
+            self.node.minRotZLimit.set(self.minRotZLimit)
+        self.node.maxRotZLimitEnable.set(self.maxRotZLimit is not None)
+        if self.maxRotZLimit is not None:
+            self.node.maxRotZLimit.set(self.maxRotZLimit)
+        self.node.minScaleXLimitEnable.set(self.minScaleXLimit is not None)
+        if self.minScaleXLimit is not None:
+            self.node.minScaleXLimit.set(self.minScaleXLimit)
+        self.node.maxScaleXLimitEnable.set(self.maxScaleXLimit is not None)
+        if self.maxScaleXLimit is not None:
+            self.node.maxScaleXLimit.set(self.maxScaleXLimit)
+        self.node.minScaleYLimitEnable.set(self.minScaleYLimit is not None)
+        if self.minScaleYLimit is not None:
+            self.node.minScaleYLimit.set(self.minScaleYLimit)
+        self.node.maxScaleYLimitEnable.set(self.maxScaleYLimit is not None)
+        if self.maxScaleYLimit is not None:
+            self.node.maxScaleYLimit.set(self.maxScaleYLimit)
+        self.node.minScaleZLimitEnable.set(self.minScaleZLimit is not None)
+        if self.minScaleZLimit is not None:
+            self.node.minScaleZLimit.set(self.minScaleZLimit)
+        self.node.maxScaleZLimitEnable.set(self.maxScaleZLimit is not None)
+        if self.maxScaleZLimit is not None:
+            self.node.maxScaleZLimit.set(self.maxScaleZLimit)
+
     def unbuild(self, keep_shapes=True, *args, **kwargs):
         """
         Delete ctrl setup, but store the animation, shapes and rotate order0.
@@ -178,6 +277,7 @@ class BaseCtrl(Node):
         else:
             self.rotateOrder = self.node.rotateOrder.get()
             self.hold_attrs_all()
+            self.hold_transform_limits()
             self.hold_shapes()
             super(BaseCtrl, self).unbuild(*args, **kwargs)
 
@@ -312,7 +412,8 @@ class BaseCtrl(Node):
         # Finally, if no index is still found, return the next possible one in the list
         return new_max_idx
 
-    def create_spaceswitch(self, module, parent, add_local=True, local_label=None, local_target=None, add_world=False, **kwargs):
+    def create_spaceswitch(self, module, parent, add_local=True, local_label=None, local_target=None, add_world=False,
+                           **kwargs):
         """
         Create the space switch attribute on the controller using a list of target found from it's module hierarchy.
         :param module: The module on which we want to process space switch targets
@@ -419,7 +520,7 @@ class BaseCtrl(Node):
         else:
             if self.targets_indexes:
                 self.node.space.set(self.targets_indexes[0])
-        
+
         # Sometimes Maya will be drunk and set a bad 'restRotate'.
         # We'll want to ensure ourself that there's no rest offset. (see Task #70729)
         parent_constraint.restTranslateX.set(0)
@@ -532,7 +633,7 @@ class BaseCtrl(Node):
                         out_connections = con.outColorR.listConnections(d=True, s=False)
                         if out_connections:
                             const = out_connections[0]
-                            const_target_weight_attr = con.outColorR.listConnections(d=True, s=False, p=True)[0]\
+                            const_target_weight_attr = con.outColorR.listConnections(d=True, s=False, p=True)[0] \
                                 .listConnections(d=True, s=False, p=True)
                             for target in const.target:
                                 const_target_name = const_target_weight_attr[0].name(fullDagPath=True)
@@ -541,10 +642,9 @@ class BaseCtrl(Node):
                                     target_obj = target.targetParentMatrix.listConnections(s=True)[0]
                                     dict_sw_data[index] = (name, target_obj)
                 if not target_found:
-                        dict_sw_data[index] = (name, None)
+                    dict_sw_data[index] = (name, None)
         else:
             pass
             # log.warning("No space attribute found on {0}".format(self.node))
 
         return dict_sw_data
-

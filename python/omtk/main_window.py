@@ -18,6 +18,12 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 log = logging.getLogger('omtk')
 
 
+class EnumSections:
+    """Define the section available in the ui."""
+    Welcome = 0
+    Edit = 1
+
+
 class AutoRig(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super(AutoRig, self).__init__()
@@ -66,32 +72,73 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.create_callbacks()
 
-        self.ui.btn_create_rig_default.pressed.connect(functools.partial(self.set_current_widget, 1))
-        self.ui.btn_create_rig_template.pressed.connect(functools.partial(self.set_current_widget, 1))
+        # Configure welcome screen
+        if not self.root:
+            self.ui.stackedWidget.setCurrentWidget(self.ui.page_1)
+        else:
+            self.ui.stackedWidget.setCurrentWidget(self.ui.page_2)
+        self.ui.widget_welcome.onCreate.connect(self.on_welcome_rig_created)
 
-        # Initialize rig definition view
-        from . import model_rig_definitions
-        view = self.ui.tableView_types_rig
-        model = model_rig_definitions.RigDefinitionsModel()
-        view.setModel(model)
+        # Configure logger and status-bar
+        self.ui.dockWidget.hide()
+        self.ui.widget_logger.onRecordAdded.connect(self.update_status_bar)
 
-        # Select default rig
-        from omtk.core import preferences
-        default_rig_def = preferences.preferences.get_default_rig_class()
-        row = model.entries.index(default_rig_def)
-        view.selectRow(row)
+        # Hack: Skip subclassing QDockWidget to modify closeEvent
+        def _logger_close_event(e):
+            self.update_status_bar(force_show=True)
+            e.accept()
 
-        # Initialize rig template view
-        from . import model_rig_templates
-        view = self.ui.tableView_types_template
-        model = model_rig_templates.RigTemplatesModel()
-        view.setModel(model)
+        self.ui.dockWidget.closeEvent = _logger_close_event
 
-        # from omtk.core import plugin_manager
-        # pm = plugin_manager.plugin_manager
-        # failed_plugins = pm.get_failed_plugins()
-        # if failed_plugins:
-        #     log.warning("The following plugins failed to load: {0}".format(', '.join(str(p) for p in failed_plugins)))
+        # Hack: Skip subclassing QStatusBar to modify mousePressEvent
+        def _status_bar_mouse_press_event(e):
+            self.ui.dockWidget.show()
+            self.update_status_bar()
+
+        self.ui.statusbar.mousePressEvent = _status_bar_mouse_press_event
+
+        self.update_status_bar()
+
+    def on_welcome_rig_created(self):
+        self.import_networks()
+        self.update_internal_data()
+        # self.update_ui()
+        self.set_current_widget(EnumSections.Edit)
+
+    def update_status_bar(self, force_show=False):
+        # No need for the status bar if the logger is visible
+        if self.ui.widget_logger.isVisible() and not force_show:
+            self.ui.statusbar.setStyleSheet('')
+            self.ui.statusbar.showMessage('')
+            return
+
+        # If the logger is now visible, the status bar will resume the logs.
+        num_errors = 0
+        num_warnings = 0
+        model = self.ui.widget_logger.model()
+        for entry in model.items:
+            if entry.levelno >= logging.ERROR:
+                num_errors += 1
+            elif entry.levelno >= logging.WARNING:
+                num_warnings += 1
+
+        # Define style
+        stylesheet = ''
+        if num_errors:
+            stylesheet = "background-color: rgb(200, 128, 128); color: rgb(0, 0, 0);"
+        elif num_warnings:
+            stylesheet = "background-color: rgb(200, 200, 128); color: rgb(0, 0, 0);"
+        self.ui.statusbar.setStyleSheet(stylesheet)
+
+        # Define message
+        messages = []
+        if num_errors:
+            messages.append('{0} errors'.format(num_errors))
+        elif num_warnings:
+            messages.append('{0} warnings'.format(num_warnings))
+        else:
+            self.ui.statusbar.setStyleSheet("")
+        self.ui.statusbar.showMessage(', '.join(messages))
 
     def set_current_widget(self, index):
         old_index = self.ui.stackedWidget.currentIndex()
@@ -116,7 +163,8 @@ class AutoRig(QtWidgets.QMainWindow):
             animation.setEasingCurve(QtCore.QEasingCurve.InOutSine)
             animation.start()
             self._qt_animation.addAnimation(animation)
-            self._qt_animation.finished.connect(functools.partial(self.ui.stackedWidget.setCurrentWidget, widgets_pages[index]))
+            self._qt_animation.finished.connect(
+                functools.partial(self.ui.stackedWidget.setCurrentWidget, widgets_pages[index]))
 
         self._qt_animation.start()
 
@@ -162,57 +210,6 @@ class AutoRig(QtWidgets.QMainWindow):
     def on_unbuild_all(self):
         raise NotImplementedError
 
-    def on_context_menu_request(self):
-        if self.ui.treeWidget.selectedItems():
-            menu = QtWidgets.QMenu()
-            actionBuild = menu.addAction("Build")
-            actionBuild.triggered.connect(self.on_build_selected)
-            actionUnbuild = menu.addAction("Unbuild")
-            actionUnbuild.triggered.connect(self.on_unbuild_selected)
-            actionRebuild = menu.addAction("Rebuild")
-            actionRebuild.triggered.connect(self.on_rebuild_selected)
-            menu.addSeparator()
-            actionLock = menu.addAction("Lock")
-            actionLock.triggered.connect(self.on_lock_selected)
-            action_unlock = menu.addAction("Unlock")
-            action_unlock.triggered.connect(self.on_unlock_selected)
-            menu.addSeparator()
-            sel = self.ui.treeWidget.selectedItems()
-            if len(sel) == 1:
-                actionRemove = menu.addAction("Rename")
-                # actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.editItem, sel[0], 0))
-                actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0))
-            actionRemove = menu.addAction("Remove")
-            actionRemove.triggered.connect(functools.partial(self.on_remove))
-
-            # Expose decorated functions
-            module = sel[0].rig
-
-            def is_exposed(val):
-                if not hasattr(val, '__can_show__'):
-                    return False
-                fn = getattr(val, '__can_show__')
-                if fn is None:
-                    return False
-                # if not inspect.ismethod(fn):
-                #    return False
-                return val.__can_show__()
-
-            functions = inspect.getmembers(module, is_exposed)
-
-            if functions:
-                menu.addSeparator()
-                for fn_name, fn in functions:
-
-                    # Always pass the rig as the first argument in an exposed module function.
-                    if isinstance(module, classModule.Module):
-                        fn = functools.partial(fn, self._rig)
-
-                    action = menu.addAction(fn_name)
-                    action.triggered.connect(fn)
-
-            menu.exec_(QtGui.QCursor.pos())
-
     def _add_part(self, cls):
         # part = _cls(pymel.selected())
         inst = cls(pymel.selected())
@@ -227,11 +224,11 @@ class AutoRig(QtWidgets.QMainWindow):
         self.roots = core.find()
         self.root = next(iter(self.roots), None)
 
-        # Create a rig instance if the scene is empty.
-        if self.root is None:
-            self.root = core.create()
-            self.roots = [self.root]
-            self.export_networks()  # Create network tree in the scene
+        # # Create a rig instance if the scene is empty.
+        # if self.root is None:
+        #     self.root = core.create()
+        #     self.roots = [self.root]
+        #     self.export_networks()  # Create network tree in the scene
 
         self.update_internal_data()
 

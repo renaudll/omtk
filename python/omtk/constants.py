@@ -16,7 +16,7 @@ class SpaceSwitchReservedIndex:
     root = -1
 
 
-class UIExposeFlags:
+class ComponentActionFlags:
     """
     Flags used when exposing Rig or Module functionality in the ui.
     """

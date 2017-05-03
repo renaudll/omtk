@@ -2,7 +2,7 @@ import pymel.core as pymel
 
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
-from omtk.core.utils import decorator_uiexpose
+from omtk.core.classComponentAction import ComponentAction
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.libs import libPymel
@@ -299,7 +299,6 @@ class Twistbone(Module):
         if self.auto_skin:
             self.assign_twist_weights()
 
-    @decorator_uiexpose()
     def assign_twist_weights(self):
         skin_deformers = self.get_skinClusters_from_inputs()
         meshes = set()
@@ -329,7 +328,6 @@ class Twistbone(Module):
             libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts,
                                                        force_straight_line=True)
 
-    @decorator_uiexpose()
     def unassign_twist_weights(self):
         """
         Handle the skin transfert from the subjnts (twists) to the first input. Will be used if the number of twists
@@ -411,6 +409,22 @@ class Twistbone(Module):
             pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
             self.subjnts = None
         '''
+
+
+class ActionAssignWeights(ComponentAction):
+    def get_name(self):
+        return 'Assign Twist Weights'
+
+    def execute(self):
+        self.component.assign_twist_weights()
+
+
+class ActionUnassignWeights(ComponentAction):
+    def get_name(self):
+        return 'Unassign Twist Weights'
+
+    def execute(self):
+        self.component.unassign_twist_weights()
 
 
 def register_plugin():

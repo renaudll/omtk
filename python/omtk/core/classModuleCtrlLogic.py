@@ -6,7 +6,7 @@ import pymel.core as pymel
 
 from omtk.core import classModule
 from omtk.core import classNode
-from omtk.core.utils import decorator_uiexpose
+from omtk.core.classComponentAction import ComponentAction
 from omtk.libs import libAttr
 from omtk.libs import libRigging
 from omtk.libs import libPymel
@@ -107,6 +107,13 @@ class CtrlModelCalibratable(BaseCtrlModel):
 
         self._layer_inv_t = None
         self._layer_inv_r = None
+
+    ### Component methods ###
+
+    def iter_actions(self):
+        for action in super(CtrlModelCalibratable, self).iter_actions():
+            yield action
+        yield ActionCalibrate(self)
 
     def build(self, module, cancel_t=True, cancel_r=True, flip_lr=False, **kwargs):
         super(CtrlModelCalibratable, self).build(module, **kwargs)
@@ -382,10 +389,19 @@ class CtrlModelCalibratable(BaseCtrlModel):
         pymel.connectAttr(util_get_ctrl_offset_local_trs.outputTranslate, self.ctrl.offset.translate)
         pymel.connectAttr(util_get_ctrl_offset_local_trs.outputRotate, self.ctrl.offset.rotate)
 
+    def unbuild(self, **kwargs):
+        super(CtrlModelCalibratable, self).unbuild(**kwargs)
+
+        # todo: maybe hold sensitivity for faster rebuild?
+        self.attr_sensitivity_tx = None
+        self.attr_sensitivity_ty = None
+        self.attr_sensitivity_tz = None
+
+    ### Custom methods ###
+
     def _get_calibration_reference(self):
         return self.jnt
 
-    @decorator_uiexpose()
     def calibrate(self, tx=True, ty=True, tz=True):
         ref = self._get_calibration_reference()
         if not ref:
@@ -411,14 +427,6 @@ class CtrlModelCalibratable(BaseCtrlModel):
 
     def post_build(self):
         self.calibrate()
-
-    def unbuild(self, **kwargs):
-        super(CtrlModelCalibratable, self).unbuild(**kwargs)
-
-        # todo: maybe hold sensitivity for faster rebuild?
-        self.attr_sensitivity_tx = None
-        self.attr_sensitivity_ty = None
-        self.attr_sensitivity_tz = None
 
     def _fix_ctrl_shape(self):
         """
@@ -517,3 +525,11 @@ class CtrlLogicFaceCalibratable(CtrlModelCalibratable):
         need_flip = pos_ref_local.x < 0
 
         super(CtrlLogicFaceCalibratable, self).build(avar, flip_lr=need_flip, **kwargs)
+
+
+class ActionCalibrate(ComponentAction):
+    def get_name(self):
+        return 'Calibrate'
+
+    def execute(self):
+        self.component.calibrate()

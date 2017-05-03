@@ -389,43 +389,43 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_module_query_changed(self, *args, **kwargs):
         self._refresh_ui_modules_visibility()
 
-    def _iter_modules(self, entity):
+    def _iter_components_recursive(self, entity):
         """Recursively return all modules and submodules starting with provided entity."""
         yield entity
-        if isinstance(entity, classRig.Rig):
-            for child in entity.modules:
-                for entry in self._iter_modules(child):
-                    yield entry
-        elif isinstance(entity, classModule.Module):
-            for child in entity.iter_submodules():
-                for entry in self._iter_modules(child):
-                    yield entry
-        else:
-            raise Exception("Unsupported entity type {0} for {1}.".format(type(entity), entity))
+        for sub_entity in entity.iter_sub_components():
+            for sub_sub_entity in self._iter_components_recursive(sub_entity):
+                yield sub_sub_entity
 
     def _get_actions(self, entities):
         """Recursively scan for actions stored inside entities."""
-
-        def _is_exposed(val):
-            if not hasattr(val, '__can_show__'):
-                return False
-            fn = getattr(val, '__can_show__')
-            if fn is None:
-                return False
-            # if not inspect.ismethod(fn):
-            #    return False
-            return val.__can_show__()
-
         result = collections.defaultdict(list)
-
         for entity in entities:
-            for entry in self._iter_modules(entity):
-                functions = inspect.getmembers(entry, _is_exposed)
-                if functions:
-                    for fn_name, fn in functions:
-                        result[fn_name].append(fn)
-
+            for component in self._iter_components_recursive(entity):
+                for action in component.iter_actions():
+                    action_name = action.get_name()
+                    result[action_name].append(action)
         return result
+
+        # def _is_exposed(val):
+        #     if not hasattr(val, '__can_show__'):
+        #         return False
+        #     fn = getattr(val, '__can_show__')
+        #     if fn is None:
+        #         return False
+        #     # if not inspect.ismethod(fn):
+        #     #    return False
+        #     return val.__can_show__()
+        #
+        # result = collections.defaultdict(list)
+        #
+        # for entity in entities:
+        #     for entry in self._iter_modules(entity):
+        #         functions = inspect.getmembers(entry, _is_exposed)
+        #         if functions:
+        #             for fn_name, fn in functions:
+        #                 result[fn_name].append(fn)
+        #
+        # return result
 
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
@@ -472,9 +472,9 @@ class WidgetListModules(QtWidgets.QWidget):
         need_export_network = False
         entities = itertools.chain(self.get_selected_modules() + self.get_selected_rigs())
         action_map = self._get_actions(entities)
-        for fn in action_map[fn_name]:
-            fn()
-            if constants.UIExposeFlags.trigger_network_export in fn._flags:
+        for action in action_map[fn_name]:
+            action.execute()
+            if constants.ComponentActionFlags.trigger_network_export in action.iter_flags():
                 need_export_network = True
 
         if need_export_network:

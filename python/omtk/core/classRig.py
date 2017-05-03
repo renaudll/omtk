@@ -5,11 +5,12 @@ import logging
 from maya import cmds
 import pymel.core as pymel
 from omtk import constants
-from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classComponent import Component
+from omtk.core.classComponentAction import ComponentAction
 from omtk.core.classNode import Node
+from omtk.core.classCtrl import BaseCtrl
 from omtk.core import className
 from omtk.core import api
-from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -105,7 +106,7 @@ class RigGrp(Node):
                 super(RigGrp, self).unbuild(*args, **kwargs)
 
 
-class Rig(object):
+class Rig(Component):
     DEFAULT_NAME = 'untitled'
     LEFT_CTRL_COLOR = 13  # Red
     RIGHT_CTRL_COLOR = 6  # Blue
@@ -143,6 +144,13 @@ class Rig(object):
         self.layer_rig = None
         self.layer_jnt = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
+
+    #
+    # Component methods
+    #
+
+    def iter_actions(self):
+        yield ActionCreateHierarchy(self)
 
     #
     # Logging implementation
@@ -493,10 +501,9 @@ class Rig(object):
 
         return result
 
-    @decorator_uiexpose(flags=[constants.UIExposeFlags.trigger_network_export])
     def create_hierarchy(self):
         """
-        Alias to pre_build that is exposed in the gui and hidden from subclassing.
+
         :return:
         """
         self.pre_build()
@@ -979,3 +986,14 @@ class Rig(object):
                 self.grp_backup.setParent(self.grp_master)
 
         node.setParent(self.grp_backup)
+
+
+class ActionCreateHierarchy(ComponentAction):
+    """
+    Alias to pre_build that is exposed in the gui and hidden from subclassing.
+    """
+    def get_name(self):
+        return 'Create Hierarchy'
+
+    def execute(self):
+        self.component.pre_build()

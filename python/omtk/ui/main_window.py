@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/omtk/ui/main_window.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/main_window.ui'
 #
-# Created: Sat Apr 29 23:30:57 2017
+# Created: Mon May  1 20:41:08 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -23,46 +23,9 @@ class Ui_OpenRiggingToolkit(object):
         self.page_1.setObjectName("page_1")
         self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.page_1)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
-        self.label_2 = QtWidgets.QLabel(self.page_1)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout_9.addWidget(self.label_2)
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.verticalLayout_6 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_6.setObjectName("verticalLayout_6")
-        self.btn_create_rig_default = QtWidgets.QCommandLinkButton(self.page_1)
-        self.btn_create_rig_default.setObjectName("btn_create_rig_default")
-        self.verticalLayout_6.addWidget(self.btn_create_rig_default)
-        self.label_3 = QtWidgets.QLabel(self.page_1)
-        self.label_3.setObjectName("label_3")
-        self.verticalLayout_6.addWidget(self.label_3)
-        self.tableView_types_rig = QtWidgets.QTableView(self.page_1)
-        self.tableView_types_rig.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.tableView_types_rig.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.tableView_types_rig.setObjectName("tableView_types_rig")
-        self.tableView_types_rig.horizontalHeader().setVisible(False)
-        self.tableView_types_rig.horizontalHeader().setStretchLastSection(True)
-        self.tableView_types_rig.verticalHeader().setVisible(False)
-        self.verticalLayout_6.addWidget(self.tableView_types_rig)
-        self.horizontalLayout.addLayout(self.verticalLayout_6)
-        self.verticalLayout_8 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_8.setObjectName("verticalLayout_8")
-        self.btn_create_rig_template = QtWidgets.QCommandLinkButton(self.page_1)
-        self.btn_create_rig_template.setObjectName("btn_create_rig_template")
-        self.verticalLayout_8.addWidget(self.btn_create_rig_template)
-        self.label_4 = QtWidgets.QLabel(self.page_1)
-        self.label_4.setObjectName("label_4")
-        self.verticalLayout_8.addWidget(self.label_4)
-        self.tableView_types_template = QtWidgets.QTableView(self.page_1)
-        self.tableView_types_template.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.tableView_types_template.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.tableView_types_template.setObjectName("tableView_types_template")
-        self.tableView_types_template.horizontalHeader().setVisible(False)
-        self.tableView_types_template.horizontalHeader().setStretchLastSection(True)
-        self.tableView_types_template.verticalHeader().setVisible(False)
-        self.verticalLayout_8.addWidget(self.tableView_types_template)
-        self.horizontalLayout.addLayout(self.verticalLayout_8)
-        self.verticalLayout_9.addLayout(self.horizontalLayout)
+        self.widget_welcome = WidgetWelcome(self.page_1)
+        self.widget_welcome.setObjectName("widget_welcome")
+        self.verticalLayout_9.addWidget(self.widget_welcome)
         self.stackedWidget.addWidget(self.page_1)
         self.page_2 = QtWidgets.QWidget()
         self.page_2.setObjectName("page_2")
@@ -211,11 +174,6 @@ class Ui_OpenRiggingToolkit(object):
 
     def retranslateUi(self, OpenRiggingToolkit):
         OpenRiggingToolkit.setWindowTitle(QtCompat.translate("OpenRiggingToolkit", "Open Rigging Toolkit", None, -1))
-        self.label_2.setText(QtCompat.translate("OpenRiggingToolkit", "The scene don\'t contain any rig, how would you like to start?", None, -1))
-        self.btn_create_rig_default.setText(QtCompat.translate("OpenRiggingToolkit", "Create an empty rig", None, -1))
-        self.label_3.setText(QtCompat.translate("OpenRiggingToolkit", "Available rigs:", None, -1))
-        self.btn_create_rig_template.setText(QtCompat.translate("OpenRiggingToolkit", "Start from a template", None, -1))
-        self.label_4.setText(QtCompat.translate("OpenRiggingToolkit", "Available templates", None, -1))
         self.label_modules.setText(QtCompat.translate("OpenRiggingToolkit", "Modules", None, -1))
         self.label_jnts.setText(QtCompat.translate("OpenRiggingToolkit", "Influences", None, -1))
         self.label.setText(QtCompat.translate("OpenRiggingToolkit", "Meshes", None, -1))
@@ -241,6 +199,7 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtCompat.translate("OpenRiggingToolkit", "&Preferences", None, -1))
 
 from ..widget_logger import WidgetLogger
+from ..widget_welcome import WidgetWelcome
 from ..widget_list_modules import WidgetListModules
 from ..widget_list_meshes import WidgetListMeshes
 from ..widget_list_influences import WidgetListInfluences

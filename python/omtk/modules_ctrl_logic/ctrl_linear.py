@@ -1,10 +1,7 @@
 import pymel.core as pymel
 
-from omtk.core.classCtrl import BaseCtrl
 from omtk.core import classModuleCtrlLogic
-from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libRigging
-from omtk.libs import libHistory
 
 
 class CtrlLogicLinear(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
@@ -75,7 +72,7 @@ class CtrlLogicLinear(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
         )
 
         # Hack: insert before the inverseT
-        layer_avar = self._stack.insert_layer(1,  'avar')
+        layer_avar = self._stack.insert_layer(1, 'avar')
         pymel.connectAttr(util_get_adjusted_t.outputX, layer_avar.tx)
         pymel.connectAttr(util_get_adjusted_t.outputY, layer_avar.ty)
         pymel.connectAttr(util_get_adjusted_t.outputZ, layer_avar.tz)
@@ -112,7 +109,6 @@ class CtrlLogicLinear(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
         self._tmp_follicle = fol_shape.getParent()
         return self._tmp_follicle
 
-    @decorator_uiexpose()
     def calibrate(self, **kwargs):
         super(CtrlLogicLinear, self).calibrate(**kwargs)
         pymel.delete(self._tmp_follicle)

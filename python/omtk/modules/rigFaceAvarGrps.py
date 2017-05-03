@@ -7,6 +7,7 @@ import pymel.core as pymel
 
 from omtk.core import classModule
 from omtk.core import plugin_manager
+from omtk.core.classComponentAction import ComponentAction
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -166,6 +167,15 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         self.avar_r = None
         self.avar_upp = None
         self.avar_low = None
+
+    ### Component methods ###
+
+    def iter_actions(self):
+        for action in super(AvarGrp, self).iter_actions():
+            yield action
+        yield ActionAddAvar(self)
+
+    ### Custom methods ###
 
     def parent_to(self, parent):
         """
@@ -782,7 +792,6 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
-
 
     #
     # Influence getter functions.
@@ -1414,7 +1423,6 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
             # self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
 
-
     def connect_macro_avars_to_micro_avars(self):
         """
         Macro avars are meant to be connected to micro avars.
@@ -1620,6 +1628,18 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
             return max(default_ctrl_size_upp, default_ctrl_size_low)
         else:
             return super(AvarGrp, self)._get_default_ctrl_size(jnts=None, max_ctrl_size=None, epsilon=epsilon)
+
+
+class ActionAddAvar(ComponentAction):
+    def get_name(self):
+        return 'Add Avar from Selection'
+
+    def can_execute(self):
+        # todo: filter influences only?
+        return len(pymel.selected()) > 0
+
+    def execute(self):
+        raise NotImplementedError
 
 
 def register_plugin():

@@ -181,6 +181,11 @@ class PluginManager(object):
         for plugin in self.iter_plugins(key=fn_filter):
             yield plugin
 
+    def get_plugin(self, plugin_type, plugin_name):
+        for plugin in self.iter_loaded_plugins_by_type(plugin_type):
+            if plugin.cls.__name__ == plugin_name:
+                return plugin.cls
+
     def get_loaded_plugins_by_type(self, type_name):
         return list(self.iter_loaded_plugins_by_type(type_name))
 

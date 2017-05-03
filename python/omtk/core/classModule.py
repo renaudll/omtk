@@ -4,6 +4,7 @@ import re
 import pymel.core as pymel
 
 logging.basicConfig()
+from omtk.core.classComponent import Component
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
@@ -11,7 +12,7 @@ from omtk.libs import libAttr
 log = logging.getLogger('omtk')
 
 
-class Module(object):
+class Module(Component):
     """
     A Module is built from at least one input, specific via the constructor.
     To build a Module, use the .build method.

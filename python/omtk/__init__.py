@@ -54,6 +54,18 @@ def _reload(kill_ui=True):
         from ui import widget_logger
         reload(widget_logger)
 
+        from ui import widget_welcome
+        reload(widget_welcome)
+
+        from ui import main_window as ui_main_window
+        reload(ui_main_window)
+
+        import model_rig_definitions
+        reload(model_rig_definitions)
+
+        import model_rig_templates
+        reload(model_rig_templates)
+
         import widget_list_influences
         reload(widget_list_influences)
 
@@ -65,6 +77,9 @@ def _reload(kill_ui=True):
 
         import widget_logger
         reload(widget_logger)
+
+        import widget_welcome
+        reload(widget_welcome)
 
         from ui import main_window
         reload(main_window)

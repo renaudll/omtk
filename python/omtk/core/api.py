@@ -4,6 +4,7 @@ import contextlib
 import logging
 
 import pymel.core as pymel
+from omtk.core import plugin_manager
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
@@ -48,9 +49,25 @@ def get_version():
                 return result
 
 
-def create(*args, **kwargs):
+def create(cls=None, *args, **kwargs):
+    """
+    Create a new rig instance.
+    :param rig_type: A str that define the rig type to use. Use the default one if None.
+    :param args: Passed to the rig class constructor.
+    :param kwargs: Passed to the rig class constructor.
+    :return: A rig instance.
+    """
     from omtk.core import preferences
-    cls = preferences.preferences.get_default_rig_class()
+    if cls is None:
+        cls = preferences.preferences.get_default_rig_class()
+    elif isinstance(cls, basestring):
+        cls = plugin_manager.plugin_manager.get_plugin(
+            plugin_manager.RigPluginType,
+            cls
+        )
+
+    if not cls:
+        raise Exception("Can't create rig, no class provided!")
     return cls(*args, **kwargs)
 
 

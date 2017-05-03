@@ -3,7 +3,8 @@ import json
 import logging
 import os
 
-import utils
+import classComponent
+import classComponentAction
 import classCtrl
 import classModule
 import classModuleAvarLogic
@@ -33,8 +34,9 @@ plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (
 
 def _reload():
     reload(api)  # this won't reload functions imported in the main module. Use api directly if you are debugging it.
-    reload(utils)
     reload(className)
+    reload(classComponent)
+    reload(classComponentAction)
     reload(classNode)
     reload(classCtrl)
     reload(classModule)

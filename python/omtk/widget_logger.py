@@ -145,6 +145,8 @@ class UiLoggerProxyModel(QtCore.QSortFilterProxyModel):
 
 
 class WidgetLogger(QtWidgets.QWidget):
+    onRecordAdded = QtCore.Signal()
+
     def __init__(self, parent=None):
         super(WidgetLogger, self).__init__(parent=parent)
 
@@ -184,6 +186,9 @@ class WidgetLogger(QtWidgets.QWidget):
 
         log.info('Opened OMTK GUI')
 
+    def model(self):
+        return self.ui.tableView_logs.model().sourceModel()
+
     def create_logger_handler(self):
         class QtHandler(logging.Handler):
             """Custom Qt Handler for our logger"""
@@ -193,7 +198,7 @@ class WidgetLogger(QtWidgets.QWidget):
                 Initialize the handler
                 """
                 logging.Handler.__init__(self)
-                self._main_class = main_class
+                self._widget = main_class
 
             def emit(self, record):
                 """
@@ -203,12 +208,13 @@ class WidgetLogger(QtWidgets.QWidget):
                 """
                 # TODO - Find a solution for the problem where if the UI is not closed correctly,
                 # tableView_log is not valid
-                self._main_class._logging_records.append(record)
+                self._widget._logging_records.append(record)
                 try:
-                    self._main_class.ui.tableView_logs.model().reset()
-                    self._main_class.ui.tableView_logs.scrollToBottom()
+                    self._widget.ui.tableView_logs.model().reset()
+                    self._widget.ui.tableView_logs.scrollToBottom()
                 except:
-                    self._main_class.remove_logger_handler()
+                    self._widget.remove_logger_handler()
+                self._widget.onRecordAdded.emit()
 
         handler = QtHandler(self)
 

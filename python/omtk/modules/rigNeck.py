@@ -1,6 +1,5 @@
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
-from omtk.core.utils import decorator_uiexpose
 
 
 class CtrlNeck(rigFK.CtrlFk):
@@ -62,18 +61,6 @@ class Neck(rigFK.FK):
             raise Exception("Cannot resolve Head influence from {}".format(self.jnt))
 
         return True
-
-    @decorator_uiexpose()
-    def assign_twist_weights(self):
-        for module in self.sys_twist:
-            if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
-                module.assign_twist_weights()
-
-    @decorator_uiexpose()
-    def unassign_twist_weights(self):
-        for module in self.sys_twist:
-            if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
-                module.unassign_twist_weights()
 
 
 def register_plugin():

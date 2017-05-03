@@ -120,7 +120,6 @@ class AvarLogicSurface(avar_linear.AvarLogicLinear):
         # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
         # For this reason, we found that using a multiplier of 0.25 work best.
         # This also help rigger visually since the surface plane have an edge at 0.25 location.
-        # todo: Move this to AvarFollicle.
         self.multiplier_lr = 0.25
         self.multiplier_ud = 0.25
         self.multiplier_fb = 0.10

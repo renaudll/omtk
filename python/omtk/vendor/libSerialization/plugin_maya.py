@@ -384,7 +384,12 @@ def export_network(data, cache=None, **kwargs):
     fnNet = network.__apimfn__()
     for key, val in data_dict.items():
         if _can_export_attr_by_name(key):
-            _add_attr(fnNet, key, val, cache=cache)
+            try:
+                _add_attr(fnNet, key, val, cache=cache)
+            except RuntimeError:
+                raise Exception("RuntimeError raised while writing attribute {0} with value {1} on {2}".format(
+                    key, val, network
+                ))
 
     return network
 

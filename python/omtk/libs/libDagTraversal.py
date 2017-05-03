@@ -6,7 +6,7 @@ from omtk.vendor import libSerialization
 
 def get_avar_network_by_name(avar_name):
     """Find a serialized avar with a provided name in the scene."""
-    for network in libSerialization.iter_networks_from_class('AbstractAvar'):
+    for network in libSerialization.iter_networks_from_class('Avar'):
         if network.hasAttr('name') and network.attr('name').get() == avar_name:
             return network
 

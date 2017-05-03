@@ -17,7 +17,7 @@ def get_avars_networks_from_selection(objs):
         return libSerialization.is_network_from_class(network, 'Rig')
 
     def fn_filter(network):
-        return libSerialization.is_network_from_class(network, 'AbstractAvar')
+        return libSerialization.is_network_from_class(network, 'Avar')
 
     if objs is None:
         objs = pymel.selected()

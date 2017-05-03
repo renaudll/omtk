@@ -4,6 +4,8 @@ It encapsulate a complex network of node into one node.
 Since Maya don't support this complex functionality (yet) we expose it via this class.
 Similar to a Node, a Component have public input attributes, publish outputs attributes and a private node network.
 """
+# todo: add method to access Component inputs and outputs
+
 import abc
 
 

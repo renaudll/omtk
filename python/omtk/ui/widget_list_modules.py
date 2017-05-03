@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_list_modules.ui'
 #
-# Created: Mon May  1 20:41:08 2017
+# Created: Tue May  2 22:56:52 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(316, 295)
+        Form.resize(404, 416)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -25,9 +25,9 @@ class Ui_Form(object):
         self.btn_update.setObjectName("btn_update")
         self.horizontalLayout.addWidget(self.btn_update)
         self.verticalLayout.addLayout(self.horizontalLayout)
-        self.treeWidget = QtWidgets.QTreeWidget(Form)
+        self.treeWidget = WidgetComponentTree(Form)
         self.treeWidget.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeWidget.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         self.treeWidget.setAutoFillBackground(True)
         self.treeWidget.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.treeWidget.setObjectName("treeWidget")
@@ -42,3 +42,4 @@ class Ui_Form(object):
         Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
         self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
 
+from ..widget_component_tree import WidgetComponentTree

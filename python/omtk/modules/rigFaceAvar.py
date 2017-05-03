@@ -6,13 +6,16 @@ import logging
 
 import pymel.core as pymel
 
+from omtk import constants
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import plugin_manager
+from omtk.core.classComponentAction import ComponentAction
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPluginManager
+from omtk.modules_ctrl_logic.ctrl_linear import CtrlLogicLinear
 
 log = logging.getLogger('omtk')
 
@@ -104,6 +107,11 @@ class Avar(classModule.Module):
 
         self.model_avar_type = enum_model_avar.None  # by default nothing is set, it is the responsability of the AvarGrp module
         self.model_ctrl_type = enum_model_ctrl.None  # by default nothing is set, it is the responsability of the AvarGrp module
+
+    def iter_actions(self):
+        for action in super(Avar, self).iter_actions():
+            yield action
+        yield ActionAddControllerLogic(self)
 
     def iter_submodules(self):
         if self.model_ctrl:
@@ -246,12 +254,12 @@ class Avar(classModule.Module):
         Since Avar support having no influence at all (macro avars), we support having no inputs.
         """
         # Validate model_ctrl
-        self._handle_init_model_ctrl()
+        # self._handle_init_model_ctrl()
         if self.model_ctrl:
             self.model_ctrl.validate()
 
         # Validate model_avar
-        self._handle_init_model_avar()
+        # self._handle_init_model_avar()
         if self.model_avar:
             self.model_avar.validate()
 
@@ -488,25 +496,30 @@ class Avar(classModule.Module):
             #         self.model_ctrl.calibrate()
 
 
-class AbstractAvar(Avar):
-    """Deprecated, defined for backward compatibility."""
-    pass
-
-
-class AvarSimple(Avar):
-    """Deprecated, defined for backward compatibility."""
-    pass
-
-
-class AvarFollicle(Avar):
-    """Deprecated, defined for backward compatibility."""
-    pass
-
-
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
         return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
 
 
+class ActionAddControllerLogic(ComponentAction):
+    def get_name(self):
+        return 'Add ctrl logic'
+
+    def can_execute(self):
+        return self.component.model_ctrl is None
+
+    def iter_flags(self):
+        for flag in super(ActionAddControllerLogic, self).iter_flags():
+            yield flag
+        yield constants.ComponentActionFlags.trigger_network_export
+
+    def execute(self):
+        self.component.model_ctrl = self.component.init_model_ctrl(
+            CtrlLogicLinear,
+            self.component.model_ctrl,
+            inputs=self.component.input  # todo: remove?
+        )
+
+
 def register_plugin():
-    return AvarFollicle
+    return Avar

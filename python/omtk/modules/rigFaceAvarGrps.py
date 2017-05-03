@@ -5,6 +5,7 @@ from collections import defaultdict
 
 import pymel.core as pymel
 
+from omtk import constants
 from omtk.core import classModule
 from omtk.core import plugin_manager
 from omtk.core.classComponentAction import ComponentAction
@@ -111,7 +112,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
     """
     # Define the class to use for all avars.
     _CLS_AVAR = rigFaceAvar.Avar
-    _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle  # Macro avars are always abstract (except the all macro which can potentially drive something)
+    _CLS_AVAR_MACRO = rigFaceAvar.Avar  # Macro avars are always abstract (except the all macro which can potentially drive something)
     _CLS_CTRL_MICRO = rigFaceAvar.CtrlFaceMicro
 
     SHOW_IN_UI = True
@@ -1631,15 +1632,36 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
 
 class ActionAddAvar(ComponentAction):
+
+    ### ComponentAction methods ###
+
     def get_name(self):
         return 'Add Avar from Selection'
 
     def can_execute(self):
         # todo: filter influences only?
-        return len(pymel.selected()) > 0
+        return len(self._get_influences) == 1
 
     def execute(self):
-        raise NotImplementedError
+        input = self._get_influences()[0]
+        self.component.avars.append(
+            self.component._init_avar(
+                self.component._CLS_AVAR,
+                None,
+                ref=input
+            )
+        )
+
+    def iter_flags(self):
+        for flag in super(ActionAddAvar, self).iter_flags():
+            yield flag
+        yield constants.ComponentActionFlags.trigger_network_export
+
+    ### Custom methods ###
+
+    @staticmethod
+    def _get_influences():
+        return [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
 
 
 def register_plugin():

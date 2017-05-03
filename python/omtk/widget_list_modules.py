@@ -1,6 +1,5 @@
 import re
 import functools
-import inspect
 import traceback
 import logging
 import itertools
@@ -12,6 +11,7 @@ from ui import widget_list_modules
 from omtk import constants
 from omtk import ui_shared
 from omtk.libs import libQt
+from omtk.core.classComponent import Component
 from omtk.core import classModule
 from omtk.core import classRig
 
@@ -64,29 +64,49 @@ class WidgetListModules(QtWidgets.QWidget):
     def get_selected_items(self):
         return self.ui.treeWidget.selectedItems()
 
-    def get_selected_networks(self):
-        return [item.net for item in self.get_selected_items() if hasattr(item, 'net')]
+    def get_selected_objects(self):
+        """
+        Get the Maya objects associated with the selection.
+        :return: A list of pymel.PyNode instances.
+        """
+        result = []
+        for item in self.get_selected_items():
+            metadata = item.metadata
+            if hasattr(metadata, '_network'):
+                result.append(metadata._network)
+            elif hasattr(metadata, '__melobject__'):
+                result.append(metadata)
+            else:
+                print("Unexpected metadata type: {0}".format(metadata))
+        return result
 
     def get_selected_entries(self):
         """
         Return the metadata stored in each selected row. Whatever the metadata type (can be Rig or Module).
         :return: A list of object instances.
         """
-        return [item.rig for item in self.get_selected_items()]
+        return [item.metadata for item in self.get_selected_items()]
 
     def get_selected_modules(self):
         """
         Return the Module instances stored in each selected rows.
         :return: A list of Module instances.
         """
-        return [item.rig for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Module]
+        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Module]
 
     def get_selected_rigs(self):
         """
         Return the Rig instances stored in each selected rows.
         :return: A list of Rig instances.
         """
-        return [item.rig for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Rig]
+        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Rig]
+
+    def get_selected_components(self):
+        """
+        Return the Component instance stored in each selected rows.
+        :return: A list of Component instances.
+        """
+        return [item.metadata for item in self.get_selected_items() if isinstance(item.metadata, Component)]
 
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
@@ -108,7 +128,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.blockSignals(True)
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             if hasattr(qt_item, "rig"):
-                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.rig.is_built() else QtCore.Qt.Unchecked)
+                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.metadata.is_built() else QtCore.Qt.Unchecked)
         self.ui.treeWidget.blockSignals(False)
 
     def _refresh_ui_modules_visibility(self, query_regex=None):
@@ -120,10 +140,10 @@ class WidgetListModules(QtWidgets.QWidget):
             # Always shows non-module
             if not hasattr(qItem, 'rig'):
                 return True
-            if not isinstance(qItem.rig, classModule.Module):
+            if not isinstance(qItem.metadata, classModule.Module):
                 return True
 
-            module = qItem.rig  # Retrieve monkey-patched data
+            module = qItem.metadata  # Retrieve monkey-patched data
             module_name = str(module)
 
             return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
@@ -286,7 +306,7 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("{0} have no _network attributes".format(module))
 
         # Set module metadata
-        qitem.rig = module
+        qitem.metadata = module
 
         self._update_qitem_module(qitem, module)
 
@@ -299,6 +319,7 @@ class WidgetListModules(QtWidgets.QWidget):
         for input in module.input:
             qInputItem = QtWidgets.QTreeWidgetItem(0)
             qInputItem.setText(0, input.name())
+            qInputItem.metadata = input
             ui_shared._set_icon_from_type(input, qInputItem)
             qitem.addChild(qInputItem)
 
@@ -310,7 +331,7 @@ class WidgetListModules(QtWidgets.QWidget):
             qItem.net = module._network
         else:
             pymel.warning("{0} have no _network attributes".format(module))
-        qItem.rig = module
+        qItem.metadata = module
 
         if isinstance(module, classModule.Module):
             self._update_qitem_module(qItem, module)
@@ -335,21 +356,21 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
-            val = qItem.rig
+            val = qItem.metadata
             self._unbuild(val)
             ui_shared._update_network(self._rig)
         self.update()
 
     def on_rebuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
-            val = qItem.rig
+            val = qItem.metadata
             self._unbuild(val)
             self._build(val)
             ui_shared._update_network(self._rig)
 
     def on_module_selection_changed(self):
         # Filter deleted networks
-        networks = [net for net in self.get_selected_networks() if net and net.exists()]
+        networks = [net for net in self.get_selected_objects() if net and net.exists()]
         pymel.select(networks)
 
     def on_module_changed(self, item):
@@ -361,7 +382,7 @@ class WidgetListModules(QtWidgets.QWidget):
         need_update = False
         new_state = item.checkState(0) == QtCore.Qt.Checked
         new_text = item.text(0)
-        module = item.rig
+        module = item.metadata
         if item._checked != new_state:
             item._checked = new_state
             # Handle checkbox change
@@ -406,33 +427,12 @@ class WidgetListModules(QtWidgets.QWidget):
                     result[action_name].append(action)
         return result
 
-        # def _is_exposed(val):
-        #     if not hasattr(val, '__can_show__'):
-        #         return False
-        #     fn = getattr(val, '__can_show__')
-        #     if fn is None:
-        #         return False
-        #     # if not inspect.ismethod(fn):
-        #     #    return False
-        #     return val.__can_show__()
-        #
-        # result = collections.defaultdict(list)
-        #
-        # for entity in entities:
-        #     for entry in self._iter_modules(entity):
-        #         functions = inspect.getmembers(entry, _is_exposed)
-        #         if functions:
-        #             for fn_name, fn in functions:
-        #                 result[fn_name].append(fn)
-        #
-        # return result
-
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
             sel = self.ui.treeWidget.selectedItems()
-            try:
-                inst = sel[0].rig
-            except AttributeError:  # influence don't have a 'rig' attr
+
+            # We don't support actions on non-component entities (for now)
+            if not any(True for item in sel if isinstance(item.metadata, Component)):
                 return
 
             menu = QtWidgets.QMenu()
@@ -456,7 +456,8 @@ class WidgetListModules(QtWidgets.QWidget):
             actionRemove.triggered.connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
-            actions_map = self._get_actions([qitem.rig for qitem in sel])
+            components = self.get_selected_components()
+            actions_map = self._get_actions(components)
             if actions_map:
                 menu.addSeparator()
                 for fn_name in sorted(actions_map.keys()):
@@ -470,7 +471,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _execute_rcmenu_entry(self, fn_name):
         need_export_network = False
-        entities = itertools.chain(self.get_selected_modules() + self.get_selected_rigs())
+        entities = self.get_selected_components()
         action_map = self._get_actions(entities)
         for action in action_map[fn_name]:
             action.execute()
@@ -482,7 +483,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):
-            self._set_text_block(item, item.rig.name)
+            self._set_text_block(item, item.metadata.name)
             self._is_modifying = True  # Flag to know that we are currently modifying the name
             self.ui.treeWidget.editItem(item, 0)
 
@@ -493,8 +494,8 @@ class WidgetListModules(QtWidgets.QWidget):
             if sel:
                 self._listen_events = False
                 selected_item = sel[0]
-                if isinstance(selected_item.rig, classModule.Module):
-                    self._update_qitem_module(selected_item, selected_item.rig)
+                if isinstance(selected_item.metadata, classModule.Module):
+                    self._update_qitem_module(selected_item, selected_item.metadata)
                 self._listen_events = True
             self._is_modifying = False
         self.focusInEvent(event)
@@ -502,7 +503,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_lock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
-            val = item.rig
+            val = item.metadata
             if isinstance(val, classModule.Module) and not val.locked:
                 need_update = True
                 val.locked = True
@@ -513,7 +514,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_unlock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
-            val = item.rig
+            val = item.metadata
             if isinstance(val, classModule.Module) and val.locked:
                 need_update = True
                 val.locked = False

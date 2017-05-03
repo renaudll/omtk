@@ -36,6 +36,10 @@ def _reload(kill_ui=True):
         import ui_shared
         reload(ui_shared)
 
+        # Dependency of widget_list_modules
+        import widget_component_tree
+        reload(widget_component_tree)
+
         from ui import pluginmanager_window
         reload(pluginmanager_window)
 
@@ -65,9 +69,6 @@ def _reload(kill_ui=True):
 
         import model_rig_templates
         reload(model_rig_templates)
-
-        import widget_list_influences
-        reload(widget_list_influences)
 
         import widget_list_modules
         reload(widget_list_modules)

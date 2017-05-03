@@ -39,7 +39,7 @@ def _iter_all_ctrl_models():
             if isinstance(module, rigFaceAvarGrps.AvarGrp) and module.get_version() < (
             0, 4, 32):  # AvarGrp contain avars
                 for avar in module._iter_all_avars():
-                    if isinstance(avar, rigFaceAvar.AvarSimple):  # AvarSimple introduced the ctrl_model attribute
+                    if isinstance(avar, rigFaceAvar.Avar):  # Avar introduced the ctrl_model attribute
                         ctrl_model = avar.model_ctrl
                         if isinstance(ctrl_model, modelInteractiveCtrl.ModelInteractiveCtrl):
                             yield rig, ctrl_model

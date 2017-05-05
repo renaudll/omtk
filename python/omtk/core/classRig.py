@@ -9,7 +9,7 @@ from omtk.core.classComponent import Component
 from omtk.core.classComponentAction import ComponentAction
 from omtk.core.classNode import Node
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core import className
+from omtk.core import classNomenclature
 from omtk.core import api
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -172,15 +172,13 @@ class Rig(Component):
         msg = '[{0}] {1}'.format(self.name, msg)
         log.error(msg)
 
-    #
-    # className.BaseNomenclature implementation
-    #
+    # Nomenclature implementation
 
     def _get_nomenclature_cls(self):
         """
         :return: Return the nomenclature type class that will determine the production specific nomenclature to use.
         """
-        return className.BaseName
+        return classNomenclature.Nomenclature
 
     @property
     def nomenclature(self):

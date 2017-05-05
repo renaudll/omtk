@@ -1,7 +1,7 @@
 """
 Library that allow facial ctrls to be matched/mirrored/baked.
 Original code by Jimmy Goulet (https://github.com/goujin), thanks for the contribution!
-todo: Use className to find sibling.
+todo: Use the Nomenclature class to find sibling.
 """
 import pymel.core as pymel
 from omtk.libs import libRigging

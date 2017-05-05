@@ -10,7 +10,7 @@ import classModule
 import classModuleAvarLogic
 import classModuleCtrlLogic
 import classModuleMap
-import className
+import classNomenclature
 import classNode
 import classRig
 from api import *
@@ -34,7 +34,7 @@ plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (
 
 def _reload():
     reload(api)  # this won't reload functions imported in the main module. Use api directly if you are debugging it.
-    reload(className)
+    reload(classNomenclature)
     reload(classComponent)
     reload(classComponentAction)
     reload(classNode)

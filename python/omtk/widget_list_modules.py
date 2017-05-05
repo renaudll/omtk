@@ -38,6 +38,7 @@ def get_component_attribute_type(val):
             float,
             long,
             basestring,
+            type,
             pymel.util.enum.EnumValue,
             pymel.datatypes.Vector,
             pymel.datatypes.Point,
@@ -393,7 +394,7 @@ class WidgetListModules(QtWidgets.QWidget):
         value_type = get_component_attribute_type(value)
         if value_type == AttributeType.Component:
             return self._create_tree_widget_item_from_component(value)
-        if value_type == AttributeType.Node:
+        if value_type == AttributeType.Node or value_type == AttributeType.Ctrl:
             return self._create_tree_widget_item_from_pynode(value)
         raise Exception("Unsupported value type {0} for {1}".format(value_type, value))
 

@@ -1,12 +1,14 @@
 import os
+import unittest
+import pymel.core as pymel
 import mayaunittest
 from maya import cmds
 import omtk
 
-class NomenclatureTestCase(mayaunittest.TestCase):
 
+class NomenclatureTestCase(mayaunittest.TestCase):
     def test(self):
-        from omtk.core.className import BaseName
+        from omtk.core.classNomenclature import BaseName
 
         # Construct a naming from scratch
         n = BaseName(tokens=['eye', 'jnt'], side=BaseName.SIDE_L)
@@ -23,3 +25,7 @@ class NomenclatureTestCase(mayaunittest.TestCase):
         self.assertEqual(n.resolve(), 'l_eye_jnt')
         n.tokens.append('micro')
         self.assertEqual(n.resolve(), 'l_eye_micro_jnt')
+
+
+if __name__ == '__main__':
+    unittest.main()

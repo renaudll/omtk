@@ -2,7 +2,7 @@ import re
 
 import pymel.core as pymel
 
-from omtk.core import className
+from omtk.core import classNomenclature
 from omtk.core import classRig
 from omtk.libs import libAttr
 from omtk.libs import libPymel
@@ -19,7 +19,7 @@ class CtrlMaster(classRig.CtrlRoot):
         return super(CtrlMaster, cls)._get_recommended_radius(rig, min_size=1.0) * multiplier
 
 
-class SqueezeNomenclature(className.BaseName):
+class SqueezeNomenclature(classNomenclature.Nomenclature):
     type_anm = 'Ctrl'
     type_jnt = 'Jnt'
     type_rig = None

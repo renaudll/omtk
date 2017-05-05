@@ -110,7 +110,7 @@ class Module(Component):
         :return: Return an unique identifier using the inputs of the module.
         Note that this will crash if the module don't use any joint.
         """
-        # todo: use className!
+        # todo: use the Nomenclature class!
         ref = next(iter(self.chain), None) if self.chain else None
         if ref:
             old_nomenclature = self.rig.nomenclature(ref.stripNamespace().nodeName())
@@ -370,7 +370,7 @@ class Module(Component):
         :param args: TO REMOVE? #todo
         :param kwargs: TO REMOVE? #todo
         """
-        # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
+        # Safety check, ensure that the name is a string and not a Nomenclature instance passed by accident.
         if name and not isinstance(name, basestring):
             raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
                 type(name), name

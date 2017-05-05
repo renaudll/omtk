@@ -19,6 +19,7 @@ Contents:
    installation
    usage
    development
+   class_nomenclature
 
 .. automodule:: omtk.modules.rigIK
 

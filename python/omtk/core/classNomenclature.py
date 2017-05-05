@@ -5,7 +5,7 @@ import copy
 # todo: make tokens, suffix, prefix and side private. Use getter and setter functions were necessary.
 # todo: in add_tokens, reconize what is a suffix and what is a prefix
 
-class BaseName(object):
+class Nomenclature(object):
     """
     This class handle the naming of object.
     Store a name as a list of 'tokens'
@@ -16,13 +16,13 @@ class BaseName(object):
     - Prefix: Always the first token
     - Suffix: Always the last token
 
-    You can resolve a BaseName instance from a string.
-    >>> name = BaseName('l_eye_jnt')
+    You can resolve a Nomenclature instance from a string.
+    >>> name = Nomenclature('l_eye_jnt')
     >>> name.resolve()
     'l_eye_jnt'
 
-    You can build a BaseName instance manually.
-    >>> name = BaseName(tokens=['eye'], suffix='jnt', side=BaseName.SIDE_L)
+    You can build a Nomenclature instance manually.
+    >>> name = Nomenclature(tokens=['eye'], suffix='jnt', side=Nomenclature.SIDE_L)
     >>> name.resolve()
     'l_eye_jnt'
 
@@ -31,8 +31,8 @@ class BaseName(object):
     >>> name.resolve()
     'l_eye_upp_jnt'
 
-    You can override a BaseName public properties.
-    >>> name = BaseName()
+    You can override a Nomenclature public properties.
+    >>> name = Nomenclature()
     >>> name.tokens = ['eye']
     >>> name.resolve()
     'eye'
@@ -46,13 +46,13 @@ class BaseName(object):
     You can re-define the 'known_prefix' and 'known_suffix' static properties to ensure that studio-specific
     suffix/prefix are always respected.
     It is re
-    >>> class PrefixBasedNomenclature(BaseName):
+    >>> class PrefixBasedNomenclature(Nomenclature):
     ...     KNOWN_PREFIXES = ['jnt', 'ctrl']
     >>> name = PrefixBasedNomenclature('jnt_head')
     >>> name.prefix = 'ctrl'
     >>> name.resolve()
     'ctrl_head'
-    >>> class SuffixBasedNomenclature(BaseName):
+    >>> class SuffixBasedNomenclature(Nomenclature):
     ...     KNOWN_SUFFIXES = ['jnt', 'ctrl']
     >>> name = SuffixBasedNomenclature('head_jnt')
     >>> name.suffix = 'ctrl'
@@ -110,8 +110,8 @@ class BaseName(object):
         :param other: Another Name instance.
         :return: A new Name instance.
 
-        >>> name = BaseName(tokens=['arm'], suffix='ctrl')
-        >>> other_name = BaseName(tokens=['armupper'], side=BaseName.SIDE_L)
+        >>> name = Nomenclature(tokens=['arm'], suffix='ctrl')
+        >>> other_name = Nomenclature(tokens=['armupper'], side=Nomenclature.SIDE_L)
         >>> (name + other_name).resolve()
         'l_arm_armupper_ctrl'
         """

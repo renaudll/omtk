@@ -359,6 +359,20 @@ class Module(object):
         """
         return next(iter(self.get_surfaces()), None)
 
+    @libPython.memoized_instancemethod
+    def get_meshes(self):
+        """
+        :return: A list of all inputs of type pymel.nodetypes.NurbsSurface.
+        """
+        return [obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.Mesh)]
+
+    @libPython.memoized_instancemethod
+    def get_mesh(self):
+        """
+        :return: The first input of type pymel.nodetypes.NurbsSurface.
+        """
+        return next(iter(self.get_meshes()), None)
+
     # todo: since args is never used, maybe use to instead of _input?
     def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
         """

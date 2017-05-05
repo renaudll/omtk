@@ -390,8 +390,8 @@ class Rig(object):
                 return False
 
         # Any mesh that is used as an input in a module is used for rigging.
-        if mesh in self._get_all_input_shapes():
-            return False
+        # if mesh in self._get_all_input_shapes():
+        #     return False
 
         return True
 

@@ -625,6 +625,7 @@ class AvarSimple(AbstractAvar):
                     parent_rot=parent_rot,
                     parent_scl=parent_scl,
                     grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlModel'),
+                    obj_mesh=next(iter(self.get_meshes()), None),
                     # prevent name collision on rig grp
                     **kwargs
                 )

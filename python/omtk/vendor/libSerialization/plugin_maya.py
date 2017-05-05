@@ -317,7 +317,7 @@ def _get_network_attr(attr, fn_skip=None, cache=None):
     # Basic type
     return attr.get()
 
-_export_network_key_whitelist = ['_class', '_class_module', '_class_namespace']
+_export_network_key_whitelist = ['_class', '_class_module']
 def _can_export_attr_by_name(name):
     """
     Determine what attribute can be exported to a network.
@@ -506,11 +506,7 @@ def is_network_from_class(net, cls_name):
     :param cls_name: A string representing a class name.
     :return:
     """
-    # HACK: Backward compatibility with the old system.
-    # Previously the full namespace was stored in the '_class' attribute.
-    if hasattr(net, '_class_namespace'):
-        return cls_name in net._class_namespace.get().split('.')
-    elif hasattr(net, '_class'):
+    if hasattr(net, '_class'):
         return cls_name in net._class.get().split('.')
     return None
 

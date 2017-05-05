@@ -14,7 +14,16 @@
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item>
@@ -41,13 +50,6 @@
        <string notr="true">1</string>
       </property>
      </column>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="pushButton_selectGrpMeshes">
-     <property name="text">
-      <string>Select Meshes Grp</string>
-     </property>
     </widget>
    </item>
   </layout>

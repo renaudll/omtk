@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_list_meshes.ui'
 #
-# Created: Tue May  2 22:56:53 2017
+# Created: Thu May  4 21:52:02 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -30,9 +30,6 @@ class Ui_Form(object):
         self.treeWidget.headerItem().setText(0, "1")
         self.treeWidget.header().setVisible(False)
         self.verticalLayout.addWidget(self.treeWidget)
-        self.pushButton_selectGrpMeshes = QtWidgets.QPushButton(Form)
-        self.pushButton_selectGrpMeshes.setObjectName("pushButton_selectGrpMeshes")
-        self.verticalLayout.addWidget(self.pushButton_selectGrpMeshes)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -40,5 +37,4 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
         self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
-        self.pushButton_selectGrpMeshes.setText(QtCompat.translate("Form", "Select Meshes Grp", None, -1))
 

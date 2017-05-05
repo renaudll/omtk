@@ -175,6 +175,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         for action in super(AvarGrp, self).iter_actions():
             yield action
         yield ActionAddAvar(self)
+        yield ActionCreateAvars(self)
 
     ### Custom methods ###
 
@@ -1024,6 +1025,9 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         return self._get_relative_parent_level_by_influences().get(2, [])
 
     def _init_avars(self):
+        """
+        Create a generic avar configuration from the provided influences.
+        """
         # For various reason, we may have a mismatch between the stored Avars the number of influences.
         # The best way to deal with this is to check each existing Avar and see if we need to created it or keep it.
         avar_influences = self._get_avars_influences()
@@ -1632,7 +1636,6 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
 
 class ActionAddAvar(ComponentAction):
-
     ### ComponentAction methods ###
 
     def get_name(self):
@@ -1640,7 +1643,7 @@ class ActionAddAvar(ComponentAction):
 
     def can_execute(self):
         # todo: filter influences only?
-        return len(self._get_influences) == 1
+        return len(self._get_influences()) == 1
 
     def execute(self):
         input = self._get_influences()[0]
@@ -1662,6 +1665,23 @@ class ActionAddAvar(ComponentAction):
     @staticmethod
     def _get_influences():
         return [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
+
+
+class ActionCreateAvars(ComponentAction):
+    def get_name(self):
+        return 'Initialize avars'
+
+    def can_execute(self):
+        # todo: better detection
+        len(self.component.avars) == self.component.jnts
+
+    def execute(self):
+        self.component._init_avars()
+
+    def iter_flags(self):
+        for flag in super(ActionCreateAvars, self).iter_flags():
+            yield flag
+        yield constants.ComponentActionFlags.trigger_network_export
 
 
 def register_plugin():

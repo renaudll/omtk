@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_list_modules.ui'
 #
-# Created: Tue May  2 22:56:52 2017
+# Created: Thu May  4 21:52:01 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!

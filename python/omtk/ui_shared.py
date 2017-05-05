@@ -1,7 +1,10 @@
 import pymel.core as pymel
 
+from omtk.core.classNode import Node
+from omtk.core.classCtrl import BaseCtrl
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui
+
 
 
 # todo: Move to a shared location
@@ -59,10 +62,16 @@ _STYLE_SHEET = \
 
 
 def _set_icon_from_type(obj, qItem):
-    if isinstance(obj, pymel.nodetypes.Joint):
+    if isinstance(obj, BaseCtrl):
+        qItem.setIcon(0, QtGui.QIcon(":/implicitSphere.svg"))
+    elif isinstance(obj, pymel.nodetypes.Joint):
         qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
-    elif isinstance(obj, pymel.nodetypes.Transform):
-        _set_icon_from_type(obj.getShape(), qItem)
+    elif isinstance(obj, (pymel.nodetypes.Transform, Node)):
+        shape = obj.getShape()
+        if shape:
+            _set_icon_from_type(obj.getShape(), qItem)
+        else:
+            qItem.setIcon(0, QtGui.QIcon(":/transform.svg"))
     elif isinstance(obj, pymel.nodetypes.NurbsCurve):
         qItem.setIcon(0, QtGui.QIcon(":/nurbsCurve.svg"))
     elif isinstance(obj, pymel.nodetypes.NurbsSurface):

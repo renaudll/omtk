@@ -31,6 +31,7 @@ def get_class_module_root(cls):
     """
     return next(iter(cls.__module__.split('.')), None)
 
+
 def get_class_namespace(cls):
     """
     Resolve the full qualified namespace of a class.
@@ -68,6 +69,7 @@ def create_class_instance(cls):
         logging.error("Fatal error creating '{0}' instance: {1}".format(cls, str(e)))
         return None
 
+
 #
 # Types definitions
 # Type affect how the data is read & writen.
@@ -102,6 +104,7 @@ def register_type_basic(*types):
     """
     global types_basic
     types_basic += types
+
 
 # Python3 support
 try:
@@ -169,7 +172,7 @@ def get_data_type(data):
     raise NotImplementedError("Unsupported object type {0} ({1})".format(data, type(data)))
 
 
-def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
+def export_dict(data, skip_None=True, recursive=True, cache=None, include_metadata=True, **args):
     """
     Export an object instance (data) into a dictionary of basic data types (including pymel.Pynode and pymel.Attribute).
 
@@ -202,7 +205,7 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
             '_class_namespace': get_class_namespace(data_cls),
             '_class_module': get_class_module_root(data_cls),
             '_uid': id(data)
-        }
+        } if include_metadata else {}
 
         # Cache it as soon as possible since we might use recursivity.
         cache.set_import_value_by_id(data_id, result)
@@ -214,7 +217,8 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
 
             if not skip_None or val is not None:
                 if (data_type == TYPE_COMPLEX and recursive is True) or data_type == TYPE_LIST:
-                    val = export_dict(val, skip_None=skip_None, recursive=recursive, cache=cache, **args)
+                    val = export_dict(val, skip_None=skip_None, recursive=recursive, cache=cache,
+                                      include_metadata=include_metadata, **args)
                 if not skip_None or val is not None:
                     result[key] = val
     else:
@@ -225,19 +229,20 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
 
         # Handle iterable
         elif data_type == TYPE_LIST:
-            result = [export_dict(v, skip_None=skip_None, cache=cache, **args) for v in data if not skip_None or v is not None]
+            result = [export_dict(v, skip_None=skip_None, cache=cache, include_metadata=include_metadata, **args) for v
+                      in data if not skip_None or v is not None]
 
         elif data_type == TYPE_DAGNODE:
             result = data
 
         else:
-            logging.warning("[exportToBasicData] Unsupported type {0} ({1}) for {2}".format(type(data), data_type, data))
+            logging.warning(
+                "[exportToBasicData] Unsupported type {0} ({1}) for {2}".format(type(data), data_type, data))
             result = None
 
         cache.set_import_value_by_id(data_id, result)
 
     return result
-
 
 
 def import_dict(data, cache=None, **kwargs):
@@ -256,13 +261,13 @@ def import_dict(data, cache=None, **kwargs):
         from cache import Cache
         cache = Cache()
 
-    #assert (data is not None)
+    # assert (data is not None)
     if isinstance(data, dict) and '_class' in data:
         # Handle Serializable object
         cls_path = data['_class']
         cls_name = cls_path.split('.')[-1]
         cls_module = data.get('_class_module', None)
-        #cls_namespace = data.get('_class_namespace')
+        # cls_namespace = data.get('_class_namespace')
 
         # HACK: Previously we were storing the complete class namespace.
         # However this was not very flexible when we played with the class hierarchy.

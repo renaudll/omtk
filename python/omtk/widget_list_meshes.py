@@ -22,7 +22,6 @@ class WidgetListMeshes(QtWidgets.QWidget):
         # Connect events
         self.ui.treeWidget.itemSelectionChanged.connect(self.on_mesh_selection_changed)
         self.ui.lineEdit_search.textChanged.connect(self.on_meshes_query_changed)
-        self.ui.pushButton_selectGrpMeshes.pressed.connect(self.on_SelectGrpMeshes)
         self.ui.btn_update.pressed.connect(self.update)
 
     def set_rig(self, rig, update=True):
@@ -115,10 +114,3 @@ class WidgetListMeshes(QtWidgets.QWidget):
 
     def on_meshes_query_changed(self, *args, **kwargs):
         self.update_list_visibility()
-
-    def on_SelectGrpMeshes(self):
-        grp = self._rig.grp_geo
-        if not grp or not grp.exists():
-            pymel.warning("Can't find influence grp!")
-        else:
-            pymel.select(grp)

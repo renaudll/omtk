@@ -997,3 +997,8 @@ class ActionCreateHierarchy(ComponentAction):
 
     def execute(self):
         self.component.pre_build()
+
+    def iter_flags(self):
+        for flag in super(ActionCreateHierarchy, self).iter_flags():
+            yield flag
+        yield constants.ComponentActionFlags.trigger_network_export

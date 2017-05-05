@@ -169,15 +169,16 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         self.avar_macro_upp = None
         self.avar_macro_low = None
 
-    ### Component methods ###
+    # --- Component methods
 
     def iter_actions(self):
         for action in super(AvarGrp, self).iter_actions():
             yield action
         yield ActionAddAvar(self)
         yield ActionAutoInitializeAvars(self)
+        yield ActionAutoConnectAvars(self)
 
-    ### Custom methods ###
+    # --- Custom methods
 
     def parent_to(self, parent):
         """
@@ -185,7 +186,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         """
         pass
 
-    def _iter_micro_avars(self):
+    def iter_avars_micro(self):
         for avar in self.avars:
             yield avar
 
@@ -195,9 +196,9 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         Override this method if your module implement new avars.
         :return: An iterator that yield avars.
         """
-        for avar in self._iter_micro_avars():
+        for avar in self.iter_avars_micro():
             yield avar
-        for avar in self._iter_macro_avars():
+        for avar in self.iter_avars_macro():
             yield avar
 
     def get_all_avars(self):
@@ -681,12 +682,13 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         self.auto_init_avars()
         self.handle_surface()
 
-        for avar in self._iter_macro_avars():
+        for avar in self.iter_avars_macro():
             self._build_avar_macro(None, avar)
-        for avar in self._iter_micro_avars():
+        for avar in self.iter_avars_micro():
             self._build_avar_micro(avar)
+
         # self._build_avars(parent=parent, connect_global_scale=connect_global_scale, constraint=constraint)
-        self.auto_connect_macro_avars_to_micro_avars()
+        self.auto_connect_avars()
 
         # if create_ctrls:
         #     ctrl_size = self._get_default_ctrl_size()
@@ -1001,7 +1003,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         """
         return libRigging.get_average_pos_between_vectors([avar.jnt for avar in self.get_avars_micro_low()])
 
-    def _iter_macro_avars(self):
+    def iter_avars_macro(self):
         if self.avar_macro_lft:
             yield self.avar_macro_lft
         if self.avar_macro_rgt:
@@ -1437,7 +1439,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
             # self._connect_avar_macro_all(connect_ud=connect_ud, connect_lr=connect_lr, connect_fb=connect_fb)
 
-    def auto_connect_macro_avars_to_micro_avars(self):
+    def auto_connect_avars(self):
         """
         Macro avars are meant to be connected to micro avars.
         This connection define secondary movement in the face.
@@ -1447,15 +1449,20 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         to understand when the user have modified thoses connections since we don't want to destroy or modify it work.
         """
         if self.create_macro_horizontal:
-            self._connect_avar_macro_l()
-            self._connect_avar_macro_r()
+            if not self.avar_macro_lft.is_avar_source():
+                self._connect_avar_macro_l()
+            if not self.avar_macro_rgt.is_avar_source():
+                self._connect_avar_macro_r()
 
         if self.create_macro_vertical:
-            self._connect_avar_macro_upp()
-            self._connect_avar_macro_low()
+            if not self.avar_macro_upp.is_avar_source():
+                self._connect_avar_macro_upp()
+            if not self.avar_macro_low.is_avar_source():
+                self._connect_avar_macro_low()
 
         if self.create_macro_all:
-            self._connect_avar_macro_all()
+            if not self.avar_macro_all.is_avar_source():
+                self._connect_avar_macro_all()
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, ctrl_tm=None, **kwargs):
         # Note: Since the avar_all might not have any influence, we resolve the ctrl_tm outside of the model.
@@ -1645,7 +1652,8 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
 
 class ActionAddAvar(ComponentAction):
-    ### ComponentAction methods ###
+
+    # --- ComponentAction methods
 
     def get_name(self):
         return 'Add Avar from Selection'
@@ -1669,7 +1677,7 @@ class ActionAddAvar(ComponentAction):
             yield flag
         yield constants.ComponentActionFlags.trigger_network_export
 
-    ### Custom methods ###
+    # --- Custom methods
 
     @staticmethod
     def _get_influences():
@@ -1693,15 +1701,18 @@ class ActionAutoInitializeAvars(ComponentAction):
         yield constants.ComponentActionFlags.trigger_network_export
 
 
-def ActionAutoConnectAvars(ComponentAction):
+class ActionAutoConnectAvars(ComponentAction):
     def get_name(self):
         return 'Auto-connect avars'
 
     def can_execute(self):
-        raise NotImplementedError
+        for avar_macro in self.component.iter_avars_macro():
+            if not avar_macro.is_avar_source():
+                return True
+        return False
 
     def execute(self):
-        raise NotImplementedError
+        self.component.auto_connect_avars()
 
 
 def register_plugin():

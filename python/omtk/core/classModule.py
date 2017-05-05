@@ -29,9 +29,58 @@ class Module(Component):
     # Set to true if the module default name need to use it's first input.
     DEFAULT_NAME_USE_FIRST_INPUT = False
 
-    #
-    # Logging implementation
-    #
+    # todo: since args is never used, maybe use to instead of _input?
+    def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
+        """
+        DO NOT CALL THIS DIRECTLY, use rig.add_module.
+        :param input: A pymel.general.PyNode list containing all the dagnode necessary for the module creation.
+        :param name: The name of the module.
+        :param rig: The parent of the module. Provided automatically by rig.add_module
+        :param args: TO REMOVE? #todo
+        :param kwargs: TO REMOVE? #todo
+        """
+        # Safety check, ensure that the name is a string and not a Nomenclature instance passed by accident.
+        if name and not isinstance(name, basestring):
+            raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
+                type(name), name
+            ))
+
+        self.rig = rig  # Reference to the parent rig instance.
+        self.grp_anm = None
+        self.grp_rig = None
+        self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
+        self.globalScale = None  # Each module is responsible for handling it scale!
+
+        # Sometimes the rigger might modify the module in a way which can prevent it from being un-built without causing issues.
+        # Use this flag to notify omtk that the module should not be un-built under any circumstances.
+        self.locked = False
+
+        # Use this flag to leave any note concerning the module.
+        # ie: Why this module might be locked.
+        # TODO: Support maya notes? (see attribute editor)
+        # self.note = ''
+
+        # By default, this array is used to store the ctrls the module use.
+        # If you define additional properties, don't forget to implement them in the iter_ctrls method.
+        self.ctrls = []
+
+        if input:
+            if not isinstance(input, list):
+                raise IOError(
+                    "Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
+            self.input = input
+        else:
+            self.input = []
+
+        self.name = name
+
+    # --- Component methods
+
+    def iter_sub_components(self):
+        for child in self.iter_submodules():
+            yield child
+
+    # --- Methods for logging
 
     def debug(self, msg):
         """
@@ -61,9 +110,7 @@ class Module(Component):
         msg = '[{0}] {1}'.format(self.name, msg)
         self.rig.error(msg)
 
-    #
-    # libSerialization implementation
-    #
+    # --- libSerialization methods
 
     def __callbackNetworkPostBuild__(self):
         """
@@ -91,9 +138,7 @@ class Module(Component):
         """
         return 'net_{0}_{1}'.format(self.__class__.__name__, self.get_module_name())
 
-    #
-    # Nomenclature implementation
-    #
+    # --- Methods for naming objects
 
     @libPython.memoized_instancemethod
     def get_side(self):
@@ -359,51 +404,6 @@ class Module(Component):
         :return: The first input of type pymel.nodetypes.NurbsSurface.
         """
         return next(iter(self.get_surfaces()), None)
-
-    # todo: since args is never used, maybe use to instead of _input?
-    def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
-        """
-        DO NOT CALL THIS DIRECTLY, use rig.add_module.
-        :param input: A pymel.general.PyNode list containing all the dagnode necessary for the module creation.
-        :param name: The name of the module.
-        :param rig: The parent of the module. Provided automatically by rig.add_module
-        :param args: TO REMOVE? #todo
-        :param kwargs: TO REMOVE? #todo
-        """
-        # Safety check, ensure that the name is a string and not a Nomenclature instance passed by accident.
-        if name and not isinstance(name, basestring):
-            raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
-                type(name), name
-            ))
-
-        self.rig = rig  # Reference to the parent rig instance.
-        self.grp_anm = None
-        self.grp_rig = None
-        self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
-        self.globalScale = None  # Each module is responsible for handling it scale!
-
-        # Sometimes the rigger might modify the module in a way which can prevent it from being un-built without causing issues.
-        # Use this flag to notify omtk that the module should not be un-built under any circumstances.
-        self.locked = False
-
-        # Use this flag to leave any note concerning the module.
-        # ie: Why this module might be locked.
-        # TODO: Support maya notes? (see attribute editor)
-        # self.note = ''
-
-        # By default, this array is used to store the ctrls the module use.
-        # If you define additional properties, don't forget to implement them in the iter_ctrls method.
-        self.ctrls = []
-
-        if input:
-            if not isinstance(input, list):
-                raise IOError(
-                    "Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
-            self.input = input
-        else:
-            self.input = []
-
-        self.name = name
 
     def __str__(self):
         version = getattr(self, 'version', '')

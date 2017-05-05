@@ -495,30 +495,48 @@ class Avar(classModule.Module):
             #     if self.model_ctrl and hasattr(self.model_ctrl, 'calibrate'):
             #         self.model_ctrl.calibrate()
 
-    # def is_avar_attr_source(self, attr):
-    #     """
-    #     Check if an avar attribute is driving another avar.
-    #     :return:
-    #     """
-    #     for hist in attr.listHistory(future=True):
-    #         if isinstance(hist, pymel.nodetypes.Transform) and
-    #
-    #     def _need_to_connect_macro_avar(self, avar):
-    #         """
-    #         Macro avars are made to control micro avars.
-    #         In the first build, it is necessary to create default connection so the rigger got something that work.
-    #         However with time it is normal than a rigger remove this connection or replace it with other type of connection.
-    #         This call check if the avar is connected to at least another avar. If True, no connection is needed.
-    #         """
-    #
-    #         def _is_obj_avar(obj):
-    #             return obj.hasAttr('avar_lr')  # ugly but it work
-    #
-    #         attr_holder = avar.grp_rig
-    #         for hist in attr_holder.listHistory(future=True):
-    #             if isinstance(hist, pymel.nodetypes.Transform) and _is_obj_avar(hist):
-    #                 return False
-    #         return True
+    # --- Methods for automatic Avar connection
+
+    def is_avar_attr_source(self, attr):
+        """
+        Check if an avar attribute is driving another avar.
+        :return:
+        """
+        node = attr.node()  # slow?
+        all_avar_grps = set(
+            c.grp_rig for c in self.rig.iter_sub_components_recursive() if isinstance(c, Avar) and c.is_built())
+        for hist in attr.listHistory(future=True):
+            if hist != node and isinstance(hist, pymel.nodetypes.Transform) and hist in all_avar_grps:
+                return True
+        return False
+
+    def is_avar_attr_destination(self, attr):
+        node = attr.node()  # slow?
+        all_avar_grps = set(
+            c.grp_rig for c in self.rig.iter_sub_components_recursive() if isinstance(c, Avar) and c.is_built())
+        for hist in attr.listHistory(future=False):
+            if hist != node and isinstance(hist, pymel.nodetypes.Transform) and hist in all_avar_grps:
+                return True
+        return False
+
+    def iter_avar_attrs(self):
+        # todo: move somewhere logical
+        yield self.attr_lr
+        yield self.attr_ud
+        yield self.attr_fb
+        yield self.attr_yw
+        yield self.attr_pt
+        yield self.attr_rl
+        yield self.attr_sx
+        yield self.attr_sy
+        yield self.attr_sz
+
+    def is_avar_source(self):
+        return any(True for attr in self.iter_avar_attrs() if self.is_avar_attr_source(attr))
+
+    def is_avar_destination(self):
+        return any(True for attr in self.iter_avar_attrs() if self.is_avar_attr_destination(attr))
+
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):

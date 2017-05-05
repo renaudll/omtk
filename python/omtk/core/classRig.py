@@ -145,16 +145,17 @@ class Rig(Component):
         self.layer_jnt = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
 
-    #
-    # Component methods
-    #
+    # --- Component methods
 
     def iter_actions(self):
         yield ActionCreateHierarchy(self)
 
-    #
-    # Logging implementation
-    #
+    def iter_sub_components(self):
+        for module in self.modules:
+            if isinstance(module, Component):
+                yield module
+
+    # --- Methods for logging
 
     def debug(self, msg):
         msg = '[{0}] {1}'.format(self.name, msg)
@@ -992,6 +993,7 @@ class ActionCreateHierarchy(ComponentAction):
     """
     Alias to pre_build that is exposed in the gui and hidden from subclassing.
     """
+
     def get_name(self):
         return 'Create Hierarchy'
 

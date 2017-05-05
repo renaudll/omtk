@@ -7,7 +7,7 @@ Similar to a Node, a Component have public input attributes, publish outputs att
 # todo: add method to access Component inputs and outputs
 
 import abc
-
+import Queue as queue
 
 class Component(object):
     __metaclass__ = abc.ABCMeta
@@ -51,3 +51,20 @@ class Component(object):
         """
         return
         yield
+
+    def iter_sub_components_recursive(self):
+        fringe = queue.Queue()
+        fringe.put(self)  # start with ourself
+        known = set()
+
+        while not fringe.empty():
+            component = fringe.get()
+
+            if component in known:
+                continue
+            known.add(component)
+
+            for child in component.iter_sub_components():
+                yield child
+                fringe.put(child)
+

@@ -108,7 +108,7 @@ class CtrlModelCalibratable(BaseCtrlModel):
         self._layer_inv_t = None
         self._layer_inv_r = None
 
-    ### Component methods ###
+    # --- Component methods
 
     def iter_actions(self):
         for action in super(CtrlModelCalibratable, self).iter_actions():
@@ -397,7 +397,7 @@ class CtrlModelCalibratable(BaseCtrlModel):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
-    ### Custom methods ###
+    # --- Custom methods
 
     def _get_calibration_reference(self):
         return self.jnt

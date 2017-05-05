@@ -779,7 +779,7 @@ class AvarGrp(
             return obj.hasAttr('avar_lr')  # ugly but it work
         attr_holder = avar.grp_rig
         for hist in attr_holder.listHistory(future=True):
-            if isinstance(hist, pymel.nodetypes.Transform) and _is_obj_avar(hist):
+            if isinstance(hist, pymel.nodetypes.Transform) and hist != attr_holder and _is_obj_avar(hist):
                 return False
         return True
 

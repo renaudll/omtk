@@ -39,9 +39,12 @@ def get_center(objs):
 
 
 def createLocToCenter():
+    old_selection = pymel.selected()
     p3Pos = get_center(pymel.selected(flatten=True))
     pPoint = pymel.general.spaceLocator()
     pPoint.setTranslation(p3Pos, space='world')
+    if old_selection:
+        pymel.select(old_selection)
 
 
 '''Snap two or more objects with the last selected using their world matrix'''

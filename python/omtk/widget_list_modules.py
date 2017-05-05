@@ -360,6 +360,10 @@ class WidgetListModules(QtWidgets.QWidget):
     #             item.net = module._network
 
     def can_show_component_attribute(self, attr_name, attr_value):
+        # Hack: Blacklist some attr name (for now)
+        if attr_name in ('grp_anm', 'grp_rig'):
+            return False
+
         # Validate name (private attribute should not be visible)
         if next(iter(attr_name), None) == '_':
             return False
@@ -452,90 +456,6 @@ class WidgetListModules(QtWidgets.QWidget):
         item.metadata = pynode
         ui_shared._set_icon_from_type(pynode, item)
         return item
-    #
-    # def _create_tree_widget_module(self, module):
-    #     qitem = QtWidgets.QTreeWidgetItem(0)
-    #     qitem.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
-    #
-    #     # Set network metadata
-    #     if hasattr(module, '_network'):
-    #         qitem.net = module._network
-    #     else:
-    #         pymel.warning("{0} have no _network attributes".format(module))
-    #
-    #     # Set module metadata
-    #     qitem.metadata = module
-    #
-    #     self._update_qitem_module(qitem, module)
-    #
-    #     # In advanced mode, list module sub-modules
-    #     for submodule in module.iter_submodules():
-    #         qsubitem = self._create_tree_widget_module(submodule)
-    #         qitem.addChild(qsubitem)
-    #
-    #     # List module inputs
-    #     def _can_show_attr(attr_name, attr):
-    #         if next(iter(attr_name), None) == '_':
-    #             return False
-    #         if hasattr(attr, '__melobject__'):
-    #             return True
-    #         if isinstance(attr, (list, tuple, set, dict)):
-    #             return True
-    #         return False
-    #
-    #     for attr_name in module.__dict__:
-    #         attr = getattr(module, attr_name)
-    #         if not _can_show_attr(attr_name, attr):
-    #             continue
-    #
-    #         item_label = QtWidgets.QTreeWidgetItem(0)
-    #         item_label.setText(0, "{0}:".format(attr_name))
-    #         qitem.addChild(item_label)
-    #
-    #         if hasattr(attr, '__melobject__'):
-    #             qInputItem = QtWidgets.QTreeWidgetItem(0)
-    #             qInputItem.setText(0, attr.name())
-    #             ui_shared._set_icon_from_type(attr, qInputItem)
-    #             item_label.addChild(qInputItem)
-    #         elif isinstance(attr, (list, set, tuple)):
-    #             # todo: implement better!
-    #             for val in attr:
-    #                 qInputItem = self._create_tree_widget_item_from_value(val)
-    #                 item_label.addChild(qInputItem)
-    #
-    #     # for input in module.input:
-    #     #     item_label = QtWidgets.QTreeWidgetItem(0)
-    #     #     item_label.setText(0, "inputs:")
-    #     #     qitem.addChild(item_label)
-    #     #
-    #     #     qInputItem = QtWidgets.QTreeWidgetItem(0)
-    #     #     qInputItem.setText(0, input.name())
-    #     #     qInputItem.metadata = input
-    #     #     ui_shared._set_icon_from_type(input, qInputItem)
-    #     #
-    #     #     item_label.addChild(qInputItem)
-    #
-    #     return qitem
-    #
-    # def _rig_to_tree_widget(self, module):
-    #     qItem = QtWidgets.QTreeWidgetItem(0)
-    #     if hasattr(module, '_network'):
-    #         qItem.net = module._network
-    #     else:
-    #         pymel.warning("{0} have no _network attributes".format(module))
-    #     qItem.metadata = module
-    #
-    #     if isinstance(module, classModule.Module):
-    #         self._update_qitem_module(qItem, module)
-    #     elif isinstance(module, classRig.Rig):
-    #         self._update_qitem_rig(qItem, module)
-    #
-    #         sorted_modules = sorted(module, key=lambda mod: mod.name)
-    #         for child in sorted_modules:
-    #             qSubItem = self._create_tree_widget_module(child)
-    #             qItem.addChild(qSubItem)
-    #
-    #     return qItem
 
     #
     # Events

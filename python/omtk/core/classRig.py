@@ -112,9 +112,9 @@ class Rig(Component):
     RIGHT_CTRL_COLOR = 6  # Blue
     CENTER_CTRL_COLOR = 17  # Yellow
 
-    AVAR_NAME_UPP = 'Upp'
-    AVAR_NAME_LOW = 'Low'
-    AVAR_NAME_ALL = 'All'
+    AVAR_NAME_UPP = 'upp'
+    AVAR_NAME_LOW = 'low'
+    AVAR_NAME_ALL = 'all'
 
     # Define what axis to use as the 'up' axis.
     # This generally mean in which Axis will the Limb elbow/knee be pointing at.
@@ -474,7 +474,8 @@ class Rig(Component):
         """
         Return the immediate mesh affected by provided object in the geometry stack.
         """
-        key = lambda mesh: mesh in self.get_shapes()
+        shapes = self.get_shapes()
+        key = lambda mesh: mesh in shapes
         return libRigging.get_nearest_affected_mesh(jnt, key=key)
 
     def get_farest_affected_mesh(self, jnt):
@@ -482,7 +483,8 @@ class Rig(Component):
         Return the last mesh affected by provided object in the geometry stack.
         Usefull to identify which mesh to use in the 'doritos' setup.
         """
-        key = lambda mesh: mesh in self.get_shapes()
+        shapes = self.get_shapes()
+        key = lambda mesh: mesh in shapes
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
     def raycast_farthest(self, pos, dir):

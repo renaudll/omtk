@@ -372,9 +372,9 @@ class FaceLipsAvar(rigFaceAvar.Avar):
         layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
         attr_get_jaw_t = libRigging.create_utility_node(
             'multiplyDivide',
-            input1X=jaw_module.avar_all.attr_lr,
-            input1Y=jaw_module.avar_all.attr_ud,
-            input1Z=jaw_module.avar_all.attr_fb,
+            input1X=jaw_module.avar_macro_all.attr_lr,
+            input1Y=jaw_module.avar_macro_all.attr_ud,
+            input1Z=jaw_module.avar_macro_all.attr_fb,
             input2X=self._attr_inn_jaw_ratio_default,
             input2Y=self._attr_inn_jaw_ratio_default,
             input2Z=self._attr_inn_jaw_ratio_default,
@@ -492,10 +492,10 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
         result = filter(fnFilter, self.avars)
 
         if macro:
-            if self.avar_l:
-                result.append(self.avar_l)
-            if self.avar_r:
-                result.append(self.avar_r)
+            if self.avar_macro_lft:
+                result.append(self.avar_macro_lft)
+            if self.avar_macro_rgt:
+                result.append(self.avar_macro_rgt)
 
         return result
 
@@ -535,7 +535,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
     def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True,
                                        connect_fb=True):
         """
-        Connect micro avars to horizontal macro avar. (avar_l and avar_r)
+        Connect micro avars to horizontal macro avar. (avar_macro_lft and avar_macro_rgt)
         This configure the avar_lr connection differently depending on the position of each micro avars.
         The result is that the micro avars react like an 'accordion' when their macro avar_lr change.
         :param avar_parent: The macro avar, source of the connections.
@@ -547,7 +547,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
         # super(FaceLips, self)._connect_avar_macro_horizontal(avar_parent, avar_children, connect_ud=False, connect_lr=False, connect_fb=False)
 
         if connect_lr:
-            avar_middle = self.get_avar_mid()
+            avar_middle = self.get_avar_micro_mid()
             pos_s = avar_middle.jnt.getTranslation(space='world')
             pos_e = avar_parent.jnt.getTranslation(space='world')
 
@@ -574,32 +574,32 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
         # Create left avar if necessary
         ref = self.get_jnt_l_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(),
+            self._build_avar_macro_horizontal(self.avar_macro_lft, self.get_avar_micro_mid(), self.get_avar_micros_lft(),
                                               self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
 
     def _connect_avar_macro_l(self):
         super(FaceLips, self)._connect_avar_macro_l()
 
         # Connect the corner other avars
-        avar_l_corner = self.get_avar_l_corner()
-        if avar_l_corner:
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
+        avar_macro_lft_corner = self.get_avar_micro_lft_corner()
+        if avar_macro_lft_corner:
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_macro_lft.attr_ud, avar_macro_lft_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_macro_lft.attr_fb, avar_macro_lft_corner.attr_fb)
 
     def _build_avar_macro_r(self):  # Create right avar if necessary
         ref = self.get_jnt_r_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(),
+            self._build_avar_macro_horizontal(self.avar_macro_rgt, self.get_avar_micro_mid(), self.get_avars_micro_rgt(),
                                               self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
 
     def _connect_avar_macro_r(self):
         super(FaceLips, self)._connect_avar_macro_r()
 
         # Connect the corner other avars
-        avar_r_corner = self.get_avar_r_corner()
-        if avar_r_corner:
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
+        avar_micro_rgt_corner = self.get_avar_micro_rgt_corner()
+        if avar_micro_rgt_corner:
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_macro_rgt.attr_ud, avar_micro_rgt_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(self.avar_macro_rgt.attr_fb, avar_micro_rgt_corner.attr_fb)
 
     @libPython.memoized_instancemethod
     def _get_mouth_width(self):
@@ -619,7 +619,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
         :param parent_rot:
         """
         # parent_pos = self.avar_all._grp_output
-        parent_rot = self.avar_all._grp_output
+        parent_rot = self.avar_macro_all._grp_output
         super(FaceLips, self)._create_avar_macro_all_ctrls(parent_pos=parent_pos, parent_rot=parent_rot, **kwargs)
 
     def get_dependencies_modules(self):
@@ -696,18 +696,18 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
         # Squeeze animator requested that the lips work like the animation mentor rig.
         # When the corner macros ud is 1.0, they won't follow the jaw anymore.
         # When the corner macros ud is -1.0, they won't follow the head anymore.
-        avar_micro_corner_l = self.get_avar_l_corner()
-        avar_micro_corner_r = self.get_avar_r_corner()
+        avar_micro_corner_l = self.get_avar_micro_lft_corner()
+        avar_micro_corner_r = self.get_avar_micro_rgt_corner()
 
         libRigging.connectAttr_withLinearDrivenKeys(
-            self.avar_l.attr_ud,
+            self.avar_macro_lft.attr_ud,
             avar_micro_corner_l._attr_inn_jaw_ratio_default,
             kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
             kot=(2, 2, 2), pre='linear', pst='linear'
         )
 
         libRigging.connectAttr_withLinearDrivenKeys(
-            self.avar_r.attr_ud,
+            self.avar_macro_rgt.attr_ud,
             avar_micro_corner_r._attr_inn_jaw_ratio_default,
             kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
             kot=(2, 2, 2), pre='linear', pst='linear'

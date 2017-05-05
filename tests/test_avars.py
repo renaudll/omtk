@@ -75,7 +75,7 @@ class AvarTests(omtk_test.TestCase):
 
         # Ensure that ctrl and influences correctly react to the 'all' influence.
         objs_to_verify = []
-        for avar in mod._iter_all_avars():
+        for avar in mod.iter_all_avars():
             # Verify ctrl if there's a model for it
             objs_to_verify.append(avar.ctrl)
             # Verify influence if there's a model for it

@@ -495,6 +495,30 @@ class Avar(classModule.Module):
             #     if self.model_ctrl and hasattr(self.model_ctrl, 'calibrate'):
             #         self.model_ctrl.calibrate()
 
+    # def is_avar_attr_source(self, attr):
+    #     """
+    #     Check if an avar attribute is driving another avar.
+    #     :return:
+    #     """
+    #     for hist in attr.listHistory(future=True):
+    #         if isinstance(hist, pymel.nodetypes.Transform) and
+    #
+    #     def _need_to_connect_macro_avar(self, avar):
+    #         """
+    #         Macro avars are made to control micro avars.
+    #         In the first build, it is necessary to create default connection so the rigger got something that work.
+    #         However with time it is normal than a rigger remove this connection or replace it with other type of connection.
+    #         This call check if the avar is connected to at least another avar. If True, no connection is needed.
+    #         """
+    #
+    #         def _is_obj_avar(obj):
+    #             return obj.hasAttr('avar_lr')  # ugly but it work
+    #
+    #         attr_holder = avar.grp_rig
+    #         for hist in attr_holder.listHistory(future=True):
+    #             if isinstance(hist, pymel.nodetypes.Transform) and _is_obj_avar(hist):
+    #                 return False
+    #         return True
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):

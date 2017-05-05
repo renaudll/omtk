@@ -313,8 +313,11 @@ def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
     num_patches_u = (len(jnts) - 1)
     plane = pymel.nurbsPlane(d=degree, u=num_patches_u)[0]
 
-    pos_upp_local = pymel.datatypes.Point(0, 0, width)
-    pos_dwn_local = pymel.datatypes.Point(0, 0, -width)
+    # Note that the choosed offset is not arbitrary.
+    # This will ensure that any follicle created on the resulting nurbsSurface
+    # will share the same orientation.
+    pos_upp_local = pymel.datatypes.Point(0, -width, 0)
+    pos_dwn_local = pymel.datatypes.Point(0, width, 0)
 
     # Define how much in-between we need to compute.
     num_patches_v = 2

@@ -14,7 +14,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True)\ncmds.file(sFile, open=True, force=True)" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "from maya import cmds\n \nsFile = cmds.file(q=True, sceneName=True..." 
         -labelOffset 0
@@ -45,7 +44,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.get_networks_from_class('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import ..." 
         -labelOffset 0
@@ -76,7 +74,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "networks = libSerialization.get_networks_from_class('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Unbuild()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "networks = libSerialization.get_networks_from_class('RigRoot')\nfor ne..." 
         -labelOffset 0
@@ -107,7 +104,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "import omtk\nomtk._reload()\nomtk.rigging.autorig.show()" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "import omtk\nomtk._reload()\nomtk.rigging.autorig.show()" 
         -labelOffset 0
@@ -138,7 +134,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "Build Selected Joints" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "Build Selected Joints" 
         -labelOffset 0
@@ -169,7 +164,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "Unbuild Selected Joints" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "Unbuild Selected Joints" 
         -labelOffset 0
@@ -200,7 +194,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()" 
         -labelOffset 0
@@ -231,7 +224,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "CalibrateSel Selected Joints" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "CalibrateSel Selected Joints" 
         -labelOffset 0
@@ -262,7 +254,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "Give selected transform shapes to the next selected controller. Only Valid if two transform selected." 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "Controller Match" 
         -labelOffset 0
@@ -293,7 +284,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "Bake Selected Ctrls" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "from omtk.libs import libRigging\n\ndef _fix_ctrl_shape(ctrl):\n   ..." 
         -labelOffset 0
@@ -324,7 +314,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "Mirror shapes of Ctrl to another controller. Using the prefix ['L','R']" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "Controller Mirror" 
         -labelOffset 0
@@ -355,7 +344,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "import omtk\nomtk.run_macro(\"avar_selection_toggle\")" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "import omtk\nomtk.run_macro(\"avar_selection_toggle\")" 
         -labelOffset 0
@@ -386,7 +374,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "from omtk.animation import ikfkTools\nikfkTools.switchToIk()" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "from omtk.animation import ikfkTools\nikfkTools.switchToIk()" 
         -labelOffset 0
@@ -417,7 +404,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "from omtk.animation import ikfkTools\nikfkTools.switchToFk()" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "from omtk.animation import ikfkTools\nikfkTools.switchToFk()" 
         -labelOffset 0
@@ -448,7 +434,6 @@ global proc shelf_omtk () {
         -preventOverride 0
         -annotation "from omtk.animation import mirrorPose; reload(mirrorPose)\nimport pymel.core as pymel\nmirrorPose.mirror_objs(pymel.selected())" 
         -enableBackground 0
-        -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
         -label "from omtk.animation import mirrorPose; reload(mirrorPose)\nimport..." 
         -labelOffset 0

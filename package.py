@@ -6,4 +6,8 @@ requires = ['libSerialization-0.1+']
 
 def commands():
     env.PYTHONPATH.append('{root}/python')
-    env.XBMLANGPATH.append("{root}/images/%B")
+    # Because windows...
+    if system.platform == 'windows':
+    	env.XBMLANGPATH.append("{root}/images/")
+    else:
+    	env.XBMLANGPATH.append("{root}/images/%B")

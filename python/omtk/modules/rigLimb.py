@@ -231,10 +231,12 @@ class Limb(Module):
         self.sysIK.grp_anm.setParent(self.grp_anm)
         self.sysIK.grp_rig.setParent(self.grp_rig)
         self.sysFK.grp_anm.setParent(self.grp_anm)
-        for sys_twist in self.sys_twist:
-            if sys_twist.create_bend:
-                sys_twist.grp_anm.setParent(self.grp_anm)
-            sys_twist.grp_rig.setParent(self.grp_rig)
+        # Patch in case twist network exist, but twist are set to false
+        if self.create_twist:
+            for sys_twist in self.sys_twist:
+                if sys_twist.create_bend:
+                    sys_twist.grp_anm.setParent(self.grp_anm)
+                sys_twist.grp_rig.setParent(self.grp_rig)
 
         self.attState = attr_ik_weight  # Expose state
 

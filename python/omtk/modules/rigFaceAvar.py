@@ -728,11 +728,11 @@ class AvarFollicle(AvarSimple):
         It is very rare that the rigger will tweak this advanced setting manually,
         however for legacy reasons, it might be useful when upgrading an old rig.
         """
-        if self.attr_multiplier_lr and self.attr_multiplier_lr.exists():
+        if isinstance(self.attr_multiplier_lr, pymel.Attribute) and self.attr_multiplier_lr.exists():
             self.multiplier_lr = self.attr_multiplier_lr.get()
-        if self.attr_multiplier_ud and self.attr_multiplier_ud.exists():
+        if isinstance(self.attr_multiplier_ud, pymel.Attribute) and self.attr_multiplier_ud.exists():
             self.multiplier_ud = self.attr_multiplier_ud.get()
-        if self.attr_multiplier_fb and self.attr_multiplier_fb.exists():
+        if isinstance(self.attr_multiplier_fb, pymel.Attribute) and self.attr_multiplier_fb.exists():
             self.multiplier_fb = self.attr_multiplier_fb.get()
 
     def unbuild(self):

@@ -57,14 +57,20 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # We always try to position the controller on the surface of the face.
         # The face is always looking at the positive Z axis.
         pos = tm.translate
-        dir = pymel.datatypes.Point(0, 0, 1)
-        result = self.rig.raycast_farthest(pos, dir)
+        dir_ = pymel.datatypes.Point(0, 0, 1)
+        result = self.rig.raycast_farthest(pos, dir_)
         if result:
             tm.a30 = result.x
             tm.a31 = result.y
             tm.a32 = result.z
 
         return tm
+
+    def project_pos_on_face(self, pos, geos=None):
+        pos = pymel.datatypes.Vector(pos.x, pos.y, 99999)
+        dir = pymel.datatypes.Point(0, 0, -1)
+        result = self.rig.raycast_nearest(pos, dir, geos=geos)
+        return result if result else pos
 
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
               flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=1.0, parent_pos=None,
@@ -98,7 +104,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         if ctrl_tm is None:
             raise Exception("Cannot resolve ctrl transformation matrix!")
 
-        pos_ref = ctrl_tm.translate
+        pos_ref = self.project_pos_on_face(ctrl_tm.translate, geos=self.get_meshes())
 
         # Resolve u and v coordinates
         # todo: check if we really want to resolve the u and v ourself since it's now connected.
@@ -106,6 +112,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             # We'll scan all available geometries and use the one with the shortest distance.
             meshes = libHistory.get_affected_shapes(ref)
             meshes = list(set(meshes) & set(self.rig.get_shapes()))
+            if not meshes:
+                meshes = set(self.rig.get_shapes())
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
 
             if obj_mesh is None and follow_mesh:
@@ -481,6 +489,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         contain the deformation from the 'controlPoints' attribute). The 'local' attribute of that shape will then be
         fed back to the orig shape. Finally, all the original 'controlPoints' will be set to zero.
         """
+        if self.ctrl is None:
+            return
         grp_offset = self.ctrl.offset
 
         def get_orig_shape(shape):

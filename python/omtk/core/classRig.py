@@ -478,12 +478,28 @@ class Rig(object):
         """
         key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
+    
+    def raycast_nearest(self, pos, dir, geos=None):
+        """
+        Return the nearest point on any of the rig registered geometries using provided position and direction.
+        """
+        if not geos:
+            geos = self.get_shapes()
+        if not geos:
+            return None
 
-    def raycast_farthest(self, pos, dir):
+        result = libRigging.ray_cast_nearest(pos, dir, geos)
+        if not result:
+            return None
+
+        return result
+
+    def raycast_farthest(self, pos, dir, geos=None):
         """
-        Return the farest point on any of the rig registered geometries using provided position and direction.
+        Return the farthest point on any of the rig registered geometries using provided position and direction.
         """
-        geos = self.get_shapes()
+        if not geos:
+            geos = self.get_shapes()
         if not geos:
             return None
 

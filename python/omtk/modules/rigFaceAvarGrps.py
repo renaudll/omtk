@@ -1116,7 +1116,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_l if necessary
             ref_l = self.get_jnt_l_mid()
             if not ref_l:
-                self.warning("Cannot create macro avar 'L', found no matching influence.")
+                self.info("Cannot create macro avar 'L', found no matching influence.")
             else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
@@ -1145,7 +1145,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_r if necessary
             ref_r = self.get_jnt_r_mid()
             if not ref_r:
-                self.warning("Cannot create macro avar 'L', found no matching influence.")
+                self.info("Cannot create macro avar 'L', found no matching influence.")
             else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
@@ -1176,7 +1176,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_upp if necessary
             ref_upp = self.get_jnt_upp_mid()
             if not ref_upp:
-                self.warning(
+                self.info(
                     "Cannot create macro avar '{}', found no matching influence.".format(self.rig.AVAR_NAME_UPP))
             else:
                 # Resolve avar name
@@ -1193,7 +1193,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_low if necessary
             ref_low = self.get_jnt_low_mid()
             if not ref_low:
-                self.warning(
+                self.info(
                     "Cannot create macro avar '{}', found no matching influence.".format(self.rig.AVAR_NAME_LOW))
             else:
                 # Resolve avar name

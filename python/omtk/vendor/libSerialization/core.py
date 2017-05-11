@@ -201,8 +201,7 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, include_metada
     if data_type == TYPE_COMPLEX:
         data_cls = data.__class__
         result = {
-            '_class': data_cls.__name__,
-            '_class_namespace': get_class_namespace(data_cls),
+            '_class': get_class_namespace(data_cls),
             '_class_module': get_class_module_root(data_cls),
             '_uid': id(data)
         } if include_metadata else {}

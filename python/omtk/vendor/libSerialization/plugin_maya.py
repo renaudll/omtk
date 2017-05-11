@@ -431,6 +431,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     # Otherwise we'll let it slip for now.
     cls_module = network.getAttr('_class_module') if network.hasAttr('_class_module') else None
     if cls_module:
+        cls_name = cls_name.split('.')[-1]  # todo: use complete name for class resolution
         cls_def = cache.get_class_by_name(cls_name, module_name=cls_module)
     else:
         cls_def = cache.get_class_by_namespace(cls_name)

@@ -60,11 +60,23 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.actionShowPluginManager.triggered.connect(self.on_show_pluginmanager)
         self.ui.actionShowPreferences.triggered.connect(self.on_show_preferences)
 
+        # Configure drag and drop
+        # self.ui.widget_modules.ui.treeWidget.set_mime_type('omtk_modules')  # todo: create const
+        self.ui.widget_modules.ui.treeWidget.setDragDropOverwriteMode(False)
+        self.ui.widget_modules.ui.treeWidget.setDragEnabled(True)
+
+        # self.ui.widget_jnts.ui.treeWidget.set_mime_type('omtk_influences')  # todo: create const
+        self.ui.widget_jnts.ui.treeWidget.setDragDropOverwriteMode(False)
+        self.ui.widget_jnts.ui.treeWidget.setDragEnabled(True)
+
+        # self.ui.widget_meshes.ui.treeWidget.set_mime_type('omtk_meshe')  # todo: create const
+        self.ui.widget_meshes.ui.treeWidget.setDragDropOverwriteMode(False)
+        self.ui.widget_meshes.ui.treeWidget.setDragEnabled(True)
+
         # Connect widget signals
-        self.ui.widget_modules.needImportNetwork.connect(self.import_networks)
-        self.ui.widget_modules.needExportNetwork.connect(self.export_networks)
-        self.ui.widget_modules.deletedRig.connect(self.on_rig_deleted)
-        self.ui.widget_jnts.onRightClick.connect(self.on_btn_add_pressed)
+        self.ui.widget_meshes.needImportNetwork.connect(self.import_networks)
+        self.ui.widget_meshes.needExportNetwork.connect(self.export_networks)
+        self.ui.widget_meshes.deletedRig.connect(self.on_rig_deleted)
 
         self.callbacks_events = []
         self.callbacks_scene = []

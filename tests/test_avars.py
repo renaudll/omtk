@@ -43,7 +43,7 @@ class AvarTests(omtk_test.TestCase):
         jnt_d.translateY.set(-1)
 
         rig = omtk.create()
-        mod = rig.add_module(rigFaceAvarGrps.AvarGrpOnSurface([jnt_a, jnt_l, jnt_r, jnt_u, jnt_d]))
+        mod = rig.add_module(rigFaceAvarGrps.AvarGrp([jnt_a, jnt_l, jnt_r, jnt_u, jnt_d]))
         mod.name = 'test'
         mod.model_avar_type = model_avar_type
         mod.model_ctrl_type = model_ctrl_type

@@ -555,9 +555,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 # We don't want to connect the middle Avar.
                 if avar_child == avar_middle:
                     continue
-                
-                if not self._need_to_connect_macro_avar(avar_child):
-                    continue
 
                 pos = avar_child.jnt.getTranslation(space='world')
 
@@ -580,14 +577,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(),
                                               self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
 
-    def _connect_avar_macro_l(self):
-        super(FaceLips, self)._connect_avar_macro_l()
+    def _connect_avar_macro_l(self, avar, child_avars):
+        super(FaceLips, self)._connect_avar_macro_l(avar, child_avars)
 
         # Connect the corner other avars
         avar_l_corner = self.get_avar_l_corner()
-        if avar_l_corner and self._need_to_connect_macro_avar(avar_l_corner):
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_ud, avar_l_corner.attr_ud)
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_l.attr_fb, avar_l_corner.attr_fb)
+        if avar_l_corner and avar_l_corner in child_avars:
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_ud, avar_l_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_lr, avar_l_corner.attr_lr)
 
     def _build_avar_macro_r(self):  # Create right avar if necessary
         ref = self.get_jnt_r_mid()
@@ -595,14 +592,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(),
                                               self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
 
-    def _connect_avar_macro_r(self):
-        super(FaceLips, self)._connect_avar_macro_r()
+    def _connect_avar_macro_r(self, avar, child_avars):
+        super(FaceLips, self)._connect_avar_macro_r(avar, child_avars)
 
         # Connect the corner other avars
         avar_r_corner = self.get_avar_r_corner()
-        if avar_r_corner and self._need_to_connect_macro_avar(avar_r_corner):
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_ud, avar_r_corner.attr_ud)
-            libRigging.connectAttr_withLinearDrivenKeys(self.avar_r.attr_fb, avar_r_corner.attr_fb)
+        if avar_r_corner and avar_r_corner in child_avars:
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_ud, avar_r_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_lr, avar_r_corner.attr_lr)
 
     @libPython.memoized_instancemethod
     def _get_mouth_width(self):

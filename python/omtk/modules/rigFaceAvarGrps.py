@@ -775,8 +775,10 @@ class AvarGrp(
         However with time it is normal than a rigger remove this connection or replace it with other type of connection.
         This call check if the avar is connected to at least another avar. If True, no connection is needed. 
         """
+
         def _is_obj_avar(obj):
             return obj.hasAttr('avar_lr')  # ugly but it work
+
         attr_holder = avar.grp_rig
         for hist in attr_holder.listHistory(future=False):
             if isinstance(hist, pymel.nodetypes.Transform) and hist != attr_holder and _is_obj_avar(hist):
@@ -1251,8 +1253,6 @@ class AvarGrpOnSurface(AvarGrp):
     def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True,
                                        connect_fb=True):
         for child_avar in avar_children:
-            if not self._need_to_connect_macro_avar(child_avar):
-                continue
             if connect_ud:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
             if connect_lr:
@@ -1270,8 +1270,6 @@ class AvarGrpOnSurface(AvarGrp):
     def _connect_avar_macro_vertical(self, avar_parent, avar_children, connect_ud=True, connect_lr=True,
                                      connect_fb=True):
         for child_avar in avar_children:
-            if not self._need_to_connect_macro_avar(child_avar):
-                continue
             if connect_ud:
                 libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
             if connect_lr:
@@ -1286,8 +1284,8 @@ class AvarGrpOnSurface(AvarGrp):
             self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(),
                                               self._CLS_CTRL_LFT, **kwargs)
 
-    def _connect_avar_macro_l(self):
-        self._connect_avar_macro_horizontal(self.avar_l, self.get_avars_micro_l())
+    def _connect_avar_macro_l(self, avar, child_avars):
+        self._connect_avar_macro_horizontal(avar, child_avars)
 
     def _build_avar_macro_r(self, **kwargs):
         # Create right avar if necessary
@@ -1296,8 +1294,8 @@ class AvarGrpOnSurface(AvarGrp):
             self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(),
                                               self._CLS_CTRL_RGT, **kwargs)
 
-    def _connect_avar_macro_r(self):
-        self._connect_avar_macro_horizontal(self.avar_r, self.get_avars_micro_r())
+    def _connect_avar_macro_r(self, avar, child_avars):
+        self._connect_avar_macro_horizontal(avar, child_avars)
 
     def _build_avar_macro_upp(self, **kwargs):
         # Create upp avar if necessary
@@ -1306,8 +1304,8 @@ class AvarGrpOnSurface(AvarGrp):
             self._build_avar_macro_vertical(self.avar_upp, self.get_avar_mid(), self.get_avars_micro_upp(),
                                             self._CLS_CTRL_UPP, **kwargs)
 
-    def _connect_avar_macro_upp(self):
-        self._connect_avar_macro_vertical(self.avar_upp, self.get_avars_micro_upp())
+    def _connect_avar_macro_upp(self, avar, child_avar):
+        self._connect_avar_macro_vertical(avar, child_avar)
 
     def _build_avar_macro_low(self, **kwargs):
         # Create low avar if necessary
@@ -1316,8 +1314,8 @@ class AvarGrpOnSurface(AvarGrp):
             self._build_avar_macro_vertical(self.avar_low, self.get_avar_mid(), self.get_avars_micro_low(),
                                             self._CLS_CTRL_LOW, **kwargs)
 
-    def _connect_avar_macro_low(self):
-        self._connect_avar_macro_vertical(self.avar_low, self.get_avars_micro_low())
+    def _connect_avar_macro_low(self, avar, child_avars):
+        self._connect_avar_macro_vertical(avar, child_avars)
 
     def _connect_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True):
         """
@@ -1525,6 +1523,8 @@ class AvarGrpOnSurface(AvarGrp):
             parent_rot = self.avar_all._grp_output
             parent_scl = self.avar_all.ctrl
 
+        unconnected_micro_avars = set(avar for avar in self.avars if self._need_to_connect_macro_avar(avar))
+
         if self.create_macro_horizontal:
             if self.avar_l:
                 self._create_avar_macro_l_ctrls(
@@ -1532,9 +1532,9 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
-                # if self._need_to_connect_macro_avar(self.avar_l):
-                #     self.info("Creating default connection for {0}".format(self.avar_l))
-                self._connect_avar_macro_l()
+                child_avar_l = set(self.get_avars_micro_l()) & unconnected_micro_avars
+                if child_avar_l:
+                    self._connect_avar_macro_l(self.avar_l, child_avar_l)
 
             if self.avar_r:
                 self._create_avar_macro_r_ctrls(
@@ -1542,9 +1542,8 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
-                # if self._need_to_connect_macro_avar(self.avar_r):
-                #     self.info("Creating default connection for {0}".format(self.avar_r))
-                self._connect_avar_macro_r()
+                child_avar_r = set(self.get_avars_micro_r()) & unconnected_micro_avars
+                self._connect_avar_macro_r(self.avar_r, child_avar_r)
 
         if self.create_macro_vertical:
             if self.avar_upp:
@@ -1553,9 +1552,8 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
-                # if self._need_to_connect_macro_avar(self.avar_upp):
-                #     self.info("Creating default connection for {0}".format(self.avar_upp))
-                self._connect_avar_macro_upp()
+                child_avar_upp = set(self.get_avars_micro_upp()) & unconnected_micro_avars
+                self._connect_avar_macro_upp(self.avar_upp, child_avar_upp)
 
             if self.avar_low:
                 self.create_avar_macro_low_ctrls(
@@ -1563,9 +1561,8 @@ class AvarGrpOnSurface(AvarGrp):
                     parent_scl=parent_scl,
                     **kwargs
                 )
-                # if self._need_to_connect_macro_avar(self.avar_low):
-                #     self.info("Creating default connection for {0}".format(self.avar_low))
-                self._connect_avar_macro_low()
+                child_avar_low = set(self.get_avars_micro_low()) & unconnected_micro_avars
+                self._connect_avar_macro_low(self.avar_low, child_avar_low)
 
         super(AvarGrpOnSurface, self)._create_avars_ctrls(parent_rot=parent_rot, parent_scl=parent_scl, **kwargs)
 

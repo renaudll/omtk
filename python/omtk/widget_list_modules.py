@@ -3,6 +3,8 @@ import functools
 import traceback
 import logging
 import collections
+import itertools
+import operator
 
 import pymel.core as pymel
 from ui import widget_list_modules
@@ -10,6 +12,7 @@ from ui import widget_list_modules
 from omtk import constants
 from omtk import ui_shared
 from omtk.libs import libQt
+from omtk.libs import libPython
 from omtk.core.classNode import Node
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classComponent import Component
@@ -58,9 +61,6 @@ def get_component_attribute_type(val):
     if isinstance(val, Component):
         return AttributeType.Component
     raise Exception("Cannot resolve Component attribute type for {0} {1}".format(type(val), val))
-
-
-
 
 
 class WidgetListModules(QtWidgets.QWidget):
@@ -208,6 +208,26 @@ class WidgetListModules(QtWidgets.QWidget):
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             can_show = fn_can_show(qt_item, query_regex)
             qt_item.setHidden(not can_show)
+
+    def _refresh_ui_enabled(self, val):
+        """
+        Used for drag and drop operation, this will change the 'enabled' value for all QTreeWidgetItem that can accept the new value.
+        :param val:
+        :return:
+        """
+        for item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
+            if item._meta_type == ui_shared.MetadataType.Attribute:
+                component_attr = item.metadata
+                if component_attr.validate(val):
+                    flags = item.flags()
+                    flags &= ~QtCore.Qt.ItemIsEnabled
+                    item.setFlags(flags)
+
+    def _reset_ui_enabled(self):
+        for item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
+            flags = item.flags()
+            flags |= QtCore.Qt.ItemIsEnabled
+            item.setFlags(flags)
 
     # Block signals need to be called in a function because if called in a signal, it will block it
     def _set_text_block(self, item, str):
@@ -425,23 +445,28 @@ class WidgetListModules(QtWidgets.QWidget):
             #     qSubItem = self._create_tree_widget_module(child)
             #     qItem.addChild(qSubItem)
 
-        keys = sorted(component.__dict__.keys())  # prevent error if dictionary change during iteration
-        for attr_name in keys:
-            attr = getattr(component, attr_name)
-            attr_type = get_component_attribute_type(attr)
-            if not self.can_show_component_attribute(attr_name, attr):
+        keys = list(component.iter_attributes())
+
+        # keys = sorted(component.__dict__.keys())  # prevent error if dictionary change during iteration
+        for attr in keys:
+            attr_name = attr.name
+            attr_val = attr.get()  # getattr(component, attr_name)
+            attr_type = get_component_attribute_type(attr_val)
+            if not self.can_show_component_attribute(attr_name, attr_val):
                 continue
 
             item_attr = QtWidgets.QTreeWidgetItem(0)
+            item_attr.metadata = attr
+            item_attr._meta_type = ui_shared.MetadataType.Attribute
             item_attr.setText(0, "{0}:".format(attr_name))
             item.addChild(item_attr)
 
             if attr_type == AttributeType.Iterable:
-                for sub_attr in attr:
+                for sub_attr in attr_val:
                     item_child = self._create_tree_widget_item_from_value(sub_attr)
                     item_attr.addChild(item_child)
             else:
-                item_child = self._create_tree_widget_item_from_value(attr)
+                item_child = self._create_tree_widget_item_from_value(attr_val)
                 item_attr.addChild(item_child)
 
             # Hack: Force expand 'modules' attribute. todo: rename with children.
@@ -454,6 +479,7 @@ class WidgetListModules(QtWidgets.QWidget):
         item = QtWidgets.QTreeWidgetItem(0)
         item.setText(0, pynode.name())
         item.metadata = pynode
+        item._meta_type = ui_shared.MetadataType.Influence  # todo: is this the correct type?
         ui_shared._set_icon_from_type(pynode, item)
         return item
 
@@ -494,6 +520,12 @@ class WidgetListModules(QtWidgets.QWidget):
         need_update = False
         new_state = item.checkState(0) == QtCore.Qt.Checked
         new_text = item.text(0)
+
+        # debug
+        if not hasattr(item, 'metadata'):
+            print '???', item.text(0)
+            return
+
         module = item.metadata
         if item._checked != new_state:
             item._checked = new_state
@@ -524,20 +556,21 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _iter_components_recursive(self, entity):
         """Recursively return all modules and submodules starting with provided entity."""
+        # todo: replace by Component.iter_sub_components_recursive?
         yield entity
         for sub_entity in entity.iter_sub_components():
             for sub_sub_entity in self._iter_components_recursive(sub_entity):
                 yield sub_sub_entity
 
-    def _get_actions(self, entities):
-        """Recursively scan for actions stored inside entities."""
-        result = collections.defaultdict(list)
-        for entity in entities:
-            for component in self._iter_components_recursive(entity):
-                for action in component.iter_actions():
-                    action_name = action.get_name()
-                    result[action_name].append(action)
-        return result
+    # def _get_actions(self, entities):
+    #     """Recursively scan for actions stored inside entities."""
+    #     result = collections.defaultdict(list)
+    #     for entity in entities:
+    #         for component in self._iter_components_recursive(entity):
+    #             for action in component.iter_actions():
+    #                 action_name = action.get_name()
+    #                 result[action_name].append(action)
+    #     return result
 
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
@@ -568,16 +601,59 @@ class WidgetListModules(QtWidgets.QWidget):
             actionRemove.triggered.connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
+            # todo: group actions by class name?
             components = self.get_selected_components()
-            actions_map = self._get_actions(components)
-            if actions_map:
-                menu.addSeparator()
-                for fn_name in sorted(actions_map.keys()):
-                    fn_nicename = fn_name.replace('_', ' ').title()
+            # actions_map = self._get_actions(components)
 
-                    fn_ = functools.partial(self._execute_rcmenu_entry, fn_name)
-                    action = menu.addAction(fn_nicename)
-                    action.triggered.connect(fn_)
+            actions_map = collections.defaultdict(list)
+            cache_component_class_level = {}
+
+            for entity in components:
+                for component in self._iter_components_recursive(entity):
+                    component_cls = component.__class__
+                    component_level = cache_component_class_level.get(component_cls)
+                    if component_level is None:
+                        component_level = libPython.get_class_parent_level(component_cls)
+                        cache_component_class_level[component_cls] = component_level
+                    for action in component.iter_actions():
+                        action_name = action.get_name()
+                        actions_map[(component_level, component_cls.__name__, action_name)].append(action)
+
+            if actions_map:
+                for cls_level, entries in itertools.groupby(actions_map.iteritems(), operator.itemgetter(0)):
+                    print 'class level is ', cls_level
+                    print 'entries is', list(entries)
+                    for cls_name, sub_entries in itertools.groupby(entries, operator.itemgetter(1)):
+                        print cls_name
+                        print list(sub_entries)
+                        for action_name, sub_sub_entries in itertools.groupby(sub_entries, operator.itemgetter(2)):
+                            _, _, _, actions = sub_sub_entries
+                            print action_name
+                            for action in actions:
+                                print action
+
+                                # we want to sort by:
+                                # (class_level, class_name, action_name, actions)
+
+                                #
+                                # data = collections.defaultdict(list)
+                                #
+                                # actions_by_class_name = collections.defaultdict(collections.defaultdict())
+                                # for action_name, actions in sorted(actions_map.iteritems()):
+                                #     for action in actions:
+                                #         cls_name == action.component.__class__.__name__
+                                #         actions_by_class_name[(cls_name, action_name)].append(action_fn)
+                                #
+                                # for cls_name
+                                #
+                                #
+                                # menu.addSeparator()
+                                # for fn_name in sorted(actions_map.keys()):
+                                #     fn_nicename = fn_name.replace('_', ' ').title()
+                                #
+                                #     fn_ = functools.partial(self._execute_rcmenu_entry, fn_name)
+                                #     action = menu.addAction(fn_nicename)
+                                #     action.triggered.connect(fn_)
 
             menu.exec_(QtGui.QCursor.pos())
 

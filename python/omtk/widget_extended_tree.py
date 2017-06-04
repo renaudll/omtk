@@ -1,5 +1,6 @@
 from omtk.vendor.Qt import QtCore, QtWidgets
 
+
 def _set_tree_widget_item_expanded_recursively(item, state):
     if item.isExpanded() != state:
         item.setExpanded(state)
@@ -9,11 +10,26 @@ def _set_tree_widget_item_expanded_recursively(item, state):
         _set_tree_widget_item_expanded_recursively(child, state)
 
 
-class WidgetComponentTree(QtWidgets.QTreeWidget):
+# todo: remove to ExtendedTreeWidget
+class WidgetExtendedTree(QtWidgets.QTreeWidget):
+    """
+    Customization on top of the standard QTreeWidget to match Maya behavior.
+    - Ctrl-click will recursively expand/collapse items.
+    - Implement drag signals.
+    """
+    # todo: ensure that events are bound per instances
+    dragEnter = QtCore.Signal(object)
+    dragLeave = QtCore.Signal(object)
+    dragDrop = QtCore.Signal(object)
+
+    # onDragMove = QtCore.Signal(object)
+
     def __init__(self, *args, **kwargs):
-        super(WidgetComponentTree, self).__init__(*args, **kwargs)
+        self._mime_data = None  # hack: prevent gc to destroy our mimeData during dragging...
+        super(WidgetExtendedTree, self).__init__(*args, **kwargs)
         self.itemExpanded.connect(self._on_item_expanded)
         self.itemCollapsed.connect(self._on_item_collapsed)
+        self.setAcceptDrops(True)
 
     def _on_item_expanded(self, item):
         """Recursively expand sub-items if the shift key is pressed."""
@@ -36,7 +52,37 @@ class WidgetComponentTree(QtWidgets.QTreeWidget):
         """Ensure right-clicking don't change the selection."""
         # todo: make it work or remove it!
         if event.button() == QtCore.Qt.RightButton:
-            super(WidgetComponentTree, self).mousePressEvent(event)
+            super(WidgetExtendedTree, self).mousePressEvent(event)
             self.customContextMenuRequested.emit(event.pos())
         else:
-            super(WidgetComponentTree, self).mousePressEvent(event)
+            super(WidgetExtendedTree, self).mousePressEvent(event)
+
+    # --- drag and drop support ---
+
+    def dropMimeData(self, parent, index, data, action):
+        print parent, index, data, action
+        return True
+
+    def dragEnterEvent(self, event):
+        event.accept()
+        self.dragEnter.emit(event)
+
+    def dragLeaveEvent(self, event):
+        super(WidgetExtendedTree, self).dragLeaveEvent(event)
+        self.dragLeave.emit(event)
+
+    def dragMoveEvent(self, event):
+        event.accept()
+
+    def dropEvent(self, event):
+        super(WidgetExtendedTree, self).dropEvent(event)
+        self.dragDrop.emit(event)
+
+    def mimeTypes(self):
+        return ['omtk-influences']
+
+    def mimeData(self, items):
+        print "WidgetExtendedTree::mimeData"
+        self._mimedata = QtCore.QMimeData()
+        self._mimedata.setData('omtk-influence', 'test')
+        return self._mimedata

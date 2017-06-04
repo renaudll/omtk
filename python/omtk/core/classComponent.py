@@ -68,3 +68,10 @@ class Component(object):
                 yield child
                 fringe.put(child)
 
+    def iter_attributes(self):
+        """
+        A component can contain attribute that are exposed in the GUI.
+        :yield: ComponentAttribute instances.
+        """
+        return
+        yield

@@ -37,8 +37,8 @@ def _reload(kill_ui=True):
         reload(ui_shared)
 
         # Dependency of widget_list_modules
-        import widget_component_tree
-        reload(widget_component_tree)
+        import widget_extended_tree
+        reload(widget_extended_tree)
 
         from ui import pluginmanager_window
         reload(pluginmanager_window)

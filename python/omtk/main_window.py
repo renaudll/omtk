@@ -8,6 +8,7 @@ import pymel.core as pymel
 from maya import OpenMaya
 from omtk.core import api
 from omtk.core import classModule
+from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.ui import main_window
@@ -74,9 +75,9 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_meshes.ui.treeWidget.setDragEnabled(True)
 
         # Connect widget signals
-        self.ui.widget_meshes.needImportNetwork.connect(self.import_networks)
-        self.ui.widget_meshes.needExportNetwork.connect(self.export_networks)
-        self.ui.widget_meshes.deletedRig.connect(self.on_rig_deleted)
+        # self.ui.widget_meshes.needImportNetwork.connect(self.import_networks)
+        # self.ui.widget_meshes.needExportNetwork.connect(self.export_networks)
+        # self.ui.widget_meshes.deletedRig.connect(self.on_rig_deleted)
 
         self.callbacks_events = []
         self.callbacks_scene = []
@@ -110,6 +111,26 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.statusbar.mousePressEvent = _status_bar_mouse_press_event
 
         self.update_status_bar()
+
+        # Connect events
+        # Note that currently we update the modules view when the drag enter it.
+        # However it would be more useful for the user to update it as soon as drag start.
+        # Sadly I didn't find a way to call on_influence_drag_drop if the drag end out-of-bound.
+        self.ui.widget_modules.ui.treeWidget.dragEnter.connect(self.on_influence_drag_enter)
+        self.ui.widget_modules.ui.treeWidget.dragLeave.connect(self.on_influence_drag_drop)
+        self.ui.widget_modules.ui.treeWidget.dragDrop.connect(self.on_influence_drag_drop)
+
+    def dragLeaveEvent(self, event):
+        self.on_influence_drag_drop()
+
+    def on_influence_drag_enter(self, event):
+        print "Influence drag enter!"
+        data = event.mimeData().data('omtk-influence')
+        self.ui.widget_modules._refresh_ui_enabled(data)
+
+    def on_influence_drag_drop(self):
+        print "Influence grag drop!"
+        self.ui.widget_modules._reset_ui_enabled()
 
     def on_welcome_rig_created(self):
         self.import_networks()

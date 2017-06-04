@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_list_modules.ui'
 #
-# Created: Thu May  4 21:52:01 2017
+# Created: Wed May 31 20:55:07 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -25,7 +25,7 @@ class Ui_Form(object):
         self.btn_update.setObjectName("btn_update")
         self.horizontalLayout.addWidget(self.btn_update)
         self.verticalLayout.addLayout(self.horizontalLayout)
-        self.treeWidget = WidgetComponentTree(Form)
+        self.treeWidget = WidgetExtendedTree(Form)
         self.treeWidget.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         self.treeWidget.setAutoFillBackground(True)
@@ -42,4 +42,4 @@ class Ui_Form(object):
         Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
         self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
 
-from ..widget_component_tree import WidgetComponentTree
+from ..widget_extended_tree import WidgetExtendedTree

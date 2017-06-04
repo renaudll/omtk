@@ -41,7 +41,7 @@
     </layout>
    </item>
    <item>
-    <widget class="WidgetComponentTree" name="treeWidget">
+    <widget class="WidgetExtendedTree" name="treeWidget">
      <property name="focusPolicy">
       <enum>Qt::StrongFocus</enum>
      </property>
@@ -68,9 +68,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>WidgetComponentTree</class>
+   <class>WidgetExtendedTree</class>
    <extends>QTreeWidget</extends>
-   <header>..widget_component_tree.h</header>
+   <header>..widget_extended_tree.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

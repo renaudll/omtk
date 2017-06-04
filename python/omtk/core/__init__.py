@@ -5,6 +5,7 @@ import os
 
 import classComponent
 import classComponentAction
+import classComponentAttribute
 import classCtrl
 import classModule
 import classModuleAvarLogic
@@ -37,6 +38,7 @@ def _reload():
     reload(classNomenclature)
     reload(classComponent)
     reload(classComponentAction)
+    reload(classComponentAttribute)
     reload(classNode)
     reload(classCtrl)
     reload(classModule)

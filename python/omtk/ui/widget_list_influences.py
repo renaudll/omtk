@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_list_influences.ui'
 #
-# Created: Thu May  4 21:52:01 2017
+# Created: Wed May 31 20:55:06 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -29,7 +29,7 @@ class Ui_Form(object):
         self.checkBox_hideAssigned.setChecked(True)
         self.checkBox_hideAssigned.setObjectName("checkBox_hideAssigned")
         self.verticalLayout.addWidget(self.checkBox_hideAssigned)
-        self.treeWidget = QtWidgets.QTreeWidget(Form)
+        self.treeWidget = WidgetExtendedTree(Form)
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeWidget.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.treeWidget.setObjectName("treeWidget")
@@ -45,3 +45,4 @@ class Ui_Form(object):
         self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
         self.checkBox_hideAssigned.setText(QtCompat.translate("Form", "Hide Assigned", None, -1))
 
+from ..widget_extended_tree import WidgetExtendedTree

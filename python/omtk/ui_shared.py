@@ -12,11 +12,11 @@ class MetadataType:
     """
     Used to quickly determine what metadata have been monkey-patched to a QWidget.
     """
-    Rig = 0
-    Module = 1
-    Influece = 2
-    Mesh = 3
-
+    Rig = 'omtk-rig'
+    Module = 'omtk-module'
+    Influence = 'omtk-influence'
+    Mesh = 'omtk-mesh'
+    Attribute = 'omtk-attribute'
 
 # http://forums.cgsociety.org/archive/index.php?t-1096914.html
 # Use the intern maya ressources icon

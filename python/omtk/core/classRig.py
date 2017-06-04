@@ -7,6 +7,8 @@ import pymel.core as pymel
 from omtk import constants
 from omtk.core.classComponent import Component
 from omtk.core.classComponentAction import ComponentAction
+from omtk.core.classComponentAttribute import ComponentAttributeTypedCollection
+from omtk.core.classModule import Module
 from omtk.core.classNode import Node
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core import classNomenclature
@@ -154,6 +156,9 @@ class Rig(Component):
         for module in self.modules:
             if isinstance(module, Component):
                 yield module
+
+    def iter_attributes(self):
+        yield ComponentAttributeTypedCollection(Module, 'children', self.modules)
 
     # --- Methods for logging
 

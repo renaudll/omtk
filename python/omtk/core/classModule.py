@@ -5,6 +5,7 @@ import pymel.core as pymel
 
 logging.basicConfig()
 from omtk.core.classComponent import Component
+from omtk.core.classComponentAttribute import ComponentAttributeTypedCollection
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
@@ -79,6 +80,9 @@ class Module(Component):
     def iter_sub_components(self):
         for child in self.iter_submodules():
             yield child
+
+    def iter_attributes(self):
+        yield ComponentAttributeTypedCollection(pymel.nodetypes.DagNode, 'inputs', self.input)
 
     # --- Methods for logging
 

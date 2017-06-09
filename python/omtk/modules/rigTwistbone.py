@@ -93,7 +93,7 @@ class Twistbone(Module):
         if num_twist:
             self.num_twist = num_twist
 
-        if create_bend:
+        if create_bend is not None:
             self.create_bend = create_bend
 
         super(Twistbone, self).build(create_grp_anm=self.create_bend, *args, **kwargs)

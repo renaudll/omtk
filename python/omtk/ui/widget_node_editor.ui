@@ -17,16 +17,16 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QToolButton" name="toolButton">
+      <widget class="QPushButton" name="pushButton">
        <property name="text">
-        <string>...</string>
+        <string>Add</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="toolButton_2">
+      <widget class="QPushButton" name="pushButton_2">
        <property name="text">
-        <string>...</string>
+        <string>Remove</string>
        </property>
       </widget>
      </item>
@@ -61,7 +61,7 @@
   <customwidget>
    <class>NodeEditorView</class>
    <extends>QWidget</extends>
-   <header>..widget_node_editor.h</header>
+   <header>..widget_node_editor_view.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

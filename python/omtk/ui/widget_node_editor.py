@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_node_editor.ui'
 #
-# Created: Fri Jun  9 22:52:48 2017
+# Created: Fri Jun  9 23:46:56 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,12 +17,12 @@ class Ui_Form(object):
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.toolButton = QtWidgets.QToolButton(Form)
-        self.toolButton.setObjectName("toolButton")
-        self.horizontalLayout.addWidget(self.toolButton)
-        self.toolButton_2 = QtWidgets.QToolButton(Form)
-        self.toolButton_2.setObjectName("toolButton_2")
-        self.horizontalLayout.addWidget(self.toolButton_2)
+        self.pushButton = QtWidgets.QPushButton(Form)
+        self.pushButton.setObjectName("pushButton")
+        self.horizontalLayout.addWidget(self.pushButton)
+        self.pushButton_2 = QtWidgets.QPushButton(Form)
+        self.pushButton_2.setObjectName("pushButton_2")
+        self.horizontalLayout.addWidget(self.pushButton_2)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -40,7 +40,7 @@ class Ui_Form(object):
 
     def retranslateUi(self, Form):
         Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.toolButton.setText(QtWidgets.QApplication.translate("Form", "...", None, -1))
-        self.toolButton_2.setText(QtWidgets.QApplication.translate("Form", "...", None, -1))
+        self.pushButton.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
+        self.pushButton_2.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
 
-from ..widget_node_editor import NodeEditorView
+from ..widget_node_editor_view import NodeEditorView

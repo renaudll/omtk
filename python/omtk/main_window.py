@@ -93,7 +93,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_welcome.onCreate.connect(self.on_welcome_rig_created)
 
         # Configure logger and status-bar
-        self.ui.dockWidget.hide()
+        self.ui.dockWidget_logger.hide()
         self.ui.widget_logger.onRecordAdded.connect(self.update_status_bar)
 
         # Hack: Skip subclassing QDockWidget to modify closeEvent
@@ -101,11 +101,11 @@ class AutoRig(QtWidgets.QMainWindow):
             self.update_status_bar(force_show=True)
             e.accept()
 
-        self.ui.dockWidget.closeEvent = _logger_close_event
+        self.ui.dockWidget_logger.closeEvent = _logger_close_event
 
         # Hack: Skip subclassing QStatusBar to modify mousePressEvent
         def _status_bar_mouse_press_event(e):
-            self.ui.dockWidget.show()
+            self.ui.dockWidget_logger.show()
             self.update_status_bar()
 
         self.ui.statusbar.mousePressEvent = _status_bar_mouse_press_event

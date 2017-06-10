@@ -69,8 +69,8 @@ def _reload(kill_ui=True):
         from ui import widget_welcome
         reload(widget_welcome)
 
-        from ui import main_window as ui_main_window
-        reload(ui_main_window)
+        from ui import widget_node_editor
+        reload(widget_node_editor)
 
         import model_rig_definitions
         reload(model_rig_definitions)
@@ -90,14 +90,17 @@ def _reload(kill_ui=True):
         import widget_welcome
         reload(widget_welcome)
 
-        from ui import main_window
-        reload(main_window)
-
         import preferences_window
         reload(preferences_window)
 
         import pluginmanager_window
         reload(pluginmanager_window)
+
+        import widget_node_editor
+        reload(widget_node_editor)
+
+        from ui import main_window as ui_main_window
+        reload(ui_main_window)
 
         import main_window
         reload(main_window)

@@ -1,11 +1,12 @@
 from maya import cmds
 import copy
-
+import abc
 
 # todo: make tokens, suffix, prefix and side private. Use getter and setter functions were necessary.
 # todo: in add_tokens, reconize what is a suffix and what is a prefix
 
 class Nomenclature(object):
+    __metaclass__ = abc.ABCMeta
     """
     This class handle the naming of object.
     Store a name as a list of 'tokens'
@@ -174,7 +175,7 @@ class Nomenclature(object):
         self.tokens = new_tokens
 
     def build_from_string(self, name):
-        raw_tokens = self._get_tokens(name)
+        raw_tokens = self.split(name)
         self.tokens = []
         # self.prefix = None
         # self.suffix = None
@@ -182,11 +183,19 @@ class Nomenclature(object):
 
         self.add_tokens(*raw_tokens)
 
-    def _get_tokens(self, val):
-        return val.split(self.separator)
+    @abc.abstractmethod  # please redefine it with @classmethod!
+    def split(cls, val):
+        """
+        Generate a list of tokens from a string.
+        We should be able to restore the origin string anytime using _joint.
+        :param val: A str instance.
+        :return: A list of str instances representing tokens.
+        """
+        raise NotImplementedError
 
-    def _join_tokens(self, tokens):
-        return self.separator.join(tokens)
+    @abc.abstractmethod  # please redefine it with @classmethod
+    def join(cls, tokens):
+        return cls.separator.join(tokens)
 
     def add_tokens(self, *args):
         for arg in args:
@@ -247,7 +256,7 @@ class Nomenclature(object):
         if self.suffix:
             tokens.append(self.suffix)
 
-        name = self._join_tokens(tokens)
+        name = self.join(tokens)
 
         # If we have name conflicts, we WILL want to crash.
         '''

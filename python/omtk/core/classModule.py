@@ -40,6 +40,7 @@ class Module(Component):
         :param args: TO REMOVE? #todo
         :param kwargs: TO REMOVE? #todo
         """
+        super(Module, self).__init__(name=name)
         # Safety check, ensure that the name is a string and not a Nomenclature instance passed by accident.
         if name and not isinstance(name, basestring):
             raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
@@ -72,8 +73,6 @@ class Module(Component):
             self.input = input
         else:
             self.input = []
-
-        self.name = name
 
     # --- Component methods
 

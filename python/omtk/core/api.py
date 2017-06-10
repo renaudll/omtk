@@ -3,9 +3,7 @@ import re
 import contextlib
 import logging
 
-import pymel.core as pymel
 from omtk.core import plugin_manager
-from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
@@ -97,6 +95,7 @@ def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
     """
+    import pymel.core as pymel
     from omtk.vendor import libSerialization
 
     rigs = find()
@@ -110,6 +109,7 @@ def build_all(strict=False):
 # @libPython.profiler
 @libPython.log_execution_time('unbuild_all')
 def unbuild_all(strict=False):
+    import pymel.core as pymel
     from omtk.vendor import libSerialization
 
     rigs = find()
@@ -144,6 +144,7 @@ def _iter_rig_modules_by_type(rig, module_type):
 
 
 def _get_modules_from_selection(sel=None):
+    import pymel.core as pymel
     from omtk.vendor import libSerialization
 
     def get_rig_network_from_module(network):
@@ -199,6 +200,9 @@ def _get_modules_from_selection(sel=None):
 
 @contextlib.contextmanager
 def with_preserve_selection():
+    import pymel.core as pymel
+    from omtk.libs import libPymel
+
     sel = pymel.selected()
     yield True
     sel = filter(libPymel.is_valid_PyNode, sel)
@@ -209,6 +213,8 @@ def with_preserve_selection():
 
 
 def build_selected(sel=None):
+    import pymel.core as pymel
+
     with with_preserve_selection():
         rig, modules = _get_modules_from_selection()
         if not rig or not modules:
@@ -227,6 +233,8 @@ def build_selected(sel=None):
 
 
 def build_modules_by_type(module_type):
+    import pymel.core as pymel
+
     for rig, modules in _iter_modules_by_type(module_type):
         modules = [module for module in modules if not module.is_built()]
         if not modules:
@@ -241,6 +249,7 @@ def build_modules_by_type(module_type):
 
 
 def unbuild_modules_by_type(module_type):
+    import pymel.core as pymel
     for rig, modules in _iter_modules_by_type(module_type):
         modules = [module for module in modules if module.is_built()]
         if not modules:
@@ -256,6 +265,8 @@ def unbuild_modules_by_type(module_type):
 
 
 def rebuild_modules_by_type(module_type):
+    import pymel.core as pymel
+
     for rig, modules in _iter_modules_by_type(module_type):
         modules = list(modules)
         if not modules:
@@ -274,6 +285,8 @@ def rebuild_modules_by_type(module_type):
 
 
 def unbuild_selected(sel=None):
+    import pymel.core as pymel
+
     from omtk.vendor import libSerialization
 
     with with_preserve_selection():
@@ -329,8 +342,9 @@ def _get_macro_by_name(macro_name):
 
 
 def run_macro(macro_name):
+
     macro = _get_macro_by_name(macro_name)
     if not macro:
-        pymel.warning("Cannot find macro with name {0}".format(macro_name))
+        log.warning("Cannot find macro with name {0}".format(macro_name))
         return
     macro.run()

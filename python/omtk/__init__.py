@@ -1,13 +1,21 @@
 import sys
 from .core import *
 import constants
-import pymel.core as pymel
 
-# HACK: Load matrixNodes.dll
-pymel.loadPlugin('matrixNodes', quiet=True)
+try:
+    from maya import cmds, mel
+    import pymel.core as pymel
+
+    # HACK: Load matrixNodes.dll
+    pymel.loadPlugin('matrixNodes', quiet=True)
+
+except ImportError:
+    pass
 
 
 def _reload(kill_ui=True):
+    import pymel.core as pymel
+
     """
     Reload all module in their respective order.
     """

@@ -3,17 +3,6 @@ import json
 import logging
 import os
 
-import classComponent
-import classComponentAction
-import classComponentAttribute
-import classCtrl
-import classModule
-import classModuleAvarLogic
-import classModuleCtrlLogic
-import classModuleMap
-import classNomenclature
-import classNode
-import classRig
 from api import *
 from . import plugin_manager
 
@@ -34,6 +23,18 @@ plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (
 
 
 def _reload():
+    import classComponent
+    import classComponentAction
+    import classComponentAttribute
+    import classCtrl
+    import classModule
+    import classModuleAvarLogic
+    import classModuleCtrlLogic
+    import classModuleMap
+    import classNomenclature
+    import classNode
+    import classRig
+
     reload(api)  # this won't reload functions imported in the main module. Use api directly if you are debugging it.
     reload(classNomenclature)
     reload(classComponent)

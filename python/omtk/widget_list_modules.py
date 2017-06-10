@@ -144,14 +144,14 @@ class WidgetListModules(QtWidgets.QWidget):
         Return the Module instances stored in each selected rows.
         :return: A list of Module instances.
         """
-        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Module]
+        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Module]
 
     def get_selected_rigs(self):
         """
         Return the Rig instances stored in each selected rows.
         :return: A list of Rig instances.
         """
-        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Rig]
+        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Rig]
 
     def get_selected_components(self):
         """
@@ -216,7 +216,7 @@ class WidgetListModules(QtWidgets.QWidget):
         :return:
         """
         for item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
-            if item._meta_type == ui_shared.MetadataType.Attribute:
+            if item._meta_type == ui_shared.MimeTypes.Attribute:
                 component_attr = item.metadata
                 if component_attr.validate(val):
                     flags = item.flags()
@@ -354,7 +354,7 @@ class WidgetListModules(QtWidgets.QWidget):
         flags = qitem.flags() | QtCore.Qt.ItemIsEditable
         qitem.setFlags(flags)
         qitem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
-        qitem._meta_type = ui_shared.MetadataType.Module
+        qitem._meta_type = ui_shared.MimeTypes.Module
 
     def _update_qitem_rig(self, qitem, rig):
         label = str(rig)
@@ -367,7 +367,7 @@ class WidgetListModules(QtWidgets.QWidget):
         qitem.setFlags(flags)
         qitem.setCheckState(0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked)
 
-        qitem._meta_type = ui_shared.MetadataType.Rig
+        qitem._meta_type = ui_shared.MimeTypes.Rig
         qitem.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
     # def _create_tree_widget_item(self, val):
@@ -457,7 +457,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
             item_attr = QtWidgets.QTreeWidgetItem(0)
             item_attr.metadata = attr
-            item_attr._meta_type = ui_shared.MetadataType.Attribute
+            item_attr._meta_type = ui_shared.MimeTypes.Attribute
             item_attr.setText(0, "{0}:".format(attr_name))
             item.addChild(item_attr)
 
@@ -479,7 +479,7 @@ class WidgetListModules(QtWidgets.QWidget):
         item = QtWidgets.QTreeWidgetItem(0)
         item.setText(0, pynode.name())
         item.metadata = pynode
-        item._meta_type = ui_shared.MetadataType.Influence  # todo: is this the correct type?
+        item._meta_type = ui_shared.MimeTypes.Influence  # todo: is this the correct type?
         ui_shared._set_icon_from_type(pynode, item)
         return item
 

@@ -67,7 +67,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
         qt_parent.addChild(item_mesh)
 
         # Monkey-patch mesh QWidget
-        item_mesh.metadata_type = ui_shared.MetadataType.Mesh
+        item_mesh.metadata_type = ui_shared.MimeTypes.Mesh
         item_mesh.metadata_data = mesh
 
         # Add influences
@@ -80,7 +80,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
                 item_mesh.addChild(item)
 
                 # Monkey-patch influence QWidget
-                item.metadata_type = ui_shared.MetadataType.Influence
+                item.metadata_type = ui_shared.MimeTypes.Influence
                 item.metadata_data = influence
 
     def update_list_visibility(self, query_regex=None):
@@ -89,7 +89,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
-            if qItem.metadata_type == ui_shared.MetadataType.Influence:  # Always show influences
+            if qItem.metadata_type == ui_shared.MimeTypes.Influence:  # Always show influences
                 return True
 
             return not query_regex or re.match(query_regex, qItem.text(0), re.IGNORECASE)

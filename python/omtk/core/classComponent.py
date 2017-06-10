@@ -9,8 +9,12 @@ Similar to a Node, a Component have public input attributes, publish outputs att
 import abc
 import Queue as queue
 
+
 class Component(object):
     __metaclass__ = abc.ABCMeta
+
+    def __init__(self, name):
+        self.name = name
 
     @abc.abstractmethod
     def build(self):

@@ -69,7 +69,7 @@ class SqueezeNomenclature(classNomenclature.Nomenclature):
             new_tokens.append(new_token)
 
         # tokens = [token.title() for token in tokens]
-        return super(SqueezeNomenclature, self)._join_tokens(new_tokens)
+        return super(SqueezeNomenclature, self).join(new_tokens)
 
 
 class RigSqueeze(classRig.Rig):

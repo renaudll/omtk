@@ -6,17 +6,17 @@ from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui
 
 
-
 # todo: Move to a shared location
-class MetadataType:
+class MimeTypes:
     """
     Used to quickly determine what metadata have been monkey-patched to a QWidget.
     """
-    Rig = 'omtk-rig'
-    Module = 'omtk-module'
-    Influence = 'omtk-influence'
-    Mesh = 'omtk-mesh'
-    Attribute = 'omtk-attribute'
+    Rig = 'omtk/rig'
+    Module = 'omtk/module'
+    Influence = 'omtk/influence'
+    Mesh = 'omtk/mesh'
+    Attribute = 'omtk/attribute'
+
 
 # http://forums.cgsociety.org/archive/index.php?t-1096914.html
 # Use the intern maya ressources icon

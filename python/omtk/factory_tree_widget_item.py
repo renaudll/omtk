@@ -27,11 +27,24 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
         pass
 
 
-class TreeWidgetItemRig(TreeWidgetItemEx):
+class TreeWidgetItemComponent(TreeWidgetItemEx):
+    def update_(self):
+        self.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
+
+        # Store the source network in metadata
+        if hasattr(self._meta_data, '_network'):
+            self.net = self._meta_data._network
+        else:
+            log.warning("{0} have no _network attributes".format(self._meta_data))
+
+
+class TreeWidgetItemRig(TreeWidgetItemComponent):
     def __init__(self, parent, meta_data):
         super(TreeWidgetItemRig, self).__init__(parent, ui_shared.MimeTypes.Rig, meta_data)
 
     def update_(self):
+        super(TreeWidgetItemRig, self).update_()
+
         rig = self._meta_data
         label = str(rig)
 
@@ -44,14 +57,15 @@ class TreeWidgetItemRig(TreeWidgetItemEx):
         self.setCheckState(0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked)
 
         self._meta_type = ui_shared.MimeTypes.Rig
-        self.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
 
-class TreeWidgetItemModule(TreeWidgetItemEx):
+class TreeWidgetItemModule(TreeWidgetItemComponent):
     def __init__(self, parent, meta_data):
         super(TreeWidgetItemModule, self).__init__(parent, ui_shared.MimeTypes.Module, meta_data)
 
-    def udpate_(self):
+    def update_(self):
+        super(TreeWidgetItemModule, self).update_()
+
         module = self._meta_data
         label = str(module)
         # Add inputs namespace if any for clarity.
@@ -82,13 +96,13 @@ class TreeWidgetItemModule(TreeWidgetItemEx):
                     module.warning(warning_msg)
         else:
             # Set QTreeWidgetItem red if the module fail validation
-            can_build, validation_message = self._can_build(module, verbose=True)
-            if not can_build:
-                desired_color = self._color_invalid
-                msg = 'Validation failed for {0}: {1}'.format(module, validation_message)
+            try:
+                module.validate()
+            except Exception, e:
+                msg = 'Validation failed for {0}: {1}'.format(module, e)
                 log.warning(msg)
                 self.setToolTip(0, msg)
-                self.setBackground(0, desired_color)
+                self.setBackground(0, self._color_invalid)
 
         self.setText(0, label)
         self._name = self.text(0)
@@ -101,7 +115,11 @@ class TreeWidgetItemModule(TreeWidgetItemEx):
 
 def get_tree_item(value, known_data_id=None):
     value_type = get_component_attribute_type(value)
-    if value_type == AttributeType.Component:
+    if value_type in (
+            AttributeType.Component,
+            AttributeType.Module,
+            AttributeType.Rig
+    ):
         return _get_item_from_component(value, known_data_id=known_data_id)
     if value_type == AttributeType.Node or value_type == AttributeType.Ctrl:
         return _create_tree_widget_item_from_pynode(value)
@@ -113,17 +131,15 @@ def _get_item_from_component(component, known_data_id=None):
     if known_data_id is None:
         known_data_id = set()
 
-    item = QtWidgets.QTreeWidgetItem(0)
-    item.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
-
-    # Store the source network in metadata
-    if hasattr(component, '_network'):
-        item.net = component._network
+    from omtk import factory_datatypes
+    meta_data = factory_datatypes.get_component_attribute_type(component)
+    if meta_data == factory_datatypes.AttributeType.Module:
+        item = TreeWidgetItemModule(0, component)
+    elif meta_data == factory_datatypes.AttributeType.Rig:
+        item = TreeWidgetItemRig(0, component)
     else:
-        log.warning("{0} have no _network attributes".format(component))
-
-    # Store the component in metadata
-    item.metadata = component
+        item = QtWidgets.QTreeWidgetItem(0)
+    # item.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
 
     keys = list(component.iter_attributes())
 
@@ -136,7 +152,7 @@ def _get_item_from_component(component, known_data_id=None):
             continue
 
         item_attr = QtWidgets.QTreeWidgetItem(0)
-        item_attr.metadata = attr
+        item_attr._meta_data = attr
         item_attr._meta_type = ui_shared.MimeTypes.Attribute
         item_attr.setText(0, "{0}:".format(attr_name))
         item.addChild(item_attr)
@@ -171,7 +187,9 @@ def can_show_component_attribute(attr_name, attr_value, known_data_id):
             AttributeType.Iterable,
             AttributeType.Node,
             AttributeType.Attribute,
-            AttributeType.Component
+            AttributeType.Component,
+            AttributeType.Module,
+            AttributeType.Rig
     ):
         return False
 
@@ -195,7 +213,7 @@ def can_show_component_attribute(attr_name, attr_value, known_data_id):
 def _create_tree_widget_item_from_pynode(pynode):
     item = QtWidgets.QTreeWidgetItem(0)
     item.setText(0, pynode.name())
-    item.metadata = pynode
+    item._meta_data = pynode
     item._meta_type = ui_shared.MimeTypes.Influence  # todo: is this the correct type?
     ui_shared._set_icon_from_type(pynode, item)
     return item

@@ -68,17 +68,17 @@ class WidgetListInfluences(QtWidgets.QWidget):
             textBrush = QtGui.QBrush(QtCore.Qt.white)
 
             if self._is_influence(obj):  # todo: listen to the Rig class
-                qItem = QtWidgets.QTreeWidgetItem(0)
-                qItem.obj = obj
-                qItem.networks = networks
-                qItem.setText(0, obj_name)
-                qItem.setForeground(0, textBrush)
-                ui_shared._set_icon_from_type(obj, qItem)
-                qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
-                if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
-                    qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
-                qt_parent.addChild(qItem)
-                qt_parent = qItem
+                item = QtWidgets.QTreeWidgetItem(0)
+                item._meta_data = obj
+                item.networks = networks
+                item.setText(0, obj_name)
+                item.setForeground(0, textBrush)
+                ui_shared._set_icon_from_type(obj, item)
+                item.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
+                if item.flags() & QtCore.Qt.ItemIsUserCheckable:
+                    item.setFlags(item.flags() ^ QtCore.Qt.ItemIsUserCheckable)
+                qt_parent.addChild(item)
+                qt_parent = item
 
         for child_data in data.children:
             self._fill_widget_influences(qt_parent, child_data)
@@ -118,7 +118,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui.treeWidget.expandAll()
 
     def _can_show_QTreeWidgetItem(self, qItem, query_regex):
-        obj = qItem.obj  # Retrieve monkey-patched data
+        obj = qItem._meta_data  # Retrieve monkey-patched data
         obj_name = obj.name()
         # print obj_name
 

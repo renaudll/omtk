@@ -1,15 +1,16 @@
 from omtk.core.classComponent import Component
-from omtk.vendor.Qt import QtGui
+from omtk.vendor.Qt import QtCore, QtGui
 from omtk import factory_datatypes
-from pyflowgraph.graph_view import GraphView as PyFlowgraphView
-from pyflowgraph.node import Node as PyFlowgraphNode
-from pyflowgraph.port import InputPort as PyFlowgraphInputPort
-from pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
+from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
+from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
+from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
+from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
 
 from omtk.core.classComponentAttribute import ComponentAttribute
 
 __all__ = (
     'get_node',
+    'arrange_upstream'
 )
 
 
@@ -33,7 +34,11 @@ class TestComponent(Component):
 def get_node(graph, val):
     # type: (PyFlowgraphView, object) -> PyFlowgraphNode
     datatype = factory_datatypes.get_component_attribute_type(val)
-    if datatype == factory_datatypes.AttributeType.Component:
+    if datatype in (
+            factory_datatypes.AttributeType.Component,
+            factory_datatypes.AttributeType.Module,
+            factory_datatypes.AttributeType.Rig
+    ):
         return _get_pyflowgraph_node_from_component(graph, val)
     elif datatype == factory_datatypes.AttributeType.Node:
         return _get_pyflowgraph_node_from_pynode(graph, val)
@@ -83,3 +88,33 @@ def _get_pyflowgraph_node_from_component(graph, component):
     # node.addPort(port)
 
     return node
+
+
+def arrange_upstream(node, padding_horizontal=220, padding_vertical=100):
+    # type: (PyFlowgraphView, PyFlowgraphNode) -> None
+    known_nodes = set()
+    ref_pos = node.getGraphPos()
+
+    # Resolve connected nodes
+    connected_nodes = []
+    for port in node.iter_input_ports():
+        connections = port.inCircle().getConnections()
+        for connection in connections:
+            src = connection.getSrcPort()
+            dst = connection.getDstPort()
+
+            connected_node = src.getNode()
+
+            # Ignore known nodes
+            if connected_node in known_nodes:
+                continue
+            known_nodes.add(connected_node)
+            connected_nodes.append(connected_node)
+
+    num_connection_nodes = len(connected_nodes)
+    for i, connected_node in enumerate(connected_nodes):
+        pos = ref_pos + QtCore.QPointF(
+            - padding_horizontal,
+            - (padding_vertical * (num_connection_nodes-1)/2.0) + (padding_vertical * i)
+        )
+        connected_node.setGraphPos(pos)

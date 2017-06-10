@@ -9,4 +9,14 @@ class WidgetNodeEditor(QtWidgets.QWidget):
         self.ui = widget_node_editor.Ui_Form()
         self.ui.setupUi(self)
 
+        self.ui.pushButton.pressed.connect(self.on_add)
+        self.ui.pushButton_2.pressed.connect(self.on_del)
+
+    def on_add(self):
+        raise NotImplementedError
+
+    def on_del(self):
+        graph = self.ui.widget
+        graph.deleteSelectedNodes()
+
 # from pyflowgraph.graph_view import GraphView as WidgetNodeEditor

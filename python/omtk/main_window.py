@@ -125,13 +125,13 @@ class AutoRig(QtWidgets.QMainWindow):
 
 
         # Some fun with pyflowgraph
-        from . import factory_pyflowgraph_node
-        graph = self.ui.widget_node_editor.ui.widget
-        for root in self.roots:
-            for sub_component in root.iter_sub_components():
-                node = factory_pyflowgraph_node._get_pyflowgraph_node_from_component(graph, sub_component)
-                graph.addNode(node)
-                break
+        # from . import factory_pyflowgraph_node
+        # graph = self.ui.widget_node_editor.ui.widget
+        # for root in self.roots:
+        #     for sub_component in root.iter_sub_components():
+        #         node = factory_pyflowgraph_node._get_pyflowgraph_node_from_component(graph, sub_component)
+        #         graph.addNode(node)
+        #         break
 
     def dragLeaveEvent(self, event):
         self.on_influence_drag_drop()

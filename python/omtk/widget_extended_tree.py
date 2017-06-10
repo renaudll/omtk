@@ -1,6 +1,7 @@
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor import libSerialization
 
+
 def _set_tree_widget_item_expanded_recursively(item, state):
     if item.isExpanded() != state:
         item.setExpanded(state)
@@ -84,7 +85,7 @@ class WidgetExtendedTree(QtWidgets.QTreeWidget):
     def mimeData(self, items):
         print "WidgetExtendedTree::mimeData"
         # todo: generic class for our custom TreeWidgetItem?
-        text = ','.join([str(id(item.obj)) for item in items])
+        text = ','.join([str(id(item._meta_data)) for item in items])
         self._mimedata = QtCore.QMimeData()
         self._mimedata.setData('omtk', text)
         return self._mimedata

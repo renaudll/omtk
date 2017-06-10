@@ -6,6 +6,8 @@ import collections
 from omtk.core.classComponent import Component
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
+from omtk.core.classModule import Module
+from omtk.core.classRig import Rig
 from pymel import core as pymel
 
 
@@ -17,6 +19,8 @@ class AttributeType:
     Ctrl = 4
     Attribute = 5
     Component = 6
+    Module = 7
+    Rig = 8
 
 
 def get_component_attribute_type(val):
@@ -43,6 +47,10 @@ def get_component_attribute_type(val):
         return AttributeType.Node
     if isinstance(val, pymel.Attribute):
         return AttributeType.Attribute
+    if isinstance(val, Module):
+        return AttributeType.Module
+    if isinstance(val, Rig):
+        return AttributeType.Rig
     if isinstance(val, Component):
         return AttributeType.Component
     raise Exception("Cannot resolve Component attribute type for {0} {1}".format(type(val), val))

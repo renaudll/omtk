@@ -9,6 +9,9 @@ Similar to a Node, a Component have public input attributes, publish outputs att
 import abc
 import Queue as queue
 
+from omtk import constants
+from omtk.core.classComponentAction import ComponentAction
+
 
 class Component(object):
     __metaclass__ = abc.ABCMeta
@@ -44,8 +47,9 @@ class Component(object):
         Return the available actions for this compound instance.
         :yield: CompoundAction class instances.
         """
-        return
-        yield
+        yield ActionBuild(self)
+        yield ActionUnbuild(self)
+        yield ActionRebuild(self)
 
     def iter_sub_components(self):
         """
@@ -79,3 +83,48 @@ class Component(object):
         """
         return
         yield
+
+
+class ActionBuild(ComponentAction):
+    def get_name(self):
+        return 'Build'
+
+    def can_execute(self):
+        return not self.component.is_built()
+
+    def execute(self):
+        self.component.build()
+
+    def iter_flags(self):
+        for flag in super(ActionBuild, self).iter_flags():
+            yield flag
+        yield constants.ComponentActionFlags.trigger_network_export
+
+
+class ActionUnbuild(ComponentAction):
+    def get_name(self):
+        return 'Unbuild'
+
+    def can_execute(self):
+        return self.component.is_built()
+
+    def execute(self):
+        self.component.unbuild()
+
+    def iter_flags(self):
+        for flag in super(ActionUnbuild, self).iter_flags():
+            yield flag
+        yield constants.ComponentActionFlags.trigger_network_export
+
+
+class ActionRebuild(ComponentAction):
+    def get_name(self):
+        return 'Rebuild'
+
+    def execute(self):
+        self.component.unbuild()
+
+    def iter_flags(self):
+        for flag in super(ActionRebuild, self).iter_flags():
+            yield flag
+        yield constants.ComponentActionFlags.trigger_network_export

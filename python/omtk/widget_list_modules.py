@@ -18,49 +18,11 @@ from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classComponent import Component
 from omtk.core import classModule
 from omtk.core import classRig
+from omtk import factory_tree_widget_item
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 log = logging.getLogger('omtk')
-
-
-class AttributeType:
-    Basic = 0
-    Iterable = 1
-    Dictionary = 2
-    Node = 3
-    Ctrl = 4
-    Attribute = 5
-    Component = 6
-
-
-def get_component_attribute_type(val):
-    if val is None or isinstance(val, (
-            bool,
-            int,
-            float,
-            long,
-            basestring,
-            type,
-            pymel.util.enum.EnumValue,
-            pymel.datatypes.Vector,
-            pymel.datatypes.Point,
-            pymel.datatypes.Matrix
-    )):
-        return AttributeType.Basic
-    if isinstance(val, (list, set, tuple)):
-        return AttributeType.Iterable
-    if isinstance(val, (dict, collections.defaultdict)):
-        return AttributeType.Dictionary
-    if isinstance(val, BaseCtrl):
-        return AttributeType.Ctrl
-    if isinstance(val, (pymel.PyNode, Node)):
-        return AttributeType.Node
-    if isinstance(val, pymel.Attribute):
-        return AttributeType.Attribute
-    if isinstance(val, Component):
-        return AttributeType.Component
-    raise Exception("Cannot resolve Component attribute type for {0} {1}".format(type(val), val))
 
 
 class WidgetListModules(QtWidgets.QWidget):
@@ -99,6 +61,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.itemChanged.connect(self.on_module_changed)
         self.ui.treeWidget.itemDoubleClicked.connect(self.on_module_double_clicked)
         self.ui.treeWidget.focusInEvent = self.focus_in_module
+        self.ui.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.ui.treeWidget.customContextMenuRequested.connect(self.on_context_menu_request)
         self.ui.btn_update.pressed.connect(self.update)
 
@@ -120,7 +83,7 @@ class WidgetListModules(QtWidgets.QWidget):
         for item in self.get_selected_items():
             if not hasattr(item, 'metadata'):
                 continue
-            metadata = item.metadata
+            metadata = item._meta_data
 
             if isinstance(metadata, Node):
                 result.append(metadata)
@@ -137,38 +100,40 @@ class WidgetListModules(QtWidgets.QWidget):
         Return the metadata stored in each selected row. Whatever the metadata type (can be Rig or Module).
         :return: A list of object instances.
         """
-        return [item.metadata for item in self.get_selected_items()]
+        return [item._meta_data for item in self.get_selected_items()]
 
     def get_selected_modules(self):
         """
         Return the Module instances stored in each selected rows.
         :return: A list of Module instances.
         """
-        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Module]
+        return [item._meta_data for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Module]
 
     def get_selected_rigs(self):
         """
         Return the Rig instances stored in each selected rows.
         :return: A list of Rig instances.
         """
-        return [item.metadata for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Rig]
+        return [item._meta_data for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Rig]
 
     def get_selected_components(self):
         """
         Return the Component instance stored in each selected rows.
         :return: A list of Component instances.
         """
-        return [item.metadata for item in self.get_selected_items() if isinstance(item.metadata, Component)]
+        return [item._meta_data for item in self.get_selected_items() if isinstance(item._meta_data, Component)]
 
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
         if not self._rigs:
             return
 
-        self._known_data_ids = set()
+        # self._known_data_ids = set()
+
         for root in self._rigs:
-            self._known_data_ids.add(id(root))
-            item = self._create_tree_widget_item_from_component(root)
+            # self._known_data_ids.add(id(root))
+            # item = self._create_tree_widget_item_from_component(root)
+            item = factory_tree_widget_item.get_tree_item(root)
             # qItem = self._rig_to_tree_widget(root)
             self.ui.treeWidget.addTopLevelItem(item)
             self.ui.treeWidget.expandItem(item)
@@ -183,7 +148,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.blockSignals(True)
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             if hasattr(qt_item, "rig"):
-                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item.metadata.is_built() else QtCore.Qt.Unchecked)
+                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item._meta_data.is_built() else QtCore.Qt.Unchecked)
         self.ui.treeWidget.blockSignals(False)
 
     def _refresh_ui_modules_visibility(self, query_regex=None):
@@ -195,10 +160,10 @@ class WidgetListModules(QtWidgets.QWidget):
             # Always shows non-module
             if not hasattr(qItem, 'rig'):
                 return True
-            if not isinstance(qItem.metadata, classModule.Module):
+            if not isinstance(qItem._meta_data, classModule.Module):
                 return True
 
-            module = qItem.metadata  # Retrieve monkey-patched data
+            module = qItem._meta_data  # Retrieve monkey-patched data
             module_name = str(module)
 
             return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
@@ -217,7 +182,7 @@ class WidgetListModules(QtWidgets.QWidget):
         """
         for item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             if item._meta_type == ui_shared.MimeTypes.Attribute:
-                component_attr = item.metadata
+                component_attr = item._meta_data
                 if component_attr.validate(val):
                     flags = item.flags()
                     flags &= ~QtCore.Qt.ItemIsEnabled
@@ -235,22 +200,6 @@ class WidgetListModules(QtWidgets.QWidget):
         if hasattr(item, "rig"):
             item.setText(0, str)
         self.ui.treeWidget.blockSignals(False)
-
-    def _can_build(self, data, verbose=True):
-        validate_message = None
-        try:
-            if isinstance(data, classRig.Rig):
-                data.validate()
-            elif isinstance(data, classModule.Module):
-                data.validate()
-            else:
-                raise Exception("Unexpected datatype {0} for {1}".format(type(data), data))
-        except Exception, e:
-            if verbose:
-                validate_message = str(e)
-                pymel.warning("{0} failed validation: {1}".format(data, str(e)))
-            return False, validate_message
-        return True, validate_message
 
     def _build_module(self, module):
         if module.locked:
@@ -308,181 +257,6 @@ class WidgetListModules(QtWidgets.QWidget):
         if update:
             self.update()
 
-    def _update_qitem_module(self, qitem, module):
-        label = str(module)
-
-        # Add inputs namespace if any for clarity.
-        module_namespace = module.get_inputs_namespace()
-        if module_namespace:
-            label = '{0}:{1}'.format(module_namespace.strip(':'), label)
-
-        if module.locked:
-            qitem.setBackground(0, self._color_locked)
-            label += ' (locked)'
-        elif module.is_built():
-            version_major, version_minor, version_patch = module.get_version()
-            if version_major is not None and version_minor is not None and version_patch is not None:
-                warning_msg = ''
-                try:
-                    module.validate_version(version_major, version_minor, version_patch)
-                except Exception, e:
-                    warning_msg = 'v{}.{}.{} is known to have issues and need to be updated: {}'.format(
-                        version_major, version_minor, version_patch,
-                        str(e)
-                    )
-
-                if warning_msg:
-                    desired_color = self._color_warning
-                    qitem.setToolTip(0, warning_msg)
-                    qitem.setBackground(0, desired_color)
-                    label += ' (problematic)'
-                    module.warning(warning_msg)
-        else:
-            # Set QTreeWidgetItem red if the module fail validation
-            can_build, validation_message = self._can_build(module, verbose=True)
-            if not can_build:
-                desired_color = self._color_invalid
-                msg = 'Validation failed for {0}: {1}'.format(module, validation_message)
-                log.warning(msg)
-                qitem.setToolTip(0, msg)
-                qitem.setBackground(0, desired_color)
-
-        qitem.setText(0, label)
-        qitem._name = qitem.text(0)
-        qitem._checked = module.is_built()
-
-        flags = qitem.flags() | QtCore.Qt.ItemIsEditable
-        qitem.setFlags(flags)
-        qitem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
-        qitem._meta_type = ui_shared.MimeTypes.Module
-
-    def _update_qitem_rig(self, qitem, rig):
-        label = str(rig)
-
-        qitem.setText(0, label)
-        qitem._name = qitem.text(0)
-        qitem._checked = rig.is_built()
-
-        flags = qitem.flags() | QtCore.Qt.ItemIsEditable
-        qitem.setFlags(flags)
-        qitem.setCheckState(0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked)
-
-        qitem._meta_type = ui_shared.MimeTypes.Rig
-        qitem.setIcon(0, QtGui.QIcon(":/out_character.png"))
-
-    # def _create_tree_widget_item(self, val):
-    #     item = QtWidgets.QTreeWidgetItem(0)
-    #     if isinstance(val, Component):
-    #         item.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
-    #
-    #         # todo: validate this is necessary?
-    #         if hasattr(val, '_network'):
-    #             item.net = module._network
-
-    # def can_show_component_attribute(self, attr_name, attr_value):
-    #     # Hack: Blacklist some attr name (for now)
-    #     if attr_name in ('grp_anm', 'grp_rig'):
-    #         return False
-    #
-    #     # Validate name (private attribute should not be visible)
-    #     if next(iter(attr_name), None) == '_':
-    #         return False
-    #
-    #     # Validate type
-    #     attr_type = get_component_attribute_type(attr_value)
-    #     if not attr_type in (
-    #             AttributeType.Iterable,
-    #             AttributeType.Node,
-    #             AttributeType.Attribute,
-    #             AttributeType.Component
-    #     ):
-    #         return False
-    #
-    #     # Do not show non-dagnodes.
-    #     if isinstance(attr_value, pymel.PyNode) and not isinstance(attr_value, pymel.nodetypes.DagNode):
-    #         return False
-    #
-    #     # Ignore empty collections
-    #     if attr_type == AttributeType.Iterable and not attr_value:
-    #         return False
-    #
-    #     # Prevent cyclic dependency, we only show something the first time we encounter it.
-    #     data_id = id(attr_value)
-    #     if data_id in self._known_data_ids:
-    #         return False
-    #     self._known_data_ids.add(data_id)
-    #
-    #     return True
-
-    # def _create_tree_widget_item_from_value(self, value):
-    #     value_type = get_component_attribute_type(value)
-    #     if value_type == AttributeType.Component:
-    #         return self._create_tree_widget_item_from_component(value)
-    #     if value_type == AttributeType.Node or value_type == AttributeType.Ctrl:
-    #         return self._create_tree_widget_item_from_pynode(value)
-    #     raise Exception("Unsupported value type {0} for {1}".format(value_type, value))
-    #
-    # def _create_tree_widget_item_from_component(self, component):
-    #     item = QtWidgets.QTreeWidgetItem(0)
-    #     item.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
-    #
-    #     # Store the source network in metadata
-    #     if hasattr(component, '_network'):
-    #         item.net = component._network
-    #     else:
-    #         log.warning("{0} have no _network attributes".format(component))
-    #
-    #     # Store the component in metadata
-    #     item.metadata = component
-    #
-    #     # todo: cleanup
-    #     if isinstance(component, classModule.Module):
-    #         self._update_qitem_module(item, component)
-    #     elif isinstance(component, classRig.Rig):
-    #         self._update_qitem_rig(item, component)
-    #         # sorted_modules = sorted(module, key=lambda mod: mod.name)
-    #         # for child in sorted_modules:
-    #         #     qSubItem = self._create_tree_widget_module(child)
-    #         #     qItem.addChild(qSubItem)
-    #
-    #     keys = list(component.iter_attributes())
-    #
-    #     # keys = sorted(component.__dict__.keys())  # prevent error if dictionary change during iteration
-    #     for attr in keys:
-    #         attr_name = attr.name
-    #         attr_val = attr.get()  # getattr(component, attr_name)
-    #         attr_type = get_component_attribute_type(attr_val)
-    #         if not self.can_show_component_attribute(attr_name, attr_val):
-    #             continue
-    #
-    #         item_attr = QtWidgets.QTreeWidgetItem(0)
-    #         item_attr.metadata = attr
-    #         item_attr._meta_type = ui_shared.MimeTypes.Attribute
-    #         item_attr.setText(0, "{0}:".format(attr_name))
-    #         item.addChild(item_attr)
-    #
-    #         if attr_type == AttributeType.Iterable:
-    #             for sub_attr in attr_val:
-    #                 item_child = self._create_tree_widget_item_from_value(sub_attr)
-    #                 item_attr.addChild(item_child)
-    #         else:
-    #             item_child = self._create_tree_widget_item_from_value(attr_val)
-    #             item_attr.addChild(item_child)
-    #
-    #         # Hack: Force expand 'modules' attribute. todo: rename with children.
-    #         if attr_name == 'modules':
-    #             self.ui.treeWidget.expandItem(item_attr)
-    #
-    #     return item
-    #
-    # def _create_tree_widget_item_from_pynode(self, pynode):
-    #     item = QtWidgets.QTreeWidgetItem(0)
-    #     item.setText(0, pynode.name())
-    #     item.metadata = pynode
-    #     item._meta_type = ui_shared.MimeTypes.Influence  # todo: is this the correct type?
-    #     ui_shared._set_icon_from_type(pynode, item)
-    #     return item
-
     #
     # Events
     #
@@ -494,14 +268,14 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
-            val = qItem.metadata
+            val = qItem._meta_data
             self._unbuild(val)
             ui_shared._update_network(self._rig)
         self.update()
 
     def on_rebuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
-            val = qItem.metadata
+            val = qItem._meta_data
             self._unbuild(val)
             self._build(val)
             ui_shared._update_network(self._rig)
@@ -526,7 +300,7 @@ class WidgetListModules(QtWidgets.QWidget):
             print '???', item.text(0)
             return
 
-        module = item.metadata
+        module = item._meta_data
         if item._checked != new_state:
             item._checked = new_state
             # Handle checkbox change
@@ -577,7 +351,7 @@ class WidgetListModules(QtWidgets.QWidget):
             sel = self.ui.treeWidget.selectedItems()
 
             # We don't support actions on non-component entities (for now)
-            if not any(True for item in sel if isinstance(item.metadata, Component)):
+            if not any(True for item in sel if isinstance(item._meta_data, Component)):
                 return
 
             menu = QtWidgets.QMenu()
@@ -605,9 +379,8 @@ class WidgetListModules(QtWidgets.QWidget):
             components = self.get_selected_components()
             # actions_map = self._get_actions(components)
 
-            actions_map = collections.defaultdict(list)
+            actions_data = []
             cache_component_class_level = {}
-
             for entity in components:
                 for component in self._iter_components_recursive(entity):
                     component_cls = component.__class__
@@ -617,43 +390,21 @@ class WidgetListModules(QtWidgets.QWidget):
                         cache_component_class_level[component_cls] = component_level
                     for action in component.iter_actions():
                         action_name = action.get_name()
-                        actions_map[(component_level, component_cls.__name__, action_name)].append(action)
+                        # actions_map[(component_level, component_cls.__name__, action_name)].append(action)
+                        actions_data.append(
+                            (component_level, component_cls.__name__, action_name, action)
+                        )
 
-            if actions_map:
-                for cls_level, entries in itertools.groupby(actions_map.iteritems(), operator.itemgetter(0)):
-                    print 'class level is ', cls_level
-                    print 'entries is', list(entries)
-                    for cls_name, sub_entries in itertools.groupby(entries, operator.itemgetter(1)):
+            if actions_data:
+                for cls_level, entries in itertools.groupby(actions_data, operator.itemgetter(0)):
+                    print cls_level
+                    for cls_name, entries in itertools.groupby(entries, operator.itemgetter(1)):
                         print cls_name
-                        print list(sub_entries)
-                        for action_name, sub_sub_entries in itertools.groupby(sub_entries, operator.itemgetter(2)):
-                            _, _, _, actions = sub_sub_entries
-                            print action_name
-                            for action in actions:
-                                print action
-
-                                # we want to sort by:
-                                # (class_level, class_name, action_name, actions)
-
-                                #
-                                # data = collections.defaultdict(list)
-                                #
-                                # actions_by_class_name = collections.defaultdict(collections.defaultdict())
-                                # for action_name, actions in sorted(actions_map.iteritems()):
-                                #     for action in actions:
-                                #         cls_name == action.component.__class__.__name__
-                                #         actions_by_class_name[(cls_name, action_name)].append(action_fn)
-                                #
-                                # for cls_name
-                                #
-                                #
-                                # menu.addSeparator()
-                                # for fn_name in sorted(actions_map.keys()):
-                                #     fn_nicename = fn_name.replace('_', ' ').title()
-                                #
-                                #     fn_ = functools.partial(self._execute_rcmenu_entry, fn_name)
-                                #     action = menu.addAction(fn_nicename)
-                                #     action.triggered.connect(fn_)
+                        menu.addSeparator()
+                        menu.addAction(str(cls_name)).setEnabled(False)
+                        for fn_name, entries in itertools.groupby(entries, operator.itemgetter(2)):
+                            action = menu.addAction(fn_name)
+                            action.triggered.connect(functools.partial(self._execute_rcmenu_entry, fn_name))
 
             menu.exec_(QtGui.QCursor.pos())
 
@@ -671,7 +422,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):
-            self._set_text_block(item, item.metadata.name)
+            self._set_text_block(item, item._meta_data.name)
             self._is_modifying = True  # Flag to know that we are currently modifying the name
             self.ui.treeWidget.editItem(item, 0)
 
@@ -682,8 +433,8 @@ class WidgetListModules(QtWidgets.QWidget):
             if sel:
                 self._listen_events = False
                 selected_item = sel[0]
-                if isinstance(selected_item.metadata, classModule.Module):
-                    self._update_qitem_module(selected_item, selected_item.metadata)
+                if isinstance(selected_item._meta_data, classModule.Module):
+                    selected_item._update()
                 self._listen_events = True
             self._is_modifying = False
         self.focusInEvent(event)
@@ -691,7 +442,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_lock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
-            val = item.metadata
+            val = item._meta_data
             if isinstance(val, classModule.Module) and not val.locked:
                 need_update = True
                 val.locked = True
@@ -702,7 +453,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_unlock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
-            val = item.metadata
+            val = item._meta_data
             if isinstance(val, classModule.Module) and val.locked:
                 need_update = True
                 val.locked = False

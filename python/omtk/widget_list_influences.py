@@ -27,7 +27,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
 
         # Connect signals
-        self.ui.treeWidget.customContextMenuRequested.connect(self.onRightClick)
+        self.ui.treeWidget.customContextMenuRequested.connect(self.onRightClick.emit)
 
         # Connect events
         self.ui.treeWidget.itemSelectionChanged.connect(self.on_influence_selection_changed)

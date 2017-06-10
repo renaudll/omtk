@@ -2,7 +2,9 @@ import collections
 import logging
 import inspect
 
+from maya import cmds
 import pymel.core as pymel
+
 from classNode import Node
 from omtk import constants
 from omtk.libs import libAttr
@@ -114,6 +116,10 @@ class BaseCtrl(Node):
             self.fetch_shapes()
         else:
             super(BaseCtrl, self).build(name=None, *args, **kwargs)
+
+        # Tag as a controller object in maya.
+        # This help animator navigate and filter their viewport.
+        cmds.TagAsController(self.node.longName())
 
         # The name keep since the last unbuild will have the priority over the name that could be set in the code
         if name:

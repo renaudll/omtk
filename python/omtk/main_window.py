@@ -113,12 +113,25 @@ class AutoRig(QtWidgets.QMainWindow):
         self.update_status_bar()
 
         # Connect events
+
+        self.ui.widget_jnts.onRightClick.connect(self.on_btn_add_pressed)
+
         # Note that currently we update the modules view when the drag enter it.
         # However it would be more useful for the user to update it as soon as drag start.
         # Sadly I didn't find a way to call on_influence_drag_drop if the drag end out-of-bound.
         self.ui.widget_modules.ui.treeWidget.dragEnter.connect(self.on_influence_drag_enter)
         self.ui.widget_modules.ui.treeWidget.dragLeave.connect(self.on_influence_drag_drop)
         self.ui.widget_modules.ui.treeWidget.dragDrop.connect(self.on_influence_drag_drop)
+
+
+        # Some fun with pyflowgraph
+        from . import factory_pyflowgraph_node
+        graph = self.ui.widget_node_editor.ui.widget
+        for root in self.roots:
+            for sub_component in root.iter_sub_components():
+                node = factory_pyflowgraph_node._get_pyflowgraph_node_from_component(graph, sub_component)
+                graph.addNode(node)
+                break
 
     def dragLeaveEvent(self, event):
         self.on_influence_drag_drop()

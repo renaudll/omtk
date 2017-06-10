@@ -13,8 +13,8 @@ import Queue as queue
 class Component(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name=None):
+        self.name = name if name else 'untitled'  # todo: better handle naming
 
     @abc.abstractmethod
     def build(self):

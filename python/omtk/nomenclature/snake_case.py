@@ -6,7 +6,7 @@ class NomenclatureSnakeCase(Nomenclature):
 
     @classmethod
     def split(cls, val):
-        val.split(cls.separator)
+        return val.split(cls.separator)
 
     @classmethod
     def join(cls, tokens):

@@ -379,109 +379,109 @@ class WidgetListModules(QtWidgets.QWidget):
     #         if hasattr(val, '_network'):
     #             item.net = module._network
 
-    def can_show_component_attribute(self, attr_name, attr_value):
-        # Hack: Blacklist some attr name (for now)
-        if attr_name in ('grp_anm', 'grp_rig'):
-            return False
+    # def can_show_component_attribute(self, attr_name, attr_value):
+    #     # Hack: Blacklist some attr name (for now)
+    #     if attr_name in ('grp_anm', 'grp_rig'):
+    #         return False
+    #
+    #     # Validate name (private attribute should not be visible)
+    #     if next(iter(attr_name), None) == '_':
+    #         return False
+    #
+    #     # Validate type
+    #     attr_type = get_component_attribute_type(attr_value)
+    #     if not attr_type in (
+    #             AttributeType.Iterable,
+    #             AttributeType.Node,
+    #             AttributeType.Attribute,
+    #             AttributeType.Component
+    #     ):
+    #         return False
+    #
+    #     # Do not show non-dagnodes.
+    #     if isinstance(attr_value, pymel.PyNode) and not isinstance(attr_value, pymel.nodetypes.DagNode):
+    #         return False
+    #
+    #     # Ignore empty collections
+    #     if attr_type == AttributeType.Iterable and not attr_value:
+    #         return False
+    #
+    #     # Prevent cyclic dependency, we only show something the first time we encounter it.
+    #     data_id = id(attr_value)
+    #     if data_id in self._known_data_ids:
+    #         return False
+    #     self._known_data_ids.add(data_id)
+    #
+    #     return True
 
-        # Validate name (private attribute should not be visible)
-        if next(iter(attr_name), None) == '_':
-            return False
-
-        # Validate type
-        attr_type = get_component_attribute_type(attr_value)
-        if not attr_type in (
-                AttributeType.Iterable,
-                AttributeType.Node,
-                AttributeType.Attribute,
-                AttributeType.Component
-        ):
-            return False
-
-        # Do not show non-dagnodes.
-        if isinstance(attr_value, pymel.PyNode) and not isinstance(attr_value, pymel.nodetypes.DagNode):
-            return False
-
-        # Ignore empty collections
-        if attr_type == AttributeType.Iterable and not attr_value:
-            return False
-
-        # Prevent cyclic dependency, we only show something the first time we encounter it.
-        data_id = id(attr_value)
-        if data_id in self._known_data_ids:
-            return False
-        self._known_data_ids.add(data_id)
-
-        return True
-
-    def _create_tree_widget_item_from_value(self, value):
-        value_type = get_component_attribute_type(value)
-        if value_type == AttributeType.Component:
-            return self._create_tree_widget_item_from_component(value)
-        if value_type == AttributeType.Node or value_type == AttributeType.Ctrl:
-            return self._create_tree_widget_item_from_pynode(value)
-        raise Exception("Unsupported value type {0} for {1}".format(value_type, value))
-
-    def _create_tree_widget_item_from_component(self, component):
-        item = QtWidgets.QTreeWidgetItem(0)
-        item.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
-
-        # Store the source network in metadata
-        if hasattr(component, '_network'):
-            item.net = component._network
-        else:
-            log.warning("{0} have no _network attributes".format(component))
-
-        # Store the component in metadata
-        item.metadata = component
-
-        # todo: cleanup
-        if isinstance(component, classModule.Module):
-            self._update_qitem_module(item, component)
-        elif isinstance(component, classRig.Rig):
-            self._update_qitem_rig(item, component)
-            # sorted_modules = sorted(module, key=lambda mod: mod.name)
-            # for child in sorted_modules:
-            #     qSubItem = self._create_tree_widget_module(child)
-            #     qItem.addChild(qSubItem)
-
-        keys = list(component.iter_attributes())
-
-        # keys = sorted(component.__dict__.keys())  # prevent error if dictionary change during iteration
-        for attr in keys:
-            attr_name = attr.name
-            attr_val = attr.get()  # getattr(component, attr_name)
-            attr_type = get_component_attribute_type(attr_val)
-            if not self.can_show_component_attribute(attr_name, attr_val):
-                continue
-
-            item_attr = QtWidgets.QTreeWidgetItem(0)
-            item_attr.metadata = attr
-            item_attr._meta_type = ui_shared.MimeTypes.Attribute
-            item_attr.setText(0, "{0}:".format(attr_name))
-            item.addChild(item_attr)
-
-            if attr_type == AttributeType.Iterable:
-                for sub_attr in attr_val:
-                    item_child = self._create_tree_widget_item_from_value(sub_attr)
-                    item_attr.addChild(item_child)
-            else:
-                item_child = self._create_tree_widget_item_from_value(attr_val)
-                item_attr.addChild(item_child)
-
-            # Hack: Force expand 'modules' attribute. todo: rename with children.
-            if attr_name == 'modules':
-                self.ui.treeWidget.expandItem(item_attr)
-
-        return item
-
-    def _create_tree_widget_item_from_pynode(self, pynode):
-        item = QtWidgets.QTreeWidgetItem(0)
-        item.setText(0, pynode.name())
-        item.metadata = pynode
-        item._meta_type = ui_shared.MimeTypes.Influence  # todo: is this the correct type?
-        ui_shared._set_icon_from_type(pynode, item)
-        return item
+    # def _create_tree_widget_item_from_value(self, value):
+    #     value_type = get_component_attribute_type(value)
+    #     if value_type == AttributeType.Component:
+    #         return self._create_tree_widget_item_from_component(value)
+    #     if value_type == AttributeType.Node or value_type == AttributeType.Ctrl:
+    #         return self._create_tree_widget_item_from_pynode(value)
+    #     raise Exception("Unsupported value type {0} for {1}".format(value_type, value))
+    #
+    # def _create_tree_widget_item_from_component(self, component):
+    #     item = QtWidgets.QTreeWidgetItem(0)
+    #     item.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
+    #
+    #     # Store the source network in metadata
+    #     if hasattr(component, '_network'):
+    #         item.net = component._network
+    #     else:
+    #         log.warning("{0} have no _network attributes".format(component))
+    #
+    #     # Store the component in metadata
+    #     item.metadata = component
+    #
+    #     # todo: cleanup
+    #     if isinstance(component, classModule.Module):
+    #         self._update_qitem_module(item, component)
+    #     elif isinstance(component, classRig.Rig):
+    #         self._update_qitem_rig(item, component)
+    #         # sorted_modules = sorted(module, key=lambda mod: mod.name)
+    #         # for child in sorted_modules:
+    #         #     qSubItem = self._create_tree_widget_module(child)
+    #         #     qItem.addChild(qSubItem)
+    #
+    #     keys = list(component.iter_attributes())
+    #
+    #     # keys = sorted(component.__dict__.keys())  # prevent error if dictionary change during iteration
+    #     for attr in keys:
+    #         attr_name = attr.name
+    #         attr_val = attr.get()  # getattr(component, attr_name)
+    #         attr_type = get_component_attribute_type(attr_val)
+    #         if not self.can_show_component_attribute(attr_name, attr_val):
+    #             continue
+    #
+    #         item_attr = QtWidgets.QTreeWidgetItem(0)
+    #         item_attr.metadata = attr
+    #         item_attr._meta_type = ui_shared.MimeTypes.Attribute
+    #         item_attr.setText(0, "{0}:".format(attr_name))
+    #         item.addChild(item_attr)
+    #
+    #         if attr_type == AttributeType.Iterable:
+    #             for sub_attr in attr_val:
+    #                 item_child = self._create_tree_widget_item_from_value(sub_attr)
+    #                 item_attr.addChild(item_child)
+    #         else:
+    #             item_child = self._create_tree_widget_item_from_value(attr_val)
+    #             item_attr.addChild(item_child)
+    #
+    #         # Hack: Force expand 'modules' attribute. todo: rename with children.
+    #         if attr_name == 'modules':
+    #             self.ui.treeWidget.expandItem(item_attr)
+    #
+    #     return item
+    #
+    # def _create_tree_widget_item_from_pynode(self, pynode):
+    #     item = QtWidgets.QTreeWidgetItem(0)
+    #     item.setText(0, pynode.name())
+    #     item.metadata = pynode
+    #     item._meta_type = ui_shared.MimeTypes.Influence  # todo: is this the correct type?
+    #     ui_shared._set_icon_from_type(pynode, item)
+    #     return item
 
     #
     # Events

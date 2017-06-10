@@ -1,5 +1,5 @@
 from omtk.vendor.Qt import QtCore, QtWidgets
-
+from omtk.vendor import libSerialization
 
 def _set_tree_widget_item_expanded_recursively(item, state):
     if item.isExpanded() != state:
@@ -48,14 +48,14 @@ class WidgetExtendedTree(QtWidgets.QTreeWidget):
         if QtWidgets.QApplication.keyboardModifiers() & QtCore.Qt.ShiftModifier:
             _set_tree_widget_item_expanded_recursively(item, False)
 
-    def mousePressEvent(self, event):
-        """Ensure right-clicking don't change the selection."""
-        # todo: make it work or remove it!
-        if event.button() == QtCore.Qt.RightButton:
-            super(WidgetExtendedTree, self).mousePressEvent(event)
-            self.customContextMenuRequested.emit(event.pos())
-        else:
-            super(WidgetExtendedTree, self).mousePressEvent(event)
+    # def mousePressEvent(self, event):
+    #     """Ensure right-clicking don't change the selection."""
+    #     # todo: make it work or remove it!
+    #     if event.button() == QtCore.Qt.RightButton:
+    #         # super(WidgetExtendedTree, self).mousePressEvent(event)
+    #         self.customContextMenuRequested.emit(event.pos())
+    #     else:
+    #         super(WidgetExtendedTree, self).mousePressEvent(event)
 
     # --- drag and drop support ---
 
@@ -83,6 +83,8 @@ class WidgetExtendedTree(QtWidgets.QTreeWidget):
 
     def mimeData(self, items):
         print "WidgetExtendedTree::mimeData"
+        # todo: generic class for our custom TreeWidgetItem?
+        text = ','.join([str(id(item.obj)) for item in items])
         self._mimedata = QtCore.QMimeData()
-        self._mimedata.setData('omtk-influence', 'test')
+        self._mimedata.setData('omtk', text)
         return self._mimedata

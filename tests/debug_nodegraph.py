@@ -27,9 +27,9 @@ widget = GraphViewWidget()
 graph = GraphView(parent=widget)
 
 
-from omtk import pyflowgraph_factories
-component = pyflowgraph_factories.TestComponent('testing')
-node1 = pyflowgraph_factories.get_pyflowgraph_node_from_component(graph, component)
+from omtk import factory_pyflowgraph_node
+component = factory_pyflowgraph_node.TestComponent('testing')
+node1 = factory_pyflowgraph_node._get_pyflowgraph_node_from_component(graph, component)
 
 # node1 = Node(graph, 'Short')
 # node1.addPort(InputPort(node1, graph, 'InPort1', QtGui.QColor(128, 170, 170, 255), 'MyDataX'))

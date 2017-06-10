@@ -40,6 +40,15 @@ def _reload(kill_ui=True):
     reload(plugin_manager)
     plugin_manager.plugin_manager.reload_all()
 
+    import factory_datatypes
+    reload(factory_datatypes)
+
+    import factory_pyflowgraph_node
+    reload(factory_pyflowgraph_node)
+
+    import factory_tree_widget_item
+    reload(factory_tree_widget_item)
+
     try:
         import ui_shared
         reload(ui_shared)
@@ -69,9 +78,6 @@ def _reload(kill_ui=True):
         from ui import widget_welcome
         reload(widget_welcome)
 
-        from ui import widget_node_editor
-        reload(widget_node_editor)
-
         import model_rig_definitions
         reload(model_rig_definitions)
 
@@ -95,6 +101,14 @@ def _reload(kill_ui=True):
 
         import pluginmanager_window
         reload(pluginmanager_window)
+
+        # Reload node-editor
+
+        import widget_node_editor_view
+        reload(widget_node_editor_view)
+
+        from ui import widget_node_editor
+        reload(widget_node_editor)
 
         import widget_node_editor
         reload(widget_node_editor)

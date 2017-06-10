@@ -5,7 +5,7 @@ from omtk.libs import libRigging
 from omtk.libs import libPython
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
-from omtk.models import modelInteractiveCtrl
+from omtk.modules_ctrl_logic import ctrl_interactive
 
 
 class CtrlJaw(rigFaceAvar.BaseCtrlFace):
@@ -16,7 +16,7 @@ class CtrlJaw(rigFaceAvar.BaseCtrlFace):
         return node
 
 
-class ModelCtrlJaw(modelInteractiveCtrl.ModelInteractiveCtrl):
+class ModelCtrlJaw(ctrl_interactive.CtrlLogicInteractive):
     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         libRigging.connectAttr_withLinearDrivenKeys(
             self.ctrl.translateX, avar.attr_lr

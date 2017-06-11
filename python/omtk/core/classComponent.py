@@ -47,9 +47,12 @@ class Component(object):
         Return the available actions for this compound instance.
         :yield: CompoundAction class instances.
         """
-        yield ActionBuild(self)
-        yield ActionUnbuild(self)
-        yield ActionRebuild(self)
+        return
+        yield
+        # disabled for now since we don't want to recursively build everything???
+        # yield ActionBuild(self)
+        # yield ActionUnbuild(self)
+        # yield ActionRebuild(self)
 
     def iter_sub_components(self):
         """

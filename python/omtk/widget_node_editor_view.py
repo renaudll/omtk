@@ -1,5 +1,7 @@
 from omtk.vendor.Qt import QtCore
 from omtk.vendor.pyflowgraph.graph_view import GraphView  # simple alias
+from omtk import factory_rc_menu
+from omtk import factory_datatypes
 
 import gc
 
@@ -16,6 +18,26 @@ class NodeEditorView(GraphView):
     dragEnter = QtCore.Signal(object)
     dragLeave = QtCore.Signal(object)
     dragDrop = QtCore.Signal(object)
+    actionRequested = QtCore.Signal(list)
+
+    def __init__(self, parent):
+        super(NodeEditorView, self).__init__(parent)
+        self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
+
+    # -- CustomContextMenu --
+
+    def on_custom_context_menu_requested(self):
+        values = [node._meta_data for node in self.getSelectedNodes() if node._meta_type == factory_datatypes.AttributeType.Component]
+        if not values:
+            return
+
+        menu = factory_rc_menu.get_menu(values, self.actionRequested.emit)
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.RightButton:
+            self.customContextMenuRequested.emit(event.pos())
+        else:
+            super(NodeEditorView, self).mousePressEvent(event)
 
     # -- Drag and Drop --
     def dropMimeData(self, parent, index, data, action):

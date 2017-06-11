@@ -6,6 +6,7 @@ import core
 
 import pymel.core as pymel
 from maya import OpenMaya
+from omtk import constants
 from omtk.core import api
 from omtk.core import classModule
 from omtk.libs import libQt
@@ -26,6 +27,9 @@ class EnumSections:
 
 
 class AutoRig(QtWidgets.QMainWindow):
+    # Called when the user launched Component actions, generally via a customContextMenu.
+    actionRequested = QtCore.Signal(list)
+
     def __init__(self, parent=None):
         super(AutoRig, self).__init__()
 
@@ -113,7 +117,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.update_status_bar()
 
         # Connect events
-
+        self.actionRequested.connect(self.on_action_requested)
         self.ui.widget_jnts.onRightClick.connect(self.on_btn_add_pressed)
 
         # Note that currently we update the modules view when the drag enter it.
@@ -123,6 +127,9 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules.ui.treeWidget.dragLeave.connect(self.on_influence_drag_drop)
         self.ui.widget_modules.ui.treeWidget.dragDrop.connect(self.on_influence_drag_drop)
 
+        self.ui.widget_modules.actionRequested.connect(self.actionRequested.emit)
+        self.ui.widget_node_editor.ui.widget.actionRequested.connect(self.actionRequested.emit)
+
 
         # Some fun with pyflowgraph
         # from . import factory_pyflowgraph_node
@@ -131,7 +138,24 @@ class AutoRig(QtWidgets.QMainWindow):
         #     for sub_component in root.iter_sub_components():
         #         node = factory_pyflowgraph_node._get_pyflowgraph_node_from_component(graph, sub_component)
         #         graph.addNode(node)
-        #         break
+        #
+
+    def on_action_requested(self, actions):
+        print "action_requested"
+        need_export_network = False
+        # entities = self.get_selected_components()
+        # action_map = self._get_actions(entities)
+        for action in actions:
+            print action
+            action.execute()
+            if constants.ComponentActionFlags.trigger_network_export in action.iter_flags():
+                need_export_network = True
+
+        if need_export_network:
+            self.export_networks()
+            self.ui.widget_modules.update()
+            self.ui.widget_node_editor.ui.widget.update()
+            # todo: update node editor?
 
     def dragLeaveEvent(self, event):
         self.on_influence_drag_drop()

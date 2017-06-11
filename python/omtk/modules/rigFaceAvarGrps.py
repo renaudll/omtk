@@ -9,6 +9,7 @@ from omtk import constants
 from omtk.core import classModule
 from omtk.core import plugin_manager
 from omtk.core.classComponentAction import ComponentAction
+from omtk.core.classComponentAttribute import ComponentAttributeTypedCollection
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -177,6 +178,12 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         yield ActionAddAvar(self)
         yield ActionAutoInitializeAvars(self)
         yield ActionAutoConnectAvars(self)
+
+    def iter_attributes(self):
+        for attr in super(AvarGrp, self).iter_attributes():
+            yield attr
+
+        yield ComponentAttributeTypedCollection(rigFaceAvar.Avar, 'avars', self.avars)
 
     # --- Custom methods
 
@@ -1652,7 +1659,6 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
 
 
 class ActionAddAvar(ComponentAction):
-
     # --- ComponentAction methods
 
     def get_name(self):
@@ -1690,7 +1696,7 @@ class ActionAutoInitializeAvars(ComponentAction):
 
     def can_execute(self):
         # todo: better detection
-        len(self.component.avars) == self.component.jnts
+        return len(self.component.avars) == self.component.jnts
 
     def execute(self):
         self.component.auto_init_avars()

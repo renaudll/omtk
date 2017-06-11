@@ -46,7 +46,7 @@ def get_node(graph, val):
 
 
 def _get_pyflowgraph_node_from_pynode(graph, pynode):
-    node = PyFlowgraphNode(graph, pynode.nodeName())
+    node = PyFlowgraphNode(graph, str(pynode))
     port_out = PyFlowgraphOutputPort(
         node, graph, 'output', QtGui.QColor(128, 170, 170, 255), 'pymel/pynode'
     )
@@ -57,6 +57,17 @@ def _get_pyflowgraph_node_from_pynode(graph, pynode):
 def _get_pyflowgraph_node_from_component(graph, component):
     # type: (PyFlowgraphView, Component) -> PyFlowgraphNode
     node = PyFlowgraphNode(graph, component.name)
+
+    # Monkey-patch our metadata into the node.
+    node._meta_data = component
+    node._meta_type = factory_datatypes.AttributeType.Component
+
+    # hack
+    port_out = PyFlowgraphOutputPort(
+        node, graph, 'output', QtGui.QColor(128, 170, 170, 255), 'pymel/pynode'
+    )
+    node.addPort(port_out)
+
     for attr in component.iter_attributes():
         val = attr.get()
         if isinstance(val, list):
@@ -70,7 +81,9 @@ def _get_pyflowgraph_node_from_component(graph, component):
                 )
                 node.addPort(port)
 
-                sub_node = _get_pyflowgraph_node_from_pynode(graph, subval)
+                sub_node = get_node(graph, subval)
+                # sub_node = _get_pyflowgraph_node_from_pynode(graph, subval)
+
                 graph.connectPorts(sub_node, 'output', node, port_name)
                 graph.addNode(sub_node)
 

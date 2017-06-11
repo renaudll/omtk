@@ -49,6 +49,9 @@ def _reload(kill_ui=True):
     import factory_tree_widget_item
     reload(factory_tree_widget_item)
 
+    import factory_rc_menu
+    reload(factory_rc_menu)
+
     try:
         import ui_shared
         reload(ui_shared)

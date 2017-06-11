@@ -1,3 +1,6 @@
+from omtk.vendor.Qt import QtCore
+
+
 def _iter_connected_nodes(node):
     for port in node.iter_input_ports():
         connections = port.inCircle().getConnections()
@@ -29,7 +32,7 @@ def iter_leaf_nodes(node, known=None):
             yield sub_node
 
 
-def arrange_upstream(node, padding_x=8, padding_y=8):
+def arrange_upstream(node, padding_x=32, padding_y=32):
     parent_pos = node.getGraphPos()
 
     # Resolve nb of nodes on top level
@@ -60,4 +63,3 @@ def arrange_upstream(node, padding_x=8, padding_y=8):
         pos_y += child.size().height() * 0.5 + padding_y
         # pos_y += spacing_y
         arrange_upstream(child, padding_x=padding_x, padding_y=padding_y)
-

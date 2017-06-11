@@ -2,6 +2,7 @@ from omtk.vendor.Qt import QtCore
 from omtk.vendor.pyflowgraph.graph_view import GraphView  # simple alias
 from omtk import factory_rc_menu
 from omtk import factory_datatypes
+from omtk.libs import libPyflowgraph
 
 import gc
 
@@ -70,7 +71,7 @@ class NodeEditorView(GraphView):
                 node_pos = QtCore.QPointF(self.mapToScene(event.pos()))
                 node.setGraphPos(node_pos)
                 # factory_pyflowgraph_node.arrange_upstream(node)
-                factory_pyflowgraph_node.arrange_upstream(node)
+                libPyflowgraph.arrange_upstream(node)
 
         self.dragDrop.emit(event)
 

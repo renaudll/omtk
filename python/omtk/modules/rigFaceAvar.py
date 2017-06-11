@@ -10,7 +10,10 @@ from omtk import constants
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import plugin_manager
+from omtk.core.classComponentAttribute import ComponentAttributeTyped
 from omtk.core.classComponentAction import ComponentAction
+from omtk.core.classModuleCtrlLogic import BaseCtrlModel
+from omtk.core.classModuleAvarLogic import BaseAvarRigConnectionModel
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -108,6 +111,8 @@ class Avar(classModule.Module):
         self.model_avar_type = enum_model_avar.None  # by default nothing is set, it is the responsability of the AvarGrp module
         self.model_ctrl_type = enum_model_ctrl.None  # by default nothing is set, it is the responsability of the AvarGrp module
 
+    # --- Component implementation
+
     def iter_actions(self):
         for action in super(Avar, self).iter_actions():
             yield action
@@ -118,6 +123,14 @@ class Avar(classModule.Module):
             yield self.model_ctrl
         if self.model_avar:
             yield self.model_avar
+
+    def iter_attributes(self):
+        for attr in super(Avar, self).iter_attributes():
+            yield attr
+        yield ComponentAttributeTyped(BaseAvarRigConnectionModel, 'Model Ctrl', self.model_ctrl)
+        yield ComponentAttributeTyped(BaseAvarRigConnectionModel, 'Model Avar', self.model_avar)
+
+    # ---
 
     def init_avars(self):
         self.attr_ud = None  # Up/Down

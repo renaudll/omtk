@@ -32,6 +32,7 @@ class TestComponent(Component):
 
 def get_node(graph, val):
     # type: (PyFlowgraphView, object) -> PyFlowgraphNode
+    print val
     datatype = factory_datatypes.get_component_attribute_type(val)
     if datatype in (
             factory_datatypes.AttributeType.Component,
@@ -81,17 +82,21 @@ def _get_pyflowgraph_node_from_component(graph, component):
         node.addPort(port)
 
         # Hack: Enable multiple connections
-        if isinstance(val, list):
+        is_multi = isinstance(val, list)
+        if is_multi:
             port.inCircle().setSupportsOnlySingleConnections(False)
-            for sub_val in val:
-                sub_node = get_node(graph, sub_val)
+
+        if val:  # do we need to handle zero?
+            if is_multi:
+                for sub_val in val:
+                    sub_node = get_node(graph, sub_val)
+                    if sub_node:
+                        graph.connectPorts(sub_node, 'output', node, port_name)
+                        graph.addNode(sub_node)
+            else:
+                sub_node = get_node(graph, val)
                 if sub_node:
                     graph.connectPorts(sub_node, 'output', node, port_name)
                     graph.addNode(sub_node)
-        else:
-            sub_node = get_node(graph, val)
-            if sub_node:
-                graph.connectPorts(sub_node, 'output', node, port_name)
-                graph.addNode(sub_node)
 
     return node

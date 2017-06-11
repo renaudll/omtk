@@ -632,7 +632,7 @@ class Rig(object):
                     self.layer_jnt.visibility.set(0)  # Hidden
                     self.layer_jnt.displayType.set(2)  # Frozen
                 else:
-                    self.layer_jnt = pymel.PyNode(self.nomenclature.layer_geo_name)
+                    self.layer_jnt = pymel.PyNode(self.nomenclature.layer_jnt_name)
                 pymel.editDisplayLayerMembers(self.layer_jnt, self.grp_jnt, noRecurse=True)
 
     def _sort_modules_by_dependencies(self, modules):

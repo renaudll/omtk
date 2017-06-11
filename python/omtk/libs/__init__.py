@@ -13,6 +13,7 @@ def _reload():
     import libUtils
     import libHistory
     import libPluginManager
+    import libPyflowgraph
 
     reload(libAttr)
     reload(libCtrlShapes)
@@ -27,3 +28,4 @@ def _reload():
     reload(libUtils)
     reload(libHistory)
     reload(libPluginManager)
+    reload(libPyflowgraph)

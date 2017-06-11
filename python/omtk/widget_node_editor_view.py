@@ -69,6 +69,7 @@ class NodeEditorView(GraphView):
                 self.addNode(node)
                 node_pos = QtCore.QPointF(self.mapToScene(event.pos()))
                 node.setGraphPos(node_pos)
+                # factory_pyflowgraph_node.arrange_upstream(node)
                 factory_pyflowgraph_node.arrange_upstream(node)
 
         self.dragDrop.emit(event)

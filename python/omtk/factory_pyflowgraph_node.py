@@ -13,23 +13,6 @@ __all__ = (
 )
 
 
-class TestComponent(Component):
-    def build(self):
-        pass
-
-    def is_built(self):
-        return True
-
-    def unbuild(self):
-        pass
-
-    def iter_attributes(self):
-        for entry in super(TestComponent, self).iter_attributes():
-            yield entry
-        yield ComponentAttribute('attrIn1', 'Hello')
-        yield ComponentAttribute('attrIn2', 'World')
-
-
 def get_node(graph, val):
     # type: (PyFlowgraphView, object) -> PyFlowgraphNode
     print val
@@ -62,9 +45,12 @@ def _get_pyflowgraph_node_from_component(graph, component):
     node._meta_data = component
     node._meta_type = factory_datatypes.AttributeType.Component
 
+    color = factory_datatypes.get_node_color_from_datatype(node._meta_type)
+    node.setColor(color)
+
     # hack
     port_out = PyFlowgraphOutputPort(
-        node, graph, 'output', QtGui.QColor(128, 170, 170, 255), 'pymel/pynode'
+        node, graph, 'output', color, 'pymel/pynode'
     )
     node.addPort(port_out)
 

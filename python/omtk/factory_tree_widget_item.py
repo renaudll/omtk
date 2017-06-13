@@ -8,6 +8,7 @@ import pymel.core as pymel
 from omtk import ui_shared
 from omtk.core.classModule import Module
 from omtk.core.classRig import Rig
+from omtk import factory_datatypes
 from omtk.factory_datatypes import AttributeType, get_component_attribute_type
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 
@@ -29,7 +30,10 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
 
 class TreeWidgetItemComponent(TreeWidgetItemEx):
     def update_(self):
-        self.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
+        icon = factory_datatypes.get_icon_from_datatype(self._meta_type)
+        if icon:
+            self.setIcon(0, icon)
+        # self.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
 
         # Store the source network in metadata
         if hasattr(self._meta_data, '_network'):
@@ -40,7 +44,7 @@ class TreeWidgetItemComponent(TreeWidgetItemEx):
 
 class TreeWidgetItemRig(TreeWidgetItemComponent):
     def __init__(self, parent, meta_data):
-        super(TreeWidgetItemRig, self).__init__(parent, ui_shared.MimeTypes.Rig, meta_data)
+        super(TreeWidgetItemRig, self).__init__(parent, factory_datatypes.AttributeType.Rig, meta_data)
 
     def update_(self):
         super(TreeWidgetItemRig, self).update_()
@@ -61,7 +65,7 @@ class TreeWidgetItemRig(TreeWidgetItemComponent):
 
 class TreeWidgetItemModule(TreeWidgetItemComponent):
     def __init__(self, parent, meta_data):
-        super(TreeWidgetItemModule, self).__init__(parent, ui_shared.MimeTypes.Module, meta_data)
+        super(TreeWidgetItemModule, self).__init__(parent, factory_datatypes.AttributeType.Module, meta_data)
 
     def update_(self):
         super(TreeWidgetItemModule, self).update_()
@@ -131,7 +135,6 @@ def _get_item_from_component(component, known_data_id=None):
     if known_data_id is None:
         known_data_id = set()
 
-    from omtk import factory_datatypes
     meta_data = factory_datatypes.get_component_attribute_type(component)
     if meta_data == factory_datatypes.AttributeType.Module:
         item = TreeWidgetItemModule(0, component)
@@ -139,7 +142,6 @@ def _get_item_from_component(component, known_data_id=None):
         item = TreeWidgetItemRig(0, component)
     else:
         item = QtWidgets.QTreeWidgetItem(0)
-    # item.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
 
     keys = list(component.iter_attributes())
 

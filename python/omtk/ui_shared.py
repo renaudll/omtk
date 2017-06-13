@@ -6,7 +6,7 @@ from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui
 
 
-# todo: Move to a shared location
+# todo: deprecate in favor of factory_datatypes.AttributeType
 class MimeTypes:
     """
     Used to quickly determine what metadata have been monkey-patched to a QWidget.

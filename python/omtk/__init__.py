@@ -81,6 +81,9 @@ def _reload(kill_ui=True):
         from ui import widget_welcome
         reload(widget_welcome)
 
+        from ui import widget_component_list
+        reload(widget_component_list)
+
         import model_rig_definitions
         reload(model_rig_definitions)
 

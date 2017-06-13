@@ -1,18 +1,11 @@
-from omtk.vendor.Qt import QtCore
-from omtk.vendor.pyflowgraph.graph_view import GraphView  # simple alias
-from omtk import factory_rc_menu
-from omtk import factory_datatypes
 from omtk.libs import libPyflowgraph
+from omtk.libs import libPython
+from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
+from omtk.vendor.pyflowgraph.graph_view import GraphView  # simple alias
 
-import gc
-
-
-# todo: move to libPython
-def objects_by_id(id_):
-    for obj in gc.get_objects():
-        if id(obj) == id_:
-            return obj
-    raise Exception("No found")
+from omtk import factory_datatypes
+from omtk import factory_pyflowgraph_node
+from omtk import factory_rc_menu
 
 
 class NodeEditorView(GraphView):
@@ -25,10 +18,14 @@ class NodeEditorView(GraphView):
         super(NodeEditorView, self).__init__(parent)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
 
+        shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
+        shortcut_tab.activated.connect(self.on_tab_pressed)
+
     # -- CustomContextMenu --
 
     def on_custom_context_menu_requested(self):
-        values = [node._meta_data for node in self.getSelectedNodes() if node._meta_type == factory_datatypes.AttributeType.Component]
+        values = [node._meta_data for node in self.getSelectedNodes() if
+                  node._meta_type == factory_datatypes.AttributeType.Component]
         if not values:
             return
 
@@ -39,6 +36,9 @@ class NodeEditorView(GraphView):
             self.customContextMenuRequested.emit(event.pos())
         else:
             super(NodeEditorView, self).mousePressEvent(event)
+
+    def on_tab_pressed(self):
+        print("TAB PRESSED")
 
     # -- Drag and Drop --
     def dropMimeData(self, parent, index, data, action):
@@ -61,11 +61,10 @@ class NodeEditorView(GraphView):
         drop_data_raw = event.mimeData().data('omtk')
         if not drop_data_raw:
             raise Exception("No mime data found!")
-        drop_data = [objects_by_id(int(token)) for token in drop_data_raw.split(',')]
+        drop_data = [libPython.objects_by_id(int(token)) for token in drop_data_raw.split(',')]
 
         if isinstance(drop_data, list):
             for sub_entry in drop_data:
-                from omtk import factory_pyflowgraph_node
                 node = factory_pyflowgraph_node.get_node(self, sub_entry)
                 self.addNode(node)
                 node_pos = QtCore.QPointF(self.mapToScene(event.pos()))

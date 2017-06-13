@@ -1,3 +1,4 @@
+import gc
 import imp
 import logging
 import threading
@@ -297,3 +298,8 @@ def get_class_parent_level(cls, level=0):
         return level
 
 
+def objects_by_id(id_):
+    for obj in gc.get_objects():
+        if id(obj) == id_:
+            return obj
+    raise Exception("No found")

@@ -1,4 +1,5 @@
 import pymel.core as pymel
+from omtk.libs import libAttr
 
 _blacklisted_attr_names = {
     'caching',
@@ -132,7 +133,7 @@ def _iter_interesting_attributes(obj, read=True, write=False):
     :param write: If True, input attributes will be yielded.
     :yield: pymel.Attribute instances.
     """
-    attr_names = pymel.listAttr(obj, connectable=True, read=read, write=write)
+    attr_names = pymel.listAttr(obj, connectable=True, hasData=True, inUse=True, leaf=True, read=read, write=write)
     for attr_name in attr_names:
         # Ignore some known attributes by name
         if attr_name in _blacklisted_attr_names:
@@ -140,9 +141,13 @@ def _iter_interesting_attributes(obj, read=True, write=False):
 
         try:
             attr = obj.attr(attr_name)
-        except AttributeError, e:
+        except (AttributeError, RuntimeError), e:
             # print('Error obtaining attribute {0}.{1}: {2}'.format(obj, attr_name, e))
             continue
+
+        if attr.isMulti():
+            for sub_attr in attr.iterDescendants():
+                yield sub_attr
 
         if attr.type() in (
                 'message',
@@ -215,3 +220,36 @@ def optimize_network_io_ports(attrs_inn, attrs_out):
     :return: Two list of pymel.Attribute representing the network optimized input and output attributes.
     """
     raise NotImplementedError
+
+
+def isolate_network_io_ports(attrs_inn, attrs_out):
+    hub_inn = pymel.createNode('transform', name='hub_inn')
+    hub_out = pymel.createNode('transform', name='hub_out')
+
+    for attr_inn in attrs_inn:
+        attr_name = attr_inn.longName()
+        # Check if the attribute exist before transfering it.
+        # This can happen with build-in attribute like translateX since the hub is a transform.
+        # It might be more logical to use networks for this, but we'll stick with transforms for now.
+        if not hub_inn.hasAttr(attr_name):
+            data = libAttr.holdAttr(attr_inn, delete=False)
+            data['node'] = hub_inn
+            libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
+        if attr_inn.isDestination():
+            attr_src = next(iter(attr_inn.inputs(plugs=True)))
+            pymel.disconnectAttr(attr_src, attr_inn)
+        pymel.connectAttr(hub_inn.attr(attr_name), attr_inn)
+
+    for attr_out in attrs_out:
+        attr_name = attr_out.longName()
+        if not hub_out.hasAttr(attr_name):
+            data = libAttr.holdAttr(attr_out, delete=False)
+            data['node'] = hub_out
+            attr_name = data['longName']
+            libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
+        if attr_out.isSource():
+            for attr_dst in attr_out.outputs(plugs=True):
+                pymel.disconnectAttr(attr_out, attr_dst)
+        pymel.connectAttr(attr_out, hub_out.attr(attr_name))
+
+    return hub_inn, hub_out

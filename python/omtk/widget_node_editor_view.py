@@ -1,3 +1,5 @@
+import pymel.core as pymel
+
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
@@ -58,10 +60,18 @@ class NodeEditorView(GraphView):
 
     def dropEvent(self, event):
         super(NodeEditorView, self).dropEvent(event)
-        drop_data_raw = event.mimeData().data('omtk')
-        if not drop_data_raw:
+        print event.mimeData().formats()
+        mime_data = event.mimeData()
+
+        drop_data = None
+        if mime_data.hasFormat('application/x-maya-data'):
+            dagpaths = mime_data.text().split('\n')
+            drop_data = [pymel.PyNode(dagpath) for dagpath in dagpaths]
+        elif mime_data.hasFormat('omtk'):
+            drop_data_raw = event.mimeData().data('omtk')
+            drop_data = [libPython.objects_by_id(int(token)) for token in drop_data_raw.split(',')]
+        else:
             raise Exception("No mime data found!")
-        drop_data = [libPython.objects_by_id(int(token)) for token in drop_data_raw.split(',')]
 
         if isinstance(drop_data, list):
             for sub_entry in drop_data:

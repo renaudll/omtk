@@ -121,7 +121,7 @@ def holdAttr(attr, delete=True):
     return data
 
 
-def fetchAttr(data):
+def fetchAttr(data, reconnect_inputs=True, reconnect_outputs=True):
     node = data['node']
 
     kwargs = kwargsMap[data['type']]
@@ -137,21 +137,23 @@ def fetchAttr(data):
     attr = node.attr(data['longName'])
 
     # Re-connect inputs
-    if not data['isMulti']:
-        inn = next(iter(data['inputs']), None)
-        if inn: pymel.connectAttr(inn, attr)
-    else:
-        for i, inn in enumerate(data['inputs']):
-            pymel.connectAttr(inn, attr[i])
+    if reconnect_inputs:
+        if not data['isMulti']:
+            inn = next(iter(data['inputs']), None)
+            if inn: pymel.connectAttr(inn, attr)
+        else:
+            for i, inn in enumerate(data['inputs']):
+                pymel.connectAttr(inn, attr[i])
 
     # Re-connect outputs
-    if not data['isMulti']:
-        for i, output in enumerate(data['outputs']):
-            pymel.connectAttr(attr, output)
-    else:
-        for i, output in enumerate(data['outputs']):
-            if output:
-                pymel.connectAttr(attr[i], output)
+    if reconnect_outputs:
+        if not data['isMulti']:
+            for i, output in enumerate(data['outputs']):
+                pymel.connectAttr(attr, output)
+        else:
+            for i, output in enumerate(data['outputs']):
+                if output:
+                    pymel.connectAttr(attr[i], output)
 
 
 # Normally we can use pymel.renameAttr but this work on multi-attributes also

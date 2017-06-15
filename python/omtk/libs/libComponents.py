@@ -125,7 +125,22 @@ _blacklisted_attr_names = {
 }
 
 
-def _iter_interesting_attributes(obj, read=True, write=False):
+def _iter_leaf_attributes(obj):
+    """
+    Iter all the leaf nodes (including compounds and array attributes) recursively using pymel awesome
+    iterDescendants method. Note that since the leavesOnly flag is not provided by the listAttr method
+    we need to go through the top level Attributes first.
+    :param obj:
+    :return:
+    """
+    # for attr_top in obj.listAttr(topLevel=True):
+    #     for attr in attr_top.iterDescendants(leavesOnly=False):
+    #         yield attr
+    for attr in obj.listAttr(descendants=True):
+        yield attr
+
+
+def _iter_interesting_attributes(obj):
     """
     Extend pymel.listAttr by implementing recursivity
     :param obj: A pymel.nodetypes.DagNode that contain attribute to explore.
@@ -133,25 +148,11 @@ def _iter_interesting_attributes(obj, read=True, write=False):
     :param write: If True, input attributes will be yielded.
     :yield: pymel.Attribute instances.
     """
-    attr_names = pymel.listAttr(obj, connectable=True, hasData=True, inUse=True, leaf=True, read=read, write=write)
-    for attr_name in attr_names:
+    for attr in _iter_leaf_attributes(obj):
+        attr_name = attr.longName()
+
         # Ignore some known attributes by name
         if attr_name in _blacklisted_attr_names:
-            continue
-
-        try:
-            attr = obj.attr(attr_name)
-        except (AttributeError, RuntimeError), e:
-            # print('Error obtaining attribute {0}.{1}: {2}'.format(obj, attr_name, e))
-            continue
-
-        if attr.isMulti():
-            for sub_attr in attr.iterDescendants():
-                yield sub_attr
-
-        if attr.type() in (
-                'message',
-        ):
             continue
 
         yield attr
@@ -165,14 +166,20 @@ def identify_network_io_ports(objs):
     all_objs = set(objs)
 
     # Search for input attributes
-    def is_input(attr, known_nodes, known_attributes, future=True):
+    def fn_search(attr, known_nodes, known_attributes, future=True):
         attr_node = attr.node()
+
+        # If we encounter a multi attribute, we'll simply ignore it since it's elements attributes are next.
+        # The main reason is that there can not be any connections directly on the multi attribute, calling
+        # inputs/outputs on it will return the connections from all it's elements which is not precise.
+        if attr.isMulti():
+            return False
 
         plugs = attr.outputs(plugs=True) if future else attr.inputs(plugs=True)
         for plug in plugs:
             # Re-use information from previous scans
-            if plug in known_attributes:
-                return known_attributes[plug]
+            # if plug in known_attributes:
+            #     return known_attributes[plug]
 
             # Ignore self-referencing
             plug_node = plug.node()
@@ -183,8 +190,13 @@ def identify_network_io_ports(objs):
                 return True
 
             found = False
-            for sub_attr in _iter_interesting_attributes(plug_node, read=future, write=not future):
-                found = is_input(sub_attr, known_nodes, known_attributes, future=future)
+            for sub_attr in _iter_interesting_attributes(plug_node):
+                # if future and not pymel.attributeQuery(sub_attr.attrName(), node=plug_node, readable=True):
+                #     continue
+                # elif not future and not pymel.attributeQuery(sub_attr.attrName(), node=plug_node, writable=True):
+                #     continue
+
+                found = fn_search(sub_attr, known_nodes, known_attributes, future=future)
                 known_attributes[sub_attr] = found
                 if found:
                     break
@@ -199,17 +211,17 @@ def identify_network_io_ports(objs):
     for obj in objs:
         known_nodes = {obj: False}
         known_attributes = {}
-        for attr in _iter_interesting_attributes(obj, read=True, write=False):
-            if is_input(attr, known_nodes, known_attributes, future=False):
-                result_out.add(attr)
+        for attr in _iter_interesting_attributes(obj):
+            if fn_search(attr, known_nodes, known_attributes, future=True):
+                result_inn.add(attr)
     for obj in objs:
         known_nodes = {obj: False}
         known_attributes = {}
-        for attr in _iter_interesting_attributes(obj, read=False, write=True):
-            if is_input(attr, known_nodes, known_attributes, future=True):
-                result_inn.add(attr)
+        for attr in _iter_interesting_attributes(obj):
+            if fn_search(attr, known_nodes, known_attributes, future=False):
+                result_out.add(attr)
 
-    return result_out, result_inn
+    return result_inn, result_out
 
 
 def optimize_network_io_ports(attrs_inn, attrs_out):

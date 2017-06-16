@@ -418,16 +418,6 @@ class Module(Component):
             version
         )
 
-    def get_version(self):
-        if not hasattr(self, 'version'):
-            return None, None, None
-        version_info = str(self.version)
-        regex = '^[0-9]+\.[0-9]+\.[0-9]+$'
-        if not re.match(regex, version_info):
-            self.warning("Cannot understand version format: {}".format(version_info))
-            return None, None, None
-        return tuple(int(token) for token in version_info.split('.'))
-
     def validate(self, support_no_inputs=False):
         """
         Check if the module can be built with it's current configuration.

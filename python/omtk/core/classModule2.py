@@ -6,7 +6,7 @@ import pymel.core as pymel
 logging.basicConfig()
 from omtk.core.classNode import Node
 from omtk.core.classComponent import Component
-from omtk.core.classComponentAttribute import ComponentAttributeTypedCollection
+from omtk.core.classComponentAttribute import ComponentAttribute, ComponentAttributeTypedCollection
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
@@ -100,7 +100,10 @@ class Module2(Component):
             yield child
 
     def iter_attributes(self):
-        yield ComponentAttributeTypedCollection(pymel.nodetypes.DagNode, 'inputs', self.input)
+        for attr in self.grp_inn.listAttr(userDefined=True):
+            yield ComponentAttribute(attr.longName(), is_input=True, is_output=False)
+        for attr in self.grp_out.listAttr(userDefined=True):
+            yield ComponentAttribute(attr.longName(), is_input=False, is_output=True)
 
     # --- Methods for logging
 

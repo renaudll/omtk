@@ -15,6 +15,11 @@ from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 log = logging.getLogger('omtk')
 
 
+_color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
+_color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
+_color_locked = QtGui.QBrush(QtGui.QColor(125, 125, 125))
+_color_warning = QtGui.QBrush(QtGui.QColor(125, 125, 45))
+
 class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
     def __init__(self, parent, meta_type, meta_data):
         super(TreeWidgetItemEx, self).__init__(parent)
@@ -78,7 +83,7 @@ class TreeWidgetItemModule(TreeWidgetItemComponent):
             label = '{0}:{1}'.format(module_namespace.strip(':'), label)
 
         if module.locked:
-            self.setBackground(0, self._color_locked)
+            self.setBackground(0, _color_locked)
             label += ' (locked)'
         elif module.is_built():
             version_major, version_minor, version_patch = module.get_version()
@@ -93,7 +98,7 @@ class TreeWidgetItemModule(TreeWidgetItemComponent):
                     )
 
                 if warning_msg:
-                    desired_color = self._color_warning
+                    desired_color = _color_warning
                     self.setToolTip(0, warning_msg)
                     self.setBackground(0, desired_color)
                     label += ' (problematic)'
@@ -106,7 +111,7 @@ class TreeWidgetItemModule(TreeWidgetItemComponent):
                 msg = 'Validation failed for {0}: {1}'.format(module, e)
                 log.warning(msg)
                 self.setToolTip(0, msg)
-                self.setBackground(0, self._color_invalid)
+                self.setBackground(0, _color_invalid)
 
         self.setText(0, label)
         self._name = self.text(0)

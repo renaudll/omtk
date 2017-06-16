@@ -7,6 +7,7 @@ from omtk.core.classComponent import Component
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core.classModule import Module
+from omtk.core.classModule2 import Module2
 from omtk.core.classRig import Rig
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui
@@ -36,7 +37,7 @@ def get_component_attribute_type(val):
             pymel.util.enum.EnumValue,
             pymel.datatypes.Vector,
             pymel.datatypes.Point,
-            pymel.datatypes.Matrix
+            pymel.datatypes.Matrix,
     )):
         return AttributeType.Basic
     if isinstance(val, (list, set, tuple)):
@@ -49,7 +50,7 @@ def get_component_attribute_type(val):
         return AttributeType.Node
     if isinstance(val, pymel.Attribute):
         return AttributeType.Attribute
-    if isinstance(val, Module):
+    if isinstance(val, (Module, Module2)):
         return AttributeType.Module
     if isinstance(val, Rig):
         return AttributeType.Rig

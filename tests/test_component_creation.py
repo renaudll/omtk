@@ -16,11 +16,9 @@ class ComponentCreationTestCase(unittest.TestCase):
         for attr in output_attrs:
             print(attr)
 
-    def _asset_io_attributes_equal(self, inn_attrs, out_attrs, expected_inn_attr_names, expected_out_attr_names):
+    def _asset_io_attributes_equal(self, inn_attrs, expected_inn_attr_names):
         inn_attr_names = {attr.__melobject__() for attr in inn_attrs}
-        out_attr_names = {attr.__melobject__() for attr in out_attrs}
         self.assertEqual(inn_attr_names, expected_inn_attr_names)
-        self.assertEqual(out_attr_names, expected_out_attr_names)
 
     def test_constraint_network(self):
         """
@@ -45,6 +43,10 @@ class ComponentCreationTestCase(unittest.TestCase):
             'anm.rotatePivotTranslate',
             'anm.scale',
             'anm.translate',
+            'jnt.rotatePivot',
+            'jnt.rotateOrder',
+            'jnt.rotatePivotTranslate',
+            'jnt.parentInverseMatrix[0]',
         }
         expected_attrs_out = {
             'jnt.rotateX',
@@ -56,8 +58,14 @@ class ComponentCreationTestCase(unittest.TestCase):
         }
 
         self._debug_io_attrs(input_attrs, output_attrs)
+        self._asset_io_attributes_equal(input_attrs, expected_attrs_inn)
+        self._asset_io_attributes_equal(output_attrs, expected_attrs_out)
 
-        # self._asset_io_attributes_equal(input_attrs, output_attrs, expected_attrs_inn, expected_attrs_out)
+        hub_inn, hub_out = libComponents.isolate_network_io_ports(input_attrs, output_attrs, isolate=True)
+        for obj in objs:
+            for attr in obj.listAttr():
+                self.assertFalse(attr.isSource(), msg="Attribute {0} is source!".format(attr))
+                self.assertFalse(attr.isDestination(), msg="Attribute {0} is destination!".format(attr))
 
 
 if __name__ == '__main__':

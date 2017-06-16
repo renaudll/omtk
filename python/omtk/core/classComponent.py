@@ -7,6 +7,7 @@ Similar to a Node, a Component have public input attributes, publish outputs att
 # todo: add method to access Component inputs and outputs
 
 import abc
+import re
 import Queue as queue
 
 from omtk import constants
@@ -18,6 +19,22 @@ class Component(object):
 
     def __init__(self, name=None):
         self.name = name if name else 'untitled'  # todo: better handle naming
+        self.author = ''
+        self.version = ''
+
+    def get_version(self):
+        """
+        Return a version number that is used to manage updated.
+        :return: A tuple of int representing a version number. Semantic visioning is recommended.
+        """
+        if not hasattr(self, 'version'):
+            return None, None, None
+        version_info = str(self.version)
+        regex = '^[0-9]+\.[0-9]+\.[0-9]+$'
+        if not re.match(regex, version_info):
+            self.warning("Cannot understand version format: {}".format(version_info))
+            return None, None, None
+        return tuple(int(token) for token in version_info.split('.'))
 
     @abc.abstractmethod
     def build(self):

@@ -5,9 +5,11 @@ It deal with typing and validation (used for drag and drop events for now)
 
 
 class ComponentAttribute(object):
-    def __init__(self, name, val=None):
+    def __init__(self, name, is_input=True, is_output=True, val=None):
         self.name = name
         self._val = val
+        self.is_input = is_input
+        self.is_output = is_output
 
     def get(self):
         return self._val

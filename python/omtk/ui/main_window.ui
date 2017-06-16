@@ -111,11 +111,18 @@
     <addaction name="actionShowPreferences"/>
     <addaction name="actionShowPluginManager"/>
    </widget>
+   <widget class="QMenu" name="menuComponents">
+    <property name="title">
+     <string>Components</string>
+    </property>
+    <addaction name="actionCreateComponent"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuRig"/>
    <addaction name="menuJoint"/>
    <addaction name="menuInfluences"/>
    <addaction name="menuSettings"/>
+   <addaction name="menuComponents"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget_logger">
@@ -222,8 +229,6 @@
       </widget>
      </item>
     </layout>
-    <zorder>widget_meshes</zorder>
-    <zorder>widget_meshes</zorder>
    </widget>
   </widget>
   <action name="actionUpdate">
@@ -297,6 +302,11 @@
   <action name="actionShowPreferences">
    <property name="text">
     <string>&amp;Preferences</string>
+   </property>
+  </action>
+  <action name="actionCreateComponent">
+   <property name="text">
+    <string>Create New</string>
    </property>
   </action>
  </widget>

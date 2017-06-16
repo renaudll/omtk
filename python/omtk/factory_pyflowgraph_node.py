@@ -1,6 +1,6 @@
 from omtk.core.classComponent import Component
 from omtk.core.classComponentAttribute import ComponentAttribute
-from omtk.vendor.Qt import QtGui
+from omtk.vendor.Qt import QtGui, QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
@@ -37,9 +37,33 @@ def _get_pyflowgraph_node_from_pynode(graph, pynode):
     return node
 
 
+class NodeIcon(QtWidgets.QGraphicsWidget):
+
+    def __init__(self, icon, parent=None):
+        super(NodeIcon, self).__init__(parent)
+
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
+
+        layout = QtWidgets.QGraphicsLinearLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
+        layout.setOrientation(QtCore.Qt.Horizontal)
+        self.setLayout(layout)
+
+        self._titleWidget = QtWidgets.QGraphicsPixmapItem(icon.pixmap(QtCore.QSize(20, 20)), self)
+        # layout.addItem(self._titleWidget)
+        # layout.setAlignment(self._titleWidget, QtCore.Qt.AlignCenter | QtCore.Qt.AlignTop)
+
 def _get_pyflowgraph_node_from_component(graph, component):
     # type: (PyFlowgraphView, Component) -> PyFlowgraphNode
-    node = PyFlowgraphNode(graph, component.name)
+
+    node_label = "   {0} v{1}".format(component.name, component.get_version())
+    node = PyFlowgraphNode(graph, node_label)
+
+    icon = QtGui.QIcon(":/out_objectSet.png")
+    # item = QtWidgets.QGraphicsPixmapItem()
+    item = NodeIcon(icon)
+    node.layout().insertItem(0, item)
 
     # Monkey-patch our metadata into the node.
     node._meta_data = component
@@ -57,8 +81,18 @@ def _get_pyflowgraph_node_from_component(graph, component):
     for attr in component.iter_attributes():
         val = attr.get()
 
+        # Resolve port class
+        if attr.is_input and attr.is_output:
+            raise Exception("{0} cannot be input and output at the same time.".format(attr))
+        elif not attr.is_input and not attr.is_output:
+            raise Exception("{0} is neither an input or an output.".format(attr))
+        elif attr.is_input:
+            port_cls = PyFlowgraphInputPort
+        else:
+            port_cls = PyFlowgraphOutputPort
+
         port_name = attr.name
-        port = PyFlowgraphInputPort(
+        port = port_cls(
             node, graph,
             port_name,
             QtGui.QColor(128, 170, 170, 255),

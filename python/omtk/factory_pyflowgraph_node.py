@@ -1,5 +1,5 @@
-from omtk.core.classComponent import Component
-from omtk.core.classComponentAttribute import ComponentAttribute
+from omtk.core.classEntity import Entity
+from omtk.core.classEntityAttribute import EntityAttribute
 from omtk.vendor.Qt import QtGui, QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
@@ -55,7 +55,7 @@ class NodeIcon(QtWidgets.QGraphicsWidget):
         # layout.setAlignment(self._titleWidget, QtCore.Qt.AlignCenter | QtCore.Qt.AlignTop)
 
 def _get_pyflowgraph_node_from_component(graph, component):
-    # type: (PyFlowgraphView, Component) -> PyFlowgraphNode
+    # type: (PyFlowgraphView, Entity) -> PyFlowgraphNode
 
     node_label = "   {0} v{1}".format(component.name, component.get_version())
     node = PyFlowgraphNode(graph, node_label)

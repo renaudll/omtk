@@ -1,15 +1,16 @@
-import pymel.core as pymel
 import collections
-from omtk import constants
-from omtk.core.classModule import Module
+
+import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
-from omtk.modules import rigIK
-from omtk.modules import rigFK
-from omtk.modules import rigTwistbone
-from omtk.libs import libRigging
-from omtk.libs import libCtrlShapes
+from omtk.core.classModule import Module
 from omtk.libs import libAttr
+from omtk.libs import libCtrlShapes
 from omtk.libs import libPython
+from omtk.libs import libRigging
+from omtk.modules import rigIK
+from omtk.modules_broken import rigFK, rigTwistbone
+
+from omtk import constants
 
 
 class BaseAttHolder(BaseCtrl):

@@ -10,8 +10,8 @@ from omtk import constants
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import plugin_manager
-from omtk.core.classComponentAttribute import ComponentAttributeTyped
-from omtk.core.classComponentAction import ComponentAction
+from omtk.core.classEntityAttribute import EntityAttributeTyped
+from omtk.core.classEntityAction import EntityAction
 from omtk.core.classModuleCtrlLogic import BaseCtrlModel
 from omtk.core.classModuleAvarLogic import BaseAvarRigConnectionModel
 from omtk.libs import libAttr
@@ -127,8 +127,8 @@ class Avar(classModule.Module):
     def iter_attributes(self):
         for attr in super(Avar, self).iter_attributes():
             yield attr
-        yield ComponentAttributeTyped(BaseAvarRigConnectionModel, 'Model Ctrl', self.model_ctrl)
-        yield ComponentAttributeTyped(BaseAvarRigConnectionModel, 'Model Avar', self.model_avar)
+        yield EntityAttributeTyped(BaseAvarRigConnectionModel, 'Model Ctrl', self.model_ctrl)
+        yield EntityAttributeTyped(BaseAvarRigConnectionModel, 'Model Avar', self.model_avar)
 
     # ---
 
@@ -517,7 +517,7 @@ class Avar(classModule.Module):
         """
         node = attr.node()  # slow?
         all_avar_grps = set(
-            c.grp_rig for c in self.rig.iter_sub_components_recursive() if isinstance(c, Avar) and c.is_built())
+            c.grp_rig for c in self.rig.iter_sub_components_recursive() if isinstance(c, Avar) and c.is_built)
         for hist in attr.listHistory(future=True):
             if hist != node and isinstance(hist, pymel.nodetypes.Transform) and hist in all_avar_grps:
                 return True
@@ -526,7 +526,7 @@ class Avar(classModule.Module):
     def is_avar_attr_destination(self, attr):
         node = attr.node()  # slow?
         all_avar_grps = set(
-            c.grp_rig for c in self.rig.iter_sub_components_recursive() if isinstance(c, Avar) and c.is_built())
+            c.grp_rig for c in self.rig.iter_sub_components_recursive() if isinstance(c, Avar) and c.is_built)
         for hist in attr.listHistory(future=False):
             if hist != node and isinstance(hist, pymel.nodetypes.Transform) and hist in all_avar_grps:
                 return True
@@ -556,7 +556,7 @@ class CtrlFaceMacroAll(CtrlFaceMacro):
         return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
 
 
-class ActionAddControllerLogic(ComponentAction):
+class ActionAddControllerLogic(EntityAction):
     def get_name(self):
         return 'Add ctrl logic'
 

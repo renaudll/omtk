@@ -1,8 +1,8 @@
-from omtk.modules import rigFaceAvarGrps
-from omtk.modules import rigFaceAvar
+import pymel.core as pymel
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
-import pymel.core as pymel
+from omtk.modules import rigFaceAvar
+from omtk.modules_broken import rigFaceAvarGrps
 
 
 class CtrlEyeLidUpp(rigFaceAvar.BaseCtrlFace):

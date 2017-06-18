@@ -4,19 +4,19 @@ import logging
 from collections import defaultdict
 
 import pymel.core as pymel
-
-from omtk import constants
 from omtk.core import classModule
 from omtk.core import plugin_manager
-from omtk.core.classComponentAction import ComponentAction
-from omtk.core.classComponentAttribute import ComponentAttributeTypedCollection
+from omtk.core.classEntityAction import EntityAction
+from omtk.core.classEntityAttribute import EntityAttributeTypedCollection
 from omtk.libs import libCtrlShapes
+from omtk.libs import libPluginManager
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.libs import libPluginManager
 from omtk.libs.libRigging import get_average_pos_between_nodes
-from omtk.modules import rigFaceAvar
+from omtk.modules_broken import rigFaceAvar
+
+from omtk import constants
 
 log = logging.getLogger('omtk')
 
@@ -183,7 +183,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         for attr in super(AvarGrp, self).iter_attributes():
             yield attr
 
-        yield ComponentAttributeTypedCollection(rigFaceAvar.Avar, 'avars', self.avars)
+        yield EntityAttributeTypedCollection(rigFaceAvar.Avar, 'avars', self.avars)
 
     # --- Custom methods
 
@@ -1658,8 +1658,8 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
             return super(AvarGrp, self)._get_default_ctrl_size(jnts=None, max_ctrl_size=None, epsilon=epsilon)
 
 
-class ActionAddAvar(ComponentAction):
-    # --- ComponentAction methods
+class ActionAddAvar(EntityAction):
+    # --- EntityAction methods
 
     def get_name(self):
         return 'Add Avar from Selection'
@@ -1690,7 +1690,7 @@ class ActionAddAvar(ComponentAction):
         return [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
 
 
-class ActionAutoInitializeAvars(ComponentAction):
+class ActionAutoInitializeAvars(EntityAction):
     def get_name(self):
         return 'Auto-initialize avars'
 
@@ -1707,7 +1707,7 @@ class ActionAutoInitializeAvars(ComponentAction):
         yield constants.ComponentActionFlags.trigger_network_export
 
 
-class ActionAutoConnectAvars(ComponentAction):
+class ActionAutoConnectAvars(EntityAction):
     def get_name(self):
         return 'Auto-connect avars'
 

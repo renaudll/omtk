@@ -5,6 +5,7 @@ import threading
 import time
 import functools
 import collections
+import itertools
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
@@ -303,3 +304,11 @@ def objects_by_id(id_):
         if id(obj) == id_:
             return obj
     raise Exception("No found")
+
+
+# src: https://docs.python.org/2/library/itertools.html
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return itertools.izip(a, b)

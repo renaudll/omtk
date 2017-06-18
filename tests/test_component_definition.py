@@ -7,7 +7,7 @@ import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
 import tempfile
 from omtk.libs import libComponents
-from omtk.libs.libComponents import ComponentDefinition
+from omtk.core.classComponentDefinition import ComponentDefinition
 
 
 class ComponentDefinitionTestCase(unittest.TestCase):

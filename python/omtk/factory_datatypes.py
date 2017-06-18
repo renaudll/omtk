@@ -3,7 +3,7 @@ Help identifying datatypes for usage in factory methods.
 """
 import collections
 
-from omtk.core.classComponent import Component
+from omtk.core.classEntity import Entity
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core.classModule import Module
@@ -54,7 +54,7 @@ def get_component_attribute_type(val):
         return AttributeType.Module
     if isinstance(val, Rig):
         return AttributeType.Rig
-    if isinstance(val, Component):
+    if isinstance(val, Entity):
         return AttributeType.Component
     raise Exception("Cannot resolve Component attribute type for {0} {1}".format(type(val), val))
 

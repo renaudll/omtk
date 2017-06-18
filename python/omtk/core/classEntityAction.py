@@ -4,7 +4,7 @@ Modules instance can expose macro that will show in the interface.
 import abc
 
 
-class ComponentAction(object):
+class EntityAction(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, component):

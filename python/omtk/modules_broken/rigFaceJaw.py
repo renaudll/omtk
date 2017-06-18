@@ -1,10 +1,9 @@
 import pymel.core as pymel
-
 from omtk.libs import libCtrlShapes
-from omtk.libs import libRigging
 from omtk.libs import libPython
+from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
+from omtk.modules_broken import rigFaceAvarGrps
 from omtk.modules_ctrl_logic import ctrl_interactive
 
 

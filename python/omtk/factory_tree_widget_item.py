@@ -59,11 +59,11 @@ class TreeWidgetItemRig(TreeWidgetItemComponent):
 
         self.setText(0, label)
         self._name = self.text(0)
-        self._checked = rig.is_built()
+        self._checked = rig.is_built
 
         flags = self.flags() | QtCore.Qt.ItemIsEditable
         self.setFlags(flags)
-        self.setCheckState(0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked)
+        self.setCheckState(0, QtCore.Qt.Checked if rig.is_built else QtCore.Qt.Unchecked)
 
         self._meta_type = ui_shared.MimeTypes.Rig
 
@@ -85,7 +85,7 @@ class TreeWidgetItemModule(TreeWidgetItemComponent):
         if module.locked:
             self.setBackground(0, _color_locked)
             label += ' (locked)'
-        elif module.is_built():
+        elif module.is_built:
             version_major, version_minor, version_patch = module.get_version()
             if version_major is not None and version_minor is not None and version_patch is not None:
                 warning_msg = ''
@@ -115,11 +115,11 @@ class TreeWidgetItemModule(TreeWidgetItemComponent):
 
         self.setText(0, label)
         self._name = self.text(0)
-        self._checked = module.is_built()
+        self._checked = module.is_built
 
         flags = self.flags() | QtCore.Qt.ItemIsEditable
         self.setFlags(flags)
-        self.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
+        self.setCheckState(0, QtCore.Qt.Checked if module.is_built else QtCore.Qt.Unchecked)
 
 
 def get_tree_item(value, known_data_id=None):

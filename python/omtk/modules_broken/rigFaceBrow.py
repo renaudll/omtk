@@ -1,8 +1,8 @@
 import pymel.core as pymel
-from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
+from omtk.modules_broken import rigFaceAvarGrps
 
 
 class CtrlBrow(rigFaceAvar.BaseCtrlFace):

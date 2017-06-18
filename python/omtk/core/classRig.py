@@ -1,22 +1,24 @@
 import copy
-import traceback
-import time
 import logging
-from maya import cmds
+import time
+import traceback
+
 import pymel.core as pymel
-from omtk import constants
-from omtk.core.classComponent import Component
-from omtk.core.classComponentAction import ComponentAction
-from omtk.core.classComponentAttribute import ComponentAttributeTypedCollection
+from maya import cmds
+from omtk.core import api
+from omtk.core import classNomenclature
+from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classEntity import Entity
+from omtk.core.classEntityAction import EntityAction
+from omtk.core.classEntityAttribute import EntityAttributeTypedCollection
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
-from omtk.core.classCtrl import BaseCtrl
-from omtk.core import classNomenclature
-from omtk.core import api
+from omtk.libs import libHistory
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.libs import libHistory
+
+from omtk import constants
 
 log = logging.getLogger('omtk')
 
@@ -108,7 +110,7 @@ class RigGrp(Node):
                 super(RigGrp, self).unbuild(*args, **kwargs)
 
 
-class Rig(Component):
+class Rig(Entity):
     DEFAULT_NAME = 'untitled'
     LEFT_CTRL_COLOR = 13  # Red
     RIGHT_CTRL_COLOR = 6  # Blue
@@ -154,11 +156,11 @@ class Rig(Component):
 
     def iter_sub_components(self):
         for module in self.modules:
-            if isinstance(module, Component):
+            if isinstance(module, Entity):
                 yield module
 
     def iter_attributes(self):
-        yield ComponentAttributeTypedCollection(Module, 'children', self.modules)
+        yield EntityAttributeTypedCollection(Module, 'children', self.modules)
 
     # --- Methods for logging
 
@@ -325,7 +327,7 @@ class Rig(Component):
             # Ignore the state of any locked module
             if module.locked:
                 continue
-            if module.is_built():
+            if module.is_built:
                 return True
 
         if self.grp_anm and self.grp_anm.exists():
@@ -429,7 +431,7 @@ class Rig(Component):
         if include_grp_anm and self.grp_anm and self.grp_anm.exists():
             yield self.grp_anm
         for module in self.modules:
-            if module.is_built():
+            if module.is_built:
                 for ctrl in module.iter_ctrls():
                     if ctrl:
                         yield ctrl
@@ -721,7 +723,7 @@ class Rig(Component):
 
         try:
             for module in modules:
-                if module.is_built():
+                if module.is_built:
                     continue
 
                 if not skip_validation:
@@ -826,7 +828,7 @@ class Rig(Component):
     def _unbuild_modules(self, strict=False, **kwargs):
         # Unbuild all children
         for module in self.modules:
-            if not module.is_built():
+            if not module.is_built:
                 continue
 
             # If we are unbuilding a rig and encounter 'locked' modules, this is a problem
@@ -948,7 +950,7 @@ class Rig(Component):
 
     @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
-        from omtk.modules import rigFaceJaw
+        from omtk.modules_broken import rigFaceJaw
         for module in self.modules:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 return module.jnt
@@ -994,7 +996,7 @@ class Rig(Component):
         node.setParent(self.grp_backup)
 
 
-class ActionCreateHierarchy(ComponentAction):
+class ActionCreateHierarchy(EntityAction):
     """
     Alias to pre_build that is exposed in the gui and hidden from subclassing.
     """

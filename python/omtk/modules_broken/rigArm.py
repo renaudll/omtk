@@ -1,10 +1,10 @@
 import pymel.core as pymel
-
-from omtk import constants
-from omtk.modules import rigIK
-from omtk.modules import rigLimb
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
+from omtk.modules import rigIK
+from omtk.modules_broken import rigLimb
+
+from omtk import constants
 
 
 class CtrlIkArm(rigIK.CtrlIk):

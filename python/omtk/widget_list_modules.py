@@ -15,7 +15,7 @@ from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.core.classNode import Node
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classComponent import Component
+from omtk.core.classEntity import Entity
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk import factory_tree_widget_item
@@ -117,7 +117,7 @@ class WidgetListModules(QtWidgets.QWidget):
         Return the Component instance stored in each selected rows.
         :return: A list of Component instances.
         """
-        return [item._meta_data for item in self.get_selected_items() if isinstance(item._meta_data, Component)]
+        return [item._meta_data for item in self.get_selected_items() if isinstance(item._meta_data, Entity)]
 
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
@@ -154,7 +154,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.blockSignals(True)
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             if hasattr(qt_item, "rig"):
-                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item._meta_data.is_built() else QtCore.Qt.Unchecked)
+                qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item._meta_data.is_built else QtCore.Qt.Unchecked)
         self.ui.treeWidget.blockSignals(False)
 
     def _refresh_ui_modules_visibility(self, query_regex=None):
@@ -226,7 +226,7 @@ class WidgetListModules(QtWidgets.QWidget):
         return True
 
     def _build(self, val, update=True):
-        if val.is_built():
+        if val.is_built:
             pymel.warning("Can't build {0}, already built.".format(val))
             return
 
@@ -245,7 +245,7 @@ class WidgetListModules(QtWidgets.QWidget):
             self.update()
 
     def _unbuild(self, val, update=True):
-        if not val.is_built():
+        if not val.is_built:
             pymel.warning("Can't unbuild {0}, already unbuilt.".format(val))
             return
 
@@ -356,7 +356,7 @@ class WidgetListModules(QtWidgets.QWidget):
         from omtk import factory_datatypes
         from omtk import factory_rc_menu
         selected_items = self.ui.treeWidget.selectedItems()
-        selected_components = [item._meta_data for item in selected_items if isinstance(item._meta_data, Component)]
+        selected_components = [item._meta_data for item in selected_items if isinstance(item._meta_data, Entity)]
         if selected_components:
             factory_rc_menu.get_menu(selected_components, self.actionRequested.emit)
             # menu.exec_(QtGui.QCursor.pos())
@@ -486,7 +486,7 @@ class WidgetListModules(QtWidgets.QWidget):
         # Remove all selected rigs second
         for rig in selected_rigs:
             try:
-                if rig.is_built():
+                if rig.is_built:
                     rig.unbuild()
 
                 # Manually delete network
@@ -503,7 +503,7 @@ class WidgetListModules(QtWidgets.QWidget):
         # Remove all selected modules
         for module in selected_modules:
             try:
-                if module.is_built():
+                if module.is_built:
                     module.unbuild()
                 module.rig.remove_module(module)
                 need_reexport = True

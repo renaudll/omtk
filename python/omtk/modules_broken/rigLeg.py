@@ -2,12 +2,13 @@ import logging
 
 import pymel.core as pymel
 from maya import cmds
-from omtk import constants
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
 from omtk.modules import rigIK
-from omtk.modules import rigLimb
+from omtk.modules_broken import rigLimb
+
+from omtk import constants
 
 log = logging.getLogger('omtk')
 

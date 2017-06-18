@@ -1,6 +1,6 @@
-from omtk.modules import rigFaceAvarGrps
-from omtk.modules import rigFaceAvar
 from omtk.models import modelInteractiveCtrl
+from omtk.modules import rigFaceAvar
+from omtk.modules_broken import rigFaceAvarGrps
 
 
 class CtrlNose(rigFaceAvar.CtrlFaceMicro):

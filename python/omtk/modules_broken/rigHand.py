@@ -1,11 +1,10 @@
-import logging
 import pymel.core as pymel
 from omtk.core.classModule import Module
-from omtk.libs import libPython
 from omtk.libs import libPymel
+from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.modules import rigFK
 from omtk.modules import rigFKAdditive
+from omtk.modules_broken import rigFK
 
 '''
 class Finger(Module):

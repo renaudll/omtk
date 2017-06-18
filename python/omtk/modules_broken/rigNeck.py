@@ -1,5 +1,4 @@
-from omtk.modules import rigFK
-from omtk.modules import rigTwistbone
+from omtk.modules_broken import rigFK, rigTwistbone
 
 
 class CtrlNeck(rigFK.CtrlFk):

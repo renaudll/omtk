@@ -1,4 +1,4 @@
-from omtk.modules import rigFK
+from omtk.modules_broken import rigFK
 
 
 class CtrlHead(rigFK.CtrlFk):

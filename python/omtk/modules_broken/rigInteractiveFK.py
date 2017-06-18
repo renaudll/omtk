@@ -855,7 +855,7 @@ class InteractiveFK(Module):
 
     def unbuild(self, **kwargs):
         for layer in self.layers:
-            if layer.is_built():
+            if layer.is_built:
                 layer.unbuild()
 
         super(InteractiveFK, self).unbuild(**kwargs)

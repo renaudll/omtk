@@ -5,8 +5,8 @@ import pymel.core as pymel
 
 logging.basicConfig()
 from omtk.core.classNode import Node
-from omtk.core.classComponent import Component
-from omtk.core.classComponentAttribute import ComponentAttribute, ComponentAttributeTypedCollection
+from omtk.core.classEntity import Entity
+from omtk.core.classEntityAttribute import EntityAttribute
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
@@ -22,7 +22,7 @@ class ModuleOutputHub(Node):
     pass
 
 
-class Module2(Component):
+class Module2(Entity):
     """
     In comparison with the legacy Module class which expose attribute in a single direction,
     this class expose inputs and outputs attributes in a way that is more representative of the
@@ -101,9 +101,9 @@ class Module2(Component):
 
     def iter_attributes(self):
         for attr in self.grp_inn.listAttr(userDefined=True):
-            yield ComponentAttribute(attr.longName(), is_input=True, is_output=False)
+            yield EntityAttribute(attr.longName(), is_input=True, is_output=False)
         for attr in self.grp_out.listAttr(userDefined=True):
-            yield ComponentAttribute(attr.longName(), is_input=False, is_output=True)
+            yield EntityAttribute(attr.longName(), is_input=False, is_output=True)
 
     # --- Methods for logging
 
@@ -384,7 +384,7 @@ class Module2(Component):
             return
 
         # Find a Jaw module that have influence under the head.
-        from omtk.modules import rigFaceJaw
+        from omtk.modules_broken import rigFaceJaw
         for module in self.rig.modules:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 jnt = module.jnt
@@ -403,7 +403,7 @@ class Module2(Component):
         :param strict: If True, log a warning if no jaw module is found.
         :return: A Module.FaceJaw instance.
         """
-        from omtk.modules import rigFaceJaw
+        from omtk.modules_broken import rigFaceJaw
 
         module_jaw = None
 

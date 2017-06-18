@@ -4,8 +4,8 @@ import re
 import pymel.core as pymel
 
 logging.basicConfig()
-from omtk.core.classComponent import Component
-from omtk.core.classComponentAttribute import ComponentAttributeTypedCollection
+from omtk.core.classEntity import Entity
+from omtk.core.classEntityAttribute import EntityAttributeTypedCollection
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
@@ -13,7 +13,7 @@ from omtk.libs import libAttr
 log = logging.getLogger('omtk')
 
 
-class Module(Component):
+class Module(Entity):
     """
     A Module is built from at least one input, specific via the constructor.
     To build a Module, use the .build method.
@@ -81,7 +81,7 @@ class Module(Component):
             yield child
 
     def iter_attributes(self):
-        yield ComponentAttributeTypedCollection(pymel.nodetypes.DagNode, 'inputs', self.input)
+        yield EntityAttributeTypedCollection(pymel.nodetypes.DagNode, 'inputs', self.input)
 
     # --- Methods for logging
 
@@ -362,7 +362,7 @@ class Module(Component):
             return
 
         # Find a Jaw module that have influence under the head.
-        from omtk.modules import rigFaceJaw
+        from omtk.modules_broken import rigFaceJaw
         for module in self.rig.modules:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 jnt = module.jnt
@@ -381,7 +381,7 @@ class Module(Component):
         :param strict: If True, log a warning if no jaw module is found.
         :return: A Module.FaceJaw instance.
         """
-        from omtk.modules import rigFaceJaw
+        from omtk.modules_broken import rigFaceJaw
 
         module_jaw = None
 
@@ -591,9 +591,7 @@ class Module(Component):
         Parent the system to a specific object.
         # TODO: Implement!
         """
-        if self.grp_anm:
-            pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
-            pymel.scaleConstraint(parent, self.grp_anm, maintainOffset=True)
+        # self.component.connect_to_input_attr('hook', parent.worldMatrix)
 
     def iter_ctrls(self):
         """

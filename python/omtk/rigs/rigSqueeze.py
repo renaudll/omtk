@@ -270,7 +270,7 @@ class RigSqueeze(classRig.Rig):
         super(RigSqueeze, self)._unbuild_nodes()
 
     def iter_ctrls(self, include_grp_anm=True):
-        if include_grp_anm and self.grp_anm_master and self.grp_anm_master.is_built():
+        if include_grp_anm and self.grp_anm_master and self.grp_anm_master.is_built:
             yield self.grp_anm_master
         for ctrl in super(RigSqueeze, self).iter_ctrls(include_grp_anm=include_grp_anm):
             yield ctrl

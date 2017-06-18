@@ -7,7 +7,7 @@ import functools
 import operator
 
 from omtk import constants
-from omtk.core.classComponent import Component
+from omtk.core.classEntity import Entity
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
@@ -33,7 +33,7 @@ def _iter_components_recursive(entity):
 
 
 def get_menu(components, fn_callback):
-    # type: (List[Component], function) -> QtGui.QMenu
+    # type: (List[Entity], function) -> QtGui.QMenu
     """
     Factory method that return an QtGui.QMenu to expose provided Component actions.
     :param components:
@@ -47,17 +47,17 @@ def get_menu(components, fn_callback):
     cache_component_class_level = {}
 
     actions_map = collections.defaultdict(list)
-    from omtk.core import classComponent
+    from omtk.core import classEntity
 
     for component in components:
         actions_map[(0, 'Component', 'Build')].append(
-            classComponent.ActionBuild(component)
+            classEntity.ActionBuild(component)
         )
         actions_map[(0, 'Component', 'Unbuild')].append(
-            classComponent.ActionUnbuild(component)
+            classEntity.ActionUnbuild(component)
         )
         actions_map[(0, 'Component', 'Rebuild')].append(
-            classComponent.ActionRebuild(component)
+            classEntity.ActionRebuild(component)
         )
 
         # todo: add Lock

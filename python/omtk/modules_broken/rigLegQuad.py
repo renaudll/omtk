@@ -2,13 +2,10 @@ import logging
 
 import pymel.core as pymel
 from maya import mel
-from maya import cmds
-
-from omtk import constants
 from omtk.libs import libAttr
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
-from omtk.modules import rigLeg
+from omtk.modules_broken import rigLeg
 
 log = logging.getLogger('omtk')
 
@@ -58,8 +55,8 @@ class LegIkQuad(rigLeg.LegIk):
         ik_handle, ik_effector = super(LegIkQuad, self).create_ik_handle(solver='ikSpringSolver')
         return ik_handle, ik_effector
 
-    def setup_swivel_ctrl(self, base_ctrl, ref, pos, ik_handle, constraint=True, mirror_setup=True,
-                          adjust_ik_handle_twist=True, **kwargs):
+    def create_ctrl_swivel(self, base_ctrl, ref, pos, ik_handle, constraint=True, mirror_setup=True,
+                           adjust_ik_handle_twist=True, **kwargs):
         """
         Create the swivel ctrl for the ik system. Redefined to add the possibility to create a mirror swivel setup
         to prevent flipping problem with pole vector when using ikSpringSolver
@@ -75,8 +72,8 @@ class LegIkQuad(rigLeg.LegIk):
         :return: The created ctrl swivel
         """
         # Do not contraint the ik handle now since we could maybe need the flipping setup
-        ctrl_swivel = super(LegIkQuad, self).setup_swivel_ctrl(base_ctrl, ref, pos, ik_handle, constraint=False,
-                                                               **kwargs)
+        ctrl_swivel = super(LegIkQuad, self).create_ctrl_swivel(base_ctrl, ref, pos, ik_handle, constraint=False,
+                                                                **kwargs)
 
         if constraint:
             pymel.poleVectorConstraint(ctrl_swivel, ik_handle)
@@ -205,9 +202,9 @@ class LegIkQuad(rigLeg.LegIk):
             self.setup_softik([self._ik_handle, self._ik_handle_quad], [self._chain_ik, self._chain_quad_ik])
 
         # Create another swivel handle node for the quad chain setup
-        self.ctrl_swivel_quad = self.setup_swivel_ctrl(self.ctrl_swivel_quad, self._chain_quad_ik[heel_idx],
-                                                       quad_swivel_pos, self._ik_handle_quad, name='swivelQuad',
-                                                       mirror_setup=False, adjust_ik_handle_twist=False)
+        self.ctrl_swivel_quad = self.create_ctrl_swivel(self.ctrl_swivel_quad, self._chain_quad_ik[heel_idx],
+                                                        quad_swivel_pos, self._ik_handle_quad, name='swivelQuad',
+                                                        mirror_setup=False, adjust_ik_handle_twist=False)
         # self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
         # Set by default the space to calf
         if self.ctrl_swivel_quad.space:

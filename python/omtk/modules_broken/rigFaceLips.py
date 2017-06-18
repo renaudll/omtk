@@ -6,7 +6,7 @@ from omtk.libs import libAttr
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
+from omtk.modules_broken import rigFaceAvarGrps
 
 
 class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
@@ -475,7 +475,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
 
             # If the jaw module is already built, ensure it respect the minimum version requirement.
             # Jaw-0.4.18 introducing support for the 'all' avar macro which we need.
-            if jaw_module.is_built():
+            if jaw_module.is_built:
                 version_major, version_minor, version_patch = jaw_module.get_version()
                 if version_major == 0 and version_minor == 4 and version_patch < 18:
                     raise Exception("Associated Jaw module version is too low. Expected 0.4.18+, got {}.{}.{}".format(

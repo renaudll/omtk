@@ -6,7 +6,7 @@ import pymel.core as pymel
 
 from omtk.core import classModule
 from omtk.core import classNode
-from omtk.core.classComponentAction import ComponentAction
+from omtk.core.classEntityAction import EntityAction
 from omtk.libs import libAttr
 from omtk.libs import libRigging
 from omtk.libs import libPymel
@@ -527,7 +527,7 @@ class CtrlLogicFaceCalibratable(CtrlModelCalibratable):
         super(CtrlLogicFaceCalibratable, self).build(avar, flip_lr=need_flip, **kwargs)
 
 
-class ActionCalibrate(ComponentAction):
+class ActionCalibrate(EntityAction):
     def get_name(self):
         return 'Calibrate'
 

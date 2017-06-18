@@ -4,7 +4,7 @@ Run this script to convert a pre-0.4.7 scene.
 """
 
 import omtk; reload(omtk); omtk._reload()
-from omtk.modules import rigLeg
+from omtk.modules_broken import rigLeg
 import pymel.core as pymel
 
 NET_ATTR_NAME = 'attrAutoRollThreshold'
@@ -16,9 +16,9 @@ def _module_need_patch(module):
         return False
 
     # Verify module state
-    if not module.is_built():
+    if not module.is_built:
         return False
-    if not (module.sysIK and module.sysIK.is_built()):
+    if not (module.sysIK and module.sysIK.is_built):
         return False
 
     # Verify module version

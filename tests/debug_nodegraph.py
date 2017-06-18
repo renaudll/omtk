@@ -3,7 +3,7 @@ from Qt import QtGui, QtWidgets, QtCore
 
 
 
-from omtk.core.classComponent import Component
+from omtk.core.classEntity import Entity
 
 # Add the pyflowgraph module to the current environment if it does not already exist
 import imp

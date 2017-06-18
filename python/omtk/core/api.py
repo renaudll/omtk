@@ -220,7 +220,7 @@ def build_selected(sel=None):
         if not rig or not modules:
             return
 
-        modules = [module for module in modules if module.is_built()]
+        modules = [module for module in modules if module.is_built]
         if not modules:
             return
 
@@ -236,7 +236,7 @@ def build_modules_by_type(module_type):
     import pymel.core as pymel
 
     for rig, modules in _iter_modules_by_type(module_type):
-        modules = [module for module in modules if not module.is_built()]
+        modules = [module for module in modules if not module.is_built]
         if not modules:
             continue
 
@@ -251,7 +251,7 @@ def build_modules_by_type(module_type):
 def unbuild_modules_by_type(module_type):
     import pymel.core as pymel
     for rig, modules in _iter_modules_by_type(module_type):
-        modules = [module for module in modules if module.is_built()]
+        modules = [module for module in modules if module.is_built]
         if not modules:
             continue
 
@@ -273,7 +273,7 @@ def rebuild_modules_by_type(module_type):
             continue
 
         for module in modules:
-            if module.is_built():
+            if module.is_built:
                 module.unbuild()
 
         rig.build(modules=modules)
@@ -295,7 +295,7 @@ def unbuild_selected(sel=None):
             return
 
         # Build selected modules
-        modules = [module for module in modules if module.is_built()]
+        modules = [module for module in modules if module.is_built]
         if not modules:
             return
 

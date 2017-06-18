@@ -1,17 +1,19 @@
+import itertools
 import logging
 import unittest
-import itertools
+
+import omtk_test
 import pymel.core as pymel
 from maya import cmds
-import omtk
-import omtk_test
 from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigHead
 from omtk.modules_avar_logic.avar_linear import AvarLogicLinear
 from omtk.modules_avar_logic.avar_surface import AvarLogicSurface
-from omtk.modules_ctrl_logic.ctrl_linear import CtrlLogicLinear
+from omtk.modules_broken import rigFaceAvarGrps
 from omtk.modules_ctrl_logic.ctrl_interactive import CtrlLogicInteractive
+from omtk.modules_ctrl_logic.ctrl_linear import CtrlLogicLinear
+
+import omtk
 
 omtk.log.setLevel(logging.WARNING)
 log = logging.getLogger('omtk_test')

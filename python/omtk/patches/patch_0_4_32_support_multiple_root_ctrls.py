@@ -3,16 +3,18 @@ In omtk 0.4.32, we added support for multiple root ctrls.
 Some facial systems were using the root ctrl local transform which caused issues when having an hyerarchy of root ctrls.
 """
 import logging
+
 import pymel.core as pymel
-import omtk
-from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
-from omtk.models import modelInteractiveCtrl
 from omtk.libs import libRigging
+from omtk.models import modelInteractiveCtrl
+from omtk.modules import rigFaceAvar
+from omtk.modules_broken import rigFaceAvarGrps
+
+import omtk
 
 
 def _get_ctrl_model_parent_grp(ctrl_model):
-    if ctrl_model and ctrl_model.is_built():
+    if ctrl_model and ctrl_model.is_built:
         grp_rig = ctrl_model.grp_rig
         for child in grp_rig.getChildren():
             if '_parent' in child.nodeName().lower():

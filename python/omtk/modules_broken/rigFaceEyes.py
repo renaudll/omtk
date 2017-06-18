@@ -1,9 +1,9 @@
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
-from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libRigging
+from omtk.modules import rigFaceAvar
+from omtk.modules_broken import rigFaceAvarGrps
 
 
 class AvarEye(rigFaceAvar.Avar):

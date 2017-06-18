@@ -1,12 +1,13 @@
+import itertools
 import os
 import re
-import uuid
-import itertools
-from maya import cmds
+
 import pymel.core as pymel
-from omtk.core.classModule2 import Module2
-from omtk.libs import libAttr
-from omtk.vendor import libSerialization
+from maya import cmds
+from omtk.core.classComponentDefinition import ComponentDefinition
+# from omtk.core.classComponent import isolate_network_io_ports
+# from omtk.core.classModule2 import Module2
+# from omtk.vendor import libSerialization
 
 _HUB_INN_NAME = 'hub_inn'
 _HUB_OUT_NAME = 'hub_out'
@@ -252,40 +253,6 @@ def _get_unique_attr_name(obj, attr_name):
             return new_attr_name
 
 
-def isolate_network_io_ports(attrs_inn, attrs_out, isolate=True):
-    hub_inn = pymel.createNode('network', name=_HUB_INN_NAME)
-    hub_out = pymel.createNode('network', name=_HUB_OUT_NAME)
-
-    for attr_inn in attrs_inn:
-        attr_name = _get_unique_attr_name(hub_inn, _escape_attr_name(attr_inn.longName()))
-        # Check if the attribute exist before transfering it.
-        # This can happen with build-in attribute like translateX since the hub is a transform.
-        # It might be more logical to use networks for this, but we'll stick with transforms for now.
-        data = libAttr.holdAttr(attr_inn, delete=False)
-        data['node'] = hub_inn
-        data['longName'] = attr_name
-        data['shortName'] = attr_name
-        data['niceName'] = attr_name
-        libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
-        libAttr.swapAttr(attr_inn, hub_inn.attr(attr_name), inputs=False, outputs=True)
-        if not isolate:
-            pymel.connectAttr(attr_inn, hub_inn.attr(attr_name))
-
-    for attr_out in attrs_out:
-        attr_name = _get_unique_attr_name(hub_out, _escape_attr_name(attr_out.longName()))
-        data = libAttr.holdAttr(attr_out, delete=False)
-        data['node'] = hub_out
-        data['longName'] = attr_name
-        data['shortName'] = attr_name
-        data['niceName'] = attr_name
-        libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
-        libAttr.swapAttr(hub_out.attr(attr_name), attr_out, inputs=True, outputs=False)
-        if not isolate:
-            pymel.connectAttr(hub_out.attr(attr_name), attr_out)
-
-    return hub_inn, hub_out
-
-
 def _get_all_namespaces():
     cmds.namespace(setNamespace="::")
     return cmds.namespaceInfo(listOnlyNamespaces=True, recurse=True)
@@ -309,165 +276,23 @@ def import_component_from_file(path, namespace='untitled'):
     return hub_inn, hub_out
 
 
-def create_component(objs):
-    attrs_inn, attrs_out = identify_network_io_ports(objs)
-    if not attrs_inn:
-        raise Exception("Found no inputs")
-    if not attrs_out:
-        raise Exception("Found no outputs")
-
-    hub_inn, hub_out = isolate_network_io_ports(attrs_inn, attrs_out, isolate=True)
-
-    module = Module2()
-    module.grp_inn = hub_inn
-    module.grp_out = hub_out
-
-    network = libSerialization.export_network(module)
-    pymel.select(network)
-
-    return module
-
-
-def embed_component_metadata_in_file(path, component):
-    """
-    OMTK use the fileInfo flag to embed metadata in maya ascii files.
-    However the fileInfo command only operate on the current file.
-    This method will modify an existing file to include the metadata without opening it.
-    Note that we expect at least one fileInfo entry in the provided .ma file.
-    :param path:
-    :param component:
-    :return:
-    """
-
-
-regex_ma_header = re.compile('^\/\/Maya ASCII .* scene$')
-regex_fileinfo = re.compile('^fileInfo "(.*)" "(.*");')
-
-
-def iter_ma_file_metadata(path):
-    with open(path, 'r') as fp:
-        line = fp.readline()
-        if not regex_ma_header.match(line):
-            raise Exception("Invalid first line for file {0}: {1}".format(path, line))
-
-        found = False
-        while fp:
-            line = fp.readline()
-            regex_result = regex_fileinfo.match(line)
-            if regex_result:
-                found = True
-                key, val = regex_result.groups()
-                yield key, val
-            # If we encountered fileInfo and suddenly stop encountering, we are finished with the file
-            elif found:
-                break
-
-
-def get_component_metadata_from_file(path):
-    metadata = {}
-    for key, val in iter_ma_file_metadata(path):
-        if key.startswith(_metadata_prefix):
-            key = key[len(_metadata_prefix):]
-            metadata[key] = val
-    return metadata
-
-
-_metadata_prefix = 'omtk.component.'
-
-
-def write_metadata_to_ma_file(path, metadata):
-    path_tmp = os.path.join(os.path.dirname(path), os.path.basename(path) + '_omtktmp')
-
-    success = False
-    found = False
-    with open(path, 'r') as fp_read:
-        with open(path_tmp, 'w') as fp_write:
-            line = fp_read.readline()
-            if not regex_ma_header.match(line):
-                raise Exception("Invalid Maya ASCII file {0}".format(path))
-            fp_write.write(line)
-
-            for line in fp_read:
-                regex_result = regex_fileinfo.match(line)
-                if regex_result:
-                    found = True
-                    key, val = regex_result.groups()
-                    # Ignore any existing omtk metadata
-                    if key.startswith(_metadata_prefix):
-                        continue
-                # Only dump the metadata on the last fileInfo encounter
-                elif found:
-                    for key, val in metadata.iteritems():
-                        fp_write.write(
-                            'fileInfo "{0}{1}" "{2}";'.format(_metadata_prefix, key, val)
-                        )
-                    success = True
-                    found = False
-
-                fp_write.write(line)
-
-    os.rename(path_tmp, path)
-
-    return success
-
-
-_component_metadata_mandatory_fields = (
-    'uid', 'name', 'version'
-)
-
-
-class ComponentDefinition(object):
-    def __init__(self, name, version=None, uid=None, author=None, path=None):
-        self.uid = uid if uid else uuid.uuid4()
-        self.name = name
-        self.version = version if version else '0.0.0'
-        self.author = author
-        self.path = path
-
-    def __eq__(self, other):
-        if isinstance(other, ComponentDefinition):
-            return self.get_metadata() == other.get_metadata()
-        if isinstance(other, dict):
-            return self.get_metadata() == other
-        raise Exception("Unexpected right operand type. Expected ComponentDefinition or dict, got {0}: {1}".format(
-            type(other), other
-        ))
-
-    def get_metadata(self):
-        return {
-            'uid': self.uid,
-            'name': self.name,
-            'version': self.version,
-            'author': self.author
-        }
-
-    @classmethod
-    def validate_metadata(cls, metadata):
-        for field in _component_metadata_mandatory_fields:
-            field_with_prefix = _metadata_prefix + field
-            if field not in metadata:
-                raise Exception("Incomplete metadata. Missing field {0} in {1}".format(
-                    field, metadata
-                ))
-
-    @classmethod
-    def from_metadata(cls, metadata):
-        return cls(
-            uid=metadata['uid'],
-            name=metadata['name'],
-            version=metadata['version'],
-            author=metadata.get('author')
-        )
-
-    @classmethod
-    def from_file(cls, path):
-        metadata = get_component_metadata_from_file(path)
-        cls.validate_metadata(metadata)
-        return cls.from_metadata(metadata)
-
-    def save_to_file(self, path):
-        metadata = self.get_metadata()
-        return write_metadata_to_ma_file(path, metadata)
+# def create_component(objs):
+#     attrs_inn, attrs_out = identify_network_io_ports(objs)
+#     if not attrs_inn:
+#         raise Exception("Found no inputs")
+#     if not attrs_out:
+#         raise Exception("Found no outputs")
+#
+#     hub_inn, hub_out = isolate_network_io_ports(attrs_inn, attrs_out, isolate=True)
+#
+#     module = Module2()
+#     module.grp_inn = hub_inn
+#     module.grp_out = hub_out
+#
+#     network = libSerialization.export_network(module)
+#     pymel.select(network)
+#
+#     return module
 
 
 class MultipleComponentDefinitionError(Exception):

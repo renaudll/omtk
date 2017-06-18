@@ -1,14 +1,14 @@
-import pymel.core as pymel
+import math
 
+import pymel.core as pymel
+from omtk.core.classEntityAction import EntityAction
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
-from omtk.core.classComponentAction import ComponentAction
+from omtk.libs import libAttr
+from omtk.libs import libPymel
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
-from omtk.libs import libPymel
-from omtk.modules.rigRibbon import Ribbon
-from omtk.libs import libAttr
-import math
+from omtk.modules_broken.rigRibbon import Ribbon
 
 
 class NonRollJoint(Node):
@@ -411,7 +411,7 @@ class Twistbone(Module):
         '''
 
 
-class ActionAssignWeights(ComponentAction):
+class ActionAssignWeights(EntityAction):
     def get_name(self):
         return 'Assign Twist Weights'
 
@@ -419,7 +419,7 @@ class ActionAssignWeights(ComponentAction):
         self.component.assign_twist_weights()
 
 
-class ActionUnassignWeights(ComponentAction):
+class ActionUnassignWeights(EntityAction):
     def get_name(self):
         return 'Unassign Twist Weights'
 

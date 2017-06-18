@@ -23,9 +23,9 @@ plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (
 
 
 def _reload():
-    import classComponent
-    import classComponentAction
-    import classComponentAttribute
+    import classEntity
+    import classEntityAction
+    import classEntityAttribute
     import classCtrl
     import classModule
     import classModuleAvarLogic
@@ -37,9 +37,9 @@ def _reload():
 
     reload(api)  # this won't reload functions imported in the main module. Use api directly if you are debugging it.
     reload(classNomenclature)
-    reload(classComponent)
-    reload(classComponentAction)
-    reload(classComponentAttribute)
+    reload(classEntity)
+    reload(classEntityAction)
+    reload(classEntityAttribute)
     reload(classNode)
     reload(classCtrl)
     reload(classModule)

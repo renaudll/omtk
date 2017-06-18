@@ -1,150 +1,103 @@
-"""
-A component is similar to a Compound in Softimage ICE or a Digital Asset in Houdini.
-It encapsulate a complex network of node into one node.
-Since Maya don't support this complex functionality (yet) we expose it via this class.
-Similar to a Node, a Component have public input attributes, publish outputs attributes and a private node network.
-"""
-# todo: add method to access Component inputs and outputs
-
-import abc
-import re
-import Queue as queue
-
-from omtk import constants
-from omtk.core.classComponentAction import ComponentAction
+from omtk.libs import libAttr
+from omtk.libs import libComponents
+from omtk.libs.libComponents import _HUB_INN_NAME, _HUB_OUT_NAME, _get_unique_attr_name, _escape_attr_name
+from pymel import core as pymel
+from omtk.core.classEntity import Entity
 
 
-class Component(object):
-    __metaclass__ = abc.ABCMeta
+# todo: create ComponentScripted and ComponentSaved
+
+class Component(Entity):
+    need_grp_inn = True
+    need_grp_out = True
+    need_grp_dag = False
 
     def __init__(self, name=None):
-        self.name = name if name else 'untitled'  # todo: better handle naming
-        self.author = ''
-        self.version = ''
+        super(Component, self).__init__()
 
-    def get_version(self):
-        """
-        Return a version number that is used to manage updated.
-        :return: A tuple of int representing a version number. Semantic visioning is recommended.
-        """
-        if not hasattr(self, 'version'):
-            return None, None, None
-        version_info = str(self.version)
-        regex = '^[0-9]+\.[0-9]+\.[0-9]+$'
-        if not re.match(regex, version_info):
-            self.warning("Cannot understand version format: {}".format(version_info))
-            return None, None, None
-        return tuple(int(token) for token in version_info.split('.'))
+        # Not sure about this one
+        self.name = name
 
-    @abc.abstractmethod
+        # Network object that hold all the input attributes.
+        self.grp_inn = None
+
+        # Network object that hold all the output attributes.
+        self.grp_out = None
+
+        # Network object to hold any DagNode belonging to the component.
+        self.grp_dag = None
+
     def build(self):
-        """
-        Create a compound network in the scene.
-        :return:
-        """
+        if self.need_grp_inn:
+            self.grp_inn = pymel.createNode('network', name='inn')
+        if self.need_grp_out:
+            self.grp_out = pymel.createNode('network', name='out')
+        if self.need_grp_dag:
+            self.grp_dag = pymel.createNode('transform', name='dag')
 
-    @abc.abstractmethod
-    def unbuild(self):
-        """
-        Remove a compound network from the scene.
-        :return:
-        """
-
-    @abc.abstractmethod
     def is_built(self):
-        """
-        Check if a compound if built.
-        Note that a compound can theoricaly have 3 states: built, un-built and partially build.
-        When only support the first two states.
-        :return: True if the module if built and intact. False otherwise.
-        """
+        return \
+            self.grp_inn and self.grp_inn.exists() and \
+            self.grp_out and self.grp_out.exists()
 
-    def iter_actions(self):
-        """
-        Return the available actions for this compound instance.
-        :yield: CompoundAction class instances.
-        """
-        return
-        yield
-        # disabled for now since we don't want to recursively build everything???
-        # yield ActionBuild(self)
-        # yield ActionUnbuild(self)
-        # yield ActionRebuild(self)
+    def unbuild(self):
+        raise NotImplementedError
 
-    def iter_sub_components(self):
+    def is_modified(self):
+        # type: () -> bool
         """
-        A compound can contain one or multiple child compound.
-        It can be usefully to access them for processing.
+        Check if a component have been modified since it's construction.
+        todo: implement it, how???
         :return:
         """
-        return
-        yield
+        raise NotImplementedError
 
-    def iter_sub_components_recursive(self):
-        fringe = queue.Queue()
-        fringe.put(self)  # start with ourself
-        known = set()
+    def add_input_attr(self, long_name, **kwargs):
+        return libAttr.addAttr(self.grp_inn, long_name, **kwargs)
 
-        while not fringe.empty():
-            component = fringe.get()
+    def add_output_attr(self, long_name, **kwargs):
+        return libAttr.addAttr(self.grp_out, long_name, **kwargs)
 
-            if component in known:
-                continue
-            known.add(component)
+    def connect_to_input_attr(self, attr_name, attr_src, **kwargs):
+        attr_dst = self.grp_inn.attr(attr_name)
+        pymel.connectAttr(attr_src, attr_dst)
 
-            for child in component.iter_sub_components():
-                yield child
-                fringe.put(child)
-
-    def iter_attributes(self):
-        """
-        A component can contain attribute that are exposed in the GUI.
-        :yield: ComponentAttribute instances.
-        """
-        return
-        yield
+    def connect_to_output_attr(self, attr_name, attr_dst, **kwargs):
+        attr_src = self.grp_out.attr(attr_dst)
+        pymel.connectAttr(attr_src, attr_dst)
 
 
-class ActionBuild(ComponentAction):
-    def get_name(self):
-        return 'Build'
 
-    def can_execute(self):
-        return not self.component.is_built()
+# todo: convert to Component.from_attrs
+def isolate_network_io_ports(attrs_inn, attrs_out, isolate=True):
+    hub_inn = pymel.createNode('network', name=_HUB_INN_NAME)
+    hub_out = pymel.createNode('network', name=_HUB_OUT_NAME)
 
-    def execute(self):
-        self.component.build()
+    for attr_inn in attrs_inn:
+        attr_name = _get_unique_attr_name(hub_inn, _escape_attr_name(attr_inn.longName()))
+        # Check if the attribute exist before transfering it.
+        # This can happen with build-in attribute like translateX since the hub is a transform.
+        # It might be more logical to use networks for this, but we'll stick with transforms for now.
+        data = libAttr.holdAttr(attr_inn, delete=False)
+        data['node'] = hub_inn
+        data['longName'] = attr_name
+        data['shortName'] = attr_name
+        data['niceName'] = attr_name
+        libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
+        libAttr.swapAttr(attr_inn, hub_inn.attr(attr_name), inputs=False, outputs=True)
+        if not isolate:
+            pymel.connectAttr(attr_inn, hub_inn.attr(attr_name))
 
-    def iter_flags(self):
-        for flag in super(ActionBuild, self).iter_flags():
-            yield flag
-        yield constants.ComponentActionFlags.trigger_network_export
+    for attr_out in attrs_out:
+        attr_name = _get_unique_attr_name(hub_out, _escape_attr_name(attr_out.longName()))
+        data = libAttr.holdAttr(attr_out, delete=False)
+        data['node'] = hub_out
+        data['longName'] = attr_name
+        data['shortName'] = attr_name
+        data['niceName'] = attr_name
+        libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
+        libAttr.swapAttr(hub_out.attr(attr_name), attr_out, inputs=True, outputs=False)
+        if not isolate:
+            pymel.connectAttr(hub_out.attr(attr_name), attr_out)
 
-
-class ActionUnbuild(ComponentAction):
-    def get_name(self):
-        return 'Unbuild'
-
-    def can_execute(self):
-        return self.component.is_built()
-
-    def execute(self):
-        self.component.unbuild()
-
-    def iter_flags(self):
-        for flag in super(ActionUnbuild, self).iter_flags():
-            yield flag
-        yield constants.ComponentActionFlags.trigger_network_export
-
-
-class ActionRebuild(ComponentAction):
-    def get_name(self):
-        return 'Rebuild'
-
-    def execute(self):
-        self.component.unbuild()
-
-    def iter_flags(self):
-        for flag in super(ActionRebuild, self).iter_flags():
-            yield flag
-        yield constants.ComponentActionFlags.trigger_network_export
+    return hub_inn, hub_out

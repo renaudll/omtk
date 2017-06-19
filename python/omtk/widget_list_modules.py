@@ -15,6 +15,7 @@ from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.core.classNode import Node
 from omtk.core.classCtrl import BaseCtrl
+from omtk.core.classComponent import Component
 from omtk.core.classEntity import Entity
 from omtk.core import classModule
 from omtk.core import classRig
@@ -135,8 +136,7 @@ class WidgetListModules(QtWidgets.QWidget):
             self.ui.treeWidget.expandItem(item)
 
         from omtk.vendor import libSerialization
-        from omtk.core.classModule2 import Module2
-        networks = libSerialization.get_networks_from_class(Module2.__name__)
+        networks = libSerialization.get_networks_from_class(Component.__name__)
         for network in networks:
             module = libSerialization.import_network(network)
             item = factory_tree_widget_item.get_tree_item(module)

@@ -8,11 +8,13 @@ Similar to a Node, a Component have public input attributes, publish outputs att
 
 import abc
 import re
+import logging
 import Queue as queue
 
 from omtk import constants
 from omtk.core.classEntityAction import EntityAction
 
+log = logging.getLogger('omtk')
 
 class Entity(object):
     __metaclass__ = abc.ABCMeta
@@ -32,7 +34,7 @@ class Entity(object):
         version_info = str(self.version)
         regex = '^[0-9]+\.[0-9]+\.[0-9]+$'
         if not re.match(regex, version_info):
-            self.warning("Cannot understand version format: {}".format(version_info))
+            log.warning("Cannot understand version format: {}".format(version_info))
             return None, None, None
         return tuple(int(token) for token in version_info.split('.'))
 

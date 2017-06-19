@@ -11,6 +11,7 @@ from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
 from omtk.core.classEntityAttribute import EntityAttributeTypedCollection
+from omtk.core.classEntityAttribute import EntityAttribute
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node
 from omtk.libs import libHistory
@@ -160,7 +161,8 @@ class Rig(Entity):
                 yield module
 
     def iter_attributes(self):
-        yield EntityAttributeTypedCollection(Module, 'children', self.modules)
+        def _getter(): return self.modules
+        yield EntityAttribute('children', fn_get=_getter)
 
     # --- Methods for logging
 

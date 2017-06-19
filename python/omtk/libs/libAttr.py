@@ -664,3 +664,157 @@ def context_disconnected_attrs(attrs, hold_inputs=True, hold_outputs=True):
     data = hold_connections(attrs, hold_inputs=hold_inputs, hold_outputs=hold_outputs)
     yield True
     fetch_connections(data)
+
+
+def iter_leaf_attributes(obj):
+    """
+    Iter all the leaf nodes (including compounds and array attributes) recursively using pymel awesome
+    iterDescendants method. Note that since the leavesOnly flag is not provided by the listAttr method
+    we need to go through the top level Attributes first.
+    :param obj:
+    :return:
+    """
+    for attr in obj.listAttr(descendants=True):
+        yield attr
+
+
+def iter_interesting_attributes(obj):
+    """
+    Extend pymel.listAttr by implementing recursivity
+    :param obj: A pymel.nodetypes.DagNode that contain attribute to explore.
+    :param read: If True, output attributes will be yielded.
+    :param write: If True, input attributes will be yielded.
+    :yield: pymel.Attribute instances.
+    """
+    for attr in iter_leaf_attributes(obj):
+        attr_name = attr.longName()
+
+        # Ignore some known attributes by name
+        if attr_name in _blacklisted_attr_names:
+            continue
+
+        yield attr
+
+
+_blacklisted_attr_names = {
+    'caching',
+    'isHistoricallyInteresting',
+    'nodeState',
+    'frozen',
+    'isCollapsed',
+    'blackBox',
+    'publishedNodeInfo',
+    'templateName',
+    'templatePath',
+    'templateVersion',
+    'viewName',
+    'iconName',
+    'viewMode',
+    'uiTreatment',
+    'customTreatment',
+    'creator',
+    'creationDate',
+    'containerType',
+    'intermediateObject',
+    'hyperLayout',
+    'borderConnections',
+    'publishedNode',
+    'publishedNodeInfo.publishedNode',
+    'renderLayerInfo',
+    'renderLayerInfo.renderLayerId',
+    'instObjGroups',
+    'instObjGroups.objectGroups',
+    'instObjGroups.objectGroups.objectGroupId',
+    'instObjGroups.objectGroups.objectGrpColor',
+    'template',
+    'ghosting',
+    'objectColorR',
+    'objectColorG',
+    'objectColorB',
+    'objectColorRGB',
+    'wireColorRGB',
+    'wireColorR',
+    'wireColorG',
+    'wireColorB',
+    'useObjectColor',
+    'objectColor',
+    'drawOverride',
+    'overrideDisplayType',
+    'overrideLevelOfDetail',
+    'overrideShading',
+    'overrideTexturing',
+    'overridePlayback',
+    'overrideEnabled',
+    'overrideVisibility',
+    'hideOnPlayback',
+    'overrideRGBColors',
+    'overrideColor',
+    'overrideColorRGB',
+    'overrideColorR',
+    'overrideColorG',
+    'overrideColorB',
+    'lodVisibility',
+    'selectionChildHighlighting',
+    'renderInfo',
+    'identification',
+    'layerRenderable',
+    'layerOverrideColor',
+    'renderLayerInfo.renderLayerRenderable',
+    'renderLayerInfo.renderLayerColor',
+    'ghostingControl',
+    'ghostCustomSteps',
+    'ghostPreSteps',
+    'ghostPostSteps',
+    'ghostStepSize',
+    'ghostFrames',
+    'ghostColorPreA',
+    'ghostColorPre',
+    'ghostColorPreR',
+    'ghostColorPreG',
+    'ghostColorPreB',
+    'ghostColorPostA',
+    'ghostColorPost',
+    'ghostColorPostR',
+    'ghostColorPostG',
+    'ghostColorPostB',
+    'ghostRangeStart',
+    'ghostRangeEnd',
+    'ghostDriver',
+    'Skipping ctrl.ghostDriver',
+    'hiddenInOutliner',
+    'useOutlinerColor',
+    'outlinerColor',
+    'outlinerColorR',
+    'outlinerColorG',
+    'outlinerColorB',
+    'geometry',
+    'selectHandle',
+    'selectHandleX',
+    'selectHandleY',
+    'selectHandleZ',
+    'displayHandle',
+    'displayScalePivot',
+    'displayRotatePivot',
+    'displayLocalAxis',
+    'dynamics',
+    'showManipDefault',
+    'specifiedManipLocation',
+    'message',
+    'boundingBox',
+    'boundingBoxMin',
+    'boundingBoxMax',
+    'boundingBoxSize',
+    'boundingBoxMinX',
+    'boundingBoxMaxX',
+    'boundingBoxMinY',
+    'boundingBoxMaxY',
+    'boundingBoxMinZ',
+    'boundingBoxMaxZ',
+    'boundingBoxSizeX',
+    'boundingBoxSizeY',
+    'boundingBoxSizeZ',
+    'boundingBoxCenter',
+    'boundingBoxCenterX',
+    'boundingBoxCenterY',
+    'boundingBoxCenterZ',
+}

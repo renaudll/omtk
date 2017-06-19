@@ -12,6 +12,13 @@ class WidgetNodeEditor(QtWidgets.QWidget):
         self.ui.pushButton.pressed.connect(self.on_add)
         self.ui.pushButton_2.pressed.connect(self.on_del)
 
+        self.ui.widget.endSelectionMoved.connect(self.on_selected_nodes_moved)
+
+    def on_selected_nodes_moved(self):
+        for node in self.ui.widget.getSelectedNodes():
+            print node, node.getGraphPos()
+
+
     def on_add(self):
         raise NotImplementedError
 

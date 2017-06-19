@@ -1,172 +1,13 @@
 import itertools
 import os
-import re
 
 import pymel.core as pymel
 from maya import cmds
 from omtk.core.classComponentDefinition import ComponentDefinition
-# from omtk.core.classComponent import isolate_network_io_ports
-# from omtk.core.classModule2 import Module2
-# from omtk.vendor import libSerialization
+from omtk.libs import libAttr
 
 _HUB_INN_NAME = 'hub_inn'
 _HUB_OUT_NAME = 'hub_out'
-
-_blacklisted_attr_names = {
-    'caching',
-    'isHistoricallyInteresting',
-    'nodeState',
-    'frozen',
-    'isCollapsed',
-    'blackBox',
-    'publishedNodeInfo',
-    'templateName',
-    'templatePath',
-    'templateVersion',
-    'viewName',
-    'iconName',
-    'viewMode',
-    'uiTreatment',
-    'customTreatment',
-    'creator',
-    'creationDate',
-    'containerType',
-    'intermediateObject',
-    'hyperLayout',
-    'borderConnections',
-    'publishedNode',
-    'publishedNodeInfo.publishedNode',
-    'renderLayerInfo',
-    'renderLayerInfo.renderLayerId',
-    'instObjGroups',
-    'instObjGroups.objectGroups',
-    'instObjGroups.objectGroups.objectGroupId',
-    'instObjGroups.objectGroups.objectGrpColor',
-    'template',
-    'ghosting',
-    'objectColorR',
-    'objectColorG',
-    'objectColorB',
-    'objectColorRGB',
-    'wireColorRGB',
-    'wireColorR',
-    'wireColorG',
-    'wireColorB',
-    'useObjectColor',
-    'objectColor',
-    'drawOverride',
-    'overrideDisplayType',
-    'overrideLevelOfDetail',
-    'overrideShading',
-    'overrideTexturing',
-    'overridePlayback',
-    'overrideEnabled',
-    'overrideVisibility',
-    'hideOnPlayback',
-    'overrideRGBColors',
-    'overrideColor',
-    'overrideColorRGB',
-    'overrideColorR',
-    'overrideColorG',
-    'overrideColorB',
-    'lodVisibility',
-    'selectionChildHighlighting',
-    'renderInfo',
-    'identification',
-    'layerRenderable',
-    'layerOverrideColor',
-    'renderLayerInfo.renderLayerRenderable',
-    'renderLayerInfo.renderLayerColor',
-    'ghostingControl',
-    'ghostCustomSteps',
-    'ghostPreSteps',
-    'ghostPostSteps',
-    'ghostStepSize',
-    'ghostFrames',
-    'ghostColorPreA',
-    'ghostColorPre',
-    'ghostColorPreR',
-    'ghostColorPreG',
-    'ghostColorPreB',
-    'ghostColorPostA',
-    'ghostColorPost',
-    'ghostColorPostR',
-    'ghostColorPostG',
-    'ghostColorPostB',
-    'ghostRangeStart',
-    'ghostRangeEnd',
-    'ghostDriver',
-    'Skipping ctrl.ghostDriver',
-    'hiddenInOutliner',
-    'useOutlinerColor',
-    'outlinerColor',
-    'outlinerColorR',
-    'outlinerColorG',
-    'outlinerColorB',
-    'geometry',
-    'selectHandle',
-    'selectHandleX',
-    'selectHandleY',
-    'selectHandleZ',
-    'displayHandle',
-    'displayScalePivot',
-    'displayRotatePivot',
-    'displayLocalAxis',
-    'dynamics',
-    'showManipDefault',
-    'specifiedManipLocation',
-    'message',
-    'boundingBox',
-    'boundingBoxMin',
-    'boundingBoxMax',
-    'boundingBoxSize',
-    'boundingBoxMinX',
-    'boundingBoxMaxX',
-    'boundingBoxMinY',
-    'boundingBoxMaxY',
-    'boundingBoxMinZ',
-    'boundingBoxMaxZ',
-    'boundingBoxSizeX',
-    'boundingBoxSizeY',
-    'boundingBoxSizeZ',
-    'boundingBoxCenter',
-    'boundingBoxCenterX',
-    'boundingBoxCenterY',
-    'boundingBoxCenterZ',
-}
-
-
-def _iter_leaf_attributes(obj):
-    """
-    Iter all the leaf nodes (including compounds and array attributes) recursively using pymel awesome
-    iterDescendants method. Note that since the leavesOnly flag is not provided by the listAttr method
-    we need to go through the top level Attributes first.
-    :param obj:
-    :return:
-    """
-    # for attr_top in obj.listAttr(topLevel=True):
-    #     for attr in attr_top.iterDescendants(leavesOnly=False):
-    #         yield attr
-    for attr in obj.listAttr(descendants=True):
-        yield attr
-
-
-def _iter_interesting_attributes(obj):
-    """
-    Extend pymel.listAttr by implementing recursivity
-    :param obj: A pymel.nodetypes.DagNode that contain attribute to explore.
-    :param read: If True, output attributes will be yielded.
-    :param write: If True, input attributes will be yielded.
-    :yield: pymel.Attribute instances.
-    """
-    for attr in _iter_leaf_attributes(obj):
-        attr_name = attr.longName()
-
-        # Ignore some known attributes by name
-        if attr_name in _blacklisted_attr_names:
-            continue
-
-        yield attr
 
 
 def identify_network_io_ports(objs):
@@ -201,7 +42,7 @@ def identify_network_io_ports(objs):
                 return True
 
             found = False
-            for sub_attr in _iter_interesting_attributes(plug_node):
+            for sub_attr in libAttr.iter_interesting_attributes(plug_node):
                 found = fn_search(sub_attr, known_nodes, known_attributes, future=future)
                 known_attributes[sub_attr] = found
                 if found:
@@ -217,13 +58,13 @@ def identify_network_io_ports(objs):
     for obj in objs:
         known_nodes = {obj: False}
         known_attributes = {}
-        for attr in _iter_interesting_attributes(obj):
+        for attr in libAttr.iter_interesting_attributes(obj):
             if fn_search(attr, known_nodes, known_attributes, future=True):
                 result_inn.add(attr)
     for obj in objs:
         known_nodes = {obj: False}
         known_attributes = {}
-        for attr in _iter_interesting_attributes(obj):
+        for attr in libAttr.iter_interesting_attributes(obj):
             if fn_search(attr, known_nodes, known_attributes, future=False):
                 result_out.add(attr)
 
@@ -330,3 +171,59 @@ def walk_available_component_definitions():
                 known.add(key)
 
                 yield component_def
+
+
+from omtk.vendor import libSerialization
+from omtk.libs import libPython
+
+
+def get_component_network_bounds():
+    """
+    Return the metadata of the component parent of the provided component, starting from any object.
+    :param obj: A pymel.nodetypes.Network representing the output of a component.
+    :param cache: Initialized internally.
+    :return: A pymel.nodetypes.Network that can be deserialized.
+    """
+    component_network_by_bound = {}
+    networks = libSerialization.get_networks_from_class('Component')
+    for network in networks:
+        grp_inn = next(iter(network.attr('grp_inn').inputs()), None)
+        if grp_inn:
+            component_network_by_bound[grp_inn] = network
+        grp_out = next(iter(network.attr('grp_out').inputs()), None)
+        if grp_out:
+            component_network_by_bound[grp_out] = network
+    return component_network_by_bound
+
+
+def get_component_parent_network(obj, source=True, destination=True, cache=None):
+    """
+    Return the metadata of the component parent of the provided component, optimized for starting at the input network.
+    :param obj: A pymel.nodetypes.Network representing the output of a component.
+    :param cache: Initialized internally.
+    :return: A pymel.nodetypes.Network that can be deserialized.
+        """
+    if not cache:
+        cache = get_component_network_bounds()
+
+    def _fn_goal(n):
+        return n in cache
+
+    def _fn_get_paths(n):
+        return pymel.listConnections(n, source=source, destination=destination, skipConversionNodes=True)
+
+    return libPython.id_dfs(obj, _fn_goal, _fn_get_paths)
+
+
+def get_component_parent_network_from_output(obj, cache=None):
+    """
+    Return the metadata of the component parent of the provided component, optimized for starting at the output network.
+    :param obj: A pymel.nodetypes.Network representing the output of a component.
+    :param cache: Initialized internally.
+    :return: A pymel.nodetypes.Network that can be deserialized.
+    """
+    return get_component_parent_network(obj, source=False, destination=True)
+
+
+def get_component_parent_network_from_input(obj, cache=None):
+    return get_component_parent_network(obj, source=True, destination=False)

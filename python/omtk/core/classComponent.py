@@ -1,9 +1,9 @@
 from omtk.libs import libAttr
-from omtk.libs import libComponents
 from omtk.libs.libComponents import _HUB_INN_NAME, _HUB_OUT_NAME, _get_unique_attr_name, _escape_attr_name
 from pymel import core as pymel
 from omtk.core.classEntity import Entity
-
+from omtk.core.classEntityAttribute import get_attrdef_from_attr
+from omtk.vendor import libSerialization
 
 # todo: create ComponentScripted and ComponentSaved
 
@@ -34,11 +34,23 @@ class Component(Entity):
             self.grp_out = pymel.createNode('network', name='out')
         if self.need_grp_dag:
             self.grp_dag = pymel.createNode('transform', name='dag')
+        libSerialization.export_network(self)
 
     def is_built(self):
         return \
             self.grp_inn and self.grp_inn.exists() and \
             self.grp_out and self.grp_out.exists()
+
+    def iter_attributes(self):
+        # todo: use factory?
+        for attr in self.grp_inn.listAttr(userDefined=True):
+            attr_def = get_attrdef_from_attr(attr, is_input=True, is_output=False)
+            if attr_def:
+                yield attr_def
+        for attr in self.grp_out.listAttr(userDefined=True):
+            attr_def = get_attrdef_from_attr(attr, is_input=False, is_output=True)
+            if attr_def:
+                yield attr_def
 
     def unbuild(self):
         raise NotImplementedError

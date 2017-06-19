@@ -76,7 +76,7 @@ def get_node_color_from_datatype(datatype):
     ):
         return QtGui.QColor(170, 128, 170, 255)
     if datatype in (
-        AttributeType.Node
+        AttributeType.Node,
     ):
         return QtGui.QColor(170, 170, 128, 255)
     # todo: warning

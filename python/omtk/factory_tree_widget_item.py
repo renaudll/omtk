@@ -30,21 +30,23 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
         self.update_()
 
     def update_(self):
-        pass
-
-
-class TreeWidgetItemComponent(TreeWidgetItemEx):
-    def update_(self):
         icon = factory_datatypes.get_icon_from_datatype(self._meta_type)
         if icon:
             self.setIcon(0, icon)
-        # self.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
 
-        # Store the source network in metadata
         if hasattr(self._meta_data, '_network'):
             self.net = self._meta_data._network
         else:
             log.warning("{0} have no _network attributes".format(self._meta_data))
+
+
+class TreeWidgetItemComponent(TreeWidgetItemEx):
+    def update_(self):
+        super(TreeWidgetItemComponent, self).update_()
+
+        component = self._meta_data
+        label = str(component) + str(component.get_version())
+        self.setText(0, label)
 
 
 class TreeWidgetItemRig(TreeWidgetItemComponent):
@@ -140,11 +142,13 @@ def _get_item_from_component(component, known_data_id=None):
     if known_data_id is None:
         known_data_id = set()
 
-    meta_data = factory_datatypes.get_component_attribute_type(component)
-    if meta_data == factory_datatypes.AttributeType.Module:
+    meta_type = factory_datatypes.get_component_attribute_type(component)
+    if meta_type == factory_datatypes.AttributeType.Module:
         item = TreeWidgetItemModule(0, component)
-    elif meta_data == factory_datatypes.AttributeType.Rig:
+    elif meta_type == factory_datatypes.AttributeType.Rig:
         item = TreeWidgetItemRig(0, component)
+    elif meta_type == factory_datatypes.AttributeType.Component:
+        item = TreeWidgetItemComponent(0, meta_type, component)
     else:
         item = QtWidgets.QTreeWidgetItem(0)
 

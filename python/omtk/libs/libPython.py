@@ -312,3 +312,40 @@ def pairwise(iterable):
     a, b = itertools.tee(iterable)
     next(b, None)
     return itertools.izip(a, b)
+
+
+# -- Algorithms --
+
+# http://eddmann.com/posts/depth-first-search-and-breadth-first-search-in-python/
+def dfs(graph, start, visited=None):
+    if visited is None:
+        visited = set()
+    visited.add(start)
+    for next in graph[start] - visited:
+        dfs(graph, next, visited)
+    return visited
+
+# http://eddmann.com/posts/using-iterative-deepening-depth-first-search-in-python/
+def id_dfs(puzzle, goal, get_moves, max_iteration=20):
+    import itertools
+    known = set()
+
+    def dfs(route, depth):
+        if depth == 0:
+            return
+        if goal(route[-1]):
+            return route
+        for move in get_moves(route[-1]):
+            if move not in route and move not in known:
+                known.add(move)
+                next_route = dfs(route + [move], depth - 1)
+                if next_route:
+                    return next_route
+
+    for depth in itertools.count(start=1):
+        if max_iteration and depth > max_iteration:
+            raise Exception("Maximum iteration limit!")
+        known.clear()
+        route = dfs([puzzle], depth)
+        if route:
+            return route

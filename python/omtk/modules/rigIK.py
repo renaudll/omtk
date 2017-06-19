@@ -207,6 +207,8 @@ class ComponentSoftIk(Component):
     - Add support for n-length chain. Soft-IK might not trigger earlier on 4+ length chain
     depending on the smalest angles.
     """
+    component_name = '_SoftIkSolver'
+    component_id = constants.BuiltInComponentIds.IkSoftSolver
 
     def __init__(self, **kwargs):
         super(ComponentSoftIk, self).__init__(**kwargs)
@@ -480,6 +482,8 @@ class ComponentIk(Component):
     - out: A list of world matrices of the same size than bindPoses for the output influences.
     """
     need_grp_dag = True
+    component_name = 'IK'
+    component_id = constants.BuiltInComponentIds.Ik
 
     def __init__(self, **kwargs):
         super(ComponentIk, self).__init__(**kwargs)

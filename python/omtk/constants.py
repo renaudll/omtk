@@ -33,3 +33,8 @@ class EnvironmentVariables:
 
     # Define additional location on disk to search for plugins.
     OMTK_PLUGINS = 'OMTK_PLUGINS'
+
+
+class BuiltInComponentIds:
+    Ik = '9458f1c5-8962-4338-a233-54808cc5f520'
+    IkSoftSolver = 'e6259812-d64d-4509-a051-828e5ed36234'

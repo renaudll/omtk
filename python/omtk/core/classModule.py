@@ -5,7 +5,7 @@ import pymel.core as pymel
 
 logging.basicConfig()
 from omtk.core.classEntity import Entity
-from omtk.core.classEntityAttribute import EntityAttributeTypedCollection
+from omtk.core.classEntityAttribute import EntityAttribute
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
@@ -81,7 +81,14 @@ class Module(Entity):
             yield child
 
     def iter_attributes(self):
-        yield EntityAttributeTypedCollection(pymel.nodetypes.DagNode, 'inputs', self.input)
+        def _fn_get():
+            return self.input
+
+        def _fn_set(val):
+            self.input = val
+            # todo: trigger signal?
+
+        yield EntityAttribute('inputs', is_input=True, is_output=False, fn_get=_fn_get, fn_set=_fn_set)
 
     # --- Methods for logging
 

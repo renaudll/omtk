@@ -1,5 +1,6 @@
-from contextlib import contextmanager
+import itertools
 import logging
+from contextlib import contextmanager
 
 log = logging.getLogger('omtk')
 
@@ -817,4 +818,17 @@ _blacklisted_attr_names = {
     'boundingBoxCenterX',
     'boundingBoxCenterY',
     'boundingBoxCenterZ',
+    'binMembership'
 }
+
+
+def get_unique_attr_name(obj, attr_name):
+    if not obj.hasAttr(attr_name):
+        return attr_name
+    for i in itertools.count():
+        new_attr_name = attr_name + str(i)
+        if not obj.hasAttr(new_attr_name):
+            return new_attr_name
+
+def escape_attr_name(attr_name):
+    return attr_name.replace('[', '_').replace(']', '_')

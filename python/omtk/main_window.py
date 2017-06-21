@@ -140,6 +140,10 @@ class AutoRig(QtWidgets.QMainWindow):
         #         graph.addNode(node)
         #
 
+        # Pre-configure QDockWidget
+        self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
+        self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
+
     def on_action_requested(self, actions):
         print "action_requested"
         need_export_network = False

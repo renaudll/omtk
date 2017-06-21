@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_node_editor.ui'
 #
-# Created: Fri Jun  9 23:46:56 2017
+# Created: Tue Jun 20 21:45:39 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -23,9 +23,18 @@ class Ui_Form(object):
         self.pushButton_2 = QtWidgets.QPushButton(Form)
         self.pushButton_2.setObjectName("pushButton_2")
         self.horizontalLayout.addWidget(self.pushButton_2)
+        self.pushButton_3 = QtWidgets.QPushButton(Form)
+        self.pushButton_3.setObjectName("pushButton_3")
+        self.horizontalLayout.addWidget(self.pushButton_3)
+        self.pushButton_4 = QtWidgets.QPushButton(Form)
+        self.pushButton_4.setObjectName("pushButton_4")
+        self.horizontalLayout.addWidget(self.pushButton_4)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout)
+        self.widget_2 = WidgetBreadcrumb(Form)
+        self.widget_2.setObjectName("widget_2")
+        self.verticalLayout.addWidget(self.widget_2)
         self.widget = NodeEditorView(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
@@ -42,5 +51,8 @@ class Ui_Form(object):
         Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
         self.pushButton.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
         self.pushButton_2.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
+        self.pushButton_3.setText(QtWidgets.QApplication.translate("Form", "Expand", None, -1))
+        self.pushButton_4.setText(QtWidgets.QApplication.translate("Form", "Collapse", None, -1))
 
 from ..widget_node_editor_view import NodeEditorView
+from ..widget_breadcrumb import WidgetBreadcrumb

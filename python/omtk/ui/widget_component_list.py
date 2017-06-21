@@ -2,12 +2,12 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_component_list.ui'
 #
-# Created: Mon Jun 12 23:18:31 2017
+# Created: Tue Jun 20 21:45:39 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -20,6 +20,7 @@ class Ui_Form(object):
         self.lineEdit_search.setObjectName("lineEdit_search")
         self.verticalLayout.addWidget(self.lineEdit_search)
         self.tableView = QtWidgets.QTableView(Form)
+        self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.tableView.setObjectName("tableView")
         self.verticalLayout.addWidget(self.tableView)
 

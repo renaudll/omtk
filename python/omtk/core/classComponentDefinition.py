@@ -1,6 +1,13 @@
 import os
 import re
 import uuid
+from omtk.core.classComponent import Component
+from omtk.libs import libNamespaces
+from omtk.vendor import libSerialization
+from omtk import constants
+
+from maya import cmds
+import pymel.core as pymel
 
 regex_ma_header = re.compile('^\/\/Maya ASCII .* scene$')
 regex_fileinfo = re.compile('^fileInfo "(.*)" "(.*");')
@@ -119,7 +126,9 @@ class ComponentDefinition(object):
                 metadata[key] = val
 
         cls.validate_metadata(metadata)
-        return cls.from_metadata(metadata)
+        inst = cls.from_metadata(metadata)
+        inst.path = path
+        return inst
 
     def write_to_file(self, path=None):
         metadata = self.get_metadata()
@@ -160,3 +169,27 @@ class ComponentDefinition(object):
     def save_to_file(self, path):
         metadata = self.get_metadata()
         return write_metadata_to_ma_file(path, metadata)
+
+    def instanciate(self, name='unamed'):
+        # type: () -> (Component, pymel.nodetypes.Network)
+        """
+        Create a Component in the scene from a ComponentDefinition.
+        :return: A Component instance.
+        """
+        if not self.path or not os.path.exists(self.path):
+            raise Exception("Cannot instanciate {0}, path does not exist! {1}".format(
+                self, self.path
+            ))
+
+        namespace = libNamespaces.get_unique_namespace(name)
+        cmds.file(self.path, i=True, namespace=namespace)
+        hub_inn = pymel.PyNode('{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME))
+        hub_out = pymel.PyNode('{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME))
+
+        inst = Component(name=namespace)
+        inst.grp_inn = hub_inn
+        inst.grp_out = hub_out
+
+        network = libSerialization.export_network(inst)
+
+        return inst

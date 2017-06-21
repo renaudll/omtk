@@ -53,7 +53,9 @@ class EntityAttribute(object):
     def get(self):
         if self._fn_get:
             return self._fn_get()
-        raise Exception("Attribute {0} have not getter defined!".format(self))
+        log.warning("Attribute {0} have not getter defined!".format(self))
+        return None
+        # raise Exception("Attribute {0} have not getter defined!".format(self))
 
     def set(self, val):
         if self._fn_set:

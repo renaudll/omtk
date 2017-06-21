@@ -1,6 +1,8 @@
 # a simple alias
+from omtk.libs import libPyflowgraph
 from omtk.vendor.Qt import QtWidgets
 from ui import widget_node_editor
+
 
 
 class WidgetNodeEditor(QtWidgets.QWidget):
@@ -16,8 +18,10 @@ class WidgetNodeEditor(QtWidgets.QWidget):
 
     def on_selected_nodes_moved(self):
         for node in self.ui.widget.getSelectedNodes():
-            print node, node.getGraphPos()
-
+            if node._meta_data:
+                new_pos = node.pos()  # for x reason, .getGraphPos don't work here
+                new_pos = (new_pos.x(), new_pos.y())
+                libPyflowgraph.save_node_position(node, new_pos)
 
     def on_add(self):
         raise NotImplementedError

@@ -1,9 +1,11 @@
 from omtk.libs import libAttr
-from omtk.libs.libComponents import _HUB_INN_NAME, _HUB_OUT_NAME, _get_unique_attr_name, _escape_attr_name
 from pymel import core as pymel
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAttribute import get_attrdef_from_attr
 from omtk.vendor import libSerialization
+
+from omtk import constants
+
 
 # todo: create ComponentScripted and ComponentSaved
 
@@ -79,14 +81,13 @@ class Component(Entity):
         pymel.connectAttr(attr_src, attr_dst)
 
 
-
 # todo: convert to Component.from_attrs
 def isolate_network_io_ports(attrs_inn, attrs_out, isolate=True):
-    hub_inn = pymel.createNode('network', name=_HUB_INN_NAME)
-    hub_out = pymel.createNode('network', name=_HUB_OUT_NAME)
+    hub_inn = pymel.createNode('network', name=constants.COMPONENT_HUB_INN_NAME)
+    hub_out = pymel.createNode('network', name=constants.COMPONENT_HUB_OUT_NAME)
 
     for attr_inn in attrs_inn:
-        attr_name = _get_unique_attr_name(hub_inn, _escape_attr_name(attr_inn.longName()))
+        attr_name = libAttr.get_unique_attr_name(hub_inn, libAttr.escape_attr_name(attr_inn.longName()))
         # Check if the attribute exist before transfering it.
         # This can happen with build-in attribute like translateX since the hub is a transform.
         # It might be more logical to use networks for this, but we'll stick with transforms for now.
@@ -101,7 +102,7 @@ def isolate_network_io_ports(attrs_inn, attrs_out, isolate=True):
             pymel.connectAttr(attr_inn, hub_inn.attr(attr_name))
 
     for attr_out in attrs_out:
-        attr_name = _get_unique_attr_name(hub_out, _escape_attr_name(attr_out.longName()))
+        attr_name = libAttr.get_unique_attr_name(hub_out, libAttr.escape_attr_name(attr_out.longName()))
         data = libAttr.holdAttr(attr_out, delete=False)
         data['node'] = hub_out
         data['longName'] = attr_name

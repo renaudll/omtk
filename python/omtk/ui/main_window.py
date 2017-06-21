@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/main_window.ui'
 #
-# Created: Fri Jun  9 23:44:56 2017
+# Created: Tue Jun 20 21:45:39 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -52,6 +52,8 @@ class Ui_OpenRiggingToolkit(object):
         self.menuInfluences.setObjectName("menuInfluences")
         self.menuSettings = QtWidgets.QMenu(self.menubar)
         self.menuSettings.setObjectName("menuSettings")
+        self.menuComponents = QtWidgets.QMenu(self.menubar)
+        self.menuComponents.setObjectName("menuComponents")
         OpenRiggingToolkit.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(OpenRiggingToolkit)
         self.statusbar.setObjectName("statusbar")
@@ -152,6 +154,8 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPluginManager.setObjectName("actionShowPluginManager")
         self.actionShowPreferences = QtWidgets.QAction(OpenRiggingToolkit)
         self.actionShowPreferences.setObjectName("actionShowPreferences")
+        self.actionCreateComponent = QtWidgets.QAction(OpenRiggingToolkit)
+        self.actionCreateComponent.setObjectName("actionCreateComponent")
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addSeparator()
@@ -167,11 +171,13 @@ class Ui_OpenRiggingToolkit(object):
         self.menuInfluences.addAction(self.actionMirrorSelection)
         self.menuSettings.addAction(self.actionShowPreferences)
         self.menuSettings.addAction(self.actionShowPluginManager)
+        self.menuComponents.addAction(self.actionCreateComponent)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuRig.menuAction())
         self.menubar.addAction(self.menuJoint.menuAction())
         self.menubar.addAction(self.menuInfluences.menuAction())
         self.menubar.addAction(self.menuSettings.menuAction())
+        self.menubar.addAction(self.menuComponents.menuAction())
 
         self.retranslateUi(OpenRiggingToolkit)
         self.stackedWidget.setCurrentIndex(0)
@@ -184,6 +190,7 @@ class Ui_OpenRiggingToolkit(object):
         self.menuJoint.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mo&dules", None, -1))
         self.menuInfluences.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "I&nfluences", None, -1))
         self.menuSettings.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Settings", None, -1))
+        self.menuComponents.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Components", None, -1))
         self.dockWidget_modules.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Modules", None, -1))
         self.dockWidget_influences.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Influences", None, -1))
         self.dockWidget_meshes.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Meshes", None, -1))
@@ -202,6 +209,7 @@ class Ui_OpenRiggingToolkit(object):
         self.actionMirrorSelection.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mirror &using Selection", None, -1))
         self.actionShowPluginManager.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Plugin &Manager", None, -1))
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
+        self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None, -1))
 
 from ..widget_node_editor import WidgetNodeEditor
 from ..widget_list_meshes import WidgetListMeshes

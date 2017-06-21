@@ -40,7 +40,11 @@ class NodeEditorView(GraphView):
             super(NodeEditorView, self).mousePressEvent(event)
 
     def on_tab_pressed(self):
-        print("TAB PRESSED")
+        from . import widget_component_list
+        dialog = widget_component_list.WidgetComponentList(self)
+        dialog.show()
+
+        dialog.signalComponentCreated.connect(self.on_component_created)
 
     # -- Drag and Drop --
     def dropMimeData(self, parent, index, data, action):
@@ -92,3 +96,10 @@ class NodeEditorView(GraphView):
         self._mimedata = QtCore.QMimeData()
         self._mimedata.setData('omtk-influence', 'test')
         return self._mimedata
+
+    # --- Events ---
+
+    def on_component_created(self, component):
+        from factory_pyflowgraph_node import GraphFactoryModel
+        model = GraphFactoryModel(self)
+        model.get_node(component)

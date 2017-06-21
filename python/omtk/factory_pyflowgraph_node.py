@@ -9,9 +9,9 @@ from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
 from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
 from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
-from omtk.core.classEntityAttribute import EntityAttributeTyped, EntityAttributeTypedCollection
 from omtk.libs import libAttr
 from omtk.libs import libComponents
+from omtk.libs import libPyflowgraph
 
 from omtk import factory_datatypes
 
@@ -23,7 +23,7 @@ __all__ = (
 
 
 def _get_port_name_from_pymel_attr(attr):
-    return libComponents._escape_attr_name(attr.longName())
+    return libAttr.escape_attr_name(attr.longName())
 
 
 class NodeIcon(QtWidgets.QGraphicsWidget):
@@ -46,12 +46,13 @@ class NodeIcon(QtWidgets.QGraphicsWidget):
 class GraphFactoryModel(object):
     def __init__(self, graph):
         self._graph = graph
-        self._cache_node_by_pynode = {}
+        self._expanded_node_pynode = {}
+        self._cache_node_by_pynode_created = {}
         self._cache_node_by_component = {}
         self._cache_port_by_pyattr = {}
 
     def clear_cache(self):
-        self._cache_node_by_pynode.clear()
+        self._expanded_node_pynode.clear()
         self._cache_node_by_component.clear()
         self._cache_port_by_pyattr.clear()
 
@@ -69,9 +70,12 @@ class GraphFactoryModel(object):
                 factory_datatypes.AttributeType.Module,
                 factory_datatypes.AttributeType.Rig
         ):
-            return self._get_node_from_component(val)
+            node = self._get_node_from_component(val)
+            libPyflowgraph.arrange_upstream(node)
+            libPyflowgraph.arrange_downstream(node)
+            return node
         elif datatype == factory_datatypes.AttributeType.Node:
-            return self._get_node_from_pynode(val)
+            return self._expand_pynode(val)
         raise Exception("Unexpected datatype {0}: {1}".format(datatype, val))
 
     def _get_port_cls_from_attr(self, attr):
@@ -97,7 +101,7 @@ class GraphFactoryModel(object):
             pass
 
         attr_node = attr.node()
-        node = self._get_node_from_pynode(attr_node)
+        node = self._create_node_from_pynode(attr_node)
 
         attr_name = _get_port_name_from_pymel_attr(attr)
         port_cls = self._get_port_cls_from_attr(attr)
@@ -110,12 +114,15 @@ class GraphFactoryModel(object):
         )
         node.addPort(port)
         self._cache_port_by_pyattr[attr] = port
+
+        self._expand_pynode(attr_node)
+
         return port
 
     def _get_node_from_component(self, component):
         # type: (PyFlowgraphView, Entity) -> PyFlowgraphNode
         try:
-            return self._cache_node_by_pynode[component]
+            return self._expanded_node_pynode[component]
         except KeyError:
             pass
 
@@ -178,33 +185,52 @@ class GraphFactoryModel(object):
         self._cache_node_by_component[component] = node
         return node
 
-    def _get_node_from_pynode(self, pynode):
+    def _create_node_from_pynode(self, pynode):
         try:
-            return self._cache_node_by_pynode[pynode]
+            return self._cache_node_by_pynode_created[pynode]
         except KeyError:
             pass
 
         node_label = "   {0}".format(pynode.name())
         node = PyFlowgraphNode(self._graph, node_label)
 
-        icon = QtGui.QIcon(":/out_transform.png")
-        item = NodeIcon(icon)
-        node.layout().insertItem(0, item)
-
         # Monkey-patch our metadata into the node.
         node._meta_data = pynode
         node._meta_type = factory_datatypes.AttributeType.Node
 
+        # Set icon
+        icon = QtGui.QIcon(":/out_transform.png")
+        item = NodeIcon(icon)
+        node.layout().insertItem(0, item)
+
+        # Set color
         color = factory_datatypes.get_node_color_from_datatype(node._meta_type)
         node.setColor(color)
 
-        # for attr in libAttr.iter_interesting_attributes(pynode):
-        #     port = self._get_port_from_attr(node, attr)
-        #     node.addPort(port)
-
         self._graph.addNode(node)
 
-        self._cache_node_by_pynode[pynode] = node
+        # Set position
+        pos = libPyflowgraph.get_node_position(node)
+        if pos:
+            pos = QtCore.QPointF(*pos)
+            node.setGraphPos(pos)
+
+        self._cache_node_by_pynode_created[pynode] = node
+        return node
+
+    def _expand_pynode(self, pynode):  # todo: rename to explore
+        try:
+            return self._expanded_node_pynode[pynode]
+        except KeyError:
+            pass
+
+        node = self._create_node_from_pynode(pynode)
+
+        for attr in libAttr.iter_interesting_attributes(pynode):
+            port = self._get_port_from_attr(attr)
+            node.addPort(port)
+
+        self._expanded_node_pynode[pynode] = node
         return node
 
 

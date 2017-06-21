@@ -31,6 +31,20 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButton_3">
+       <property name="text">
+        <string>Expand</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_4">
+       <property name="text">
+        <string>Collapse</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -44,6 +58,9 @@
       </spacer>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="WidgetBreadcrumb" name="widget_2" native="true"/>
    </item>
    <item>
     <widget class="NodeEditorView" name="widget" native="true">
@@ -62,6 +79,12 @@
    <class>NodeEditorView</class>
    <extends>QWidget</extends>
    <header>..widget_node_editor_view.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetBreadcrumb</class>
+   <extends>QWidget</extends>
+   <header>..widget_breadcrumb.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

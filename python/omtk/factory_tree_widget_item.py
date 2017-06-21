@@ -134,7 +134,7 @@ def get_tree_item(value, known_data_id=None):
         return _get_item_from_component(value, known_data_id=known_data_id)
     if value_type == AttributeType.Node or value_type == AttributeType.Ctrl:
         return _create_tree_widget_item_from_pynode(value)
-    raise Exception("Unsupported value type {0} for {1}".format(value_type, value))
+    log.warning("Unsupported value type {0} for {1}".format(value_type, value))
 
 
 def _get_item_from_component(component, known_data_id=None):
@@ -171,10 +171,12 @@ def _get_item_from_component(component, known_data_id=None):
         if attr_type == AttributeType.Iterable:
             for sub_attr in attr_val:
                 item_child = get_tree_item(sub_attr)
-                item_attr.addChild(item_child)
+                if item_child:
+                    item_attr.addChild(item_child)
         else:
             item_child = get_tree_item(attr_val)
-            item_attr.addChild(item_child)
+            if item_child:
+                item_attr.addChild(item_child)
 
             # Hack: Force expand 'modules' attribute. todo: rename with children.
             # if attr_name == 'modules':

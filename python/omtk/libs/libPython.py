@@ -344,7 +344,7 @@ def id_dfs(puzzle, goal, get_moves, max_iteration=20):
 
     for depth in itertools.count(start=1):
         if max_iteration and depth > max_iteration:
-            raise Exception("Maximum iteration limit!")
+            raise StopIteration("Maximum iteration limit!")
         known.clear()
         route = dfs([puzzle], depth)
         if route:

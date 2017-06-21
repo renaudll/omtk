@@ -26,8 +26,8 @@ def _reload():
     import classEntity
     import classEntityAction
     import classEntityAttribute
-    import classComponentDefinition
     import classComponent
+    import classComponentDefinition
     import classCtrl
     import classModule
     import classModuleAvarLogic
@@ -42,8 +42,8 @@ def _reload():
     reload(classEntity)
     reload(classEntityAction)
     reload(classEntityAttribute)
-    reload(classComponentDefinition)
     reload(classComponent)
+    reload(classComponentDefinition)
     reload(classNode)
     reload(classCtrl)
     reload(classModule)

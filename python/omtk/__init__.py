@@ -84,6 +84,9 @@ def _reload(kill_ui=True):
         from ui import widget_component_list
         reload(widget_component_list)
 
+        import widget_component_list
+        reload(widget_component_list)
+
         import model_rig_definitions
         reload(model_rig_definitions)
 
@@ -107,6 +110,11 @@ def _reload(kill_ui=True):
 
         import pluginmanager_window
         reload(pluginmanager_window)
+
+        # Reload widget-breadcrumb (dependency of node-editor)
+
+        import widget_breadcrumb
+        reload(widget_breadcrumb)
 
         # Reload node-editor
 

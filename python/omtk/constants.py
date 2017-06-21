@@ -38,3 +38,14 @@ class EnvironmentVariables:
 class BuiltInComponentIds:
     Ik = '9458f1c5-8962-4338-a233-54808cc5f520'
     IkSoftSolver = 'e6259812-d64d-4509-a051-828e5ed36234'
+
+
+class PyFlowGraphMetadataKeys:
+    Position = 'omtkGraphPos'
+
+
+COMPONENT_HUB_INN_NAME = 'inn'
+COMPONENT_HUB_OUT_NAME = 'out'
+
+COMPONENT_HUB_INN_ATTR_NAME = 'grp_inn'
+COMPONENT_HUB_OUT_ATTR_NAME = 'grp_out'

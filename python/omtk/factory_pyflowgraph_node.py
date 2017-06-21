@@ -10,7 +10,6 @@ from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
 from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
 from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
 from omtk.libs import libAttr
-from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 
 from omtk import factory_datatypes
@@ -46,15 +45,13 @@ class NodeIcon(QtWidgets.QGraphicsWidget):
 class GraphFactoryModel(object):
     def __init__(self, graph):
         self._graph = graph
-        self._expanded_node_pynode = {}
-        self._cache_node_by_pynode_created = {}
-        self._cache_node_by_component = {}
-        self._cache_port_by_pyattr = {}
+
+        self._cache_node_by_value = {}
+        self._cache_port_by_value = {}
 
     def clear_cache(self):
-        self._expanded_node_pynode.clear()
-        self._cache_node_by_component.clear()
-        self._cache_port_by_pyattr.clear()
+        self._cache_node_by_value.clear()
+        self._cache_port_by_value.clear()
 
     def get_node(self, val):
         """
@@ -78,6 +75,17 @@ class GraphFactoryModel(object):
             return self._expand_pynode(val)
         raise Exception("Unexpected datatype {0}: {1}".format(datatype, val))
 
+    def _get_port_cls_from_attr_def(self, attr_def):
+        # Resolve port class
+        if attr_def.is_input and attr_def.is_output:
+            raise Exception("{0} is input and output at the same time!".format(attr_def))
+        elif not attr_def.is_input and not attr_def.is_output:
+            raise Exception("{0} is neither an input or an output.".format(attr_def))
+        elif attr_def.is_input:
+            return PyFlowgraphInputPort
+        else:
+            return PyFlowgraphOutputPort
+
     def _get_port_cls_from_attr(self, attr):
         attr_name = attr.attrName()
         attr_node = attr.node()
@@ -94,9 +102,28 @@ class GraphFactoryModel(object):
         else:
             return PyFlowgraphOutputPort
 
+    def _get_port_from_attr_def(self, node, attr_def):
+        try:
+            return self._cache_port_by_value[attr_def]
+        except KeyError:
+            pass
+
+        port_cls = self._get_port_cls_from_attr_def(attr_def)
+
+        port = port_cls(
+            node, self._graph,
+            attr_def.name,
+            QtGui.QColor(128, 170, 170, 255),
+            'something'
+        )
+        node.addPort(port)
+        self._cache_port_by_value[attr_def] = port
+
+        return port
+
     def _get_port_from_attr(self, attr):
         try:
-            return self._cache_port_by_pyattr[attr]
+            return self._cache_port_by_value[attr]
         except KeyError:
             pass
 
@@ -113,7 +140,7 @@ class GraphFactoryModel(object):
             'something'
         )
         node.addPort(port)
-        self._cache_port_by_pyattr[attr] = port
+        self._cache_port_by_value[attr] = port
 
         self._expand_pynode(attr_node)
 
@@ -122,7 +149,7 @@ class GraphFactoryModel(object):
     def _get_node_from_component(self, component):
         # type: (PyFlowgraphView, Entity) -> PyFlowgraphNode
         try:
-            return self._expanded_node_pynode[component]
+            return self._cache_node_by_value[component]
         except KeyError:
             pass
 
@@ -150,7 +177,7 @@ class GraphFactoryModel(object):
         for attr in component.iter_attributes():
             val = attr.get()
 
-            port = self._get_port_from_attr(attr._attr)
+            port = self._get_port_from_attr_def(node, attr)
             port_name = port.getName()
 
             node.addPort(port)
@@ -182,12 +209,12 @@ class GraphFactoryModel(object):
                     except Exception, e:
                         log.warning(e)
 
-        self._cache_node_by_component[component] = node
+        self._cache_node_by_value[component] = node
         return node
 
     def _create_node_from_pynode(self, pynode):
         try:
-            return self._cache_node_by_pynode_created[pynode]
+            return self._cache_node_by_value[pynode]
         except KeyError:
             pass
 
@@ -215,12 +242,12 @@ class GraphFactoryModel(object):
             pos = QtCore.QPointF(*pos)
             node.setGraphPos(pos)
 
-        self._cache_node_by_pynode_created[pynode] = node
+        self._cache_node_by_value[pynode] = node
         return node
 
     def _expand_pynode(self, pynode):  # todo: rename to explore
         try:
-            return self._expanded_node_pynode[pynode]
+            return self._cache_node_by_value[pynode]
         except KeyError:
             pass
 
@@ -230,7 +257,7 @@ class GraphFactoryModel(object):
             port = self._get_port_from_attr(attr)
             node.addPort(port)
 
-        self._expanded_node_pynode[pynode] = node
+        self._cache_node_by_value[pynode] = node
         return node
 
 
@@ -241,7 +268,7 @@ _g_model_by_graph = {}
 def get_node(graph, val):
     global _g_model_by_graph
     try:
-        _g_model_by_graph[graph].get_node(val)
+        return _g_model_by_graph[graph].get_node(val)
     except KeyError:
         model = GraphFactoryModel(graph)
         _g_model_by_graph[graph] = model

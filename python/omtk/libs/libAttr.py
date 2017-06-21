@@ -822,13 +822,14 @@ _blacklisted_attr_names = {
 }
 
 
-def get_unique_attr_name(obj, attr_name):
+def get_unique_attr_name(obj, attr_name, str_format='{0}:{1:02d}', start=1):
     if not obj.hasAttr(attr_name):
         return attr_name
-    for i in itertools.count():
-        new_attr_name = attr_name + str(i)
+    for i in itertools.count(start=start):
+        new_attr_name = str_format.format(attr_name, i)
         if not obj.hasAttr(new_attr_name):
             return new_attr_name
+
 
 def escape_attr_name(attr_name):
     return attr_name.replace('[', '_').replace(']', '_')

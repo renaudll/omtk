@@ -106,7 +106,7 @@ else:
             subclass thereof.
 
             ``customWidgets`` is a dictionary mapping from class name to class
-            object for custom widgets. Usually, this should be done by calling
+            object for custom qt_widgets. Usually, this should be done by calling
             registerCustomWidget on the QUiLoader, but with PySide 1.1.2 on
             Ubuntu 12.04 x86_64 this causes a segfault.
 
@@ -136,9 +136,9 @@ else:
             else:
 
                 # For some reason, Line is not in the list of available
-                # widgets, but works fine, so we have to special case it here.
+                # qt_widgets, but works fine, so we have to special case it here.
                 if class_name in self.availableWidgets() or class_name == 'Line':
-                    # create a new widget for child widgets
+                    # create a new widget for child qt_widgets
                     widget = QUiLoader.createWidget(self, class_name, parent, name)
 
                 else:
@@ -215,7 +215,7 @@ else:
         return the newly created instance of the user interface.
         """
 
-        # We parse the UI file and import any required custom widgets
+        # We parse the UI file and import any required custom qt_widgets
         customWidgets = _get_custom_widgets(uifile)
 
         loader = UiLoader(baseinstance, customWidgets)

@@ -20,6 +20,8 @@ class Component(Entity):
         # Not sure about this one
         self.name = name
 
+        self.version = None
+
         # Network object that hold all the input attributes.
         self.grp_inn = None
 

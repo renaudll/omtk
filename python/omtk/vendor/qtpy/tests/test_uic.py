@@ -55,8 +55,8 @@ def test_load_ui():
 
 def test_load_ui_custom_auto(tmpdir):
     """
-    Test that we can load a .ui file with custom widgets without having to
-    explicitly specify a dictionary of custom widgets, even in the case of
+    Test that we can load a .ui file with custom qt_widgets without having to
+    explicitly specify a dictionary of custom qt_widgets, even in the case of
     PySide.
     """
 

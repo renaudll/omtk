@@ -123,6 +123,7 @@ def holdAttr(attr, delete=True):
 
 
 def fetchAttr(data, reconnect_inputs=True, reconnect_outputs=True):
+    # todo: add support for multi and compount attribute!
     node = data['node']
 
     kwargs = kwargsMap[data['type']]

@@ -240,3 +240,13 @@ def get_component_parent_network(obj, source=True, destination=True, cache=None)
             "Output network {0} is part of {1}.".format(hub_out, meta_network_out)
         )
     return hub_inn, hub_out
+
+
+def create_component_from_bounds(objs):
+    """Initialize an unregistred Compound from objects defining the bounds."""
+    input_attrs, output_attrs = identify_network_io_ports(objs)
+
+    from omtk.core.classComponent import Component
+    inst = Component.from_attributes(input_attrs, output_attrs)
+
+    return inst

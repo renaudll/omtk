@@ -144,6 +144,12 @@ class AutoRig(QtWidgets.QMainWindow):
         self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
         self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
 
+        # Initialize the node editor global cache
+        from omtk.qt_widgets.node_editor_widget.graph_model_registry import GraphRegistry
+        self._graph_registry = GraphRegistry()
+
+
+
     def on_action_requested(self, actions):
         print "action_requested"
         need_export_network = False

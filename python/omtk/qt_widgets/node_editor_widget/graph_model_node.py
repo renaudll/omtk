@@ -116,7 +116,7 @@ class GraphDagNodeModel(GraphNodeModel):
     def get_attributes(self):
         result = set()
         for attr in libAttr.iter_interesting_attributes(self._pynode):
-            inst = GraphPymelPortModel(self._registry, self._pynode, attr)
+            inst = GraphPymelPortModel(self._registry, self, attr)
             self._registry._register_attribute(inst)
             result.add(inst)
         return result

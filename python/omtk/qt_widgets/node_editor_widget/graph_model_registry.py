@@ -1,9 +1,14 @@
+import logging
+
 import pymel.core as pymel
 from omtk import factory_datatypes
+from omtk.core.classComponent import Component
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
-from omtk.core.classComponent import Component
+
 from .graph_model_node import GraphDagNodeModel, GraphComponentModel
+
+log = logging.getLogger('omtk')
 
 
 class GraphRegistry(object):
@@ -39,12 +44,14 @@ class GraphRegistry(object):
         Public entry point to access a Node from a provided value.
         This handle all the caching and registration.
         """
+        log.debug('Exploring new value {0}'.format(val))
         data_type = factory_datatypes.get_component_attribute_type(val)
         if data_type == factory_datatypes.AttributeType.Component:
             inst = GraphComponentModel(self, val)
         elif data_type == factory_datatypes.AttributeType.Node:
             # If we encounter a Node, it could still be a Component input/output network.
-            if isinstance(val, pymel.nodetypes.Network) and libSerialization.is_network_from_class(val, Component.__name__):
+            if isinstance(val, pymel.nodetypes.Network) and libSerialization.is_network_from_class(
+                    val, Component.__name__):
                 component = libSerialization.import_network(val)
                 inst = GraphComponentModel(self, component)
             else:
@@ -53,8 +60,13 @@ class GraphRegistry(object):
             raise Exception("Unsupported value {0} of type {1}".format(
                 val, data_type
             ))
+        log.info('Resolved {0}'.format(inst))
         self._register_node(inst)
         return inst
+
+    def walk_inside_component(self, component):
+        # type: (GraphComponentModel) -> None
+
 
     def iter_nodes_from_parent(self, parent):
         for node in self._nodes:

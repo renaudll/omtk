@@ -82,37 +82,43 @@ class Component(Entity):
         attr_src = self.grp_out.attr(attr_dst)
         pymel.connectAttr(attr_src, attr_dst)
 
+    @classmethod
+    def from_attributes(cls, attrs_inn, attrs_out):
+        inst = cls()
 
-# todo: convert to Component.from_attrs
-def isolate_network_io_ports(attrs_inn, attrs_out, isolate=True):
-    hub_inn = pymel.createNode('network', name=constants.COMPONENT_HUB_INN_NAME)
-    hub_out = pymel.createNode('network', name=constants.COMPONENT_HUB_OUT_NAME)
+        hub_inn = pymel.createNode('network', name=constants.COMPONENT_HUB_INN_NAME)
+        hub_out = pymel.createNode('network', name=constants.COMPONENT_HUB_OUT_NAME)
 
-    for attr_inn in attrs_inn:
-        attr_name = libAttr.get_unique_attr_name(hub_inn, libAttr.escape_attr_name(attr_inn.longName()))
-        # Check if the attribute exist before transfering it.
-        # This can happen with build-in attribute like translateX since the hub is a transform.
-        # It might be more logical to use networks for this, but we'll stick with transforms for now.
-        data = libAttr.holdAttr(attr_inn, delete=False)
-        data['node'] = hub_inn
-        data['longName'] = attr_name
-        data['shortName'] = attr_name
-        data['niceName'] = attr_name
-        libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
-        libAttr.swapAttr(attr_inn, hub_inn.attr(attr_name), inputs=False, outputs=True)
-        if not isolate:
-            pymel.connectAttr(attr_inn, hub_inn.attr(attr_name))
+        for attr_inn in attrs_inn:
+            attr_name = libAttr.get_unique_attr_name(hub_inn, libAttr.escape_attr_name(attr_inn.longName()))
+            # Check if the attribute exist before transfering it.
+            # This can happen with build-in attribute like translateX since the hub is a transform.
+            # It might be more logical to use networks for this, but we'll stick with transforms for now.
+            data = libAttr.holdAttr(attr_inn, delete=False)
+            data['node'] = hub_inn
+            data['longName'] = attr_name
+            data['shortName'] = attr_name
+            data['niceName'] = attr_name
+            libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
+            libAttr.swapAttr(attr_inn, hub_inn.attr(attr_name), inputs=False, outputs=True)
+            #if not isolate:
+            #    pymel.connectAttr(attr_inn, hub_inn.attr(attr_name))
 
-    for attr_out in attrs_out:
-        attr_name = libAttr.get_unique_attr_name(hub_out, libAttr.escape_attr_name(attr_out.longName()))
-        data = libAttr.holdAttr(attr_out, delete=False)
-        data['node'] = hub_out
-        data['longName'] = attr_name
-        data['shortName'] = attr_name
-        data['niceName'] = attr_name
-        libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
-        libAttr.swapAttr(hub_out.attr(attr_name), attr_out, inputs=True, outputs=False)
-        if not isolate:
-            pymel.connectAttr(hub_out.attr(attr_name), attr_out)
+        for attr_out in attrs_out:
+            attr_name = libAttr.get_unique_attr_name(hub_out, libAttr.escape_attr_name(attr_out.longName()))
+            data = libAttr.holdAttr(attr_out, delete=False)
+            data['node'] = hub_out
+            data['longName'] = attr_name
+            data['shortName'] = attr_name
+            data['niceName'] = attr_name
+            libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
+            libAttr.swapAttr(hub_out.attr(attr_name), attr_out, inputs=True, outputs=False)
+            #if not isolate:
+            #    pymel.connectAttr(hub_out.attr(attr_name), attr_out)
 
-    return hub_inn, hub_out
+        inst.grp_inn = hub_inn
+        inst.grp_out = hub_out
+
+        libSerialization.export_network(inst)
+
+        return inst

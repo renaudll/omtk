@@ -20,11 +20,20 @@ class GraphController(object):
         # type: (GraphRegistry, PyFlowgraphView) -> ()
         self._registry = registry
         self._graph = graph
+        self._current_level = None
 
         # Cache to prevent creating already defined nodes
         self._known_nodes = set()
         self._known_attrs = set()
         self._known_connections = set()
+
+    def get_nodes(self):
+        # type: () -> (List[GraphNodeModel])
+        return self._known_nodes
+
+    def get_ports(self):
+        # type: () -> (List[GraphPortModel])
+        return self._known_attrs
 
     @libPython.memoized_instancemethod
     def get_node_widget(self, model):
@@ -105,3 +114,21 @@ class GraphController(object):
         if model_attr.is_readable():
             for connection_model in model_attr.get_output_connections():
                 self.get_connection_widget(connection_model)
+
+    def redraw(self):
+        """
+        Draw the current graph on the view.
+        :return:
+        """
+
+        # Draw nodes
+        nodes = {node for node in self.get_nodes() if node.get_parent() == self._current_level}
+        for node in nodes:
+            widget = node.create_node_widget()
+            self._graph.addNode(widget)
+
+        # Draw ports
+        ports = {port for port in self.get_ports() if port.get_parent() in nodes}
+        for port_model in ports:
+            # wip...
+            widget = port_model.get

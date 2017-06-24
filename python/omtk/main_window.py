@@ -133,7 +133,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
         # Some fun with pyflowgraph
         # from . import factory_pyflowgraph_node
-        # graph = self.ui.widget_node_editor.ui.widget
+        # graph = self.ui.nodegraph_widget.ui.widget
         # for root in self.roots:
         #     for sub_component in root.iter_sub_components():
         #         node = factory_pyflowgraph_node._get_pyflowgraph_node_from_component(graph, sub_component)
@@ -145,8 +145,8 @@ class AutoRig(QtWidgets.QMainWindow):
         self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
 
         # Initialize the node editor global cache
-        from omtk.qt_widgets.node_editor_widget.graph_model_registry import GraphRegistry
-        self._graph_registry = GraphRegistry()
+        from omtk.qt_widgets.nodegraph_widget.nodegraph_model import NodeGraphModel
+        self._graph_registry = NodeGraphModel()
 
 
 

@@ -6,8 +6,11 @@ from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
-from .graph_model_port import GraphPymelPortModel
+from .nodegraph_port_model import NodeGraphPymelPortModel
 
+# used for type hinting
+if False:
+    from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
 
 class NodeIcon(QtWidgets.QGraphicsWidget):
     """Additional Node icon monkey-patched in PyFlowgraph"""
@@ -26,7 +29,7 @@ class NodeIcon(QtWidgets.QGraphicsWidget):
         self._titleWidget = QtWidgets.QGraphicsPixmapItem(icon.pixmap(QtCore.QSize(20, 20)), self)
 
 
-class GraphNodeModel(object):
+class NodeGraphNodeModel(object):
     """Define the data model for a Node which can be used by multiple view."""
 
     def __init__(self, registry, name):
@@ -38,22 +41,22 @@ class GraphNodeModel(object):
         registry._register_node(self)
 
     def __repr__(self):
-        return '<GraphNodeModel {0}>'.format(self._name)
+        return '<NodeGraphNodeModel {0}>'.format(self._name)
 
     def get_metadata(self):
         return None
 
     def get_parent(self):
-        # type: () -> GraphNodeModel
+        # type: () -> NodeGraphNodeModel
         """
         Provide access to the upper node level.
         This allow compound nesting.
-        :return: A GraphNodeModel instance.
+        :return: A NodeGraphNodeModel instance.
         """
         raise NotImplementedError
 
     def get_child_node(self):
-        # type: () -> List[GraphNodeModel]
+        # type: () -> List[NodeGraphNodeModel]
         return self._child_nodes
 
     def get_attributes(self):
@@ -80,6 +83,7 @@ class GraphNodeModel(object):
         return self._name
 
     def create_node_widget(self, graph):
+        # type: (PyFlowgraphView) -> PyFlowgraphNode
         label = self._get_node_widget_label()
         node = PyFlowgraphNode(graph, label)
 
@@ -101,12 +105,12 @@ class GraphNodeModel(object):
         return node
 
 
-class GraphDagNodeModel(GraphNodeModel):
+class NodeGraphDagNodeModel(NodeGraphNodeModel):
     """Define the data model for a Node representing a DagNode."""
 
     def __init__(self, registry, pynode):
         name = pynode.nodeName()
-        super(GraphDagNodeModel, self).__init__(registry, name)
+        super(NodeGraphDagNodeModel, self).__init__(registry, name)
         self._pynode = pynode
 
     def get_metadata(self):
@@ -116,13 +120,13 @@ class GraphDagNodeModel(GraphNodeModel):
     def get_attributes(self):
         result = set()
         for attr in libAttr.iter_interesting_attributes(self._pynode):
-            inst = GraphPymelPortModel(self._registry, self, attr)
+            inst = NodeGraphPymelPortModel(self._registry, self, attr)
             self._registry._register_attribute(inst)
             result.add(inst)
         return result
 
     def create_node_widget(self, graph):
-        node = super(GraphDagNodeModel, self).create_node_widget(graph)
+        node = super(NodeGraphDagNodeModel, self).create_node_widget(graph)
 
         # Set position
         pos = libPyflowgraph.get_node_position(node)
@@ -133,7 +137,7 @@ class GraphDagNodeModel(GraphNodeModel):
         return node
 
 
-class GraphComponentModel(GraphNodeModel):
+class NodeGraphComponentModel(NodeGraphNodeModel):
     """
     Define the data model for a Node representing a Component.
     A Component is a special OMTK datatypes that consist of an input network, an output network and one or multiple
@@ -142,7 +146,7 @@ class GraphComponentModel(GraphNodeModel):
 
     def __init__(self, registry, component):
         name = component.name
-        super(GraphComponentModel, self).__init__(registry, name)
+        super(NodeGraphComponentModel, self).__init__(registry, name)
         self._component = component
 
     def get_metadata(self):
@@ -155,9 +159,9 @@ class GraphComponentModel(GraphNodeModel):
         for attr_def in self._component.iter_attributes():
             attr = attr_def._attr  # todo: don't access private property
             if attr_def.is_input:
-                inst = GraphPymelPortModel(self._registry, self._component, attr, readable=False, writable=True)
+                inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=False, writable=True)
             elif attr_def.is_output:
-                inst = GraphPymelPortModel(self._registry, self._component, attr, readable=True, writable=False)
+                inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=True, writable=False)
             else:
                 raise Exception("Expected an input OR an output attribute. Got none or both. {0}".format(attr_def))
             result.add(inst)

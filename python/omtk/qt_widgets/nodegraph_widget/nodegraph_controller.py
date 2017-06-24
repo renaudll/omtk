@@ -5,21 +5,20 @@ from omtk.libs import libPython
 
 # Used for type checking
 if False:
-    from .graph_model_registry import GraphRegistry
-    from .graph_model_node import GraphNodeModel
-    from .graph_model_port import GraphPortModel
-    from .graph_model_link import GraphLinkModel
+    from .nodegraph_model import NodeGraphModel
+    from .nodegraph_node_model import NodeGraphNodeModel
+    from .nodegraph_port_model import NodeGraphPortModel
+    from .nodegraph_view import NodeGraphView
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
     from omtk.vendor.pyflowgraph.port import BasePort as PyFlowgraphBasePort
-    from omtk.vendor.pyflowgraph.connection import Connection as PyFlowgraphConnection
 
 
-class GraphController(object):
-    def __init__(self, registry, graph):
-        # type: (GraphRegistry, PyFlowgraphView) -> ()
-        self._registry = registry
-        self._graph = graph
+class NodeGraphController(object):
+    def __init__(self, model, view):
+        # type: (NodeGraphModel, NodeGraphView) -> ()
+        self._model = model
+        self._view = view
         self._current_level = None
 
         # Cache to prevent creating already defined nodes
@@ -28,31 +27,31 @@ class GraphController(object):
         self._known_connections = set()
 
     def get_nodes(self):
-        # type: () -> (List[GraphNodeModel])
+        # type: () -> (List[NodeGraphNodeModel])
         return self._known_nodes
 
     def get_ports(self):
-        # type: () -> (List[GraphPortModel])
+        # type: () -> (List[NodeGraphPortModel])
         return self._known_attrs
 
     @libPython.memoized_instancemethod
     def get_node_widget(self, model):
-        # type: (GraphNodeModel) -> PyFlowgraphNode
+        # type: (NodeGraphNodeModel) -> PyFlowgraphNode
         """
         Main entry-point for Widget creation.
         Handle caching and registration for widgets.
-        :param node: A GraphNodeModel instance.
+        :param node: A NodeGraphNodeModel instance.
         :return: A PyFlowgraph Node instance.
         """
-        return model.get_widget(self._graph)
+        return model.get_widget(self._view)
 
     @libPython.memoized_instancemethod
     def get_port_widget(self, model):
-        # type: (GraphPortModel) -> PyFlowgraphBasePort
+        # type: (NodeGraphPortModel) -> PyFlowgraphBasePort
         """
         Main entry-point for Widget creation.
         Handle caching and registration for widgets.
-        :param port: A GraphPortModel instance.
+        :param port: A NodeGraphPortModel instance.
         :return: A PyFlowgraph Port instance.
         """
         # In Pyflowgraph, a Port need a Node.
@@ -60,14 +59,14 @@ class GraphController(object):
         node_model = model.get_parent()
         node_widget = self.get_node_widget(node_model)
 
-        return model.get_widget(self._graph, node_widget)
+        return model.get_widget(self._view, node_widget)
 
     @libPython.memoized_instancemethod
     def get_connection_widget(self, model):
         """
         Main entry-point for Widget creation.
         Handle caching and registration for widgets.
-        :param model: A GraphLinkModel instance.
+        :param model: A NodeGraphConnectionModel instance.
         :return: A PyFlowgraph Connection instance.
         """
         # In Pyflowgraph, a Connection need two Port instances.
@@ -77,7 +76,7 @@ class GraphController(object):
 
         widget_src_node = port_src_model.get_node().get_widget()
         widget_dst_node = port_dst_model.get_node().get_widget()
-        return self._graph.connectPorts(
+        return self._view.connectPorts(
             widget_src_node,
             port_src_model.get_name(),
             widget_dst_node,
@@ -85,7 +84,7 @@ class GraphController(object):
         )
 
     def expand_node_attributes(self, node_model):
-        # type: (GraphNodeModel) -> None
+        # type: (NodeGraphNodeModel) -> None
         """
         Show all available attributes for a PyFlowgraph Node.
         Add it in the pool if it didn't previously exist.
@@ -100,7 +99,7 @@ class GraphController(object):
                 self.get_port_widget(attr)
 
     def expand_attribute_connections(self, model_attr):
-        # type: (GraphPortModel) -> None
+        # type: (NodeGraphPortModel) -> None
         """
         Show all connections for a specific PyFlowgraph Port.
         Add the destination Port and Node in the View if it didn't previously exist.
@@ -115,6 +114,12 @@ class GraphController(object):
             for connection_model in model_attr.get_output_connections():
                 self.get_connection_widget(connection_model)
 
+    def add_node(self, pynode):
+        node_model = self._model.get_node_from_value(pynode)
+        self._known_nodes.add(node_model)
+        node_widget = node_model.create_node_widget(self._view)
+        self._view.addNode(node_widget)
+
     def redraw(self):
         """
         Draw the current graph on the view.
@@ -125,10 +130,4 @@ class GraphController(object):
         nodes = {node for node in self.get_nodes() if node.get_parent() == self._current_level}
         for node in nodes:
             widget = node.create_node_widget()
-            self._graph.addNode(widget)
-
-        # Draw ports
-        ports = {port for port in self.get_ports() if port.get_parent() in nodes}
-        for port_model in ports:
-            # wip...
-            widget = port_model.get
+            self._view.addNode(widget)

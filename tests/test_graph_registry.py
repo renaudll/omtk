@@ -8,7 +8,7 @@ import pymel.core as pymel
 from maya import cmds
 from omtk.libs import libRigging
 from omtk.libs import libComponents
-from omtk.qt_widgets.node_editor_widget.graph_model_registry import GraphRegistry
+from omtk.qt_widgets.nodegraph_widget.nodegraph_model import NodeGraphModel
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
@@ -16,7 +16,7 @@ log.setLevel(logging.DEBUG)
 
 class GraphRegistryTest(unittest.TestCase):
     def setUp(self):
-        self.registry = GraphRegistry()
+        self.registry = NodeGraphModel()
         cmds.file(new=True, force=True)
 
     # def test_node_model_from_transform(self):

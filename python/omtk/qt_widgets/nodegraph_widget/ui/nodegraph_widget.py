@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_node_editor.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/nodegraph_widget.ui'
 #
 # Created: Tue Jun 20 21:45:39 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -35,7 +35,7 @@ class Ui_Form(object):
         self.widget_2 = WidgetBreadcrumb(Form)
         self.widget_2.setObjectName("widget_2")
         self.verticalLayout.addWidget(self.widget_2)
-        self.widget = NodeEditorView(Form)
+        self.widget = NodeGraphView(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -54,5 +54,5 @@ class Ui_Form(object):
         self.pushButton_3.setText(QtWidgets.QApplication.translate("Form", "Expand", None, -1))
         self.pushButton_4.setText(QtWidgets.QApplication.translate("Form", "Collapse", None, -1))
 
-from ..widget_node_editor_view import NodeEditorView
-from ..widget_breadcrumb import WidgetBreadcrumb
+from omtk.qt_widgets.nodegraph_widget.nodegraph_view import NodeGraphView
+from omtk.widget_breadcrumb import WidgetBreadcrumb

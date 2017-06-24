@@ -1,15 +1,15 @@
-from .graph_model_port import GraphPortModel
-from .graph_model_node import GraphNodeModel
+from .nodegraph_port_model import NodeGraphPortModel
+from .nodegraph_node_model import NodeGraphNodeModel
 
 
-class GraphLinkModel(object):
+class NodeGraphConnectionModel(object):
     def __init__(self, registry, attr_src, attr_dst):
         self._registry = registry
         self._attr_src = attr_src
         self._attr_dst = attr_dst
 
     def __repr__(self):
-        return '<GraphLinkModel {0}.{1} to {2}.{3}>'.format(
+        return '<NodeGraphConnectionModel {0}.{1} to {2}.{3}>'.format(
             self._attr_src.get_parent().get_name(),
             self._attr_src.get_name(),
             self._attr_dst.get_parent().get_name(),
@@ -17,7 +17,7 @@ class GraphLinkModel(object):
         )
 
     def get_parent(self):
-        # type: () -> GraphNodeModel
+        # type: () -> NodeGraphNodeModel
         """
         By default, a connection parent is either the same as it's input attribute or it's output attribute.
         This difference is important with Compound nodes.
@@ -26,11 +26,11 @@ class GraphLinkModel(object):
         return self._attr_src.get_parent()
 
     def get_source(self):
-        # type: () -> GraphPortModel
+        # type: () -> NodeGraphPortModel
         return self._attr_src
 
     def get_destination(self):
-        # type: () -> GraphPortModel
+        # type: () -> NodeGraphPortModel
         return self._attr_dst
 
     def __hash__(self):

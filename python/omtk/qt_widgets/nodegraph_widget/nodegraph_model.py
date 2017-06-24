@@ -6,12 +6,12 @@ from omtk.core.classComponent import Component
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
-from .graph_model_node import GraphDagNodeModel, GraphComponentModel
+from .nodegraph_node_model import NodeGraphDagNodeModel, NodeGraphComponentModel
 
 log = logging.getLogger('omtk')
 
 
-class GraphRegistry(object):
+class NodeGraphModel(object):
     """
     This class act a sort of global cache for the multiple models that compose the GraphView.
     This allow multiple view can re-use the same data.
@@ -47,15 +47,15 @@ class GraphRegistry(object):
         log.debug('Exploring new value {0}'.format(val))
         data_type = factory_datatypes.get_component_attribute_type(val)
         if data_type == factory_datatypes.AttributeType.Component:
-            inst = GraphComponentModel(self, val)
+            inst = NodeGraphComponentModel(self, val)
         elif data_type == factory_datatypes.AttributeType.Node:
             # If we encounter a Node, it could still be a Component input/output network.
             if isinstance(val, pymel.nodetypes.Network) and libSerialization.is_network_from_class(
                     val, Component.__name__):
                 component = libSerialization.import_network(val)
-                inst = GraphComponentModel(self, component)
+                inst = NodeGraphComponentModel(self, component)
             else:
-                inst = GraphDagNodeModel(self, val)
+                inst = NodeGraphDagNodeModel(self, val)
         else:
             raise Exception("Unsupported value {0} of type {1}".format(
                 val, data_type
@@ -64,8 +64,8 @@ class GraphRegistry(object):
         self._register_node(inst)
         return inst
 
-    def walk_inside_component(self, component):
-        # type: (GraphComponentModel) -> None
+    # def walk_inside_component(self, component):
+    #     # type: (NodeGraphComponentModel) -> None
 
 
     def iter_nodes_from_parent(self, parent):

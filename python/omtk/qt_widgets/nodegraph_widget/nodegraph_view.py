@@ -3,25 +3,45 @@ import pymel.core as pymel
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
-from omtk.vendor.pyflowgraph.graph_view import GraphView  # simple alias
+from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
 
 from omtk import factory_datatypes
 from omtk import factory_pyflowgraph_node
 from omtk import factory_rc_menu
 
+# used for type hinting
+if False:
+    from .nodegraph_controller import NodeGraphController
 
-class NodeEditorView(GraphView):
+
+class NodeGraphView(PyFlowgraphView):
     dragEnter = QtCore.Signal(object)
     dragLeave = QtCore.Signal(object)
     dragDrop = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
 
-    def __init__(self, parent):
-        super(NodeEditorView, self).__init__(parent)
+    def __init__(self, parent=None):
+        super(NodeGraphView, self).__init__(parent=parent)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
 
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
         shortcut_tab.activated.connect(self.on_tab_pressed)
+
+        self._controller = None
+
+    # -- Model/View/Controller pattern --
+
+    def get_model(self):
+        # type: () -> NodeGraphController
+        return self._controller
+
+    def set_model(self, controller):
+        # type: (NodeGraphController) -> None
+        """
+        Define the NodeGraphView controller.
+        The fonction mention model to better match Qt internals.
+        """
+        self._controller = controller
 
     # -- CustomContextMenu --
 
@@ -37,7 +57,7 @@ class NodeEditorView(GraphView):
         if event.button() == QtCore.Qt.RightButton:
             self.customContextMenuRequested.emit(event.pos())
         else:
-            super(NodeEditorView, self).mousePressEvent(event)
+            super(NodeGraphView, self).mousePressEvent(event)
 
     def on_tab_pressed(self):
         from . import widget_component_list
@@ -56,14 +76,14 @@ class NodeEditorView(GraphView):
         self.dragEnter.emit(event)
 
     def dragLeaveEvent(self, event):
-        super(NodeEditorView, self).dragLeaveEvent(event)
+        super(NodeGraphView, self).dragLeaveEvent(event)
         self.dragLeave.emit(event)
 
     def dragMoveEvent(self, event):
         event.accept()
 
     def dropEvent(self, event):
-        super(NodeEditorView, self).dropEvent(event)
+        super(NodeGraphView, self).dropEvent(event)
         print event.mimeData().formats()
         mime_data = event.mimeData()
 
@@ -77,14 +97,20 @@ class NodeEditorView(GraphView):
         else:
             raise Exception("No mime data found!")
 
+        # old unclean method
+        # if isinstance(drop_data, list):
+        #     for sub_entry in drop_data:
+        #         node = factory_pyflowgraph_node.get_node(self, sub_entry)
+        #         self.addNode(node)
+        #         node_pos = QtCore.QPointF(self.mapToScene(event.pos()))
+        #         node.setGraphPos(node_pos)
+        #         # factory_pyflowgraph_node.arrange_upstream(node)
+        #         libPyflowgraph.arrange_upstream(node)
+
+        # new clean method
         if isinstance(drop_data, list):
-            for sub_entry in drop_data:
-                node = factory_pyflowgraph_node.get_node(self, sub_entry)
-                self.addNode(node)
-                node_pos = QtCore.QPointF(self.mapToScene(event.pos()))
-                node.setGraphPos(node_pos)
-                # factory_pyflowgraph_node.arrange_upstream(node)
-                libPyflowgraph.arrange_upstream(node)
+            for entry in drop_data:
+                self._controller.add_node(entry)
 
         self.dragDrop.emit(event)
 
@@ -92,7 +118,7 @@ class NodeEditorView(GraphView):
         return ['omtk-influences']
 
     def mimeData(self, items):
-        print "NodeEditorView::mimeData"
+        print "NodeGraphWidget::mimeData"
         self._mimedata = QtCore.QMimeData()
         self._mimedata.setData('omtk-influence', 'test')
         return self._mimedata

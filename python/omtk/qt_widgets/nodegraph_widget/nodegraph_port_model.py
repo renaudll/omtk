@@ -6,25 +6,25 @@ from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
 from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
 
 if False:
-    from .graph_model_node import GraphNodeModel
+    from .nodegraph_node_model import NodeGraphNodeModel
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
 
 
-class GraphPortModel(object):
+class NodeGraphPortModel(object):
     def __init__(self, registry, node, name):
         self._name = name
         self._registry = registry
         self._node = node
 
     def __repr__(self):
-        return '<GraphPortModel {0}>'.format(self._name)
+        return '<NodeGraphPortModel {0}>'.format(self._name)
 
     def get_name(self):
         """Return the unique name relative to the node."""
         return self._name
 
     def get_parent(self):
-        # type: () -> GraphNodeModel
+        # type: () -> NodeGraphNodeModel
         """
         By default, an attribute share the same parent than it's node.
         However this is not always true, for example a Compound input hub
@@ -81,12 +81,12 @@ class GraphPortModel(object):
         return port
 
 
-class GraphPymelPortModel(GraphPortModel):
+class NodeGraphPymelPortModel(NodeGraphPortModel):
     """Define an attribute bound to a PyMel.Attribute datatype."""
 
     def __init__(self, registry, node, pyattr, readable=None, writable=False):
         name = pyattr.longName()
-        super(GraphPymelPortModel, self).__init__(registry, node, name)
+        super(NodeGraphPymelPortModel, self).__init__(registry, node, name)
         self._pyattr = pyattr
 
         self._readable = readable
@@ -126,7 +126,7 @@ class GraphPymelPortModel(GraphPortModel):
         raise NotImplementedError
 
     def get_widget(self, graph, node):
-        widget = super(GraphPymelPortModel, self).get_widget(graph, node)
+        widget = super(NodeGraphPymelPortModel, self).get_widget(graph, node)
 
         # Hack: Enable multiple connections in PyFlowgraph if we encounter a multi attribute.
         if self._pyattr.isMulti():

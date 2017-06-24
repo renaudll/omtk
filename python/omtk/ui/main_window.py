@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtWidgets
 
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
@@ -33,7 +33,7 @@ class Ui_OpenRiggingToolkit(object):
         self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.page_2)
         self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
-        self.widget_node_editor = WidgetNodeEditor(self.page_2)
+        self.widget_node_editor = NodeGraphWidget(self.page_2)
         self.widget_node_editor.setObjectName("widget_node_editor")
         self.verticalLayout_7.addWidget(self.widget_node_editor)
         self.stackedWidget.addWidget(self.page_2)
@@ -211,7 +211,7 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None, -1))
 
-from ..widget_node_editor import WidgetNodeEditor
+from omtk.qt_widgets.nodegraph_widget.nodegraph_widget import NodeGraphWidget
 from ..widget_list_meshes import WidgetListMeshes
 from ..widget_logger import WidgetLogger
 from ..widget_list_modules import WidgetListModules

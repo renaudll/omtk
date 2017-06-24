@@ -1,6 +1,6 @@
-import sys
-from .core import *
 import constants
+
+from .core import *
 
 try:
     from maya import cmds, mel
@@ -118,14 +118,14 @@ def _reload(kill_ui=True):
 
         # Reload node-editor
 
-        import widget_node_editor_view
-        reload(widget_node_editor_view)
+        from omtk.qt_widgets.nodegraph_widget import nodegraph_view
+        reload(nodegraph_view)
 
-        from ui import widget_node_editor
-        reload(widget_node_editor)
+        from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
+        reload(nodegraph_widget)
 
-        import widget_node_editor
-        reload(widget_node_editor)
+        from omtk.qt_widgets.nodegraph_widget import nodegraph_widget
+        reload(nodegraph_widget)
 
         from ui import main_window as ui_main_window
         reload(ui_main_window)

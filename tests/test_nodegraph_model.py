@@ -1,14 +1,16 @@
 """
 Ensure propre behaviour or the GraphController, GraphRegistry and every related models.
 """
-import unittest
 import logging
+import unittest
 
 import pymel.core as pymel
 from maya import cmds
-from omtk.libs import libRigging
 from omtk.libs import libComponents
+from omtk.libs import libRigging
+from omtk.qt_widgets.nodegraph_widget.nodegraph_controller import NodeGraphController
 from omtk.qt_widgets.nodegraph_widget.nodegraph_model import NodeGraphModel
+from omtk.vendor import mock
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
@@ -16,7 +18,8 @@ log.setLevel(logging.DEBUG)
 
 class GraphRegistryTest(unittest.TestCase):
     def setUp(self):
-        self.registry = NodeGraphModel()
+        self.model = NodeGraphModel()
+        self.controller = NodeGraphController(self.model, mock.MagicMock())
         cmds.file(new=True, force=True)
 
     # def test_node_model_from_transform(self):
@@ -49,9 +52,8 @@ class GraphRegistryTest(unittest.TestCase):
     def test_component_loading(self):
         """Ensure the registry is able to load a component and it's children."""
         component = self._create_simple_compound()
-        node = self.registry.get_node_from_value(component)
-
-        self.registry
+        self.controller.add_node(component)
+        print self.controller
 
 
 if __name__ == '__main__':

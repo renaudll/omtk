@@ -60,7 +60,7 @@ class NodeGraphView(PyFlowgraphView):
             super(NodeGraphView, self).mousePressEvent(event)
 
     def on_tab_pressed(self):
-        from . import widget_component_list
+        from ... import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self)
         dialog.show()
 
@@ -126,6 +126,6 @@ class NodeGraphView(PyFlowgraphView):
     # --- Events ---
 
     def on_component_created(self, component):
-        from factory_pyflowgraph_node import GraphFactoryModel
+        from ...factory_pyflowgraph_node import GraphFactoryModel
         model = GraphFactoryModel(self)
         model.get_node(component)

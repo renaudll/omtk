@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/nodegraph_widget.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/nodegraph_widget/ui/nodegraph_widget.ui'
 #
-# Created: Tue Jun 20 21:45:39 2017
+# Created: Sat Jun 24 21:56:09 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(527, 440)
+        Form.resize(642, 424)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -29,6 +29,12 @@ class Ui_Form(object):
         self.pushButton_4 = QtWidgets.QPushButton(Form)
         self.pushButton_4.setObjectName("pushButton_4")
         self.horizontalLayout.addWidget(self.pushButton_4)
+        self.pushButton_5 = QtWidgets.QPushButton(Form)
+        self.pushButton_5.setObjectName("pushButton_5")
+        self.horizontalLayout.addWidget(self.pushButton_5)
+        self.pushButton_6 = QtWidgets.QPushButton(Form)
+        self.pushButton_6.setObjectName("pushButton_6")
+        self.horizontalLayout.addWidget(self.pushButton_6)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -53,6 +59,8 @@ class Ui_Form(object):
         self.pushButton_2.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
         self.pushButton_3.setText(QtWidgets.QApplication.translate("Form", "Expand", None, -1))
         self.pushButton_4.setText(QtWidgets.QApplication.translate("Form", "Collapse", None, -1))
+        self.pushButton_5.setText(QtWidgets.QApplication.translate("Form", "Go Down", None, -1))
+        self.pushButton_6.setText(QtWidgets.QApplication.translate("Form", "Go Up", None, -1))
 
-from omtk.qt_widgets.nodegraph_widget.nodegraph_view import NodeGraphView
-from omtk.widget_breadcrumb import WidgetBreadcrumb
+from ..nodegraph_view import NodeGraphView
+from ....widget_breadcrumb import WidgetBreadcrumb

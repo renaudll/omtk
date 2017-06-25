@@ -1,9 +1,11 @@
-import os
 import logging
+import os
 
 import pymel.core as pymel
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libAttr
+from omtk.libs import libPython
+from omtk.vendor import libSerialization
 
 log = logging.getLogger('omtk')
 
@@ -40,7 +42,7 @@ def identify_network_io_ports(objs):
                 return True
 
             found = False
-            for sub_attr in libAttr.iter_interesting_attributes(plug_node):
+            for sub_attr in libAttr.iter_contributing_attributes(plug_node):
                 found = fn_search(sub_attr, known_nodes, known_attributes, future=future)
                 known_attributes[sub_attr] = found
                 if found:
@@ -56,13 +58,13 @@ def identify_network_io_ports(objs):
     for obj in objs:
         known_nodes = {obj: False}
         known_attributes = {}
-        for attr in libAttr.iter_interesting_attributes(obj):
+        for attr in libAttr.iter_contributing_attributes(obj):
             if fn_search(attr, known_nodes, known_attributes, future=True):
                 result_inn.add(attr)
     for obj in objs:
         known_nodes = {obj: False}
         known_attributes = {}
-        for attr in libAttr.iter_interesting_attributes(obj):
+        for attr in libAttr.iter_contributing_attributes(obj):
             if fn_search(attr, known_nodes, known_attributes, future=False):
                 result_out.add(attr)
 
@@ -77,25 +79,6 @@ def optimize_network_io_ports(attrs_inn, attrs_out):
     :return: Two list of pymel.Attribute representing the network optimized input and output attributes.
     """
     raise NotImplementedError
-
-
-# def create_component(objs):
-#     attrs_inn, attrs_out = identify_network_io_ports(objs)
-#     if not attrs_inn:
-#         raise Exception("Found no inputs")
-#     if not attrs_out:
-#         raise Exception("Found no outputs")
-#
-#     hub_inn, hub_out = isolate_network_io_ports(attrs_inn, attrs_out, isolate=True)
-#
-#     module = Module2()
-#     module.grp_inn = hub_inn
-#     module.grp_out = hub_out
-#
-#     network = libSerialization.export_network(module)
-#     pymel.select(network)
-#
-#     return module
 
 
 class MultipleComponentDefinitionError(Exception):
@@ -137,10 +120,6 @@ def walk_available_component_definitions():
                 yield component_def
 
 
-from omtk.vendor import libSerialization
-from omtk.libs import libPython
-
-
 def get_component_network_bounds():
     """
     Return the metadata of the component parent of the provided component, starting from any object.
@@ -162,7 +141,7 @@ def get_component_network_bounds():
 
 
 def get_component_metanetwork_from_hub_network(network, strict=True):
-    result = next(iter(libSerialization.get_connected_networks(network)), None)
+    result = next(iter(libSerialization.get_connected_networks(network, recursive=False)), None)
     if not result and strict:
         raise Exception("Can't resolve meta-network from {0}".format(network))
     return result

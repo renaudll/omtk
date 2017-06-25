@@ -253,7 +253,7 @@ class GraphFactoryModel(object):
 
         node = self._create_node_from_pynode(pynode)
 
-        for attr in libAttr.iter_interesting_attributes(pynode):
+        for attr in libAttr.iter_contributing_attributes(pynode):
             port = self._get_port_from_attr(attr)
             node.addPort(port)
 

@@ -1,9 +1,11 @@
 from .nodegraph_port_model import NodeGraphPortModel
 from .nodegraph_node_model import NodeGraphNodeModel
+from omtk.qt_widgets.nodegraph_widget.nodegraph_item_model import NodeGraphItemModel
 
 
-class NodeGraphConnectionModel(object):
-    def __init__(self, registry, attr_src, attr_dst):
+class NodeGraphConnectionModel(NodeGraphItemModel):
+    def __init__(self, registry, name, attr_src, attr_dst):
+        super(NodeGraphConnectionModel, self).__init__(registry, name)
         self._registry = registry
         self._attr_src = attr_src
         self._attr_dst = attr_dst

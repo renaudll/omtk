@@ -680,7 +680,7 @@ def iter_leaf_attributes(obj):
         yield attr
 
 
-def iter_interesting_attributes(obj):
+def iter_contributing_attributes(obj):
     """
     Extend pymel.listAttr by implementing recursivity
     :param obj: A pymel.nodetypes.DagNode that contain attribute to explore.
@@ -696,7 +696,6 @@ def iter_interesting_attributes(obj):
             continue
 
         yield attr
-
 
 _blacklisted_attr_names = {
     'caching',

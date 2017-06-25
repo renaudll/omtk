@@ -10,7 +10,7 @@ from omtk.core import classNomenclature
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
-from omtk.core.classEntityAttribute import EntityAttributeTypedCollection
+from omtk.core.classEntityAttribute import EntityPymelAttributeCollection
 from omtk.core.classEntityAttribute import EntityAttribute
 from omtk.core.classModule import Module
 from omtk.core.classNode import Node

@@ -122,3 +122,6 @@ class Component(Entity):
         libSerialization.export_network(inst)
 
         return inst
+
+    def get_children(self):
+        return (set(self.grp_inn.listHistory()) | set(self.grp_out.listHistory())) - {self.grp_inn, self.grp_out}

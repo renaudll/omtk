@@ -2,6 +2,8 @@ import constants
 
 from .core import *
 
+log = logging.getLogger('omtk')
+
 try:
     from maya import cmds, mel
     import pymel.core as pymel
@@ -11,6 +13,31 @@ try:
 
 except ImportError:
     pass
+
+
+def _build_ui():
+    import pyside2uic
+    for dirpath, dirnames, filenames in os.walk(os.path.dirname(__file__)):
+        for filename in filenames:
+            basename, ext = os.path.splitext(filename)
+            if ext != '.ui':
+                continue
+
+            path_src = os.path.join(dirpath, filename)
+            path_dst = os.path.join(dirpath, basename + '.py')
+
+            if not os.path.exists(path_dst) or os.path.getctime(path_src) < os.path.getctime(path_dst):
+                continue
+
+            log.info('Building {0} to {1}'.format(
+                path_src,
+                path_dst
+            ))
+
+            with open(path_dst, 'w') as fp:
+                pyside2uic.compileUi(path_src, fp)
+
+            # todo: replace PySide2 call for omtk.vendor.Qt calls
 
 
 def _reload(kill_ui=True):

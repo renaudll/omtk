@@ -7,7 +7,7 @@ import pymel.core as pymel
 from omtk.core import classModule
 from omtk.core import plugin_manager
 from omtk.core.classEntityAction import EntityAction
-from omtk.core.classEntityAttribute import EntityAttributeTypedCollection
+from omtk.core.classEntityAttribute import EntityPymelAttributeCollection
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPluginManager
 from omtk.libs import libPymel
@@ -183,7 +183,7 @@ class AvarGrp(classModule.Module):  # todo: why do we inherit from Avar exactly?
         for attr in super(AvarGrp, self).iter_attributes():
             yield attr
 
-        yield EntityAttributeTypedCollection(rigFaceAvar.Avar, 'avars', self.avars)
+        yield EntityPymelAttributeCollection(rigFaceAvar.Avar, 'avars', self.avars)
 
     # --- Custom methods
 

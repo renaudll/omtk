@@ -39,31 +39,28 @@ def _get_singleton_model():
 
 
 def reload_():
+    from omtk.qt_widgets.nodegraph_widget import nodegraph_port_model
+    reload(nodegraph_port_model)
+
+    from omtk.qt_widgets.nodegraph_widget import nodegraph_connection_model
+    reload(nodegraph_connection_model)
+
+    from omtk.qt_widgets.nodegraph_widget import nodegraph_node_model
+    reload(nodegraph_node_model)
+
+    from omtk.qt_widgets.nodegraph_widget import nodegraph_model
+    reload(nodegraph_model)
+
+    from omtk.qt_widgets.nodegraph_widget import nodegraph_view
+    reload(nodegraph_view)
+
+    from omtk.qt_widgets.nodegraph_widget import nodegraph_controller
+    reload(nodegraph_controller)
+
     from . import ui
     reload(ui)
     ui.reload_()
-
-    from . import nodegraph_node_model
-    reload(nodegraph_node_model)
-
-    from . import nodegraph_port_model
-    reload(nodegraph_port_model)
-
-    from . import nodegraph_connection_model
-    reload(nodegraph_connection_model)
-
-    from . import nodegraph_model
-    reload(nodegraph_model)
-
-    from . import nodegraph_controller
-    reload(nodegraph_controller)
-
-    from . import nodegraph_view
-    reload(nodegraph_view)
-
-    from . import nodegraph_widget
-    reload(nodegraph_widget)
-
+reload_()  # debugging
 
 class NodeGraphWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -81,6 +78,11 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # Connect events
         self.ui.pushButton.pressed.connect(self.on_add)
         self.ui.pushButton_2.pressed.connect(self.on_del)
+        self.ui.pushButton_3.pressed.connect(self.on_expand)
+        self.ui.pushButton_4.pressed.connect(self.on_colapse)
+        self.ui.pushButton_5.pressed.connect(self.on_navigate_down)
+        self.ui.pushButton_6.pressed.connect(self.on_navigate_up)
+
         self.ui.widget.endSelectionMoved.connect(self.on_selected_nodes_moved)
 
     def on_selected_nodes_moved(self):
@@ -96,5 +98,17 @@ class NodeGraphWidget(QtWidgets.QWidget):
     def on_del(self):
         graph = self.ui.widget
         graph.deleteSelectedNodes()
+
+    def on_expand(self):
+        self._nodegraph_ctrl.expand_selected_nodes()
+
+    def on_colapse(self):
+        return self._nodegraph_ctrl.colapse_selected_nodes()
+
+    def on_navigate_down(self):
+        self._nodegraph_ctrl.navigate_down()
+
+    def on_navigate_up(self):
+        self._nodegraph_ctrl.navigate_up()
 
 # from pyflowgraph.graph_view import GraphView as NodeGraphWidget

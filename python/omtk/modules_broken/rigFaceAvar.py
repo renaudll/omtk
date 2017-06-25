@@ -10,7 +10,7 @@ from omtk import constants
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import plugin_manager
-from omtk.core.classEntityAttribute import EntityAttributeTyped
+from omtk.core.classEntityAttribute import EntityPymelAttribute
 from omtk.core.classEntityAction import EntityAction
 from omtk.core.classModuleCtrlLogic import BaseCtrlModel
 from omtk.core.classModuleAvarLogic import BaseAvarRigConnectionModel
@@ -127,8 +127,8 @@ class Avar(classModule.Module):
     def iter_attributes(self):
         for attr in super(Avar, self).iter_attributes():
             yield attr
-        yield EntityAttributeTyped(BaseAvarRigConnectionModel, 'Model Ctrl', self.model_ctrl)
-        yield EntityAttributeTyped(BaseAvarRigConnectionModel, 'Model Avar', self.model_avar)
+        yield EntityPymelAttribute(BaseAvarRigConnectionModel, 'Model Ctrl', self.model_ctrl)
+        yield EntityPymelAttribute(BaseAvarRigConnectionModel, 'Model Avar', self.model_avar)
 
     # ---
 

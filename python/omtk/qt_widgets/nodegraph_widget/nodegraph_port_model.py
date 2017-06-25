@@ -46,11 +46,24 @@ class NodeGraphPortModel(object):
     def is_destination(self):
         return False
 
+    def is_connected(self):
+        return self.is_source() or self.is_destination()
+
+    @libPython.memoized_instancemethod
+    def is_interesting(self):
+        if self.is_readable() and self.is_source():
+            return True
+        if self.is_writable() and self.is_destination():
+            return True
+
     def get_input_connections(self):
-        return []
+        return set()
 
     def get_output_connections(self):
-        return []
+        return set()
+
+    def get_connections(self):
+        return self.get_input_connections() | self.get_output_connections()
 
     def _get_widget_cls(self):
         is_readable = self.is_readable()
@@ -84,32 +97,22 @@ class NodeGraphPortModel(object):
 class NodeGraphPymelPortModel(NodeGraphPortModel):
     """Define an attribute bound to a PyMel.Attribute datatype."""
 
-    def __init__(self, registry, node, pyattr, readable=None, writable=False):
+    def __init__(self, registry, node, pyattr, attr_node=None):
         name = pyattr.longName()
         super(NodeGraphPymelPortModel, self).__init__(registry, node, name)
+        self._pynode = attr_node if attr_node else pyattr.node()
         self._pyattr = pyattr
-
-        self._readable = readable
-        self._writable = writable
 
     def get_metadata(self):
         return self._pyattr
 
     @libPython.memoized_instancemethod
     def is_readable(self):
-        # Allow for override, otherwise we'll listen to the maya attribute.
-        if self._readable is not None:
-            return self._readable
-
-        return pymel.attributeQuery(self._name, node=self.get_parent().get_metadata(), readable=True)
+        return pymel.attributeQuery(self._name, node=self._pynode, readable=True)
 
     @libPython.memoized_instancemethod
     def is_writable(self):
-        # Allow for override, otherwise we'll listen to the maya attribute.
-        if self._writable is None:
-            return self._writable
-
-        return pymel.attributeQuery(self._name, node=self.get_parent().get_metadata(), writable=True)
+        return pymel.attributeQuery(self._name, node=self._pynode, writable=True)
 
     def is_source(self):
         return self._pyattr.isSource()
@@ -118,21 +121,64 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         return self._pyattr.isDestination()
 
     @libPython.memoized_instancemethod
+    def is_interesting(self):
+        if super(NodeGraphPymelPortModel, self).is_interesting():
+            return True
+        if self._pyattr.isKeyable():
+            return True
+        return False
+
+    @libPython.memoized_instancemethod
     def get_input_connections(self):
-        raise NotImplementedError
+        result = set()
+        for attr_src in self._pyattr.inputs(plugs=True):
+            attr_src_model = self._registry.get_port_model_from_value(attr_src)
+            inst = self._registry.get_connection_model_from_values(attr_src_model, self)
+            result.add(inst)
+        return result
 
     @libPython.memoized_instancemethod
     def get_output_connections(self):
-        raise NotImplementedError
+        result = set()
+        for attr_dst in self._pyattr.outputs(plugs=True):
+            attr_dst_model = self._registry.get_port_model_from_value(attr_dst)
+            inst = self._registry.get_connection_model_from_values(self, attr_dst_model)
+            result.add(inst)
+        return result
 
     def get_widget(self, graph, node):
         widget = super(NodeGraphPymelPortModel, self).get_widget(graph, node)
 
         # Hack: Enable multiple connections in PyFlowgraph if we encounter a multi attribute.
-        if self._pyattr.isMulti():
-            widget.inCircle().setSupportsOnlySingleConnections(False)
+        # if self._pyattr.isMulti():
+        #     widget.inCircle().setSupportsOnlySingleConnections(False)
 
         return widget
 
     def __hash__(self):
         return hash(self._node) ^ hash(self._pyattr)
+
+
+class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
+    """Define an attribute bound to an EntityAttribute instance."""
+
+    def __init__(self, registry, node, attr_def):
+        name = attr_def.name
+        super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
+        self._attr_def = attr_def
+
+    def get_metadata(self):
+        return self._attr_def
+
+    def is_readable(self):
+        return self._attr_def.is_output
+
+    def is_writable(self):
+        return self._attr_def.is_input
+
+    def is_interesting(self):
+        return True
+
+
+class NodeGraphEntityPymelAttributePortModel(NodeGraphEntityAttributePortModel, NodeGraphPymelPortModel):
+    pass

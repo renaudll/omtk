@@ -12,6 +12,7 @@ from .nodegraph_port_model import NodeGraphPymelPortModel
 if False:
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
 
+
 class NodeIcon(QtWidgets.QGraphicsWidget):
     """Additional Node icon monkey-patched in PyFlowgraph"""
 
@@ -40,6 +41,9 @@ class NodeGraphNodeModel(object):
         # Add the new instance to the registry
         registry._register_node(self)
 
+    def get_name(self):
+        return self._name
+
     def __repr__(self):
         return '<NodeGraphNodeModel {0}>'.format(self._name)
 
@@ -55,11 +59,12 @@ class NodeGraphNodeModel(object):
         """
         raise NotImplementedError
 
-    def get_child_node(self):
+    def get_children(self):
         # type: () -> List[NodeGraphNodeModel]
         return self._child_nodes
 
     def get_attributes(self):
+        # type: () -> List[NodeGraphPortModel]
         return set()
 
     @libPython.memoized_instancemethod
@@ -82,7 +87,7 @@ class NodeGraphNodeModel(object):
     def _get_node_widget_label(self):
         return self._name
 
-    def create_node_widget(self, graph):
+    def get_widget(self, graph):
         # type: (PyFlowgraphView) -> PyFlowgraphNode
         label = self._get_node_widget_label()
         node = PyFlowgraphNode(graph, label)
@@ -118,15 +123,16 @@ class NodeGraphDagNodeModel(NodeGraphNodeModel):
 
     @libPython.memoized_instancemethod
     def get_attributes(self):
+        # type: () -> List[NodeGraphPortModel]
         result = set()
-        for attr in libAttr.iter_interesting_attributes(self._pynode):
+        for attr in libAttr.iter_contributing_attributes(self._pynode):
             inst = NodeGraphPymelPortModel(self._registry, self, attr)
             self._registry._register_attribute(inst)
             result.add(inst)
         return result
 
-    def create_node_widget(self, graph):
-        node = super(NodeGraphDagNodeModel, self).create_node_widget(graph)
+    def get_widget(self, graph):
+        node = super(NodeGraphDagNodeModel, self).get_widget(graph)
 
         # Set position
         pos = libPyflowgraph.get_node_position(node)
@@ -153,17 +159,22 @@ class NodeGraphComponentModel(NodeGraphNodeModel):
         # type: () -> Component
         return self._component
 
+    def get_children(self):
+        return [self._registry.get_node_from_value(pynode) for pynode in self._component.get_children()]
+
     @libPython.memoized_instancemethod
     def get_attributes(self):
+        # type: () -> List[NodeGraphPortModel]
         result = set()
         for attr_def in self._component.iter_attributes():
             attr = attr_def._attr  # todo: don't access private property
-            if attr_def.is_input:
-                inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=False, writable=True)
-            elif attr_def.is_output:
-                inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=True, writable=False)
-            else:
-                raise Exception("Expected an input OR an output attribute. Got none or both. {0}".format(attr_def))
+            inst = self._registry.get_port_model_from_value(attr_def)
+            # if attr_def.is_input:
+            #     inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=False, writable=True)
+            # elif attr_def.is_output:
+            #     inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=True, writable=False)
+            # else:
+            #     raise Exception("Expected an input OR an output attribute. Got none or both. {0}".format(attr_def))
             result.add(inst)
         return result
 

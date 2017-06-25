@@ -65,13 +65,23 @@ class NodeGraphPortModel(object):
     def get_connections(self):
         return self.get_input_connections() | self.get_output_connections()
 
-    def _get_widget_cls(self):
+    def _get_widget_cls(self, ctrl):
         is_readable = self.is_readable()
         is_writable = self.is_writable()
         # Resolve port class
         if is_readable and is_writable:
             # raise Exception("{0} cannot be input and output at the same time.".format(attr))
-            return PyFlowgraphIOPort
+
+            # In case of ambiguity, we will ask the node model.
+            node_model = self.get_parent()
+            is_writable = node_model.allow_input_port_display(self, ctrl)
+            is_readable = node_model.allow_output_port_display(self, ctrl)
+            if is_readable and not is_writable:
+                return PyFlowgraphInputPort
+            elif not is_readable and is_writable:
+                return PyFlowgraphOutputPort
+            else:
+                return PyFlowgraphIOPort
         elif not is_readable and not is_writable:
             raise Exception("{0} is neither an input or an output.".format(self))
         elif is_writable:
@@ -79,9 +89,9 @@ class NodeGraphPortModel(object):
         else:
             return PyFlowgraphOutputPort
 
-    def get_widget(self, graph, node):
-        # type: (PyFlowgraphView, PyFlowgraphNode) -> PyflowgraphBasePort
-        cls = self._get_widget_cls()
+    def get_widget(self, ctrl, graph, node):
+        # type: (NodeGraphController, PyFlowgraphView, PyFlowgraphNode) -> PyflowgraphBasePort
+        cls = self._get_widget_cls(ctrl)
 
         port = cls(
             node, graph,
@@ -146,8 +156,8 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
             result.add(inst)
         return result
 
-    def get_widget(self, graph, node):
-        widget = super(NodeGraphPymelPortModel, self).get_widget(graph, node)
+    def get_widget(self, ctrl, graph, node):
+        widget = super(NodeGraphPymelPortModel, self).get_widget(ctrl, graph, node)
 
         # Hack: Enable multiple connections in PyFlowgraph if we encounter a multi attribute.
         # if self._pyattr.isMulti():
@@ -157,6 +167,7 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
 
     def __hash__(self):
         return hash(self._node) ^ hash(self._pyattr)
+
 
 
 class NodeGraphEntityAttributePortModel(NodeGraphPortModel):

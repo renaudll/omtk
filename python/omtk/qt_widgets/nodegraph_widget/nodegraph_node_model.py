@@ -11,6 +11,8 @@ from .nodegraph_port_model import NodeGraphPymelPortModel
 # used for type hinting
 if False:
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
+    from .nodegraph_port_model import NodeGraphPortModel
+    from .nodegraph_controller import NodeGraphController
 
 
 class NodeIcon(QtWidgets.QGraphicsWidget):
@@ -66,6 +68,14 @@ class NodeGraphNodeModel(object):
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
         return set()
+
+    def allow_input_port_display(self, port_model, context=None):
+        # type: (NodeGraphPortModel, NodeGraphController) -> bool
+        return True
+
+    def allow_output_port_display(self, port_model, context=None):
+        # type: (NodeGraphPortModel, NodeGraphController) -> bool
+        return True
 
     @libPython.memoized_instancemethod
     def get_input_attributes(self):
@@ -166,17 +176,53 @@ class NodeGraphComponentModel(NodeGraphNodeModel):
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()
-        for attr_def in self._component.iter_attributes():
-            attr = attr_def._attr  # todo: don't access private property
-            inst = self._registry.get_port_model_from_value(attr_def)
-            # if attr_def.is_input:
-            #     inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=False, writable=True)
-            # elif attr_def.is_output:
-            #     inst = NodeGraphPymelPortModel(self._registry, self._component, attr, readable=True, writable=False)
-            # else:
-            #     raise Exception("Expected an input OR an output attribute. Got none or both. {0}".format(attr_def))
+
+        if not self._component.is_built():
+            return result
+
+        for attr in libAttr.iter_contributing_attributes(self._component.grp_inn):
+            inst = NodeGraphPymelPortModel(self._registry, self, attr)
+            self._registry._register_attribute(inst)
             result.add(inst)
+
+        for attr in libAttr.iter_contributing_attributes(self._component.grp_out):
+            inst = NodeGraphPymelPortModel(self._registry, self, attr)
+            self._registry._register_attribute(inst)
+            result.add(inst)
+
         return result
+
+    def allow_input_port_display(self, port_model, context=None):
+        # type: (NodeGraphPortModel, NodeGraphController) -> bool
+        """
+        Component network attributes are inputs and outputs at the same time.
+        For example, an input attribute is an output attribute when looking from inside the component.
+        The NodeGraphController server as context holder.
+        """
+        # todo: cleanup private variable usage
+        # If we are viewing the component content
+        if context:
+            if context._current_level == self:
+                return port_model._pynode == self._component.grp_out
+            else:
+                return port_model._pynode == self._component.grp_inn
+        return super(NodeGraphComponentModel, self).allow_input_port_display(port_model)
+
+    def allow_output_port_display(self, port_model, context=None):
+        # type: (NodeGraphController, NodeGraphPortModel) -> bool
+        """
+        Component network attributes are inputs and outputs at the same time.
+        For example, an output attribute is an input attribute when looking from inside the component.
+        The NodeGraphController server as context holder.
+        """
+        # todo: cleanup private variable usage
+        # If we are viewing the component content
+        if context:
+            if context._current_level == self:
+                return port_model._pynode == self._component.grp_inn
+            else:
+                return port_model._pynode == self._component.grp_out
+        return super(NodeGraphComponentModel, self).allow_output_port_display(port_model)
 
     def _get_node_widget_label(self):
         return '{0} v{1}'.format(self._name, self._component.version)

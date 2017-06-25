@@ -2,17 +2,17 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/main_window.ui'
 #
-# Created: Tue Jun 20 21:45:39 2017
+# Created: Sat Jun 24 23:40:36 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
         OpenRiggingToolkit.setObjectName("OpenRiggingToolkit")
-        OpenRiggingToolkit.resize(574, 587)
+        OpenRiggingToolkit.resize(620, 600)
         self.centralwidget = QtWidgets.QWidget(OpenRiggingToolkit)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -40,7 +40,7 @@ class Ui_OpenRiggingToolkit(object):
         self.verticalLayout_5.addWidget(self.stackedWidget)
         OpenRiggingToolkit.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(OpenRiggingToolkit)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 574, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 620, 25))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -211,9 +211,9 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None, -1))
 
-from omtk.qt_widgets.nodegraph_widget.nodegraph_widget import NodeGraphWidget
 from ..widget_list_meshes import WidgetListMeshes
 from ..widget_logger import WidgetLogger
+from ..qt_widgets.nodegraph_widget import NodeGraphWidget
 from ..widget_list_modules import WidgetListModules
 from ..widget_welcome import WidgetWelcome
 from ..widget_list_influences import WidgetListInfluences

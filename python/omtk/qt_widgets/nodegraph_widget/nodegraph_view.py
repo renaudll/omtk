@@ -126,6 +126,4 @@ class NodeGraphView(PyFlowgraphView):
     # --- Events ---
 
     def on_component_created(self, component):
-        from ...factory_pyflowgraph_node import GraphFactoryModel
-        model = GraphFactoryModel(self)
-        model.get_node(component)
+        self._controller.add_node(component)

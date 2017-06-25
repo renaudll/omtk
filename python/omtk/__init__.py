@@ -3,6 +3,7 @@ import constants
 from .core import *
 
 log = logging.getLogger('omtk')
+log.setLevel(logging.DEBUG)  # debugging
 
 try:
     from maya import cmds, mel
@@ -69,9 +70,6 @@ def _reload(kill_ui=True):
 
     import factory_datatypes
     reload(factory_datatypes)
-
-    import factory_pyflowgraph_node
-    reload(factory_pyflowgraph_node)
 
     import factory_tree_widget_item
     reload(factory_tree_widget_item)

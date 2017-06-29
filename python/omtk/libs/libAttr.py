@@ -668,7 +668,7 @@ def context_disconnected_attrs(attrs, hold_inputs=True, hold_outputs=True):
     fetch_connections(data)
 
 
-def iter_leaf_attributes(obj):
+def iter_leaf_attributes(obj, **kwargs):
     """
     Iter all the leaf nodes (including compounds and array attributes) recursively using pymel awesome
     iterDescendants method. Note that since the leavesOnly flag is not provided by the listAttr method
@@ -676,7 +676,7 @@ def iter_leaf_attributes(obj):
     :param obj:
     :return:
     """
-    for attr in obj.listAttr(descendants=True):
+    for attr in obj.listAttr(descendants=True, **kwargs):
         yield attr
 
 

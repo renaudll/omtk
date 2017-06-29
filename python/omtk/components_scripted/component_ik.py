@@ -1,7 +1,7 @@
 import collections
 
 import pymel.core as pymel
-from omtk.core.classComponent import Component
+from omtk.core.classComponent import ComponentScripted
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classDagBuilder import DagBuilder
 from omtk.core.classModule import Module
@@ -12,123 +12,6 @@ from omtk.libs import libPython
 from omtk.libs import libRigging
 
 from omtk import constants
-
-
-def _get_vector_from_axis(axis):
-    if axis == constants.Axis.x:
-        return pymel.datatypes.Vector.xAxis
-    if axis == constants.Axis.y:
-        return pymel.datatypes.Vector.yAxis
-    if axis == constants.Axis.z:
-        return pymel.datatypes.Vector.zAxis
-    raise IOError("Unexpected constant. Expected X, Y, or Z. Got {}".format(axis))
-
-
-class CtrlIk(BaseCtrl):
-    """
-    Base ik ctrl for the IK class. Used to drive ik handle. Inherit of the base ctrl class
-    """
-    kAttrName_State = 'ikFk'  # Attribute string shown in maya
-
-    def __createNode__(self, *args, **kwargs):
-        """
-        Create the ctrl node itself
-        :param args: More args passed to the superclass
-        :param kwargs: More kwargs passed to the superclass
-        :return: The created ctrl node
-        """
-        return super(CtrlIk, self).__createNode__(multiplier=1.5, *args, **kwargs)
-
-
-class CtrlIkSwivel(BaseCtrl):
-    """
-    Base Ctrl ik swivel class implementation. Mostly used to do pole vector on an ik. Will create a ctrl with a line
-    to facilitate pole vector visualization. Inherit of the base ctrl class
-    """
-
-    def __init__(self):
-        super(CtrlIkSwivel, self).__init__()
-
-        self._line_locator = None
-        self._line_annotation = None
-
-    def __createNode__(self, refs=None, size=None, line_target=True, offset=None, *args, **kwargs):
-        """
-        Create the swivel ctrl itself when build node function is called
-        :param refs: Reference used to correctly size the ctrl
-        :param size: Size of the ctrl
-        :param line_target: Bool to tell if we want a line target or not
-        :param offset: Offset applied on the ctrl
-        :param args: More args passed to the superclass
-        :param kwargs: More kwargs passed to the super class
-        :return: The created swivel node ctrl
-        """
-        # Resolve size automatically if refs are provided
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
-        if size is None and ref is not None:
-            size = libRigging.get_recommended_ctrl_size(ref)
-        else:
-            size = 1.0
-
-        node = super(CtrlIkSwivel, self).__createNode__(*args, **kwargs)
-        make = node.getShape().create.inputs()[0]
-        make.radius.set(size * 2)
-        make.degree.set(1)
-        make.sections.set(4)
-
-        make.radius.set(make.radius.get() * 0.5)
-        make.degree.set(1)
-        make.sections.set(4)
-
-        return node
-
-    def get_spaceswitch_targets(self, module, *args, **kwargs):
-        """
-        Add the Hand/Leg IK ctrl by default as a space-switch target to any swivel.
-        :param module: The parent module, generally an IK instance.
-        :param args: More args passer to the super class
-        :param kwargs: More kwargs pass to the super class
-        :return: The spaceswitch usable targets and names
-        """
-        targets, target_names, indexes = super(CtrlIkSwivel, self).get_spaceswitch_targets(module, *args, **kwargs)
-
-        # Add the Hand/Foot ctrl
-        targets.append(module.ctrl_ik)
-        target_names.append(None)
-        indexes.append(self.get_bestmatch_index(module.ctrl_ik))
-
-        return targets, target_names, indexes
-
-    def build(self, refs=None, line_target=True, *args, **kwargs):
-        """
-        Will create the ctrl node and it's line target if needed
-        :param refs: The reference used to attach the line target
-        :param line_target: Bool to tell if we want a line target
-        :param args: More args passed to the super class
-        :param kwargs: More kwargs passed to the super class
-        :return:
-        """
-        super(CtrlIkSwivel, self).build(*args, **kwargs)
-        assert (self.node is not None)
-
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
-
-        # Create line
-        if line_target is True and ref is not None:
-            # Create a spaceLocator so the annotation can hook itself to it.
-            self._line_locator = pymel.spaceLocator()
-            locator_shape = self._line_locator.getShape()
-            pymel.pointConstraint(ref, self._line_locator)
-            self._line_locator.setParent(self.node)
-            self._line_locator.hide()
-
-            self._line_annotation = pymel.createNode('annotationShape')
-            annotation_transform = self._line_annotation.getParent()
-            self._line_annotation.setParent(self.node, relative=True, shape=True)
-            pymel.connectAttr(locator_shape.worldMatrix, self._line_annotation.dagObjectMatrix[0], force=True)
-            pymel.delete(annotation_transform)
-
-        return self.node
 
 
 def _get_chain_length_from_local_tms(tms):
@@ -188,14 +71,14 @@ def _create_joints_from_local_tms(tms):
     return list(_fn(tms))
 
 
-class ComponentSoftIk(Component):
+class ComponentSoftIk(ComponentScripted):
     """
     Softik implementation class.
 
     inputs:
     - inMatrixS: The world matrix of the arm start.
     - inMatrixE: The world matrix of the arm end.
-    - inRatio: The amount to soft ik to use.
+    - inRatio: The amount to soft libs to use.
     - inStretch: The amount of stretch to use.
     - inChainLength: A float representing the length of the Arm.
 
@@ -258,8 +141,8 @@ class ComponentSoftIk(Component):
         # distanceSafe is the distance where there's no softIK.
         # ex: For a chain of length 10.0 with a ratio of 0.1, the distanceSafe will be 9.0.
         formula.distanceSafe = "inChainLength-distanceSoft"
-        # This represent the soft-ik state
-        # When the soft-ik kick in, the value is 0.0.
+        # This represent the soft-libs state
+        # When the soft-libs kick in, the value is 0.0.
         # When the stretch kick in, the value is 1.0.
         # |-----------|-----------|----------|
         # -1          0.0         1.0         +++
@@ -274,7 +157,7 @@ class ComponentSoftIk(Component):
                                                                      ).outputR
         formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoftClamped"
 
-        # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-ik
+        # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-libs
         # If there's no stretch, this will be directly applied to the ikEffector.
         # If there's stretch, this will be used to compute the amount of stretch needed to reach the ikCtrl
         # while preserving the shape.
@@ -349,8 +232,8 @@ class ComponentIkBuilder(DagBuilder):
 
     def create_ik_handle(self, obj_s, obj_e, solver_type='ikRPsolver'):
         """
-        Create a ik handle for a specific ik setup. Need to be overrided by children class to implement the good behavior
-        :return: Return the created ik handle and effector
+        Create a libs handle for a specific libs setup. Need to be overrided by children class to implement the good behavior
+        :return: Return the created libs handle and effector
         """
         ik_handle, ik_effector = pymel.ikHandle(
             startJoint=obj_s,
@@ -361,8 +244,8 @@ class ComponentIkBuilder(DagBuilder):
 
     def setup_softik(self):
         """
-        Setup the softik system a ik system
-        :param ik_handle_to_constraint: A list of ik handles to constraint on the soft-ik network.
+        Setup the softik system a libs system
+        :param ik_handle_to_constraint: A list of libs handles to constraint on the soft-libs network.
         :param stretch_chains: A list of chains to connect the stretch to.
         :return: Nothing
         """
@@ -468,10 +351,10 @@ class ComponentIkBuilder(DagBuilder):
         return [jnt.worldMatrix for jnt in self._jnts]
 
 
-class ComponentIk(Component):
+class ComponentIk(ComponentScripted):
     """
     A scripted component that allow the generation of multi-joint IK system.
-    This also include stretching and soft-ik.
+    This also include stretching and soft-libs.
 
     inputs:
     - bindPoses: A list of world matrices representing the bind pose of the influence chain.
@@ -531,244 +414,5 @@ class ComponentIk(Component):
             pymel.connectAttr(attr_src, attr_dst)
 
 
-# Todo: Support more complex IK limbs (ex: 2 knees)
-class IK(Module):
-    """
-    Classical IK rig that support stretching and soft-ik.
-    This is the base Ik module of the autorig. Support a basic 3 bones ik rotate-plane solver
-    with the creation of a controller. Also used the softik implementation. Inherit of the module class
-    to be able to used it in the autorig UI
-    """
-    _CLASS_CTRL_IK = CtrlIk  # Ik Ctrl class
-    _CLASS_CTRL_SWIVEL = CtrlIkSwivel  # Ik Swivel Ctrl class
-
-    def __init__(self, *args, **kwargs):
-        super(IK, self).__init__(*args, **kwargs)
-        self.iCtrlIndex = 2
-        self.ctrl_ik = None
-        self.ctrl_swivel = None
-        self.ctrl_swivel_quad = None
-        self.chain_length = None
-        self._chain_ik = None
-        self.swivelDistance = None
-
-    def _create_ctrl_ik(self, *args, **kwargs):
-        """
-        Create an instance of the ik ctrl
-        :param args: Args that could be passed to the Ik Ctrl creation
-        :param kwargs: Kwargs that could be passed to the Ik Ctrl creation
-        :return: The Ik controller
-        """
-        return self._CLASS_CTRL_IK(*args, **kwargs)
-
-    def calc_swivel_pos(self, start_index=0, end_index=2):
-        """
-        This function is used to compute a swivel position. Can be used for multiple knee setup
-        :param start_index: The start index of the _ik_chain that will be used to compute the swivel pos
-        :param end_index: The end index of the _ik_chain that will be used to compute the swivel pos
-        :return: The swivel position computed between the start and end
-        """
-        pos_start = self.chain_jnt[start_index].getTranslation(space='world')
-        pos_end = self.chain_jnt[end_index].getTranslation(space='world')
-
-        chain_length = 0
-        for i in range(start_index, end_index):
-            chain_length += self.chain_jnt[i + 1].t.get().length()
-
-        ratio = self.chain_jnt[start_index + 1].t.get().length() / chain_length
-        pos_swivel_base = (pos_end - pos_start) * ratio + pos_start
-        dir_swivel = (self.chain_jnt[start_index + 1].getTranslation(space='world') - pos_swivel_base).normal()
-        return pos_swivel_base + (dir_swivel * chain_length)
-
-    def create_ctrl_ik(self):
-        nomenclature_anm = self.get_nomenclature_anm()
-        obj_e = self.input[-1]
-
-        # Resolve CtrlIK transform
-        ctrl_ik_offset_tm, ctrl_ik_tm = self._get_ik_ctrl_tms()
-        ctrl_ik_offset_rot = libPymel.get_rotation_from_matrix(ctrl_ik_offset_tm) if ctrl_ik_offset_tm else None
-        ctrl_ik_rot = libPymel.get_rotation_from_matrix(ctrl_ik_tm) if ctrl_ik_tm else None
-
-        # Create CtrlIK
-        self.ctrl_ik = self.init_ctrl(self._CLASS_CTRL_IK, self.ctrl_ik)
-        refs_bound_raycast = self._get_ik_ctrl_bound_refs_raycast()
-        refs_bound_extra = self._get_ik_ctrl_bound_refs_extra()
-        self.ctrl_ik.build(
-            refs=refs_bound_extra,
-            refs_raycast=refs_bound_raycast,
-            geometries=self.rig.get_meshes(),
-            parent_tm=ctrl_ik_tm
-        )  # refs is used by CtrlIkCtrl
-        self.ctrl_ik.setParent(self.grp_anm)
-        self.ctrl_ik_name = nomenclature_anm.resolve()
-        self.ctrl_ik.rename(self.ctrl_ik_name)
-
-        # Define CtrlIK transform
-        self.ctrl_ik_t = obj_e.getTranslation(space='world')
-        self.ctrl_ik.offset.setTranslation(self.ctrl_ik_t, space='world')
-
-        if ctrl_ik_offset_rot:
-            self.ctrl_ik.offset.setRotation(ctrl_ik_offset_rot)
-
-        # Create space switch
-        self.ctrl_ik.create_spaceswitch(self, self.parent, local_label='World')
-
-        if ctrl_ik_rot:
-            self.ctrl_ik.node.setRotation(ctrl_ik_rot, space='world')
-
-    def create_ctrl_swivel(self, ref, name='swivel', **kwargs):
-        '''
-        Create the swivel ctrl for the ik system
-        :param base_ctrl: The ctrl used to setup the swivel, create one if needed
-        :param ref: Reference object to position the swivel
-        :param pos: The computed position of the swivel
-        :param ik_handle: The handle to pole vector constraint
-        :param name: Part name used to resolve the object rig name
-        :param constraint: Do we contraint the ik handle to the swivel ctrl
-        :param kwargs: Additionnal parameters
-        :return: The created ctrl swivel
-        '''
-        nomenclature_anm = self.get_nomenclature_anm()
-        pos = self.calc_swivel_pos()
-
-        self.ctrl_swivel = self.init_ctrl(self._CLASS_CTRL_SWIVEL, self.ctrl_swivel)
-        self.ctrl_swivel.build(refs=ref)
-        self.ctrl_swivel.setParent(self.grp_anm)
-        self.ctrl_swivel.rename(nomenclature_anm.resolve(name))
-        self.ctrl_swivel._line_locator.rename(nomenclature_anm.resolve(name + 'LineLoc'))
-        self.ctrl_swivel._line_annotation.rename(nomenclature_anm.resolve(name + 'LineAnn'))
-        self.ctrl_swivel.offset.setTranslation(pos, space='world')
-        self.ctrl_swivel.create_spaceswitch(self, self.parent, local_label='World')
-
-    def _get_ik_ctrl_tms(self):
-        """
-        Compute the desired rotation for the ik ctrl.
-        :return: A two-size tuple containing the transformation matrix for the ctrl offset and the ctrl itself.
-        """
-        inf_tm = self.input[self.iCtrlIndex].getMatrix(worldSpace=True)
-        return inf_tm, inf_tm
-
-    def _get_ik_ctrl_bound_refs_raycast(self):
-        """
-        Resolve what objects to use for computing the bound of the ik ctrl using raycasts.
-        Default behavior is to use the hand and any inputs after. (ex: toes)
-        :return: An array of pymel.general.PyNode instances.
-        """
-        return self.input[self.iCtrlIndex:-1]
-
-    def _get_ik_ctrl_bound_refs_extra(self):
-        """
-        Resolve what objects to use to expand the bound of the ik ctrl using world-space positions.
-        Default behavior is to use the hand and all it's children. (ex: fingers)
-        :return: An array of pymel.general.PyNode instances.
-        """
-        jnt_hand = self.input[self.iCtrlIndex]
-        return [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
-
-    def build(self, *args, **kwargs):
-        """
-        Build the ik system when needed
-        :param ctrl_ik_orientation: A boolean to define if the ctrl should be zeroed.
-        :param constraint: Bool to tell if we constraint the chain_jnt to the system
-        :param constraint_handle: Bool to tell if we constraint the ik handle to the ik ctrl
-        :param setup_softik: Bool to tell if we setup the soft ik on this system
-        :param args: More args passed to the superclass
-        :param kwargs: More kwargs passed to the superclass
-        :return:
-        """
-        nomenclature_anm = self.get_nomenclature_anm()
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        index_elbow = 1  # The elbow will always be on the second bone
-        index_hand = self.iCtrlIndex
-
-        jnt_elbow = self.chain_jnt[index_elbow]
-        jnt_hand = self.chain_jnt[index_hand]
-
-        # Compute swivel pos before any operation is done on the bones
-
-
-        # Create a group for the ik system
-        # This group will be parentConstrained to the module parent.
-
-        super(IK, self).build(*args, **kwargs)
-
-        self.create_ctrl_ik()
-        self.create_ctrl_swivel(jnt_elbow)
-
-        # Add stretch and soft_ik attributes on ctrl_ik
-        holder = self.ctrl_ik
-        attr_soft_amount = libAttr.addAttr(
-            holder,
-            longName='softIkRatio', niceName='SoftIK',
-            defaultValue=0,
-            minValue=0, maxValue=50,
-            hasMinValue=True, hasMaxValue=True,
-            k=True,
-        )
-
-        attr_stretch_amount = libAttr.addAttr(
-            holder,
-            longName='stretch', niceName='Stretch',
-            defaultValue=0,
-            minValue=0, maxValue=1.0,
-            hasMinValue=True, hasMaxValue=True,
-            k=True,
-        )
-
-        builder = DagBuilder()
-
-        solver = ComponentIk()
-        solver.build()
-        solver.grp_dag.setParent(self.grp_rig)
-
-        # Connect inputs
-        for i, jnt in enumerate(self.input):
-            solver._attr_inn_chain[i].set(jnt.worldMatrix.get())
-            # pymel.connectAttr(jnt.worldMatrix, solver._attr_inn_chain[i])
-
-        pymel.connectAttr(self.ctrl_ik.worldMatrix, solver._attr_ctrl_tm)
-        pymel.connectAttr(builder.get_world_translate(self.ctrl_swivel), solver._attr_ctrl_swivel_pos)
-        pymel.connectAttr(attr_soft_amount, solver._attr_inn_softik)
-        pymel.connectAttr(attr_stretch_amount, solver._attr_inn_stretch)
-
-        self.swivelDistance = self.chain_length  # Used in ik/fk switch
-
-        for source, target in zip(solver._attr_out_matrices, self.chain):
-            # u = libRigging.create_utility_node(
-            #     'decomposeMatrix',
-            #     inputMatrix=source
-            # )
-            # pymel.connectAttr(u.outputTranslate, target.translate)
-            # pymel.connectAttr(u.outputRotate, target.rotate)
-            # pymel.connectAttr(u.outputScale, target.scale)
-            builder.constraint_obj_to_tm(target, source, compensate_parent=True)
-
-
-    def unbuild(self):
-        """
-        Unbuild the ik system and reset the needed parameters
-        :return:
-        """
-        self.swivelDistance = None
-
-        super(IK, self).unbuild()
-
-    def parent_to(self, parent):
-        """
-        Parent the system
-        :param parent: The node used to parent the system
-        :return:
-        """
-        pymel.parentConstraint(parent, self._ikChainGrp, maintainOffset=True)
-
-    def iter_ctrls(self):
-        for ctrl in super(IK, self).iter_ctrls():
-            yield ctrl
-        yield self.ctrl_ik
-        yield self.ctrl_swivel
-        yield self.ctrl_swivel_quad
-
-
 def register_plugin():
-    return IK
+    return ComponentIk

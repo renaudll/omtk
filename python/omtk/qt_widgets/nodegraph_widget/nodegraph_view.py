@@ -6,7 +6,6 @@ from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
 
 from omtk import factory_datatypes
-from omtk import factory_pyflowgraph_node
 from omtk import factory_rc_menu
 
 # used for type hinting

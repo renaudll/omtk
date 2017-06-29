@@ -7,7 +7,7 @@ from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.modules import rigIK
+from omtk.modules import module_ik
 from omtk.modules_broken import rigFK, rigTwistbone
 
 from omtk import constants
@@ -49,7 +49,7 @@ class Limb(Module):
     Generic IK/FK setup. Twistbones are included.
     """
     kAttrName_State = 'fkIk'  # The name of the IK/FK attribute
-    _CLASS_SYS_IK = rigIK.IK
+    _CLASS_SYS_IK = module_ik.IK
     _CLASS_SYS_FK = rigFK.FK
     _CLASS_CTRL_ATTR = BaseAttHolder
     _CLASS_CTRL_ELBOW = CtrlElbow
@@ -89,7 +89,7 @@ class Limb(Module):
             self._CLASS_SYS_IK,
             self.sysIK,
             inputs=self.chain_jnt,
-            suffix='ik',
+            suffix='libs',
         )
         self.sysIK.build(constraint=False, **kwargs)
 
@@ -134,7 +134,7 @@ class Limb(Module):
         elif self.rig.DEFAULT_UPP_AXIS == constants.Axis.z:
             libAttr.lock_hide_rotation(self.sysFK.ctrls[1], y=False)
 
-        # Store the offset between the ik ctrl and it's joint equivalent.
+        # Store the offset between the libs ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
         self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.iCtrlIndex].getMatrix(
             worldSpace=True).inverse()

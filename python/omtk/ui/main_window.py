@@ -213,7 +213,7 @@ class Ui_OpenRiggingToolkit(object):
 
 from ..widget_list_meshes import WidgetListMeshes
 from ..widget_logger import WidgetLogger
-from ..qt_widgets.nodegraph_widget import NodeGraphWidget
+from ..qt_widgets.nodegraph_widget.nodegraph_widget import NodeGraphWidget
 from ..widget_list_modules import WidgetListModules
 from ..widget_welcome import WidgetWelcome
 from ..widget_list_influences import WidgetListInfluences

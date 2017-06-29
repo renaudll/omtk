@@ -5,6 +5,7 @@ import pymel.core as pymel
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libAttr
 from omtk.libs import libPython
+from omtk.libs import libRigging
 from omtk.vendor import libSerialization
 
 log = logging.getLogger('omtk')
@@ -119,6 +120,12 @@ def walk_available_component_definitions():
 
                 yield component_def
 
+    log.info("Searching ComponentScripted")
+    from omtk import plugin_manager
+    pm = plugin_manager.plugin_manager
+    for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ComponentScriptedType.type_name):
+        yield plugin.cls.get_definition()
+
 
 def get_component_network_bounds():
     """
@@ -228,4 +235,20 @@ def create_component_from_bounds(objs):
     from omtk.core.classComponent import Component
     inst = Component.from_attributes(input_attrs, output_attrs)
 
+    return inst
+
+
+def create_component(component_cls, name=None, **kwargs):
+    inst = component_cls()
+    inst.build()
+    grp_inn = inst.grp_inn
+    grp_out = inst.grp_out
+    for sAttrName, pAttrValue in kwargs.iteritems():
+        if grp_inn.hasAttr(sAttrName):
+            libRigging.connect_or_set_attr(grp_inn.attr(sAttrName), pAttrValue)
+        elif grp_out.hasAttr(sAttrName):
+            libRigging.connect_or_set_attr(grp_out.attr(sAttrName), pAttrValue)
+        else:
+            raise Exception(
+                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(inst, sAttrName))
     return inst

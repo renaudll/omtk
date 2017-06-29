@@ -10,6 +10,10 @@ from omtk import constants
 # todo: create ComponentScripted and ComponentSaved
 
 class Component(Entity):
+    # These need to be defined in order to register a component.
+    component_id = None
+    component_name = None
+
     need_grp_inn = True
     need_grp_out = True
     need_grp_dag = False
@@ -31,6 +35,18 @@ class Component(Entity):
         # Network object to hold any DagNode belonging to the component.
         self.grp_dag = None
 
+    @classmethod
+    def get_definition(cls):
+        from omtk.core import classComponentDefinition
+        from omtk.core import api
+
+        inst = classComponentDefinition.ComponentDefinition(
+            uid=cls.component_id,
+            name=cls.component_name,
+            version=api.get_version(),
+        )
+        return inst
+
     def build(self):
         if self.need_grp_inn:
             self.grp_inn = pymel.createNode('network', name='inn')
@@ -47,11 +63,11 @@ class Component(Entity):
 
     def iter_attributes(self):
         # todo: use factory?
-        for attr in self.grp_inn.listAttr(userDefined=True):
+        for attr in self.grp_inn.listAttr(topLevel=True, userDefined=True):
             attr_def = get_attrdef_from_attr(attr, is_input=True, is_output=False)
             if attr_def:
                 yield attr_def
-        for attr in self.grp_out.listAttr(userDefined=True):
+        for attr in self.grp_out.listAttr(topLevel=True, userDefined=True):
             attr_def = get_attrdef_from_attr(attr, is_input=False, is_output=True)
             if attr_def:
                 yield attr_def
@@ -101,7 +117,7 @@ class Component(Entity):
             data['niceName'] = attr_name
             libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
             libAttr.swapAttr(attr_inn, hub_inn.attr(attr_name), inputs=False, outputs=True)
-            #if not isolate:
+            # if not isolate:
             #    pymel.connectAttr(attr_inn, hub_inn.attr(attr_name))
 
         for attr_out in attrs_out:
@@ -113,7 +129,7 @@ class Component(Entity):
             data['niceName'] = attr_name
             libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
             libAttr.swapAttr(hub_out.attr(attr_name), attr_out, inputs=True, outputs=False)
-            #if not isolate:
+            # if not isolate:
             #    pymel.connectAttr(hub_out.attr(attr_name), attr_out)
 
         inst.grp_inn = hub_inn
@@ -125,3 +141,18 @@ class Component(Entity):
 
     def get_children(self):
         return (set(self.grp_inn.listHistory()) | set(self.grp_out.listHistory())) - {self.grp_inn, self.grp_out}
+
+
+class ComponentScripted(Component):
+    @classmethod
+    def get_definition(cls):
+        from omtk.core import classComponentDefinition
+        from omtk.core import api
+
+        inst = classComponentDefinition.ComponentScriptedDefinition(
+            uid=cls.component_id,
+            name=cls.component_name,
+            version=api.get_version(),
+        )
+        inst.component_cls = cls
+        return inst

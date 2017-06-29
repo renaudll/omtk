@@ -193,3 +193,12 @@ class ComponentDefinition(object):
         network = libSerialization.export_network(inst)
 
         return inst
+
+
+class ComponentScriptedDefinition(ComponentDefinition):
+    component_cls = None
+
+    def instanciate(self, name='unamed'):
+        inst = self.component_cls(name=name)
+        inst.build()
+        return inst

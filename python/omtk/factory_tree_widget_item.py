@@ -14,11 +14,11 @@ from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 
 log = logging.getLogger('omtk')
 
-
 _color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
 _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
 _color_locked = QtGui.QBrush(QtGui.QColor(125, 125, 125))
 _color_warning = QtGui.QBrush(QtGui.QColor(125, 125, 45))
+
 
 class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
     def __init__(self, parent, meta_type, meta_data):
@@ -28,6 +28,12 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
         self._meta_data = meta_data
 
         self.update_()
+
+    def get_metadata(self):
+        return self._meta_data
+
+    def get_metatype(self):
+        return self._meta_type
 
     def update_(self):
         icon = factory_datatypes.get_icon_from_datatype(self._meta_type)
@@ -178,9 +184,9 @@ def _get_item_from_component(component, known_data_id=None):
             if item_child:
                 item_attr.addChild(item_child)
 
-            # Hack: Force expand 'modules' attribute. todo: rename with children.
-            # if attr_name == 'modules':
-            #     self.ui.treeWidget.expandItem(item_attr)
+                # Hack: Force expand 'modules' attribute. todo: rename with children.
+                # if attr_name == 'modules':
+                #     self.ui.treeWidget.expandItem(item_attr)
 
     return item
 

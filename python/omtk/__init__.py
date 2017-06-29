@@ -27,7 +27,7 @@ def _build_ui():
             path_src = os.path.join(dirpath, filename)
             path_dst = os.path.join(dirpath, basename + '.py')
 
-            if not os.path.exists(path_dst) or os.path.getctime(path_src) < os.path.getctime(path_dst):
+            if os.path.exists(path_dst) and os.path.getctime(path_src) < os.path.getctime(path_dst):
                 continue
 
             log.info('Building {0} to {1}'.format(
@@ -141,22 +141,11 @@ def _reload(kill_ui=True):
         import widget_breadcrumb
         reload(widget_breadcrumb)
 
-        # Reload node-editor
+        import qt_widgets
+        reload(qt_widgets)
+        qt_widgets.reload_()
 
-        from omtk.qt_widgets.nodegraph_widget import nodegraph_view
-        reload(nodegraph_view)
-
-        from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
-        reload(nodegraph_widget)
-
-        from omtk.qt_widgets.nodegraph_widget import nodegraph_widget
-        reload(nodegraph_widget)
-
-        from ui import main_window as ui_main_window
-        reload(ui_main_window)
-
-        import main_window
-        reload(main_window)
+        # Reload main window
 
         if kill_ui:
             # Try to kill the window to prevent any close event error
@@ -165,7 +154,12 @@ def _reload(kill_ui=True):
             except:
                 pass
 
+        from ui import main_window as ui_main_window
+        reload(ui_main_window)
+
+        import main_window
         reload(main_window)
+
     except Exception, e:
         pymel.warning("Error loading OMTK GUI modules: {}".format(e))
 

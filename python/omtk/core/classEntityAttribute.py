@@ -3,43 +3,11 @@ A ComponentAttribute is the link between internal data and the gui.
 It deal with typing and validation (used for drag and drop events for now)
 """
 import logging
+
 import pymel.core as pymel
+from omtk import factory_datatypes
 
 log = logging.getLogger('omtk')
-
-_ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE = {
-    'bool': bool,
-    'long': int,
-    'short': int,
-    'byte': int,
-    'char': str,
-    'enum': int,
-    'float': float,
-    'double': float,
-    'doubleAngle': float,
-    'doubleLinear': float,
-    'string': str,
-    'stringArray': str,
-    'time': float,
-    'matrix': pymel.datatypes.Matrix,
-    'fltMatrix': pymel.datatypes.Matrix,
-    'float2': float,  # ???,  # ???
-    'float3': pymel.datatypes.Vector,
-    'double2': float,  # ???, # ???
-    'double3': pymel.datatypes.Vector,
-    'long2': int,  # ???,  # ???
-    'long3': pymel.datatypes.Vector,
-    'short2': pymel.datatypes.Vector,
-    'short3': pymel.datatypes.Vector,
-    'doubleArray': float,
-    'Int32Array': int,
-    'vectorArray': pymel.datatypes.Vector,
-    'nurbsCurve': pymel.nodetypes.NurbsCurve,
-    'nurbsSurface': pymel.nodetypes.NurbsSurface,
-    'mesh': pymel.nodetypes.Mesh,
-    'lattice': pymel.nodetypes.Lattice,
-}
-
 
 class EntityAttribute(object):
     def __init__(self, name, is_input=True, is_output=True, fn_get=None, fn_set=None, val=None):
@@ -53,14 +21,26 @@ class EntityAttribute(object):
     def get(self):
         if self._fn_get:
             return self._fn_get()
-        log.warning("Attribute {0} have not getter defined!".format(self))
-        return None
-        # raise Exception("Attribute {0} have not getter defined!".format(self))
+            # log.warning("Attribute {0} have not getter defined!".format(self))
+            # return None
+            # raise Exception("Attribute {0} have not getter defined!".format(self))
 
     def set(self, val):
         if self._fn_set:
             return self._fn_set()
         raise Exception("Attribute {0} have no setter defined!".format(self))
+
+    def connect_from(self, val):
+        raise NotImplementedError
+
+    def connect_to(self, val):
+        raise NotImplementedError
+
+    def disconnect_from(self, val):
+        raise NotImplementedError
+
+    def disconnect_to(self, val):
+        raise NotImplementedError
 
     def validate(self, val):
         """
@@ -74,7 +54,7 @@ class EntityAttribute(object):
 class EntityPymelAttribute(EntityAttribute):
     def __init__(self, attr, **kwargs):
         self._attr = attr
-        self._valid_types = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE[attr.type()]
+        self._valid_types = factory_datatypes.get_entity_type_by_attr(attr)
         super(EntityPymelAttribute, self).__init__(
             name=attr.attrName(),
             fn_get=attr.get,
@@ -86,6 +66,22 @@ class EntityPymelAttribute(EntityAttribute):
         print val, self._valid_types
         return isinstance(val, self._valid_types)
 
+    def connect_from(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        pymel.connectAttr(val, self._attr)
+
+    def connect_to(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        pymel.connectAttr(self._attr, val)
+
+    def disconnect_from(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        pymel.disconnectAttr(val, self._attr)
+
+    def disconnect_to(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        pymel.disconnectAttr(self._attr, val)
+
 
 class EntityPymelAttributeCollection(EntityPymelAttribute):
     def validate(self, val):
@@ -96,9 +92,27 @@ class EntityPymelAttributeCollection(EntityPymelAttribute):
         else:
             return super(EntityPymelAttributeCollection, self).validate(val)
 
+    def get(self):
+        # type: () -> List[pymel.Attribute]
+        return super(EntityPymelAttributeCollection, self).get()
+
+    def connect_from(self, val):
+        """Connecting an attribute to the array is the equivalent of appending to the internal data."""
+        entries = self.get()
+        if val in entries:
+            entries.append(val)
+            self.set(entries)
+
+    def disconnect_from(self, val):
+        """Disconnecting an attribute from the array is the equivalent of removing it from the internal data."""
+        entries = self.get()
+        if val in entries:
+            entries.remove(val)
+            self.set(entries)
+
 
 def get_attrdef_from_attr(attr, is_input=False, is_output=False):
-    valid_types = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE.get(attr.type())
+    valid_types = factory_datatypes.get_entity_type_by_attr(attr)
     if valid_types is None:
         log.warning("Cannot create AttributeDef from {0}".format(attr))
         return None

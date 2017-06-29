@@ -3,16 +3,42 @@ Help identifying datatypes for usage in factory methods.
 """
 import collections
 
-from omtk.core.classEntity import Entity
-from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classNode import Node
-from omtk.core.classModule import Module
-from omtk.core.classModule2 import Module2
-from omtk.core.classRig import Rig
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui
 from pymel import core as pymel
 
+_ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE = {
+    'bool': bool,
+    'long': int,
+    'short': int,
+    'byte': int,
+    'char': str,
+    'enum': int,
+    'float': float,
+    'double': float,
+    'doubleAngle': float,
+    'doubleLinear': float,
+    'string': str,
+    'stringArray': str,
+    'time': float,
+    'matrix': pymel.datatypes.Matrix,
+    'fltMatrix': pymel.datatypes.Matrix,
+    'float2': float,  # ???,  # ???
+    'float3': pymel.datatypes.Vector,
+    'double2': float,  # ???, # ???
+    'double3': pymel.datatypes.Vector,
+    'long2': int,  # ???,  # ???
+    'long3': pymel.datatypes.Vector,
+    'short2': pymel.datatypes.Vector,
+    'short3': pymel.datatypes.Vector,
+    'doubleArray': float,
+    'Int32Array': int,
+    'vectorArray': pymel.datatypes.Vector,
+    'nurbsCurve': pymel.nodetypes.NurbsCurve,
+    'nurbsSurface': pymel.nodetypes.NurbsSurface,
+    'mesh': pymel.nodetypes.Mesh,
+    'lattice': pymel.nodetypes.Lattice,
+}
 
 class AttributeType:
     Basic = 0
@@ -27,6 +53,13 @@ class AttributeType:
 
 
 def get_component_attribute_type(val):
+    from omtk.core.classEntity import Entity
+    from omtk.core.classCtrl import BaseCtrl
+    from omtk.core.classNode import Node
+    from omtk.core.classModule import Module
+    from omtk.core.classModule2 import Module2
+    from omtk.core.classRig import Rig
+
     if val is None or isinstance(val, (
             bool,
             int,
@@ -58,26 +91,42 @@ def get_component_attribute_type(val):
         return AttributeType.Component
     raise Exception("Cannot resolve Component attribute type for {0} {1}".format(type(val), val))
 
+
 @libPython.memoized
 def get_icon_from_datatype(datatype):
     if datatype in (
-        AttributeType.Component,
-        AttributeType.Module,
-        AttributeType.Rig
+            AttributeType.Component,
+            AttributeType.Module,
+            AttributeType.Rig
     ):
         return QtGui.QIcon(":/out_objectSet.png")
     return None
 
+
 @libPython.memoized
 def get_node_color_from_datatype(datatype):
     if datatype in (
-        AttributeType.Component,
-        AttributeType.Module
+            AttributeType.Component,
+            AttributeType.Module
     ):
         return QtGui.QColor(170, 128, 170, 255)
     if datatype in (
-        AttributeType.Node,
+            AttributeType.Node,
     ):
         return QtGui.QColor(170, 170, 128, 255)
     # todo: warning
     return QtGui.QColor(128, 170, 170, 255)
+
+
+@libPython.memoized
+def get_port_color_from_datatype(datatype):
+    return get_node_color_from_datatype(datatype)
+
+
+def get_entity_type_by_attr(attr):
+    if attr.isMulti():
+        attr_type = attr[0].type()  # this still work if there's no data
+    else:
+        attr_type = attr.type()
+
+    return _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE[attr_type]

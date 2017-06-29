@@ -7,7 +7,7 @@ from omtk.libs import libRigging, libPymel
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class SplineIK(Module):
     """
-    Generic ik setup on a spline.
+    Generic libs setup on a spline.
     """
 
     def __init__(self, *args, **kwargs):
@@ -37,7 +37,7 @@ class SplineIK(Module):
         curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)),
                            None)
 
-        # Create ik solver
+        # Create libs solver
         handle_name = nomenclature_rig.resolve('ikHandle')
         eff_name = nomenclature_rig.resolve('ikEffector')
         self.ikHandle, self.ikEffector = pymel.ikHandle(

@@ -2,12 +2,12 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/pluginmanager_window.ui'
 #
-# Created: Wed May 31 20:55:07 2017
-#      by: pyside2-uic  running on Qt 2.0.0~alpha0
+# Created: Sun Jun 25 15:35:03 2017
+#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_mainWindow(object):
     def setupUi(self, mainWindow):
@@ -52,8 +52,8 @@ class Ui_mainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
 
     def retranslateUi(self, mainWindow):
-        mainWindow.setWindowTitle(QtCompat.translate("mainWindow", "OMTK - Plugin Manager", None, -1))
-        self.pushButton_reload.setText(QtCompat.translate("mainWindow", "Reload", None, -1))
-        self.actionReload.setText(QtCompat.translate("mainWindow", "Reload", None, -1))
-        self.actionSearchQueryChanged.setText(QtCompat.translate("mainWindow", "SearchQueryChanged", None, -1))
+        mainWindow.setWindowTitle(QtWidgets.QApplication.translate("mainWindow", "OMTK - Plugin Manager", None, -1))
+        self.pushButton_reload.setText(QtWidgets.QApplication.translate("mainWindow", "Reload", None, -1))
+        self.actionReload.setText(QtWidgets.QApplication.translate("mainWindow", "Reload", None, -1))
+        self.actionSearchQueryChanged.setText(QtWidgets.QApplication.translate("mainWindow", "SearchQueryChanged", None, -1))
 

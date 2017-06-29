@@ -8,7 +8,7 @@ from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk.core import classEntityAttribute
 from .nodegraph_node_model import NodeGraphDagNodeModel, NodeGraphComponentModel
-from .nodegraph_port_model import NodeGraphPortModel, NodeGraphPymelPortModel, NodeGraphEntityAttributePortModel, NodeGraphEntityPymelAttributePortModel
+from .nodegraph_port_model import NodeGraphPortModel, NodeGraphPymelPortModel
 from .nodegraph_connection_model import NodeGraphConnectionModel
 
 log = logging.getLogger('omtk')

@@ -27,7 +27,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
 
         # Connect signals
-        self.ui.treeWidget.customContextMenuRequested.connect(self.onRightClick.emit)
+        self.ui.treeWidget.customContextMenuRequested.connect(self.on_right_click)
 
         # Connect events
         self.ui.treeWidget.itemSelectionChanged.connect(self.on_influence_selection_changed)
@@ -140,8 +140,9 @@ class WidgetListInfluences(QtWidgets.QWidget):
     def get_selection(self):
         result = []
         for item in self.ui.treeWidget.selectedItems():
-            if item.obj.exists():
-                result.append(item.obj)
+            meta_data = item._meta_data
+            if meta_data.exists():
+                result.append(meta_data)
         return result
 
     #
@@ -153,3 +154,6 @@ class WidgetListInfluences(QtWidgets.QWidget):
 
     def on_query_changed(self):
         self.update_list_visibility()
+
+    def on_right_click(self):
+        self.onRightClick.emit()

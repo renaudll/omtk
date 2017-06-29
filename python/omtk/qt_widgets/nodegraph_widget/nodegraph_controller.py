@@ -23,12 +23,15 @@ if False:
 
 log = logging.getLogger('omtk')
 
+
 class NodeGraphController(object):
     def __init__(self, model, view):
         # type: (NodeGraphModel, NodeGraphView) -> ()
         self._model = model
-        self._view = view
+        self._view = None
         self._current_level = None
+
+        self.set_view(view)
 
         # Cache to prevent creating already defined nodes
         self._known_nodes = set()
@@ -37,6 +40,10 @@ class NodeGraphController(object):
 
         self._known_nodes_widgets = set()
 
+        # Cache to access model-widget relationship
+        self._cache_port_widget_by_model = {}
+        self._cache_port_model_by_widget = {}
+
     def get_nodes(self):
         # type: () -> (List[NodeGraphNodeModel])
         return self._known_nodes
@@ -44,6 +51,54 @@ class NodeGraphController(object):
     def get_ports(self):
         # type: () -> (List[NodeGraphPortModel])
         return self._known_attrs
+
+    def set_view(self, view):
+        # type: (NodeGraphView) -> None
+
+        # Disconnect previous events
+        if self._view:
+            self._view.connectionAdded.disconnect(self.on_connection_added)
+
+        self._view = view
+
+        # Connect events
+        view.connectionAdded.connect(self.on_connection_added)
+
+        # NodeGraphView events:
+        # nodeAdded = QtCore.Signal(Node)
+        # nodeRemoved = QtCore.Signal(Node)
+        # nodeNameChanged = QtCore.Signal(str, str)
+        # beginDeleteSelection = QtCore.Signal()
+        # endDeleteSelection = QtCore.Signal()
+        # beginConnectionManipulation = QtCore.Signal()
+        # endConnectionManipulation = QtCore.Signal()
+        # connectionAdded = QtCore.Signal(Connection)
+        # connectionRemoved = QtCore.Signal(Connection)
+        # beginNodeSelection = QtCore.Signal()
+        # endNodeSelection = QtCore.Signal()
+        # selectionChanged = QtCore.Signal(list, list)
+        # # During the movement of the nodes, this signal is emitted with the incremental delta.
+        # selectionMoved = QtCore.Signal(set, QtCore.QPointF)
+        # # After moving the nodes interactively, this signal is emitted with the final delta.
+        # endSelectionMoved = QtCore.Signal(set, QtCore.QPointF)
+
+    # --- Events ---
+
+    def _get_port_models_from_connection(self, connection):
+        port_src_widget = connection.getSrcPort()
+        port_dst_widget = connection.getDstPort()
+        port_src_model = self._cache_port_model_by_widget[port_src_widget]
+        port_dst_model = self._cache_port_model_by_widget[port_dst_widget]
+        return port_src_model, port_dst_model
+
+    def on_connection_added(self, connection):
+        port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
+        port_dst_model.connect_from(port_src_model)
+
+    def on_connected_removed(self, connection):
+        port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
+        port_dst_model.disconnect_from(port_src_model)
+        # todo: find related port models
 
     # --- Model factory ---
 
@@ -92,6 +147,9 @@ class NodeGraphController(object):
         node_widget = model.get_widget(self._view)
         node_widget._omtk_model = model  # monkey-patch
         self._view.addNode(node_widget)
+
+        self._known_nodes_widgets.add(node_widget)
+
         return node_widget
 
     @libPython.memoized_instancemethod
@@ -111,7 +169,11 @@ class NodeGraphController(object):
         node_widget = self.get_node_widget(node_model)
         port_widget = port_model.get_widget(self, self._view, node_widget)
         node_widget.addPort(port_widget)
-        # self._known_attrs.add(port_widget)
+
+        # Update cache
+        self._cache_port_model_by_widget[port_widget] = port_model
+        self._cache_port_widget_by_model[port_model] = port_widget
+
         return port_widget
 
     @libPython.memoized_instancemethod
@@ -200,7 +262,7 @@ class NodeGraphController(object):
             node_model = self.get_node_model_from_value(node_model)
         self._known_nodes.add(node_model)
         node_widget = self.get_node_widget(node_model)
-        self._known_nodes_widgets.add(node_widget)
+        # self._known_nodes_widgets(node_widget)
         self.expand_node_attributes(node_model)
 
     def redraw(self):
@@ -256,4 +318,3 @@ class NodeGraphController(object):
 
     def navigate_up(self):
         raise NotImplementedError
-

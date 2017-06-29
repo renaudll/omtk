@@ -5,7 +5,7 @@ from maya import cmds
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
-from omtk.modules import rigIK
+from omtk.modules import module_ik
 from omtk.modules_broken import rigLimb
 
 from omtk import constants
@@ -13,7 +13,7 @@ from omtk import constants
 log = logging.getLogger('omtk')
 
 
-class CtrlIkLeg(rigIK.CtrlIk):
+class CtrlIkLeg(module_ik.CtrlIk):
     """
     Inherit of base CtrlIk to create a specific box shaped controller
     """
@@ -22,7 +22,7 @@ class CtrlIkLeg(rigIK.CtrlIk):
         return libCtrlShapes.create_shape_box_feet(*args, **kwargs)
 
 
-class LegIk(rigIK.IK):
+class LegIk(module_ik.IK):
     """
     IK/FK setup customized for Leg rigging. Include a FootRoll.
     Create an IK chain with an embeded footroll.
@@ -204,7 +204,7 @@ class LegIk(rigIK.IK):
 
     def _get_ik_ctrl_tms(self):
         """
-        Compute the desired rotation for the ik ctrl.
+        Compute the desired rotation for the libs ctrl.
         If the LEGACY_LEG_IK_CTRL_ORIENTATION is set, we'll simply align to the influence.
         :return: A two-size tuple containing the transformation matrix for the ctrl offset and the ctrl itself.
         """

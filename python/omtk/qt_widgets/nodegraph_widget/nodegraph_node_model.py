@@ -6,6 +6,7 @@ from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
+from .nodegraph_port_model import NodeGraphEntityPymelAttributePortModel
 from .nodegraph_port_model import NodeGraphPymelPortModel
 
 # used for type hinting
@@ -180,15 +181,21 @@ class NodeGraphComponentModel(NodeGraphNodeModel):
         if not self._component.is_built():
             return result
 
-        for attr in libAttr.iter_contributing_attributes(self._component.grp_inn):
-            inst = NodeGraphPymelPortModel(self._registry, self, attr)
+        for attr_def in self._component.iter_attributes():
+            # todo: use a factory?
+            inst = NodeGraphEntityPymelAttributePortModel(self._registry, self, attr_def)
             self._registry._register_attribute(inst)
             result.add(inst)
 
-        for attr in libAttr.iter_contributing_attributes(self._component.grp_out):
-            inst = NodeGraphPymelPortModel(self._registry, self, attr)
-            self._registry._register_attribute(inst)
-            result.add(inst)
+        # for attr in libAttr.iter_contributing_attributes(self._component.grp_inn):
+        #     inst = NodeGraphPymelPortModel(self._registry, self, attr)
+        #     self._registry._register_attribute(inst)
+        #     result.add(inst)
+        #
+        # for attr in libAttr.iter_contributing_attributes(self._component.grp_out):
+        #     inst = NodeGraphPymelPortModel(self._registry, self, attr)
+        #     self._registry._register_attribute(inst)
+        #     result.add(inst)
 
         return result
 

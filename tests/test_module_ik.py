@@ -5,7 +5,7 @@ import pymel.core as pymel
 class ModuleIkTest(unittest.TestCase):
     def test_3jnt_ik(self):
         import omtk
-        from omtk.modules.rigIK import IK
+        from omtk.modules.module_ik import IK
 
         pymel.select(clear=True)
         jnt_1 = pymel.joint(position=(0, 0, 0))

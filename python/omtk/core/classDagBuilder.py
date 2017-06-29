@@ -5,6 +5,8 @@ from pymel import core as pymel
 class DagBuilder(object):
     """
     A ComponentBuilder is an Helper class than provide methods and caching for scripted Component creation.
+    It is important than one DagBuilder is instanciated for each Component since we don't want to leave
+    the Component sandbox.
     """
 
     @libPython.memoized_instancemethod

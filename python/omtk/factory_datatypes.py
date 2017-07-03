@@ -40,6 +40,7 @@ _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE = {
     'lattice': pymel.nodetypes.Lattice,
 }
 
+
 class AttributeType:
     Basic = 0
     Iterable = 1
@@ -50,6 +51,24 @@ class AttributeType:
     Component = 6
     Module = 7
     Rig = 8
+    AttributeFloat = 9
+    AttributeInt = 10
+    AttributeVector3 = 11
+    AttributeVector4 = 12
+    AttributeMatrix = 13
+    AttributeBool = 14
+    AttributeString = 15
+
+
+_attr_type_by_native_type = {
+    float: AttributeType.AttributeFloat,
+    int: AttributeType.AttributeInt,
+    pymel.datatypes.Vector: AttributeType.AttributeVector3,
+    pymel.datatypes.Point: AttributeType.AttributeVector4,
+    pymel.datatypes.Matrix: AttributeType.AttributeMatrix,
+    str: AttributeType.AttributeString,
+    bool: AttributeType.AttributeBool
+}
 
 
 def get_component_attribute_type(val):
@@ -82,7 +101,8 @@ def get_component_attribute_type(val):
     if isinstance(val, (pymel.PyNode, Node)):
         return AttributeType.Node
     if isinstance(val, pymel.Attribute):
-        return AttributeType.Attribute
+        native_type = get_entity_type_by_attr(val)
+        return _attr_type_by_native_type[native_type]
     if isinstance(val, (Module, Module2)):
         return AttributeType.Module
     if isinstance(val, Rig):
@@ -114,6 +134,8 @@ def get_node_color_from_datatype(datatype):
             AttributeType.Node,
     ):
         return QtGui.QColor(170, 170, 128, 255)
+    if datatype == AttributeType.AttributeMatrix:
+        return QtGui.QColor(255, 170, 128, 255)
     # todo: warning
     return QtGui.QColor(128, 170, 170, 255)
 
@@ -129,4 +151,5 @@ def get_entity_type_by_attr(attr):
     else:
         attr_type = attr.type()
 
-    return _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE[attr_type]
+    native_type = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE[attr_type]
+    return _attr_type_by_native_type[native_type]

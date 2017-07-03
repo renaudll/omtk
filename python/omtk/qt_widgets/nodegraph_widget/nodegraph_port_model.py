@@ -153,9 +153,7 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
 
     # todo: move in a base class?
     def get_metatype(self):
-        native_type = factory_datatypes.get_component_attribute_type(self._pyattr)
-        result = factory_datatypes.get_component_attribute_type(native_type)
-        return result
+        return factory_datatypes.get_entity_type_by_attr(self._pyattr)
 
     @libPython.memoized_instancemethod
     def _attr_name(self):
@@ -184,12 +182,21 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
             return []
         return result
 
+    _interesting_attrs = (
+        'm',  # matrix
+        'wm',  # worldmatrix
+    )
+
     @libPython.memoized_instancemethod
     def is_interesting(self):
         if super(NodeGraphPymelPortModel, self).is_interesting():
             return True
         # Any attributes not defined in the base MPxNode is interesting
-        if self._attr_name() in self._list_parent_user_defined_attrs():
+        attr_name = self._attr_name()
+        if attr_name in self._list_parent_user_defined_attrs():
+            return True
+        # Some attributes will always be interesting to us.
+        if attr_name in self._interesting_attrs:
             return True
         # Any keyable attribute is interesting
         if self._pyattr.isKeyable():
@@ -217,7 +224,15 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         return result
 
     def connect_from(self, val):
-        pymel.connectAttr(val, self._pyattr)
+        # Multi attributes cannot be directly connected to.
+        # We need an available port.
+        if self._pyattr.isMulti():
+            i = self._pyattr.numElements()
+            attr_dst = self._pyattr[i]
+        else:
+            attr_dst = self._pyattr
+
+        pymel.connectAttr(val, attr_dst)
 
     def connect_to(self, val):
         pymel.connectAttr(self._pyattr, val)
@@ -244,29 +259,29 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
 
 
 # todo: replace double inheritence by composition
-class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
-    """Define an attribute bound to an EntityAttribute instance."""
-
-    def __init__(self, registry, node, attr_def):
-        name = attr_def.name
-        super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
-        self._attr_def = attr_def
-
-    def get_metadata(self):
-        return self._attr_def._attr
-
-    def is_readable(self):
-        return self._attr_def.is_output
-
-    def is_writable(self):
-        return self._attr_def.is_input
-
-    def is_interesting(self):
-        return True
-
-    def _get_widget_color(self):
-        datatype = self.get_metatype()
-        return factory_datatypes.get_port_color_from_datatype(datatype)
+# class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
+#     """Define an attribute bound to an EntityAttribute instance."""
+#
+#     def __init__(self, registry, node, attr_def):
+#         name = attr_def.name
+#         super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
+#         self._attr_def = attr_def
+#
+#     def get_metadata(self):
+#         return self._attr_def._attr
+#
+#     def is_readable(self):
+#         return self._attr_def.is_output
+#
+#     def is_writable(self):
+#         return self._attr_def.is_input
+#
+#     def is_interesting(self):
+#         return True
+#
+#     def _get_widget_color(self):
+#         datatype = self.get_metatype()
+#         return factory_datatypes.get_port_color_from_datatype(datatype)
 
 
 # todo: replace double inheritence by composition
@@ -287,3 +302,7 @@ class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):
 
     def is_interesting(self):
         return True
+
+    def _get_widget_color(self):
+        datatype = self.get_metatype()
+        return factory_datatypes.get_port_color_from_datatype(datatype)

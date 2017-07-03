@@ -60,7 +60,7 @@ class NodeGraphNodeModel(object):
         This allow compound nesting.
         :return: A NodeGraphNodeModel instance.
         """
-        raise NotImplementedError
+        return None
 
     def get_children(self):
         # type: () -> List[NodeGraphNodeModel]
@@ -171,7 +171,10 @@ class NodeGraphComponentModel(NodeGraphNodeModel):
         return self._component
 
     def get_children(self):
-        return [self._registry.get_node_from_value(pynode) for pynode in self._component.get_children()]
+        return [
+            self._registry.get_node_from_value(pynode)
+            for pynode in self._component.get_children()
+        ]
 
     @libPython.memoized_instancemethod
     def get_attributes(self):

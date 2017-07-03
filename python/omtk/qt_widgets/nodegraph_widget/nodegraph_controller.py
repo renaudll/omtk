@@ -9,6 +9,7 @@ from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
+from omtk.vendor.Qt import QtCore
 
 from . import nodegraph_node_model
 
@@ -24,8 +25,11 @@ if False:
 log = logging.getLogger('omtk')
 
 
-class NodeGraphController(object):
+class NodeGraphController(QtCore.QObject):  # needed for signal handling
+    onLevelChanged = QtCore.Signal(object)
+
     def __init__(self, model, view):
+        super(NodeGraphController, self).__init__()  # needed for signal handling
         # type: (NodeGraphModel, NodeGraphView) -> ()
         self._model = model
         self._view = None
@@ -93,17 +97,18 @@ class NodeGraphController(object):
 
     def on_connection_added(self, connection):
         port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
-        port_dst_model.connect_from(port_src_model)
+        port_dst_model.connect_from(port_src_model.get_metadata())
 
     def on_connected_removed(self, connection):
         port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
-        port_dst_model.disconnect_from(port_src_model)
+        port_dst_model.disconnect_from(port_src_model.get_metadata())
         # todo: find related port models
 
     # --- Model factory ---
 
     @libPython.memoized_instancemethod
     def get_node_model_from_value(self, val):
+        log.debug('Requesting model from {0}'.format(val))
         # If we encounter a compount and are not inside it, we'll want to return a different model than
         # act like the two hub networks merged together.
         # todo: handle libSerialization lazy feature?
@@ -198,12 +203,18 @@ class NodeGraphController(object):
         widget_src_node = self.get_node_widget(port_src_model.get_parent())
         widget_dst_node = self.get_node_widget(port_dst_model.get_parent())
 
-        return self._view.connectPorts(
-            widget_src_node,
-            port_src_model.get_name(),
-            widget_dst_node,
-            port_dst_model.get_name()
-        )
+        try:
+            return self._view.connectPorts(
+                widget_src_node,
+                port_src_model.get_name(),
+                widget_dst_node,
+                port_dst_model.get_name()
+            )
+        except Exception, e:
+            log.warning("Error connecting {0} to {1}".format(
+                '{0}.{1}'.format(widget_src_node.getName(), port_src_model.get_name()),
+                '{0}.{1}'.format(widget_dst_node.getName(), port_dst_model.get_name())
+            ))
 
     def expand_node_attributes(self, node_model):
         # type: (NodeGraphNodeModel) -> None
@@ -284,7 +295,7 @@ class NodeGraphController(object):
 
     def expand_selected_nodes(self):
         for node_model in self.get_selected_nodes():
-            self.expand_node_attributes(node_model)
+            self.expand_node_connections(node_model)
 
     def colapse_selected_nodes(self):
         for node_model in self.get_selected_nodes():
@@ -304,17 +315,38 @@ class NodeGraphController(object):
             self.expand_node_attributes(child_model)
             self.expand_node_connections(child_model)
 
-        grp_inn = node_model.get_metadata().grp_out
+        component = node_model.get_metadata()
+        grp_inn = component.grp_inn
+        grp_out = component.grp_out
         node_model = self.get_node_model_from_value(grp_inn)
         node_widget = self.get_node_widget(node_model)
         libPyflowgraph.arrange_upstream(node_widget)
+
+        # tmp
+        node_model = self.get_node_model_from_value(grp_out)
+        node_widget = self.get_node_widget(node_model)
+
+        self.onLevelChanged.emit(node_model)
 
     def navigate_down(self):
         node_model = next(iter(self.get_selected_nodes()), None)
         if not node_model:
             return None
 
+        # We only can go down Compounds
+        if not isinstance(node_model, nodegraph_node_model.NodeGraphComponentModel):
+            return
+
+        # Hack: We also want to prevent entering the same compound twice.
+        # Currently since we can have 3 node model for a single compound (one model when seen from outside and two
+        # model when seen from the inside, the inn and the out), we need a better way to distinguish them.
+        # For now we'll use a monkey-patched data from libSerialization, however we need a better approach.
+        if self._current_level and node_model and node_model.get_metadata()._network == self._current_level.get_metadata()._network:
+            return
+
         self.set_level(node_model)
 
     def navigate_up(self):
-        raise NotImplementedError
+        if self._current_level is None:
+            return
+        self.set_level(self._current_level.get_parent())

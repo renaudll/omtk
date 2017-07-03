@@ -128,7 +128,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules.ui.treeWidget.dragDrop.connect(self.on_influence_drag_drop)
 
         self.ui.widget_modules.actionRequested.connect(self.actionRequested.emit)
-        self.ui.widget_node_editor.ui.widget.actionRequested.connect(self.actionRequested.emit)
+        self.ui.widget_node_editor.ui.widget_view.actionRequested.connect(self.actionRequested.emit)
 
 
         # Some fun with pyflowgraph

@@ -140,7 +140,7 @@ class Component(Entity):
         return inst
 
     def get_children(self):
-        return (set(self.grp_inn.listHistory()) | set(self.grp_out.listHistory())) - {self.grp_inn, self.grp_out}
+        return (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {self.grp_inn, self.grp_out}
 
 
 class ComponentScripted(Component):

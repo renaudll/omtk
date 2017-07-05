@@ -28,17 +28,18 @@ from omtk.libs import libPython
 from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
 from omtk.vendor.Qt import QtWidgets
 
-from .nodegraph_model import NodeGraphModel
-from .nodegraph_controller import NodeGraphController
-
 
 @libPython.memoized
 def _get_singleton_model():
+    from .nodegraph_model import NodeGraphModel
+
     return NodeGraphModel()
 
 
 class NodeGraphWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
+        from .nodegraph_controller import NodeGraphController
+
         super(NodeGraphWidget, self).__init__(parent)
         self.ui = nodegraph_widget.Ui_Form()
         self.ui.setupUi(self)
@@ -46,7 +47,8 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # Configure NodeGraphView
         self._nodegraph_view = self.ui.widget_view
         self._nodegraph_model = _get_singleton_model()
-        self._nodegraph_ctrl = NodeGraphController(self._nodegraph_model, self._nodegraph_view)
+        self._nodegraph_ctrl = NodeGraphController(self._nodegraph_model)
+        self._nodegraph_ctrl.set_view(self._nodegraph_view)
 
         # Hack: Connect controller events to our widget
         # print self._nodegraph_ctrl.onLevelChanged
@@ -61,6 +63,8 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.pushButton_collapse.pressed.connect(self.on_colapse)
         self.ui.pushButton_down.pressed.connect(self.on_navigate_down)
         self.ui.pushButton_up.pressed.connect(self.on_navigate_up)
+        self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
+        self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
 
         self.ui.widget_view.endSelectionMoved.connect(self.on_selected_nodes_moved)
 
@@ -89,6 +93,21 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
     def on_navigate_up(self):
         self._nodegraph_ctrl.navigate_up()
+
+    def _get_active_node(self):
+        return next(iter(self._nodegraph_view.getSelectedNodes()), None)
+
+    def on_arrange_upstream(self):
+        node = self._get_active_node()
+        if not node:
+            return
+        libPyflowgraph.arrange_upstream(node)
+
+    def on_arrange_downstream(self):
+        node = self._get_active_node()
+        if not node:
+            return
+        libPyflowgraph.arrange_downstream(node)
 
     def on_level_changed(self, model):
         tokens = ['/']

@@ -6,6 +6,7 @@ from omtk.components_scripted.component_ik import ComponentIk
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classDagBuilder import DagBuilder
 from omtk.core.classModule import Module
+from omtk.core.classEntityAction import EntityAction
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -196,6 +197,7 @@ class IK(Module):
         self.chain_length = None
         self._chain_ik = None
         self.swivelDistance = None
+        self.components = []  # todo: move to base class?
 
     def _create_ctrl_ik(self, *args, **kwargs):
         """
@@ -389,6 +391,8 @@ class IK(Module):
             # pymel.connectAttr(u.outputScale, target.scale)
             builder.constraint_obj_to_tm(target, source, compensate_parent=True)
 
+        self.components.append(solver)
+
     def unbuild(self):
         """
         Unbuild the libs system and reset the needed parameters
@@ -412,6 +416,28 @@ class IK(Module):
         yield self.ctrl_ik
         yield self.ctrl_swivel
         yield self.ctrl_swivel_quad
+
+    def iter_actions(self):
+        for action in super(IK, self).iter_actions():
+            yield action
+        yield ActionCreateInfluences(self)
+
+
+class ActionCreateInfluences(EntityAction):
+    """
+    Create influences in case no influences was provided.
+    todo: maybe move it to module?
+    """
+    def get_name(self):
+        return 'Create Influences'
+
+    def execute(self):
+        self.component.init_influences()
+
+    # def iter_flags(self):
+    #     for flag in super(ActionCreateInfluences, self).iter_flags():
+    #         yield flag
+    #     yield constants.ComponentActionFlags.trigger_network_export
 
 
 def register_plugin():

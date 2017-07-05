@@ -1,5 +1,8 @@
 from .nodegraph_port_model import NodeGraphPortModel
-from .nodegraph_node_model import NodeGraphNodeModel
+
+# for type hinting only
+if False:
+    from .nodegraph_node_model_base import NodeGraphNodeModel
 
 
 class NodeGraphConnectionModel(object):

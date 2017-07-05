@@ -88,7 +88,7 @@ class Module(Entity):
             self.input = val
             # todo: trigger signal?
 
-        yield EntityAttribute('inputs', is_input=True, is_output=False, fn_get=_fn_get, fn_set=_fn_set)
+        yield EntityAttribute(self, 'inputs', is_input=True, is_output=False, fn_get=_fn_get, fn_set=_fn_set)
 
     # --- Methods for logging
 

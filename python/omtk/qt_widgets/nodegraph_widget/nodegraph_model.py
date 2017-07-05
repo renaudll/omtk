@@ -7,11 +7,18 @@ from omtk.libs import libPython
 from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk.core import classEntityAttribute
-from .nodegraph_node_model import NodeGraphDagNodeModel, NodeGraphComponentModel
-from .nodegraph_port_model import NodeGraphPortModel, NodeGraphPymelPortModel
-from .nodegraph_connection_model import NodeGraphConnectionModel
+from . import nodegraph_connection_model
+from . import nodegraph_port_model
+from . import nodegraph_node_model_component
+from . import nodegraph_node_model_dagnode
+from . import nodegraph_node_model_module
 
 log = logging.getLogger('omtk')
+
+# for type hinting
+if False:
+    from .nodegraph_node_model_base import NodeGraphNodeModel
+    from .nodegraph_port_model import NodeGraphPortModel
 
 
 class NodeGraphModel(object):
@@ -50,7 +57,7 @@ class NodeGraphModel(object):
         log.debug('Exploring new value {0}'.format(val))
         data_type = factory_datatypes.get_component_attribute_type(val)
         if data_type == factory_datatypes.AttributeType.Component:
-            return NodeGraphComponentModel(self, val)
+            return nodegraph_node_model_component.NodeGraphComponentModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Node:
             network = None
@@ -61,9 +68,12 @@ class NodeGraphModel(object):
                     network = libComponents.get_component_metanetwork_from_hub_network(val)
             if network:
                 component = libSerialization.import_network(network)
-                return NodeGraphComponentModel(self, component)
+                return nodegraph_node_model_component.NodeGraphComponentModel(self, component)
 
-            return NodeGraphDagNodeModel(self, val)
+            return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self, val)
+
+        if data_type == factory_datatypes.AttributeType.Module:
+            return nodegraph_node_model_module.NodeGraphModuleModel(self, val)
 
         raise Exception("Unsupported value {0} of type {1}".format(
             val, data_type
@@ -76,32 +86,32 @@ class NodeGraphModel(object):
         # type: () -> List[NodeGraphPortModel]
         # todo: add support for pure EntityAttribute
         if isinstance(attr, classEntityAttribute.EntityPymelAttribute):
-            node_model = self.get_node_from_value(attr._attr.node())
+            node_model = self.get_node_from_value(attr._attr.node())  # still needed?
             # Let EntityAttribute defined if they are inputs or outputs
-            inst = NodeGraphPymelPortModel(self, node_model, attr)
+            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, attr._attr)
         elif isinstance(attr, classEntityAttribute.EntityAttribute):
-            raise NotImplementedError
+            node_model = self.get_node_from_value(attr.parent)
+            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, attr)
         else:
-            node_model = self.get_node_from_value(attr.node())
-            inst = NodeGraphPymelPortModel(self, node_model, attr)
+            node_model = self.get_node_from_value(attr.node())  # still needed?
+            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, attr)
         self._register_attribute(inst)
         return inst
 
     @libPython.memoized_instancemethod
     def get_connection_model_from_values(self, model_src, model_dst):
-        if not isinstance(model_src, NodeGraphPortModel):
+        if not isinstance(model_src, nodegraph_port_model.NodeGraphPortModel):
             model_src = self.get_port_model_from_value(model_src)
 
-        if not isinstance(model_dst, NodeGraphPortModel):
+        if not isinstance(model_dst, nodegraph_port_model.NodeGraphPortModel):
             model_dst = self.get_port_model_from_value(model_dst)
 
-        inst = NodeGraphConnectionModel(self, None, model_src, model_dst)
+        inst = nodegraph_connection_model.NodeGraphConnectionModel(self, None, model_src, model_dst)
         self._register_connections(inst)
         return inst
 
     # def walk_inside_component(self, component):
     #     # type: (NodeGraphComponentModel) -> None
-
 
     def iter_nodes_from_parent(self, parent):
         for node in self._nodes:

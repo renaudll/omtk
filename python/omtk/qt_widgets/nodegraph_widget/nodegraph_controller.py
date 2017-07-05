@@ -3,6 +3,7 @@ Define a controller for one specific GraphView.
 """
 import logging
 
+import omtk.qt_widgets.nodegraph_widget.nodegraph_node_model_component
 import pymel.core as pymel
 from omtk.core import classComponent
 from omtk.libs import libComponents
@@ -11,14 +12,13 @@ from omtk.libs import libPython
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore
 
-from . import nodegraph_node_model
+from . import nodegraph_node_model_base
 
 # Used for type checking
 if False:
-    from .nodegraph_model import NodeGraphModel
     from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_view import NodeGraphView
-    from .nodegraph_node_model import NodeGraphNodeModel
+    from .nodegraph_node_model_base import NodeGraphNodeModel
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
     from omtk.vendor.pyflowgraph.port import BasePort as PyFlowgraphBasePort
 
@@ -28,14 +28,18 @@ log = logging.getLogger('omtk')
 class NodeGraphController(QtCore.QObject):  # needed for signal handling
     onLevelChanged = QtCore.Signal(object)
 
-    def __init__(self, model, view):
+    def __init__(self, model):
         super(NodeGraphController, self).__init__()  # needed for signal handling
         # type: (NodeGraphModel, NodeGraphView) -> ()
         self._model = model
         self._view = None
         self._current_level = None
 
-        self.set_view(view)
+        # Hold a reference to the inn and out node when inside a compound.
+        self._widget_bound_inn = None
+        self._widget_bound_out = None
+
+        # self.set_view(view)
 
         # Cache to prevent creating already defined nodes
         self._known_nodes = set()
@@ -67,6 +71,8 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         # Connect events
         view.connectionAdded.connect(self.on_connection_added)
+
+        view.scene().sceneRectChanged.connect(self.on_scene_rect_changed)
 
         # NodeGraphView events:
         # nodeAdded = QtCore.Signal(Node)
@@ -104,6 +110,13 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         port_dst_model.disconnect_from(port_src_model.get_metadata())
         # todo: find related port models
 
+    def on_scene_rect_changed(self, rect):
+        # Resize inn bound
+        if self._widget_bound_inn:
+            self._widget_bound_inn.setMinimumWidth(60)
+            self._widget_bound_inn.setMinimumHeight(rect.height())
+            self._widget_bound_inn.setGraphPos(QtCore.QPointF(rect.topLeft()))
+
     # --- Model factory ---
 
     @libPython.memoized_instancemethod
@@ -113,7 +126,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # act like the two hub networks merged together.
         # todo: handle libSerialization lazy feature?
         if isinstance(val, classComponent.Component):
-            return nodegraph_node_model.NodeGraphComponentModel(self._model, val)
+            return omtk.qt_widgets.nodegraph_widget.nodegraph_node_model_component.NodeGraphComponentModel(self._model, val)
 
         elif isinstance(val, pymel.nodetypes.Network):
             if libSerialization.is_network_from_class(val, classComponent.Component.__name__):
@@ -123,9 +136,9 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
             if network:
                 component = libSerialization.import_network(network)
-                return nodegraph_node_model.NodeGraphComponentModel(self._model, component)
+                return omtk.qt_widgets.nodegraph_widget.nodegraph_node_model_component.NodeGraphComponentModel(self._model, component)
 
-            return nodegraph_node_model.NodeGraphDagNodeModel(self._model, val)
+            return nodegraph_node_model_base.NodeGraphDagNodeModel(self._model, val)
 
         return self._model.get_node_from_value(val)
 
@@ -225,22 +238,40 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         """
         log.info('Creating widget for {0}'.format(node_model))
 
-        node_widget = self.get_node_widget(node_model)
-
         # In PyFlowgraph, ports are accessible by name.
-        for port_model in sorted(node_model.get_attributes()):
-            if not port_model.is_interesting():
-                continue
-            port = node_widget.getPort(port_model.get_name())
-            if not port:
-                port_widget = self.get_port_widget(port_model)
+        if self._view:
+            node_widget = self.get_node_widget(node_model)
 
-    def expand_node_connections(self, node_model):
+            for port_model in sorted(node_model.get_attributes()):
+                if not port_model.is_interesting():
+                    continue
+                port = node_widget.getPort(port_model.get_name())
+                if not port:
+                    port_widget = self.get_port_widget(port_model)
+
+    def expand_node_connections(self, node_model, expand_downstream=True, expand_upstream=True):
         # type: (NodeGraphNodeModel) -> None
         for port_model in node_model.get_attributes():
-            if port_model.is_connected():
-                for connection_model in port_model.get_connections():
+
+            if expand_upstream and port_model.is_source():
+                for connection_model in port_model.get_output_connections():
+                    port_model_dst = connection_model.get_destination()
+                    node_model_dst = port_model_dst.get_parent()
+                    if node_model_dst.get_parent() != self._current_level:
+                        continue
                     self.get_connection_widget(connection_model)
+
+            if expand_downstream and port_model.is_destination():
+                for connection_model in port_model.get_input_connections():
+                    port_model_src = connection_model.get_source()
+                    node_model_src = port_model_src.get_parent()
+                    if node_model_src.get_parent() != self._current_level:
+                        continue
+                    self.get_connection_widget(connection_model)
+
+            # if port_model.is_connected():
+            #     for connection_model in port_model.get_connections():
+            #         self.get_connection_widget(connection_model)
 
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
@@ -252,29 +283,33 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # self._view.addNode(node_widget)
         raise NotImplementedError
 
-    def expand_attribute_connections(self, model_attr):
-        # type: (NodeGraphPortModel) -> None
-        """
-        Show all connections for a specific PyFlowgraph Port.
-        Add the destination Port and Node in the View if it didn't previously exist.
-        :param model_attr:
-        :return:
-        """
-        # todo: is this really the place for is_writable, should this be in .get_input_connections()?
-        if model_attr.is_writable():
-            for connection_model in model_attr.get_input_connections():
-                self.get_connection_widget(connection_model)
-        if model_attr.is_readable():
-            for connection_model in model_attr.get_output_connections():
-                self.get_connection_widget(connection_model)
+    # def expand_attribute_connections(self, model_attr):
+    #     # type: (NodeGraphPortModel) -> None
+    #     """
+    #     Show all connections for a specific PyFlowgraph Port.
+    #     Add the destination Port and Node in the View if it didn't previously exist.
+    #     :param model_attr:
+    #     :return:
+    #     """
+    #     # todo: is this really the place for is_writable, should this be in .get_input_connections()?
+    #     if model_attr.is_writable():
+    #         for connection_model in model_attr.get_input_connections():
+    #             self.get_connection_widget(connection_model)
+    #     if model_attr.is_readable():
+    #         for connection_model in model_attr.get_output_connections():
+    #             self.get_connection_widget(connection_model)
 
     def add_node(self, node_model):
-        if not isinstance(node_model, nodegraph_node_model.NodeGraphNodeModel):
+        if not isinstance(node_model, nodegraph_node_model_base.NodeGraphNodeModel):
             node_model = self.get_node_model_from_value(node_model)
         self._known_nodes.add(node_model)
-        node_widget = self.get_node_widget(node_model)
-        # self._known_nodes_widgets(node_widget)
+
+        if self._view:
+            node_widget = self.get_node_widget(node_model)
+            # self._known_nodes_widgets(node_widget)
         self.expand_node_attributes(node_model)
+
+        return node_model
 
     def redraw(self):
         """
@@ -290,7 +325,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     def get_selected_nodes(self):
         # type: () -> List[NodeGraphNodeModel]
-        # Retreive monkey-patched model in PyFlowgraph widgets.
+        # Retrieve monkey-patched model in PyFlowgraph widgets.
         return [pfg_node._omtk_model for pfg_node in self._view.getSelectedNodes()]
 
     def expand_selected_nodes(self):
@@ -311,6 +346,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self._current_level = node_model
         self.clear()
         for child_model in node_model.get_children():
+            child_model._node = node_model  # hack: parent is not correctly set at the moment
             self.get_node_widget(child_model)
             self.expand_node_attributes(child_model)
             self.expand_node_connections(child_model)
@@ -320,11 +356,17 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         grp_out = component.grp_out
         node_model = self.get_node_model_from_value(grp_inn)
         node_widget = self.get_node_widget(node_model)
-        libPyflowgraph.arrange_upstream(node_widget)
+
+        self._widget_bound_inn = node_widget
+
 
         # tmp
         node_model = self.get_node_model_from_value(grp_out)
         node_widget = self.get_node_widget(node_model)
+
+        self._widget_bound_out = node_widget
+
+        libPyflowgraph.arrange_downstream(node_widget)
 
         self.onLevelChanged.emit(node_model)
 
@@ -333,9 +375,15 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if not node_model:
             return None
 
-        # We only can go down Compounds
-        if not isinstance(node_model, nodegraph_node_model.NodeGraphComponentModel):
+        # We need at least one children to be able to jump into something.
+        # todo: is that always true? what happen to empty compound?
+        if not node_model.get_children():
+            log.debug("Cannot enter into {0} because there's no children!".format(node_model))
             return
+
+        # We only can go down Compounds
+        # if not isinstance(node_model, nodegraph_node_model.NodeGraphComponentModel):
+        #     return
 
         # Hack: We also want to prevent entering the same compound twice.
         # Currently since we can have 3 node model for a single compound (one model when seen from outside and two

@@ -6,7 +6,7 @@
 import math
 import json
 from omtk.vendor.qtpy import QtGui, QtWidgets, QtCore
-from .port import InputPort, OutputPort
+from .port import InputPort, OutputPort, IOPort
 
 class NodeTitle(QtWidgets.QGraphicsWidget):
 
@@ -390,10 +390,10 @@ class Node(QtWidgets.QGraphicsWidget):
 
     def iter_input_ports(self):
         for port in self.__ports:
-            if isinstance(port, InputPort):
+            if isinstance(port, (InputPort, IOPort)):
                 yield port
 
     def iter_output_ports(self):
         for port in self.__ports:
-            if isinstance(port, OutputPort):
+            if isinstance(port, (OutputPort, IOPort)):
                 yield port

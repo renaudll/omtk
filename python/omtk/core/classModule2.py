@@ -101,9 +101,9 @@ class Module2(Entity):
 
     def iter_attributes(self):
         for attr in self.grp_inn.listAttr(userDefined=True):
-            yield EntityAttribute(attr.longName(), is_input=True, is_output=False)
+            yield EntityAttribute(self, attr.longName(), is_input=True, is_output=False)
         for attr in self.grp_out.listAttr(userDefined=True):
-            yield EntityAttribute(attr.longName(), is_input=False, is_output=True)
+            yield EntityAttribute(self, attr.longName(), is_input=False, is_output=True)
 
     # --- Methods for logging
 

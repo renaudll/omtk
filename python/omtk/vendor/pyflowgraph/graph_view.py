@@ -139,7 +139,6 @@ class GraphView(QtWidgets.QGraphicsView):
         return node
 
     def removeNode(self, node, emitSignal=True):
-
         del self.__nodes[node.getName()]
         self.scene().removeItem(node)
         node.nameChanged.disconnect(self._onNodeNameChanged)

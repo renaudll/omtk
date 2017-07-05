@@ -162,7 +162,7 @@ class Rig(Entity):
 
     def iter_attributes(self):
         def _getter(): return self.modules
-        yield EntityAttribute('children', fn_get=_getter)
+        yield EntityAttribute(self, 'children', fn_get=_getter)
 
     # --- Methods for logging
 

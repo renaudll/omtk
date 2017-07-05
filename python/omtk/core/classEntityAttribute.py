@@ -9,14 +9,19 @@ from omtk import factory_datatypes
 
 log = logging.getLogger('omtk')
 
+
 class EntityAttribute(object):
-    def __init__(self, name, is_input=True, is_output=True, fn_get=None, fn_set=None, val=None):
+    def __init__(self, parent, name, is_input=True, is_output=True, fn_get=None, fn_set=None, val=None):
+        self.parent = parent
         self.name = name
         self._val = val
         self.is_input = is_input
         self.is_output = is_output
         self._fn_get = fn_get
         self._fn_set = fn_set
+
+    def __repr__(self):
+        return '<EntityAttribute "{0}">'.format(self.name)
 
     def get(self):
         if self._fn_get:
@@ -52,10 +57,11 @@ class EntityAttribute(object):
 
 
 class EntityPymelAttribute(EntityAttribute):
-    def __init__(self, attr, **kwargs):
+    def __init__(self, parent, attr, **kwargs):
         self._attr = attr
         self._valid_types = factory_datatypes.get_entity_type_by_attr(attr)
         super(EntityPymelAttribute, self).__init__(
+            parent,
             name=attr.attrName(),
             fn_get=attr.get,
             fn_set=attr.set,
@@ -118,6 +124,6 @@ def get_attrdef_from_attr(attr, is_input=False, is_output=False):
         return None
 
     if attr.isMulti():
-        return EntityPymelAttributeCollection(attr, is_input=is_input, is_output=is_output)
+        return EntityPymelAttributeCollection(attr.node(), attr, is_input=is_input, is_output=is_output)
     else:
-        return EntityPymelAttribute(attr, is_input=is_input, is_output=is_output)
+        return EntityPymelAttribute(attr.node(), attr, is_input=is_input, is_output=is_output)

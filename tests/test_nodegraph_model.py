@@ -10,7 +10,6 @@ from omtk.libs import libComponents
 from omtk.libs import libRigging
 from omtk.qt_widgets.nodegraph_widget.nodegraph_controller import NodeGraphController
 from omtk.qt_widgets.nodegraph_widget.nodegraph_model import NodeGraphModel
-from omtk.vendor import mock
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
@@ -19,7 +18,7 @@ log.setLevel(logging.DEBUG)
 class GraphRegistryTest(unittest.TestCase):
     def setUp(self):
         self.model = NodeGraphModel()
-        self.controller = NodeGraphController(self.model, mock.MagicMock())
+        self.controller = NodeGraphController(self.model)
         cmds.file(new=True, force=True)
 
     # def test_node_model_from_transform(self):
@@ -44,7 +43,7 @@ class GraphRegistryTest(unittest.TestCase):
         # todo: make this work with compound and multi attribute!
         # pymel.connectAttr(util_logic.output, transform_dst.translate)
 
-        pymel.connectAttr(util_logic.outputX, transform_dst.translateX)
+        pymel.connectAttr(util_logic.outputX, transform_dst.translateY)
 
         component = libComponents.create_component_from_bounds([transform_src, transform_dst])
         return component
@@ -52,8 +51,19 @@ class GraphRegistryTest(unittest.TestCase):
     def test_component_loading(self):
         """Ensure the registry is able to load a component and it's children."""
         component = self._create_simple_compound()
-        self.controller.add_node(component)
-        print self.controller
+        node_model = self.controller.add_node(component)
+
+        self.assertEqual(1, len(self.model._nodes))
+
+        inn_attrs = node_model.get_input_attributes()
+        out_attrs = node_model.get_output_attributes()
+
+        self.assertEqual(1, len(inn_attrs))
+        self.assertEqual('translateX', inn_attrs[0].get_name())
+        self.assertEqual(1, len(out_attrs))
+        self.assertEqual('translateY', inn_attrs[0].get_name())
+
+
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+import abc
 import omtk.factory_datatypes
 from maya import cmds
 import pymel.core as pymel
@@ -7,26 +8,24 @@ from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
 from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
 from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
 from omtk import factory_datatypes
+from . import nodegraph_port_adaptor
 
 if False:
-    from .nodegraph_node_model import NodeGraphNodeModel
+    from .nodegraph_node_model_base import NodeGraphNodeModel
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
 
 
 class NodeGraphPortModel(object):
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, registry, node, name):
         self._name = name
         self._registry = registry
         self._node = node
+        self._adaptor = None
 
     def __repr__(self):
-        return '<NodeGraphPortModel {0}>'.format(self._name)
-
-    def get_metadata(self):
-        return None
-
-    def get_metatype(self):
-        return None
+        return '<NodeGraphPortModel {0}.{1}>'.format(self.get_parent().get_name(), self.get_name())
 
     def get_name(self):
         """Return the unique name relative to the node."""
@@ -43,28 +42,31 @@ class NodeGraphPortModel(object):
         """
         return self._node
 
+    # --- PortAdaptor interface methods --- #
+
+    def get_metadata(self):
+        return self._adaptor.get_metadata()
+
+    def get_metatype(self):
+        return self._adaptor.get_metatype()
+
     def is_readable(self):
-        return False
+        return self._adaptor.is_readable()
 
     def is_writable(self):
-        return False
+        return self._adaptor.is_writable()
 
     def is_source(self):
-        return False
+        return self._adaptor.is_source()
 
     def is_destination(self):
-        return False
+        return self._adaptor.is_destination()
 
     def is_connected(self):
         return self.is_source() or self.is_destination()
 
-    @libPython.memoized_instancemethod
     def is_interesting(self):
-        if self.is_readable() and self.is_source():
-            return True
-        if self.is_writable() and self.is_destination():
-            return True
-        return False
+        return self._adaptor.is_interesting()
 
     # --- Connection related methods --- #
 
@@ -144,104 +146,54 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
     def __init__(self, registry, node, pyattr, attr_node=None):
         name = pyattr.longName()
         super(NodeGraphPymelPortModel, self).__init__(registry, node, name)
-        self._pynode = attr_node if attr_node else pyattr.node()
-        self._pyattr = pyattr
-
-    # todo: move in a base class?
-    def get_metadata(self):
-        return self._pyattr
-
-    # todo: move in a base class?
-    def get_metatype(self):
-        return factory_datatypes.get_entity_type_by_attr(self._pyattr)
-
-    @libPython.memoized_instancemethod
-    def _attr_name(self):
-        return self._pyattr.attrName()
-
-    @libPython.memoized_instancemethod
-    def is_readable(self):
-        return pymel.attributeQuery(self._attr_name(), node=self._pynode, readable=True)
-
-    @libPython.memoized_instancemethod
-    def is_writable(self):
-        return pymel.attributeQuery(self._attr_name(), node=self._pynode, writable=True)
-
-    def is_source(self):
-        return self._pyattr.isSource()
-
-    def is_destination(self):
-        return self._pyattr.isDestination()
-
-    @libPython.memoized_instancemethod
-    def _list_parent_user_defined_attrs(self):
-        # We use cmds instead of pymel since we want to equivalent of pymel.Attribute.attrName().
-        result = cmds.listAttr(self._pynode.__melobject__(), userDefined=True)
-        # However, cmds.listAttr can return None...
-        if not result:
-            return []
-        return result
-
-    _interesting_attrs = (
-        'm',  # matrix
-        'wm',  # worldmatrix
-    )
-
-    @libPython.memoized_instancemethod
-    def is_interesting(self):
-        if super(NodeGraphPymelPortModel, self).is_interesting():
-            return True
-        # Any attributes not defined in the base MPxNode is interesting
-        attr_name = self._attr_name()
-        if attr_name in self._list_parent_user_defined_attrs():
-            return True
-        # Some attributes will always be interesting to us.
-        if attr_name in self._interesting_attrs:
-            return True
-        # Any keyable attribute is interesting
-        if self._pyattr.isKeyable():
-            return True
-        return False
+        self._adaptor = nodegraph_port_adaptor.PymelAttributePortAdaptor(pyattr)
+        # self._pynode = attr_node if attr_node else pyattr.node()
+        # self._pyattr = pyattr
 
     # --- Connections related methods --- #
 
     @libPython.memoized_instancemethod
     def get_input_connections(self):
         result = set()
-        for attr_src in self._pyattr.inputs(plugs=True):
+        for attr_src in self._adaptor._data.inputs(plugs=True):
             attr_src_model = self._registry.get_port_model_from_value(attr_src)
             inst = self._registry.get_connection_model_from_values(attr_src_model, self)
             result.add(inst)
         return result
 
+    # todo: move to adaptor?
     @libPython.memoized_instancemethod
     def get_output_connections(self):
         result = set()
-        for attr_dst in self._pyattr.outputs(plugs=True):
+        for attr_dst in self._adaptor._data.outputs(plugs=True):
             attr_dst_model = self._registry.get_port_model_from_value(attr_dst)
             inst = self._registry.get_connection_model_from_values(self, attr_dst_model)
             result.add(inst)
         return result
 
+    # todo: move to adaptor?
     def connect_from(self, val):
         # Multi attributes cannot be directly connected to.
         # We need an available port.
-        if self._pyattr.isMulti():
-            i = self._pyattr.numElements()
-            attr_dst = self._pyattr[i]
+        if self._adaptor._data.isMulti():
+            i = self._adaptor._data.numElements()
+            attr_dst = self._adaptor._data[i]
         else:
-            attr_dst = self._pyattr
+            attr_dst = self._adaptor._data
 
         pymel.connectAttr(val, attr_dst)
 
+    # todo: move to adaptor
     def connect_to(self, val):
-        pymel.connectAttr(self._pyattr, val)
+        pymel.connectAttr(self._adaptor._data, val)
 
+    # todo: move to adaptor
     def disconnect_from(self, val):
-        pymel.disconnectAttr(val, self._pyattr)
+        pymel.disconnectAttr(val, self._adaptor._data)
 
+    # todo: move to adaptor
     def disconnect_to(self, val):
-        pymel.disconnectAttr(self._pyattr, val)
+        pymel.disconnectAttr(self._adaptor._data, val)
 
     # --- Widget export --- #
 
@@ -254,34 +206,19 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
 
         return widget
 
-    def __hash__(self):
-        return hash(self._node) ^ hash(self._pyattr)
+        # todo: uncomment and fix
+        # def __hash__(self):
+        #     return hash(self._node) ^ hash(self._pyattr)
 
 
 # todo: replace double inheritence by composition
-# class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
-#     """Define an attribute bound to an EntityAttribute instance."""
-#
-#     def __init__(self, registry, node, attr_def):
-#         name = attr_def.name
-#         super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
-#         self._attr_def = attr_def
-#
-#     def get_metadata(self):
-#         return self._attr_def._attr
-#
-#     def is_readable(self):
-#         return self._attr_def.is_output
-#
-#     def is_writable(self):
-#         return self._attr_def.is_input
-#
-#     def is_interesting(self):
-#         return True
-#
-#     def _get_widget_color(self):
-#         datatype = self.get_metatype()
-#         return factory_datatypes.get_port_color_from_datatype(datatype)
+class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
+    """Define an attribute bound to an EntityAttribute instance."""
+
+    def __init__(self, registry, node, attr_def):
+        name = attr_def.name
+        super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
+        self._adaptor = nodegraph_port_adaptor.EntityAttributePortAdaptor(attr_def)
 
 
 # todo: replace double inheritence by composition
@@ -306,3 +243,10 @@ class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):
     def _get_widget_color(self):
         datatype = self.get_metatype()
         return factory_datatypes.get_port_color_from_datatype(datatype)
+
+        # What was the issue again?
+        # We needed to support:
+        # -  Entity (ex: module name)
+        # -  Entity that point to pymel attribute (ex: module inputs)
+        # -  Pymel attribute (ex: any node attr)
+        # -  Pymel multi attribute (ex: any node attr)

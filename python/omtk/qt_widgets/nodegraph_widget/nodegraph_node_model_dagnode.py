@@ -35,3 +35,5 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             node.setGraphPos(pos)
 
         return node
+
+

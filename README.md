@@ -5,6 +5,12 @@ The goal of the project is to provide the most object-oriented, pythonic fondati
 OMTK is highly dependent of libSerialization, a module that allow python objects to be embeded in a Maya scene via network nodes.
 OMTK also rely heavily on PyMel.
 
+## Installation
+Add the python folder inside your PYTHONPATH.
+
+    import sys
+    sys.path.append('{omtk}/python'}
+
 ### Rules
 The following rules simplify the implementation of the system and must be respected for Omtk to work properly.
 - All influences are in a separated hierarchy.

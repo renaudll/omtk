@@ -13,6 +13,8 @@ from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore
 
 from . import nodegraph_node_model_base
+from . import nodegraph_node_model_dagnode
+from . import nodegraph_node_model_component
 
 # Used for type checking
 if False:
@@ -24,6 +26,15 @@ if False:
 
 log = logging.getLogger('omtk')
 
+
+def block_signal(fn):
+    def _fn_decorated(self, *args, **kwargs):
+        old_val = self._view.signalsBlocked()
+        self._view.blockSignals(True)
+        rv = fn(self, *args, **kwargs)
+        self._view.blockSignals(old_val)
+        return rv
+    return _fn_decorated
 
 class NodeGraphController(QtCore.QObject):  # needed for signal handling
     onLevelChanged = QtCore.Signal(object)
@@ -52,6 +63,9 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
 
+        self._old_scene_x = None
+        self._old_scene_y = None
+
     def get_nodes(self):
         # type: () -> (List[NodeGraphNodeModel])
         return self._known_nodes
@@ -72,7 +86,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # Connect events
         view.connectionAdded.connect(self.on_connection_added)
 
-        view.scene().sceneRectChanged.connect(self.on_scene_rect_changed)
+        # view.scene().sceneRectChanged.connect(self.on_scene_rect_changed)
 
         # NodeGraphView events:
         # nodeAdded = QtCore.Signal(Node)
@@ -111,6 +125,16 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # todo: find related port models
 
     def on_scene_rect_changed(self, rect):
+        scene_x = rect.x()
+        scene_y = rect.y()
+        if scene_x == self._old_scene_x and scene_y == self._old_scene_y:
+            return
+        self._old_scene_x = scene_x
+        self._old_scene_y = scene_y
+
+
+        # todo: this get called to many times, we might want to block signals
+        log.debug('scene_rect_changed: {0}'.format(rect))
         # Resize inn bound
         if self._widget_bound_inn:
             self._widget_bound_inn.setMinimumWidth(60)
@@ -121,24 +145,20 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     @libPython.memoized_instancemethod
     def get_node_model_from_value(self, val):
+        """
+        Return the visible model associated with a single value.
+        Handle the special Component context.
+        """
+        # todo: cleanup
         log.debug('Requesting model from {0}'.format(val))
-        # If we encounter a compount and are not inside it, we'll want to return a different model than
-        # act like the two hub networks merged together.
-        # todo: handle libSerialization lazy feature?
-        if isinstance(val, classComponent.Component):
-            return omtk.qt_widgets.nodegraph_widget.nodegraph_node_model_component.NodeGraphComponentModel(self._model, val)
 
-        elif isinstance(val, pymel.nodetypes.Network):
-            if libSerialization.is_network_from_class(val, classComponent.Component.__name__):
-                network = val
-            else:
-                network = libComponents.get_component_metanetwork_from_hub_network(val)
+        # Handle Compount bound networks
+        if isinstance(val, pymel.nodetypes.Network):
+            net = libComponents.get_component_metanetwork_from_hub_network(val)
+            if net:
+                return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val)
 
-            if network:
-                component = libSerialization.import_network(network)
-                return omtk.qt_widgets.nodegraph_widget.nodegraph_node_model_component.NodeGraphComponentModel(self._model, component)
-
-            return nodegraph_node_model_base.NodeGraphDagNodeModel(self._model, val)
+            return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self._model, val)
 
         return self._model.get_node_from_value(val)
 
@@ -345,6 +365,11 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # todo: handle top level
         self._current_level = node_model
         self.clear()
+
+        # If we don't have anything to redraw, simply exit.
+        if not node_model:
+            return
+
         for child_model in node_model.get_children():
             child_model._node = node_model  # hack: parent is not correctly set at the moment
             self.get_node_widget(child_model)

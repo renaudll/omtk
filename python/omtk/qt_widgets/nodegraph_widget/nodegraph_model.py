@@ -55,6 +55,8 @@ class NodeGraphModel(object):
         This handle all the caching and registration.
         """
         log.debug('Exploring new value {0}'.format(val))
+
+        # Handle pointer to a component datatype
         data_type = factory_datatypes.get_component_attribute_type(val)
         if data_type == factory_datatypes.AttributeType.Component:
             return nodegraph_node_model_component.NodeGraphComponentModel(self, val)

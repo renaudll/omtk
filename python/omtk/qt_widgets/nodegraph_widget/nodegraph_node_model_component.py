@@ -1,9 +1,15 @@
 from omtk.libs import libPython
 from . import nodegraph_node_model_base
+from . import nodegraph_node_model_dagnode
+from omtk.vendor.Qt import QtCore, QtGui
+from omtk.vendor import libSerialization
+from omtk.core import classComponent
+from omtk.libs import libComponents
 
 if False:
     from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_controller import NodeGraphController
+    from omtk.core.classComponent import Component
 
 
 class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
@@ -17,7 +23,7 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         return [
             self._registry.get_node_from_value(pynode)
             for pynode in self._entity.get_children()
-        ]
+            ]
 
     @libPython.memoized_instancemethod
     def get_attributes(self):
@@ -61,3 +67,44 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
 
         # def _get_node_widget_label(self):
         #     return '{0} v{1}'.format(self._name, self._entity.version)
+
+
+class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDagNodeModel):
+    """
+    Since dagnode contain input and output network that define their bound, it is usefull for us
+    to have access to a dedicated model for the bounds that point to the compound model.
+    """
+
+    @libPython.memoized_instancemethod
+    def _get_component(self):
+        # type(): () -> Component
+        net = libComponents.get_component_metanetwork_from_hub_network(self._pynode)
+        inst = libSerialization.import_network(net)
+        return inst
+
+    def get_parent(self):
+        component = self._get_component()
+        model = self._registry.get_node_from_value(component)
+        return model
+
+
+class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
+    _widget_background_color = QtGui.QColor(255, 0, 0)
+
+    def get_widget(self, graph):
+        # debugging
+        widget = super(NodeGraphComponentBoundBaseModel, self).get_widget(graph)
+        color = self._widget_background_color
+        widget.setColor(color)
+        return widget
+
+
+class NodeGraphComponentOutBoundModel(NodeGraphComponentBoundBaseModel):
+    _widget_background_color = QtGui.QColor(255, 0, 0)
+
+    def get_widget(self, graph):
+        # debugging
+        widget = super(NodeGraphComponentBoundBaseModel, self).get_widget(graph)
+        color = self._widget_background_color
+        widget.setColor(color)
+        return widget

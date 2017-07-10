@@ -157,16 +157,17 @@ class PluginType(object):
 class PluginManager(object):
     def __init__(self):
         self._plugins = []
-        self._plugin_types = {}
+        self._plugins_by_name = {}
 
     def register_plugin_type(self, plugin_type):
-        self._plugin_types[plugin_type.type_name] = libPython.LazySingleton(plugin_type)
+        # self._plugins_by_name[plugin_type.type_name] = libPython.LazySingleton(plugin_type)
+        self._plugins_by_name[plugin_type.type_name] = plugin_type
 
     def unregister_plugin_type(self, plugin_type):
-        self._plugin_types.pop(plugin_type.type_name, None)
+        self._plugins_by_name.pop(plugin_type.type_name, None)
 
     def iter_plugins(self, key=None):
-        for plugin_type in self._plugin_types.values():
+        for plugin_type in self._plugins_by_name.values():
             for plugin in plugin_type()._plugins:
                 if key is None or key(plugin):
                     yield plugin

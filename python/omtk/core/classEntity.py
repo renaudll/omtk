@@ -16,13 +16,18 @@ from omtk.core.classEntityAction import EntityAction
 
 log = logging.getLogger('omtk')
 
+
 class Entity(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, name=None):
+        # todo: make private?
         self.name = name if name else 'untitled'  # todo: better handle naming
         self.author = ''
         self.version = ''
+
+    def get_name(self):
+        return self.__class__.__name__ + ' ' + (self.name if self.name else 'unamed')
 
     def get_version(self):
         """

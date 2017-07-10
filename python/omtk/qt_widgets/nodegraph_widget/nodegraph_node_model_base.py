@@ -48,7 +48,7 @@ class NodeGraphNodeModel(object):
         return self._name
 
     def __repr__(self):
-        return '<NodeGraphNodeModel {0}>'.format(self._name)
+        return '<{0} {1}>'.format(self.__class__.__name__, self._name)
 
     def get_metadata(self):
         return None
@@ -129,7 +129,7 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
     """
 
     def __init__(self, registry, entity):
-        name = entity.name
+        name = entity.get_name()
         super(NodeGraphEntityModel, self).__init__(registry, name)
         self._entity = entity
 
@@ -154,6 +154,8 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
         return result
 
     def _get_node_widget_label(self):
-        return '{0} v{1}'.format(self._name, self._entity.version)
-
-
+        result = self._name
+        version_major, version_minor, version_patch = self._entity.get_version()
+        if version_major is not None and version_minor is not None and version_patch is not None:  # todo: more eleguant
+            result += 'v{0}.{1}.{2}'.format(version_major, version_minor, version_patch)
+        return result

@@ -3,18 +3,16 @@ Define a controller for one specific GraphView.
 """
 import logging
 
-import omtk.qt_widgets.nodegraph_widget.nodegraph_node_model_component
 import pymel.core as pymel
-from omtk.core import classComponent
+from omtk import factory_datatypes
 from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
-from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore
 
 from . import nodegraph_node_model_base
-from . import nodegraph_node_model_dagnode
 from . import nodegraph_node_model_component
+from . import nodegraph_node_model_dagnode
 
 # Used for type checking
 if False:
@@ -365,6 +363,8 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # todo: handle top level
         self._current_level = node_model
         self.clear()
+        self._widget_bound_inn = None
+        self._widget_bound_out = None
 
         # If we don't have anything to redraw, simply exit.
         if not node_model:
@@ -376,48 +376,63 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self.expand_node_attributes(child_model)
             self.expand_node_connections(child_model)
 
+
+
         component = node_model.get_metadata()
-        grp_inn = component.grp_inn
-        grp_out = component.grp_out
-        node_model = self.get_node_model_from_value(grp_inn)
+        metatype = factory_datatypes.get_component_attribute_type(component)
+
         node_widget = self.get_node_widget(node_model)
 
-        self._widget_bound_inn = node_widget
+        if metatype == factory_datatypes.AttributeType.Component:
+            # Create inn node
+            grp_inn = component.grp_inn
+            node_model = self.get_node_model_from_value(grp_inn)
 
+            self._widget_bound_inn = node_widget
 
-        # tmp
-        node_model = self.get_node_model_from_value(grp_out)
-        node_widget = self.get_node_widget(node_model)
-
-        self._widget_bound_out = node_widget
+            # Create out node
+            grp_out = component.grp_out
+            node_model = self.get_node_model_from_value(grp_out)
+            node_widget = self.get_node_widget(node_model)
+            self._widget_bound_out = node_widget
 
         libPyflowgraph.arrange_downstream(node_widget)
 
         self.onLevelChanged.emit(node_model)
 
-    def navigate_down(self):
-        node_model = next(iter(self.get_selected_nodes()), None)
-        if not node_model:
-            return None
+    def can_navigate_to(self, node_model):
+        if node_model is None:
+            return False
 
         # We need at least one children to be able to jump into something.
         # todo: is that always true? what happen to empty compound?
         if not node_model.get_children():
             log.debug("Cannot enter into {0} because there's no children!".format(node_model))
-            return
+            return False
 
-        # We only can go down Compounds
-        # if not isinstance(node_model, nodegraph_node_model.NodeGraphComponentModel):
-        #     return
+        # We don't want to enter the same model twice.
+        if self._current_level == node_model:
+            return False
 
-        # Hack: We also want to prevent entering the same compound twice.
         # Currently since we can have 3 node model for a single compound (one model when seen from outside and two
         # model when seen from the inside, the inn and the out), we need a better way to distinguish them.
         # For now we'll use a monkey-patched data from libSerialization, however we need a better approach.
-        if self._current_level and node_model and node_model.get_metadata()._network == self._current_level.get_metadata()._network:
-            return
+        meta_data = node_model.get_metadata()
+        if hasattr(self._current_level, '_network') and hasattr(meta_data, '_network'):
+            current_network = self._current_level._network
+            new_network = meta_data._network
+            if current_network == new_network:
+                return False
 
-        self.set_level(node_model)
+        return True
+
+    def navigate_down(self):
+        node_model = next(iter(self.get_selected_nodes()), None)
+        # if not node_model:
+        #     return None
+
+        if self.can_navigate_to(node_model):
+            self.set_level(node_model)
 
     def navigate_up(self):
         if self._current_level is None:

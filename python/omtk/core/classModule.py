@@ -66,6 +66,8 @@ class Module(Entity):
         # If you define additional properties, don't forget to implement them in the iter_ctrls method.
         self.ctrls = []
 
+        self._components = []  # todo: move to base class?
+
         if input:
             if not isinstance(input, list):
                 raise IOError(
@@ -79,6 +81,10 @@ class Module(Entity):
     def iter_sub_components(self):
         for child in self.iter_submodules():
             yield child
+
+        # debug
+        for foo in self._components:
+            yield foo
 
     def iter_attributes(self):
         def _fn_get():
@@ -419,9 +425,9 @@ class Module(Entity):
         version = getattr(self, 'version', '')
         if version:
             version = ' v{}'.format(version)
-        return '{} <{}{}>'.format(
-            self.name.encode('utf-8'),
+        return '{} module <{}{}>'.format(
             self.__class__.__name__,
+            self.name.encode('utf-8'),
             version
         )
 
@@ -706,3 +712,14 @@ class Module(Entity):
             result.name = nomenclature.resolve()
 
         return result
+
+    @classmethod
+    def get_definition(cls):
+        from omtk.core import classComponentDefinition
+        from omtk.core import api
+
+        inst = classComponentDefinition.ComponentManagedDefinition(
+            name=cls.__name__,
+            module_cls=cls
+        )
+        return inst

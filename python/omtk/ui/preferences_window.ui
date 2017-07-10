@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>383</width>
-    <height>229</height>
+    <width>379</width>
+    <height>278</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>OMTK - Preferences</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
@@ -27,6 +27,24 @@
       <widget class="QComboBox" name="comboBox"/>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Advanced</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QCheckBox" name="checkBox">
+        <property name="text">
+         <string>Hide Welcome Screen</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+     <zorder>checkBox</zorder>
+     <zorder>checkBox</zorder>
+    </widget>
    </item>
    <item>
     <spacer name="verticalSpacer">

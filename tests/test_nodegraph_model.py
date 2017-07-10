@@ -64,8 +64,6 @@ class GraphRegistryTest(unittest.TestCase):
         self.assertEqual('translateY', inn_attrs[0].get_name())
 
 
-
-
 if __name__ == '__main__':
     unittest.main()
 

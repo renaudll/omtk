@@ -120,10 +120,16 @@ def walk_available_component_definitions():
 
                 yield component_def
 
-    log.info("Searching ComponentScripted")
     from omtk import plugin_manager
     pm = plugin_manager.plugin_manager
-    for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ComponentScriptedType.type_name):
+
+    # DEBUG
+    # log.info("Searching ComponentScripted")
+    # for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ComponentScriptedType.type_name):
+    #     yield plugin.cls.get_definition()
+
+    log.info("Searching modules")
+    for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ModulePluginType.type_name):
         yield plugin.cls.get_definition()
 
 

@@ -202,3 +202,31 @@ class ComponentScriptedDefinition(ComponentDefinition):
         inst = self.component_cls(name=name)
         inst.build()
         return inst
+
+
+class ComponentManagedDefinition(ComponentDefinition):
+    def __init__(self, name, module_cls, **kwargs):
+        from omtk import api
+        kwargs['uid'] = 0,
+        kwargs['version'] = api.get_version()
+
+        super(ComponentManagedDefinition, self).__init__(name, **kwargs)
+        self._cls = module_cls
+
+    def instanciate(self, name='unamed'):
+        # Add the component to the first Rig we encounter.
+        # todo: make this more elegant
+        from omtk import api
+        rig = api.find_one()
+
+        inst = self._cls(name=name)
+        rig.add_module(inst)  # todo: force the rig in the Module class constructor?
+        inst.initialize_inputs()  # module need inputs, create them otherwise it wont work...
+        try:
+            inst._cache.clear()  # hack
+        except AttributeError:
+            pass
+        inst.validate()  # ensure we dont crash...
+        inst.build()
+
+        return inst

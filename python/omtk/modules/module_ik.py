@@ -134,7 +134,7 @@ def _get_chain_length_from_local_tms(tms):
             inMatrix2=attr_child_tm
         ).distance
         for attr_parent_tm, attr_child_tm in libPython.pairwise(tms)
-    ]
+        ]
 
     return libRigging.create_utility_node(
         'plusMinusAverage',
@@ -197,7 +197,15 @@ class IK(Module):
         self.chain_length = None
         self._chain_ik = None
         self.swivelDistance = None
-        self.components = []  # todo: move to base class?
+
+
+    def validate(self):
+        super(IK, self).validate()
+
+        # Ensure our chain is not zero-length
+        length = self._get_chain_length()
+        if length < 0.0001:
+            raise Exception("Chain is too short! Got {0}".format(length))
 
     def _create_ctrl_ik(self, *args, **kwargs):
         """
@@ -207,6 +215,14 @@ class IK(Module):
         :return: The Ik controller
         """
         return self._CLASS_CTRL_IK(*args, **kwargs)
+
+    @libPython.memoized_instancemethod
+    def _get_chain_length(self, start_index=0, end_index=2):
+        # todo: replace with a libPymel.PyNodeChain?
+        chain_length = 0
+        for i in range(start_index, end_index):
+            chain_length += self.chain_jnt[i + 1].t.get().length()
+        return chain_length
 
     def calc_swivel_pos(self, start_index=0, end_index=2):
         """
@@ -218,9 +234,7 @@ class IK(Module):
         pos_start = self.chain_jnt[start_index].getTranslation(space='world')
         pos_end = self.chain_jnt[end_index].getTranslation(space='world')
 
-        chain_length = 0
-        for i in range(start_index, end_index):
-            chain_length += self.chain_jnt[i + 1].t.get().length()
+        chain_length = self._get_chain_length(start_index=start_index, end_index=end_index)
 
         ratio = self.chain_jnt[start_index + 1].t.get().length() / chain_length
         pos_swivel_base = (pos_end - pos_start) * ratio + pos_start
@@ -312,6 +326,14 @@ class IK(Module):
         jnt_hand = self.input[self.iCtrlIndex]
         return [jnt_hand] + jnt_hand.getChildren(allDescendents=True)
 
+    def initialize_inputs(self):
+        outputs = [
+            pymel.joint(name='upperarm', position=[0, 0, 0]),
+            pymel.joint(name='forearm', position=[0, -1, 1]),
+            pymel.joint(name='hand', position=[0, -2, 0])
+        ]
+        self.input = outputs
+
     def build(self, *args, **kwargs):
         """
         Build the libs system when needed
@@ -391,7 +413,7 @@ class IK(Module):
             # pymel.connectAttr(u.outputScale, target.scale)
             builder.constraint_obj_to_tm(target, source, compensate_parent=True)
 
-        self.components.append(solver)
+        self._components.append(solver)  # todo: implement add_component?
 
     def unbuild(self):
         """
@@ -402,13 +424,13 @@ class IK(Module):
 
         super(IK, self).unbuild()
 
-    def parent_to(self, parent):
+        # def parent_to(self, parent):
         """
         Parent the system
         :param parent: The node used to parent the system
         :return:
         """
-        pymel.parentConstraint(parent, self._ikChainGrp, maintainOffset=True)
+        # pymel.parentConstraint(parent, self._ikChainGrp, maintainOffset=True)
 
     def iter_ctrls(self):
         for ctrl in super(IK, self).iter_ctrls():
@@ -428,16 +450,17 @@ class ActionCreateInfluences(EntityAction):
     Create influences in case no influences was provided.
     todo: maybe move it to module?
     """
+
     def get_name(self):
         return 'Create Influences'
 
     def execute(self):
         self.component.init_influences()
 
-    # def iter_flags(self):
-    #     for flag in super(ActionCreateInfluences, self).iter_flags():
-    #         yield flag
-    #     yield constants.ComponentActionFlags.trigger_network_export
+        # def iter_flags(self):
+        #     for flag in super(ActionCreateInfluences, self).iter_flags():
+        #         yield flag
+        #     yield constants.ComponentActionFlags.trigger_network_export
 
 
 def register_plugin():

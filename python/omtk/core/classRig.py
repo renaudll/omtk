@@ -5,21 +5,19 @@ import traceback
 
 import pymel.core as pymel
 from maya import cmds
+from omtk import constants
 from omtk.core import api
 from omtk.core import classNomenclature
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
-from omtk.core.classEntityAttribute import EntityPymelAttributeCollection
 from omtk.core.classEntityAttribute import EntityAttribute
-from omtk.core.classModule import Module
 from omtk.core.classNode import Node
 from omtk.libs import libHistory
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
-
-from omtk import constants
+from omtk.vendor.Qt import QtCore
 
 log = logging.getLogger('omtk')
 
@@ -150,6 +148,9 @@ class Rig(Entity):
         self.layer_jnt = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
 
+    def get_default_name(self):
+        return self.DEFAULT_NAME
+
     # --- Component methods
 
     def iter_actions(self):
@@ -272,16 +273,18 @@ class Rig(Entity):
         inst.rig = self
 
         # Resolve name to use
-        default_name = inst.get_default_name()
+        if not inst.name:
+            default_name = inst.get_default_name()
 
-        # Resolve the default name using the current nomenclature.
-        # This allow specific nomenclature from being applied.
-        # ex: At Squeeze, we always want the names in PascalCase.
-        default_name = self.nomenclature(default_name).resolve()
+            # Resolve the default name using the current nomenclature.
+            # This allow specific nomenclature from being applied.
+            # ex: At Squeeze, we always want the names in PascalCase.
+            default_name = self.nomenclature(default_name).resolve()
 
-        # Ensure name is unique
-        default_name = self._get_unique_name(default_name)
-        inst.name = default_name
+            # Ensure name is unique
+            default_name = self._get_unique_name(default_name)
+
+            inst.name = default_name
 
         self.modules.append(inst)
 

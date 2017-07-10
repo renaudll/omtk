@@ -43,6 +43,11 @@ class AutoRig(QtWidgets.QMainWindow):
         version = api.get_version()
         self.setWindowTitle('Open Rigging Toolkit {}'.format(version))
 
+        # Makes Maya perform magic which makes the window stay on top in OS X and Linux.
+        # As an added bonus, it'll make Maya remember the window position
+        # src: https://github.com/fredrikaverpil/pyvfx-boilerplate/blob/master/boilerplate.py
+        self.setProperty("saveWindowPref", True)
+
         #
         # First update
         #

@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -63,16 +63,16 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
-        self.pushButton_del.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
-        self.pushButton_clear.setText(QtWidgets.QApplication.translate("Form", "Clear", None, -1))
-        self.pushButton_expand.setText(QtWidgets.QApplication.translate("Form", "Expand", None, -1))
-        self.pushButton_collapse.setText(QtWidgets.QApplication.translate("Form", "Collapse", None, -1))
-        self.pushButton_down.setText(QtWidgets.QApplication.translate("Form", "Go Down", None, -1))
-        self.pushButton_up.setText(QtWidgets.QApplication.translate("Form", "Go Up", None, -1))
-        self.pushButton_arrange_upstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Uppstream", None, -1))
-        self.pushButton_arrange_downstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Downstrea", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None))
+        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add", None))
+        self.pushButton_del.setText(QtWidgets.QApplication.translate("Form", "Remove", None))
+        self.pushButton_clear.setText(QtWidgets.QApplication.translate("Form", "Clear", None))
+        self.pushButton_expand.setText(QtWidgets.QApplication.translate("Form", "Expand", None))
+        self.pushButton_collapse.setText(QtWidgets.QApplication.translate("Form", "Collapse", None))
+        self.pushButton_down.setText(QtWidgets.QApplication.translate("Form", "Go Down", None))
+        self.pushButton_up.setText(QtWidgets.QApplication.translate("Form", "Go Up", None))
+        self.pushButton_arrange_upstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Uppstream", None))
+        self.pushButton_arrange_downstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Downstrea", None))
 
 from ..nodegraph_view import NodeGraphView
 from ....widget_breadcrumb import WidgetBreadcrumb

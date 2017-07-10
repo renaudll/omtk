@@ -1,6 +1,4 @@
 import abc
-import omtk.factory_datatypes
-from maya import cmds
 import pymel.core as pymel
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui

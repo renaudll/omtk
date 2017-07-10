@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_mainWindow(object):
     def setupUi(self, mainWindow):
@@ -52,8 +52,8 @@ class Ui_mainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
 
     def retranslateUi(self, mainWindow):
-        mainWindow.setWindowTitle(QtWidgets.QApplication.translate("mainWindow", "OMTK - Plugin Manager", None, -1))
-        self.pushButton_reload.setText(QtWidgets.QApplication.translate("mainWindow", "Reload", None, -1))
-        self.actionReload.setText(QtWidgets.QApplication.translate("mainWindow", "Reload", None, -1))
-        self.actionSearchQueryChanged.setText(QtWidgets.QApplication.translate("mainWindow", "SearchQueryChanged", None, -1))
+        mainWindow.setWindowTitle(QtWidgets.QApplication.translate("mainWindow", "OMTK - Plugin Manager", None))
+        self.pushButton_reload.setText(QtWidgets.QApplication.translate("mainWindow", "Reload", None))
+        self.actionReload.setText(QtWidgets.QApplication.translate("mainWindow", "Reload", None))
+        self.actionSearchQueryChanged.setText(QtWidgets.QApplication.translate("mainWindow", "SearchQueryChanged", None))
 

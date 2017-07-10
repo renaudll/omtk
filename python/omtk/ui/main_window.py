@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
@@ -184,32 +184,32 @@ class Ui_OpenRiggingToolkit(object):
         QtCore.QMetaObject.connectSlotsByName(OpenRiggingToolkit)
 
     def retranslateUi(self, OpenRiggingToolkit):
-        OpenRiggingToolkit.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Open Rigging Toolkit", None, -1))
-        self.menuFile.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Fi&le", None, -1))
-        self.menuRig.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Ri&g", None, -1))
-        self.menuJoint.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mo&dules", None, -1))
-        self.menuInfluences.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "I&nfluences", None, -1))
-        self.menuSettings.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Settings", None, -1))
-        self.menuComponents.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Components", None, -1))
-        self.dockWidget_modules.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Modules", None, -1))
-        self.dockWidget_influences.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Influences", None, -1))
-        self.dockWidget_meshes.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Meshes", None, -1))
-        self.actionUpdate.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Update All", None, -1))
-        self.actionUpdate.setToolTip(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Update", None, -1))
-        self.actionImport.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Import", None, -1))
-        self.actionExport.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Export", None, -1))
-        self.actionBuildAll.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Build All", None, -1))
-        self.actionUnbuildAll.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Unbuild All", None, -1))
-        self.actionRebuildAll.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Rebuild All", None, -1))
-        self.actionCreateModule.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create Module", None, -1))
-        self.actionAddNodeToModule.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Add Selection", None, -1))
-        self.actionRemoveNodeFromModule.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Remove Selection", None, -1))
-        self.actionMirrorJntsLToR.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Mirror L -> R", None, -1))
-        self.actionMirrorJntsRToL.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mirror &R -> L", None, -1))
-        self.actionMirrorSelection.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mirror &using Selection", None, -1))
-        self.actionShowPluginManager.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Plugin &Manager", None, -1))
-        self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
-        self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None, -1))
+        OpenRiggingToolkit.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Open Rigging Toolkit", None))
+        self.menuFile.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Fi&le", None))
+        self.menuRig.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Ri&g", None))
+        self.menuJoint.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mo&dules", None))
+        self.menuInfluences.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "I&nfluences", None))
+        self.menuSettings.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Settings", None))
+        self.menuComponents.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Components", None))
+        self.dockWidget_modules.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Modules", None))
+        self.dockWidget_influences.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Influences", None))
+        self.dockWidget_meshes.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Meshes", None))
+        self.actionUpdate.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Update All", None))
+        self.actionUpdate.setToolTip(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Update", None))
+        self.actionImport.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Import", None))
+        self.actionExport.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Export", None))
+        self.actionBuildAll.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Build All", None))
+        self.actionUnbuildAll.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Unbuild All", None))
+        self.actionRebuildAll.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Rebuild All", None))
+        self.actionCreateModule.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create Module", None))
+        self.actionAddNodeToModule.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Add Selection", None))
+        self.actionRemoveNodeFromModule.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Remove Selection", None))
+        self.actionMirrorJntsLToR.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Mirror L -> R", None))
+        self.actionMirrorJntsRToL.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mirror &R -> L", None))
+        self.actionMirrorSelection.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mirror &using Selection", None))
+        self.actionShowPluginManager.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Plugin &Manager", None))
+        self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None))
+        self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None))
 
 from ..widget_list_meshes import WidgetListMeshes
 from ..widget_logger import WidgetLogger

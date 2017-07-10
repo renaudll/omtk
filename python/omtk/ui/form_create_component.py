@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -62,11 +62,11 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Create Component", None, -1))
-        self.label_name.setText(QtWidgets.QApplication.translate("Form", "Name", None, -1))
-        self.label_author.setText(QtWidgets.QApplication.translate("Form", "Author", None, -1))
-        self.label_version.setText(QtWidgets.QApplication.translate("Form", "Version", None, -1))
-        self.label_id.setText(QtWidgets.QApplication.translate("Form", "Unique ID", None, -1))
-        self.pushButton_resolve.setText(QtWidgets.QApplication.translate("Form", "Resolve Input/Outputs", None, -1))
-        self.pushButton_submit.setText(QtWidgets.QApplication.translate("Form", "Register", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Create Component", None))
+        self.label_name.setText(QtWidgets.QApplication.translate("Form", "Name", None))
+        self.label_author.setText(QtWidgets.QApplication.translate("Form", "Author", None))
+        self.label_version.setText(QtWidgets.QApplication.translate("Form", "Version", None))
+        self.label_id.setText(QtWidgets.QApplication.translate("Form", "Unique ID", None))
+        self.pushButton_resolve.setText(QtWidgets.QApplication.translate("Form", "Resolve Input/Outputs", None))
+        self.pushButton_submit.setText(QtWidgets.QApplication.translate("Form", "Register", None))
 

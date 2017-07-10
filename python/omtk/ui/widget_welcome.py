@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -61,10 +61,10 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.label.setText(QtWidgets.QApplication.translate("Form", "Welcome!", None, -1))
-        self.btn_create_rig_default.setText(QtWidgets.QApplication.translate("Form", "Create an empty rig", None, -1))
-        self.label_3.setText(QtWidgets.QApplication.translate("Form", "Available rigs:", None, -1))
-        self.btn_create_rig_template.setText(QtWidgets.QApplication.translate("Form", "Start from a template", None, -1))
-        self.label_4.setText(QtWidgets.QApplication.translate("Form", "Available templates", None, -1))
+        Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
+        self.label.setText(QtCompat.translate("Form", "Welcome!", None, -1))
+        self.btn_create_rig_default.setText(QtCompat.translate("Form", "Create an empty rig", None, -1))
+        self.label_3.setText(QtCompat.translate("Form", "Available rigs:", None, -1))
+        self.btn_create_rig_template.setText(QtCompat.translate("Form", "Start from a template", None, -1))
+        self.label_4.setText(QtCompat.translate("Form", "Available templates", None, -1))
 

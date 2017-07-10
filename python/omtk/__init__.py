@@ -47,121 +47,150 @@ def _reload(kill_ui=True):
     """
     Reload all module in their respective order.
     """
+    log.debug('Reloading everything...')
     # Hack: prevent a crash related to loosing our OpenMaya.MSceneMessage events.
     try:
         pymel.deleteUI('OpenRiggingToolkit')
     except:
         pass
 
+    log.debug('Reloading constants')
     import constants
     reload(constants)
 
+    log.debug('Reloading core')
     import core
     reload(core)
     core._reload()
 
+    log.debug('Reloading libs')
     import libs
     reload(libs)
     libs._reload()
 
+    log.debug('Reloading plugin_manager')
     from omtk.core import plugin_manager
     reload(plugin_manager)
     plugin_manager.plugin_manager.reload_all()
 
+    log.debug('Reloading factory_datatypes')
     import factory_datatypes
     reload(factory_datatypes)
 
+    log.debug('Reloading factory_tree_widget_item')
     import factory_tree_widget_item
     reload(factory_tree_widget_item)
 
+    log.debug('Reloading factory_rc_menu')
     import factory_rc_menu
     reload(factory_rc_menu)
 
-    try:
-        import ui_shared
-        reload(ui_shared)
+    log.debug('Reloading ui_shared')
+    import ui_shared
+    reload(ui_shared)
 
-        # Dependency of widget_list_modules
-        import widget_extended_tree
-        reload(widget_extended_tree)
+    # Dependency of widget_list_modules
+    log.debug('Reloading widget_extended_tree')
+    import widget_extended_tree
+    reload(widget_extended_tree)
 
-        from ui import pluginmanager_window
-        reload(pluginmanager_window)
+    log.debug('Reloading pluginmanager_window')
+    from ui import pluginmanager_window
+    reload(pluginmanager_window)
 
-        from ui import preferences_window
-        reload(preferences_window)
+    log.debug('Reloading preferences_window')
+    from ui import preferences_window
+    reload(preferences_window)
 
-        from ui import widget_list_influences
-        reload(widget_list_influences)
+    log.debug('Reloading widget_list_influences')
+    from ui import widget_list_influences
+    reload(widget_list_influences)
 
-        from ui import widget_list_modules
-        reload(widget_list_modules)
+    log.debug('Reloading widget_list_modules')
+    from ui import widget_list_modules
+    reload(widget_list_modules)
 
-        from ui import widget_list_meshes
-        reload(widget_list_meshes)
+    log.debug('Reloading widget_list_meshes')
+    from ui import widget_list_meshes
+    reload(widget_list_meshes)
 
-        from ui import widget_logger
-        reload(widget_logger)
+    log.debug('Reloading widget_logger')
+    from ui import widget_logger
+    reload(widget_logger)
 
-        from ui import widget_welcome
-        reload(widget_welcome)
+    log.debug('Reloading widget_welcome')
+    from ui import widget_welcome
+    reload(widget_welcome)
 
-        from ui import widget_component_list
-        reload(widget_component_list)
+    log.debug('Reloading widget_component_list')
+    from ui import widget_component_list
+    reload(widget_component_list)
 
-        import widget_component_list
-        reload(widget_component_list)
+    log.debug('Reloading widget_component_list')
+    import widget_component_list
+    reload(widget_component_list)
 
-        import model_rig_definitions
-        reload(model_rig_definitions)
+    log.debug('Reloading model_rig_definitions')
+    import model_rig_definitions
+    reload(model_rig_definitions)
 
-        import model_rig_templates
-        reload(model_rig_templates)
+    log.debug('Reloading model_rig_templates')
+    import model_rig_templates
+    reload(model_rig_templates)
 
-        import widget_list_modules
-        reload(widget_list_modules)
+    log.debug('Reloading widget_list_modules')
+    import widget_list_modules
+    reload(widget_list_modules)
 
-        import widget_list_meshes
-        reload(widget_list_meshes)
+    log.debug('Reloading widget_list_meshes')
+    import widget_list_meshes
+    reload(widget_list_meshes)
 
-        import widget_logger
-        reload(widget_logger)
+    log.debug('Reloading widget_logger')
+    import widget_logger
+    reload(widget_logger)
 
-        import widget_welcome
-        reload(widget_welcome)
+    log.debug('Reloading widget_welcome')
+    import widget_welcome
+    reload(widget_welcome)
 
-        import preferences_window
-        reload(preferences_window)
+    log.debug('Reloading preferences_window')
+    import preferences_window
+    reload(preferences_window)
 
-        import pluginmanager_window
-        reload(pluginmanager_window)
+    log.debug('Reloading pluginmanager_window')
+    import pluginmanager_window
+    reload(pluginmanager_window)
 
-        # Reload widget-breadcrumb (dependency of node-editor)
+    # Reload widget-breadcrumb (dependency of node-editor)
 
-        import widget_breadcrumb
-        reload(widget_breadcrumb)
+    log.debug('Reloading widget_breadcrumb')
+    import widget_breadcrumb
+    reload(widget_breadcrumb)
 
-        import qt_widgets
-        reload(qt_widgets)
-        qt_widgets.reload_()
+    log.debug('Reloading qt_widgets')
+    import qt_widgets
+    reload(qt_widgets)
+    qt_widgets.reload_()
 
-        # Reload main window
+    # Reload main window
 
-        if kill_ui:
-            # Try to kill the window to prevent any close event error
-            try:
-                pymel.deleteUI('OpenRiggingToolkit')
-            except:
-                pass
+    if kill_ui:
+        # Try to kill the window to prevent any close event error
+        try:
+            pymel.deleteUI('OpenRiggingToolkit')
+        except:
+            pass
 
-        from ui import main_window as ui_main_window
-        reload(ui_main_window)
+    log.debug('Reloading ui_main_window')
+    from ui import main_window as ui_main_window
+    reload(ui_main_window)
 
-        import main_window
-        reload(main_window)
+    log.debug('Reloading main_window')
+    import main_window
+    reload(main_window)
 
-    except Exception, e:
-        pymel.warning("Error loading OMTK GUI modules: {}".format(e))
+
 
 
 def show():

@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -41,8 +41,8 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.btn_update.setText(QtWidgets.QApplication.translate("Form", "Update", None, -1))
-        self.checkBox_hideAssigned.setText(QtWidgets.QApplication.translate("Form", "Hide Assigned", None, -1))
+        Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
+        self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
+        self.checkBox_hideAssigned.setText(QtCompat.translate("Form", "Hide Assigned", None, -1))
 
 from ..widget_extended_tree import WidgetExtendedTree

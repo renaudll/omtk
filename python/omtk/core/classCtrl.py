@@ -119,7 +119,9 @@ class BaseCtrl(Node):
 
         # Tag as a controller object in maya.
         # This help animator navigate and filter their viewport.
-        cmds.TagAsController(self.node.longName())
+        # Note that this feature is new in maya 2017
+        if cmds.about(api=True) >= 201700:
+            cmds.TagAsController(self.node.longName())
 
         # The name keep since the last unbuild will have the priority over the name that could be set in the code
         if name:

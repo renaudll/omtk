@@ -71,7 +71,11 @@ _attr_type_by_native_type = {
 }
 
 
-def get_component_attribute_type(val):
+def get_datatype(val):
+    """
+    Factory method that return an enum value for any possible value.
+    Used to type metadata.
+    """
     from omtk.core.classEntity import Entity
     from omtk.core.classCtrl import BaseCtrl
     from omtk.core.classNode import Node
@@ -101,7 +105,7 @@ def get_component_attribute_type(val):
     if isinstance(val, (pymel.PyNode, Node)):
         return AttributeType.Node
     if isinstance(val, pymel.Attribute):
-        native_type = get_entity_type_by_attr(val)
+        native_type = get_attr_datatype(val)
         return _attr_type_by_native_type[native_type]
     if isinstance(val, (Module, Module2)):
         return AttributeType.Module
@@ -109,29 +113,44 @@ def get_component_attribute_type(val):
         return AttributeType.Rig
     if isinstance(val, Entity):
         return AttributeType.Component
+
     raise Exception("Cannot resolve Component attribute type for {0} {1}".format(type(val), val))
 
 
 @libPython.memoized
-def get_icon_from_datatype(datatype):
+def get_icon_from_datatype(data, datatype=None):
     """
     Factory method that return an appropriate QIcon from a specific datatype.
     :param datatype:
     :return:
     """
+    if datatype is None:
+        datatype = get_datatype(data)
+
     def _create(filename):
         return QtGui.QIcon(":/{}".format(filename))
 
     if datatype == AttributeType.Component:
-        return QtGui.QIcon(":/out_objectSet.png")
+        return _create("out_objectSet.png")
     if datatype == AttributeType.Module:
         return _create("bevelPlus.png")
     if datatype == AttributeType.Rig:
-        return QtGui.QIcon(":/addSkinInfluence.png")
+        return _create("addSkinInfluence.png")
     if datatype == AttributeType.Ctrl:
-        return QtGui.QIcon(":/implicitSphere.svg")
+        return _create("implicitSphere.svg")
+    if datatype == AttributeType.Node:
+        if isinstance(data, pymel.nodetypes.Joint):
+            return _create("/pickJointObj.png")
+        elif isinstance(data, pymel.nodetypes.Transform):
+            shape = data.getShape()
+            if shape:
+                return get_icon_from_datatype(shape)
+            else:
+                return _create("/transform.svg")
+        else:
+            return _create("/transform.svg")
 
-    return None
+    raise Exception("Cannot resolve icon from datatype {0}".format(datatype))
 
 
 @libPython.memoized
@@ -156,7 +175,7 @@ def get_port_color_from_datatype(datatype):
     return get_node_color_from_datatype(datatype)
 
 
-def get_entity_type_by_attr(attr):
+def get_attr_datatype(attr):
     if attr.isMulti():
         attr_type = attr[0].type()  # this still work if there's no data
     else:

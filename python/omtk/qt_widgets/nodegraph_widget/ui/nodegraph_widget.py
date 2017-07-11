@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -75,4 +75,4 @@ class Ui_Form(object):
         self.pushButton_arrange_downstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Downstrea", None))
 
 from ..nodegraph_view import NodeGraphView
-from ....widget_breadcrumb import WidgetBreadcrumb
+from omtk.qt_widgets.widget_breadcrumb import WidgetBreadcrumb

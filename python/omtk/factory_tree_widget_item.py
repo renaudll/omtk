@@ -4,13 +4,11 @@ Factory method to generate a QTreeWidgetItem from any value, preferably starting
 import logging
 
 import pymel.core as pymel
-
-from omtk import ui_shared
-from omtk.core.classModule import Module
-from omtk.core.classRig import Rig
-from omtk import factory_datatypes
-from omtk.factory_datatypes import AttributeType, get_component_attribute_type
+from omtk.factory_datatypes import AttributeType, get_datatype
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
+
+from omtk import factory_datatypes
+from omtk import ui_shared
 
 log = logging.getLogger('omtk')
 
@@ -36,7 +34,7 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
         return self._meta_type
 
     def update_(self):
-        icon = factory_datatypes.get_icon_from_datatype(self._meta_type)
+        icon = factory_datatypes.get_icon_from_datatype(self._meta_data, self._meta_type)
         if icon:
             self.setIcon(0, icon)
 
@@ -131,7 +129,16 @@ class TreeWidgetItemModule(TreeWidgetItemComponent):
 
 
 def get_tree_item(value, known_data_id=None):
-    value_type = get_component_attribute_type(value)
+    # Prevent cyclic dependency, we only show something the first time we encounter it.
+    if known_data_id is None:
+        known_data_id = set()
+    if value is not None:
+        data_id = id(value)
+        if data_id in known_data_id:
+            return None
+        known_data_id.add(data_id)
+
+    value_type = get_datatype(value)
     if value_type in (
             AttributeType.Component,
             AttributeType.Module,
@@ -148,7 +155,7 @@ def _get_item_from_component(component, known_data_id=None):
     if known_data_id is None:
         known_data_id = set()
 
-    meta_type = factory_datatypes.get_component_attribute_type(component)
+    meta_type = factory_datatypes.get_datatype(component)
     if meta_type == factory_datatypes.AttributeType.Module:
         item = TreeWidgetItemModule(0, component)
     elif meta_type == factory_datatypes.AttributeType.Rig:
@@ -164,7 +171,7 @@ def _get_item_from_component(component, known_data_id=None):
     for attr in keys:
         attr_name = attr.name
         attr_val = attr.get()  # getattr(component, attr_name)
-        attr_type = get_component_attribute_type(attr_val)
+        attr_type = get_datatype(attr_val)
         if not can_show_component_attribute(attr_name, attr_val, known_data_id=known_data_id):
             continue
 
@@ -176,7 +183,7 @@ def _get_item_from_component(component, known_data_id=None):
 
         if attr_type == AttributeType.Iterable:
             for sub_attr in attr_val:
-                item_child = get_tree_item(sub_attr)
+                item_child = get_tree_item(sub_attr, known_data_id=known_data_id)
                 if item_child:
                     item_attr.addChild(item_child)
         else:
@@ -201,7 +208,7 @@ def can_show_component_attribute(attr_name, attr_value, known_data_id):
         return False
 
     # Validate type
-    attr_type = get_component_attribute_type(attr_value)
+    attr_type = get_datatype(attr_value)
     if not attr_type in (
             AttributeType.Iterable,
             AttributeType.Node,
@@ -221,6 +228,7 @@ def can_show_component_attribute(attr_name, attr_value, known_data_id):
         return False
 
     # Prevent cyclic dependency, we only show something the first time we encounter it.
+    # todo: remove
     data_id = id(attr_value)
     if data_id in known_data_id:
         return False

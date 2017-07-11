@@ -3,9 +3,11 @@ A PortAdaptor is the link between a Port model and it's internal data.
 This is a case of 'composition over inheritance'.
 """
 import abc
-from maya import cmds
+
 import pymel.core as pymel
+from maya import cmds
 from omtk import factory_datatypes
+from omtk.core import classEntityAttribute
 from omtk.libs import libPython
 
 
@@ -19,7 +21,13 @@ class PortAdaptor(object):
         return self._data
 
     def get_metatype(self):
-        return factory_datatypes.get_entity_type_by_attr(self._data)
+        return factory_datatypes.get_attr_datatype(self._data)
+
+    def get_inputs(self):
+        return set()
+
+    def get_outputs(self):
+        return set()
 
     @abc.abstractmethod
     def is_readable(self):
@@ -58,6 +66,12 @@ class PymelAttributePortAdaptor(PortAdaptor):
     def is_destination(self):
         return self._data.isDestination()
 
+    def get_inputs(self):
+        return self._data.inputs(plugs=True)
+
+    def get_outputs(self):
+        return self._data.outputs(plugs=True)
+
     @libPython.memoized_instancemethod
     def _list_parent_user_defined_attrs(self):
         # We use cmds instead of pymel since we want to equivalent of pymel.Attribute.attrName().
@@ -93,6 +107,16 @@ class PymelAttributePortAdaptor(PortAdaptor):
 
 
 class EntityAttributePortAdaptor(PortAdaptor):
+    def __init__(self, data):
+        assert (isinstance(data, classEntityAttribute.EntityAttribute))
+        self._data = data
+
+    def get_metadata(self):
+        return self._data.get()
+
+    def get_metatype(self):
+        return factory_datatypes.get_datatype(self.get_metadata())
+
     def is_readable(self):
         return self._data.is_output
 
@@ -106,7 +130,13 @@ class EntityAttributePortAdaptor(PortAdaptor):
         val = self._data.get()
         if isinstance(val, list):
             for entry in val:
-                if isinstance(entry, pymel.PyNode):
+                datatype = factory_datatypes.get_datatype(entry)
+                if datatype in (
+                        factory_datatypes.AttributeType.Node,
+                        factory_datatypes.AttributeType.Component,
+                        factory_datatypes.AttributeType.Module,
+                        factory_datatypes.AttributeType.Rig
+                ):
                     return True
             if isinstance(val, pymel.PyNode):
                 return True
@@ -114,3 +144,6 @@ class EntityAttributePortAdaptor(PortAdaptor):
 
     def is_destination(self):
         return False
+
+    def get_outputs(self):
+        return self._data.get()

@@ -2,14 +2,11 @@
 Create a menu for a right-click event on a TreeWidget or NodeEditorWidget.
 """
 import collections
-import itertools
 import functools
-import operator
 
-from omtk import constants
 from omtk.core.classEntity import Entity
 from omtk.libs import libPython
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtGui, QtWidgets
 
 
 def _get_actions(self, entities):
@@ -80,15 +77,15 @@ def get_menu(components, fn_callback):
             menu_action = menu.addAction(label)
             menu_action.triggered.connect(functools.partial(fn_callback, actions))
 
-        # for cls_level, entries in itertools.groupby(actions_data, operator.itemgetter(0)):
-        #     for cls_name, entries in itertools.groupby(entries, operator.itemgetter(1)):
-        #         # menu.addSeparator()
-        #         # menu.addAction(str(cls_name)).setEnabled(False)
-        #         for fn_name, entries in itertools.groupby(entries, operator.itemgetter(2)):
-        #             action = menu.addAction(fn_name)
-        #             # action.triggered.connect(functools.partial(self._execute_rcmenu_entry, fn_name))  # todo: connect
-        #             actions = [entry[-1] for entry in entries]
-        #             action.triggered.connect(functools.partial(fn_callback, actions))
+            # for cls_level, entries in itertools.groupby(actions_data, operator.itemgetter(0)):
+            #     for cls_name, entries in itertools.groupby(entries, operator.itemgetter(1)):
+            #         # menu.addSeparator()
+            #         # menu.addAction(str(cls_name)).setEnabled(False)
+            #         for fn_name, entries in itertools.groupby(entries, operator.itemgetter(2)):
+            #             action = menu.addAction(fn_name)
+            #             # action.triggered.connect(functools.partial(self._execute_rcmenu_entry, fn_name))  # todo: connect
+            #             actions = [entry[-1] for entry in entries]
+            #             action.triggered.connect(functools.partial(fn_callback, actions))
 
     menu.exec_(QtGui.QCursor.pos())
 

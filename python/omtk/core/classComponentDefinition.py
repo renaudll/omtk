@@ -170,7 +170,7 @@ class ComponentDefinition(object):
         metadata = self.get_metadata()
         return write_metadata_to_ma_file(path, metadata)
 
-    def instanciate(self, name='unamed'):
+    def instanciate(self, parent, name='unamed'):
         # type: () -> (Component, pymel.nodetypes.Network)
         """
         Create a Component in the scene from a ComponentDefinition.
@@ -198,29 +198,31 @@ class ComponentDefinition(object):
 class ComponentScriptedDefinition(ComponentDefinition):
     component_cls = None
 
-    def instanciate(self, name='unamed'):
+    def instanciate(self, parent, name='unamed'):
         inst = self.component_cls(name=name)
         inst.build()
         return inst
 
 
-class ComponentManagedDefinition(ComponentDefinition):
+class ComponentModuleDefinition(ComponentDefinition):
     def __init__(self, name, module_cls, **kwargs):
         from omtk import api
         kwargs['uid'] = 0,
         kwargs['version'] = api.get_version()
 
-        super(ComponentManagedDefinition, self).__init__(name, **kwargs)
+        super(ComponentModuleDefinition, self).__init__(name, **kwargs)
         self._cls = module_cls
 
-    def instanciate(self, name='unamed'):
+    def instanciate(self, parent, name='unamed'):
         # Add the component to the first Rig we encounter.
         # todo: make this more elegant
-        from omtk import api
-        rig = api.find_one()
+        # from omtk import api
+        # rig = api.find_one()
 
         inst = self._cls(name=name)
-        rig.add_module(inst)  # todo: force the rig in the Module class constructor?
+
+        parent._root.add_module(inst)
+
         inst.initialize_inputs()  # module need inputs, create them otherwise it wont work...
         try:
             inst._cache.clear()  # hack

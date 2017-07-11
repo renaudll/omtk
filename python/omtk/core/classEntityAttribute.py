@@ -59,7 +59,7 @@ class EntityAttribute(object):
 class EntityPymelAttribute(EntityAttribute):
     def __init__(self, parent, attr, **kwargs):
         self._attr = attr
-        self._valid_types = factory_datatypes.get_entity_type_by_attr(attr)
+        self._valid_types = factory_datatypes.get_attr_datatype(attr)
         super(EntityPymelAttribute, self).__init__(
             parent,
             name=attr.attrName(),
@@ -118,7 +118,7 @@ class EntityPymelAttributeCollection(EntityPymelAttribute):
 
 
 def get_attrdef_from_attr(attr, is_input=False, is_output=False):
-    valid_types = factory_datatypes.get_entity_type_by_attr(attr)
+    valid_types = factory_datatypes.get_attr_datatype(attr)
     if valid_types is None:
         log.warning("Cannot create AttributeDef from {0}".format(attr))
         return None

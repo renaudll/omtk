@@ -7,7 +7,7 @@ import itertools
 import operator
 
 import pymel.core as pymel
-from ui import widget_list_modules
+from omtk.ui import widget_list_modules
 
 from omtk import constants
 from omtk import ui_shared

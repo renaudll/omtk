@@ -376,10 +376,8 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self.expand_node_attributes(child_model)
             self.expand_node_connections(child_model)
 
-
-
         component = node_model.get_metadata()
-        metatype = factory_datatypes.get_component_attribute_type(component)
+        metatype = factory_datatypes.get_datatype(component)
 
         node_widget = self.get_node_widget(node_model)
 

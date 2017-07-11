@@ -69,10 +69,20 @@ class NodeGraphPortModel(object):
     # --- Connection related methods --- #
 
     def get_input_connections(self):
-        return set()
+        result = set()
+        for val in self._adaptor.get_inputs():
+            model = self._registry.get_port_model_from_value(val)
+            inst = self._registry.get_connection_model_from_values(model, self)
+            result.add(inst)
+        return result
 
     def get_output_connections(self):
-        return set()
+        result = set()
+        for val in self._adaptor.get_outputs():
+            model = self._registry.get_port_model_from_value(val)
+            inst = self._registry.get_connection_model_from_values(self, model)
+            result.add(inst)
+        return result
 
     def get_connections(self):
         return self.get_input_connections() | self.get_output_connections()
@@ -149,25 +159,6 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         # self._pyattr = pyattr
 
     # --- Connections related methods --- #
-
-    @libPython.memoized_instancemethod
-    def get_input_connections(self):
-        result = set()
-        for attr_src in self._adaptor._data.inputs(plugs=True):
-            attr_src_model = self._registry.get_port_model_from_value(attr_src)
-            inst = self._registry.get_connection_model_from_values(attr_src_model, self)
-            result.add(inst)
-        return result
-
-    # todo: move to adaptor?
-    @libPython.memoized_instancemethod
-    def get_output_connections(self):
-        result = set()
-        for attr_dst in self._adaptor._data.outputs(plugs=True):
-            attr_dst_model = self._registry.get_port_model_from_value(attr_dst)
-            inst = self._registry.get_connection_model_from_values(self, attr_dst_model)
-            result.add(inst)
-        return result
 
     # todo: move to adaptor?
     def connect_from(self, val):

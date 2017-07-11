@@ -370,9 +370,9 @@ def export_network(data, cache=None, **kwargs):
         data._network = network
 
     # Ensure the network have the current python id stored
-    if not network.hasAttr('_uid'):
-        pymel.addAttr(network, longName='_uid', niceName='_uid', at='long')  # todo: validate attributeType
-    # network._uid.set(id(_data))
+    # if not network.hasAttr('_uid'):
+    #     pymel.addAttr(network, longName='_uid', niceName='_uid', at='long')  # todo: validate attributeType
+    # network._uid.set(id(data))
 
     # Cache as soon as possible since we'll use recursivity soon.
     cache.set_network_by_id(data_id, network)
@@ -422,6 +422,14 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     if fn_skip and fn_skip(network):
         cache.set_import_value_by_id(network_id, None)
         return None
+
+    # from omtk.libs import libPython
+    # if network.hasAttr('_uid'):
+    #     inst_id = network.getAttr('_uid')
+    #     try:
+    #         return libPython.objects_by_id(inst_id)
+    #     except Exception, e:
+    #         log.debug("Cache missed for {0}".format(inst_id))
 
     cls_name = network.getAttr('_class')
 
@@ -485,16 +493,16 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
         # else:
         #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
 
-        # Update network _uid to the current python variable context
-        #    if _network.hasAttr('_uid'):
-        #        _network._uid.set(id(obj))
-
     # Hack: Find implemented class via duck-typing
     # Implement a __callbackNetworkPostBuild__ method in your class instances as a callback.
     try:
         obj.__callbackNetworkPostBuild__()
     except (AttributeError, TypeError):
         pass
+
+    # Update network _uid to the current python variable context
+    # if network.hasAttr('_uid'):
+    #     network.attr('_uid').set(id(obj))
 
     return obj
 

@@ -11,7 +11,7 @@ from omtk.core import classNomenclature
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
-from omtk.core.classEntityAttribute import EntityAttribute
+from omtk.core.classEntityAttribute import EntityAttribute, EntityPymelAttributeCollection
 from omtk.core.classNode import Node
 from omtk.libs import libHistory
 from omtk.libs import libPymel
@@ -163,7 +163,7 @@ class Rig(Entity):
 
     def iter_attributes(self):
         def _getter(): return self.modules
-        yield EntityAttribute(self, 'modules', fn_get=_getter)
+        yield EntityAttribute(self, 'modules', fn_get=_getter, is_output=True)
         yield EntityAttribute(self, 'global_scale')
 
     # --- Methods for logging

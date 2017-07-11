@@ -1,9 +1,8 @@
 import pymel.core as pymel
-
-from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
+from omtk.core import classModule
 
 from omtk import factory_datatypes
 from omtk import factory_rc_menu
@@ -18,15 +17,19 @@ class NodeGraphView(PyFlowgraphView):
     dragLeave = QtCore.Signal(object)
     dragDrop = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
+    updateRequested = QtCore.Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         super(NodeGraphView, self).__init__(parent=parent)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
 
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
         shortcut_tab.activated.connect(self.on_tab_pressed)
 
-        self._controller = None
+        self._omtk_singleton = None
+
+    def set_omtk_singleton(self, val):
+        self._omtk_singleton = val
 
     # -- Model/View/Controller pattern --
 
@@ -59,11 +62,11 @@ class NodeGraphView(PyFlowgraphView):
             super(NodeGraphView, self).mousePressEvent(event)
 
     def on_tab_pressed(self):
-        from ... import widget_component_list
+        from omtk.qt_widgets import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self)
-        dialog.show()
-
+        dialog.set_parent(self._omtk_singleton)
         dialog.signalComponentCreated.connect(self.on_component_created)
+        dialog.show()
 
     # -- Drag and Drop --
     def dropMimeData(self, parent, index, data, action):
@@ -125,4 +128,27 @@ class NodeGraphView(PyFlowgraphView):
     # --- Events ---
 
     def on_component_created(self, component):
-        self._controller.add_node(component)
+        """
+        Ensure the component is added to the view on creation.
+        This is not the place for any scene update routine.
+        :param component:
+        :return:
+        """
+        model = self._controller.add_node(component)
+
+        # if isinstance(component, classModule.Module):
+        #     self._controller.get
+
+        # from omtk import api
+        # rig = api.find_one()
+        # rig.add_module(component)
+
+        from omtk.core import classModule
+        if isinstance(component, classModule.Module):
+            rig = self._omtk_singleton._root
+            rig.add_module(component)
+
+        self._controller.expand_node_attributes(model)
+        self._controller.expand_node_connections(model)
+
+        self.updateRequested.emit()

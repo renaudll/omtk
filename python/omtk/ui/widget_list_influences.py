@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from omtk.vendor.Qt import QtCore, QtWidgets, QtCompat
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -45,4 +45,4 @@ class Ui_Form(object):
         self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
         self.checkBox_hideAssigned.setText(QtCompat.translate("Form", "Hide Assigned", None, -1))
 
-from ..widget_extended_tree import WidgetExtendedTree
+from omtk.qt_widgets.widget_extended_tree import WidgetExtendedTree

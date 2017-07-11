@@ -1,11 +1,11 @@
-from omtk.core import preferences
 from omtk.core import api
-from . import model_rig_definitions
-from . import model_rig_templates
+from omtk.core import preferences
+from omtk.ui import widget_welcome
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtWidgets
 
-from .ui import widget_welcome
+from . import model_rig_definitions
+from . import model_rig_templates
 
 
 class WidgetWelcome(QtWidgets.QWidget):

@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from omtk.vendor.Qt import QtCore, QtWidgets, QtCompat
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -42,4 +42,4 @@ class Ui_Form(object):
         Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
         self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
 
-from ..widget_extended_tree import WidgetExtendedTree
+from omtk.qt_widgets.widget_extended_tree import WidgetExtendedTree

@@ -17,7 +17,11 @@ except ImportError:
 
 
 def _build_ui():
-    import pyside2uic
+    try:
+        import pysideuic
+    except ImportError:
+        import pyside2uic as pysideuic
+
     for dirpath, dirnames, filenames in os.walk(os.path.dirname(__file__)):
         for filename in filenames:
             basename, ext = os.path.splitext(filename)
@@ -36,7 +40,7 @@ def _build_ui():
             ))
 
             with open(path_dst, 'w') as fp:
-                pyside2uic.compileUi(path_src, fp)
+                pysideuic.compileUi(path_src, fp)
 
             # todo: replace PySide2 call for omtk.vendor.Qt calls
 
@@ -91,7 +95,7 @@ def _reload(kill_ui=True):
 
     # Dependency of widget_list_modules
     log.debug('Reloading widget_extended_tree')
-    import widget_extended_tree
+    from omtk.qt_widgets import widget_extended_tree
     reload(widget_extended_tree)
 
     log.debug('Reloading pluginmanager_window')
@@ -127,45 +131,45 @@ def _reload(kill_ui=True):
     reload(widget_component_list)
 
     log.debug('Reloading widget_component_list')
-    import widget_component_list
+    from omtk.qt_widgets import widget_component_list
     reload(widget_component_list)
 
     log.debug('Reloading model_rig_definitions')
-    import model_rig_definitions
+    from omtk.qt_widgets import model_rig_definitions
     reload(model_rig_definitions)
 
     log.debug('Reloading model_rig_templates')
-    import model_rig_templates
+    from omtk.qt_widgets import model_rig_templates
     reload(model_rig_templates)
 
     log.debug('Reloading widget_list_modules')
-    import widget_list_modules
+    from omtk.qt_widgets import widget_list_modules
     reload(widget_list_modules)
 
     log.debug('Reloading widget_list_meshes')
-    import widget_list_meshes
+    from omtk.qt_widgets import widget_list_meshes
     reload(widget_list_meshes)
 
     log.debug('Reloading widget_logger')
-    import widget_logger
+    from omtk.qt_widgets import widget_logger
     reload(widget_logger)
 
     log.debug('Reloading widget_welcome')
-    import widget_welcome
+    from omtk.qt_widgets import widget_welcome
     reload(widget_welcome)
 
     log.debug('Reloading preferences_window')
-    import preferences_window
+    from omtk.qt_widgets import preferences_window
     reload(preferences_window)
 
     log.debug('Reloading pluginmanager_window')
-    import pluginmanager_window
+    from omtk.qt_widgets import pluginmanager_window
     reload(pluginmanager_window)
 
     # Reload widget-breadcrumb (dependency of node-editor)
 
     log.debug('Reloading widget_breadcrumb')
-    import widget_breadcrumb
+    from omtk.qt_widgets import widget_breadcrumb
     reload(widget_breadcrumb)
 
     log.debug('Reloading qt_widgets')
@@ -191,6 +195,9 @@ def _reload(kill_ui=True):
     reload(main_window)
 
 
+# prevent confusion
+def reload_(*args, **kwargs):
+    return _reload(*args, **kwargs)
 
 
 def show():

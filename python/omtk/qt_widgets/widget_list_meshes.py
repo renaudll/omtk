@@ -1,13 +1,13 @@
 import re
 import pymel.core as pymel
-from ui import widget_list_meshes
+from omtk.ui import widget_list_meshes
 
 from omtk.libs import libSkinning
 from omtk.libs import libQt
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
-import ui_shared
+import omtk.ui_shared
 
 
 class WidgetListMeshes(QtWidgets.QWidget):
@@ -63,11 +63,11 @@ class WidgetListMeshes(QtWidgets.QWidget):
         item_mesh = QtWidgets.QTreeWidgetItem(0)
         item_mesh.setText(0, str(mesh))
         item_mesh.setForeground(0, textBrush)
-        ui_shared._set_icon_from_type(mesh.getParent(), item_mesh)
+        omtk.ui_shared._set_icon_from_type(mesh.getParent(), item_mesh)
         qt_parent.addChild(item_mesh)
 
         # Monkey-patch mesh QWidget
-        item_mesh._meta_data_type = ui_shared.MimeTypes.Mesh
+        item_mesh._meta_data_type = omtk.ui_shared.MimeTypes.Mesh
         item_mesh._meta_data_data = mesh
 
         # Add influences
@@ -76,11 +76,11 @@ class WidgetListMeshes(QtWidgets.QWidget):
                 item = QtWidgets.QTreeWidgetItem(0)
                 item.setText(0, str(influence))
                 item.setForeground(0, textBrush)
-                ui_shared._set_icon_from_type(influence, item)
+                omtk.ui_shared._set_icon_from_type(influence, item)
                 item_mesh.addChild(item)
 
                 # Monkey-patch influence QWidget
-                item._meta_data_type = ui_shared.MimeTypes.Influence
+                item._meta_data_type = omtk.ui_shared.MimeTypes.Influence
                 item._meta_data_data = influence
 
     def update_list_visibility(self, query_regex=None):
@@ -89,7 +89,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
-            if qItem._meta_data_type == ui_shared.MimeTypes.Influence:  # Always show influences
+            if qItem._meta_data_type == omtk.ui_shared.MimeTypes.Influence:  # Always show influences
                 return True
 
             return not query_regex or re.match(query_regex, qItem.text(0), re.IGNORECASE)

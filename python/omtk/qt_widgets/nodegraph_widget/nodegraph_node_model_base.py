@@ -57,7 +57,7 @@ class NodeGraphNodeModel(object):
 
     @libPython.memoized_instancemethod
     def get_metatype(self):
-        return factory_datatypes.get_component_attribute_type(self.get_metadata())
+        return factory_datatypes.get_datatype(self.get_metadata())
 
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
@@ -112,11 +112,11 @@ class NodeGraphNodeModel(object):
         # Monkey-patch our metadata
         meta_data = self.get_metadata()
         node._meta_data = meta_data
-        node._meta_type = factory_datatypes.get_component_attribute_type(meta_data)
+        node._meta_type = factory_datatypes.get_datatype(meta_data)
 
         # Set icon
         meta_type = self.get_metatype()
-        icon = factory_datatypes.get_icon_from_datatype(meta_type)
+        icon = factory_datatypes.get_icon_from_datatype(meta_data, meta_type)
         item = NodeIcon(icon)
         node.layout().insertItem(0, item)
 
@@ -164,4 +164,6 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
         version_major, version_minor, version_patch = self._entity.get_version()
         if version_major is not None and version_minor is not None and version_patch is not None:  # todo: more eleguant
             result += 'v{0}.{1}.{2}'.format(version_major, version_minor, version_patch)
+
+        result += ' ({} child)'.format(len(list(self._entity.iter_sub_components())))
         return result

@@ -97,6 +97,14 @@ class Module(Entity):
         yield EntityAttribute(self, 'inputs', is_input=True, is_output=False, fn_get=_fn_get, fn_set=_fn_set)
         yield EntityAttribute(self, 'parent', is_input=True, is_output=False)
 
+        def _fn_get2():
+            return self.rig
+
+        def _fn_set2(val):
+            self.rig = val
+
+        yield EntityAttribute(self, 'rig', is_input=True, is_output=False, fn_get=_fn_get2, fn_set=_fn_set2)
+
     # --- Methods for logging
 
     def debug(self, msg):
@@ -719,7 +727,7 @@ class Module(Entity):
         from omtk.core import classComponentDefinition
         from omtk.core import api
 
-        inst = classComponentDefinition.ComponentManagedDefinition(
+        inst = classComponentDefinition.ComponentModuleDefinition(
             name=cls.__name__,
             module_cls=cls
         )

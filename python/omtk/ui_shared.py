@@ -62,6 +62,7 @@ _STYLE_SHEET = \
 
 
 def _set_icon_from_type(obj, qItem):
+    # todo: merge with factory_datatypes.get_icon_by_datatype
     if isinstance(obj, BaseCtrl):
         qItem.setIcon(0, QtGui.QIcon(":/implicitSphere.svg"))
     elif isinstance(obj, pymel.nodetypes.Joint):

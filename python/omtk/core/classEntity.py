@@ -13,6 +13,7 @@ import Queue as queue
 
 from omtk import constants
 from omtk.core.classEntityAction import EntityAction
+from omtk.libs import libPython
 
 log = logging.getLogger('omtk')
 
@@ -110,6 +111,15 @@ class Entity(object):
         """
         return
         yield
+
+    @libPython.memoized_instancemethod
+    def get_attributes(self):
+        return list(self.iter_attributes())
+
+    def get_attribute_by_name(self, name):
+        for attr in self.get_attributes():
+            if attr.name == name:
+                return attr
 
 
 class ActionBuild(EntityAction):

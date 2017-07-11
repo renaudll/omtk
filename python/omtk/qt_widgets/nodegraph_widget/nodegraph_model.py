@@ -7,6 +7,7 @@ from omtk.libs import libPython
 from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk.core import classEntityAttribute
+from omtk.core import classModule
 from . import nodegraph_connection_model
 from . import nodegraph_port_model
 from . import nodegraph_node_model_component
@@ -35,7 +36,6 @@ class NodeGraphModel(object):
 
         self._nodes_by_metadata = {}
 
-
     # --- Registration methods ---
 
     def _register_node(self, inst):
@@ -59,7 +59,7 @@ class NodeGraphModel(object):
         log.debug('Exploring new value {0}'.format(val))
 
         # Handle pointer to a component datatype
-        data_type = factory_datatypes.get_component_attribute_type(val)
+        data_type = factory_datatypes.get_datatype(val)
         if data_type == factory_datatypes.AttributeType.Component:
             return nodegraph_node_model_component.NodeGraphComponentModel(self, val)
 
@@ -89,19 +89,29 @@ class NodeGraphModel(object):
         # return inst
 
     @libPython.memoized_instancemethod
-    def get_port_model_from_value(self, attr):
+    def get_port_model_from_value(self, val):
         # type: () -> List[NodeGraphPortModel]
         # todo: add support for pure EntityAttribute
-        if isinstance(attr, classEntityAttribute.EntityPymelAttribute):
-            node_model = self.get_node_from_value(attr._attr.node())  # still needed?
+        if isinstance(val, classEntityAttribute.EntityPymelAttribute):
+            node_model = self.get_node_from_value(val._attr.node())  # still needed?
             # Let EntityAttribute defined if they are inputs or outputs
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, attr._attr)
-        elif isinstance(attr, classEntityAttribute.EntityAttribute):
-            node_model = self.get_node_from_value(attr.parent)
-            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, attr)
+            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val._attr)
+        elif isinstance(val, classEntityAttribute.EntityAttribute):
+            node_model = self.get_node_from_value(val.parent)
+            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         else:
-            node_model = self.get_node_from_value(attr.node())  # still needed?
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, attr)
+            datatype = factory_datatypes.get_datatype(val)
+            if datatype == factory_datatypes.AttributeType.Node:
+                node_model = self.get_node_from_value(val)  # still needed?
+                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val.message)
+            elif isinstance(val, classModule.Module):  # todo: use factory_datatypes?
+                node_model = self.get_node_from_value(val.rig)
+                val = val.rig.get_attribute_by_name('modules')
+                inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+
+            else:
+                node_model = self.get_node_from_value(val.node())  # still needed?
+                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val)
         self._register_attribute(inst)
         return inst
 

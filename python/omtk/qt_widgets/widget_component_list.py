@@ -2,7 +2,7 @@ from omtk.vendor.Qt import QtCore, QtWidgets, QtCore
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.core.classComponent import Component
 from omtk.core import plugin_manager
-from .ui import widget_component_list
+from omtk.ui import widget_component_list
 from omtk.libs import libComponents
 
 
@@ -66,6 +66,22 @@ class WidgetComponentList(QtWidgets.QWidget):
         view.setModel(proxy_model)
         # view.resizeColumnsToContents()
 
+        self._parent = None
+
+        self._ctrl = None
+
+    def set_ctrl(self, ctrl):
+        """
+        Define the link with the main logic controller.
+        :param ctrl:
+        :return:
+        """
+        self._ctrl = ctrl
+
+    def set_parent(self, parent):
+        self._parent = parent
+
+
     def _get_selected_entries(self):
         # type: () -> List[ComponentDefinition]
         selected_row_indexes = self._get_selected_row_indexes()
@@ -117,6 +133,13 @@ class WidgetComponentList(QtWidgets.QWidget):
     def action_submit(self):
         entries = self._get_selected_entries()
         for entry in entries:
-            component = entry.instanciate()
+
+            # Create the component in memory
+            component = entry.instanciate(self._parent)
+
+            # Export the component metadata
+            from omtk.vendor import libSerialization
+            libSerialization.export_network(component)
+
             self.signalComponentCreated.emit(component)
         self.close()

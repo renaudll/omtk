@@ -49,6 +49,9 @@ def reload_():
     from . import nodegraph_node_model_module
     reload(nodegraph_node_model_module)
 
+    from . import nodegraph_node_model_rig
+    reload(nodegraph_node_model_rig)
+
     from . import nodegraph_model
     reload(nodegraph_model)
 

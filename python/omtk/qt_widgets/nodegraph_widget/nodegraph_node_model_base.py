@@ -1,11 +1,12 @@
 import logging
 
+from omtk import factory_datatypes
 from omtk.core.classComponent import Component
+from omtk.libs import libComponents
 from omtk.libs import libPython
+from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
-
-from omtk import factory_datatypes
 
 # used for type hinting
 if False:
@@ -50,8 +51,13 @@ class NodeGraphNodeModel(object):
     def __repr__(self):
         return '<{0} {1}>'.format(self.__class__.__name__, self._name)
 
+    @libPython.memoized_instancemethod
     def get_metadata(self):
         return None
+
+    @libPython.memoized_instancemethod
+    def get_metatype(self):
+        return factory_datatypes.get_component_attribute_type(self.get_metadata())
 
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
@@ -101,7 +107,7 @@ class NodeGraphNodeModel(object):
     def get_widget(self, graph):
         # type: (PyFlowgraphView) -> PyFlowgraphNode
         label = self._get_node_widget_label()
-        node = PyFlowgraphNode(graph, label)
+        node = PyFlowgraphNode(graph, '   {}'.format(label))  # todo: use layout instead of hardcoded padding
 
         # Monkey-patch our metadata
         meta_data = self.get_metadata()
@@ -109,8 +115,8 @@ class NodeGraphNodeModel(object):
         node._meta_type = factory_datatypes.get_component_attribute_type(meta_data)
 
         # Set icon
-        # todo: use factory_datatypes
-        icon = QtGui.QIcon(":/out_transform.png")
+        meta_type = self.get_metatype()
+        icon = factory_datatypes.get_icon_from_datatype(meta_type)
         item = NodeIcon(icon)
         node.layout().insertItem(0, item)
 

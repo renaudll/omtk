@@ -176,7 +176,10 @@ def get_out_network_from_inn_network(network, strict=True):
     return result
 
 
-def get_component_parent_network(obj, source=True, destination=True, cache=None):
+
+
+
+def get_component_parent_network(obj, source=True, destination=True, cache=None, strict=False):
     """
     Return the metadata of the component parent of the provided component, optimized for starting at the input network.
     :param obj: A pymel.nodetypes.Network representing the output of a component.
@@ -186,10 +189,10 @@ def get_component_parent_network(obj, source=True, destination=True, cache=None)
     component_network_by_hub_inn, component_network_by_hub_out = get_component_network_bounds()
 
     def _fn_goal_inn(n):
-        return n in component_network_by_hub_inn
+        return n in component_network_by_hub_inn and n is not obj
 
     def _fn_goal_out(n):
-        return n in component_network_by_hub_out
+        return n in component_network_by_hub_out and n is not obj
 
     def _fn_explore_inn(n):
         if n in component_network_by_hub_out:
@@ -213,11 +216,15 @@ def get_component_parent_network(obj, source=True, destination=True, cache=None)
     except StopIteration:
         hub_out = None
 
-    if hub_inn is None or hub_inn is None:
+    if hub_inn is None or hub_out is None:
         if hub_inn != hub_out:
-            raise Exception("Found partial component bound. Input is {0}, output is {1}.".format(
-                hub_inn, hub_out
-            ))
+            msg = "Found partial component bound for {0}. Input is {1}, output is {2}.".format(
+                obj, hub_inn, hub_out
+            )
+            if strict:
+                raise Exception(msg)
+            else:
+                log.warning(msg)
         return hub_inn, hub_out
 
     # Validate that we found two hub from the same component.

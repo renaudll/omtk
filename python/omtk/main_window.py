@@ -1,19 +1,14 @@
 import functools
-import inspect
 import logging
 
 import core
-
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk import constants
 from omtk.core import api
-from omtk.core import classModule
-from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.ui import main_window
-
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
@@ -29,6 +24,9 @@ class EnumSections:
 class AutoRig(QtWidgets.QMainWindow):
     # Called when the user launched Component actions, generally via a customContextMenu.
     actionRequested = QtCore.Signal(list)
+
+    # Called when something change internally and a refresh is needed.
+    exportRequested = QtCore.Signal()
 
     def __init__(self, parent=None):
         super(AutoRig, self).__init__()
@@ -135,28 +133,15 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules.actionRequested.connect(self.actionRequested.emit)
         self.ui.widget_node_editor.ui.widget_view.actionRequested.connect(self.actionRequested.emit)
 
-
-        # Some fun with pyflowgraph
-        # from . import factory_pyflowgraph_node
-        # graph = self.ui.nodegraph_widget.ui.widget
-        # for root in self.roots:
-        #     for sub_component in root.iter_sub_components():
-        #         node = factory_pyflowgraph_node._get_pyflowgraph_node_from_component(graph, sub_component)
-        #         graph.addNode(node)
-        #
-
         # Pre-configure QDockWidget
         self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
         self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
 
-        # Initialize the node editor global cache
-        from omtk.qt_widgets.nodegraph_widget.nodegraph_model import NodeGraphModel
-        self._graph_registry = NodeGraphModel()
-
-
+        # Add existing rigs in the NodeGraph on startup
+        for rig in self.roots:
+            self.ui.widget_node_editor._nodegraph_ctrl.add_node(rig)
 
     def on_action_requested(self, actions):
-        print "action_requested"
         need_export_network = False
         # entities = self.get_selected_components()
         # action_map = self._get_actions(entities)
@@ -171,6 +156,11 @@ class AutoRig(QtWidgets.QMainWindow):
             self.ui.widget_modules.update()
             self.ui.widget_node_editor.ui.widget.update()
             # todo: update node editor?
+
+    def on_request_export(self):
+        self.export_networks()
+
+    # --- Drag ---
 
     def dragLeaveEvent(self, event):
         self.on_influence_drag_drop()

@@ -114,12 +114,23 @@ def get_component_attribute_type(val):
 
 @libPython.memoized
 def get_icon_from_datatype(datatype):
-    if datatype in (
-            AttributeType.Component,
-            AttributeType.Module,
-            AttributeType.Rig
-    ):
+    """
+    Factory method that return an appropriate QIcon from a specific datatype.
+    :param datatype:
+    :return:
+    """
+    def _create(filename):
+        return QtGui.QIcon(":/{}".format(filename))
+
+    if datatype == AttributeType.Component:
         return QtGui.QIcon(":/out_objectSet.png")
+    if datatype == AttributeType.Module:
+        return _create("bevelPlus.png")
+    if datatype == AttributeType.Rig:
+        return QtGui.QIcon(":/addSkinInfluence.png")
+    if datatype == AttributeType.Ctrl:
+        return QtGui.QIcon(":/implicitSphere.svg")
+
     return None
 
 

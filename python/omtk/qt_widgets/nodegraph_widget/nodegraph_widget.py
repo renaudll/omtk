@@ -52,7 +52,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
         # Hack: Connect controller events to our widget
         # print self._nodegraph_ctrl.onLevelChanged
-        self._nodegraph_ctrl.onLevelChanged.connect(self.on_level_changed)
+        # self._nodegraph_ctrl.onLevelChanged.connect(self.on_level_changed)
 
         self._nodegraph_view.set_model(self._nodegraph_ctrl)
 
@@ -67,6 +67,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
 
         self.ui.widget_view.endSelectionMoved.connect(self.on_selected_nodes_moved)
+
+        # Connect events (breadcrumb)
+        self.ui.widget_breadcrumb.path_changed.connect(self.on_level_changed)
 
     def on_selected_nodes_moved(self):
         for node in self.ui.widget_view.getSelectedNodes():
@@ -110,10 +113,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
         libPyflowgraph.arrange_downstream(node)
 
     def on_level_changed(self, model):
-        tokens = ['/']
-        while model:
-            tokens.append(str(model.get_name()))
-            model = model.get_parent()
-        self.ui.widget_breadcrumb.set_path(tokens)
+        """Called when the current level is changed using the breadcrumb widget."""
+        # self.ui.widget_breadcrumb.set_path(model)
+        self._nodegraph_ctrl.set_level(model)
+
 
 # from pyflowgraph.graph_view import GraphView as NodeGraphWidget

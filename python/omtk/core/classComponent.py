@@ -1,10 +1,15 @@
-from omtk.libs import libAttr
-from pymel import core as pymel
-from omtk.core.classEntity import Entity
-from omtk.core.classEntityAttribute import get_attrdef_from_attr
-from omtk.vendor import libSerialization
+import logging
 
+from maya import cmds
 from omtk import constants
+from omtk.core.classEntity import Entity
+from omtk.core.classEntityAction import EntityAction
+from omtk.core.classEntityAttribute import get_attrdef_from_attr
+from omtk.libs import libAttr
+from omtk.vendor import libSerialization
+from pymel import core as pymel
+
+log = logging.getLogger('omtk')
 
 
 # todo: create ComponentScripted and ComponentSaved
@@ -71,6 +76,11 @@ class Component(Entity):
             attr_def = get_attrdef_from_attr(attr, is_input=False, is_output=True)
             if attr_def:
                 yield attr_def
+
+    def iter_actions(self):
+        for action in super(Component, self).iter_actions():
+            yield action
+        yield ActionShowContentInNodeEditor(self)
 
     def unbuild(self):
         raise NotImplementedError
@@ -140,7 +150,8 @@ class Component(Entity):
         return inst
 
     def get_children(self):
-        return (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {self.grp_inn, self.grp_out}
+        return (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {
+            self.grp_inn, self.grp_out}
 
 
 class ComponentScripted(Component):
@@ -156,3 +167,28 @@ class ComponentScripted(Component):
         )
         inst.component_cls = cls
         return inst
+
+
+# --- Actions ---
+
+class ActionShowContentInNodeEditor(EntityAction):
+    def get_name(self):
+        return 'Show content in Node Editor'
+
+    def _create_node_editor(self):
+        cmds.window()
+        form = cmds.formLayout()
+        p = cmds.scriptedPanel(type="nodeEditorPanel", label="Node Editor")
+        cmds.formLayout(form, e=True, af=[(p, s, 0) for s in ("top", "bottom", "left", "right")])
+        cmds.showWindow()
+        return p + 'NodeEditorEd'
+
+    def execute(self):
+        children = self.component.get_children()
+        if not children:
+            log.debug('Cannot open NodeEditor to explore {0} content. No children to display!'.format(self.component))
+            return
+
+        node_editor = self._create_node_editor()
+        pymel.select(children)
+        cmds.nodeEditor(node_editor, e=True, addNode='')

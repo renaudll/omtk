@@ -1,7 +1,6 @@
 import collections
 
 import pymel.core as pymel
-from omtk import constants
 from omtk.components_scripted.component_ik import ComponentIk
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classDagBuilder import DagBuilder
@@ -198,7 +197,6 @@ class IK(Module):
         self._chain_ik = None
         self.swivelDistance = None
 
-
     def validate(self):
         super(IK, self).validate()
 
@@ -385,35 +383,27 @@ class IK(Module):
             k=True,
         )
 
+        self.swivelDistance = self.chain_length,  # used in ik/fk switch
+
         builder = DagBuilder()
 
-        solver = ComponentIk()
-        solver.build()
-        solver.grp_dag.setParent(self.grp_rig)
+        from omtk.libs import libComponents
+        component = libComponents.create_component(
+            ComponentIk,
+            bindPoses=[obj.worldMatrix for obj in self.input],
+            ikCtrlEndPos=self.ctrl_ik.worldMatrix,
+            swivelPos=builder.get_world_translate(self.ctrl_swivel),
+            softik=attr_soft_amount,
+            stretch=attr_stretch_amount,
 
-        # Connect inputs
-        for i, jnt in enumerate(self.input):
-            solver._attr_inn_chain[i].set(jnt.worldMatrix.get())
-            # pymel.connectAttr(jnt.worldMatrix, solver._attr_inn_chain[i])
+        )
+        component.grp_dag.setParent(self.grp_rig)
 
-        pymel.connectAttr(self.ctrl_ik.worldMatrix, solver._attr_ctrl_tm)
-        pymel.connectAttr(builder.get_world_translate(self.ctrl_swivel), solver._attr_ctrl_swivel_pos)
-        pymel.connectAttr(attr_soft_amount, solver._attr_inn_softik)
-        pymel.connectAttr(attr_stretch_amount, solver._attr_inn_stretch)
-
-        self.swivelDistance = self.chain_length  # Used in libs/fk switch
-
-        for source, target in zip(solver._attr_out_matrices, self.chain):
-            # u = libRigging.create_utility_node(
-            #     'decomposeMatrix',
-            #     inputMatrix=source
-            # )
-            # pymel.connectAttr(u.outputTranslate, target.translate)
-            # pymel.connectAttr(u.outputRotate, target.rotate)
-            # pymel.connectAttr(u.outputScale, target.scale)
+        # more eleguant?
+        for source, target in zip(component._attr_out_matrices, self.chain):
             builder.constraint_obj_to_tm(target, source, compensate_parent=True)
 
-        self._components.append(solver)  # todo: implement add_component?
+        self._components.append(component)  # todo: implement add_component?
 
     def unbuild(self):
         """

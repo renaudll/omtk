@@ -2,7 +2,8 @@ from omtk.libs import libPython, libAttr, libPyflowgraph
 from . import nodegraph_node_model_base
 from . import nodegraph_port_model
 from omtk.vendor.Qt import QtCore
-
+from omtk.libs import libComponents
+from omtk.vendor import libSerialization
 
 class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     """Define the data model for a Node representing a DagNode."""
@@ -11,6 +12,21 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         name = pynode.nodeName()
         super(NodeGraphDagNodeModel, self).__init__(registry, name)
         self._pynode = pynode
+
+    def get_parent(self):
+        if not self._pynode:
+            return None
+        parent_grp_inn, _ = libComponents.get_component_parent_network(self._pynode)
+        if not parent_grp_inn:
+            return None
+        net = libComponents.get_component_metanetwork_from_hub_network(parent_grp_inn)
+        if not net:
+            return None
+        inst = libSerialization.import_network(net)  # todo: use some kind of singleton/registry?
+        if not inst:
+            return None
+        model = self._registry.get_node_from_value(inst)
+        return model
 
     def get_metadata(self):
         return self._pynode

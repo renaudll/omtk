@@ -275,16 +275,16 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
                 for connection_model in port_model.get_output_connections():
                     port_model_dst = connection_model.get_destination()
                     node_model_dst = port_model_dst.get_parent()
-                    if node_model_dst.get_parent() != self._current_level:
-                        continue
+                    # if node_model_dst.get_parent() != self._current_level:
+                    #     continue
                     self.get_connection_widget(connection_model)
 
             if expand_downstream and port_model.is_destination():
                 for connection_model in port_model.get_input_connections():
                     port_model_src = connection_model.get_source()
                     node_model_src = port_model_src.get_parent()
-                    if node_model_src.get_parent() != self._current_level:
-                        continue
+                    # if node_model_src.get_parent() != self._current_level:
+                    #     continue
                     self.get_connection_widget(connection_model)
 
             # if port_model.is_connected():
@@ -433,6 +433,8 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         if self.can_navigate_to(node_model):
             self.set_level(node_model)
+        else:
+            log.debug("Cannot naviguate to {0}".format(node_model))
 
     def navigate_up(self):
         if self._current_level is None:

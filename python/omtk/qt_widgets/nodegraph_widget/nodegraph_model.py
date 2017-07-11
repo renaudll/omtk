@@ -12,6 +12,7 @@ from . import nodegraph_port_model
 from . import nodegraph_node_model_component
 from . import nodegraph_node_model_dagnode
 from . import nodegraph_node_model_module
+from . import nodegraph_node_model_rig
 
 log = logging.getLogger('omtk')
 
@@ -34,6 +35,7 @@ class NodeGraphModel(object):
 
         self._nodes_by_metadata = {}
 
+
     # --- Registration methods ---
 
     def _register_node(self, inst):
@@ -49,9 +51,9 @@ class NodeGraphModel(object):
 
     @libPython.memoized_instancemethod
     def get_node_from_value(self, val):
-        # type: (object) -> GraphNodeModel
+        ## type: (object) -> NodeGraphModel
         """
-        Public entry point to access a Node from a provided value.
+        Factory function for creating NodeGraphModel instances.
         This handle all the caching and registration.
         """
         log.debug('Exploring new value {0}'.format(val))
@@ -76,6 +78,9 @@ class NodeGraphModel(object):
 
         if data_type == factory_datatypes.AttributeType.Module:
             return nodegraph_node_model_module.NodeGraphModuleModel(self, val)
+
+        if data_type == factory_datatypes.AttributeType.Rig:
+            return nodegraph_node_model_rig.NodeGraphNodeRigModel(self, val)
 
         raise Exception("Unsupported value {0} of type {1}".format(
             val, data_type

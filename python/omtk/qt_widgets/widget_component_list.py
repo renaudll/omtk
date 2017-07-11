@@ -66,7 +66,7 @@ class WidgetComponentList(QtWidgets.QWidget):
         view.setModel(proxy_model)
         # view.resizeColumnsToContents()
 
-        self._parent = None
+        self._manager = None
 
         self._ctrl = None
 
@@ -78,9 +78,8 @@ class WidgetComponentList(QtWidgets.QWidget):
         """
         self._ctrl = ctrl
 
-    def set_parent(self, parent):
-        self._parent = parent
-
+    def set_manager(self, parent):
+        self._manager = parent
 
     def _get_selected_entries(self):
         # type: () -> List[ComponentDefinition]
@@ -133,13 +132,12 @@ class WidgetComponentList(QtWidgets.QWidget):
     def action_submit(self):
         entries = self._get_selected_entries()
         for entry in entries:
-
             # Create the component in memory
-            component = entry.instanciate(self._parent)
+            component = entry.instanciate(self._manager)
 
             # Export the component metadata
             from omtk.vendor import libSerialization
-            libSerialization.export_network(component)
+            libSerialization.export_network(component, cache=self._manager._serialization_cache) ## error ehere
 
             self.signalComponentCreated.emit(component)
         self.close()

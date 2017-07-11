@@ -61,10 +61,16 @@ class PymelAttributePortAdaptor(PortAdaptor):
         return pymel.attributeQuery(self._attr_name(), node=self._pynode, writable=True)
 
     def is_source(self):
-        return self._data.isSource()
+        if self._data.isMulti():
+            return any(child.isSource() for child in self._data)
+        else:
+            return self._data.isSource()
 
     def is_destination(self):
-        return self._data.isDestination()
+        if self._data.isMulti():
+            return any(child.isDestination() for child in self._data)
+        else:
+            return self._data.isDestination()
 
     def get_inputs(self):
         return self._data.inputs(plugs=True)
@@ -127,6 +133,9 @@ class EntityAttributePortAdaptor(PortAdaptor):
         return True
 
     def is_source(self):
+        return False
+
+    def is_destination(self):
         val = self._data.get()
         if isinstance(val, list):
             for entry in val:
@@ -140,10 +149,7 @@ class EntityAttributePortAdaptor(PortAdaptor):
                     return True
             if isinstance(val, pymel.PyNode):
                 return True
-        return False
+        return bool(val)
 
-    def is_destination(self):
-        return False
-
-    def get_outputs(self):
+    def get_inputs(self):
         return self._data.get()

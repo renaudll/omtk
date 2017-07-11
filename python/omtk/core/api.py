@@ -69,7 +69,7 @@ def create(cls=None, *args, **kwargs):
     return cls(*args, **kwargs)
 
 
-def find():
+def find(cache=None):
     """
     :return: All the rigs embedded in the current maya scene.
     """
@@ -77,16 +77,16 @@ def find():
 
     # TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.get_networks_from_class('Rig')
-    results = [libSerialization.import_network(network, module='omtk') for network in networks]
+    results = [libSerialization.import_network(network, module='omtk', cache=cache) for network in networks]
     results = filter(None, results)  # Prevent un-serializable networks from passing through.
     return results
 
 
-def find_one():
+def find_one(**kwargs):
     """
     :return: The first rig embedded in the current maya scene.
     """
-    return next(iter(find()), None)
+    return next(iter(find(**kwargs)), None)
 
 
 

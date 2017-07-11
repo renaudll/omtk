@@ -403,7 +403,7 @@ class IK(Module):
         for source, target in zip(component._attr_out_matrices, self.chain):
             builder.constraint_obj_to_tm(target, source, compensate_parent=True)
 
-        self._components.append(component)  # todo: implement add_component?
+        self.components.append(component)  # todo: implement add_component?
 
     def unbuild(self):
         """

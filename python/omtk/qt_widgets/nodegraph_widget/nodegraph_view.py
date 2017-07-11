@@ -1,5 +1,6 @@
 import pymel.core as pymel
 from omtk.libs import libPython
+from omtk.libs import libPyflowgraph
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
 from omtk.core import classModule
@@ -26,10 +27,10 @@ class NodeGraphView(PyFlowgraphView):
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
         shortcut_tab.activated.connect(self.on_tab_pressed)
 
-        self._omtk_singleton = None
+        self._manager = None
 
-    def set_omtk_singleton(self, val):
-        self._omtk_singleton = val
+    def set_manager(self, val):
+        self._manager = val
 
     # -- Model/View/Controller pattern --
 
@@ -64,7 +65,7 @@ class NodeGraphView(PyFlowgraphView):
     def on_tab_pressed(self):
         from omtk.qt_widgets import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self)
-        dialog.set_parent(self._omtk_singleton)
+        dialog.set_manager(self._manager)
         dialog.signalComponentCreated.connect(self.on_component_created)
         dialog.show()
 
@@ -134,21 +135,15 @@ class NodeGraphView(PyFlowgraphView):
         :param component:
         :return:
         """
-        model = self._controller.add_node(component)
-
-        # if isinstance(component, classModule.Module):
-        #     self._controller.get
-
-        # from omtk import api
-        # rig = api.find_one()
-        # rig.add_module(component)
+        model, widget = self._controller.add_node(component)
 
         from omtk.core import classModule
         if isinstance(component, classModule.Module):
-            rig = self._omtk_singleton._root
+            rig = self._manager._root
             rig.add_module(component)
 
         self._controller.expand_node_attributes(model)
         self._controller.expand_node_connections(model)
+        libPyflowgraph.arrange_downstream(widget)
 
         self.updateRequested.emit()

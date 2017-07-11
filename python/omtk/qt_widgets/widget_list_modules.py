@@ -62,8 +62,8 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.customContextMenuRequested.connect(self.on_context_menu_request)
         self.ui.btn_update.pressed.connect(self.update)
 
-    def set_rigs(self, rig, update=True):
-        self._rigs = rig
+    def set_rigs(self, rigs, update=True):
+        self._rigs = rigs
         self._rig = next(iter(self._rigs), None)
         if update:
             self.update()
@@ -135,13 +135,13 @@ class WidgetListModules(QtWidgets.QWidget):
             self.ui.treeWidget.addTopLevelItem(item)
             self.ui.treeWidget.expandItem(item)
 
-        from omtk.vendor import libSerialization
-        networks = libSerialization.get_networks_from_class(Component.__name__)
-        for network in networks:
-            module = libSerialization.import_network(network)
-            item = factory_tree_widget_item.get_tree_item(module)
-            self.ui.treeWidget.addTopLevelItem(item)
-            self.ui.treeWidget.expandItem(item)
+        # from omtk.vendor import libSerialization
+        # networks = libSerialization.get_networks_from_class(Component.__name__)
+        # for network in networks:
+        #     module = libSerialization.import_network(network)
+        #     item = factory_tree_widget_item.get_tree_item(module)
+        #     self.ui.treeWidget.addTopLevelItem(item)
+        #     self.ui.treeWidget.expandItem(item)
 
         self.refresh_ui()
 

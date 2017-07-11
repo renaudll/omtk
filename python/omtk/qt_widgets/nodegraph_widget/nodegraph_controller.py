@@ -56,6 +56,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self._known_connections = set()
 
         self._known_nodes_widgets = set()
+        self._known_connections_widgets = set()
 
         # Cache to access model-widget relationship
         self._cache_port_widget_by_model = {}
@@ -229,23 +230,37 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         # Ensure ports are initialized
         self.get_port_widget(port_src_model)
-        self.get_port_widget(port_dst_model)
+        widget_dst_port = self.get_port_widget(port_dst_model)
 
         widget_src_node = self.get_node_widget(port_src_model.get_parent())
         widget_dst_node = self.get_node_widget(port_dst_model.get_parent())
 
+        # Hack:
+        widget_dst_port.inCircle().setSupportsOnlySingleConnections(False)
+
+        connection = None
         try:
-            return self._view.connectPorts(
+            log.debug("Connecting {0} to {1}".format(
+                '{0}.{1}'.format(widget_src_node.getName(), port_src_model.get_name()),
+                '{0}.{1}'.format(widget_dst_node.getName(), port_dst_model.get_name())
+            ))
+            connection = self._view.connectPorts(
                 widget_src_node,
                 port_src_model.get_name(),
                 widget_dst_node,
                 port_dst_model.get_name()
             )
+
         except Exception, e:
             log.warning("Error connecting {0} to {1}".format(
                 '{0}.{1}'.format(widget_src_node.getName(), port_src_model.get_name()),
                 '{0}.{1}'.format(widget_dst_node.getName(), port_dst_model.get_name())
             ))
+
+        if connection:
+            self._known_connections_widgets.add(connection)
+
+        return connection
 
     def expand_node_attributes(self, node_model):
         # type: (NodeGraphNodeModel) -> None
@@ -322,12 +337,13 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             node_model = self.get_node_model_from_value(node_model)
         self._known_nodes.add(node_model)
 
+        node_widget = None
         if self._view:
             node_widget = self.get_node_widget(node_model)
             # self._known_nodes_widgets(node_widget)
         self.expand_node_attributes(node_model)
 
-        return node_model
+        return node_model, node_widget
 
     def redraw(self):
         """
@@ -355,9 +371,25 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self.collapse_node_attributes(node_model)
 
     def clear(self):
+        for connection_widget in self._known_connections_widgets:
+            self._view.removeConnection(connection_widget)
         for node_widget in self._known_nodes_widgets:
             self._view.removeNode(node_widget)
+        self._view.reset()
         self._known_nodes_widgets.clear()
+
+        try:
+            self._cache.pop('get_node_widget', None)
+        except KeyError:
+            pass
+        try:
+            self._cache.pop('get_port_widget', None)
+        except KeyError:
+            pass
+        try:
+            self._cache.pop('get_connection_widget', None)
+        except KeyError:
+            pass
 
     def set_level(self, node_model):
         # todo: handle top level

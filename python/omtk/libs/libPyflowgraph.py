@@ -1,7 +1,11 @@
-from omtk import factory_datatypes, constants
-from omtk.vendor.Qt import QtCore
+import logging
+
 from omtk import constants
+from omtk import factory_datatypes
+from omtk.vendor.Qt import QtCore
 from pymel import core as pymel
+
+log = logging.getLogger('omtk')
 
 _GRAPH_POS_ATTR_NAME = constants.PyFlowGraphMetadataKeys.Position
 
@@ -102,16 +106,24 @@ def arrange_downstream(node, padding_x=32, padding_y=32):
 
     # Set start location
     pos_x = parent_pos.x() - (node.size().width() * 0.5) - padding_x
-    pos_y = parent_pos.y() - (total_height / 2.0)
+    pos_y = parent_pos.y() - total_height
 
     # Reposition all children
+    known_nodes = set()
     for child, in zip(children):
+        if child in known_nodes:
+            continue
+        known_nodes.add(child)
+
         pos_y += child.size().height() * 0.5
+        log.debug('Repositionning {} ({}) to {}, {}'.format(
+            child, child.getName(), pos_x, pos_y
+        ))
         child.setGraphPos(QtCore.QPointF(
             pos_x - (child.size().width() * 0.5),
-            pos_y + (child.size().height() * -0.5))
-        )
-        pos_y += child.size().height() * 0.5 + padding_y
+            pos_y
+        ))
+        pos_y += child.size().height() + padding_y
         # pos_y += spacing_y
         arrange_downstream(child, padding_x=padding_x, padding_y=padding_y)
 

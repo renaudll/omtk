@@ -99,6 +99,9 @@ class NodeGraphModel(object):
         elif isinstance(val, classEntityAttribute.EntityAttribute):
             node_model = self.get_node_from_value(val.parent)
             inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+        elif isinstance(val, pymel.Attribute):
+            node_model = self.get_node_from_value(val.node())  # still needed?
+            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val)
         else:
             datatype = factory_datatypes.get_datatype(val)
             if datatype == factory_datatypes.AttributeType.Node:
@@ -108,10 +111,10 @@ class NodeGraphModel(object):
                 node_model = self.get_node_from_value(val.rig)
                 val = val.rig.get_attribute_by_name('modules')
                 inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
-
             else:
                 node_model = self.get_node_from_value(val.node())  # still needed?
                 inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val)
+
         self._register_attribute(inst)
         return inst
 

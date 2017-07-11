@@ -71,6 +71,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # Connect events (breadcrumb)
         self.ui.widget_breadcrumb.path_changed.connect(self.on_level_changed)
 
+    def get_controller(self):
+        return self._nodegraph_ctrl
+
     def on_selected_nodes_moved(self):
         for node in self.ui.widget_view.getSelectedNodes():
             if node._meta_data:

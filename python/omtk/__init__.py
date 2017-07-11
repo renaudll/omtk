@@ -81,6 +81,9 @@ def _reload(kill_ui=True):
     import factory_datatypes
     reload(factory_datatypes)
 
+    from omtk import manager
+    reload(manager)
+
     log.debug('Reloading factory_tree_widget_item')
     import factory_tree_widget_item
     reload(factory_tree_widget_item)

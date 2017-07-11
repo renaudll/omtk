@@ -66,7 +66,7 @@ class Module(Entity):
         # If you define additional properties, don't forget to implement them in the iter_ctrls method.
         self.ctrls = []
 
-        self._components = []  # todo: move to base class?
+        self.components = []  # todo: move to base class?
 
         if input:
             if not isinstance(input, list):
@@ -83,7 +83,7 @@ class Module(Entity):
             yield child
 
         # debug
-        for foo in self._components:
+        for foo in self.components:
             yield foo
 
     def iter_attributes(self):

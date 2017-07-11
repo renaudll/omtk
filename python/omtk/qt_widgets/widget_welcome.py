@@ -34,6 +34,11 @@ class WidgetWelcome(QtWidgets.QWidget):
         self.ui.btn_create_rig_default.pressed.connect(self.on_create_rig)
         self.ui.btn_create_rig_template.pressed.connect(self.on_import_rig)
 
+        self._manager = None
+
+    def set_manager(self, manager):
+        self._manager = manager
+
     def get_selected_rig_definition(self):
         row = next(iter(row.row() for row in self.rig_def_view.selectionModel().selectedRows()), None)
         if row:
@@ -45,11 +50,12 @@ class WidgetWelcome(QtWidgets.QWidget):
 
     def on_create_rig(self):
         rig_type = self.get_selected_rig_definition()
+        self._manager.create_rig(rig_type=rig_type)
 
         # Initialize the scene
-        rig = api.create(cls=rig_type)
-        rig.build()
-        libSerialization.export_network(rig)
+        # rig = api.create(cls=rig_type)
+        # rig.build()
+        # libSerialization.export_network(rig)
 
         self.onCreate.emit()
 

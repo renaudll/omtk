@@ -4,13 +4,15 @@ import logging
 import core
 import pymel.core as pymel
 from maya import OpenMaya
-from omtk import constants
 from omtk.core import api
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
+from omtk.manager import AutoRigManager
 from omtk.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+
+from omtk import constants
 
 log = logging.getLogger('omtk')
 
@@ -20,6 +22,9 @@ class EnumSections:
     Welcome = 0
     Edit = 1
 
+
+from omtk import api
+from omtk import manager
 
 class AutoRig(QtWidgets.QMainWindow):
     # Called when the user launched Component actions, generally via a customContextMenu.
@@ -31,12 +36,15 @@ class AutoRig(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super(AutoRig, self).__init__()
 
-        # Internal data
-        self._root = None
-        self._roots = []
-
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
+
+        # Initialize manager
+        self._manager = manager.AutoRigManager()
+        self._manager.onRigCreated.connect(self.on_manager_created_rig)
+
+        self.ui.widget_welcome.set_manager(self._manager)
+        self.ui.widget_node_editor.ui.widget_view.set_manager(self._manager)
 
         version = api.get_version()
         self.setWindowTitle('Open Rigging Toolkit {}'.format(version))
@@ -81,11 +89,6 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_meshes.ui.treeWidget.setDragDropOverwriteMode(False)
         self.ui.widget_meshes.ui.treeWidget.setDragEnabled(True)
 
-        # Connect widget signals
-        # self.ui.widget_meshes.needImportNetwork.connect(self.import_networks)
-        # self.ui.widget_meshes.needExportNetwork.connect(self.export_networks)
-        # self.ui.widget_meshes.deletedRig.connect(self.on_rig_deleted)
-
         self.callbacks_events = []
         self.callbacks_scene = []
         self.callbacks_nodes = None
@@ -93,7 +96,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.create_callbacks()
 
         # Configure welcome screen
-        if not self._root:
+        if not self._manager._root:
             self.ui.stackedWidget.setCurrentWidget(self.ui.page_1)
         else:
             self.ui.stackedWidget.setCurrentWidget(self.ui.page_2)
@@ -138,14 +141,17 @@ class AutoRig(QtWidgets.QMainWindow):
         self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
 
         # Add existing rigs in the NodeGraph on startup
-        for rig in self._roots:
+        for rig in self._manager._roots:
             ctrl = self.ui.widget_node_editor._nodegraph_ctrl
-            model = ctrl.add_node(rig)
+            model, widget = ctrl.add_node(rig)
             ctrl.expand_node_connections(model)
 
         self.ui.widget_node_editor.ui.widget_view.updateRequested.connect(self.on_request_export)
 
-        self.ui.widget_node_editor.ui.widget_view.set_omtk_singleton(self)  # hack
+    def on_manager_created_rig(self, rig):
+        node_editor_ctrl = self.ui.widget_node_editor.get_controller()
+        model = node_editor_ctrl.get_node_model_from_value(rig)
+        node_editor_ctrl.add_node(model)
 
     def on_action_requested(self, actions):
         need_export_network = False
@@ -181,7 +187,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules._reset_ui_enabled()
 
     def on_welcome_rig_created(self):
-        self.import_networks()
+        # self.import_networks()
         self.update_internal_data()
         # self.update_ui()
         self.set_current_widget(EnumSections.Edit)
@@ -294,7 +300,7 @@ class AutoRig(QtWidgets.QMainWindow):
     def _add_part(self, cls):
         # part = _cls(pymel.selected())
         inst = cls(pymel.selected())
-        self._root.add_module(inst)
+        self._manager._root.add_module(inst)
         net = self.export_networks()
         pymel.select(net)
 
@@ -302,8 +308,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
     @libPython.log_execution_time('import_networks')
     def import_networks(self, *args, **kwargs):
-        self._roots = core.find()
-        self._root = next(iter(self._roots), None)
+        self._manager.import_networks()
 
         # # Create a rig instance if the scene is empty.
         # if self.root is None:
@@ -314,25 +319,16 @@ class AutoRig(QtWidgets.QMainWindow):
         self.update_internal_data()
 
     def update_internal_data(self):
-        self.ui.widget_modules.set_rigs(self._roots)
-        self.ui.widget_jnts.set_rig(self._root)
-        self.ui.widget_meshes.set_rig(self._root)
+        self.ui.widget_modules.set_rigs(self._manager._roots)
+        self.ui.widget_jnts.set_rig(self._manager._root)
+        self.ui.widget_meshes.set_rig(self._manager._root)
 
     @libPython.log_execution_time('export_networks')
     def export_networks(self, update=True):
-        try:
-            network = self._root._network
-            if network and network.exists():
-                pymel.delete(network)
-        except AttributeError:
-            pass
-
-        net = libSerialization.export_network(self._root)  # Export part and only part
+        self._manager.export_networks()
 
         if update:
             self.update_ui()
-
-        return net
 
     # Will only refresh tree view information without removing any items
     def refresh_ui(self):
@@ -376,20 +372,6 @@ class AutoRig(QtWidgets.QMainWindow):
     def on_update(self, *args, **kwargs):
         self.import_networks()
         self.update_ui()
-
-    def on_rig_deleted(self, rig):
-        """
-        Called from an internal widget to delete a rig.
-        We take in consideration that the rig is already unbuilt and we only need to cleanup.
-        """
-        need_update = False
-        if rig in self._roots:
-            self._roots.remove(rig)
-            need_update = True
-        if rig is self._root:
-            self._root = next(iter(self._roots), None)
-        if need_update:
-            self.update_internal_data()
 
     def on_btn_add_pressed(self):
         selected_items = self.ui.widget_jnts.get_selection()
@@ -457,21 +439,21 @@ class AutoRig(QtWidgets.QMainWindow):
         return nomenclature.side == nomenclature.SIDE_R
 
     def _get_l_influences(self):
-        objs = self._root.get_potential_influences()
+        objs = self._manager._root.get_potential_influences()
         # Filter joints
         fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
         objs = filter(fn_filter, objs)
         # Filter l side only
-        fn_filter = functools.partial(self._is_l_influence, self._root)
+        fn_filter = functools.partial(self._is_l_influence, self._manager._root)
         return filter(fn_filter, objs)
 
     def _get_r_influences(self):
-        objs = self._root.get_potential_influences()
+        objs = self._manager._root.get_potential_influences()
         # Filter joints
         fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
         objs = filter(fn_filter, objs)
         # Filter r side only
-        fn_filter = functools.partial(self._is_r_influence, self._root)
+        fn_filter = functools.partial(self._is_r_influence, self._manager._root)
         return filter(fn_filter, objs)
 
     def on_mirror_influences_l_to_r(self):

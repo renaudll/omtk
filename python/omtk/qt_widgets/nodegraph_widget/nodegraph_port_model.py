@@ -189,10 +189,6 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
     def get_widget(self, ctrl, graph, node):
         widget = super(NodeGraphPymelPortModel, self).get_widget(ctrl, graph, node)
 
-        # Hack: Enable multiple connections in PyFlowgraph if we encounter a multi attribute.
-        # if self._pyattr.isMulti():
-        #     widget.inCircle().setSupportsOnlySingleConnections(False)
-
         return widget
 
         # todo: uncomment and fix

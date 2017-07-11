@@ -51,7 +51,7 @@ class GraphRegistryTest(unittest.TestCase):
     def test_component_loading(self):
         """Ensure the registry is able to load a component and it's children."""
         component = self._create_simple_compound()
-        node_model = self.controller.add_node(component)
+        node_model, node_widget = self.controller.add_node(component)
 
         self.assertEqual(1, len(self.model._nodes))
 

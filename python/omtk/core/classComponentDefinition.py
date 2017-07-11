@@ -213,7 +213,7 @@ class ComponentModuleDefinition(ComponentDefinition):
         super(ComponentModuleDefinition, self).__init__(name, **kwargs)
         self._cls = module_cls
 
-    def instanciate(self, parent, name='unamed'):
+    def instanciate(self, manager, name='unamed'):
         # Add the component to the first Rig we encounter.
         # todo: make this more elegant
         # from omtk import api
@@ -221,7 +221,8 @@ class ComponentModuleDefinition(ComponentDefinition):
 
         inst = self._cls(name=name)
 
-        parent._root.add_module(inst)
+        manager._root.add_module(inst)
+        manager.export_networks()
 
         inst.initialize_inputs()  # module need inputs, create them otherwise it wont work...
         try:

@@ -188,6 +188,8 @@ class ActionShowContentInNodeEditor(EntityAction):
         if not children:
             log.debug('Cannot open NodeEditor to explore {0} content. No children to display!'.format(self.component))
             return
+        children.add(self.component.grp_inn)
+        children.add(self.component.grp_out)
 
         node_editor = self._create_node_editor()
         pymel.select(children)

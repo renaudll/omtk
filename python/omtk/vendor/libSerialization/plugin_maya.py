@@ -349,21 +349,24 @@ def export_network(data, cache=None, **kwargs):
     # todo: after refactoring, the network cache will be merged with the import cache
     data_id = id(data)
     result = cache.get_network_by_id(data_id)
-    if result is not None:
-        return result
+    if result:
+        network = result
+        return network  # remove me
+    else:
 
-    # Create network
-    # Optimisation: Use existing network if already present in scene
-    #if hasattr(data, '_network') and is_valid_PyNode(data._network):
-    #    network = data._network
-    #else:
-    # Automaticly name network whenever possible
-    try:
-        network_name = data.__getNetworkName__()
-    except (AttributeError, TypeError):
-        network_name = data.__class__.__name__
 
-    network = pymel.createNode('network', name=network_name)
+        # Create network
+        # Optimisation: Use existing network if already present in scene
+        #if hasattr(data, '_network') and is_valid_PyNode(data._network):
+        #    network = data._network
+        #else:
+        # Automaticly name network whenever possible
+        try:
+            network_name = data.__getNetworkName__()
+        except (AttributeError, TypeError):
+            network_name = data.__class__.__name__
+
+        network = pymel.createNode('network', name=network_name)
 
     # Monkey patch the network in a _network attribute if supported.
     if isinstance(data, object) and not isinstance(data, dict):
@@ -501,8 +504,8 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
         pass
 
     # Update network _uid to the current python variable context
-    # if network.hasAttr('_uid'):
-    #     network.attr('_uid').set(id(obj))
+    if network.hasAttr('_uid'):
+        network.attr('_uid').set(id(obj))
 
     return obj
 

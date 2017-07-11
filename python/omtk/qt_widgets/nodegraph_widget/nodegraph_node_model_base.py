@@ -165,5 +165,5 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
         if version_major is not None and version_minor is not None and version_patch is not None:  # todo: more eleguant
             result += 'v{0}.{1}.{2}'.format(version_major, version_minor, version_patch)
 
-        result += ' ({} child)'.format(len(list(self._entity.iter_sub_components())))
+        result += ' ({} child) {}'.format(len(list(self._entity.iter_sub_components())), id(self._entity))
         return result

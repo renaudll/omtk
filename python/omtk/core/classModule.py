@@ -732,3 +732,6 @@ class Module(Entity):
             module_cls=cls
         )
         return inst
+
+    def initialize_inputs(self):
+        log.warning("Input initialization not implemented!")

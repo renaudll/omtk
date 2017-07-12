@@ -1,10 +1,12 @@
-from omtk.vendor.Qt import QtCore, QtWidgets, QtCore
-from omtk.core.classComponentDefinition import ComponentDefinition
-from omtk.core.classComponent import Component
-from omtk.core import plugin_manager
-from omtk.ui import widget_component_list
-from omtk.libs import libComponents
+import logging
 
+from omtk.core.classComponent import Component
+from omtk.core.classComponentDefinition import ComponentDefinition
+from omtk.libs import libComponents
+from omtk.qt_widgets.ui import widget_component_list
+from omtk.vendor.Qt import QtWidgets, QtCore
+
+log = logging.getLogger('omtk')
 
 class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
     _HEADERS = (
@@ -133,7 +135,11 @@ class WidgetComponentList(QtWidgets.QWidget):
         entries = self._get_selected_entries()
         for entry in entries:
             # Create the component in memory
-            component = entry.instanciate(self._manager)
+            try:
+                component = entry.instanciate(self._manager)
+            except Exception, e:
+                log.exception(e)
+                raise e
 
             # Export the component metadata
             from omtk.vendor import libSerialization

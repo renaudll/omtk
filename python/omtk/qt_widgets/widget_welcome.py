@@ -1,7 +1,5 @@
-from omtk.core import api
 from omtk.core import preferences
-from omtk.ui import widget_welcome
-from omtk.vendor import libSerialization
+from omtk.qt_widgets.ui import widget_welcome
 from omtk.vendor.Qt import QtCore, QtWidgets
 
 from . import model_rig_definitions
@@ -51,12 +49,6 @@ class WidgetWelcome(QtWidgets.QWidget):
     def on_create_rig(self):
         rig_type = self.get_selected_rig_definition()
         self._manager.create_rig(rig_type=rig_type)
-
-        # Initialize the scene
-        # rig = api.create(cls=rig_type)
-        # rig.build()
-        # libSerialization.export_network(rig)
-
         self.onCreate.emit()
 
     def on_import_rig(self):

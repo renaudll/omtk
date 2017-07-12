@@ -7,8 +7,7 @@ from maya import OpenMaya
 from omtk.core import api
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
-from omtk.manager import AutoRigManager
-from omtk.ui import main_window
+from omtk.qt_widgets.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
@@ -33,6 +32,7 @@ class AutoRig(QtWidgets.QMainWindow):
     # Called when something change internally and a refresh is needed.
     exportRequested = QtCore.Signal()
 
+
     def __init__(self, parent=None):
         super(AutoRig, self).__init__()
 
@@ -40,11 +40,13 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         # Initialize manager
-        self._manager = manager.AutoRigManager()
-        self._manager.onRigCreated.connect(self.on_manager_created_rig)
+        self._manager = None
+        m = manager.AutoRigManager()
+        self.set_manager(m)
+        # self._manager = manager.AutoRigManager()
 
-        self.ui.widget_welcome.set_manager(self._manager)
-        self.ui.widget_node_editor.ui.widget_view.set_manager(self._manager)
+
+
 
         version = api.get_version()
         self.setWindowTitle('Open Rigging Toolkit {}'.format(version))
@@ -75,6 +77,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.actionRemoveNodeFromModule.triggered.connect(self.on_removeFromModule)
         self.ui.actionShowPluginManager.triggered.connect(self.on_show_pluginmanager)
         self.ui.actionShowPreferences.triggered.connect(self.on_show_preferences)
+        self.ui.actionCreateComponent.triggered.connect(self.on_create_component)
 
         # Configure drag and drop
         # self.ui.widget_modules.ui.treeWidget.set_mime_type('omtk_modules')  # todo: create const
@@ -133,25 +136,47 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules.ui.treeWidget.dragLeave.connect(self.on_influence_drag_drop)
         self.ui.widget_modules.ui.treeWidget.dragDrop.connect(self.on_influence_drag_drop)
 
-        self.ui.widget_modules.actionRequested.connect(self.actionRequested.emit)
-        self.ui.widget_node_editor.ui.widget_view.actionRequested.connect(self.actionRequested.emit)
+
+
+        #
+        # Configure Node Editor
+        #
+        # self.ui.widget_node_editor.ui.widget_view.actionRequested.connect(self.actionRequested.emit)
 
         # Pre-configure QDockWidget
-        self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
+        # self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
         self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
 
         # Add existing rigs in the NodeGraph on startup
         for rig in self._manager._roots:
-            ctrl = self.ui.widget_node_editor._nodegraph_ctrl
+            ctrl = self.ui.widget_node_editor.get_controller()
             model, widget = ctrl.add_node(rig)
             ctrl.expand_node_connections(model)
 
-        self.ui.widget_node_editor.ui.widget_view.updateRequested.connect(self.on_request_export)
+        self._manager.onSceneChanged.connect(self.on_scene_changed)
+
+        # self.ui.widget_node_editor.ui.widget_view.updateRequested.connect(self.on_request_export)
+
+    def set_manager(self, manager):
+        if self._manager:
+            self.ui.widget_modules.actionRequested.disconnect(self._manager.onSceneChanged.emit)
+
+        self._manager = manager
+
+        self.ui.widget_modules.actionRequested.connect(self._manager.onSceneChanged.emit)
+
+        # Notify other components
+        self.ui.widget_welcome.set_manager(manager)
+        self.ui.widget_node_editor.set_manager(manager)
+
+        manager.onRigCreated.connect(self.on_manager_created_rig)
 
     def on_manager_created_rig(self, rig):
         node_editor_ctrl = self.ui.widget_node_editor.get_controller()
         model = node_editor_ctrl.get_node_model_from_value(rig)
         node_editor_ctrl.add_node(model)
+
+
 
     def on_action_requested(self, actions):
         need_export_network = False
@@ -167,6 +192,11 @@ class AutoRig(QtWidgets.QMainWindow):
             self.ui.widget_modules.update()
             self.ui.widget_node_editor.ui.widget.update()
             # todo: update node editor?
+
+    def on_scene_changed(self):
+        """Called when something change somewhere but we don't known exactly what."""
+        self.ui.widget_modules.update()
+        self.ui.widget_node_editor.ui.widget.update()
 
     def on_request_export(self):
         self.export_networks()
@@ -212,7 +242,7 @@ class AutoRig(QtWidgets.QMainWindow):
         # Define style
         stylesheet = ''
         if num_errors:
-            stylesheet = "background-color: rgb(200, 128, 128); color: rgb(0, 0, 0);"
+            stylesheet = "background-color: rgb(255, 000, 000); color: rgb(0, 0, 0);"
         elif num_warnings:
             stylesheet = "background-color: rgb(200, 200, 128); color: rgb(0, 0, 0);"
         self.ui.statusbar.setStyleSheet(stylesheet)
@@ -490,6 +520,11 @@ class AutoRig(QtWidgets.QMainWindow):
     def on_show_preferences(self):
         from omtk.qt_widgets import preferences_window
         preferences_window.show()
+
+    def on_create_component(self):
+        from omtk.qt_widgets import form_create_component
+        form_create_component.show()
+        log.info('yo')
 
     #
     # QMainWindow show/close events

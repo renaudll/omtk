@@ -26,6 +26,7 @@ win.show()
 
 from . import nodegraph_widget
 
+# NodeGraphWidget = nodegraph_widget.NodeGraphWidget
 
 def reload_():
     from . import nodegraph_port_model
@@ -68,4 +69,6 @@ def reload_():
     reload(ui)
     ui.reload_()
 
-# NodeGraphWidget = nodegraph_widget.NodeGraphWidget
+    # NodeGraphWidget = nodegraph_widget.NodeGraphWidget
+
+

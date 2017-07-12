@@ -1,27 +1,18 @@
-import re
-import functools
-import traceback
 import logging
-import collections
-import itertools
-import operator
+import re
+import traceback
 
 import pymel.core as pymel
-from omtk.ui import widget_list_modules
-
-from omtk import constants
-from omtk import ui_shared
-from omtk.libs import libQt
-from omtk.libs import libPython
-from omtk.core.classNode import Node
-from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classComponent import Component
-from omtk.core.classEntity import Entity
 from omtk.core import classModule
 from omtk.core import classRig
-from omtk import factory_tree_widget_item
+from omtk.core.classEntity import Entity
+from omtk.core.classNode import Node
+from omtk.libs import libQt
+from omtk.qt_widgets.ui import widget_list_modules
+from omtk.vendor.Qt import QtCore, QtWidgets
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk import factory_tree_widget_item
+from omtk import ui_shared
 
 log = logging.getLogger('omtk')
 
@@ -353,7 +344,6 @@ class WidgetListModules(QtWidgets.QWidget):
     #     return result
 
     def on_context_menu_request(self):
-        from omtk import factory_datatypes
         from omtk import factory_rc_menu
         selected_items = self.ui.treeWidget.selectedItems()
         selected_components = [item._meta_data for item in selected_items if isinstance(item._meta_data, Entity)]

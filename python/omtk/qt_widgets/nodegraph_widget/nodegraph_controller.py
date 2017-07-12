@@ -9,6 +9,7 @@ from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore
+from omtk.core import classEntity
 
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
@@ -37,12 +38,15 @@ def block_signal(fn):
 class NodeGraphController(QtCore.QObject):  # needed for signal handling
     onLevelChanged = QtCore.Signal(object)
 
+    actionRequested = QtCore.Signal(list)
+
     def __init__(self, model):
         super(NodeGraphController, self).__init__()  # needed for signal handling
         # type: (NodeGraphModel, NodeGraphView) -> ()
         self._model = model
         self._view = None
         self._current_level = None
+        self._manager = None
 
         # Hold a reference to the inn and out node when inside a compound.
         self._widget_bound_inn = None
@@ -64,6 +68,9 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         self._old_scene_x = None
         self._old_scene_y = None
+
+    def set_manager(self, manager):
+        self._manager = manager
 
     def get_nodes(self):
         # type: () -> (List[NodeGraphNodeModel])
@@ -362,6 +369,9 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # Retrieve monkey-patched model in PyFlowgraph widgets.
         return [pfg_node._omtk_model for pfg_node in self._view.getSelectedNodes()]
 
+    def get_selected_values(self):
+        return [model.get_metadata() for model in self.get_selected_nodes()]
+
     def expand_selected_nodes(self):
         for node_model in self.get_selected_nodes():
             self.expand_node_connections(node_model)
@@ -371,10 +381,10 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self.collapse_node_attributes(node_model)
 
     def clear(self):
-        for connection_widget in self._known_connections_widgets:
-            self._view.removeConnection(connection_widget)
-        for node_widget in self._known_nodes_widgets:
-            self._view.removeNode(node_widget)
+        # for connection_widget in self._known_connections_widgets:
+        #     self._view.removeConnection(connection_widget)
+        # for node_widget in self._known_nodes_widgets:
+        #     self._view.removeNode(node_widget)
         self._view.reset()
         self._known_nodes_widgets.clear()
 
@@ -428,8 +438,6 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         libPyflowgraph.arrange_downstream(node_widget)
 
-        self.onLevelChanged.emit(node_model)
-
     def can_navigate_to(self, node_model):
         if node_model is None:
             return False
@@ -463,10 +471,34 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         if self.can_navigate_to(node_model):
             self.set_level(node_model)
+            self.onLevelChanged.emit(node_model)
         else:
             log.debug("Cannot naviguate to {0}".format(node_model))
 
     def navigate_up(self):
         if self._current_level is None:
             return
-        self.set_level(self._current_level.get_parent())
+
+        node_model = self._current_level.get_parent()
+        if self.can_navigate_to(node_model):
+            self.set_level(node_model)
+            self.onLevelChanged.emit(node_model)
+        else:
+            log.debug("Cannot naviguate to {0}".format(node_model))
+
+    def on_right_click(self):
+        from omtk import factory_rc_menu
+        values = self.get_selected_values()
+
+        values = [v for v in values if isinstance(v, classEntity.Entity)]  # limit ourself to components
+
+        # values = [v for v in values if factory_datatypes.get_datatype(v) == factory_datatypes.AttributeType.Component]
+        # values = [node._meta_data for node in self.getSelectedNodes() if
+        #           node._meta_type == factory_datatypes.AttributeType.Component]
+        if not values:
+            return
+
+        menu = factory_rc_menu.get_menu(values, self.on_execute_action)
+
+    def on_execute_action(self, actions):
+        self._manager.execute_actions(actions)

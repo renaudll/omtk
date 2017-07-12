@@ -44,7 +44,7 @@ class WidgetBreadcrumb(QtWidgets.QWidget):
         self.__layout.addStretch()
 
     def on_path_changed(self, model):
-        self.set_path(model)
+        # self.set_path(model)
         self.path_changed.emit(model)
 
     # def on_path_changed(self, new_path):

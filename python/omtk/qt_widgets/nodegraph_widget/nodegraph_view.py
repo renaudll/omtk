@@ -20,7 +20,7 @@ class NodeGraphView(PyFlowgraphView):
     actionRequested = QtCore.Signal(list)
     updateRequested = QtCore.Signal()
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
 
@@ -49,12 +49,7 @@ class NodeGraphView(PyFlowgraphView):
     # -- CustomContextMenu --
 
     def on_custom_context_menu_requested(self):
-        values = [node._meta_data for node in self.getSelectedNodes() if
-                  node._meta_type == factory_datatypes.AttributeType.Component]
-        if not values:
-            return
-
-        menu = factory_rc_menu.get_menu(values, self.actionRequested.emit)
+        self._controller.on_right_click()
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:

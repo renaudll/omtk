@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/preferences_window.ui'
 #
-# Created: Tue Jul 11 11:14:53 2017
+# Created: Wed Jul 12 11:39:46 2017
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!

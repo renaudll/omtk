@@ -95,91 +95,6 @@ def _reload(kill_ui=True):
     log.debug('Reloading ui_shared')
     import ui_shared
     reload(ui_shared)
-
-    # Dependency of widget_list_modules
-    log.debug('Reloading widget_extended_tree')
-    from omtk.qt_widgets import widget_extended_tree
-    reload(widget_extended_tree)
-
-    log.debug('Reloading pluginmanager_window')
-    from ui import pluginmanager_window
-    reload(pluginmanager_window)
-
-    log.debug('Reloading preferences_window')
-    from ui import preferences_window
-    reload(preferences_window)
-
-    log.debug('Reloading widget_list_influences')
-    from ui import widget_list_influences
-    reload(widget_list_influences)
-
-    log.debug('Reloading widget_list_modules')
-    from ui import widget_list_modules
-    reload(widget_list_modules)
-
-    log.debug('Reloading widget_list_meshes')
-    from ui import widget_list_meshes
-    reload(widget_list_meshes)
-
-    log.debug('Reloading widget_logger')
-    from ui import widget_logger
-    reload(widget_logger)
-
-    log.debug('Reloading widget_welcome')
-    from ui import widget_welcome
-    reload(widget_welcome)
-
-    log.debug('Reloading widget_component_list')
-    from ui import widget_component_list
-    reload(widget_component_list)
-
-    log.debug('Reloading widget_component_list')
-    from omtk.qt_widgets import widget_component_list
-    reload(widget_component_list)
-
-    log.debug('Reloading model_rig_definitions')
-    from omtk.qt_widgets import model_rig_definitions
-    reload(model_rig_definitions)
-
-    log.debug('Reloading model_rig_templates')
-    from omtk.qt_widgets import model_rig_templates
-    reload(model_rig_templates)
-
-    log.debug('Reloading widget_list_modules')
-    from omtk.qt_widgets import widget_list_modules
-    reload(widget_list_modules)
-
-    log.debug('Reloading widget_list_meshes')
-    from omtk.qt_widgets import widget_list_meshes
-    reload(widget_list_meshes)
-
-    log.debug('Reloading widget_logger')
-    from omtk.qt_widgets import widget_logger
-    reload(widget_logger)
-
-    log.debug('Reloading widget_welcome')
-    from omtk.qt_widgets import widget_welcome
-    reload(widget_welcome)
-
-    log.debug('Reloading preferences_window')
-    from omtk.qt_widgets import preferences_window
-    reload(preferences_window)
-
-    log.debug('Reloading pluginmanager_window')
-    from omtk.qt_widgets import pluginmanager_window
-    reload(pluginmanager_window)
-
-    # Reload widget-breadcrumb (dependency of node-editor)
-
-    log.debug('Reloading widget_breadcrumb')
-    from omtk.qt_widgets import widget_breadcrumb
-    reload(widget_breadcrumb)
-
-    log.debug('Reloading qt_widgets')
-    import qt_widgets
-    reload(qt_widgets)
-    qt_widgets.reload_()
-
     # Reload main window
 
     if kill_ui:
@@ -189,8 +104,13 @@ def _reload(kill_ui=True):
         except:
             pass
 
-    log.debug('Reloading ui_main_window')
-    from ui import main_window as ui_main_window
+    log.debug('Reloading qt_widgets')
+    import qt_widgets
+    reload(qt_widgets)
+    qt_widgets.reload_()
+
+    log.debug('main_window')
+    from omtk.qt_widgets.ui import main_window as ui_main_window
     reload(ui_main_window)
 
     log.debug('Reloading main_window')

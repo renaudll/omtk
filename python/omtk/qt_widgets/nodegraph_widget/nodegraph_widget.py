@@ -23,10 +23,16 @@ widget = nodegraph_widget.NodeGraphWidget()
 win.setCentralWidget(widget)
 win.show()
 """
+import logging
+
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
 from omtk.vendor.Qt import QtWidgets
+
+from . import nodegraph_view
+
+log = logging.getLogger('omtk')
 
 
 @libPython.memoized
@@ -45,16 +51,14 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Configure NodeGraphView
-        self._nodegraph_view = self.ui.widget_view
-        self._nodegraph_model = _get_singleton_model()
-        self._nodegraph_ctrl = NodeGraphController(self._nodegraph_model)
-        self._nodegraph_ctrl.set_view(self._nodegraph_view)
+        self._manager = None
+        self._model = _get_singleton_model()
+        self._ctrl = NodeGraphController(self._model)
+        self._ctrl.onLevelChanged.connect(self.on_breadcrumb_changed)
 
-        # Hack: Connect controller events to our widget
-        # print self._nodegraph_ctrl.onLevelChanged
-        # self._nodegraph_ctrl.onLevelChanged.connect(self.on_level_changed)
-
-        self._nodegraph_view.set_model(self._nodegraph_ctrl)
+        # Keep track of the multiple views provided by the QTabWidget
+        self._current_view = None
+        self._views = []
 
         # Connect events
         self.ui.pushButton_add.pressed.connect(self.on_add)
@@ -66,16 +70,51 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
         self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
 
-        self.ui.widget_view.endSelectionMoved.connect(self.on_selected_nodes_moved)
-
         # Connect events (breadcrumb)
-        self.ui.widget_breadcrumb.path_changed.connect(self.on_level_changed)
+        self.ui.widget_breadcrumb.path_changed.connect(self.on_breadcrumb_changed)
+
+        # At least create one tab
+        self.create_tab()
+
+    def set_manager(self, manager):
+        self._manager = manager
+        self._ctrl.set_manager(manager)
+
+        for view in self._views:
+            view.set_manager(manager)
 
     def get_controller(self):
-        return self._nodegraph_ctrl
+        return self._ctrl
+
+    def create_tab(self):
+        view = nodegraph_view.NodeGraphView(self)
+        view.set_model(self._ctrl)
+        view.set_manager(self._manager)
+        view.endSelectionMoved.connect(self.on_selected_nodes_moved)  # ???
+
+        # view.setMouseTracking(True)
+        # Proper layout setup for tab
+        widget = QtWidgets.QWidget()
+        # widget.setMouseTracking(True)
+        layout = QtWidgets.QVBoxLayout(widget)
+        layout.addWidget(view)
+
+        # tab_view.setCurrentWidget(self._view)
+        self.ui.tabWidget.addTab(widget, 'Tab 1')
+
+        self._ctrl.set_view(view)
+
+        # Update internals
+        self._current_view = view
+        self._views.append(view)
+
+        # Debugging
+        i = self.ui.tabWidget.currentIndex()
+        log.info('Current tab index is {}'.format(i))
+
 
     def on_selected_nodes_moved(self):
-        for node in self.ui.widget_view.getSelectedNodes():
+        for node in self._current_view.getSelectedNodes():
             if node._meta_data:
                 new_pos = node.pos()  # for x reason, .getGraphPos don't work here
                 new_pos = (new_pos.x(), new_pos.y())
@@ -89,19 +128,19 @@ class NodeGraphWidget(QtWidgets.QWidget):
         graph.deleteSelectedNodes()
 
     def on_expand(self):
-        self._nodegraph_ctrl.expand_selected_nodes()
+        self._ctrl.expand_selected_nodes()
 
     def on_colapse(self):
-        return self._nodegraph_ctrl.colapse_selected_nodes()
+        return self._ctrl.colapse_selected_nodes()
 
     def on_navigate_down(self):
-        self._nodegraph_ctrl.navigate_down()
+        self._ctrl.navigate_down()
 
     def on_navigate_up(self):
-        self._nodegraph_ctrl.navigate_up()
+        self._ctrl.navigate_up()
 
     def _get_active_node(self):
-        return next(iter(self._nodegraph_view.getSelectedNodes()), None)
+        return next(iter(self._current_view.getSelectedNodes()), None)
 
     def on_arrange_upstream(self):
         node = self._get_active_node()
@@ -115,10 +154,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
             return
         libPyflowgraph.arrange_downstream(node)
 
-    def on_level_changed(self, model):
+    def on_breadcrumb_changed(self, model):
         """Called when the current level is changed using the breadcrumb widget."""
-        # self.ui.widget_breadcrumb.set_path(model)
-        self._nodegraph_ctrl.set_level(model)
-
+        self._ctrl.set_level(model)
+        self.ui.widget_breadcrumb.set_path(model)
 
 # from pyflowgraph.graph_view import GraphView as NodeGraphWidget

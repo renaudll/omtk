@@ -1,13 +1,11 @@
 import re
-import pymel.core as pymel
-from omtk.ui import widget_list_meshes
-
-from omtk.libs import libSkinning
-from omtk.libs import libQt
-
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 import omtk.ui_shared
+import pymel.core as pymel
+from omtk.libs import libQt
+from omtk.libs import libSkinning
+from omtk.qt_widgets.ui import widget_list_meshes
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 
 class WidgetListMeshes(QtWidgets.QWidget):

@@ -98,52 +98,19 @@
     <widget class="WidgetBreadcrumb" name="widget_breadcrumb" native="true"/>
    </item>
    <item>
-    <widget class="NodeGraphView" name="widget_view" native="true">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>-1</number>
      </property>
-     <widget class="QWidget" name="tab">
-      <attribute name="title">
-       <string>Tab 1</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <item>
-        <widget class="NodeGraphView" name="widget_view_2" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
     </widget>
    </item>
   </layout>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>NodeGraphView</class>
-   <extends>QWidget</extends>
-   <header>..nodegraph_view.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>WidgetBreadcrumb</class>
    <extends>QWidget</extends>
-   <header>....widget_breadcrumb.h</header>
+   <header>...widget_breadcrumb.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

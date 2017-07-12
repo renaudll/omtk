@@ -1,15 +1,13 @@
 import re
-import pymel.core as pymel
-from omtk.ui import widget_list_influences
-
-from omtk.libs import libQt
-from omtk.libs import libPython
-from omtk.libs import libPymel
-
-from omtk.vendor import libSerialization
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 import omtk.ui_shared
+import pymel.core as pymel
+from omtk.libs import libPymel
+from omtk.libs import libPython
+from omtk.libs import libQt
+from omtk.qt_widgets.ui import widget_list_influences
+from omtk.vendor import libSerialization
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 
 class WidgetListInfluences(QtWidgets.QWidget):

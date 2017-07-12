@@ -1,7 +1,13 @@
+import logging
+
 import pymel.core as pymel
 from omtk.core import api
+from omtk.core import classRig
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore
+from omtk import constants
+
+log = logging.getLogger('omtk')
 
 
 class AutoRigManager(QtCore.QObject):
@@ -12,6 +18,9 @@ class AutoRigManager(QtCore.QObject):
 
     # Used when a new Rig instance is added to the scene.
     onRigCreated = QtCore.Signal(object)
+
+    # Trigger a complete redraw
+    onSceneChanged = QtCore.Signal()
 
     def __init__(self):
         super(AutoRigManager, self).__init__()
@@ -38,7 +47,17 @@ class AutoRigManager(QtCore.QObject):
         """
         from omtk.vendor.libSerialization import cache
         self._serialization_cache = cache.Cache()
-        self._roots = api.find(cache=self._serialization_cache)
+        all_rigs = api.find(cache=self._serialization_cache)
+
+        self._roots = []
+        for rig in all_rigs:
+            # Since omtk 0.5, it is not possible to instanciate the rig base class.
+            if type(rig) == classRig.Rig:
+                log.warning("The scene contain old omtk 0.4 rig {0} which will be ignored.")
+                # todo: upgrade to a new rig instance?
+                continue
+
+            self._roots.append(rig)
         self._root = next(iter(self._roots), None)
 
     def export_networks(self):
@@ -76,3 +95,17 @@ class AutoRigManager(QtCore.QObject):
 
         return rig
 
+    def execute_actions(self, actions):
+        need_export_network = False
+        # entities = self.get_selected_components()
+        # action_map = self._get_actions(entities)
+        for action in actions:
+            action.execute()
+            if constants.ComponentActionFlags.trigger_network_export in action.iter_flags():
+                need_export_network = True
+
+        if need_export_network:
+            self.export_networks()
+
+            self.onSceneChanged.emit()
+            # todo: update node editor?

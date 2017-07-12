@@ -1,7 +1,6 @@
-from omtk.ui import preferences_window
 from omtk.core import plugin_manager
 from omtk.core import preferences
-
+from omtk.qt_widgets.ui import preferences_window
 from omtk.vendor.Qt import QtCore, QtWidgets
 
 

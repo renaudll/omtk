@@ -1,7 +1,7 @@
-import logging
 import datetime
-from omtk.ui import widget_logger
+import logging
 
+from omtk.qt_widgets.ui import widget_logger
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 log = logging.getLogger('omtk')

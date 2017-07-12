@@ -55,6 +55,8 @@ class AutoRigManager(QtCore.QObject):
             except AttributeError:
                 pass
 
+        from omtk.vendor.libSerialization import cache
+        self._serialization_cache = cache.Cache()
         for root in self._roots:
             libSerialization.export_network(root, cache=self._serialization_cache)
 

@@ -222,7 +222,7 @@ class ComponentModuleDefinition(ComponentDefinition):
         inst = self._cls(name=name)
 
         manager._root.add_module(inst)
-        manager.export_networks()
+        # manager.export_networks()
 
         inst.initialize_inputs()  # module need inputs, create them otherwise it wont work...
         try:

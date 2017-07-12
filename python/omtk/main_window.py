@@ -524,7 +524,6 @@ class AutoRig(QtWidgets.QMainWindow):
     def on_create_component(self):
         from omtk.qt_widgets import form_create_component
         form_create_component.show()
-        log.info('yo')
 
     #
     # QMainWindow show/close events

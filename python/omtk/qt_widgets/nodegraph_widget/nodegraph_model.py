@@ -56,7 +56,7 @@ class NodeGraphModel(object):
         Factory function for creating NodeGraphModel instances.
         This handle all the caching and registration.
         """
-        log.debug('Exploring new value {0}'.format(val))
+        log.debug('Creating node model from {0}'.format(val))
 
         # Handle pointer to a component datatype
         data_type = factory_datatypes.get_datatype(val)
@@ -90,6 +90,8 @@ class NodeGraphModel(object):
 
     @libPython.memoized_instancemethod
     def get_port_model_from_value(self, val):
+        # log.debug('Creating port model from {0}'.format(val))
+
         # type: () -> List[NodeGraphPortModel]
         # todo: add support for pure EntityAttribute
         if isinstance(val, classEntityAttribute.EntityPymelAttribute):

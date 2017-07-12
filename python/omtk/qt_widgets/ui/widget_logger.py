@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_logger.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/widget_logger.ui'
 #
-# Created: Wed May 31 20:55:07 2017
-#      by: pyside2-uic  running on Qt 2.0.0~alpha0
+# Created: Wed Jul 12 15:22:43 2017
+#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -55,14 +55,14 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
-        self.label_2.setText(QtCompat.translate("Form", "Logs", None, -1))
-        self.label_4.setText(QtCompat.translate("Form", "Search", None, -1))
-        self.label_3.setText(QtCompat.translate("Form", "Level:", None, -1))
-        self.comboBox_log_level.setItemText(0, QtCompat.translate("Form", "Error", None, -1))
-        self.comboBox_log_level.setItemText(1, QtCompat.translate("Form", "Warning", None, -1))
-        self.comboBox_log_level.setItemText(2, QtCompat.translate("Form", "Info", None, -1))
-        self.comboBox_log_level.setItemText(3, QtCompat.translate("Form", "Debug", None, -1))
-        self.pushButton_logs_save.setText(QtCompat.translate("Form", "Save", None, -1))
-        self.pushButton_logs_clear.setText(QtCompat.translate("Form", "Clear", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.label_2.setText(QtWidgets.QApplication.translate("Form", "Logs", None, -1))
+        self.label_4.setText(QtWidgets.QApplication.translate("Form", "Search", None, -1))
+        self.label_3.setText(QtWidgets.QApplication.translate("Form", "Level:", None, -1))
+        self.comboBox_log_level.setItemText(0, QtWidgets.QApplication.translate("Form", "Error", None, -1))
+        self.comboBox_log_level.setItemText(1, QtWidgets.QApplication.translate("Form", "Warning", None, -1))
+        self.comboBox_log_level.setItemText(2, QtWidgets.QApplication.translate("Form", "Info", None, -1))
+        self.comboBox_log_level.setItemText(3, QtWidgets.QApplication.translate("Form", "Debug", None, -1))
+        self.pushButton_logs_save.setText(QtWidgets.QApplication.translate("Form", "Save", None, -1))
+        self.pushButton_logs_clear.setText(QtWidgets.QApplication.translate("Form", "Clear", None, -1))
 

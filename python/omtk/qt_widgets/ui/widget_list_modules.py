@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/widget_list_modules.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/widget_list_modules.ui'
 #
-# Created: Wed Jul 12 11:39:46 2017
-#      by: pyside-uic 0.2.14 running on PySide 1.2.0
+# Created: Wed Jul 12 15:22:43 2017
+#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide import QtCore, QtGui
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(404, 416)
-        self.verticalLayout = QtGui.QVBoxLayout(Form)
+        self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.lineEdit_search = QtGui.QLineEdit(Form)
+        self.lineEdit_search = QtWidgets.QLineEdit(Form)
         self.lineEdit_search.setObjectName("lineEdit_search")
         self.horizontalLayout.addWidget(self.lineEdit_search)
-        self.btn_update = QtGui.QPushButton(Form)
+        self.btn_update = QtWidgets.QPushButton(Form)
         self.btn_update.setObjectName("btn_update")
         self.horizontalLayout.addWidget(self.btn_update)
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -29,7 +29,7 @@ class Ui_Form(object):
         self.treeWidget.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         self.treeWidget.setAutoFillBackground(True)
-        self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.treeWidget.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.treeWidget.setObjectName("treeWidget")
         self.treeWidget.headerItem().setText(0, "1")
         self.treeWidget.header().setVisible(False)
@@ -39,7 +39,7 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtGui.QApplication.translate("Form", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.btn_update.setText(QtGui.QApplication.translate("Form", "Update", None, QtGui.QApplication.UnicodeUTF8))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.btn_update.setText(QtWidgets.QApplication.translate("Form", "Update", None, -1))
 
 from ..widget_extended_tree import WidgetExtendedTree

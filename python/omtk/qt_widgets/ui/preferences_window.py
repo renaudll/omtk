@@ -1,42 +1,42 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/ui/preferences_window.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/preferences_window.ui'
 #
-# Created: Wed Jul 12 11:39:46 2017
-#      by: pyside-uic 0.2.14 running on PySide 1.2.0
+# Created: Wed Jul 12 15:22:43 2017
+#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide import QtCore, QtGui
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(379, 278)
-        self.verticalLayout_2 = QtGui.QVBoxLayout(Dialog)
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(Dialog)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.gridLayout = QtGui.QGridLayout()
+        self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.label = QtGui.QLabel(Dialog)
+        self.label = QtWidgets.QLabel(Dialog)
         self.label.setObjectName("label")
         self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
-        self.comboBox = QtGui.QComboBox(Dialog)
+        self.comboBox = QtWidgets.QComboBox(Dialog)
         self.comboBox.setObjectName("comboBox")
         self.gridLayout.addWidget(self.comboBox, 0, 1, 1, 1)
         self.verticalLayout_2.addLayout(self.gridLayout)
-        self.groupBox = QtGui.QGroupBox(Dialog)
+        self.groupBox = QtWidgets.QGroupBox(Dialog)
         self.groupBox.setObjectName("groupBox")
-        self.verticalLayout = QtGui.QVBoxLayout(self.groupBox)
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.groupBox)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.checkBox = QtGui.QCheckBox(self.groupBox)
+        self.checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.checkBox.setObjectName("checkBox")
         self.verticalLayout.addWidget(self.checkBox)
         self.verticalLayout_2.addWidget(self.groupBox)
-        spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem)
-        self.buttonBox = QtGui.QDialogButtonBox(Dialog)
+        self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout_2.addWidget(self.buttonBox)
 
@@ -46,8 +46,8 @@ class Ui_Dialog(object):
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QtGui.QApplication.translate("Dialog", "OMTK - Preferences", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("Dialog", "Default Rig Class", None, QtGui.QApplication.UnicodeUTF8))
-        self.groupBox.setTitle(QtGui.QApplication.translate("Dialog", "Advanced", None, QtGui.QApplication.UnicodeUTF8))
-        self.checkBox.setText(QtGui.QApplication.translate("Dialog", "Hide Welcome Screen", None, QtGui.QApplication.UnicodeUTF8))
+        Dialog.setWindowTitle(QtWidgets.QApplication.translate("Dialog", "OMTK - Preferences", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("Dialog", "Default Rig Class", None, -1))
+        self.groupBox.setTitle(QtWidgets.QApplication.translate("Dialog", "Advanced", None, -1))
+        self.checkBox.setText(QtWidgets.QApplication.translate("Dialog", "Hide Welcome Screen", None, -1))
 

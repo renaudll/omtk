@@ -15,6 +15,9 @@ def reload_():
     nodegraph_widget.reload_()
 
     log.debug('Reloading widget_extended_tree')
+    from .ui import form_create_component as form_create_component_ui
+    reload(form_create_component_ui)
+
     from . import form_create_component
     reload(form_create_component)
 

@@ -10,7 +10,7 @@ from maya import cmds
 import pymel.core as pymel
 
 regex_ma_header = re.compile('^\/\/Maya ASCII .* scene$')
-regex_fileinfo = re.compile('^fileInfo "(.*)" "(.*");')
+regex_fileinfo = re.compile('^fileInfo "(.*)" "(.*)";')
 
 _metadata_prefix = 'omtk.component.'
 
@@ -43,7 +43,7 @@ def write_metadata_to_ma_file(path, metadata):
                 elif found:
                     for key, val in metadata.iteritems():
                         fp_write.write(
-                            'fileInfo "{0}{1}" "{2}";'.format(_metadata_prefix, key, val)
+                            'fileInfo "{0}{1}" "{2}";\n'.format(_metadata_prefix, key, val)
                         )
                     success = True
                     found = False
@@ -73,10 +73,17 @@ def iter_ma_file_metadata(path):
             elif found:
                 break
 
+def get_metadata_from_file(path):
+    metadata = {}
+    for key, val in iter_ma_file_metadata(path):
+        if key.startswith(_metadata_prefix):
+            key = key[len(_metadata_prefix):]
+            metadata[key] = val
+    return metadata
 
 class ComponentDefinition(object):
-    def __init__(self, name, version=None, uid=None, author=None, path=None):
-        self.uid = uid if uid else uuid.uuid4()
+    def __init__(self, name, version=None, uid=None, author='', path=None):
+        self.uid = uid if uid else str(uuid.uuid4())
         self.name = name
         self.version = version if version else '0.0.0'
         self.author = author
@@ -119,54 +126,49 @@ class ComponentDefinition(object):
 
     @classmethod
     def from_file(cls, path):
-        metadata = {}
-        for key, val in iter_ma_file_metadata(path):
-            if key.startswith(_metadata_prefix):
-                key = key[len(_metadata_prefix):]
-                metadata[key] = val
-
+        metadata = get_metadata_from_file(path)
         cls.validate_metadata(metadata)
         inst = cls.from_metadata(metadata)
         inst.path = path
         return inst
 
-    def write_to_file(self, path=None):
-        metadata = self.get_metadata()
-        path_tmp = os.path.join(os.path.dirname(path), os.path.basename(path) + '_omtktmp')
+    # def write_to_file(self, path=None):
+    #     metadata = self.get_metadata()
+    #     path_tmp = os.path.join(os.path.dirname(path), os.path.basename(path) + '_omtktmp')
+    #
+    #     success = False
+    #     found = False
+    #     with open(path, 'r') as fp_read:
+    #         with open(path_tmp, 'w') as fp_write:
+    #             line = fp_read.readline()
+    #             if not regex_ma_header.match(line):
+    #                 raise Exception("Invalid Maya ASCII file {0}".format(path))
+    #             fp_write.write(line)
+    #
+    #             for line in fp_read:
+    #                 regex_result = regex_fileinfo.match(line)
+    #                 if regex_result:
+    #                     found = True
+    #                     key, val = regex_result.groups()
+    #                     # Ignore any existing omtk metadata
+    #                     if key.startswith(_metadata_prefix):
+    #                         continue
+    #                 # Only dump the metadata on the last fileInfo encounter
+    #                 elif found:
+    #                     for key, val in metadata.iteritems():
+    #                         fp_write.write(
+    #                             'fileInfo "{0}{1}" "{2}";'.format(_metadata_prefix, key, val)
+    #                         )
+    #                     success = True
+    #                     found = False
+    #
+    #                 fp_write.write(line)
+    #
+    #     os.rename(path_tmp, path)
+    #
+    #     return success
 
-        success = False
-        found = False
-        with open(path, 'r') as fp_read:
-            with open(path_tmp, 'w') as fp_write:
-                line = fp_read.readline()
-                if not regex_ma_header.match(line):
-                    raise Exception("Invalid Maya ASCII file {0}".format(path))
-                fp_write.write(line)
-
-                for line in fp_read:
-                    regex_result = regex_fileinfo.match(line)
-                    if regex_result:
-                        found = True
-                        key, val = regex_result.groups()
-                        # Ignore any existing omtk metadata
-                        if key.startswith(_metadata_prefix):
-                            continue
-                    # Only dump the metadata on the last fileInfo encounter
-                    elif found:
-                        for key, val in metadata.iteritems():
-                            fp_write.write(
-                                'fileInfo "{0}{1}" "{2}";'.format(_metadata_prefix, key, val)
-                            )
-                        success = True
-                        found = False
-
-                    fp_write.write(line)
-
-        os.rename(path_tmp, path)
-
-        return success
-
-    def save_to_file(self, path):
+    def write_metadata_to_file(self, path):
         metadata = self.get_metadata()
         return write_metadata_to_ma_file(path, metadata)
 

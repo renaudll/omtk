@@ -7,7 +7,7 @@ import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
 import tempfile
 from omtk.libs import libComponents
-from omtk.core.classComponentDefinition import ComponentDefinition
+from omtk.core import classComponentDefinition
 
 
 class ComponentDefinitionTestCase(unittest.TestCase):
@@ -26,22 +26,22 @@ class ComponentDefinitionTestCase(unittest.TestCase):
         """
         Ensure we are able to save and load component to a Maya file.
         """
-        component_def = ComponentDefinition('test_component')
+        component_def = classComponentDefinition.ComponentDefinition('test_component')
 
         # We are able to find fileInfo entries in the file.
-        metadata_raw = list(libComponents.iter_ma_file_metadata(self._tmp_path))
+        metadata_raw = list(classComponentDefinition.iter_ma_file_metadata(self._tmp_path))
         self.assertTrue(metadata_raw)
 
         # However, we don't have any metadata to start with
-        metadata = libComponents.get_component_metadata_from_file(self._tmp_path)
+        metadata = classComponentDefinition.get_metadata_from_file(self._tmp_path)
         self.assertFalse(metadata)
 
         # Write the metadata to the file
-        success = component_def.save_to_file(self._tmp_path)
+        success = component_def.write_metadata_to_file(self._tmp_path)
         self.assertTrue(success)
 
         # The file now have metadata
-        component_def_new = ComponentDefinition.from_file(self._tmp_path)
+        component_def_new = classComponentDefinition.ComponentDefinition.from_file(self._tmp_path)
         self.assertEqual(component_def, component_def_new)
 
         # The file is still openable
@@ -49,9 +49,9 @@ class ComponentDefinitionTestCase(unittest.TestCase):
         print(success)
 
         # Finally, the metadata we saved as fileInfo entries are retreivable using the old method.
-        for key, desired_val in component_def.get_metadata():
-            key = libComponents._metadata_prefix + key
-            val = cmds.fileInfo(key, query=True)
+        for key, desired_val in component_def.get_metadata().iteritems():
+            key = classComponentDefinition._metadata_prefix + key
+            val = next(iter(cmds.fileInfo(key, query=True)), None)
             self.assertEqual(val, desired_val)
 
 

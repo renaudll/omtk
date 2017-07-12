@@ -1,10 +1,12 @@
-from collections import OrderedDict
-import pymel.core as pymel
 import itertools
+import os
 import uuid
-from omtk.libs import libPython
-from omtk.libs import libComponents
+from collections import OrderedDict
+
+import pymel.core as pymel
 from omtk.core import classComponent
+from omtk.libs import libComponents
+from omtk.libs import libPython
 from omtk.qt_widgets.ui.form_create_component import Ui_MainWindow as ui_def
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
@@ -147,10 +149,33 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         self.update_enabled()
 
     def on_user_submit(self):
+        uid = self.ui.lineEdit_id.text()
+        name = self.ui.lineEdit_name.text()
+        author = self.ui.lineEdit_author.text()
+        version = self.ui.lineEdit_version.text()
+
+        # Resolve output file
+        dir = libComponents.get_component_dir()
+        path_out = os.path.join(dir, '{0}.ma'.format(name))
+
+        # Prevent any collisions
+        # if os.path.exists(path_out):
+        #     raise Exception("Cannot save component over already existing component!")
+
+        # Create component
         input_attrs = self._model_attr_inn.get_entries()
         output_attrs = self._model_attr_out.get_entries()
         inst = classComponent.Component.from_attributes(input_attrs, output_attrs)
-        return inst
+
+        # Create component definition
+        # todo: maybe set data in component instance?
+        inst.uid = uid
+        inst.name = name
+        inst.author = author
+        inst.version = version
+
+        # Save component to file
+        inst.export(path_out)
 
 
 @libPython.memoized

@@ -142,7 +142,8 @@ def fetchAttr(data, reconnect_inputs=True, reconnect_outputs=True):
     if reconnect_inputs:
         if not data['isMulti']:
             inn = next(iter(data['inputs']), None)
-            if inn: pymel.connectAttr(inn, attr)
+            if inn:
+                pymel.connectAttr(inn, attr)
         else:
             for i, inn in enumerate(data['inputs']):
                 pymel.connectAttr(inn, attr[i])
@@ -697,6 +698,7 @@ def iter_contributing_attributes(obj):
 
         yield attr
 
+
 _blacklisted_attr_names = {
     'caching',
     'isHistoricallyInteresting',
@@ -822,7 +824,7 @@ _blacklisted_attr_names = {
 }
 
 
-def get_unique_attr_name(obj, attr_name, str_format='{0}:{1:02d}', start=1):
+def get_unique_attr_name(obj, attr_name, str_format='{0}{1:02d}', start=1):
     if not obj.hasAttr(attr_name):
         return attr_name
     for i in itertools.count(start=start):
@@ -832,4 +834,4 @@ def get_unique_attr_name(obj, attr_name, str_format='{0}:{1:02d}', start=1):
 
 
 def escape_attr_name(attr_name):
-    return attr_name.replace('[', '_').replace(']', '_')
+    return attr_name.replace('[', '_').replace(']', '_').replace('.', '_')

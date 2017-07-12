@@ -26,10 +26,14 @@ class Component(Entity):
     def __init__(self, name=None):
         super(Component, self).__init__()
 
+        self.uid = self.component_id
+
         # Not sure about this one
-        self.name = name
+        self.name = name if name else self.component_name
 
         self.version = None
+
+        self.author = ''
 
         # Network object that hold all the input attributes.
         self.grp_inn = None
@@ -40,15 +44,14 @@ class Component(Entity):
         # Network object to hold any DagNode belonging to the component.
         self.grp_dag = None
 
-    @classmethod
-    def get_definition(cls):
+    def get_definition(self):
         from omtk.core import classComponentDefinition
-        from omtk.core import api
 
         inst = classComponentDefinition.ComponentDefinition(
-            uid=cls.component_id,
-            name=cls.component_name,
-            version=api.get_version(),
+            uid=self.uid,
+            name=self.name,
+            version=self.name,
+            author=self.author
         )
         return inst
 
@@ -152,6 +155,30 @@ class Component(Entity):
     def get_children(self):
         return (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {
             self.grp_inn, self.grp_out}
+
+    def export(self, path):
+        children = self.get_children() | {self.grp_inn, self.grp_out}
+        if not children:
+            raise Exception("Can't export component, component is empty!")
+
+        # Hold current file
+        current_path = cmds.file(q=True, sn=True)
+
+        # todo: disconnect hub
+
+        pymel.select(children)
+        cmds.file(rename=path)
+        cmds.file(force=True, exportSelected=True, type="mayaAscii")
+
+        # Fetch current file
+        cmds.file(rename=current_path)
+
+        # todo: reconnect hub
+
+        definition = self.get_definition()
+        definition.write_metadata_to_file(path)
+
+        return True
 
 
 class ComponentScripted(Component):

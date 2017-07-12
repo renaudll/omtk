@@ -3,9 +3,9 @@ Ensure Component create from existing node networks work as intended.
 """
 import unittest
 
-import omtk.core.classComponent
 import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
+from omtk.core import classComponent
 from omtk.libs import libComponents
 
 
@@ -63,7 +63,9 @@ class ComponentCreationTestCase(unittest.TestCase):
         self._asset_io_attributes_equal(input_attrs, expected_attrs_inn)
         self._asset_io_attributes_equal(output_attrs, expected_attrs_out)
 
-        hub_inn, hub_out = omtk.core.classComponents.isolate_network_io_ports(input_attrs, output_attrs, isolate=True)
+        component = classComponent.Component.from_attributes(input_attrs, output_attrs)
+        hub_inn = component.grp_inn
+        hub_out = component.grp_out
         for obj in objs:
             for attr in obj.listAttr():
                 self.assertFalse(attr.isSource(), msg="Attribute {0} is source!".format(attr))

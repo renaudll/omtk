@@ -1,0 +1,25 @@
+[flake8]
+
+# E501 line too long (112 > 79 characters)
+ignore=E501
+
+exclude =
+    .tox,
+    .git,
+    .flake8,
+    .gitignore,
+    .travis.yml,
+    .cache,
+    .eggs,
+    *.rst,
+    *.yml,
+    *.pyc,
+    *.pyo,
+    *.egg-info,
+    __pycache__,
+    package.py,
+    python/omtk/vendor,
+    docs,
+    python/omtk/modules_broken,
+    python/omtk/qt_widgets/ui/*.py
+

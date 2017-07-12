@@ -86,9 +86,14 @@ class MultipleComponentDefinitionError(Exception):
     """Raised when two component with the same uid and version are found."""
 
 
+def get_component_dir():
+    """Return the directory to save component to."""
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'components'))
+
+
 def walk_available_component_definitions():
     # todo: clearly define where are the components in omtk
-    path_component_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'components')
+    path_component_dir = get_component_dir()
     if not os.path.exists(path_component_dir):
         raise Exception()
     paths = [path_component_dir]
@@ -174,9 +179,6 @@ def get_out_network_from_inn_network(network, strict=True):
     if not result and strict:
         raise Exception("Can't resolve input network from meta-network {0}".format(network))
     return result
-
-
-
 
 
 def get_component_parent_network(obj, source=True, destination=True, cache=None, strict=False):

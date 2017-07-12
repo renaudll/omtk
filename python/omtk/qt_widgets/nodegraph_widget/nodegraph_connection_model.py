@@ -1,7 +1,6 @@
-from .nodegraph_port_model import NodeGraphPortModel
-
 # for type hinting only
 if False:
+    from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_node_model_base import NodeGraphNodeModel
 
 

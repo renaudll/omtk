@@ -152,7 +152,10 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
             # todo: use a factory?
             log.debug('{0}'.format(attr_def))
             inst = self._registry.get_port_model_from_value(attr_def)
-            inst._node = self  # hack currently compound attribute won't point to the compound object...
+
+            # inst._node = self  # hack currently compound attribute won't point to the compound object...
+
+
             # inst = NodeGraphEntityPymelAttributePortModel(self._registry, self, attr_def)
             # self._registry._register_attribute(inst)
             result.add(inst)

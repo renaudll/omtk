@@ -101,3 +101,5 @@ def get_menu(components, fn_callback):
     #
     #     if need_export_network:
     #         self.needExportNetwork.emit()
+
+    return menu

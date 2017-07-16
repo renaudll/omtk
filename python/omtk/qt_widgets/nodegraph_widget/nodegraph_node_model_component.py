@@ -5,6 +5,7 @@ from omtk.vendor.Qt import QtCore, QtGui
 from omtk.vendor import libSerialization
 from omtk.core import classComponent
 from omtk.libs import libComponents
+from omtk.core import classEntityAttribute
 
 if False:
     from .nodegraph_port_model import NodeGraphPortModel
@@ -18,6 +19,9 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
     A Component is a special OMTK datatypes that consist of an input network, an output network and one or multiple
     maya nodes sandwitched in between.
     """
+    def __init__(self, registry, entity):
+        assert(isinstance(entity, classComponent.Component))
+        super(NodeGraphComponentModel, self).__init__(registry, entity)
 
     def get_children(self):
         return [
@@ -28,10 +32,30 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
     @libPython.memoized_instancemethod
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
-        if not self._entity.is_built():
-            return set()
+        # type: () -> List[NodeGraphPortModel]
+        result = set()
 
-        return super(NodeGraphComponentModel, self).get_attributes()
+        if not self._entity.is_built():
+            return result
+
+        for attr_def in self._entity.iter_attributes():
+            # todo: use a factory?
+            # log.debug('{0}'.format(attr_def))
+            inst = self._registry.get_port_model_from_value(attr_def)
+
+            # inst._node = self  # hack currently compound attribute won't point to the compound object...
+            if isinstance(attr_def, classEntityAttribute.EntityPymelAttribute):
+                attr_node = attr_def._attr.node()
+                if attr_node  == self._entity.grp_inn:
+                    attr_def._node = self._entity.grp_inn
+                elif attr_node  == self._entity.grp_out:
+                    attr_def._node = self._entity.grp_out
+
+            # inst = NodeGraphEntityPymelAttributePortModel(self._registry, self, attr_def)
+            # self._registry._register_attribute(inst)
+            result.add(inst)
+
+        return result
 
     def allow_input_port_display(self, port_model, context=None):
         # type: (NodeGraphPortModel, NodeGraphController) -> bool
@@ -74,13 +98,17 @@ class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDag
     Since dagnode contain input and output network that define their bound, it is usefull for us
     to have access to a dedicated model for the bounds that point to the compound model.
     """
+    def __init__(self, registry, pynode, component):
+        super(NodeGraphComponentBoundBaseModel, self).__init__(registry, pynode)
+        self._component = component
 
     @libPython.memoized_instancemethod
     def _get_component(self):
         # type(): () -> Component
-        net = libComponents.get_component_metanetwork_from_hub_network(self._pynode)
-        inst = libSerialization.import_network(net)
-        return inst
+        # net = libComponents.get_component_metanetwork_from_hub_network(self._pynode)
+        # inst = self._registry._manager.import_network(net)
+        # return inst
+        return self._component
 
     def get_parent(self):
         component = self._get_component()

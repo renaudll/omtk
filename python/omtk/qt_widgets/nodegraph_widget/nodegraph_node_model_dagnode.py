@@ -13,6 +13,7 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         super(NodeGraphDagNodeModel, self).__init__(registry, name)
         self._pynode = pynode
 
+    @libPython.memoized_instancemethod
     def get_parent(self):
         if not self._pynode:
             return None
@@ -22,7 +23,8 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         net = libComponents.get_component_metanetwork_from_hub_network(parent_grp_inn)
         if not net:
             return None
-        inst = libSerialization.import_network(net)  # todo: use some kind of singleton/registry?
+        inst = self._registry._manager.import_network(net)
+        # inst = libSerialization.import_network(net)  # todo: use some kind of singleton/registry?
         if not inst:
             return None
         model = self._registry.get_node_from_value(inst)

@@ -4,12 +4,14 @@ Define a controller for one specific GraphView.
 import logging
 
 import pymel.core as pymel
+from omtk import constants
 from omtk import factory_datatypes
 from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore
 from omtk.core import classEntity
+from omtk.core import classComponent
 
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
@@ -138,7 +140,6 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self._old_scene_x = scene_x
         self._old_scene_y = scene_y
 
-
         # todo: this get called to many times, we might want to block signals
         log.debug('scene_rect_changed: {0}'.format(rect))
         # Resize inn bound
@@ -162,9 +163,19 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if isinstance(val, pymel.nodetypes.Network):
             net = libComponents.get_component_metanetwork_from_hub_network(val)
             if net:
-                return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val)
+                component = self._manager.import_network(net)
+                if net.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
+                    return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val, component)
+                if net.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
+                    return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self._model, val, component)
 
             return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self._model, val)
+
+        model = self._model.get_node_from_value(val)
+        if isinstance(model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
+            component = model.get_component()
+            if component != self._current_level:
+                return self._model.get_node_from_value(component)
 
         return self._model.get_node_from_value(val)
 
@@ -175,6 +186,100 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
     # @libPython.memoized_instancemethod
     def get_connection_model_from_value(self, val):
         return self._model.get_connection_model_from_values
+
+    def expand_node_attributes(self, node_model):
+        # type: (NodeGraphNodeModel) -> None
+        """
+        Show all available attributes for a PyFlowgraph Node.
+        Add it in the pool if it didn't previously exist.
+        :return:
+        """
+        log.info('Creating widget for {0}'.format(node_model))
+
+        # In PyFlowgraph, ports are accessible by name.
+        if self._view:
+            node_widget = self.get_node_widget(node_model)
+
+            for port_model in sorted(node_model.get_attributes()):
+                if not port_model.is_interesting():
+                    continue
+                port = node_widget.getPort(port_model.get_name())
+                if not port:
+                    port_widget = self.get_port_widget(port_model)
+
+    def expand_node_connections(self, node_model, expand_downstream=True, expand_upstream=True):
+        # type: (NodeGraphNodeModel) -> None
+        for port_model in node_model.get_attributes():
+
+            if expand_upstream and port_model.is_source():
+                for connection_model in port_model.get_output_connections():
+                    if connection_model.get_parent() != self._current_level:
+                        continue
+                    port_model_dst = connection_model.get_destination()
+                    node_model_dst = port_model_dst.get_parent()
+                    # if node_model_dst.get_parent() != self._current_level:
+                    #     continue
+                    self.get_connection_widget(connection_model)
+
+            if expand_downstream and port_model.is_destination():
+                for connection_model in port_model.get_input_connections():
+                    if connection_model.get_parent() != self._current_level:
+                        continue
+                    port_model_src = connection_model.get_source()
+                    node_model_src = port_model_src.get_parent()
+                    # if node_model_src.get_parent() != self._current_level:
+                    #     continue
+                    self.get_connection_widget(connection_model)
+
+            # if port_model.is_connected():
+            #     for connection_model in port_model.get_connections():
+            #         self.get_connection_widget(connection_model)
+
+    def collapse_node_attributes(self, node_model):
+        # There's no API method to remove a port in PyFlowgraph.
+        # For now, we'll just re-created the node.
+        # node_widget = self.get_node_widget(node_model)
+        # self._view.removeNode(node_widget)
+        # self.get_node_widget.cache[node_model]  # clear cache
+        # node_widget = self.get_node_widget(node_model)
+        # self._view.addNode(node_widget)
+        raise NotImplementedError
+
+    # @libPython.memoized_instancemethod
+    # def get_node_parent(self, node_model):
+    #     parent_model = node_model.get_parent()
+    #
+    #     #
+    #     if isinstance(node_model, nodegraph_node_model_dagnode.NodeGraphDagNodeModel):
+    #         parent_grp_inn, _ = libComponents.get_component_parent_network(self._pynode)
+    #         if not parent_grp_inn:
+    #             return None
+    #         net = libComponents.get_component_metanetwork_from_hub_network(parent_grp_inn)
+    #         if not net:
+    #             return None
+    #         inst = self._registry._manager.import_network(net)
+    #         # inst = libSerialization.import_network(net)  # todo: use some kind of singleton/registry?
+    #         if not inst:
+    #             return None
+    #         parent_model = self._registry.get_node_from_value(inst)
+    #
+    #     return parent_model
+
+    # def expand_attribute_connections(self, model_attr):
+    #     # type: (NodeGraphPortModel) -> None
+    #     """
+    #     Show all connections for a specific PyFlowgraph Port.
+    #     Add the destination Port and Node in the View if it didn't previously exist.
+    #     :param model_attr:
+    #     :return:
+    #     """
+    #     # todo: is this really the place for is_writable, should this be in .get_input_connections()?
+    #     if model_attr.is_writable():
+    #         for connection_model in model_attr.get_input_connections():
+    #             self.get_connection_widget(connection_model)
+    #     if model_attr.is_readable():
+    #         for connection_model in model_attr.get_output_connections():
+    #             self.get_connection_widget(connection_model)
 
     # --- Widget factory ---
 
@@ -205,11 +310,18 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         :param port: A NodeGraphPortModel instance.
         :return: A PyFlowgraph Port instance.
         """
-        log.info('Creating widget for {0}'.format(port_model))
+        # log.info('Creating widget for {0}'.format(port_model))
 
         # In Pyflowgraph, a Port need a Node.
         # Verify that we initialize the widget for the Node.
         node_model = port_model.get_parent()
+
+        # Hack: Hide Compound bound nodes when not inside the compound!
+        if isinstance(node_model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
+            compound_model = self.get_node_model_from_value(node_model._get_component())
+            if self._current_level != (compound_model):
+                node_model = compound_model
+
         node_widget = self.get_node_widget(node_model)
         port_widget = port_model.get_widget(self, self._view, node_widget)
         node_widget.addPort(port_widget)
@@ -268,76 +380,6 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self._known_connections_widgets.add(connection)
 
         return connection
-
-    def expand_node_attributes(self, node_model):
-        # type: (NodeGraphNodeModel) -> None
-        """
-        Show all available attributes for a PyFlowgraph Node.
-        Add it in the pool if it didn't previously exist.
-        :return:
-        """
-        log.info('Creating widget for {0}'.format(node_model))
-
-        # In PyFlowgraph, ports are accessible by name.
-        if self._view:
-            node_widget = self.get_node_widget(node_model)
-
-            for port_model in sorted(node_model.get_attributes()):
-                if not port_model.is_interesting():
-                    continue
-                port = node_widget.getPort(port_model.get_name())
-                if not port:
-                    port_widget = self.get_port_widget(port_model)
-
-    def expand_node_connections(self, node_model, expand_downstream=True, expand_upstream=True):
-        # type: (NodeGraphNodeModel) -> None
-        for port_model in node_model.get_attributes():
-
-            if expand_upstream and port_model.is_source():
-                for connection_model in port_model.get_output_connections():
-                    port_model_dst = connection_model.get_destination()
-                    node_model_dst = port_model_dst.get_parent()
-                    # if node_model_dst.get_parent() != self._current_level:
-                    #     continue
-                    self.get_connection_widget(connection_model)
-
-            if expand_downstream and port_model.is_destination():
-                for connection_model in port_model.get_input_connections():
-                    port_model_src = connection_model.get_source()
-                    node_model_src = port_model_src.get_parent()
-                    # if node_model_src.get_parent() != self._current_level:
-                    #     continue
-                    self.get_connection_widget(connection_model)
-
-            # if port_model.is_connected():
-            #     for connection_model in port_model.get_connections():
-            #         self.get_connection_widget(connection_model)
-
-    def collapse_node_attributes(self, node_model):
-        # There's no API method to remove a port in PyFlowgraph.
-        # For now, we'll just re-created the node.
-        # node_widget = self.get_node_widget(node_model)
-        # self._view.removeNode(node_widget)
-        # self.get_node_widget.cache[node_model]  # clear cache
-        # node_widget = self.get_node_widget(node_model)
-        # self._view.addNode(node_widget)
-        raise NotImplementedError
-
-    # def expand_attribute_connections(self, model_attr):
-    #     # type: (NodeGraphPortModel) -> None
-    #     """
-    #     Show all connections for a specific PyFlowgraph Port.
-    #     Add the destination Port and Node in the View if it didn't previously exist.
-    #     :param model_attr:
-    #     :return:
-    #     """
-    #     # todo: is this really the place for is_writable, should this be in .get_input_connections()?
-    #     if model_attr.is_writable():
-    #         for connection_model in model_attr.get_input_connections():
-    #             self.get_connection_widget(connection_model)
-    #     if model_attr.is_readable():
-    #         for connection_model in model_attr.get_output_connections():
-    #             self.get_connection_widget(connection_model)
 
     def add_node(self, node_model):
         if not isinstance(node_model, nodegraph_node_model_base.NodeGraphNodeModel):
@@ -421,22 +463,24 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         component = node_model.get_metadata()
         metatype = factory_datatypes.get_datatype(component)
 
-        node_widget = self.get_node_widget(node_model)
-
         if metatype == factory_datatypes.AttributeType.Component:
             # Create inn node
             grp_inn = component.grp_inn
             node_model = self.get_node_model_from_value(grp_inn)
-
+            node_widget = self.get_node_widget(node_model)
+            self.expand_node_attributes(node_model)
+            self.expand_node_connections(node_model)
             self._widget_bound_inn = node_widget
 
             # Create out node
             grp_out = component.grp_out
             node_model = self.get_node_model_from_value(grp_out)
             node_widget = self.get_node_widget(node_model)
+            self.expand_node_attributes(node_model)
+            self.expand_node_connections(node_model)
             self._widget_bound_out = node_widget
 
-        libPyflowgraph.arrange_downstream(node_widget)
+            libPyflowgraph.arrange_downstream(self._widget_bound_inn)
 
     def can_navigate_to(self, node_model):
         if node_model is None:

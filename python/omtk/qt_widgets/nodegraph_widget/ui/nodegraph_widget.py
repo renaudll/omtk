@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/nodegraph_widget/ui/nodegraph_widget.ui'
 #
-# Created: Wed Jul 12 15:22:43 2017
+# Created: Wed Jul 12 20:35:05 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(966, 424)
+        Form.resize(1301, 525)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -38,6 +38,12 @@ class Ui_Form(object):
         self.pushButton_up = QtWidgets.QPushButton(Form)
         self.pushButton_up.setObjectName("pushButton_up")
         self.horizontalLayout.addWidget(self.pushButton_up)
+        self.pushButton_group = QtWidgets.QPushButton(Form)
+        self.pushButton_group.setObjectName("pushButton_group")
+        self.horizontalLayout.addWidget(self.pushButton_group)
+        self.pushButton_ungroup = QtWidgets.QPushButton(Form)
+        self.pushButton_ungroup.setObjectName("pushButton_ungroup")
+        self.horizontalLayout.addWidget(self.pushButton_ungroup)
         self.pushButton_arrange_upstream = QtWidgets.QPushButton(Form)
         self.pushButton_arrange_upstream.setObjectName("pushButton_arrange_upstream")
         self.horizontalLayout.addWidget(self.pushButton_arrange_upstream)
@@ -59,15 +65,17 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
-        self.pushButton_del.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
-        self.pushButton_clear.setText(QtWidgets.QApplication.translate("Form", "Clear", None, -1))
-        self.pushButton_expand.setText(QtWidgets.QApplication.translate("Form", "Expand", None, -1))
-        self.pushButton_collapse.setText(QtWidgets.QApplication.translate("Form", "Collapse", None, -1))
-        self.pushButton_down.setText(QtWidgets.QApplication.translate("Form", "Go Down", None, -1))
-        self.pushButton_up.setText(QtWidgets.QApplication.translate("Form", "Go Up", None, -1))
-        self.pushButton_arrange_upstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Uppstream", None, -1))
-        self.pushButton_arrange_downstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Downstrea", None, -1))
+        Form.setWindowTitle(QtCompat.translate("Form", "Form", None))
+        self.pushButton_add.setText(QtCompat.translate("Form", "Add", None))
+        self.pushButton_del.setText(QtCompat.translate("Form", "Remove", None))
+        self.pushButton_clear.setText(QtCompat.translate("Form", "Clear", None))
+        self.pushButton_expand.setText(QtCompat.translate("Form", "Expand", None))
+        self.pushButton_collapse.setText(QtCompat.translate("Form", "Collapse", None))
+        self.pushButton_down.setText(QtCompat.translate("Form", "Go Down", None))
+        self.pushButton_up.setText(QtCompat.translate("Form", "Go Up", None))
+        self.pushButton_group.setText(QtCompat.translate("Form", "Group", None))
+        self.pushButton_ungroup.setText(QtCompat.translate("Form", "Ungroup", None))
+        self.pushButton_arrange_upstream.setText(QtCompat.translate("Form", "Arrange Uppstream", None))
+        self.pushButton_arrange_downstream.setText(QtCompat.translate("Form", "Arrange Downstrea", None))
 
 from ...widget_breadcrumb import WidgetBreadcrumb

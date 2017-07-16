@@ -36,6 +36,12 @@ class NodeGraphModel(object):
 
         self._nodes_by_metadata = {}
 
+        # Not sure about the name, but this is a pointer to omtk own model were rig definitions are cached.
+        self._manager = None
+
+    def set_manager(self, manager):
+        self._manager = manager
+
     # --- Registration methods ---
 
     def _register_node(self, inst):
@@ -55,6 +61,8 @@ class NodeGraphModel(object):
         """
         Factory function for creating NodeGraphModel instances.
         This handle all the caching and registration.
+
+
         """
         log.debug('Creating node model from {0}'.format(val))
 
@@ -70,9 +78,23 @@ class NodeGraphModel(object):
                     network = val
                 else:
                     network = libComponents.get_component_metanetwork_from_hub_network(val)
-            if network:
-                component = libSerialization.import_network(network)
-                return nodegraph_node_model_component.NodeGraphComponentModel(self, component)
+
+                    # todo: use internal data
+                    component = self._manager.import_network(network)
+
+                    from omtk import constants
+                    if network:
+                        if network.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
+                            return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self, val, component)
+                        elif network.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
+                            return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self, val, component)
+                        else:
+                            raise Exception("Unreconnised network")
+
+
+            # if network:
+            #     component = self._manager.import_network(network)
+            #     return nodegraph_node_model_component.NodeGraphComponentModel(self, component)
 
             return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self, val)
 

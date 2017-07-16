@@ -4,6 +4,7 @@ import pymel.core as pymel
 from omtk.core import api
 from omtk.core import classRig
 from omtk.vendor import libSerialization
+from omtk.vendor.libSerialization import cache as libSerializationCache
 from omtk.vendor.Qt import QtCore
 from omtk import constants
 
@@ -27,17 +28,43 @@ class AutoRigManager(QtCore.QObject):
         self._root = None
         self._roots = []
 
+        self._components = []
+
         # Initialize libSerialization cache.
         # This will allow to re-use data.
         # Note that we will reset the cache at each import.
-        from omtk.vendor.libSerialization import cache
-        self._serialization_cache = cache.Cache()
+        self._serialization_cache = None
+        self.clear_cache()
+
+        # Note: This should be done in a lazy way and linked to the current scene.
+        self.import_components()
 
     def _add_rig(self, rig):
         self._roots.append(rig)
         if self._root is None:
             self._root = next(iter(self._roots), None)
         libSerialization.export_network(rig, cache=self._serialization_cache)
+
+    def clear_cache(self):
+        self._serialization_cache = libSerializationCache.Cache()
+
+    def import_components(self):
+        """
+        Fill the component registry with any serialized components in the scene.
+        """
+        from omtk.core import classComponent
+        cls_name = classComponent.Component.__name__
+        networks = libSerialization.get_networks_from_class(cls_name)
+        results = [libSerialization.import_network(network, module='omtk', cache=self._serialization_cache) for network in networks]
+        results = filter(None, results)
+        self._components = results
+        return results
+
+    def import_network(self, network, **kwargs):
+        return libSerialization.import_network(network, cache=self._serialization_cache, **kwargs)
+
+    def export_network(self, data, **kwargs):
+        return libSerialization.export_network(data, cache=self._serialization_cache, **kwargs)
 
     def import_networks(self):
         """
@@ -74,10 +101,9 @@ class AutoRigManager(QtCore.QObject):
             except AttributeError:
                 pass
 
-        from omtk.vendor.libSerialization import cache
-        self._serialization_cache = cache.Cache()
-        for root in self._roots:
-            libSerialization.export_network(root, cache=self._serialization_cache)
+        self.clear_cache()
+        for root in self.roots:
+            self.export_networks(root)
 
     def create_rig(self, rig_type=None):
         if rig_type is None:

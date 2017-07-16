@@ -79,6 +79,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
     def set_manager(self, manager):
         self._manager = manager
         self._ctrl.set_manager(manager)
+        self._model.set_manager(manager)
 
         for view in self._views:
             view.set_manager(manager)

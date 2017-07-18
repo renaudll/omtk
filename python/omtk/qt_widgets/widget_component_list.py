@@ -1,5 +1,6 @@
 import logging
-
+from maya import cmds
+import pymel.core as pymel
 from omtk.core.classComponent import Component
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libComponents
@@ -8,14 +9,32 @@ from omtk.vendor.Qt import QtWidgets, QtCore
 
 log = logging.getLogger('omtk')
 
+
+class MayaNodeDefinition(ComponentDefinition):
+    type = 'Maya Node'
+
+    def __init__(self, cls_name):
+        self._cls_name = cls_name
+        self.name = cls_name
+
+    def instanciate(self, parent, name='unamed'):
+        return pymel.createNode(self._cls_name, name=name)
+
+
 class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
     _HEADERS = (
-        'Name', 'Version', 'Author', 'ID'
+        'Name', 'Type', 'Description'
     )
 
     def __init__(self, entries):
         super(ComponentDefinitionTableModel, self).__init__()
         self.__entries = entries
+
+    def load_maya_nodes(self):
+        for node_type in cmds.allNodeTypes():
+            inst = MayaNodeDefinition(node_type)
+            self.__entries.append(inst)
+        self.__entries = sorted(self.__entries)
 
     # --- QtCore.QAbstractTableModel ---
 
@@ -25,6 +44,13 @@ class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
     def columnCount(self, index):
         return len(self._HEADERS)
 
+    def headerData(self, section, orientation, role):
+        if role != QtCore.Qt.DisplayRole:
+            return
+        if orientation != QtCore.Qt.Horizontal:
+            return
+        return self._HEADERS[section]
+
     def data(self, index, role):
         if role == QtCore.Qt.DisplayRole:
             row = index.row()
@@ -33,11 +59,13 @@ class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
             if col == 0:
                 return entry.name
             if col == 1:
-                return entry.version
-            if col == 2:
-                return entry.author
-            if col == 3:
-                return entry.uid
+                return entry.type if hasattr(entry, 'type') else 'unknown'
+            # if col == 1:
+            #     return entry.version
+            # if col == 2:
+            #     return entry.author
+            # if col == 3:
+            #     return entry.uid
 
     # --- Custom methods ---
 
@@ -63,14 +91,24 @@ class WidgetComponentList(QtWidgets.QWidget):
 
         defs = list(libComponents.walk_available_component_definitions())
         self.model = ComponentDefinitionTableModel(defs)
-        proxy_model = QtCore.QSortFilterProxyModel()
-        proxy_model.setSourceModel(self.model)
-        view.setModel(proxy_model)
+        self.model.load_maya_nodes()
+        self.proxy_model = QtCore.QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        view.setModel(self.proxy_model)
         # view.resizeColumnsToContents()
 
         self._manager = None
 
         self._ctrl = None
+
+        # Connect events
+        self.ui.lineEdit_search.textChanged.connect(self.on_user_changed_query)
+
+        self._set_selected_row_index(0)
+
+    def on_user_changed_query(self, query):
+        self.proxy_model.setFilterRegExp('.*{0}.*'.format(query.replace('*', '.*')))
+        self._set_selected_row_index(0)
 
     def set_ctrl(self, ctrl):
         """
@@ -90,7 +128,7 @@ class WidgetComponentList(QtWidgets.QWidget):
 
     def _get_selected_row_indexes(self):
         selection_model = self.ui.tableView.selectionModel()
-        return [index.row() for index in selection_model.selectedRows()]
+        return [self.proxy_model.mapToSource(index).row() for index in selection_model.selectedRows()]
 
     def _set_selected_row_index(self, row):
         selection_model = self.ui.tableView.selectionModel()
@@ -99,14 +137,14 @@ class WidgetComponentList(QtWidgets.QWidget):
         num_cols = model.columnCount()
 
         # Prevent out of bound.
-        if row < num_rows:
+        if row < 0:
             return
         if row > (num_rows - 1):
             return
 
         sel = QtCore.QItemSelection(
-            model().sourceModel().createIndex(row, 0),
-            model().sourceModel().createIndex(row, num_cols - 1)
+            model.sourceModel().createIndex(row, 0),
+            model.sourceModel().createIndex(row, num_cols - 1)
         )
         selection_model.select(sel, selection_model.ClearAndSelect)
 
@@ -142,8 +180,9 @@ class WidgetComponentList(QtWidgets.QWidget):
                 raise e
 
             # Export the component metadata
-            from omtk.vendor import libSerialization
-            libSerialization.export_network(component, cache=self._manager._serialization_cache) ## error ehere
+            if isinstance(component, ComponentDefinition):
+                from omtk.vendor import libSerialization
+                libSerialization.export_network(component, cache=self._manager._serialization_cache)  ## error ehere
 
             self.signalComponentCreated.emit(component)
         self.close()

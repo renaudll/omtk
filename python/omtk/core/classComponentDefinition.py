@@ -73,6 +73,7 @@ def iter_ma_file_metadata(path):
             elif found:
                 break
 
+
 def get_metadata_from_file(path):
     metadata = {}
     for key, val in iter_ma_file_metadata(path):
@@ -80,6 +81,7 @@ def get_metadata_from_file(path):
             key = key[len(_metadata_prefix):]
             metadata[key] = val
     return metadata
+
 
 class ComponentDefinition(object):
     def __init__(self, name, version=None, uid=None, author='', path=None):

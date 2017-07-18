@@ -62,7 +62,9 @@ class NodeGraphView(PyFlowgraphView):
         dialog = widget_component_list.WidgetComponentList(self)
         dialog.set_manager(self._manager)
         dialog.signalComponentCreated.connect(self.on_component_created)
+        # dialog.setMinimumHeight(self.height())
         dialog.show()
+        # dialog.setFocus()
 
     # -- Drag and Drop --
     def dropMimeData(self, parent, index, data, action):

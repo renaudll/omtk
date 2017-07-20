@@ -1,3 +1,4 @@
+from omtk import manager
 from omtk.core import preferences
 from omtk.qt_widgets.ui import widget_welcome
 from omtk.vendor.Qt import QtCore, QtWidgets
@@ -16,7 +17,7 @@ class WidgetWelcome(QtWidgets.QWidget):
 
         # Initialize rig definition view
         self.rig_def_view = self.ui.tableView_types_rig
-        self.rig_def_model= model_rig_definitions.RigDefinitionsModel()
+        self.rig_def_model = model_rig_definitions.RigDefinitionsModel()
         self.rig_def_view.setModel(self.rig_def_model)
 
         # Initialize rig template view
@@ -32,10 +33,9 @@ class WidgetWelcome(QtWidgets.QWidget):
         self.ui.btn_create_rig_default.pressed.connect(self.on_create_rig)
         self.ui.btn_create_rig_template.pressed.connect(self.on_import_rig)
 
-        self._manager = None
-
-    def set_manager(self, manager):
-        self._manager = manager
+    @property
+    def manager(self):
+        return manager.get_manager()
 
     def get_selected_rig_definition(self):
         row = next(iter(row.row() for row in self.rig_def_view.selectionModel().selectedRows()), None)
@@ -48,7 +48,7 @@ class WidgetWelcome(QtWidgets.QWidget):
 
     def on_create_rig(self):
         rig_type = self.get_selected_rig_definition()
-        self._manager.create_rig(rig_type=rig_type)
+        self.manager.create_rig(rig_type=rig_type)
         self.onCreate.emit()
 
     def on_import_rig(self):

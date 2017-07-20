@@ -25,6 +25,8 @@ win.show()
 """
 import logging
 
+from omtk import manager
+from omtk.core import classComponent
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
@@ -51,7 +53,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Configure NodeGraphView
-        self._manager = None
+        # self._manager = None
         self._model = _get_singleton_model()
         self._ctrl = NodeGraphController(self._model)
         self._ctrl.onLevelChanged.connect(self.on_breadcrumb_changed)
@@ -69,6 +71,8 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.pushButton_up.pressed.connect(self.on_navigate_up)
         self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
         self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
+        self.ui.pushButton_group.pressed.connect(self.on_group)
+        self.ui.pushButton_ungroup.pressed.connect(self.on_ungroup)
 
         # Connect events (breadcrumb)
         self.ui.widget_breadcrumb.path_changed.connect(self.on_breadcrumb_changed)
@@ -76,13 +80,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # At least create one tab
         self.create_tab()
 
-    def set_manager(self, manager):
-        self._manager = manager
-        self._ctrl.set_manager(manager)
-        self._model.set_manager(manager)
-
-        for view in self._views:
-            view.set_manager(manager)
+    @property
+    def manager(self):
+        return manager.get_manager()
 
     def get_controller(self):
         return self._ctrl
@@ -90,7 +90,6 @@ class NodeGraphWidget(QtWidgets.QWidget):
     def create_tab(self):
         view = nodegraph_view.NodeGraphView(self)
         view.set_model(self._ctrl)
-        view.set_manager(self._manager)
         view.endSelectionMoved.connect(self.on_selected_nodes_moved)  # ???
 
         # view.setMouseTracking(True)
@@ -112,7 +111,6 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # Debugging
         i = self.ui.tabWidget.currentIndex()
         log.info('Current tab index is {}'.format(i))
-
 
     def on_selected_nodes_moved(self):
         for node in self._current_view.getSelectedNodes():
@@ -154,6 +152,39 @@ class NodeGraphWidget(QtWidgets.QWidget):
         if not node:
             return
         libPyflowgraph.arrange_downstream(node)
+
+    def _get_selected_nodes_outsider_ports(self):
+        selected_nodes_model = self._ctrl.get_selected_nodes()
+        inn_attrs = set()
+        out_attrs = set()
+        for node_model in selected_nodes_model:
+            for port_dst in node_model.get_connected_input_attributes():
+                for connection_model in port_dst.get_input_connections():
+                    src_port_model = connection_model.get_source()
+                    src_node_model = src_port_model.get_parent()
+                    if src_node_model not in selected_nodes_model:
+                        inn_attrs.add(port_dst.get_metadata())
+            for port_src in node_model.get_connected_output_attributes():
+                for connection_model in port_src.get_output_connections():
+                    dst_port_model = connection_model.get_destination()
+                    dst_node_model = dst_port_model.get_parent()
+                    if dst_node_model not in selected_nodes_model:
+                        out_attrs.add(port_src.get_metadata())
+        return inn_attrs, out_attrs
+
+    def on_group(self):
+        inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
+        inst = classComponent.Component.from_attributes(inn_attrs, out_attrs)
+        self.manager.export_network(inst)
+
+        # hack: do not redraw everything, remove only necessary items
+        self._ctrl.clear()
+        self._ctrl.add_node(inst)
+
+        return inst
+
+    def on_ungroup(self):
+        raise NotImplementedError
 
     def on_breadcrumb_changed(self, model):
         """Called when the current level is changed using the breadcrumb widget."""

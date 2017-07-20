@@ -6,6 +6,7 @@ from omtk.core import classRig
 from omtk.vendor import libSerialization
 from omtk.vendor.libSerialization import cache as libSerializationCache
 from omtk.vendor.Qt import QtCore
+from omtk.libs import libPython
 from omtk import constants
 
 log = logging.getLogger('omtk')
@@ -55,7 +56,8 @@ class AutoRigManager(QtCore.QObject):
         from omtk.core import classComponent
         cls_name = classComponent.Component.__name__
         networks = libSerialization.get_networks_from_class(cls_name)
-        results = [libSerialization.import_network(network, module='omtk', cache=self._serialization_cache) for network in networks]
+        results = [libSerialization.import_network(network, module='omtk', cache=self._serialization_cache) for network
+                   in networks]
         results = filter(None, results)
         self._components = results
         return results
@@ -135,3 +137,8 @@ class AutoRigManager(QtCore.QObject):
 
             self.onSceneChanged.emit()
             # todo: update node editor?
+
+
+@libPython.memoized
+def get_manager():
+    return AutoRigManager()

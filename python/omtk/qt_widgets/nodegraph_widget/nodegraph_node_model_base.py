@@ -107,12 +107,61 @@ class NodeGraphNodeModel(object):
     def get_widget(self, graph):
         # type: (PyFlowgraphView) -> PyFlowgraphNode
         label = self._get_node_widget_label()
-        node = PyFlowgraphNode(graph, '   {}'.format(label))  # todo: use layout instead of hardcoded padding
+        node_name = '   {}'.format(label)
+        node = PyFlowgraphNode(graph, node_name)  # todo: use layout instead of hardcoded padding
 
         # Monkey-patch our metadata
         meta_data = self.get_metadata()
         node._meta_data = meta_data
         node._meta_type = factory_datatypes.get_datatype(meta_data)
+
+        # Monkey-patch title widget to handle double click
+        widget_title = node._Node__headerItem._titleWidget
+
+        # todo: replace this hack by an event filter
+        # class NodeGraphNodeTitleEventFilter(QtCore.QObject):
+        #     def eventFilter(self, obj, event):
+        #         print 'eventFilter', obj, event.type()
+        #         if event.type() == QtCore.QEvent.QGraphicsSceneMouseEvent:
+        #             # Will spawn a delegate to rename the node
+        #             delegate = QtWidgets.QLineEdit(graph)
+        #             pos = event.pos()
+        #             pos = QtCore.QPoint(pos.x(), pos.y())
+        #             delegate.move(pos)
+        #             delegate.show()
+        #             delegate.setFocus(QtCore.Qt.PopupFocusReason)
+        #
+        # event_filter = NodeGraphNodeTitleEventFilter()
+        # node.installEventFilter(event_filter)
+
+        def mouseDoubleClickEvent(event):
+            # Will spawn a delegate to rename the node
+            delegate = QtWidgets.QLineEdit(graph)
+            delegate.setText(node_name)
+            pos = graph.mapFromScene(widget_title.pos())
+            pos = QtCore.QPoint(pos.x(), pos.y())
+            size = widget_title.size()
+            delegate.move(pos)
+            delegate.resize(size.width(), size.height())
+            delegate.show()
+            delegate.setFocus(QtCore.Qt.PopupFocusReason)
+            delegate.selectAll()
+
+            def on_user_renamed_node(*args, **kwargs):
+                new_text = delegate.text()
+                print('name changed to {}'.format(new_text))
+                delegate.close()
+
+            delegate.editingFinished.connect(on_user_renamed_node)
+
+        def mousePressEvent(event):
+            # This is necessary for mouseDoubleClickEvent to be called
+            # see http://www.qtcentre.org/threads/23869-can-not-get-mouse-double-click-event-for-QGraphicsItem
+            # fixme: this prevent dragging a node by it's title
+            pass
+
+        widget_title.mouseDoubleClickEvent = mouseDoubleClickEvent
+        widget_title.mousePressEvent = mousePressEvent
 
         # Set icon
         meta_type = self.get_metatype()
@@ -123,6 +172,8 @@ class NodeGraphNodeModel(object):
         # Set color
         color = factory_datatypes.get_node_color_from_datatype(node._meta_type)
         node.setColor(color)
+
+        # node.mouseDoubleClickEvent = mouseDoubleClickEvent
 
         return node
 

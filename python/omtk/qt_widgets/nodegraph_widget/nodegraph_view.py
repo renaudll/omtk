@@ -1,12 +1,9 @@
 import pymel.core as pymel
-from omtk.libs import libPython
+from omtk import manager
 from omtk.libs import libPyflowgraph
+from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
-from omtk.core import classModule
-
-from omtk import factory_datatypes
-from omtk import factory_rc_menu
 
 # used for type hinting
 if False:
@@ -27,10 +24,9 @@ class NodeGraphView(PyFlowgraphView):
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
         shortcut_tab.activated.connect(self.on_tab_pressed)
 
-        self._manager = None
-
-    def set_manager(self, val):
-        self._manager = val
+    @property
+    def manager(self):
+        return manager.get_manager()
 
     # -- Model/View/Controller pattern --
 
@@ -60,11 +56,10 @@ class NodeGraphView(PyFlowgraphView):
     def on_tab_pressed(self):
         from omtk.qt_widgets import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self)
-        dialog.set_manager(self._manager)
         dialog.signalComponentCreated.connect(self.on_component_created)
         # dialog.setMinimumHeight(self.height())
         dialog.show()
-        # dialog.setFocus()
+        dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
 
     # -- Drag and Drop --
     def dropMimeData(self, parent, index, data, action):
@@ -136,7 +131,7 @@ class NodeGraphView(PyFlowgraphView):
 
         from omtk.core import classModule
         if isinstance(component, classModule.Module):
-            rig = self._manager._root
+            rig = self.manager._root
             rig.add_module(component)
 
         self._controller.expand_node_attributes(model)

@@ -2,25 +2,26 @@ import logging
 
 import pymel.core as pymel
 from omtk import factory_datatypes
-from omtk.core.classComponent import Component
-from omtk.libs import libPython
-from omtk.libs import libComponents
-from omtk.vendor import libSerialization
+from omtk import manager
 from omtk.core import classEntityAttribute
 from omtk.core import classModule
+from omtk.core.classComponent import Component
+from omtk.libs import libComponents
+from omtk.libs import libPython
+from omtk.vendor import libSerialization
+
 from . import nodegraph_connection_model
-from . import nodegraph_port_model
 from . import nodegraph_node_model_component
 from . import nodegraph_node_model_dagnode
 from . import nodegraph_node_model_module
 from . import nodegraph_node_model_rig
+from . import nodegraph_port_model
 
 log = logging.getLogger('omtk')
 
 # for type hinting
 if False:
-    from .nodegraph_node_model_base import NodeGraphNodeModel
-    from .nodegraph_port_model import NodeGraphPortModel
+    pass
 
 
 class NodeGraphModel(object):
@@ -36,11 +37,9 @@ class NodeGraphModel(object):
 
         self._nodes_by_metadata = {}
 
-        # Not sure about the name, but this is a pointer to omtk own model were rig definitions are cached.
-        self._manager = None
-
-    def set_manager(self, manager):
-        self._manager = manager
+    @property
+    def manager(self):
+        return manager.get_manager()
 
     # --- Registration methods ---
 
@@ -80,7 +79,7 @@ class NodeGraphModel(object):
                     network = libComponents.get_component_metanetwork_from_hub_network(val)
 
                     # todo: use internal data
-                    component = self._manager.import_network(network)
+                    component = self.manager.import_network(network)
 
                     from omtk import constants
                     if network:
@@ -90,7 +89,6 @@ class NodeGraphModel(object):
                             return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self, val, component)
                         else:
                             raise Exception("Unreconnised network")
-
 
             # if network:
             #     component = self._manager.import_network(network)

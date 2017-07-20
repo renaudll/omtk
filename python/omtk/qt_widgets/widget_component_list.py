@@ -1,6 +1,8 @@
 import logging
-from maya import cmds
+
 import pymel.core as pymel
+from maya import cmds
+from omtk import manager
 from omtk.core.classComponent import Component
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libComponents
@@ -31,7 +33,7 @@ class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
         self.__entries = entries
 
     def load_maya_nodes(self):
-        for node_type in cmds.allNodeTypes():
+        for node_type in sorted(cmds.allNodeTypes()):
             inst = MayaNodeDefinition(node_type)
             self.__entries.append(inst)
         self.__entries = sorted(self.__entries)
@@ -60,18 +62,40 @@ class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
                 return entry.name
             if col == 1:
                 return entry.type if hasattr(entry, 'type') else 'unknown'
-            # if col == 1:
-            #     return entry.version
-            # if col == 2:
-            #     return entry.author
-            # if col == 3:
-            #     return entry.uid
+                # if col == 1:
+                #     return entry.version
+                # if col == 2:
+                #     return entry.author
+                # if col == 3:
+                #     return entry.uid
 
     # --- Custom methods ---
 
     def get_entry(self, index):
         # type: (int) -> ComponentDefinition
         return self.__entries[index]
+
+
+class ComponentListLineEditEventFilter(QtCore.QObject):
+    """Allow events from a QLineEdit to be passed to a WidgetComponentList."""
+
+    def __init__(self, *args, **kwargs):
+        super(ComponentListLineEditEventFilter, self).__init__(*args, **kwargs)
+        self._parent = None
+
+    def set_parent(self, parent):
+        self._parent = parent
+
+    def eventFilter(self, obj, event):
+        if self._parent:
+            event_key = event.key()
+            if event_key == QtCore.Qt.Key_Up:
+                self.move_selection_up()
+                return
+            elif event_key == QtCore.Qt.Key_Down:
+                self.move_selection_down()
+                return
+        return super(ComponentListLineEditEventFilter, self).eventFilter(obj, event)
 
 
 class WidgetComponentList(QtWidgets.QWidget):
@@ -97,18 +121,27 @@ class WidgetComponentList(QtWidgets.QWidget):
         view.setModel(self.proxy_model)
         # view.resizeColumnsToContents()
 
-        self._manager = None
+        # Ensure that specific key press on the QLineEdit are fowarded to the WidgetComponentList
+        event_filter = ComponentListLineEditEventFilter()
+        event_filter.set_parent(self)
+        self.ui.lineEdit_search.installEventFilter(event_filter)
 
         self._ctrl = None
 
         # Connect events
         self.ui.lineEdit_search.textChanged.connect(self.on_user_changed_query)
 
-        self._set_selected_row_index(0)
+        self._set_selected_proxy_row_index(0)
+
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+    @property
+    def manager(self):
+        return manager.get_manager()
 
     def on_user_changed_query(self, query):
         self.proxy_model.setFilterRegExp('.*{0}.*'.format(query.replace('*', '.*')))
-        self._set_selected_row_index(0)
+        self._set_selected_proxy_row_index(0)
 
     def set_ctrl(self, ctrl):
         """
@@ -117,9 +150,6 @@ class WidgetComponentList(QtWidgets.QWidget):
         :return:
         """
         self._ctrl = ctrl
-
-    def set_manager(self, parent):
-        self._manager = parent
 
     def _get_selected_entries(self):
         # type: () -> List[ComponentDefinition]
@@ -130,7 +160,11 @@ class WidgetComponentList(QtWidgets.QWidget):
         selection_model = self.ui.tableView.selectionModel()
         return [self.proxy_model.mapToSource(index).row() for index in selection_model.selectedRows()]
 
-    def _set_selected_row_index(self, row):
+    def _get_selected_proxy_row_indexes(self):
+        selection_model = self.ui.tableView.selectionModel()
+        return [index.row() for index in selection_model.selectedRows()]
+
+    def _set_selected_proxy_row_index(self, row):
         selection_model = self.ui.tableView.selectionModel()
         model = selection_model.model()
         num_rows = model.rowCount()
@@ -142,11 +176,23 @@ class WidgetComponentList(QtWidgets.QWidget):
         if row > (num_rows - 1):
             return
 
-        sel = QtCore.QItemSelection(
-            model.sourceModel().createIndex(row, 0),
-            model.sourceModel().createIndex(row, num_cols - 1)
-        )
+        index_s = model.sourceModel().createIndex(row, 0)
+        index_e = model.sourceModel().createIndex(row, num_cols - 1)
+        # index_s = self.proxy_model.mapToSource(index_s)
+        # index_e = self.proxy_model.mapToSource(index_e)
+        sel = QtCore.QItemSelection(index_s, index_e)
         selection_model.select(sel, selection_model.ClearAndSelect)
+
+    def move_selection_up(self):
+        print 'move_selection_up'
+        row = next(iter(self._get_selected_proxy_row_indexes()), None)
+        self._set_selected_proxy_row_index(row - 1)
+
+    def move_selection_down(self):
+        print 'move_selection_down'
+        row = next(iter(self._get_selected_proxy_row_indexes()), None)
+        print row
+        self._set_selected_proxy_row_index(row + 1)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -160,13 +206,11 @@ class WidgetComponentList(QtWidgets.QWidget):
             return
 
         if key == QtCore.Qt.Key_Up:
-            row = next(iter(self._get_selected_row_indexes()), None)
-            self._set_selected_row_index(row - 1)
+            self.move_selection_up()
             return
 
         if key == QtCore.Qt.Key_Down:
-            row = next(iter(self._get_selected_row_indexes()), None)
-            self._set_selected_row_index(row + 1)
+            self.move_selection_down()
             return
 
     def action_submit(self):
@@ -174,7 +218,7 @@ class WidgetComponentList(QtWidgets.QWidget):
         for entry in entries:
             # Create the component in memory
             try:
-                component = entry.instanciate(self._manager)
+                component = entry.instanciate(self.manager)
             except Exception, e:
                 log.exception(e)
                 raise e
@@ -182,7 +226,7 @@ class WidgetComponentList(QtWidgets.QWidget):
             # Export the component metadata
             if isinstance(component, ComponentDefinition):
                 from omtk.vendor import libSerialization
-                libSerialization.export_network(component, cache=self._manager._serialization_cache)  ## error ehere
+                libSerialization.export_network(component, cache=self.manager._serialization_cache)  ## error ehere
 
             self.signalComponentCreated.emit(component)
         self.close()

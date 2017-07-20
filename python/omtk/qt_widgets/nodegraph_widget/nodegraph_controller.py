@@ -5,13 +5,13 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants
+from omtk import manager
 from omtk import factory_datatypes
+from omtk.core import classEntity
 from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore
-from omtk.core import classEntity
-from omtk.core import classComponent
 
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
@@ -35,7 +35,9 @@ def block_signal(fn):
         rv = fn(self, *args, **kwargs)
         self._view.blockSignals(old_val)
         return rv
+
     return _fn_decorated
+
 
 class NodeGraphController(QtCore.QObject):  # needed for signal handling
     onLevelChanged = QtCore.Signal(object)
@@ -48,7 +50,6 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self._model = model
         self._view = None
         self._current_level = None
-        self._manager = None
 
         # Hold a reference to the inn and out node when inside a compound.
         self._widget_bound_inn = None
@@ -71,8 +72,9 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self._old_scene_x = None
         self._old_scene_y = None
 
-    def set_manager(self, manager):
-        self._manager = manager
+    @property
+    def manager(self):
+        return manager.get_manager()
 
     def get_nodes(self):
         # type: () -> (List[NodeGraphNodeModel])
@@ -163,7 +165,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if isinstance(val, pymel.nodetypes.Network):
             net = libComponents.get_component_metanetwork_from_hub_network(val)
             if net:
-                component = self._manager.import_network(net)
+                component = self.manager.import_network(net)
                 if net.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
                     return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val, component)
                 if net.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
@@ -200,7 +202,8 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if self._view:
             node_widget = self.get_node_widget(node_model)
 
-            for port_model in sorted(node_model.get_attributes()):
+            # todo: find a unified way of always having the ports sorted...
+            for port_model in sorted(node_model.get_attributes(), key=lambda x: x.get_name()):
                 if not port_model.is_interesting():
                     continue
                 port = node_widget.getPort(port_model.get_name())
@@ -231,9 +234,9 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
                     #     continue
                     self.get_connection_widget(connection_model)
 
-            # if port_model.is_connected():
-            #     for connection_model in port_model.get_connections():
-            #         self.get_connection_widget(connection_model)
+                    # if port_model.is_connected():
+                    #     for connection_model in port_model.get_connections():
+                    #         self.get_connection_widget(connection_model)
 
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
@@ -391,6 +394,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             node_widget = self.get_node_widget(node_model)
             # self._known_nodes_widgets(node_widget)
         self.expand_node_attributes(node_model)
+        self.expand_node_connections(node_model)
 
         return node_model, node_widget
 
@@ -545,4 +549,4 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         menu = factory_rc_menu.get_menu(values, self.on_execute_action)
 
     def on_execute_action(self, actions):
-        self._manager.execute_actions(actions)
+        self.manager.execute_actions(actions)

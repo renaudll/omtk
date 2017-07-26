@@ -53,6 +53,9 @@ def reload_():
     from . import nodegraph_node_model_rig
     reload(nodegraph_node_model_rig)
 
+    from . import nodegraph_node_model_root
+    reload(nodegraph_node_model_root)
+
     from . import nodegraph_model
     reload(nodegraph_model)
 

@@ -224,9 +224,9 @@ class WidgetComponentList(QtWidgets.QWidget):
                 raise e
 
             # Export the component metadata
-            if isinstance(component, ComponentDefinition):
-                from omtk.vendor import libSerialization
-                libSerialization.export_network(component, cache=self.manager._serialization_cache)  ## error ehere
+            # if isinstance(component, Component):
+            #     from omtk.vendor import libSerialization
+            #     libSerialization.export_network(component, cache=self.manager._serialization_cache)  ## error ehere
 
             self.signalComponentCreated.emit(component)
         self.close()

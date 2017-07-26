@@ -23,7 +23,7 @@ class NodeGraphPortModel(object):
         self._adaptor = None
 
     def __repr__(self):
-        return '<NodeGraphPortModel {0}.{1}>'.format(self.get_parent().get_name(), self.get_name())
+        return '<NodeGraphPortModel {0}.{1}>'.format(self.get_parent(), self.get_name())
 
     def get_name(self):
         """Return the unique name relative to the node."""
@@ -113,7 +113,8 @@ class NodeGraphPortModel(object):
             # raise Exception("{0} cannot be input and output at the same time.".format(attr))
 
             # In case of ambiguity, we will ask the node model.
-            node_model = self.get_parent()
+            node_value = self.get_parent()
+            node_model = ctrl.get_node_model_from_value(node_value)
             is_writable = node_model.allow_input_port_display(self, ctrl)
             is_readable = node_model.allow_output_port_display(self, ctrl)
             if is_readable and not is_writable:

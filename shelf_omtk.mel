@@ -136,6 +136,37 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
+        -annotation "import omtk\nreload(omtk)\nomtk.reload_()\nomtk.run_macro('show_node_editor')" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import omtk\nreload(omtk)\nomtk.reload_()\nomtk.run_macro('show_nod..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "omtk_tool_nodeeditor.png" 
+        -image1 "omtk_tool_nodeeditor.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk\nreload(omtk)\nomtk.reload_()\nomtk.run_macro('show_node_editor')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
         -annotation "Build Selected Joints" 
         -enableBackground 0
         -highlightColor 0.321569 0.521569 0.65098 
@@ -309,7 +340,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\n\omtk.run_macro('ctrls_bake_selected')" 
+        -command "import omtk\nomtk.run_macro('ctrls_bake_selected')" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -469,4 +500,100 @@ global proc shelf_omtk () {
         -commandRepeatable 1
         -flat 1
     ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Display relationships among nodes in your scene graphically" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Node Editor" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "NE" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "menuIconWindow.png" 
+        -image1 "menuIconWindow.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "NodeEditorWindow" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import sys\nsys.path.append('/opt/pycharm-professional/helpers/pydev/')\nimport pydevd\npydevd.settrace('localhost', port=12345, stdoutToServer=True, stderrToServer=True, suspend=False)" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import sys\nsys.path.append('/opt/pycharm-professional/helpers/py..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "DEBUG" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import sys\nsys.path.append('/opt/pycharm-professional/helpers/pydev/')\nimport pydevd\npydevd.settrace('localhost', port=12345, stdoutToServer=True, stderrToServer=True, suspend=False)" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import omtk\nreload(omtk)\nomtk._reload()\nomtk._build_ui()" 
+        -enableBackground 0
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import omtk\nreload(omtk)\nomtk._reload()\nomtk._build_ui()" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import sys\nsys.path.append('/home/rll/dev/python')\nsys.path.append('/home/rll/dev/python/omtk/python')\nimport omtk\nreload(omtk)\nomtk._reload()\nomtk._build_ui()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
 } 

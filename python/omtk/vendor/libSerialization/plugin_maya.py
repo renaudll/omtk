@@ -1,5 +1,6 @@
 import pymel.core as pymel
 from maya import OpenMaya
+from maya import cmds
 import sys
 import logging
 import core
@@ -7,8 +8,10 @@ import core
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
 def is_valid_PyNode(val):
     return val and hasattr(val, 'exists') and val.exists()
+
 
 __all__ = (
     'export_network',
@@ -33,6 +36,9 @@ core.register_type_pymel(
 #
 # Maya Metanetwork Serialization
 #
+
+def _get_pynode_uuid(pynode):
+    return cmds.ls(pynode.__melobject__(), uuid=True)[0]
 
 def _create_attr(name, data):
     """
@@ -268,13 +274,14 @@ def _get_network_attr(attr, fn_skip=None, cache=None):
         # Empty array
         if not attr_indices:
             return []
-        num_logical_elements = max(attr_indices)+1
-        return [_get_network_attr(attr.elementByLogicalIndex(i), fn_skip=fn_skip, cache=cache) for i in range(num_logical_elements)]
+        num_logical_elements = max(attr_indices) + 1
+        return [_get_network_attr(attr.elementByLogicalIndex(i), fn_skip=fn_skip, cache=cache) for i in
+                range(num_logical_elements)]
 
     attr_type = attr.type()
     if attr_type == 'message':
         if not attr.isConnected():
-            #log.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(attr))
+            # log.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(attr))
             return None
         attr_input = attr.inputs()[0]
         # Network
@@ -317,7 +324,10 @@ def _get_network_attr(attr, fn_skip=None, cache=None):
     # Basic type
     return attr.get()
 
+
 _export_network_key_whitelist = ['_class', '_class_module']
+
+
 def _can_export_attr_by_name(name):
     """
     Determine what attribute can be exported to a network.
@@ -332,11 +342,12 @@ def _can_export_attr_by_name(name):
 
     return True
 
+
 def export_network(data, cache=None, **kwargs):
     if cache is None:
         from cache import Cache
         cache = Cache()
-    #log.debug('CreateNetwork {0}'.format(data))
+    # log.debug('CreateNetwork {0}'.format(data))
 
     # We'll deal with two additional attributes, '_network' and '_uid'.
     # Thoses two attributes allow us to find the network from the value and vice-versa.
@@ -354,19 +365,21 @@ def export_network(data, cache=None, **kwargs):
         return network  # remove me
     else:
 
-
         # Create network
         # Optimisation: Use existing network if already present in scene
-        #if hasattr(data, '_network') and is_valid_PyNode(data._network):
+        # if hasattr(data, '_network') and is_valid_PyNode(data._network):
         #    network = data._network
-        #else:
+        # else:
         # Automaticly name network whenever possible
         try:
             network_name = data.__getNetworkName__()
         except (AttributeError, TypeError):
             network_name = data.__class__.__name__
 
+        # Cache the pymel.nodetypes.Network instance for future re-use.
         network = pymel.createNode('network', name=network_name)
+        network_uuid = _get_pynode_uuid(network)
+        cache.set_import_value_by_id(network_uuid, data)
 
     # Monkey patch the network in a _network attribute if supported.
     if isinstance(data, object) and not isinstance(data, dict):
@@ -414,7 +427,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     if not network.hasAttr('_class'):
         return network
 
-    network_id = hash(network)
+    network_id = _get_pynode_uuid(network)
 
     # Check if the object related to the network already exist in the cache and return it if found
     cached_obj = cache.get_import_value_by_id(network_id)
@@ -493,8 +506,8 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
             obj[attr_name.longName()] = val
         else:
             setattr(obj, attr_name, val)
-        # else:
-        #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
+            # else:
+            #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
 
     # Hack: Find implemented class via duck-typing
     # Implement a __callbackNetworkPostBuild__ method in your class instances as a callback.
@@ -522,10 +535,12 @@ def is_network_from_class(net, cls_name):
         return cls_name in net._class.get().split('.')
     return None
 
+
 def iter_networks_from_class(cls_name):
     for network in pymel.ls(type='network'):
         if is_network_from_class(network, cls_name):
             yield network
+
 
 def get_networks_from_class(cls_name):
     """
@@ -541,6 +556,7 @@ def get_networks_from_class(cls_name):
     :return: A list of pymel.nodetypes.Network.
     """
     return list(iter_networks_from_class(cls_name))
+
 
 def iter_connected_networks(objs, key=None, key_skip=None, recursive=True, cache=None):
     """
@@ -597,8 +613,10 @@ def iter_connected_networks(objs, key=None, key_skip=None, recursive=True, cache
                 yield output_obj
 
             if recursive:
-                for result in iter_connected_networks(output_obj, key=key, key_skip=key_skip, recursive=recursive, cache=cache):
+                for result in iter_connected_networks(output_obj, key=key, key_skip=key_skip, recursive=recursive,
+                                                      cache=cache):
                     yield result
+
 
 def get_connected_networks(objs, key=None, key_skip=None, recursive=True):
     """

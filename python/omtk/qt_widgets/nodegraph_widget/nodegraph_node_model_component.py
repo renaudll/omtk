@@ -67,10 +67,10 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         # todo: cleanup private variable usage
         # If we are viewing the component content
         if context:
-            if context._current_level == self:
-                return port_model.get_parent().get_metadata() == self._entity.grp_out
+            if context._current_level_data == self:
+                return port_model.get_parent() == self._entity.grp_out
             else:
-                return port_model.get_parent().get_metadata() == self._entity.grp_inn
+                return port_model.get_parent() == self._entity.grp_inn
         return super(NodeGraphComponentModel, self).allow_input_port_display(port_model)
 
     def allow_output_port_display(self, port_model, context=None):
@@ -83,10 +83,10 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         # todo: cleanup private variable usage
         # If we are viewing the component content
         if context:
-            if context._current_level == self:
-                return port_model.get_parent().get_metadata() == self._entity.grp_inn
+            if context._current_level_model == self:
+                return port_model.get_parent() == self._entity.grp_inn
             else:
-                return port_model.get_parent().get_metadata() == self._entity.grp_out
+                return port_model.get_parent() == self._entity.grp_out
         return super(NodeGraphComponentModel, self).allow_output_port_display(port_model)
 
         # def _get_node_widget_label(self):
@@ -102,6 +102,7 @@ class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDag
         super(NodeGraphComponentBoundBaseModel, self).__init__(registry, pynode)
         self._component = component
 
+    # todo: deprecate in favor of .get_parent()
     @libPython.memoized_instancemethod
     def _get_component(self):
         # type(): () -> Component
@@ -111,9 +112,7 @@ class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDag
         return self._component
 
     def get_parent(self):
-        component = self._get_component()
-        model = self._registry.get_node_from_value(component)
-        return model
+        return self._get_component()
 
 
 class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):

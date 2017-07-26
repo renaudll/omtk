@@ -207,7 +207,7 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, include_metada
         } if include_metadata else {}
 
         # Cache it as soon as possible since we might use recursivity.
-        cache.set_import_value_by_id(data_id, result)
+        # cache.set_import_value_by_id(data_id, result)
 
         for key, val in (data.items() if isinstance(data, dict) else data.__dict__.items()):  # TODO: Clean
             # Ignore private keys (starting with an underscore)

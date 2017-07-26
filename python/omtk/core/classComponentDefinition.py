@@ -194,7 +194,9 @@ class ComponentDefinition(object):
         inst.grp_inn = hub_inn
         inst.grp_out = hub_out
 
-        network = libSerialization.export_network(inst)
+        from omtk import manager
+        m = manager.get_manager()
+        network = m.export_network(inst)
 
         return inst
 

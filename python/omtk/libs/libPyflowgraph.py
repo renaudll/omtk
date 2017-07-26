@@ -11,6 +11,7 @@ _GRAPH_POS_ATTR_NAME = constants.PyFlowGraphMetadataKeys.Position
 
 
 def _walk_downstream(node):
+    known = set()
     for port in node.iter_input_ports():
         connections = port.inCircle().getConnections()
         for connection in connections:
@@ -18,12 +19,16 @@ def _walk_downstream(node):
             dst = connection.getDstPort()
 
             connected_node = src.getNode()
+            if connected_node in known:
+                continue
+            known.add(connected_node)
 
             # Ignore known nodes
             yield connected_node
 
 
 def _walk_upstream(node):
+    known = set()
     for port in node.iter_output_ports():
         connections = port.outCircle().getConnections()
         for connection in connections:
@@ -31,6 +36,9 @@ def _walk_upstream(node):
             dst = connection.getDstPort()
 
             connected_node = dst.getNode()
+            if connected_node in known:
+                continue
+            known.add(connected_node)
 
             # Ignore known nodes
             yield connected_node
@@ -87,7 +95,7 @@ def arrange_upstream(node, padding_x=32, padding_y=32):
         arrange_upstream(child, padding_x=padding_x, padding_y=padding_y)
 
 
-def arrange_downstream(node, padding_x=32, padding_y=32):
+def arrange_downstream(node, padding_x=32, padding_y=10):
     parent_pos = node.getGraphPos()
 
     # Resolve nb of nodes on top level
@@ -106,16 +114,18 @@ def arrange_downstream(node, padding_x=32, padding_y=32):
 
     # Set start location
     pos_x = parent_pos.x() - (node.size().width() * 0.5) - padding_x
-    pos_y = parent_pos.y() - total_height
+    pos_y = parent_pos.y() - total_height * 0.5
 
     # Reposition all children
     known_nodes = set()
-    for child, in zip(children):
+    num_children = len(children)
+    pos_y_increments = total_height / (num_children - 1)
+    for i, child, in enumerate(children):
         if child in known_nodes:
             continue
         known_nodes.add(child)
 
-        pos_y += child.size().height() * 0.5
+        pos_y += pos_y_increments # child.size().height() * 0.5
         log.debug('Repositionning {} ({}) to {}, {}'.format(
             child, child.getName(), pos_x, pos_y
         ))

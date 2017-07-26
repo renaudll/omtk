@@ -107,6 +107,9 @@ class AutoRigManager(QtCore.QObject):
         for root in self.roots:
             self.export_networks(root)
 
+    def get_rigs(self):
+        return self._roots
+
     def create_rig(self, rig_type=None):
         if rig_type is None:
             # todo: get default rig definition

@@ -80,6 +80,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # At least create one tab
         self.create_tab()
 
+        # Load root level
+        self._ctrl.set_level(None)
+
     @property
     def manager(self):
         return manager.get_manager()

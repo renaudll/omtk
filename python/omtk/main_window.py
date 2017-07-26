@@ -137,10 +137,10 @@ class AutoRig(QtWidgets.QMainWindow):
         self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
 
         # Add existing rigs in the NodeGraph on startup
-        for rig in self.manager._roots:
-            ctrl = self.ui.widget_node_editor.get_controller()
-            model, widget = ctrl.add_node(rig)
-            ctrl.expand_node_connections(model)
+        # for rig in self.manager._roots:
+        #     ctrl = self.ui.widget_node_editor.get_controller()
+        #     model, widget = ctrl.add_node(rig)
+        #     ctrl.expand_node_connections(model)
 
         self.manager.onSceneChanged.connect(self.on_scene_changed)
         self.manager.onRigCreated.connect(self.on_manager_created_rig)

@@ -1,3 +1,4 @@
+import logging
 import pymel.core as pymel
 from omtk import manager
 from omtk.libs import libPyflowgraph
@@ -8,6 +9,8 @@ from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # s
 # used for type hinting
 if False:
     from .nodegraph_controller import NodeGraphController
+
+log = logging.getLogger('omtk')
 
 
 class NodeGraphView(PyFlowgraphView):
@@ -127,6 +130,7 @@ class NodeGraphView(PyFlowgraphView):
         :param component:
         :return:
         """
+        log.debug("Creating component {0} (id {1})".format(component, id(component)))
         model, widget = self._controller.add_node(component)
 
         from omtk.core import classModule

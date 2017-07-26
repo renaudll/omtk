@@ -8,6 +8,7 @@ from omtk import constants
 from omtk import manager
 from omtk import factory_datatypes
 from omtk.core import classEntity
+from omtk.core import classComponent
 from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
@@ -16,6 +17,7 @@ from omtk.vendor.Qt import QtCore
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
 from . import nodegraph_node_model_dagnode
+from . import nodegraph_node_model_root
 
 # Used for type checking
 if False:
@@ -41,15 +43,18 @@ def block_signal(fn):
 
 class NodeGraphController(QtCore.QObject):  # needed for signal handling
     onLevelChanged = QtCore.Signal(object)
-
     actionRequested = QtCore.Signal(list)
+
+    # Define the default root model to use
+    _cls_root_model = nodegraph_node_model_root.NodeGraphNodeRootModel
 
     def __init__(self, model):
         super(NodeGraphController, self).__init__()  # needed for signal handling
         # type: (NodeGraphModel, NodeGraphView) -> ()
         self._model = model
         self._view = None
-        self._current_level = None
+        self._current_level_model = None
+        self._current_level_data = None
 
         # Hold a reference to the inn and out node when inside a compound.
         self._widget_bound_inn = None
@@ -75,6 +80,10 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
     @property
     def manager(self):
         return manager.get_manager()
+
+    @libPython.memoized_instancemethod
+    def get_root_model(self):
+        return self._cls_root_model(self._model, 'root') if self._cls_root_model else None
 
     def get_nodes(self):
         # type: () -> (List[NodeGraphNodeModel])
@@ -166,18 +175,20 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             net = libComponents.get_component_metanetwork_from_hub_network(val)
             if net:
                 component = self.manager.import_network(net)
-                if net.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
-                    return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val, component)
-                if net.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
-                    return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self._model, val, component)
-
+                if self._current_level_data == component:
+                    if net.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
+                        return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val, component)
+                    if net.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
+                        return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self._model, val, component)
+                else:
+                    return self.get_node_model_from_value(component)
             return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self._model, val)
 
-        model = self._model.get_node_from_value(val)
-        if isinstance(model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
-            component = model.get_component()
-            if component != self._current_level:
-                return self._model.get_node_from_value(component)
+        # model = self._model.get_node_from_value(val)
+        # if isinstance(model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
+        #     component = model.get_component()
+        #     if component != self._current_level:
+        #         return self._model.get_node_from_value(component)
 
         return self._model.get_node_from_value(val)
 
@@ -216,7 +227,11 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
             if expand_upstream and port_model.is_source():
                 for connection_model in port_model.get_output_connections():
-                    if connection_model.get_parent() != self._current_level:
+                    node_inst = connection_model.get_parent()
+                    node_model = self.get_node_model_from_value(node_inst)
+                    node_parent_inst = node_model.get_parent()
+                    node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
+                    if node_parent_model != self._current_level_model:
                         continue
                     port_model_dst = connection_model.get_destination()
                     node_model_dst = port_model_dst.get_parent()
@@ -226,7 +241,11 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
             if expand_downstream and port_model.is_destination():
                 for connection_model in port_model.get_input_connections():
-                    if connection_model.get_parent() != self._current_level:
+                    node_inst = connection_model.get_parent()
+                    node_model = self.get_node_model_from_value(node_inst)
+                    node_parent_inst = node_model.get_parent()
+                    node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
+                    if node_parent_model != self._current_level_model:
                         continue
                     port_model_src = connection_model.get_source()
                     node_model_src = port_model_src.get_parent()
@@ -317,13 +336,14 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         # In Pyflowgraph, a Port need a Node.
         # Verify that we initialize the widget for the Node.
-        node_model = port_model.get_parent()
+        node_value = port_model.get_parent()
+        node_model = self.get_node_model_from_value(node_value)
 
         # Hack: Hide Compound bound nodes when not inside the compound!
-        if isinstance(node_model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
-            compound_model = self.get_node_model_from_value(node_model._get_component())
-            if self._current_level != (compound_model):
-                node_model = compound_model
+        # if isinstance(node_model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
+        #     compound_model = self.get_node_model_from_value(node_model.get_parent())
+        #     if self._current_level != compound_model:
+        #         node_model = compound_model
 
         node_widget = self.get_node_widget(node_model)
         port_widget = port_model.get_widget(self, self._view, node_widget)
@@ -354,8 +374,8 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self.get_port_widget(port_src_model)
         widget_dst_port = self.get_port_widget(port_dst_model)
 
-        widget_src_node = self.get_node_widget(port_src_model.get_parent())
-        widget_dst_node = self.get_node_widget(port_dst_model.get_parent())
+        widget_src_node = self.get_node_widget(self.get_node_model_from_value(port_src_model.get_parent()))
+        widget_dst_node = self.get_node_widget(self.get_node_model_from_value(port_dst_model.get_parent()))
 
         # Hack:
         widget_dst_port.inCircle().setSupportsOnlySingleConnections(False)
@@ -405,7 +425,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         """
 
         # Draw nodes
-        nodes = {node for node in self.get_nodes() if node.get_parent() == self._current_level}
+        nodes = {node for node in self.get_nodes() if node.get_parent() == self._current_level_data}
         for node in nodes:
             widget = node.get_widget()
             self._view.addNode(widget)
@@ -448,8 +468,28 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             pass
 
     def set_level(self, node_model):
-        # todo: handle top level
-        self._current_level = node_model
+        # If None was provided, we will switch to the top level.
+        if node_model is None:
+            root_model = self.get_root_model()
+            if root_model:
+                node_model = root_model
+
+        self._current_level_model = node_model
+        self._current_level_data = node_model.get_metadata()
+
+        # Hack: remove models and widget from cache
+        # todo: implement the cache manually for cleaner code
+        if isinstance(self._current_level_data, classComponent.Component):
+            component = self._current_level_data
+            cache = self._cache.get('get_node_model_from_value', None)
+            cache.clear()
+            # if cache:
+            #     cache.pop(component, None)
+            #     if component.grp_inn:
+            #         cache.pop(component.grp_inn, None)
+            #     if component.grp_out:
+            #         cache.pop(component.grp_out, None)
+
         self.clear()
         self._widget_bound_inn = None
         self._widget_bound_out = None
@@ -497,15 +537,15 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             return False
 
         # We don't want to enter the same model twice.
-        if self._current_level == node_model:
+        if self._current_level_data == node_model:
             return False
 
         # Currently since we can have 3 node model for a single compound (one model when seen from outside and two
         # model when seen from the inside, the inn and the out), we need a better way to distinguish them.
         # For now we'll use a monkey-patched data from libSerialization, however we need a better approach.
         meta_data = node_model.get_metadata()
-        if hasattr(self._current_level, '_network') and hasattr(meta_data, '_network'):
-            current_network = self._current_level._network
+        if hasattr(self._current_level_data, '_network') and hasattr(meta_data, '_network'):
+            current_network = self._current_level_data._network
             new_network = meta_data._network
             if current_network == new_network:
                 return False
@@ -524,10 +564,10 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             log.debug("Cannot naviguate to {0}".format(node_model))
 
     def navigate_up(self):
-        if self._current_level is None:
+        if self._current_level_data is None:
             return
 
-        node_model = self._current_level.get_parent()
+        node_model = self._current_level_data.get_parent()
         if self.can_navigate_to(node_model):
             self.set_level(node_model)
             self.onLevelChanged.emit(node_model)

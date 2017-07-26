@@ -14,9 +14,9 @@ class NodeGraphConnectionModel(object):
 
     def __repr__(self):
         return '<NodeGraphConnectionModel {0}.{1} to {2}.{3}>'.format(
-            self._attr_src.get_parent().get_name(),
+            self._attr_src.get_parent(),
             self._attr_src.get_name(),
-            self._attr_dst.get_parent().get_name(),
+            self._attr_dst.get_parent(),
             self._attr_dst.get_name()
         )
 
@@ -112,7 +112,7 @@ class NodeGraphConnectionModel(object):
                 return dst_node_model
 
         node_model = get_connection_node_model()
-        return node_model.get_parent()
+        return node_model
 
     def get_source(self):
         # type: () -> NodeGraphPortModel

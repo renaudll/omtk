@@ -23,12 +23,8 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         net = libComponents.get_component_metanetwork_from_hub_network(parent_grp_inn)
         if not net:
             return None
-        inst = self._registry._manager.import_network(net)
-        # inst = libSerialization.import_network(net)  # todo: use some kind of singleton/registry?
-        if not inst:
-            return None
-        model = self._registry.get_node_from_value(inst)
-        return model
+        inst = self._registry.manager.import_network(net)
+        return inst
 
     def get_metadata(self):
         return self._pynode
@@ -38,7 +34,7 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         # type: () -> List[NodeGraphPortModel]
         result = set()
         for attr in libAttr.iter_contributing_attributes(self._pynode):
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
+            inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self._pynode, attr)
             self._registry._register_attribute(inst)
             result.add(inst)
         return result

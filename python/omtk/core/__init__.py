@@ -7,7 +7,7 @@ from api import *
 from . import plugin_manager
 
 log = logging.getLogger('omtk')
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # Load configuration file
 # Currently this only allow the default rig class from being used.

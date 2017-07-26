@@ -207,7 +207,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         Add it in the pool if it didn't previously exist.
         :return:
         """
-        log.info('Creating widget for {0}'.format(node_model))
+        log.debug('Creating widget for {0}'.format(node_model))
 
         # In PyFlowgraph, ports are accessible by name.
         if self._view:
@@ -382,10 +382,10 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         connection = None
         try:
-            log.debug("Connecting {0} to {1}".format(
-                '{0}.{1}'.format(widget_src_node.getName(), port_src_model.get_name()),
-                '{0}.{1}'.format(widget_dst_node.getName(), port_dst_model.get_name())
-            ))
+            # log.debug("Connecting {0} to {1}".format(
+            #     '{0}.{1}'.format(widget_src_node.getName(), port_src_model.get_name()),
+            #     '{0}.{1}'.format(widget_dst_node.getName(), port_dst_model.get_name())
+            # ))
             connection = self._view.connectPorts(
                 widget_src_node,
                 port_src_model.get_name(),

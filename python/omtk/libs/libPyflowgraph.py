@@ -125,7 +125,7 @@ def arrange_downstream(node, padding_x=32, padding_y=10):
             continue
         known_nodes.add(child)
 
-        pos_y += pos_y_increments # child.size().height() * 0.5
+        pos_y += pos_y_increments  # child.size().height() * 0.5
         log.debug('Repositionning {} ({}) to {}, {}'.format(
             child, child.getName(), pos_x, pos_y
         ))
@@ -162,3 +162,86 @@ def save_node_position(node, pos):
         else:
             attr = meta_data.attr(_GRAPH_POS_ATTR_NAME)
         attr.set(pos)
+
+
+def spring_layout(nodes, nodes_to_ignore=None):
+    # Step 1: Resolve nodes
+    # Step 2: Resolve positions
+    # Step 3: Resolve edges
+    from omtk.vendor.jurij import graph
+
+    nodes = list(nodes)
+
+    node_positions = []
+    for node in nodes:
+        pos = node.getGraphPos()
+        node_positions.append((pos.x(), pos.y()))
+
+    vertices = range(len(nodes))
+
+    edges = []
+    for i, node in enumerate(nodes):
+        for upstream_node in _walk_upstream(node):
+            try:
+                j = nodes.index(upstream_node)
+            except ValueError:
+                continue
+            edges.append((j, i))
+        for downstream_node in _walk_downstream(node):
+            try:
+                j = nodes.index(downstream_node)
+            except ValueError:
+                continue
+            edges.append((i, j))
+
+    layout = {}
+    for node, position in zip(vertices, node_positions):
+        layout[node] = position
+
+    graph = graph.Graph(vertices=vertices, edges=edges)
+
+    layout_iteration = 1000
+    columb = 1.0  # Intensity of Columb's force
+    hook = 0.1  # Intensity of Hook's force
+    dt = 0.5  # Time step
+
+    while layout_iteration > 0:
+        layout_iteration = layout_iteration - 1
+        # Compute change of layout
+        kinetic = 0.0  # kinetic energy
+        for u in graph.vertices():
+            if u in vertices_to_ignore:
+                continue
+            # Compute the acceleration of u
+            (x, y) = layout[u]
+            (ax, ay) = (0, 0)
+            for v in graph.vertices():
+                if u != v:
+                    (a, b) = layout[v]
+                    d = max(0.001, (x - a) * (x - a) + (y - b) * (y - b))
+                    # Columb's law
+                    ax -= columb * (a - x) / (d * d)
+                    ay -= columb * (b - y) / (d * d)
+            for v in graph.adjacency[u]:
+                # Hook's law
+                (a, b) = layout[v]
+                ax += hook * (a - x)
+                ay += hook * (b - y)
+            for v in graph.opposite()[u]:
+                # Hook's law
+                (a, b) = layout[v]
+                ax += hook * (a - x)
+                ay += hook * (b - y)
+            # Update velocities
+            vx = dt * ax
+            vy = dt * ay
+            kinetic += vx * vx + vy * vy
+            x = x + dt * vx + ax * dt * dt
+            y = y + dt * vy + ay * dt * dt
+            layout[u] = (x, y)
+        if kinetic < 1e-6:
+            layout_iteration = 0
+            # self._layout_worker = self.canvas.after(20, self.spring_layout_worker)
+
+    for node, (x, y) in zip(nodes, layout.itervalues()):
+        node.setGraphPos(QtCore.QPointF(x*1000.0, y*1000.0))

@@ -3,7 +3,7 @@ import constants
 from .core import *
 
 log = logging.getLogger('omtk')
-log.setLevel(logging.DEBUG)  # debugging
+log.setLevel(logging.INFO)  # debugging
 
 try:
     from maya import cmds, mel

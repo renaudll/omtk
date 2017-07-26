@@ -56,7 +56,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # self._manager = None
         self._model = _get_singleton_model()
         self._ctrl = NodeGraphController(self._model)
-        self._ctrl.onLevelChanged.connect(self.on_breadcrumb_changed)
+        self._ctrl.onLevelChanged.connect(self.on_level_changed)
 
         # Keep track of the multiple views provided by the QTabWidget
         self._current_view = None
@@ -198,6 +198,10 @@ class NodeGraphWidget(QtWidgets.QWidget):
     def on_breadcrumb_changed(self, model):
         """Called when the current level is changed using the breadcrumb widget."""
         self._ctrl.set_level(model)
+        self.ui.widget_breadcrumb.set_path(model)
+
+    def on_level_changed(self, model):
+        """Called when the current level is changed using the nodegraph."""
         self.ui.widget_breadcrumb.set_path(model)
 
 # from pyflowgraph.graph_view import GraphView as NodeGraphWidget

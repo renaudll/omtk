@@ -498,9 +498,12 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if not node_model:
             return
 
-        for child_model in node_model.get_children():
+        widgets = set()
+        children = node_model.get_children()
+        for child_model in children:
             child_model._node = node_model  # hack: parent is not correctly set at the moment
-            self.get_node_widget(child_model)
+            widget = self.get_node_widget(child_model)
+            widgets.add(widget)
             self.expand_node_attributes(child_model)
             self.expand_node_connections(child_model)
 
@@ -515,6 +518,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self.expand_node_attributes(node_model)
             self.expand_node_connections(node_model)
             self._widget_bound_inn = node_widget
+            # widgets.remove(node_widget)
 
             # Create out node
             grp_out = component.grp_out
@@ -523,8 +527,17 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self.expand_node_attributes(node_model)
             self.expand_node_connections(node_model)
             self._widget_bound_out = node_widget
+            # widgets.remove(node_widget)
 
-            libPyflowgraph.arrange_downstream(self._widget_bound_inn)
+            # libPyflowgraph.arrange_downstream(self._widget_bound_inn)
+            self._widget_bound_inn.setGraphPos(QtCore.QPointF(-1000.0, 0))
+            self._widget_bound_out.setGraphPos(QtCore.QPointF(1000.0, 0))
+            libPyflowgraph.spring_layout(widgets)
+            # self._widget_bound_inn.setGraphPos(QtCore.QPointF(-1000.0, 0))
+            # self._widget_bound_out.setGraphPos(QtCore.QPointF(1000.0, 0))
+            self._view.frameAllNodes()
+
+
 
     def can_navigate_to(self, node_model):
         if node_model is None:

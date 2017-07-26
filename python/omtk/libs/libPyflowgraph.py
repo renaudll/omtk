@@ -164,20 +164,12 @@ def save_node_position(node, pos):
         attr.set(pos)
 
 
-def spring_layout(nodes, nodes_to_ignore=None):
-    # Step 1: Resolve nodes
-    # Step 2: Resolve positions
-    # Step 3: Resolve edges
+def spring_layout(nodes):
     from omtk.vendor.jurij import graph
 
     nodes = list(nodes)
-
-    node_positions = []
-    for node in nodes:
-        pos = node.getGraphPos()
-        node_positions.append((pos.x(), pos.y()))
-
-    vertices = range(len(nodes))
+    num_vertices = len(nodes)
+    print num_vertices
 
     edges = []
     for i, node in enumerate(nodes):
@@ -185,18 +177,44 @@ def spring_layout(nodes, nodes_to_ignore=None):
             try:
                 j = nodes.index(upstream_node)
             except ValueError:
-                continue
+                j = len(nodes)
+                nodes.append(upstream_node)
+                # continue
             edges.append((j, i))
         for downstream_node in _walk_downstream(node):
             try:
                 j = nodes.index(downstream_node)
             except ValueError:
-                continue
+                j = len(nodes)
+                nodes.append(downstream_node)
+                # continue
             edges.append((i, j))
 
+    vertices = range(len(nodes))
+    print len(vertices)
+
+    node_positions = []
+    for node in nodes:
+        pos = node.getGraphPos()
+        node_positions.append(pos)
+        # node_positions.append((pos.x(), pos.y()))
+
+    average_pos_before = QtCore.QPointF()
+    for pos in node_positions:
+        average_pos_before += pos
+    average_pos_before /= len(nodes)
+    print 'average_pos_before', average_pos_before
+
+    import itertools
+    bound_before_x = max(abs(a.x() - b.x()) for a, b in itertools.permutations(node_positions, 2))
+    bound_before_y = max(abs(a.y() - b.y()) for a, b in itertools.permutations(node_positions, 2))
+    print 'bound before', bound_before_x, bound_before_y
+
+    node_positions = [(pos.x(), pos.y()) for pos in node_positions]
+
     layout = {}
-    for node, position in zip(vertices, node_positions):
-        layout[node] = position
+    for i, position in enumerate(node_positions):
+        layout[i] = position
 
     graph = graph.Graph(vertices=vertices, edges=edges)
 
@@ -210,12 +228,14 @@ def spring_layout(nodes, nodes_to_ignore=None):
         # Compute change of layout
         kinetic = 0.0  # kinetic energy
         for u in graph.vertices():
-            if u in vertices_to_ignore:
+            if u > num_vertices:
                 continue
             # Compute the acceleration of u
             (x, y) = layout[u]
             (ax, ay) = (0, 0)
             for v in graph.vertices():
+                # if u > num_vertices:
+                #     continue
                 if u != v:
                     (a, b) = layout[v]
                     d = max(0.001, (x - a) * (x - a) + (y - b) * (y - b))
@@ -223,11 +243,15 @@ def spring_layout(nodes, nodes_to_ignore=None):
                     ax -= columb * (a - x) / (d * d)
                     ay -= columb * (b - y) / (d * d)
             for v in graph.adjacency[u]:
+                # if u > num_vertices:
+                #     continue
                 # Hook's law
                 (a, b) = layout[v]
                 ax += hook * (a - x)
                 ay += hook * (b - y)
             for v in graph.opposite()[u]:
+                # if u > num_vertices:
+                #     continue
                 # Hook's law
                 (a, b) = layout[v]
                 ax += hook * (a - x)
@@ -243,5 +267,28 @@ def spring_layout(nodes, nodes_to_ignore=None):
             layout_iteration = 0
             # self._layout_worker = self.canvas.after(20, self.spring_layout_worker)
 
-    for node, (x, y) in zip(nodes, layout.itervalues()):
-        node.setGraphPos(QtCore.QPointF(x*1000.0, y*1000.0))
+    # Adjust scale
+    new_positions = [QtCore.QPointF(x, y) for i, (x, y) in zip(xrange(num_vertices), layout.itervalues())]
+    bound_after_x = max(abs(a.x() - b.x()) for a, b in itertools.permutations(new_positions, 2))
+    bound_after_y = max(abs(a.y() - b.y()) for a, b in itertools.permutations(new_positions, 2))
+    print 'bound after', bound_after_x, bound_after_y
+
+    ratio_x = bound_before_x / bound_after_x
+    ratio_y = bound_before_y / bound_after_y
+    print 'ratio', ratio_x, ratio_y
+    new_positions = [QtCore.QPointF(pos.x() * ratio_x, pos.y() * ratio_y) for pos in new_positions]
+
+    # Adjust translate
+    average_pos_after = QtCore.QPointF()
+    for pos in new_positions:
+        average_pos_after += pos
+    average_pos_after /= len(new_positions)
+    print 'average_pos_after', average_pos_after
+
+    offset = average_pos_before - average_pos_after
+    print 'offset', offset
+    new_positions = [pos + offset for pos in new_positions]
+
+    for node, pos in zip(nodes, new_positions):
+        # print node, pos
+        node.setGraphPos(pos)

@@ -8,7 +8,6 @@ from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
 log = logging.getLogger('omtk')
-log.setLevel(logging.DEBUG)
 
 __all__ = (
     'get_version',

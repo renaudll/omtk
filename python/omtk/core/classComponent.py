@@ -86,7 +86,20 @@ class Component(Entity):
         yield ActionShowContentInNodeEditor(self)
 
     def unbuild(self):
-        raise NotImplementedError
+        if not self.is_built():
+            return
+        objs_to_delete = []
+        if self.grp_inn and self.grp_inn.exists():
+            objs_to_delete.append(self.grp_inn)
+        if self.grp_out and self.grp_out.exists():
+            objs_to_delete.append(self.grp_out)
+        if self.grp_dag and self.grp_dag.exists():
+            objs_to_delete.append(self.grp_dag)
+        if objs_to_delete:
+            pymel.delete(objs_to_delete)
+        self.grp_inn = None
+        self.grp_out = None
+        self.grp_dag = None
 
     def is_modified(self):
         # type: () -> bool
@@ -100,8 +113,14 @@ class Component(Entity):
     def add_input_attr(self, long_name, **kwargs):
         return libAttr.addAttr(self.grp_inn, long_name, **kwargs)
 
+    def get_input_attributes(self):
+        return self.grp_inn.listAttr()
+
     def add_output_attr(self, long_name, **kwargs):
         return libAttr.addAttr(self.grp_out, long_name, **kwargs)
+
+    def get_output_attributes(self):
+        return self.grp_out.listAttr()
 
     def connect_to_input_attr(self, attr_name, attr_src, **kwargs):
         attr_dst = self.grp_inn.attr(attr_name)
@@ -151,6 +170,32 @@ class Component(Entity):
         libSerialization.export_network(inst)
 
         return inst
+
+    def explode(self):
+        """Delete the component and it's hub, remaping the attribute to their original location."""
+        if not self.is_built():
+            raise Exception("Cannot explode an unbuilt component.")
+
+        def _remap_attr(attr):
+            attr_src = next(iter(attr.inputs(plugs=True)), None)
+            # if not attr_src:
+            #     return
+            if attr_src:
+                pymel.disconnectAttr(attr_src, attr)
+            for attr_dst in attr.outputs(plugs=True):
+                pymel.disconnectAttr(attr, attr_dst)
+                if attr_src:
+                    pymel.connectAttr(attr_src, attr_dst, force=True)
+
+        # Explode grp_inn
+        for attr in self.get_input_attributes():
+            _remap_attr(attr)
+
+        # Explode grp_out
+        for attr in self.get_output_attributes():
+            _remap_attr(attr)
+
+        self.unbuild()
 
     def get_children(self):
         return (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {

@@ -47,18 +47,19 @@ class NodeGraphConnectionModel(object):
             compound_out_to_compound_out = 9 # src (source is inside destination)
 
         def get_connection_kind():
-            src_is_compound_bound = isinstance(src_node_model,
-                                               nodegraph_node_model_component.NodeGraphComponentBoundBaseModel)
-            dst_is_compound_bound = isinstance(dst_node_model,
-                                               nodegraph_node_model_component.NodeGraphComponentBoundBaseModel)
+            from omtk.libs import libComponents
+            src_role = libComponents.get_metanetwork_role(src_node_model)
+            dst_role = libComponents.get_metanetwork_role(dst_node_model)
 
+            src_is_compound_bound = src_role != libComponents.ComponentMetanetworkRole.NoRole
+            dst_is_compound_bound = dst_role != libComponents.ComponentMetanetworkRole.NoRole
             # The possibilities are:
             # - Connection from a component out to a component on the same level.
             # - Connection from a component inn to a component inn inside this same component.
             # - Connection from a component out to a parent component out.
             if src_is_compound_bound and dst_is_compound_bound:
-                src_is_inn = isinstance(src_node_model, nodegraph_node_model_component.NodeGraphComponentInnBoundModel)
-                dst_is_inn = isinstance(dst_node_model, nodegraph_node_model_component.NodeGraphComponentOutBoundModel)
+                src_is_inn = src_role == libComponents.ComponentMetanetworkRole.Inn
+                dst_is_inn = dst_role == libComponents.ComponentMetanetworkRole.Out
                 # Connection from a component inn to another component inn.
                 # In that case the destination component is a child of the source component.
                 if src_is_inn and dst_is_inn:
@@ -78,13 +79,13 @@ class NodeGraphConnectionModel(object):
                     return ConnectionKind.compound_out_to_compound_out
 
             elif src_is_compound_bound:  # exiting a compounds
-                src_is_inn = isinstance(src_node_model, nodegraph_node_model_component.NodeGraphComponentInnBoundModel)
+                src_is_inn = src_role == libComponents.ComponentMetanetworkRole.Inn
                 if src_is_inn:
                     return ConnectionKind.compound_inn_to_normal
                 else:
                     return ConnectionKind.compound_out_to_normal
             elif dst_is_compound_bound:  # entering a compound
-                dst_is_inn = isinstance(dst_node_model, nodegraph_node_model_component.NodeGraphComponentInnBoundModel)
+                dst_is_inn = dst_role == libComponents.ComponentMetanetworkRole.Inn
                 if dst_is_inn:
                     return ConnectionKind.normal_to_compound_inn
                 else:
@@ -107,9 +108,9 @@ class NodeGraphConnectionModel(object):
                 ConnectionKind.compound_inn_to_compound_inn,
                 ConnectionKind.compound_out_to_compound_out,
             ):
-                return src_node_model
-            else:
                 return dst_node_model
+            else:
+                return src_node_model
 
         node_model = get_connection_node_model()
         return node_model

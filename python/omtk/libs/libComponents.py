@@ -165,9 +165,21 @@ def get_component_metanetwork_from_hub_network(network, strict=True):
     return result
 
 
+def get_inn_network_from_metadata_network(network, strict=True):
+    result = next(iter(network.grp_inn.inputs()), None)
+    if not result and strict:
+        raise Exception("Can't resolve input network from meta-network {0}".format(network))
+    return result
+
+
 def get_inn_network_from_out_network(network, strict=True):
     metanetwork = get_component_metanetwork_from_hub_network(network, strict=strict)
-    result = next(iter(metanetwork.grp_inn.inputs()), None)
+    result = get_inn_network_from_metadata_network(metanetwork, strict=strict)
+    return result
+
+
+def get_out_network_from_metanetwork(network, strict=True):
+    result = next(iter(network.grp_out.inputs()), None)
     if not result and strict:
         raise Exception("Can't resolve input network from meta-network {0}".format(network))
     return result
@@ -175,10 +187,29 @@ def get_inn_network_from_out_network(network, strict=True):
 
 def get_out_network_from_inn_network(network, strict=True):
     metanetwork = get_component_metanetwork_from_hub_network(network, strict=True)
-    result = next(iter(metanetwork.grp_out.inputs()), None)
-    if not result and strict:
-        raise Exception("Can't resolve input network from meta-network {0}".format(network))
+    result = get_out_network_from_metanetwork(metanetwork, strict=strict)
     return result
+
+
+class ComponentMetanetworkRole:
+    NoRole = 0
+    Inn = 1
+    Out = 2
+
+
+def get_metanetwork_role(obj):
+    if not isinstance(obj, pymel.nodetypes.Network):
+        return ComponentMetanetworkRole.NoRole
+    network = get_component_metanetwork_from_hub_network(obj)
+    if not network:
+        return ComponentMetanetworkRole.NoRole
+    net_inn = get_inn_network_from_metadata_network(network)
+    if net_inn == obj:
+        return ComponentMetanetworkRole.Inn
+    net_out = get_out_network_from_metanetwork(network)
+    if net_out == obj:
+        return ComponentMetanetworkRole.Out
+    return ComponentMetanetworkRole.NoRole
 
 
 def get_component_parent_network(obj, source=True, destination=True, cache=None, strict=False):

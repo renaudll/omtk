@@ -43,6 +43,7 @@ class BuiltInComponentIds:
     IkSoftSolver = 'e6259812-d64d-4509-a051-828e5ed36234'
     Fk = '3f8cba02-ca89-494e-aeba-e1e1dcf23f3d'
     Limb = '603683b2-bab1-4ac9-84a7-d091b14151eb'
+    TwistExtractor = 'e0b775e1-1abd-4533-b5d5-ef03da434b93'
 
 
 class PyFlowGraphMetadataKeys:

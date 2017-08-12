@@ -3,6 +3,7 @@ import re
 import pymel.core as pymel
 
 from omtk.core import classNomenclature
+from omtk.nomenclature import snake_case_pascal
 from omtk.core import classRig
 from omtk.libs import libAttr
 from omtk.libs import libPymel
@@ -19,7 +20,7 @@ class CtrlMaster(classRig.CtrlRoot):
         return super(CtrlMaster, cls)._get_recommended_radius(rig, min_size=1.0) * multiplier
 
 
-class SqueezeNomenclature(classNomenclature.Nomenclature):
+class SqueezeNomenclature(snake_case_pascal.NomenclatureSnakePascalCase):
     type_anm = 'Ctrl'
     type_jnt = 'Jnt'
     type_rig = None

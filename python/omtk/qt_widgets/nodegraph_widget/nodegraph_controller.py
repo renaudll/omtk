@@ -558,7 +558,6 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             libPyflowgraph.spring_layout(widgets)
             # self._widget_bound_inn.setGraphPos(QtCore.QPointF(-1000.0, 0))
             # self._widget_bound_out.setGraphPos(QtCore.QPointF(1000.0, 0))
-            self._view.frameAllNodes()
 
     def can_navigate_to(self, node_model):
         if node_model is None:

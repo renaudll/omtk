@@ -134,47 +134,11 @@ class ComponentDefinition(object):
         inst.path = path
         return inst
 
-    # def write_to_file(self, path=None):
-    #     metadata = self.get_metadata()
-    #     path_tmp = os.path.join(os.path.dirname(path), os.path.basename(path) + '_omtktmp')
-    #
-    #     success = False
-    #     found = False
-    #     with open(path, 'r') as fp_read:
-    #         with open(path_tmp, 'w') as fp_write:
-    #             line = fp_read.readline()
-    #             if not regex_ma_header.match(line):
-    #                 raise Exception("Invalid Maya ASCII file {0}".format(path))
-    #             fp_write.write(line)
-    #
-    #             for line in fp_read:
-    #                 regex_result = regex_fileinfo.match(line)
-    #                 if regex_result:
-    #                     found = True
-    #                     key, val = regex_result.groups()
-    #                     # Ignore any existing omtk metadata
-    #                     if key.startswith(_metadata_prefix):
-    #                         continue
-    #                 # Only dump the metadata on the last fileInfo encounter
-    #                 elif found:
-    #                     for key, val in metadata.iteritems():
-    #                         fp_write.write(
-    #                             'fileInfo "{0}{1}" "{2}";'.format(_metadata_prefix, key, val)
-    #                         )
-    #                     success = True
-    #                     found = False
-    #
-    #                 fp_write.write(line)
-    #
-    #     os.rename(path_tmp, path)
-    #
-    #     return success
-
     def write_metadata_to_file(self, path):
         metadata = self.get_metadata()
         return write_metadata_to_ma_file(path, metadata)
 
-    def instanciate(self, parent, name='unamed'):
+    def instanciate(self, parent, name='unamed', map_inn=None, map_out=None):
         # type: () -> (Component, pymel.nodetypes.Network)
         """
         Create a Component in the scene from a ComponentDefinition.
@@ -194,9 +158,12 @@ class ComponentDefinition(object):
         inst.grp_inn = hub_inn
         inst.grp_out = hub_out
 
-        from omtk import manager
-        m = manager.get_manager()
-        network = m.export_network(inst)
+        from omtk.libs import libComponents
+        libComponents._connect_component_attributes(inst, map_inn, map_out)
+
+        # from omtk import manager
+        # m = manager.get_manager()
+        # network = m.export_network(inst)
 
         return inst
 
@@ -204,9 +171,17 @@ class ComponentDefinition(object):
 class ComponentScriptedDefinition(ComponentDefinition):
     component_cls = None
 
-    def instanciate(self, parent, name='unamed'):
+    def instanciate(self, parent, name='unamed', map_inn=None, map_out=None):
         inst = self.component_cls(name=name)
-        inst.build()
+        inst.build_interface()
+
+        # inst.build()
+
+        from omtk.libs import libComponents
+        libComponents._connect_component_attributes(inst, map_inn, map_out)
+
+        inst.build_content()
+
         return inst
 
 
@@ -219,7 +194,7 @@ class ComponentModuleDefinition(ComponentDefinition):
         super(ComponentModuleDefinition, self).__init__(name, **kwargs)
         self._cls = module_cls
 
-    def instanciate(self, manager, name='unamed'):
+    def instanciate(self, manager, name='unamed', map_inn=None, map_out=None):
         # Add the component to the first Rig we encounter.
         # todo: make this more elegant
         # from omtk import api

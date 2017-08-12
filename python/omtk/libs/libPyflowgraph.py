@@ -164,6 +164,50 @@ def save_node_position(node, pos):
         attr.set(pos)
 
 
+def pyflowgraph_to_networkxgraph(nodes):
+    import networkx
+    g = networkx.Graph()
+    layout = {}
+
+    # Add nodes
+    g.add_nodes_from(range(len(nodes)))
+
+    # Add edges
+    for i, node in enumerate(nodes):
+        for upstream_node in _walk_upstream(node):
+            try:
+                j = nodes.index(upstream_node)
+            except ValueError:
+                continue
+            g.add_edge((j, i))
+        for downstream_node in _walk_downstream(node):
+            try:
+                j = nodes.index(downstream_node)
+            except ValueError:
+                continue
+            g.add_edge((i, j))
+
+    # Get positions
+    for i, node in enumerate(nodes):
+        pos = node.getGraphPos()
+        pos = (pos.x(), pos.y())
+        layout[i] = pos
+
+    return g, layout
+
+
+def spring_layout2(nodes, fixed=None, **kwargs):
+    import networkx
+    g, layout = pyflowgraph_to_networkxgraph(nodes)
+    fixed_indexes = [nodes.index(f) for f in fixed] if fixed else None
+    layout = networkx.spring_layout(g, k=1, pos=layout, fixed=fixed_indexes, **kwargs)
+
+    for i, node in enumerate(nodes):
+        pos = layout[i]
+        pos = QtCore.QPointF(*pos)
+        node.setGraphPos(pos)
+
+
 def spring_layout(nodes):
     from omtk.vendor.jurij import graph
 

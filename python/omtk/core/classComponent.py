@@ -8,6 +8,7 @@ from omtk.core.classEntityAttribute import get_attrdef_from_attr
 from omtk.libs import libAttr
 from omtk.vendor import libSerialization
 from pymel import core as pymel
+from omtk import manager
 
 log = logging.getLogger('omtk')
 
@@ -44,6 +45,15 @@ class Component(Entity):
         # Network object to hold any DagNode belonging to the component.
         self.grp_dag = None
 
+        # Used for dynamic components. Define if a Component content need to be regenerated.
+        self._is_dirty_content = True
+
+    def is_dirty_content(self):
+        return self._is_dirty_content
+
+    def set_content_dirty(self, state=True):
+        self._is_dirty_content = state
+
     def get_definition(self):
         from omtk.core import classComponentDefinition
 
@@ -55,19 +65,44 @@ class Component(Entity):
         )
         return inst
 
-    def build(self):
-        if self.need_grp_inn:
-            self.grp_inn = pymel.createNode('network', name='inn')
-        if self.need_grp_out:
-            self.grp_out = pymel.createNode('network', name='out')
-        if self.need_grp_dag:
-            self.grp_dag = pymel.createNode('transform', name='dag')
-        libSerialization.export_network(self)
+    def build_interface(self):
+        """
+        Create the Component input, output and dag hub. Define all public attributes.
+        However does not build what between the input and output hub.
+        This is separated in it's own method since we might want to set public attributes before building
+        the content, especially if the content depend on some attribute value.
+        """
+        # Not needed
+        pass
 
-    def is_built(self):
+        # -> any inherited class would want to add input and output attributes here <-
+
+    def build_content(self):
+        """
+        Build the content between the inn and out hub.
+        This is separated in it's own method since in some Component, changing an attribute value can necessitate
+        a rebuild of the content but not of the public interface.
+        :return:
+        """
+        raise NotImplementedError
+
+    def build(self, build_content=True):
+        """
+        Build the Component public interface and private content.
+        :param build_content: Set False if you can to build the content yourself, can be usefull if attributes need to be set first.
+        :return:
+        """
+        self.build_interface()
+        if build_content:
+            self.build_content()
+
+    def is_built_interface(self):
         return \
             self.grp_inn and self.grp_inn.exists() and \
             self.grp_out and self.grp_out.exists()
+
+    def is_built(self):
+        return self.is_built_interface()
 
     def iter_attributes(self):
         # todo: use factory?
@@ -111,15 +146,35 @@ class Component(Entity):
         raise NotImplementedError
 
     def add_input_attr(self, long_name, **kwargs):
+        # type: (str) -> pymel.Attribute
         return libAttr.addAttr(self.grp_inn, long_name, **kwargs)
 
+    def has_input_attr(self, attr_name):
+        # type: (str) -> bool
+        return self.grp_inn.hasAttr(attr_name)
+
+    def get_input_attr(self, attr_name):
+        # type: (str) -> pymel.Attribute
+        return self.grp_inn.attr(attr_name)
+
     def get_input_attributes(self):
+        # type: (str) -> List[pymel.Attribute]
         return self.grp_inn.listAttr()
 
     def add_output_attr(self, long_name, **kwargs):
+        # type: (str) -> pymel.Attribute
         return libAttr.addAttr(self.grp_out, long_name, **kwargs)
 
+    def has_output_attr(self, attr_name):
+        # type: (str) -> bool
+        return self.grp_out.hasAttr(attr_name)
+
+    def get_output_attr(self, attr_name):
+        # type: (str) -> pymel.Attribute
+        return self.grp_out.attr(attr_name)
+
     def get_output_attributes(self):
+        # type: (str) -> List[pymel.Attribute]
         return self.grp_out.listAttr()
 
     def connect_to_input_attr(self, attr_name, attr_src, **kwargs):
@@ -239,6 +294,46 @@ class ComponentScripted(Component):
         )
         inst.component_cls = cls
         return inst
+
+    def build_interface(self):
+        """
+        Create the Component input, output and dag hub. Define all public attributes.
+        However does not build what between the input and output hub.
+        This is separated in it's own method since we might want to set public attributes before building
+        the content, especially if the content depend on some attribute value.
+        """
+        if self.need_grp_inn:
+            self.grp_inn = pymel.createNode('network', name='inn')
+        if self.need_grp_out:
+            self.grp_out = pymel.createNode('network', name='out')
+        if self.need_grp_dag:
+            self.grp_dag = pymel.createNode('transform', name='dag')
+
+        m = manager.get_manager()
+        m.export_network(self)
+
+        # -> any inherited class would want to add input and output attributes here <-
+
+    def build_content(self):
+        """
+        Build the content between the inn and out hub.
+        This is separated in it's own method since in some Component, changing an attribute value can necessitate
+        a rebuild of the content but not of the public interface.
+        :return:
+        """
+        pass
+
+    def build(self):
+        self.build_interface()
+        self.build_content()
+
+    def is_built_interface(self):
+        return \
+            self.grp_inn and self.grp_inn.exists() and \
+            self.grp_out and self.grp_out.exists()
+
+    def is_built(self):
+        return self.is_built_interface()
 
 
 # --- Actions ---

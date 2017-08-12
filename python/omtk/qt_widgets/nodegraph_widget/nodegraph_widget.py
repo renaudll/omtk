@@ -90,6 +90,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
     def get_controller(self):
         return self._ctrl
+    
+    def get_view(self):
+        return self._ctrl._view
 
     def create_tab(self):
         view = nodegraph_view.NodeGraphView(self)

@@ -645,7 +645,10 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     def group_selection(self):
         inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
-        inst = classComponent.Component.from_attributes(inn_attrs, out_attrs)
+        inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
+        out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
+        inst = classComponent.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?
+
         self.manager.export_network(inst)
 
         # hack: do not redraw everything, remove only necessary items

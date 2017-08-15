@@ -14,6 +14,7 @@ def _reload():
     import libPluginManager
     import libPyflowgraph
     import libComponents
+    import libNamespaces
 
     reload(libAttr)
     reload(libCtrlShapes)
@@ -30,3 +31,4 @@ def _reload():
     reload(libPluginManager)
     reload(libPyflowgraph)
     reload(libComponents)
+    reload(libNamespaces)

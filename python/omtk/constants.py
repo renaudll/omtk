@@ -54,6 +54,7 @@ class PyFlowGraphMetadataKeys:
 
 COMPONENT_HUB_INN_NAME = 'inn'
 COMPONENT_HUB_OUT_NAME = 'out'
+COMPONENT_HUB_DAG_NAME = 'dag'
 
 COMPONENT_HUB_INN_ATTR_NAME = 'grp_inn'
 COMPONENT_HUB_OUT_ATTR_NAME = 'grp_out'

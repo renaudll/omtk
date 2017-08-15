@@ -2,12 +2,15 @@ import itertools
 import logging
 from contextlib import contextmanager
 
+from maya import cmds
+from pymel import core as pymel
+
 log = logging.getLogger('omtk')
 
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
-from pymel import core as pymel
 
-kwargsMap = {
+
+_g_addAttr_kwargs_map = {
     'bool': {'at': 'double'},
     'long': {'at': 'long'},
     'short': {'at': 'short'},
@@ -80,21 +83,48 @@ def swapAttr(a, b, inputs=True, outputs=True):
         for attrOut in data:
             pymel.connectAttr(att, attrOut)
 
-    a_inputs = _get_attr_inn(a)
-    b_inputs = _get_attr_inn(b)
-    a_outputs = _get_attr_out(a)
-    b_outputs = _get_attr_out(b)
+    a_node_mel = a.node().__melobject__()
+    b_node_mel = b.node().__melobject__()
+    a_is_readable = cmds.attributeQuery(a.longName(), node=a_node_mel, readable=True)
+    b_is_readable = cmds.attributeQuery(b.longName(), node=b_node_mel, readable=True)
+    a_is_writable = cmds.attributeQuery(a.longName(), node=a_node_mel, writable=True)
+    b_is_writable = cmds.attributeQuery(b.longName(), node=b_node_mel, writable=True)
 
-    disconnectAttr(a)
-    disconnectAttr(b)
+    # Swap inputs
+    if inputs and (a_is_writable or b_is_writable):
+        if a_is_writable != b_is_writable:
+            log.warning("Cannot swap {0} outputs with {1}. One or the attributes is not writable.".format(
+                a, b
+            ))
+        else:
+            a_inputs = _get_attr_inn(a)
+            b_inputs = _get_attr_inn(b)
 
-    if inputs is True:
-        _set_attr_inn(a, b_inputs)
-        _set_attr_inn(b, a_inputs)
+            for a_input in a_inputs:
+                pymel.disconnectAttr(a_input, a)
+            for b_input in b_inputs:
+                pymel.disconnectAttr(b_input, b)
 
-    if outputs:
-        _set_attr_out(a, b_outputs)
-        _set_attr_out(b, a_outputs)
+            _set_attr_inn(a, b_inputs)
+            _set_attr_inn(b, a_inputs)
+
+    # Swap outputs
+    if a_is_readable or b_is_readable:
+        if a_is_readable != b_is_readable:
+            log.warning("Cannot swap {0} outputs with {1}. One or the attributes is not readable.".format(
+                a, b
+            ))
+        else:
+            a_outputs = _get_attr_out(a)
+            b_outputs = _get_attr_out(b)
+
+            for a_output in a_outputs:
+                pymel.disconnectAttr(a, a_output)
+            for b_output in b_outputs:
+                pymel.disconnectAttr(b, b_output)
+
+            _set_attr_out(a, b_outputs)
+            _set_attr_out(b, a_outputs)
 
 
 def sortAttr(node):
@@ -103,6 +133,8 @@ def sortAttr(node):
 
 # TODO: finish
 def holdAttr(attr, delete=True):
+    log.warning("holdAttr is deprecated, please don't use it!")
+
     data = {
         'node': attr.node(),
         'longName': attr.longName(),
@@ -123,10 +155,12 @@ def holdAttr(attr, delete=True):
 
 
 def fetchAttr(data, reconnect_inputs=True, reconnect_outputs=True):
+    log.warning("fetchAttr is deprecated, please don't use it!")
+
     # todo: add support for multi and compount attribute!
     node = data['node']
 
-    kwargs = kwargsMap[data['type']]
+    kwargs = _g_addAttr_kwargs_map[data['type']]
 
     pymel.addAttr(node,
                   longName=data['longName'],
@@ -157,6 +191,181 @@ def fetchAttr(data, reconnect_inputs=True, reconnect_outputs=True):
             for i, output in enumerate(data['outputs']):
                 if output:
                     pymel.connectAttr(attr[i], output)
+
+
+class AttributeData(object):
+    """
+    Temporary object that hold an attribute information.
+    Mainly used to copy from an attribute to another.
+    """
+
+    def __init__(self):
+        self.long_name = None
+        self.short_name = None
+        self.nice_name = None
+        self.is_compound = None
+        self.is_multi = None
+        self.is_readable = None
+        self.is_writable = None
+        self.type = None
+        self.locked = None
+        self.keyable = None
+        self.hidden = None
+        self.inputs = None
+        self.outputs = None
+        self.node = None
+        self.parent = None
+        self.children = None
+
+    def __repr__(self):
+        return '<AttributeData {0}>'.format(self.long_name)
+
+    @classmethod
+    def from_pymel_attribute(cls, attr, store_inputs=False, store_outputs=False):
+        """
+        Create an AttributeData instance.
+        :param attr: A pymel.Attribute instance.
+        :return: An AttributeData instance.
+        """
+        inst = cls()
+        inst.node = attr.node()
+        inst.long_name = attr.longName()
+        inst.short_name = attr.shortName()
+        inst.nice_name = pymel.attributeName(attr)
+        inst.is_multi = attr.isMulti()
+        inst.is_readable = pymel.attributeQuery(inst.long_name, node=inst.node, readable=True)
+        inst.is_writable = pymel.attributeQuery(inst.long_name, node=inst.node, writable=True)
+        inst.is_compound = attr.isCompound()
+        inst.type = attr.type()
+        inst.locked = attr.isLocked()
+        inst.keyable = attr.isKeyable()
+        inst.hidden = attr.isHidden()
+
+        # Use can choose to store additional information.
+        # This was used a lot in the old implementation.
+        if store_inputs:
+            inst.inputs = attr.inputs(plugs=True)
+        if store_outputs:
+            inst.outputs = attr.outputs(plugs=True)
+
+        # Support for compound attributes.
+        if inst.is_compound:
+            inst.children = []
+            for child_attr in attr.getChildren():
+                child_inst = cls.from_pymel_attribute(
+                    child_attr,
+                    store_inputs=store_inputs,
+                    store_outputs=store_outputs
+                )
+                child_inst.parent = inst.long_name
+                inst.children.append(child_inst)
+
+        return inst
+
+    def _get_addAttr_kwargs(self):
+        """
+        Return the argument that should be passed to addAttr to reproduce this attribute.
+        No information about the node itself is returned/
+        :parent: A pymel.Attribute representing the parent in case of compound attributes.
+        Note that
+        :return: A dict containing the keyword argument to pass to cmds.addAttr.
+        """
+        result = {
+            'longName': self.long_name,
+            'niceName': self.nice_name,
+            'hidden': self.hidden,
+            'keyable': self.keyable,
+            'multi': self.is_multi,
+        }
+
+        result.update(_g_addAttr_kwargs_map[self.type])
+
+        if self.is_compound:
+            result.update({
+                'numberOfChildren': len(self.children),
+            })
+
+            # Some compound still have type (ex: translate)
+            # Creating them with 'at' will make Maya angry.
+            result['at'] = result.pop('dt')
+
+        if self.parent:
+            result['parent'] = self.parent
+
+        return result
+
+    def rename(self, new_long_name, auto_rename_children=True):
+        """
+        Rename the attribute and -preferably- all it's children if the attribute is compound.
+        Note that to rename the child correctly, we take in account that the name of the parent is in the child name.
+        Also note that currently we don't correctly handle children short and nice name.
+        # todo: properly support shortName and niceName renaming? how?
+        """
+        # todo: add support for new_nice_name? do we care enough?
+        if auto_rename_children:
+            cur_long_name_length = len(self.long_name)
+            if self.children:
+                for child in self.children:
+                    if not child.long_name.startswith(self.long_name):
+                        log.warning("Cannot automatically rename {0} definition. Long name don't start with {1}.".format(
+                            child, self.long_name
+                        ))
+                    else:
+                        # Note how do don't care that much about the short and nice name.
+                        child_new_long_name = new_long_name + child.long_name[cur_long_name_length:]
+                        child.long_name = child.short_name = child.nice_name = child_new_long_name
+                    child.parent = new_long_name
+        self.long_name = self.short_name = self.nice_name = new_long_name
+
+    def copy_to_node(self, node):
+        # type: (pymel.PyNode) -> pymel.Attribute
+        """
+        Create a new attribute from the stored definition, on a new node.
+        :param node: A pymel.PyNode instance.
+        :return: A pymel.Attribute instance.
+        """
+
+        # Note: The _fn is used to hide the parent attribute from the function signature.
+        kwargs = self._get_addAttr_kwargs()
+        pymel.addAttr(node, **kwargs)
+
+        if self.is_compound:
+            for child in self.children:
+                child.copy_to_node(node)
+
+        # Note that when creating compound attributes, the attribute start to exist only at the end of their definition.
+        # This is why we cannot return an Attribute instance that is part of a compound.
+        return node.attr(self.long_name) if not self.parent else None
+
+    def connect_stored_inputs(self, node):
+        """
+        Generally, you'll want to call this after copy_to_node().
+        :param node:
+        :return:
+        """
+        attr = node.attr(self.long_name)
+        if self.inputs is None:
+            raise Exception("Cannot connect inputs, no inputs were stored. Use store_inputs when initializing.")
+
+        for attr_input in self.inputs:
+            if not attr_input.exists():
+                continue
+            pymel.connectAttr(attr_input, attr, force=True)
+
+    def connect_stored_outputs(self, node):
+        """
+        Generally, you'll want to call this after copy_to_node().
+        :param node:
+        :return:
+        """
+        attr = node.attr(self.long_name)
+        if self.outputs is None:
+            raise Exception("Cannot connect outputs, no outputs were stored. Use store_outputs when initializing.")
+
+        for attr_output in self.outputs:
+            if not attr_output.exists():
+                continue
+            pymel.connectAttr(attr, attr_output, force=True)
 
 
 # Normally we can use pymel.renameAttr but this work on multi-attributes also

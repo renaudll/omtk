@@ -7,6 +7,7 @@ import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
 from omtk.core import classComponent
 from omtk.libs import libComponents
+from omtk.libs import libRigging
 
 
 class ComponentCreationTestCase(unittest.TestCase):
@@ -22,10 +23,47 @@ class ComponentCreationTestCase(unittest.TestCase):
         inn_attr_names = {attr.__melobject__() for attr in inn_attrs}
         self.assertEqual(inn_attr_names, expected_inn_attr_names)
 
+    def test_creation_manual(self):
+        """Ensure we are able to create a component by manually specifying the attributes we want."""
+        cmds.file(new=True, force=True)
+        src = pymel.createNode('transform')
+        dst = pymel.createNode('transform')
+
+        pymel.connectAttr(src.tx, dst.tx)
+
+        component = classComponent.Component.create(
+            {'innVal': src.tx}, {'outVal': dst.tx}
+        )
+
+        self.assertEqual(component.grp_inn.attr('innVal').inputs(plugs=True), [])
+        self.assertEqual(component.grp_inn.attr('innVal').outputs(plugs=True), [src.tx])
+        self.assertEqual(component.grp_out.attr('outVal').inputs(plugs=True), [dst.tx])
+        self.assertEqual(component.grp_out.attr('outVal').outputs(plugs=True), [])
+
+    def test_creation_manual_component(self):
+        """
+        Ensure we are able to create a component by manually specifying the attribute we want.
+        This time using component attribute types.
+        """
+        cmds.file(new=True, force=True)
+        src = pymel.createNode('transform')
+        dst = pymel.createNode('transform')
+
+        pymel.connectAttr(src.tx, dst.tx)
+
+        component = classComponent.Component.create(
+            {'innVal': src.t}, {'outVal': dst.rx}
+        )
+
+        self.assertEqual(component.grp_inn.attr('innVal').inputs(plugs=True), [])
+        self.assertEqual(component.grp_inn.attr('innVal').outputs(plugs=True), [src.t])
+        self.assertEqual(component.grp_out.attr('outVal').inputs(plugs=True), [dst.rx])
+        self.assertEqual(component.grp_out.attr('outVal').outputs(plugs=True), [])
+
     def test_constraint_network(self):
         """
         Ensure we are able to correctly manage a simple joint contrained to a controller.
-        This highlight the issues that can arrise when using Maya constraints because of all the
+        This highlight the issues that can arise when using Maya constraints because of all the
         two-way connections involved.
         """
         cmds.file(new=True, force=True)

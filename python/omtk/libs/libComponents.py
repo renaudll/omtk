@@ -109,7 +109,7 @@ def walk_available_component_definitions():
                     continue
                 path = os.path.join(dirname, filename)
 
-                log.debug('Creating component from {0}'.format(path))
+                log.debug('Creating ComponentDefinition for {0}'.format(path))
                 component_def = ComponentDefinition.from_file(path)
                 if not component_def:
                     continue

@@ -107,13 +107,8 @@ class ComponentSoftIk(ComponentScripted):
         self._attr_out_ratio = None
         self._attr_out_stretch = None
 
-    def build(self, **kwargs):
-        """
-        Build function for the softik node
-        :return: Nothing
-        """
-        super(ComponentSoftIk, self).build(**kwargs)
-        formula = libFormula.Formula()
+    def build_interface(self):
+        super(ComponentSoftIk, self).build_interface()
 
         # Create input attributes
         self._attr_inn_matrix_s = self.add_input_attr('inMatrixS', dt='matrix')
@@ -125,6 +120,14 @@ class ComponentSoftIk(ComponentScripted):
         # Create output attributes
         self._attr_out_ratio = self.add_output_attr('outRatio', at='float')
         self._attr_out_stretch = self.add_output_attr('outStretch', at='float')
+
+    def build_content(self):
+        """
+        Build function for the softik node
+        :return: Nothing
+        """
+        super(ComponentSoftIk, self).build_content()
+        formula = libFormula.Formula()
 
         # Generate network using libFormula since we are fancy peoples
         formula.inMatrixS = self._attr_inn_matrix_s
@@ -380,7 +383,9 @@ class ComponentIk(ComponentScripted):
         self._attr_inn_softik = None
         self._attr_out_matrices = None
 
-    def _create_io(self):
+    def build_interface(self):
+        super(ComponentIk, self).build_interface()
+
         self._attr_inn_chain = self.add_input_attr('bindPoses', dt='matrix', multi=True)
         self._attr_inn_hook_tm = self.add_input_attr('hook', at='matrix')
         self._attr_ctrl_tm = self.add_input_attr('ikCtrlEndPos', at='matrix')
@@ -397,9 +402,9 @@ class ComponentIk(ComponentScripted):
         for i in xrange(3):
             self._attr_out_matrices[i].set(pymel.datatypes.Matrix())
 
-    def build(self):
-        super(ComponentIk, self).build()
-        self._create_io()
+    def build_content(self):
+        super(ComponentIk, self).build_content()
+
         builder = ComponentIkBuilder(
             attr_chain_bind=self._attr_inn_chain,
             attr_hook=self._attr_inn_hook_tm,

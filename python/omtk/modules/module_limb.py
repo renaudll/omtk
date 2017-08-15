@@ -352,7 +352,7 @@ class ComponentLimb(ComponentScripted):
         for i in xrange(3):
             self._attr_out_matrices[i].set(pymel.datatypes.Matrix())
 
-    def build(self):
+    def build_content(self):
         super(ComponentIk, self).build()
         self._create_io()
         builder = ComponentIkBuilder(

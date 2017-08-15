@@ -67,10 +67,10 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         # todo: cleanup private variable usage
         # If we are viewing the component content
         if context:
-            if context._current_level_data == self:
-                return port_model.get_parent() == self._entity.grp_out
-            else:
+            if context._current_level_model == self:
                 return port_model.get_parent() == self._entity.grp_inn
+            else:
+                return port_model.get_parent() == self._entity.grp_out
         return super(NodeGraphComponentModel, self).allow_input_port_display(port_model)
 
     def allow_output_port_display(self, port_model, context=None):
@@ -84,9 +84,9 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         # If we are viewing the component content
         if context:
             if context._current_level_model == self:
-                return port_model.get_parent() == self._entity.grp_inn
-            else:
                 return port_model.get_parent() == self._entity.grp_out
+            else:
+                return port_model.get_parent() == self._entity.grp_inn
         return super(NodeGraphComponentModel, self).allow_output_port_display(port_model)
 
         # def _get_node_widget_label(self):

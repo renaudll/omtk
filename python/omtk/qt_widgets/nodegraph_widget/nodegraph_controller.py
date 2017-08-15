@@ -5,10 +5,10 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants
-from omtk import manager
 from omtk import factory_datatypes
-from omtk.core import classEntity
+from omtk import manager
 from omtk.core import classComponent
+from omtk.core import classEntity
 from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
@@ -177,9 +177,11 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
                 component = self.manager.import_network(net)
                 if self._current_level_data == component:
                     if net.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
-                        return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val, component)
+                        return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val,
+                                                                                              component)
                     if net.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
-                        return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self._model, val, component)
+                        return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self._model, val,
+                                                                                              component)
                 else:
                     return self.get_node_model_from_value(component)
             return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self._model, val)
@@ -225,13 +227,31 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # type: (NodeGraphNodeModel) -> None
         for port_model in node_model.get_attributes():
 
+            def _can_show_connection(connection_model):
+                # Get the node associated with the connection
+                # Even if a connection is between two nodes, only one can have ownership.
+                node_inst = connection_model.get_parent()
+                # Get the model for that node
+                node_model = self.get_node_model_from_value(node_inst)
+                # Use the model to get the parent of the node.
+                # This is either the None or a component.
+                node_parent_inst = node_model.get_parent()
+                # Note that we don't check self._current_level_model since it have a value (the root model).
+                if node_parent_inst is None:
+                    return self._current_level_data is None
+                node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
+                return node_parent_inst == self._current_level_data
+
             if expand_upstream and port_model.is_source():
                 for connection_model in port_model.get_output_connections():
-                    node_inst = connection_model.get_parent()
-                    node_model = self.get_node_model_from_value(node_inst)
-                    node_parent_inst = node_model.get_parent()
-                    node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
-                    if node_parent_model != self._current_level_model:
+                    # node_inst = connection_model.get_parent()
+                    # node_model = self.get_node_model_from_value(node_inst)
+                    # node_parent_inst = node_model.get_parent()
+                    # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
+                    # node_parent_inst = node_parent_model.get_metadata() if node_parent_model else None
+                    # if node_parent_model != self._current_level_model:
+                    #     continue
+                    if not _can_show_connection(connection_model):
                         continue
                     port_model_dst = connection_model.get_destination()
                     node_model_dst = port_model_dst.get_parent()
@@ -241,11 +261,14 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
             if expand_downstream and port_model.is_destination():
                 for connection_model in port_model.get_input_connections():
-                    node_inst = connection_model.get_parent()
-                    node_model = self.get_node_model_from_value(node_inst)
-                    node_parent_inst = node_model.get_parent()
-                    node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
-                    if node_parent_model != self._current_level_model:
+                    # node_inst = connection_model.get_parent()
+                    # node_model = self.get_node_model_from_value(node_inst)
+                    # node_parent_inst = node_model.get_parent()
+                    # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
+                    # node_parent_inst = node_parent_model.get_metadata() if node_parent_model else None
+                    # if node_parent_model != self._current_level_model:
+                    #     continue
+                    if not _can_show_connection(connection_model):
                         continue
                     port_model_src = connection_model.get_source()
                     node_model_src = port_model_src.get_parent()
@@ -332,7 +355,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         :param port: A NodeGraphPortModel instance.
         :return: A PyFlowgraph Port instance.
         """
-        # log.info('Creating widget for {0}'.format(port_model))
+        # log.debug('Creating widget for {0}'.format(port_model))
 
         # In Pyflowgraph, a Port need a Node.
         # Verify that we initialize the widget for the Node.
@@ -363,7 +386,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         :param connection_model: A NodeGraphConnectionModel instance.
         :return: A PyFlowgraph Connection instance.
         """
-        log.info('Creating widget for {0}'.format(connection_model))
+        # log.debug('Creating widget for {0}'.format(connection_model))
 
         # In Pyflowgraph, a Connection need two Port instances.
         # Ensure that we initialize the widget for the Ports.
@@ -530,14 +553,11 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             # widgets.remove(node_widget)
 
             # libPyflowgraph.arrange_downstream(self._widget_bound_inn)
-            self._widget_bound_inn.setGraphPos(QtCore.QPointF(-1000.0, 0))
-            self._widget_bound_out.setGraphPos(QtCore.QPointF(1000.0, 0))
+            self._widget_bound_inn.setGraphPos(QtCore.QPointF(-5000.0, 0))
+            self._widget_bound_out.setGraphPos(QtCore.QPointF(5000.0, 0))
             libPyflowgraph.spring_layout(widgets)
             # self._widget_bound_inn.setGraphPos(QtCore.QPointF(-1000.0, 0))
             # self._widget_bound_out.setGraphPos(QtCore.QPointF(1000.0, 0))
-            self._view.frameAllNodes()
-
-
 
     def can_navigate_to(self, node_model):
         if node_model is None:
@@ -603,3 +623,74 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     def on_execute_action(self, actions):
         self.manager.execute_actions(actions)
+
+    def _get_selected_nodes_outsider_ports(self):
+        selected_nodes_model = self.get_selected_nodes()
+        inn_attrs = set()
+        out_attrs = set()
+        for node_model in selected_nodes_model:
+            for port_dst in node_model.get_connected_input_attributes():
+                for connection_model in port_dst.get_input_connections():
+                    src_port_model = connection_model.get_source()
+                    src_node_model = src_port_model.get_parent()
+                    if src_node_model not in selected_nodes_model:
+                        inn_attrs.add(port_dst.get_metadata())
+            for port_src in node_model.get_connected_output_attributes():
+                for connection_model in port_src.get_output_connections():
+                    dst_port_model = connection_model.get_destination()
+                    dst_node_model = dst_port_model.get_parent()
+                    if dst_node_model not in selected_nodes_model:
+                        out_attrs.add(port_src.get_metadata())
+        return inn_attrs, out_attrs
+
+    def group_selection(self):
+        inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
+        inst = classComponent.Component.from_attributes(inn_attrs, out_attrs)
+        self.manager.export_network(inst)
+
+        # hack: do not redraw everything, remove only necessary items
+        self.clear()
+        self.add_node(inst)
+
+        return inst
+
+    def ungroup_selection(self):
+        # Get selection components
+        components = [val for val in self.get_selected_values() if isinstance(val, classComponent.Component)]
+        if not components:
+            return
+
+        new_nodes = []
+
+        for component in components:
+            component_model = self.get_node_model_from_value(component)
+            for connection_model in component_model.get_input_connections():
+                if connection_model in self._known_connections_widgets:
+                    widget = self.get_connection_widget(connection_model)  # todo: prevent creation
+                    self._view.removeConnection(widget, emitSignal=False)
+                    self._known_connections_widgets.remove(connection_model)
+            for connection_model in component_model.get_output_connections():
+                if connection_model in self._known_connections_widgets:
+                    widget = self.get_connection_widget(connection_model)   # todo: prevent creation
+                    self._view.removeConnection(widget, emitSignal=False)
+                    self._known_connections_widgets.remove(connection_model)
+
+            children = component.get_children()
+            new_nodes.extend(children)
+            component.explode()
+
+            # Hack: children model parent have changed, we need to invalidate the cache
+            for child in children:
+                child_model = self.get_node_model_from_value(child)
+                try:
+                    child_model._cache.pop('get_parent', None)
+                except AttributeError:
+                    pass
+
+            component_model = self.get_node_model_from_value(component)
+            widget = self.get_node_widget(component_model)
+            self._view.removeNode(widget, emitSignal=False)
+
+        self._cache.clear()
+        for node in new_nodes:
+            self.add_node(node)

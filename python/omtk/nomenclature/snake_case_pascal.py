@@ -10,7 +10,7 @@ class NomenclatureSnakePascalCase(NomenclatureSnakeCase):
     @classmethod
     def join(cls, tokens):
         return cls.separator.join(
-            token[0].upper() + token[0:].lower() for token in tokens
+            token.title() for token in tokens
         )
 
 

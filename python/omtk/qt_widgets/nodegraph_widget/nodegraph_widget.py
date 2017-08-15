@@ -25,8 +25,8 @@ win.show()
 """
 import logging
 
+import pymel.core as pymel
 from omtk import manager
-from omtk.core import classComponent
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
@@ -90,6 +90,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
     def get_controller(self):
         return self._ctrl
+    
+    def get_view(self):
+        return self._ctrl._view
 
     def create_tab(self):
         view = nodegraph_view.NodeGraphView(self)
@@ -105,6 +108,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
         # tab_view.setCurrentWidget(self._view)
         self.ui.tabWidget.addTab(widget, 'Tab 1')
+        self.ui.tabWidget.addTab(QtWidgets.QWidget(), '+')
 
         self._ctrl.set_view(view)
 
@@ -124,7 +128,8 @@ class NodeGraphWidget(QtWidgets.QWidget):
                 libPyflowgraph.save_node_position(node, new_pos)
 
     def on_add(self):
-        raise NotImplementedError
+        for obj in pymel.selected():
+            self._ctrl.add_node(obj)
 
     def on_del(self):
         graph = self.ui.widget_view
@@ -162,38 +167,11 @@ class NodeGraphWidget(QtWidgets.QWidget):
         libPyflowgraph.spring_layout(pyflowgraph_nodes)
         self._current_view.frameAllNodes()
 
-    def _get_selected_nodes_outsider_ports(self):
-        selected_nodes_model = self._ctrl.get_selected_nodes()
-        inn_attrs = set()
-        out_attrs = set()
-        for node_model in selected_nodes_model:
-            for port_dst in node_model.get_connected_input_attributes():
-                for connection_model in port_dst.get_input_connections():
-                    src_port_model = connection_model.get_source()
-                    src_node_model = src_port_model.get_parent()
-                    if src_node_model not in selected_nodes_model:
-                        inn_attrs.add(port_dst.get_metadata())
-            for port_src in node_model.get_connected_output_attributes():
-                for connection_model in port_src.get_output_connections():
-                    dst_port_model = connection_model.get_destination()
-                    dst_node_model = dst_port_model.get_parent()
-                    if dst_node_model not in selected_nodes_model:
-                        out_attrs.add(port_src.get_metadata())
-        return inn_attrs, out_attrs
-
     def on_group(self):
-        inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
-        inst = classComponent.Component.from_attributes(inn_attrs, out_attrs)
-        self.manager.export_network(inst)
-
-        # hack: do not redraw everything, remove only necessary items
-        self._ctrl.clear()
-        self._ctrl.add_node(inst)
-
-        return inst
+        self._ctrl.group_selection()
 
     def on_ungroup(self):
-        raise NotImplementedError
+        self._ctrl.ungroup_selection()
 
     def on_breadcrumb_changed(self, model):
         """Called when the current level is changed using the breadcrumb widget."""

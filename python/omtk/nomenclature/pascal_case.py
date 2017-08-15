@@ -11,13 +11,13 @@ class NomenclaturePascalCase(Nomenclature):
     def split(cls, val):
         matches = re.finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', val)
         # todo: validate each tokens first letter?
-        return [m.group(0) for m in matches]
+        return [m.group(0).lower() for m in matches]
 
     @classmethod
     def join(cls, tokens):
         result = ''
         for token in tokens:
-            result += token[0].upper() + tokens[0:].lower()
+            result += token.title()
         return result
 
 

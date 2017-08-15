@@ -91,7 +91,7 @@ def get_component_dir():
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'components'))
 
 
-def walk_available_component_definitions():
+def walk_available_component_definitions(search_scripted=True):
     # todo: clearly define where are the components in omtk
     path_component_dir = get_component_dir()
     if not os.path.exists(path_component_dir):
@@ -128,10 +128,10 @@ def walk_available_component_definitions():
     from omtk import plugin_manager
     pm = plugin_manager.plugin_manager
 
-    # DEBUG
-    # log.info("Searching ComponentScripted")
-    # for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ComponentScriptedType.type_name):
-    #     yield plugin.cls.get_definition()
+    if search_scripted:
+        log.info("Searching ComponentScripted")
+        for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ComponentScriptedType.type_name):
+            yield plugin.cls.get_definition()
 
     log.info("Searching modules")
     for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ModulePluginType.type_name):
@@ -165,9 +165,21 @@ def get_component_metanetwork_from_hub_network(network, strict=True):
     return result
 
 
+def get_inn_network_from_metadata_network(network, strict=True):
+    result = next(iter(network.grp_inn.inputs()), None)
+    if not result and strict:
+        raise Exception("Can't resolve input network from meta-network {0}".format(network))
+    return result
+
+
 def get_inn_network_from_out_network(network, strict=True):
     metanetwork = get_component_metanetwork_from_hub_network(network, strict=strict)
-    result = next(iter(metanetwork.grp_inn.inputs()), None)
+    result = get_inn_network_from_metadata_network(metanetwork, strict=strict)
+    return result
+
+
+def get_out_network_from_metanetwork(network, strict=True):
+    result = next(iter(network.grp_out.inputs()), None)
     if not result and strict:
         raise Exception("Can't resolve input network from meta-network {0}".format(network))
     return result
@@ -175,10 +187,29 @@ def get_inn_network_from_out_network(network, strict=True):
 
 def get_out_network_from_inn_network(network, strict=True):
     metanetwork = get_component_metanetwork_from_hub_network(network, strict=True)
-    result = next(iter(metanetwork.grp_out.inputs()), None)
-    if not result and strict:
-        raise Exception("Can't resolve input network from meta-network {0}".format(network))
+    result = get_out_network_from_metanetwork(metanetwork, strict=strict)
     return result
+
+
+class ComponentMetanetworkRole:
+    NoRole = 0
+    Inn = 1
+    Out = 2
+
+
+def get_metanetwork_role(obj):
+    if not isinstance(obj, pymel.nodetypes.Network):
+        return ComponentMetanetworkRole.NoRole
+    network = get_component_metanetwork_from_hub_network(obj)
+    if not network:
+        return ComponentMetanetworkRole.NoRole
+    net_inn = get_inn_network_from_metadata_network(network)
+    if net_inn == obj:
+        return ComponentMetanetworkRole.Inn
+    net_out = get_out_network_from_metanetwork(network)
+    if net_out == obj:
+        return ComponentMetanetworkRole.Out
+    return ComponentMetanetworkRole.NoRole
 
 
 def get_component_parent_network(obj, source=True, destination=True, cache=None, strict=False):
@@ -266,4 +297,71 @@ def create_component(component_cls, name=None, **kwargs):
         else:
             raise Exception(
                 '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(inst, sAttrName))
+    return inst
+
+
+def get_component_class_by_name(name, strict=False):
+    # type: (str) -> ComponentDefinition
+    for cls in walk_available_component_definitions():
+        if cls.name == name:
+            return cls
+    if strict:
+        raise Exception("Cannot find component with name: {0}".format(name))
+
+
+def get_component_class_by_uid(uid, strict=False):
+    # type: (int) -> ComponentDefinition
+    for cls in walk_available_component_definitions():
+        if cls.uid == uid:
+            return cls
+    if strict:
+        raise Exception("Cannot find component with uid: {0}".format(uid))
+
+
+def _connect_component_attributes(inst, map_inn=None, map_out=None):
+    if map_inn:
+        for attr_name, attr_val in map_inn.iteritems():
+            if not inst.has_input_attr(attr_name):
+                raise Exception("Component {0} don't have an {1} input attribute.".format(
+                    inst, attr_name)
+                )
+            attr = inst.get_input_attr(attr_name)
+            libRigging.connect_or_set_attr(attr, attr_val)
+
+    # todo: we are not supposed to set an output
+    # however we can connect it, make the distinction clear by
+    # raising an exception if needed
+    if map_out:
+        for attr_name, attr_val in map_out.iteritems():
+            if not inst.has_output_attr(attr_name):
+                raise Exception("Component {0} don't have an {1} output attribute.".format(
+                    inst, attr_name)
+                )
+            attr = inst.get_output_attr(attr_name)
+            libRigging.connect_or_set_attr(attr, attr_val)
+
+
+def create_component_by_name(name, map_inn=None, map_out=None):
+    """
+    Flexible method to create and configure a component in one call.
+    :param name: The name of the component to create.
+    :param map_inn: A dict{k:v} where k is the attribute and v is the attribute value.
+    :param map_out: A dict{k:v} where k is the attribute and v is the attribute value.
+    :return: A Component instance.
+    """
+    cls = get_component_class_by_name(name, strict=True)
+    inst = cls.instanciate(None, map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
+    return inst
+
+
+def create_component_by_uid(uid, map_inn=None, map_out=None):
+    """
+    Flexible method to create and configure a component in one call.
+    :param name: The name of the component to create.
+    :param map_inn: A dict{k:v} where k is the attribute and v is the attribute value.
+    :param map_out: A dict{k:v} where k is the attribute and v is the attribute value.
+    :return: A Component instance.
+    """
+    cls = get_component_class_by_uid(uid, strict=True)
+    inst = cls.instanciate(None, map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
     return inst

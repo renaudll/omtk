@@ -98,6 +98,20 @@ class NodeGraphNodeModel(object):
         return [attr for attr in self.get_attributes() if attr.is_readable()]
 
     @libPython.memoized_instancemethod
+    def get_input_connections(self):
+        result = []
+        for attr in self.get_input_attributes():
+            result.extend(attr.get_input_connections())
+        return result
+
+    @libPython.memoized_instancemethod
+    def get_output_connections(self):
+        result = []
+        for attr in self.get_output_attributes():
+            result.extend(attr.get_output_connections())
+        return result
+
+    @libPython.memoized_instancemethod
     def get_connected_output_attributes(self):
         return [attr for attr in self.get_output_attributes() if attr.get_output_connections()]
 

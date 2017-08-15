@@ -104,8 +104,8 @@ class AutoRigManager(QtCore.QObject):
                 pass
 
         self.clear_cache()
-        for root in self.roots:
-            self.export_networks(root)
+        for root in self._roots:
+            self.export_network(root)
 
     def get_rigs(self):
         return self._roots

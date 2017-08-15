@@ -4,7 +4,7 @@ import unittest
 from omtk.nomenclature.camel_case import NomenclatureCamelCase
 from omtk.nomenclature.pascal_case import NomenclaturePascalCase
 from omtk.nomenclature.snake_case import NomenclatureSnakeCase
-from omtk.nomenclature.snake_case_pascal import NomenclatureSnakeCasePascal
+from omtk.nomenclature.snake_case_pascal import NomenclatureSnakePascalCase
 
 
 class NomenclatureTest(unittest.TestCase):
@@ -42,7 +42,7 @@ class NomenclatureTest(unittest.TestCase):
         self._test_split_join(cls, 'nose_l_ctrl', ['nose', 'l', 'ctrl'])
 
     def test_snake_case_pascal(self):
-        cls = NomenclatureSnakeCasePascal
+        cls = NomenclatureSnakePascalCase
         self._test_split_join(cls, 'Nose', ['nose'])
         self._test_split_join(cls, 'Nose_Ctrl', ['nose', 'ctrl'])
         self._test_split_join(cls, 'Nose_L_Ctrl', ['nose', 'l', 'ctrl'])

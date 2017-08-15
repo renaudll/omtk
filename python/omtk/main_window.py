@@ -181,7 +181,7 @@ class AutoRig(QtWidgets.QMainWindow):
     def on_scene_changed(self):
         """Called when something change somewhere but we don't known exactly what."""
         self.ui.widget_modules.update()
-        self.ui.widget_node_editor.ui.widget.update()
+        self.ui.widget_node_editor.get_view().update()
 
     def on_request_export(self):
         self.export_networks()

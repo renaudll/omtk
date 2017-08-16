@@ -1,6 +1,7 @@
 """
 Define a controller for one specific GraphView.
 """
+import itertools
 import logging
 
 import pymel.core as pymel
@@ -12,7 +13,7 @@ from omtk.core import classEntity
 from omtk.libs import libComponents
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
-from omtk.vendor.Qt import QtCore
+from omtk.vendor.Qt import QtCore, QtGui
 
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
@@ -73,6 +74,8 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # Cache to access model-widget relationship
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
+
+        self._cache_node = {}
 
         self._old_scene_x = None
         self._old_scene_y = None
@@ -159,10 +162,27 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self._widget_bound_inn.setMinimumHeight(rect.height())
             self._widget_bound_inn.setGraphPos(QtCore.QPointF(rect.topLeft()))
 
+    # --- Cache clearing method ---
+
+    def invalidate_node(self, key):
+        """Invalidate any cache referencing provided value."""
+        self._model.invalidate_node(key)
+        try:
+            self._cache_node.pop(key)
+        except LookupError:
+            pass
+
     # --- Model factory ---
 
-    @libPython.memoized_instancemethod
-    def get_node_model_from_value(self, val):
+    def get_node_model_from_value(self, key):
+        try:
+            return self._cache_node.pop(key)
+        except LookupError:
+            val = self._get_node_model_from_value(key)
+            self._cache_node[key] = val
+            return val
+
+    def _get_node_model_from_value(self, val):
         """
         Return the visible model associated with a single value.
         Handle the special Component context.
@@ -370,7 +390,6 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         node_widget = self.get_node_widget(node_model)
         port_widget = port_model.get_widget(self, self._view, node_widget)
-        node_widget.addPort(port_widget)
 
         # Update cache
         self._cache_port_model_by_widget[port_widget] = port_model
@@ -395,13 +414,20 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         # Ensure ports are initialized
         self.get_port_widget(port_src_model)
+        widget_src_port = self.get_port_widget(port_src_model)
         widget_dst_port = self.get_port_widget(port_dst_model)
 
         widget_src_node = self.get_node_widget(self.get_node_model_from_value(port_src_model.get_parent()))
         widget_dst_node = self.get_node_widget(self.get_node_model_from_value(port_dst_model.get_parent()))
 
         # Hack:
-        widget_dst_port.inCircle().setSupportsOnlySingleConnections(False)
+        widget_dst_node_in_circle = widget_dst_port.inCircle()
+        if not widget_dst_node_in_circle:
+            raise Exception("Expected an inCircle widget for destination when connecting {0}.{1} to {2}.{3}".format(
+                widget_src_node.getName(), widget_src_port.getName(),
+                widget_dst_node.getName(), widget_dst_port.getName(),
+            ))
+        widget_dst_node_in_circle.setSupportsOnlySingleConnections(False)
 
         connection = None
         try:
@@ -453,20 +479,20 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             widget = node.get_widget()
             self._view.addNode(widget)
 
-    def get_selected_nodes(self):
+    def get_selected_node_models(self):
         # type: () -> List[NodeGraphNodeModel]
         # Retrieve monkey-patched model in PyFlowgraph widgets.
         return [pfg_node._omtk_model for pfg_node in self._view.getSelectedNodes()]
 
     def get_selected_values(self):
-        return [model.get_metadata() for model in self.get_selected_nodes()]
+        return [model.get_metadata() for model in self.get_selected_node_models()]
 
     def expand_selected_nodes(self):
-        for node_model in self.get_selected_nodes():
+        for node_model in self.get_selected_node_models():
             self.expand_node_connections(node_model)
 
     def colapse_selected_nodes(self):
-        for node_model in self.get_selected_nodes():
+        for node_model in self.get_selected_node_models():
             self.collapse_node_attributes(node_model)
 
     def clear(self):
@@ -586,7 +612,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         return True
 
     def navigate_down(self):
-        node_model = next(iter(self.get_selected_nodes()), None)
+        node_model = next(iter(self.get_selected_node_models()), None)
         # if not node_model:
         #     return None
 
@@ -607,9 +633,17 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         else:
             log.debug("Cannot naviguate to {0}".format(node_model))
 
-    def on_right_click(self):
+    def on_right_click(self, menu):
         from omtk import factory_rc_menu
         values = self.get_selected_values()
+
+        if values:
+            menu_action = menu.addAction('Group')
+            menu_action.triggered.connect(self.group_selection)
+
+        if any(True for val in values if isinstance(val, classComponent.Component)):
+            menu_action = menu.addAction('Ungroup')
+            menu_action.triggered.connect(self.ungroup_selection)
 
         values = [v for v in values if isinstance(v, classEntity.Entity)]  # limit ourself to components
 
@@ -619,13 +653,13 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if not values:
             return
 
-        menu = factory_rc_menu.get_menu(values, self.on_execute_action)
+        menu = factory_rc_menu.get_menu(menu, values, self.on_execute_action)
 
     def on_execute_action(self, actions):
         self.manager.execute_actions(actions)
 
     def _get_selected_nodes_outsider_ports(self):
-        selected_nodes_model = self.get_selected_nodes()
+        selected_nodes_model = self.get_selected_node_models()
         inn_attrs = set()
         out_attrs = set()
         for node_model in selected_nodes_model:
@@ -644,16 +678,41 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         return inn_attrs, out_attrs
 
     def group_selection(self):
+        # selected_nodes = self.get_selected_node_models()
         inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
         inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
         out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
         inst = classComponent.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?
 
+        selected_nodes = set()
+        for attr in itertools.chain(inn_attrs.itervalues(), out_attrs.itervalues()):
+            selected_nodes.add(attr.node())
+
+        # Resolve middle position, this is where the component will be positioned.
+        # todo: it don't work... make it work... please? XD
+        # middle_pos = QtCore.QPointF()
+        # for selected_node in selected_nodes:
+        #     model = self.get_node_model_from_value(selected_node)
+        #     widget = self.get_node_widget(model)
+        #     widget_pos = QtCore.QPointF(widget.transform().dx(), widget.transform().dy())
+        #     middle_pos += widget_pos
+        # middle_pos /= len(selected_nodes)
+
         self.manager.export_network(inst)
 
-        # hack: do not redraw everything, remove only necessary items
-        self.clear()
-        self.add_node(inst)
+        # Remove grouped widgets
+        for node in selected_nodes:
+            node_model = self.get_node_model_from_value(node)
+            node_widget = self.get_node_widget(node_model)
+            node_widget.disconnectAllPorts()
+            self._view.removeNode(node_widget, emitSignal=False)
+
+        # Invalided grouped models
+        for node in selected_nodes:
+            self.invalidate_node(node)
+
+        inst_model, inst_widget = self.add_node(inst)
+        # inst_widget.setGraphPos(middle_pos)
 
         return inst
 
@@ -663,37 +722,49 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if not components:
             return
 
-        new_nodes = []
-
+        new_nodes = set()
         for component in components:
             component_model = self.get_node_model_from_value(component)
-            for connection_model in component_model.get_input_connections():
-                if connection_model in self._known_connections_widgets:
-                    widget = self.get_connection_widget(connection_model)  # todo: prevent creation
-                    self._view.removeConnection(widget, emitSignal=False)
-                    self._known_connections_widgets.remove(connection_model)
-            for connection_model in component_model.get_output_connections():
-                if connection_model in self._known_connections_widgets:
-                    widget = self.get_connection_widget(connection_model)   # todo: prevent creation
-                    self._view.removeConnection(widget, emitSignal=False)
-                    self._known_connections_widgets.remove(connection_model)
+            component_widget = self.get_node_widget(component_model)
 
-            children = component.get_children()
-            new_nodes.extend(children)
+            new_nodes.update(component.get_children())
+
             component.explode()
 
-            # Hack: children model parent have changed, we need to invalidate the cache
-            for child in children:
-                child_model = self.get_node_model_from_value(child)
-                try:
-                    child_model._cache.pop('get_parent', None)
-                except AttributeError:
-                    pass
+            component_widget.disconnectAllPorts()
+            self._view.removeNode(component_widget, emitSignal=False)
 
-            component_model = self.get_node_model_from_value(component)
-            widget = self.get_node_widget(component_model)
-            self._view.removeNode(widget, emitSignal=False)
+        for node in new_nodes:
+            self.invalidate_node(node)
 
-        self._cache.clear()
         for node in new_nodes:
             self.add_node(node)
+
+        # for component in components:
+        #     component_model = self.get_node_model_from_value(component)
+        #     for connection_model in component_model.get_input_connections():
+        #         if connection_model in self._known_connections_widgets:
+        #             widget = self.get_connection_widget(connection_model)  # todo: prevent creation
+        #             self._view.removeConnection(widget, emitSignal=False)
+        #             self._known_connections_widgets.remove(connection_model)
+        #     for connection_model in component_model.get_output_connections():
+        #         if connection_model in self._known_connections_widgets:
+        #             widget = self.get_connection_widget(connection_model)  # todo: prevent creation
+        #             self._view.removeConnection(widget, emitSignal=False)
+        #             self._known_connections_widgets.remove(connection_model)
+        #
+        #     children = component.get_children()
+        #     new_nodes.extend(children)
+        #     component.explode()
+        #
+        #     Hack: children model parent have changed, we need to invalidate the cache
+        #     for child in children:
+        #         self.invalidate_node(child)
+            #
+            # component_model = self.get_node_model_from_value(component)
+            # widget = self.get_node_widget(component_model)
+            # self._view.removeNode(widget, emitSignal=False)
+        #
+        # self._cache.clear()
+        # for node in new_nodes:
+        #     self.add_node(node)

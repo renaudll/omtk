@@ -48,7 +48,9 @@ class NodeGraphView(PyFlowgraphView):
     # -- CustomContextMenu --
 
     def on_custom_context_menu_requested(self):
-        self._controller.on_right_click()
+        menu = QtWidgets.QMenu()
+        self._controller.on_right_click(menu)
+        menu.exec_(QtGui.QCursor.pos())
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:

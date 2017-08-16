@@ -38,7 +38,7 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         if not self._entity.is_built():
             return result
 
-        for attr_def in self._entity.iter_attributes():
+        for attr_def in self.get_attributes_raw_values():
             # todo: use a factory?
             # log.debug('{0}'.format(attr_def))
             inst = self._registry.get_port_model_from_value(attr_def)
@@ -103,7 +103,7 @@ class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDag
         self._component = component
 
     # todo: deprecate in favor of .get_parent()
-    @libPython.memoized_instancemethod
+    # @libPython.memoized_instancemethod
     def _get_component(self):
         # type(): () -> Component
         # net = libComponents.get_component_metanetwork_from_hub_network(self._pynode)

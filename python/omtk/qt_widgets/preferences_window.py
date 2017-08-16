@@ -25,8 +25,11 @@ class PreferencesWindow(QtWidgets.QDialog):
         if default_rig_type_name in rig_plugins_names:
             self.ui.comboBox.setCurrentIndex(rig_plugins_names.index(default_rig_type_name) + 1)
 
+        self.ui.checkBox.setChecked(preferences.preferences.hide_welcome_screen)
+
         # Connect events
         self.ui.comboBox.currentIndexChanged.connect(self.on_default_rig_changed)
+        self.ui.checkBox.stateChanged.connect(self.on_hide_welcome_screen_changed)
 
     def on_default_rig_changed(self, index):
         if index == 0:
@@ -34,6 +37,10 @@ class PreferencesWindow(QtWidgets.QDialog):
         else:
             preferences.preferences.default_rig = self.rig_plugins[index - 1].cls.__name__
 
+        preferences.preferences.save()
+
+    def on_hide_welcome_screen_changed(self, state):
+        preferences.preferences.hide_welcome_screen = self.ui.checkBox.isChecked()
         preferences.preferences.save()
 
 

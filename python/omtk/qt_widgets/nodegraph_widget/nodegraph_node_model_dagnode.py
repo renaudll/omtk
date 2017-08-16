@@ -30,10 +30,14 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         return self._pynode
 
     @libPython.memoized_instancemethod
+    def get_attributes_raw_values(self):
+        return list(libAttr.iter_contributing_attributes(self._pynode))
+
+    @libPython.memoized_instancemethod
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()
-        for attr in libAttr.iter_contributing_attributes(self._pynode):
+        for attr in self.get_attributes_raw_values():
             inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self._pynode, attr)
             self._registry._register_attribute(inst)
             result.add(inst)

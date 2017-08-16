@@ -45,11 +45,11 @@ class NodeGraphNodeModel(object):
         # Add the new instance to the registry
         registry._register_node(self)
 
-    def get_name(self):
-        return self._name
-
     def __repr__(self):
         return '<{0} {1}>'.format(self.__class__.__name__, self._name)
+
+    def get_name(self):
+        return self._name
 
     @libPython.memoized_instancemethod
     def get_metadata(self):
@@ -71,6 +71,10 @@ class NodeGraphNodeModel(object):
     def get_children(self):
         # type: () -> List[NodeGraphNodeModel]
         return self._child_nodes
+
+    def get_attributes_raw_values(self):
+        # Used to invalidate cache
+        return set()
 
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
@@ -209,11 +213,16 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
         return self._entity
 
     @libPython.memoized_instancemethod
+    def get_attributes_raw_values(self):
+        # Used to invalidate cache
+        return self._entity.iter_attributes()
+
+    @libPython.memoized_instancemethod
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()
 
-        for attr_def in self._entity.iter_attributes():
+        for attr_def in self.get_attributes_raw_values():
             # todo: use a factory?
             log.debug('{0}'.format(attr_def))
             inst = self._registry.get_port_model_from_value(attr_def)

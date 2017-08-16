@@ -37,6 +37,11 @@ class NodeGraphModel(object):
 
         self._nodes_by_metadata = {}
 
+        # We could use memoized decorator instead, but it's clearer when we manage the memoization manually.
+        self._cache_nodes = {}  # k is a node raw value
+        self._cache_ports = {}  # k is a port raw value
+        self._cache_connections = {}  # k is a 2-tuple of port model
+
     @property
     def manager(self):
         return manager.get_manager()
@@ -52,16 +57,48 @@ class NodeGraphModel(object):
     def _register_connections(self, inst):
         self._connections.add(inst)
 
+    # --- Cache clearing method ---
+
+    def invalidate_node(self, node):
+        """Invalidate any cache referencing provided value."""
+        # clean node cache
+        try:
+            node_model = self._cache_nodes.pop(node)
+            log.debug("Invalidating {0}".format(node_model))
+        except LookupError:
+            return
+
+        # clear port cache
+        for attr in node_model.get_attributes_raw_values():
+            try:
+                port_model = self._cache_ports.pop(attr)
+                log.debug("Invalidating {0}".format(port_model))
+            except LookupError:
+                continue
+
+            # clean connection cache
+            # note: We cannot used iteritems since we modify the dict
+            for key, connection_model in self._cache_connections.items():
+                model_src_port, model_dst_port = key
+                if model_src_port == port_model or model_dst_port == port_model:
+                    self._cache_connections.pop(key)
+                    log.debug("Invalidating {0}".format(connection_model))
+
     # --- Access methods ---
 
-    @libPython.memoized_instancemethod
-    def get_node_from_value(self, val):
+    def get_node_from_value(self, key):
+        try:
+            return self._cache_nodes[key]
+        except LookupError:
+            val = self._get_node_from_value(key)
+            self._cache_nodes[key] = val
+            return val
+
+    def _get_node_from_value(self, val):
         ## type: (object) -> NodeGraphModel
         """
         Factory function for creating NodeGraphModel instances.
         This handle all the caching and registration.
-
-
         """
         log.debug('Creating node model from {0}'.format(val))
 
@@ -108,8 +145,15 @@ class NodeGraphModel(object):
         # self._register_node(inst)
         # return inst
 
-    @libPython.memoized_instancemethod
-    def get_port_model_from_value(self, val):
+    def get_port_model_from_value(self, key):
+        try:
+            return self._cache_ports[key]
+        except LookupError:
+            val = self._get_port_model_from_value(key)
+            self._cache_ports[key] = val
+            return val
+
+    def _get_port_model_from_value(self, val):
         # log.debug('Creating port model from {0}'.format(val))
 
         # type: () -> List[NodeGraphPortModel]
@@ -145,8 +189,16 @@ class NodeGraphModel(object):
         self._register_attribute(inst)
         return inst
 
-    @libPython.memoized_instancemethod
     def get_connection_model_from_values(self, model_src, model_dst):
+        key = (model_src, model_dst)
+        try:
+            return self._cache_connections[key]
+        except LookupError:
+            val = self._get_connection_model_from_values(model_src, model_dst)
+            self._cache_ports[val] = val
+            return val
+
+    def _get_connection_model_from_values(self, model_src, model_dst):
         if not isinstance(model_src, nodegraph_port_model.NodeGraphPortModel):
             model_src = self.get_port_model_from_value(model_src)
 

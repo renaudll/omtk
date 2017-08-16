@@ -4,14 +4,13 @@ import logging
 import core
 import pymel.core as pymel
 from maya import OpenMaya
-from omtk.core import api
+from omtk import constants
+from omtk.core import preferences
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.qt_widgets.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-from omtk import constants
 
 log = logging.getLogger('omtk')
 
@@ -90,11 +89,11 @@ class AutoRig(QtWidgets.QMainWindow):
         self.create_callbacks()
 
         # Configure welcome screen
-        if not self.manager._root:
+        if not preferences.preferences.hide_welcome_screen and not self.manager.get_rigs():
             self.ui.stackedWidget.setCurrentWidget(self.ui.page_1)
+            self.ui.widget_welcome.onCreate.connect(self.on_welcome_rig_created)
         else:
             self.ui.stackedWidget.setCurrentWidget(self.ui.page_2)
-        self.ui.widget_welcome.onCreate.connect(self.on_welcome_rig_created)
 
         # Configure logger and status-bar
         self.ui.dockWidget_logger.hide()

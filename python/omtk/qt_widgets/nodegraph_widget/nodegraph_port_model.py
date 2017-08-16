@@ -187,10 +187,10 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
 
     # --- Widget export --- #
 
-    def get_widget(self, ctrl, graph, node):
-        widget = super(NodeGraphPymelPortModel, self).get_widget(ctrl, graph, node)
-
-        return widget
+    # def get_widget(self, ctrl, graph, node):
+    #     widget = super(NodeGraphPymelPortModel, self).get_widget(ctrl, graph, node)
+    #
+    #     return widget
 
         # todo: uncomment and fix
         # def __hash__(self):

@@ -29,17 +29,17 @@ def _iter_components_recursive(entity):
             yield sub_sub_entity
 
 
-def get_menu(components, fn_callback):
-    # type: (List[Entity], function) -> QtGui.QMenu
+def get_menu(menu, components, fn_callback):
+    # type: (QWidgets.QMenu, List[Entity], function) -> QtGui.QMenu
     """
     Factory method that return an QtGui.QMenu to expose provided Component actions.
+    :param menu:
     :param components:
     :param fn_callback: The callback function to call. Actions will be passed as argument.
     :return:
     """
     # type: (List[Component]) -> None
     # Hardcoded menus, one day we will remove them
-    menu = QtWidgets.QMenu()
     actions_data = []
     cache_component_class_level = {}
 
@@ -87,7 +87,6 @@ def get_menu(components, fn_callback):
             #             actions = [entry[-1] for entry in entries]
             #             action.triggered.connect(functools.partial(fn_callback, actions))
 
-    menu.exec_(QtGui.QCursor.pos())
 
 
     # def _execute_rcmenu_entry(self, fn_name):

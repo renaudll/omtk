@@ -23,6 +23,9 @@ class EntityAttribute(object):
     def __repr__(self):
         return '<EntityAttribute "{0}">'.format(self.name)
 
+    def get_raw_data(self):
+        return self._val
+
     def get(self):
         if self._fn_get:
             return self._fn_get()
@@ -67,6 +70,9 @@ class EntityPymelAttribute(EntityAttribute):
             fn_set=attr.set,
             **kwargs
         )
+
+    def get_raw_data(self):
+        return self._attr
 
     def validate(self, val):
         print val, self._valid_types

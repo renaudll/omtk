@@ -162,7 +162,7 @@ class NodeGraphModel(object):
             node_value = val._attr.node()
             # node_model = self.get_node_from_value(node_value)  # still needed?
             # Let EntityAttribute defined if they are inputs or outputs
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_value, val._attr)
+            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_value, val)
         elif isinstance(val, classEntityAttribute.EntityAttribute):
             node_value = val.parent
             # node_model = self.get_node_from_value(val.parent)

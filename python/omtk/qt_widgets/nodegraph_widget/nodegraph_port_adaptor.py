@@ -117,8 +117,14 @@ class EntityAttributePortAdaptor(PortAdaptor):
         assert (isinstance(data, classEntityAttribute.EntityAttribute))
         self._data = data
 
+        # Some EntityAttribute points to pymel attributes.
+        if isinstance(data, classEntityAttribute.EntityPymelAttribute):
+            self._pymel_adaptor = PymelAttributePortAdaptor(data.get_raw_data())
+        else:
+            self._pymel_adaptor = None
+
     def get_metadata(self):
-        return self._data.get()
+        return self._data.get_raw_data()
 
     def get_metatype(self):
         return factory_datatypes.get_datatype(self.get_metadata())
@@ -133,9 +139,15 @@ class EntityAttributePortAdaptor(PortAdaptor):
         return True
 
     def is_source(self):
+        if self._pymel_adaptor:
+            return self._pymel_adaptor.is_source()
+
         return False
 
     def is_destination(self):
+        if self._pymel_adaptor:
+            return self._pymel_adaptor.is_destination()
+
         val = self._data.get()
         if isinstance(val, list):
             for entry in val:
@@ -152,4 +164,13 @@ class EntityAttributePortAdaptor(PortAdaptor):
         return bool(val)
 
     def get_inputs(self):
-        return self._data.get()
+        if self._pymel_adaptor:
+            return self._pymel_adaptor.get_inputs()
+
+        return []
+
+    def get_outputs(self):
+        if self._pymel_adaptor:
+            return self._pymel_adaptor.get_outputs()
+
+        return []

@@ -207,32 +207,32 @@ class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
         self._adaptor = nodegraph_port_adaptor.EntityAttributePortAdaptor(attr_def)
 
 
-# todo: replace double inheritence by composition
-class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):
-    def __init__(self, registry, node, attr_def):
-        name = attr_def.name
-        super(NodeGraphEntityPymelAttributePortModel, self).__init__(registry, node, attr_def._attr)
-        self._attr_def = attr_def
-
-    def get_metadata(self):
-        return self._attr_def._attr
-
-    def is_readable(self):
-        return self._attr_def.is_output
-
-    def is_writable(self):
-        return self._attr_def.is_input
-
-    def is_interesting(self):
-        return True
-
-    def _get_widget_color(self):
-        datatype = self.get_metatype()
-        return factory_datatypes.get_port_color_from_datatype(datatype)
-
-        # What was the issue again?
-        # We needed to support:
-        # -  Entity (ex: module name)
-        # -  Entity that point to pymel attribute (ex: module inputs)
-        # -  Pymel attribute (ex: any node attr)
-        # -  Pymel multi attribute (ex: any node attr)
+# # todo: replace double inheritence by composition
+# class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):
+#     def __init__(self, registry, node, attr_def):
+#         name = attr_def.name
+#         super(NodeGraphEntityPymelAttributePortModel, self).__init__(registry, node, attr_def._attr)
+#         self._attr_def = attr_def
+#
+#     def get_metadata(self):
+#         return self._attr_def._attr
+#
+#     def is_readable(self):
+#         return self._attr_def.is_output
+#
+#     def is_writable(self):
+#         return self._attr_def.is_input
+#
+#     def is_interesting(self):
+#         return True
+#
+#     def _get_widget_color(self):
+#         datatype = self.get_metatype()
+#         return factory_datatypes.get_port_color_from_datatype(datatype)
+#
+#         # What was the issue again?
+#         # We needed to support:
+#         # -  Entity (ex: module name)
+#         # -  Entity that point to pymel attribute (ex: module inputs)
+#         # -  Pymel attribute (ex: any node attr)
+#         # -  Pymel multi attribute (ex: any node attr)

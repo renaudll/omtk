@@ -75,7 +75,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
 
-        self._cache_node = {}
+        self._cache_nodes = {}
 
         self._old_scene_x = None
         self._old_scene_y = None
@@ -168,7 +168,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         """Invalidate any cache referencing provided value."""
         self._model.invalidate_node(key)
         try:
-            self._cache_node.pop(key)
+            self._cache_nodes.pop(key)
         except LookupError:
             pass
 
@@ -176,10 +176,10 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     def get_node_model_from_value(self, key):
         try:
-            return self._cache_node.pop(key)
+            return self._cache_nodes[key]
         except LookupError:
             val = self._get_node_model_from_value(key)
-            self._cache_node[key] = val
+            self._cache_nodes[key] = val
             return val
 
     def _get_node_model_from_value(self, val):
@@ -413,7 +413,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         port_dst_model = connection_model.get_destination()
 
         # Ensure ports are initialized
-        self.get_port_widget(port_src_model)
+        # self.get_port_widget(port_src_model)
         widget_src_port = self.get_port_widget(port_src_model)
         widget_dst_port = self.get_port_widget(port_dst_model)
 
@@ -529,9 +529,11 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # Hack: remove models and widget from cache
         # todo: implement the cache manually for cleaner code
         if isinstance(self._current_level_data, classComponent.Component):
-            component = self._current_level_data
-            cache = self._cache.get('get_node_model_from_value', None)
-            cache.clear()
+            # component = self._current_level_data
+            # cache = self._cache.get('get_node_model_from_value', None)
+            # cache.clear()
+            self._cache_nodes.clear()
+            self._model._cache_nodes.clear()
             # if cache:
             #     cache.pop(component, None)
             #     if component.grp_inn:

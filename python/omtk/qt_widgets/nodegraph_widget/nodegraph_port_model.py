@@ -1,11 +1,11 @@
 import abc
+
 import pymel.core as pymel
-from omtk.libs import libPython
-from omtk.vendor.Qt import QtGui
+from omtk import factory_datatypes
 from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
 from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
 from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
-from omtk import factory_datatypes
+
 from . import nodegraph_port_adaptor
 
 if False:
@@ -131,7 +131,9 @@ class NodeGraphPortModel(object):
             return PyFlowgraphOutputPort
 
     def _get_widget_color(self):
-        return QtGui.QColor(128, 170, 170, 255)  # todo: use factory_datatypes to get color
+        metatype = self.get_metatype()
+        return factory_datatypes.get_port_color_from_datatype(metatype)
+        # return QtGui.QColor(128, 170, 170, 255)  # todo: use factory_datatypes to get color
 
     def get_widget(self, ctrl, graph, node):
         # type: (NodeGraphController, PyFlowgraphView, PyFlowgraphNode) -> PyflowgraphBasePort
@@ -185,12 +187,12 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
     def disconnect_to(self, val):
         pymel.disconnectAttr(self._adaptor._data, val)
 
-    # --- Widget export --- #
+        # --- Widget export --- #
 
-    # def get_widget(self, ctrl, graph, node):
-    #     widget = super(NodeGraphPymelPortModel, self).get_widget(ctrl, graph, node)
-    #
-    #     return widget
+        # def get_widget(self, ctrl, graph, node):
+        #     widget = super(NodeGraphPymelPortModel, self).get_widget(ctrl, graph, node)
+        #
+        #     return widget
 
         # todo: uncomment and fix
         # def __hash__(self):
@@ -205,7 +207,6 @@ class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
         name = attr_def.name
         super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
         self._adaptor = nodegraph_port_adaptor.EntityAttributePortAdaptor(attr_def)
-
 
 # # todo: replace double inheritence by composition
 # class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):

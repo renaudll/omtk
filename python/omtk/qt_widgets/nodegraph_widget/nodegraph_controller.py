@@ -86,7 +86,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     @libPython.memoized_instancemethod
     def get_root_model(self):
-        return self._cls_root_model(self._model, 'root') if self._cls_root_model else None
+        return self._cls_root_model(self._model) if self._cls_root_model else None
 
     def get_nodes(self):
         # type: () -> (List[NodeGraphNodeModel])
@@ -164,13 +164,36 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     # --- Cache clearing method ---
 
-    def invalidate_node(self, key):
+    # todo: deprecate in favor of invalidate_node_model?
+    def invalidate_node_value(self, key):
         """Invalidate any cache referencing provided value."""
         self._model.invalidate_node(key)
         try:
             self._cache_nodes.pop(key)
         except LookupError:
             pass
+
+        # For components, ensure that we also invalidate all their bounds.
+        # if isinstance(key, classComponent.Component):
+        #     self.invalidate_node(key.grp_inn)
+        #     self.invalidate_node(key.grp_out)
+
+    def invalidate_node_model(self, model):
+        # type: (NodeGraphNodeModel) -> None
+        """
+        Since the goal of a NodeGraphNodeModel is to take control of what the NodeGraph display even if it is
+        not related to the REAL networks in the Maya file, it can happen that we want to remove any cached value
+        related to that model when the context change.
+
+        For example, when going inside a Component, the NodeGraph will suddenly start to display the component
+        grp_inn and grp_out. When going outside a Component, theses node won't be shown.
+        :param model: A NodeGraphNodeModel instance to invalidate.
+        """
+        value = model.get_metadata()
+        self.invalidate_node_value(value)
+        if isinstance(value, classComponent.Component):
+            self.invalidate_node_value(value.grp_inn)
+            self.invalidate_node_value(value.grp_out)
 
     # --- Model factory ---
 
@@ -458,6 +481,10 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             node_model = self.get_node_model_from_value(node_model)
         self._known_nodes.add(node_model)
 
+        # Ensure the root model is remembering it's session
+        if isinstance(self._current_level_model, self._cls_root_model):
+            self._current_level_model.add_child(node_model)
+
         node_widget = None
         if self._view:
             node_widget = self.get_node_widget(node_model)
@@ -523,23 +550,12 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             if root_model:
                 node_model = root_model
 
+        self.invalidate_node_model(node_model)
+        if self._current_level_data:
+            self.invalidate_node_model(self._current_level_model)
+
         self._current_level_model = node_model
         self._current_level_data = node_model.get_metadata()
-
-        # Hack: remove models and widget from cache
-        # todo: implement the cache manually for cleaner code
-        if isinstance(self._current_level_data, classComponent.Component):
-            # component = self._current_level_data
-            # cache = self._cache.get('get_node_model_from_value', None)
-            # cache.clear()
-            self._cache_nodes.clear()
-            self._model._cache_nodes.clear()
-            # if cache:
-            #     cache.pop(component, None)
-            #     if component.grp_inn:
-            #         cache.pop(component.grp_inn, None)
-            #     if component.grp_out:
-            #         cache.pop(component.grp_out, None)
 
         self.clear()
         self._widget_bound_inn = None
@@ -589,7 +605,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     def can_navigate_to(self, node_model):
         if node_model is None:
-            return False
+            return True
 
         # We need at least one children to be able to jump into something.
         # todo: is that always true? what happen to empty compound?
@@ -628,7 +644,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         if self._current_level_data is None:
             return
 
-        node_model = self._current_level_data.get_parent()
+        node_model = self._current_level_model.get_parent()
         if self.can_navigate_to(node_model):
             self.set_level(node_model)
             self.onLevelChanged.emit(node_model)
@@ -711,7 +727,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         # Invalided grouped models
         for node in selected_nodes:
-            self.invalidate_node(node)
+            self.invalidate_node_value(node)
 
         inst_model, inst_widget = self.add_node(inst)
         # inst_widget.setGraphPos(middle_pos)
@@ -737,7 +753,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             self._view.removeNode(component_widget, emitSignal=False)
 
         for node in new_nodes:
-            self.invalidate_node(node)
+            self.invalidate_node_value(node)
 
         for node in new_nodes:
             self.add_node(node)

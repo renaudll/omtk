@@ -127,7 +127,10 @@ class EntityAttributePortAdaptor(PortAdaptor):
         return self._data.get_raw_data()
 
     def get_metatype(self):
-        return factory_datatypes.get_datatype(self.get_metadata())
+        if isinstance(self._data, classEntityAttribute.EntityPymelAttribute):
+            return factory_datatypes.get_attr_datatype(self._data.get_raw_data())
+        else:
+            return factory_datatypes.get_datatype(self.get_metadata())
 
     def is_readable(self):
         return self._data.is_output

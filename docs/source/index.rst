@@ -20,6 +20,7 @@ Contents:
    usage
    development
    class_nomenclature
+   glossary
 
 .. automodule:: omtk.modules.rigIK
 

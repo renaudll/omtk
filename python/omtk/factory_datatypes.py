@@ -2,10 +2,13 @@
 Help identifying datatypes for usage in factory methods.
 """
 import collections
+import logging
 
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui
 from pymel import core as pymel
+
+log = logging.getLogger('omtk')
 
 _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE = {
     'bool': bool,
@@ -69,6 +72,19 @@ _attr_type_by_native_type = {
     str: AttributeType.AttributeString,
     bool: AttributeType.AttributeBool
 }
+
+# note: currently we try to use the same colors as in maya Node Editor
+_g_port_color_by_datatype = {
+    AttributeType.AttributeBool: QtGui.QColor(221, 135, 36, 255),
+    AttributeType.AttributeFloat: QtGui.QColor(80, 230, 80, 255),
+    AttributeType.AttributeInt: QtGui.QColor(0, 128, 1),
+    AttributeType.AttributeMatrix: QtGui.QColor(128, 170, 170, 255),
+    AttributeType.AttributeString: QtGui.QColor(10, 40, 195, 255),
+    AttributeType.AttributeVector3: QtGui.QColor(0, 0, 0, 255),  # todo: define
+    AttributeType.AttributeVector4: QtGui.QColor(0, 0, 0, 255),  # todo: define
+}
+
+_g_default_port_color = QtGui.QColor(0, 0, 0, 255)
 
 
 def get_datatype(val):
@@ -167,19 +183,43 @@ def get_node_color_from_datatype(datatype):
     if datatype == AttributeType.AttributeMatrix:
         return QtGui.QColor(255, 170, 128, 255)
     # todo: warning
+
+    log.warning("Using default color for datatype {0}".format(datatype))
     return QtGui.QColor(128, 170, 170, 255)
 
 
 @libPython.memoized
 def get_port_color_from_datatype(datatype):
-    return get_node_color_from_datatype(datatype)
+    color = _g_port_color_by_datatype.get(datatype)
+    if color is None:
+        log.warning("Cannot resolve color for datatype {0}. Using default color.")
+        color = _g_default_port_color
+    return color
 
 
 def get_attr_datatype(attr):
-    if attr.isMulti():
-        attr_type = attr[0].type()  # this still work if there's no data
-    else:
+    attr_type = None
+
+    # Hack: some multi attributes will return None if we the type directly to the parent attribute.
+    # For this reason we'll check a leaf first.
+    if attr_type is None and attr.isMulti():
+        attr_type = attr[0].type()
+
+    if attr_type is None:
         attr_type = attr.type()
 
-    native_type = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE[attr_type]
+    if attr_type is None:
+        log.warning("Cannot resolve attribute type from attribute {0}.".format(
+            attr
+        ))
+        return
+
+    native_type = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE.get(attr_type, None)
+    if native_type is None:
+        log.warning("Cannot resolve metatype from attribute type {0}. {1}".format(
+            attr_type,
+            attr
+        ))
+        return
+
     return _attr_type_by_native_type[native_type]

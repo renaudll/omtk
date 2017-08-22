@@ -215,7 +215,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         # Handle Compount bound networks
         if isinstance(val, pymel.nodetypes.Network):
-            net = libComponents.get_component_metanetwork_from_hub_network(val)
+            net = libComponents.get_component_metanetwork_from_hub_network(val, strict=False)
             if net:
                 component = self.manager.import_network(net)
                 if self._current_level_data == component:
@@ -698,6 +698,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
     def group_selection(self):
         # selected_nodes = self.get_selected_node_models()
         inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
+
         inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
         out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
         inst = classComponent.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?

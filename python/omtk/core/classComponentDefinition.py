@@ -91,6 +91,11 @@ class ComponentDefinition(object):
         self.author = author
         self.path = path
 
+    def __repr__(self):
+        return '<ComponentDefinition {0} v{1}>'.format(
+            self.name, self.version
+        )
+
     def __eq__(self, other):
         if isinstance(other, ComponentDefinition):
             return self.get_metadata() == other.get_metadata()

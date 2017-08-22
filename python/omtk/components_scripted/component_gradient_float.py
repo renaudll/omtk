@@ -13,12 +13,6 @@ class ComponentGradientFloat(ComponentScripted):
     component_name = 'GradientFloat'
     component_id = constants.BuiltInComponentIds.GradientFloat
 
-    # ATTR_NAME_INN_PARENT_TM = 'hook'
-    # ATTR_NAME_INN_ANM_BIND = 'anmBind'
-    # ATTR_NAME_INN_INF_BIND = 'infBind'
-    # ATTR_NAME_INN_ANM_TMS = 'anm'
-    # ATTR_NAME_OUT_INF_TMS = 'inf'
-
     ATTR_NAME_INN_VALUE_S = 'innValueS'
     ATTR_NAME_INN_VALUE_E = 'innValueE'
     ATTR_NAME_INN_NUM_VALUES = 'numValues'
@@ -27,10 +21,10 @@ class ComponentGradientFloat(ComponentScripted):
     def __init__(self, **kwargs):
         super(ComponentGradientFloat, self).__init__(**kwargs)
 
-        # Pre-define inputs for scripted usage.
-        self._attr_inn_chain = None
-        self._attr_inn_hook_tm = None
-        self._attr_out_matrices = None
+        self.attr_inn_value_s = None
+        self.attr_inn_value_e = None
+        self.attr_num_values = None
+        self.attr_out_values = None
 
     def iter_attributes(self):
         def _set_num_outputs(attr, val):
@@ -46,10 +40,11 @@ class ComponentGradientFloat(ComponentScripted):
 
     def build_interface(self):
         super(ComponentGradientFloat, self).build_interface()
-        self.attr_inn_value_s = self.add_input_attr(self.ATTR_NAME_INN_VALUE_S, defaultValue=0.0)
-        self.attr_inn_value_e = self.add_input_attr(self.ATTR_NAME_INN_VALUE_E, defaultValue=1.0)
+
+        self.attr_inn_value_s = self.add_input_attr(self.ATTR_NAME_INN_VALUE_S, defaultValue=0.0, at='float')
+        self.attr_inn_value_e = self.add_input_attr(self.ATTR_NAME_INN_VALUE_E, defaultValue=1.0, at='float')
         self.attr_num_values = self.add_input_attr(self.ATTR_NAME_INN_NUM_VALUES, at='byte', defaultValue=3)
-        self.attr_out_values = self.add_output_attr(self.ATTR_NAME_OUT_VALUES, multi=True)
+        self.attr_out_values = self.add_output_attr(self.ATTR_NAME_OUT_VALUES, multi=True, at='float')
 
     def _set_chain_length(self, length):
         raise NotImplementedError

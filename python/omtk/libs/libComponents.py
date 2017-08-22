@@ -109,7 +109,7 @@ def walk_available_component_definitions(search_scripted=True):
                     continue
                 path = os.path.join(dirname, filename)
 
-                log.debug('Creating ComponentDefinition for {0}'.format(path))
+                log.debug('Creating ComponentDefinition from {0}'.format(path))
                 component_def = ComponentDefinition.from_file(path)
                 if not component_def:
                     continue
@@ -123,6 +123,7 @@ def walk_available_component_definitions(search_scripted=True):
                     )
                 known.add(key)
 
+                log.debug('Registering {0} from {1}'.format(component_def, path))
                 yield component_def
 
     from omtk import plugin_manager
@@ -131,11 +132,15 @@ def walk_available_component_definitions(search_scripted=True):
     if search_scripted:
         log.info("Searching ComponentScripted")
         for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ComponentScriptedType.type_name):
-            yield plugin.cls.get_definition()
+            component_def = plugin.cls.get_definition()
+            log.debug('Registering {0} from {1}'.format(component_def, plugin))
+            yield component_def
 
     log.info("Searching modules")
     for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ModulePluginType.type_name):
-        yield plugin.cls.get_definition()
+        component_def = plugin.cls.get_definition()
+        log.debug('Registering {0} from {1}'.format(component_def, plugin))
+        yield component_def
 
 
 def get_component_network_bounds():
@@ -200,7 +205,7 @@ class ComponentMetanetworkRole:
 def get_metanetwork_role(obj):
     if not isinstance(obj, pymel.nodetypes.Network):
         return ComponentMetanetworkRole.NoRole
-    network = get_component_metanetwork_from_hub_network(obj)
+    network = get_component_metanetwork_from_hub_network(obj, strict=False)
     if not network:
         return ComponentMetanetworkRole.NoRole
     net_inn = get_inn_network_from_metadata_network(network)

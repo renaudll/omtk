@@ -89,11 +89,11 @@ class NodeGraphPortModel(object):
 
     def connect_from(self, val):
         """Called when an upstream connection is created using a view."""
-        raise NotImplementedError
+        self._adaptor.connect_from(val)
 
     def connect_to(self, val):
         """Called when a downstream connection is created using a view."""
-        raise NotImplementedError
+        self._adaptor.connect_to(val)
 
     def disconnect_from(self, val):
         """Called when an upstream connection is removed using a view."""

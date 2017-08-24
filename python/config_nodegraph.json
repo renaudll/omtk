@@ -1,0 +1,34 @@
+{
+  "decomposeMatrix": [
+    "inputMatrix",
+    "outputQuat",
+    "outputQuatX",
+    "outputQuatY",
+    "outputQuatZ",
+    "outputQuatW",
+    "outputRotate",
+    "outputRotateX",
+    "outputRotateY",
+    "outputRotateZ",
+    "outputTranslate",
+    "outputTranslateX",
+    "outputTranslateY",
+    "outputTranslateZ"
+  ],
+  "composeMatrix": [
+    "inputQuat",
+    "inputQuatX",
+    "inputQuatY",
+    "inputQuatZ",
+    "inputRotate",
+    "inputRotateX",
+    "inputRotateY",
+    "inputRotateZ",
+    "inputRotateOrder",
+    "inputTranslate",
+    "inputTranslateX",
+    "inputTranslateY",
+    "inputTranslateZ",
+    "outputMatrix"
+  ]
+}

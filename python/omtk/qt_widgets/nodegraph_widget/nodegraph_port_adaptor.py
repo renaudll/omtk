@@ -9,7 +9,7 @@ from maya import cmds
 from omtk import factory_datatypes
 from omtk.core import classEntityAttribute
 from omtk.libs import libPython
-
+from omtk import session
 
 class PortAdaptor(object):
     __metaclass__ = abc.ABCMeta
@@ -40,6 +40,15 @@ class PortAdaptor(object):
     @abc.abstractmethod
     def is_interesting(self):
         pass
+
+    @abc.abstractmethod
+    def connect_from(self, val):
+        pass
+
+    @abc.abstractmethod
+    def connect_to(self, val):
+        pass
+
 
 
 class PymelAttributePortAdaptor(PortAdaptor):
@@ -94,6 +103,19 @@ class PymelAttributePortAdaptor(PortAdaptor):
 
     @libPython.memoized_instancemethod
     def is_interesting(self):
+        # The user can specify in it's preference what he which to see by default.
+        # todo: how can we prevent so much function call?
+        s = session.get_session()
+        map = s.preferences.get_nodegraph_default_attr_map().get(self._pynode.type(), None)
+        if map:
+            return self._data.longName() in map
+
+        if self._data.isHidden():
+            return False
+
+        if self._data.isKeyable():
+            return True
+
         if self.is_readable() and self.is_source():
             return True
         if self.is_writable() and self.is_destination():
@@ -110,6 +132,12 @@ class PymelAttributePortAdaptor(PortAdaptor):
         if self._data.isKeyable():
             return True
         return False
+
+    def connect_from(self, val):
+        pymel.connectAttr(val, self._data, force=True)
+
+    def connect_to(self, val):
+        pymel.connectAttr(self._data, val, force=True)
 
 
 class EntityAttributePortAdaptor(PortAdaptor):
@@ -177,3 +205,15 @@ class EntityAttributePortAdaptor(PortAdaptor):
             return self._pymel_adaptor.get_outputs()
 
         return []
+
+    def connect_from(self, val):
+        if isinstance(self._data, classEntityAttribute.EntityPymelAttribute):
+            self._pymel_adaptor.connect_from(val)
+        else:
+            raise NotImplementedError
+
+    def connect_to(self, val):
+        if isinstance(self._data, classEntityAttribute.EntityPymelAttribute):
+            self._pymel_adaptor.connect_to(val)
+        else:
+            raise NotImplementedError

@@ -26,7 +26,7 @@ class WidgetWelcome(QtWidgets.QWidget):
         view.setModel(model)
 
         # Select default rig
-        default_rig_def = preferences.preferences.get_default_rig_class()
+        default_rig_def = preferences.get_preferences().get_default_rig_class()
         self.set_selected_rig_definition(default_rig_def)
 
         # Connect events

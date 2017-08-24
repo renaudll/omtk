@@ -56,7 +56,7 @@ def create(cls=None, *args, **kwargs):
     """
     from omtk.core import preferences
     if cls is None:
-        cls = preferences.preferences.get_default_rig_class()
+        cls = preferences.get_preferences().get_default_rig_class()
     elif isinstance(cls, basestring):
         cls = plugin_manager.plugin_manager.get_plugin(
             plugin_manager.RigPluginType,

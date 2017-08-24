@@ -1029,7 +1029,8 @@ _blacklisted_attr_names = {
     'boundingBoxCenterX',
     'boundingBoxCenterY',
     'boundingBoxCenterZ',
-    'binMembership'
+    'binMembership',
+    'inverseScale',  # omtk does not care about segmentScaleCompensate
 }
 
 

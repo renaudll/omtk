@@ -89,7 +89,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.create_callbacks()
 
         # Configure welcome screen
-        if not preferences.preferences.hide_welcome_screen and not self.manager.get_rigs():
+        if not preferences.get_preferences().hide_welcome_screen and not self.manager.get_rigs():
             self.ui.stackedWidget.setCurrentWidget(self.ui.page_1)
             self.ui.widget_welcome.onCreate.connect(self.on_welcome_rig_created)
         else:

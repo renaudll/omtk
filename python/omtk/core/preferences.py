@@ -5,6 +5,7 @@ import os
 import inspect
 import json
 import logging
+from omtk.libs import libPython
 
 log = logging.getLogger('omtk')
 
@@ -12,13 +13,18 @@ from omtk import constants
 
 CONFIG_FILENAME = 'config.json'
 
+@libPython.memoized
+def _get_path_config_dir():
+    current_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
+    config_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
+    return config_dir
 
+@libPython.memoized
 def get_path_preferences():
     """
     :return: The search path of the configuration file.
     """
-    current_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    config_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
+    config_dir = _get_path_config_dir()
     config_path = os.path.join(config_dir, CONFIG_FILENAME)
     return config_path
 
@@ -48,6 +54,18 @@ class Preferences(object):
             data = json.load(fp)
             self.__dict__.update(data)
 
+    @libPython.memoized
+    def get_nodegraph_default_attr_map(self):
+        # todo: refactor preference class to better handle categories?
+        try:
+            dirname = _get_path_config_dir()
+            path = os.path.join(dirname, 'config_nodegraph.json')
+            with open(path, 'r') as fp:
+                return json.load(fp)
+        except Exception, e:
+            log.warning('Error loading {0}: {1}'.format(path, e))
+            return {}
+
     def get_default_rig_class(self):
         from omtk.core import plugin_manager
 
@@ -67,5 +85,11 @@ class Preferences(object):
         raise Exception("No Rig definition found!")
 
 
-preferences = Preferences()
-preferences.load()
+
+
+# todo: remove any other references to get_preferences() than in session
+@libPython.memoized
+def get_preferences():
+    preferences = Preferences()
+    preferences.load()
+    return preferences

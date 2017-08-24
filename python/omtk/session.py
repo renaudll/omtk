@@ -3,6 +3,7 @@ import logging
 import pymel.core as pymel
 from omtk.core import api
 from omtk.core import classRig
+from omtk.core import preferences
 from omtk.vendor import libSerialization
 from omtk.vendor.libSerialization import cache as libSerializationCache
 from omtk.vendor.Qt import QtCore
@@ -30,6 +31,8 @@ class AutoRigManager(QtCore.QObject):
         self._roots = []
 
         self._components = []
+
+        self.preferences = preferences.get_preferences()
 
         # Initialize libSerialization cache.
         # This will allow to re-use data.

@@ -19,8 +19,8 @@ class MayaNodeDefinition(ComponentDefinition):
         self._cls_name = cls_name
         self.name = cls_name
 
-    def instanciate(self, parent, name='unamed'):
-        return pymel.createNode(self._cls_name, name=name)
+    def instanciate(self, parent):
+        return pymel.createNode(self._cls_name)
 
 
 class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):

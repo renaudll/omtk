@@ -56,6 +56,7 @@ class PymelAttributePortAdaptor(PortAdaptor):
         assert (isinstance(data, pymel.Attribute))
         super(PymelAttributePortAdaptor, self).__init__(data)
         self._pynode = data.node()
+        self._mfn = data.__apimattr__()  # OpenMaya.MFnAttribute, for optimization purpose
 
     @libPython.memoized_instancemethod
     def _attr_name(self):
@@ -63,11 +64,13 @@ class PymelAttributePortAdaptor(PortAdaptor):
 
     @libPython.memoized_instancemethod
     def is_readable(self):
-        return pymel.attributeQuery(self._attr_name(), node=self._pynode, readable=True)
+        # return pymel.attributeQuery(self._attr_name(), node=self._pynode, readable=True)
+        return self._mfn.isReadable()
 
     @libPython.memoized_instancemethod
     def is_writable(self):
-        return pymel.attributeQuery(self._attr_name(), node=self._pynode, writable=True)
+        # return pymel.attributeQuery(self._attr_name(), node=self._pynode, writable=True)
+        return self._mfn.isWritable()
 
     def is_source(self):
         if self._data.isMulti():
@@ -110,10 +113,12 @@ class PymelAttributePortAdaptor(PortAdaptor):
         if map:
             return self._data.longName() in map
 
-        if self._data.isHidden():
+        # if self._data.isHidden():
+        if self._mfn.isHidden():
             return False
 
-        if self._data.isKeyable():
+        # if self._data.isKeyable():
+        if self._mfn.isKeyable():
             return True
 
         if self.is_readable() and self.is_source():

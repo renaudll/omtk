@@ -3,7 +3,6 @@ import re
 import uuid
 from omtk.core.classComponent import Component
 from omtk.libs import libNamespaces
-from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk import constants
 from omtk import session
@@ -151,6 +150,8 @@ class ComponentDefinition(object):
         Create a Component in the scene from a ComponentDefinition.
         :return: A Component instance.
         """
+        from omtk.libs import libComponents
+
         if not self.path or not os.path.exists(self.path):
             raise Exception("Cannot instanciate {0}, path does not exist! {1}".format(
                 self, self.path

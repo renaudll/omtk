@@ -886,6 +886,7 @@ def iter_leaf_attributes(obj, **kwargs):
     :param obj:
     :return:
     """
+    # todo: this is awfully slow, how can we make it better?
     for attr in obj.listAttr(descendants=True, **kwargs):
         yield attr
 

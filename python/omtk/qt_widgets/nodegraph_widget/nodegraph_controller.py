@@ -190,10 +190,16 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         :param model: A NodeGraphNodeModel instance to invalidate.
         """
         value = model.get_metadata()
-        self.invalidate_node_value(value)
+
+        # Note that we never invalidate the stored model related to the component.
+        # This is because we will always return this model when asked directly about it.
+        # Also the NodeGraphRootModel store reference it's children so we want to prevent
+        # as much as we can a new NodeGraphComponentModel instance from being created.
         if isinstance(value, classComponent.Component):
             self.invalidate_node_value(value.grp_inn)
             self.invalidate_node_value(value.grp_out)
+        else:
+            self.invalidate_node_value(value)
 
     # --- Model factory ---
 

@@ -22,7 +22,7 @@ class EnumSections:
 
 
 from omtk import api
-from omtk import manager
+from omtk import session
 
 
 class AutoRig(QtWidgets.QMainWindow):
@@ -155,7 +155,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
     @property
     def manager(self):
-        return manager.get_manager()
+        return session.get_session()
 
     def on_manager_created_rig(self, rig):
         node_editor_ctrl = self.ui.widget_node_editor.get_controller()

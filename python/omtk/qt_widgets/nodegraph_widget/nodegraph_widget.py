@@ -26,7 +26,7 @@ win.show()
 import logging
 
 import pymel.core as pymel
-from omtk import manager
+from omtk import session
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
@@ -86,7 +86,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
     @property
     def manager(self):
-        return manager.get_manager()
+        return session.get_session()
 
     def get_controller(self):
         return self._ctrl

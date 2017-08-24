@@ -51,12 +51,13 @@ class PyFlowGraphMetadataKeys:
     """
     Metadata maya attributes that are created when using the node graph.
     """
-    Position = 'omtkGraphPos'
+    Position = '_graphpos'
 
 
 COMPONENT_HUB_INN_NAME = 'inn'
 COMPONENT_HUB_OUT_NAME = 'out'
 COMPONENT_HUB_DAG_NAME = 'dag'
+COMPONENT_METANETWORK_NAME = 'metadata'
 
 COMPONENT_HUB_INN_ATTR_NAME = 'grp_inn'
 COMPONENT_HUB_OUT_ATTR_NAME = 'grp_out'

@@ -2,6 +2,7 @@ import logging
 
 from maya import cmds
 from omtk import constants
+from omtk import session
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
 from omtk.core.classEntityAttribute import get_attrdef_from_attr
@@ -9,7 +10,7 @@ from omtk.libs import libAttr
 from omtk.libs import libNamespaces
 from omtk.vendor import libSerialization
 from pymel import core as pymel
-from omtk import manager
+from omtk import session
 
 log = logging.getLogger('omtk')
 
@@ -324,7 +325,7 @@ class Component(Entity):
         self.unbuild()
 
     def get_children(self):
-        return (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {
+        result = (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {
             self.grp_inn, self.grp_out}
         if self.grp_dag:
             result.add(self.grp_dag)
@@ -332,16 +333,24 @@ class Component(Entity):
         return result
 
     def export(self, path):
-        children = self.get_children() | {self.grp_inn, self.grp_out}
+        children = self.get_children()
         if not children:
             raise Exception("Can't export component, component is empty!")
+
+        # Ensure the component metadata is exported
+        m = session.get_session()
+        network = m.export_network(self)
+
+        objs_to_export = children | {self.grp_inn, self.grp_out, network}
+        if self.grp_dag:
+            objs_to_export.add(self.grp_dag)
 
         # Hold current file
         current_path = cmds.file(q=True, sn=True)
 
         # todo: disconnect hub
 
-        pymel.select(children)
+        pymel.select(objs_to_export)
         cmds.file(rename=path)
         cmds.file(force=True, exportSelected=True, type="mayaAscii")
 
@@ -384,7 +393,7 @@ class ComponentScripted(Component):
         if self.need_grp_dag:
             self.grp_dag = pymel.createNode('transform', name='dag')
 
-        m = manager.get_manager()
+        m = session.get_session()
         m.export_network(self)
 
         # -> any inherited class would want to add input and output attributes here <-

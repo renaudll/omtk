@@ -1,6 +1,6 @@
 import logging
 import pymel.core as pymel
-from omtk import manager
+from omtk import session
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
@@ -29,7 +29,7 @@ class NodeGraphView(PyFlowgraphView):
 
     @property
     def manager(self):
-        return manager.get_manager()
+        return session.get_session()
 
     # -- Model/View/Controller pattern --
 

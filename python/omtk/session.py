@@ -143,5 +143,6 @@ class AutoRigManager(QtCore.QObject):
 
 
 @libPython.memoized
-def get_manager():
+def get_session():
+    # type: () -> AutoRigManager
     return AutoRigManager()

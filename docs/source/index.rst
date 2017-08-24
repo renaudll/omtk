@@ -17,10 +17,10 @@ Contents:
    :maxdepth: 3
 
    installation
-   usage
    development
    class_nomenclature
    glossary
+   component_registration
 
 .. automodule:: omtk.modules.rigIK
 

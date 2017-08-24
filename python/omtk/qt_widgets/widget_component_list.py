@@ -2,7 +2,7 @@ import logging
 
 import pymel.core as pymel
 from maya import cmds
-from omtk import manager
+from omtk import session
 from omtk.core.classComponent import Component
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libComponents
@@ -137,7 +137,7 @@ class WidgetComponentList(QtWidgets.QWidget):
 
     @property
     def manager(self):
-        return manager.get_manager()
+        return session.get_session()
 
     def on_user_changed_query(self, query):
         self.proxy_model.setFilterRegExp('.*{0}.*'.format(query.replace('*', '.*')))

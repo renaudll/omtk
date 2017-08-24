@@ -2,7 +2,7 @@ import logging
 
 import pymel.core as pymel
 from omtk import factory_datatypes
-from omtk import manager
+from omtk import session
 from omtk.core import classEntityAttribute
 from omtk.core import classModule
 from omtk.core.classComponent import Component
@@ -44,7 +44,7 @@ class NodeGraphModel(object):
 
     @property
     def manager(self):
-        return manager.get_manager()
+        return session.get_session()
 
     # --- Registration methods ---
 

@@ -1,4 +1,4 @@
-from omtk import manager
+from omtk import session
 from omtk.core import preferences
 from omtk.qt_widgets.ui import widget_welcome
 from omtk.vendor.Qt import QtCore, QtWidgets
@@ -35,7 +35,7 @@ class WidgetWelcome(QtWidgets.QWidget):
 
     @property
     def manager(self):
-        return manager.get_manager()
+        return session.get_session()
 
     def get_selected_rig_definition(self):
         row = next(iter(row.row() for row in self.rig_def_view.selectionModel().selectedRows()), None)

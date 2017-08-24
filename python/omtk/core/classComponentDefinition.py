@@ -3,8 +3,10 @@ import re
 import uuid
 from omtk.core.classComponent import Component
 from omtk.libs import libNamespaces
+from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk import constants
+from omtk import session
 
 from maya import cmds
 import pymel.core as pymel
@@ -154,16 +156,41 @@ class ComponentDefinition(object):
                 self, self.path
             ))
 
+        m = session.get_session()
+
         namespace = libNamespaces.get_unique_namespace(name)
         cmds.file(self.path, i=True, namespace=namespace)
-        hub_inn = pymel.PyNode('{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME))
-        hub_out = pymel.PyNode('{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME))
 
-        inst = Component(name=namespace)
-        inst.grp_inn = hub_inn
-        inst.grp_out = hub_out
+        # Resolve input hub
+        hub_inn_dagpath = '{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME)
+        if not cmds.objExists(hub_inn_dagpath):
+            raise Exception("Failed to instanciate network. Found no input hub at {0}".format(hub_inn_dagpath))
+        hub_inn = pymel.PyNode(hub_inn_dagpath)
 
-        from omtk.libs import libComponents
+        # Resolve output hub
+        hub_out_dagpath = '{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME)
+        if not cmds.objExists(hub_out_dagpath):
+            raise Exception("Failed to instanciate network. Found no output hub at {0}".format(hub_out_dagpath))
+        hub_out = pymel.PyNode(hub_out_dagpath)
+
+        # Resolve metadata network
+        metanetwork = None
+        metanetwork_dagpath = '{0}:{1}'.format(namespace, constants.COMPONENT_METANETWORK_NAME)
+        if cmds.objExists(metanetwork_dagpath):
+            metanetwork = pymel.PyNode(metanetwork_dagpath)
+        if not metanetwork:
+            metanetwork = libComponents.get_component_metanetwork_from_hub_network(hub_inn, strict=False)
+        if not metanetwork:
+            metanetwork = libComponents.get_component_metanetwork_from_hub_network(hub_out, strict=False)
+        if not metanetwork:
+            raise Exception("Failed to instanciate component. Found no metanetwork at {0}".format(metanetwork_dagpath))
+
+        inst = m.import_network(metanetwork)
+
+        # inst = Component(name=namespace)
+        # inst.grp_inn = hub_inn
+        # inst.grp_out = hub_out
+
         libComponents._connect_component_attributes(inst, map_inn, map_out)
 
         # from omtk import manager

@@ -7,7 +7,7 @@ import logging
 import pymel.core as pymel
 from omtk import constants
 from omtk import factory_datatypes
-from omtk import manager
+from omtk import session
 from omtk.core import classComponent
 from omtk.core import classEntity
 from omtk.libs import libComponents
@@ -82,7 +82,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     @property
     def manager(self):
-        return manager.get_manager()
+        return session.get_session()
 
     @libPython.memoized_instancemethod
     def get_root_model(self):
@@ -201,8 +201,18 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         try:
             return self._cache_nodes[key]
         except LookupError:
+            log.debug("Cannot find model for {0}. Creating a new one.".format(key))
             val = self._get_node_model_from_value(key)
-            self._cache_nodes[key] = val
+
+            # If we got a component model, ensure that we also cache it's bounds.
+            if isinstance(val, nodegraph_node_model_component.NodeGraphComponentModel):
+                component = val.get_metadata()
+                self._cache_nodes[component] = val
+                self._cache_nodes[component.grp_inn] = val
+                self._cache_nodes[component.grp_out] = val
+            else:
+                self._cache_nodes[key] = val
+
             return val
 
     def _get_node_model_from_value(self, val):
@@ -226,7 +236,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
                         return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self._model, val,
                                                                                               component)
                 else:
-                    return self.get_node_model_from_value(component)
+                    return self._model.get_node_from_value(component)
             return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self._model, val)
 
         # model = self._model.get_node_from_value(val)
@@ -282,7 +292,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
                 # Note that we don't check self._current_level_model since it have a value (the root model).
                 if node_parent_inst is None:
                     return self._current_level_data is None
-                node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
+                # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
                 return node_parent_inst == self._current_level_data
 
             if expand_upstream and port_model.is_source():
@@ -599,7 +609,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             # libPyflowgraph.arrange_downstream(self._widget_bound_inn)
             self._widget_bound_inn.setGraphPos(QtCore.QPointF(-5000.0, 0))
             self._widget_bound_out.setGraphPos(QtCore.QPointF(5000.0, 0))
-            libPyflowgraph.spring_layout(widgets)
+            # libPyflowgraph.spring_layout(widgets)
             # self._widget_bound_inn.setGraphPos(QtCore.QPointF(-1000.0, 0))
             # self._widget_bound_out.setGraphPos(QtCore.QPointF(1000.0, 0))
 

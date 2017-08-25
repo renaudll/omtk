@@ -65,7 +65,7 @@ class EntityPymelAttribute(EntityAttribute):
         self._valid_types = factory_datatypes.get_attr_datatype(attr)
         super(EntityPymelAttribute, self).__init__(
             parent,
-            name=attr.attrName(),
+            name=attr.longName(),
             fn_get=attr.get,
             fn_set=attr.set,
             **kwargs

@@ -108,11 +108,13 @@ class Component(Entity):
 
     def iter_attributes(self):
         # todo: use factory?
-        for attr in self.grp_inn.listAttr(topLevel=True, userDefined=True):
+        # for attr in self.grp_inn.listAttr(topLevel=True, userDefined=True):
+        for attr in libAttr.iter_network_contributing_attributes(self.grp_inn):
             attr_def = get_attrdef_from_attr(attr, is_input=True, is_output=False)
             if attr_def:
                 yield attr_def
-        for attr in self.grp_out.listAttr(topLevel=True, userDefined=True):
+        # for attr in self.grp_out.listAttr(topLevel=True, userDefined=True):
+        for attr in libAttr.iter_network_contributing_attributes(self.grp_out):
             attr_def = get_attrdef_from_attr(attr, is_input=False, is_output=True)
             if attr_def:
                 yield attr_def

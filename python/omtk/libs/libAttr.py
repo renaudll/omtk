@@ -2,6 +2,7 @@ import itertools
 import logging
 from contextlib import contextmanager
 
+from maya import OpenMaya
 from maya import cmds
 from pymel import core as pymel
 
@@ -307,9 +308,10 @@ class AttributeData(object):
             if self.children:
                 for child in self.children:
                     if not child.long_name.startswith(self.long_name):
-                        log.warning("Cannot automatically rename {0} definition. Long name don't start with {1}.".format(
-                            child, self.long_name
-                        ))
+                        log.warning(
+                            "Cannot automatically rename {0} definition. Long name don't start with {1}.".format(
+                                child, self.long_name
+                            ))
                     else:
                         # Note how do don't care that much about the short and nice name.
                         child_new_long_name = new_long_name + child.long_name[cur_long_name_length:]
@@ -892,21 +894,75 @@ def iter_leaf_attributes(obj, **kwargs):
 
 
 def iter_contributing_attributes(obj):
-    """
-    Extend pymel.listAttr by implementing recursivity
-    :param obj: A pymel.nodetypes.DagNode that contain attribute to explore.
-    :param read: If True, output attributes will be yielded.
-    :param write: If True, input attributes will be yielded.
-    :yield: pymel.Attribute instances.
-    """
-    for attr in iter_leaf_attributes(obj):
-        attr_name = attr.longName()
+    # type: (OpenMaya.MFnDependencyNode) -> Generator[OpenMaya.MPlug]
+    def _iter_plug_children(plug_):
+        yield plug_
+        if plug_.isArray():
+            num_elements = plug_.numElements()
+            print plug_.name()
+            for i in xrange(num_elements):
+                print i
+                child = plug_.elementByLogicalIndex(i)
+                for yielded in _iter_plug_children(child):
+                    yield yielded
+            return
 
-        # Ignore some known attributes by name
-        if attr_name in _blacklisted_attr_names:
+        if plug_.isCompound():
+            num_children = plug_.numChildren()
+            for i in xrange(num_children):
+                child = plug_.child(i)
+                for yielded in _iter_plug_children(child):
+                    yield yielded
+
+    mfn = obj.__apimfn__()
+    num_attributes = mfn.attributeCount()
+    for j in xrange(num_attributes):
+        mo_attr = mfn.attribute(j)
+        plug = mfn.findPlug(mo_attr)
+
+        # We will ignore any child attribute since we want to explore them
+        # ourself. This is becose some attributes like renderLayerInfo[-1].renderLayerId
+        # don't really exist.
+        if plug.isChild():
             continue
 
+        for yielded in _iter_plug_children(plug):
+            yield pymel.Attribute(yielded)
+
+
+def iter_network_contributing_attributes(network):
+    builtin_attr_names = (
+        'message',
+        'caching',
+        'isHistoricallyInteresting',
+        'nodeState',
+        'binMembership',
+        'frozen',
+        'affects',
+        'affectedBy',
+    )
+    for attr in iter_contributing_attributes(network):
+        if attr.longName() in builtin_attr_names:
+            continue
         yield attr
+
+
+# def iter_contributing_attributes(obj):
+#     """
+#     Extend pymel.listAttr by implementing recursivity
+#     :param obj: A pymel.nodetypes.DagNode that contain attribute to explore.
+#     :param read: If True, output attributes will be yielded.
+#     :param write: If True, input attributes will be yielded.
+#     :yield: pymel.Attribute instances.
+#     """
+#     for attr in iter_leaf_attributes(obj):
+#         attr_name = attr.longName()
+#
+#         # Ignore some known attributes by name
+#         if attr_name in _blacklisted_attr_names:
+#             continue
+#
+#         yield attr
 
 
 _blacklisted_attr_names = {

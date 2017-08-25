@@ -46,9 +46,9 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
             # inst._node = self  # hack currently compound attribute won't point to the compound object...
             if isinstance(attr_def, classEntityAttribute.EntityPymelAttribute):
                 attr_node = attr_def._attr.node()
-                if attr_node  == self._entity.grp_inn:
+                if attr_node == self._entity.grp_inn:
                     attr_def._node = self._entity.grp_inn
-                elif attr_node  == self._entity.grp_out:
+                elif attr_node == self._entity.grp_out:
                     attr_def._node = self._entity.grp_out
 
             # inst = NodeGraphEntityPymelAttributePortModel(self._registry, self, attr_def)

@@ -82,7 +82,7 @@ class NodeGraphView(PyFlowgraphView):
     def dragMoveEvent(self, event):
         event.accept()
 
-    @libPython.profiler
+    # @libPython.profiler
     def dropEvent(self, event):
         super(NodeGraphView, self).dropEvent(event)
         print event.mimeData().formats()

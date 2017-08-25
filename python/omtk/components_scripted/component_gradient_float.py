@@ -34,7 +34,7 @@ class ComponentGradientFloat(ComponentScripted):
             self.build()
 
         for attr_def in super(ComponentGradientFloat, self).iter_attributes():
-            if attr_def.name in ('numValues',):
+            if attr_def.name == 'numValues':
                 attr_def._fn_set = _set_num_outputs
             yield attr_def
 

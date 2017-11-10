@@ -62,6 +62,9 @@ def _reload(kill_ui=True):
     import constants
     reload(constants)
 
+    import decorators
+    reload(decorators)
+
     log.debug('Reloading core')
     import core
     reload(core)

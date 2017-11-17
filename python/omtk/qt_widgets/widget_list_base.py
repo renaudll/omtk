@@ -45,9 +45,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         # Connect events
         self.ui.lineEdit_search.textChanged.connect(self.on_search_changed)
         self.ui.treeWidget.itemSelectionChanged.connect(self.on_selection_changed)
-        self.ui.treeWidget.itemChanged.connect(self.on_module_changed)
         self.ui.treeWidget.itemDoubleClicked.connect(self.on_module_double_clicked)
-        self.ui.treeWidget.focusInEvent = self.on_tree_focus
         self.ui.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.ui.treeWidget.customContextMenuRequested.connect(self.on_context_menu_request)
         self.ui.btn_update.pressed.connect(self.update)
@@ -231,53 +229,13 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         print networks
         pymel.select(networks)
 
-    @log_info
-    def on_module_changed(self, item):
-        if not self._listen_events:
-            return
-
-        # todo: handle exception
-        # Check first if the checkbox have changed
-        need_update = False
-        new_state = item.checkState(0) == QtCore.Qt.Checked
-        new_text = item.text(0)
-
-        # debug
-        if not hasattr(item, '_meta_data'):
-            print '???', item.text(0)
-            return
-
-        module = item._meta_data
-        if item._checked != new_state:
-            item._checked = new_state
-            # Handle checkbox change
-            if new_state:
-                self._build(module, update=False)  # note: setting update=True on maya-2017 can cause Qt to crash...
-            else:
-                self._unbuild(module, update=False)  # note: setting update=True on maya-2017 can cause Qt to crash...
-            # need_update = True
-            ui_shared._update_network(self._rig, item=item)
-
-        # Check if the name have changed
-        if (item._name != new_text):
-            item._name = new_text
-            module.name = new_text
-
-            # Update directly the network value instead of re-exporting it
-            if hasattr(item, "net"):
-                name_attr = item.net.attr("name")
-                name_attr.set(new_text)
-
-                # Ensure to only refresh the UI and not recreate all
-                # if need_update:
-                #     self.refresh_ui()
-
     # @log_info
     def on_search_changed(self, *args, **kwargs):
         self.refresh_items_visibility()
 
     @log_info
-    def on_context_menu_request(self):
+    def on_context_menu_request(self, pos):
+        # todo: cleanup?
         selected_items = self.ui.treeWidget.selectedItems()
         selected_components = [item._meta_data for item in selected_items if isinstance(item._meta_data, Entity)]
         if selected_components:
@@ -289,44 +247,6 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
             self._set_text_block(item, item._meta_data.name)
             self._is_modifying = True  # Flag to know that we are currently modifying the name
             self.ui.treeWidget.editItem(item, 0)
-
-    @log_info
-    def on_tree_focus(self, event):
-        # Set back the text with the information about the module in it
-        if self._is_modifying:
-            sel = self.ui.treeWidget.selectedItems()
-            if sel:
-                self._listen_events = False
-                selected_item = sel[0]
-                if isinstance(selected_item._meta_data, classModule.Module):
-                    selected_item._update()
-                self._listen_events = True
-            self._is_modifying = False
-        self.focusInEvent(event)
-
-    @log_info
-    def on_lock_selected(self):
-        need_update = False
-        for item in self.ui.treeWidget.selectedItems():
-            val = item._meta_data
-            if isinstance(val, classModule.Module) and not val.locked:
-                need_update = True
-                val.locked = True
-        if need_update:
-            ui_shared._update_network(self._rig)
-            self.update()
-
-    @log_info
-    def on_unlock_selected(self):
-        need_update = False
-        for item in self.ui.treeWidget.selectedItems():
-            val = item._meta_data
-            if isinstance(val, classModule.Module) and val.locked:
-                need_update = True
-                val.locked = False
-        if need_update:
-            ui_shared._update_network(self._rig)
-            self.update()
 
 
 class OmtkBaseListWidgetRig(OmtkBaseListWidget):

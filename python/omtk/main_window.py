@@ -11,6 +11,8 @@ from omtk.libs import libSkeleton
 from omtk.qt_widgets.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk import api
+from omtk import session
 
 log = logging.getLogger('omtk')
 
@@ -19,10 +21,6 @@ class EnumSections:
     """Define the section available in the ui."""
     Welcome = 0
     Edit = 1
-
-
-from omtk import api
-from omtk import session
 
 
 class AutoRig(QtWidgets.QMainWindow):

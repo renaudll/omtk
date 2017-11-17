@@ -3,6 +3,8 @@ import re
 import traceback
 
 import pymel.core as pymel
+from omtk import factory_tree_widget_item, factory_rc_menu
+from omtk import ui_shared
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk.core.classEntity import Entity
@@ -10,9 +12,6 @@ from omtk.core.classNode import Node
 from omtk.libs import libQt
 from omtk.qt_widgets.ui import widget_list_modules
 from omtk.vendor.Qt import QtCore, QtWidgets
-
-from omtk import factory_tree_widget_item
-from omtk import ui_shared
 
 log = logging.getLogger('omtk')
 
@@ -121,7 +120,7 @@ class WidgetListModules(QtWidgets.QWidget):
         for root in self._rigs:
             # self._known_data_ids.add(id(root))
             # item = self._create_tree_widget_item_from_component(root)
-            item = factory_tree_widget_item.get_tree_item(root)
+            item = factory_tree_widget_item.get(root)
             # qItem = self._rig_to_tree_widget(root)
             self.ui.treeWidget.addTopLevelItem(item)
             self.ui.treeWidget.expandItem(item)
@@ -344,7 +343,6 @@ class WidgetListModules(QtWidgets.QWidget):
     #     return result
 
     def on_context_menu_request(self):
-        from omtk import factory_rc_menu
         selected_items = self.ui.treeWidget.selectedItems()
         selected_components = [item._meta_data for item in selected_items if isinstance(item._meta_data, Entity)]
         if selected_components:

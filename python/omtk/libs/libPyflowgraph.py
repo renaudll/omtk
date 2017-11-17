@@ -1,7 +1,6 @@
 import logging
 
-from omtk import constants
-from omtk import factory_datatypes
+from omtk import constants, factory_datatypes
 from omtk.vendor.Qt import QtCore
 from pymel import core as pymel
 

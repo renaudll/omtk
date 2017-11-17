@@ -5,15 +5,14 @@ import itertools
 import logging
 
 import pymel.core as pymel
-from omtk import constants
+from omtk import constants, factory_rc_menu
 from omtk import factory_datatypes
 from omtk import session
 from omtk.core import classComponent
 from omtk.core import classEntity
 from omtk.libs import libComponents
-from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
-from omtk.vendor.Qt import QtCore, QtGui
+from omtk.vendor.Qt import QtCore
 
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
@@ -668,7 +667,6 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             log.debug("Cannot naviguate to {0}".format(node_model))
 
     def on_right_click(self, menu):
-        from omtk import factory_rc_menu
         values = self.get_selected_values()
 
         if values:

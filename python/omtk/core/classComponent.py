@@ -24,7 +24,7 @@ class Component(Entity):
 
     need_grp_inn = True
     need_grp_out = True
-    need_grp_dag = False
+    need_grp_dag = True
 
     def __init__(self, name=None):
         super(Component, self).__init__()
@@ -74,8 +74,15 @@ class Component(Entity):
         This is separated in it's own method since we might want to set public attributes before building
         the content, especially if the content depend on some attribute value.
         """
-        # Not needed
-        pass
+        if self.need_grp_inn:
+            self.grp_inn = pymel.createNode('network', name='inn')
+        if self.need_grp_out:
+            self.grp_out = pymel.createNode('network', name='out')
+        if self.need_grp_dag:
+            self.grp_dag = pymel.createNode('transform', name='dag')
+
+        m = session.get_session()
+        m.export_network(self)
 
         # -> any inherited class would want to add input and output attributes here <-
 
@@ -350,16 +357,22 @@ class Component(Entity):
         # Hold current file
         current_path = cmds.file(q=True, sn=True)
 
-        # todo: disconnect hub
+        # todo: optimise this
+        grp_inn_attrs = set(self.grp_inn.listAttr())
+        grp_inn_attrs.remove(self.grp_inn.message)
+        grp_out_attrs = set(self.grp_out.listAttr())
+        grp_out_attrs.remove(self.grp_out.message)
+        print grp_out_attrs
 
-        pymel.select(objs_to_export)
-        cmds.file(rename=path)
-        cmds.file(force=True, exportSelected=True, type="mayaAscii")
+        with libAttr.context_disconnected_attrs(grp_inn_attrs, hold_inputs=True, hold_outputs=False):
+            with libAttr.context_disconnected_attrs(grp_out_attrs, hold_inputs=False, hold_outputs=True):
 
-        # Fetch current file
-        cmds.file(rename=current_path)
+                pymel.select(objs_to_export)
+                cmds.file(rename=path)
+                cmds.file(force=True, exportSelected=True, type="mayaAscii")
 
-        # todo: reconnect hub
+                # Fetch current file
+                cmds.file(rename=current_path)
 
         definition = self.get_definition()
         definition.write_metadata_to_file(path)
@@ -380,25 +393,6 @@ class ComponentScripted(Component):
         )
         inst.component_cls = cls
         return inst
-
-    def build_interface(self):
-        """
-        Create the Component input, output and dag hub. Define all public attributes.
-        However does not build what between the input and output hub.
-        This is separated in it's own method since we might want to set public attributes before building
-        the content, especially if the content depend on some attribute value.
-        """
-        if self.need_grp_inn:
-            self.grp_inn = pymel.createNode('network', name='inn')
-        if self.need_grp_out:
-            self.grp_out = pymel.createNode('network', name='out')
-        if self.need_grp_dag:
-            self.grp_dag = pymel.createNode('transform', name='dag')
-
-        m = session.get_session()
-        m.export_network(self)
-
-        # -> any inherited class would want to add input and output attributes here <-
 
     def build_content(self):
         """

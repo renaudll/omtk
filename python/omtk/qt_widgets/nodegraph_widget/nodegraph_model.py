@@ -1,13 +1,11 @@
 import logging
 
 import pymel.core as pymel
-from omtk import factory_datatypes
-from omtk import session
+from omtk import session, factory_datatypes
 from omtk.core import classEntityAttribute
 from omtk.core import classModule
 from omtk.core.classComponent import Component
 from omtk.libs import libComponents
-from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
 from . import nodegraph_connection_model

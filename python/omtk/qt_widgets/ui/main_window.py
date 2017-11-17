@@ -211,7 +211,7 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None, -1))
 
-from ..widget_list_meshes2 import WidgetListMeshes
+from ..widget_list_meshes import WidgetListMeshes
 from ..widget_logger import WidgetLogger
 from ..nodegraph_widget.nodegraph_widget import NodeGraphWidget
 from ..widget_list_modules import WidgetListModules

@@ -81,18 +81,18 @@ def _reload(kill_ui=True):
     plugin_manager.plugin_manager.reload_all()
 
     log.debug('Reloading factory_datatypes')
-    import factory_datatypes
+    from omtk import factory_datatypes
     reload(factory_datatypes)
 
     from omtk import session
     reload(session)
 
     log.debug('Reloading factory_tree_widget_item')
-    import factory_tree_widget_item
+    from omtk import factory_tree_widget_item
     reload(factory_tree_widget_item)
 
     log.debug('Reloading factory_rc_menu')
-    import factory_rc_menu
+    from omtk import factory_rc_menu
     reload(factory_rc_menu)
 
     log.debug('Reloading ui_shared')

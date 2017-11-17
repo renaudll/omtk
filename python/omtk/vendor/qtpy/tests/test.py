@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/vendor/qtpy/tests/test.ui'
 #
-# Created: Wed Jul 12 15:22:43 2017
+# Created: Thu Nov 16 21:56:04 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!

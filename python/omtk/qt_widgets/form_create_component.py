@@ -9,7 +9,7 @@ from omtk.libs import libComponents
 from omtk.libs import libPython
 from omtk.qt_widgets.ui.form_create_component import Ui_MainWindow as ui_def
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
+from omtk.vendor import libSerialization
 
 class AttributeMapModel(QtCore.QAbstractTableModel):
     def __init__(self, entries=None):
@@ -107,6 +107,10 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         self.ui = ui_def()
         self.ui.setupUi(self)
 
+        # Initialize cache
+        self._components = self.get_scene_components()
+        self._component = next(iter(self._components), None)
+
         # Connect models
         self._model_attr_inn = AttributeMapModel()
         self._model_attr_out = AttributeMapModel()
@@ -114,39 +118,75 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         proxy_model_inn.setSourceModel(self._model_attr_inn)
         proxy_model_out = QtCore.QSortFilterProxyModel()
         proxy_model_out.setSourceModel(self._model_attr_out)
-        self.ui.tableView_attrs_inn.setModel(proxy_model_inn)
-        self.ui.tableView_attrs_out.setModel(proxy_model_out)
 
         # Connect events
-        self.ui.pushButton_resolve.pressed.connect(self.on_user_resolve_input)
         self.ui.pushButton_submit.pressed.connect(self.on_user_submit)
         self.ui.lineEdit_id.textChanged.connect(self.update_enabled)
         self.ui.lineEdit_author.textChanged.connect(self.update_enabled)
         self.ui.lineEdit_name.textChanged.connect(self.update_enabled)
-
-        # Resolve on opening
-        self.on_user_resolve_input()
+        self.ui.lineEdit_version.textChanged.connect(self.update_enabled)
+        self.ui.pushButton_select.pressed.connect(self.on_select)
+        self.ui.pushButton_create.pressed.connect(self.on_create_new)
 
         self.ui.lineEdit_id.setText(str(uuid.uuid4()))
 
+        self.update_component_list()
         self.update_enabled()
+
+    def update_component_list(self):
+        self.ui.comboBox.clear()
+        self.ui.comboBox.addItems([str(c) for c in self._components])
+        if self._component:
+            try:
+                index = self._components.index(self._component)
+                self.ui.comboBox.setCurrentIndex(index)
+            except ValueError:
+                pass
+
+    def iter_scene_components(self):
+        for network in libSerialization.iter_networks_from_class(classComponent.Component.__name__):
+            component = libSerialization.import_network(network)
+            if component:
+                yield component
+
+    def get_scene_components(self):
+        return list(self.iter_scene_components())
 
     def update_enabled(self):
-        self.ui.pushButton_submit.setEnabled(
-            bool(self._model_attr_inn.get_entries()) &
-            bool(self._model_attr_out.get_entries()) &
-            bool(self.ui.lineEdit_author.text()) &
-            bool(self.ui.lineEdit_id.text()) &
-            bool(self.ui.lineEdit_name.text())
-        )
+        have_component = bool(self._component)
+        have_name = bool(self.ui.lineEdit_name.text())
+        have_author = bool(self.ui.lineEdit_author.text())
+        have_version = bool(self.ui.lineEdit_version.text())
+        have_uid = bool(self.ui.lineEdit_id.text())
+        self.ui.lineEdit_name.setEnabled(have_component)
+        self.ui.lineEdit_author.setEnabled(have_component)
+        self.ui.lineEdit_version.setEnabled(have_component)
+        self.ui.lineEdit_id.setEnabled(have_component)
+        self.ui.pushButton_select.setEnabled(have_component)
+        self.ui.pushButton_submit.setEnabled(have_component and have_name and have_author and have_version and have_uid)
 
-    def on_user_resolve_input(self):
-        sel = pymel.selected()
-        input_attrs, output_attrs = libComponents.identify_network_io_ports(sel)
-        self._model_attr_inn.set_entries(input_attrs)
-        self._model_attr_out.set_entries(output_attrs)
+    def on_create_new(self):
+        component = classComponent.Component()
+        component.build_interface()
+        self.component = component
+        self._components.append(component)
+        self.update_component_list()
 
-        self.update_enabled()
+    def on_select(self):
+        grp_inn = self._component.grp_inn
+        grp_out = self._component.grp_out
+        grp_dag = self._component.grp_dag
+        objs_to_select = []
+        if grp_inn and grp_inn.exists():
+            objs_to_select.append(grp_inn)
+        if grp_out and grp_inn.exists():
+            objs_to_select.append(grp_out)
+        if grp_dag and grp_inn.exists():
+            objs_to_select.append(grp_dag)
+            objs_to_select.extend(
+                pymel.listRelatives(grp_dag, allDescendents=True)
+            )
+        pymel.select(objs_to_select)
 
     def on_user_submit(self):
         uid = self.ui.lineEdit_id.text()
@@ -157,18 +197,15 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         # Resolve output file
         dir = libComponents.get_component_dir()
         path_out = os.path.join(dir, '{0}.ma'.format(name))
+        print("Exporting to {0}".format(path_out))
 
         # Prevent any collisions
         # if os.path.exists(path_out):
         #     raise Exception("Cannot save component over already existing component!")
 
-        # Create component
-        input_attrs = self._model_attr_inn.get_entries()
-        output_attrs = self._model_attr_out.get_entries()
-        inst = classComponent.Component.from_attributes(input_attrs, output_attrs)
-
         # Create component definition
         # todo: maybe set data in component instance?
+        inst = self._component
         inst.uid = uid
         inst.name = name
         inst.author = author

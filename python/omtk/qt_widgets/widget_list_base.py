@@ -1,19 +1,16 @@
 import logging
 import re
-import traceback
 
 import pymel.core as pymel
-from omtk.decorators import log_info
+from omtk import factory_tree_widget_item, factory_rc_menu
+from omtk import ui_shared
 from omtk.core import classModule
-from omtk.core import classRig
 from omtk.core.classEntity import Entity
 from omtk.core.classNode import Node
+from omtk.decorators import log_info
 from omtk.libs import libQt
 from omtk.qt_widgets.ui import widget_list_modules
 from omtk.vendor.Qt import QtCore, QtWidgets
-
-from omtk import factory_tree_widget_item
-from omtk import ui_shared
 
 log = logging.getLogger('omtk')
 
@@ -42,7 +39,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         # Connect signal
 
         # Connect events
-        self.ui.lineEdit_search.textChanged.connect(self.on_query_changed)
+        self.ui.lineEdit_search.textChanged.connect(self.on_search_changed)
         self.ui.treeWidget.itemSelectionChanged.connect(self.on_selection_changed)
         self.ui.treeWidget.itemChanged.connect(self.on_module_changed)
         self.ui.treeWidget.itemDoubleClicked.connect(self.on_module_double_clicked)
@@ -53,22 +50,21 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
 
         self.update()
 
-    @log_info
-    def get_selected_items(self):
-        return self.ui.treeWidget.selectedItems()
+    def iter_selected_items(self):
+        return iter(self.ui.treeWidget.selectedItems())
 
-    @log_info
-    def get_selected_objects(self):
+    def iter_selected_objects(self):
         # type:() -> [pymel.PyNode]
         """
         Get the Maya objects associated with the selection.
         :return: A list of pymel.PyNode instances.
         """
         result = []
-        for item in self.get_selected_items():
-            if not hasattr(item, 'metadata'):
+        for item in self.iter_selected_items():
+            try:
+                metadata = item._metadata
+            except AttributeError:
                 continue
-            metadata = item._meta_data
 
             if isinstance(metadata, Node):
                 result.append(metadata)
@@ -78,6 +74,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
                 result.append(metadata)
             else:
                 print("Unexpected metadata type: {0}".format(metadata))
+
         return result
 
     @log_info
@@ -86,7 +83,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         Return the metadata stored in each selected row. Whatever the metadata type (can be Rig or Module).
         :return: A list of object instances.
         """
-        return [item._meta_data for item in self.get_selected_items()]
+        return [item._meta_data for item in self.iter_selected_items()]
 
     @log_info
     def get_selected_modules(self):
@@ -94,7 +91,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         Return the Module instances stored in each selected rows.
         :return: A list of Module instances.
         """
-        return [item._meta_data for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Module]
+        return [item._meta_data for item in self.iter_selected_items() if item._meta_type == ui_shared.MimeTypes.Module]
 
     @log_info
     def get_selected_rigs(self):
@@ -102,7 +99,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         Return the Rig instances stored in each selected rows.
         :return: A list of Rig instances.
         """
-        return [item._meta_data for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Rig]
+        return [item._meta_data for item in self.iter_selected_items() if item._meta_type == ui_shared.MimeTypes.Rig]
 
     @log_info
     def get_selected_components(self):
@@ -110,7 +107,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         Return the Component instance stored in each selected rows.
         :return: A list of Component instances.
         """
-        return [item._meta_data for item in self.get_selected_items() if isinstance(item._meta_data, Entity)]
+        return [item._meta_data for item in self.iter_selected_items() if isinstance(item._meta_data, Entity)]
 
     @log_info
     def iter_values(self):
@@ -119,7 +116,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
 
     @log_info
     def get_treewidgetitem_from_value(self, value):
-        return factory_tree_widget_item.get_tree_item(value)
+        return factory_tree_widget_item.get(value)
 
     @log_info
     def update(self, *args, **kwargs):
@@ -136,7 +133,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
     @log_info
     def refresh_ui(self):
         self._refresh_ui_modules_checked()
-        self._refresh_ui_modules_visibility()
+        self.refresh_items_visibility()
 
     @log_info
     def _refresh_ui_modules_checked(self):
@@ -147,28 +144,34 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
                 qt_item.setCheckState(0, QtCore.Qt.Checked if qt_item._meta_data.is_built else QtCore.Qt.Unchecked)
         self.ui.treeWidget.blockSignals(False)
 
+    def can_show_item(self, item, query_regex):
+        # # Always shows non-module
+        # if not hasattr(item, 'rig'):
+        #     return True
+        # if not isinstance(item._meta_data, classModule.Module):
+        #     return True
+        #
+        # module = item._meta_data  # Retrieve monkey-patched data
+        # module_name = str(module)
+        try:
+            metadata = item._meta_data
+        except AttributeError:
+            log.warning("can_show_item: Unsupported metadata type {0}".format(item))
+            return True
+
+        return not query_regex or re.match(query_regex, str(metadata), re.IGNORECASE)
+
     @log_info
-    def _refresh_ui_modules_visibility(self, query_regex=None):
+    def refresh_items_visibility(self, query_regex=None):
         if query_regex is None:
             query_raw = self.ui.lineEdit_search.text()
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
-        def fn_can_show(qItem, query_regex):
-            # Always shows non-module
-            if not hasattr(qItem, 'rig'):
-                return True
-            if not isinstance(qItem._meta_data, classModule.Module):
-                return True
-
-            module = qItem._meta_data  # Retrieve monkey-patched data
-            module_name = str(module)
-
-            return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
 
         # unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
         # selectableBrush = QtGui.QBrush(QtCore.Qt.white)
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
-            can_show = fn_can_show(qt_item, query_regex)
+            can_show = self.can_show_item(qt_item, query_regex)
             qt_item.setHidden(not can_show)
 
     @log_info
@@ -201,10 +204,18 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
             item.setText(0, str)
         self.ui.treeWidget.blockSignals(False)
 
+    def iter_selection(self):
+        result = []
+        for item in self.ui.treeWidget.selectedItems():
+            if item._meta_data.exists():
+                result.append(item._meta_data)
+        return result
+
     @log_info
     def on_selection_changed(self):
         # Filter deleted networks
-        networks = [net for net in self.get_selected_objects() if net and net.exists()]
+        networks = [net for net in self.iter_selection() if net and net.exists()]
+        print networks
         pymel.select(networks)
 
     @log_info
@@ -219,7 +230,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         new_text = item.text(0)
 
         # debug
-        if not hasattr(item, 'metadata'):
+        if not hasattr(item, '_meta_data'):
             print '???', item.text(0)
             return
 
@@ -248,13 +259,12 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
                 # if need_update:
                 #     self.refresh_ui()
 
-    @log_info
-    def on_query_changed(self, *args, **kwargs):
-        self._refresh_ui_modules_visibility()
+    # @log_info
+    def on_search_changed(self, *args, **kwargs):
+        self.refresh_items_visibility()
 
     @log_info
     def on_context_menu_request(self):
-        from omtk import factory_rc_menu
         selected_items = self.ui.treeWidget.selectedItems()
         selected_components = [item._meta_data for item in selected_items if isinstance(item._meta_data, Entity)]
         if selected_components:
@@ -305,3 +315,17 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
             ui_shared._update_network(self._rig)
             self.update()
 
+
+class OmtkBaseListWidgetRig(OmtkBaseListWidget):
+    """
+    Define a custom QTreeWidget that is related to an omtk.Rig instance.
+    """
+    def __init__(self, parent=None):
+        super(OmtkBaseListWidgetRig, self).__init__(parent=parent)
+
+        self._rig = None
+
+    def set_rig(self, rig, update=True):
+        self._rig = rig
+        if update:
+            self.update()

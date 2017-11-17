@@ -1,14 +1,16 @@
 """
 Factory method to generate a QTreeWidgetItem from any value, preferably starting from a Component.
+
+Usage:
+from omtk import factory_tree_widget_item as f
+f.get()
 """
 import logging
 
 import pymel.core as pymel
+from omtk import ui_shared, factory_datatypes
 from omtk.factory_datatypes import AttributeType, get_datatype
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
-
-from omtk import factory_datatypes
-from omtk import ui_shared
 
 log = logging.getLogger('omtk')
 
@@ -128,7 +130,7 @@ class TreeWidgetItemModule(TreeWidgetItemComponent):
         self.setCheckState(0, QtCore.Qt.Checked if module.is_built else QtCore.Qt.Unchecked)
 
 
-def get_tree_item(value, known_data_id=None):
+def get(value, known_data_id=None):
     # Prevent cyclic dependency, we only show something the first time we encounter it.
     if known_data_id is None:
         known_data_id = set()
@@ -183,11 +185,11 @@ def _get_item_from_component(component, known_data_id=None):
 
         if attr_type == AttributeType.Iterable:
             for sub_attr in attr_val:
-                item_child = get_tree_item(sub_attr, known_data_id=known_data_id)
+                item_child = get(sub_attr, known_data_id=known_data_id)
                 if item_child:
                     item_attr.addChild(item_child)
         else:
-            item_child = get_tree_item(attr_val)
+            item_child = get(attr_val)
             if item_child:
                 item_attr.addChild(item_child)
 

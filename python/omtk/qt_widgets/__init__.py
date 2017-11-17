@@ -14,11 +14,19 @@ def reload_():
     reload(nodegraph_widget)
     nodegraph_widget.reload_()
 
+    log.debug('Reloading widget_logger_ui')
+    from omtk.qt_widgets.ui import widget_logger as widget_logger_ui
+    reload(widget_logger_ui)
+
+    log.debug('Reloading widget_logger')
+    from omtk.qt_widgets import widget_logger
+    reload(widget_logger)
+
     log.debug('Reloading widget_extended_tree')
     from .ui import form_create_component as form_create_component_ui
     reload(form_create_component_ui)
 
-    from . import form_create_component
+    from omtk.qt_widgets import form_create_component
     reload(form_create_component)
 
     # Dependency of widget_list_modules
@@ -45,10 +53,6 @@ def reload_():
     log.debug('Reloading widget_list_meshes_ui')
     from omtk.qt_widgets.ui import widget_list_meshes as widget_list_meshes_ui
     reload(widget_list_meshes_ui)
-
-    log.debug('Reloading widget_logger_ui')
-    from omtk.qt_widgets.ui import widget_logger as widget_logger_ui
-    reload(widget_logger_ui)
 
     log.debug('Reloading widget_welcome_ui')
     from omtk.qt_widgets.ui import widget_welcome as widget_welcome_ui
@@ -77,10 +81,6 @@ def reload_():
     log.debug('Reloading widget_list_meshes')
     from omtk.qt_widgets import widget_list_meshes
     reload(widget_list_meshes)
-
-    log.debug('Reloading widget_logger')
-    from omtk.qt_widgets import widget_logger
-    reload(widget_logger)
 
     log.debug('Reloading widget_welcome')
     from omtk.qt_widgets import widget_welcome

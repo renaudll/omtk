@@ -2,21 +2,38 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/form_create_component.ui'
 #
-# Created: Wed Jul 12 15:22:43 2017
+# Created: Thu Nov 16 22:07:10 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 600)
+        MainWindow.resize(524, 418)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.comboBox = QtWidgets.QComboBox(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.comboBox.sizePolicy().hasHeightForWidth())
+        self.comboBox.setSizePolicy(sizePolicy)
+        self.comboBox.setObjectName("comboBox")
+        self.horizontalLayout_2.addWidget(self.comboBox)
+        self.pushButton_select = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_select.setObjectName("pushButton_select")
+        self.horizontalLayout_2.addWidget(self.pushButton_select)
+        self.pushButton_create = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_create.setObjectName("pushButton_create")
+        self.horizontalLayout_2.addWidget(self.pushButton_create)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
         self.lineEdit_version = QtWidgets.QLineEdit(self.centralwidget)
@@ -44,28 +61,28 @@ class Ui_MainWindow(object):
         self.lineEdit_id.setObjectName("lineEdit_id")
         self.gridLayout.addWidget(self.lineEdit_id, 3, 2, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
-        self.pushButton_resolve = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_resolve.setObjectName("pushButton_resolve")
-        self.verticalLayout.addWidget(self.pushButton_resolve)
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.tableView_attrs_inn = QtWidgets.QTableView(self.centralwidget)
-        self.tableView_attrs_inn.setSortingEnabled(True)
-        self.tableView_attrs_inn.setObjectName("tableView_attrs_inn")
-        self.tableView_attrs_inn.horizontalHeader().setStretchLastSection(True)
-        self.horizontalLayout.addWidget(self.tableView_attrs_inn)
-        self.tableView_attrs_out = QtWidgets.QTableView(self.centralwidget)
-        self.tableView_attrs_out.setSortingEnabled(True)
-        self.tableView_attrs_out.setObjectName("tableView_attrs_out")
-        self.tableView_attrs_out.horizontalHeader().setStretchLastSection(True)
-        self.horizontalLayout.addWidget(self.tableView_attrs_out)
-        self.verticalLayout.addLayout(self.horizontalLayout)
         self.pushButton_submit = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButton_submit.sizePolicy().hasHeightForWidth())
+        self.pushButton_submit.setSizePolicy(sizePolicy)
         self.pushButton_submit.setObjectName("pushButton_submit")
         self.verticalLayout.addWidget(self.pushButton_submit)
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem)
+        self.widget_logger = WidgetLogger(self.centralwidget)
+        self.widget_logger.setEnabled(True)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.widget_logger.sizePolicy().hasHeightForWidth())
+        self.widget_logger.setSizePolicy(sizePolicy)
+        self.widget_logger.setObjectName("widget_logger")
+        self.verticalLayout.addWidget(self.widget_logger)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 27))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 524, 22))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -77,10 +94,12 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "Create Component", None, -1))
+        self.pushButton_select.setText(QtWidgets.QApplication.translate("MainWindow", "Select", None, -1))
+        self.pushButton_create.setText(QtWidgets.QApplication.translate("MainWindow", "Create", None, -1))
         self.label_name.setText(QtWidgets.QApplication.translate("MainWindow", "Name", None, -1))
         self.label_author.setText(QtWidgets.QApplication.translate("MainWindow", "Author", None, -1))
         self.label_version.setText(QtWidgets.QApplication.translate("MainWindow", "Version", None, -1))
         self.label_id.setText(QtWidgets.QApplication.translate("MainWindow", "Unique ID", None, -1))
-        self.pushButton_resolve.setText(QtWidgets.QApplication.translate("MainWindow", "Resolve Input/Outputs", None, -1))
-        self.pushButton_submit.setText(QtWidgets.QApplication.translate("MainWindow", "Register", None, -1))
+        self.pushButton_submit.setText(QtWidgets.QApplication.translate("MainWindow", "Publish", None, -1))
 
+from ..widget_logger import WidgetLogger

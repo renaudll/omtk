@@ -2,10 +2,8 @@ import logging
 
 from omtk import factory_datatypes
 from omtk.core.classComponent import Component
-from omtk.libs import libComponents
 from omtk.libs import libPython
-from omtk.vendor import libSerialization
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
 # used for type hinting

@@ -36,6 +36,10 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         # Tweak gui
         self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
 
+        # Configure drag&drop
+        self.ui.treeWidget.setDragDropOverwriteMode(False)
+        self.ui.treeWidget.setDragEnabled(True)
+
         # Connect signal
 
         # Connect events
@@ -115,14 +119,17 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
             yield obj
 
     @log_info
-    def get_treewidgetitem_from_value(self, value):
+    def get_qtreewidget_item(self, value):
         return factory_tree_widget_item.get(value)
 
     @log_info
-    def update(self, *args, **kwargs):
+    def update(self):
+        """
+        Remove all QTreeWidgetItem and rebuilt the tree.
+        """
         self.ui.treeWidget.clear()
         for value in self.iter_values():
-            item = self.get_treewidgetitem_from_value(value)
+            item = self.get_qtreewidget_item(value)
             self.ui.treeWidget.addTopLevelItem(item)
             self.ui.treeWidget.expandItem(item)
 
@@ -145,6 +152,12 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         self.ui.treeWidget.blockSignals(False)
 
     def can_show_item(self, item, query_regex):
+        # type: (QtWidgets.QTreeWidgetItem, str) -> bool
+        """
+        :param item: A QTreeWidgetItem.
+        :param query_regex: The text in the search QLineEdit.
+        :return: True if the QTreeWidgetItem should be visible. False otherwise.
+        """
         # # Always shows non-module
         # if not hasattr(item, 'rig'):
         #     return True

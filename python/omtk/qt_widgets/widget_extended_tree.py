@@ -27,6 +27,7 @@ class WidgetExtendedTree(QtWidgets.QTreeWidget):
 
     def __init__(self, *args, **kwargs):
         self._mime_data = None  # hack: prevent gc to destroy our mimeData during dragging...
+        self._drag_enabled_buffer = None  # used in mousePressEvent and mouseReleaseEvent
         super(WidgetExtendedTree, self).__init__(*args, **kwargs)
         self.itemExpanded.connect(self._on_item_expanded)
         self.itemCollapsed.connect(self._on_item_collapsed)
@@ -48,15 +49,6 @@ class WidgetExtendedTree(QtWidgets.QTreeWidget):
         """Recursively collapse sub-items if the shift key is pressed."""
         if QtWidgets.QApplication.keyboardModifiers() & QtCore.Qt.ShiftModifier:
             _set_tree_widget_item_expanded_recursively(item, False)
-
-    # def mousePressEvent(self, event):
-    #     """Ensure right-clicking don't change the selection."""
-    #     # todo: make it work or remove it!
-    #     if event.button() == QtCore.Qt.RightButton:
-    #         # super(WidgetExtendedTree, self).mousePressEvent(event)
-    #         self.customContextMenuRequested.emit(event.pos())
-    #     else:
-    #         super(WidgetExtendedTree, self).mousePressEvent(event)
 
     # --- drag and drop support ---
 
@@ -89,3 +81,24 @@ class WidgetExtendedTree(QtWidgets.QTreeWidget):
         self._mimedata = QtCore.QMimeData()
         self._mimedata.setData('omtk', text)
         return self._mimedata
+
+    def mousePressEvent(self, event):
+        """
+        Our goal is to reproduce the Maya outliner which only create drag event on middle-mouse events.
+        This method will temporary disable qt drag and drop if the left-mouse button is used.
+        """
+        if event.button() == QtCore.Qt.LeftButton:
+            self._drag_enabled_buffer = self.dragEnabled()
+            if self._drag_enabled_buffer:
+                self.setDragEnabled(False)
+        super(WidgetExtendedTree, self).mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """
+        Our goal is to reproduce the Maya outliner which only create drag event on middle-mouse events.
+        This method will re-enable qt drag and drop if it was disabled before.
+        """
+        if event.button() == QtCore.Qt.LeftButton:
+            if self._drag_enabled_buffer:
+                self.setDragEnabled(self._drag_enabled_buffer)
+        super(WidgetExtendedTree, self).mouseReleaseEvent(event)

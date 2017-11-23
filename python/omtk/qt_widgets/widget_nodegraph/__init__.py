@@ -26,7 +26,7 @@ win.show()
 
 from . import nodegraph_widget
 
-# NodeGraphWidget = nodegraph_widget.NodeGraphWidget
+# NodeGraphWidget = widget_nodegraph.NodeGraphWidget
 
 def reload_():
     from . import nodegraph_port_model

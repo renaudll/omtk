@@ -8,8 +8,8 @@ import pymel.core as pymel
 from maya import cmds
 from omtk.libs import libComponents
 from omtk.libs import libRigging
-from omtk.qt_widgets.nodegraph_widget.nodegraph_controller import NodeGraphController
-from omtk.qt_widgets.nodegraph_widget.nodegraph_model import NodeGraphModel
+from omtk.qt_widgets.widget_nodegraph.nodegraph_controller import NodeGraphController
+from omtk.qt_widgets.widget_nodegraph.nodegraph_model import NodeGraphModel
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)

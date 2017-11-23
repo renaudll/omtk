@@ -1,11 +1,12 @@
 import logging
+
 import pymel.core as pymel
 from omtk import session
+from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
-from omtk.core.classComponentDefinition import ComponentDefinition
 
 log = logging.getLogger('omtk')
 
@@ -61,7 +62,7 @@ class NodeGraphView(PyFlowgraphView):
             super(NodeGraphView, self).mousePressEvent(event)
 
     def on_tab_pressed(self):
-        from omtk.qt_widgets import widget_component_list
+        from omtk.qt_widgets.widget_outliner import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self)
         dialog.signalComponentCreated.connect(self.on_component_created)
         # dialog.setMinimumHeight(self.height())

@@ -9,10 +9,10 @@ def reload_():
     from omtk.qt_widgets import widget_breadcrumb
     reload(widget_breadcrumb)
 
-    log.debug('Reloading nodegraph_widget')
-    from . import nodegraph_widget
-    reload(nodegraph_widget)
-    nodegraph_widget.reload_()
+    log.debug('Reloading widget_nodegraph')
+    from . import widget_nodegraph
+    reload(widget_nodegraph)
+    widget_nodegraph.reload_()
 
     log.debug('Reloading widget_logger_ui')
     from omtk.qt_widgets.ui import widget_logger as widget_logger_ui
@@ -29,11 +29,6 @@ def reload_():
     from omtk.qt_widgets import form_create_component
     reload(form_create_component)
 
-    # Dependency of widget_list_modules
-    log.debug('Reloading widget_extended_tree')
-    from omtk.qt_widgets import widget_extended_tree
-    reload(widget_extended_tree)
-
     log.debug('Reloading pluginmanager_window_ui')
     from omtk.qt_widgets.ui import pluginmanager_window as pluginmanager_window_ui
     reload(pluginmanager_window_ui)
@@ -42,29 +37,12 @@ def reload_():
     from omtk.qt_widgets.ui import preferences_window as preferences_window_ui
     reload(preferences_window_ui)
 
-    log.debug('Reloading widget_list_influences_ui')
-    from omtk.qt_widgets.ui import widget_list_influences as widget_list_influences_ui
-    reload(widget_list_influences_ui)
-
-    log.debug('Reloading widget_list_modules_ui')
-    from omtk.qt_widgets.ui import widget_list_modules as widget_list_modules_ui
-    reload(widget_list_modules_ui)
-
-    log.debug('Reloading widget_list_meshes_ui')
-    from omtk.qt_widgets.ui import widget_list_meshes as widget_list_meshes_ui
-    reload(widget_list_meshes_ui)
+    log.debug('Reloading widget_outliner')
+    from omtk.qt_widgets import widget_outliner
 
     log.debug('Reloading widget_welcome_ui')
     from omtk.qt_widgets.ui import widget_welcome as widget_welcome_ui
     reload(widget_welcome_ui)
-
-    log.debug('Reloading widget_component_list_ui')
-    from omtk.qt_widgets.ui import widget_component_list as widget_component_list_ui
-    reload(widget_component_list_ui)
-
-    log.debug('Reloading widget_component_list')
-    from omtk.qt_widgets import widget_component_list
-    reload(widget_component_list)
 
     log.debug('Reloading model_rig_definitions')
     from omtk.qt_widgets import model_rig_definitions

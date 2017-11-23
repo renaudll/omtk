@@ -4,7 +4,7 @@ import omtk.ui_shared
 import pymel.core as pymel
 from omtk.libs import libQt
 from omtk.libs import libSkinning
-from omtk.qt_widgets.ui import widget_list_meshes
+from omtk.qt_widgets.widget_outliner.ui import widget_list_meshes
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 

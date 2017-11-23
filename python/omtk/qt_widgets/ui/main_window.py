@@ -214,7 +214,7 @@ class Ui_OpenRiggingToolkit(object):
 
 from omtk.qt_widgets.widget_outliner.widget_list_meshes import WidgetListMeshes
 from ..widget_logger import WidgetLogger
-from ..nodegraph_widget.nodegraph_widget import NodeGraphWidget
+from ..widget_nodegraph.nodegraph_widget import NodeGraphWidget
 from omtk.qt_widgets.widget_outliner.widget_list_modules import WidgetListModules
 from ..form_welcome_message import WidgetWelcome
 from omtk.qt_widgets.widget_outliner.widget_list_influences import WidgetListInfluences

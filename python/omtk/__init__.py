@@ -3,7 +3,7 @@ import constants
 from .core import *
 
 log = logging.getLogger('omtk')
-log.setLevel(logging.INFO)  # debugging
+log.setLevel(logging.DEBUG)  # debugging
 
 try:
     from maya import cmds, mel
@@ -68,32 +68,26 @@ def _reload(kill_ui=True):
     log.debug('Reloading core')
     import core
     reload(core)
-    core._reload()
+    core.reload_()
 
     log.debug('Reloading libs')
     import libs
     reload(libs)
-    libs._reload()
+    libs.reload_()
 
     log.debug('Reloading plugin_manager')
     from omtk.core import plugin_manager
     reload(plugin_manager)
     plugin_manager.plugin_manager.reload_all()
 
-    log.debug('Reloading factory_datatypes')
-    from omtk.factories import factory_datatypes
-    reload(factory_datatypes)
-
+    log.debug('Reloading session')
     from omtk import session
     reload(session)
 
-    log.debug('Reloading factory_tree_widget_item')
-    from omtk.factories import factory_tree_widget_item
-    reload(factory_tree_widget_item)
-
-    log.debug('Reloading factory_rc_menu')
-    from omtk.factories import factory_rc_menu
-    reload(factory_rc_menu)
+    log.debug('Reloading factories')
+    from omtk import factories
+    reload(factories)
+    factories.reload_()
 
     log.debug('Reloading ui_shared')
     import ui_shared

@@ -10,7 +10,7 @@ from omtk.core.classEntity import Entity
 from omtk.core.classNode import Node
 from omtk.factories import factory_rc_menu, factory_tree_widget_item
 from omtk.libs import libQt
-from omtk.qt_widgets.ui import widget_list_modules
+from omtk.qt_widgets.widget_outliner.ui import widget_list_modules
 from omtk.vendor.Qt import QtCore, QtWidgets
 
 log = logging.getLogger('omtk')

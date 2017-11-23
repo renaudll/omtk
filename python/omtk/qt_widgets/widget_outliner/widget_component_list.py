@@ -6,7 +6,7 @@ from omtk import session
 from omtk.core.classComponent import Component
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libComponents
-from omtk.qt_widgets.ui import widget_component_list
+from omtk.qt_widgets.widget_outliner.ui import widget_component_list
 from omtk.vendor.Qt import QtWidgets, QtCore
 
 log = logging.getLogger('omtk')

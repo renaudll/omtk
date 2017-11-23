@@ -21,7 +21,7 @@ if os.path.exists(config_path):
 plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (todo: remove it?)
 
 
-def _reload():
+def reload_():
     import classEntity
     import classEntityAction
     import classEntityAttribute
@@ -36,7 +36,6 @@ def _reload():
     import classNode
     import classRig
 
-    reload(api)  # this won't reload functions imported in the main module. Use api directly if you are debugging it.
     reload(classNomenclature)
     reload(classEntity)
     reload(classEntityAction)

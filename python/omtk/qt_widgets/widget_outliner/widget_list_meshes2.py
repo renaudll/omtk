@@ -8,7 +8,7 @@ if True:  # for safe type hinting
     from omtk.core.classRig import Rig
 
 
-class WidgetListMeshes(widget_list_base.OmtkBaseListWidget):
+class WidgetListMeshes2(widget_list_base.OmtkBaseListWidget):
     """
     List mesh and their influences (if they are skinned).
     """
@@ -19,7 +19,7 @@ class WidgetListMeshes(widget_list_base.OmtkBaseListWidget):
 
     @log_info
     def get_qtreewidget_item(self, value):
-        item = super(WidgetListMeshes, self).get_qtreewidget_item(value)
+        item = super(WidgetListMeshes2, self).get_qtreewidget_item(value)
 
         skincluster = libSkinning.get_skin_cluster(value)
         if skincluster:
@@ -40,12 +40,12 @@ class WidgetListMeshes(widget_list_base.OmtkBaseListWidget):
         self.update_list_visibility()
 
 
-class WidgetListRigMeshes(WidgetListMeshes):
+class WidgetListRigMeshes2(WidgetListMeshes2):
     """
     List meshes associated with a Rig.
     """
     def __init__(self, parent):
-        super(WidgetListRigMeshes, self).__init__(parent)
+        super(WidgetListRigMeshes2, self).__init__(parent)
         self._rig = None
 
     @log_info

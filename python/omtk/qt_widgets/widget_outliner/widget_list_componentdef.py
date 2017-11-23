@@ -1,6 +1,6 @@
-from omtk.qt_widgets.widget_outliner import widget_list_base
 from omtk.libs import libComponents
 from omtk.qt_widgets.widget_outliner import widget_list_base
+from omtk.decorators import log_info
 
 if True:  # for safe type hinting
     pass

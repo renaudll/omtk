@@ -29,7 +29,7 @@ import pymel.core as pymel
 from omtk import session
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
-from omtk.qt_widgets.nodegraph_widget.ui import nodegraph_widget
+from omtk.qt_widgets.widget_nodegraph.ui import nodegraph_widget
 from omtk.vendor.Qt import QtWidgets
 
 from . import nodegraph_view

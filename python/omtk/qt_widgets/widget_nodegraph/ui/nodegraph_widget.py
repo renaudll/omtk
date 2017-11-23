@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/nodegraph_widget/ui/nodegraph_widget.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/widget_nodegraph.ui'
 #
 # Created: Thu Nov 16 21:56:04 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0

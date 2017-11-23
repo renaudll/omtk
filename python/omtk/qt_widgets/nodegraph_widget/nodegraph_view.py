@@ -5,12 +5,14 @@ from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
+from omtk.core.classComponentDefinition import ComponentDefinition
 
 log = logging.getLogger('omtk')
 
 # used for type hinting
 if False:
     from .nodegraph_controller import NodeGraphController
+    from omtk.core.classComponent import Component
 
 
 class NodeGraphView(PyFlowgraphView):
@@ -107,6 +109,13 @@ class NodeGraphView(PyFlowgraphView):
         #         node.setGraphPos(node_pos)
         #         # factory_pyflowgraph_node.arrange_upstream(node)
         #         libPyflowgraph.arrange_upstream(node)
+
+
+        # If a component definition was dragged inside the widget, we will create an instance.
+        def _handle_component_definition(component_def):
+            # type: (ComponentDefinition) -> Component
+            return component_def.instanciate(session.get_session())
+        drop_data = [_handle_component_definition(data) if isinstance(data, ComponentDefinition) else data for data in drop_data]
 
         # new clean method
         if isinstance(drop_data, list):

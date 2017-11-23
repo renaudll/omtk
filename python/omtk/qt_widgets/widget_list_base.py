@@ -216,11 +216,13 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         self.ui.treeWidget.blockSignals(False)
 
     def iter_selection(self):
-        result = []
-        for item in self.ui.treeWidget.selectedItems():
-            if item._meta_data.exists():
-                result.append(item._meta_data)
-        return result
+        selected_items = self.ui.treeWidget.selectedItems()
+        for item in selected_items:
+            try:
+                for yielded in item.iter_related_objs():
+                    yield yielded
+            except AttributeError:
+                pass
 
     @log_info
     def on_selection_changed(self):

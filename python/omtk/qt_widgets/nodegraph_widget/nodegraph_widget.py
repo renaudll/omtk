@@ -65,6 +65,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # Connect events
         self.ui.pushButton_add.pressed.connect(self.on_add)
         self.ui.pushButton_del.pressed.connect(self.on_del)
+        self.ui.pushButton_clear.pressed.connect(self.on_clear)
         self.ui.pushButton_expand.pressed.connect(self.on_expand)
         self.ui.pushButton_collapse.pressed.connect(self.on_colapse)
         self.ui.pushButton_down.pressed.connect(self.on_navigate_down)
@@ -134,6 +135,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
     def on_del(self):
         graph = self.ui.widget_view
         graph.deleteSelectedNodes()
+
+    def on_clear(self):
+        self._ctrl.clear()
 
     def on_expand(self):
         self._ctrl.expand_selected_nodes()

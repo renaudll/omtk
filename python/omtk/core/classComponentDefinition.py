@@ -144,7 +144,7 @@ class ComponentDefinition(object):
         metadata = self.get_metadata()
         return write_metadata_to_ma_file(path, metadata)
 
-    def instanciate(self, parent, name='unamed', map_inn=None, map_out=None):
+    def instanciate(self, parent, name=None, map_inn=None, map_out=None):
         # type: () -> (Component, pymel.nodetypes.Network)
         """
         Create a Component in the scene from a ComponentDefinition.
@@ -159,6 +159,8 @@ class ComponentDefinition(object):
 
         m = session.get_session()
 
+        if name is None:
+            name = self.name
         namespace = libNamespaces.get_unique_namespace(name)
         cmds.file(self.path, i=True, namespace=namespace)
 

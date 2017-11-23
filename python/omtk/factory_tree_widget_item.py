@@ -11,6 +11,7 @@ import pymel.core as pymel
 from omtk import ui_shared, factory_datatypes
 from omtk.factory_datatypes import AttributeType, get_datatype
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
+from omtk.core.classComponentDefinition import ComponentDefinition
 
 log = logging.getLogger('omtk')
 
@@ -35,6 +36,15 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
     def get_metatype(self):
         return self._meta_type
 
+    def iter_related_objs(self):
+        """
+        Yield the object related to the QTreeWidgetItem, related to the selection.
+        :yield: A list of pymel.PyNode instances.
+        """
+        metadata = self.get_metadata()
+        if metadata and metadata.exists():
+            yield metadata
+
     def update_(self):
         icon = factory_datatypes.get_icon_from_datatype(self._meta_data, self._meta_type)
         if icon:
@@ -53,6 +63,16 @@ class TreeWidgetItemComponent(TreeWidgetItemEx):
         component = self._meta_data
         label = str(component) + str(component.get_version())
         self.setText(0, label)
+
+    def iter_related_objs(self):
+        # Component original network are monkey-patched by libSerialization at deserialization stage.
+        metadata = self.get_metadata()
+        try:
+            network = metadata._network
+        except AttributeError:
+            return
+        if network and network.exists():
+            yield network
 
 
 class TreeWidgetItemRig(TreeWidgetItemComponent):
@@ -149,6 +169,8 @@ def get(value, known_data_id=None):
         return _get_item_from_component(value, known_data_id=known_data_id)
     if value_type == AttributeType.Node or value_type == AttributeType.Ctrl:
         return _create_tree_widget_item_from_pynode(value)
+    if value_type == AttributeType.ComponentDefinition:
+        return _create_tree_widget_item_from_component_definition(value)
     log.warning("Unsupported value type {0} for {1}".format(value_type, value))
 
 
@@ -240,9 +262,14 @@ def can_show_component_attribute(attr_name, attr_value, known_data_id):
 
 
 def _create_tree_widget_item_from_pynode(pynode):
-    item = QtWidgets.QTreeWidgetItem(0)
+    # type: (pymel.PyNode) -> TreeWidgetItemEx
+    item = TreeWidgetItemEx(0, AttributeType.Node, pynode)
     item.setText(0, pynode.name())
-    item._meta_data = pynode
-    item._meta_type = ui_shared.MimeTypes.Influence  # todo: is this the correct type?
-    ui_shared._set_icon_from_type(pynode, item)
+    return item
+
+
+def _create_tree_widget_item_from_component_definition(value):
+    # type: (ComponentDefinition) -> TreeWidgetItemEx
+    item = TreeWidgetItemEx(0, AttributeType.ComponentDefinition, value)
+    item.setText(0, '{0} v{1}'.format(value.name, value.version))
     return item

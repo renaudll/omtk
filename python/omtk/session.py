@@ -43,6 +43,8 @@ class AutoRigManager(QtCore.QObject):
         # Note: This should be done in a lazy way and linked to the current scene.
         self.import_components()
 
+        self.import_networks()
+
     def _add_rig(self, rig):
         self._roots.append(rig)
         if self._root is None:

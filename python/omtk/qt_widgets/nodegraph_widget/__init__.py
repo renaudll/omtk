@@ -71,7 +71,3 @@ def reload_():
     from . import ui
     reload(ui)
     ui.reload_()
-
-    # NodeGraphWidget = nodegraph_widget.NodeGraphWidget
-
-

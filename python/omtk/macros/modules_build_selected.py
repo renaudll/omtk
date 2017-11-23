@@ -1,5 +1,5 @@
-from omtk.core import api
-from omtk.core.macros import BaseMacro
+from omtk import api
+from omtk.core.classMacro import BaseMacro
 
 
 class BuildSelectedModulesMacro(BaseMacro):

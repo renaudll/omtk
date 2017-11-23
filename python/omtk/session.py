@@ -1,14 +1,13 @@
 import logging
 
 import pymel.core as pymel
-from omtk.core import api
+from omtk import constants, api
 from omtk.core import classRig
 from omtk.core import preferences
-from omtk.vendor import libSerialization
-from omtk.vendor.libSerialization import cache as libSerializationCache
-from omtk.vendor.Qt import QtCore
 from omtk.libs import libPython
-from omtk import constants
+from omtk.vendor import libSerialization
+from omtk.vendor.Qt import QtCore
+from omtk.vendor.libSerialization import cache as libSerializationCache
 
 log = logging.getLogger('omtk')
 

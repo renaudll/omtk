@@ -725,7 +725,6 @@ class Module(Entity):
     @classmethod
     def get_definition(cls):
         from omtk.core import classComponentDefinition
-        from omtk.core import api
 
         inst = classComponentDefinition.ComponentModuleDefinition(
             name=cls.__name__,

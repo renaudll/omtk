@@ -5,7 +5,7 @@ It deal with typing and validation (used for drag and drop events for now)
 import logging
 
 import pymel.core as pymel
-from omtk import factory_datatypes
+from omtk.factories import factory_datatypes
 
 log = logging.getLogger('omtk')
 

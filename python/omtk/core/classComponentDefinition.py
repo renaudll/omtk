@@ -1,14 +1,13 @@
 import os
 import re
 import uuid
+
+import pymel.core as pymel
+from maya import cmds
+from omtk import constants, api
+from omtk import session
 from omtk.core.classComponent import Component
 from omtk.libs import libNamespaces
-from omtk.vendor import libSerialization
-from omtk import constants
-from omtk import session
-
-from maya import cmds
-import pymel.core as pymel
 
 regex_ma_header = re.compile('^\/\/Maya ASCII .* scene$')
 regex_fileinfo = re.compile('^fileInfo "(.*)" "(.*)";')
@@ -222,7 +221,6 @@ class ComponentScriptedDefinition(ComponentDefinition):
 
 class ComponentModuleDefinition(ComponentDefinition):
     def __init__(self, name, module_cls, **kwargs):
-        from omtk import api
         kwargs['uid'] = 0,
         kwargs['version'] = api.get_version()
 

@@ -1,9 +1,8 @@
-import omtk.ui_shared
 import pymel.core as pymel
-from omtk.libs import libSkinning
-from . import widget_list_base
 from omtk.decorators import log_info
-from omtk import factory_tree_widget_item
+from omtk.factories import factory_tree_widget_item
+from omtk.libs import libSkinning
+from omtk.qt_widgets.widget_outliner import widget_list_base
 
 if True:  # for safe type hinting
     from omtk.core.classRig import Rig

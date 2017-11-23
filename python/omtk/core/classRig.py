@@ -5,19 +5,17 @@ import traceback
 
 import pymel.core as pymel
 from maya import cmds
-from omtk import constants
-from omtk.core import api
+from omtk import constants, api
 from omtk.core import classNomenclature
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
-from omtk.core.classEntityAttribute import EntityAttribute, EntityPymelAttributeCollection
+from omtk.core.classEntityAttribute import EntityAttribute
 from omtk.core.classNode import Node
 from omtk.libs import libHistory
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.vendor.Qt import QtCore
 
 log = logging.getLogger('omtk')
 

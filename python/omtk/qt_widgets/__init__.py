@@ -75,22 +75,22 @@ def reload_():
     reload(model_rig_templates)
 
     log.debug('Reloading widget_list_modules')
-    from omtk.qt_widgets import widget_list_modules
+    from omtk.qt_widgets.widget_outliner import widget_list_modules
     reload(widget_list_modules)
 
     log.debug('Reloading widget_list_meshes')
-    from omtk.qt_widgets import widget_list_meshes
+    from omtk.qt_widgets.widget_outliner import widget_list_meshes
     reload(widget_list_meshes)
 
     log.debug('Reloading widget_welcome')
-    from omtk.qt_widgets import widget_welcome
-    reload(widget_welcome)
+    from omtk.qt_widgets import form_welcome_message
+    reload(form_welcome_message)
 
     log.debug('Reloading preferences_window')
-    from omtk.qt_widgets import preferences_window
-    reload(preferences_window)
+    from omtk.qt_widgets import window_preferences
+    reload(window_preferences)
 
     log.debug('Reloading pluginmanager_window')
-    from omtk.qt_widgets import pluginmanager_window
-    reload(pluginmanager_window)
+    from omtk.qt_widgets import window_pluginmanager
+    reload(window_pluginmanager)
 

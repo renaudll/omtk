@@ -1,7 +1,7 @@
 import logging
 
-from omtk import factory_datatypes
 from omtk.core.classComponent import Component
+from omtk.factories import factory_datatypes
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode

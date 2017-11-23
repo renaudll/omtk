@@ -2,12 +2,11 @@ import logging
 import re
 
 import pymel.core as pymel
-from omtk import factory_tree_widget_item, factory_rc_menu
 from omtk import ui_shared
-from omtk.core import classModule
 from omtk.core.classEntity import Entity
 from omtk.core.classNode import Node
 from omtk.decorators import log_info
+from omtk.factories import factory_rc_menu, factory_tree_widget_item
 from omtk.libs import libQt
 from omtk.qt_widgets.ui import widget_list_modules
 from omtk.vendor.Qt import QtCore, QtWidgets

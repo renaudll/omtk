@@ -3,7 +3,6 @@ import json
 import logging
 import os
 
-from api import *
 from . import plugin_manager
 
 log = logging.getLogger('omtk')

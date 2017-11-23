@@ -3,7 +3,7 @@ Toogle selection between the facial animation layer and the rigging layer.
 """
 import pymel.core as pymel
 from omtk.vendor import libSerialization
-from omtk.core import macros
+from omtk.core import classMacro
 
 
 def get_avars_networks_from_selection(objs):
@@ -59,7 +59,7 @@ def get_connected_ctrl_models(objs):
     return list(iter_connected_ctrl_models(objs))
 
 
-class ToogleAvarSelection(macros.BaseMacro):
+class ToogleAvarSelection(classMacro.BaseMacro):
     def run(self):
         sel = pymel.selected()
 

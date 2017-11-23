@@ -1,19 +1,8 @@
 import logging
-import re
-import traceback
 
-import pymel.core as pymel
-from omtk import factory_tree_widget_item, factory_rc_menu
-from omtk import ui_shared
-from omtk.core import classModule
-from omtk.core import classRig
-from omtk.core.classEntity import Entity
-from omtk.core.classNode import Node
-from omtk.libs import libQt
-from omtk.qt_widgets.ui import widget_list_modules
 from omtk import session
-from omtk.vendor.Qt import QtCore, QtWidgets
-from . import widget_list_base
+from omtk.qt_widgets.widget_outliner import widget_list_base
+from omtk.vendor.Qt import QtCore
 
 log = logging.getLogger('omtk')
 

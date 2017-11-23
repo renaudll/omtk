@@ -1,7 +1,7 @@
 import abc
 
 import pymel.core as pymel
-from omtk import factory_datatypes
+from omtk.factories import factory_datatypes
 from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
 from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
 from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort

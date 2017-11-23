@@ -10,11 +10,11 @@ from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 
-class WidgetListInfluences(QtWidgets.QWidget):
+class WidgetListInfluences2(QtWidgets.QWidget):
     onRightClick = QtCore.Signal()
 
     def __init__(self, parent=None):
-        super(WidgetListInfluences, self).__init__(parent=parent)
+        super(WidgetListInfluences2, self).__init__(parent=parent)
 
         self._rig = None
 

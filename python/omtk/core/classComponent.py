@@ -1,7 +1,7 @@
 import logging
 
 from maya import cmds
-from omtk import constants
+from omtk import constants, api
 from omtk import session
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
@@ -10,7 +10,6 @@ from omtk.libs import libAttr
 from omtk.libs import libNamespaces
 from omtk.vendor import libSerialization
 from pymel import core as pymel
-from omtk import session
 
 log = logging.getLogger('omtk')
 
@@ -384,7 +383,6 @@ class ComponentScripted(Component):
     @classmethod
     def get_definition(cls):
         from omtk.core import classComponentDefinition
-        from omtk.core import api
 
         inst = classComponentDefinition.ComponentScriptedDefinition(
             uid=cls.component_id,

@@ -1,10 +1,9 @@
-from . import widget_list_base
-from omtk.decorators import log_info
+from omtk.qt_widgets.widget_outliner import widget_list_base
 from omtk.libs import libComponents
-
+from omtk.qt_widgets.widget_outliner import widget_list_base
 
 if True:  # for safe type hinting
-    from omtk.core.classRig import Rig
+    pass
 
 
 class WidgetListComponentDefinition(widget_list_base.OmtkBaseListWidget):

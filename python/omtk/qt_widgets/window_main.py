@@ -1,18 +1,18 @@
 import functools
 import logging
 
-import core
+import omtk.core
 import pymel.core as pymel
 from maya import OpenMaya
+from omtk import api
 from omtk import constants
+from omtk import session
 from omtk.core import preferences
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.qt_widgets.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-from omtk import api
-from omtk import session
 
 log = logging.getLogger('omtk')
 
@@ -364,7 +364,7 @@ class AutoRig(QtWidgets.QMainWindow):
             return
 
         # Remove previous rigs
-        all_rigs = core.find()
+        all_rigs = omtk.core.find()
         for rig in all_rigs:
             if rig._network.exists():
                 pymel.delete(rig._network)
@@ -375,7 +375,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.on_update()
 
     def on_export(self):
-        all_rigs = core.find()
+        all_rigs = omtk.core.find()
 
         path, _ = QtWidgets.QFileDialog.getSaveFileName(caption="File Save (.json)", filter="JSON (*.json)")
         if path:
@@ -496,12 +496,12 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_jnts.update()
 
     def on_show_pluginmanager(self):
-        from omtk.qt_widgets import pluginmanager_window
-        pluginmanager_window.show()
+        from omtk.qt_widgets import window_pluginmanager
+        window_pluginmanager.show()
 
     def on_show_preferences(self):
-        from omtk.qt_widgets import preferences_window
-        preferences_window.show()
+        from omtk.qt_widgets import window_preferences
+        window_preferences.show()
 
     def on_create_component(self):
         from omtk.qt_widgets import form_create_component

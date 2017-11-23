@@ -2,7 +2,7 @@ import logging
 import re
 
 import pymel.core as pymel
-from omtk import ui_shared
+from omtk import constants_ui
 from omtk.core.classEntity import Entity
 from omtk.core.classNode import Node
 from omtk.decorators import log_info
@@ -33,7 +33,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Tweak gui
-        self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
+        self.ui.treeWidget.setStyleSheet(constants_ui._STYLE_SHEET)
 
         # Configure drag&drop
         self.ui.treeWidget.setDragDropOverwriteMode(False)
@@ -92,7 +92,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         Return the Module instances stored in each selected rows.
         :return: A list of Module instances.
         """
-        return [item._meta_data for item in self.iter_selected_items() if item._meta_type == ui_shared.MimeTypes.Module]
+        return [item._meta_data for item in self.iter_selected_items() if item._meta_type == constants_ui.MimeTypes.Module]
 
     @log_info
     def get_selected_rigs(self):
@@ -100,7 +100,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         Return the Rig instances stored in each selected rows.
         :return: A list of Rig instances.
         """
-        return [item._meta_data for item in self.iter_selected_items() if item._meta_type == ui_shared.MimeTypes.Rig]
+        return [item._meta_data for item in self.iter_selected_items() if item._meta_type == constants_ui.MimeTypes.Rig]
 
     @log_info
     def get_selected_components(self):
@@ -192,7 +192,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         :return:
         """
         for item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
-            if item._meta_type == ui_shared.MimeTypes.Attribute:
+            if item._meta_type == constants_ui.MimeTypes.Attribute:
                 component_attr = item._meta_data
                 if component_attr.validate(val):
                     flags = item.flags()

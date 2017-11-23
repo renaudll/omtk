@@ -6,8 +6,7 @@ import pymel.core as pymel
 from maya import OpenMaya
 from omtk import api
 from omtk import constants
-from omtk import session
-from omtk.core import preferences
+from omtk.core import preferences, session
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.qt_widgets.ui import main_window

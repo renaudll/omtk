@@ -6,8 +6,7 @@ import abc
 
 import pymel.core as pymel
 from maya import cmds
-from omtk import session
-from omtk.core import classEntityAttribute
+from omtk.core import classEntityAttribute, session
 from omtk.factories import factory_datatypes
 from omtk.libs import libPython
 

@@ -8,7 +8,7 @@ f.get()
 import logging
 
 import pymel.core as pymel
-from omtk import ui_shared
+from omtk import constants_ui
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.factories import factory_datatypes
 from omtk.factories.factory_datatypes import AttributeType, get_datatype
@@ -94,7 +94,7 @@ class TreeWidgetItemRig(TreeWidgetItemComponent):
         self.setFlags(flags)
         self.setCheckState(0, QtCore.Qt.Checked if rig.is_built else QtCore.Qt.Unchecked)
 
-        self._meta_type = ui_shared.MimeTypes.Rig
+        self._meta_type = constants_ui.MimeTypes.Rig
 
 
 class TreeWidgetItemModule(TreeWidgetItemComponent):
@@ -202,7 +202,7 @@ def _get_item_from_component(component, known_data_id=None):
 
         item_attr = QtWidgets.QTreeWidgetItem(0)
         item_attr._meta_data = attr
-        item_attr._meta_type = ui_shared.MimeTypes.Attribute
+        item_attr._meta_type = constants_ui.MimeTypes.Attribute
         item_attr.setText(0, "{0}:".format(attr_name))
         item.addChild(item_attr)
 

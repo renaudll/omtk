@@ -3,7 +3,7 @@ import re
 import traceback
 
 import pymel.core as pymel
-from omtk import ui_shared
+from omtk import constants_ui
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk.core.classEntity import Entity
@@ -38,7 +38,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Tweak gui
-        self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
+        self.ui.treeWidget.setStyleSheet(constants_ui._STYLE_SHEET)
 
         # Connect signal
 
@@ -94,14 +94,14 @@ class WidgetListModules(QtWidgets.QWidget):
         Return the Module instances stored in each selected rows.
         :return: A list of Module instances.
         """
-        return [item._meta_data for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Module]
+        return [item._meta_data for item in self.get_selected_items() if item._meta_type == constants_ui.MimeTypes.Module]
 
     def get_selected_rigs(self):
         """
         Return the Rig instances stored in each selected rows.
         :return: A list of Rig instances.
         """
-        return [item._meta_data for item in self.get_selected_items() if item._meta_type == ui_shared.MimeTypes.Rig]
+        return [item._meta_data for item in self.get_selected_items() if item._meta_type == constants_ui.MimeTypes.Rig]
 
     def get_selected_components(self):
         """
@@ -177,7 +177,7 @@ class WidgetListModules(QtWidgets.QWidget):
         :return:
         """
         for item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
-            if item._meta_type == ui_shared.MimeTypes.Attribute:
+            if item._meta_type == constants_ui.MimeTypes.Attribute:
                 component_attr = item._meta_data
                 if component_attr.validate(val):
                     flags = item.flags()
@@ -259,14 +259,14 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_build_selected(self):
         for val in self.get_selected_modules():
             self._build(val)
-        ui_shared._update_network(self._rig)
+        constants_ui._update_network(self._rig)
         self.update()
 
     def on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem._meta_data
             self._unbuild(val)
-            ui_shared._update_network(self._rig)
+            constants_ui._update_network(self._rig)
         self.update()
 
     def on_rebuild_selected(self):
@@ -274,7 +274,7 @@ class WidgetListModules(QtWidgets.QWidget):
             val = qItem._meta_data
             self._unbuild(val)
             self._build(val)
-            ui_shared._update_network(self._rig)
+            constants_ui._update_network(self._rig)
 
     def on_module_selection_changed(self):
         # Filter deleted networks
@@ -305,7 +305,7 @@ class WidgetListModules(QtWidgets.QWidget):
             else:
                 self._unbuild(module, update=False)  # note: setting update=True on maya-2017 can cause Qt to crash...
             # need_update = True
-            ui_shared._update_network(self._rig, item=item)
+            constants_ui._update_network(self._rig, item=item)
 
         # Check if the name have changed
         if (item._name != new_text):
@@ -447,7 +447,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 need_update = True
                 val.locked = True
         if need_update:
-            ui_shared._update_network(self._rig)
+            constants_ui._update_network(self._rig)
             self.update()
 
     def on_unlock_selected(self):
@@ -458,7 +458,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 need_update = True
                 val.locked = False
         if need_update:
-            ui_shared._update_network(self._rig)
+            constants_ui._update_network(self._rig)
             self.update()
 
     def on_remove(self):

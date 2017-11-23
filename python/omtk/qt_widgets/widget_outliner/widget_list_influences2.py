@@ -1,6 +1,6 @@
 import re
 
-import omtk.ui_shared
+import omtk.constants_ui
 import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -22,7 +22,7 @@ class WidgetListInfluences2(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Tweak gui
-        self.ui.treeWidget.setStyleSheet(omtk.ui_shared._STYLE_SHEET)
+        self.ui.treeWidget.setStyleSheet(omtk.constants_ui._STYLE_SHEET)
 
         # Connect signals
         self.ui.treeWidget.customContextMenuRequested.connect(self.on_right_click)
@@ -71,7 +71,7 @@ class WidgetListInfluences2(QtWidgets.QWidget):
                 item.networks = networks
                 item.setText(0, obj_name)
                 item.setForeground(0, textBrush)
-                omtk.ui_shared._set_icon_from_type(obj, item)
+                omtk.constants_ui._set_icon_from_type(obj, item)
                 item.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
                 if item.flags() & QtCore.Qt.ItemIsUserCheckable:
                     item.setFlags(item.flags() ^ QtCore.Qt.ItemIsUserCheckable)

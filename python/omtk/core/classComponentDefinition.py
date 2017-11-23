@@ -5,7 +5,7 @@ import uuid
 import pymel.core as pymel
 from maya import cmds
 from omtk import constants, api
-from omtk import session
+from omtk.core import session
 from omtk.core.classComponent import Component
 from omtk.libs import libNamespaces
 

@@ -1,6 +1,6 @@
 import logging
 
-from omtk import session
+from omtk.core import session
 from omtk.qt_widgets.widget_outliner import widget_list_base
 from omtk.vendor.Qt import QtCore
 

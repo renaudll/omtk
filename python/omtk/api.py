@@ -36,7 +36,7 @@ def get_version():
     package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'package.py'))
     if not os.path.exists(package_path):
         raise Exception("Cannot find package file! {}".format(package_path))
-    regex_getversion = re.compile('^version *= [\'|"]*([0-9\.]*)[\'|"]$')
+    regex_getversion = re.compile('^version *= [\'|"]*(.*)[\'|"]$')
     with open(package_path, 'r') as fp:
         for line in fp:
             line = line.strip('\n')

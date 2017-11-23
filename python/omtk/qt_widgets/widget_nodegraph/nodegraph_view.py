@@ -1,7 +1,7 @@
 import logging
 
 import pymel.core as pymel
-from omtk import session
+from omtk.core import session
 from omtk.core.classComponentDefinition import ComponentDefinition
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython

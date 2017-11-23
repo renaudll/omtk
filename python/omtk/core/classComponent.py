@@ -2,7 +2,7 @@ import logging
 
 from maya import cmds
 from omtk import constants, api
-from omtk import session
+from omtk.core import session
 from omtk.core.classEntity import Entity
 from omtk.core.classEntityAction import EntityAction
 from omtk.core.classEntityAttribute import get_attrdef_from_attr

@@ -72,3 +72,7 @@ def reload_():
     from omtk.qt_widgets import window_pluginmanager
     reload(window_pluginmanager)
 
+    from .ui import main_window as main_window_ui
+    reload(main_window_ui)
+
+

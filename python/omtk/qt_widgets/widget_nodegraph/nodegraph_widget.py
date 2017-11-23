@@ -26,7 +26,7 @@ win.show()
 import logging
 
 import pymel.core as pymel
-from omtk import session
+from omtk.core import session
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.qt_widgets.widget_nodegraph.ui import nodegraph_widget

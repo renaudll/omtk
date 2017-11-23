@@ -1,5 +1,4 @@
-from omtk import session
-from omtk.core import preferences
+from omtk.core import preferences, session
 from omtk.qt_widgets.ui import widget_welcome
 from omtk.vendor.Qt import QtCore, QtWidgets
 

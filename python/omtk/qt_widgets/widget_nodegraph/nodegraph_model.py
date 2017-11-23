@@ -1,8 +1,7 @@
 import logging
 
 import pymel.core as pymel
-from omtk import session
-from omtk.core import classEntityAttribute
+from omtk.core import classEntityAttribute, session
 from omtk.core import classModule
 from omtk.core.classComponent import Component
 from omtk.factories import factory_datatypes

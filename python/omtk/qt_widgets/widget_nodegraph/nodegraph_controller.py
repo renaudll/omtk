@@ -6,8 +6,7 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants
-from omtk import session
-from omtk.core import classComponent
+from omtk.core import classComponent, session
 from omtk.core import classEntity
 from omtk.factories import factory_datatypes, factory_rc_menu
 from omtk.libs import libComponents

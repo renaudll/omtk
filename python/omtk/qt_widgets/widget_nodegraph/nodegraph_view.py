@@ -2,7 +2,7 @@ import logging
 
 import pymel.core as pymel
 from omtk.core import session
-from omtk.core.classComponentDefinition import ComponentDefinition
+from omtk.core.component_definition import ComponentDefinition
 from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
@@ -13,7 +13,7 @@ log = logging.getLogger('omtk')
 # used for type hinting
 if False:
     from .nodegraph_controller import NodeGraphController
-    from omtk.core.classComponent import Component
+    from omtk.core.component import Component
 
 
 class NodeGraphView(PyFlowgraphView):
@@ -146,8 +146,8 @@ class NodeGraphView(PyFlowgraphView):
         log.debug("Creating component {0} (id {1})".format(component, id(component)))
         model, widget = self._controller.add_node(component)
 
-        from omtk.core import classModule
-        if isinstance(component, classModule.Module):
+        from omtk.core import module
+        if isinstance(component, module.Module):
             rig = self.manager._root
             rig.add_module(component)
 

@@ -6,26 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>559</width>
-    <height>397</height>
+    <width>709</width>
+    <height>512</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="leftMargin">
-    <number>0</number>
-   </property>
-   <property name="topMargin">
-    <number>0</number>
-   </property>
-   <property name="rightMargin">
-    <number>0</number>
-   </property>
-   <property name="bottomMargin">
-    <number>0</number>
-   </property>
+  <layout class="QVBoxLayout" name="verticalLayout_3">
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
@@ -36,23 +24,30 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_6">
+      <widget class="QCommandLinkButton" name="commandLinkButton">
+       <property name="text">
+        <string>Start from scratch</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QCommandLinkButton" name="btn_create_rig_default">
+        <widget class="QCommandLinkButton" name="btn_create_rig_template">
          <property name="text">
-          <string>Create an empty rig</string>
+          <string>Start from a template</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_3">
+        <widget class="QLabel" name="label_4">
          <property name="text">
-          <string>Available rigs:</string>
+          <string>Available templates</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QTableView" name="tableView_types_rig">
+        <widget class="QTableView" name="tableView_types_template">
          <property name="selectionMode">
           <enum>QAbstractItemView::SingleSelection</enum>
          </property>
@@ -73,23 +68,23 @@
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_8">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QCommandLinkButton" name="btn_create_rig_template">
+        <widget class="QCommandLinkButton" name="btn_create_rig_default">
          <property name="text">
-          <string>Start from a template</string>
+          <string>Start from a rig</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_4">
+        <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Available templates</string>
+          <string>Available rigs:</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QTableView" name="tableView_types_template">
+        <widget class="QTableView" name="tableView_types_rig">
          <property name="selectionMode">
           <enum>QAbstractItemView::SingleSelection</enum>
          </property>

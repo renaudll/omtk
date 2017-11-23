@@ -1,8 +1,8 @@
-from omtk.core import classRig
+from omtk.core import rig
 from omtk.nomenclature.snake_case import NomenclatureSnakeCase
 
 
-class RigStandard(classRig.Rig):
+class RigStandard(rig.Rig):
     """
     Default OMTK rig.
     """

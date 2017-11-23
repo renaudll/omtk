@@ -3,10 +3,10 @@ import logging
 import pymel.core as pymel
 from maya import cmds
 from omtk.core import session
-from omtk.core.classComponent import Component
-from omtk.core.classComponentDefinition import ComponentDefinition
+from omtk.core.component import Component
+from omtk.core.component_definition import ComponentDefinition
 from omtk.libs import libComponents
-from omtk.qt_widgets.widget_outliner.ui import widget_component_list
+from omtk.qt_widgets.widget_outliner.ui import widget_list_componentdef
 from omtk.vendor.Qt import QtWidgets, QtCore
 
 log = logging.getLogger('omtk')
@@ -103,7 +103,7 @@ class WidgetComponentList(QtWidgets.QWidget):
 
     def __init__(self, parent):
         super(WidgetComponentList, self).__init__(parent)
-        self.ui = widget_component_list.Ui_Form()
+        self.ui = widget_list_componentdef.Ui_Form()
         self.ui.setupUi(self)
 
         view = self.ui.tableView

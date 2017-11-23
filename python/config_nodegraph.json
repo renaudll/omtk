@@ -1,3 +1,4 @@
+/* These attributes will always be publically availaible. */
 {
   "decomposeMatrix": [
     "inputMatrix",

@@ -20,7 +20,7 @@ def get_class_module_root(cls):
     """
     Resolve the top namespace of a class associated module.
 
-    >>> from omtk.core.classCtrl import BaseCtrl
+    >>> from omtk.core.ctrl import BaseCtrl
     >>> BaseCtrl.__module__
     'omtk.core.classCtrl'
     >>> get_class_module_root(BaseCtrl)

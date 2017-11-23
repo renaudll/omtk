@@ -1,9 +1,9 @@
 import logging
 
 import pymel.core as pymel
-from omtk.core import classEntityAttribute, session
-from omtk.core import classModule
-from omtk.core.classComponent import Component
+from omtk.core import entity_attribute, session
+from omtk.core import module
+from omtk.core.component import Component
 from omtk.factories import factory_datatypes
 from omtk.libs import libComponents
 from omtk.vendor import libSerialization
@@ -156,12 +156,12 @@ class NodeGraphModel(object):
 
         # type: () -> List[NodeGraphPortModel]
         # todo: add support for pure EntityAttribute
-        if isinstance(val, classEntityAttribute.EntityPymelAttribute):
+        if isinstance(val, entity_attribute.EntityPymelAttribute):
             node_value = val._attr.node()
             # node_model = self.get_node_from_value(node_value)  # still needed?
             # Let EntityAttribute defined if they are inputs or outputs
             inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_value, val)
-        elif isinstance(val, classEntityAttribute.EntityAttribute):
+        elif isinstance(val, entity_attribute.EntityAttribute):
             node_value = val.parent
             # node_model = self.get_node_from_value(val.parent)
             inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_value, val)
@@ -174,7 +174,7 @@ class NodeGraphModel(object):
             if datatype == factory_datatypes.AttributeType.Node:
                 # node_model = self.get_node_from_value(val)  # still needed?
                 inst = nodegraph_port_model.NodeGraphPymelPortModel(self, val, val.message)
-            elif isinstance(val, classModule.Module):  # todo: use factory_datatypes?
+            elif isinstance(val, module.Module):  # todo: use factory_datatypes?
                 node_value = val.rig
                 # node_model = self.get_node_from_value(val.rig)
                 val = val.rig.get_attribute_by_name('modules')

@@ -26,9 +26,6 @@ def reload_():
     from .ui import form_create_component as form_create_component_ui
     reload(form_create_component_ui)
 
-    from omtk.qt_widgets import form_create_component
-    reload(form_create_component)
-
     log.debug('Reloading pluginmanager_window_ui')
     from omtk.qt_widgets.ui import pluginmanager_window as pluginmanager_window_ui
     reload(pluginmanager_window_ui)
@@ -51,14 +48,6 @@ def reload_():
     log.debug('Reloading model_rig_templates')
     from omtk.qt_widgets import model_rig_templates
     reload(model_rig_templates)
-
-    log.debug('Reloading widget_list_modules')
-    from omtk.qt_widgets.widget_outliner import widget_list_modules
-    reload(widget_list_modules)
-
-    log.debug('Reloading widget_list_meshes')
-    from omtk.qt_widgets.widget_outliner import widget_list_meshes
-    reload(widget_list_meshes)
 
     log.debug('Reloading widget_welcome')
     from omtk.qt_widgets import form_welcome_message

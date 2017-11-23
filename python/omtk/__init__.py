@@ -30,6 +30,7 @@ def build_ui_files():
 
             path_src = os.path.join(dirpath, filename)
             path_dst = os.path.join(dirpath, basename + '.py')
+            path_dst_tmp = os.path.join(dirpath, basename + '.py.tmp')
 
             if os.path.exists(path_dst) and os.path.getctime(path_src) < os.path.getctime(path_dst):
                 continue
@@ -39,8 +40,15 @@ def build_ui_files():
                 path_dst
             ))
 
-            with open(path_dst, 'w') as fp:
+            with open(path_dst_tmp, 'w') as fp:
                 pysideuic.compileUi(path_src, fp)
+
+            with open(path_dst_tmp, 'r') as fp_inn:
+                with open(path_dst, 'w') as fp_out:
+                    for line in fp_inn.readlines():
+                        line = line.replace('from PySide2 import ', 'from omtk.vendor.Qt import ')
+                        fp_out.write(line)
+
 
             # todo: replace PySide2 call for omtk.vendor.Qt calls
 

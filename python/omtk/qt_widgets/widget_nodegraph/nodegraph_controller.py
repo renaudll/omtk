@@ -6,8 +6,8 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants
-from omtk.core import classComponent, session
-from omtk.core import classEntity
+from omtk.core import component, session
+from omtk.core import entity
 from omtk.factories import factory_datatypes, factory_rc_menu
 from omtk.libs import libComponents
 from omtk.libs import libPython
@@ -193,7 +193,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
         # This is because we will always return this model when asked directly about it.
         # Also the NodeGraphRootModel store reference it's children so we want to prevent
         # as much as we can a new NodeGraphComponentModel instance from being created.
-        if isinstance(value, classComponent.Component):
+        if isinstance(value, component.Component):
             self.invalidate_node_value(value.grp_inn)
             self.invalidate_node_value(value.grp_out)
         else:
@@ -672,11 +672,11 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
             menu_action = menu.addAction('Group')
             menu_action.triggered.connect(self.group_selection)
 
-        if any(True for val in values if isinstance(val, classComponent.Component)):
+        if any(True for val in values if isinstance(val, component.Component)):
             menu_action = menu.addAction('Ungroup')
             menu_action.triggered.connect(self.ungroup_selection)
 
-        values = [v for v in values if isinstance(v, classEntity.Entity)]  # limit ourself to components
+        values = [v for v in values if isinstance(v, entity.Entity)]  # limit ourself to components
 
         # values = [v for v in values if factory_datatypes.get_datatype(v) == factory_datatypes.AttributeType.Component]
         # values = [node._meta_data for node in self.getSelectedNodes() if
@@ -714,7 +714,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
         inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
         out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
-        inst = classComponent.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?
+        inst = component.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?
 
         selected_nodes = set()
         for attr in itertools.chain(inn_attrs.itervalues(), out_attrs.itervalues()):
@@ -750,7 +750,7 @@ class NodeGraphController(QtCore.QObject):  # needed for signal handling
 
     def ungroup_selection(self):
         # Get selection components
-        components = [val for val in self.get_selected_values() if isinstance(val, classComponent.Component)]
+        components = [val for val in self.get_selected_values() if isinstance(val, component.Component)]
         if not components:
             return
 

@@ -5,7 +5,7 @@ import unittest
 
 import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
-from omtk.core import classComponent
+from omtk.core import component
 from omtk.libs import libComponents
 from omtk.libs import libRigging
 
@@ -31,7 +31,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         pymel.connectAttr(src.tx, dst.tx)
 
-        component = classComponent.Component.create(
+        component = component.Component.create(
             {'innVal': src.tx}, {'outVal': dst.tx}
         )
 
@@ -51,7 +51,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         pymel.connectAttr(src.tx, dst.tx)
 
-        component = classComponent.Component.create(
+        component = component.Component.create(
             {'innVal': src.t}, {'outVal': dst.rx}
         )
 

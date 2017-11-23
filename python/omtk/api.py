@@ -1,9 +1,9 @@
+import logging
 import os
 import re
-import contextlib
-import logging
 
 from omtk.core import plugin_manager
+from omtk.decorators import pymel_preserve_selection
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
@@ -28,10 +28,12 @@ __all__ = (
 
 @libPython.memoized
 def get_version():
+    # type: () -> str
     """
     Read the REZ package associated with the project and return the current version.
     This is used to analyze old rigs and recommend specific scripts to correct them if needed.
-    :return:
+
+    :return: The fully qualified version as a str instance.
     """
     package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'package.py'))
     if not os.path.exists(package_path):
@@ -49,6 +51,7 @@ def get_version():
 def create(cls=None, *args, **kwargs):
     """
     Create a new rig instance.
+
     :param rig_type: A str that define the rig type to use. Use the default one if None.
     :param args: Passed to the rig class constructor.
     :param kwargs: Passed to the rig class constructor.
@@ -70,7 +73,9 @@ def create(cls=None, *args, **kwargs):
 
 def find(cache=None):
     """
-    :return: All the rigs embedded in the current maya scene.
+    Find all the rigs embedded in the current maya scene.
+
+    :return: A list of Rig instances.
     """
     from omtk.vendor import libSerialization
 
@@ -198,24 +203,10 @@ def _get_modules_from_selection(sel=None):
     return rig, modules
 
 
-@contextlib.contextmanager
-def with_preserve_selection():
-    import pymel.core as pymel
-    from omtk.libs import libPymel
-
-    sel = pymel.selected()
-    yield True
-    sel = filter(libPymel.is_valid_PyNode, sel)
-    if sel:
-        pymel.select(sel)
-    else:
-        pymel.select(clear=True)
-
-
 def build_selected(sel=None):
     import pymel.core as pymel
 
-    with with_preserve_selection():
+    with pymel_preserve_selection():
         rig, modules = _get_modules_from_selection()
         if not rig or not modules:
             return
@@ -289,7 +280,7 @@ def unbuild_selected(sel=None):
 
     from omtk.vendor import libSerialization
 
-    with with_preserve_selection():
+    with pymel_preserve_selection():
         rig, modules = _get_modules_from_selection()
         if not rig or not modules:
             return

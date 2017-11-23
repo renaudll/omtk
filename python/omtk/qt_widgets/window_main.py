@@ -35,13 +35,15 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
 
+        # Makes Maya perform magic which makes the window stay
+        # on top in OS X and Linux. As an added bonus, it'll
+        # make Maya remember the window position
+        # credit: https://github.com/fredrikaverpil/pyVFX-boilerplate
+        self.setProperty("saveWindowPref", True)
+
+        # Extract version number from rez package.py file and display it
         version = api.get_version()
         self.setWindowTitle('Open Rigging Toolkit {}'.format(version))
-
-        # Makes Maya perform magic which makes the window stay on top in OS X and Linux.
-        # As an added bonus, it'll make Maya remember the window position
-        # src: https://github.com/fredrikaverpil/pyvfx-boilerplate/blob/master/boilerplate.py
-        self.setProperty("saveWindowPref", True)
 
         #
         # First update
@@ -331,7 +333,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.update_internal_data()
 
     def update_internal_data(self):
-        self.ui.widget_modules.set_rigs(self.manager._roots)
+        # self.ui.widget_modules.set_rigs(self.manager._roots) disabled for now
         self.ui.widget_jnts.set_rig(self.manager._root)
         self.ui.widget_meshes.set_rig(self.manager._root)
 

@@ -3,14 +3,14 @@ from . import nodegraph_node_model_base
 from . import nodegraph_node_model_dagnode
 from omtk.vendor.Qt import QtCore, QtGui
 from omtk.vendor import libSerialization
-from omtk.core import classComponent
+from omtk.core import component
 from omtk.libs import libComponents
-from omtk.core import classEntityAttribute
+from omtk.core import entity_attribute
 
 if False:
     from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_controller import NodeGraphController
-    from omtk.core.classComponent import Component
+    from omtk.core.component import Component
 
 
 class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
@@ -20,7 +20,7 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
     maya nodes sandwitched in between.
     """
     def __init__(self, registry, entity):
-        assert(isinstance(entity, classComponent.Component))
+        assert(isinstance(entity, component.Component))
         super(NodeGraphComponentModel, self).__init__(registry, entity)
 
     def get_children(self):
@@ -44,7 +44,7 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
             inst = self._registry.get_port_model_from_value(attr_def)
 
             # inst._node = self  # hack currently compound attribute won't point to the compound object...
-            if isinstance(attr_def, classEntityAttribute.EntityPymelAttribute):
+            if isinstance(attr_def, entity_attribute.EntityPymelAttribute):
                 attr_node = attr_def._attr.node()
                 if attr_node == self._entity.grp_inn:
                     attr_def._node = self._entity.grp_inn

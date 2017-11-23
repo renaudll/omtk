@@ -2,11 +2,11 @@
 Original code by Jimmy Goulet (https://github.com/goujin), thanks for the contribution!
 """
 import pymel.core as pymel
-from omtk.core import classMacro
+from omtk.core import macro
 from omtk.libs import libCtrlMatch
 
 
-class CtrlMatchSelected(classMacro.BaseMacro):
+class CtrlMatchSelected(macro.BaseMacro):
     def run(self):
         libCtrlMatch.controller_matcher(selection=pymel.selected(), mirror_prefix=None, flip=False)
 

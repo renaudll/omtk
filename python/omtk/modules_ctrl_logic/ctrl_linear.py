@@ -1,10 +1,10 @@
 import pymel.core as pymel
 
-from omtk.core import classModuleCtrlLogic
+from omtk.core import module_logic_ctrl
 from omtk.libs import libRigging
 
 
-class CtrlLogicLinear(classModuleCtrlLogic.CtrlLogicFaceCalibratable):
+class CtrlLogicLinear(module_logic_ctrl.CtrlLogicFaceCalibratable):
     """
     An InteractiveCtrl ctrl is directly constrained on a mesh via a layer_fol.
     To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.

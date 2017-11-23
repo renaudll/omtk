@@ -4,7 +4,7 @@ Create a menu for a right-click event on a TreeWidget or NodeEditorWidget.
 import collections
 import functools
 
-from omtk.core.classEntity import Entity
+from omtk.core.entity import Entity
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui, QtWidgets
 
@@ -44,17 +44,17 @@ def get_menu(menu, components, fn_callback):
     cache_component_class_level = {}
 
     actions_map = collections.defaultdict(list)
-    from omtk.core import classEntity
+    from omtk.core import entity
 
     for component in components:
         actions_map[(0, 'Component', 'Build')].append(
-            classEntity.ActionBuild(component)
+            entity.ActionBuild(component)
         )
         actions_map[(0, 'Component', 'Unbuild')].append(
-            classEntity.ActionUnbuild(component)
+            entity.ActionUnbuild(component)
         )
         actions_map[(0, 'Component', 'Rebuild')].append(
-            classEntity.ActionRebuild(component)
+            entity.ActionRebuild(component)
         )
 
         # todo: add Lock

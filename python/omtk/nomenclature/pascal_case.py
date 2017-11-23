@@ -1,5 +1,5 @@
 import re
-from omtk.core.classNomenclature import Nomenclature
+from omtk.core.nomenclature import Nomenclature
 
 
 class NomenclaturePascalCase(Nomenclature):

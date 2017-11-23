@@ -6,7 +6,7 @@ import abc
 
 import pymel.core as pymel
 from maya import cmds
-from omtk.core import classEntityAttribute, session
+from omtk.core import entity_attribute, session
 from omtk.factories import factory_datatypes
 from omtk.libs import libPython
 
@@ -147,11 +147,11 @@ class PymelAttributePortAdaptor(PortAdaptor):
 
 class EntityAttributePortAdaptor(PortAdaptor):
     def __init__(self, data):
-        assert (isinstance(data, classEntityAttribute.EntityAttribute))
+        assert (isinstance(data, entity_attribute.EntityAttribute))
         self._data = data
 
         # Some EntityAttribute points to pymel attributes.
-        if isinstance(data, classEntityAttribute.EntityPymelAttribute):
+        if isinstance(data, entity_attribute.EntityPymelAttribute):
             self._pymel_adaptor = PymelAttributePortAdaptor(data.get_raw_data())
         else:
             self._pymel_adaptor = None
@@ -160,7 +160,7 @@ class EntityAttributePortAdaptor(PortAdaptor):
         return self._data.get_raw_data()
 
     def get_metatype(self):
-        if isinstance(self._data, classEntityAttribute.EntityPymelAttribute):
+        if isinstance(self._data, entity_attribute.EntityPymelAttribute):
             return factory_datatypes.get_attr_datatype(self._data.get_raw_data())
         else:
             return factory_datatypes.get_datatype(self.get_metadata())
@@ -212,13 +212,13 @@ class EntityAttributePortAdaptor(PortAdaptor):
         return []
 
     def connect_from(self, val):
-        if isinstance(self._data, classEntityAttribute.EntityPymelAttribute):
+        if isinstance(self._data, entity_attribute.EntityPymelAttribute):
             self._pymel_adaptor.connect_from(val)
         else:
             raise NotImplementedError
 
     def connect_to(self, val):
-        if isinstance(self._data, classEntityAttribute.EntityPymelAttribute):
+        if isinstance(self._data, entity_attribute.EntityPymelAttribute):
             self._pymel_adaptor.connect_to(val)
         else:
             raise NotImplementedError

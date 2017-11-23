@@ -9,7 +9,7 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants_ui
-from omtk.core.classComponentDefinition import ComponentDefinition
+from omtk.core.component_definition import ComponentDefinition
 from omtk.factories import factory_datatypes
 from omtk.factories.factory_datatypes import AttributeType, get_datatype
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui

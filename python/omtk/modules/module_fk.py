@@ -1,8 +1,8 @@
 import logging
 
 from omtk.components_scripted.component_fk import ComponentFk
-from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classModule import Module
+from omtk.core.ctrl import BaseCtrl
+from omtk.core.module import Module
 from omtk.libs import libPython
 from omtk.libs import libRigging
 

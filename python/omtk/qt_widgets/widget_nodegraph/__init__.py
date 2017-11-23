@@ -24,9 +24,10 @@ win.setCentralWidget(widget)
 win.show()
 """
 
-from . import nodegraph_widget
 
-# NodeGraphWidget = widget_nodegraph.NodeGraphWidget
+from . import nodegraph_widget
+NodeGraphWidget = nodegraph_widget.NodeGraphWidget
+
 
 def reload_():
     from . import nodegraph_port_model
@@ -71,3 +72,5 @@ def reload_():
     from . import ui
     reload(ui)
     ui.reload_()
+
+

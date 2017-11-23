@@ -1,4 +1,4 @@
-from omtk.core.classMacro import BaseMacro
+from omtk.core.macro import BaseMacro
 from omtk.vendor.Qt import QtWidgets
 from omtk.qt_widgets import widget_nodegraph
 

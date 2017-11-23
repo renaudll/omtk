@@ -4,10 +4,10 @@ import traceback
 
 import pymel.core as pymel
 from omtk import constants_ui
-from omtk.core import classModule
-from omtk.core import classRig
-from omtk.core.classEntity import Entity
-from omtk.core.classNode import Node
+from omtk.core import module
+from omtk.core import rig
+from omtk.core.entity import Entity
+from omtk.core.node import Node
 from omtk.factories import factory_rc_menu, factory_tree_widget_item
 from omtk.libs import libQt
 from omtk.qt_widgets.widget_outliner.ui import widget_list_modules
@@ -156,7 +156,7 @@ class WidgetListModules(QtWidgets.QWidget):
             # Always shows non-module
             if not hasattr(qItem, 'rig'):
                 return True
-            if not isinstance(qItem._meta_data, classModule.Module):
+            if not isinstance(qItem._meta_data, module.Module):
                 return True
 
             module = qItem._meta_data  # Retrieve monkey-patched data
@@ -221,9 +221,9 @@ class WidgetListModules(QtWidgets.QWidget):
             return
 
         try:
-            if isinstance(val, classModule.Module):
+            if isinstance(val, module.Module):
                 self._build_module(val)
-            elif isinstance(val, classRig.Rig):
+            elif isinstance(val, rig.Rig):
                 val.build()
             else:
                 raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
@@ -240,9 +240,9 @@ class WidgetListModules(QtWidgets.QWidget):
             return
 
         try:
-            if isinstance(val, classModule.Module):
+            if isinstance(val, module.Module):
                 self._unbuild_module(val)
-            elif isinstance(val, classRig.Rig):
+            elif isinstance(val, rig.Rig):
                 val.unbuild()
             else:
                 raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
@@ -433,7 +433,7 @@ class WidgetListModules(QtWidgets.QWidget):
             if sel:
                 self._listen_events = False
                 selected_item = sel[0]
-                if isinstance(selected_item._meta_data, classModule.Module):
+                if isinstance(selected_item._meta_data, module.Module):
                     selected_item._update()
                 self._listen_events = True
             self._is_modifying = False
@@ -443,7 +443,7 @@ class WidgetListModules(QtWidgets.QWidget):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item._meta_data
-            if isinstance(val, classModule.Module) and not val.locked:
+            if isinstance(val, module.Module) and not val.locked:
                 need_update = True
                 val.locked = True
         if need_update:
@@ -454,7 +454,7 @@ class WidgetListModules(QtWidgets.QWidget):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item._meta_data
-            if isinstance(val, classModule.Module) and val.locked:
+            if isinstance(val, module.Module) and val.locked:
                 need_update = True
                 val.locked = False
         if need_update:

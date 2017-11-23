@@ -4,7 +4,7 @@ import uuid
 from collections import OrderedDict
 
 import pymel.core as pymel
-from omtk.core import classComponent
+from omtk.core import component
 from omtk.libs import libComponents
 from omtk.libs import libPython
 from omtk.qt_widgets.ui.form_create_component import Ui_MainWindow as ui_def
@@ -144,7 +144,7 @@ class CreateComponentForm(QtWidgets.QMainWindow):
                 pass
 
     def iter_scene_components(self):
-        for network in libSerialization.iter_networks_from_class(classComponent.Component.__name__):
+        for network in libSerialization.iter_networks_from_class(component.Component.__name__):
             component = libSerialization.import_network(network)
             if component:
                 yield component
@@ -166,7 +166,7 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         self.ui.pushButton_submit.setEnabled(have_component and have_name and have_author and have_version and have_uid)
 
     def on_create_new(self):
-        component = classComponent.Component()
+        component = component.Component()
         component.build_interface()
         self.component = component
         self._components.append(component)

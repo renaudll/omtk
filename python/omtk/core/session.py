@@ -2,7 +2,7 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants, api
-from omtk.core import classRig
+from omtk.core import rig
 from omtk.core import preferences
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
@@ -57,8 +57,8 @@ class AutoRigManager(QtCore.QObject):
         """
         Fill the component registry with any serialized components in the scene.
         """
-        from omtk.core import classComponent
-        cls_name = classComponent.Component.__name__
+        from omtk.core import component
+        cls_name = component.Component.__name__
         networks = libSerialization.get_networks_from_class(cls_name)
         results = [libSerialization.import_network(network, module='omtk', cache=self._serialization_cache) for network
                    in networks]
@@ -83,14 +83,14 @@ class AutoRigManager(QtCore.QObject):
         all_rigs = api.find(cache=self._serialization_cache)
 
         self._roots = []
-        for rig in all_rigs:
+        for rig_ in all_rigs:
             # Since omtk 0.5, it is not possible to instanciate the rig base class.
-            if type(rig) == classRig.Rig:
+            if type(rig_) == rig.Rig:
                 log.warning("The scene contain old omtk 0.4 rig {0} which will be ignored.")
                 # todo: upgrade to a new rig instance?
                 continue
 
-            self._roots.append(rig)
+            self._roots.append(rig_)
         self._root = next(iter(self._roots), None)
 
     def export_networks(self):
@@ -121,14 +121,14 @@ class AutoRigManager(QtCore.QObject):
         # rig_type = self.get_selected_rig_definition()
 
         # Initialize the scene
-        rig = api.create(cls=rig_type)
-        rig.build()
-        self._add_rig(rig)
-        libSerialization.export_network(rig)
+        rig_ = api.create(cls=rig_type)
+        rig_.build()
+        self._add_rig(rig_)
+        libSerialization.export_network(rig_)
 
-        self.onRigCreated.emit(rig)
+        self.onRigCreated.emit(rig_)
 
-        return rig
+        return rig_
 
     def execute_actions(self, actions):
         need_export_network = False

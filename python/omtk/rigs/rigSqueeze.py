@@ -2,14 +2,14 @@ import re
 
 import pymel.core as pymel
 
-from omtk.core import classNomenclature
+from omtk.core import nomenclature
 from omtk.nomenclature import snake_case_pascal
-from omtk.core import classRig
+from omtk.core import rig
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 
 
-class CtrlMaster(classRig.CtrlRoot):
+class CtrlMaster(rig.CtrlRoot):
     """The CtrlMaster is another root ctrl requested by Squeeze."""
 
     def build(self, create_global_scale_attr=False, *args, **kwargs):
@@ -73,7 +73,7 @@ class SqueezeNomenclature(snake_case_pascal.NomenclatureSnakePascalCase):
         return super(SqueezeNomenclature, self).join(new_tokens)
 
 
-class RigSqueeze(classRig.Rig):
+class RigSqueeze(rig.Rig):
     """
     Custom rig implementation in respect to Squeeze Studio nomenclature.
     """
@@ -132,10 +132,10 @@ class RigSqueeze(classRig.Rig):
         all_geos = libPymel.ls_root_geos()
 
         # Build All_Grp
-        self.grp_master = self.build_grp(classRig.RigGrp, self.grp_master, self.nomenclature.root_all_name)
-        self.grp_model = self.build_grp(classRig.RigGrp, self.grp_model, self.nomenclature.root_model_name)
-        self.grp_proxy = self.build_grp(classRig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
-        self.grp_fx = self.build_grp(classRig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
+        self.grp_master = self.build_grp(rig.RigGrp, self.grp_master, self.nomenclature.root_all_name)
+        self.grp_model = self.build_grp(rig.RigGrp, self.grp_model, self.nomenclature.root_model_name)
+        self.grp_proxy = self.build_grp(rig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
+        self.grp_fx = self.build_grp(rig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
         # Parent all groups in the main grp_master
         pymel.parent(self.grp_anm_master, self.grp_master)

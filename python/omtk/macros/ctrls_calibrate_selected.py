@@ -1,5 +1,5 @@
 from omtk import api
-from omtk.core.classMacro import BaseMacro
+from omtk.core.macro import BaseMacro
 
 
 class CalibrateSelectedModulesMacro(BaseMacro):

@@ -5,7 +5,7 @@ from omtk.libs import libSkinning
 from omtk.qt_widgets.widget_outliner import widget_list_base
 
 if True:  # for safe type hinting
-    from omtk.core.classRig import Rig
+    from omtk.core.rig import Rig
 
 
 class WidgetListMeshes2(widget_list_base.OmtkBaseListWidget):

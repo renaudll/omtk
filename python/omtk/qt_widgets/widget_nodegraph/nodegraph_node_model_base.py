@@ -1,6 +1,6 @@
 import logging
 
-from omtk.core.classComponent import Component
+from omtk.core.component import Component
 from omtk.factories import factory_datatypes
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets

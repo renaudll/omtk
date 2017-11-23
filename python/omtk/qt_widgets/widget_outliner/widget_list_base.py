@@ -3,8 +3,8 @@ import re
 
 import pymel.core as pymel
 from omtk import constants_ui
-from omtk.core.classEntity import Entity
-from omtk.core.classNode import Node
+from omtk.core.entity import Entity
+from omtk.core.node import Node
 from omtk.decorators import log_info
 from omtk.factories import factory_rc_menu, factory_tree_widget_item
 from omtk.libs import libQt

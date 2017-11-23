@@ -93,13 +93,13 @@ def get_datatype(val):
     Factory method that return an enum value for any possible value.
     Used to type metadata.
     """
-    from omtk.core.classEntity import Entity
-    from omtk.core.classCtrl import BaseCtrl
-    from omtk.core.classNode import Node
-    from omtk.core.classModule import Module
-    from omtk.core.classModule2 import Module2
-    from omtk.core.classRig import Rig
-    from omtk.core.classComponentDefinition import ComponentDefinition
+    from omtk.core.entity import Entity
+    from omtk.core.ctrl import BaseCtrl
+    from omtk.core.node import Node
+    from omtk.core.module import Module
+    from omtk.core.module2 import Module2
+    from omtk.core.rig import Rig
+    from omtk.core.component_definition import ComponentDefinition
 
     if val is None or isinstance(val, (
             bool,

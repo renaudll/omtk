@@ -1,7 +1,7 @@
 import pymel.core as pymel
 
-from omtk.core.classNode import Node
-from omtk.core.classCtrl import BaseCtrl
+from omtk.core.node import Node
+from omtk.core.ctrl import BaseCtrl
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui
 

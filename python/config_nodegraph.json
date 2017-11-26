@@ -1,4 +1,3 @@
-/* These attributes will always be publically availaible. */
 {
   "decomposeMatrix": [
     "inputMatrix",
@@ -50,6 +49,10 @@
     "input",
     "inputX",
     "inputY",
-    "inputZ"
+    "inputZ",
+    "output",
+    "outputX",
+    "outputY",
+    "outputZ"
   ]
 }

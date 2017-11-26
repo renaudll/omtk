@@ -60,11 +60,13 @@ class Preferences(object):
         # todo: refactor preference class to better handle categories?
         try:
             dirname = _get_path_config_dir()
-            path = os.path.join(dirname, 'config_nodegraph.json')
+            path = os.path.abspath(os.path.join(dirname, '..', 'python', 'config_nodegraph.json'))
+            if not os.path.exists(path):
+                raise Exception("Configure file does not exist. {0}".format(path))
             with open(path, 'r') as fp:
                 return json.load(fp)
         except Exception, e:
-            log.warning('Error loading {0}: {1}'.format(path, e))
+            log.error('Error loading nodegraph configuration files: {0}'.format(e))
             return {}
 
     def get_default_rig_class(self):

@@ -35,19 +35,19 @@ class NodeGraphPortImpl(object):
 
     @abc.abstractmethod
     def is_writable(self):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def is_interesting(self):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def connect_from(self, val):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def connect_to(self, val):
-        pass
+        raise NotImplementedError
 
 
 
@@ -109,10 +109,11 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         # The user can specify in it's preference what he which to see by default.
         # todo: how can we prevent so much function call?
         s = session.get_session()
-        map = s.preferences.get_nodegraph_default_attr_map().get(self._pynode.type(), None)
-        if map:
+        map = s.preferences.get_nodegraph_default_attr_map()
+        map_def = map.get(self._pynode.type(), None)
+        if map_def:
             key = self._data.longName()
-            return key in map
+            return key in map_def
 
         # if self._data.isHidden():
         if self._mfn.isHidden():

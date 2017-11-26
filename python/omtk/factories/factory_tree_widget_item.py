@@ -13,6 +13,7 @@ from omtk.core.component_definition import ComponentDefinition
 from omtk.factories import factory_datatypes
 from omtk.factories.factory_datatypes import AttributeType, get_datatype
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
+from omtk.decorators import log_info
 
 log = logging.getLogger('omtk')
 
@@ -46,6 +47,7 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
         if metadata and metadata.exists():
             yield metadata
 
+    @log_info
     def update_(self):
         icon = factory_datatypes.get_icon_from_datatype(self._meta_data, self._meta_type)
         if icon:

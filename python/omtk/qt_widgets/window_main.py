@@ -131,8 +131,9 @@ class AutoRig(QtWidgets.QMainWindow):
         # self.ui.widget_node_editor.ui.widget_view.actionRequested.connect(self.actionRequested.emit)
 
         # Pre-configure QDockWidget
-        # self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
-        # self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
+        self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
+        self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
+        # self.tabifyDockWidget(self.ui.dockWidget_modules, self.ui.dockWidget_modules)
 
 
         # Add existing rigs in the NodeGraph on startup

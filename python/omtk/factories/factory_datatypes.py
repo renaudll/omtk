@@ -61,7 +61,7 @@ class AttributeType:
     AttributeMatrix = 13
     AttributeBool = 14
     AttributeString = 15
-    ComponentDefinition=16
+    ComponentDefinition = 16
 
 
 _attr_type_by_native_type = {
@@ -100,6 +100,7 @@ def get_datatype(val):
     from omtk.core.module2 import Module2
     from omtk.core.rig import Rig
     from omtk.core.component_definition import ComponentDefinition
+    from omtk.core.entity_attribute import EntityAttribute
 
     if val is None or isinstance(val, (
             bool,
@@ -131,11 +132,12 @@ def get_datatype(val):
         return AttributeType.Rig
     if isinstance(val, Entity):
         return AttributeType.Component
+
     if isinstance(val, ComponentDefinition):
         return AttributeType.ComponentDefinition
 
 
-    raise Exception("Cannot resolve Component attribute type for {0} {1}".format(type(val), val))
+    raise Exception("Cannot resolve datatype for {0} {1}".format(type(val), val))
 
 
 @libPython.memoized
@@ -170,6 +172,8 @@ def get_icon_from_datatype(data, datatype=None):
                 return _create("/transform.svg")
         else:
             return _create("/transform.svg")
+    if datatype == AttributeType.ComponentDefinition:
+        return _create("out_objectSet.png")
 
     log.warning("Cannot resolve icon from datatype {0}".format(datatype))
 

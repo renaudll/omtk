@@ -26,6 +26,7 @@ def get_path_preferences():
     """
     config_dir = _get_path_config_dir()
     config_path = os.path.join(config_dir, CONFIG_FILENAME)
+    log.info('Preference path is {0}'.format(config_path))
     return config_path
 
 

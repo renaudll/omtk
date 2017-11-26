@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window.ui'
 #
-# Created: Sun Nov 26 14:01:10 2017
+# Created: Sun Nov 26 14:06:23 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -210,6 +210,7 @@ class Ui_OpenRiggingToolkit(object):
         self.dockWidget_modules.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Modules", None, -1))
         self.dockWidget_influences.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Influences", None, -1))
         self.dockWidget_meshes.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Meshes", None, -1))
+        self.dockWidget.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Components", None, -1))
         self.actionUpdate.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Update All", None, -1))
         self.actionUpdate.setToolTip(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Update", None, -1))
         self.actionImport.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Import", None, -1))

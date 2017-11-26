@@ -31,5 +31,19 @@
     "inputTranslateY",
     "inputTranslateZ",
     "outputMatrix"
+  ],
+  "multiplyDivide": [
+    "input1",
+    "input1X",
+    "input1Y",
+    "input1Z",
+    "input",
+    "input2X",
+    "input2Y",
+    "input2Z",
+    "output",
+    "output2X",
+    "output2Y",
+    "output2Z",
   ]
 }

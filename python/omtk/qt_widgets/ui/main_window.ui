@@ -238,6 +238,9 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
+   <property name="windowTitle">
+    <string>Components</string>
+   </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>

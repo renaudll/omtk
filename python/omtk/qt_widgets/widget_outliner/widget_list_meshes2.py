@@ -12,12 +12,10 @@ class WidgetListMeshes2(widget_list_base.OmtkBaseListWidgetRig):
     """
     List mesh and their influences (if they are skinned).
     """
-    @log_info
     def iter_values(self):
         for obj in pymel.ls(type='mesh'):
             yield obj.getTransform()
 
-    @log_info
     def get_qtreewidget_item(self, value):
         item = super(WidgetListMeshes2, self).get_qtreewidget_item(value)
 

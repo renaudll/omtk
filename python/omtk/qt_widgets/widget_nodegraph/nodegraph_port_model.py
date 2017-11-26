@@ -25,6 +25,12 @@ class NodeGraphPortModel(object):
     def __repr__(self):
         return '<NodeGraphPortModel {0}.{1}>'.format(self.get_parent(), self.get_name())
 
+    @property
+    def impl(self):
+        if not self._impl:
+            raise Exception("No implementation given.")
+        return self._impl
+
     def get_name(self):
         """Return the unique name relative to the node."""
         return self._name
@@ -40,37 +46,37 @@ class NodeGraphPortModel(object):
         """
         return self._node
 
-    # --- PortAdaptor interface methods --- #
+    # --- NodeGraphPortImpl interface methods --- #
 
     def get_metadata(self):
-        return self._impl.get_metadata()
+        return self.impl.get_metadata()
 
     def get_metatype(self):
-        return self._impl.get_metatype()
+        return self.impl.get_metatype()
 
     def is_readable(self):
-        return self._impl.is_readable()
+        return self.impl.is_readable()
 
     def is_writable(self):
-        return self._impl.is_writable()
+        return self.impl.is_writable()
 
     def is_source(self):
-        return self._impl.is_source()
+        return self.impl.is_source()
 
     def is_destination(self):
-        return self._impl.is_destination()
+        return self.impl.is_destination()
 
     def is_connected(self):
         return self.is_source() or self.is_destination()
 
     def is_interesting(self):
-        return self._impl.is_interesting()
+        return self.impl.is_interesting()
 
     # --- Connection related methods --- #
 
     def get_input_connections(self):
         result = set()
-        for val in self._impl.get_inputs():
+        for val in self.impl.get_inputs():
             model = self._registry.get_port_model_from_value(val)
             inst = self._registry.get_connection_model_from_values(model, self)
             result.add(inst)
@@ -78,7 +84,7 @@ class NodeGraphPortModel(object):
 
     def get_output_connections(self):
         result = set()
-        for val in self._impl.get_outputs():
+        for val in self.impl.get_outputs():
             model = self._registry.get_port_model_from_value(val)
             inst = self._registry.get_connection_model_from_values(self, model)
             result.add(inst)
@@ -89,11 +95,11 @@ class NodeGraphPortModel(object):
 
     def connect_from(self, val):
         """Called when an upstream connection is created using a view."""
-        self._impl.connect_from(val)
+        self.impl.connect_from(val)
 
     def connect_to(self, val):
         """Called when a downstream connection is created using a view."""
-        self._impl.connect_to(val)
+        self.impl.connect_to(val)
 
     def disconnect_from(self, val):
         """Called when an upstream connection is removed using a view."""
@@ -157,7 +163,7 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
     def __init__(self, registry, node, pyattr, attr_node=None):
         name = pyattr.longName()
         super(NodeGraphPymelPortModel, self).__init__(registry, node, name)
-        self._adaptor = nodegraph_port_adaptor.PymelAttributePortAdaptor(pyattr)
+        self._impl = nodegraph_port_adaptor.PymelAttributeNodeGraphPortImpl(pyattr)
         # self._pynode = attr_node if attr_node else pyattr.node()
         # self._pyattr = pyattr
 
@@ -167,25 +173,25 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
     def connect_from(self, val):
         # Multi attributes cannot be directly connected to.
         # We need an available port.
-        if self._adaptor._data.isMulti():
-            i = self._adaptor._data.numElements()
-            attr_dst = self._adaptor._data[i]
+        if self._impl._data.isMulti():
+            i = self._impl._data.numElements()
+            attr_dst = self._impl._data[i]
         else:
-            attr_dst = self._adaptor._data
+            attr_dst = self._impl._data
 
         pymel.connectAttr(val, attr_dst)
 
     # todo: move to adaptor
     def connect_to(self, val):
-        pymel.connectAttr(self._adaptor._data, val)
+        pymel.connectAttr(self._impl._data, val)
 
     # todo: move to adaptor
     def disconnect_from(self, val):
-        pymel.disconnectAttr(val, self._adaptor._data)
+        pymel.disconnectAttr(val, self._impl._data)
 
     # todo: move to adaptor
     def disconnect_to(self, val):
-        pymel.disconnectAttr(self._adaptor._data, val)
+        pymel.disconnectAttr(self._impl._data, val)
 
         # --- Widget export --- #
 
@@ -206,7 +212,7 @@ class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
     def __init__(self, registry, node, attr_def):
         name = attr_def.name
         super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
-        self._adaptor = nodegraph_port_adaptor.EntityAttributePortAdaptor(attr_def)
+        self._impl = nodegraph_port_adaptor.EntityAttributeNodeGraphPortImpl(attr_def)
 
 # # todo: replace double inheritence by composition
 # class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):

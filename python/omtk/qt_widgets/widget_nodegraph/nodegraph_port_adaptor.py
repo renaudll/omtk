@@ -11,7 +11,7 @@ from omtk.factories import factory_datatypes
 from omtk.libs import libPython
 
 
-class PortAdaptor(object):
+class NodeGraphPortImpl(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, data):
@@ -51,10 +51,10 @@ class PortAdaptor(object):
 
 
 
-class PymelAttributePortAdaptor(PortAdaptor):
+class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
     def __init__(self, data):
         assert (isinstance(data, pymel.Attribute))
-        super(PymelAttributePortAdaptor, self).__init__(data)
+        super(PymelAttributeNodeGraphPortImpl, self).__init__(data)
         self._pynode = data.node()
         self._mfn = data.__apimattr__()  # OpenMaya.MFnAttribute, for optimization purpose
 
@@ -146,14 +146,14 @@ class PymelAttributePortAdaptor(PortAdaptor):
         pymel.connectAttr(self._data, val, force=True)
 
 
-class EntityAttributePortAdaptor(PortAdaptor):
+class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
     def __init__(self, data):
         assert (isinstance(data, entity_attribute.EntityAttribute))
         self._data = data
 
         # Some EntityAttribute points to pymel attributes.
         if isinstance(data, entity_attribute.EntityPymelAttribute):
-            self._pymel_adaptor = PymelAttributePortAdaptor(data.get_raw_data())
+            self._pymel_adaptor = PymelAttributeNodeGraphPortImpl(data.get_raw_data())
         else:
             self._pymel_adaptor = None
 

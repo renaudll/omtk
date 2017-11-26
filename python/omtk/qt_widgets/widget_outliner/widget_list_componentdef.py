@@ -10,7 +10,6 @@ class WidgetListComponentDefinition(widget_list_base.OmtkBaseListWidget):
     """
     List mesh and their influences (if they are skinned).
     """
-    @log_info
     def iter_values(self):
         for component in sorted(libComponents.walk_available_component_definitions()):
             yield component

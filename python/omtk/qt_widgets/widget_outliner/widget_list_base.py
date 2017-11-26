@@ -110,12 +110,10 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         """
         return [item._meta_data for item in self.iter_selected_items() if isinstance(item._meta_data, Entity)]
 
-    @log_info
     def iter_values(self):
         for obj in pymel.ls(type='transform'):
             yield obj
 
-    @log_info
     def get_qtreewidget_item(self, value):
         return factory_tree_widget_item.get(value)
 

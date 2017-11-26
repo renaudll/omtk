@@ -44,6 +44,12 @@
     "output",
     "output2X",
     "output2Y",
-    "output2Z",
+    "output2Z"
+  ],
+  "reverse": [
+    "input",
+    "inputX",
+    "inputY",
+    "inputZ"
   ]
 }

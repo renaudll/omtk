@@ -20,7 +20,7 @@ class NodeGraphPortModel(object):
         self._name = name
         self._registry = registry
         self._node = node
-        self._adaptor = None
+        self._impl = None
 
     def __repr__(self):
         return '<NodeGraphPortModel {0}.{1}>'.format(self.get_parent(), self.get_name())
@@ -43,34 +43,34 @@ class NodeGraphPortModel(object):
     # --- PortAdaptor interface methods --- #
 
     def get_metadata(self):
-        return self._adaptor.get_metadata()
+        return self._impl.get_metadata()
 
     def get_metatype(self):
-        return self._adaptor.get_metatype()
+        return self._impl.get_metatype()
 
     def is_readable(self):
-        return self._adaptor.is_readable()
+        return self._impl.is_readable()
 
     def is_writable(self):
-        return self._adaptor.is_writable()
+        return self._impl.is_writable()
 
     def is_source(self):
-        return self._adaptor.is_source()
+        return self._impl.is_source()
 
     def is_destination(self):
-        return self._adaptor.is_destination()
+        return self._impl.is_destination()
 
     def is_connected(self):
         return self.is_source() or self.is_destination()
 
     def is_interesting(self):
-        return self._adaptor.is_interesting()
+        return self._impl.is_interesting()
 
     # --- Connection related methods --- #
 
     def get_input_connections(self):
         result = set()
-        for val in self._adaptor.get_inputs():
+        for val in self._impl.get_inputs():
             model = self._registry.get_port_model_from_value(val)
             inst = self._registry.get_connection_model_from_values(model, self)
             result.add(inst)
@@ -78,7 +78,7 @@ class NodeGraphPortModel(object):
 
     def get_output_connections(self):
         result = set()
-        for val in self._adaptor.get_outputs():
+        for val in self._impl.get_outputs():
             model = self._registry.get_port_model_from_value(val)
             inst = self._registry.get_connection_model_from_values(self, model)
             result.add(inst)
@@ -89,11 +89,11 @@ class NodeGraphPortModel(object):
 
     def connect_from(self, val):
         """Called when an upstream connection is created using a view."""
-        self._adaptor.connect_from(val)
+        self._impl.connect_from(val)
 
     def connect_to(self, val):
         """Called when a downstream connection is created using a view."""
-        self._adaptor.connect_to(val)
+        self._impl.connect_to(val)
 
     def disconnect_from(self, val):
         """Called when an upstream connection is removed using a view."""

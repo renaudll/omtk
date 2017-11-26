@@ -146,6 +146,14 @@ class Component(Entity):
         self.grp_out = None
         self.grp_dag = None
 
+    def optimize(self):
+        # type: () -> bool
+        """
+        Implement optimisation routines. Call before publishing rig to animation.
+        :return:
+        """
+        return False
+
     def is_modified(self):
         # type: () -> bool
         """
@@ -418,12 +426,12 @@ class ComponentScripted(Component):
 
 class ActionShowContentInNodeEditor(EntityAction):
     def get_name(self):
-        return 'Show content in Node Editor'
+        return 'Show content in Node Editor.md'
 
     def _create_node_editor(self):
         cmds.window()
         form = cmds.formLayout()
-        p = cmds.scriptedPanel(type="nodeEditorPanel", label="Node Editor")
+        p = cmds.scriptedPanel(type="nodeEditorPanel", label="Node Editor.md")
         cmds.formLayout(form, e=True, af=[(p, s, 0) for s in ("top", "bottom", "left", "right")])
         cmds.showWindow()
         return p + 'NodeEditorEd'

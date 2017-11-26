@@ -111,7 +111,8 @@ class PymelAttributePortAdaptor(PortAdaptor):
         s = session.get_session()
         map = s.preferences.get_nodegraph_default_attr_map().get(self._pynode.type(), None)
         if map:
-            return self._data.longName() in map
+            key = self._data.longName()
+            return key in map
 
         # if self._data.isHidden():
         if self._mfn.isHidden():

@@ -24,9 +24,17 @@ win.setCentralWidget(widget)
 win.show()
 """
 
+from . import nodegraph_model
+NodeGraphModel = nodegraph_model.NodeGraphModel
 
 from . import nodegraph_widget
 NodeGraphWidget = nodegraph_widget.NodeGraphWidget
+
+from . import nodegraph_view
+NodeGraphView = nodegraph_view.NodeGraphView
+
+from . import nodegraph_controller
+NodeGraphController = nodegraph_controller.NodeGraphController
 
 
 def reload_():
@@ -76,4 +84,11 @@ def reload_():
     global NodeGraphWidget
     NodeGraphWidget = nodegraph_widget.NodeGraphWidget
 
+    global NodeGraphView
+    NodeGraphView = nodegraph_view.NodeGraphView
 
+    global NodeGraphController
+    NodeGraphController = nodegraph_controller.NodeGraphController
+
+    global NodeGraphModel
+    NodeGraphModel = nodegraph_model.NodeGraphModel

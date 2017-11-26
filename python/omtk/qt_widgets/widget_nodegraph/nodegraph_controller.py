@@ -40,7 +40,7 @@ def block_signal(fn):
     return _fn_decorated
 
 
-class NodeGraphController(QtCore.QObject):  # needed for signal handling
+class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary for signal handling
     onLevelChanged = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
 

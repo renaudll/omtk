@@ -6,3 +6,4 @@ requires = ['libSerialization-0.1+']
 
 def commands():
     env.PYTHONPATH.append('{root}/python')
+    env.XBMLANGPATH.append("{root}/shelf/%B")

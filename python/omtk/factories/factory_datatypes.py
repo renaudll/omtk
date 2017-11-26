@@ -74,7 +74,7 @@ _attr_type_by_native_type = {
     bool: AttributeType.AttributeBool
 }
 
-# note: currently we try to use the same colors as in maya Node Editor
+# note: currently we try to use the same colors as in maya Node Editor.md
 _g_port_color_by_datatype = {
     AttributeType.AttributeBool: QtGui.QColor(221, 135, 36, 255),
     AttributeType.AttributeFloat: QtGui.QColor(80, 230, 80, 255),

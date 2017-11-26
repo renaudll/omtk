@@ -6,69 +6,68 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1487</width>
-    <height>987</height>
+    <width>1225</width>
+    <height>748</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Open Rigging Toolkit</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QStackedWidget" name="stackedWidget">
-    <property name="geometry">
-     <rect>
-      <x>9</x>
-      <y>9</y>
-      <width>1007</width>
-      <height>721</height>
-     </rect>
-    </property>
-    <property name="currentIndex">
-     <number>0</number>
-    </property>
-    <widget class="QWidget" name="page_1">
-     <layout class="QVBoxLayout" name="verticalLayout_9">
-      <property name="leftMargin">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <property name="currentIndex">
        <number>0</number>
       </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-     </layout>
-    </widget>
-    <widget class="QWidget" name="page_2">
-     <layout class="QVBoxLayout" name="verticalLayout_7">
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="NodeGraphWidget" name="widget_node_editor" native="true"/>
-      </item>
-     </layout>
-    </widget>
-   </widget>
+      <widget class="QWidget" name="page_1">
+       <layout class="QVBoxLayout" name="verticalLayout_9">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="WidgetWelcome" name="widget_welcome" native="true"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="page_2">
+       <layout class="QVBoxLayout" name="verticalLayout_7">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="NodeGraphWidget" name="widget_node_editor" native="true"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1487</width>
+     <width>1225</width>
      <height>22</height>
     </rect>
    </property>
@@ -364,6 +363,12 @@
    <class>WidgetListComponentDefinition</class>
    <extends>QWidget</extends>
    <header>..widget_outliner.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetWelcome</class>
+   <extends>QWidget</extends>
+   <header>..WidgetWelcome.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

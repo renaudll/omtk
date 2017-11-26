@@ -8,7 +8,7 @@ if True:  # for safe type hinting
     from omtk.core.rig import Rig
 
 
-class WidgetListMeshes2(widget_list_base.OmtkBaseListWidget):
+class WidgetListMeshes2(widget_list_base.OmtkBaseListWidgetRig):
     """
     List mesh and their influences (if they are skinned).
     """

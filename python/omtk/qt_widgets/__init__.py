@@ -36,6 +36,7 @@ def reload_():
 
     log.debug('Reloading widget_outliner')
     from omtk.qt_widgets import widget_outliner
+    reload(widget_outliner)
 
     log.debug('Reloading widget_welcome_ui')
     from omtk.qt_widgets.ui import widget_welcome as widget_welcome_ui
@@ -50,8 +51,8 @@ def reload_():
     reload(model_rig_templates)
 
     log.debug('Reloading widget_welcome')
-    from omtk.qt_widgets import form_welcome_message
-    reload(form_welcome_message)
+    from omtk.qt_widgets import WidgetWelcome
+    reload(WidgetWelcome)
 
     log.debug('Reloading preferences_window')
     from omtk.qt_widgets import window_preferences
@@ -61,6 +62,7 @@ def reload_():
     from omtk.qt_widgets import window_pluginmanager
     reload(window_pluginmanager)
 
+    log.debug('Reloading main_window_ui')
     from .ui import main_window as main_window_ui
     reload(main_window_ui)
 

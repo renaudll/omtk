@@ -73,4 +73,7 @@ def reload_():
     reload(ui)
     ui.reload_()
 
+    global NodeGraphWidget
+    NodeGraphWidget = nodegraph_widget.NodeGraphWidget
+
 

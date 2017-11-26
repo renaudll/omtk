@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window.ui'
 #
-# Created: Wed Nov 22 21:06:53 2017
+# Created: Sun Nov 26 14:01:10 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,17 +12,21 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
         OpenRiggingToolkit.setObjectName("OpenRiggingToolkit")
-        OpenRiggingToolkit.resize(1487, 987)
+        OpenRiggingToolkit.resize(1225, 748)
         self.centralwidget = QtWidgets.QWidget(OpenRiggingToolkit)
         self.centralwidget.setObjectName("centralwidget")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
+        self.horizontalLayout.setObjectName("horizontalLayout")
         self.stackedWidget = QtWidgets.QStackedWidget(self.centralwidget)
-        self.stackedWidget.setGeometry(QtCore.QRect(9, 9, 1007, 721))
         self.stackedWidget.setObjectName("stackedWidget")
         self.page_1 = QtWidgets.QWidget()
         self.page_1.setObjectName("page_1")
         self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.page_1)
         self.verticalLayout_9.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
+        self.widget_welcome = WidgetWelcome(self.page_1)
+        self.widget_welcome.setObjectName("widget_welcome")
+        self.verticalLayout_9.addWidget(self.widget_welcome)
         self.stackedWidget.addWidget(self.page_1)
         self.page_2 = QtWidgets.QWidget()
         self.page_2.setObjectName("page_2")
@@ -33,9 +37,10 @@ class Ui_OpenRiggingToolkit(object):
         self.widget_node_editor.setObjectName("widget_node_editor")
         self.verticalLayout_7.addWidget(self.widget_node_editor)
         self.stackedWidget.addWidget(self.page_2)
+        self.horizontalLayout.addWidget(self.stackedWidget)
         OpenRiggingToolkit.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(OpenRiggingToolkit)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1487, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1225, 22))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -223,5 +228,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None, -1))
 
 from ..widget_logger import WidgetLogger
-from ..widget_outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
+from ..WidgetWelcome import WidgetWelcome
+from ..widget_outliner import WidgetListInfluences, WidgetListMeshes, WidgetListComponentDefinition, WidgetListModules
 from ..widget_nodegraph import NodeGraphWidget

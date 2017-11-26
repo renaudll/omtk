@@ -70,9 +70,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.pushButton_collapse.pressed.connect(self.on_colapse)
         self.ui.pushButton_down.pressed.connect(self.on_navigate_down)
         self.ui.pushButton_up.pressed.connect(self.on_navigate_up)
-        self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
-        self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
-        self.ui.pushButton_arrange_spring.pressed.connect(self.on_arrange_spring)
+        # self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
+        # self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
+        # self.ui.pushButton_arrange_spring.pressed.connect(self.on_arrange_spring)
         self.ui.pushButton_group.pressed.connect(self.on_group)
         self.ui.pushButton_ungroup.pressed.connect(self.on_ungroup)
 

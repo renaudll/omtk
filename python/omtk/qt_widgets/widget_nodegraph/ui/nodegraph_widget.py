@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Sun Nov 26 16:18:50 2017
+# Created: Sun Nov 26 18:31:54 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -89,44 +89,15 @@ class Ui_Form(object):
         self.pushButton_ungroup.setSizePolicy(sizePolicy)
         self.pushButton_ungroup.setObjectName("pushButton_ungroup")
         self.horizontalLayout.addWidget(self.pushButton_ungroup)
+        self.widget_toolbar = WidgetToolbar(Form)
+        self.widget_toolbar.setObjectName("widget_toolbar")
+        self.horizontalLayout.addWidget(self.widget_toolbar)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout)
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.pushButton_arrange_spring = QtWidgets.QPushButton(Form)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_arrange_spring.sizePolicy().hasHeightForWidth())
-        self.pushButton_arrange_spring.setSizePolicy(sizePolicy)
-        self.pushButton_arrange_spring.setObjectName("pushButton_arrange_spring")
-        self.horizontalLayout_2.addWidget(self.pushButton_arrange_spring)
-        self.pushButton_arrange_downstream = QtWidgets.QPushButton(Form)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_arrange_downstream.sizePolicy().hasHeightForWidth())
-        self.pushButton_arrange_downstream.setSizePolicy(sizePolicy)
-        self.pushButton_arrange_downstream.setObjectName("pushButton_arrange_downstream")
-        self.horizontalLayout_2.addWidget(self.pushButton_arrange_downstream)
-        self.pushButton_arrange_upstream = QtWidgets.QPushButton(Form)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_arrange_upstream.sizePolicy().hasHeightForWidth())
-        self.pushButton_arrange_upstream.setSizePolicy(sizePolicy)
-        self.pushButton_arrange_upstream.setObjectName("pushButton_arrange_upstream")
-        self.horizontalLayout_2.addWidget(self.pushButton_arrange_upstream)
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_2.addItem(spacerItem1)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.widget_breadcrumb = WidgetBreadcrumb(Form)
         self.widget_breadcrumb.setObjectName("widget_breadcrumb")
         self.verticalLayout.addWidget(self.widget_breadcrumb)
-        self.widget_toolbar = WidgetToolbar(Form)
-        self.widget_toolbar.setObjectName("widget_toolbar")
-        self.verticalLayout.addWidget(self.widget_toolbar)
         self.tabWidget = QtWidgets.QTabWidget(Form)
         self.tabWidget.setObjectName("tabWidget")
         self.verticalLayout.addWidget(self.tabWidget)
@@ -146,9 +117,6 @@ class Ui_Form(object):
         self.pushButton_up.setText(QtWidgets.QApplication.translate("Form", "Go Up", None, -1))
         self.pushButton_group.setText(QtWidgets.QApplication.translate("Form", "Group", None, -1))
         self.pushButton_ungroup.setText(QtWidgets.QApplication.translate("Form", "Ungroup", None, -1))
-        self.pushButton_arrange_spring.setText(QtWidgets.QApplication.translate("Form", "Arrange Spring", None, -1))
-        self.pushButton_arrange_downstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Downstrea", None, -1))
-        self.pushButton_arrange_upstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Uppstream", None, -1))
 
 from ...widget_breadcrumb import WidgetBreadcrumb
 from ...widget_toolbar import WidgetToolbar

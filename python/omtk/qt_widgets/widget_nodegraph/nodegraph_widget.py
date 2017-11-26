@@ -76,6 +76,8 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self.ui.pushButton_group.pressed.connect(self.on_group)
         self.ui.pushButton_ungroup.pressed.connect(self.on_ungroup)
 
+        self.ui.widget_toolbar.onNodeCreated.connect(self.on_add)
+
         # Connect events (breadcrumb)
         self.ui.widget_breadcrumb.path_changed.connect(self.on_breadcrumb_changed)
 

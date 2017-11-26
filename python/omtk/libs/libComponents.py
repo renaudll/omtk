@@ -355,7 +355,7 @@ def create_component_by_name(name, map_inn=None, map_out=None):
     :return: A Component instance.
     """
     cls = get_component_class_by_name(name, strict=True)
-    inst = cls.instanciate(None, map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
+    inst = cls.instanciate(map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
     return inst
 
 
@@ -368,5 +368,5 @@ def create_component_by_uid(uid, map_inn=None, map_out=None):
     :return: A Component instance.
     """
     cls = get_component_class_by_uid(uid, strict=True)
-    inst = cls.instanciate(None, map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
+    inst = cls.instanciate(map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
     return inst

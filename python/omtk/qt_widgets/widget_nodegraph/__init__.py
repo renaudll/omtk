@@ -38,6 +38,9 @@ NodeGraphController = nodegraph_controller.NodeGraphController
 
 
 def reload_():
+    from .. import widget_toolbar
+    reload(widget_toolbar)
+
     from . import nodegraph_port_model
     reload(nodegraph_port_model)
 

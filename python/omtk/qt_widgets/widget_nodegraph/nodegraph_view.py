@@ -115,7 +115,7 @@ class NodeGraphView(PyFlowgraphView):
         # If a component definition was dragged inside the widget, we will create an instance.
         def _handle_component_definition(component_def):
             # type: (ComponentDefinition) -> Component
-            return component_def.instanciate(session.get_session())
+            return component_def.instanciate()
         drop_data = [_handle_component_definition(data) if isinstance(data, ComponentDefinition) else data for data in drop_data]
 
         # new clean method

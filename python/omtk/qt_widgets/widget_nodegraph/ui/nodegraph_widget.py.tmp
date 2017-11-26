@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Sun Nov 26 14:45:54 2017
+# Created: Sun Nov 26 16:18:50 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -124,32 +124,9 @@ class Ui_Form(object):
         self.widget_breadcrumb = WidgetBreadcrumb(Form)
         self.widget_breadcrumb.setObjectName("widget_breadcrumb")
         self.verticalLayout.addWidget(self.widget_breadcrumb)
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.pushButton = QtWidgets.QPushButton(Form)
-        self.pushButton.setObjectName("pushButton")
-        self.horizontalLayout_3.addWidget(self.pushButton)
-        self.pushButton_2 = QtWidgets.QPushButton(Form)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.horizontalLayout_3.addWidget(self.pushButton_2)
-        self.pushButton_3 = QtWidgets.QPushButton(Form)
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.horizontalLayout_3.addWidget(self.pushButton_3)
-        self.pushButton_4 = QtWidgets.QPushButton(Form)
-        self.pushButton_4.setObjectName("pushButton_4")
-        self.horizontalLayout_3.addWidget(self.pushButton_4)
-        self.pushButton_5 = QtWidgets.QPushButton(Form)
-        self.pushButton_5.setObjectName("pushButton_5")
-        self.horizontalLayout_3.addWidget(self.pushButton_5)
-        self.pushButton_6 = QtWidgets.QPushButton(Form)
-        self.pushButton_6.setObjectName("pushButton_6")
-        self.horizontalLayout_3.addWidget(self.pushButton_6)
-        self.pushButton_7 = QtWidgets.QPushButton(Form)
-        self.pushButton_7.setObjectName("pushButton_7")
-        self.horizontalLayout_3.addWidget(self.pushButton_7)
-        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_3.addItem(spacerItem2)
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
+        self.widget_toolbar = WidgetToolbar(Form)
+        self.widget_toolbar.setObjectName("widget_toolbar")
+        self.verticalLayout.addWidget(self.widget_toolbar)
         self.tabWidget = QtWidgets.QTabWidget(Form)
         self.tabWidget.setObjectName("tabWidget")
         self.verticalLayout.addWidget(self.tabWidget)
@@ -172,12 +149,6 @@ class Ui_Form(object):
         self.pushButton_arrange_spring.setText(QtWidgets.QApplication.translate("Form", "Arrange Spring", None, -1))
         self.pushButton_arrange_downstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Downstrea", None, -1))
         self.pushButton_arrange_upstream.setText(QtWidgets.QApplication.translate("Form", "Arrange Uppstream", None, -1))
-        self.pushButton.setText(QtWidgets.QApplication.translate("Form", "transform", None, -1))
-        self.pushButton_2.setText(QtWidgets.QApplication.translate("Form", "+ -", None, -1))
-        self.pushButton_3.setText(QtWidgets.QApplication.translate("Form", "mult", None, -1))
-        self.pushButton_4.setText(QtWidgets.QApplication.translate("Form", "div", None, -1))
-        self.pushButton_5.setText(QtWidgets.QApplication.translate("Form", "pow", None, -1))
-        self.pushButton_6.setText(QtWidgets.QApplication.translate("Form", "multMatrix", None, -1))
-        self.pushButton_7.setText(QtWidgets.QApplication.translate("Form", "inverseMatrix", None, -1))
 
 from ...widget_breadcrumb import WidgetBreadcrumb
+from ...widget_toolbar import WidgetToolbar

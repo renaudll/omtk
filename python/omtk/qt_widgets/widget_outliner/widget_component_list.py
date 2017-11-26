@@ -218,7 +218,7 @@ class WidgetComponentList(QtWidgets.QWidget):
         for entry in entries:
             # Create the component in memory
             try:
-                component = entry.instanciate(self.manager)
+                component = entry.instanciate()
             except Exception, e:
                 log.exception(e)
                 raise e

@@ -1,6 +1,7 @@
 import os
 import re
 import uuid
+import logging
 
 import pymel.core as pymel
 from maya import cmds
@@ -8,6 +9,8 @@ from omtk import constants, api
 from omtk.core import session
 from omtk.core.component import Component
 from omtk.libs import libNamespaces
+
+log = logging.getLogger('omtk')
 
 regex_ma_header = re.compile('^\/\/Maya ASCII .* scene$')
 regex_fileinfo = re.compile('^fileInfo "(.*)" "(.*)";')
@@ -143,7 +146,7 @@ class ComponentDefinition(object):
         metadata = self.get_metadata()
         return write_metadata_to_ma_file(path, metadata)
 
-    def instanciate(self, parent, name=None, map_inn=None, map_out=None):
+    def instanciate(self, name=None, map_inn=None, map_out=None):
         # type: () -> (Component, pymel.nodetypes.Network)
         """
         Create a Component in the scene from a ComponentDefinition.
@@ -161,6 +164,8 @@ class ComponentDefinition(object):
         if name is None:
             name = self.name
         namespace = libNamespaces.get_unique_namespace(name)
+        log.info('Creating component with namespace: {0}'.format(name))
+
         cmds.file(self.path, i=True, namespace=namespace)
 
         # Resolve input hub
@@ -205,7 +210,7 @@ class ComponentDefinition(object):
 class ComponentScriptedDefinition(ComponentDefinition):
     component_cls = None
 
-    def instanciate(self, parent, name='unamed', map_inn=None, map_out=None):
+    def instanciate(self, name='unamed', map_inn=None, map_out=None):
         inst = self.component_cls(name=name)
         inst.build_interface()
 
@@ -227,16 +232,10 @@ class ComponentModuleDefinition(ComponentDefinition):
         super(ComponentModuleDefinition, self).__init__(name, **kwargs)
         self._cls = module_cls
 
-    def instanciate(self, manager, name='unamed', map_inn=None, map_out=None):
-        # Add the component to the first Rig we encounter.
-        # todo: make this more elegant
-        # from omtk import api
-        # rig = api.find_one()
-
+    def instanciate(self, name='unamed', map_inn=None, map_out=None):
         inst = self._cls(name=name)
 
-        manager._root.add_module(inst)
-        # manager.export_networks()
+        session.get_session()._root.add_module(inst)
 
         inst.initialize_inputs()  # module need inputs, create them otherwise it wont work...
         try:

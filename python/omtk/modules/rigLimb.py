@@ -312,13 +312,13 @@ class Limb(Module):
     @decorator_uiexpose()
     def assign_twist_weights(self):
         for module in self.sys_twist:
-            if isinstance(module, self._CLASS_SYS_TWIST):
+            if module.__class__.__name__ == self._CLASS_SYS_TWIST.__name__:
                 module.assign_twist_weights()
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):
         for module in self.sys_twist:
-            if isinstance(module, self._CLASS_SYS_TWIST):
+            if module.__class__.__name__ == self._CLASS_SYS_TWIST.__name__:
                 module.unassign_twist_weights()
 
 

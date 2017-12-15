@@ -1,6 +1,10 @@
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk.libs import libPymel
+import logging
+
+
+log = logging.getLogger('omtk')
 
 
 def get_skin_cluster(obj):
@@ -397,13 +401,68 @@ def reset_skin_cluster(skinCluster):
         pymel.skinCluster(influenceObjs + [obj], tsb=True)
 
 
-def reset_selection_skin_cluster():
-    # Collect skinClusters
+def _get_skinClusters_from_inputs(obj):
     skinClusters = set()
-    for obj in pymel.selected():
-        skinCluster = get_skin_cluster(obj)
-        if skinCluster:
-            skinClusters.add(skinCluster)
+    jnts = [jnt for jnt in obj if jnt and jnt.exists()]  # Only handle existing objects
+    for jnt in jnts:
+        for hist in jnt.listHistory(future=True):
+            if isinstance(hist, pymel.nodetypes.SkinCluster):
+                skinClusters.add(hist)
+    return skinClusters
 
-    for skinCluster in skinClusters:
-        reset_skin_cluster(skinCluster)
+
+def assign_twist_weights(src, dsts):
+    """
+    Automatically find any skinCluster associated with provided arguments and weights from a single influences
+    to multiple influences on a line.
+    :param src: A pymel.PyNode, generally of type pymel.nodetypes.Joint.
+    :param dsts: A list of pymel.PyNode, generally of type pymel.nodetypes.Join.
+    """
+    skin_deformers = _get_skinClusters_from_inputs([src])
+    meshes = set()
+
+    for skin_deformer in skin_deformers:
+        # Ensure the source joint is in the skinCluster influences
+        influenceObjects = get_skin_cluster_influence_objects(skin_deformer)
+        if src not in influenceObjects:
+            continue
+
+        # Add skinCluster output geometries to the cache
+        for output_geometry in skin_deformer.getOutputGeometry():
+            if isinstance(output_geometry, pymel.nodetypes.Mesh):
+                meshes.add(output_geometry)
+
+        # Add new joints as influence.
+        for dst in dsts:
+            if dst in influenceObjects:
+                continue
+            skin_deformer.addInfluence(dst, lockWeights=True, weight=0.0)
+            dst.lockInfluenceWeights.set(False)
+
+    for mesh in meshes:
+        log.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), src.name()))
+        # Transfer weight, note that since we use force_straight line, the influence
+        # don't necessaryy need to be in their bind pose.
+        transfer_weights_from_segments(mesh, src, dsts, force_straight_line=True)
+
+
+def unassign_twist_weights(dsts, src):
+    """
+    Automatically find any skinCluster associated with provided arguments and transfer all weights from
+    multiples influences to a single influence.
+    :param dsts: A list of pymel.PyNode, generally of type pymel.nodetypes.Join.
+    :param src: A pymel.PyNode, generally of type pymel.nodetypes.Joint.
+    """
+    for skin_deformer in _get_skinClusters_from_inputs(dsts):
+        # Ensure that the start joint is in the skin cluster
+        influenceObjects = get_skin_cluster_influence_objects(skin_deformer)
+        if src not in influenceObjects:
+            skin_deformer.addInfluence(src, lockWeights=True, weight=0.0)
+            src.lockInfluenceWeights.set(False)
+
+        # Ensure subjnts are transfert correctly
+        to_transfer = []
+        for dst in dsts:
+            if dst in influenceObjects:
+                to_transfer.append(dst)
+        transfer_weights(skin_deformer, to_transfer, src, add_missing_influences=True)

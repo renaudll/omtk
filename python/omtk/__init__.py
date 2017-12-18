@@ -56,6 +56,12 @@ def _reload(kill_ui=True):
         from ui import widget_list_meshes
         reload(widget_list_meshes)
 
+        from ui import widget_component_wizard_parts as widget_component_wizard_parts_ui
+        reload(widget_component_wizard_parts_ui)
+
+        from ui import widget_create_component as widget_create_component_ui
+        reload(widget_create_component_ui)
+
         from ui import widget_logger
         reload(widget_logger)
 
@@ -70,6 +76,12 @@ def _reload(kill_ui=True):
 
         import widget_logger
         reload(widget_logger)
+
+        import widget_create_component_wizard_parts
+        reload(widget_create_component_wizard_parts)
+
+        import widget_create_component
+        reload(widget_create_component)
 
         from ui import main_window
         reload(main_window)

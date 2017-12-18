@@ -479,7 +479,7 @@ def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
 # todo: check if memoized is really necessary?
 # @libPython.memoized
 def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
-                              weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0):
+                              weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0, default_size=1.0):
     """
     Return the recommended size of a controller if it was created for this obj.
     :param obj: The object to analyze.
@@ -496,7 +496,7 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
 
     if geometries is None:
         log.warning("Cannot get recommended ctrl size. No geometries to do raycast on!")
-        return 0
+        return default_size
 
     # Create a number of raycast for each geometry. Use the longuest distance.
     # Note that we are not using the negative Y axis, this give bettern result for example on shoulders.
@@ -534,12 +534,9 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
     if not length:
         if isinstance(obj, pymel.nodetypes.Joint):
             length = obj.radius.get()
+        else:
+            length = default_size
     return length
-
-    print "Cannot get recommended size for {0}, return default value of {1}".format(
-        obj.name(), default_value
-    )
-    return default_value
 
 
 def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):

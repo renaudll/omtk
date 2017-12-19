@@ -22,19 +22,6 @@ def create_offset_grp(obj, suffix='offset'):
     return offset
 
 
-# Step 1: Create the network
-# w = ComponentWizard()
-# 
-# # Step 2: Expose the ctrls
-# for obj in pymel.selected():
-#     w.expose_ctrl(obj)
-# 
-# # Step 3: Export the influences
-# for obj in pymel.selected():
-#     w.expose_infl(obj)
-
-
-
 class WidgetCreateComponent(QtWidgets.QMainWindow):
     def __init__(self):
         super(WidgetCreateComponent, self).__init__()
@@ -47,6 +34,8 @@ class WidgetCreateComponent(QtWidgets.QMainWindow):
         wizard = self.import_()
         if not wizard:
             wizard = libComponent.ComponentWizard()
+            wizard.initialize()
+
         self.set_wizard(wizard)
 
         self.export()

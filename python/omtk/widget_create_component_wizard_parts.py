@@ -5,6 +5,11 @@ import pymel.core as pymel
 
 
 class ComponentPartModel(QtCore.QAbstractTableModel):
+    ID_COLUMN_NAME = 0
+    ID_COLUMN_ATTR_NAME = 1
+
+    onNetworkChanged = QtCore.Signal()
+
     def __init__(self, entries):
         super(ComponentPartModel, self).__init__()
         self._entries = entries
@@ -13,18 +18,33 @@ class ComponentPartModel(QtCore.QAbstractTableModel):
         return len(self._entries)
 
     def columnCount(self, index):
-        return 1
+        return 2
 
     def data(self, index, role):
-        if role == QtCore.Qt.DisplayRole:
-            row = index.row()
-            return str(self._entries[row])
-        if role == QtCore.Qt.CheckStateRole:
-            row = index.row()
-            entry = self._entries[row]
-            return entry.is_connected()
+        col = index.column()
+        row = index.row()
+        if col == self.ID_COLUMN_NAME:
+            if role == QtCore.Qt.DisplayRole:
+                return str(self._entries[row])
+            if role == QtCore.Qt.CheckStateRole:
+                entry = self._entries[row]
+                return entry.is_connected()
+        elif col == self.ID_COLUMN_ATTR_NAME:
+            if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+                entry = self._entries[row]
+                return entry.attr_name
+
+    def headerData(self, section, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            if section == self.ID_COLUMN_NAME:
+                return 'Node'
+            elif section == self.ID_COLUMN_ATTR_NAME:
+                return 'Attr Name'
 
     def setData(self, index, value, role):
+        if not value:
+            return False
+
         if role == QtCore.Qt.CheckStateRole:
             index = index.row()
             is_checked = bool(value)
@@ -35,11 +55,21 @@ class ComponentPartModel(QtCore.QAbstractTableModel):
                 entry.disconnect()
             return True
 
+        if role == QtCore.Qt.EditRole:
+            index = index.row()
+            entry = self._entries[index]
+            entry.rename_attr(value)
+            self.onNetworkChanged.emit()
+
         return False
 
     def flags(self, index):
         flags = super(ComponentPartModel, self).flags(index)
-        flags |= QtCore.Qt.ItemIsUserCheckable
+        col = index.column()
+        if col == self.ID_COLUMN_NAME:
+            flags |= QtCore.Qt.ItemIsUserCheckable
+        if col == self.ID_COLUMN_ATTR_NAME:
+            flags |= QtCore.Qt.ItemIsEditable
         return flags
 
     def reset(self):
@@ -59,6 +89,13 @@ class ComponentPartModel(QtCore.QAbstractTableModel):
         if need_update and update:
             self.reset()
 
+    def have_entry_for_node(self, obj):
+        for entry in self._entries:
+            for entry_obj in entry.iter_nodes():
+                if obj == entry_obj:
+                    return True
+        return False
+
 
 class WidgetCreateComponentWizardParts(QtWidgets.QWidget):
     _cls = None
@@ -76,12 +113,14 @@ class WidgetCreateComponentWizardParts(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         self.model = ComponentPartModel([])
+        self.model.onNetworkChanged.connect(self.onNetworkChanged.emit)
 
         self.ui.tableView.setModel(self.model)
 
-        self.ui.pushButton_ctrl_add.pressed.connect(self.on_added)
-        self.ui.pushButton_ctrl_connect.pressed.connect(self.on_connect)
-        self.ui.pushButton_ctrl_disconnect.pressed.connect(self.on_disconnect)
+        self.ui.pushButton_add.pressed.connect(self.on_added)
+        self.ui.pushButton_remove.pressed.connect(self.on_remove)
+        self.ui.pushButton_connect.pressed.connect(self.on_connect)
+        self.ui.pushButton_disconnect.pressed.connect(self.on_disconnect)
 
     def get_selected_entries(self):
         indexes = set(qindex.row() for qindex in self.ui.tableView.selectedIndexes())
@@ -90,10 +129,7 @@ class WidgetCreateComponentWizardParts(QtWidgets.QWidget):
 
     def can_add(self, obj):
         # Prevent adding the same object twice.
-        for entry in self.model._entries:
-            if entry._obj == obj:
-                return False
-        return True
+        return not self.model.have_entry_for_node(obj)
 
     def on_added(self):
         assert (self._cls is not None)  # ensure the class have been set
@@ -106,6 +142,18 @@ class WidgetCreateComponentWizardParts(QtWidgets.QWidget):
         if new_entries:
             self.model.add_entries(new_entries, update=True)
             self.onNetworkChanged.emit()
+
+    def on_remove(self):
+        need_update = False
+        entries_to_remove = self.get_selected_entries()
+        for entry in entries_to_remove:
+            if entry.is_connected():
+                entry.disconnect()
+            entry.delete()  # todo: implement
+            self.model._entries.remove(entry)
+            need_update = True
+        if need_update:
+            self.model.reset()
 
     def on_connect(self):
         need_update = False

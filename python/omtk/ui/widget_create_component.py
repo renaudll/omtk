@@ -2,12 +2,12 @@
 
 # Form implementation generated from reading ui file '/home/rlessard/packages/omtk/0.4.999/python/omtk/ui/widget_create_component.ui'
 #
-# Created: Mon Dec 18 13:43:35 2017
+# Created: Tue Dec 19 14:16:05 2017
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -72,7 +72,7 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QtCompat.translate("MainWindow", "MainWindow", None, -1))
+        MainWindow.setWindowTitle(QtCompat.translate("MainWindow", "Component Creation Wizard", None, -1))
         self.label_ctrl.setText(QtCompat.translate("MainWindow", "Ctrls:", None, -1))
         self.label_infl.setText(QtCompat.translate("MainWindow", "Influences:", None, -1))
         self.label_guid.setText(QtCompat.translate("MainWindow", "Guides:", None, -1))

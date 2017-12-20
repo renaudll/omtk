@@ -11,7 +11,7 @@ from omtk.libs import libComponent
 
 import pymel.core as pymel
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtWidgets
 
 
 def create_offset_grp(obj, suffix='offset'):
@@ -78,7 +78,3 @@ class WidgetCreateComponent(QtWidgets.QMainWindow):
 _gui = None
 
 
-def show():
-    global _gui
-    _gui = WidgetCreateComponent()
-    _gui.show()

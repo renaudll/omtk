@@ -117,12 +117,6 @@ def reload_(kill_ui=True):
     from omtk.qt_widgets import window_main
     reload(window_main)
 
-    from omtk import widget_create_component
-    reload(widget_create_component)
-
-    from omtk import widget_create_component_wizard_parts
-    reload(widget_create_component_wizard_parts)
-
 
 # prevent confusion
 def _reload(*args, **kwargs):

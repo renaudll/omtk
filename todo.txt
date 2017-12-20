@@ -1,2 +1,0 @@
-[ ] Hide decompose/composeMatrix when connecting from a translate/rotate/scale to a matrix
-[ ] Hide any unitConversion nodes

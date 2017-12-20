@@ -2,7 +2,7 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants
-from omtk.core.classComponent import ComponentScripted
+from omtk.core.component import ComponentScripted
 from omtk.libs import libRigging
 
 log = logging.getLogger('omtk')

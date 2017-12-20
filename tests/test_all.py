@@ -1,6 +1,5 @@
-import pymel.core as pymel
-
 import omtk
+import pymel.core as pymel
 
 
 class SampleTests(omtk_test.TestCase):
@@ -50,9 +49,9 @@ class SampleTests(omtk_test.TestCase):
     @omtk_test.open_scene('./test_lips.ma')
     def test_avar_connection_persistence(self):
         import omtk
-        from omtk.modules_broken import rigHead
-        from omtk.modules_broken import rigFaceJaw
-        from omtk.modules_broken import rigFaceLips
+        from omtk.modules import rigHead
+        from omtk.modules import rigFaceJaw
+        from omtk.modules import rigFaceLips
         from omtk.libs import libRigging
 
         # Create a base rig
@@ -89,9 +88,9 @@ class SampleTests(omtk_test.TestCase):
     @omtk_test.open_scene('./test_lips.ma')
     def test_avargrp_withsurface(self):
         import omtk
-        from omtk.modules_broken import rigHead
-        from omtk.modules_broken import rigFaceJaw
-        from omtk.modules_broken import rigFaceLips
+        from omtk.modules import rigHead
+        from omtk.modules import rigFaceJaw
+        from omtk.modules import rigFaceLips
 
         # Create a base rig
         rig = omtk.create()
@@ -116,8 +115,8 @@ class SampleTests(omtk_test.TestCase):
         to it's child avars.        :return:
         """
         import omtk
-        from omtk.modules_broken import rigHead
-        from omtk.modules_broken import rigFaceAvarGrps
+        from omtk.modules import rigHead
+        from omtk.modules import rigFaceAvarGrps
 
         # Create a base rig
         rig = omtk.create()
@@ -170,7 +169,7 @@ class SampleTests(omtk_test.TestCase):
         rebuild it, we will keep the old index.
         This ensure any rig update will never break an old animation.
         """
-        from omtk.modules_broken import rigFK
+        from omtk.modules import rigFK
 
         def check_targets_index_match(ctrl):
             self.assertEqual(len(ctrl.targets), len(ctrl.targets_indexes))

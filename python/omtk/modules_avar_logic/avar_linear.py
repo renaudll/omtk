@@ -1,10 +1,10 @@
 import pymel.core as pymel
-from omtk.core import classNode
-from omtk.core import classModuleAvarLogic
+from omtk.core import node
+from omtk.core import module_logic_avar
 from omtk.libs import libRigging
 
 
-class AvarLogicLinear(classModuleAvarLogic.BaseAvarRigConnectionModel):
+class AvarLogicLinear(module_logic_avar.BaseAvarRigConnectionModel):
     """
     This represent a single deformer influence that is moved in space using avars.
     By default it come with a Deformer driven by a doritos setup.
@@ -79,7 +79,7 @@ class AvarLogicLinear(classModuleAvarLogic.BaseAvarRigConnectionModel):
         # The stack resolve the influence final transform relative to it's parent and original bind-pose.
         #
         dag_stack_name = nomenclature_rig.resolve('stack')
-        stack = classNode.Node()
+        stack = node.Node()
         stack.build(name=dag_stack_name)
 
         # Create an offset layer that define the starting point of the Avar.

@@ -16,7 +16,7 @@ except ImportError:
     pass
 
 
-def _build_ui():
+def build_ui_files():
     try:
         import pysideuic
     except ImportError:
@@ -30,6 +30,7 @@ def _build_ui():
 
             path_src = os.path.join(dirpath, filename)
             path_dst = os.path.join(dirpath, basename + '.py')
+            path_dst_tmp = os.path.join(dirpath, basename + '.py.tmp')
 
             if os.path.exists(path_dst) and os.path.getctime(path_src) < os.path.getctime(path_dst):
                 continue
@@ -39,13 +40,20 @@ def _build_ui():
                 path_dst
             ))
 
-            with open(path_dst, 'w') as fp:
+            with open(path_dst_tmp, 'w') as fp:
                 pysideuic.compileUi(path_src, fp)
+
+            with open(path_dst_tmp, 'r') as fp_inn:
+                with open(path_dst, 'w') as fp_out:
+                    for line in fp_inn.readlines():
+                        line = line.replace('from PySide2 import ', 'from omtk.vendor.Qt import ')
+                        fp_out.write(line)
+
 
             # todo: replace PySide2 call for omtk.vendor.Qt calls
 
 
-def _reload(kill_ui=True):
+def reload_(kill_ui=True):
     import pymel.core as pymel
 
     """
@@ -58,6 +66,13 @@ def _reload(kill_ui=True):
     except:
         pass
 
+    if kill_ui:
+        # Try to kill the window to prevent any close event error
+        try:
+            pymel.deleteUI('OpenRiggingToolkit')
+        except:
+            pass
+
     log.debug('Reloading constants')
     import constants
     reload(constants)
@@ -68,44 +83,25 @@ def _reload(kill_ui=True):
     log.debug('Reloading core')
     import core
     reload(core)
-    core._reload()
+    core.reload_()
 
     log.debug('Reloading libs')
     import libs
     reload(libs)
-    libs._reload()
+    libs.reload_()
 
-    log.debug('Reloading plugin_manager')
-    from omtk.core import plugin_manager
-    reload(plugin_manager)
-    plugin_manager.plugin_manager.reload_all()
-
-    log.debug('Reloading factory_datatypes')
-    from omtk import factory_datatypes
-    reload(factory_datatypes)
-
-    from omtk import session
+    log.debug('Reloading session')
+    from omtk.core import session
     reload(session)
 
-    log.debug('Reloading factory_tree_widget_item')
-    from omtk import factory_tree_widget_item
-    reload(factory_tree_widget_item)
-
-    log.debug('Reloading factory_rc_menu')
-    from omtk import factory_rc_menu
-    reload(factory_rc_menu)
+    log.debug('Reloading factories')
+    from omtk import factories
+    reload(factories)
+    factories.reload_()
 
     log.debug('Reloading ui_shared')
-    import ui_shared
-    reload(ui_shared)
-    # Reload main window
-
-    if kill_ui:
-        # Try to kill the window to prevent any close event error
-        try:
-            pymel.deleteUI('OpenRiggingToolkit')
-        except:
-            pass
+    import constants_ui
+    reload(constants_ui)
 
     log.debug('Reloading qt_widgets')
     import qt_widgets
@@ -117,15 +113,15 @@ def _reload(kill_ui=True):
     reload(ui_main_window)
 
     log.debug('Reloading main_window')
-    import main_window
-    reload(main_window)
+    from omtk.qt_widgets import window_main
+    reload(window_main)
 
 
 # prevent confusion
-def reload_(*args, **kwargs):
-    return _reload(*args, **kwargs)
+def _reload(*args, **kwargs):
+    return reload_(*args, **kwargs)
 
 
 def show():
-    import main_window
-    main_window.show()
+    from omtk.qt_widgets import window_main
+    window_main.show()

@@ -1,10 +1,12 @@
+import contextlib
 import logging
 
 log = logging.getLogger('omtk')
 
 
 def decorator(decorator):
-    '''This decorator can be used to turn simple functions
+    """
+    This decorator can be used to turn simple functions
     into well-behaved decorators, so long as the decorators
     are fairly simple. If a decorator expects a function and
     returns a function (no descriptors), and if it doesn't
@@ -12,7 +14,8 @@ def decorator(decorator):
     eligible to use this. Simply apply @simple_decorator to
     your decorator and it will automatically preserve the
     docstring and function attributes of functions to which
-    it is applied.'''
+    it is applied.
+    """
     def new_decorator(f):
         g = decorator(f)
         g.__name__ = f.__name__
@@ -33,3 +36,25 @@ def log_info(func):
         log.info('calling {}'.format(func.__name__))
         return func(*args, **kwargs)
     return subroutine
+
+
+@decorator
+def log_warning(func):
+    def subroutine(*args, **kwargs):
+        log.warning('calling {}'.format(func.__name__))
+        return func(*args, **kwargs)
+    return subroutine
+
+
+@contextlib.contextmanager
+def pymel_preserve_selection():
+    import pymel.core as pymel
+    from omtk.libs import libPymel
+
+    sel = pymel.selected()
+    yield True
+    sel = filter(libPymel.is_valid_PyNode, sel)
+    if sel:
+        pymel.select(sel)
+    else:
+        pymel.select(clear=True)

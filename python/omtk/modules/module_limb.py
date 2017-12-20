@@ -1,16 +1,15 @@
 import collections
 
 import pymel.core as pymel
-from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classModule import Module
+from omtk import constants
+from omtk.core.ctrl import BaseCtrl
+from omtk.core.module import Module
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.modules import module_ik
-from omtk.modules_broken import rigFK, rigTwistbone
-
-from omtk import constants
+from omtk.modules import module_ik, rigFK
+from omtk.modules import rigTwistbone
 
 
 class BaseAttHolder(BaseCtrl):
@@ -309,7 +308,7 @@ def register_plugin():
     return Limb
 
 
-from omtk.core.classComponent import ComponentScripted
+from omtk.core.component import ComponentScripted
 
 
 class ComponentLimb(ComponentScripted):

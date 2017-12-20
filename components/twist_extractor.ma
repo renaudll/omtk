@@ -2,7 +2,7 @@
 //Name: twist_extractor2.ma
 //Last modified: Wed, Aug 23, 2017 08:59:39 PM
 //Codeset: UTF-8
-requires maya "2017ff05";
+requires maya "2017";
 requires -nodeType "decomposeMatrix" -nodeType "inverseMatrix" "matrixNodes" "1.0";
 requires -nodeType "quatToEuler" "quatNodes" "1.0";
 currentUnit -l centimeter -a degree -t film;
@@ -11,7 +11,6 @@ fileInfo "product" "Maya 2017";
 fileInfo "version" "2017";
 fileInfo "cutIdentifier" "201706020738-1017329";
 fileInfo "osv" "Linux 3.10.0-514.21.2.el7.x86_64 #1 SMP Tue Jun 20 12:24:47 UTC 2017 x86_64";
-fileInfo "license" "student";
 fileInfo "omtk.component.author" "";
 fileInfo "omtk.component.version" "0.0.1";
 fileInfo "omtk.component.uid" "d2b0b3a9-3432-411a-9afd-aa20553b93b7";

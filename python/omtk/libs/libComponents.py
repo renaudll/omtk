@@ -2,7 +2,7 @@ import logging
 import os
 
 import pymel.core as pymel
-from omtk.core.classComponentDefinition import ComponentDefinition
+from omtk.core.component_definition import ComponentDefinition
 from omtk.libs import libAttr
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -283,7 +283,7 @@ def create_component_from_bounds(objs):
     """Initialize an unregistred Compound from objects defining the bounds."""
     input_attrs, output_attrs = identify_network_io_ports(objs)
 
-    from omtk.core.classComponent import Component
+    from omtk.core.component import Component
     inst = Component.from_attributes(input_attrs, output_attrs)
 
     return inst
@@ -355,7 +355,7 @@ def create_component_by_name(name, map_inn=None, map_out=None):
     :return: A Component instance.
     """
     cls = get_component_class_by_name(name, strict=True)
-    inst = cls.instanciate(None, map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
+    inst = cls.instanciate(map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
     return inst
 
 
@@ -368,5 +368,5 @@ def create_component_by_uid(uid, map_inn=None, map_out=None):
     :return: A Component instance.
     """
     cls = get_component_class_by_uid(uid, strict=True)
-    inst = cls.instanciate(None, map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
+    inst = cls.instanciate(map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
     return inst

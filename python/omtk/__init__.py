@@ -1,6 +1,7 @@
 import constants
 
 from .core import *
+from .api import *
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.INFO)  # debugging

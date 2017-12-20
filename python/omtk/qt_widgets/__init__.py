@@ -14,6 +14,11 @@ def reload_():
     reload(widget_nodegraph)
     widget_nodegraph.reload_()
 
+    log.debug('Reloading widget_component_wizard')
+    from . import widget_component_wizard
+    reload(widget_component_wizard)
+    widget_component_wizard.reload_()
+
     log.debug('Reloading widget_logger_ui')
     from omtk.qt_widgets.ui import widget_logger as widget_logger_ui
     reload(widget_logger_ui)
@@ -21,10 +26,6 @@ def reload_():
     log.debug('Reloading widget_logger')
     from omtk.qt_widgets import widget_logger
     reload(widget_logger)
-
-    log.debug('Reloading form_create_component_ui')
-    from .ui import form_create_component as form_create_component_ui
-    reload(form_create_component_ui)
 
     log.debug('Reloading pluginmanager_window_ui')
     from omtk.qt_widgets.ui import pluginmanager_window as pluginmanager_window_ui

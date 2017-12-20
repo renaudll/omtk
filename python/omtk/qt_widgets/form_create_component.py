@@ -145,9 +145,9 @@ class CreateComponentForm(QtWidgets.QMainWindow):
 
     def iter_scene_components(self):
         for network in libSerialization.iter_networks_from_class(component.Component.__name__):
-            component = libSerialization.import_network(network)
-            if component:
-                yield component
+            inst = libSerialization.import_network(network)
+            if inst:
+                yield inst
 
     def get_scene_components(self):
         return list(self.iter_scene_components())
@@ -166,10 +166,10 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         self.ui.pushButton_submit.setEnabled(have_component and have_name and have_author and have_version and have_uid)
 
     def on_create_new(self):
-        component = component.Component()
-        component.build_interface()
-        self.component = component
-        self._components.append(component)
+        inst = component.Component()
+        inst.build_interface()
+        self.component = inst
+        self._components.append(inst)
         self.update_component_list()
 
     def on_select(self):

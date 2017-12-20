@@ -332,7 +332,7 @@ class IK(Module):
         ]
         self.input = outputs
 
-    def build(self, *args, **kwargs):
+    def build(self, constraint=None, *args, **kwargs):
         """
         Build the libs system when needed
         :param ctrl_ik_orientation: A boolean to define if the ctrl should be zeroed.
@@ -387,10 +387,13 @@ class IK(Module):
 
         builder = DagBuilder()
 
+        from omtk.libs import libPymel
+        guides = libPymel.duplicate_chain(list(self.chain_jnt))
+
         from omtk.libs import libComponents
         component = libComponents.create_component(
             ComponentIk,
-            bindPoses=[obj.worldMatrix for obj in self.input],
+            bindPoses=[obj.worldMatrix for obj in guides],  # todo: make dynamic
             ikCtrlEndPos=self.ctrl_ik.worldMatrix,
             swivelPos=builder.get_world_translate(self.ctrl_swivel),
             softik=attr_soft_amount,

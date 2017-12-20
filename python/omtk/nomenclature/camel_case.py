@@ -4,7 +4,7 @@ from .pascal_case import NomenclaturePascalCase
 class NomenclatureCamelCase(NomenclaturePascalCase):
     """
     Example Nomenclature definition that use camelCase as separator.
-    ex: ['head_ctrl'] -> HeadCtrl
+    ex: ['head_ctrl'] -> headCtrl
     """
 
     @classmethod

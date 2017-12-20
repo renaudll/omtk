@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Sun Nov 26 18:31:54 2017
+# Created: Sun Nov 26 18:37:47 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window.ui'
 #
-# Created: Sun Nov 26 18:31:54 2017
+# Created: Sun Nov 26 18:38:31 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -25,6 +25,11 @@ class Ui_OpenRiggingToolkit(object):
         self.verticalLayout_9.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.widget_welcome = WidgetWelcome(self.page_1)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.widget_welcome.sizePolicy().hasHeightForWidth())
+        self.widget_welcome.setSizePolicy(sizePolicy)
         self.widget_welcome.setObjectName("widget_welcome")
         self.verticalLayout_9.addWidget(self.widget_welcome)
         self.stackedWidget.addWidget(self.page_1)

@@ -17,6 +17,9 @@ if False:
 
 
 class NodeGraphView(PyFlowgraphView):
+    """
+    Wrapper around a PyFlowgraphView with custom events.
+    """
     dragEnter = QtCore.Signal(object)
     dragLeave = QtCore.Signal(object)
     dragDrop = QtCore.Signal(object)
@@ -26,6 +29,7 @@ class NodeGraphView(PyFlowgraphView):
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
+        self.selectionChanged.connect(self.on_selection_changed)
 
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
         shortcut_tab.activated.connect(self.on_tab_pressed)
@@ -54,6 +58,10 @@ class NodeGraphView(PyFlowgraphView):
         menu = QtWidgets.QMenu()
         self._controller.on_right_click(menu)
         menu.exec_(QtGui.QCursor.pos())
+
+    def on_selection_changed(self):
+        nodes_to_select = self._controller.get_nodes()
+        pymel.select(nodes_to_select)
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
@@ -100,17 +108,6 @@ class NodeGraphView(PyFlowgraphView):
             drop_data = [libPython.objects_by_id(int(token)) for token in drop_data_raw.split(',')]
         else:
             raise Exception("No mime data found!")
-
-        # old unclean method
-        # if isinstance(drop_data, list):
-        #     for sub_entry in drop_data:
-        #         node = factory_pyflowgraph_node.get_node(self, sub_entry)
-        #         self.addNode(node)
-        #         node_pos = QtCore.QPointF(self.mapToScene(event.pos()))
-        #         node.setGraphPos(node_pos)
-        #         # factory_pyflowgraph_node.arrange_upstream(node)
-        #         libPyflowgraph.arrange_upstream(node)
-
 
         # If a component definition was dragged inside the widget, we will create an instance.
         def _handle_component_definition(component_def):

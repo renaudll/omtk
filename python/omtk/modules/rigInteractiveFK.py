@@ -20,7 +20,7 @@ import pymel.core as pymel
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.module_map import ModuleMap
 from omtk.core.module import Module
-from omtk.core import classCtrlModel
+from omtk.core import module_logic_ctrl
 from omtk.libs import libRigging
 from omtk.libs import libAttr
 from omtk.libs import libPython
@@ -47,7 +47,7 @@ class InteractiveFKCtrl(BaseCtrl):
     pass
 
 
-class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
+class InteractiveFKCtrlModel(module_logic_ctrl.CtrlModelCalibratable):
     """
     This module allow the controller to follow a follicle and
     hijack the influence skinCluster to only consider the local space.

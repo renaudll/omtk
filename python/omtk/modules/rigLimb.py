@@ -66,6 +66,7 @@ class Limb(Module):
         self.ctrl_attrs = None
         self.STATE_IK = 1.0
         self.STATE_FK = 0.0
+        self.ikEndIndex = 2
 
     def iter_submodules(self):
         if self.sysIK:
@@ -84,12 +85,17 @@ class Limb(Module):
         # Resolve IK system name
 
         # Create IK system
+
+        from omtk.libs import libPymel
+        chain_ik = libPymel.duplicate_chain(list(self.chain_jnt))
+
         self.sysIK = self.init_module(
             self._CLASS_SYS_IK,
             self.sysIK,
-            inputs=self.chain_jnt,
+            inputs=chain_ik,
             suffix='libs',
         )
+        print(self.chain_jnt)
         self.sysIK.build(constraint=False, **kwargs)
 
         # Create FK system
@@ -102,30 +108,31 @@ class Limb(Module):
         self.sysFK.build(constraint=False, **kwargs)
 
         # Create twistbone system if needed
-        if self.create_twist:
-            num_twist_sys = self.sysIK.iCtrlIndex
-            # Ensure the twistbone list have the proper size
-            libPython.resize_list(self.sys_twist, num_twist_sys)
-
-            # If the IK system is a quad, we need to have two twist system
-            for i, sys_twist in enumerate(self.sys_twist):
-                # Resolve module name
-                # todo: validate name
-                twist_nomenclature = self.get_nomenclature().copy()
-                twist_nomenclature.add_tokens('bend')
-                twist_nomenclature += self.rig.nomenclature(self.chain_jnt[i].stripNamespace().nodeName())
-                # twist_nomenclature = self.get_nomenclature() + self.rig.nomenclature(self.chain_jnt[i].name())
-
-                sys_twist = self.init_module(
-                    self._CLASS_SYS_TWIST,
-                    sys_twist,
-                    inputs=self.chain_jnt[i:(i + 2)],
-                    # suffix='bend'
-                )
-                self.sys_twist[i] = sys_twist
-                sys_twist.name = twist_nomenclature.resolve()
-
-                sys_twist.build(num_twist=3, create_bend=True, **kwargs)
+        # fixme: desactivated for now
+        # if self.create_twist:
+        #     num_twist_sys = self.sysIK.iCtrlIndex
+        #     # Ensure the twistbone list have the proper size
+        #     libPython.resize_list(self.sys_twist, num_twist_sys)
+        #
+        #     # If the IK system is a quad, we need to have two twist system
+        #     for i, sys_twist in enumerate(self.sys_twist):
+        #         # Resolve module name
+        #         # todo: validate name
+        #         twist_nomenclature = self.get_nomenclature().copy()
+        #         twist_nomenclature.add_tokens('bend')
+        #         twist_nomenclature += self.rig.nomenclature(self.chain_jnt[i].stripNamespace().nodeName())
+        #         # twist_nomenclature = self.get_nomenclature() + self.rig.nomenclature(self.chain_jnt[i].name())
+        #
+        #         sys_twist = self.init_module(
+        #             self._CLASS_SYS_TWIST,
+        #             sys_twist,
+        #             inputs=self.chain_jnt[i:(i + 2)],
+        #             # suffix='bend'
+        #         )
+        #         self.sys_twist[i] = sys_twist
+        #         sys_twist.name = twist_nomenclature.resolve()
+        #
+        #         sys_twist.build(num_twist=3, create_bend=True, **kwargs)
 
         # Lock X and Y axis on the elbow/knee ctrl
         if self.rig.DEFAULT_UPP_AXIS == constants.Axis.y:
@@ -135,7 +142,7 @@ class Limb(Module):
 
         # Store the offset between the libs ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
-        self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.iCtrlIndex].getMatrix(
+        self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.ikEndIndex].getMatrix(
             worldSpace=True).inverse()
 
         # Add attributes to the attribute holder.
@@ -167,10 +174,13 @@ class Limb(Module):
             node.rename(blend_nomenclature.resolve('blend'))
 
         # Blend ikChain with fkChain
-        constraint_ik_chain = self.sysIK._chain_ik
-        if getattr(self.sysIK, '_chain_quad_ik', None):
-            constraint_ik_chain = self.sysIK._chain_quad_ik
-        for blend, oIk, oFk in zip(chain_blend, constraint_ik_chain, self.sysFK.ctrls):
+        # constraint_ik_chain = self.sysIK._chain_ik
+        # if getattr(self.sysIK, '_chain_quad_ik', None):
+        #     constraint_ik_chain = self.sysIK._chain_quad_ik
+
+        # Hack:
+
+        for blend, oIk, oFk in zip(chain_blend, chain_ik, self.sysFK.ctrls):
             constraint = pymel.parentConstraint(oIk, oFk, blend)
             attr_weight_ik, attr_weight_fk = constraint.getWeightAliasList()
             pymel.connectAttr(attr_ik_weight, attr_weight_ik)

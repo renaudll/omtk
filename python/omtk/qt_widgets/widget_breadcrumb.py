@@ -41,6 +41,9 @@ class WidgetBreadcrumb(QtWidgets.QWidget):
             widget.pressed.connect(functools.partial(self.on_path_changed, model))
             self.__layout.addWidget(widget)
 
+        s = QtWidgets.QSpacerItem(20, QtWidgets.QSizePolicy.Minimum)
+        self.__layout.addItem(s)
+
         self.__layout.addStretch()
 
     def on_path_changed(self, model):

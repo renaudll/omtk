@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window.ui'
 #
-# Created: Sun Nov 26 18:38:31 2017
+# Created: Wed Dec 20 20:39:33 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
         OpenRiggingToolkit.setObjectName("OpenRiggingToolkit")
-        OpenRiggingToolkit.resize(1225, 748)
+        OpenRiggingToolkit.resize(927, 592)
         self.centralwidget = QtWidgets.QWidget(OpenRiggingToolkit)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
@@ -45,7 +45,7 @@ class Ui_OpenRiggingToolkit(object):
         self.horizontalLayout.addWidget(self.stackedWidget)
         OpenRiggingToolkit.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(OpenRiggingToolkit)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1225, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 927, 25))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -211,9 +211,9 @@ class Ui_OpenRiggingToolkit(object):
         self.menuJoint.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mo&dules", None, -1))
         self.menuInfluences.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "I&nfluences", None, -1))
         self.menuSettings.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Settings", None, -1))
-        self.menuComponents.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Components", None, -1))
-        self.dockWidget_modules.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Modules", None, -1))
-        self.dockWidget_influences.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Influences", None, -1))
+        self.menuComponents.setTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Components", None, -1))
+        self.dockWidget_modules.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Modules", None, -1))
+        self.dockWidget_influences.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Infl&uences", None, -1))
         self.dockWidget_meshes.setWindowTitle(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Meshes", None, -1))
         self.actionUpdate.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Update All", None, -1))
         self.actionUpdate.setToolTip(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Update", None, -1))
@@ -230,7 +230,7 @@ class Ui_OpenRiggingToolkit(object):
         self.actionMirrorSelection.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Mirror &using Selection", None, -1))
         self.actionShowPluginManager.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Plugin &Manager", None, -1))
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
-        self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "Create New", None, -1))
+        self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create New", None, -1))
 
 from ..widget_logger import WidgetLogger
 from ..WidgetWelcome import WidgetWelcome

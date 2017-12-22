@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Sun Nov 26 18:37:47 2017
+# Created: Wed Dec 20 20:39:55 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,11 +12,11 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(1301, 525)
+        Form.resize(621, 568)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.pushButton_add = QtWidgets.QPushButton(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -24,7 +24,7 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.pushButton_add.sizePolicy().hasHeightForWidth())
         self.pushButton_add.setSizePolicy(sizePolicy)
         self.pushButton_add.setObjectName("pushButton_add")
-        self.horizontalLayout.addWidget(self.pushButton_add)
+        self.horizontalLayout_2.addWidget(self.pushButton_add)
         self.pushButton_del = QtWidgets.QPushButton(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -32,7 +32,7 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.pushButton_del.sizePolicy().hasHeightForWidth())
         self.pushButton_del.setSizePolicy(sizePolicy)
         self.pushButton_del.setObjectName("pushButton_del")
-        self.horizontalLayout.addWidget(self.pushButton_del)
+        self.horizontalLayout_2.addWidget(self.pushButton_del)
         self.pushButton_clear = QtWidgets.QPushButton(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -40,7 +40,7 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.pushButton_clear.sizePolicy().hasHeightForWidth())
         self.pushButton_clear.setSizePolicy(sizePolicy)
         self.pushButton_clear.setObjectName("pushButton_clear")
-        self.horizontalLayout.addWidget(self.pushButton_clear)
+        self.horizontalLayout_2.addWidget(self.pushButton_clear)
         self.pushButton_expand = QtWidgets.QPushButton(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -48,7 +48,7 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.pushButton_expand.sizePolicy().hasHeightForWidth())
         self.pushButton_expand.setSizePolicy(sizePolicy)
         self.pushButton_expand.setObjectName("pushButton_expand")
-        self.horizontalLayout.addWidget(self.pushButton_expand)
+        self.horizontalLayout_2.addWidget(self.pushButton_expand)
         self.pushButton_collapse = QtWidgets.QPushButton(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -56,7 +56,12 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.pushButton_collapse.sizePolicy().hasHeightForWidth())
         self.pushButton_collapse.setSizePolicy(sizePolicy)
         self.pushButton_collapse.setObjectName("pushButton_collapse")
-        self.horizontalLayout.addWidget(self.pushButton_collapse)
+        self.horizontalLayout_2.addWidget(self.pushButton_collapse)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
         self.pushButton_down = QtWidgets.QPushButton(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -89,12 +94,12 @@ class Ui_Form(object):
         self.pushButton_ungroup.setSizePolicy(sizePolicy)
         self.pushButton_ungroup.setObjectName("pushButton_ungroup")
         self.horizontalLayout.addWidget(self.pushButton_ungroup)
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem1)
+        self.verticalLayout.addLayout(self.horizontalLayout)
         self.widget_toolbar = WidgetToolbar(Form)
         self.widget_toolbar.setObjectName("widget_toolbar")
-        self.horizontalLayout.addWidget(self.widget_toolbar)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
-        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.verticalLayout.addWidget(self.widget_toolbar)
         self.widget_breadcrumb = WidgetBreadcrumb(Form)
         self.widget_breadcrumb.setObjectName("widget_breadcrumb")
         self.verticalLayout.addWidget(self.widget_breadcrumb)

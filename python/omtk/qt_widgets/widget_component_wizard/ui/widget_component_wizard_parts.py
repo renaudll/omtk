@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rlessard/packages/omtk/0.4.999/python/omtk/ui/widget_component_wizard_parts.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_component_wizard/ui/widget_component_wizard_parts.ui'
 #
-# Created: Tue Dec 19 14:16:05 2017
-#      by: pyside2-uic  running on Qt 2.0.0~alpha0
+# Created: Wed Dec 20 20:39:32 2017
+#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat 
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -43,9 +43,9 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
-        self.pushButton_add.setText(QtCompat.translate("Form", "Add", None, -1))
-        self.pushButton_remove.setText(QtCompat.translate("Form", "Remove", None, -1))
-        self.pushButton_connect.setText(QtCompat.translate("Form", "Connect", None, -1))
-        self.pushButton_disconnect.setText(QtCompat.translate("Form", "Disconnect", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
+        self.pushButton_remove.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
+        self.pushButton_connect.setText(QtWidgets.QApplication.translate("Form", "Connect", None, -1))
+        self.pushButton_disconnect.setText(QtWidgets.QApplication.translate("Form", "Disconnect", None, -1))
 

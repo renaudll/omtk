@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/widget_list_modules.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_outliner/ui/widget_list_modules.ui'
 #
-# Created: Thu Nov 16 21:56:04 2017
+# Created: Wed Dec 20 20:39:33 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide2 import QtCore, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -42,4 +42,4 @@ class Ui_Form(object):
         Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
         self.btn_update.setText(QtWidgets.QApplication.translate("Form", "Update", None, -1))
 
-from omtk.qt_widgets.widget_outliner.widget_extended_tree import WidgetExtendedTree
+from ..widget_extended_tree import WidgetExtendedTree

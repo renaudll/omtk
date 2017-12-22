@@ -31,6 +31,7 @@ class WidgetWelcome(QtWidgets.QWidget):
         # Connect events
         self.ui.btn_create_rig_default.pressed.connect(self.on_create_rig)
         self.ui.btn_create_rig_template.pressed.connect(self.on_import_rig)
+        self.ui.btn_start.pressed.connect(self.on_start_empty)
 
     @property
     def manager(self):
@@ -45,10 +46,15 @@ class WidgetWelcome(QtWidgets.QWidget):
         row = self.rig_def_model.entries.index(rig_def)
         self.rig_def_view.selectRow(row)
 
+    # --- Signals ---
+
     def on_create_rig(self):
         rig_type = self.get_selected_rig_definition()
         self.manager.create_rig(rig_type=rig_type)
         self.onCreate.emit()
 
     def on_import_rig(self):
+        self.onCreate.emit()
+
+    def on_start_empty(self):
         self.onCreate.emit()

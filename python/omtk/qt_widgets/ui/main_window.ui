@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1225</width>
-    <height>748</height>
+    <width>927</width>
+    <height>592</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -74,8 +74,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1225</width>
-     <height>22</height>
+     <width>927</width>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -120,7 +120,7 @@
    </widget>
    <widget class="QMenu" name="menuComponents">
     <property name="title">
-     <string>Components</string>
+     <string>&amp;Components</string>
     </property>
     <addaction name="actionCreateComponent"/>
    </widget>
@@ -162,7 +162,7 @@
     </size>
    </property>
    <property name="windowTitle">
-    <string>Modules</string>
+    <string>&amp;Modules</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
@@ -190,7 +190,7 @@
     </size>
    </property>
    <property name="windowTitle">
-    <string>Influences</string>
+    <string>Infl&amp;uences</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
@@ -331,7 +331,7 @@
   </action>
   <action name="actionCreateComponent">
    <property name="text">
-    <string>Create New</string>
+    <string>&amp;Create New</string>
    </property>
   </action>
  </widget>

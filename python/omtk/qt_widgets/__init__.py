@@ -43,6 +43,13 @@ def reload_():
     from omtk.qt_widgets.ui import widget_welcome as widget_welcome_ui
     reload(widget_welcome_ui)
 
+    log.debug('Reloading form_create_component')
+    from omtk.qt_widgets.ui import form_create_component as form_create_component_ui
+    reload(form_create_component_ui)
+
+    from omtk.qt_widgets import form_create_component
+    reload(form_create_component)
+
     log.debug('Reloading model_rig_definitions')
     from omtk.qt_widgets import model_rig_definitions
     reload(model_rig_definitions)

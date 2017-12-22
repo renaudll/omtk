@@ -6,6 +6,7 @@ from collections import OrderedDict
 import pymel.core as pymel
 from omtk.core import component
 from omtk.libs import libComponents
+from omtk.libs import libComponent
 from omtk.libs import libPython
 from omtk.qt_widgets.ui.form_create_component import Ui_MainWindow as ui_def
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
@@ -112,12 +113,23 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         self._component = next(iter(self._components), None)
 
         # Connect models
-        self._model_attr_inn = AttributeMapModel()
-        self._model_attr_out = AttributeMapModel()
-        proxy_model_inn = QtCore.QSortFilterProxyModel()
-        proxy_model_inn.setSourceModel(self._model_attr_inn)
-        proxy_model_out = QtCore.QSortFilterProxyModel()
-        proxy_model_out.setSourceModel(self._model_attr_out)
+        # self._model_attr_inn = AttributeMapModel()
+        # self._model_attr_out = AttributeMapModel()
+
+        self._wizard_network = None
+        self._wizard = None
+        wizard = self.import_()
+        if not wizard:
+            wizard = libComponent.ComponentWizard()
+            wizard.initialize()
+
+        self.set_wizard(wizard)
+
+        self.export()
+
+        self.ui.widget_view_ctrl.onNetworkChanged.connect(self.on_network_changed)
+        self.ui.widget_view_infl.onNetworkChanged.connect(self.on_network_changed)
+        self.ui.widget_view_guid.onNetworkChanged.connect(self.on_network_changed)
 
         # Connect events
         self.ui.pushButton_submit.pressed.connect(self.on_user_submit)
@@ -132,6 +144,40 @@ class CreateComponentForm(QtWidgets.QMainWindow):
 
         self.update_component_list()
         self.update_enabled()
+
+    # --- new ---
+
+    def set_wizard(self, wizard):
+        # type: (libComponent.ComponentWizard) -> None
+        assert (isinstance(wizard, libComponent.ComponentWizard))
+        self._wizard = wizard
+        self.ui.widget_view_ctrl.set_entries(wizard, libComponent.ComponentPartCtrl, wizard.parts_ctrl)
+        self.ui.widget_view_infl.set_entries(wizard, libComponent.ComponentPartInfluence, wizard.parts_influences)
+        self.ui.widget_view_guid.set_entries(wizard, libComponent.ComponentPartGuide, wizard.parts_guides)
+
+    def reset(self):
+        self.model_ctrl.reset()
+        self.model_guid.reset()
+        self.model_infl.reset()
+
+    def on_network_changed(self):
+        self.export()
+
+    def import_(self):
+        networks = libSerialization.get_networks_from_class(libComponent.ComponentWizard.__name__)
+        if not networks:
+            return
+        network = networks[0]
+        self._wizard_network = network
+        wizard = libSerialization.import_network(network)
+        return wizard
+
+    def export(self):
+        if self._wizard_network:
+            pymel.delete(self._wizard_network)
+        self._wizard_network = libSerialization.export_network(self._wizard)
+
+    # --- legacy ---
 
     def update_component_list(self):
         self.ui.comboBox.clear()

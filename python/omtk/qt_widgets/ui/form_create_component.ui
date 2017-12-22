@@ -6,15 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>524</width>
-    <height>418</height>
+    <width>683</width>
+    <height>592</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Create Component</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_4">
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
@@ -88,6 +88,73 @@
      </layout>
     </item>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QLabel" name="label_ctrl">
+          <property name="text">
+           <string>Ctrls:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="WidgetCreateComponentWizardParts" name="widget_view_ctrl" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QLabel" name="label_infl">
+          <property name="text">
+           <string>Influences:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="WidgetCreateComponentWizardParts" name="widget_view_infl" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <widget class="QLabel" name="label_guid">
+          <property name="text">
+           <string>Guides:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="WidgetCreateComponentWizardParts" name="widget_view_guid" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QPushButton" name="pushButton_submit">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -99,19 +166,6 @@
        <string>Publish</string>
       </property>
      </widget>
-    </item>
-    <item>
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
     </item>
     <item>
      <widget class="WidgetLogger" name="widget_logger" native="true">
@@ -133,7 +187,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>524</width>
+     <width>683</width>
      <height>22</height>
     </rect>
    </property>
@@ -145,6 +199,12 @@
    <class>WidgetLogger</class>
    <extends>QWidget</extends>
    <header>..widget_logger.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetCreateComponentWizardParts</class>
+   <extends>QWidget</extends>
+   <header>..widget_component_wizard.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

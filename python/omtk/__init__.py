@@ -1,6 +1,7 @@
 import constants
+import logging
 
-from .core import *
+# from .core import *
 from .api import *
 
 log = logging.getLogger('omtk')

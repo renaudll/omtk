@@ -112,16 +112,16 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
-        self.pushButton_del.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
-        self.pushButton_clear.setText(QtWidgets.QApplication.translate("Form", "Clear", None, -1))
-        self.pushButton_expand.setText(QtWidgets.QApplication.translate("Form", "Expand", None, -1))
-        self.pushButton_collapse.setText(QtWidgets.QApplication.translate("Form", "Collapse", None, -1))
-        self.pushButton_down.setText(QtWidgets.QApplication.translate("Form", "Go Down", None, -1))
-        self.pushButton_up.setText(QtWidgets.QApplication.translate("Form", "Go Up", None, -1))
-        self.pushButton_group.setText(QtWidgets.QApplication.translate("Form", "Group", None, -1))
-        self.pushButton_ungroup.setText(QtWidgets.QApplication.translate("Form", "Ungroup", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form"))
+        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add"))
+        self.pushButton_del.setText(QtWidgets.QApplication.translate("Form", "Remove"))
+        self.pushButton_clear.setText(QtWidgets.QApplication.translate("Form", "Clear"))
+        self.pushButton_expand.setText(QtWidgets.QApplication.translate("Form", "Expand"))
+        self.pushButton_collapse.setText(QtWidgets.QApplication.translate("Form", "Collapse"))
+        self.pushButton_down.setText(QtWidgets.QApplication.translate("Form", "Go Down"))
+        self.pushButton_up.setText(QtWidgets.QApplication.translate("Form", "Go Up"))
+        self.pushButton_group.setText(QtWidgets.QApplication.translate("Form", "Group"))
+        self.pushButton_ungroup.setText(QtWidgets.QApplication.translate("Form", "Ungroup"))
 
 from ...widget_breadcrumb import WidgetBreadcrumb
 from ...widget_toolbar import WidgetToolbar

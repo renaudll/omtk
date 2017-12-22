@@ -104,12 +104,12 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.label.setText(QtWidgets.QApplication.translate("Form", "Welcome!", None, -1))
-        self.btn_create_rig_default.setText(QtWidgets.QApplication.translate("Form", "Start from a rig", None, -1))
-        self.label_3.setText(QtWidgets.QApplication.translate("Form", "Available rigs:", None, -1))
-        self.btn_create_rig_template.setText(QtWidgets.QApplication.translate("Form", "Start from a template", None, -1))
-        self.label_4.setText(QtWidgets.QApplication.translate("Form", "Available templates", None, -1))
-        self.btn_start.setText(QtWidgets.QApplication.translate("Form", "Start from scratch", None, -1))
-        self.checkBox.setText(QtWidgets.QApplication.translate("Form", "show at startup", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form"))
+        self.label.setText(QtWidgets.QApplication.translate("Form", "Welcome!"))
+        self.btn_create_rig_default.setText(QtWidgets.QApplication.translate("Form", "Start from a rig"))
+        self.label_3.setText(QtWidgets.QApplication.translate("Form", "Available rigs:"))
+        self.btn_create_rig_template.setText(QtWidgets.QApplication.translate("Form", "Start from a template"))
+        self.label_4.setText(QtWidgets.QApplication.translate("Form", "Available templates"))
+        self.btn_start.setText(QtWidgets.QApplication.translate("Form", "Start from scratch"))
+        self.checkBox.setText(QtWidgets.QApplication.translate("Form", "show at startup"))
 

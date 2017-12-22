@@ -126,7 +126,7 @@ def walk_available_component_definitions(search_scripted=True):
                 log.debug('Registering {0} from {1}'.format(component_def, path))
                 yield component_def
 
-    from omtk import plugin_manager
+    from omtk.core import plugin_manager
     pm = plugin_manager.plugin_manager
 
     if search_scripted:
@@ -138,7 +138,11 @@ def walk_available_component_definitions(search_scripted=True):
 
     log.info("Searching modules")
     for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ModulePluginType.type_name):
-        component_def = plugin.cls.get_definition()
+        try:
+            component_def = plugin.cls.get_definition()
+        except AttributeError, e:
+            log.warning("Error obtaining plugin class definition for {0}: {1}".format(plugin, e))
+            continue
         log.debug('Registering {0} from {1}'.format(component_def, plugin))
         yield component_def
 

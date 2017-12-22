@@ -14,7 +14,7 @@ class WidgetListMeshes2(widget_list_base.OmtkBaseListWidgetRig):
     """
     def iter_values(self):
         for obj in pymel.ls(type='mesh'):
-            yield obj.getTransform()
+            yield obj.getParent()
 
     def get_qtreewidget_item(self, value):
         item = super(WidgetListMeshes2, self).get_qtreewidget_item(value)
@@ -60,4 +60,4 @@ class WidgetListRigMeshes2(WidgetListMeshes2):
     def iter_values(self):
         rig = self.get_rig()
         for mesh in rig.get_meshes():
-            yield mesh.getTransform()
+            yield mesh.getParent()

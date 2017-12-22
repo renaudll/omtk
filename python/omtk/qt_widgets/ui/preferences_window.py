@@ -46,8 +46,8 @@ class Ui_Dialog(object):
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QtWidgets.QApplication.translate("Dialog", "OMTK - Preferences", None, -1))
-        self.label.setText(QtWidgets.QApplication.translate("Dialog", "Default Rig Class", None, -1))
-        self.groupBox.setTitle(QtWidgets.QApplication.translate("Dialog", "Advanced", None, -1))
-        self.checkBox.setText(QtWidgets.QApplication.translate("Dialog", "Hide Welcome Screen", None, -1))
+        Dialog.setWindowTitle(QtWidgets.QApplication.translate("Dialog", "OMTK - Preferences"))
+        self.label.setText(QtWidgets.QApplication.translate("Dialog", "Default Rig Class"))
+        self.groupBox.setTitle(QtWidgets.QApplication.translate("Dialog", "Advanced"))
+        self.checkBox.setText(QtWidgets.QApplication.translate("Dialog", "Hide Welcome Screen"))
 

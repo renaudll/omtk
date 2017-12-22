@@ -72,9 +72,9 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "Component Creation Wizard", None, -1))
-        self.label_ctrl.setText(QtWidgets.QApplication.translate("MainWindow", "Ctrls:", None, -1))
-        self.label_infl.setText(QtWidgets.QApplication.translate("MainWindow", "Influences:", None, -1))
-        self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:", None, -1))
+        MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "Component Creation Wizard"))
+        self.label_ctrl.setText(QtWidgets.QApplication.translate("MainWindow", "Ctrls:"))
+        self.label_infl.setText(QtWidgets.QApplication.translate("MainWindow", "Influences:"))
+        self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:"))
 
 from ..widget_create_component_wizard_parts import WidgetCreateComponentWizardParts

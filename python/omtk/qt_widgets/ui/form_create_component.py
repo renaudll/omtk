@@ -136,17 +136,17 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "Create Component", None, -1))
-        self.pushButton_select.setText(QtWidgets.QApplication.translate("MainWindow", "Select", None, -1))
-        self.pushButton_create.setText(QtWidgets.QApplication.translate("MainWindow", "Create", None, -1))
-        self.label_name.setText(QtWidgets.QApplication.translate("MainWindow", "Name", None, -1))
-        self.label_author.setText(QtWidgets.QApplication.translate("MainWindow", "Author", None, -1))
-        self.label_version.setText(QtWidgets.QApplication.translate("MainWindow", "Version", None, -1))
-        self.label_id.setText(QtWidgets.QApplication.translate("MainWindow", "Unique ID", None, -1))
-        self.label_ctrl.setText(QtWidgets.QApplication.translate("MainWindow", "Ctrls:", None, -1))
-        self.label_infl.setText(QtWidgets.QApplication.translate("MainWindow", "Influences:", None, -1))
-        self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:", None, -1))
-        self.pushButton_submit.setText(QtWidgets.QApplication.translate("MainWindow", "Publish", None, -1))
+        MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "Create Component"))
+        self.pushButton_select.setText(QtWidgets.QApplication.translate("MainWindow", "Select"))
+        self.pushButton_create.setText(QtWidgets.QApplication.translate("MainWindow", "Create"))
+        self.label_name.setText(QtWidgets.QApplication.translate("MainWindow", "Name"))
+        self.label_author.setText(QtWidgets.QApplication.translate("MainWindow", "Author"))
+        self.label_version.setText(QtWidgets.QApplication.translate("MainWindow", "Version"))
+        self.label_id.setText(QtWidgets.QApplication.translate("MainWindow", "Unique ID"))
+        self.label_ctrl.setText(QtWidgets.QApplication.translate("MainWindow", "Ctrls:"))
+        self.label_infl.setText(QtWidgets.QApplication.translate("MainWindow", "Influences:"))
+        self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:"))
+        self.pushButton_submit.setText(QtWidgets.QApplication.translate("MainWindow", "Publish"))
 
 from ..widget_logger import WidgetLogger
 from ..widget_component_wizard import WidgetCreateComponentWizardParts

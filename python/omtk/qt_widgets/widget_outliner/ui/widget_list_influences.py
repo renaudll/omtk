@@ -41,8 +41,8 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.btn_update.setText(QtWidgets.QApplication.translate("Form", "Update", None, -1))
-        self.checkBox_hideAssigned.setText(QtWidgets.QApplication.translate("Form", "Hide Assigned", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form"))
+        self.btn_update.setText(QtWidgets.QApplication.translate("Form", "Update"))
+        self.checkBox_hideAssigned.setText(QtWidgets.QApplication.translate("Form", "Hide Assigned"))
 
 from ..widget_extended_tree import WidgetExtendedTree

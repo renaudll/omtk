@@ -43,9 +43,9 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
-        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
-        self.pushButton_remove.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
-        self.pushButton_connect.setText(QtWidgets.QApplication.translate("Form", "Connect", None, -1))
-        self.pushButton_disconnect.setText(QtWidgets.QApplication.translate("Form", "Disconnect", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form"))
+        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add"))
+        self.pushButton_remove.setText(QtWidgets.QApplication.translate("Form", "Remove"))
+        self.pushButton_connect.setText(QtWidgets.QApplication.translate("Form", "Connect"))
+        self.pushButton_disconnect.setText(QtWidgets.QApplication.translate("Form", "Disconnect"))
 

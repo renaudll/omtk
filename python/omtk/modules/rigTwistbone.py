@@ -301,54 +301,16 @@ class Twistbone(Module):
 
     @decorator_uiexpose()
     def assign_twist_weights(self):
-        skin_deformers = self.get_skinClusters_from_inputs()
-        meshes = set()
-
-        for skin_deformer in skin_deformers:
-            # Ensure the source joint is in the skinCluster influences
-            influenceObjects = libSkinning.get_skin_cluster_influence_objects(skin_deformer)
-            if self.chain_jnt.start not in influenceObjects:
-                continue
-
-            # Add skinCluster output geometries to the cache
-            for output_geometry in skin_deformer.getOutputGeometry():
-                if isinstance(output_geometry, pymel.nodetypes.Mesh):
-                    meshes.add(output_geometry)
-
-            # Add new joints as influence.
-            for subjnt in self.subjnts:
-                if subjnt in influenceObjects:
-                    continue
-                skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
-                subjnt.lockInfluenceWeights.set(False)
-
-        for mesh in meshes:
-            self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
-            # Transfer weight, note that since we use force_straight line, the influence
-            # don't necessaryy need to be in their bind pose.
-            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts,
-                                                       force_straight_line=True)
+        libSkinning.assign_twist_weights(self.chain_jnt.start, self.subjnts)
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):
         """
-        Handle the skin transfert from the subjnts (twists) to the first input. Will be used if the number of twists
-        change between builds
+        Handle the skin transfert from the subjnts (twists) to the first input. 
+        Will be used if the number of twists change between builds
         :return: Nothing
         """
-        for skin_deformer in self.get_skinClusters_from_subjnts():
-            # Ensure that the start joint is in the skin cluster
-            influenceObjects = libSkinning.get_skin_cluster_influence_objects(skin_deformer)
-            if self.chain_jnt.start not in influenceObjects:
-                skin_deformer.addInfluence(self.chain_jnt.start, lockWeights=True, weight=0.0)
-                self.chain_jnt.start.lockInfluenceWeights.set(False)
-
-            # Ensure subjnts are transfert correctly
-            to_transfer = []
-            for subjnt in self.subjnts:
-                if subjnt in influenceObjects:
-                    to_transfer.append(subjnt)
-            libSkinning.transfer_weights(skin_deformer, to_transfer, self.chain_jnt.start, add_missing_influences=True)
+        libSkinning.unassign_twist_weights(self.subjnts, self.chain_jnt.start)
 
     def get_skinClusters_from_inputs(self):
         skinClusters = set()

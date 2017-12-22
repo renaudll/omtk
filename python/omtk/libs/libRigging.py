@@ -432,6 +432,9 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
     new_objs[0].setParent(world=True)
     if parented:
         create_hyerarchy(new_objs)
+    else:
+        for obj in new_objs[1:]:
+            obj.setParent(world=True)
 
     return libPymel.PyNodeChain(new_objs)
 
@@ -476,62 +479,64 @@ def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
 # todo: check if memoized is really necessary?
 # @libPython.memoized
 def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
-                              weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0):
+                              weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0, default_size=1.0):
     """
     Return the recommended size of a controller if it was created for this obj.
     :param obj: The object to analyze.
     """
-    # TODO: Move to a cleaner location?
-    if isinstance(obj, pymel.nodetypes.Joint):
+    if geometries is None and isinstance(obj, pymel.nodetypes.Joint):
+        skinClusters = set()
+        for hist in obj.listHistory(future=True):
+            if isinstance(hist, pymel.nodetypes.SkinCluster):
+                skinClusters.add(hist)
+        geometries = set()
+        for skinCluster in skinClusters:
+            geometries.update(skinCluster.getOutputGeometry())
+        geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries)  # Ensure we only deal with meshes
 
-        # Collect all geometries affected by the joint.
-        # todo: maybe filter only affected geometries?
-        if geometries is None:
-            skinClusters = set()
-            for hist in obj.listHistory(future=True):
-                if isinstance(hist, pymel.nodetypes.SkinCluster):
-                    skinClusters.add(hist)
-            geometries = set()
-            for skinCluster in skinClusters:
-                geometries.update(skinCluster.getOutputGeometry())
-            geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh),
-                                geometries)  # Ensure we only deal with meshes
+    if geometries is None:
+        log.warning("Cannot get recommended ctrl size. No geometries to do raycast on!")
+        return default_size
 
-        # Create a number of raycast for each geometry. Use the longuest distance.
-        # Note that we are not using the negative Y axis, this give bettern result for example on shoulders.
+    # Create a number of raycast for each geometry. Use the longuest distance.
+    # Note that we are not using the negative Y axis, this give bettern result for example on shoulders.
+    if isinstance(obj, pymel.nodetypes.Transform):
         ref_tm = obj.getMatrix(worldSpace=True)
-        pos = ref_tm.translate
-        pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
+    elif isinstance(obj, pymel.datatypes.Matrix):
+        ref_tm = obj
+    else:
+        raise IOError("Unexpected type for reference object {0}".format(type(obj)))
 
-        dirs = []
-        if weight_x:
-            dirs.append(OpenMaya.MVector(ref_tm.a00, ref_tm.a01, ref_tm.a02))  # X Axis
-        if weight_neg_x:
-            dirs.append(OpenMaya.MVector(-ref_tm.a00, -ref_tm.a01, -ref_tm.a02))  # X Axis
-        if weight_y:
-            dirs.append(OpenMaya.MVector(ref_tm.a10, ref_tm.a11, ref_tm.a12))  # Y Axis
-        if weight_neg_y:
-            dirs.append(OpenMaya.MVector(-ref_tm.a10, -ref_tm.a11, -ref_tm.a12))  # Y Axis
-        if weight_z:
-            dirs.append(OpenMaya.MVector(ref_tm.a20, ref_tm.a21, ref_tm.a22))  # Z Axis
-        if weight_neg_z:
-            dirs.append(OpenMaya.MVector(-ref_tm.a20, -ref_tm.a21, -ref_tm.a22))  # Z Axis
+    pos = ref_tm.translate
+    pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
 
-        length = 0
-        results = ray_cast(pos, dirs, geometries)
-        if results:
-            cur_lengh = min((result.distanceTo(pos) for result in results))
-            if cur_lengh > length:
-                length = cur_lengh
+    dirs = []
+    if weight_x:
+        dirs.append(OpenMaya.MVector(ref_tm.a00, ref_tm.a01, ref_tm.a02))  # X Axis
+    if weight_neg_x:
+        dirs.append(OpenMaya.MVector(-ref_tm.a00, -ref_tm.a01, -ref_tm.a02))  # X Axis
+    if weight_y:
+        dirs.append(OpenMaya.MVector(ref_tm.a10, ref_tm.a11, ref_tm.a12))  # Y Axis
+    if weight_neg_y:
+        dirs.append(OpenMaya.MVector(-ref_tm.a10, -ref_tm.a11, -ref_tm.a12))  # Y Axis
+    if weight_z:
+        dirs.append(OpenMaya.MVector(ref_tm.a20, ref_tm.a21, ref_tm.a22))  # Z Axis
+    if weight_neg_z:
+        dirs.append(OpenMaya.MVector(-ref_tm.a20, -ref_tm.a21, -ref_tm.a22))  # Z Axis
 
-        if not length:
+    length = 0
+    results = ray_cast(pos, dirs, geometries)
+    if results:
+        cur_lengh = min((result.distanceTo(pos) for result in results))
+        if cur_lengh > length:
+            length = cur_lengh
+
+    if not length:
+        if isinstance(obj, pymel.nodetypes.Joint):
             length = obj.radius.get()
-        return length
-
-    print "Cannot get recommended size for {0}, return default value of {1}".format(
-        obj.name(), default_value
-    )
-    return default_value
+        else:
+            length = default_size
+    return length
 
 
 def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):

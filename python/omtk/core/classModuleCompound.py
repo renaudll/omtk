@@ -18,25 +18,6 @@ def _connect_matrix_attr_to_transform(attr_tm, node):
     pymel.connectAttr(util_decompose.outputScale, node.scale)
 
 
-def _import_component(path, namespace):
-    """
-    Simple implement of the component workflow in omtk.
-    This will import a .ma file and resolve the public interface.
-    This take a lot of things in consideration like how objects are named, and more.
-    """
-    cmds.file(path, i=True, namespace=namespace)
-
-    def _get_obj_by_dagpath(dagpath):
-        if not cmds.objExists(dagpath):
-            raise Exception("Cannot resolve {0}".format(dagpath))
-        return pymel.PyNode(dagpath)
-
-    grp_inn = _get_obj_by_dagpath('{0}:inn'.format(namespace))
-    grp_out = _get_obj_by_dagpath('{0}:out'.format(namespace))
-    grp_dag = _get_obj_by_dagpath('{0}:dag'.format(namespace))
-
-    return grp_inn, grp_out, grp_dag
-
 
 class CompoundModule(Module):
     def __init__(self, *args, **kwargs):
@@ -44,6 +25,7 @@ class CompoundModule(Module):
         self.grp_inn = None
         self.grp_out = None
         self.grp_dag = None
+        self.grp_guides = None
         self.grp_influences = None
 
     def __get_compounnd_path__(self):
@@ -56,6 +38,21 @@ class CompoundModule(Module):
         if not os.path.exists(path):
             raise Exception("Cannot find {0}".format(path))
         return path
+
+    def _import_component(self, path, namespace):
+        """
+        Simple implement of the component workflow in omtk.
+        This will import a .ma file and resolve the public interface.
+        This take a lot of things in consideration like how objects are named, and more.
+        """
+        cmds.file(path, i=True, namespace=namespace)
+    
+    def _get_compound_namespace(self):
+        """
+        Resolve the namespace associated with the Compound.
+        Keeping the namespace is highly efficient in keep the scene clean.
+        """
+        return self.grp_inn.namespace().strip(':')
 
     def create_compound_ctrl(self, cls, inst, suffix, attr_inn_name, attr_out_name, **kwargs):
         """
@@ -118,12 +115,39 @@ class CompoundModule(Module):
 
         path = self.__get_compounnd_path__()
         namespace = '_{0}'.format(self.name)  # we prefix with an underscore to ensure that the namespace is recognized
-        self.grp_inn, self.grp_out, self.grp_dag = _import_component(path, namespace)
+        self._import_component(path, namespace)
 
+        # Resolve grp_inn (mandatory)
+        grp_inn_dagpath = '{0}:inn'.format(namespace)
+        if not cmds.objExists(grp_inn_dagpath):
+            raise Exception("Cannot find {0}".format(grp_inn_dagpath))
+        self.grp_inn = pymel.PyNode(grp_inn_dagpath)
         self.grp_inn.setParent(self.grp_rig)
+
+        # Resolve grp_out (mandatory)
+        grp_out_dagpath = '{0}:out'.format(namespace)
+        if not cmds.objExists(grp_out_dagpath):
+            raise Exception("Cannot find {0}".format(grp_out_dagpath))
+        self.grp_out = pymel.PyNode(grp_out_dagpath)
         self.grp_out.setParent(self.grp_rig)
-        self.grp_dag.setParent(self.grp_rig)
-        self.grp_dag.visibility.set(False)
+
+        # Resolve grp_dag (optional)
+        grp_dag_dagpath = '{0}:dag'.format(namespace)
+        if cmds.objExists(grp_dag_dagpath):
+            self.grp_dag = pymel.PyNode(grp_dag_dagpath)
+            self.grp_dag.setParent(self.grp_rig)
+            self.grp_dag.visibility.set(False)
+        else:
+            self.grp_dag = None
+
+        # Resolve grp_guides (optional)
+        grp_guides_dagpath = '{0}:guides'.format(namespace)
+        if cmds.objExists(grp_guides_dagpath):
+            self.grp_guides = pymel.PyNode(grp_guides_dagpath)
+            self.grp_guides.setParent(self.grp_rig)
+            self.grp_guides.visibility.set(False)
+        else:
+            self.grp_guides = None
 
         if self.grp_influences:
             self.grp_influences.setParent(self.grp_rig)

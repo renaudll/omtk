@@ -15,6 +15,7 @@ log = logging.getLogger('omtk')
 
 
 class OmtkBaseListWidget(QtWidgets.QWidget):
+    # Called when the user perform an action.
     actionRequested = QtCore.Signal(list)
 
     def __init__(self, parent=None):

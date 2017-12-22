@@ -144,7 +144,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.manager.onSceneChanged.connect(self.on_scene_changed)
         self.manager.onRigCreated.connect(self.on_manager_created_rig)
-        self.ui.widget_modules.actionRequested.connect(self.manager.onSceneChanged.emit)
+        self.ui.widget_modules.actionRequested.connect(self.on_action_requested)
 
     def closeEvent(self):
         # Properly remove events

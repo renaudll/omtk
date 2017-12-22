@@ -56,7 +56,7 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
         if hasattr(self._meta_data, '_network'):
             self.net = self._meta_data._network
         else:
-            log.warning("{0} have no _network attributes".format(self._meta_data))
+            log.debug("{0} have no _network attributes".format(self._meta_data))
 
 
 class TreeWidgetItemComponent(TreeWidgetItemEx):

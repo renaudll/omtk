@@ -1,8 +1,14 @@
 import logging
+import functools
+import itertools
+import operator
 
+from omtk.libs import libPython
 from omtk.core import session
+from omtk.core.entity import Entity
+from omtk.factories import factory_rc_menu
 from omtk.qt_widgets.widget_outliner import widget_list_base
-from omtk.vendor.Qt import QtCore
+from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 
 log = logging.getLogger('omtk')
 
@@ -11,7 +17,6 @@ class WidgetListModules(widget_list_base.OmtkBaseListWidget):
     needExportNetwork = QtCore.Signal()
     needImportNetwork = QtCore.Signal()
     deletedRig = QtCore.Signal(object)
-    actionRequested = QtCore.Signal(list)
 
     def iter_values(self):
         s = session.get_session()
@@ -287,83 +292,84 @@ class WidgetListModules(widget_list_base.OmtkBaseListWidget):
     # #                 result[action_name].append(action)
     # #     return result
     # 
-    # def on_context_menu_request(self):
-    #     selected_items = self.ui.treeWidget.selectedItems()
-    #     selected_components = [item._meta_data for item in selected_items if isinstance(item._meta_data, Entity)]
-    #     if selected_components:
-    #         factory_rc_menu.get_menu(selected_components, self.actionRequested.emit)
-    #         # menu.exec_(QtGui.QCursor.pos())
-    #         # if self.ui.treeWidget.selectedItems():
-    #         #     sel = self.ui.treeWidget.selectedItems()
-    #         #
-    #         #     # We don't support actions on non-component entities (for now)
-    #         #     if not any(True for item in sel if isinstance(item._meta_data, Component)):
-    #         #         return
-    #         #
-    #         #     menu = QtWidgets.QMenu()
-    #         #     actionBuild = menu.addAction("Build")
-    #         #     actionBuild.triggered.connect(self.on_build_selected)
-    #         #     actionUnbuild = menu.addAction("Unbuild")
-    #         #     actionUnbuild.triggered.connect(self.on_unbuild_selected)
-    #         #     actionRebuild = menu.addAction("Rebuild")
-    #         #     actionRebuild.triggered.connect(self.on_rebuild_selected)
-    #         #     menu.addSeparator()
-    #         #     actionLock = menu.addAction("Lock")
-    #         #     actionLock.triggered.connect(self.on_lock_selected)
-    #         #     action_unlock = menu.addAction("Unlock")
-    #         #     action_unlock.triggered.connect(self.on_unlock_selected)
-    #         #     menu.addSeparator()
-    #         #     if len(sel) == 1:
-    #         #         actionRemove = menu.addAction("Rename")
-    #         #         # actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.editItem, sel[0], 0))
-    #         #         actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0))
-    #         #     actionRemove = menu.addAction("Remove")
-    #         #     actionRemove.triggered.connect(functools.partial(self.on_remove))
-    #         #
-    #         #     # Expose decorated functions
-    #         #     # todo: group actions by class name?
-    #         #     components = self.get_selected_components()
-    #         #     # actions_map = self._get_actions(components)
-    #         #
-    #         #     actions_data = []
-    #         #     cache_component_class_level = {}
-    #         #     for entity in components:
-    #         #         for component in self._iter_components_recursive(entity):
-    #         #             component_cls = component.__class__
-    #         #             component_level = cache_component_class_level.get(component_cls)
-    #         #             if component_level is None:
-    #         #                 component_level = libPython.get_class_parent_level(component_cls)
-    #         #                 cache_component_class_level[component_cls] = component_level
-    #         #             for action in component.iter_actions():
-    #         #                 action_name = action.get_name()
-    #         #                 # actions_map[(component_level, component_cls.__name__, action_name)].append(action)
-    #         #                 actions_data.append(
-    #         #                     (component_level, component_cls.__name__, action_name, action)
-    #         #                 )
-    #         #
-    #         #     if actions_data:
-    #         #         for cls_level, entries in itertools.groupby(actions_data, operator.itemgetter(0)):
-    #         #             print cls_level
-    #         #             for cls_name, entries in itertools.groupby(entries, operator.itemgetter(1)):
-    #         #                 menu.addSeparator()
-    #         #                 menu.addAction(str(cls_name)).setEnabled(False)
-    #         #                 for fn_name, entries in itertools.groupby(entries, operator.itemgetter(2)):
-    #         #                     action = menu.addAction(fn_name)
-    #         #                     action.triggered.connect(functools.partial(self._execute_rcmenu_entry, fn_name))
-    #         #
-    #         #     menu.exec_(QtGui.QCursor.pos())
-    # 
-    # # def _execute_rcmenu_entry(self, fn_name):
-    # #     need_export_network = False
-    # #     entities = self.get_selected_components()
-    # #     action_map = self._get_actions(entities)
-    # #     for action in action_map[fn_name]:
-    # #         action.execute()
-    # #         if constants.ComponentActionFlags.trigger_network_export in action.iter_flags():
-    # #             need_export_network = True
-    # #
-    # #     if need_export_network:
-    # #         self.needExportNetwork.emit()
+    def on_context_menu_request(self, pos):
+        selected_items = self.ui.treeWidget.selectedItems()
+        assert(selected_items)
+        menu = QtWidgets.QMenu()
+        selected_values = [item._meta_data for item in selected_items]
+        menu = factory_rc_menu.get_menu(menu, selected_values, self.actionRequested.emit)
+        menu.exec_(QtGui.QCursor.pos())
+            # if self.ui.treeWidget.selectedItems():
+            #     sel = self.ui.treeWidget.selectedItems()
+            #
+            #     # We don't support actions on non-component entities (for now)
+            #     # if not any(True for item in sel if isinstance(item._meta_data, Component)):
+            #     #     return
+            #
+            #     menu = QtWidgets.QMenu()
+            #     actionBuild = menu.addAction("Build")
+            #     actionBuild.triggered.connect(self.on_build_selected)
+            #     actionUnbuild = menu.addAction("Unbuild")
+            #     actionUnbuild.triggered.connect(self.on_unbuild_selected)
+            #     actionRebuild = menu.addAction("Rebuild")
+            #     actionRebuild.triggered.connect(self.on_rebuild_selected)
+            #     menu.addSeparator()
+            #     actionLock = menu.addAction("Lock")
+            #     actionLock.triggered.connect(self.on_lock_selected)
+            #     action_unlock = menu.addAction("Unlock")
+            #     action_unlock.triggered.connect(self.on_unlock_selected)
+            #     menu.addSeparator()
+            #     if len(sel) == 1:
+            #         actionRemove = menu.addAction("Rename")
+            #         # actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.editItem, sel[0], 0))
+            #         actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0))
+            #     actionRemove = menu.addAction("Remove")
+            #     actionRemove.triggered.connect(functools.partial(self.on_remove))
+            #
+            #     # Expose decorated functions
+            #     # todo: group actions by class name?
+            #     components = self.get_selected_components()
+            #     # actions_map = self._get_actions(components)
+            #
+            #     actions_data = []
+            #     cache_component_class_level = {}
+            #     for entity in components:
+            #         for component in self._iter_components_recursive(entity):
+            #             component_cls = component.__class__
+            #             component_level = cache_component_class_level.get(component_cls)
+            #             if component_level is None:
+            #                 component_level = libPython.get_class_parent_level(component_cls)
+            #                 cache_component_class_level[component_cls] = component_level
+            #             for action in component.iter_actions():
+            #                 action_name = action.get_name()
+            #                 # actions_map[(component_level, component_cls.__name__, action_name)].append(action)
+            #                 actions_data.append(
+            #                     (component_level, component_cls.__name__, action_name, action)
+            #                 )
+            #
+            #     if actions_data:
+            #         for cls_level, entries in itertools.groupby(actions_data, operator.itemgetter(0)):
+            #             print cls_level
+            #             for cls_name, entries in itertools.groupby(entries, operator.itemgetter(1)):
+            #                 menu.addSeparator()
+            #                 menu.addAction(str(cls_name)).setEnabled(False)
+            #                 for fn_name, entries in itertools.groupby(entries, operator.itemgetter(2)):
+            #                     action = menu.addAction(fn_name)
+            #                     action.triggered.connect(functools.partial(self._execute_rcmenu_entry, fn_name))
+            #
+            #     menu.exec_(QtGui.QCursor.pos())
+
+    # def _execute_rcmenu_entry(self, fn_name):
+    #     need_export_network = False
+    #     entities = self.get_selected_components()
+    #     action_map = self._get_actions(entities)
+    #     for action in action_map[fn_name]:
+    #         action.execute()
+    #         if constants.ComponentActionFlags.trigger_network_export in action.iter_flags():
+    #             need_export_network = True
+    #
+    #     if need_export_network:
+    #         self.needExportNetwork.emit()
     # 
     # def on_module_double_clicked(self, item):
     #     if hasattr(item, "rig"):

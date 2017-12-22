@@ -80,17 +80,7 @@ class AutoRigManager(QtCore.QObject):
         """
         from omtk.vendor.libSerialization import cache
         self._serialization_cache = cache.Cache()
-        all_rigs = api.find(cache=self._serialization_cache)
-
-        self._roots = []
-        for rig_ in all_rigs:
-            # Since omtk 0.5, it is not possible to instanciate the rig base class.
-            if type(rig_) == rig.Rig:
-                log.warning("The scene contain old omtk 0.4 rig {0} which will be ignored.")
-                # todo: upgrade to a new rig instance?
-                continue
-
-            self._roots.append(rig_)
+        self._roots = api.find(cache=self._serialization_cache)
         self._root = next(iter(self._roots), None)
 
     def export_networks(self):

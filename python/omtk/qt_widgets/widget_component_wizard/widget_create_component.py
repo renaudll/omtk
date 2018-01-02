@@ -1,6 +1,5 @@
 """
 Helper UI to create "Component".
-Component are a concept of OMTK2 backported to OMTK1 for convinience.
 """
 
 from ui import widget_create_component

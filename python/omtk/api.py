@@ -93,7 +93,6 @@ def find_one(**kwargs):
     return next(iter(find(**kwargs)), None)
 
 
-
 # @libPython.profiler
 @libPython.log_execution_time('build_all')
 def build_all(strict=False):
@@ -323,17 +322,20 @@ def calibrate_selected(sel=None):
             module.calibrate()
 
 
-def _get_macro_by_name(macro_name):
+def iter_macros():
     from omtk.core import plugin_manager
     pm = plugin_manager.plugin_manager
-
     for macro in pm.iter_loaded_plugins_by_type(plugin_manager.MacroPluginType.type_name):
+        yield macro
+
+
+def _get_macro_by_name(macro_name):
+    for macro in iter_macros():
         if macro.module_name == macro_name:
             return macro.cls()
 
 
 def run_macro(macro_name):
-
     macro = _get_macro_by_name(macro_name)
     if not macro:
         log.warning("Cannot find macro with name {0}".format(macro_name))

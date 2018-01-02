@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/form_create_component.ui'
 #
-# Created: Thu Dec 21 20:15:56 2017
+# Created: Sat Dec 23 19:18:56 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -114,18 +114,9 @@ class Ui_MainWindow(object):
         self.pushButton_submit.setSizePolicy(sizePolicy)
         self.pushButton_submit.setObjectName("pushButton_submit")
         self.verticalLayout_4.addWidget(self.pushButton_submit)
-        self.widget_logger = WidgetLogger(self.centralwidget)
-        self.widget_logger.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.widget_logger.sizePolicy().hasHeightForWidth())
-        self.widget_logger.setSizePolicy(sizePolicy)
-        self.widget_logger.setObjectName("widget_logger")
-        self.verticalLayout_4.addWidget(self.widget_logger)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 683, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 683, 20))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -148,5 +139,4 @@ class Ui_MainWindow(object):
         self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:"))
         self.pushButton_submit.setText(QtWidgets.QApplication.translate("MainWindow", "Publish"))
 
-from ..widget_logger import WidgetLogger
 from ..widget_component_wizard import WidgetCreateComponentWizardParts

@@ -4,8 +4,6 @@ import logging
 from omtk.qt_widgets.ui import widget_logger
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
-log = logging.getLogger('omtk')
-
 
 def log_level_to_str(level):
     if level >= logging.CRITICAL:
@@ -149,6 +147,7 @@ class WidgetLogger(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super(WidgetLogger, self).__init__(parent=parent)
+        self._logger = None
 
         self.ui = widget_logger.Ui_Form()
         self.ui.setupUi(self)
@@ -176,15 +175,17 @@ class WidgetLogger(QtWidgets.QWidget):
         header.setStretchLastSection(True)
         QtCompat.setSectionResizeMode(header, QtWidgets.QHeaderView.ResizeToContents)
 
-        self.create_logger_handler()
-
         # Connect events
         self.ui.comboBox_log_level.currentIndexChanged.connect(self.update_log_search_level)
         self.ui.lineEdit_log_search.textChanged.connect(self.update_log_search_query)
         self.ui.pushButton_logs_clear.pressed.connect(self.on_log_clear)
         self.ui.pushButton_logs_save.pressed.connect(self.on_log_save)
 
-        log.info('Opened OMTK GUI')
+    def set_logger(self, logger):
+        if self._logger:
+            self.remove_logger_handler()
+        self._logger = logger
+        self.create_logger_handler()
 
     def model(self):
         return self.ui.tableView_logs.model().sourceModel()
@@ -219,14 +220,15 @@ class WidgetLogger(QtWidgets.QWidget):
         handler = QtHandler(self)
 
         # handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
-        log.addHandler(handler)
-        log.setLevel(logging.DEBUG)
+        assert(self._logger)
+        self._logger.addHandler(handler)
+        self._logger.setLevel(logging.DEBUG)  # todo: really the place?
         self._logging_handlers.append(handler)
 
     def remove_logger_handler(self):
         if self._logging_handlers:
             for handler in self._logging_handlers:
-                log.removeHandler(handler)
+                self._logger.removeHandler(handler)
             self._logging_handlers = []
 
     def update_log_search_query(self):

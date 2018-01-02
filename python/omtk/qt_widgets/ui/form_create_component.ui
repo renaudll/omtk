@@ -167,19 +167,6 @@
       </property>
      </widget>
     </item>
-    <item>
-     <widget class="WidgetLogger" name="widget_logger" native="true">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -188,19 +175,13 @@
      <x>0</x>
      <y>0</y>
      <width>683</width>
-     <height>22</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>WidgetLogger</class>
-   <extends>QWidget</extends>
-   <header>..widget_logger.h</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>WidgetCreateComponentWizardParts</class>
    <extends>QWidget</extends>

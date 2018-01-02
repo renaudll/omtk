@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window.ui'
 #
-# Created: Wed Dec 20 20:39:33 2017
+# Created: Sat Dec 23 19:11:27 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -45,7 +45,7 @@ class Ui_OpenRiggingToolkit(object):
         self.horizontalLayout.addWidget(self.stackedWidget)
         OpenRiggingToolkit.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(OpenRiggingToolkit)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 927, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 927, 20))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -63,23 +63,6 @@ class Ui_OpenRiggingToolkit(object):
         self.statusbar = QtWidgets.QStatusBar(OpenRiggingToolkit)
         self.statusbar.setObjectName("statusbar")
         OpenRiggingToolkit.setStatusBar(self.statusbar)
-        self.dockWidget_logger = QtWidgets.QDockWidget(OpenRiggingToolkit)
-        self.dockWidget_logger.setObjectName("dockWidget_logger")
-        self.dockWidgetContents = QtWidgets.QWidget()
-        self.dockWidgetContents.setObjectName("dockWidgetContents")
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.dockWidgetContents)
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.widget_logger = WidgetLogger(self.dockWidgetContents)
-        self.widget_logger.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.widget_logger.sizePolicy().hasHeightForWidth())
-        self.widget_logger.setSizePolicy(sizePolicy)
-        self.widget_logger.setObjectName("widget_logger")
-        self.verticalLayout_4.addWidget(self.widget_logger)
-        self.dockWidget_logger.setWidget(self.dockWidgetContents)
-        OpenRiggingToolkit.addDockWidget(QtCore.Qt.DockWidgetArea(8), self.dockWidget_logger)
         self.dockWidget_modules = QtWidgets.QDockWidget(OpenRiggingToolkit)
         self.dockWidget_modules.setMinimumSize(QtCore.QSize(120, 50))
         self.dockWidget_modules.setObjectName("dockWidget_modules")
@@ -232,7 +215,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences"))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create New"))
 
-from ..widget_logger import WidgetLogger
 from ..WidgetWelcome import WidgetWelcome
-from ..widget_outliner import WidgetListInfluences, WidgetListMeshes, WidgetListComponentDefinition, WidgetListModules
+from ..widget_outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
 from ..widget_nodegraph import NodeGraphWidget

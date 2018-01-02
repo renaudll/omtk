@@ -27,6 +27,13 @@ def reload_():
     from omtk.qt_widgets import widget_logger
     reload(widget_logger)
 
+    log.debug('Reloading main_window_extended')
+    from .ui import main_window_extended as main_window_extended_ui
+    reload(main_window_extended_ui)
+
+    from . import main_window_extended
+    reload(main_window_extended)
+
     log.debug('Reloading pluginmanager_window_ui')
     from omtk.qt_widgets.ui import pluginmanager_window as pluginmanager_window_ui
     reload(pluginmanager_window_ui)
@@ -69,6 +76,7 @@ def reload_():
     log.debug('Reloading pluginmanager_window')
     from omtk.qt_widgets import window_pluginmanager
     reload(window_pluginmanager)
+
 
     log.debug('Reloading main_window_ui')
     from .ui import main_window as main_window_ui

@@ -12,6 +12,7 @@ from omtk.libs import libSkeleton
 from omtk.qt_widgets.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.qt_widgets import main_window_extended
 
 log = logging.getLogger('omtk')
 
@@ -22,7 +23,7 @@ class EnumSections:
     Edit = 1
 
 
-class AutoRig(QtWidgets.QMainWindow):
+class AutoRig(main_window_extended.MainWindowExtended):
     # Called when the user launched Component actions, generally via a customContextMenu.
     actionRequested = QtCore.Signal(list)
 
@@ -94,26 +95,6 @@ class AutoRig(QtWidgets.QMainWindow):
         else:
             self.ui.stackedWidget.setCurrentWidget(self.ui.page_2)
 
-        # Configure logger and status-bar
-        self.ui.dockWidget_logger.hide()
-        self.ui.widget_logger.onRecordAdded.connect(self.update_status_bar)
-
-        # Hack: Skip subclassing QDockWidget to modify closeEvent
-        def _logger_close_event(e):
-            self.update_status_bar(force_show=True)
-            e.accept()
-
-        self.ui.dockWidget_logger.closeEvent = _logger_close_event
-
-        # Hack: Skip subclassing QStatusBar to modify mousePressEvent
-        def _status_bar_mouse_press_event(e):
-            self.ui.dockWidget_logger.show()
-            self.update_status_bar()
-
-        self.ui.statusbar.mousePressEvent = _status_bar_mouse_press_event
-
-        self.update_status_bar()
-
         # Connect events
         self.actionRequested.connect(self.on_action_requested)
         self.ui.widget_jnts.onRightClick.connect(self.on_btn_add_pressed)
@@ -146,13 +127,8 @@ class AutoRig(QtWidgets.QMainWindow):
         self.manager.onRigCreated.connect(self.on_manager_created_rig)
         self.ui.widget_modules.actionRequested.connect(self.on_action_requested)
 
-    def closeEvent(self):
-        # Properly remove events
-        self.manager.onSceneChanged.disconnect(self.on_scene_changed)
-        self.manager.onRigCreated.disconnect(self.on_manager_created_rig)
-        self.ui.widget_modules.actionRequested.disconnect(self.manager.onSceneChanged.emit)
-
-        super(AutoRig, self).closeEvent()
+        # Hack: Ensure the logger events are connected on the new statusBar
+        self._configure_statusbar()
 
     @property
     def manager(self):
@@ -206,41 +182,6 @@ class AutoRig(QtWidgets.QMainWindow):
         self.update_internal_data()
         # self.update_ui()
         self.set_current_widget(EnumSections.Edit)
-
-    def update_status_bar(self, force_show=False):
-        # No need for the status bar if the logger is visible
-        if self.ui.widget_logger.isVisible() and not force_show:
-            self.ui.statusbar.setStyleSheet('')
-            self.ui.statusbar.showMessage('')
-            return
-
-        # If the logger is now visible, the status bar will resume the logs.
-        num_errors = 0
-        num_warnings = 0
-        model = self.ui.widget_logger.model()
-        for entry in model.items:
-            if entry.levelno >= logging.ERROR:
-                num_errors += 1
-            elif entry.levelno >= logging.WARNING:
-                num_warnings += 1
-
-        # Define style
-        stylesheet = ''
-        if num_errors:
-            stylesheet = "background-color: rgb(255, 000, 000); color: rgb(0, 0, 0);"
-        elif num_warnings:
-            stylesheet = "background-color: rgb(200, 200, 128); color: rgb(0, 0, 0);"
-        self.ui.statusbar.setStyleSheet(stylesheet)
-
-        # Define message
-        messages = []
-        if num_errors:
-            messages.append('{0} errors'.format(num_errors))
-        elif num_warnings:
-            messages.append('{0} warnings'.format(num_warnings))
-        else:
-            self.ui.statusbar.setStyleSheet("")
-        self.ui.statusbar.showMessage(', '.join(messages))
 
     def set_current_widget(self, index):
         old_index = self.ui.stackedWidget.currentIndex()
@@ -520,20 +461,17 @@ class AutoRig(QtWidgets.QMainWindow):
         super(AutoRig, self).showEvent(*args, **kwargs)
 
     def closeEvent(self, *args, **kwargs):
-        log.info('Closed OMTK GUI')
-        try:
-            self.ui.widget_logger.remove_logger_handler()
-        except Exception, e:
-            log.warning("Error removing logging handler: {0}:".format(e))
+        # Properly remove events
+        # todo: fix
+        # self.manager.onSceneChanged.disconnect(self.on_scene_changed)
+        # self.manager.onRigCreated.disconnect(self.on_manager_created_rig)
+        # self.ui.widget_modules.actionRequested.disconnect(self.manager.onSceneChanged.emit)
+
         try:
             self.remove_callbacks()
         except Exception, e:
             log.warning("Error removing callbacks: {0}".format(e))
         QtWidgets.QMainWindow.closeEvent(self, *args)
-
-        #
-        # Logger handling
-        #
 
 
 gui = None

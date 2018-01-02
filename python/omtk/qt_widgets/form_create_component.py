@@ -9,8 +9,15 @@ from omtk.libs import libComponents
 from omtk.libs import libComponent
 from omtk.libs import libPython
 from omtk.qt_widgets.ui.form_create_component import Ui_MainWindow as ui_def
+from omtk.qt_widgets import main_window_extended
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 from omtk.vendor import libSerialization
+
+import logging
+
+log_parent = logging.getLogger('omtk')
+log = log_parent.getChild('create_component')
+
 
 class AttributeMapModel(QtCore.QAbstractTableModel):
     def __init__(self, entries=None):
@@ -102,9 +109,9 @@ class AttributeMapModel(QtCore.QAbstractTableModel):
                 return QtGui.QColor(128, 128, 0)
 
 
-class CreateComponentForm(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
-        super(CreateComponentForm, self).__init__(parent=parent)
+class CreateComponentForm(main_window_extended.MainWindowExtended):
+    def __init__(self):
+        super(CreateComponentForm, self).__init__()
         self.ui = ui_def()
         self.ui.setupUi(self)
 
@@ -144,6 +151,10 @@ class CreateComponentForm(QtWidgets.QMainWindow):
 
         self.update_component_list()
         self.update_enabled()
+
+        # Hack: Ensure events are connected on the new statusBar
+        self._configure_statusbar()
+        self.set_logger(log)
 
     # --- new ---
 
@@ -210,6 +221,9 @@ class CreateComponentForm(QtWidgets.QMainWindow):
         self.ui.lineEdit_id.setEnabled(have_component)
         self.ui.pushButton_select.setEnabled(have_component)
         self.ui.pushButton_submit.setEnabled(have_component and have_name and have_author and have_version and have_uid)
+        self.ui.widget_view_ctrl.setEnabled(have_component)
+        self.ui.widget_view_infl.setEnabled(have_component)
+        self.ui.widget_view_guid.setEnabled(have_component)
 
     def on_create_new(self):
         inst = component.Component()

@@ -153,7 +153,6 @@ class CreateComponentForm(main_window_extended.MainWindowExtended):
         self.update_enabled()
 
         # Hack: Ensure events are connected on the new statusBar
-        self._configure_statusbar()
         self.set_logger(log)
 
     # --- new ---

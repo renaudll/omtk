@@ -31,6 +31,10 @@ class AutoRig(main_window_extended.MainWindowExtended):
     exportRequested = QtCore.Signal()
 
     def __init__(self, parent=None):
+        self.callbacks_events = []
+        self.callbacks_scene = []
+        self.callbacks_nodes = None
+
         super(AutoRig, self).__init__()
 
         self.ui = main_window.Ui_OpenRiggingToolkit()
@@ -82,10 +86,6 @@ class AutoRig(main_window_extended.MainWindowExtended):
         self.ui.widget_meshes.ui.treeWidget.setDragDropOverwriteMode(False)
         self.ui.widget_meshes.ui.treeWidget.setDragEnabled(True)
 
-        self.callbacks_events = []
-        self.callbacks_scene = []
-        self.callbacks_nodes = None
-
         self.create_callbacks()
 
         # Configure welcome screen
@@ -127,8 +127,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
         self.manager.onRigCreated.connect(self.on_manager_created_rig)
         self.ui.widget_modules.actionRequested.connect(self.on_action_requested)
 
-        # Hack: Ensure the logger events are connected on the new statusBar
-        self._configure_statusbar()
+        self.set_logger(log)
 
     @property
     def manager(self):

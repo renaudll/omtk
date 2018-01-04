@@ -168,14 +168,19 @@ def get_component_network_bounds():
 
 
 def get_component_metanetwork_from_hub_network(network, strict=True):
-    result = next(iter(libSerialization.get_connected_networks(network, recursive=False)), None)
+    def _filter(net):
+        return libSerialization.is_network_from_class(net, 'Component')
+    result = next(iter(libSerialization.get_connected_networks(network, key=_filter, recursive=False)), None)
     if not result and strict:
         raise Exception("Can't resolve meta-network from {0}".format(network))
     return result
 
 
 def get_inn_network_from_metadata_network(network, strict=True):
-    result = next(iter(network.grp_inn.inputs()), None)
+    try:
+        result = next(iter(network.grp_inn.inputs()), None)
+    except AttributeError:
+        result = None
     if not result and strict:
         raise Exception("Can't resolve input network from meta-network {0}".format(network))
     return result
@@ -188,7 +193,10 @@ def get_inn_network_from_out_network(network, strict=True):
 
 
 def get_out_network_from_metanetwork(network, strict=True):
-    result = next(iter(network.grp_out.inputs()), None)
+    try:
+        result = next(iter(network.grp_out.inputs()), None)
+    except AttributeError:
+        result = None
     if not result and strict:
         raise Exception("Can't resolve input network from meta-network {0}".format(network))
     return result
@@ -212,10 +220,10 @@ def get_metanetwork_role(obj):
     network = get_component_metanetwork_from_hub_network(obj, strict=False)
     if not network:
         return ComponentMetanetworkRole.NoRole
-    net_inn = get_inn_network_from_metadata_network(network)
+    net_inn = get_inn_network_from_metadata_network(network, strict=False)
     if net_inn == obj:
         return ComponentMetanetworkRole.Inn
-    net_out = get_out_network_from_metanetwork(network)
+    net_out = get_out_network_from_metanetwork(network, strict=False)
     if net_out == obj:
         return ComponentMetanetworkRole.Out
     return ComponentMetanetworkRole.NoRole

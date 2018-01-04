@@ -320,8 +320,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     node_model_dst = self.get_node_model_from_value(node_dst)
 
                     # Apply filter
-                    if self._filter and not self._filter.can_show_node(node_model_dst):
-                        continue
+                    if self._filter:
+                        if not self._filter.can_show_node(node_model_dst):
+                            continue
+                        if not self._filter.can_show_connection(connection_model):
+                            continue
 
                     # if node_model_dst.get_parent() != self._current_level:
                     #     continue
@@ -343,8 +346,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     node_model_src = self.get_node_model_from_value(node_src)
 
                     # Apply filter
-                    if self._filter and not self._filter.can_show_node(node_model_src):
-                        continue
+                    if self._filter:
+                        if not self._filter.can_show_node(node_model_src):
+                            continue
+                        if not self._filter.can_show_connection(connection_model):
+                            continue
 
                     # if node_model_src.get_parent() != self._current_level:
                     #     continue

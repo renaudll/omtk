@@ -1,6 +1,6 @@
 from omtk.core import preferences
 from omtk.qt_widgets.widget_nodegraph import nodegraph_node_model_dagnode
-
+from omtk.qt_widgets.widget_nodegraph import nodegraph_port_model
 
 class NodeGraphControllerFilter(object):
     """
@@ -8,6 +8,7 @@ class NodeGraphControllerFilter(object):
     """
     def __init__(self, controller):
         self._controller = controller
+        self._show_libserialization_networks = False
 
     def can_show_node(self, node_model):
         # type: (NodeGraphNodeModel) -> bool
@@ -32,4 +33,8 @@ class NodeGraphControllerFilter(object):
 
     def can_show_connection(self, connection_model):
         # type: (NodeGraphConnectionModel) -> bool
+        port_dst_model = connection_model.get_destination()
+        node_dst = port_dst_model.get_parent()
+        if node_dst.hasAttr('_class'):
+            return False
         return True

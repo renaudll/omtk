@@ -112,10 +112,10 @@ class NodeGraphConnectionModel(object):
             # compound_out_to_compound_out = 9  # src (source is inside destination)
             connection_kind = get_connection_kind()
             if connection_kind in (
-                ConnectionKind.normal_to_compound_inn,
                 ConnectionKind.compound_inn_to_normal,
                 ConnectionKind.compound_inn_to_compound_inn,
                 ConnectionKind.compound_out_to_compound_out,
+                ConnectionKind.compound_out_to_normal,
             ):
                 return dst_node_model
             else:

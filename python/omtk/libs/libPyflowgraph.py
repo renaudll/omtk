@@ -1,13 +1,20 @@
+"""
+Various functions to interact with pyflowgraph GraphView.
+"""
 import logging
 
 from omtk import constants
 from omtk.factories import factory_datatypes
 from omtk.vendor.Qt import QtCore
 from pymel import core as pymel
+from omtk.libs import libMayaNodeEditor
 
 log = logging.getLogger('omtk')
 
 _GRAPH_POS_ATTR_NAME = constants.PyFlowGraphMetadataKeys.Position
+
+if True:  # for type-hinting
+    from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
 
 def _walk_downstream(node):
@@ -138,16 +145,23 @@ def arrange_downstream(node, padding_x=32, padding_y=10):
         arrange_downstream(child, padding_x=padding_x, padding_y=padding_y)
 
 
-def get_node_position(node):
+def get_node_position(node, use_stored_pos=True, use_maya_pos=True):
+    assert(use_stored_pos or use_maya_pos)
+    # type: (PyFlowgraphNode) -> (float, float)
     meta_type = node._meta_type
     meta_data = node._meta_data
 
-    if meta_type in (factory_datatypes.AttributeType.Node,) and meta_data.hasAttr(
-            constants.PyFlowGraphMetadataKeys.Position):
-        return meta_data.attr(constants.PyFlowGraphMetadataKeys.Position).get()
+    if meta_type in (factory_datatypes.AttributeType.Node,):
+        # If the node contain a saved position, use it.
+        if use_stored_pos and meta_data.hasAttr(constants.PyFlowGraphMetadataKeys.Position):
+            return meta_data.attr(constants.PyFlowGraphMetadataKeys.Position).get()
+        # Otherwise use the saved position from the Maya NodeEditor.
+        elif use_maya_pos:
+            return libMayaNodeEditor.get_node_position(meta_data)
 
 
 def save_node_position(node, pos):
+    # todo: type hint?
     meta_type = node._meta_type
     meta_data = node._meta_data
     print node, meta_type, meta_data

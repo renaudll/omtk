@@ -335,6 +335,7 @@ class ComponentPartGuide(ComponentPart):
 
     def _get_attr_inn_world_tm(self):
         attr_holder, attr_name, _ = self._get_attr_inn_world_tm_infos()
+        # print attr_holder, attr_name
         return attr_holder.attr(attr_name)
 
     def iter_interface_infos(self):

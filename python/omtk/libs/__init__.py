@@ -15,6 +15,7 @@ def reload_():
     import libPyflowgraph
     import libComponents
     import libNamespaces
+    import libMayaNodeEditor
 
     reload(libAttr)
     reload(libCtrlShapes)
@@ -32,3 +33,4 @@ def reload_():
     reload(libPyflowgraph)
     reload(libComponents)
     reload(libNamespaces)
+    reload(libMayaNodeEditor)

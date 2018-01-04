@@ -47,6 +47,7 @@ def _get_singleton_model():
 class NodeGraphWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         from .nodegraph_controller import NodeGraphController
+        from omtk.qt_widgets.widget_nodegraph.nodegraph_filter import NodeGraphControllerFilter
 
         super(NodeGraphWidget, self).__init__(parent)
         self.ui = nodegraph_widget.Ui_Form()
@@ -56,6 +57,8 @@ class NodeGraphWidget(QtWidgets.QWidget):
         # self._manager = None
         self._model = _get_singleton_model()
         self._ctrl = NodeGraphController(self._model)
+        self._filter = NodeGraphControllerFilter(self._ctrl)  # todo: set filter in constructor?
+        self._ctrl.set_filter(self._filter)
         self._ctrl.onLevelChanged.connect(self.on_level_changed)
 
         # Keep track of the multiple views provided by the QTabWidget

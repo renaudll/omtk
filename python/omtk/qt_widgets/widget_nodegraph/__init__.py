@@ -74,6 +74,9 @@ def reload_():
     from . import nodegraph_view
     reload(nodegraph_view)
 
+    from . import nodegraph_filter
+    reload(nodegraph_filter)
+
     from . import nodegraph_controller
     reload(nodegraph_controller)
 

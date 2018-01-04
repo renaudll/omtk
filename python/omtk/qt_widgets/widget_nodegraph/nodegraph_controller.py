@@ -52,6 +52,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # type: (NodeGraphModel, NodeGraphView) -> ()
         self._model = model
         self._view = None
+        self._filter = None
         self._current_level_model = None
         self._current_level_data = None
 
@@ -125,6 +126,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # selectionMoved = QtCore.Signal(set, QtCore.QPointF)
         # # After moving the nodes interactively, this signal is emitted with the final delta.
         # endSelectionMoved = QtCore.Signal(set, QtCore.QPointF)
+
+    def set_filter(self, filter):
+        # type: (NodeGraphControllerFilter) -> None
+        self._filter = filter
 
     # --- Events ---
 
@@ -311,7 +316,13 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     if not _can_show_connection(connection_model):
                         continue
                     port_model_dst = connection_model.get_destination()
-                    node_model_dst = port_model_dst.get_parent()
+                    node_dst = port_model_dst.get_parent()  # todo: remove ambiguity in .get_parent() return type
+                    node_model_dst = self.get_node_model_from_value(node_dst)
+
+                    # Apply filter
+                    if self._filter and not self._filter.can_show_node(node_model_dst):
+                        continue
+
                     # if node_model_dst.get_parent() != self._current_level:
                     #     continue
                     self.get_connection_widget(connection_model)
@@ -328,7 +339,13 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     if not _can_show_connection(connection_model):
                         continue
                     port_model_src = connection_model.get_source()
-                    node_model_src = port_model_src.get_parent()
+                    node_src = port_model_src.get_parent()  # todo: remove ambiguity in .get_parent() return type
+                    node_model_src = self.get_node_model_from_value(node_src)
+
+                    # Apply filter
+                    if self._filter and not self._filter.can_show_node(node_model_src):
+                        continue
+
                     # if node_model_src.get_parent() != self._current_level:
                     #     continue
                     self.get_connection_widget(connection_model)

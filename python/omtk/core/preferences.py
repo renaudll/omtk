@@ -56,7 +56,7 @@ class Preferences(object):
             self.__dict__.update(data)
 
     @libPython.memoized
-    def get_nodegraph_default_attr_map(self):
+    def _get_config_nodegraph_raw(self):
         # todo: refactor preference class to better handle categories?
         try:
             dirname = _get_path_config_dir()
@@ -68,6 +68,12 @@ class Preferences(object):
         except Exception, e:
             log.error('Error loading nodegraph configuration files: {0}'.format(e))
             return {}
+
+    def get_nodegraph_default_attr_map(self):
+        return self._get_config_nodegraph_raw().get('interesting_attributes', {})
+
+    def get_nodegraph_blacklisted_nodetypes(self):
+        return self._get_config_nodegraph_raw().get('blacklisted_nodetypes', [])
 
     def get_default_rig_class(self):
         from omtk.core import plugin_manager

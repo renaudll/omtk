@@ -125,12 +125,12 @@ class CreateComponentForm(main_window_extended.MainWindowExtended):
 
         self._wizard_network = None
         self._wizard = None
-        wizard = self.import_()
+        wizard, wizard_network = self.import_()
         if not wizard:
             wizard = libComponent.ComponentWizard()
             wizard.initialize()
 
-        self.set_wizard(wizard)
+        self.set_wizard(wizard, wizard_network)
 
         self.export()
 
@@ -157,10 +157,11 @@ class CreateComponentForm(main_window_extended.MainWindowExtended):
 
     # --- new ---
 
-    def set_wizard(self, wizard):
+    def set_wizard(self, wizard, wizard_network=None):
         # type: (libComponent.ComponentWizard) -> None
         assert (isinstance(wizard, libComponent.ComponentWizard))
         self._wizard = wizard
+        self._wizard_network = wizard_network
         self.ui.widget_view_ctrl.set_entries(wizard, libComponent.ComponentPartCtrl, wizard.parts_ctrl)
         self.ui.widget_view_infl.set_entries(wizard, libComponent.ComponentPartInfluence, wizard.parts_influences)
         self.ui.widget_view_guid.set_entries(wizard, libComponent.ComponentPartGuide, wizard.parts_guides)
@@ -176,11 +177,10 @@ class CreateComponentForm(main_window_extended.MainWindowExtended):
     def import_(self):
         networks = libSerialization.get_networks_from_class(libComponent.ComponentWizard.__name__)
         if not networks:
-            return
+            return None, None
         network = networks[0]
-        self._wizard_network = network
         wizard = libSerialization.import_network(network)
-        return wizard
+        return wizard, network
 
     def export(self):
         if self._wizard_network:

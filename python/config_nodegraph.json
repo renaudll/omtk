@@ -1,58 +1,63 @@
 {
-  "decomposeMatrix": [
-    "inputMatrix",
-    "outputQuat",
-    "outputQuatX",
-    "outputQuatY",
-    "outputQuatZ",
-    "outputQuatW",
-    "outputRotate",
-    "outputRotateX",
-    "outputRotateY",
-    "outputRotateZ",
-    "outputTranslate",
-    "outputTranslateX",
-    "outputTranslateY",
-    "outputTranslateZ"
+  "blacklisted_nodetypes": [
+    "nodeGraphEditorInfo"
   ],
-  "composeMatrix": [
-    "inputQuat",
-    "inputQuatX",
-    "inputQuatY",
-    "inputQuatZ",
-    "inputRotate",
-    "inputRotateX",
-    "inputRotateY",
-    "inputRotateZ",
-    "inputRotateOrder",
-    "inputTranslate",
-    "inputTranslateX",
-    "inputTranslateY",
-    "inputTranslateZ",
-    "outputMatrix"
-  ],
-  "multiplyDivide": [
-    "input1",
-    "input1X",
-    "input1Y",
-    "input1Z",
-    "input",
-    "input2X",
-    "input2Y",
-    "input2Z",
-    "output",
-    "output2X",
-    "output2Y",
-    "output2Z"
-  ],
-  "reverse": [
-    "input",
-    "inputX",
-    "inputY",
-    "inputZ",
-    "output",
-    "outputX",
-    "outputY",
-    "outputZ"
-  ]
+  "interesting_attributes": {
+    "decomposeMatrix": [
+      "inputMatrix",
+      "outputQuat",
+      "outputQuatX",
+      "outputQuatY",
+      "outputQuatZ",
+      "outputQuatW",
+      "outputRotate",
+      "outputRotateX",
+      "outputRotateY",
+      "outputRotateZ",
+      "outputTranslate",
+      "outputTranslateX",
+      "outputTranslateY",
+      "outputTranslateZ"
+    ],
+    "composeMatrix": [
+      "inputQuat",
+      "inputQuatX",
+      "inputQuatY",
+      "inputQuatZ",
+      "inputRotate",
+      "inputRotateX",
+      "inputRotateY",
+      "inputRotateZ",
+      "inputRotateOrder",
+      "inputTranslate",
+      "inputTranslateX",
+      "inputTranslateY",
+      "inputTranslateZ",
+      "outputMatrix"
+    ],
+    "multiplyDivide": [
+      "input1",
+      "input1X",
+      "input1Y",
+      "input1Z",
+      "input",
+      "input2X",
+      "input2Y",
+      "input2Z",
+      "output",
+      "output2X",
+      "output2Y",
+      "output2Z"
+    ],
+    "reverse": [
+      "input",
+      "inputX",
+      "inputY",
+      "inputZ",
+      "output",
+      "outputX",
+      "outputY",
+      "outputZ"
+    ]
+  }
 }

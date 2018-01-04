@@ -17,7 +17,6 @@ class MainWindowExtended(QtWidgets.QMainWindow):
         self._configure_widget_logger()
 
         self.set_logger(log)
-        log.info('testing')
 
     def set_logger(self, logger):
         self.ui_logger.widget_logger.set_logger(logger)

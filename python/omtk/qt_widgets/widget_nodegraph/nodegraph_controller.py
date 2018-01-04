@@ -26,7 +26,7 @@ if False:
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
     from omtk.vendor.pyflowgraph.port import BasePort as PyFlowgraphBasePort
 
-log = logging.getLogger('omtk')
+log = logging.getLogger('omtk.nodegraph')
 
 
 def block_signal(fn):

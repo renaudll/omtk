@@ -15,7 +15,7 @@ from . import nodegraph_node_model_module
 from . import nodegraph_node_model_rig
 from . import nodegraph_port_model
 
-log = logging.getLogger('omtk')
+log = logging.getLogger('omtk.nodegraph')
 
 # for type hinting
 if False:

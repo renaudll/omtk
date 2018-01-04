@@ -8,7 +8,7 @@ from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
 
-log = logging.getLogger('omtk')
+log = logging.getLogger('omtk.nodegraph')
 
 # used for type hinting
 if False:

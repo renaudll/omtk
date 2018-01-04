@@ -7,7 +7,7 @@ from omtk.libs import libComponents
 import logging
 
 
-log = logging.getLogger('omtk')
+log = logging.getLogger('omtk.nodegraph')
 
 
 class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):

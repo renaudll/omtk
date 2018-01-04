@@ -12,7 +12,7 @@ if False:
     from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_controller import NodeGraphController
 
-log = logging.getLogger('omtk')
+log = logging.getLogger('omtk.nodegraph')
 
 
 class NodeIcon(QtWidgets.QGraphicsWidget):

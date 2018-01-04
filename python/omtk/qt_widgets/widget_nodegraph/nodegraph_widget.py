@@ -34,7 +34,7 @@ from omtk.vendor.Qt import QtWidgets
 
 from . import nodegraph_view
 
-log = logging.getLogger('omtk')
+log = logging.getLogger('omtk.nodegraph')
 
 
 @libPython.memoized

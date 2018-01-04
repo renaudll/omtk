@@ -44,13 +44,23 @@ def _get_singleton_model():
     return NodeGraphModel()
 
 
-class NodeGraphWidget(QtWidgets.QWidget):
+class NodeGraphWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         from .nodegraph_controller import NodeGraphController
         from omtk.qt_widgets.widget_nodegraph.nodegraph_filter import NodeGraphControllerFilter
 
-        super(NodeGraphWidget, self).__init__(parent)
-        self.ui = nodegraph_widget.Ui_Form()
+        # Hack: We are NOT providing any parent
+        # Otherwise we won't see the QMainWindow if embeded in another QMainWindow
+        # Here's a reproduction example, tested in Maya-2017:
+        # win = QtWidgets.QMainWindow()
+        # win_embeded = QtWidgets.QMainWindow()  # this don't work if win is provided as a parent
+        # btn = QtWidgets.QPushButton(win_embeded)
+        # win_embeded.setCentralWidget(btn)
+        # win.setCentralWidget(win_embeded)
+        # win.show()
+        super(NodeGraphWidget, self).__init__()
+
+        self.ui = nodegraph_widget.Ui_MainWindow()
         self.ui.setupUi(self)
 
         # Configure NodeGraphView
@@ -66,18 +76,24 @@ class NodeGraphWidget(QtWidgets.QWidget):
         self._views = []
 
         # Connect events
-        self.ui.pushButton_add.pressed.connect(self.on_add)
-        self.ui.pushButton_del.pressed.connect(self.on_del)
-        self.ui.pushButton_clear.pressed.connect(self.on_clear)
-        self.ui.pushButton_expand.pressed.connect(self.on_expand)
-        self.ui.pushButton_collapse.pressed.connect(self.on_colapse)
-        self.ui.pushButton_down.pressed.connect(self.on_navigate_down)
-        self.ui.pushButton_up.pressed.connect(self.on_navigate_up)
+        self.ui.actionAdd.triggered.connect(self.on_add)
+        self.ui.actionRemove.triggered.connect(self.on_del)
+        self.ui.actionClear.triggered.connect(self.on_clear)
+        self.ui.actionExpand.triggered.connect(self.on_expand)
+        self.ui.actionCollapse.triggered.connect(self.on_colapse)
+        self.ui.actionGoDown.triggered.connect(self.on_navigate_down)
+        self.ui.actionGoUp.triggered.connect(self.on_navigate_up)
+        self.ui.actionGroup.triggered.connect(self.on_group)
+        self.ui.actionUngroup.triggered.connect(self.on_ungroup)
+
+        self.ui.actionLayoutUpstream.triggered.connect(self.on_arrange_upstream)
+        self.ui.actionLayoutDownstream.triggered.connect(self.on_arrange_downstream)
+        self.ui.actionLayoutSpring.triggered.connect(self.on_arrange_spring)
+        self.ui.actionMatchMayaEditorPositions.triggered.connect(self.on_match_maya_editor_positions)
+
         # self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
         # self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
         # self.ui.pushButton_arrange_spring.pressed.connect(self.on_arrange_spring)
-        self.ui.pushButton_group.pressed.connect(self.on_group)
-        self.ui.pushButton_ungroup.pressed.connect(self.on_ungroup)
 
         self.ui.widget_toolbar.onNodeCreated.connect(self.on_add)
 
@@ -96,7 +112,7 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
     def get_controller(self):
         return self._ctrl
-    
+
     def get_view(self):
         return self._ctrl._view
 
@@ -181,6 +197,9 @@ class NodeGraphWidget(QtWidgets.QWidget):
 
     def on_ungroup(self):
         self._ctrl.ungroup_selection()
+
+    def on_match_maya_editor_positions(self):
+        raise NotImplementedError
 
     def on_breadcrumb_changed(self, model):
         """Called when the current level is changed using the breadcrumb widget."""

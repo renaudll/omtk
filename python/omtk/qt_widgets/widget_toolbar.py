@@ -26,37 +26,38 @@ class InstanciateComponentAction(InstanciateNodeAction):
         return component
 
 
-class WidgetToolbar(QtWidgets.QWidget):
+class WidgetToolbar(QtWidgets.QToolBar):
     onNodeCreated = QtCore.Signal(object)
 
     def __init__(self, *args, **kwargs):
         super(WidgetToolbar, self).__init__(*args, **kwargs)
 
-        # Create base layout, will containt the QListView and the Filters
-        self._layout = QtWidgets.QHBoxLayout()
-        self.setLayout(self._layout)
+        # # Create base layout, will containt the QListView and the Filters
+        # self._layout = QtWidgets.QHBoxLayout()
+        # self._layout.setMargin(0)
+        # self.setLayout(self._layout)
+        #
+        # # Fill with examples
+        # # todo: allow to customize
+        #
+        # menu = QtWidgets.QToolBar(self)
+        # self._layout.addWidget(menu)
 
-        # Fill with examples
-        # todo: allow to customize
         self.add_action(InstanciateMayaNodeAction('transform'))
         self.add_action(InstanciateMayaNodeAction('composeMatrix'))
         self.add_action(InstanciateMayaNodeAction('decomposeMatrix'))
         self.add_action(InstanciateMayaNodeAction('plusMinusAverage'))
         self.add_action(InstanciateMayaNodeAction('multiplyDivide'))
         self.add_action(InstanciateMayaNodeAction('inverseMatrix'))
-        self.add_action(InstanciateComponentAction('twistExtractor'))
-
+        # self.add_action(InstanciateComponentAction('twistExtractor'))
 
     def on_node_created(self):
         self.onNodeCreated.emit()
 
     def add_action(self, action):
         # type: (InstanciateMayaNodeAction) -> None
-        btn = QtWidgets.QPushButton(self)
-        btn.setText(action.get_name())
         def _callback():
             pynode = action.execute()
             self.onNodeCreated.emit([pynode])
-        btn.pressed.connect(_callback)
 
-        self._layout.addWidget(btn)
+        self.addAction(action.get_name(), _callback)

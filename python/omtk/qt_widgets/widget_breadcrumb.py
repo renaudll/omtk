@@ -7,14 +7,15 @@ class WidgetBreadcrumb(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(WidgetBreadcrumb, self).__init__(*args, **kwargs)
-        self.__layout = QtWidgets.QHBoxLayout(self)
+        self._layout = QtWidgets.QHBoxLayout(self)
+        self._layout.setMargin(0)
         # self.setContentsMargins(0, 0, 0, 0)
 
         self.set_path(None)
 
     def _clear(self):
-        for i in reversed(range(self.__layout.count())):
-            item = self.__layout.itemAt(i)
+        for i in reversed(range(self._layout.count())):
+            item = self._layout.itemAt(i)
 
             if isinstance(item, QtWidgets.QWidgetItem):
                 print "widget" + str(item)
@@ -29,7 +30,7 @@ class WidgetBreadcrumb(QtWidgets.QWidget):
                 self.clearLayout(item.layout())
 
                 # remove the item from layout
-            self.__layout.removeItem(item)
+            self._layout.removeItem(item)
 
     def set_path(self, model):
         self._clear()
@@ -39,12 +40,12 @@ class WidgetBreadcrumb(QtWidgets.QWidget):
             widget = QtWidgets.QPushButton(self)
             widget.setText(model.get_name() if model else '/')
             widget.pressed.connect(functools.partial(self.on_path_changed, model))
-            self.__layout.addWidget(widget)
+            self._layout.addWidget(widget)
 
         s = QtWidgets.QSpacerItem(20, QtWidgets.QSizePolicy.Minimum)
-        self.__layout.addItem(s)
+        self._layout.addItem(s)
 
-        self.__layout.addStretch()
+        self._layout.addStretch()
 
     def on_path_changed(self, model):
         # self.set_path(model)

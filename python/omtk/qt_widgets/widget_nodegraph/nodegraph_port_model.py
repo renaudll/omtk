@@ -25,6 +25,15 @@ class NodeGraphPortModel(object):
     def __repr__(self):
         return '<NodeGraphPortModel {0}.{1}>'.format(self.get_parent(), self.get_name())
 
+    def __hash__(self):
+        return hash(self._node) ^ hash(self._name)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return not self == other
+
     @property
     def impl(self):
         if not self._impl:
@@ -167,6 +176,12 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         # self._pynode = attr_node if attr_node else pyattr.node()
         # self._pyattr = pyattr
 
+    def __hash__(self):
+        # todo: this is so unclean... cleanup reference to private values
+        # We use the node hash since the same pymel.Attribute can refer
+        # different node when dealing with Compound.
+        return hash(self._node) ^ hash(self._impl._data)
+
     # --- Connections related methods --- #
 
     # todo: move to adaptor?
@@ -200,9 +215,6 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         #
         #     return widget
 
-        # todo: uncomment and fix
-        # def __hash__(self):
-        #     return hash(self._node) ^ hash(self._pyattr)
 
 
 # todo: replace double inheritence by composition

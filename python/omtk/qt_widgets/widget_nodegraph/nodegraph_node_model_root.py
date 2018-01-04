@@ -13,7 +13,10 @@ class NodeGraphNodeRootModel(nodegraph_node_model_base.NodeGraphNodeModel):
 
     def __init__(self, registry):
         super(NodeGraphNodeRootModel, self).__init__(registry, 'root')  # todo: is the name really necessary?
-        self._child_nodes= self.guess_children()
+        self._child_nodes = self.guess_children()
+
+    def __hash__(self):
+        return 0  # this is the only node that can have this hash
 
     def add_child(self, node_model):
         # type: (NodeGraphNodeModel) -> None

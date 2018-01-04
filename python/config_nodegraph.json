@@ -1,6 +1,7 @@
 {
   "blacklisted_nodetypes": [
-    "nodeGraphEditorInfo"
+    "nodeGraphEditorInfo",
+    "defaultRenderUtilityList"
   ],
   "interesting_attributes": {
     "decomposeMatrix": [

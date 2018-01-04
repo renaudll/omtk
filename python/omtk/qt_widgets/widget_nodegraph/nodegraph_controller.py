@@ -625,14 +625,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self.expand_node_attributes(node_model)
             self.expand_node_connections(node_model)
             self._widget_bound_out = node_widget
-            # widgets.remove(node_widget)
 
-            # libPyflowgraph.arrange_downstream(self._widget_bound_inn)
             self._widget_bound_inn.setGraphPos(QtCore.QPointF(-5000.0, 0))
             self._widget_bound_out.setGraphPos(QtCore.QPointF(5000.0, 0))
-            # libPyflowgraph.spring_layout(widgets)
-            # self._widget_bound_inn.setGraphPos(QtCore.QPointF(-1000.0, 0))
-            # self._widget_bound_out.setGraphPos(QtCore.QPointF(1000.0, 0))
 
     def can_navigate_to(self, node_model):
         if node_model is None:
@@ -712,17 +707,35 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         out_attrs = set()
         for node_model in selected_nodes_model:
             for port_dst in node_model.get_connected_input_attributes():
+                # Ignore message attributes
+                attr = port_dst.get_metadata()
+                attr_type = attr.type()
+                if attr_type == 'message':
+                    continue
+
                 for connection_model in port_dst.get_input_connections():
                     src_port_model = connection_model.get_source()
-                    src_node_model = src_port_model.get_parent()
-                    if src_node_model not in selected_nodes_model:
-                        inn_attrs.add(port_dst.get_metadata())
+                    src_node_model = self.get_node_model_from_value(src_port_model.get_parent())
+                    if src_node_model in selected_nodes_model:
+                        continue
+
+                    inn_attrs.add(port_dst.get_metadata())
+
             for port_src in node_model.get_connected_output_attributes():
+                # Ignore message attributes
+                attr = port_src.get_metadata()
+                attr_type = attr.type()
+                if attr_type == 'message':
+                    continue
+
                 for connection_model in port_src.get_output_connections():
                     dst_port_model = connection_model.get_destination()
-                    dst_node_model = dst_port_model.get_parent()
-                    if dst_node_model not in selected_nodes_model:
-                        out_attrs.add(port_src.get_metadata())
+                    dst_node_model = self.get_node_model_from_value(dst_port_model.get_parent())
+                    if dst_node_model in selected_nodes_model:
+                        continue
+
+                    out_attrs.add(port_src.get_metadata())
+
         return inn_attrs, out_attrs
 
     def group_selection(self):

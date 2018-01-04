@@ -23,6 +23,10 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         assert(isinstance(entity, component.Component))
         super(NodeGraphComponentModel, self).__init__(registry, entity)
 
+    def __hash__(self):
+        # todo: find a better way
+        return hash(self._name)
+
     def get_children(self):
         return [
             self._registry.get_node_from_value(pynode)

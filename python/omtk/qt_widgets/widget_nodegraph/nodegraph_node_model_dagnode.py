@@ -23,8 +23,11 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
 
     def __init__(self, registry, pynode):
         name = pynode.nodeName()
-        super(NodeGraphDagNodeModel, self).__init__(registry, name)
         self._pynode = pynode
+        super(NodeGraphDagNodeModel, self).__init__(registry, name)
+
+    def __hash__(self):
+        return hash(self._pynode)
 
     @libPython.memoized_instancemethod
     def get_parent(self):

@@ -46,6 +46,15 @@ class NodeGraphNodeModel(object):
     def __repr__(self):
         return '<{0} {1}>'.format(self.__class__.__name__, self._name)
 
+    def __hash__(self):
+        raise NotImplementedError  # this is implemented for PyNode atm
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def get_name(self):
         return self._name
 

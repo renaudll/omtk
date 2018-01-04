@@ -20,6 +20,15 @@ class NodeGraphConnectionModel(object):
             self._attr_dst.get_name()
         )
 
+    def __hash__(self):
+        return hash(self._attr_src) ^ hash(self._attr_dst)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return not self == other
+
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
         """
@@ -122,6 +131,3 @@ class NodeGraphConnectionModel(object):
     def get_destination(self):
         # type: () -> NodeGraphPortModel
         return self._attr_dst
-
-    def __hash__(self):
-        return hash(self._attr_src) ^ hash(self._attr_dst)

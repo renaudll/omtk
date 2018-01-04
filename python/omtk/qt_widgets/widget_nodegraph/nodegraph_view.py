@@ -60,7 +60,18 @@ class NodeGraphView(PyFlowgraphView):
         menu.exec_(QtGui.QCursor.pos())
 
     def on_selection_changed(self):
-        nodes_to_select = self._controller.get_nodes()
+        models = self._controller.get_nodes()
+
+        # We will only select DagNodes
+        nodes_to_select = []
+        for model in models:
+            metadata = model.get_metadata()
+            try:
+                mel = metadata.__melobject__()
+            except AttributeError:
+                continue
+            nodes_to_select.append(mel)
+
         pymel.select(nodes_to_select)
 
     def mousePressEvent(self, event):

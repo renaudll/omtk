@@ -45,6 +45,7 @@
     <addaction name="actionLayoutUpstream"/>
     <addaction name="actionLayoutDownstream"/>
     <addaction name="actionLayoutSpring"/>
+    <addaction name="actionLayoutRecenter"/>
    </widget>
    <addaction name="menuNodes"/>
   </widget>
@@ -129,22 +130,27 @@
   </action>
   <action name="actionMatchMayaEditorPositions">
    <property name="text">
-    <string>Set positions to Maya NodeEditor</string>
+    <string>&amp;Set positions to Maya NodeEditor</string>
    </property>
   </action>
   <action name="actionLayoutUpstream">
    <property name="text">
-    <string>Layout Upstream</string>
+    <string>&amp;Layout Upstream</string>
    </property>
   </action>
   <action name="actionLayoutDownstream">
    <property name="text">
-    <string>Layout Downstream</string>
+    <string>Layout &amp;Downstream</string>
    </property>
   </action>
   <action name="actionLayoutSpring">
    <property name="text">
-    <string>Layout Spring</string>
+    <string>La&amp;yout Spring</string>
+   </property>
+  </action>
+  <action name="actionLayoutRecenter">
+   <property name="text">
+    <string>Recenter</string>
    </property>
   </action>
  </widget>

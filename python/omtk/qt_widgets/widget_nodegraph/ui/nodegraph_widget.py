@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Thu Jan  4 12:26:26 2018
+# Created: Thu Jan  4 16:16:12 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -66,11 +66,14 @@ class Ui_MainWindow(object):
         self.actionLayoutDownstream.setObjectName("actionLayoutDownstream")
         self.actionLayoutSpring = QtWidgets.QAction(MainWindow)
         self.actionLayoutSpring.setObjectName("actionLayoutSpring")
+        self.actionLayoutRecenter = QtWidgets.QAction(MainWindow)
+        self.actionLayoutRecenter.setObjectName("actionLayoutRecenter")
         self.menuNodes.addAction(self.actionMatchMayaEditorPositions)
         self.menuNodes.addSeparator()
         self.menuNodes.addAction(self.actionLayoutUpstream)
         self.menuNodes.addAction(self.actionLayoutDownstream)
         self.menuNodes.addAction(self.actionLayoutSpring)
+        self.menuNodes.addAction(self.actionLayoutRecenter)
         self.menubar.addAction(self.menuNodes.menuAction())
         self.toolBar.addAction(self.actionAdd)
         self.toolBar.addAction(self.actionRemove)
@@ -102,10 +105,11 @@ class Ui_MainWindow(object):
         self.actionGoUp.setText(QtWidgets.QApplication.translate("MainWindow", "Go Up", None, -1))
         self.actionGroup.setText(QtWidgets.QApplication.translate("MainWindow", "Group", None, -1))
         self.actionUngroup.setText(QtWidgets.QApplication.translate("MainWindow", "Ungroup", None, -1))
-        self.actionMatchMayaEditorPositions.setText(QtWidgets.QApplication.translate("MainWindow", "Set positions to Maya NodeEditor", None, -1))
-        self.actionLayoutUpstream.setText(QtWidgets.QApplication.translate("MainWindow", "Layout Upstream", None, -1))
-        self.actionLayoutDownstream.setText(QtWidgets.QApplication.translate("MainWindow", "Layout Downstream", None, -1))
-        self.actionLayoutSpring.setText(QtWidgets.QApplication.translate("MainWindow", "Layout Spring", None, -1))
+        self.actionMatchMayaEditorPositions.setText(QtWidgets.QApplication.translate("MainWindow", "&Set positions to Maya NodeEditor", None, -1))
+        self.actionLayoutUpstream.setText(QtWidgets.QApplication.translate("MainWindow", "&Layout Upstream", None, -1))
+        self.actionLayoutDownstream.setText(QtWidgets.QApplication.translate("MainWindow", "Layout &Downstream", None, -1))
+        self.actionLayoutSpring.setText(QtWidgets.QApplication.translate("MainWindow", "La&yout Spring", None, -1))
+        self.actionLayoutRecenter.setText(QtWidgets.QApplication.translate("MainWindow", "Recenter", None, -1))
 
 from ...widget_breadcrumb import WidgetBreadcrumb
 from ...widget_toolbar import WidgetToolbar

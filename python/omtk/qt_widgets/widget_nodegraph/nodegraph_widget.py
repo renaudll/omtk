@@ -90,6 +90,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.actionLayoutDownstream.triggered.connect(self.on_arrange_downstream)
         self.ui.actionLayoutSpring.triggered.connect(self.on_arrange_spring)
         self.ui.actionMatchMayaEditorPositions.triggered.connect(self.on_match_maya_editor_positions)
+        self.ui.actionLayoutRecenter.triggered.connect(self.on_arrange_recenter)
 
         # self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
         # self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
@@ -200,6 +201,11 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_match_maya_editor_positions(self):
         raise NotImplementedError
+
+    def on_arrange_recenter(self):
+        pyflowgraph_nodes = self._current_view.getSelectedNodes()
+        libPyflowgraph.recenter_nodes(pyflowgraph_nodes)
+        self._current_view.frameSelectedNodes()
 
     def on_breadcrumb_changed(self, model):
         """Called when the current level is changed using the breadcrumb widget."""

@@ -350,3 +350,19 @@ def spring_layout(nodes):
     for node, pos in zip(nodes, new_positions):
         # print node, pos
         node.setGraphPos(pos)
+
+
+def _get_bounds_from_nodes(nodes):
+    bounds = QtCore.QRectF()
+    for node in nodes:
+        bounds |= node.boundingRect()
+    return bounds
+
+
+def recenter_nodes(nodes):
+    bound = _get_bounds_from_nodes(nodes)
+    center = bound.center()
+    for node in nodes:
+        pos = node.getGraphPos()
+        pos -= center
+        node.setGraphPos(pos)

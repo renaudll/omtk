@@ -24,5 +24,7 @@ class ShowNodeEditor(BaseMacro):
         _gui.show()
 
 
+
+
 def register_plugin():
     return ShowNodeEditor

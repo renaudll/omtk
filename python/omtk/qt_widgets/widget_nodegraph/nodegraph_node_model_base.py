@@ -97,7 +97,7 @@ class NodeGraphNodeModel(object):
 
     @libPython.memoized_instancemethod
     def get_input_attributes(self):
-        # type: () -> List[NodeGraphPortModel]
+        # type: () -> list[NodeGraphPortModel]
         return [attr for attr in self.get_attributes() if attr.is_writable()]
 
     @libPython.memoized_instancemethod
@@ -110,6 +110,7 @@ class NodeGraphNodeModel(object):
 
     @libPython.memoized_instancemethod
     def get_input_connections(self):
+        # type: () -> list(NodeGraphPortModel)
         result = []
         for attr in self.get_input_attributes():
             result.extend(attr.get_input_connections())

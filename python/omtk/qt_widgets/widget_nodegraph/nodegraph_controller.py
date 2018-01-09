@@ -17,6 +17,7 @@ from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
 from . import nodegraph_node_model_dagnode
 from . import nodegraph_node_model_root
+from . import nodegraph_port_model
 
 # Used for type checking
 if False:
@@ -305,14 +306,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 return node_parent_inst == self._current_level_data
 
             if expand_upstream and port_model.is_source():
-                for connection_model in port_model.get_output_connections():
-                    # node_inst = connection_model.get_parent()
-                    # node_model = self.get_node_model_from_value(node_inst)
-                    # node_parent_inst = node_model.get_parent()
-                    # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
-                    # node_parent_inst = node_parent_model.get_metadata() if node_parent_model else None
-                    # if node_parent_model != self._current_level_model:
-                    #     continue
+                # for connection_model in port_model.get_output_connections():
+                for connection_model in self.get_port_output_connections(port_model):
                     if not _can_show_connection(connection_model):
                         continue
                     port_model_dst = connection_model.get_destination()
@@ -331,14 +326,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     self.get_connection_widget(connection_model)
 
             if expand_downstream and port_model.is_destination():
-                for connection_model in port_model.get_input_connections():
-                    # node_inst = connection_model.get_parent()
-                    # node_model = self.get_node_model_from_value(node_inst)
-                    # node_parent_inst = node_model.get_parent()
-                    # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
-                    # node_parent_inst = node_parent_model.get_metadata() if node_parent_model else None
-                    # if node_parent_model != self._current_level_model:
-                    #     continue
+                for connection_model in self.get_port_input_connections(port_model):
                     if not _can_show_connection(connection_model):
                         continue
                     port_model_src = connection_model.get_source()
@@ -352,13 +340,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                         if not self._filter.can_show_connection(connection_model):
                             continue
 
-                    # if node_model_src.get_parent() != self._current_level:
-                    #     continue
                     self.get_connection_widget(connection_model)
-
-                    # if port_model.is_connected():
-                    #     for connection_model in port_model.get_connections():
-                    #         self.get_connection_widget(connection_model)
 
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
@@ -743,6 +725,59 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     out_attrs.add(port_src.get_metadata())
 
         return inn_attrs, out_attrs
+
+    @libPython.memoized_instancemethod
+    def get_port_input_connections(self, model):
+        # type: (NodeGraphPortModel) -> list[NodeGraphPortModel]
+        """
+        Control what input connection models are exposed for the provided port model.
+        :param model: The destination port model to use while resolving the connection models.
+        :return: A list of connection models using the provided port model as destination.
+        """
+        # Ignore message attributes
+        attr = model.get_metadata()
+        attr_type = attr.type()
+        if attr_type == 'message':
+            return
+
+        for connection in model.get_input_connections():
+            # Redirect unitConversion nodes
+            attr_dst = connection.get_source().get_metadata()
+            node_dst = attr_dst.node()
+            if isinstance(node_dst, pymel.nodetypes.UnitConversion) and attr_dst.longName() == 'output':
+                model_src = self.get_port_model_from_value(node_dst.input)
+                for new_connection in self.get_port_input_connections(model_src):
+                    yield self._model.get_connection_model_from_values(new_connection.get_source(), model)
+                return
+
+            yield connection
+
+    @libPython.memoized_instancemethod
+    def get_port_output_connections(self, model):
+        # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
+        """
+        Control what output connection models are exposed for the provided port model.
+        :param model: The source port model to use while resolving the connection models.
+        :return: A list of connection models using the provided port model as source.
+        """
+        # Ignore message attributes
+        attr = model.get_metadata()
+        attr_type = attr.type()
+        if attr_type == 'message':
+            return
+
+        for connection in model.get_output_connections():
+
+            # Redirect unitConversion input attribute
+            attr_dst = connection.get_destination().get_metadata()
+            node_dst = attr_dst.node()
+            if isinstance(node_dst, pymel.nodetypes.UnitConversion) and attr_dst.longName() == 'input':
+                model_dst = self.get_port_model_from_value(node_dst.output)
+                for new_connection in self.get_port_output_connections(model_dst):
+                    yield self._model.get_connection_model_from_values(model, new_connection.get_destination())
+                return
+
+            yield connection
 
     def group_selection(self):
         # selected_nodes = self.get_selected_node_models()

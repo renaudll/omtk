@@ -223,6 +223,9 @@ def spring_layout2(nodes, fixed=None, **kwargs):
 
 
 def spring_layout(nodes):
+    if not nodes:
+        return
+    
     from omtk.vendor.jurij import graph
 
     nodes = list(nodes)

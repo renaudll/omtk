@@ -305,7 +305,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
                 return node_parent_inst == self._current_level_data
 
-            if expand_upstream and port_model.is_source():
+            if expand_upstream:
                 # for connection_model in port_model.get_output_connections():
                 for connection_model in self.get_port_output_connections(port_model):
                     if not _can_show_connection(connection_model):
@@ -325,7 +325,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     #     continue
                     self.get_connection_widget(connection_model)
 
-            if expand_downstream and port_model.is_destination():
+            if expand_downstream:
                 for connection_model in self.get_port_input_connections(port_model):
                     if not _can_show_connection(connection_model):
                         continue

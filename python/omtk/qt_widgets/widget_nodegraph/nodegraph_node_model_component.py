@@ -120,7 +120,7 @@ class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDag
 
 
 class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
-    _widget_background_color = QtGui.QColor(255, 0, 0)
+    _widget_background_color = QtGui.QColor(0, 195, 227)
 
     def get_widget(self, graph):
         # debugging
@@ -131,7 +131,7 @@ class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
 
 
 class NodeGraphComponentOutBoundModel(NodeGraphComponentBoundBaseModel):
-    _widget_background_color = QtGui.QColor(255, 0, 0)
+    _widget_background_color = QtGui.QColor(255, 69, 84)
 
     def get_widget(self, graph):
         # debugging

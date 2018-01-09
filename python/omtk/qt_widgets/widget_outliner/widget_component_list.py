@@ -19,7 +19,7 @@ class MayaNodeDefinition(ComponentDefinition):
         self._cls_name = cls_name
         self.name = cls_name
 
-    def instanciate(self, parent):
+    def instanciate(self):
         return pymel.createNode(self._cls_name)
 
 

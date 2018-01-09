@@ -5,6 +5,8 @@ from .ui import main_window_extended
 
 log = logging.getLogger('omtk')
 
+# from omtk.vendor import pyvfxboilerplate
+
 
 class MainWindowExtended(QtWidgets.QMainWindow):
     def __init__(self):
@@ -13,6 +15,12 @@ class MainWindowExtended(QtWidgets.QMainWindow):
         self.ui_logger = main_window_extended.Ui_MainWindow()
         self.ui_logger.setupUi(self)
         self._is_built = True
+
+        # Makes Maya perform magic which makes the window stay
+        # on top in OS X and Linux. As an added bonus, it'll
+        # make Maya remember the window position
+        # src: https://github.com/fredrikaverpil/pyvfx-boilerplate/blob/master/boilerplate.py#L110
+        self.setProperty("saveWindowPref", True)
 
         self._configure_widget_logger()
 

@@ -107,6 +107,10 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         # Load root level
         self._ctrl.set_level(None)
 
+        # Pre-fill the node editor
+        self.on_add()
+        self.on_arrange_spring()
+
     @property
     def manager(self):
         return session.get_session()

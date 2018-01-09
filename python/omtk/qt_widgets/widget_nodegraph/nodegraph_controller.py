@@ -102,11 +102,13 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # Disconnect previous events
         if self._view:
             self._view.connectionAdded.disconnect(self.on_connection_added)
+            self._view.connectionRemoved.disconnect(self.on_connected_removed)
 
         self._view = view
 
         # Connect events
         view.connectionAdded.connect(self.on_connection_added)
+        view.connectionRemoved.connect(self.on_connected_removed)
 
         # view.scene().sceneRectChanged.connect(self.on_scene_rect_changed)
 

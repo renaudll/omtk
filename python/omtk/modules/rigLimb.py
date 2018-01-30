@@ -163,6 +163,13 @@ class Limb(Module):
         constraint_ik_chain = self.sysIK._chain_ik
         if getattr(self.sysIK, '_chain_quad_ik', None):
             constraint_ik_chain = self.sysIK._chain_quad_ik
+
+        # Note: We need to set the parent of the chain_blend BEFORE creating the constraint.
+        # Otherwise we might expose oneself to evaluation issues (happened on maya 2018.2).
+        # The symptom is the chain_blend rotation being aligned to the world and the rig being build on top.
+        # At first the scene would seem ok, however doing a dgdirty or reloading the scene would introduce flipping.
+        chain_blend[0].setParent(self.grp_rig)
+
         for blend, oIk, oFk in zip(chain_blend, constraint_ik_chain, self.sysFK.ctrls):
             # Note that maintainOffset should not be necessary, however the rigLegQuad IK can be flipped in some
             # rare cases. For now since prod need it we'll activate the flag (see Task #70938), however it would
@@ -171,7 +178,6 @@ class Limb(Module):
             attr_weight_ik, attr_weight_fk = constraint.getWeightAliasList()
             pymel.connectAttr(attr_ik_weight, attr_weight_ik)
             pymel.connectAttr(attr_fk_weight, attr_weight_fk)
-        chain_blend[0].setParent(self.grp_rig)
 
         #
         # Create elbow chain

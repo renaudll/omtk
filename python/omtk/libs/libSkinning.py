@@ -400,6 +400,17 @@ def reset_skin_cluster(skinCluster):
     for obj in skinCluster.getOutputGeometry():
         pymel.skinCluster(influenceObjs + [obj], tsb=True)
 
+def reset_selection_skin_cluster():
+    # Collect skinClusters
+    skinClusters = set()
+    for obj in pymel.selected():
+        skinCluster = get_skin_cluster(obj)
+        if skinCluster:
+            skinClusters.add(skinCluster)
+
+    for skinCluster in skinClusters:
+        reset_skin_cluster(skinCluster)
+
 
 def _get_skinClusters_from_inputs(obj):
     skinClusters = set()

@@ -3,9 +3,10 @@ import logging
 import time
 import traceback
 
+import omtk.constants
 import pymel.core as pymel
 from maya import cmds
-from omtk import constants, api
+from omtk import constants
 from omtk.core import nomenclature
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.entity import Entity
@@ -772,7 +773,7 @@ class Rig(Entity):
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
 
         # Store the version of omtk used to build the rig.
-        self.version = api.get_version()
+        self.version = omtk.constants.get_version()
 
         self.debug("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
@@ -816,7 +817,7 @@ class Rig(Entity):
             self.color_module_ctrl(module)
 
         # Store the version of omtk used to generate the rig.
-        module.version = api.get_version()
+        module.version = omtk.constants.get_version()
 
     def _unbuild_node(self, val, keep_if_children=False):
         if isinstance(val, Node):

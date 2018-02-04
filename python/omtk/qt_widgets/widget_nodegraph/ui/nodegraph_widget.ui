@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>679</width>
-    <height>592</height>
+    <width>1070</width>
+    <height>536</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,9 +15,6 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <widget class="WidgetBreadcrumb" name="widget_breadcrumb" native="true"/>
-    </item>
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
@@ -32,7 +29,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>679</width>
+     <width>1070</width>
      <height>20</height>
     </rect>
    </property>
@@ -80,7 +77,7 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>true</bool>
+    <bool>false</bool>
    </attribute>
   </widget>
   <action name="actionAdd">
@@ -155,12 +152,6 @@
   </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>WidgetBreadcrumb</class>
-   <extends>QWidget</extends>
-   <header>...widget_breadcrumb.h</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>WidgetToolbar</class>
    <extends>QToolBar</extends>

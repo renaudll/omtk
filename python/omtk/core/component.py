@@ -1,7 +1,8 @@
 import logging
 
+import omtk.constants
 from maya import cmds
-from omtk import constants, api
+from omtk import constants
 from omtk.core import session
 from omtk.core.entity import Entity
 from omtk.core.entity_action import EntityAction
@@ -10,6 +11,7 @@ from omtk.libs import libAttr
 from omtk.libs import libNamespaces
 from omtk.vendor import libSerialization
 from pymel import core as pymel
+from . import component_definition
 
 log = logging.getLogger('omtk')
 
@@ -49,6 +51,15 @@ class Component(Entity):
         # Used for dynamic components. Define if a Component content need to be regenerated.
         self._is_dirty_content = True
 
+    @classmethod
+    def from_definition(cls, cls_def):
+        # type: (component_definition.ComponentDefinition) -> Component
+        inst = cls()
+        inst.name = cls_def.name
+        inst.version = cls_def.version
+        inst.author = cls_def.author
+        return inst
+
     def is_dirty_content(self):
         return self._is_dirty_content
 
@@ -56,8 +67,6 @@ class Component(Entity):
         self._is_dirty_content = state
 
     def get_definition(self):
-        from omtk.core import component_definition
-
         inst = component_definition.ComponentDefinition(
             uid=self.uid,
             name=self.name,
@@ -113,14 +122,20 @@ class Component(Entity):
         return self.is_built_interface()
 
     def iter_attributes(self):
-        # todo: use factory?
-        # for attr in self.grp_inn.listAttr(topLevel=True, userDefined=True):
+        # Hub inn
+        custom_attrs = self.grp_inn.listAttr(userDefined=True)
         for attr in libAttr.iter_network_contributing_attributes(self.grp_inn):
+            if attr not in custom_attrs:
+                continue
             attr_def = get_attrdef_from_attr(attr, is_input=True, is_output=False)
             if attr_def:
                 yield attr_def
-        # for attr in self.grp_out.listAttr(topLevel=True, userDefined=True):
+
+        # Hub out
+        custom_attrs = self.grp_out.listAttr(userDefined=True)
         for attr in libAttr.iter_network_contributing_attributes(self.grp_out):
+            if attr not in custom_attrs:
+                continue
             attr_def = get_attrdef_from_attr(attr, is_input=False, is_output=True)
             if attr_def:
                 yield attr_def
@@ -395,7 +410,7 @@ class ComponentScripted(Component):
         inst = component_definition.ComponentScriptedDefinition(
             uid=cls.component_id,
             name=cls.component_name,
-            version=api.get_version(),
+            version=omtk.constants.get_version(),
         )
         inst.component_cls = cls
         return inst

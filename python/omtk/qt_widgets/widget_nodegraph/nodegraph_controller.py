@@ -296,14 +296,18 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 # Get the node associated with the connection
                 # Even if a connection is between two nodes, only one can have ownership.
                 node_inst = connection_model.get_parent()
+
                 # Get the model for that node
                 node_model = self.get_node_model_from_value(node_inst)
+
                 # Use the model to get the parent of the node.
                 # This is either the None or a component.
                 node_parent_inst = node_model.get_parent()
+
                 # Note that we don't check self._current_level_model since it have a value (the root model).
                 if node_parent_inst is None:
                     return self._current_level_data is None
+
                 # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
                 return node_parent_inst == self._current_level_data
 
@@ -461,8 +465,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         widget_src_port = self.get_port_widget(port_src_model)
         widget_dst_port = self.get_port_widget(port_dst_model)
 
-        widget_src_node = self.get_node_widget(self.get_node_model_from_value(port_src_model.get_parent()))
-        widget_dst_node = self.get_node_widget(self.get_node_model_from_value(port_dst_model.get_parent()))
+        model_src_node = self.get_node_model_from_value(port_src_model.get_parent())
+        model_dst_node = self.get_node_model_from_value(port_dst_model.get_parent())
+
+        # node_src = model_src_node.get_metadata()
+        # node_dst = model_dst_node.get_metadata()
+
+        widget_src_node = self.get_node_widget(model_src_node)
+        widget_dst_node = self.get_node_widget(model_dst_node)
 
         # Hack:
         widget_dst_node_in_circle = widget_dst_port.inCircle()

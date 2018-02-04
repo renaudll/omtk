@@ -33,7 +33,7 @@ def get_path_preferences():
 class Preferences(object):
     def __init__(self):
         self.default_rig = None
-        self.hide_welcome_screen = False
+        self.hide_welcome_screen = True
 
     def save(self, path=None):
         if path is None:

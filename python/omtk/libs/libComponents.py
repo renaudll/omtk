@@ -214,9 +214,10 @@ class ComponentMetanetworkRole:
     Out = 2
 
 
+# todo: cache this?
 def get_metanetwork_role(obj):
-    if not isinstance(obj, pymel.nodetypes.Network):
-        return ComponentMetanetworkRole.NoRole
+    # if not isinstance(obj, pymel.nodetypes.Network):
+    #     return ComponentMetanetworkRole.NoRole
     network = get_component_metanetwork_from_hub_network(obj, strict=False)
     if not network:
         return ComponentMetanetworkRole.NoRole

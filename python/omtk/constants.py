@@ -1,3 +1,9 @@
+import os
+import re
+
+from omtk.libs import libPython
+
+
 class Axis:
     """
     Fake enum as class with constant variable to represent the axis value that could change
@@ -61,3 +67,25 @@ COMPONENT_METANETWORK_NAME = 'metadata'
 
 COMPONENT_HUB_INN_ATTR_NAME = 'grp_inn'
 COMPONENT_HUB_OUT_ATTR_NAME = 'grp_out'
+
+
+@libPython.memoized
+def get_version():
+    # type: () -> str
+    """
+    Read the REZ package associated with the project and return the current version.
+    This is used to analyze old rigs and recommend specific scripts to correct them if needed.
+
+    :return: The fully qualified version as a str instance.
+    """
+    package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'package.py'))
+    if not os.path.exists(package_path):
+        raise Exception("Cannot find package file! {}".format(package_path))
+    regex_getversion = re.compile('^version *= [\'|"]*(.*)[\'|"]$')
+    with open(package_path, 'r') as fp:
+        for line in fp:
+            line = line.strip('\n')
+            result = regex_getversion.match(line)
+            if result:
+                result = next(iter(result.groups()))
+                return result

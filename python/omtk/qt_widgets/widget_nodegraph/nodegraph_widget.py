@@ -99,7 +99,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.widget_toolbar.onNodeCreated.connect(self.on_add)
 
         # Connect events (breadcrumb)
-        self.ui.widget_breadcrumb.path_changed.connect(self.on_breadcrumb_changed)
+        # self.ui.widget_breadcrumb.path_changed.connect(self.on_breadcrumb_changed)
 
         # At least create one tab
         self.create_tab()
@@ -122,6 +122,10 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         return self._ctrl._view
 
     def create_tab(self):
+        from .. import widget_breadcrumb
+        breakcrumb = widget_breadcrumb.WidgetBreadcrumb()
+        breakcrumb.path_changed.connect(self.on_breadcrumb_changed)
+
         view = nodegraph_view.NodeGraphView(self)
         view.set_model(self._ctrl)
         view.endSelectionMoved.connect(self.on_selected_nodes_moved)  # ???
@@ -131,6 +135,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         widget = QtWidgets.QWidget()
         # widget.setMouseTracking(True)
         layout = QtWidgets.QVBoxLayout(widget)
+        layout.addWidget(breakcrumb)
         layout.addWidget(view)
 
         # tab_view.setCurrentWidget(self._view)

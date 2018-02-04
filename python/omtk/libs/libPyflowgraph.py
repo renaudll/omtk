@@ -19,13 +19,13 @@ if True:  # for type-hinting
 
 def _walk_downstream(node):
     known = set()
-    for port in node.iter_input_ports():
-        connections = port.inCircle().getConnections()
+    for port in node.iter_output_ports():
+        connections = port.outCircle().getConnections()
         for connection in connections:
-            src = connection.getSrcPort()
+            # src = connection.getSrcPort()
             dst = connection.getDstPort()
 
-            connected_node = src.getNode()
+            connected_node = dst.getNode()
             if connected_node in known:
                 continue
             known.add(connected_node)
@@ -36,13 +36,13 @@ def _walk_downstream(node):
 
 def _walk_upstream(node):
     known = set()
-    for port in node.iter_output_ports():
-        connections = port.outCircle().getConnections()
+    for port in node.iter_input_ports():
+        connections = port.inCircle().getConnections()
         for connection in connections:
             src = connection.getSrcPort()
-            dst = connection.getDstPort()
+            # dst = connection.getDstPort()
 
-            connected_node = dst.getNode()
+            connected_node = src.getNode()
             if connected_node in known:
                 continue
             known.add(connected_node)
@@ -75,7 +75,7 @@ def arrange_upstream(node, padding_x=32, padding_y=32):
     # Resolve nb of nodes on top level
     # Filter any node that don't share the same parent space.
     leaf_nodes = list(iter_leaf_nodes(node, _walk_upstream))
-    children = list(_walk_downstream(node))
+    children = list(_walk_upstream(node))
     if not children:
         return
 
@@ -87,7 +87,7 @@ def arrange_upstream(node, padding_x=32, padding_y=32):
     print total_height
 
     # Set start location
-    pos_x = parent_pos.x() - (node.size().width() * 0.5) - padding_x
+    pos_x = parent_pos.x() - node.size().width() - padding_x
     pos_y = parent_pos.y() - (total_height / 2.0)
 
     # Reposition all children
@@ -120,7 +120,7 @@ def arrange_downstream(node, padding_x=32, padding_y=10):
     print total_height
 
     # Set start location
-    pos_x = parent_pos.x() - (node.size().width() * 0.5) - padding_x
+    pos_x = parent_pos.x() + (node.size().width() * 1.5) + padding_x
     pos_y = parent_pos.y() - total_height * 0.5
 
     # Reposition all children

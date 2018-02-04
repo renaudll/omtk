@@ -13,6 +13,14 @@ class NomenclatureTest(unittest.TestCase):
     """
 
     def _test_split_join(self, cls, expected_name, expected_tokens, expected_side=None):
+        """
+        Ensure nomenclature are consistent when split and joined.
+        :param cls:
+        :param expected_name:
+        :param expected_tokens:
+        :param expected_side:
+        :return:
+        """
         tokens = cls.split(expected_name)
         self.assertEqual(tokens, expected_tokens)
         name = cls.join(tokens)

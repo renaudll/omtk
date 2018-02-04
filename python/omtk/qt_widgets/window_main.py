@@ -1,6 +1,7 @@
 import functools
 import logging
 
+import omtk.constants
 import omtk.core
 import pymel.core as pymel
 from maya import OpenMaya
@@ -47,7 +48,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
         self.setProperty("saveWindowPref", True)
 
         # Extract version number from rez package.py file and display it
-        version = api.get_version()
+        version = omtk.constants.get_version()
         self.setWindowTitle('Open Rigging Toolkit {}'.format(version))
 
         #

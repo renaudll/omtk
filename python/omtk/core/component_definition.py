@@ -3,11 +3,11 @@ import re
 import uuid
 import logging
 
+import omtk.constants
 import pymel.core as pymel
 from maya import cmds
-from omtk import constants, api
+from omtk import constants
 from omtk.core import session
-from omtk.core.component import Component
 from omtk.libs import libNamespaces
 
 log = logging.getLogger('omtk')
@@ -21,6 +21,9 @@ _component_metadata_mandatory_fields = (
     'uid', 'name', 'version'
 )
 
+
+class MissingMetadataError(Exception):
+    """Raised when a critical metadata is missing from a component definition."""
 
 def write_metadata_to_ma_file(path, metadata):
     path_tmp = os.path.join(os.path.dirname(path), os.path.basename(path) + '_omtktmp')
@@ -117,27 +120,33 @@ class ComponentDefinition(object):
         }
 
     @classmethod
-    def validate_metadata(cls, metadata):
+    def _validate_metadata(cls, metadata):
         for field in _component_metadata_mandatory_fields:
             field_with_prefix = _metadata_prefix + field
             if field not in metadata:
-                raise Exception("Incomplete metadata. Missing field {0} in {1}".format(
+                raise MissingMetadataError("Missing field {0} in {1}".format(
                     field, metadata
                 ))
 
     @classmethod
     def from_metadata(cls, metadata):
         return cls(
-            uid=metadata['uid'],
-            name=metadata['name'],
-            version=metadata['version'],
+            uid = metadata.get('uid', uuid.uuid4()),
+            name=metadata.get('name', 'unamed'),
+            version=metadata.get('version', '???'),
             author=metadata.get('author')
         )
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path, validate=False):
+        # type: (str) -> ComponentDefinition
         metadata = get_metadata_from_file(path)
-        cls.validate_metadata(metadata)
+        if validate:
+            try:
+                cls._validate_metadata(metadata)
+            except MissingMetadataError, e:
+                log.warning("Cannot import component definition from file {0}. {1}".format(path, e))
+                return None
         inst = cls.from_metadata(metadata)
         inst.path = path
         return inst
@@ -189,14 +198,25 @@ class ComponentDefinition(object):
             metanetwork = libComponents.get_component_metanetwork_from_hub_network(hub_inn, strict=False)
         if not metanetwork:
             metanetwork = libComponents.get_component_metanetwork_from_hub_network(hub_out, strict=False)
+
+        # If no metadata exist, create it from the .ma file header.
         if not metanetwork:
-            raise Exception("Failed to instanciate component. Found no metanetwork at {0}".format(metanetwork_dagpath))
+            log.warning("No metadata found in the scene. Reading data for {0}.".format(self.path))
+            # hack
+            from . import component
+            inst_def = ComponentDefinition.from_file(self.path)
+            inst = component.Component.from_definition(inst_def)
+            inst.need_grp_inn = False
+            inst.grp_inn = hub_inn
+            inst.need_grp_out = False
+            inst.grp_out = hub_out
+            inst.build_interface()
 
-        inst = m.import_network(metanetwork)
-
-        # inst = Component(name=namespace)
-        # inst.grp_inn = hub_inn
-        # inst.grp_out = hub_out
+            # from omtk.core import manager
+            # m = manager.get_manager()
+            # _ = m.export_network(inst)
+        else:
+            inst = m.import_network(metanetwork)
 
         libComponents._connect_component_attributes(inst, map_inn, map_out)
 
@@ -227,7 +247,7 @@ class ComponentScriptedDefinition(ComponentDefinition):
 class ComponentModuleDefinition(ComponentDefinition):
     def __init__(self, name, module_cls, **kwargs):
         kwargs['uid'] = 0,
-        kwargs['version'] = api.get_version()
+        kwargs['version'] = omtk.constants.get_version()
 
         super(ComponentModuleDefinition, self).__init__(name, **kwargs)
         self._cls = module_cls

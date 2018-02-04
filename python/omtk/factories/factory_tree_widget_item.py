@@ -47,7 +47,6 @@ class TreeWidgetItemEx(QtWidgets.QTreeWidgetItem):
         if metadata and metadata.exists():
             yield metadata
 
-    @log_info
     def update_(self):
         icon = factory_datatypes.get_icon_from_datatype(self._meta_data, self._meta_type)
         if icon:

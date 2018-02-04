@@ -16,7 +16,7 @@ class NomenclatureCamelCase(NomenclaturePascalCase):
         except StopIteration:
             pass
         for token in i:
-            result += token[0].upper() + token[1].lower()
+            result += token[0].upper() + token[1:].lower()
         return result
 
 

@@ -1,8 +1,7 @@
 import logging
 
 import pymel.core as pymel
-from omtk import constants, api
-from omtk.core import rig
+from omtk import constants
 from omtk.core import preferences
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
@@ -14,8 +13,7 @@ log = logging.getLogger('omtk')
 
 class AutoRigManager(QtCore.QObject):
     """
-    Manager class than handle possible user actions in omtk.
-    """
+    Manager class that old the current user session."""
     # todo: move AutoRig class logic to the manager and implement unit tests
 
     # Used when a new Rig instance is added to the scene.
@@ -79,6 +77,7 @@ class AutoRigManager(QtCore.QObject):
         :return:
         """
         from omtk.vendor.libSerialization import cache
+        from omtk import api
         self._serialization_cache = cache.Cache()
         self._roots = api.find(cache=self._serialization_cache)
         self._root = next(iter(self._roots), None)

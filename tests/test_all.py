@@ -1,19 +1,27 @@
 import omtk
 import pymel.core as pymel
+import omtk_test
+from omtk.vendor import libSerialization
 
 
 class SampleTests(omtk_test.TestCase):
     def test_create(self):
+        """
+        Ensure we are able to build a Rig instance.
+        :return:
+        """
+        from omtk.core.rig import Rig
         rig_name = 'TestRig'
         rig = omtk.create(name=rig_name)
-        self.assertTrue(isinstance(rig, omtk.core.classRig.Rig))
+        self.assertTrue(isinstance(rig, Rig))
         self.assertTrue(rig.name == rig_name)
 
     def test_plugins(self):
         """
         Ensure that the basic built-in plugins are successfully loaded.
         """
-        from omtk import plugin_manager
+        # from omtk import plugin_manager
+        from omtk.api import plugin_manager
         pm = plugin_manager.plugin_manager
 
         loaded_plugin_names = [plugin.cls.__name__ for plugin in pm.get_loaded_plugins_by_type('modules')]

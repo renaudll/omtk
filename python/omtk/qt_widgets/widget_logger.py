@@ -222,7 +222,6 @@ class WidgetLogger(QtWidgets.QWidget):
         # handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         assert(self._logger)
         self._logger.addHandler(handler)
-        self._logger.setLevel(logging.DEBUG)  # todo: really the place?
         self._logging_handlers.append(handler)
 
     def remove_logger_handler(self):

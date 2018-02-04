@@ -57,8 +57,8 @@ class NodeGraphConnectionModel(object):
 
         def get_connection_kind():
             from omtk.libs import libComponents
-            src_role = libComponents.get_metanetwork_role(src_node_model)
-            dst_role = libComponents.get_metanetwork_role(dst_node_model)
+            src_role = libComponents.get_metanetwork_role(src_node_model.get_metadata())
+            dst_role = libComponents.get_metanetwork_role(dst_node_model.get_metadata())
 
             src_is_compound_bound = src_role != libComponents.ComponentMetanetworkRole.NoRole
             dst_is_compound_bound = dst_role != libComponents.ComponentMetanetworkRole.NoRole

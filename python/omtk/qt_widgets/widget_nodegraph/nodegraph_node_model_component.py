@@ -72,9 +72,9 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         # If we are viewing the component content
         if context:
             if context._current_level_model == self:
-                return port_model.get_parent() == self._entity.grp_inn
+                return port_model.get_parent().get_metadata() == self._entity.grp_inn
             else:
-                return port_model.get_parent() == self._entity.grp_out
+                return port_model.get_parent().get_metadata() == self._entity.grp_out
         return super(NodeGraphComponentModel, self).allow_input_port_display(port_model)
 
     def allow_output_port_display(self, port_model, context=None):

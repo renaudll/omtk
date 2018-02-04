@@ -71,6 +71,7 @@ def iter_leaf_nodes(node, fn_walk, known=None):
 
 def arrange_upstream(node, padding_x=32, padding_y=32):
     parent_pos = node.getGraphPos()
+    parent_width = node.size().width()
 
     # Resolve nb of nodes on top level
     # Filter any node that don't share the same parent space.
@@ -80,30 +81,32 @@ def arrange_upstream(node, padding_x=32, padding_y=32):
         return
 
     # Resolve total width
+    total_width = 0
     total_height = 0
     for leaf_node in leaf_nodes:
+        total_width = max(total_width, leaf_node.size().width())
         total_height += leaf_node.size().height()
     total_height += (len(leaf_nodes) - 1) * padding_y
     print total_height
 
     # Set start location
-    pos_x = parent_pos.x() - node.size().width() - padding_x
+    pos_x = parent_pos.x() - (parent_width * 0.5) - (total_width * 0.5) - padding_x
     pos_y = parent_pos.y() - (total_height / 2.0)
 
     # Reposition all children
     for child, in zip(children):
         pos_y += child.size().height() * 0.5
         child.setGraphPos(QtCore.QPointF(
-            pos_x + (child.size().width() * -0.5),
-            pos_y + (child.size().height() * -0.5))
-        )
+            pos_x - ((child.size().width() - total_width) / 2.0),
+            pos_y,
+        ))
         pos_y += child.size().height() * 0.5 + padding_y
-        # pos_y += spacing_y
         arrange_upstream(child, padding_x=padding_x, padding_y=padding_y)
 
 
 def arrange_downstream(node, padding_x=32, padding_y=10):
     parent_pos = node.getGraphPos()
+    parent_width = node.size().width()
 
     # Resolve nb of nodes on top level
     # Filter any node that don't share the same parent space.
@@ -112,32 +115,34 @@ def arrange_downstream(node, padding_x=32, padding_y=10):
     if not children:
         return
 
-    # Resolve total width
+    # Resolve total height
+    total_width = 0
     total_height = 0
     for leaf_node in leaf_nodes:
+        total_width = max(total_width, leaf_node.size().width())
         total_height += leaf_node.size().height()
     total_height += (len(leaf_nodes) - 1) * padding_y
     print total_height
 
     # Set start location
-    pos_x = parent_pos.x() + (node.size().width() * 1.5) + padding_x
+    pos_x = parent_pos.x() + (parent_width * 0.5) + (total_width * 0.5) + padding_x
     pos_y = parent_pos.y() - total_height * 0.5
 
     # Reposition all children
     known_nodes = set()
     num_children = len(children)
-    pos_y_increments = total_height / (num_children - 1)
+    # pos_y_increments = total_height / (num_children - 1)
     for i, child, in enumerate(children):
         if child in known_nodes:
             continue
         known_nodes.add(child)
 
-        pos_y += pos_y_increments  # child.size().height() * 0.5
+        # pos_y += pos_y_increments  # child.size().height() * 0.5
         log.debug('Repositionning {} ({}) to {}, {}'.format(
             child, child.getName(), pos_x, pos_y
         ))
         child.setGraphPos(QtCore.QPointF(
-            pos_x - (child.size().width() * 0.5),
+            pos_x + ((child.size().width() - total_width) / 2.0),
             pos_y
         ))
         pos_y += child.size().height() + padding_y

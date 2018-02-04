@@ -290,35 +290,31 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def expand_node_connections(self, node_model, expand_downstream=True, expand_upstream=True):
         # type: (NodeGraphNodeModel) -> None
-        for port_model in node_model.get_attributes():
 
-            def _can_show_connection(connection_model):
-                # Get the node associated with the connection
-                # Even if a connection is between two nodes, only one can have ownership.
-                node_inst = connection_model.get_parent()
+        def _can_show_connection(connection_model):
+            # Get the node associated with the connection
+            # Even if a connection is between two nodes, only one can have ownership.
+            node_model = connection_model.get_parent()
 
-                # Get the model for that node
-                node_model = self.get_node_model_from_value(node_inst)
+            # Use the model to get the parent of the node.
+            # This is either the None or a component.
+            node_parent_inst = node_model.get_parent()
 
-                # Use the model to get the parent of the node.
-                # This is either the None or a component.
-                node_parent_inst = node_model.get_parent()
+            # Note that we don't check self._current_level_model since it have a value (the root model).
+            if node_parent_inst is None:
+                return self._current_level_data is None
 
-                # Note that we don't check self._current_level_model since it have a value (the root model).
-                if node_parent_inst is None:
-                    return self._current_level_data is None
+            # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
+            return node_parent_inst == self._current_level_data
 
-                # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
-                return node_parent_inst == self._current_level_data
-
-            if expand_upstream:
+        if expand_downstream:
+            for port_model in node_model.get_connected_output_attributes():
                 # for connection_model in port_model.get_output_connections():
                 for connection_model in self.get_port_output_connections(port_model):
                     if not _can_show_connection(connection_model):
                         continue
                     port_model_dst = connection_model.get_destination()
-                    node_dst = port_model_dst.get_parent()  # todo: remove ambiguity in .get_parent() return type
-                    node_model_dst = self.get_node_model_from_value(node_dst)
+                    node_model_dst = port_model_dst.get_parent()
 
                     # Apply filter
                     if self._filter:
@@ -331,22 +327,22 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     #     continue
                     self.get_connection_widget(connection_model)
 
-            if expand_downstream:
-                for connection_model in self.get_port_input_connections(port_model):
-                    if not _can_show_connection(connection_model):
-                        continue
-                    port_model_src = connection_model.get_source()
-                    node_src = port_model_src.get_parent()  # todo: remove ambiguity in .get_parent() return type
-                    node_model_src = self.get_node_model_from_value(node_src)
-
-                    # Apply filter
-                    if self._filter:
-                        if not self._filter.can_show_node(node_model_src):
+            if expand_upstream:
+                for port_model in node_model.get_connected_input_attributes():
+                    for connection_model in self.get_port_input_connections(port_model):
+                        if not _can_show_connection(connection_model):
                             continue
-                        if not self._filter.can_show_connection(connection_model):
-                            continue
+                        port_model_src = connection_model.get_source()
+                        node_model_src = port_model_src.get_parent()
 
-                    self.get_connection_widget(connection_model)
+                        # Apply filter
+                        if self._filter:
+                            if not self._filter.can_show_node(node_model_src):
+                                continue
+                            if not self._filter.can_show_connection(connection_model):
+                                continue
+
+                        self.get_connection_widget(connection_model)
 
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
@@ -427,7 +423,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         # In Pyflowgraph, a Port need a Node.
         # Verify that we initialize the widget for the Node.
-        node_value = port_model.get_parent()
+        node_value = port_model.get_parent().get_metadata()
         node_model = self.get_node_model_from_value(node_value)
 
         # Hack: Hide Compound bound nodes when not inside the compound!
@@ -461,15 +457,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         port_dst_model = connection_model.get_destination()
 
         # Ensure ports are initialized
-        # self.get_port_widget(port_src_model)
         widget_src_port = self.get_port_widget(port_src_model)
         widget_dst_port = self.get_port_widget(port_dst_model)
 
-        model_src_node = self.get_node_model_from_value(port_src_model.get_parent())
-        model_dst_node = self.get_node_model_from_value(port_dst_model.get_parent())
-
-        # node_src = model_src_node.get_metadata()
-        # node_dst = model_dst_node.get_metadata()
+        model_src_node = self.get_node_model_from_value(port_src_model.get_parent().get_metadata())
+        model_dst_node = self.get_node_model_from_value(port_dst_model.get_parent().get_metadata())
 
         widget_src_node = self.get_node_widget(model_src_node)
         widget_dst_node = self.get_node_widget(model_dst_node)
@@ -738,9 +730,53 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         return inn_attrs, out_attrs
 
-    @libPython.memoized_instancemethod
-    def get_port_input_connections(self, model):
-        # type: (NodeGraphPortModel) -> list[NodeGraphPortModel]
+    def _get_decomposematrix_inputmatrix_output_connections(self, attr):
+        """
+        To call when encountering a decomposeMatrix.inputMatrix attribute.
+        This is used to skip previsible decomposeMatrix in the NodeGraph.
+        This will yield the inputMatrix attribute if the decomposeMatrix have non-previsible connections.
+        Otherwise it will yield all destination port of the decomposeMatrix.
+        A previsible connection it either:
+        - outputTranslate to translate
+        - outputRotate to rotate
+        - outputScale to scale
+        :param attr: A pymel.Attribute instance representing a decomposeMatrix.inputMatrix attribute.
+        """
+        def _is_previsible(connection_):
+            attr_src_ = connection_.get_source().get_metadata()
+            attr_dst_ = connection_.get_destination().get_metadata()
+            attr_src_name = attr_src_.longName()
+            attr_dst_name = attr_dst_.longName()
+            if attr_src_name == 'outputTranslate':  # and attr_dst_name == 'translate':
+                return True
+            if attr_src_name == 'outputRotate':  # and attr_dst_name == 'rotate':
+                return True
+            if attr_src_name == 'outputScale':  # and attr_dst_name == 'scale':
+                return True
+            return False
+
+        # attr_inputmatrix_model = self.get_port_mode
+        node = attr.node()
+        node_model = self.get_node_model_from_value(node)
+
+        # We will hold the connections in case we encounter an anormal connection.
+        results = []
+        for attr_dst in node_model.get_connected_output_attributes():
+            for connection in self.get_port_output_connections(attr_dst):
+                # for connection2 in self.get_port_output_connections(dst_node_model):
+                if _is_previsible(connection):
+                    new_connection = connection.get_destination()
+                    results.append(new_connection)
+                else:
+                    log.warning("Will no ignore {0} because of an unprevisible connection {1}.".format(node, connection))
+                    yield attr
+                    return
+
+        for result in results:
+            yield result
+
+    def _iter_port_input_connections(self, model):
+        # type: (NodeGraphPortModel) -> list[NodeGraphConnectionModel]
         """
         Control what input connection models are exposed for the provided port model.
         :param model: The destination port model to use while resolving the connection models.
@@ -753,19 +789,32 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             return
 
         for connection in model.get_input_connections():
+
             # Redirect unitConversion nodes
-            attr_dst = connection.get_source().get_metadata()
-            node_dst = attr_dst.node()
-            if isinstance(node_dst, pymel.nodetypes.UnitConversion) and attr_dst.longName() == 'output':
-                model_src = self.get_port_model_from_value(node_dst.input)
+            attr_src = connection.get_source().get_metadata()
+            node_src = attr_src.node()
+            if isinstance(node_src, pymel.nodetypes.UnitConversion) and attr_src.longName() == 'output':
+                model_src = self.get_port_model_from_value(node_src.input)
                 for new_connection in self.get_port_input_connections(model_src):
                     yield self._model.get_connection_model_from_values(new_connection.get_source(), model)
+                return
+
+            # Redirect decomposeMatrix nodes
+            # todo: test
+            if isinstance(node_src, pymel.nodetypes.DecomposeMatrix) and attr_src.longName() in ('outputTranslate', 'outputRotate', 'outputScale'):
+                inputmatrix_model = self.get_port_model_from_value(node_src.attr('inputMatrix'))
+                for sub_connection in self.get_port_input_connections(inputmatrix_model):
+                    new_connection = self._model.get_connection_model_from_values(sub_connection.get_source(), model)
+                    yield new_connection
                 return
 
             yield connection
 
     @libPython.memoized_instancemethod
-    def get_port_output_connections(self, model):
+    def get_port_input_connections(self, model):
+        return list(self._iter_port_input_connections(model))  # cannot memoize a generator
+
+    def _iter_port_output_connections(self, model):
         # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
         """
         Control what output connection models are exposed for the provided port model.
@@ -789,7 +838,18 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     yield self._model.get_connection_model_from_values(model, new_connection.get_destination())
                 return
 
+            # Redirect decomposeMatrix
+            if isinstance(node_dst, pymel.nodetypes.DecomposeMatrix) and attr_dst.longName() == 'inputMatrix':
+                for real_attr_dst in self._get_decomposematrix_inputmatrix_output_connections(attr_dst):
+                    new_connection = self._model.get_connection_model_from_values(model, real_attr_dst)
+                    yield new_connection
+                return
+
             yield connection
+
+    @libPython.memoized_instancemethod
+    def get_port_output_connections(self, model):
+        return list(self._iter_port_output_connections(model))  # cannot memoize a generator
 
     def group_selection(self):
         # selected_nodes = self.get_selected_node_models()

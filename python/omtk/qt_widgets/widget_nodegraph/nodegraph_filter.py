@@ -37,7 +37,7 @@ class NodeGraphControllerFilter(object):
         # Theses network are used as metadata, there's no reason we might want to see them instead for debugging.
         if not self._show_libserialization_networks:
             port_dst_model = connection_model.get_destination()
-            node_dst = port_dst_model.get_parent()
+            node_dst = port_dst_model.get_parent().get_metadata()
             if node_dst.hasAttr('_class'):
                 return False
         return True

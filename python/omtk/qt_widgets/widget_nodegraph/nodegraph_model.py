@@ -158,31 +158,36 @@ class NodeGraphModel(object):
         # todo: add support for pure EntityAttribute
         if isinstance(val, entity_attribute.EntityPymelAttribute):
             node_value = val._attr.node()
+            node_model = self.get_node_from_value(node_value)
+
             # node_model = self.get_node_from_value(node_value)  # still needed?
             # Let EntityAttribute defined if they are inputs or outputs
-            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_value, val)
+            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         elif isinstance(val, entity_attribute.EntityAttribute):
             node_value = val.parent
+            node_model = self.get_node_from_value(node_value)
             # node_model = self.get_node_from_value(val.parent)
-            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_value, val)
+            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         elif isinstance(val, pymel.Attribute):
             node_value = val.node()
-            # node_model = self.get_node_from_value(val.node())  # still needed?
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_value, val)
+            node_model = self.get_node_from_value(node_value)
+            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val)
         else:
             datatype = factory_datatypes.get_datatype(val)
             if datatype == factory_datatypes.AttributeType.Node:
-                # node_model = self.get_node_from_value(val)  # still needed?
-                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, val, val.message)
+                node_model = self.get_node_from_value(val)
+                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val.message)
             elif isinstance(val, module.Module):  # todo: use factory_datatypes?
                 node_value = val.rig
-                # node_model = self.get_node_from_value(val.rig)
+
+
+                node_model = self.get_node_from_value(val.rig)
                 val = val.rig.get_attribute_by_name('modules')
-                inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_value, val)
+                inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
             else:
                 node_value = val.node()
-                # node_model = self.get_node_from_value(val.node())  # still needed?
-                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_value, val)
+                node_model = self.get_node_from_value(val.node())
+                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val)
 
         self._register_attribute(inst)
         return inst

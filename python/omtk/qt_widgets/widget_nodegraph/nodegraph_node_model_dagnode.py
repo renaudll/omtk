@@ -31,6 +31,7 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
 
     @libPython.memoized_instancemethod
     def get_parent(self):
+        # type: () -> NodeGraphNodeModel
         if not self._pynode:
             return None
         parent_grp_inn, _ = libComponents.get_component_parent_network(self._pynode)
@@ -58,7 +59,7 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
                 log.debug("Hiding attribute {0}".format(attr))
                 continue
 
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self._pynode, attr)
+            inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
             self._registry._register_attribute(inst)
             yield inst
 

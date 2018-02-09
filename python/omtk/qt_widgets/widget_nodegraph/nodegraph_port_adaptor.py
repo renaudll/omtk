@@ -4,6 +4,7 @@ This is a case of 'composition over inheritance'.
 """
 import abc
 
+from omtk import decorators
 import pymel.core as pymel
 from maya import cmds
 from omtk.core import entity_attribute, session
@@ -22,6 +23,12 @@ class NodeGraphPortImpl(object):
 
     def get_metatype(self):
         return factory_datatypes.get_attr_datatype(self._data)
+
+    def is_source(self):
+        raise NotImplementedError
+
+    def is_destination(self):
+        raise NotImplementedError
 
     def get_inputs(self):
         return set()
@@ -49,6 +56,24 @@ class NodeGraphPortImpl(object):
     def connect_to(self, val):
         raise NotImplementedError
 
+from maya.api import OpenMaya as om2
+
+class OpenMaya2AttributeNodeGraphPortImp(NodeGraphPortImpl):
+    def __init__(self, data):
+        assert(isinstance(data, om2.MFnAttribute))
+        super(OpenMaya2AttributeNodeGraphPortImp, self).__init__(data)
+
+    def is_readable(self):
+        return self._data.readable
+
+    def is_writable(self):
+        return self._data.writable
+
+    def get_inputs(self):
+        raise NotImplementedError
+
+    def get_outputs(self):
+        raise NotImplementedError
 
 
 class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
@@ -58,16 +83,16 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         self._pynode = data.node()
         self._mfn = data.__apimattr__()  # OpenMaya.MFnAttribute, for optimization purpose
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _attr_name(self):
         return self._data.attrName()
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def is_readable(self):
         # return pymel.attributeQuery(self._attr_name(), node=self._pynode, readable=True)
         return self._mfn.isReadable()
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def is_writable(self):
         # return pymel.attributeQuery(self._attr_name(), node=self._pynode, writable=True)
         return self._mfn.isWritable()
@@ -90,7 +115,7 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
     def get_outputs(self):
         return self._data.outputs(plugs=True)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _list_parent_user_defined_attrs(self):
         # We use cmds instead of pymel since we want to equivalent of pymel.Attribute.attrName().
         result = cmds.listAttr(self._pynode.__melobject__(), userDefined=True)
@@ -104,7 +129,7 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         'wm',  # worldmatrix
     )
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def is_interesting(self):
         # The user can specify in it's preference what he which to see by default.
         # todo: how can we prevent so much function call?

@@ -3,6 +3,7 @@ import itertools
 import logging
 from collections import defaultdict
 
+from omtk import decorators
 import pymel.core as pymel
 from omtk import constants
 from omtk.core import module
@@ -223,7 +224,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
             result.append(self.avar_macro_upp)
         return result
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avars_micro_upp(self):
         """
         Return all the avars controlling the AvarGrp upper area.
@@ -243,7 +244,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
             result.append(self.avar_macro_low)
         return result
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avars_micro_low(self):
         """
         Return all the avars controlling the AvarGrp lower area.
@@ -258,12 +259,12 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
     # Influence properties
     #
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def jnts(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         return filter(fn_is_nurbsSurface, self.input)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_absolute_parent_level_by_influences(self):
         result = defaultdict(list)
         for jnt in self.jnts:
@@ -286,7 +287,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
             return False
         return True
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_relative_parent_level_by_influences(self):
         result = defaultdict(list)
         objs_by_absolute_parent_level = self._get_absolute_parent_level_by_influences()
@@ -295,7 +296,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
             result[parent_level - top_level] = objs
         return dict(result)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_influence_all(self):
         """
         If the rigger provided a global parent for the influences in the module,
@@ -313,7 +314,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
 
         return None
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_influence_micros(self):
         """
         :return: Only the influence used in micro avars.
@@ -325,13 +326,13 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
             result.update(avar.jnts)
         return list(result)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_micro_avar_by_influence(self, influence):
         for avar in self.avars:
             if influence in avar.input:
                 return avar
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_micro_tweak_avars_dict(self):
         result = {}
         influences_by_parent_level = self._get_relative_parent_level_by_influences()
@@ -811,7 +812,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
     # Influence getter functions.
     #
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnts_upp(self):
         """
         :return: The upper section influences.
@@ -820,14 +821,14 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         fnFilter = lambda jnt: 'upp' in jnt.stripNamespace().nodeName().lower()
         return filter(fnFilter, self.jnts)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnt_upp_mid(self):
         """
         :return: The middle influence of the upper section.
         """
         return get_average_pos_between_nodes(self.get_jnts_upp())
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnts_low(self):
         """
         :return: The upper side influences.
@@ -836,14 +837,14 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         fnFilter = lambda jnt: 'low' in jnt.stripNamespace().nodeName().lower()
         return filter(fnFilter, self.jnts)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnt_low_mid(self):
         """
         :return: The middle influence of the lower section.
         """
         return get_average_pos_between_nodes(self.get_jnts_low())
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnts_l(self):
         """
         :return: All the left side influences.
@@ -853,7 +854,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
         return filter(fn_filter, self.jnts)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnts_r(self):
         """
         :return: All the right side influences.
@@ -863,7 +864,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
         return filter(fn_filter, self.jnts)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnt_l_mid(self):
         """
         :return: The left most influence (highest positive distance in x)
@@ -871,7 +872,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         fn_get_pos_x = lambda x: x.getTranslation(space='world').x
         return next(iter(reversed(sorted(self.get_jnts_l(), key=fn_get_pos_x))), None)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jnt_r_mid(self):
         """
         :return: The right most influence (highest negative distance in x)
@@ -883,11 +884,11 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
     # Avars getter functions
     #
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avar_micro_mid(self):
         return _find_mid_avar(self.avars)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avar_micros_lft(self):
         """
         Resolve all micro avars on the left side of the face that would be affected by a left macro avar.
@@ -914,7 +915,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
 
         return [avar for avar in self.avars if avar and fn_filter(avar)]
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avars_micro_rgt(self):
         """
         Resolve all micro avars on the right side of the face that would be affected by a right macro avar.
@@ -941,7 +942,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
 
         return [avar for avar in self.avars if avar and fn_filter(avar)]
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avar_micro_lft_corner(self):
         """
         :return: The farthest avar in the positive X axis.
@@ -949,7 +950,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
         return next(iter(reversed(sorted(self.get_avar_micros_lft(), key=fn_get_avar_pos_x))), None)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avar_micro_rgt_corner(self):
         """
         :return: The farthest avar in the negative X axis.
@@ -957,7 +958,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space='world').x
         return next(iter(sorted(self.get_avars_micro_rgt(), key=fn_get_avar_pos_x)), None)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avar_micro_upp_corner(self):
         """
         :return: The middle upp micro avar.
@@ -971,7 +972,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         avars = sorted(avars, key=get_distance)
         return next(iter(avars), None)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_avar_micro_low_corner(self):
         """
         :return: The middle low micro avar.
@@ -985,7 +986,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         avars = sorted(avars, key=get_distance)
         return next(iter(avars), None)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_pos_all_middle(self):
         # type () -> pymel.datatypes.Vector
         """
@@ -993,7 +994,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         """
         return libRigging.get_average_pos_between_vectors(self.jnts)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_pos_upp_middle(self):
         # type () -> pymel.datatypes.Vector
         """
@@ -1001,7 +1002,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         """
         return libRigging.get_average_pos_between_vectors([avar.jnt for avar in self.get_avars_micro_upp()])
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_pos_low_middle(self):
         # type () -> pymel.datatypes.Vector
         """
@@ -1032,7 +1033,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         return abs(base_u - 0.5) * 2.0
     '''
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_influences_tweak(self):
         return self._get_relative_parent_level_by_influences().get(2, [])
 
@@ -1374,7 +1375,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
             #     pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
             #     pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):
         """
         Return the pivot matrix of the influence controller by the 'all' macro avar.

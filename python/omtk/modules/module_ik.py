@@ -1,5 +1,6 @@
 import collections
 
+from omtk import decorators
 import pymel.core as pymel
 from omtk.components_scripted.component_ik import ComponentIk
 from omtk.core.ctrl import BaseCtrl
@@ -214,7 +215,7 @@ class IK(Module):
         """
         return self._CLASS_CTRL_IK(*args, **kwargs)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_chain_length(self, start_index=0, end_index=2):
         # todo: replace with a libPymel.PyNodeChain?
         chain_length = 0

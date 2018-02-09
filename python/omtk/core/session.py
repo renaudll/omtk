@@ -1,5 +1,6 @@
 import logging
 
+from omtk import decorators
 import pymel.core as pymel
 from omtk import constants
 from omtk.core import preferences
@@ -135,7 +136,7 @@ class AutoRigManager(QtCore.QObject):
             # todo: update node editor?
 
 
-@libPython.memoized
+@decorators.memoized
 def get_session():
     # type: () -> AutoRigManager
     return AutoRigManager()

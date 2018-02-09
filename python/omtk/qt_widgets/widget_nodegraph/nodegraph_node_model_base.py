@@ -1,12 +1,12 @@
 import logging
 
+from omtk import decorators
 from omtk.core.component import Component
 from omtk.factories import factory_datatypes
-from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
-# used for type hinting
+# used for type hinting33
 if False:
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
     from .nodegraph_port_model import NodeGraphPortModel
@@ -58,11 +58,11 @@ class NodeGraphNodeModel(object):
     def get_name(self):
         return self._name
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_metadata(self):
         return None
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_metatype(self):
         return factory_datatypes.get_datatype(self.get_metadata())
 
@@ -95,20 +95,20 @@ class NodeGraphNodeModel(object):
         # type: (NodeGraphPortModel, NodeGraphController) -> bool
         return True
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_input_attributes(self):
         # type: () -> list[NodeGraphPortModel]
         return [attr for attr in self.get_attributes() if attr.is_writable()]
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_connected_input_attributes(self):
         return [attr for attr in self.get_input_attributes() if attr.get_input_connections()]
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_output_attributes(self):
         return [attr for attr in self.get_attributes() if attr.is_readable()]
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_input_connections(self):
         # type: () -> list(NodeGraphPortModel)
         result = []
@@ -116,14 +116,14 @@ class NodeGraphNodeModel(object):
             result.extend(attr.get_input_connections())
         return result
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_output_connections(self):
         result = []
         for attr in self.get_output_attributes():
             result.extend(attr.get_output_connections())
         return result
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_connected_output_attributes(self):
         return [attr for attr in self.get_output_attributes() if attr.get_output_connections()]
 
@@ -220,12 +220,12 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
         # type: () -> Component
         return self._entity
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_attributes_raw_values(self):
         # Used to invalidate cache
         return self._entity.iter_attributes()
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()

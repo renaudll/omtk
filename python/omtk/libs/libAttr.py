@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from maya import OpenMaya
 from maya import cmds
 from pymel import core as pymel
+from omtk import decorators
 
 log = logging.getLogger('omtk')
 
@@ -1062,7 +1063,13 @@ def iter_leaf_attributes(obj, **kwargs):
         yield attr
 
 
+@decorators.profiler
 def iter_contributing_attributes(obj):
+    """
+    Yield all attributes contributing to the provided object.
+    :param obj: A pymel.PyNode instance.
+    :yield: pymel.Attribute instances.
+    """
     # type: (OpenMaya.MFnDependencyNode) -> Generator[OpenMaya.MPlug]
     def _iter_plug_children(plug_):
         yield plug_
@@ -1098,6 +1105,14 @@ def iter_contributing_attributes(obj):
         for yielded in _iter_plug_children(plug):
             yield pymel.Attribute(yielded)
 
+@decorators.profiler
+def iter_contributing_attributes_openmaya2(dagpath):
+    from maya.api import OpenMaya as om2
+    mfn = om2.MFnDependencyNode(dagpath)
+    for j in xrange(mfn.attributeCount()):
+        a = mfn.attribute(j)
+        amfn = om2.MFnAttribute(a)
+        yield amfn
 
 def iter_network_contributing_attributes(network):
     global _g_blacklisted_attr_names

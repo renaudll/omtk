@@ -77,6 +77,8 @@ class GraphView(QtWidgets.QGraphicsView):
         self.setAcceptDrops(True)
         self.reset()
 
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
 
     def getGraphViewWidget(self):
         return self.__graphViewWidget

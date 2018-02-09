@@ -1,3 +1,4 @@
+from omtk import decorators
 from omtk.libs import libPython, libRigging
 from pymel import core as pymel
 
@@ -9,7 +10,7 @@ class DagBuilder(object):
     the Component sandbox.
     """
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def create_utility_node(self, *args, **kwargs):
         """
         Wrapper around libRigging.create_utility_node that cache results to ease rig optimisation at creation time.

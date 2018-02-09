@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Sun Feb  4 14:25:27 2018
+# Created: Fri Feb  9 18:05:45 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -22,7 +22,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1070, 20))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1070, 22))
         self.menubar.setObjectName("menubar")
         self.menuNodes = QtWidgets.QMenu(self.menubar)
         self.menuNodes.setObjectName("menuNodes")
@@ -64,6 +64,14 @@ class Ui_MainWindow(object):
         self.actionLayoutSpring.setObjectName("actionLayoutSpring")
         self.actionLayoutRecenter = QtWidgets.QAction(MainWindow)
         self.actionLayoutRecenter.setObjectName("actionLayoutRecenter")
+        self.actionExpandMore = QtWidgets.QAction(MainWindow)
+        self.actionExpandMore.setObjectName("actionExpandMore")
+        self.actionExpandMoreMore = QtWidgets.QAction(MainWindow)
+        self.actionExpandMoreMore.setObjectName("actionExpandMoreMore")
+        self.actionFrameAll = QtWidgets.QAction(MainWindow)
+        self.actionFrameAll.setObjectName("actionFrameAll")
+        self.actionFrameSelected = QtWidgets.QAction(MainWindow)
+        self.actionFrameSelected.setObjectName("actionFrameSelected")
         self.menuNodes.addAction(self.actionMatchMayaEditorPositions)
         self.menuNodes.addSeparator()
         self.menuNodes.addAction(self.actionLayoutUpstream)
@@ -75,6 +83,10 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionRemove)
         self.toolBar.addAction(self.actionClear)
         self.toolBar.addAction(self.actionExpand)
+        self.toolBar.addAction(self.actionExpandMore)
+        self.toolBar.addAction(self.actionExpandMoreMore)
+        self.toolBar.addAction(self.actionFrameAll)
+        self.toolBar.addAction(self.actionFrameSelected)
         self.toolBar.addAction(self.actionCollapse)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionGoDown)
@@ -106,5 +118,9 @@ class Ui_MainWindow(object):
         self.actionLayoutDownstream.setText(QtWidgets.QApplication.translate("MainWindow", "Layout &Downstream", None, -1))
         self.actionLayoutSpring.setText(QtWidgets.QApplication.translate("MainWindow", "La&yout Spring", None, -1))
         self.actionLayoutRecenter.setText(QtWidgets.QApplication.translate("MainWindow", "Recenter", None, -1))
+        self.actionExpandMore.setText(QtWidgets.QApplication.translate("MainWindow", "Expand 2x", None, -1))
+        self.actionExpandMoreMore.setText(QtWidgets.QApplication.translate("MainWindow", "Expand 3x", None, -1))
+        self.actionFrameAll.setText(QtWidgets.QApplication.translate("MainWindow", "Frame All", None, -1))
+        self.actionFrameSelected.setText(QtWidgets.QApplication.translate("MainWindow", "Frame Selected", None, -1))
 
 from ...widget_toolbar import WidgetToolbar

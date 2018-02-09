@@ -30,7 +30,7 @@
      <x>0</x>
      <y>0</y>
      <width>1070</width>
-     <height>20</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuNodes">
@@ -61,6 +61,10 @@
    <addaction name="actionRemove"/>
    <addaction name="actionClear"/>
    <addaction name="actionExpand"/>
+   <addaction name="actionExpandMore"/>
+   <addaction name="actionExpandMoreMore"/>
+   <addaction name="actionFrameAll"/>
+   <addaction name="actionFrameSelected"/>
    <addaction name="actionCollapse"/>
    <addaction name="separator"/>
    <addaction name="actionGoDown"/>
@@ -148,6 +152,26 @@
   <action name="actionLayoutRecenter">
    <property name="text">
     <string>Recenter</string>
+   </property>
+  </action>
+  <action name="actionExpandMore">
+   <property name="text">
+    <string>Expand 2x</string>
+   </property>
+  </action>
+  <action name="actionExpandMoreMore">
+   <property name="text">
+    <string>Expand 3x</string>
+   </property>
+  </action>
+  <action name="actionFrameAll">
+   <property name="text">
+    <string>Frame All</string>
+   </property>
+  </action>
+  <action name="actionFrameSelected">
+   <property name="text">
+    <string>Frame Selected</string>
    </property>
   </action>
  </widget>

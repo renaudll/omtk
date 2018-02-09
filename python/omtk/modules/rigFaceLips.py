@@ -1,5 +1,6 @@
 import math
 
+from omtk import decorators
 import pymel.core as pymel
 from omtk.core.node import Node
 from omtk.libs import libAttr
@@ -600,7 +601,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_macro_rgt.attr_ud, avar_micro_rgt_corner.attr_ud)
             libRigging.connectAttr_withLinearDrivenKeys(self.avar_macro_rgt.attr_fb, avar_micro_rgt_corner.attr_fb)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_mouth_width(self):
         min_x = max_x = 0
         for avar in self.get_avars_corners():

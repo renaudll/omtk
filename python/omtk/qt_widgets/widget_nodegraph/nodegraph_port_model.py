@@ -165,6 +165,9 @@ class NodeGraphPortModel(object):
 
         return port
 
+class NodeGraphOpenMaya2PortModel(NodeGraphPortModel):
+    pass
+
 
 class NodeGraphPymelPortModel(NodeGraphPortModel):
     """Define an attribute bound to a PyMel.Attribute datatype."""
@@ -215,6 +218,9 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         #
         #     return widget
 
+
+class OpenMaya2PortModel(NodeGraphPortModel):
+    pass
 
 
 # todo: replace double inheritence by composition

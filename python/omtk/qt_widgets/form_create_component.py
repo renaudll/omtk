@@ -3,6 +3,7 @@ import os
 import uuid
 from collections import OrderedDict
 
+from omtk import decorators
 import pymel.core as pymel
 from omtk.core import component
 from omtk.libs import libComponents
@@ -274,7 +275,7 @@ class CreateComponentForm(main_window_extended.MainWindowExtended):
         inst.export(path_out)
 
 
-@libPython.memoized
+@decorators.memoized
 def get():
     return CreateComponentForm()
 

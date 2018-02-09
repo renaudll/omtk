@@ -25,6 +25,7 @@ win.show()
 """
 import logging
 
+from omtk import decorators
 import pymel.core as pymel
 from omtk.core import session
 from omtk.libs import libPyflowgraph
@@ -37,7 +38,7 @@ from . import nodegraph_view
 log = logging.getLogger('omtk.nodegraph')
 
 
-@libPython.memoized
+@decorators.memoized
 def _get_singleton_model():
     from .nodegraph_model import NodeGraphModel
 
@@ -80,6 +81,8 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.actionRemove.triggered.connect(self.on_del)
         self.ui.actionClear.triggered.connect(self.on_clear)
         self.ui.actionExpand.triggered.connect(self.on_expand)
+        self.ui.actionExpandMore.triggered.connect(self.on_expand_more)
+        self.ui.actionExpandMoreMore.triggered.connect(self.on_expand_more_more)
         self.ui.actionCollapse.triggered.connect(self.on_colapse)
         self.ui.actionGoDown.triggered.connect(self.on_navigate_down)
         self.ui.actionGoUp.triggered.connect(self.on_navigate_up)
@@ -172,6 +175,15 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_expand(self):
         self._ctrl.expand_selected_nodes()
+
+    def on_expand_more(self):
+        self.on_expand()
+        self.on_expand()
+
+    def on_expand_more_more(self):
+        self.on_expand()
+        self.on_expand()
+        self.on_expand()
 
     def on_colapse(self):
         return self._ctrl.colapse_selected_nodes()

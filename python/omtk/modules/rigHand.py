@@ -1,3 +1,4 @@
+from omtk import decorators
 import pymel.core as pymel
 from omtk.core.module import Module
 from omtk.libs import libPymel
@@ -55,7 +56,7 @@ class Hand(Module):
         self.metacarpals = []
         self.fk_sys_metacarpals = []
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def chains(self):
         """
         Sort the finger chains by their relative position to the hand. This give consistent order.

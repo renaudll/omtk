@@ -5,6 +5,8 @@ import os
 import inspect
 import json
 import logging
+
+from omtk import decorators
 from omtk.libs import libPython
 
 log = logging.getLogger('omtk')
@@ -13,13 +15,13 @@ from omtk import constants
 
 CONFIG_FILENAME = 'config.json'
 
-@libPython.memoized
+@decorators.memoized
 def _get_path_config_dir():
     current_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
     config_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
     return config_dir
 
-@libPython.memoized
+@decorators.memoized
 def get_path_preferences():
     """
     :return: The search path of the configuration file.
@@ -55,7 +57,7 @@ class Preferences(object):
             data = json.load(fp)
             self.__dict__.update(data)
 
-    @libPython.memoized
+    @decorators.memoized
     def _get_config_nodegraph_raw(self):
         # todo: refactor preference class to better handle categories?
         try:
@@ -97,7 +99,7 @@ class Preferences(object):
 
 
 # todo: remove any other references to get_preferences() than in session
-@libPython.memoized
+@decorators.memoized
 def get_preferences():
     preferences = Preferences()
     preferences.load()

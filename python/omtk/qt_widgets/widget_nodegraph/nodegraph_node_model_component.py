@@ -1,16 +1,13 @@
-from omtk.libs import libPython
+from omtk import decorators
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_dagnode
 from omtk.vendor.Qt import QtCore, QtGui
-from omtk.vendor import libSerialization
 from omtk.core import component
-from omtk.libs import libComponents
 from omtk.core import entity_attribute
 
 if False:
     from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_controller import NodeGraphController
-    from omtk.core.component import Component
 
 
 class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
@@ -19,8 +16,9 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
     A Component is a special OMTK datatypes that consist of an input network, an output network and one or multiple
     maya nodes sandwitched in between.
     """
+
     def __init__(self, registry, entity):
-        assert(isinstance(entity, component.Component))
+        assert (isinstance(entity, component.Component))
         super(NodeGraphComponentModel, self).__init__(registry, entity)
 
     def __hash__(self):
@@ -31,11 +29,10 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         return [
             self._registry.get_node_from_value(pynode)
             for pynode in self._entity.get_children()
-            ]
+        ]
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_attributes(self):
-        # type: () -> List[NodeGraphPortModel]
         # type: () -> List[NodeGraphPortModel]
         result = set()
 
@@ -102,6 +99,7 @@ class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDag
     Since dagnode contain input and output network that define their bound, it is usefull for us
     to have access to a dedicated model for the bounds that point to the compound model.
     """
+
     def __init__(self, registry, pynode, component):
         super(NodeGraphComponentBoundBaseModel, self).__init__(registry, pynode)
         self._component = component

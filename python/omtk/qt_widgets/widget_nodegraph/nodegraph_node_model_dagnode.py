@@ -1,3 +1,4 @@
+from omtk import decorators
 from omtk.libs import libPython, libAttr, libPyflowgraph
 from omtk import constants
 from . import nodegraph_node_model_base
@@ -29,7 +30,7 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     def __hash__(self):
         return hash(self._pynode)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
         if not self._pynode:
@@ -49,10 +50,11 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     def _can_show_attr(self, attr):
         return not attr.longName() in self._attr_name_blacklist
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_attributes_raw_values(self):
         return list(libAttr.iter_contributing_attributes(self._pynode))
 
+    @decorators.profiler
     def iter_attributes(self):
         for attr in self.get_attributes_raw_values():
             if not self._can_show_attr(attr):
@@ -63,7 +65,7 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             self._registry._register_attribute(inst)
             yield inst
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()

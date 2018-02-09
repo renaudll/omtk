@@ -1,8 +1,7 @@
 import os
 import re
 
-from omtk.libs import libPython
-
+from omtk import decorators
 
 class Axis:
     """
@@ -69,7 +68,7 @@ COMPONENT_HUB_INN_ATTR_NAME = 'grp_inn'
 COMPONENT_HUB_OUT_ATTR_NAME = 'grp_out'
 
 
-@libPython.memoized
+@decorators.memoized
 def get_version():
     # type: () -> str
     """

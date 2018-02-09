@@ -1,5 +1,6 @@
 import logging
 
+from omtk import decorators
 from omtk.core import plugin_manager
 from omtk.decorators import pymel_preserve_selection
 from omtk.libs import libPython
@@ -69,7 +70,7 @@ def find_one(**kwargs):
 
 
 # @libPython.profiler
-@libPython.log_execution_time('build_all')
+@decorators.log_execution_time('build_all')
 def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
@@ -86,7 +87,7 @@ def build_all(strict=False):
 
 
 # @libPython.profiler
-@libPython.log_execution_time('unbuild_all')
+@decorators.log_execution_time('unbuild_all')
 def unbuild_all(strict=False):
     import pymel.core as pymel
     from omtk.vendor import libSerialization

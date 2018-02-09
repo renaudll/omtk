@@ -4,6 +4,7 @@ Help identifying datatypes for usage in factory methods.
 import collections
 import logging
 
+from omtk import decorators
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui
 from pymel import core as pymel
@@ -140,7 +141,7 @@ def get_datatype(val):
     raise Exception("Cannot resolve datatype for {0} {1}".format(type(val), val))
 
 
-@libPython.memoized
+@decorators.memoized
 def get_icon_from_datatype(data, datatype=None):
     """
     Factory method that return an appropriate QIcon from a specific datatype.
@@ -178,7 +179,7 @@ def get_icon_from_datatype(data, datatype=None):
     log.warning("Cannot resolve icon from datatype {0}".format(datatype))
 
 
-@libPython.memoized
+@decorators.memoized
 def get_node_color_from_datatype(datatype):
     if datatype in (
             AttributeType.Component,
@@ -197,7 +198,7 @@ def get_node_color_from_datatype(datatype):
     return QtGui.QColor(128, 170, 170, 255)
 
 
-@libPython.memoized
+@decorators.memoized
 def get_port_color_from_datatype(datatype):
     color = _g_port_color_by_datatype.get(datatype)
     if color is None:

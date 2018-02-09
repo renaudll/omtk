@@ -16,6 +16,7 @@ Warning:
 Please note that to correctly support scaling, all the computation are done in LOCAL space.
 This mean that you CANNOT use the skinned surface influences to drive the final mesh.
 """
+from omtk import decorators
 import pymel.core as pymel
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.module_map import ModuleMap
@@ -77,7 +78,7 @@ class InteractiveFKCtrlModel(module_logic_ctrl.CtrlModelCalibratable):
     def _get_calibration_reference(self):
         return self.follicle
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_bind_tm(self):
         """
         :return: The ctrl transformation that will be used to determine the position of the follicle.
@@ -89,11 +90,11 @@ class InteractiveFKCtrlModel(module_logic_ctrl.CtrlModelCalibratable):
         tm = self.jnt.getMatrix(worldSpace=True)
         return tm
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_bind_pos(self):
         return self.get_bind_tm().translate
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_default_shape(self):
         # If a surface we provided in the inputs, use it.
         surface = self.get_surface()
@@ -539,7 +540,7 @@ class InteractiveFK(Module):
                     #     elif cur_num_cvs != num_cvs:
                     #         raise Exception("Not all input NurbsSurface have the same cv count!")
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_influences_by_surfaces(self):
         """
         Analyze the inputs to resolve what influence are skinned to which surface.

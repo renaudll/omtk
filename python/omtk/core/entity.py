@@ -11,6 +11,7 @@ import re
 import logging
 import Queue as queue
 
+from omtk import decorators
 from omtk import constants
 from omtk.core.entity_action import EntityAction
 from omtk.libs import libPython
@@ -112,7 +113,7 @@ class Entity(object):
         return
         yield
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_attributes(self):
         return list(self.iter_attributes())
 

@@ -3,6 +3,7 @@ import logging
 
 import omtk.constants
 import omtk.core
+from omtk import decorators
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk import api
@@ -262,7 +263,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
 
         self.update_ui()
 
-    @libPython.log_execution_time('import_networks')
+    @decorators.log_execution_time('import_networks')
     def import_networks(self, *args, **kwargs):
         self.manager.import_networks()
 
@@ -279,7 +280,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
         self.ui.widget_jnts.set_rig(self.manager._root)
         self.ui.widget_meshes.set_rig(self.manager._root)
 
-    @libPython.log_execution_time('export_networks')
+    @decorators.log_execution_time('export_networks')
     def export_networks(self, update=True):
         self.manager.export_networks()
 

@@ -1,5 +1,3 @@
-from . import nodegraph_node_model_component
-
 # for type hinting only
 if False:
     from .nodegraph_port_model import NodeGraphPortModel

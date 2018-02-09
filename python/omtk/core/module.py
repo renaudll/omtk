@@ -1,6 +1,7 @@
 import logging
 import re
 
+from omtk import decorators
 import pymel.core as pymel
 
 logging.basicConfig()
@@ -165,7 +166,7 @@ class Module(Entity):
 
     # --- Methods for naming objects
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_side(self):
         """
         Analyze the inputs of the module and try to return it's side.
@@ -196,7 +197,7 @@ class Module(Entity):
 
             return new_nomenclature.resolve()
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_module_name(self):
         """
         Name override for nomenclature when naming ctrl and rig elements.
@@ -205,7 +206,7 @@ class Module(Entity):
             return self.name
         return self.__class__.__name__.lower()
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_nomenclature(self):
         """
         :return: The nomenclature to use for animation controllers.
@@ -215,7 +216,7 @@ class Module(Entity):
         )
         return name
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.
@@ -226,7 +227,7 @@ class Module(Entity):
         )
         return name
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_nomenclature_anm_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
@@ -237,7 +238,7 @@ class Module(Entity):
         )
         return name
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_nomenclature_rig(self):
         """
         :return: The nomenclature to use for rig objects.
@@ -248,7 +249,7 @@ class Module(Entity):
         )
         return name
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_nomenclature_rig_grp(self):
         """
         :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
@@ -259,7 +260,7 @@ class Module(Entity):
         )
         return name
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_nomenclature_jnt(self):
         """
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
@@ -296,7 +297,7 @@ class Module(Entity):
             if namespace:
                 return namespace
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def jnts(self):
         """
         :return: A list of all inputs of type pymel.nodetypes.Joint.
@@ -304,30 +305,30 @@ class Module(Entity):
         jnts = [obj for obj in self.input if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)]
         return jnts
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def jnt(self):
         """
         :return: The first input of type pymel.nodetypes.Joint.
         """
         return next(iter(filter(None, self.jnts)), None)  # Hack: remove filter, find why it happen
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def chains(self):
         return libPymel.get_chains_from_objs(self.input)
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def chain(self):
         return next(iter(self.chains), None)
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def chains_jnt(self):
         return libPymel.get_chains_from_objs(self.jnts)
 
-    @libPython.cached_property()
+    @decorators.cached_property()
     def chain_jnt(self):
         return next(iter(self.chains_jnt), None)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_head_jnt(self, strict=False):
         """
         Resolve the head influence related to the current module.
@@ -369,7 +370,7 @@ class Module(Entity):
             self.warning("Cannot resolve head influence! Using default {}".format(default_head))
             return default_head
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
         """
         Resolve the jaw influence related to the current module.
@@ -396,7 +397,7 @@ class Module(Entity):
                 "Cannot found a {0} influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
         return None
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jaw_module(self, strict=True):
         """
         Resolve the jaw module related to the current module with support for rigs with multiple jaw.
@@ -416,14 +417,14 @@ class Module(Entity):
             self.warning("Cannot found a {} module. Please create one!".format(rigFaceJaw.FaceJaw.__name__))
         return module_jaw
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_surfaces(self):
         """
         :return: A list of all inputs of type pymel.nodetypes.NurbsSurface.
         """
         return [obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)]
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_surface(self):
         """
         :return: The first input of type pymel.nodetypes.NurbsSurface.

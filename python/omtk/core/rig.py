@@ -4,6 +4,7 @@ import time
 import traceback
 
 import omtk.constants
+from omtk import decorators
 import pymel.core as pymel
 from maya import cmds
 from omtk import constants
@@ -363,7 +364,7 @@ class Rig(Entity):
         """
         return True
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_all_input_shapes(self):
         """
         Used for quick lookup (see self._is_potential_deformable).
@@ -444,11 +445,11 @@ class Rig(Entity):
     def get_ctrls(self, **kwargs):
         return list(self.iter_ctrls(**kwargs))
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_influences_jnts(self):
         return self.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_shapes(self):
         """
         :return: All meshes under the mesh group. If found nothing, scan the whole scene.
@@ -469,14 +470,14 @@ class Rig(Entity):
 
         return shapes
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_meshes(self):
         """
         :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
         """
         return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.Mesh), self.get_shapes())
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_surfaces(self):
         """
         :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
@@ -937,7 +938,7 @@ class Rig(Entity):
     # def get_head_jnt(self, strict=True):
     #     return next(iter(self.get_head_jnts(strict=strict)), None)
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_head_jnts(self, strict=True):
         """
         Necessary to support multiple heads on a character.
@@ -953,7 +954,7 @@ class Rig(Entity):
             self.warning("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
         return result
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
         from omtk.modules import rigFaceJaw
         for module in self.modules:
@@ -963,7 +964,7 @@ class Rig(Entity):
             self.warning("Cannot found Jaw in rig! Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
         return None
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_head_length(self, jnt_head):
         """
         Resolve a head influence height using raycasts.

@@ -1,7 +1,7 @@
 """
 Warning: The mirror functionnality of OMTK is in alpha stage. Use it at your own risk!
 """
-
+from omtk import decorators
 import pymel.core as pymel
 from maya import cmds, OpenMaya
 
@@ -197,7 +197,7 @@ def get_obj_mirror_def(obj):
 
 
 # @libPython.profiler
-@libPython.log_execution_time(__name__)
+@decorators.log_execution_time(__name__)
 def mirror_objs(objs):
     # Only work on transforms
     objs = filter(

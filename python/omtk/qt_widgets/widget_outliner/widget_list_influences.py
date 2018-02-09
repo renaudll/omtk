@@ -1,6 +1,7 @@
 import re
 
 import omtk.constants_ui
+from omtk import decorators
 import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -38,7 +39,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         if update:
             self.update()
 
-    @libPython.log_execution_time('update_ui_jnts')
+    @decorators.log_execution_time('update_ui_jnts')
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
 

@@ -4,6 +4,7 @@ Define a controller for one specific GraphView.
 import itertools
 import logging
 
+from omtk import decorators
 import pymel.core as pymel
 from omtk import constants
 from omtk.core import component, session
@@ -84,7 +85,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def manager(self):
         return session.get_session()
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_root_model(self):
         return self._cls_root_model(self._model) if self._cls_root_model else None
 
@@ -392,7 +393,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Widget factory ---
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_node_widget(self, model):
         # type: (NodeGraphNodeModel) -> PyFlowgraphNode
         # todo: how to we prevent from calling .get_widget() from the model directly? do we remove it?
@@ -410,7 +411,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         return node_widget
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_port_widget(self, port_model):
         # type: (NodeGraphPortModel) -> PyFlowgraphBasePort
         """
@@ -441,7 +442,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         return port_widget
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_connection_widget(self, connection_model):
         """
         Main entry-point for Widget creation.
@@ -810,7 +811,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             yield connection
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_port_input_connections(self, model):
         return list(self._iter_port_input_connections(model))  # cannot memoize a generator
 
@@ -847,7 +848,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             yield connection
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def get_port_output_connections(self, model):
         return list(self._iter_port_output_connections(model))  # cannot memoize a generator
 

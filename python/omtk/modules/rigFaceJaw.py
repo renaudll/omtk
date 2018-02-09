@@ -1,3 +1,4 @@
+from omtk import decorators
 import pymel.core as pymel
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPython
@@ -85,7 +86,7 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
     def handle_surface(self):
         pass  # todo: better class schema!
 
-    @libPython.memoized_instancemethod
+    @decorators.memoized_instancemethod
     def _get_avar_macro_all_ctrl_tm(self):
         """
         If the rigger provided an extra influence (jaw_end), we'll use it to define the ctrl and influence position.

@@ -1,12 +1,11 @@
 from widget_list_base import OmtkBaseListWidget
 from widget_list_base import OmtkBaseListWidgetRig
-# from widget_list_influences import WidgetListInfluences
-from widget_list_influences2 import WidgetListInfluences2 as WidgetListInfluences
-# from widget_list_meshes import WidgetListMeshes
-from widget_list_meshes2 import WidgetListMeshes2 as WidgetListMeshes
-from widget_list_modules2 import WidgetListModules
+from widget_list_influences import WidgetListInfluences
+from widget_list_meshes import WidgetListMeshes
+from widget_list_modules import WidgetListModules
 from widget_list_componentdef import WidgetListComponentDefinition
 from widget_extended_tree import WidgetExtendedTree
+from widget_list_all import WidgetListAll
 
 
 def reload_():
@@ -25,18 +24,12 @@ def reload_():
     from . import widget_list_influences
     reload(widget_list_influences)
 
-    from . import widget_list_influences2
-    reload(widget_list_influences2)
-
     from . import widget_list_meshes
     reload(widget_list_meshes)
-
-    from . import widget_list_meshes2
-    reload(widget_list_meshes2)
 
     from . import widget_list_modules
     reload(widget_list_modules)
 
-    from . import widget_list_modules2
-    reload(widget_list_modules2)
+    from . import widget_list_all
+    reload(widget_list_all)
 

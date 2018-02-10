@@ -17,7 +17,6 @@ from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
 from . import nodegraph_node_model_dagnode
 from . import nodegraph_node_model_root
-from . import nodegraph_port_model
 
 # Used for type checking
 if False:
@@ -42,6 +41,10 @@ def block_signal(fn):
 
 
 class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary for signal handling
+    """
+    Link node values to NodeGraph[Node/Port/Connection]Model.
+    DOES handle the Component representation by wrapper ``NodeGraphModel``.
+    """
     onLevelChanged = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
 
@@ -109,26 +112,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # Connect events
         view.connectionAdded.connect(self.on_connection_added)
         view.connectionRemoved.connect(self.on_connected_removed)
-
-        # view.scene().sceneRectChanged.connect(self.on_scene_rect_changed)
-
-        # NodeGraphView events:
-        # nodeAdded = QtCore.Signal(Node)
-        # nodeRemoved = QtCore.Signal(Node)
-        # nodeNameChanged = QtCore.Signal(str, str)
-        # beginDeleteSelection = QtCore.Signal()
-        # endDeleteSelection = QtCore.Signal()
-        # beginConnectionManipulation = QtCore.Signal()
-        # endConnectionManipulation = QtCore.Signal()
-        # connectionAdded = QtCore.Signal(Connection)
-        # connectionRemoved = QtCore.Signal(Connection)
-        # beginNodeSelection = QtCore.Signal()
-        # endNodeSelection = QtCore.Signal()
-        # selectionChanged = QtCore.Signal(list, list)
-        # # During the movement of the nodes, this signal is emitted with the incremental delta.
-        # selectionMoved = QtCore.Signal(set, QtCore.QPointF)
-        # # After moving the nodes interactively, this signal is emitted with the final delta.
-        # endSelectionMoved = QtCore.Signal(set, QtCore.QPointF)
 
     def set_filter(self, filter):
         # type: (NodeGraphControllerFilter) -> None
@@ -584,6 +567,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         except KeyError:
             pass
 
+    # @decorators.profiler
     def set_level(self, node_model):
         # If None was provided, we will switch to the top level.
         if node_model is None:

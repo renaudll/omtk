@@ -1063,7 +1063,6 @@ def iter_leaf_attributes(obj, **kwargs):
         yield attr
 
 
-@decorators.profiler
 def iter_contributing_attributes(obj):
     """
     Yield all attributes contributing to the provided object.
@@ -1105,20 +1104,32 @@ def iter_contributing_attributes(obj):
         for yielded in _iter_plug_children(plug):
             yield pymel.Attribute(yielded)
 
-@decorators.profiler
+
 def iter_contributing_attributes_openmaya2(dagpath):
+    print dagpath
     from maya.api import OpenMaya as om2
-    mfn = om2.MFnDependencyNode(dagpath)
+
+    sel = om2.MSelectionList()
+    sel.add(dagpath)
+    obj = sel.getDependNode(0)
+    mfn = om2.MFnDependencyNode(obj)
+
+
+    # mfn = om2.MFnDependencyNode(dagpath)
     for j in xrange(mfn.attributeCount()):
         a = mfn.attribute(j)
         amfn = om2.MFnAttribute(a)
-        yield amfn
+        yield pymel.Attribute(dagpath + '.' + amfn.name)
+        # yield amfn
 
 def iter_network_contributing_attributes(network):
     global _g_blacklisted_attr_names
-    for attr in iter_contributing_attributes(network):
-        if attr.longName() in _g_blacklisted_attr_names:
+    # for attr in iter_contributing_attributes(network):
+    for attr in iter_contributing_attributes_openmaya2(network.__melobject__()):
+        if attr.name in _g_blacklisted_attr_names:
             continue
+        # if attr.longName() in _g_blacklisted_attr_names:
+        #     continue
         yield attr
 
 

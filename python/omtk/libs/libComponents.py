@@ -1,5 +1,6 @@
 import logging
 import os
+import itertools
 
 import pymel.core as pymel
 from omtk.core.component_definition import ComponentDefinition
@@ -146,6 +147,14 @@ def walk_available_component_definitions(search_scripted=True):
         log.debug('Registering {0} from {1}'.format(component_def, plugin))
         yield component_def
 
+from omtk import decorators
+
+
+class BrokenComponentError(Exception):
+    """Raised when something fail because a node is inside and outside of a component at the same time."""
+
+
+
 
 def get_component_network_bounds():
     """
@@ -258,12 +267,17 @@ def get_component_parent_network(obj, source=True, destination=True, cache=None,
             n = get_out_network_from_inn_network(n, strict=True)
         return pymel.listConnections(n, source=False, destination=True, skipConversionNodes=True)
 
+    # Keep track of the nodes we encounter while exploring.
+    # We'll add them to the cache since they are also between the same hub networks.
+    known_inn = set()
+    known_out = set()
+
     try:
-        hub_inn = next(reversed(libPython.id_dfs(obj, _fn_goal_inn, _fn_explore_inn)), None)
+        hub_inn = next(reversed(libPython.id_dfs(obj, _fn_goal_inn, _fn_explore_inn, known=known_inn)), None)
     except StopIteration:
         hub_inn = None
     try:
-        hub_out = next(reversed(libPython.id_dfs(obj, _fn_goal_out, _fn_explore_out)), None)
+        hub_out = next(reversed(libPython.id_dfs(obj, _fn_goal_out, _fn_explore_out, known=known_out)), None)
     except StopIteration:
         hub_out = None
 

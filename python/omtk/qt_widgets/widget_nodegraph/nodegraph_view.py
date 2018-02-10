@@ -45,11 +45,10 @@ class NodeGraphView(PyFlowgraphView):
 
         # Check if the double-click occured on a node.
         for node in self.iter_nodes():
-            if node.contains(pos):
+            if node.windowFrameGeometry().contains(pos):
                 self.nodeDoubleClicked.emit(node)
 
         return super(NodeGraphView, self).mouseDoubleClickEvent(event)
-
 
     def on_frame(self):
         """
@@ -131,7 +130,6 @@ class NodeGraphView(PyFlowgraphView):
     def dragMoveEvent(self, event):
         event.accept()
 
-    # @libPython.profiler
     def dropEvent(self, event):
         super(NodeGraphView, self).dropEvent(event)
         print event.mimeData().formats()
@@ -178,6 +176,7 @@ class NodeGraphView(PyFlowgraphView):
         :param component:
         :return:
         """
+        # todo: move to controller?
         log.debug("Creating component {0} (id {1})".format(component, id(component)))
         model, widget = self._controller.add_node(component)
 

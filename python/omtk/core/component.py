@@ -51,6 +51,16 @@ class Component(Entity):
         # Used for dynamic components. Define if a Component content need to be regenerated.
         self._is_dirty_content = True
 
+    def get_name(self):
+        # todo: store the instance name in the class?
+        # currently we'll use the namespace which is not ideal
+        if self.grp_inn:
+            return self.grp_inn.namespace().strip(':')
+        if self.grp_out:
+            return self.grp_out.namespace().strip(':')
+        if self.grp_dag:
+            return self.grp_dag.namespace().strip(':')
+
     @classmethod
     def from_definition(cls, cls_def):
         # type: (component_definition.ComponentDefinition) -> Component

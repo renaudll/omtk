@@ -173,9 +173,18 @@ def dfs(graph, start, visited=None):
     return visited
 
 # http://eddmann.com/posts/using-iterative-deepening-depth-first-search-in-python/
-def id_dfs(puzzle, goal, get_moves, max_iteration=20):
+def id_dfs(puzzle, goal, get_moves, max_iteration=20, known=None):
+    """
+    :param puzzle:
+    :param goal:
+    :param get_moves:
+    :param max_iteration:
+    :param known: A set that will keep track of explored nodes. Created if not provided.
+    :return:
+    """
     import itertools
-    known = set()
+    if known is None:
+        known = set()
 
     def dfs(route, depth):
         if depth == 0:

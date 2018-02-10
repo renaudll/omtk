@@ -29,6 +29,10 @@ class Entity(object):
         self.version = ''
 
     def get_name(self):
+        """
+        Return a unique name for an entity instance.
+        In an ideal scenario, no entity instance should have the same name.
+        """
         return self.__class__.__name__ + ' ' + (self.name if self.name else 'unamed')
 
     def get_version(self):

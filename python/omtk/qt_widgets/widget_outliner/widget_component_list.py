@@ -216,17 +216,23 @@ class WidgetComponentList(QtWidgets.QWidget):
     def action_submit(self):
         entries = self._get_selected_entries()
         for entry in entries:
+            if isinstance(entry, ComponentDefinition):
+                inst = self.manager.create_component(entry)
+            else:
+                inst = entry.instanciate()
+
             # Create the component in memory
-            try:
-                component = entry.instanciate()
-            except Exception, e:
-                log.exception(e)
-                raise e
+            # try:
+            #     component = entry.instanciate()
+            # except Exception, e:
+            #     log.exception(e)
+            #     raise e
 
             # Export the component metadata
             # if isinstance(component, Component):
             #     from omtk.vendor import libSerialization
             #     libSerialization.export_network(component, cache=self.manager._serialization_cache)  ## error ehere
 
-            self.signalComponentCreated.emit(component)
+            # todo: signal should only come from the session class, remove this one
+            self.signalComponentCreated.emit(inst)
         self.close()

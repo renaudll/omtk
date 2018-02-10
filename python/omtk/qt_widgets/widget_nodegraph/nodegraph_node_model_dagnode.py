@@ -33,16 +33,7 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     @decorators.memoized_instancemethod
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
-        if not self._pynode:
-            return None
-        parent_grp_inn, _ = libComponents.get_component_parent_network(self._pynode)
-        if not parent_grp_inn:
-            return None
-        net = libComponents.get_component_metanetwork_from_hub_network(parent_grp_inn)
-        if not net:
-            return None
-        inst = self._registry.manager.import_network(net)
-        return inst
+        return self._registry.get_node_parent(self._pynode)
 
     def get_metadata(self):
         return self._pynode
@@ -53,8 +44,8 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     @decorators.memoized_instancemethod
     def get_attributes_raw_values(self):
         return list(libAttr.iter_contributing_attributes(self._pynode))
+        # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
-    @decorators.profiler
     def iter_attributes(self):
         for attr in self.get_attributes_raw_values():
             if not self._can_show_attr(attr):

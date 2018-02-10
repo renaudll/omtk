@@ -19,13 +19,14 @@ log = logging.getLogger('omtk.nodegraph')
 
 # for type hinting
 if False:
-    pass
+    from .nodegraph_node_model_base import NodeGraphNodeModel
+    from .nodegraph_port_model import NodeGraphPortModel
 
 
 class NodeGraphModel(object):
     """
-    This class act a sort of global cache for the multiple models that compose the GraphView.
-    This allow multiple view can re-use the same data.
+    Link node values to NodeGraph[Node/Port/Connection]Model.
+    Does not handle the Component representation.
     """
 
     def __init__(self):
@@ -85,6 +86,7 @@ class NodeGraphModel(object):
     # --- Access methods ---
 
     def get_node_from_value(self, key):
+        # type: (object) -> NodeGraphNodeModel
         try:
             return self._cache_nodes[key]
         except LookupError:
@@ -93,7 +95,7 @@ class NodeGraphModel(object):
             return val
 
     def _get_node_from_value(self, val):
-        ## type: (object) -> NodeGraphModel
+        # type: (object) -> NodeGraphNodeModel
         """
         Factory function for creating NodeGraphModel instances.
         This handle all the caching and registration.
@@ -144,6 +146,7 @@ class NodeGraphModel(object):
         # return inst
 
     def get_port_model_from_value(self, key):
+        # type: (object) -> NodeGraphPortModel
         try:
             return self._cache_ports[key]
         except LookupError:
@@ -152,9 +155,8 @@ class NodeGraphModel(object):
             return val
 
     def _get_port_model_from_value(self, val):
+        # type: (object) -> NodeGraphPortModel
         # log.debug('Creating port model from {0}'.format(val))
-
-        # type: () -> List[NodeGraphPortModel]
         # todo: add support for pure EntityAttribute
         if isinstance(val, entity_attribute.EntityPymelAttribute):
             node_value = val._attr.node()
@@ -212,10 +214,10 @@ class NodeGraphModel(object):
         self._register_connections(inst)
         return inst
 
-    # def walk_inside_component(self, component):
-    #     # type: (NodeGraphComponentModel) -> None
-
     def iter_nodes_from_parent(self, parent):
         for node in self._nodes:
             if node.get_parent() == parent:
                 yield node
+
+    def get_node_parent(self, node):
+        return self.manager._cache_components.get_node_parent(node)

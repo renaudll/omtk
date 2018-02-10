@@ -7,7 +7,6 @@ import omtk.constants
 import pymel.core as pymel
 from maya import cmds
 from omtk import constants
-from omtk.core import session
 from omtk.libs import libNamespaces
 
 log = logging.getLogger('omtk')
@@ -168,6 +167,7 @@ class ComponentDefinition(object):
                 self, self.path
             ))
 
+        from omtk.core import session
         m = session.get_session()
 
         if name is None:

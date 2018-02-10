@@ -34,6 +34,18 @@ class NodeGraphView(PyFlowgraphView):
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
         shortcut_tab.activated.connect(self.on_tab_pressed)
 
+        shortcut_frame = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F), self)
+        shortcut_frame.activated.connect(self.on_frame)
+
+    def on_frame(self):
+        """
+        Called when the user press ``f``. Frame selected nodes if there's a selection, otherwise frame everything.
+        """
+        if self.getSelectedNodes():
+            self.frameSelectedNodes()
+        else:
+            self.frameAllNodes()
+
     @property
     def manager(self):
         return session.get_session()
@@ -88,7 +100,8 @@ class NodeGraphView(PyFlowgraphView):
         dialog.show()
         dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
 
-    # -- Drag and Drop --
+    # --- Drag and Drop ----
+
     def dropMimeData(self, parent, index, data, action):
         print parent, index, data, action
         return True

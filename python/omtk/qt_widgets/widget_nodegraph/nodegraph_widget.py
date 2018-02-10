@@ -88,6 +88,8 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.actionGoUp.triggered.connect(self.on_navigate_up)
         self.ui.actionGroup.triggered.connect(self.on_group)
         self.ui.actionUngroup.triggered.connect(self.on_ungroup)
+        self.ui.actionFrameAll.triggered.connect(self.on_frame_all)
+        self.ui.actionFrameSelected.triggered.connect(self.on_frame_selected)
 
         self.ui.actionLayoutUpstream.triggered.connect(self.on_arrange_upstream)
         self.ui.actionLayoutDownstream.triggered.connect(self.on_arrange_downstream)
@@ -226,6 +228,12 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     def on_arrange_recenter(self):
         pyflowgraph_nodes = self._current_view.getSelectedNodes()
         libPyflowgraph.recenter_nodes(pyflowgraph_nodes)
+        self._current_view.frameSelectedNodes()
+
+    def on_frame_all(self):
+        self._current_view.frameAllNodes()
+
+    def on_frame_selected(self):
         self._current_view.frameSelectedNodes()
 
     def on_breadcrumb_changed(self, model):

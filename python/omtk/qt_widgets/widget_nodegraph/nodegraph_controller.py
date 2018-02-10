@@ -11,7 +11,6 @@ from omtk.core import component, session
 from omtk.core import entity
 from omtk.factories import factory_datatypes, factory_rc_menu
 from omtk.libs import libComponents
-from omtk.libs import libPython
 from omtk.vendor.Qt import QtCore
 
 from . import nodegraph_node_model_base
@@ -152,6 +151,15 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
         port_dst_model.disconnect_from(port_src_model.get_metadata())
         # todo: find related port models
+
+    def on_node_double_click(self, widget):
+        """
+        Called when a double-click occur on a Node.
+        Default behavior is to enter the node if it is a compound, otherwise do nothing.
+        """
+        model = self.get_node_model_from_widget(widget)
+        if isinstance(model, nodegraph_node_model_component.NodeGraphComponentModel):
+            self.set_level(model)
 
     def on_scene_rect_changed(self, rect):
         scene_x = rect.x()
@@ -530,10 +538,19 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             widget = node.get_widget()
             self._view.addNode(widget)
 
+    def get_node_model_from_widget(self, widget):
+        # type: (PyFlowgraphNode) -> NodeGraphNodeModel
+        """
+        Return the data model associated with a Node widget.
+        :param widget: A PyflowgraphNode widget instance.
+        :return: A NodeGraphNodeModel instance.
+        """
+        # Retrieve monkey-patched model in PyFlowgraph widgets.
+        return widget._omtk_model
+
     def get_selected_node_models(self):
         # type: () -> List[NodeGraphNodeModel]
-        # Retrieve monkey-patched model in PyFlowgraph widgets.
-        return [pfg_node._omtk_model for pfg_node in self._view.getSelectedNodes()]
+        return [self.get_node_model_from_widget(pfg_node) for pfg_node in self._view.getSelectedNodes()]
 
     def get_selected_values(self):
         return [model.get_metadata() for model in self.get_selected_node_models()]

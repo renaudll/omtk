@@ -131,9 +131,12 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         breakcrumb = widget_breadcrumb.WidgetBreadcrumb()
         breakcrumb.path_changed.connect(self.on_breadcrumb_changed)
 
+        controller = self.get_controller()
+
         view = nodegraph_view.NodeGraphView(self)
         view.set_model(self._ctrl)
         view.endSelectionMoved.connect(self.on_selected_nodes_moved)  # ???
+        view.nodeDoubleClicked.connect(controller.on_node_double_click)
 
         # view.setMouseTracking(True)
         # Proper layout setup for tab

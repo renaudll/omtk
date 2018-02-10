@@ -647,3 +647,10 @@ class GraphView(QtWidgets.QGraphicsView):
         painter.drawLines(gridLines)
 
         return super(GraphView, self).drawBackground(painter, rect)
+
+    #########################
+    ## added by rlessard
+
+    def iter_nodes(self):
+        for node in self.__nodes.itervalues():
+            yield node

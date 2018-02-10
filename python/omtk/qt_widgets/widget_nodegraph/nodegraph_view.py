@@ -14,6 +14,7 @@ log = logging.getLogger('omtk.nodegraph')
 if False:
     from .nodegraph_controller import NodeGraphController
     from omtk.core.component import Component
+    from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
 
 class NodeGraphView(PyFlowgraphView):
@@ -25,6 +26,7 @@ class NodeGraphView(PyFlowgraphView):
     dragDrop = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
     updateRequested = QtCore.Signal()
+    nodeDoubleClicked = QtCore.Signal(object)  # PyFlowgraphNode
 
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
@@ -36,6 +38,18 @@ class NodeGraphView(PyFlowgraphView):
 
         shortcut_frame = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F), self)
         shortcut_frame.activated.connect(self.on_frame)
+
+    def mouseDoubleClickEvent(self, event):
+        # todo: would it be better to handle this in the Node class?
+        pos = self.mapToScene(event.pos())
+
+        # Check if the double-click occured on a node.
+        for node in self.iter_nodes():
+            if node.contains(pos):
+                self.nodeDoubleClicked.emit(node)
+
+        return super(NodeGraphView, self).mouseDoubleClickEvent(event)
+
 
     def on_frame(self):
         """

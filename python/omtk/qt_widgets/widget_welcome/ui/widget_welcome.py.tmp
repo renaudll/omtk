@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/widget_welcome.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_welcome/ui/widget_welcome.ui'
 #
-# Created: Wed Dec 20 20:39:33 2017
+# Created: Sun Feb 11 15:44:50 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -95,21 +95,21 @@ class Ui_Form(object):
         self.verticalLayout_3.addItem(spacerItem2)
         self.horizontalLayout.addLayout(self.verticalLayout_3)
         self.verticalLayout_4.addLayout(self.horizontalLayout)
-        self.checkBox = QtWidgets.QCheckBox(Form)
-        self.checkBox.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.checkBox.setObjectName("checkBox")
-        self.verticalLayout_4.addWidget(self.checkBox)
+        self.cb_show_at_startup = QtWidgets.QCheckBox(Form)
+        self.cb_show_at_startup.setLayoutDirection(QtCore.Qt.RightToLeft)
+        self.cb_show_at_startup.setObjectName("cb_show_at_startup")
+        self.verticalLayout_4.addWidget(self.cb_show_at_startup)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form"))
-        self.label.setText(QtWidgets.QApplication.translate("Form", "Welcome!"))
-        self.btn_create_rig_default.setText(QtWidgets.QApplication.translate("Form", "Start from a rig"))
-        self.label_3.setText(QtWidgets.QApplication.translate("Form", "Available rigs:"))
-        self.btn_create_rig_template.setText(QtWidgets.QApplication.translate("Form", "Start from a template"))
-        self.label_4.setText(QtWidgets.QApplication.translate("Form", "Available templates"))
-        self.btn_start.setText(QtWidgets.QApplication.translate("Form", "Start from scratch"))
-        self.checkBox.setText(QtWidgets.QApplication.translate("Form", "show at startup"))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("Form", "Welcome!", None, -1))
+        self.btn_create_rig_default.setText(QtWidgets.QApplication.translate("Form", "Start from a rig", None, -1))
+        self.label_3.setText(QtWidgets.QApplication.translate("Form", "Available rigs:", None, -1))
+        self.btn_create_rig_template.setText(QtWidgets.QApplication.translate("Form", "Start from a template", None, -1))
+        self.label_4.setText(QtWidgets.QApplication.translate("Form", "Available templates", None, -1))
+        self.btn_start.setText(QtWidgets.QApplication.translate("Form", "Start from scratch", None, -1))
+        self.cb_show_at_startup.setText(QtWidgets.QApplication.translate("Form", "Show at startup", None, -1))
 

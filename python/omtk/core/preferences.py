@@ -96,11 +96,10 @@ class Preferences(object):
         raise Exception("No Rig definition found!")
 
 
-
-
 # todo: remove any other references to get_preferences() than in session
 @decorators.memoized
 def get_preferences():
+    # type: () -> Preferences
     preferences = Preferences()
     preferences.load()
     return preferences

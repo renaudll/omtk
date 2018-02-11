@@ -220,10 +220,10 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._current_view.frameAllNodes()
 
     def on_group(self):
-        self._ctrl.group_selection()
+        self._ctrl.on_rcmenu_group_selection()
 
     def on_ungroup(self):
-        self._ctrl.ungroup_selection()
+        self._ctrl.on_rcmenu_ungroup_selection()
 
     def on_match_maya_editor_positions(self):
         raise NotImplementedError

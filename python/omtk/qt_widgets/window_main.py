@@ -52,10 +52,6 @@ class AutoRig(main_window_extended.MainWindowExtended):
         version = omtk.constants.get_version()
         self.setWindowTitle('Open Rigging Toolkit {}'.format(version))
 
-        #
-        # First update
-        #
-
         self.import_networks()
 
         # Connect events

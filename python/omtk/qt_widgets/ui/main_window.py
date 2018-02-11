@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtCore, QtWidgets
 
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
@@ -226,6 +226,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create New", None, -1))
 
-from ..WidgetWelcome import WidgetWelcome
+from omtk.qt_widgets.widget_welcome.WidgetWelcome import WidgetWelcome
 from ..widget_outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
 from ..widget_nodegraph import NodeGraphWidget

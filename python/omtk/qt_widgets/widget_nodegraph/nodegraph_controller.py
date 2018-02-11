@@ -5,6 +5,7 @@ import itertools
 import logging
 
 from omtk import decorators
+from maya import mel
 import pymel.core as pymel
 from omtk import constants
 from omtk.core import component, session
@@ -162,9 +163,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Cache clearing method ---
 
-    # todo: deprecate in favor of invalidate_node_model?
     def invalidate_node_value(self, key):
         """Invalidate any cache referencing provided value."""
+        # todo: deprecate in favor of invalidate_node_model?
         self._model.invalidate_node(key)
         try:
             self._cache_nodes.pop(key)
@@ -345,42 +346,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # node_widget = self.get_node_widget(node_model)
         # self._view.addNode(node_widget)
         raise NotImplementedError
-
-    # @libPython.memoized_instancemethod
-    # def get_node_parent(self, node_model):
-    #     parent_model = node_model.get_parent()
-    #
-    #     #
-    #     if isinstance(node_model, nodegraph_node_model_dagnode.NodeGraphDagNodeModel):
-    #         parent_grp_inn, _ = libComponents.get_component_parent_network(self._pynode)
-    #         if not parent_grp_inn:
-    #             return None
-    #         net = libComponents.get_component_metanetwork_from_hub_network(parent_grp_inn)
-    #         if not net:
-    #             return None
-    #         inst = self._registry._manager.import_network(net)
-    #         # inst = libSerialization.import_network(net)  # todo: use some kind of singleton/registry?
-    #         if not inst:
-    #             return None
-    #         parent_model = self._registry.get_node_from_value(inst)
-    #
-    #     return parent_model
-
-    # def expand_attribute_connections(self, model_attr):
-    #     # type: (NodeGraphPortModel) -> None
-    #     """
-    #     Show all connections for a specific PyFlowgraph Port.
-    #     Add the destination Port and Node in the View if it didn't previously exist.
-    #     :param model_attr:
-    #     :return:
-    #     """
-    #     # todo: is this really the place for is_writable, should this be in .get_input_connections()?
-    #     if model_attr.is_writable():
-    #         for connection_model in model_attr.get_input_connections():
-    #             self.get_connection_widget(connection_model)
-    #     if model_attr.is_readable():
-    #         for connection_model in model_attr.get_output_connections():
-    #             self.get_connection_widget(connection_model)
 
     # --- Widget factory ---
 
@@ -567,7 +532,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         except KeyError:
             pass
 
-    # @decorators.profiler
+    # --- Level related methos ---
+
     def set_level(self, node_model):
         # If None was provided, we will switch to the top level.
         if node_model is None:
@@ -671,16 +637,32 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         else:
             log.debug("Cannot naviguate to {0}".format(node_model))
 
+    # --- Events ---
+
     def on_right_click(self, menu):
         values = self.get_selected_values()
 
         if values:
+            menu_action = menu.addAction('Add Attribute')
+            menu_action.triggered.connect(self.on_rcmenu_add_attribute)
+
+            menu_action = menu.addAction('Rename Attribute')
+            menu_action.triggered.connect(self.on_rcmenu_rename_attribute)
+
+            menu_action = menu.addAction('Rename Attribute')
+            menu_action.triggered.connect(self.on_rcmenu_delete_attribute)
+
             menu_action = menu.addAction('Group')
-            menu_action.triggered.connect(self.group_selection)
+            menu_action.triggered.connect(self.on_rcmenu_group_selection)
+
+            menu_action = menu.addAction('Publish')
+            menu_action.triggered.connect(self.on_rcmenu_publish_selection)
+
+
 
         if any(True for val in values if isinstance(val, component.Component)):
             menu_action = menu.addAction('Ungroup')
-            menu_action.triggered.connect(self.ungroup_selection)
+            menu_action.triggered.connect(self.on_rcmenu_ungroup_selection)
 
         values = [v for v in values if isinstance(v, entity.Entity)]  # limit ourself to components
 
@@ -853,7 +835,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def get_port_output_connections(self, model):
         return list(self._iter_port_output_connections(model))  # cannot memoize a generator
 
-    def group_selection(self):
+    # --- Right click menu events ---
+
+    def on_rcmenu_group_selection(self):
         # selected_nodes = self.get_selected_node_models()
         inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
 
@@ -889,11 +873,25 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self.invalidate_node_value(node)
 
         inst_model, inst_widget = self.add_node(inst)
-        # inst_widget.setGraphPos(middle_pos)
 
         return inst
 
-    def ungroup_selection(self):
+    def on_rcmenu_add_attribute(self):
+        return mel.eval('AddAttribute')
+
+    def on_rcmenu_rename_attribute(self):
+        raise NotImplementedError
+
+    def on_rcmenu_delete_attribute(self):
+        raise NotImplementedError
+
+    def on_rcmenu_publish_selection(self):
+        # from omtk.qt_widgets import widget_component_wizard
+        from omtk.qt_widgets import form_create_component
+        # widget_component_wizard.show()
+        form_create_component.show()
+
+    def on_rcmenu_ungroup_selection(self):
         # Get selection components
         components = [val for val in self.get_selected_values() if isinstance(val, component.Component)]
         if not components:
@@ -916,32 +914,3 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         for node in new_nodes:
             self.add_node(node)
-
-        # for component in components:
-        #     component_model = self.get_node_model_from_value(component)
-        #     for connection_model in component_model.get_input_connections():
-        #         if connection_model in self._known_connections_widgets:
-        #             widget = self.get_connection_widget(connection_model)  # todo: prevent creation
-        #             self._view.removeConnection(widget, emitSignal=False)
-        #             self._known_connections_widgets.remove(connection_model)
-        #     for connection_model in component_model.get_output_connections():
-        #         if connection_model in self._known_connections_widgets:
-        #             widget = self.get_connection_widget(connection_model)  # todo: prevent creation
-        #             self._view.removeConnection(widget, emitSignal=False)
-        #             self._known_connections_widgets.remove(connection_model)
-        #
-        #     children = component.get_children()
-        #     new_nodes.extend(children)
-        #     component.explode()
-        #
-        #     Hack: children model parent have changed, we need to invalidate the cache
-        #     for child in children:
-        #         self.invalidate_node(child)
-            #
-            # component_model = self.get_node_model_from_value(component)
-            # widget = self.get_node_widget(component_model)
-            # self._view.removeNode(widget, emitSignal=False)
-        #
-        # self._cache.clear()
-        # for node in new_nodes:
-        #     self.add_node(node)

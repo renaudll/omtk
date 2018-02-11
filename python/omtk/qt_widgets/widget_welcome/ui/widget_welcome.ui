@@ -201,20 +201,16 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBox">
+    <widget class="QCheckBox" name="cb_show_at_startup">
      <property name="layoutDirection">
       <enum>Qt::RightToLeft</enum>
      </property>
      <property name="text">
-      <string>show at startup</string>
+      <string>Show at startup</string>
      </property>
     </widget>
    </item>
   </layout>
-  <zorder>label</zorder>
-  <zorder>btn_start</zorder>
-  <zorder>checkBox</zorder>
-  <zorder>tableView_types_template</zorder>
  </widget>
  <resources/>
  <connections/>

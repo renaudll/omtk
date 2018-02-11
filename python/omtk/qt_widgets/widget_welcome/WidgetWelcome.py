@@ -1,10 +1,11 @@
 from omtk.core import preferences, session
-from omtk.qt_widgets.ui import widget_welcome
+from omtk.qt_widgets.widget_welcome.ui import widget_welcome
 from omtk.vendor.Qt import QtCore, QtWidgets
 
-from . import model_rig_definitions
-from . import model_rig_templates
+from omtk.qt_widgets import model_rig_definitions
+from omtk.qt_widgets import model_rig_templates
 
+_g_preferences = preferences.get_preferences()
 
 class WidgetWelcome(QtWidgets.QWidget):
     onCreate = QtCore.Signal()
@@ -28,10 +29,13 @@ class WidgetWelcome(QtWidgets.QWidget):
         default_rig_def = preferences.get_preferences().get_default_rig_class()
         self.set_selected_rig_definition(default_rig_def)
 
+        self.ui.cb_show_at_startup.setChecked(not _g_preferences.hide_welcome_screen)
+
         # Connect events
         self.ui.btn_create_rig_default.pressed.connect(self.on_create_rig)
         self.ui.btn_create_rig_template.pressed.connect(self.on_import_rig)
         self.ui.btn_start.pressed.connect(self.on_start_empty)
+        self.ui.cb_show_at_startup.toggled.connect(self.on_show_at_startup_changed)
 
     @property
     def manager(self):
@@ -58,3 +62,8 @@ class WidgetWelcome(QtWidgets.QWidget):
 
     def on_start_empty(self):
         self.onCreate.emit()
+
+    def on_show_at_startup_changed(self):
+        global _g_preferences
+        _g_preferences.hide_welcome_screen = not self.ui.cb_show_at_startup.isChecked()
+        _g_preferences.save()

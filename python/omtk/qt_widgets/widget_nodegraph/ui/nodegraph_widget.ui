@@ -24,28 +24,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1070</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuNodes">
-    <property name="title">
-     <string>Arra&amp;nge</string>
-    </property>
-    <addaction name="actionMatchMayaEditorPositions"/>
-    <addaction name="separator"/>
-    <addaction name="actionLayoutUpstream"/>
-    <addaction name="actionLayoutDownstream"/>
-    <addaction name="actionLayoutSpring"/>
-    <addaction name="actionLayoutRecenter"/>
-   </widget>
-   <addaction name="menuNodes"/>
-  </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
@@ -81,8 +59,24 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>false</bool>
+    <bool>true</bool>
    </attribute>
+  </widget>
+  <widget class="QToolBar" name="toolBar_arrange">
+   <property name="windowTitle">
+    <string>toolBar_2</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>true</bool>
+   </attribute>
+   <addaction name="actionLayoutUpstream"/>
+   <addaction name="actionLayoutDownstream"/>
+   <addaction name="actionLayoutSpring"/>
+   <addaction name="actionLayoutRecenter"/>
+   <addaction name="actionMatchMayaEditorPositions"/>
   </widget>
   <action name="actionAdd">
    <property name="text">
@@ -131,7 +125,7 @@
   </action>
   <action name="actionMatchMayaEditorPositions">
    <property name="text">
-    <string>&amp;Set positions to Maya NodeEditor</string>
+    <string>&amp;Sync to Maya Node Editor</string>
    </property>
   </action>
   <action name="actionLayoutUpstream">

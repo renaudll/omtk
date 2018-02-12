@@ -255,6 +255,7 @@ class ComponentModuleDefinition(ComponentDefinition):
     def instanciate(self, name='unamed', map_inn=None, map_out=None):
         inst = self._cls(name=name)
 
+        from omtk.core import session
         session.get_session()._root.add_module(inst)
 
         inst.initialize_inputs()  # module need inputs, create them otherwise it wont work...

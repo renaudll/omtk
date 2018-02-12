@@ -218,7 +218,6 @@ class ComponentPartCtrl(ComponentPart):
 
     def initialize(self):
         self.obj_offset = self.obj.getParent()
-        assert self.obj_offset
 
         # Create a duplicate of the ctrl
         self.external_ctrl = _duplicate_ctrl(self.obj)

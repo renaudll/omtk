@@ -6,6 +6,7 @@ import logging
 
 from omtk import decorators
 from maya import mel
+from maya import OpenMaya
 import pymel.core as pymel
 from omtk import constants
 from omtk.core import component, session
@@ -78,6 +79,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # Cache to access model-widget relationship
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
+
+        self._callback_id_by_node_model = {}
 
         self._cache_nodes = {}
 
@@ -472,7 +475,28 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self.expand_node_attributes(node_model)
         self.expand_node_connections(node_model)
 
+        # todo: verify it work
+        from maya import OpenMaya
+        obj = node_model.get_metadata()
+        callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
+            obj.__apimobject__(),
+            self.on_attribute_added_on_visible_node
+        )
+        self._callback_id_by_node_model[obj] = callback_id
+
         return node_model, node_widget
+
+    def on_attribute_added_on_visible_node(self, callback_id, mplug, _):
+        attr_name = mplug.name()
+        attr_mobj = mplug.node()
+        mfn = OpenMaya.MFnDependencyNode(attr_mobj)
+        obj_name = mfn.name()
+        obj = pymel.PyNode(obj_name)
+        attr_dagpath = obj_name + '.' + attr_name
+        log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
+
+        model = self.get_node_model_from_value(obj)
+        self.expand_node_attributes(model)
 
     def redraw(self):
         """
@@ -655,8 +679,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             menu_action = menu.addAction('Group')
             menu_action.triggered.connect(self.on_rcmenu_group_selection)
 
-            menu_action = menu.addAction('Publish')
-            menu_action.triggered.connect(self.on_rcmenu_publish_selection)
+            menu_action = menu.addAction('Publish as Component')
+            menu_action.triggered.connect(self.on_rc_menu_publish_component)
+
+            menu_action = menu.addAction('Publish as Module')
+            menu_action.triggered.connect(self.on_rcmenu_publish_module)
 
 
 
@@ -877,7 +904,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         return inst
 
     def on_rcmenu_add_attribute(self):
-        return mel.eval('AddAttribute')
+        # return mel.eval('AddAttribute')
+        from omtk.qt_widgets import form_add_attribute
+        form_add_attribute.show()
 
     def on_rcmenu_rename_attribute(self):
         raise NotImplementedError
@@ -885,10 +914,13 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def on_rcmenu_delete_attribute(self):
         raise NotImplementedError
 
-    def on_rcmenu_publish_selection(self):
+    def on_rc_menu_publish_component(self):
+        pass
         # from omtk.qt_widgets import widget_component_wizard
-        from omtk.qt_widgets import form_create_component
         # widget_component_wizard.show()
+
+    def on_rcmenu_publish_module(self):
+        from omtk.qt_widgets import form_create_component
         form_create_component.show()
 
     def on_rcmenu_ungroup_selection(self):

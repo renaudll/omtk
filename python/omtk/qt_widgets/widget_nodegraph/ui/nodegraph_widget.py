@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Fri Feb  9 18:05:45 2018
+# Created: Sun Feb 11 16:28:22 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -21,12 +21,6 @@ class Ui_MainWindow(object):
         self.tabWidget.setObjectName("tabWidget")
         self.verticalLayout.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1070, 22))
-        self.menubar.setObjectName("menubar")
-        self.menuNodes = QtWidgets.QMenu(self.menubar)
-        self.menuNodes.setObjectName("menuNodes")
-        MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
@@ -36,6 +30,11 @@ class Ui_MainWindow(object):
         self.widget_toolbar = WidgetToolbar(MainWindow)
         self.widget_toolbar.setObjectName("widget_toolbar")
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.widget_toolbar)
+        MainWindow.insertToolBarBreak(self.widget_toolbar)
+        self.toolBar_arrange = QtWidgets.QToolBar(MainWindow)
+        self.toolBar_arrange.setObjectName("toolBar_arrange")
+        MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar_arrange)
+        MainWindow.insertToolBarBreak(self.toolBar_arrange)
         self.actionAdd = QtWidgets.QAction(MainWindow)
         self.actionAdd.setObjectName("actionAdd")
         self.actionRemove = QtWidgets.QAction(MainWindow)
@@ -72,13 +71,6 @@ class Ui_MainWindow(object):
         self.actionFrameAll.setObjectName("actionFrameAll")
         self.actionFrameSelected = QtWidgets.QAction(MainWindow)
         self.actionFrameSelected.setObjectName("actionFrameSelected")
-        self.menuNodes.addAction(self.actionMatchMayaEditorPositions)
-        self.menuNodes.addSeparator()
-        self.menuNodes.addAction(self.actionLayoutUpstream)
-        self.menuNodes.addAction(self.actionLayoutDownstream)
-        self.menuNodes.addAction(self.actionLayoutSpring)
-        self.menuNodes.addAction(self.actionLayoutRecenter)
-        self.menubar.addAction(self.menuNodes.menuAction())
         self.toolBar.addAction(self.actionAdd)
         self.toolBar.addAction(self.actionRemove)
         self.toolBar.addAction(self.actionClear)
@@ -94,6 +86,11 @@ class Ui_MainWindow(object):
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionGroup)
         self.toolBar.addAction(self.actionUngroup)
+        self.toolBar_arrange.addAction(self.actionLayoutUpstream)
+        self.toolBar_arrange.addAction(self.actionLayoutDownstream)
+        self.toolBar_arrange.addAction(self.actionLayoutSpring)
+        self.toolBar_arrange.addAction(self.actionLayoutRecenter)
+        self.toolBar_arrange.addAction(self.actionMatchMayaEditorPositions)
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(-1)
@@ -101,9 +98,9 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "MainWindow", None, -1))
-        self.menuNodes.setTitle(QtWidgets.QApplication.translate("MainWindow", "Arra&nge", None, -1))
         self.toolBar.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "toolBar", None, -1))
         self.widget_toolbar.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "toolBar_2", None, -1))
+        self.toolBar_arrange.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "toolBar_2", None, -1))
         self.actionAdd.setText(QtWidgets.QApplication.translate("MainWindow", "Add", None, -1))
         self.actionRemove.setText(QtWidgets.QApplication.translate("MainWindow", "Remove", None, -1))
         self.actionClear.setText(QtWidgets.QApplication.translate("MainWindow", "Clear", None, -1))
@@ -113,7 +110,7 @@ class Ui_MainWindow(object):
         self.actionGoUp.setText(QtWidgets.QApplication.translate("MainWindow", "Go Up", None, -1))
         self.actionGroup.setText(QtWidgets.QApplication.translate("MainWindow", "Group", None, -1))
         self.actionUngroup.setText(QtWidgets.QApplication.translate("MainWindow", "Ungroup", None, -1))
-        self.actionMatchMayaEditorPositions.setText(QtWidgets.QApplication.translate("MainWindow", "&Set positions to Maya NodeEditor", None, -1))
+        self.actionMatchMayaEditorPositions.setText(QtWidgets.QApplication.translate("MainWindow", "&Sync to Maya Node Editor", None, -1))
         self.actionLayoutUpstream.setText(QtWidgets.QApplication.translate("MainWindow", "&Layout Upstream", None, -1))
         self.actionLayoutDownstream.setText(QtWidgets.QApplication.translate("MainWindow", "Layout &Downstream", None, -1))
         self.actionLayoutSpring.setText(QtWidgets.QApplication.translate("MainWindow", "La&yout Spring", None, -1))

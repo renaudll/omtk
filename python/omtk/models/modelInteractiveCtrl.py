@@ -32,6 +32,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     def __init__(self, *args, **kwargs):
         super(ModelInteractiveCtrl, self).__init__(*args, **kwargs)
         self.follicle = None  # Used for calibration
+        self.mesh = None  # We should be able to provide the mesh
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
@@ -546,6 +547,32 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             pymel.disconnectAttr(shape_orig.create)
             pymel.delete(tmp_shape.getParent())
             pymel.delete(tmp_transform_geometry)
+
+    def swap_mesh(self, new_mesh, calibrate=True):
+        """
+        Change the mesh that the follicle is attached to.
+        This is made to be used on a build InteractiveCtrlModel.
+        :param new_mesh: A pymel.nodetypes.Mesh or pymel.nodetypes.Transform containing a mesh.
+        """        
+        # Resolve the node driven by the follicle.
+        # This node contain the bindPose of the ctrl and is linked via a parentConstraint which we'll want to re-create.
+        # todo: how do we update the constraint again?
+        constraint = next(obj for obj in self.follicle.translate.outputs() if isinstance(obj, pymel.nodetypes.ParentConstraint))
+        target = constraint.getParent()
+        pymel.delete(constraint)
+        pos = target.getTranslation(space='world')
+        
+        # Get the new uv coordinates and apply them
+        _, new_u, new_v = libRigging.get_closest_point_on_mesh(new_mesh, pos)
+        pymel.connectAttr(new_mesh.outMesh, self.follicle.inputMesh, force=True)
+        self.follicle.attr('parameterU').set(new_u)
+        self.follicle.attr('parameterV').set(new_v)
+
+        # Recreate the constraint
+        pymel.parentConstraint(self.follicle, target, maintainOffset=True)
+
+        if calibrate:
+            self.calibrate()
 
     def calibrate(self, tx=True, ty=True, tz=True):
         # TODO: use correct logger

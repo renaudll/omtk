@@ -334,6 +334,36 @@ global proc shelf_omtk () {
         -commandRepeatable 1
         -flat 1
     ;
+        shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Select a mesh and an interactive facial controller. This will change what mesh the controller is following." 
+        -enableBackground 0
+        -align "center" 
+        -label "IController Mesh Swap" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "omtk_rig_ictrl_swap_mesh.png" 
+        -image1 "omtk_rig_ictrl_swap_mesh.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import omtk\n\omtk.run_macro('ctrls_interactive_swap_mesh')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
     shelfButton
         -enableCommandRepeat 1
         -enable 1

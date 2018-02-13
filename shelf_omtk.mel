@@ -7,8 +7,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -37,8 +37,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -67,8 +67,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -97,8 +97,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -127,8 +127,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -157,8 +157,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -187,8 +187,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -217,8 +217,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -247,8 +247,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -277,8 +277,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -299,7 +299,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\n\omtk.run_macro('ctrls_bake_selected')" 
+        -command "import omtk\nomtk.run_macro('ctrls_bake_selected')" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -307,8 +307,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -329,16 +329,16 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "from sstk.maya.apis import maya_app; maya_app.run_app(\"MayaAppMirrorController\")" 
+        -command "import omtk\nomtk.run_macro(\"ctrls_mirror_selected\")" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
     ;
-        shelfButton
+    shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -359,7 +359,7 @@ global proc shelf_omtk () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import omtk\n\omtk.run_macro('ctrls_interactive_swap_mesh')" 
+        -command "import omtk\nomtk.run_macro('ctrls_interactive_swap_mesh')" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -367,8 +367,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -397,8 +397,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -427,8 +427,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -457,8 +457,8 @@ global proc shelf_omtk () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 35
-        -height 35
+        -width 34
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -484,4 +484,5 @@ global proc shelf_omtk () {
         -commandRepeatable 1
         -flat 1
     ;
+
 } 

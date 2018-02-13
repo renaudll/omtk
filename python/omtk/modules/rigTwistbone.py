@@ -236,8 +236,10 @@ class Twistbone(Module):
         # Create the second non-roll system
         nonroll_sys_end = NonRollJoint()
         nonroll_sys_end.build(jnt_e, name=nomenclature_rig.resolve("nonrollEnd"))
-        nonroll_sys_end.setMatrix(jnt_e.getMatrix(worldSpace=True), worldSpace=True)
-        # nonroll_sys_end.setTranslation(jnt_e.getTranslation(space='world'), space='world')
+        # Align the end non-roll system with the start joint to ensure rotation match and
+        # after set it's position to the end joint
+        nonroll_sys_end.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
+        nonroll_sys_end.setTranslation(jnt_e.getTranslation(space='world'), space='world')
         pymel.orientConstraint(jnt_s, nonroll_sys_end.node, maintainOffset=True)
         pymel.pointConstraint(jnt_e, nonroll_sys_end.node)
         pymel.parentConstraint(jnt_e, nonroll_sys_end.ikHandle, maintainOffset=True)

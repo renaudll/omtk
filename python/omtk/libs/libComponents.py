@@ -1,5 +1,6 @@
 import logging
 import os
+import tempfile
 import itertools
 
 import pymel.core as pymel
@@ -397,3 +398,22 @@ def create_component_by_uid(uid, map_inn=None, map_out=None):
     cls = get_component_class_by_uid(uid, strict=True)
     inst = cls.instanciate(map_inn=map_inn, map_out=map_out)  # todo: clean constructor signature
     return inst
+
+
+def remove_namespace_from_file(path, namespace):
+    namespace = namespace.strip(':')
+    path_tmp = tempfile.mktemp()
+    success = True
+    pattern = '"{0}:'.format(namespace)
+    with open(path, 'r') as fp_read:
+        with open(path_tmp, 'w') as fp_write:
+            for line in fp_read:
+                line = line.replace(pattern, '"')
+                fp_write.write(line)
+
+    if success:
+        os.rename(path_tmp, path)
+    else:
+        os.remove(path_tmp)
+
+    return success

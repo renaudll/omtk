@@ -94,7 +94,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.actionLayoutUpstream.triggered.connect(self.on_arrange_upstream)
         self.ui.actionLayoutDownstream.triggered.connect(self.on_arrange_downstream)
         self.ui.actionLayoutSpring.triggered.connect(self.on_arrange_spring)
-        self.ui.actionMatchMayaEditorPositions.triggered.connect(self.on_match_maya_editor_positions)
+        self.ui.actionMatchMayaEditorPositions.triggered.connect(self._ctrl.on_match_maya_editor_positions)
         self.ui.actionLayoutRecenter.triggered.connect(self.on_arrange_recenter)
 
         # self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
@@ -224,9 +224,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_ungroup(self):
         self._ctrl.on_rcmenu_ungroup_selection()
-
-    def on_match_maya_editor_positions(self):
-        raise NotImplementedError
 
     def on_arrange_recenter(self):
         pyflowgraph_nodes = self._current_view.getSelectedNodes()

@@ -25,8 +25,8 @@ def reload_():
     import entity
     import entity_action
     import entity_attribute
-    import component
     import component_definition
+    import component
     import ctrl
     import module
     import module_logic_avar
@@ -40,8 +40,8 @@ def reload_():
     reload(entity)
     reload(entity_action)
     reload(entity_attribute)
-    reload(component)
     reload(component_definition)
+    reload(component)
     reload(node)
     reload(ctrl)
     reload(module)

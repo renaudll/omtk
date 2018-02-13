@@ -1,5 +1,18 @@
+from omtk import constants
 from omtk.core import preferences
 from omtk.qt_widgets.widget_nodegraph import nodegraph_node_model_dagnode
+
+# Hide the attributes we are ourself creating
+# todo: where to put this?
+_attr_name_blacklist = (
+    constants.PyFlowGraphMetadataKeys.Position,
+    constants.PyFlowGraphMetadataKeys.Position + 'X',
+    constants.PyFlowGraphMetadataKeys.Position + 'Y',
+    constants.PyFlowGraphMetadataKeys.Position + 'Z',
+)
+
+if False:  # for type hinting
+    from omtk.qt_widgets.widget_nodegraph.nodegraph_port_model import NodeGraphPortModel
 
 
 class NodeGraphControllerFilter(object):
@@ -29,6 +42,9 @@ class NodeGraphControllerFilter(object):
         :param port_model: The port to inspect.
         :return: True if we can display this port.
         """
+        # Some attributes (like omtk metadata) are blacklisted by default.
+        if port_model.get_name() in _attr_name_blacklist:
+            return False
         return port_model.is_interesting()
 
     def can_show_connection(self, connection_model):

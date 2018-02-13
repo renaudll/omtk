@@ -3,16 +3,18 @@ import logging
 import pymel.core as pymel
 from maya import cmds
 from omtk.core import session
-from omtk.core.component import Component
-from omtk.core.component_definition import ComponentDefinition
+from omtk.core import component
+from omtk.core import component_definition
 from omtk.libs import libComponents
 from omtk.qt_widgets.widget_outliner.ui import widget_list_componentdef
 from omtk.vendor.Qt import QtWidgets, QtCore
 
 log = logging.getLogger('omtk')
 
+ID_COL_NAME, ID_COL_VERSION, ID_COL_TYPE, ID_COL_DESCRIPTION = range(4)
 
-class MayaNodeDefinition(ComponentDefinition):
+
+class MayaNodeDefinition(component_definition.ComponentDefinition):
     type = 'Maya Node'
 
     def __init__(self, cls_name):
@@ -25,7 +27,7 @@ class MayaNodeDefinition(ComponentDefinition):
 
 class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
     _HEADERS = (
-        'Name', 'Type', 'Description'
+        'Name', 'Version', 'Type', 'Description'
     )
 
     def __init__(self, entries):
@@ -58,9 +60,14 @@ class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
             row = index.row()
             col = index.column()
             entry = self.__entries[row]
-            if col == 0:
+            if col == ID_COL_NAME:
                 return entry.name
-            if col == 1:
+            if col == ID_COL_VERSION:
+                try:
+                    return entry.version
+                except AttributeError:
+                    pass
+            if col == ID_COL_TYPE:
                 return entry.type if hasattr(entry, 'type') else 'unknown'
                 # if col == 1:
                 #     return entry.version
@@ -99,7 +106,7 @@ class ComponentListLineEditEventFilter(QtCore.QObject):
 
 
 class WidgetComponentList(QtWidgets.QWidget):
-    signalComponentCreated = QtCore.Signal(Component)
+    signalComponentCreated = QtCore.Signal(component.Component)
 
     def __init__(self, parent):
         super(WidgetComponentList, self).__init__(parent)
@@ -117,6 +124,7 @@ class WidgetComponentList(QtWidgets.QWidget):
         self.model = ComponentDefinitionTableModel(defs)
         self.model.load_maya_nodes()
         self.proxy_model = QtCore.QSortFilterProxyModel()
+        self.proxy_model.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.proxy_model.setSourceModel(self.model)
         view.setModel(self.proxy_model)
         # view.resizeColumnsToContents()
@@ -216,7 +224,7 @@ class WidgetComponentList(QtWidgets.QWidget):
     def action_submit(self):
         entries = self._get_selected_entries()
         for entry in entries:
-            if isinstance(entry, ComponentDefinition):
+            if isinstance(entry, component_definition.ComponentDefinition):
                 inst = self.manager.create_component(entry)
             else:
                 inst = entry.instanciate()

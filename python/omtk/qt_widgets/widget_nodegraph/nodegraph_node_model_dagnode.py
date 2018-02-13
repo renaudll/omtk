@@ -14,14 +14,6 @@ log = logging.getLogger('omtk.nodegraph')
 class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     """Define the data model for a Node representing a DagNode."""
 
-    # Hide the attributes we are ourself creating
-    _attr_name_blacklist = (
-        constants.PyFlowGraphMetadataKeys.Position,
-        constants.PyFlowGraphMetadataKeys.Position + 'X',
-        constants.PyFlowGraphMetadataKeys.Position + 'Y',
-        constants.PyFlowGraphMetadataKeys.Position + 'Z',
-    )
-
     def __init__(self, registry, pynode):
         name = pynode.nodeName()
         self._pynode = pynode
@@ -38,25 +30,18 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     def get_metadata(self):
         return self._pynode
 
-    def _can_show_attr(self, attr):
-        return not attr.longName() in self._attr_name_blacklist
-
-    @decorators.memoized_instancemethod
+    # @decorators.memoized_instancemethod
     def get_attributes_raw_values(self):
         return list(libAttr.iter_contributing_attributes(self._pynode))
         # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
     def iter_attributes(self):
         for attr in self.get_attributes_raw_values():
-            if not self._can_show_attr(attr):
-                log.debug("Hiding attribute {0}".format(attr))
-                continue
-
             inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
             self._registry._register_attribute(inst)
             yield inst
 
-    @decorators.memoized_instancemethod
+    # @decorators.memoized_instancemethod
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()

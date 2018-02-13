@@ -2,6 +2,8 @@ import os
 import re
 import uuid
 import logging
+import contextlib
+import tempfile
 
 import omtk.constants
 import pymel.core as pymel
@@ -25,8 +27,7 @@ class MissingMetadataError(Exception):
     """Raised when a critical metadata is missing from a component definition."""
 
 def write_metadata_to_ma_file(path, metadata):
-    path_tmp = os.path.join(os.path.dirname(path), os.path.basename(path) + '_omtktmp')
-
+    path_tmp = tempfile.mktemp()
     success = False
     found = False
     with open(path, 'r') as fp_read:
@@ -225,6 +226,18 @@ class ComponentDefinition(object):
         # network = m.export_network(inst)
 
         return inst
+
+    def get_path(self):
+        """
+        Using the current definition, where should we save or load the component?
+        :return:
+        """
+        from omtk.libs import libComponents
+        dirname = libComponents.get_component_dir()
+        filename = '{0}-{1}.ma'.format(self.name, self.version)
+        return os.path.join(dirname, filename)
+
+# todo: create IComponentDefinition class?
 
 
 class ComponentScriptedDefinition(ComponentDefinition):

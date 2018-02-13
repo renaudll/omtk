@@ -119,6 +119,10 @@ def reload_(kill_ui=True):
     from omtk.qt_widgets import window_main
     reload(window_main)
 
+    from omtk.core import plugin_manager
+    pm = plugin_manager.plugin_manager
+    pm.reload_all(force=True)
+
 
 # prevent confusion
 def _reload(*args, **kwargs):

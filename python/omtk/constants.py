@@ -68,6 +68,7 @@ COMPONENT_HUB_INN_ATTR_NAME = 'grp_inn'
 COMPONENT_HUB_OUT_ATTR_NAME = 'grp_out'
 
 
+
 @decorators.memoized
 def get_version():
     # type: () -> str

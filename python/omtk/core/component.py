@@ -9,6 +9,7 @@ from omtk.core.entity_action import EntityAction
 from omtk.core.entity_attribute import get_attrdef_from_attr
 from omtk.libs import libAttr
 from omtk.libs import libNamespaces
+from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from pymel import core as pymel
 from . import component_definition
@@ -16,7 +17,11 @@ from . import component_definition
 log = logging.getLogger('omtk')
 
 
+if False:  # for type hinting
+    from omtk.core.component_definition import ComponentDefinition
+
 # todo: create ComponentScripted and ComponentSaved
+
 
 class Component(Entity):
     # These need to be defined in order to register a component.
@@ -80,7 +85,7 @@ class Component(Entity):
         inst = component_definition.ComponentDefinition(
             uid=self.uid,
             name=self.name,
-            version=self.name,
+            version=self.version,
             author=self.author
         )
         return inst
@@ -92,12 +97,17 @@ class Component(Entity):
         This is separated in it's own method since we might want to set public attributes before building
         the content, especially if the content depend on some attribute value.
         """
+
+        sel = pymel.selected()
+
         if self.need_grp_inn:
             self.grp_inn = pymel.createNode('network', name='inn')
         if self.need_grp_out:
             self.grp_out = pymel.createNode('network', name='out')
         if self.need_grp_dag:
             self.grp_dag = pymel.createNode('transform', name='dag')
+
+        pymel.select(sel)  # todo: keep_selection decorator
 
         m = session.get_session()
         m.export_network(self)
@@ -394,7 +404,6 @@ class Component(Entity):
         grp_inn_attrs.remove(self.grp_inn.message)
         grp_out_attrs = set(self.grp_out.listAttr())
         grp_out_attrs.remove(self.grp_out.message)
-        print grp_out_attrs
 
         with libAttr.context_disconnected_attrs(grp_inn_attrs, hold_inputs=True, hold_outputs=False):
             with libAttr.context_disconnected_attrs(grp_out_attrs, hold_inputs=False, hold_outputs=True):
@@ -409,8 +418,31 @@ class Component(Entity):
         definition = self.get_definition()
         definition.write_metadata_to_file(path)
 
+        # Hack: If a hub group is in a namespace, we'll want to remove it from the exported file.
+        namespace = None
+        if self.grp_inn:
+            namespace = self.grp_inn.namespace()
+        elif self.grp_out:
+            namespace = self.grp_out.namespace()
+        elif self.grp_dag:
+            namespace = self.grp_dag.namespace()
+        if namespace:
+            libComponents.remove_namespace_from_file(path, namespace)
+
         return True
 
+    def set_definition(self, component_def):
+        # type: (ComponentDefinition) -> None
+        self.name = component_def.name
+        self.author = component_def.author
+        self.version = component_def.version
+        self.uid = component_def.uid
+
+        # Re-export metadata
+        libSerialization.export_network(self)
+
+
+# todo: create IComponent class?
 
 class ComponentScripted(Component):
     @classmethod

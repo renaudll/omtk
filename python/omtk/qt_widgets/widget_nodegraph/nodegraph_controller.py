@@ -278,7 +278,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             # todo: find a unified way of always having the ports sorted...
             for port_model in sorted(node_model.get_attributes(), key=lambda x: x.get_name()):
-                if not port_model.is_interesting():
+                if not self._filter.can_show_port(port_model):
                     continue
                 port = node_widget.getPort(port_model.get_name())
                 if not port:
@@ -305,6 +305,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         if expand_downstream:
             for port_model in node_model.get_connected_output_attributes():
+                if not self._filter.can_show_port(port_model):
+                    continue
                 # for connection_model in port_model.get_output_connections():
                 for connection_model in self.get_port_output_connections(port_model):
                     if not _can_show_connection(connection_model):
@@ -325,6 +327,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             if expand_upstream:
                 for port_model in node_model.get_connected_input_attributes():
+                    if not self._filter.can_show_port(port_model):
+                        continue
                     for connection_model in self.get_port_input_connections(port_model):
                         if not _can_show_connection(connection_model):
                             continue
@@ -496,6 +500,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
 
         model = self.get_node_model_from_value(obj)
+        # self.invalidate_node_model(model)
         self.expand_node_attributes(model)
 
     def redraw(self):
@@ -686,7 +691,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             menu_action.triggered.connect(self.on_rcmenu_publish_module)
 
 
-
         if any(True for val in values if isinstance(val, component.Component)):
             menu_action = menu.addAction('Ungroup')
             menu_action.triggered.connect(self.on_rcmenu_ungroup_selection)
@@ -862,6 +866,26 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def get_port_output_connections(self, model):
         return list(self._iter_port_output_connections(model))  # cannot memoize a generator
 
+    # --- User actions, currently defined in the widget, should be moved in the controller ---
+
+    def on_match_maya_editor_positions(self, multiplier=2.0):
+        from omtk.libs import libMayaNodeEditor
+        from omtk.libs import libPyflowgraph
+        models = self.get_selected_node_models()
+        for model in models:
+            if not isinstance(model, nodegraph_node_model_dagnode.NodeGraphDagNodeModel):
+                continue
+            node = model.get_metadata()
+            pos = libMayaNodeEditor.get_node_position(node)
+            pos = (pos[0] * multiplier, pos[1] * multiplier)
+
+            if not pos:
+                continue
+
+            widget = self.get_node_widget(model)
+            widget.setPos(QtCore.QPointF(*pos))
+            libPyflowgraph.save_node_position(widget, pos)
+
     # --- Right click menu events ---
 
     def on_rcmenu_group_selection(self):
@@ -915,9 +939,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         raise NotImplementedError
 
     def on_rc_menu_publish_component(self):
-        pass
-        # from omtk.qt_widgets import widget_component_wizard
-        # widget_component_wizard.show()
+        component = self.get_selected_node_models()[0].get_metadata()  # todo: secure this
+        from omtk.qt_widgets import form_publish_component
+        form_publish_component.show(component)
 
     def on_rcmenu_publish_module(self):
         from omtk.qt_widgets import form_create_component

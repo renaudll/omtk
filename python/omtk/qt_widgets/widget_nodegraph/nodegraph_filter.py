@@ -45,6 +45,7 @@ class NodeGraphControllerFilter(object):
         # Some attributes (like omtk metadata) are blacklisted by default.
         if port_model.get_name() in _attr_name_blacklist:
             return False
+
         return port_model.is_interesting()
 
     def can_show_connection(self, connection_model):

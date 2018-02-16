@@ -110,6 +110,10 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
             return self._data.isDestination()
 
     def get_inputs(self):
+        # Hack: Don't display connection from the root of an array attribute
+        if self._data.isMulti() and '[' not in self._data:
+            return []
+
         return self._data.inputs(plugs=True)
 
     def get_outputs(self):
@@ -137,7 +141,7 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         map = s.preferences.get_nodegraph_default_attr_map()
         map_def = map.get(self._pynode.type(), None)
         if map_def:
-            key = self._data.longName()
+            key = self._data.longName().split('[')[0]  # hack
             return key in map_def
 
         # if self._data.isHidden():

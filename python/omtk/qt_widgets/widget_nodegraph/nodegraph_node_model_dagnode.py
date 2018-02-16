@@ -41,6 +41,12 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             self._registry._register_attribute(inst)
             yield inst
 
+            if attr.isMulti():
+                for attr_child in attr:
+                    inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
+                    self._registry._register_attribute(inst)
+                    yield inst
+
     # @decorators.memoized_instancemethod
     def get_attributes(self):
         # type: () -> List[NodeGraphPortModel]

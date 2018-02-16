@@ -9,8 +9,12 @@ from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
 from . import nodegraph_port_adaptor
 
 if False:
+    from .nodegraph_controller import NodeGraphController
     from .nodegraph_node_model_base import NodeGraphNodeModel
+
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
+    from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
+    from omtk.vendor.pyflowgraph.port import Port as PyflowgraphBasePort
 
 
 class NodeGraphPortModel(object):
@@ -85,6 +89,7 @@ class NodeGraphPortModel(object):
 
     def get_input_connections(self):
         result = set()
+
         for val in self.impl.get_inputs():
             model = self._registry.get_port_model_from_value(val)
             inst = self._registry.get_connection_model_from_values(model, self)

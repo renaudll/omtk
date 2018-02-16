@@ -59,6 +59,10 @@
       "outputX",
       "outputY",
       "outputZ"
+    ],
+    "multMatrix": [
+      "matrixIn",
+      "matrixSum"
     ]
   }
 }

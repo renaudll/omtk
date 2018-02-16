@@ -47,6 +47,7 @@ class WidgetToolbar(QtWidgets.QToolBar):
         self.add_action(InstanciateMayaNodeAction('composeMatrix'))
         self.add_action(InstanciateMayaNodeAction('decomposeMatrix'))
         self.add_action(InstanciateMayaNodeAction('plusMinusAverage'))
+        self.add_action(InstanciateMayaNodeAction('multMatrix'))
         self.add_action(InstanciateMayaNodeAction('multiplyDivide'))
         self.add_action(InstanciateMayaNodeAction('inverseMatrix'))
         # self.add_action(InstanciateComponentAction('twistExtractor'))

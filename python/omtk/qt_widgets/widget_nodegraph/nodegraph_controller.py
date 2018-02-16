@@ -3,6 +3,8 @@ Define a controller for one specific GraphView.
 """
 import itertools
 import logging
+import functools
+from collections import defaultdict
 
 from omtk import decorators
 from maya import mel
@@ -80,7 +82,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
 
-        self._callback_id_by_node_model = {}
+        self._callback_id_by_node_model = defaultdict(set)
 
         self._cache_nodes = {}
 
@@ -486,7 +488,15 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             obj.__apimobject__(),
             self.on_attribute_added_on_visible_node
         )
-        self._callback_id_by_node_model[obj] = callback_id
+        self._callback_id_by_node_model[obj].add(callback_id)
+
+        def fn_(*args, **kwargs):
+            self.on_node_removed_callback(obj, *args, **kwargs)
+        callback_id2 = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
+            obj.__apimobject__(),
+            fn_
+        )
+        self._callback_id_by_node_model[obj].add(callback_id2)
 
         return node_model, node_widget
 
@@ -502,6 +512,21 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         model = self.get_node_model_from_value(obj)
         # self.invalidate_node_model(model)
         self.expand_node_attributes(model)
+
+    def on_node_removed_callback(self, pynode, *args, **kwargs):
+        """
+        Called when a known node is deleted in Maya.
+        Notify the view of the change.
+        :param pynode: The pynode that is being deleted
+        :param args: Absorb the OpenMaya callback arguments
+        :param kwargs: Absorb the OpenMaya callback keyword arguments
+        """
+        # todo: unregister node
+        log.debug("Removing {0} from nodegraph".format(pynode))
+        if pynode:
+            widget = self.get_node_widget(pynode)
+            widget.disconnectAllPorts()
+            self._view.removeNode(widget)
 
     def redraw(self):
         """

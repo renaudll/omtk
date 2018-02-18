@@ -413,7 +413,8 @@ class GraphView(QtWidgets.QGraphicsView):
             self._manipulationMode = MANIP_MODE_PAN
             self._lastPanPoint = self.mapToScene(event.pos())
 
-        elif event.button() == QtCore.Qt.RightButton:
+        # elif event.button() == QtCore.Qt.RightButton:
+        elif event.button() == QtCore.Qt.RightButton and self.itemAt(event.pos()) is None:
             self.setCursor(QtCore.Qt.SizeHorCursor)
             self._manipulationMode = MANIP_MODE_ZOOM
             self._lastMousePos = event.pos()

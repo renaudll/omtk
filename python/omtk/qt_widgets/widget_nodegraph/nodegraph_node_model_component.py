@@ -4,6 +4,7 @@ from . import nodegraph_node_model_dagnode
 from omtk.vendor.Qt import QtCore, QtGui
 from omtk.core import component
 from omtk.core import entity_attribute
+from . import pyflowgraph_node_widget
 
 if False:
     from .nodegraph_port_model import NodeGraphPortModel
@@ -93,6 +94,9 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         # def _get_node_widget_label(self):
         #     return '{0} v{1}'.format(self._name, self._entity.version)
 
+    def _get_widget_cls(self):
+        return pyflowgraph_node_widget.OmtkNodeGraphComponentNodeWidget
+
 
 class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDagNodeModel):
     """
@@ -120,9 +124,9 @@ class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDag
 class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
     _widget_background_color = QtGui.QColor(0, 195, 227)
 
-    def get_widget(self, graph):
+    def get_widget(self, graph, ctrl):
         # debugging
-        widget = super(NodeGraphComponentBoundBaseModel, self).get_widget(graph)
+        widget = super(NodeGraphComponentBoundBaseModel, self).get_widget(graph, ctrl)
         color = self._widget_background_color
         widget.setColor(color)
         return widget
@@ -131,9 +135,9 @@ class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
 class NodeGraphComponentOutBoundModel(NodeGraphComponentBoundBaseModel):
     _widget_background_color = QtGui.QColor(255, 69, 84)
 
-    def get_widget(self, graph):
+    def get_widget(self, graph, ctrl):
         # debugging
-        widget = super(NodeGraphComponentBoundBaseModel, self).get_widget(graph)
+        widget = super(NodeGraphComponentBoundBaseModel, self).get_widget(graph, ctrl)
         color = self._widget_background_color
         widget.setColor(color)
         return widget

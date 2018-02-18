@@ -27,6 +27,8 @@ if False:
     from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_view import NodeGraphView
     from .nodegraph_node_model_base import NodeGraphNodeModel
+    from .pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
+    from .pyflowgraph_port_widget import OmtkNodeGraphBasePortWidget
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
     from omtk.vendor.pyflowgraph.port import BasePort as PyFlowgraphBasePort
 
@@ -81,8 +83,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # Cache to access model-widget relationship
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
-
-        self._callback_id_by_node_model = defaultdict(set)
 
         self._cache_nodes = {}
 
@@ -140,15 +140,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
         port_dst_model.disconnect_from(port_src_model.get_metadata())
         # todo: find related port models
-
-    def on_node_double_click(self, widget):
-        """
-        Called when a double-click occur on a Node.
-        Default behavior is to enter the node if it is a compound, otherwise do nothing.
-        """
-        model = self.get_node_model_from_widget(widget)
-        if isinstance(model, nodegraph_node_model_component.NodeGraphComponentModel):
-            self.set_level(model)
 
     def on_scene_rect_changed(self, rect):
         scene_x = rect.x()
@@ -360,7 +351,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     @decorators.memoized_instancemethod
     def get_node_widget(self, model):
-        # type: (NodeGraphNodeModel) -> PyFlowgraphNode
+        # type: (NodeGraphNodeModel) -> OmtkNodeGraphNodeWidget
         # todo: how to we prevent from calling .get_widget() from the model directly? do we remove it?
         """
         Main entry-point for Widget creation.
@@ -368,9 +359,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         :param node: A NodeGraphNodeModel instance.
         :return: A PyFlowgraph Node instance.
         """
-        node_widget = model.get_widget(self._view)
+        node_widget = model.get_widget(self._view, self)
         node_widget._omtk_model = model  # monkey-patch
         self._view.addNode(node_widget)
+
+        # Hack: Enable the eventFilter on the node
+        # We can only do this once it's added to the scene
+        # todo: use signals for this?
+        node_widget.on_added_to_scene()
 
         self._known_nodes_widgets.add(node_widget)
 
@@ -378,7 +374,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     @decorators.memoized_instancemethod
     def get_port_widget(self, port_model):
-        # type: (NodeGraphPortModel) -> PyFlowgraphBasePort
+        # type: (NodeGraphPortModel) -> OmtkNodeGraphBasePortWidget
         """
         Main entry-point for Widget creation.
         Handle caching and registration for widgets.
@@ -399,6 +395,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         #         node_model = compound_model
 
         node_widget = self.get_node_widget(node_model)
+
         port_widget = port_model.get_widget(self, self._view, node_widget)
 
         # Update cache
@@ -480,23 +477,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             # self._known_nodes_widgets(node_widget)
         self.expand_node_attributes(node_model)
         self.expand_node_connections(node_model)
-
-        # todo: verify it work
-        from maya import OpenMaya
-        obj = node_model.get_metadata()
-        callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
-            obj.__apimobject__(),
-            self.on_attribute_added_on_visible_node
-        )
-        self._callback_id_by_node_model[obj].add(callback_id)
-
-        def fn_(*args, **kwargs):
-            self.on_node_removed_callback(obj, *args, **kwargs)
-        callback_id2 = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
-            obj.__apimobject__(),
-            fn_
-        )
-        self._callback_id_by_node_model[obj].add(callback_id2)
 
         return node_model, node_widget
 
@@ -715,7 +695,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             menu_action = menu.addAction('Publish as Module')
             menu_action.triggered.connect(self.on_rcmenu_publish_module)
 
-
         if any(True for val in values if isinstance(val, component.Component)):
             menu_action = menu.addAction('Ungroup')
             menu_action.triggered.connect(self.on_rcmenu_ungroup_selection)
@@ -902,14 +881,26 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 continue
             node = model.get_metadata()
             pos = libMayaNodeEditor.get_node_position(node)
-            pos = (pos[0] * multiplier, pos[1] * multiplier)
-
             if not pos:
+                log.warning("Can't read Maya NodeGraph position for {0}".format(node))
                 continue
+
+            pos = (pos[0] * multiplier, pos[1] * multiplier)
 
             widget = self.get_node_widget(model)
             widget.setPos(QtCore.QPointF(*pos))
             libPyflowgraph.save_node_position(widget, pos)
+
+    def rename_node(self, model, new_name):
+        # type: (NodeGraphNodeModel, str) -> None
+        """
+        Called when the user rename a node via the UI.
+        """
+        model.rename(new_name)
+        widget = self.get_node_widget(model)
+        # todo: implement node .update_label()?
+        widget._widget_label.setText(new_name)
+        print model, new_name
 
     # --- Right click menu events ---
 

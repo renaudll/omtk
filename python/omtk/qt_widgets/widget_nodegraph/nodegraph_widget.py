@@ -136,7 +136,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         view = nodegraph_view.NodeGraphView(self)
         view.set_model(self._ctrl)
         view.endSelectionMoved.connect(self.on_selected_nodes_moved)  # ???
-        view.nodeDoubleClicked.connect(controller.on_node_double_click)
 
         # view.setMouseTracking(True)
         # Proper layout setup for tab

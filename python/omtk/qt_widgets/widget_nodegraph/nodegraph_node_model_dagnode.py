@@ -4,6 +4,7 @@ from omtk import constants
 from . import nodegraph_node_model_base
 from . import nodegraph_port_model
 from omtk.vendor.Qt import QtCore
+from . import pyflowgraph_node_widget
 from omtk.libs import libComponents
 import logging
 
@@ -21,6 +22,12 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
 
     def __hash__(self):
         return hash(self._pynode)
+
+    def rename(self, new_name):
+        self._pynode.rename(new_name)
+        # Fetch the nodeName in case of name clash Maya
+        # will give the node another name
+        self._name = self._pynode.nodeName()
 
     @decorators.memoized_instancemethod
     def get_parent(self):
@@ -55,8 +62,11 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             result.add(attr)
         return result
 
-    def get_widget(self, graph):
-        node = super(NodeGraphDagNodeModel, self).get_widget(graph)
+    def _get_widget_cls(self):
+        return pyflowgraph_node_widget.OmtkNodeGraphDagNodeWidget
+
+    def get_widget(self, graph, ctrl):
+        node = super(NodeGraphDagNodeModel, self).get_widget(graph, ctrl)
 
         # Set position
         pos = libPyflowgraph.get_node_position(node)

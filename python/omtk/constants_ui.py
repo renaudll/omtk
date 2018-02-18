@@ -67,6 +67,8 @@ def _set_icon_from_type(obj, qItem):
         qItem.setIcon(0, QtGui.QIcon(":/implicitSphere.svg"))
     elif isinstance(obj, pymel.nodetypes.Joint):
         qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
+    # if isinstance(obj, pymel.nodetypes.Constraint):
+    #     qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
     elif isinstance(obj, (pymel.nodetypes.Transform, Node)):
         shape = obj.getShape()
         if shape:

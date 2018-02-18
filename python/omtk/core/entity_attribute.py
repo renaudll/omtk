@@ -75,7 +75,6 @@ class EntityPymelAttribute(EntityAttribute):
         return self._attr
 
     def validate(self, val):
-        print val, self._valid_types
         return isinstance(val, self._valid_types)
 
     def connect_from(self, val):

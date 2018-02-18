@@ -1074,9 +1074,7 @@ def iter_contributing_attributes(obj):
         yield plug_
         if plug_.isArray():
             num_elements = plug_.numElements()
-            print plug_.name()
             for i in xrange(num_elements):
-                print i
                 child = plug_.elementByLogicalIndex(i)
                 for yielded in _iter_plug_children(child):
                     yield yielded
@@ -1106,7 +1104,6 @@ def iter_contributing_attributes(obj):
 
 
 def iter_contributing_attributes_openmaya2(dagpath):
-    print dagpath
     from maya.api import OpenMaya as om2
 
     sel = om2.MSelectionList()

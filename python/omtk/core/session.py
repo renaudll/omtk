@@ -68,7 +68,16 @@ class ComponentCache(object):
         def _fn_explore_out(n):
             if n in self._component_network_by_hub_inn:
                 n = libComponents.get_out_network_from_inn_network(n, strict=True)
-            return pymel.listConnections(n, source=False, destination=True, skipConversionNodes=True)
+
+            children = pymel.listConnections(n, source=False, destination=True, skipConversionNodes=True)
+
+            # ikHandle are a special case, they are not bound by connections.
+            # It seem the message connection is important though, if removed the handle don't work...
+            if n.type() == 'ikHandle':
+                children.extend(n.startJoint.inputs())
+                children.extend(n.endEffector.inputs())
+
+            return children
 
         known_inn = set()
         known_out = set()

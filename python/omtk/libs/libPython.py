@@ -137,7 +137,6 @@ def get_class_parent_level(cls, level=0):
     """
     Return the highest number of sub-classes before reaching the object case class.
     """
-    print cls.__name__
     next_level = level + 1
     levels = [get_class_parent_level(base_cls, level=next_level) for base_cls in cls.__bases__]
     if levels:

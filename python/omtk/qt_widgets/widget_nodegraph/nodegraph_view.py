@@ -26,11 +26,9 @@ class NodeGraphView(PyFlowgraphView):
     dragDrop = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
     updateRequested = QtCore.Signal()
-    nodeDoubleClicked = QtCore.Signal(object)  # PyFlowgraphNode
 
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
-        self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
         self.selectionChanged.connect(self.on_selection_changed)
 
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
@@ -39,16 +37,9 @@ class NodeGraphView(PyFlowgraphView):
         shortcut_frame = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F), self)
         shortcut_frame.activated.connect(self.on_frame)
 
-    def mouseDoubleClickEvent(self, event):
-        # todo: would it be better to handle this in the Node class?
-        pos = self.mapToScene(event.pos())
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.on_customContextMenuRequested)
 
-        # Check if the double-click occured on a node.
-        for node in self.iter_nodes():
-            if node.windowFrameGeometry().contains(pos):
-                self.nodeDoubleClicked.emit(node)
-
-        return super(NodeGraphView, self).mouseDoubleClickEvent(event)
 
     def on_frame(self):
         """
@@ -79,11 +70,6 @@ class NodeGraphView(PyFlowgraphView):
 
     # -- CustomContextMenu --
 
-    def on_custom_context_menu_requested(self):
-        menu = QtWidgets.QMenu()
-        self._controller.on_right_click(menu)
-        menu.exec_(QtGui.QCursor.pos())
-
     def on_selection_changed(self):
         models = self._controller.get_nodes()
 
@@ -99,12 +85,6 @@ class NodeGraphView(PyFlowgraphView):
 
         pymel.select(nodes_to_select)
 
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.RightButton:
-            self.customContextMenuRequested.emit(event.pos())
-        else:
-            super(NodeGraphView, self).mousePressEvent(event)
-
     def on_tab_pressed(self):
         from omtk.qt_widgets.widget_outliner import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self)
@@ -116,7 +96,6 @@ class NodeGraphView(PyFlowgraphView):
     # --- Drag and Drop ----
 
     def dropMimeData(self, parent, index, data, action):
-        print parent, index, data, action
         return True
 
     def dragEnterEvent(self, event):
@@ -132,7 +111,6 @@ class NodeGraphView(PyFlowgraphView):
 
     def dropEvent(self, event):
         super(NodeGraphView, self).dropEvent(event)
-        print event.mimeData().formats()
         mime_data = event.mimeData()
 
         drop_data = None
@@ -191,3 +169,10 @@ class NodeGraphView(PyFlowgraphView):
         libPyflowgraph.arrange_downstream(widget)
 
         self.updateRequested.emit()
+
+    def on_customContextMenuRequested(self, pos):
+        from omtk.vendor.Qt import QtWidgets, QtGui
+        # Store _menu to prevent undesired garbage collection
+        self._menu = QtWidgets.QMenu()
+        self._controller.on_right_click(self._menu)
+        self._menu.popup(QtGui.QCursor.pos())

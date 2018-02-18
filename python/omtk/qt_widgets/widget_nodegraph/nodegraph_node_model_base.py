@@ -3,33 +3,16 @@ import logging
 from omtk import decorators
 from omtk.core.component import Component
 from omtk.factories import factory_datatypes
-from omtk.vendor.Qt import QtCore, QtWidgets
-from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
+from omtk.qt_widgets.widget_nodegraph import pyflowgraph_node_widget
 
 # used for type hinting33
 if False:
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
     from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_controller import NodeGraphController
+    from .pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
 
 log = logging.getLogger('omtk.nodegraph')
-
-
-class NodeIcon(QtWidgets.QGraphicsWidget):
-    """Additional Node icon monkey-patched in PyFlowgraph"""
-
-    def __init__(self, icon, parent=None):
-        super(NodeIcon, self).__init__(parent)
-
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
-
-        layout = QtWidgets.QGraphicsLinearLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(3)
-        layout.setOrientation(QtCore.Qt.Horizontal)
-        self.setLayout(layout)
-
-        self._titleWidget = QtWidgets.QGraphicsPixmapItem(icon.pixmap(QtCore.QSize(20, 20)), self)
 
 
 class NodeGraphNodeModel(object):
@@ -57,6 +40,10 @@ class NodeGraphNodeModel(object):
 
     def get_name(self):
         return self._name
+
+    def rename(self, new_name):
+        self._name = new_name
+        raise NotImplementedError
 
     @decorators.memoized_instancemethod
     def get_metadata(self):
@@ -127,81 +114,24 @@ class NodeGraphNodeModel(object):
     def get_connected_output_attributes(self):
         return [attr for attr in self.get_output_attributes() if attr.get_output_connections()]
 
-    def _get_node_widget_label(self):
+    def _get_widget_label(self):
+        """
+        Return the name that should be displayed in the Widget label.
+        """
         return self._name
 
-    def get_widget(self, graph):
-        # type: (PyFlowgraphView) -> PyFlowgraphNode
-        label = self._get_node_widget_label()
-        node_name = '   {}'.format(label)
-        node = PyFlowgraphNode(graph, node_name)  # todo: use layout instead of hardcoded padding
+    def _get_widget_cls(self):
+        """
+        Return the desired Widget class.
+        """
+        return pyflowgraph_node_widget.OmtkNodeGraphNodeWidget
 
-        # Monkey-patch our metadata
-        meta_data = self.get_metadata()
-        node._meta_data = meta_data
-        node._meta_type = factory_datatypes.get_datatype(meta_data)
-
-        # Monkey-patch title widget to handle double click
-        widget_title = node._Node__headerItem._titleWidget
-
-        # todo: replace this hack by an event filter
-        # class NodeGraphNodeTitleEventFilter(QtCore.QObject):
-        #     def eventFilter(self, obj, event):
-        #         print 'eventFilter', obj, event.type()
-        #         if event.type() == QtCore.QEvent.QGraphicsSceneMouseEvent:
-        #             # Will spawn a delegate to rename the node
-        #             delegate = QtWidgets.QLineEdit(graph)
-        #             pos = event.pos()
-        #             pos = QtCore.QPoint(pos.x(), pos.y())
-        #             delegate.move(pos)
-        #             delegate.show()
-        #             delegate.setFocus(QtCore.Qt.PopupFocusReason)
-        #
-        # event_filter = NodeGraphNodeTitleEventFilter()
-        # node.installEventFilter(event_filter)
-
-        def mouseDoubleClickEvent(event):
-            # Will spawn a delegate to rename the node
-            delegate = QtWidgets.QLineEdit(graph)
-            delegate.setText(node_name)
-            pos = graph.mapFromScene(widget_title.pos())
-            pos = QtCore.QPoint(pos.x(), pos.y())
-            size = widget_title.size()
-            delegate.move(pos)
-            delegate.resize(size.width(), size.height())
-            delegate.show()
-            delegate.setFocus(QtCore.Qt.PopupFocusReason)
-            delegate.selectAll()
-
-            def on_user_renamed_node(*args, **kwargs):
-                new_text = delegate.text()
-                print('name changed to {}'.format(new_text))
-                delegate.close()
-
-            delegate.editingFinished.connect(on_user_renamed_node)
-
-        def mousePressEvent(event):
-            # This is necessary for mouseDoubleClickEvent to be called
-            # see http://www.qtcentre.org/threads/23869-can-not-get-mouse-double-click-event-for-QGraphicsItem
-            # fixme: this prevent dragging a node by it's title
-            pass
-
-        widget_title.mouseDoubleClickEvent = mouseDoubleClickEvent
-        widget_title.mousePressEvent = mousePressEvent
-
-        # Set icon
-        meta_type = self.get_metatype()
-        icon = factory_datatypes.get_icon_from_datatype(meta_data, meta_type)
-        item = NodeIcon(icon)
-        node.layout().insertItem(0, item)
-
-        # Set color
-        color = factory_datatypes.get_node_color_from_datatype(node._meta_type)
-        node.setColor(color)
-
-        # node.mouseDoubleClickEvent = mouseDoubleClickEvent
-
-        return node
+    def get_widget(self, graph, ctrl):
+        # type: (PyFlowgraphView, NodeGraphController) -> OmtkNodeGraphNodeWidget
+        node_name = self._get_widget_label()
+        cls = self._get_widget_cls()
+        inst = cls(graph, node_name, self, ctrl)
+        return inst
 
 
 class NodeGraphEntityModel(NodeGraphNodeModel):
@@ -244,7 +174,7 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
 
         return result
 
-    def _get_node_widget_label(self):
+    def _get_widget_label(self):
         result = self._name
         version_major, version_minor, version_patch = self._entity.get_version()
         if version_major is not None and version_minor is not None and version_patch is not None:  # todo: more eleguant

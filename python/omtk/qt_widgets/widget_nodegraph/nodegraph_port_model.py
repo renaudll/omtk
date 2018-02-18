@@ -3,8 +3,7 @@ import abc
 import pymel.core as pymel
 from omtk.factories import factory_datatypes
 from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
-from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
-from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
+from omtk.qt_widgets.widget_nodegraph import pyflowgraph_port_widget as port_widget
 
 from . import nodegraph_port_adaptor
 
@@ -138,17 +137,17 @@ class NodeGraphPortModel(object):
             is_writable = node_model.allow_input_port_display(self, ctrl)
             is_readable = node_model.allow_output_port_display(self, ctrl)
             if is_readable and not is_writable:
-                return PyFlowgraphInputPort
+                return port_widget.OmtkNodeGraphPortInWidget
             elif not is_readable and is_writable:
-                return PyFlowgraphOutputPort
+                return port_widget.OmtkNodeGraphPortOutput
             else:
-                return PyFlowgraphIOPort
+                return port_widget.OmtkNodeGraphPortIOWidget
         elif not is_readable and not is_writable:
             raise Exception("{0} is neither an input or an output.".format(self))
         elif is_writable:
-            return PyFlowgraphInputPort
+            return port_widget.OmtkNodeGraphPortInWidget
         else:
-            return PyFlowgraphOutputPort
+            return port_widget.OmtkNodeGraphPortOutput
 
     def _get_widget_color(self):
         metatype = self.get_metatype()
@@ -167,6 +166,9 @@ class NodeGraphPortModel(object):
             'some-mime-type'
         )
         node.addPort(port)
+
+        # todo: use signals for this?
+        port.on_added_to_scene()
 
         return port
 

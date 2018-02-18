@@ -38,6 +38,12 @@ NodeGraphController = nodegraph_controller.NodeGraphController
 
 
 def reload_():
+    from . import pyflowgraph_node_widget
+    reload(pyflowgraph_node_widget)
+
+    from . import pyflowgraph_port_widget
+    reload(pyflowgraph_port_widget)
+
     from .. import widget_toolbar
     reload(widget_toolbar)
 

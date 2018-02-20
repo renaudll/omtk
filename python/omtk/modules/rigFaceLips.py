@@ -269,6 +269,10 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # Contain the final applied jaw out ratio.
         # Used by the splitter network.
         self.attr_jaw_out_ratio = None
+        
+        # Jaw influence is applied as a pre-transform on the avar.
+        # It is exposed here to be re-used by any controller model that need it.
+        self._jaw_arc_tm = None
 
         # Initialize in an AvarGrp init_avar method.
         # Reference to the module containing the avar.

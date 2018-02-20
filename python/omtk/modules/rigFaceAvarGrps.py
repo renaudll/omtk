@@ -720,6 +720,7 @@ class AvarGrp(
         # Hack: Ensure ref is a list.
         # todo: fix upstream
         result_inputs = [ref] if ref else []
+        result_inputs.extend(self.get_meshes())  # ensure avars propage the mesh to their AvarCtrlModel
 
         # todo: remove this call when we know it is safe.
         if cls is None:

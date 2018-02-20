@@ -45,6 +45,9 @@ class NodeGraphNodeModel(object):
         self._name = new_name
         raise NotImplementedError
 
+    def delete(self):
+        raise NotImplementedError
+
     @decorators.memoized_instancemethod
     def get_metadata(self):
         return None

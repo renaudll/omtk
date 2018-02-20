@@ -81,6 +81,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self._known_connections_widgets = set()
 
         # Cache to access model-widget relationship
+        self._cache_node_widget_by_model = {}
+        self._cache_node_model_by_widget = {}
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
 
@@ -349,8 +351,17 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Widget factory ---
 
-    @decorators.memoized_instancemethod
     def get_node_widget(self, model):
+        try:
+            return self._cache_node_widget_by_model[model]
+        except LookupError:
+            log.debug("Cannot find widget for {0}. Creating a new one.".format(model))
+            widget = self._get_node_widget(model)
+            self._cache_node_widget_by_model[model] = widget
+            self._cache_node_model_by_widget[widget] = model
+            return widget
+
+    def _get_node_widget(self, model):
         # type: (NodeGraphNodeModel) -> OmtkNodeGraphNodeWidget
         # todo: how to we prevent from calling .get_widget() from the model directly? do we remove it?
         """
@@ -371,6 +382,29 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self._known_nodes_widgets.add(node_widget)
 
         return node_widget
+
+    def unregister_node_widget(self, widget):
+        """
+        Remove a PyFlowGraphNode from the cache.
+        :return:
+        """
+        model = self._cache_node_model_by_widget[widget]
+        self._cache_node_model_by_widget.pop(widget)
+        self._cache_node_widget_by_model.pop(model)
+        self._known_nodes_widgets.remove(widget)
+
+    def unregister_node_model(self, model):
+        # type: (NodeGraphNodeModel) -> None
+        """
+        Remove a NodeGraphNodeModel from the cache.
+        For obvious reasons, this will also unregister it's associated Widget if any.
+        :param model:
+        :return:
+        """
+        widget = self._cache_node_widget_by_model.get(model, None)
+        if widget:
+            self.unregister_node_widget(widget)
+        self._known_nodes.remove(model)
 
     @decorators.memoized_instancemethod
     def get_port_widget(self, port_model):
@@ -493,20 +527,23 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # self.invalidate_node_model(model)
         self.expand_node_attributes(model)
 
-    def on_node_removed_callback(self, pynode, *args, **kwargs):
+    def on_node_removed_callback(self, model, *args, **kwargs):
         """
         Called when a known node is deleted in Maya.
         Notify the view of the change.
-        :param pynode: The pynode that is being deleted
+        :param model: The model that is being deleted
         :param args: Absorb the OpenMaya callback arguments
         :param kwargs: Absorb the OpenMaya callback keyword arguments
         """
+        print model
         # todo: unregister node
-        log.debug("Removing {0} from nodegraph".format(pynode))
-        if pynode:
-            widget = self.get_node_widget(pynode)
+        log.debug("Removing {0} from nodegraph".format(model))
+        if model:
+            widget = self.get_node_widget(model)
             widget.disconnectAllPorts()
             self._view.removeNode(widget)
+            self.unregister_node_model(model)
+            # self.unregister_node_widget(widget)
 
     def redraw(self):
         """
@@ -546,17 +583,19 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self.collapse_node_attributes(node_model)
 
     def clear(self):
-        # for connection_widget in self._known_connections_widgets:
-        #     self._view.removeConnection(connection_widget)
-        # for node_widget in self._known_nodes_widgets:
-        #     self._view.removeNode(node_widget)
-        self._view.reset()
-        self._known_nodes_widgets.clear()
+        # We won't call clear since we will keep a reference to the Widgets in case
+        # we need to re-use them. Calling clear would make our cache point to invalid
+        # data and cause a Qt crash.
+        # self._view.clear()
+        for connection in list(self._view.iter_connections()):
+            self._view.removeConnection(connection, emitSignal=False)
+        for node_widget in list(self._view.iter_nodes()):
+            self._view.removeNode(node_widget, emitSignal=False)
 
-        try:
-            self._cache.pop('get_node_widget', None)
-        except KeyError:
-            pass
+        # Clear Node Model/Widget cache
+        self._cache_node_widget_by_model.clear()
+        self._cache_node_model_by_widget.clear()
+
         try:
             self._cache.pop('get_port_widget', None)
         except KeyError:
@@ -902,6 +941,18 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         widget._widget_label.setText(new_name)
         print model, new_name
 
+    def delete_node(self, model):
+        # type: (NodeGraphNodeModel) -> None
+        model.delete()  # this should fire some callbacks
+        # widget = self.get_node_widget(model)
+        # widget.disconnectAllPorts()
+        # self._view.removeNode(widget)
+        # self.unregister_node_widget(widget)
+
+    def delete_selected_nodes(self):
+        for model in self.get_selected_node_models():
+            self.delete_node(model)
+
     # --- Right click menu events ---
 
     def on_rcmenu_group_selection(self):
@@ -932,6 +983,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         for node in selected_nodes:
             node_model = self.get_node_model_from_value(node)
             node_widget = self.get_node_widget(node_model)
+            self.unregister_node_widget(node_widget)
             node_widget.disconnectAllPorts()
             self._view.removeNode(node_widget, emitSignal=False)
 

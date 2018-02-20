@@ -2,7 +2,6 @@ import abc
 
 import pymel.core as pymel
 from omtk.factories import factory_datatypes
-from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
 from omtk.qt_widgets.widget_nodegraph import pyflowgraph_port_widget as port_widget
 
 from . import nodegraph_port_adaptor
@@ -163,7 +162,7 @@ class NodeGraphPortModel(object):
             node, graph,
             self._name,
             color,
-            'some-mime-type'
+            'some-mime-type',
         )
         node.addPort(port)
 
@@ -171,6 +170,7 @@ class NodeGraphPortModel(object):
         port.on_added_to_scene()
 
         return port
+
 
 class NodeGraphOpenMaya2PortModel(NodeGraphPortModel):
     pass

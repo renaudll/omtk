@@ -1,13 +1,12 @@
+import logging
+import pymel.core as pymel
 from omtk import decorators
-from omtk.libs import libPython, libAttr, libPyflowgraph
-from omtk import constants
+from omtk.libs import libAttr, libPyflowgraph
+from omtk.vendor.Qt import QtCore
+
 from . import nodegraph_node_model_base
 from . import nodegraph_port_model
-from omtk.vendor.Qt import QtCore
 from . import pyflowgraph_node_widget
-from omtk.libs import libComponents
-import logging
-
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -28,6 +27,12 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         # Fetch the nodeName in case of name clash Maya
         # will give the node another name
         self._name = self._pynode.nodeName()
+
+    def delete(self):
+        if not self._pynode.exists():
+            log.warning("Can't delete already deleted node! {0}".format(self._pynode))
+            return
+        pymel.delete(self._pynode)
 
     @decorators.memoized_instancemethod
     def get_parent(self):

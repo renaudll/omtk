@@ -7,6 +7,7 @@ from omtk.qt_widgets import model_rig_templates
 
 _g_preferences = preferences.get_preferences()
 
+
 class WidgetWelcome(QtWidgets.QWidget):
     onCreate = QtCore.Signal()
 

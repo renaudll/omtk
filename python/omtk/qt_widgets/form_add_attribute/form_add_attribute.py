@@ -10,12 +10,11 @@ from omtk.libs import libAttr
 
 # maya known attr type names
 TYPE_FLOAT = 'float'
-TYPE_INT = 'int'
+TYPE_INT = 'byte'  # 8 bit integer
 TYPE_STR = 'string'
 TYPE_BOOL = 'bool'
 TYPE_MATRIX = 'matrix'
 TYPE_MESSAGE = 'message'
-
 
 
 class FormCreateAttribute(QtWidgets.QMainWindow):

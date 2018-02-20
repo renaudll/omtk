@@ -27,7 +27,7 @@ class FormPublishComponent(QtWidgets.QMainWindow):
         self.load_component(component)
 
     def load_component(self, component):
-        # type: (Component,) -> None
+        # type: (Component) -> None
         component_def = component.get_definition()
         self.ui.lineEdit_name.setText(component_def.name)
         self.ui.lineEdit_author.setText(component_def.author)

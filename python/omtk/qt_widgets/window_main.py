@@ -3,23 +3,22 @@ import logging
 
 import omtk.constants
 import omtk.core
-from omtk import decorators
 import pymel.core as pymel
 from maya import OpenMaya
-from omtk import api
 from omtk import constants
+from omtk import decorators
 from omtk.core import preferences, session
-from omtk.libs import libPython
 from omtk.libs import libSkeleton
+from omtk.qt_widgets import main_window_extended
 from omtk.qt_widgets.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-from omtk.qt_widgets import main_window_extended
 
 log = logging.getLogger('omtk')
 
+from omtk.vendor.enum34 import Enum
 
-class EnumSections:
+class EnumSections(Enum):
     """Define the section available in the ui."""
     Welcome = 0
     Edit = 1
@@ -113,7 +112,6 @@ class AutoRig(main_window_extended.MainWindowExtended):
         self.tabifyDockWidget(self.ui.dockWidget_influences, self.ui.dockWidget_meshes)
         self.tabifyDockWidget(self.ui.dockWidget_meshes, self.ui.dockWidget_modules)
         # self.tabifyDockWidget(self.ui.dockWidget_modules, self.ui.dockWidget_modules)
-
 
         # Add existing rigs in the NodeGraph on startup
         # for rig in self.manager._roots:
@@ -394,7 +392,8 @@ class AutoRig(main_window_extended.MainWindowExtended):
     def _get_l_influences(self):
         objs = self.manager._root.get_potential_influences()
         # Filter joints
-        fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
+        def fn_filter(x):
+            isinstance(x, pymel.nodetypes.Joint)
         objs = filter(fn_filter, objs)
         # Filter l side only
         fn_filter = functools.partial(self._is_l_influence, self.manager._root)
@@ -403,7 +402,8 @@ class AutoRig(main_window_extended.MainWindowExtended):
     def _get_r_influences(self):
         objs = self.manager._root.get_potential_influences()
         # Filter joints
-        fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
+        def fn_filter(x):
+            return isinstance(x, pymel.nodetypes.Joint)
         objs = filter(fn_filter, objs)
         # Filter r side only
         fn_filter = functools.partial(self._is_r_influence, self.manager._root)
@@ -478,7 +478,7 @@ def show():
     # Try to kill latest Autorig ui window
     try:
         pymel.deleteUI('OpenRiggingToolkit')
-    except:
+    except Exception:
         pass
 
     global gui

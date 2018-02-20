@@ -4,12 +4,11 @@ This is a case of 'composition over inheritance'.
 """
 import abc
 
-from omtk import decorators
 import pymel.core as pymel
 from maya import cmds
+from omtk import decorators
 from omtk.core import entity_attribute, session
 from omtk.factories import factory_datatypes
-from omtk.libs import libPython
 
 
 class NodeGraphPortImpl(object):

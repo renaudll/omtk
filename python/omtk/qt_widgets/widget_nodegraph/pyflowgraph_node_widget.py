@@ -1,10 +1,10 @@
 import logging
 from collections import defaultdict
-from maya import OpenMaya
-import pymel.core as pymel
 
+from maya import OpenMaya
 from omtk import decorators
 from omtk.factories import factory_datatypes
+from omtk.qt_widgets.widget_nodegraph.delegate_rename import NodeRenameDelegate
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
@@ -12,8 +12,6 @@ log = logging.getLogger('omtk)')
 
 # used for type hinting
 if False:
-    from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
-    from .nodegraph_port_model import NodeGraphPortModel
     from .nodegraph_controller import NodeGraphController
 
 
@@ -32,42 +30,6 @@ class NodeIcon(QtWidgets.QGraphicsWidget):
         self.setLayout(layout)
 
         self._titleWidget = QtWidgets.QGraphicsPixmapItem(icon.pixmap(QtCore.QSize(20, 20)), self)
-
-
-class NodeRenameDelegate(QtWidgets.QLineEdit):
-    """
-    Customized QLineEdit that remove itself when out of focus or the user press enter.
-    """
-    onSubmit = QtCore.Signal(str)
-
-    def focusOutEvent(self, event):
-        self.close()
-
-    def keyPressEvent(self, event):
-        key = event.key()
-
-        if key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
-            self.onSubmit.emit(self.text())
-            self.close()
-            return
-
-        if key == QtCore.Qt.Key_Escape:
-            self.close()
-            return
-
-        super(NodeRenameDelegate, self).keyPressEvent(event)
-
-    # def on_submit(self):
-    #     print 'submit'
-    #     print self.text()
-
-
-class NodeGraphNodeTitleEventFilter(QtWidgets.QGraphicsItem):
-    """
-    EventFilter that absorb double-click and show a delegate.
-    Used to rename things.
-    """
-    pass  # Note: Currently implemented in OmtkNodeGraphNodeWidget, I am not able to do it in a separated QGraphicItem atm...
 
 
 class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
@@ -104,17 +66,18 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
         self._widget_label = self._Node__headerItem._titleWidget
 
     def sceneEventFilter(self, watched, event):
+        print watched
         # We need to accept the first click if we want to grab GraphicsSceneMouseDoubleClick
         if event.type() == QtCore.QEvent.Type.GraphicsSceneMousePress:
             event.accept()
             return True
 
         if event.type() == QtCore.QEvent.Type.GraphicsSceneMouseDoubleClick:
-            event.accept()
             self._show_rename_delegate()
+            event.accept()
             return True
 
-        return True
+        return False
 
     def _show_rename_delegate(self):
         node_name = self.getName()
@@ -150,6 +113,10 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
 
         self._callback_id_by_node_model = defaultdict(set)
         self.add_callbacks()
+
+    def delete(self):
+        self.remove_callbacks()
+        super(OmtkNodeGraphDagNodeWidget, self).delete()
 
     def add_callbacks(self):
         self.remove_callbacks()
@@ -200,9 +167,10 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
         # todo: unregister node
         log.debug("Removing {0} from nodegraph".format(pynode))
         if pynode:
-            widget = self.get_node_widget(pynode)
-            widget.disconnectAllPorts()
-            self._view.removeNode(widget)
+            self._ctrl.on_node_removed_callback(self._value)
+            # widget = self._ctrl.get_node_widget(pynode)
+            # widget.disconnectAllPorts()
+            # self._view.removeNode(widget)
 
 
 class OmtkNodeGraphComponentNodeWidget(OmtkNodeGraphNodeWidget):
@@ -215,5 +183,5 @@ class OmtkNodeGraphComponentNodeWidget(OmtkNodeGraphNodeWidget):
     #     pass
 
     def mouseDoubleClickEvent(self, event):
-        event.accept()
         self._ctrl.set_level(self._value)
+        event.accept()

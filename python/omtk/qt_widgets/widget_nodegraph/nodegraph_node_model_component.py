@@ -1,9 +1,10 @@
 from omtk import decorators
-from . import nodegraph_node_model_base
-from . import nodegraph_node_model_dagnode
-from omtk.vendor.Qt import QtCore, QtGui
 from omtk.core import component
 from omtk.core import entity_attribute
+from omtk.vendor.Qt import QtGui
+
+from . import nodegraph_node_model_base
+from . import nodegraph_node_model_dagnode
 from . import pyflowgraph_node_widget
 
 if False:

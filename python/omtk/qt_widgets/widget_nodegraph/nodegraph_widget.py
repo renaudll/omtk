@@ -25,11 +25,10 @@ win.show()
 """
 import logging
 
-from omtk import decorators
 import pymel.core as pymel
+from omtk import decorators
 from omtk.core import session
 from omtk.libs import libPyflowgraph
-from omtk.libs import libPython
 from omtk.qt_widgets.widget_nodegraph.ui import nodegraph_widget
 from omtk.vendor.Qt import QtWidgets
 
@@ -243,5 +242,9 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     def on_level_changed(self, model):
         """Called when the current level is changed using the nodegraph."""
         self.ui.widget_breadcrumb.set_path(model)
+
+    def keyPressEvent(self, event):
+        # Prevent Maya from catching key events
+        pass
 
 # from pyflowgraph.graph_view import GraphView as NodeGraphWidget

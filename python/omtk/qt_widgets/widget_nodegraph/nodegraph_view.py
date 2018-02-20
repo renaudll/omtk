@@ -14,7 +14,6 @@ log = logging.getLogger('omtk.nodegraph')
 if False:
     from .nodegraph_controller import NodeGraphController
     from omtk.core.component import Component
-    from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
 
 class NodeGraphView(PyFlowgraphView):
@@ -32,23 +31,17 @@ class NodeGraphView(PyFlowgraphView):
         self.selectionChanged.connect(self.on_selection_changed)
 
         shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
-        shortcut_tab.activated.connect(self.on_tab_pressed)
+        shortcut_tab.activated.connect(self.on_shortcut_tab)
 
         shortcut_frame = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F), self)
-        shortcut_frame.activated.connect(self.on_frame)
+        shortcut_frame.activated.connect(self.on_shortcut_frame)
+
+        shortcut_delete = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete), self)
+        shortcut_delete.activated.connect(self.on_shortcut_delete)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_customContextMenuRequested)
 
-
-    def on_frame(self):
-        """
-        Called when the user press ``f``. Frame selected nodes if there's a selection, otherwise frame everything.
-        """
-        if self.getSelectedNodes():
-            self.frameSelectedNodes()
-        else:
-            self.frameAllNodes()
 
     @property
     def manager(self):
@@ -68,6 +61,28 @@ class NodeGraphView(PyFlowgraphView):
         """
         self._controller = controller
 
+    # -- Shortcuts --
+
+    def on_shortcut_frame(self):
+        """
+        Called when the user press ``f``. Frame selected nodes if there's a selection, otherwise frame everything.
+        """
+        if self.getSelectedNodes():
+            self.frameSelectedNodes()
+        else:
+            self.frameAllNodes()
+
+    def on_shortcut_tab(self):
+        from omtk.qt_widgets.widget_outliner import widget_component_list
+        dialog = widget_component_list.WidgetComponentList(self)
+        dialog.signalComponentCreated.connect(self.on_component_created)
+        # dialog.setMinimumHeight(self.height())
+        dialog.show()
+        dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
+
+    def on_shortcut_delete(self):
+        self._controller.delete_selected_nodes()
+
     # -- CustomContextMenu --
 
     def on_selection_changed(self):
@@ -84,14 +99,6 @@ class NodeGraphView(PyFlowgraphView):
             nodes_to_select.append(mel)
 
         pymel.select(nodes_to_select)
-
-    def on_tab_pressed(self):
-        from omtk.qt_widgets.widget_outliner import widget_component_list
-        dialog = widget_component_list.WidgetComponentList(self)
-        dialog.signalComponentCreated.connect(self.on_component_created)
-        # dialog.setMinimumHeight(self.height())
-        dialog.show()
-        dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
 
     # --- Drag and Drop ----
 
@@ -127,7 +134,7 @@ class NodeGraphView(PyFlowgraphView):
         def _handle_component_definition(component_def):
             # type: (ComponentDefinition) -> Component
             return component_def.instanciate()
-        drop_data = [_handle_component_definition(data) if isinstance(data, ComponentDefinition) else data for data in drop_data]
+        drop_data = [_handle_component_definition(d) if isinstance(d, ComponentDefinition) else d for d in drop_data]
 
         # new clean method
         if isinstance(drop_data, list):

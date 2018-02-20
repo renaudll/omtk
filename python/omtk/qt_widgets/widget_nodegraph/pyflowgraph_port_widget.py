@@ -1,27 +1,50 @@
 from omtk.vendor.Qt import QtCore, QtWidgets
 
 from omtk.vendor.pyflowgraph import port
+from . import delegate_rename
 
 if False:  # for type hinting
-    from omtk.vendor.pyflowgraph.port import InputPort as PyFlowgraphInputPort
-    from omtk.vendor.pyflowgraph.port import OutputPort as PyFlowgraphOutputPort
-    from omtk.vendor.pyflowgraph.port import IOPort as PyFlowgraphIOPort
+    pass
+
 
 class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
-    def __init__(self, *args, **kwargs):
-        super(OmtkNodeGraphBasePortWidget, self).__init__(*args, **kwargs)
-        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
+    # def __init__(self, parent, graph, name, color, dataType, model, ctrl):
+    #     super(OmtkNodeGraphBasePortWidget, self).__init__(parent, graph, name, color, dataType)
+    #
+    #     self._ctrl = ctrl
+    #     self._value = model
 
-    def mousePressEvent(self, event):
-        super(OmtkNodeGraphBasePortWidget, self).mousePressEvent(event)
-        event.accept()  # todo: start connection instead of doing nothing
+    def sceneEventFilter(self, watched, event):
+        print watched
 
-    def mouseDoubleClickEvent(self, event):
-        self._show_rename_delegate()
+        # We need to accept the first click if we want to grab GraphicsSceneMouseDoubleClick
+        if event.type() == QtCore.QEvent.Type.GraphicsSceneMousePress:
+            event.accept()
+            return True
 
+        if event.type() == QtCore.QEvent.Type.GraphicsSceneMouseDoubleClick:
+            # def _callback(new_name):
+            #     self._ctrl.rename_port(self._value, new_name)
+            #
+            # delegate = delegate_rename.NodeRenameDelegate()
+            # delegate.onSubmit.connect(_callback)
+            # delegate.show()
+            self._show_rename_delegate()
+            event.accept()
+            return True
+
+        return False
+
+    # def mousePressEvent(self, event):
+    #     super(OmtkNodeGraphBasePortWidget, self).mousePressEvent(event)
+    #     event.accept()  # todo: start connection instead of doing nothing
+    #
+    # def mouseDoubleClickEvent(self, event):
+    #     self._show_rename_delegate()
+    #
     def _show_rename_delegate(self):
         # todo: share code with pyflowgraph_node_widget.py
-        from .pyflowgraph_node_widget import NodeRenameDelegate
+        from omtk.qt_widgets.widget_nodegraph.delegate_rename import NodeRenameDelegate
         node_name = self.getName()
         widget_title = self.labelItem()
         pos = self._graph.mapFromScene(widget_title.pos())
@@ -46,7 +69,8 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
         """
         Custom callback for when the QGraphicItem is added to a QScene.
         """
-        pass
+        widget_label = self.labelItem()
+        widget_label.installSceneEventFilter(self)  # todo: use dedicated class
 
 
 class OmtkNodeGraphPortInWidget(port.InputPort, OmtkNodeGraphBasePortWidget):

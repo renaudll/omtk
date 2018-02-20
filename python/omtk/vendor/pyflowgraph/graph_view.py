@@ -655,3 +655,7 @@ class GraphView(QtWidgets.QGraphicsView):
     def iter_nodes(self):
         for node in self.__nodes.itervalues():
             yield node
+
+    def iter_connections(self):
+        for connection in self.__connections:
+            yield connection

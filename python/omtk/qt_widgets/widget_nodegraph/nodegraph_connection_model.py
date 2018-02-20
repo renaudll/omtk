@@ -1,3 +1,5 @@
+from omtk.vendor.enum34 import Enum
+
 # for type hinting only
 if False:
     from .nodegraph_port_model import NodeGraphPortModel
@@ -37,33 +39,35 @@ class NodeGraphConnectionModel(object):
         src_node_model = self._attr_src.get_parent()
         dst_node_model = self._attr_dst.get_parent()
 
-        class enum_PortKind:
+        class enum_PortKind(Enum):
             normal = 1
             compound_inn = 2
             compound_out = 3
 
-        class ConnectionKind:
+        class ConnectionKind(Enum):
             normal = 1
-            normal_to_compound_inn = 2 # src (node is outside the compound)
-            normal_to_compound_out = 3 # dst (node is inside the compound)
-            compound_inn_to_normal = 4 # src (node is inside the compound)
-            compound_out_to_normal = 5 # dst (node is outside the compound)
-            compound_inn_to_compound_inn = 6 # dst (destination is inside source)
-            compound_inn_to_compound_out = 7 # any (source and destination are inside the same compound)
-            compound_out_to_compound_inn = 8 # any (source and destination are inside the same compound)
-            compound_out_to_compound_out = 9 # src (source is inside destination)
+            normal_to_compound_inn = 2  # src (node is outside the compound)
+            normal_to_compound_out = 3  # dst (node is inside the compound)
+            compound_inn_to_normal = 4  # src (node is inside the compound)
+            compound_out_to_normal = 5  # dst (node is outside the compound)
+            compound_inn_to_compound_inn = 6  # dst (destination is inside source)
+            compound_inn_to_compound_out = 7  # any (source and destination are inside the same compound)
+            compound_out_to_compound_inn = 8  # any (source and destination are inside the same compound)
+            compound_out_to_compound_out = 9  # src (source is inside destination)
 
         def get_connection_kind():
+            """
+            The possibilities are:
+            - Connection from a component out to a component on the same level.
+            - Connection from a component inn to a component inn inside this same component.
+            - Connection from a component out to a parent component out.
+            """
             from omtk.libs import libComponents
             src_role = libComponents.get_metanetwork_role(src_node_model.get_metadata())
             dst_role = libComponents.get_metanetwork_role(dst_node_model.get_metadata())
 
             src_is_compound_bound = src_role != libComponents.ComponentMetanetworkRole.NoRole
             dst_is_compound_bound = dst_role != libComponents.ComponentMetanetworkRole.NoRole
-            # The possibilities are:
-            # - Connection from a component out to a component on the same level.
-            # - Connection from a component inn to a component inn inside this same component.
-            # - Connection from a component out to a parent component out.
             if src_is_compound_bound and dst_is_compound_bound:
                 src_is_inn = src_role == libComponents.ComponentMetanetworkRole.Inn
                 dst_is_inn = dst_role == libComponents.ComponentMetanetworkRole.Out
@@ -99,15 +103,17 @@ class NodeGraphConnectionModel(object):
                     return ConnectionKind.normal_to_compound_out
 
         def get_connection_node_model():
-            # Define if we should use the source or destination node model to fetch the parent.
-            # normal_to_compound_inn = 2  # src (node is outside the compound)
-            # normal_to_compound_out = 3  # dst (node is inside the compound)
-            # compound_inn_to_normal = 4  # src (node is inside the compound)
-            # compound_out_to_normal = 5  # dst (node is outside the compound)
-            # compound_inn_to_compound_inn = 6  # dst (destination is inside source)
-            # compound_inn_to_compound_out = 7  # any (source and destination are inside the same compound)
-            # compound_out_to_compound_inn = 8  # any (source and destination are inside the same compound)
-            # compound_out_to_compound_out = 9  # src (source is inside destination)
+            """
+            Define if we should use the source or destination node model to fetch the parent.
+            normal_to_compound_inn = 2  # src (node is outside the compound)
+            normal_to_compound_out = 3  # dst (node is inside the compound)
+            compound_inn_to_normal = 4  # src (node is inside the compound)
+            compound_out_to_normal = 5  # dst (node is outside the compound)
+            compound_inn_to_compound_inn = 6  # dst (destination is inside source)
+            compound_inn_to_compound_out = 7  # any (source and destination are inside the same compound)
+            compound_out_to_compound_inn = 8  # any (source and destination are inside the same compound)
+            compound_out_to_compound_out = 9  # src (source is inside destination)
+            """
             connection_kind = get_connection_kind()
             if connection_kind in (
                 ConnectionKind.compound_inn_to_normal,

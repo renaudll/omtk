@@ -1,4 +1,3 @@
-from omtk.libs import libPython
 from . import nodegraph_node_model_base
 
 

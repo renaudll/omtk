@@ -221,6 +221,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self.unregister_node_widget(widget)
         # self._known_nodes.remove(model)
 
+        self.invalidate_node_model(model)
+
     # --- Model factory ---
 
     def get_node_model_from_value(self, key):
@@ -478,6 +480,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             #     '{0}.{1}'.format(widget_src_node.getName(), port_src_model.get_name()),
             #     '{0}.{1}'.format(widget_dst_node.getName(), port_dst_model.get_name())
             # ))
+            print '|||', connection_model
             connection = self._view.connectPorts(
                 widget_src_node,
                 port_src_model.get_name(),
@@ -973,13 +976,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # selected_nodes = self.get_selected_node_models()
         inn_attrs, out_attrs = self._get_selected_nodes_outsider_ports()
 
-        inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
-        out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
-        inst = component.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?
-
-        selected_nodes = set()
-        for attr in itertools.chain(inn_attrs.itervalues(), out_attrs.itervalues()):
-            selected_nodes.add(attr.node())
+        selected_models = self.get_selected_node_models()
+        # selected_nodes = set()
+        # for attr in itertools.chain(inn_attrs.itervalues(), out_attrs.itervalues()):
+        #     selected_nodes.add(attr.node())
 
         # Resolve middle position, this is where the component will be positioned.
         # todo: it don't work... make it work... please? XD
@@ -991,16 +991,20 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         #     middle_pos += widget_pos
         # middle_pos /= len(selected_nodes)
 
+        # Remove grouped widgets
+        for model in selected_models:
+            # node_model = self.get_node_model_from_value(node)
+            self.remove_node(model, clear_cache=True)
+
+        inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
+        out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
+        inst = component.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?
+
         self.manager.export_network(inst)
 
-        # Remove grouped widgets
-        for node in selected_nodes:
-            node_model = self.get_node_model_from_value(node)
-            self.remove_node(node_model, clear_cache=True)
-
-        # Invalided grouped models
-        for node in selected_nodes:
-            self.invalidate_node_value(node)
+        # for model in selected_models:
+        #     self.invalidate_node_model(model)
+            # self.invalidate_node_value(node)
 
         inst_model, inst_widget = self.add_node(inst)
 

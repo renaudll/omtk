@@ -78,7 +78,9 @@ class NodeGraphModel(object):
             # clean connection cache
             # note: We cannot used iteritems since we modify the dict
             for key, connection_model in self._cache_connections.items():
-                model_src_port, model_dst_port = key
+                # model_src_port, model_dst_port = key
+                model_src_port = connection_model.get_source()
+                model_dst_port = connection_model.get_destination()
                 if model_src_port == port_model or model_dst_port == port_model:
                     self._cache_connections.pop(key)
                     log.debug("Invalidating {0}".format(connection_model))
@@ -198,7 +200,7 @@ class NodeGraphModel(object):
             return self._cache_connections[key]
         except LookupError:
             val = self._get_connection_model_from_values(model_src, model_dst)
-            self._cache_ports[val] = val
+            self._cache_connections[key] = val
             return val
 
     def _get_connection_model_from_values(self, model_src, model_dst):

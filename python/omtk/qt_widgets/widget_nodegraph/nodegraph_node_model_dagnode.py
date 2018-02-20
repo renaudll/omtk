@@ -49,14 +49,16 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
 
     def iter_attributes(self):
         for attr in self.get_attributes_raw_values():
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
-            self._registry._register_attribute(inst)
+            inst = self._registry.get_port_model_from_value(attr)
+            # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
+            # self._registry._register_attribute(inst)
             yield inst
 
             if attr.isMulti():
                 for attr_child in attr:
-                    inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
-                    self._registry._register_attribute(inst)
+                    inst = self._registry.get_port_model_from_value(attr_child)
+                    # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
+                    # self._registry._register_attribute(inst)
                     yield inst
 
     # @decorators.memoized_instancemethod

@@ -368,19 +368,22 @@ class Node(QtWidgets.QGraphicsWidget):
     #########################
     ## shut down
 
-    def disconnectAllPorts(self, emitSignal=True):  # emitSignal added by rlessard
+    # emitSignal added by rlessard
+    # connections converted from list to set by rlessard to fix bug when removing a connection
+    # from an output port to an input port on the same node
+    def disconnectAllPorts(self, emitSignal=True):
         # gather all the connections into a list, and then remove them from the graph.
         # This is because we can't remove connections from ports while
         # iterating over the set.
-        connections = []
+        connections = set()
 
         for port in self.__ports:
             if port.inCircle():
                 for connection in port.inCircle().getConnections():
-                    connections.append(connection)
+                    connections.add(connection)
             if port.outCircle():
                 for connection in port.outCircle().getConnections():
-                    connections.append(connection)
+                    connections.add(connection)
 
         for connection in connections:
             self.__graph.removeConnection(connection, emitSignal=emitSignal)

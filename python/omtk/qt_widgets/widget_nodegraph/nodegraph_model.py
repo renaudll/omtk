@@ -181,8 +181,6 @@ class NodeGraphModel(object):
                 inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val.message)
             elif isinstance(val, module.Module):  # todo: use factory_datatypes?
                 node_value = val.rig
-
-
                 node_model = self.get_node_from_value(val.rig)
                 val = val.rig.get_attribute_by_name('modules')
                 inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)

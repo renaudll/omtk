@@ -198,6 +198,29 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         else:
             self.invalidate_node_value(value)
 
+    def unregister_node_widget(self, widget):
+        """
+        Remove a PyFlowGraphNode from the cache.
+        :return:
+        """
+        model = self._cache_node_model_by_widget[widget]
+        self._cache_node_model_by_widget.pop(widget)
+        self._cache_node_widget_by_model.pop(model)
+        # self._known_nodes_widgets.remove(widget)
+
+    def unregister_node_model(self, model):
+        # type: (NodeGraphNodeModel) -> None
+        """
+        Remove a NodeGraphNodeModel from the cache.
+        For obvious reasons, this will also unregister it's associated Widget if any.
+        :param model:
+        :return:
+        """
+        widget = self._cache_node_widget_by_model.get(model, None)
+        if widget:
+            self.unregister_node_widget(widget)
+        # self._known_nodes.remove(model)
+
     # --- Model factory ---
 
     def get_node_model_from_value(self, key):
@@ -383,29 +406,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         return node_widget
 
-    def unregister_node_widget(self, widget):
-        """
-        Remove a PyFlowGraphNode from the cache.
-        :return:
-        """
-        model = self._cache_node_model_by_widget[widget]
-        self._cache_node_model_by_widget.pop(widget)
-        self._cache_node_widget_by_model.pop(model)
-        self._known_nodes_widgets.remove(widget)
-
-    def unregister_node_model(self, model):
-        # type: (NodeGraphNodeModel) -> None
-        """
-        Remove a NodeGraphNodeModel from the cache.
-        For obvious reasons, this will also unregister it's associated Widget if any.
-        :param model:
-        :return:
-        """
-        widget = self._cache_node_widget_by_model.get(model, None)
-        if widget:
-            self.unregister_node_widget(widget)
-        self._known_nodes.remove(model)
-
     @decorators.memoized_instancemethod
     def get_port_widget(self, port_model):
         # type: (NodeGraphPortModel) -> OmtkNodeGraphBasePortWidget
@@ -514,6 +514,25 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         return node_model, node_widget
 
+    def remove_node(self, node_model, clear_cache=False):
+        """
+        Remove a node from the View.
+        Note that by default, this will keep the QGraphicItem in memory.
+        :param node_model:
+        :param clear_cache:
+        """
+        try:
+            self._known_nodes.remove(node_model)
+        except KeyError, e:
+            log.warning(e)  # todo: fix this
+        widget = self.get_node_widget(node_model)
+        widget.disconnectAllPorts(emitSignal=False)
+        self._view.removeNode(widget)
+
+        if clear_cache:
+            self.unregister_node_model(node_model)
+
+
     def on_attribute_added_on_visible_node(self, callback_id, mplug, _):
         attr_name = mplug.name()
         attr_mobj = mplug.node()
@@ -535,15 +554,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         :param args: Absorb the OpenMaya callback arguments
         :param kwargs: Absorb the OpenMaya callback keyword arguments
         """
-        print model
         # todo: unregister node
         log.debug("Removing {0} from nodegraph".format(model))
         if model:
-            widget = self.get_node_widget(model)
-            widget.disconnectAllPorts()
-            self._view.removeNode(widget)
-            self.unregister_node_model(model)
-            # self.unregister_node_widget(widget)
+            self.remove_node(model, clear_cache=True)
 
     def redraw(self):
         """
@@ -765,7 +779,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
                 for connection_model in port_dst.get_input_connections():
                     src_port_model = connection_model.get_source()
-                    src_node_model = self.get_node_model_from_value(src_port_model.get_parent())
+                    src_node_model = src_port_model.get_parent()
                     if src_node_model in selected_nodes_model:
                         continue
 
@@ -780,7 +794,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
                 for connection_model in port_src.get_output_connections():
                     dst_port_model = connection_model.get_destination()
-                    dst_node_model = self.get_node_model_from_value(dst_port_model.get_parent())
+                    dst_node_model = dst_port_model.get_parent()
                     if dst_node_model in selected_nodes_model:
                         continue
 
@@ -982,10 +996,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # Remove grouped widgets
         for node in selected_nodes:
             node_model = self.get_node_model_from_value(node)
-            node_widget = self.get_node_widget(node_model)
-            self.unregister_node_widget(node_widget)
-            node_widget.disconnectAllPorts()
-            self._view.removeNode(node_widget, emitSignal=False)
+            self.remove_node(node_model, clear_cache=True)
 
         # Invalided grouped models
         for node in selected_nodes:
@@ -1030,7 +1041,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             component.explode()
 
-            component_widget.disconnectAllPorts()
+            component_widget.disconnectAllPorts(emitSignal=False)
             self._view.removeNode(component_widget, emitSignal=False)
 
         for node in new_nodes:

@@ -15,7 +15,7 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
     #     self._value = model
 
     def sceneEventFilter(self, watched, event):
-        print watched
+        # print watched
 
         # We need to accept the first click if we want to grab GraphicsSceneMouseDoubleClick
         if event.type() == QtCore.QEvent.Type.GraphicsSceneMousePress:

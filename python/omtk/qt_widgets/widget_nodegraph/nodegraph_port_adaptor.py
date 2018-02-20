@@ -109,13 +109,17 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
             return self._data.isDestination()
 
     def get_inputs(self):
-        # Hack: Don't display connection from the root of an array attribute
+        # Hack: Don't display connection from the root of an array attribute (are_you_sure_about_that.jpeg)
         if self._data.isMulti() and '[' not in self._data:
             return []
 
         return self._data.inputs(plugs=True)
 
     def get_outputs(self):
+        # Hack: Don't display connection from the root of an array attribute (are_you_sure_about_that.jpeg)
+        if self._data.isMulti() and '[' not in self._data:
+            return []
+
         return self._data.outputs(plugs=True)
 
     @decorators.memoized_instancemethod

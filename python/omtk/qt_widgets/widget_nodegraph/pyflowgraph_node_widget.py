@@ -66,7 +66,7 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
         self._widget_label = self._Node__headerItem._titleWidget
 
     def sceneEventFilter(self, watched, event):
-        print watched
+        # print watched
         # We need to accept the first click if we want to grab GraphicsSceneMouseDoubleClick
         if event.type() == QtCore.QEvent.Type.GraphicsSceneMousePress:
             event.accept()

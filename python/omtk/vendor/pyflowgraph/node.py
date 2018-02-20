@@ -368,7 +368,7 @@ class Node(QtWidgets.QGraphicsWidget):
     #########################
     ## shut down
 
-    def disconnectAllPorts(self):
+    def disconnectAllPorts(self, emitSignal=True):  # emitSignal added by rlessard
         # gather all the connections into a list, and then remove them from the graph.
         # This is because we can't remove connections from ports while
         # iterating over the set.
@@ -383,7 +383,7 @@ class Node(QtWidgets.QGraphicsWidget):
                     connections.append(connection)
 
         for connection in connections:
-            self.__graph.removeConnection(connection)
+            self.__graph.removeConnection(connection, emitSignal=emitSignal)
 
     #########################
     ## added by rlessard

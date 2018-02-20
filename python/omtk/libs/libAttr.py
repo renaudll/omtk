@@ -404,13 +404,16 @@ class AttributeData(object):
         inst.short_name = attr.shortName()
         inst.nice_name = pymel.attributeName(attr)
         inst.is_multi = attr.isMulti()
-        inst.is_readable = pymel.attributeQuery(inst.long_name, node=inst.node, readable=True)
-        inst.is_writable = pymel.attributeQuery(inst.long_name, node=inst.node, writable=True)
         inst.is_compound = attr.isCompound()
         inst.type = attr.type()
         inst.locked = attr.isLocked()
         inst.keyable = attr.isKeyable()
         inst.hidden = attr.isHidden()
+
+        # Array elements cannot be queried, we need the parent.
+        ref_name = attr.array().longName() if attr.isElement() else inst.long_name
+        inst.is_readable = pymel.attributeQuery(ref_name, node=inst.node, readable=True)
+        inst.is_writable = pymel.attributeQuery(ref_name, node=inst.node, writable=True)
 
         # Use can choose to store additional information.
         # This was used a lot in the old implementation.

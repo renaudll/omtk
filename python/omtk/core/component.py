@@ -310,11 +310,17 @@ class Component(Entity):
         hub_inn = pymel.createNode('network', name='{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME))
         hub_out = pymel.createNode('network', name='{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME))
 
+        def _escape_attr_name(attr_name):
+            return attr_name.replace('[', '').replace(']', '')  # todo: find a better way
+
         # Create the hub_inn attribute.
         for attr_name, attr_ref in attrs_inn.iteritems():
             data = libAttr.AttributeData.from_pymel_attribute(attr_ref, store_inputs=True, store_outputs=True)
             if not data.is_writable:
                 raise IOError("Expected a writable attribute as an input reference.")
+
+            attr_name = _escape_attr_name(attr_name)
+
             data.rename(attr_name)
             hub_attr = data.copy_to_node(hub_inn)
             pymel.connectAttr(hub_attr, attr_ref, force=True)
@@ -325,6 +331,9 @@ class Component(Entity):
             data = libAttr.AttributeData.from_pymel_attribute(attr_ref, store_inputs=True, store_outputs=True)
             if not data.is_readable:
                 raise IOError("Expected a readable attribute as an output reference.")
+
+            attr_name = _escape_attr_name(attr_name)
+
             data.rename(attr_name)
             hub_attr = data.copy_to_node(hub_out)
             pymel.connectAttr(attr_ref, hub_attr)

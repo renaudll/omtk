@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 
 from maya import OpenMaya
+import pymel.core as pymel
 from omtk import decorators
 from omtk.factories import factory_datatypes
 from omtk.qt_widgets.widget_nodegraph.delegate_rename import NodeRenameDelegate
@@ -43,7 +44,7 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
 
         self._graph = graph
         self._ctrl = ctrl
-        self._value = model
+        self._model = model
 
         # Monkey-patch our metadata
         meta_data = model.get_metadata()
@@ -87,7 +88,7 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
         size = widget_title.size()
 
         def submit_callback(new_name):
-            self._ctrl.rename_node(self._value, new_name)
+            self._ctrl.rename_node(self._model, new_name)
 
         d = NodeRenameDelegate(self._graph)
         d.setText(node_name)
@@ -147,13 +148,18 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
 
     @decorators.log_info
     def callback_attribute_added(self, callback_id, mplug, _):
-        attr_name = mplug.name()
+        attr_dagpath = mplug.name()
+        attr_name = attr_dagpath.split('.')[-1]
+        if self._ctrl._filter._is_port_model_name_blacklisted(attr_name):
+            log.info('Ignoring callback on {0}'.format(attr_dagpath))
+            return
         attr_mobj = mplug.node()
         mfn = OpenMaya.MFnDependencyNode(attr_mobj)
         obj_name = mfn.name()
         log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
 
-        self._ctrl.expand_node_attributes(self._value)
+        attr = pymel.Attribute(attr_dagpath)
+        self._ctrl.callback_attribute_added(attr)
 
     @decorators.log_info
     def callback_node_deleted(self, pynode, *args, **kwargs):
@@ -167,7 +173,7 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
         # todo: unregister node
         log.debug("Removing {0} from nodegraph".format(pynode))
         if pynode:
-            self._ctrl.on_node_removed_callback(self._value)
+            self._ctrl.callback_node_deleted(self._model)
             # widget = self._ctrl.get_node_widget(pynode)
             # widget.disconnectAllPorts()
             # self._view.removeNode(widget)
@@ -183,5 +189,5 @@ class OmtkNodeGraphComponentNodeWidget(OmtkNodeGraphNodeWidget):
     #     pass
 
     def mouseDoubleClickEvent(self, event):
-        self._ctrl.set_level(self._value)
+        self._ctrl.set_level(self._model)
         event.accept()

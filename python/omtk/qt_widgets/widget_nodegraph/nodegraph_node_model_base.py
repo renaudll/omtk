@@ -92,10 +92,12 @@ class NodeGraphNodeModel(object):
 
     @decorators.memoized_instancemethod
     def get_connected_input_attributes(self):
+        # type: () -> list[NodeGraphPortModel]
         return [attr for attr in self.get_input_attributes() if attr.get_input_connections()]
 
     @decorators.memoized_instancemethod
     def get_output_attributes(self):
+        # type: () -> list[NodeGraphPortModel]
         return [attr for attr in self.get_attributes() if attr.is_readable()]
 
     @decorators.memoized_instancemethod

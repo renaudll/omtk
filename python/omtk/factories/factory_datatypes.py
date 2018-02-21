@@ -62,7 +62,8 @@ class AttributeType:
     AttributeMatrix = 13
     AttributeBool = 14
     AttributeString = 15
-    ComponentDefinition = 16
+    AttributeCompound = 16
+    ComponentDefinition = 17
 
 
 _attr_type_by_native_type = {
@@ -137,7 +138,6 @@ def get_datatype(val):
     if isinstance(val, ComponentDefinition):
         return AttributeType.ComponentDefinition
 
-
     raise Exception("Cannot resolve datatype for {0} {1}".format(type(val), val))
 
 
@@ -202,7 +202,7 @@ def get_node_color_from_datatype(datatype):
 def get_port_color_from_datatype(datatype):
     color = _g_port_color_by_datatype.get(datatype)
     if color is None:
-        log.warning("Cannot resolve color for datatype {0}. Using default color.")
+        log.warning("Cannot resolve color for datatype {0}. Using default color.".format(datatype))
         color = _g_default_port_color
     return color
 
@@ -223,6 +223,9 @@ def get_attr_datatype(attr):
             attr
         ))
         return
+
+    if attr_type == 'TdataCompound':
+        return AttributeType.AttributeCompound
 
     native_type = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE.get(attr_type, None)
     if native_type is None:

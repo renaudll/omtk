@@ -34,6 +34,9 @@ class NodeGraphControllerFilter(object):
                 return False
         return True
 
+    def _is_port_model_name_blacklisted(self, port_name):
+        return port_name in _attr_name_blacklist
+
     def can_show_port(self, port_model):
         # type: (NodeGraphPortModel) -> bool
         """
@@ -43,7 +46,7 @@ class NodeGraphControllerFilter(object):
         :return: True if we can display this port.
         """
         # Some attributes (like omtk metadata) are blacklisted by default.
-        if port_model.get_name() in _attr_name_blacklist:
+        if self._is_port_model_name_blacklisted(port_model.get_name()):
             return False
 
         return port_model.is_interesting()

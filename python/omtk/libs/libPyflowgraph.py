@@ -169,7 +169,6 @@ def save_node_position(node, pos):
     # todo: type hint?
     meta_type = node._meta_type
     meta_data = node._meta_data
-    print node, meta_type, meta_data
 
     if meta_type in (factory_datatypes.AttributeType.Node,):
 

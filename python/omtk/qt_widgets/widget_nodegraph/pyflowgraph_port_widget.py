@@ -12,7 +12,7 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
     #     super(OmtkNodeGraphBasePortWidget, self).__init__(parent, graph, name, color, dataType)
     #
     #     self._ctrl = ctrl
-    #     self._value = model
+    #     self._model = model
 
     def sceneEventFilter(self, watched, event):
         # print watched
@@ -20,18 +20,18 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
         # We need to accept the first click if we want to grab GraphicsSceneMouseDoubleClick
         if event.type() == QtCore.QEvent.Type.GraphicsSceneMousePress:
             event.accept()
-            return True
+            return False
 
         if event.type() == QtCore.QEvent.Type.GraphicsSceneMouseDoubleClick:
             # def _callback(new_name):
-            #     self._ctrl.rename_port(self._value, new_name)
+            #     self._ctrl.rename_port(self._model, new_name)
             #
             # delegate = delegate_rename.NodeRenameDelegate()
             # delegate.onSubmit.connect(_callback)
             # delegate.show()
             self._show_rename_delegate()
             event.accept()
-            return True
+            return False
 
         return False
 
@@ -53,7 +53,7 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
 
         def submit_callback(new_name):
             print(new_name)
-            # self._ctrl.rename_node(self._value, new_name)
+            # self._ctrl.rename_node(self._model, new_name)
 
         d = NodeRenameDelegate(self._graph)
         d.setText(node_name)

@@ -36,6 +36,18 @@ class NodeGraphPortModel(object):
     def __ne__(self, other):
         return not self == other
 
+    # def __gt__(self, other):
+    #     return self.get_name() > other.get_name()
+    #
+    # def __lt__(self, other):
+    #     return self.get_name() < other.get_name()
+    #
+    # def __ge__(self, other):
+    #     raise Exception("why?")
+    #
+    # def __le__(self, other):
+    #     raise Exception("why?")
+
     @property
     def impl(self):
         if not self._impl:

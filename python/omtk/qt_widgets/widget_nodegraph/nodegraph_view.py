@@ -1,5 +1,5 @@
 import logging
-
+from omtk import decorators
 import pymel.core as pymel
 from omtk.core import session
 from omtk.core.component_definition import ComponentDefinition
@@ -15,7 +15,6 @@ if False:
     from .nodegraph_controller import NodeGraphController
     from omtk.core.component import Component
 
-
 class NodeGraphView(PyFlowgraphView):
     """
     Wrapper around a PyFlowgraphView with custom events.
@@ -26,18 +25,19 @@ class NodeGraphView(PyFlowgraphView):
     actionRequested = QtCore.Signal(list)
     updateRequested = QtCore.Signal()
 
+    def _create_shortcut(self, key, fn_):
+        qt_key_sequence = QtGui.QKeySequence(key)
+        qt_shortcut = QtWidgets.QShortcut(qt_key_sequence, self)
+        qt_shortcut.activated.connect(fn_)
+
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
         self.selectionChanged.connect(self.on_selection_changed)
 
-        shortcut_tab = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Tab), self)
-        shortcut_tab.activated.connect(self.on_shortcut_tab)
-
-        shortcut_frame = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F), self)
-        shortcut_frame.activated.connect(self.on_shortcut_frame)
-
-        shortcut_delete = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete), self)
-        shortcut_delete.activated.connect(self.on_shortcut_delete)
+        self._create_shortcut(QtCore.Qt.Key_Tab, self.on_shortcut_tab)
+        self._create_shortcut(QtCore.Qt.Key_F, self.on_shortcut_frame)
+        self._create_shortcut(QtCore.Qt.Key_Delete, self.on_shortcut_delete)
+        self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D, self.on_shortcut_duplicate)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_customContextMenuRequested)
@@ -82,6 +82,9 @@ class NodeGraphView(PyFlowgraphView):
 
     def on_shortcut_delete(self):
         self._controller.delete_selected_nodes()
+
+    def on_shortcut_duplicate(self):
+        self._controller.duplicate_selected_nodes()
 
     # -- CustomContextMenu --
 
@@ -154,6 +157,7 @@ class NodeGraphView(PyFlowgraphView):
 
     # --- Events ---
 
+    @decorators.log_info
     def on_component_created(self, component):
         """
         Ensure the component is added to the view on creation.
@@ -163,7 +167,8 @@ class NodeGraphView(PyFlowgraphView):
         """
         # todo: move to controller?
         log.debug("Creating component {0} (id {1})".format(component, id(component)))
-        model, widget = self._controller.add_node(component)
+        model = self._controller.get_node_model_from_value(component)
+        widget = self._controller.add_node(model)
 
         from omtk.core import module
         if isinstance(component, module.Module):

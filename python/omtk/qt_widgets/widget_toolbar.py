@@ -1,6 +1,6 @@
 # todo: move at correction location
 import functools
-from omtk.vendor.qtpy import QtCore, QtWidgets
+from omtk.vendor.qtpy import QtCore, QtWidgets, QtGui
 from omtk.core import entity_action
 
 
@@ -32,33 +32,38 @@ class WidgetToolbar(QtWidgets.QToolBar):
     def __init__(self, *args, **kwargs):
         super(WidgetToolbar, self).__init__(*args, **kwargs)
 
-        # # Create base layout, will containt the QListView and the Filters
-        # self._layout = QtWidgets.QHBoxLayout()
-        # self._layout.setMargin(0)
-        # self.setLayout(self._layout)
-        #
-        # # Fill with examples
-        # # todo: allow to customize
-        #
-        # menu = QtWidgets.QToolBar(self)
-        # self._layout.addWidget(menu)
+        # self.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
 
-        self.add_action(InstanciateMayaNodeAction('transform'))
-        self.add_action(InstanciateMayaNodeAction('composeMatrix'))
-        self.add_action(InstanciateMayaNodeAction('decomposeMatrix'))
-        self.add_action(InstanciateMayaNodeAction('plusMinusAverage'))
-        self.add_action(InstanciateMayaNodeAction('multMatrix'))
-        self.add_action(InstanciateMayaNodeAction('multiplyDivide'))
-        self.add_action(InstanciateMayaNodeAction('inverseMatrix'))
-        # self.add_action(InstanciateComponentAction('twistExtractor'))
+        self.add_instanciate_maya_node_action('transform')
+        self.add_instanciate_maya_node_action('composeMatrix')
+        self.add_instanciate_maya_node_action('decomposeMatrix')
+        self.add_instanciate_maya_node_action('plusMinusAverage')
+        self.add_instanciate_maya_node_action('multMatrix')
+        self.add_instanciate_maya_node_action('multiplyDivide')
+        self.add_instanciate_maya_node_action('inverseMatrix')
 
     def on_node_created(self):
         self.onNodeCreated.emit()
 
-    def add_action(self, action):
-        # type: (InstanciateMayaNodeAction) -> None
+    def create_favorite_callback(self, node_type):
+        action = InstanciateMayaNodeAction(node_type)
+
         def _callback():
             pynode = action.execute()
             self.onNodeCreated.emit([pynode])
 
-        self.addAction(action.get_name(), _callback)
+        return _callback
+
+    def add_instanciate_maya_node_action(self, node_type):
+        # type: (InstanciateMayaNodeAction) -> None
+        action = InstanciateMayaNodeAction(node_type)  # todo: cleanup
+        _callback = self.create_favorite_callback(node_type)
+
+        # icon = QtGui.QIcon(":/transform.svg")
+        file_path = ":/{0}.svg".format(node_type)
+        if QtCore.QFile.exists(file_path):
+            icon = QtGui.QIcon(file_path)
+        else:
+            icon = QtGui.QIcon(":/default.svg")
+        self.addAction(icon, action.get_name(), _callback)

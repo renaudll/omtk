@@ -30,12 +30,14 @@ from omtk import decorators
 from omtk.core import session
 from omtk.libs import libPyflowgraph
 from omtk.qt_widgets.widget_nodegraph.ui import nodegraph_widget
-from omtk.vendor.Qt import QtWidgets
+from omtk.vendor.Qt import QtWidgets, QtCore, QtGui
 
 from . import nodegraph_view
 
 log = logging.getLogger('omtk.nodegraph')
 
+if False:  # for type hinting
+    from .nodegraph_controller import NodeGraphController
 
 @decorators.memoized
 def _get_singleton_model():
@@ -115,11 +117,53 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.on_add()
         self.on_arrange_spring()
 
+        self._create_shortcut(QtCore.Qt.Key_Tab, self.on_shortcut_tab)
+        self._create_shortcut(QtCore.Qt.Key_F, self.on_shortcut_frame)
+        self._create_shortcut(QtCore.Qt.Key_Delete, self.on_shortcut_delete)
+        self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_G, self.on_shortcut_group)
+        self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D, self.on_shortcut_duplicate)
+
+        # todo: move elsewhere?
+        self._create_shortcut(QtCore.Qt.Key_T, self.ui.widget_toolbar.create_favorite_callback('transform'))
+
+    def _create_shortcut(self, key, fn_):
+        qt_key_sequence = QtGui.QKeySequence(key)
+        qt_shortcut = QtWidgets.QShortcut(qt_key_sequence, self)
+        qt_shortcut.activated.connect(fn_)
+
+    def on_shortcut_frame(self):
+        """
+        Called when the user press ``f``. Frame selected nodes if there's a selection, otherwise frame everything.
+        """
+        view = self._current_view
+        if view.getSelectedNodes():
+            view.frameSelectedNodes()
+        else:
+            view.frameAllNodes()
+
+    def on_shortcut_tab(self):
+        from omtk.qt_widgets.widget_outliner import widget_component_list
+        dialog = widget_component_list.WidgetComponentList(self._current_view)
+        dialog.signalComponentCreated.connect(self._current_view.on_component_created)  # todo: move method?
+        # dialog.setMinimumHeight(self.height())
+        dialog.show()
+        dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
+
+    def on_shortcut_delete(self):
+        self.get_controller().delete_selected_nodes()
+
+    def on_shortcut_group(self):
+        self.get_controller().on_rcmenu_group_selection()
+
+    def on_shortcut_duplicate(self):
+        self.get_controller().duplicate_selected_nodes()
+
     @property
     def manager(self):
         return session.get_session()
 
     def get_controller(self):
+        # type: () -> NodeGraphController
         return self._ctrl
 
     def get_view(self):

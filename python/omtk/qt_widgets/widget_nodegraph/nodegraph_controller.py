@@ -450,7 +450,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     # --- Widget factory ---
 
     def get_node_widget(self, model):
-        assert(isinstance(model, nodegraph_node_model_base.NodeGraphNodeModel))
+        # assert(isinstance(model, nodegraph_node_model_base.NodeGraphNodeModel))
         try:
             return self._cache_node_widget_by_model[model]
         except LookupError:
@@ -1043,11 +1043,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         self.manager.export_network(inst)
 
-        # for model in selected_models:
-        #     self.invalidate_node_model(model)
-            # self.invalidate_node_value(node)
-
-        inst_widget = self.add_node(inst)
+        self.add_node(inst)
 
         return inst
 

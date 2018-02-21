@@ -9,6 +9,11 @@ def reload_():
     from omtk.qt_widgets import widget_breadcrumb
     reload(widget_breadcrumb)
 
+    # todo: move to widget_nodegraph?
+    log.debug('Reloading widget_toolbar')
+    from omtk.qt_widgets import widget_toolbar
+    reload(widget_toolbar)
+
     log.debug('Reloading widget_nodegraph')
     from . import widget_nodegraph
     reload(widget_nodegraph)
@@ -91,5 +96,6 @@ def reload_():
     log.debug('Reloading main_window_ui')
     from .ui import main_window as main_window_ui
     reload(main_window_ui)
+
 
 

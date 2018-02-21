@@ -25,19 +25,10 @@ class NodeGraphView(PyFlowgraphView):
     actionRequested = QtCore.Signal(list)
     updateRequested = QtCore.Signal()
 
-    def _create_shortcut(self, key, fn_):
-        qt_key_sequence = QtGui.QKeySequence(key)
-        qt_shortcut = QtWidgets.QShortcut(qt_key_sequence, self)
-        qt_shortcut.activated.connect(fn_)
 
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
         self.selectionChanged.connect(self.on_selection_changed)
-
-        self._create_shortcut(QtCore.Qt.Key_Tab, self.on_shortcut_tab)
-        self._create_shortcut(QtCore.Qt.Key_F, self.on_shortcut_frame)
-        self._create_shortcut(QtCore.Qt.Key_Delete, self.on_shortcut_delete)
-        self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D, self.on_shortcut_duplicate)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_customContextMenuRequested)
@@ -60,31 +51,6 @@ class NodeGraphView(PyFlowgraphView):
         The fonction mention model to better match Qt internals.
         """
         self._controller = controller
-
-    # -- Shortcuts --
-
-    def on_shortcut_frame(self):
-        """
-        Called when the user press ``f``. Frame selected nodes if there's a selection, otherwise frame everything.
-        """
-        if self.getSelectedNodes():
-            self.frameSelectedNodes()
-        else:
-            self.frameAllNodes()
-
-    def on_shortcut_tab(self):
-        from omtk.qt_widgets.widget_outliner import widget_component_list
-        dialog = widget_component_list.WidgetComponentList(self)
-        dialog.signalComponentCreated.connect(self.on_component_created)
-        # dialog.setMinimumHeight(self.height())
-        dialog.show()
-        dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
-
-    def on_shortcut_delete(self):
-        self._controller.delete_selected_nodes()
-
-    def on_shortcut_duplicate(self):
-        self._controller.duplicate_selected_nodes()
 
     # -- CustomContextMenu --
 

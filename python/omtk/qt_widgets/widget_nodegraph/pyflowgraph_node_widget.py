@@ -1,4 +1,5 @@
 import logging
+import functools
 from collections import defaultdict
 
 from maya import OpenMaya
@@ -57,7 +58,7 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
         # meta_type = self.get_metatype()
         icon = factory_datatypes.get_icon_from_datatype(meta_data, meta_type)
         item = NodeIcon(icon)
-        self.layout().insertItem(0, item)
+        self.getHeader().layout().insertItem(0, item)
 
         # Set color
         color = factory_datatypes.get_node_color_from_datatype(self._meta_type)
@@ -124,20 +125,26 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
 
         meta_data = self._meta_data
 
+        # Add attribute added callback
         callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
             meta_data.__apimobject__(),
             self.callback_attribute_added
         )
         self._callback_id_by_node_model[meta_data].add(callback_id)
 
-        def fn_(*args, **kwargs):
-            self.callback_node_deleted(meta_data, *args, **kwargs)
-
-        callback_id2 = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
+        # Add attribute changed (connected)
+        callback_id = OpenMaya.MNodeMessage.addAttributeChangedCallback(
             meta_data.__apimobject__(),
-            fn_
+            self.callback_attribute_changed
         )
-        self._callback_id_by_node_model[meta_data].add(callback_id2)
+        self._callback_id_by_node_model[meta_data].add(callback_id)
+
+        # Add node deleted callback
+        callback_id = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
+            meta_data.__apimobject__(),
+            functools.partial(self.callback_node_deleted, meta_data)
+        )
+        self._callback_id_by_node_model[meta_data].add(callback_id)
 
     def remove_callbacks(self):
         for _, ids in self._callback_id_by_node_model.iteritems():
@@ -146,7 +153,6 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
                     id_
                 )
 
-    @decorators.log_info
     def callback_attribute_added(self, callback_id, mplug, _):
         attr_dagpath = mplug.name()
         attr_name = attr_dagpath.split('.')[-1]
@@ -160,6 +166,48 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
 
         attr = pymel.Attribute(attr_dagpath)
         self._ctrl.callback_attribute_added(attr)
+
+    @decorators.log_info
+    def callback_attribute_changed(self, msg, plug, *args, **kwargs):
+        from maya import OpenMaya
+        print('---------------')
+        print msg, plug, args, kwargs
+        if msg & OpenMaya.MNodeMessage.kConnectionMade:
+            print 'kConnectionMade'
+        if msg & OpenMaya.MNodeMessage.kConnectionBroken:
+            print 'kConnectionBroken'
+        if msg & OpenMaya.MNodeMessage.kAttributeEval:
+            print 'kAttributeEval'
+        if msg & OpenMaya.MNodeMessage.kAttributeSet:
+            print 'kAttributeSet'
+        if msg & OpenMaya.MNodeMessage.kAttributeLocked:
+            print 'kAttributeLocked'
+        if msg & OpenMaya.MNodeMessage.kAttributeUnlocked:
+            print 'kAttributeUnlocked'
+        if msg & OpenMaya.MNodeMessage.kAttributeAdded:
+            print 'kAttributeAdded'
+        if msg & OpenMaya.MNodeMessage.kAttributeRemoved:
+            print 'kAttributeRemoved'
+        if msg & OpenMaya.MNodeMessage.kAttributeRenamed:
+            print 'kAttributeRenamed'
+        if msg & OpenMaya.MNodeMessage.kAttributeKeyable:
+            print 'kAttributeKeyable'
+        if msg & OpenMaya.MNodeMessage.kAttributeUnkeyable:
+            print 'kAttributeUnkeyable'
+        if msg & OpenMaya.MNodeMessage.kIncomingDirection:
+            print 'kIncomingDirection'
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+            print 'kAttributeArrayAdded'
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayRemoved:
+            print 'kAttributeArrayRemoved'
+        if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
+            print 'kOtherPlugSet'
+
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+            attr_dagpath = plug.name()
+            attr = pymel.Attribute(attr_dagpath)
+            self._ctrl.callback_attribute_array_added(attr)
+
 
     @decorators.log_info
     def callback_node_deleted(self, pynode, *args, **kwargs):

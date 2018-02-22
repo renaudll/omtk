@@ -1102,6 +1102,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self.expand_port_input_connections(port_model)  # todo: check first?
         self.expand_port_output_connections(port_model)
 
+    def callback_attribute_array_added(self, value):
+        port_model = self.get_port_model_from_value(value)
+        node_model = port_model.get_parent()
+        self.expand_node_attributes(node_model)
+
     def callback_node_deleted(self, model, *args, **kwargs):
         """
         Called when a known node is deleted in Maya.

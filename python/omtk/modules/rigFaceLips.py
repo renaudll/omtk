@@ -269,7 +269,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # Contain the final applied jaw out ratio.
         # Used by the splitter network.
         self.attr_jaw_out_ratio = None
-        
+
         # Jaw influence is applied as a pre-transform on the avar.
         # It is exposed here to be re-used by any controller model that need it.
         self._jaw_arc_tm = None
@@ -349,7 +349,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         ).outputMatrix
 
         # Compute the arc offset relative to the avar root
-        attr_get_arc_tm = libRigging.create_utility_node(
+        self._attr_get_arc_tm = libRigging.create_utility_node(
             'multMatrix',
             matrixIn=(
                 self._grp_offset.matrix,  # todo: remove?
@@ -362,19 +362,19 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
         util_decompose_arc_tm = libRigging.create_utility_node(
             'decomposeMatrix',
-            inputMatrix=attr_get_arc_tm
+            inputMatrix=self._attr_get_arc_tm
         )
 
         # Add the jaw influence as a new stack layer.
-        layer_jaw_r = stack.prepend_layer(name='jawArcR')
-        layer_jaw_t = stack.prepend_layer(name='jawArcT')
-
-        pymel.connectAttr(util_decompose_arc_tm.outputTranslate, layer_jaw_t.t)
-        pymel.connectAttr(util_decompose_arc_tm.outputRotate, layer_jaw_r.r)
+        # layer_jaw_r = stack.prepend_layer(name='jawArcR')
+        # layer_jaw_t = stack.prepend_layer(name='jawArcT')
+        # 
+        # pymel.connectAttr(util_decompose_arc_tm.outputTranslate, layer_jaw_t.t)
+        # pymel.connectAttr(util_decompose_arc_tm.outputRotate, layer_jaw_r.r)
 
         # Connect jaw translation avars to the "jawT" layer.
-        layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
-        attr_get_jaw_t = libRigging.create_utility_node(
+        # layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
+        self._attr_get_jaw_t = libRigging.create_utility_node(
             'multiplyDivide',
             input1X=jaw_module.avar_all.attr_lr,
             input1Y=jaw_module.avar_all.attr_ud,
@@ -382,9 +382,29 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
             input2X=self._attr_inn_jaw_ratio_default,
             input2Y=self._attr_inn_jaw_ratio_default,
             input2Z=self._attr_inn_jaw_ratio_default,
-            name=nomenclature_rig.resolve('getJawT')
+            name=nomenclature_rig.resolve('getJawT'),
         ).output
-        pymel.connectAttr(attr_get_jaw_t, layer_jaw_t_to_t.translate)
+        # pymel.connectAttr(self._attr_get_jaw_t, layer_jaw_t_to_t.translate)
+
+    # def _connect_default_ctrl_model(self, grp_ctrl_model):
+    #     """
+    #     Ensure the jaw influence is taken in account in the ctrl model bind tm.
+    #     """
+    #     # Determine the recommended ctrl model position.
+    #     # This could be feeded into a specific controller model or used as is.
+    #     attr_ctrl_model_bind_tm = libRigging.create_utility_node(
+    #         'multMatrix',
+    #         matrixIn=(
+    #             self._attr_get_arc_tm,
+    #             self._obj_offset.worldMatrix,
+    #         )
+    #     ).matrixSum
+    #     util_decompose = libRigging.create_utility_node(
+    #         'decomposeMatrix',
+    #         inputMatrix=attr_ctrl_model_bind_tm
+    #     )
+    #     pymel.connectAttr(util_decompose.outputTranslate, grp_ctrl_model.translate)
+    #     pymel.connectAttr(util_decompose.outputRotate, grp_ctrl_model.rotate)
 
     def _get_follicle_relative_uv_attr(self, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()
@@ -454,6 +474,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     However the lip curl is also connected between the macro avars and the micro avars.
     """
     _CLS_AVAR = FaceLipsAvar
+    _CLS_AVAR_MACRO = FaceLipsAvar  # necessary to feed the jawArc to the ctrl model
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
     _CLS_CTRL_UPP = CtrlLipsUpp
@@ -693,6 +714,12 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
                 connect_avar(avar, ratio)
 
+        # Hardcode the jawRatio for the macro ctrls
+        self.avar_upp._attr_inn_jaw_ratio_default.set(0.0)
+        self.avar_l._attr_inn_jaw_ratio_default.set(0.5)
+        self.avar_r._attr_inn_jaw_ratio_default.set(0.5)
+        self.avar_low._attr_inn_jaw_ratio_default.set(1.0)
+
         #
         # Add custom default connections
         #
@@ -778,6 +805,107 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         self._attr_jaw_rl = util_get_rotation_euler.outputRotateZ
 
         super(FaceLips, self)._build_avars(**kwargs)
+
+    def _get_parent_adjustment_tm(self, avar):
+        """
+        Add the jaw contribution to the parent matrix stack.
+        :param avar: 
+        :return: 
+        """
+        attr_parent_tm = super(FaceLips, self)._get_parent_adjustment_tm(avar)
+
+        nomenclature_rig = self.get_nomenclature_rig()
+        jaw_module = self.get_jaw_module()
+
+        # Compute the rotation introduced by the jaw.
+        # Note that the splitter only affect the jaw pitch (rotateX).
+        attr_rotation_adjusted = libRigging.create_utility_node(
+            'multiplyDivide',
+            input1X=avar._parent_module._attr_jaw_pt,
+            input1Y=avar._parent_module._attr_jaw_yw,
+            input1Z=avar._parent_module._attr_jaw_rl,
+            input2X=avar.attr_jaw_out_ratio,
+            input2Y=avar._attr_inn_jaw_ratio_default,
+            input2Z=avar._attr_inn_jaw_ratio_default,
+        ).output
+
+        attr_rotation_tm = libRigging.create_utility_node(
+            'composeMatrix',
+            inputRotate=attr_rotation_adjusted
+        ).outputMatrix
+
+        # Compute the arc offset relative to the avar root
+        # self._attr_get_arc_tm = libRigging.create_utility_node(
+        #     'multMatrix',
+        #     matrixIn=(
+        #         # avar._grp_offset.matrix,  # todo: remove?
+        #         avar._parent_module._ref_jaw_predeform.inverseMatrix,  # enter jaw pivot space
+        #         attr_rotation_tm,
+        #         avar._parent_module._ref_jaw_predeform.matrix,  # exit jaw pivot space
+        #         # avar._grp_offset.inverseMatrix,  # todo: remove?
+        #     )
+        # ).matrixSum
+
+        # util_decompose_arc_tm = libRigging.create_utility_node(
+        #     'decomposeMatrix',
+        #     inputMatrix=self._attr_get_arc_tm
+        # )
+
+        # Add the jaw influence as a new stack layer.
+        # layer_jaw_r = stack.prepend_layer(name='jawArcR')
+        # layer_jaw_t = stack.prepend_layer(name='jawArcT')
+        # 
+        # pymel.connectAttr(util_decompose_arc_tm.outputTranslate, layer_jaw_t.t)
+        # pymel.connectAttr(util_decompose_arc_tm.outputRotate, layer_jaw_r.r)
+
+        # Connect jaw translation avars to the "jawT" layer.
+        # layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
+        attr_get_jaw_t = libRigging.create_utility_node(
+            'multiplyDivide',
+            input1X=jaw_module.avar_all.attr_lr,
+            input1Y=jaw_module.avar_all.attr_ud,
+            input1Z=jaw_module.avar_all.attr_fb,
+            input2X=avar._attr_inn_jaw_ratio_default,
+            input2Y=avar._attr_inn_jaw_ratio_default,
+            input2Z=avar._attr_inn_jaw_ratio_default,
+            # name=nomenclature_rig.resolve('getJawT')
+        ).output
+        # pymel.connectAttr(attr_get_jaw_t, layer_jaw_t_to_t.translate)
+
+        attr_get_jaw_t_tm = libRigging.create_utility_node(
+            'composeMatrix',
+            inputTranslate=attr_get_jaw_t,
+        ).outputMatrix
+
+        # Compute the jaw contribution in the avar space
+        # attr_jaw_contribution_tm = libRigging.create_utility_node(
+        #     'multMatrix',
+        #     name=nomenclature_rig.resolve('getJawContributionTm'),
+        #     matrixIn=(
+        #         self._attr_get_arc_tm,
+        #         attr_get_jaw_t_tm,
+        #     )
+        # ).matrixSum
+
+        # parent * inv(offset) * jaw * offset
+        # We want to include the jaw contribution in the parent for BOTH the AvarModel and the CtrlModel.
+        jaw_avar = jaw_module.avar_all
+        attr_parent_adjusted_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                # avar._grp_offset.inverseMatrix,
+                # avar._grp_offset.matrix,  # start at offset
+                jaw_avar._grp_offset.inverseMatrix,  # go into jaw space
+                attr_get_jaw_t_tm,  # apply jaw translation
+                attr_rotation_tm,  # apply jaw rotation
+                jaw_avar._grp_offset.matrix,  # exit jaw space
+                # avar._grp_offset.inverseMatrix,  # return to zero space
+                # avar._grp_offset.matrix,
+                attr_parent_tm,  # apply previous matrix contribution
+            ),
+        ).matrixSum
+
+        return attr_parent_adjusted_tm
 
 
 def register_plugin():

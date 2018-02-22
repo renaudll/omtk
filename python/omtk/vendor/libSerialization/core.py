@@ -132,7 +132,7 @@ def is_data_list(_data):
     return isinstance(_data, types_list)
 
 
-types_dag = ()
+types_dag = []
 
 
 def register_type_pymel(*types):
@@ -149,7 +149,7 @@ def is_data_pymel(data):
     Add pymel support.
     """
     global types_dag
-    return isinstance(data, types_dag)
+    return isinstance(data, tuple(types_dag))
 
 
 def get_data_type(data):

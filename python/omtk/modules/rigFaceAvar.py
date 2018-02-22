@@ -394,6 +394,10 @@ class AvarSimple(AbstractAvar):
         self._stack = None
         self._grp_offset = None
         self._grp_parent = None
+
+        # Bind input for the ctrl model, can be modified by subclasses for custom behavior.
+        self._grp_default_ctrl_model = None
+        
         self.model_ctrl = None
 
         # In normal cases, an avar influence a joint.
@@ -490,12 +494,20 @@ class AvarSimple(AbstractAvar):
         self._grp_offset.setParent(self.grp_rig)
         # layer_offset.setMatrix(jnt_tm)
 
+        self._grp_parent_external = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('parentExternal'),
+            parent=self.grp_rig
+        )
+
         # Create a parent layer for constraining.
         # Do not use dual constraint here since it can result in flipping issues.
-        grp_parent_name = nomenclature_rig.resolve('parent')
-        self._grp_parent = pymel.createNode('transform', name=grp_parent_name)
-        self._grp_parent.setParent(self._grp_offset)
-        self._grp_parent.rename(grp_parent_name)
+        self._grp_parent = pymel.createNode(
+            'transform', 
+            name=nomenclature_rig.resolve('parentInternal'),
+            parent=self._grp_parent_external
+        )
+        # self._grp_parent.setParent(self._grp_offset)
 
         # Move the grp_offset to it's desired position.
         self._grp_offset.setTranslation(jnt_pos)
@@ -504,23 +516,53 @@ class AvarSimple(AbstractAvar):
         # This allow easier override by sub-classes.
         self._stack = stack
         self.build_stack(stack)
-        self._stack.setParent(self._grp_offset)
+        self._stack.setParent(self.grp_rig)
+
+        # Build a default controller model
+        # This is sufficient for a simple model, however some more complex model might benefit from it.
+        # This is also used in FaceLipsAvar so that the linear model follow the jaw influence.
+        self._grp_default_ctrl_model = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('defaultCtrlModel'),
+            parent=self.grp_rig,
+        )
+        # self._connect_default_ctrl_model(self._grp_default_ctrl_model)
+        
+        attr_default_ctrl_model_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self._grp_offset.matrix,
+                self._grp_parent.worldMatrix,
+            )
+        ).matrixSum
+        util_decompose_default_ctrl_model_tm = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=attr_default_ctrl_model_tm
+        )
+        pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputTranslate, self._grp_default_ctrl_model.translate)
+        pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputRotate, self._grp_default_ctrl_model.rotate)
+        pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputScale, self._grp_default_ctrl_model.scale)
 
         # Take the result of the stack and add it on top of the bind-pose and parent group.
         grp_output_name = nomenclature_rig.resolve('output')
-        self._grp_output = pymel.createNode('transform', name=grp_output_name)
-        self._grp_output.setParent(self._grp_parent)
+        self._grp_output = pymel.createNode(
+            'transform', 
+            name=grp_output_name,
+            parent=self.grp_rig
+        )
+        # self._grp_output.setParent(self._grp_parent)
 
-        attr_get_stack_local_tm = libRigging.create_utility_node(
+        self._attr_get_stack_local_tm = libRigging.create_utility_node(
             'multMatrix',
             matrixIn=(
                 self._stack.node.worldMatrix,
-                self._grp_offset.worldInverseMatrix
+                self._grp_offset.matrix,
+                self._grp_parent.matrix,
             )
         ).matrixSum
         util_get_stack_local_tm = libRigging.create_utility_node(
             'decomposeMatrix',
-            inputMatrix=attr_get_stack_local_tm
+            inputMatrix=self._attr_get_stack_local_tm
         )
         # pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.t)
         # pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.r)
@@ -540,6 +582,14 @@ class AvarSimple(AbstractAvar):
         if self.jnt and constraint:
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
+
+    def _connect_default_ctrl_model(self, grp_ctrl_model):
+        """
+        Connect the bind pose of the avar to the bind pose of the ctrl model.
+        This can be overriden for more complex behavior.
+        """
+        # pymel.parentConstraint(self._grp_offset, grp_ctrl_model)
+        pymel.parentConstraint(self._grp_parent, grp_ctrl_model)
 
     def init_ctrl_model(self, cls, inst, inputs=None, cls_ctrl=None):
         """
@@ -626,6 +676,7 @@ class AvarSimple(AbstractAvar):
                     parent_scl=parent_scl,
                     grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlModel'),
                     obj_mesh=next(iter(self.get_meshes()), None),
+                    attr_bind_tm=self._grp_default_ctrl_model.worldMatrix,
                     # prevent name collision on rig grp
                     **kwargs
                 )
@@ -721,6 +772,9 @@ class AvarFollicle(AvarSimple):
         # TODO: Move to build, we don't want 1000 member properties.
         self._attr_length_v = None
         self._attr_length_u = None
+        
+        # Reference to the object containing the bind pose of the avar.
+        self._obj_offset = None
 
     def _hold_uv_multiplier(self):
         """
@@ -863,15 +917,15 @@ class AvarFollicle(AvarSimple):
         # This allow us to move or resize the plane without affecting the built rig. (if the rig is in neutral pose)
         #
         offset_name = nomenclature_rig.resolve('bindPoseRef')
-        obj_offset = pymel.createNode('transform', name=offset_name)
-        obj_offset.setParent(self._grp_offset)
+        self._obj_offset = pymel.createNode('transform', name=offset_name)
+        self._obj_offset.setParent(self._grp_offset)
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
-        # fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
+        # fol_offset = libRigging.create_follicle(self._obj_offset, self.surface, name=fol_offset_name)
         fol_offset_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
         fol_offset = fol_offset_shape.getParent()
         fol_offset.rename(fol_offset_name)
-        pymel.parentConstraint(fol_offset, obj_offset, maintainOffset=False)
+        pymel.parentConstraint(fol_offset, self._obj_offset, maintainOffset=False)
         fol_offset.setParent(self.grp_rig)
 
         # Create the influence follicle
@@ -891,14 +945,14 @@ class AvarFollicle(AvarSimple):
         #
         attr_localTM = libRigging.create_utility_node('multMatrix', matrixIn=[
             influence.worldMatrix,
-            obj_offset.worldInverseMatrix
+            self._obj_offset.worldInverseMatrix
         ]).matrixSum
 
         # Since we are extracting the delta between the influence and the bindpose matrix, the rotation of the surface
         # is not taken in consideration wich make things less intuitive for the rigger.
         # So we'll add an adjustement matrix so the rotation of the surface is taken in consideration.
         util_decomposeTM_bindPose = libRigging.create_utility_node('decomposeMatrix',
-                                                                   inputMatrix=obj_offset.worldMatrix
+                                                                   inputMatrix=self._obj_offset.worldMatrix
                                                                    )
         attr_translateTM = libRigging.create_utility_node('composeMatrix',
                                                           inputTranslate=util_decomposeTM_bindPose.outputTranslate
@@ -907,7 +961,7 @@ class AvarFollicle(AvarSimple):
                                                               inputMatrix=attr_translateTM,
                                                               ).outputMatrix
         attr_rotateTM = libRigging.create_utility_node('multMatrix',
-                                                       matrixIn=[obj_offset.worldMatrix, attr_translateTM_inv]
+                                                       matrixIn=[self._obj_offset.worldMatrix, attr_translateTM_inv]
                                                        ).matrixSum
         attr_rotateTM_inv = libRigging.create_utility_node('inverseMatrix',
                                                            inputMatrix=attr_rotateTM

@@ -575,14 +575,90 @@ class AvarGrp(
                 avar.grp_rig.setParent(self.grp_rig)  # todo: raise warning?
 
         return avar
+    
+    def _get_parent_adjustment_matrix(self, avar):
+        """
+        Compute matrix that can be applied on top of the parent matrix (or the bind matrix) to add the 
+        all_avar contribution.
+        :return: 
+        """
+        # Connect macro_all ctrl to each avar_child. 
+        # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack. 
+        # Using the rotate/scalePivot functionality, we are able to save some nodes.
+        attr_get_pivot_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self.avar_all._grp_offset.worldMatrix,
+                avar._grp_offset.worldInverseMatrix
+            )
+        ).matrixSum
+
+        attr_get_pivot_tm_inv = libRigging.create_utility_node(
+            'inverseMatrix',
+            inputMatrix=attr_get_pivot_tm,
+        ).outputMatrix
+
+        attr_get_all_stack_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self.avar_all._stack.node.worldMatrix,
+                self.avar_all._grp_offset.inverseMatrix
+            )
+        ).matrixSum
+
+        parent_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                attr_get_pivot_tm_inv,  # enter avar_all space
+                # attr_get_all_stack_tm,  # apply avar_all contribution
+                self.avar_all._attr_get_stack_local_tm,  # apply avar_all contribution
+                attr_get_pivot_tm,  # exit avar_all space (returning to the avar space)
+            )
+        ).matrixSum
+    
+    def _get_parent_adjustment_tm(self, avar):
+        """
+        Return an attribute containing the additional contribution on the parent matrix. 
+        """
+        if not self.avar_all or self._is_tweak_avar(avar):
+            return
+
+        attr_avar_all_stack_result_tm = self.avar_all._stack.node.worldMatrix
+
+        return libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self.avar_all._grp_offset.inverseMatrix,  # enter avar_all space
+                attr_avar_all_stack_result_tm,  # apply avar_all contribution
+                self.avar_all._grp_offset.matrix,  # exit avar_all space
+            )
+        ).matrixSum
 
     def _parent_avar(self, avar, parent):
-        try:
-            avar_grp_parent = avar._grp_parent
-            pymel.parentConstraint(parent, avar_grp_parent, maintainOffset=True)
-            pymel.scaleConstraint(parent, avar_grp_parent, maintainOffset=True)
-        except Exception, e:
-            print(str(e))
+        """
+        Connect the 'parent' group.
+        This allow the avar resulting transform to be affected by something (ex: Head_Jnt).
+        :param avar: 
+        :param parent: 
+        :return: 
+        """
+        # Create a simple constraint that can easily be interpreted by the rigger to see what is the parent of the avar.
+        pymel.parentConstraint(parent, avar._grp_parent_external, maintainOffset=True)
+        pymel.scaleConstraint(parent, avar._grp_parent_external, maintainOffset=True)
+        
+        # However we might need to do modification on the parent since we might have other contributions to the 
+        # starting point of the avar. For the moment thoses contributions can be:
+        # - The contribution of the avar_all
+        # - The contribution of the jaw arc (FaceLips)
+        parent_tm = self._get_parent_adjustment_tm(avar)
+        if parent_tm:
+            util_decompose = libRigging.create_utility_node(
+                'decomposeMatrix',
+                inputMatrix=parent_tm,
+            )
+            pymel.connectAttr(util_decompose.outputTranslate, avar._grp_parent.translate)
+            pymel.connectAttr(util_decompose.outputRotate, avar._grp_parent.rotate)
+            pymel.connectAttr(util_decompose.outputScale, avar._grp_parent.scale)
 
     def _parent_avars(self):
         """
@@ -1344,53 +1420,53 @@ class AvarGrpOnSurface(AvarGrp):
             if self._is_tweak_avar(avar_child):
                 continue
 
-            # Connect macro_all ctrl to each avar_child.
-            # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
-            # Using the rotate/scalePivot functionality, we are able to save some nodes.
-            attr_get_pivot_tm = libRigging.create_utility_node(
-                'multMatrix',
-                matrixIn=(
-                    self.avar_all._stack.node.worldMatrix,
-                    avar_child._grp_offset.worldInverseMatrix
-                )
-            ).matrixSum
-
-            layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
-            layer_parent.t.set(0, 0, 0)  # Hack: why?
-
-            attr_get_all_stack_tm = libRigging.create_utility_node(
-                'multMatrix',
-                matrixIn=(
-                    self.avar_all._stack.node.worldMatrix,
-                    self.avar_all._grp_offset.inverseMatrix
-                )
-            ).matrixSum
-
-            attr_global_tm = libRigging.create_utility_node(
-                'multMatrix',
-                matrixIn=(
-                    avar_child._grp_offset.matrix,
-                    self.avar_all._grp_offset.inverseMatrix,
-                    attr_get_all_stack_tm,
-                    self.avar_all._grp_offset.matrix,
-                    avar_child._grp_offset.inverseMatrix
-                )
-            ).matrixSum
-
-            util_decompose_global_tm = libRigging.create_utility_node(
-                'decomposeMatrix',
-                inputMatrix=attr_global_tm
-            )
-
-            pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
-            pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
-            pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
-            pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
-            pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
-            pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
-            pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
-            pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
-            pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
+            # # Connect macro_all ctrl to each avar_child.
+            # # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
+            # # Using the rotate/scalePivot functionality, we are able to save some nodes.
+            # attr_get_pivot_tm = libRigging.create_utility_node(
+            #     'multMatrix',
+            #     matrixIn=(
+            #         self.avar_all._stack.node.worldMatrix,
+            #         avar_child._grp_offset.worldInverseMatrix
+            #     )
+            # ).matrixSum
+            # 
+            # layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
+            # layer_parent.t.set(0, 0, 0)  # Hack: why?
+            # 
+            # attr_get_all_stack_tm = libRigging.create_utility_node(
+            #     'multMatrix',
+            #     matrixIn=(
+            #         self.avar_all._stack.node.worldMatrix,
+            #         self.avar_all._grp_offset.inverseMatrix
+            #     )
+            # ).matrixSum
+            # 
+            # attr_global_tm = libRigging.create_utility_node(
+            #     'multMatrix',
+            #     matrixIn=(
+            #         avar_child._grp_offset.matrix,
+            #         self.avar_all._grp_offset.inverseMatrix,
+            #         attr_get_all_stack_tm,
+            #         self.avar_all._grp_offset.matrix,
+            #         avar_child._grp_offset.inverseMatrix
+            #     )
+            # ).matrixSum
+            # 
+            # util_decompose_global_tm = libRigging.create_utility_node(
+            #     'decomposeMatrix',
+            #     inputMatrix=attr_global_tm
+            # )
+            # 
+            # pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
+            # pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
+            # pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
+            # pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
+            # pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
+            # pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
+            # pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
+            # pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
+            # pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
 
     @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):

@@ -27,8 +27,13 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
     def __init__(self):
         super(ModelInteractiveCtrlNetwork, self).__init__()  # useless
 
-        # Contain the original influence world matrix
-        self.attr_inn_bind_tm = None
+        # Contain the original controller bind world matrix
+        self.attr_inn_bind_ctrl_tm = None
+
+        # Contain the original influence bind world matrix
+        self.attr_inn_bind_infl_tm = None
+        
+        self.attr_inn_default_ctrl_model_tm = None
 
         # At bind pose, this matrix should be identity.
         # Use this to parent the network to something (ex: the head, the jaw, the jaw-splitter, etc).
@@ -69,7 +74,9 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
             name=nomenclature_rig.resolve('out')
         )
 
-        self.attr_inn_bind_tm = libAttr.addAttr(grp_inn, 'innBindTm', dt='matrix')
+        self.attr_inn_bind_ctrl_tm = libAttr.addAttr(grp_inn, 'innCtrlBindTm', dt='matrix')
+        self.attr_inn_bind_infl_tm = libAttr.addAttr(grp_inn, 'innCtrlInflTm', dt='matrix')
+        self.attr_inn_default_ctrl_model_tm = libAttr.addAttr(grp_inn, 'innDefaultCtrlModelTm', dt='matrix')
         self.attr_inn_parent_tm = libAttr.addAttr(grp_inn, 'innParentTm', dt='matrix')
 
         # Note, we can't use libAttr.addAttr for double3 attribute since the attribute won't exist until completion.
@@ -114,6 +121,7 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
 
         attr_inn_ctrl_t_inv_tm = libRigging.create_utility_node(
             'composeMatrix',
+            name=nomenclature_rig.resolve('getCtrlTranslateInverseTm'),
             inputTranslate=attr_inn_ctrl_t_inv,
         ).outputMatrix
 
@@ -128,7 +136,8 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
 
         attr_inn_ctrl_r_inv_tm = libRigging.create_utility_node(
             'composeMatrix',
-            inputTranslate=attr_inn_ctrl_r_inv,
+            name=nomenclature_rig.resolve('getCtrlRotateInverseTm'),
+            inputRotate=attr_inn_ctrl_r_inv,
         ).outputMatrix
 
         # Create avar tm
@@ -144,17 +153,33 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
 
         attr_inn_avar_tm = libRigging.create_utility_node(
             'composeMatrix',
+            name=nomenclature_rig.resolve('getAvarContribution'),
             inputTranslate=attr_avar_with_sensitibity,
         ).outputMatrix
+        
+        # Compute the ctrl offset between the desired bind and the influence bind
+        attr_bind_infl_tm_inv = libRigging.create_utility_node(
+            'inverseMatrix',
+            inputMatrix=self.attr_inn_bind_infl_tm,
+        ).outputMatrix
+        
+        attr_ctrl_offset_tm = libRigging.create_utility_node(
+            'multMatrix',
+            name=nomenclature_rig.resolve('getCtrlVisualOffset'),
+            matrixIn=(
+                self.attr_inn_bind_ctrl_tm,
+                attr_bind_infl_tm_inv
+            )
+        ).matrixSum
 
         attr_out_ctrl_offset_world_tm = libRigging.create_utility_node(
             'multMatrix',
             matrixIn=(
-                self.attr_inn_bind_tm,
-                attr_inn_ctrl_t_inv_tm,
-                attr_inn_avar_tm,
+                attr_ctrl_offset_tm,
                 attr_inn_ctrl_r_inv_tm,
-                self.attr_inn_parent_tm,
+                attr_inn_avar_tm,
+                attr_inn_ctrl_t_inv_tm,
+                self.attr_inn_default_ctrl_model_tm,
             )
         ).matrixSum
 
@@ -189,6 +214,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
+        # The object containing the bind pose of the influence controller by the controller.
+        self._grp_bind_infl = None
+
+        # The object containing the desired default position of the ctrl.
+        # This can differ from the bind pose of the ctrl mode.
+        # For example, the jaw ctrl model will influence a joint inside the head but the controller will be outside.
+        self._grp_bind_ctrl = None
+
         self._stack = None
 
     def parent_to(self, parent):
@@ -207,16 +240,21 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         tm = self.jnt.getMatrix(worldSpace=True)
 
-        # We always try to position the controller on the surface of the face.
-        # The face is always looking at the positive Z axis.
-        pos = tm.translate
-        dir_ = pymel.datatypes.Point(0, 0, 1)
-        result = self.rig.raycast_farthest(pos, dir_)
+        # # We always try to position the controller on the surface of the face.
+        # # The face is always looking at the positive Z axis.
+        # pos = tm.translate
+        # dir_ = pymel.datatypes.Point(0, 0, 1)
+        # result = self.rig.raycast_farthest(pos, dir_)
+        # if result:
+        #     tm.a30 = result.x
+        #     tm.a31 = result.y
+        #     tm.a32 = result.z
+
+        result = self.project_pos_on_face(tm.translate, geos=self.get_meshes())
         if result:
             tm.a30 = result.x
             tm.a31 = result.y
             tm.a32 = result.z
-
         return tm
 
     def project_pos_on_face(self, pos, geos=None):
@@ -225,9 +263,65 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         result = self.rig.raycast_nearest(pos, dir, geos=geos)
         return result if result else pos
 
+    def _create_follicle(self, ctrl_tm, influence, obj_mesh=None, u_coord=None, v_coord=None):
+        nomenclature_rig = self.get_nomenclature_rig()
+        # Create a follicle, this will be used for callibration purpose.
+        # If this affect performance we can create it only when necessary, however being able to
+        # see it help with debugging.
+
+        # Resolve u and v coordinates
+        if obj_mesh is None:
+            # We'll scan all available geometries and use the one with the shortest distance.
+            meshes = libHistory.get_affected_shapes(influence)
+            meshes = list(set(meshes) & set(self.rig.get_shapes()))
+            if not meshes:
+                meshes = set(self.rig.get_shapes())
+            obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, ctrl_tm.translate)
+
+        else:
+            _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, ctrl_tm.translate)
+
+        # Resolve u and v coordinates if necesary.
+        if u_coord is None:
+            u_coord = out_u
+        if v_coord is None:
+            v_coord = out_v
+
+        fol_name = nomenclature_rig.resolve('follicle')
+        fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
+        fol_transform = fol_shape.getParent()
+        fol_transform.rename(fol_name)
+        fol_transform.setParent(self.grp_rig)
+        
+        return fol_transform, fol_shape
+
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
               flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=1.0, parent_pos=None,
-              parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, **kwargs):
+              parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, attr_bind_tm=None, **kwargs):
+        # todo: get rid of the u_coods, v_coods etc, we should rely on the bind
+        """
+        
+        :param avar: 
+        :param ref: 
+        :param ref_tm: 
+        :param grp_rig: 
+        :param obj_mesh: 
+        :param u_coord: 
+        :param v_coord: 
+        :param flip_lr: 
+        :param follow_mesh: 
+        :param ctrl_tm: The desired matrix for the ctrl offset. If not provided it will be computed using raycasts.
+        :param ctrl_size: 
+        :param parent_pos: 
+        :param parent_rot: 
+        :param parent_scl: 
+        :param constraint: 
+        :param cancel_t: 
+        :param cancel_r: 
+        :param attr_bind_tm: 
+        :param kwargs: 
+        :return: 
+        """
         super(ModelInteractiveCtrl, self).build(avar, ctrl_size=ctrl_size, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig()
@@ -243,51 +337,47 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         if ref is None:
             ref = self.jnt
 
-        # Resolve ctrl matrix
-        # It can differ from the influence to prevent the controller to appear in the geometry.
+        # Resolve the ctrl default tm
         if ctrl_tm is None:
             ctrl_tm = self.get_default_tm_ctrl()
-
-        if ctrl_tm is None and ref_tm:
-            ctrl_tm = ref_tm
-
-        if ctrl_tm is None and self.jnt:
-            ctrl_tm = self.jnt.getMatrix(worldSpace=True)
-
         if ctrl_tm is None:
             raise Exception("Cannot resolve ctrl transformation matrix!")
 
-        pos_ref = self.project_pos_on_face(ctrl_tm.translate, geos=self.get_meshes())
+        self._grp_bind_ctrl = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('ctrlBindTm'),
+            parent=self.grp_rig,
+        )
+        self._grp_bind_ctrl.setMatrix(ctrl_tm)
 
-        # Resolve u and v coordinates
-        # todo: check if we really want to resolve the u and v ourself since it's now connected.
-        if obj_mesh is None:
-            # We'll scan all available geometries and use the one with the shortest distance.
-            meshes = libHistory.get_affected_shapes(ref)
-            meshes = list(set(meshes) & set(self.rig.get_shapes()))
-            if not meshes:
-                meshes = set(self.rig.get_shapes())
-            obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(meshes, pos_ref)
+        # Resolve the influence bind tm
+        # Create an offset node to easily change it.
+        self._grp_bind_infl = pymel.createNode('transform', name=nomenclature_rig.resolve('bind'), parent=self.grp_rig)
+        if attr_bind_tm:
+            util_decompose_bind = libRigging.create_utility_node(
+                'decomposeMatrix',
+                inputMatrix=attr_bind_tm,
+            )
+            pymel.connectAttr(util_decompose_bind.outputTranslate, self._grp_bind_infl.translate)
+            pymel.connectAttr(util_decompose_bind.outputRotate, self._grp_bind_infl.rotate)
+            pymel.connectAttr(util_decompose_bind.outputScale, self._grp_bind_infl.scale)
+        else:  # todo: deprecate this?
+            self._grp_bind_infl.setTranslation(ctrl_tm.translate)
 
-            if obj_mesh is None and follow_mesh:
-                raise Exception("Can't find mesh affected by {0}. ".format(self.jnt))
-
-        else:
-            _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
-
-        # Resolve u and v coordinates if necesary.
-        if u_coord is None:
-            u_coord = out_u
-        if v_coord is None:
-            v_coord = out_v
-
-        if self.jnt:
-            self.debug('Creating doritos on {0} using {1} as reference'.format(obj_mesh, self.jnt))
-        else:
-            self.debug('Creating doritos on {0}'.format(obj_mesh))
+        # Create a follicle, this will be used for calibration purpose.
+        # If this affect performance we can create it only when necessary, however being able to
+        # see it help with debugging.
+        follicle_transform, follicle_shape = self._create_follicle(
+            ctrl_tm, 
+            ref, 
+            obj_mesh=obj_mesh,
+            u_coord=u_coord,
+            v_coord=v_coord,
+        )
+        self.follicle = follicle_transform
 
         #
-        # Add attributes
+        # Add calibration-related attribute
         #
         # The values will be computed when attach_ctrl will be called
         libAttr.addAttr_separator(
@@ -318,11 +408,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             self.ctrl.scaleX.set(-1)
             libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
 
-        # Create an offset node to easily change it.
-        # todo: read the offset from the avar?
-        grp_bind = pymel.createNode('transform', name=nomenclature_rig.resolve('bind'), parent=self.grp_rig)
-        grp_bind.setTranslation(pos_ref)
-
         grp_parent = pymel.createNode('transform', name=nomenclature_rig.resolve('parent'), parent=self.grp_rig)
         if avar.parent:
             pymel.parentConstraint(avar.parent, grp_parent, maintainOffset=True)
@@ -331,7 +416,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         network = ModelInteractiveCtrlNetwork()
         network.build(nomenclature_rig)
         network.setParent(self.grp_rig)
-        pymel.connectAttr(grp_bind.matrix, network.attr_inn_bind_tm)
+        pymel.connectAttr(avar._grp_offset.worldMatrix, network.attr_inn_bind_infl_tm)
+        pymel.connectAttr(self._grp_bind_ctrl.matrix, network.attr_inn_bind_ctrl_tm)
+        pymel.connectAttr(self._grp_bind_infl.matrix, network.attr_inn_default_ctrl_model_tm)
         pymel.connectAttr(grp_parent.matrix, network.attr_inn_parent_tm)
         pymel.connectAttr(self.ctrl.translate, network.attr_inn_ctrl_t)
         pymel.connectAttr(self.ctrl.rotate, network.attr_inn_ctrl_r)
@@ -368,18 +455,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # 
         # # Constraint position
         # # TODO: Validate that we don't need to inverse the rotation separately.
-        if parent_pos is None:
-            fol_mesh = None
-            if follow_mesh:
-                fol_name = nomenclature_rig.resolve('follicle')
-                fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
-                fol_mesh = fol_shape.getParent()
-                self.follicle = fol_mesh
-                fol_mesh.rename(fol_name)
-                fol_mesh.setParent(self.grp_rig)
-                parent_pos = fol_mesh
-            elif ref:
-                parent_pos = ref
+        
         # 
         # # if parent_pos:
         # #     pymel.parentConstraint(parent_pos, layer_fol, maintainOffset=True, skipRotate=['x', 'y', 'z'])

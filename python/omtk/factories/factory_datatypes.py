@@ -155,7 +155,8 @@ def get_icon_from_datatype(data, datatype=None):
         return QtGui.QIcon(":/{}".format(filename))
 
     if datatype == AttributeType.Component:
-        return _create("out_objectSet.png")
+        # return _create("out_objectSet.png")
+        return _create("dagContainer.svg")
     if datatype == AttributeType.Module:
         return _create("bevelPlus.png")
     if datatype == AttributeType.Rig:

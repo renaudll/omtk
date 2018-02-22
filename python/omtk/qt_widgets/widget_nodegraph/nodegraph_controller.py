@@ -577,6 +577,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def add_node(self, node_model):
         # type: (NodeGraphNodeModel) -> OmtkNodeGraphNodeWidget
+        """
+        Create a Widget in the NodeGraph for the provided NodeModel.
+        :param node_model: An NodeGraphNodeModel to display.
+        """
         if not isinstance(node_model, nodegraph_node_model_base.NodeGraphNodeModel):
             node_model = self.get_node_model_from_value(node_model)
         self._register_node_model(node_model)
@@ -587,7 +591,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         node_widget = None
         if self._view:
-            node_widget = self.get_node_widget(node_model)
+            node_widget = self.get_node_widget(node_model)  # todo: add to scene here instead of in get_node_widget
             # self._known_nodes_widgets(node_widget)
         self.expand_node_attributes(node_model)
         self.expand_node_connections(node_model)

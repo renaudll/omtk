@@ -120,6 +120,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._create_shortcut(QtCore.Qt.Key_Tab, self.on_shortcut_tab)
         self._create_shortcut(QtCore.Qt.Key_F, self.on_shortcut_frame)
         self._create_shortcut(QtCore.Qt.Key_Delete, self.on_shortcut_delete)
+        self._create_shortcut(QtCore.Qt.Key_Backspace, self.on_shortcut_delete)
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_G, self.on_shortcut_group)
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D, self.on_shortcut_duplicate)
 

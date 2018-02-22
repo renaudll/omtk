@@ -25,14 +25,12 @@ class NodeGraphView(PyFlowgraphView):
     actionRequested = QtCore.Signal(list)
     updateRequested = QtCore.Signal()
 
-
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
         self.selectionChanged.connect(self.on_selection_changed)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_customContextMenuRequested)
-
 
     @property
     def manager(self):
@@ -154,3 +152,27 @@ class NodeGraphView(PyFlowgraphView):
         self._menu = QtWidgets.QMenu()
         self._controller.on_right_click(self._menu)
         self._menu.popup(QtGui.QCursor.pos())
+
+    # --- Extending PyFlowGraphView ---
+
+    def get_available_position(self, qrect_item):
+        """
+        Return a position where we can position a QRectF without overlapping existing widgets.
+        """
+        qrect_scene = self.sceneRect()
+        item_width = qrect_item.width()
+        item_height = qrect_item.height()
+
+        def _is_free_space( qrect):
+            for node in self.iter_nodes():
+                node_bound = node.boundingRect()
+                if node_bound.intersects(qrect):
+                    return False
+            return True
+
+        for x in libPython.frange(qrect_scene.left(), qrect_scene.right(), item_width):
+            for y in libPython.frange(qrect_scene.top(), qrect_scene.bottom(), item_height):
+                qrect_candidate = QtCore.QRectF(x, y, item_width, item_height)
+                if _is_free_space(qrect_candidate):
+                    return QtCore.QPointF(x, y)
+

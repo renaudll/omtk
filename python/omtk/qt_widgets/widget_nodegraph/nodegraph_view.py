@@ -53,19 +53,7 @@ class NodeGraphView(PyFlowgraphView):
     # -- CustomContextMenu --
 
     def on_selection_changed(self):
-        models = self._controller.get_nodes()
-
-        # We will only select DagNodes
-        nodes_to_select = []
-        for model in models:
-            metadata = model.get_metadata()
-            try:
-                mel = metadata.__melobject__()
-            except AttributeError:
-                continue
-            nodes_to_select.append(mel)
-
-        pymel.select(nodes_to_select)
+        self._controller.on_selection_changed()
 
     # --- Drag and Drop ----
 
@@ -155,7 +143,18 @@ class NodeGraphView(PyFlowgraphView):
 
     # --- Extending PyFlowGraphView ---
 
-    def get_available_position(self, qrect_item):
+    def get_available_position(self, node):
+        """Fake one until the real one work"""
+        try:
+            self._counter += 1
+        except AttributeError:
+            self._counter = 0
+
+        x = self._counter * node.width()
+        y = x
+        return QtCore.QPointF(x * 3, y * 2)
+
+    def real_get_available_position(self, qrect_item):
         """
         Return a position where we can position a QRectF without overlapping existing widgets.
         """
@@ -163,16 +162,19 @@ class NodeGraphView(PyFlowgraphView):
         item_width = qrect_item.width()
         item_height = qrect_item.height()
 
-        def _is_free_space( qrect):
+        def _does_intersect(guess):
             for node in self.iter_nodes():
-                node_bound = node.boundingRect()
-                if node_bound.intersects(qrect):
-                    return False
-            return True
+                node_qrect = node.transform().mapRect(())
+                print(node_qrect)
+                if node_qrect.intersects(guess):
+                    return True
 
-        for x in libPython.frange(qrect_scene.left(), qrect_scene.right(), item_width):
+            return False
+
+        for x in libPython.frange(qrect_scene.left(), qrect_scene.right()*2, item_width):
             for y in libPython.frange(qrect_scene.top(), qrect_scene.bottom(), item_height):
                 qrect_candidate = QtCore.QRectF(x, y, item_width, item_height)
-                if _is_free_space(qrect_candidate):
+                if not _does_intersect(qrect_candidate):
+                    print x, y
                     return QtCore.QPointF(x, y)
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1070</width>
-    <height>536</height>
+    <width>2880</width>
+    <height>1278</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,18 +38,23 @@
    <addaction name="actionAdd"/>
    <addaction name="actionRemove"/>
    <addaction name="actionClear"/>
-   <addaction name="actionExpand"/>
-   <addaction name="actionExpandMore"/>
-   <addaction name="actionExpandMoreMore"/>
-   <addaction name="actionFrameAll"/>
-   <addaction name="actionFrameSelected"/>
-   <addaction name="actionCollapse"/>
    <addaction name="separator"/>
-   <addaction name="actionGoDown"/>
    <addaction name="actionGoUp"/>
+   <addaction name="actionGoDown"/>
    <addaction name="separator"/>
    <addaction name="actionGroup"/>
    <addaction name="actionUngroup"/>
+   <addaction name="separator"/>
+   <addaction name="actionExpand"/>
+   <addaction name="actionExpandMore"/>
+   <addaction name="actionExpandMoreMore"/>
+   <addaction name="actionCollapse"/>
+   <addaction name="actionFrameAll"/>
+   <addaction name="separator"/>
+   <addaction name="actionLayoutSpring"/>
+   <addaction name="actionLayoutDownstream"/>
+   <addaction name="actionFrameSelected"/>
+   <addaction name="actionLayoutRecenter"/>
   </widget>
   <widget class="WidgetToolbar" name="widget_toolbar">
    <property name="windowTitle">
@@ -70,13 +75,8 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>true</bool>
+    <bool>false</bool>
    </attribute>
-   <addaction name="actionLayoutUpstream"/>
-   <addaction name="actionLayoutDownstream"/>
-   <addaction name="actionLayoutSpring"/>
-   <addaction name="actionLayoutRecenter"/>
-   <addaction name="actionMatchMayaEditorPositions"/>
   </widget>
   <action name="actionAdd">
    <property name="text">

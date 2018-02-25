@@ -1,3 +1,5 @@
+import pymel.core as pymel
+
 from omtk import decorators
 from omtk.core import component
 from omtk.core import entity_attribute
@@ -27,11 +29,18 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         # todo: find a better way
         return hash(self._name)
 
+    def delete(self):
+        # todo: verify it work
+        pymel.delete(self._entity.get_children())
+
     def get_children(self):
         return [
             self._registry.get_node_from_value(pynode)
             for pynode in self._entity.get_children()
         ]
+
+    def get_nodes(self):
+        return self._entity.get_children()
 
     @decorators.memoized_instancemethod
     def get_attributes(self):

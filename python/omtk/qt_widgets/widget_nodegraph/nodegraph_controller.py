@@ -92,6 +92,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # type: () -> (List[NodeGraphPortModel])
         return self._known_attrs
 
+    def get_view(self):
+        # type: () -> NodeGraphView
+        return self._view
+
     def set_view(self, view):
         # type: (NodeGraphView) -> None
 
@@ -436,7 +440,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             for port_model in node_model.get_connected_input_attributes():
                 self.expand_port_input_connections(port_model)
 
-
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
         # For now, we'll just re-created the node.
@@ -471,14 +474,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         """
         node_widget = model.get_widget(self._view, self)
         node_widget._omtk_model = model  # monkey-patch
-        self._view.addNode(node_widget)
-
-        # Hack: Enable the eventFilter on the node
-        # We can only do this once it's added to the scene
-        # todo: use signals for this?
-        node_widget.on_added_to_scene()
-
-        self._known_nodes_widgets.add(node_widget)
 
         return node_widget
 
@@ -505,6 +500,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         #         node_model = compound_model
 
         node_widget = self.get_node_widget(node_model)
+        if not self.is_node_widget_in_view(node_widget):
+            self.add_node_widget_to_scene(node_widget)
 
         port_widget = port_model.get_widget(self, self._view, node_widget)
 
@@ -537,7 +534,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         model_dst_node = self.get_node_model_from_value(port_dst_model.get_parent().get_metadata())
 
         widget_src_node = self.get_node_widget(model_src_node)
+        if not self.is_node_widget_in_view(widget_src_node):
+            self.add_node_widget_to_scene(widget_src_node)
         widget_dst_node = self.get_node_widget(model_dst_node)
+        if not self.is_node_widget_in_view(widget_dst_node):
+            self.add_node_widget_to_scene(widget_dst_node)
 
         # Hack:
         widget_dst_node_in_circle = widget_dst_port.inCircle()
@@ -573,6 +574,34 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         return connection
 
+    # --- Widget/View methods ---
+
+    def is_node_widget_in_view(self, node_widget):
+        """Check if a QGraphicsItem instance is in the View."""
+        return node_widget in self._known_nodes_widgets
+
+    def is_port_widget_in_view(self, port_widget):
+        raise NotImplementedError
+
+    def is_connection_widget_in_view(self, connection_widget):
+        raise NotImplementedError
+
+    def add_node_widget_to_scene(self, node_widget):
+        # todo: check for name clash?
+        self._view.addNode(node_widget)
+        self._known_nodes_widgets.add(node_widget)
+
+        # Hack: Enable the eventFilter on the node
+        # We can only do this once it's added to the scene
+        # todo: use signals for this?
+        node_widget.on_added_to_scene()
+
+    def remove_node_widget_from_scene(self, node_widget):
+        # type: (OmtkNodeGraphNodeWidget) -> None
+        node_widget.disconnectAllPorts(emitSignal=False)
+        self._view.removeNode(node_widget)
+        node_widget.on_removed_from_scene()
+
     # --- High-level methods ---
 
     def add_node(self, node_model):
@@ -589,10 +618,23 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         if isinstance(self._current_level_model, self._cls_root_model):
             self._current_level_model.add_child(node_model)
 
-        node_widget = None
-        if self._view:
-            node_widget = self.get_node_widget(node_model)  # todo: add to scene here instead of in get_node_widget
-            # self._known_nodes_widgets(node_widget)
+        node_widget = self.get_node_widget(node_model)
+        self.add_node_widget_to_scene(node_widget)
+
+        qrect = node_widget.rect()
+        pos = self.get_view().get_available_position(qrect)
+        # pos = node_widget.mapToScene(pos)
+        print pos
+
+        # pos = QtCore.QPointF(-pos.x(), -pos.y())
+        # pos -= QtCore.QPointF(qrect.width() * 0.5, qrect.height() * 0.5)
+
+        # node_widget.setGraphPos(pos)
+        from omtk.vendor.Qt import QtGui
+        node_widget.setPos(pos)
+        # node_widget.setTransform(QtGui.QTransform.fromTranslate(pos.x(), pos.y()), False)
+
+
         self.expand_node_attributes(node_model)
         self.expand_node_connections(node_model)
 
@@ -630,10 +672,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def delete_node(self, model):
         # type: (NodeGraphNodeModel) -> None
         model.delete()  # this should fire some callbacks
-        # widget = self.get_node_widget(model)
-        # widget.disconnectAllPorts()
-        # self._view.removeNode(widget)
-        # self.unregister_node_widget(widget)
+        widget = self.get_node_widget(model)
+        self.remove_node_widget_from_scene(widget)
+        self.unregister_node_model(model)
 
     def get_selected_node_models(self):
         # type: () -> List[NodeGraphNodeModel]
@@ -694,7 +735,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         for child_model in children:
             child_model._node = node_model  # hack: parent is not correctly set at the moment
             widget = self.get_node_widget(child_model)
-            widgets.add(widget)
+            self.add_node_widget_to_scene(widget)
+            # widgets.add(widget)
             self.expand_node_attributes(child_model)
             self.expand_node_connections(child_model)
 
@@ -706,15 +748,16 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             grp_inn = component.grp_inn
             node_model = self.get_node_model_from_value(grp_inn)
             node_widget = self.get_node_widget(node_model)
+            self.add_node_widget_to_scene(node_widget)
             self.expand_node_attributes(node_model)
             self.expand_node_connections(node_model)
             self._widget_bound_inn = node_widget
-            # widgets.remove(node_widget)
 
             # Create out node
             grp_out = component.grp_out
             node_model = self.get_node_model_from_value(grp_out)
             node_widget = self.get_node_widget(node_model)
+            self.add_node_widget_to_scene(node_widget)
             self.expand_node_attributes(node_model)
             self.expand_node_connections(node_model)
             self._widget_bound_out = node_widget
@@ -810,6 +853,20 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def on_execute_action(self, actions):
         self.manager.execute_actions(actions)
+
+    def on_selection_changed(self):
+        models = self.get_selected_node_models()
+
+        new_selection = set()
+        for model in models:
+            nodes = model.get_nodes()
+            if nodes:
+                new_selection.update(nodes)
+
+        if new_selection:
+            pymel.select(new_selection)
+        else:
+            pymel.select(clear=True)
 
     def _get_selected_nodes_outsider_ports(self):
         selected_nodes_model = self.get_selected_node_models()
@@ -1005,6 +1062,12 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         new_nodes = pymel.duplicate(pymel.selected())
         for new_node in new_nodes:
             self.add_node(new_node)
+
+    def select_all_nodes(self):
+        view = self.get_view()
+        view.clearSelection()
+        for node in view.iter_nodes():
+            view.selectNode(node, emitSignal=True)
 
     def expand_selected_nodes(self):
         for node_model in self.get_selected_node_models():

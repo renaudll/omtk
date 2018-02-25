@@ -56,6 +56,13 @@ class NodeGraphNodeModel(object):
     def get_metatype(self):
         return factory_datatypes.get_datatype(self.get_metadata())
 
+    def get_nodes(self):
+        """
+        Used for selection purpose. Return what should be selected if the node is selected.
+        :return: A list of objects to select.
+        """
+        return None
+
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
         """

@@ -211,6 +211,10 @@ def get_port_color_from_datatype(datatype):
 def get_attr_datatype(attr):
     attr_type = None
 
+    # The array is typed, not it's elements.
+    if attr.isElement():
+        return get_attr_datatype(attr.array())
+
     # Hack: some multi attributes will return None if we the type directly to the parent attribute.
     # For this reason we'll check a leaf first.
     if attr_type is None and attr.isMulti():

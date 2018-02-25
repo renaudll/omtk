@@ -42,6 +42,9 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
     def get_metadata(self):
         return self._pynode
 
+    def get_nodes(self):
+        return [self.get_metadata()]
+
     # @decorators.memoized_instancemethod
     def get_attributes_raw_values(self):
         return list(libAttr.iter_contributing_attributes(self._pynode))
@@ -54,12 +57,15 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             # self._registry._register_attribute(inst)
             yield inst
 
-            if attr.isMulti():
-                for attr_child in attr:
-                    inst = self._registry.get_port_model_from_value(attr_child)
-                    # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
-                    # self._registry._register_attribute(inst)
-                    yield inst
+            # if attr.isMulti():
+            #     num_elements = attr.numElements()
+            #     for i in xrange(num_elements):
+            #         attr_child = attr.elementByLogicalIndex(i)
+            #     # for attr_child in attr:
+            #         inst = self._registry.get_port_model_from_value(attr_child)
+            #         # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
+            #         # self._registry._register_attribute(inst)
+            #         yield inst
 
     # @decorators.memoized_instancemethod
     def get_attributes(self):

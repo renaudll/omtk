@@ -67,10 +67,18 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
 
     def on_added_to_scene(self):
         """
-        Custom callback for when the QGraphicItem is added to a QScene.
+        Custom callback for when the QGraphicItem is added to a QGraphicScene.
         """
         widget_label = self.labelItem()
         widget_label.installSceneEventFilter(self)  # todo: use dedicated class
+
+    def on_removed_from_scene(self):
+        """
+        Custom callback for when the QGraphicItem is removed from the QGraphicScene.
+        :return:
+        """
+        widget_label = self.labelItem()
+        widget_label.removeSceneEventFilter(self)
 
 
 class OmtkNodeGraphPortInWidget(port.InputPort, OmtkNodeGraphBasePortWidget):

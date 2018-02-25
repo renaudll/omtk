@@ -103,10 +103,17 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
 
     def on_added_to_scene(self):
         """
-        Custom callback for when the QGraphicItem is added to a QScene.
+        Custom callback for when the QGraphicItem is added to a QGraphicScene.
         """
         # todo: use NodeGraphNodeTitleEventFilter
         self._widget_label.installSceneEventFilter(self)
+
+    def on_removed_from_scene(self):
+        """
+        Custom callback for when the QGraphicItem is removed form the QGraphicScene.
+        :return:
+        """
+        self._widget_label.removeSceneEventFilter(self)
 
 
 class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
@@ -114,7 +121,6 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
         super(OmtkNodeGraphDagNodeWidget, self).__init__(graph, name, model, ctrl)
 
         self._callback_id_by_node_model = defaultdict(set)
-        self.add_callbacks()
 
     def delete(self):
         self.remove_callbacks()
@@ -167,41 +173,43 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
         attr = pymel.Attribute(attr_dagpath)
         self._ctrl.callback_attribute_added(attr)
 
-    @decorators.log_info
+    @staticmethod
+    def _analayse_callback_message(msg):
+        if msg & OpenMaya.MNodeMessage.kConnectionMade:
+            yield 'kConnectionMade'
+        if msg & OpenMaya.MNodeMessage.kConnectionBroken:
+            yield 'kConnectionBroken'
+        if msg & OpenMaya.MNodeMessage.kAttributeEval:
+            yield 'kAttributeEval'
+        if msg & OpenMaya.MNodeMessage.kAttributeSet:
+            yield 'kAttributeSet'
+        if msg & OpenMaya.MNodeMessage.kAttributeLocked:
+            yield 'kAttributeLocked'
+        if msg & OpenMaya.MNodeMessage.kAttributeUnlocked:
+            yield 'kAttributeUnlocked'
+        if msg & OpenMaya.MNodeMessage.kAttributeAdded:
+            yield 'kAttributeAdded'
+        if msg & OpenMaya.MNodeMessage.kAttributeRemoved:
+            yield 'kAttributeRemoved'
+        if msg & OpenMaya.MNodeMessage.kAttributeRenamed:
+            yield 'kAttributeRenamed'
+        if msg & OpenMaya.MNodeMessage.kAttributeKeyable:
+            yield 'kAttributeKeyable'
+        if msg & OpenMaya.MNodeMessage.kAttributeUnkeyable:
+            yield 'kAttributeUnkeyable'
+        if msg & OpenMaya.MNodeMessage.kIncomingDirection:
+            yield 'kIncomingDirection'
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+            yield 'kAttributeArrayAdded'
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayRemoved:
+            yield 'kAttributeArrayRemoved'
+        if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
+            yield 'kOtherPlugSet'
+
+    # @decorators.log_info
     def callback_attribute_changed(self, msg, plug, *args, **kwargs):
         from maya import OpenMaya
-        print('---------------')
-        print msg, plug, args, kwargs
-        if msg & OpenMaya.MNodeMessage.kConnectionMade:
-            print 'kConnectionMade'
-        if msg & OpenMaya.MNodeMessage.kConnectionBroken:
-            print 'kConnectionBroken'
-        if msg & OpenMaya.MNodeMessage.kAttributeEval:
-            print 'kAttributeEval'
-        if msg & OpenMaya.MNodeMessage.kAttributeSet:
-            print 'kAttributeSet'
-        if msg & OpenMaya.MNodeMessage.kAttributeLocked:
-            print 'kAttributeLocked'
-        if msg & OpenMaya.MNodeMessage.kAttributeUnlocked:
-            print 'kAttributeUnlocked'
-        if msg & OpenMaya.MNodeMessage.kAttributeAdded:
-            print 'kAttributeAdded'
-        if msg & OpenMaya.MNodeMessage.kAttributeRemoved:
-            print 'kAttributeRemoved'
-        if msg & OpenMaya.MNodeMessage.kAttributeRenamed:
-            print 'kAttributeRenamed'
-        if msg & OpenMaya.MNodeMessage.kAttributeKeyable:
-            print 'kAttributeKeyable'
-        if msg & OpenMaya.MNodeMessage.kAttributeUnkeyable:
-            print 'kAttributeUnkeyable'
-        if msg & OpenMaya.MNodeMessage.kIncomingDirection:
-            print 'kIncomingDirection'
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
-            print 'kAttributeArrayAdded'
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayRemoved:
-            print 'kAttributeArrayRemoved'
-        if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
-            print 'kOtherPlugSet'
+        print(' + '.join(self._analayse_callback_message(msg)))
 
         if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
             attr_dagpath = plug.name()
@@ -225,6 +233,14 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
             # widget = self._ctrl.get_node_widget(pynode)
             # widget.disconnectAllPorts()
             # self._view.removeNode(widget)
+
+    def on_added_to_scene(self):
+        super(OmtkNodeGraphDagNodeWidget, self).on_added_to_scene()
+        self.add_callbacks()
+
+    def on_removed_from_scene(self):
+        super(OmtkNodeGraphDagNodeWidget, self).on_removed_from_scene()
+        self.remove_callbacks()
 
 
 class OmtkNodeGraphComponentNodeWidget(OmtkNodeGraphNodeWidget):

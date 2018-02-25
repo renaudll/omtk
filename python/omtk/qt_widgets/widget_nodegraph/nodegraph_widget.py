@@ -123,6 +123,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._create_shortcut(QtCore.Qt.Key_Backspace, self.on_shortcut_delete)
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_G, self.on_shortcut_group)
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D, self.on_shortcut_duplicate)
+        self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_A, self.on_select_all)
 
         # todo: move elsewhere?
         self._create_shortcut(QtCore.Qt.Key_T, self.ui.widget_toolbar.create_favorite_callback('transform'))
@@ -158,6 +159,9 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_shortcut_duplicate(self):
         self.get_controller().duplicate_selected_nodes()
+
+    def on_select_all(self):
+        self.get_controller().select_all_nodes()
 
     @property
     def manager(self):

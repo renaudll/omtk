@@ -2,17 +2,17 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Sun Feb 11 16:28:22 2018
+# Created: Sat Feb 24 20:27:02 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1070, 536)
+        MainWindow.resize(2880, 1278)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -34,7 +34,6 @@ class Ui_MainWindow(object):
         self.toolBar_arrange = QtWidgets.QToolBar(MainWindow)
         self.toolBar_arrange.setObjectName("toolBar_arrange")
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar_arrange)
-        MainWindow.insertToolBarBreak(self.toolBar_arrange)
         self.actionAdd = QtWidgets.QAction(MainWindow)
         self.actionAdd.setObjectName("actionAdd")
         self.actionRemove = QtWidgets.QAction(MainWindow)
@@ -74,23 +73,23 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionAdd)
         self.toolBar.addAction(self.actionRemove)
         self.toolBar.addAction(self.actionClear)
-        self.toolBar.addAction(self.actionExpand)
-        self.toolBar.addAction(self.actionExpandMore)
-        self.toolBar.addAction(self.actionExpandMoreMore)
-        self.toolBar.addAction(self.actionFrameAll)
-        self.toolBar.addAction(self.actionFrameSelected)
-        self.toolBar.addAction(self.actionCollapse)
         self.toolBar.addSeparator()
-        self.toolBar.addAction(self.actionGoDown)
         self.toolBar.addAction(self.actionGoUp)
+        self.toolBar.addAction(self.actionGoDown)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionGroup)
         self.toolBar.addAction(self.actionUngroup)
-        self.toolBar_arrange.addAction(self.actionLayoutUpstream)
-        self.toolBar_arrange.addAction(self.actionLayoutDownstream)
-        self.toolBar_arrange.addAction(self.actionLayoutSpring)
-        self.toolBar_arrange.addAction(self.actionLayoutRecenter)
-        self.toolBar_arrange.addAction(self.actionMatchMayaEditorPositions)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.actionExpand)
+        self.toolBar.addAction(self.actionExpandMore)
+        self.toolBar.addAction(self.actionExpandMoreMore)
+        self.toolBar.addAction(self.actionCollapse)
+        self.toolBar.addAction(self.actionFrameAll)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.actionLayoutSpring)
+        self.toolBar.addAction(self.actionLayoutDownstream)
+        self.toolBar.addAction(self.actionFrameSelected)
+        self.toolBar.addAction(self.actionLayoutRecenter)
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(-1)

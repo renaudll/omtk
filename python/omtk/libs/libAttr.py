@@ -1072,6 +1072,7 @@ def iter_contributing_attributes(obj):
     :param obj: A pymel.PyNode instance.
     :yield: pymel.Attribute instances.
     """
+
     # type: (OpenMaya.MFnDependencyNode) -> Generator[OpenMaya.MPlug]
     def _iter_plug_children(plug_):
         yield plug_
@@ -1114,13 +1115,13 @@ def iter_contributing_attributes_openmaya2(dagpath):
     obj = sel.getDependNode(0)
     mfn = om2.MFnDependencyNode(obj)
 
-
     # mfn = om2.MFnDependencyNode(dagpath)
     for j in xrange(mfn.attributeCount()):
         a = mfn.attribute(j)
         amfn = om2.MFnAttribute(a)
         yield pymel.Attribute(dagpath + '.' + amfn.name)
         # yield amfn
+
 
 def iter_network_contributing_attributes(network):
     global _g_blacklisted_attr_names
@@ -1162,3 +1163,55 @@ def get_unique_attr_name(obj, attr_name, str_format='{0}{1:02d}', start=1):
 
 def escape_attr_name(attr_name):
     return attr_name.replace('[', '_').replace(']', '_').replace('.', '_')
+
+
+def _wip_explore_input_dependencies(node):
+    """
+    Similar to listConnection but take in account indirect relationships (like ikHandles).
+    """
+    # todo: add support for ikHandles?
+    children = pymel.listConnections(node, source=True, destination=False, skipConversionNodes=True)
+
+    # ikHandle are a special case, they are not bound by connections.
+    # It seem the message connection is important though, if removed the handle don't work...
+    for node in node.message.outputs():
+        if node.type() == 'ikHandle':
+            children.append(node)
+
+    return children
+
+
+from omtk.libs import libPython
+
+
+def _wip_explore_input_dependencies_recursive(start_node):
+    known = set()
+
+    def _fake_goal(_):
+        return False
+
+    libPython.id_dfs(start_node, _fake_goal, _wip_explore_input_dependencies, max_iteration=200, known=known)
+    return known
+
+
+def _wip_explore_output_dependencies(node):
+    print node
+    children = pymel.listConnections(node, source=False, destination=True, skipConversionNodes=True)
+
+    # ikHandle are a special case, they are not bound by connections.
+    # It seem the message connection is important though, if removed the handle don't work...
+    if node.type() == 'ikHandle':
+        children.extend(node.startJoint.inputs())
+        children.extend(node.endEffector.inputs())
+
+    return children
+
+
+def _wip_explore_output_dependencies_recursive(start_node):
+    known = set()
+
+    def _fake_goal(_):
+        return False
+
+    libPython.id_dfs(start_node, _fake_goal, _wip_explore_output_dependencies, max_iteration=200, known=known)
+    return known

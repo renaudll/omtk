@@ -385,8 +385,30 @@ class Component(Entity):
         self.unbuild()
 
     def get_children(self):
-        result = (set(self.grp_inn.listHistory(future=True)) & set(self.grp_out.listHistory(future=False))) - {
-            self.grp_inn, self.grp_out}
+        # todo: we can determine the children by guessing or at import time
+
+        def _listHistory(start_node, **kwargs):
+            """
+            For reasons I ignore at the moment, listHistory will stop at joints.
+            This bypass it until I get a better understanding.
+            """
+            known = set()
+            def _subroutine(node):
+                for hist in node.listHistory(**kwargs):
+                    if hist in known:
+                        continue
+                    known.add(hist)
+
+                    if isinstance(hist, pymel.nodetypes.Joint):
+                        _subroutine(hist)
+            _subroutine(start_node)
+            return known
+
+        # result = (set(self.grp_inn.listHistory(future=True)) & _listHistory(self.grp_out, future=False))
+        result = libAttr._wip_explore_output_dependencies_recursive(self.grp_inn)
+        result &= libAttr._wip_explore_input_dependencies_recursive(self.grp_out)
+
+        result -= {self.grp_inn, self.grp_out}
         if self.grp_dag:
             result.add(self.grp_dag)
             result.update(self.grp_dag.listRelatives(allDescendents=True))

@@ -7,6 +7,7 @@ import pymel.core as pymel
 from omtk import constants
 from omtk.core import preferences
 from omtk.libs import libPython
+from omtk.libs import libAttr
 from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore
@@ -60,7 +61,7 @@ class ComponentCache(object):
         def _fn_explore_inn(n):
             if n in self._component_network_by_hub_out:
                 n = libComponents.get_inn_network_from_out_network(n, strict=True)
-            return pymel.listConnections(n, source=True, destination=False, skipConversionNodes=True)
+            return libAttr._wip_explore_input_dependencies(n)
 
         # When searching for the right-side bound, we expect to encounter an output.
         # If we encounter an component input network, this mean that this is a subcomponent and
@@ -69,15 +70,7 @@ class ComponentCache(object):
             if n in self._component_network_by_hub_inn:
                 n = libComponents.get_out_network_from_inn_network(n, strict=True)
 
-            children = pymel.listConnections(n, source=False, destination=True, skipConversionNodes=True)
-
-            # ikHandle are a special case, they are not bound by connections.
-            # It seem the message connection is important though, if removed the handle don't work...
-            if n.type() == 'ikHandle':
-                children.extend(n.startJoint.inputs())
-                children.extend(n.endEffector.inputs())
-
-            return children
+            return libAttr._wip_explore_output_dependencies(n)
 
         known_inn = set()
         known_out = set()

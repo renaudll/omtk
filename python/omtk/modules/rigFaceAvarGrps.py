@@ -588,9 +588,9 @@ class AvarGrp(
         return libRigging.create_utility_node(
             'multMatrix',
             matrixIn=(
-                self.avar_all._grp_offset.inverseMatrix,  # enter avar_all space
+                self.avar_all.grp_offset.inverseMatrix,  # enter avar_all space
                 attr_avar_all_stack_result_tm,  # apply avar_all contribution
-                self.avar_all._grp_offset.matrix,  # exit avar_all space
+                self.avar_all.grp_offset.matrix,  # exit avar_all space
             )
         ).matrixSum
 
@@ -1538,11 +1538,11 @@ class AvarGrpOnSurface(AvarGrp):
         attr_tm = libRigging.create_utility_node(
             'multMatrix',
             matrixIn=(
-                avar._grp_offset.matrix,  # enter local space, note that this is a hack, our parent contain the local space already...
+                avar.grp_offset.matrix,  # enter local space, note that this is a hack, our parent contain the local space already...
                 attr_avar_all_offset_tm_inv,  # enter avar_all space
                 attr_avar_all_stack_result_tm,  # apply avar_all contribution
                 attr_avar_all_offset_tm,  # exit avar_all space
-                avar._grp_offset.inverseMatrix,  # exit local space (return to avar space)
+                avar.grp_offset.inverseMatrix,  # exit local space (return to avar space)
             )
         ).matrixSum
         util_decompose_tm = libRigging.create_utility_node(

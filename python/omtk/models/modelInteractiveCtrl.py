@@ -279,8 +279,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             raise Exception("Cannot resolve ctrl transformation matrix!")
 
         # By default, we expect the rigger to mirror the face joints using the 'behavior' mode.
-        # if flip_lr:
-        #     ctrl_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0) * ctrl_tm
+        if flip_lr:
+            ctrl_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0) * ctrl_tm
 
         self._grp_bind_ctrl = pymel.createNode(
             'transform',
@@ -352,15 +352,24 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             pymel.parentConstraint(avar.parent, grp_parent, maintainOffset=True)
 
         # Build network
+        if flip_lr:
+            attr_ctrl_t = libRigging.create_utility_node(
+                'multiplyDivide',
+                input1=self.ctrl.translate,
+                input2X=-1.0
+            ).output
+        else:
+            attr_ctrl_t = self.ctrl.translate
+        
         network = ModelInteractiveCtrlNetwork()
         network.build(nomenclature_rig)
         network.setParent(self.grp_rig)
         pymel.connectAttr(avar._stack.node.worldMatrix, network.attr_inn_avar_tm)
-        pymel.connectAttr(avar._grp_offset.worldMatrix, network.attr_inn_bind_infl_tm)
+        pymel.connectAttr(avar.grp_offset.worldMatrix, network.attr_inn_bind_infl_tm)
         pymel.connectAttr(self._grp_bind_ctrl.matrix, network.attr_inn_bind_ctrl_tm)
         pymel.connectAttr(self._grp_bind_infl.matrix, network.attr_inn_default_ctrl_model_tm)
         pymel.connectAttr(grp_parent.matrix, network.attr_inn_parent_tm)
-        pymel.connectAttr(self.ctrl.translate, network.attr_inn_ctrl_t)
+        pymel.connectAttr(attr_ctrl_t, network.attr_inn_ctrl_t)
         pymel.connectAttr(self.ctrl.rotate, network.attr_inn_ctrl_r)
         pymel.connectAttr(avar.attr_lr, network.attr_inn_avar_lr)
         pymel.connectAttr(avar.attr_ud, network.attr_inn_avar_ud)

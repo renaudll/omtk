@@ -393,7 +393,7 @@ class AvarSimple(AbstractAvar):
         super(AvarSimple, self).__init__(*args, **kwargs)
 
         self._stack = None
-        self._grp_offset = None
+        self.grp_offset = None
         self._grp_parent = None
 
         # Bind input for the ctrl model, can be modified by subclasses for custom behavior.
@@ -546,7 +546,7 @@ class AvarSimple(AbstractAvar):
         # )
         
         libRigging.connect_matrix_to_node(
-            self._grp_offset.matrix,
+            self.grp_offset.matrix,
             post_stack_root,
             name=nomenclature_rig.resolve('something')
         )
@@ -631,9 +631,9 @@ class AvarSimple(AbstractAvar):
         # a reference to re-computer the base u and v parameter if the rigger change the
         # size of the surface when the system is build.
         grp_offset_name = nomenclature_rig.resolve('offset')
-        self._grp_offset = pymel.createNode('transform', name=grp_offset_name)
-        self._grp_offset.rename(grp_offset_name)
-        self._grp_offset.setParent(self.grp_rig)
+        self.grp_offset = pymel.createNode('transform', name=grp_offset_name)
+        self.grp_offset.rename(grp_offset_name)
+        self.grp_offset.setParent(self.grp_rig)
 
         # Create a parent layer for constraining.
         # Do not use dual constraint here since it can result in flipping issues.
@@ -655,7 +655,7 @@ class AvarSimple(AbstractAvar):
         if self.need_flip_lr():
             jnt_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0) * jnt_tm
         
-        self._grp_offset.setMatrix(jnt_tm)
+        self.grp_offset.setMatrix(jnt_tm)
 
         self.create_stacks()
 
@@ -976,7 +976,7 @@ class AvarFollicle(AvarSimple):
 
         util_get_base_uv_absolute = libRigging.create_utility_node(
             'closestPointOnSurface',
-            inPosition=self._grp_offset.t,
+            inPosition=self.grp_offset.t,
             inputSurface=surface_shape.worldSpace
         )
 
@@ -1033,7 +1033,7 @@ class AvarFollicle(AvarSimple):
         #
         offset_name = nomenclature_rig.resolve('bindPoseRef')
         self._obj_offset = pymel.createNode('transform', name=offset_name)
-        self._obj_offset.setParent(self._grp_offset)
+        self._obj_offset.setParent(self.grp_offset)
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
         # fol_offset = libRigging.create_follicle(self._obj_offset, self.surface, name=fol_offset_name)
@@ -1046,7 +1046,7 @@ class AvarFollicle(AvarSimple):
         # Create the influence follicle
         influence_name = nomenclature_rig.resolve('influenceRef')
         influence = pymel.createNode('transform', name=influence_name)
-        influence.setParent(self._grp_offset)
+        influence.setParent(self.grp_offset)
 
         fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
         fol_influence_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)

@@ -352,11 +352,11 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         self._attr_get_arc_tm = libRigging.create_utility_node(
             'multMatrix',
             matrixIn=(
-                self._grp_offset.matrix,  # todo: remove?
+                self.grp_offset.matrix,  # todo: remove?
                 self._parent_module._ref_jaw_predeform.inverseMatrix,
                 attr_rotation_tm,
                 self._parent_module._ref_jaw_predeform.matrix,
-                self._grp_offset.inverseMatrix,  # todo: remove?
+                self.grp_offset.inverseMatrix,  # todo: remove?
             )
         ).matrixSum
 
@@ -425,7 +425,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         attr_jaw_radius = libRigging.create_utility_node(
             'distanceBetween',
             name=nomenclature_rig.resolve('getJawRadius'),
-            point1=self._grp_offset.translate,
+            point1=self.grp_offset.translate,
             point2=self._target_jaw_bindpose.translate
         ).distance
 
@@ -516,7 +516,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         fnFilter = lambda avar: 'corner' in avar.name.lower()
         result = filter(fnFilter, self.avars)
 
-        if macro:
+        if macro and self.create_macro_horizontal:
             if self.avar_l:
                 result.append(self.avar_l)
             if self.avar_r:
@@ -630,7 +630,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     def _get_mouth_width(self):
         min_x = max_x = 0
         for avar in self.get_avars_corners():
-            x = avar._grp_offset.tx.get()
+            x = avar.grp_offset.tx.get()
             min_x = min(min_x, x)
             max_x = max(max_x, x)
         return min_x, max_x
@@ -694,7 +694,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
             for avar in self.get_avars_upp(macro=False):
                 if use_football_interpolation:
-                    avar_pos_x = avar._grp_offset.tx.get()
+                    avar_pos_x = avar.grp_offset.tx.get()
                     ratio = abs(avar_pos_x - min_x / mouth_width)
                     ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
                     ratio = libRigging.interp_football(ratio)  # apply football shape
@@ -705,7 +705,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
             for avar in self.get_avars_low(macro=False):
                 if use_football_interpolation:
-                    avar_pos_x = avar._grp_offset.tx.get()
+                    avar_pos_x = avar.grp_offset.tx.get()
                     ratio = abs(avar_pos_x - min_x / mouth_width)
                     ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
                     ratio = 1.0 - libRigging.interp_football(ratio)  # apply football shape
@@ -873,16 +873,18 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
         # We want to include the jaw contribution in the parent for BOTH the AvarModel and the CtrlModel.
         jaw_avar = jaw_module.avar_all
+        jaw_avar_offset_tm = jaw_avar.grp_offset.worldMatrix
+        jaw_avar_offset_tm_inv = jaw_avar.grp_offset.worldInverseMatrix
         result_tm = libRigging.create_utility_node(
             'multMatrix',
             name=nomenclature_rig.resolve('getPostAvarTm'),
             matrixIn=(
-                avar._grp_offset.matrix,
-                jaw_avar._grp_offset.inverseMatrix,  # go into jaw space
+                avar.grp_offset.matrix,
+                jaw_avar_offset_tm_inv,  # go into jaw space
                 attr_get_jaw_t_tm,  # apply jaw translation
                 attr_rotation_tm,  # apply jaw rotation
-                jaw_avar._grp_offset.matrix,  # exit jaw space
-                avar._grp_offset.inverseMatrix
+                jaw_avar_offset_tm,  # exit jaw space
+                avar.grp_offset.inverseMatrix
             ),
         ).matrixSum
 

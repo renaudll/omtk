@@ -233,9 +233,21 @@ class Twistbone(Module):
             pymel.pointConstraint(jnt_s, nonroll_sys_start.node)
         pymel.parentConstraint(jnt_s, nonroll_sys_start.ikHandle, maintainOffset=True)
 
+        
+        # Create the upvector for the twist end
+        # It will be aligned in rotation with the twist start
+        end_upvector = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('twistUpVector'),
+            parent=self.grp_rig
+        )
+        end_upvector.setMatrix(jnt_s.getMatrix(worldSpace=True))
+        end_upvector.setTranslation(jnt_e.getTranslation(space='world'))
+        pymel.parentConstraint(jnt_e, end_upvector, maintainOffset=True)
+
         # Create the second non-roll system
         nonroll_sys_end = NonRollJoint()
-        nonroll_sys_end.build(jnt_e, name=nomenclature_rig.resolve("nonrollEnd"))
+        nonroll_sys_end.build(end_upvector, name=nomenclature_rig.resolve("nonrollEnd"))
         # Align the end non-roll system with the start joint to ensure rotation match and
         # after set it's position to the end joint
         nonroll_sys_end.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)

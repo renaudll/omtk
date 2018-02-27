@@ -12,18 +12,6 @@ from omtk.core import classNode
 
 
 class ModelInteractiveCtrlNetwork(classNode.Node):
-    """
-    A splitter is a node network that take the parameterV that is normally sent through the follicles and
-    split it between two destination: the follicles and the jaw ref constraint.
-    The more the jaw is opened, the more we'll transfer to the jaw ref before sending to the follicle.
-    This is mainly used to ensure that any lip movement created by the jaw is canceled when the
-    animator try to correct the lips and the jaw is open. Otherwise since the jaw space and the surface space
-
-    To compute the displacement caused by the was, we'll usethe circumference around the jaw pivot.
-    This create an 'approximation' that might be wrong if some translation also occur in the jaw.
-    todo: test with corrective jaw translation
-    """
-
     def __init__(self):
         super(ModelInteractiveCtrlNetwork, self).__init__()  # useless
 
@@ -32,7 +20,7 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
 
         # Contain the original influence bind world matrix
         self.attr_inn_bind_infl_tm = None
-        
+
         self.attr_inn_default_ctrl_model_tm = None
 
         # At bind pose, this matrix should be identity.
@@ -45,13 +33,8 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
         # The controller local rotation, used to cancel the controller movement.
         self.attr_inn_ctrl_r = None
 
-        # Input for avar influence, todo: define compound attribute? or use matrix?
-        self.attr_inn_avar_lr = None
-        self.attr_inn_avar_ud = None
-        self.attr_inn_avar_fb = None
-        self.attr_inn_avar_yw = None
-        self.attr_inn_avar_pt = None
-        self.attr_inn_avar_rl = None
+        # Input for avar contribution
+        self.attr_inn_avar_tm = None
 
         self.attr_inn_sensitivity_lr = None
         self.attr_inn_sensitivity_ud = None
@@ -78,6 +61,7 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
         self.attr_inn_bind_infl_tm = libAttr.addAttr(grp_inn, 'innCtrlInflTm', dt='matrix')
         self.attr_inn_default_ctrl_model_tm = libAttr.addAttr(grp_inn, 'innDefaultCtrlModelTm', dt='matrix')
         self.attr_inn_parent_tm = libAttr.addAttr(grp_inn, 'innParentTm', dt='matrix')
+        self.attr_inn_avar_tm = libAttr.addAttr(grp_inn, 'innAvarTm', dt='matrix')
 
         # Note, we can't use libAttr.addAttr for double3 attribute since the attribute won't exist until completion.
         pymel.addAttr(grp_inn, longName='innCtrlT', attributeType='double3')
@@ -140,29 +124,12 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
             inputRotate=attr_inn_ctrl_r_inv,
         ).outputMatrix
 
-        # Create avar tm
-        attr_avar_with_sensitibity = libRigging.create_utility_node(
-            'multiplyDivide',
-            input1X=self.attr_inn_avar_lr,
-            input1Y=self.attr_inn_avar_ud,
-            input1Z=self.attr_inn_avar_fb,
-            input2X=self.attr_inn_sensitivity_lr,
-            input2Y=self.attr_inn_sensitivity_ud,
-            input2Z=self.attr_inn_sensitivity_fb,
-        ).output
-
-        attr_inn_avar_tm = libRigging.create_utility_node(
-            'composeMatrix',
-            name=nomenclature_rig.resolve('getAvarContribution'),
-            inputTranslate=attr_avar_with_sensitibity,
-        ).outputMatrix
-        
         # Compute the ctrl offset between the desired bind and the influence bind
         attr_bind_infl_tm_inv = libRigging.create_utility_node(
             'inverseMatrix',
             inputMatrix=self.attr_inn_bind_infl_tm,
         ).outputMatrix
-        
+
         attr_ctrl_offset_tm = libRigging.create_utility_node(
             'multMatrix',
             name=nomenclature_rig.resolve('getCtrlVisualOffset'),
@@ -171,13 +138,13 @@ class ModelInteractiveCtrlNetwork(classNode.Node):
                 attr_bind_infl_tm_inv
             )
         ).matrixSum
+         
 
         attr_out_ctrl_offset_world_tm = libRigging.create_utility_node(
             'multMatrix',
             matrixIn=(
                 attr_ctrl_offset_tm,
                 attr_inn_ctrl_r_inv_tm,
-                attr_inn_avar_tm,
                 attr_inn_ctrl_t_inv_tm,
                 self.attr_inn_default_ctrl_model_tm,
             )
@@ -240,16 +207,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         tm = self.jnt.getMatrix(worldSpace=True)
 
-        # # We always try to position the controller on the surface of the face.
-        # # The face is always looking at the positive Z axis.
-        # pos = tm.translate
-        # dir_ = pymel.datatypes.Point(0, 0, 1)
-        # result = self.rig.raycast_farthest(pos, dir_)
-        # if result:
-        #     tm.a30 = result.x
-        #     tm.a31 = result.y
-        #     tm.a32 = result.z
-
         result = self.project_pos_on_face(tm.translate, geos=self.get_meshes())
         if result:
             tm.a30 = result.x
@@ -292,36 +249,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         fol_transform = fol_shape.getParent()
         fol_transform.rename(fol_name)
         fol_transform.setParent(self.grp_rig)
-        
+
         return fol_transform, fol_shape
 
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
               flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=1.0, parent_pos=None,
-              parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, attr_bind_tm=None, **kwargs):
+              parent_rot=None, parent_scl=None, constraint=False, cancel_t=True, cancel_r=True, attr_bind_tm=None,
+              **kwargs):
         # todo: get rid of the u_coods, v_coods etc, we should rely on the bind
-        """
-        
-        :param avar: 
-        :param ref: 
-        :param ref_tm: 
-        :param grp_rig: 
-        :param obj_mesh: 
-        :param u_coord: 
-        :param v_coord: 
-        :param flip_lr: 
-        :param follow_mesh: 
-        :param ctrl_tm: The desired matrix for the ctrl offset. If not provided it will be computed using raycasts.
-        :param ctrl_size: 
-        :param parent_pos: 
-        :param parent_rot: 
-        :param parent_scl: 
-        :param constraint: 
-        :param cancel_t: 
-        :param cancel_r: 
-        :param attr_bind_tm: 
-        :param kwargs: 
-        :return: 
-        """
         super(ModelInteractiveCtrl, self).build(avar, ctrl_size=ctrl_size, **kwargs)
 
         nomenclature_rig = self.get_nomenclature_rig()
@@ -342,6 +277,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             ctrl_tm = self.get_default_tm_ctrl()
         if ctrl_tm is None:
             raise Exception("Cannot resolve ctrl transformation matrix!")
+
+        # By default, we expect the rigger to mirror the face joints using the 'behavior' mode.
+        # if flip_lr:
+        #     ctrl_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0) * ctrl_tm
 
         self._grp_bind_ctrl = pymel.createNode(
             'transform',
@@ -368,8 +307,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # If this affect performance we can create it only when necessary, however being able to
         # see it help with debugging.
         follicle_transform, follicle_shape = self._create_follicle(
-            ctrl_tm, 
-            ref, 
+            ctrl_tm,
+            ref,
             obj_mesh=obj_mesh,
             u_coord=u_coord,
             v_coord=v_coord,
@@ -416,6 +355,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         network = ModelInteractiveCtrlNetwork()
         network.build(nomenclature_rig)
         network.setParent(self.grp_rig)
+        pymel.connectAttr(avar._stack.node.worldMatrix, network.attr_inn_avar_tm)
         pymel.connectAttr(avar._grp_offset.worldMatrix, network.attr_inn_bind_infl_tm)
         pymel.connectAttr(self._grp_bind_ctrl.matrix, network.attr_inn_bind_ctrl_tm)
         pymel.connectAttr(self._grp_bind_infl.matrix, network.attr_inn_default_ctrl_model_tm)
@@ -428,7 +368,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         pymel.connectAttr(self.attr_sensitivity_tx, network.attr_inn_sensitivity_lr)
         pymel.connectAttr(self.attr_sensitivity_ty, network.attr_inn_sensitivity_ud)
         pymel.connectAttr(self.attr_sensitivity_tz, network.attr_inn_sensitivity_fb)
-
 
         # #
         # # Create the follicle setup
@@ -455,7 +394,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # 
         # # Constraint position
         # # TODO: Validate that we don't need to inverse the rotation separately.
-        
+
         # 
         # # if parent_pos:
         # #     pymel.parentConstraint(parent_pos, layer_fol, maintainOffset=True, skipRotate=['x', 'y', 'z'])
@@ -557,10 +496,13 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # This is were the 'black magic' happen.
         #
         if flip_lr:
-            attr_ctrl_offset_sx_inn = libRigging.create_utility_node('multiplyDivide',
-                                                                     input1X=self.attr_sensitivity_tx,
-                                                                     input2X=-1
-                                                                     ).outputX
+            attr_ctrl_offset_sx_inn = libRigging.create_utility_node(
+                'multiplyDivide',
+                input1X=self.attr_sensitivity_tx,
+                input2X=-1.0,
+                input2Y=-1.0,
+                input2Z=1.0,
+            ).outputX
         else:
             attr_ctrl_offset_sx_inn = self.attr_sensitivity_tx
         attr_ctrl_offset_sy_inn = self.attr_sensitivity_ty

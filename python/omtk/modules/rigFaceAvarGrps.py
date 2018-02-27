@@ -576,46 +576,6 @@ class AvarGrp(
 
         return avar
     
-    def _get_parent_adjustment_matrix(self, avar):
-        """
-        Compute matrix that can be applied on top of the parent matrix (or the bind matrix) to add the 
-        all_avar contribution.
-        :return: 
-        """
-        # Connect macro_all ctrl to each avar_child. 
-        # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack. 
-        # Using the rotate/scalePivot functionality, we are able to save some nodes.
-        attr_get_pivot_tm = libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                self.avar_all._grp_offset.worldMatrix,
-                avar._grp_offset.worldInverseMatrix
-            )
-        ).matrixSum
-
-        attr_get_pivot_tm_inv = libRigging.create_utility_node(
-            'inverseMatrix',
-            inputMatrix=attr_get_pivot_tm,
-        ).outputMatrix
-
-        attr_get_all_stack_tm = libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                self.avar_all._stack.node.worldMatrix,
-                self.avar_all._grp_offset.inverseMatrix
-            )
-        ).matrixSum
-
-        parent_tm = libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                attr_get_pivot_tm_inv,  # enter avar_all space
-                # attr_get_all_stack_tm,  # apply avar_all contribution
-                self.avar_all._attr_get_stack_local_tm,  # apply avar_all contribution
-                attr_get_pivot_tm,  # exit avar_all space (returning to the avar space)
-            )
-        ).matrixSum
-    
     def _get_parent_adjustment_tm(self, avar):
         """
         Return an attribute containing the additional contribution on the parent matrix. 
@@ -643,22 +603,10 @@ class AvarGrp(
         :return: 
         """
         # Create a simple constraint that can easily be interpreted by the rigger to see what is the parent of the avar.
-        pymel.parentConstraint(parent, avar._grp_parent_external, maintainOffset=True)
-        pymel.scaleConstraint(parent, avar._grp_parent_external, maintainOffset=True)
-        
-        # However we might need to do modification on the parent since we might have other contributions to the 
-        # starting point of the avar. For the moment thoses contributions can be:
-        # - The contribution of the avar_all
-        # - The contribution of the jaw arc (FaceLips)
-        parent_tm = self._get_parent_adjustment_tm(avar)
-        if parent_tm:
-            util_decompose = libRigging.create_utility_node(
-                'decomposeMatrix',
-                inputMatrix=parent_tm,
-            )
-            pymel.connectAttr(util_decompose.outputTranslate, avar._grp_parent.translate)
-            pymel.connectAttr(util_decompose.outputRotate, avar._grp_parent.rotate)
-            pymel.connectAttr(util_decompose.outputScale, avar._grp_parent.scale)
+        if parent:
+            print parent, avar._grp_parent
+            pymel.parentConstraint(parent, avar._grp_parent, maintainOffset=True)
+            pymel.scaleConstraint(parent, avar._grp_parent, maintainOffset=True)
 
     def _parent_avars(self):
         """
@@ -896,6 +844,7 @@ class AvarGrpOnSurface(AvarGrp):
     """
     _CLS_AVAR = rigFaceAvar.AvarFollicle
     _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle  # Macro avars are always abstract (except the all macro which can potentially drive something)
+    
 
     def __init__(self, *args, **kwargs):
         super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
@@ -937,6 +886,10 @@ class AvarGrpOnSurface(AvarGrp):
         influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
         if influence_hyearchy_deepness > 2:
             raise Exception("Unsupported hierarchy depth! Please revise your inputs hierarchy.")
+
+        # Ensure that we have a mesh to follow.
+        if not self.get_meshes():
+            raise Exception("Please provide one reference mesh to follow.")
 
     #
     # Influence getter functions.
@@ -1143,16 +1096,19 @@ class AvarGrpOnSurface(AvarGrp):
     def _iter_all_avars(self):
         for avar in super(AvarGrpOnSurface, self)._iter_all_avars():
             yield avar
-        if self.avar_l:
-            yield self.avar_l
-        if self.avar_r:
-            yield self.avar_r
-        if self.avar_upp:
-            yield self.avar_upp
-        if self.avar_low:
-            yield self.avar_low
-        if self.avar_all:
-            yield self.avar_all
+        if self.create_macro_horizontal:
+            if self.avar_l:
+                yield self.avar_l
+            if self.avar_r:
+                yield self.avar_r
+        if self.create_macro_vertical:
+            if self.avar_upp:
+                yield self.avar_upp
+            if self.avar_low:
+                yield self.avar_low
+        if self.create_macro_all:
+            if self.avar_all:
+                yield self.avar_all
 
     def add_avars(self, attr_holder):
         """
@@ -1552,6 +1508,65 @@ class AvarGrpOnSurface(AvarGrp):
         self._build_avar_macro_low()
 
         self._build_avar_macro_all()
+
+        self._patch_avars()
+
+    def _patch_avars(self):
+        """
+        After all the avars are created, we might want to add custom logic for them
+        :return: 
+        """
+        # For each avars with an avar logic, add the 'all' macro avar contribution before.
+        # If there's no 'all' macro avar, skip this step.
+        if self.create_macro_all:
+            for avar in self._iter_all_avars():
+                if avar == self.avar_all:
+                    continue
+                # If we are dealing with a 'tweak' avar, it already inherit it's parent transform.
+                if self._is_tweak_avar(avar):
+                    continue
+                self._add_macro_all_avar_contribution(avar)
+
+    def _add_macro_all_avar_contribution(self, avar):
+        attr_avar_all_stack_result_tm = self.avar_all._stack.node.worldMatrix
+        # attr_avar_all_offset_tm = self.avar_all._grp_offset.matrix
+        # attr_avar_all_offset_tm_inv = self.avar_all._grp_offset.inverseMatrix
+        attr_avar_all_offset_tm = self.avar_all._stack_post.worldMatrix
+        attr_avar_all_offset_tm_inv = self.avar_all._stack_post.worldInverseMatrix
+        new_layer = avar._stack_post.append_layer(name='macroAvarAll')
+
+        attr_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                avar._grp_offset.matrix,  # enter local space, note that this is a hack, our parent contain the local space already...
+                attr_avar_all_offset_tm_inv,  # enter avar_all space
+                attr_avar_all_stack_result_tm,  # apply avar_all contribution
+                attr_avar_all_offset_tm,  # exit avar_all space
+                avar._grp_offset.inverseMatrix,  # exit local space (return to avar space)
+            )
+        ).matrixSum
+        util_decompose_tm = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=attr_tm,
+        )
+        pymel.connectAttr(util_decompose_tm.outputTranslate, new_layer.translate)
+        pymel.connectAttr(util_decompose_tm.outputRotate, new_layer.rotate)
+        pymel.connectAttr(util_decompose_tm.outputScale, new_layer.scale)
+
+        # u = libRigging.create_utility_node(
+        #     'multMatrix',
+        #     matrixIn=(
+        #         attr_avar_all_offset_tm,
+        #         avar._grp_offset.inverseMatrix
+        #     )
+        # ).matrixSum
+        # u2 = libRigging.create_utility_node(
+        #     'decomposeMatrix',
+        #     inputMatrix=u
+        # )
+        # pymel.connectAttr(u2.outputTranslate, new_layer.rotatePivot)
+        # pymel.connectAttr(u2.outputTranslate, new_layer.scalePivot)
+
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, ctrl_tm=None, **kwargs):
         # Note: Since the avar_all might not have any influence, we resolve the ctrl_tm outside of the model.

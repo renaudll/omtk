@@ -40,8 +40,9 @@ class FK(Module):
     ex:
     """
     DEFAULT_NAME_USE_FIRST_INPUT = True
-    _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name. Otherwise they will use their associated input name.
-    _NAME_CTRL_MERGE = True  # If set to true, it there's only one controller, it will use the name of the module.
+    _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name.
+    _FORCE_INPUT_NAME = False  # Force using the name of the input in the name of the ctrl
+    # Otherwise they will use their associated input name.
     _CLS_CTRL = CtrlFk
 
     def __init__(self, *args, **kwargs):
@@ -68,6 +69,7 @@ class FK(Module):
     def build(self, constraint=True, parent=True, create_grp_anm=True, create_grp_rig=False, *args, **kwargs):
         super(FK, self).build(create_grp_rig=create_grp_rig, *args, **kwargs)
         nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # Initialize ctrls
         libPython.resize_list(self.ctrls, len(self.jnts))
@@ -84,12 +86,15 @@ class FK(Module):
 
                 # Resolve ctrl name.
                 # TODO: Validate with multiple chains
-                if len(self.jnts) == 1 and self._NAME_CTRL_MERGE:
-                    ctrl_name = nomenclature_anm.resolve()
-                elif self._NAME_CTRL_ENUMERATE:
-                    ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(j))
+                nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace().nodeName())
+                if not self._FORCE_INPUT_NAME:
+                    if len(self.jnts) == 1 and len(self.chains) == 1:
+                        ctrl_name = nomenclature_anm.resolve()
+                    elif len(self.chains) == 1 or self._NAME_CTRL_ENUMERATE:
+                        ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(j))
+                    else:
+                        ctrl_name = nomenclature.resolve()
                 else:
-                    nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace().nodeName())
                     ctrl_name = nomenclature.resolve()
 
                 ctrl.build(name=ctrl_name, refs=jnt, geometries=self.rig.get_meshes())

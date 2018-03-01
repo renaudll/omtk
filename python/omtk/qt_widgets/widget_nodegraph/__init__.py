@@ -36,6 +36,9 @@ NodeGraphView = nodegraph_view.NodeGraphView
 from . import nodegraph_controller
 NodeGraphController = nodegraph_controller.NodeGraphController
 
+from . import nodegraph_filter
+NodeGraphControllerFilter = nodegraph_filter.NodeGraphControllerFilter
+
 
 def reload_():
     from . import pyflowgraph_node_widget
@@ -104,3 +107,6 @@ def reload_():
 
     global NodeGraphModel
     NodeGraphModel = nodegraph_model.NodeGraphModel
+
+    global NodeGraphControllerFilter
+    NodeGraphControllerFilter = nodegraph_filter.NodeGraphControllerFilter

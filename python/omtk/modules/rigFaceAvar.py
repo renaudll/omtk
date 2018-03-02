@@ -9,7 +9,7 @@ import pymel.core as pymel
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import classNode
-from omtk.models.modelInteractiveCtrl import ModelInteractiveCtrl
+from omtk.models.model_ctrl_linear import ModelCtrlLinear
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -387,7 +387,7 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
     _CLS_CTRL = None  # By default, an avar don't have an ctrl.
-    _CLS_MODEL_CTRL = ModelInteractiveCtrl
+    _CLS_MODEL_CTRL = ModelCtrlLinear
 
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
@@ -652,9 +652,9 @@ class AvarSimple(AbstractAvar):
         # Move the grp_offset to it's desired position.
         # self._grp_offset.setTranslation(jnt_pos)
 
-        if self.need_flip_lr():
+        if self.need_flip_lr() and self.jnt:
             jnt_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0) * jnt_tm
-        
+
         self.grp_offset.setMatrix(jnt_tm)
 
         self.create_stacks()
@@ -695,6 +695,21 @@ class AvarSimple(AbstractAvar):
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
         if self.jnt and constraint:
+            # Ensure that Maya will be able to add the constraint.
+            # This could fail if the object is already connected to something else (ex: an animCurve).
+            # For this reason we'll force a disconnection if necessary.
+            attrs_to_disconnect = ['t', 'tx', 'ty', 'tz', 'r', 'rx', 'ry', 'rz', 's', 'sx', 'sy', 'sz']
+            for attr_name in attrs_to_disconnect:
+                attr = self.jnt.attr(attr_name)
+                if attr.isDestination():
+                    log.warning('{0}.{1} need to be connected but already have connections. Connection broken.'.format(
+                        self.jnt.nodeName(), attr_name
+                    ))
+                    pymel.disconnectAttr(attr.inputs(plugs=True)[0], attr)
+                if attr.isLocked():
+                    log.warning('{0}.{1} need to be connected but was locked. Lock removed.')
+                    attr.unlock()
+
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
 
@@ -773,7 +788,7 @@ class AvarSimple(AbstractAvar):
             self.ctrl.setParent(self.grp_anm)
 
         else:
-            if issubclass(self._CLS_MODEL_CTRL, ModelInteractiveCtrl):
+            if issubclass(self._CLS_MODEL_CTRL, ModelCtrlLinear):
                 # By default, an InteractiveCtrl follow the rotation of the head.
                 if parent_rot is None:
                     parent_rot = self.get_head_jnt()

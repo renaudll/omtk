@@ -9,7 +9,7 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
-from omtk.models import modelInteractiveCtrl
+from omtk.models import model_ctrl_linear
 from omtk.modules import rigFaceAvar
 
 log = logging.getLogger('omtk')
@@ -93,7 +93,7 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
 # Models
 #
 
-class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
+class ModelMicroAvarCtrl(model_ctrl_linear.ModelCtrlLinear):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
         if avar_tweak:
@@ -106,7 +106,7 @@ class ModelMicroAvarCtrl(modelInteractiveCtrl.ModelInteractiveCtrl):
                                                     sy=sy, sz=sz)
 
 
-class ModelCtrlMacroAll(modelInteractiveCtrl.ModelInteractiveCtrl):
+class ModelCtrlMacroAll(model_ctrl_linear.ModelCtrlLinear):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         super(ModelCtrlMacroAll, self).connect(avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
                                                sx=True, sy=True, sz=True)

@@ -7,7 +7,7 @@ import pymel.core as pymel
 import omtk
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
-from omtk.models import modelInteractiveCtrl
+from omtk.models import model_ctrl_linear
 from omtk.libs import libRigging
 
 
@@ -41,7 +41,7 @@ def _iter_all_ctrl_models():
                 for avar in module._iter_all_avars():
                     if isinstance(avar, rigFaceAvar.AvarSimple):  # AvarSimple introduced the ctrl_model attribute
                         ctrl_model = avar.model_ctrl
-                        if isinstance(ctrl_model, modelInteractiveCtrl.ModelInteractiveCtrl):
+                        if isinstance(ctrl_model, model_ctrl_linear.ModelCtrlLinear):
                             yield rig, ctrl_model
 
 

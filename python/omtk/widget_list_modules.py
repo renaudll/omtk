@@ -71,21 +71,21 @@ class WidgetListModules(QtWidgets.QWidget):
         Return the metadata stored in each selected row. Whatever the metadata type (can be Rig or Module).
         :return: A list of object instances.
         """
-        return [item.rig for item in self.get_selected_items()]
+        return [item.metadata_data for item in self.get_selected_items()]
 
     def get_selected_modules(self):
         """
         Return the Module instances stored in each selected rows.
         :return: A list of Module instances.
         """
-        return [item.rig for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Module]
+        return [item.metadata_data for item in self.get_selected_items() if item.metadata_type == ui_shared.MetadataType.Module]
 
     def get_selected_rigs(self):
         """
         Return the Rig instances stored in each selected rows.
         :return: A list of Rig instances.
         """
-        return [item.rig for item in self.get_selected_items() if item._meta_type == ui_shared.MetadataType.Rig]
+        return [item.metadata_data for item in self.get_selected_items() if item.metadata_type == ui_shared.MetadataType.Rig]
 
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
@@ -119,10 +119,10 @@ class WidgetListModules(QtWidgets.QWidget):
             # Always shows non-module
             if not hasattr(qItem, 'rig'):
                 return True
-            if not isinstance(qItem.rig, classModule.Module):
+            if not isinstance(qItem.metadata_data, classModule.Module):
                 return True
 
-            module = qItem.rig  # Retrieve monkey-patched data
+            module = qItem.metadata_data  # Retrieve monkey-patched data
             module_name = str(module)
 
             return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
@@ -258,7 +258,8 @@ class WidgetListModules(QtWidgets.QWidget):
         flags = qitem.flags() | QtCore.Qt.ItemIsEditable
         qitem.setFlags(flags)
         qitem.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
-        qitem._meta_type = ui_shared.MetadataType.Module
+        qitem.metadata_data = module
+        qitem.metadata_type = ui_shared.MetadataType.Module
 
     def _update_qitem_rig(self, qitem, rig):
         label = str(rig)
@@ -271,7 +272,8 @@ class WidgetListModules(QtWidgets.QWidget):
         qitem.setFlags(flags)
         qitem.setCheckState(0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked)
 
-        qitem._meta_type = ui_shared.MetadataType.Rig
+        qitem.metadata_type = ui_shared.MetadataType.Rig
+        qitem.metadata_data = rig
         qitem.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
     def _rig_to_tree_widget(self, module):
@@ -280,7 +282,7 @@ class WidgetListModules(QtWidgets.QWidget):
             qItem.net = module._network
         else:
             pymel.warning("{0} have no _network attributes".format(module))
-        qItem.rig = module
+        # qItem.rig = module
 
         if isinstance(module, classModule.Module):
             self._update_qitem_module(qItem, module)
@@ -294,6 +296,8 @@ class WidgetListModules(QtWidgets.QWidget):
                 for input in child.input:
                     qInputItem = QtWidgets.QTreeWidgetItem(0)
                     qInputItem.setText(0, input.name())
+                    qInputItem.metadata_type = ui_shared.MetadataType.Influece  # todo: support mesh metadata?
+                    qInputItem.metadata_data = input
                     ui_shared._set_icon_from_type(input, qInputItem)
                     qSubItem.addChild(qInputItem)
                 qItem.addChild(qSubItem)
@@ -311,14 +315,14 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
-            val = qItem.rig
+            val = qItem.metadata_data
             self._unbuild(val)
             ui_shared._update_network(self._rig)
         self.update()
 
     def on_rebuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
-            val = qItem.rig
+            val = qItem.metadata_data
             self._unbuild(val)
             self._build(val)
             ui_shared._update_network(self._rig)
@@ -337,7 +341,7 @@ class WidgetListModules(QtWidgets.QWidget):
         need_update = False
         new_state = item.checkState(0) == QtCore.Qt.Checked
         new_text = item.text(0)
-        module = item.rig
+        module = item.metadata_data
         if item._checked != new_state:
             item._checked = new_state
             # Handle checkbox change
@@ -369,7 +373,7 @@ class WidgetListModules(QtWidgets.QWidget):
         if self.ui.treeWidget.selectedItems():
             sel = self.ui.treeWidget.selectedItems()
             try:
-                inst = sel[0].rig
+                inst = sel[0].metadata_data
             except AttributeError:  # influence don't have a 'rig' attr
                 return
 
@@ -440,7 +444,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):
-            self._set_text_block(item, item.rig.name)
+            self._set_text_block(item, item.metadata_data.name)
             self._is_modifying = True  # Flag to know that we are currently modifying the name
             self.ui.treeWidget.editItem(item, 0)
 
@@ -451,8 +455,8 @@ class WidgetListModules(QtWidgets.QWidget):
             if sel:
                 self._listen_events = False
                 selected_item = sel[0]
-                if isinstance(selected_item.rig, classModule.Module):
-                    self._update_qitem_module(selected_item, selected_item.rig)
+                if isinstance(selected_item.metadata_data, classModule.Module):
+                    self._update_qitem_module(selected_item, selected_item.metadata_data)
                 self._listen_events = True
             self._is_modifying = False
         self.focusInEvent(event)
@@ -460,7 +464,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_lock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
-            val = item.rig
+            val = item.metadata_data
             if isinstance(val, classModule.Module) and not val.locked:
                 need_update = True
                 val.locked = True
@@ -471,7 +475,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_unlock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
-            val = item.rig
+            val = item.metadata_data
             if isinstance(val, classModule.Module) and val.locked:
                 need_update = True
                 val.locked = False

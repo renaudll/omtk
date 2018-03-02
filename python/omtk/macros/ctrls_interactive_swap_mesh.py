@@ -9,7 +9,7 @@ class CtrlInteractiveSwapMesh(BaseMacro):
         from omtk import api
         from omtk.modules import rigFaceAvarGrps
         from omtk.modules import rigFaceAvar
-        from omtk.models import modelInteractiveCtrl
+        from omtk.models import model_ctrl_linear
         rig, modules = api._get_modules_from_selection()
         # Build selected modules
         for module in modules:
@@ -17,7 +17,7 @@ class CtrlInteractiveSwapMesh(BaseMacro):
                 for avar in module._iter_all_avars():
                     if isinstance(avar, rigFaceAvar.AbstractAvar) and \
                             avar.model_ctrl and \
-                            isinstance(avar.model_ctrl, modelInteractiveCtrl.ModelInteractiveCtrl):
+                            isinstance(avar.model_ctrl, model_ctrl_linear.ModelCtrlLinear):
                         yield avar.model_ctrl
 
     def run(self):

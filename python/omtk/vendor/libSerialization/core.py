@@ -76,37 +76,72 @@ def create_class_instance(cls):
 
 # We consider a data complex if it's a class instance.
 # Note: We check for __dict__ because isinstance(_data, object) return True for basic types.
-types_complex = [dict]
+types_complex = (dict,)
+
+
+def register_type_complex(*types):
+    """
+    Rebuild the types_complex tuple with the provided new types.
+    :param types: A tuple of type instances to register.
+    """
+    global types_complex
+    types_complex += types
 
 
 def is_data_complex(_data):
-    return any(filter(lambda x: isinstance(_data, x), (iter(types_complex)))) or hasattr(_data, '__dict__')
+    return isinstance(_data, types_complex) or hasattr(_data, '__dict__')
 
 
-types_basic = [int, float, bool]
+types_basic = (int, float, bool)
+
+
+def register_type_basic(*types):
+    """
+    Rebuilt the types_basic tuple with the provided new types.
+    :param types: A tuple of type instances to register.
+    """
+    global types_basic
+    types_basic += types
 
 # Python3 support
 try:
-    types_basic.append(basestring)
+    register_type_basic(basestring)
 except NameError:
-    pass
-    types_basic.append(str)
+    register_type_basic(str)
 
 
 def is_data_basic(_data):
     global types_basic
-    return any(filter(lambda x: isinstance(_data, x), (iter(types_basic))))
+    return isinstance(_data, types_basic)
 
 
-types_list = [list, tuple]
+types_list = (list, tuple)
+
+
+def register_type_list(*types):
+    """
+    Rebuilt the types_list tuple with the provided new types.
+    :param types: A tuple of type instances to register.
+    """
+    global types_list
+    types_list += types
 
 
 def is_data_list(_data):
     global types_list
-    return any(filter(lambda x: isinstance(_data, x), (iter(types_list))))
+    return isinstance(_data, types_list)
 
 
 types_dag = []
+
+
+def register_type_pymel(*types):
+    """
+    Rebuilt the types_list tuple with the provided new types.
+    :param types: A tuple of type instances to register.
+    """
+    global types_dag
+    types_dag += types
 
 
 def is_data_pymel(data):
@@ -114,7 +149,7 @@ def is_data_pymel(data):
     Add pymel support.
     """
     global types_dag
-    return any(filter(lambda x: isinstance(data, x), iter(types_dag)))
+    return isinstance(data, tuple(types_dag))
 
 
 def get_data_type(data):

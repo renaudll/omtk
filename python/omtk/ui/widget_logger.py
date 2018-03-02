@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rlessard/packages/omtk/0.4.999/omtk/ui/widget_logger.ui'
+# Form implementation generated from reading ui file '/home/rlessard/packages/omtk/0.4.999/python/omtk/ui/widget_logger.ui'
 #
-# Created: Tue Jan 24 10:18:37 2017
+# Created: Tue Feb 20 10:34:53 2018
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 class Ui_Form(object):
     def setupUi(self, Form):

@@ -9,7 +9,7 @@ import pymel.core as pymel
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import classNode
-from omtk.models.modelInteractiveCtrl import ModelInteractiveCtrl
+from omtk.models.model_ctrl_linear import ModelCtrlLinear
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -69,7 +69,7 @@ class AbstractAvar(classModule.Module):
     This low-level module is a direct interpretation of "The Art of Moving Points" of "Brian Tindal".
     A can be moved in space using it's UD (Up/Down), IO (Inn/Out) and FB (FrontBack) attributes.
     In an ideal facial setup, any movement in the face is driven by avars.
-    Using driven-keys we can orchestrate all the secondary movements in the face.
+    Using driven-keys we can orchestrate all the s-econdary movements in the face.
     Any driven-key set between Avar attributes will be preserved if the rig is unbuilt.
 
     Note that in the current implement, Avars implement their ctrl (generally an InteractiveCtrl).
@@ -249,10 +249,11 @@ class AbstractAvar(classModule.Module):
         """
         # TODO: What do we do with the rotation?
         tm = self.jnt.getMatrix(worldSpace=True)
-        pos = self.jnt.getTranslation(space='world')
-        return pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
-        )
+        # pos = self.jnt.getTranslation(space='world')
+        # return pymel.datatypes.Matrix(
+        #     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
+        # )
+        return tm
 
     def validate(self):
         """
@@ -386,14 +387,18 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
     _CLS_CTRL = None  # By default, an avar don't have an ctrl.
-    _CLS_MODEL_CTRL = ModelInteractiveCtrl
+    _CLS_MODEL_CTRL = ModelCtrlLinear
 
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
 
         self._stack = None
-        self._grp_offset = None
+        self.grp_offset = None
         self._grp_parent = None
+
+        # Bind input for the ctrl model, can be modified by subclasses for custom behavior.
+        self._grp_default_ctrl_model = None
+        
         self.model_ctrl = None
 
         # In normal cases, an avar influence a joint.
@@ -432,6 +437,155 @@ class AvarSimple(AbstractAvar):
         _connect_with_blend(self.attr_rl, layer_pos.rz, self.affect_rz)
 
         return stack
+
+    def create_stacks(self):
+        """
+        Create the route to compute the output transform for the avar.
+        This is done using node 'stacks' which allow multiple contribution from being added while still
+        be 'clear' for the rigger which layer is providing which input.
+        By keeping stack seperated, we are able to keep them in isolation and use the 'worldMatrix' of their 
+        leaf to easily compute the total contribution.
+
+        This would result in the following matrix multiplications:
+        1) 'offset group'
+           We start with the bind transform.
+           The resulting matrix is in local (also known as pre-deform) space.
+        # 2) 'pre-avar stack'
+        #    This add any contribution before the avar.
+        #    Being a stack, it can be modified after creation if needed by adding layers to it.
+        #    Used for adding the jaw contribution on FaceLips module.
+        #    The resulting matrix is still in local space.
+        3) 'avar stack'
+           This compute the desired movement from the avar values.
+           Being a stack, it can be modified after creation if needed by adding layers to it.
+           The resulting matrix is still in local space.
+        4) 'post avar' stack'
+           This add any contribution needed after the avar.
+           Being a stack, it can be modified after creation if needed by adding layers to it.
+           Ex: Used for having the 'all' macro avar influence other avars.
+           The resulting matrix is still in local space.
+        5) 'parent' group
+           This matrix is identity at bind pose and will add the movement from the parent of the avar.
+           The resulting matrix is in world space.
+           
+        The final transform is computed by multiplying all these stacks togheter:
+        - offset.matrix
+        - pre-avar.worldMatrix
+        - avar.worldMatrix.
+        - post-avar.worldMatrix
+        - parent.matrix
+        """
+        nomenclature_rig = self.get_nomenclature_rig()
+
+        # Build pre-avar stack
+        # This is a list of matrix multiplication that will be executed BEFORE the avar.
+        # self._stack_pre = classNode.Node()
+        # self._stack_pre.build(name=nomenclature_rig.resolve('preAvar'))
+        # self._stack_pre.setParent(self.grp_rig)
+        # layer_stack_input = self._stack_pre.prepend_layer(name='input')
+        # 
+        # u = libRigging.create_utility_node(
+        #     'multMatrix',
+        #     matrixIn=(
+        #         self._grp_offset,
+        #     )
+        # )
+        # 
+        # libRigging.connect_matrix_to_node(
+        #     self._grp_offset.matrix,
+        #     layer_stack_input,
+        #     name=nomenclature_rig.resolve('decomposeOffset')
+        # )
+
+        # Build avar stack
+        self._stack = classNode.Node()
+        self._stack.build(name=nomenclature_rig.resolve('avar'))
+        self._stack.setParent(self.grp_rig)
+        self.build_stack(self._stack)
+        # layer_stack_input = self._stack.prepend_layer(name='input')
+        # 
+        # libRigging.connect_matrix_to_node(
+        #     self._stack_pre.worldMatrix,
+        #     layer_stack_input,
+        #     name=nomenclature_rig.resolve('decomposePreAvarTm'),
+        # )
+
+        # util_decompose_stack_pre = libRigging.create_utility_node(
+        #     'decomposeMatrix',
+        #     inputMatrix=self._stack_pre.worldMatrix,
+        # )
+        # pymel.connectAttr(util_decompose_stack_pre.outputTranslate, layer_stack_input.translate)
+        # pymel.connectAttr(util_decompose_stack_pre.outputRotate, layer_stack_input.rotate)
+        # pymel.connectAttr(util_decompose_stack_pre.outputScale, layer_stack_input.scale)
+
+        # Build post-avar stack
+        # This is a list of matrix multiplication that will be executed AFTER feeding the avar.
+        self._stack_post = classNode.Node()
+        self._stack_post.build(name=nomenclature_rig.resolve('postAvar'))
+        post_stack_root = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('postAvarRoot'),
+            parent=self.grp_rig
+        )
+        # layer_stack_input = self._stack_post.prepend_layer(name='input')
+        self._stack_post.setParent(post_stack_root)
+        
+        u = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                self._stack.worldMatrix,
+                # self._grp_offset.matrix,
+            )
+        ).matrixSum
+
+        # libRigging.connect_matrix_to_node(
+        #     u,
+        #     # self._stack.worldMatrix,
+        #     self._stack_post.node,
+        #     name=nomenclature_rig.resolve('decomposeAvarStackTm'),
+        # )
+        
+        libRigging.connect_matrix_to_node(
+            self.grp_offset.matrix,
+            post_stack_root,
+            name=nomenclature_rig.resolve('something')
+        )
+
+        # util_decompose_stack_pre = libRigging.create_utility_node(
+        #     'decomposeMatrix',
+        #     inputMatrix=self._stack.worldMatrix,
+        # )
+        # pymel.connectAttr(util_decompose_stack_pre.outputTranslate, layer_stack_input.translate)
+        # pymel.connectAttr(util_decompose_stack_pre.outputRotate, layer_stack_input.rotate)
+        # pymel.connectAttr(util_decompose_stack_pre.outputScale, layer_stack_input.scale)
+
+        # Take the result of the stack and add it on top of the bind-pose and parent group.
+        self._attr_get_stack_local_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                # self._stack_pre.worldMatrix,
+                self._stack.worldMatrix,
+                self._stack_post.worldMatrix,
+                # self._grp_offset.matrix,
+                self._grp_parent.matrix,
+            )
+        ).matrixSum
+        util_get_stack_local_tm = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=self._attr_get_stack_local_tm
+        )
+        
+        # We want the rigger to easily de-activate the avar logic for each channel.
+        # This is mainly because they might want to to certain deformations with blendshapes instead.
+        _connect_with_blend(util_get_stack_local_tm.outputTranslateX, self._grp_output.translateX, self.affect_tx)
+        _connect_with_blend(util_get_stack_local_tm.outputTranslateY, self._grp_output.translateY, self.affect_ty)
+        _connect_with_blend(util_get_stack_local_tm.outputTranslateZ, self._grp_output.translateZ, self.affect_tz)
+        _connect_with_blend(util_get_stack_local_tm.outputRotateX, self._grp_output.rotateX, self.affect_rx)
+        _connect_with_blend(util_get_stack_local_tm.outputRotateY, self._grp_output.rotateY, self.affect_ry)
+        _connect_with_blend(util_get_stack_local_tm.outputRotateZ, self._grp_output.rotateZ, self.affect_rz)
+        _connect_with_blend(util_get_stack_local_tm.outputScaleX, self._grp_output.scaleX, self.affect_sx)
+        _connect_with_blend(util_get_stack_local_tm.outputScaleY, self._grp_output.scaleY, self.affect_sy)
+        _connect_with_blend(util_get_stack_local_tm.outputScaleZ, self._grp_output.scaleZ, self.affect_sz)
 
     def build(self, constraint=True, ctrl_size=1.0, ctrl_tm=None, jnt_tm=None, obj_mesh=None, follow_mesh=True,
               **kwargs):
@@ -472,74 +626,100 @@ class AvarSimple(AbstractAvar):
             jnt_tm = self.get_jnt_tm()
         jnt_pos = jnt_tm.translate
 
-        #
-        # Build stack
-        # The stack resolve the influence final transform relative to it's parent and original bind-pose.
-        #
-        dag_stack_name = nomenclature_rig.resolve('stack')
-        stack = classNode.Node()
-        stack.build(name=dag_stack_name)
-
         # Create an offset layer that define the starting point of the Avar.
         # It is important that the offset is in this specific node since it will serve as
         # a reference to re-computer the base u and v parameter if the rigger change the
         # size of the surface when the system is build.
         grp_offset_name = nomenclature_rig.resolve('offset')
-        self._grp_offset = pymel.createNode('transform', name=grp_offset_name)
-        self._grp_offset.rename(grp_offset_name)
-        self._grp_offset.setParent(self.grp_rig)
-        # layer_offset.setMatrix(jnt_tm)
+        self.grp_offset = pymel.createNode('transform', name=grp_offset_name)
+        self.grp_offset.rename(grp_offset_name)
+        self.grp_offset.setParent(self.grp_rig)
 
         # Create a parent layer for constraining.
         # Do not use dual constraint here since it can result in flipping issues.
-        grp_parent_name = nomenclature_rig.resolve('parent')
-        self._grp_parent = pymel.createNode('transform', name=grp_parent_name)
-        self._grp_parent.setParent(self._grp_offset)
-        self._grp_parent.rename(grp_parent_name)
+        self._grp_parent = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('parent'),
+            parent=self.grp_rig,
+        )
+
+        self._grp_output = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('output'),
+            parent=self.grp_rig
+        )
 
         # Move the grp_offset to it's desired position.
-        self._grp_offset.setTranslation(jnt_pos)
+        # self._grp_offset.setTranslation(jnt_pos)
 
-        # The rest of the stack is built in another function.
-        # This allow easier override by sub-classes.
-        self._stack = stack
-        self.build_stack(stack)
-        self._stack.setParent(self._grp_offset)
+        if self.need_flip_lr() and self.jnt:
+            jnt_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0) * jnt_tm
 
-        # Take the result of the stack and add it on top of the bind-pose and parent group.
-        grp_output_name = nomenclature_rig.resolve('output')
-        self._grp_output = pymel.createNode('transform', name=grp_output_name)
-        self._grp_output.setParent(self._grp_parent)
+        self.grp_offset.setMatrix(jnt_tm)
 
-        attr_get_stack_local_tm = libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                self._stack.node.worldMatrix,
-                self._grp_offset.worldInverseMatrix
-            )
-        ).matrixSum
-        util_get_stack_local_tm = libRigging.create_utility_node(
-            'decomposeMatrix',
-            inputMatrix=attr_get_stack_local_tm
-        )
-        # pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.t)
-        # pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.r)
-        # pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.s)
-        _connect_with_blend(util_get_stack_local_tm.outputTranslateX, self._grp_output.translateX, self.affect_tx)
-        _connect_with_blend(util_get_stack_local_tm.outputTranslateY, self._grp_output.translateY, self.affect_ty)
-        _connect_with_blend(util_get_stack_local_tm.outputTranslateZ, self._grp_output.translateZ, self.affect_tz)
-        _connect_with_blend(util_get_stack_local_tm.outputRotateX, self._grp_output.rotateX, self.affect_rx)
-        _connect_with_blend(util_get_stack_local_tm.outputRotateY, self._grp_output.rotateY, self.affect_ry)
-        _connect_with_blend(util_get_stack_local_tm.outputRotateZ, self._grp_output.rotateZ, self.affect_rz)
-        _connect_with_blend(util_get_stack_local_tm.outputScaleX, self._grp_output.scaleX, self.affect_sx)
-        _connect_with_blend(util_get_stack_local_tm.outputScaleY, self._grp_output.scaleY, self.affect_sy)
-        _connect_with_blend(util_get_stack_local_tm.outputScaleZ, self._grp_output.scaleZ, self.affect_sz)
+        self.create_stacks()
+
+        # ---------------------------------------------
+
+        # Build a default controller model
+        # This is sufficient for a simple model, however some more complex model might benefit from it.
+        # This is also used in FaceLipsAvar so that the linear model follow the jaw influence.
+        # self._grp_default_ctrl_model = pymel.createNode(
+        #     'transform',
+        #     name=nomenclature_rig.resolve('defaultCtrlModel'),
+        #     parent=self.grp_rig,
+        # )
+        # # self._connect_default_ctrl_model(self._grp_default_ctrl_model)
+        # 
+        # attr_ctrl_model_tm = self._grp_output.worldMatrix
+        # pymel.datatypes.Matrix(-1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+        # 
+        # pymel.parentConstraint(self._grp_output, self._grp_default_ctrl_model)
+        # pymel.scaleConstraint(self._grp_output, self._grp_default_ctrl_model)
+
+        # attr_default_ctrl_model_tm = libRigging.create_utility_node(
+        #     'multMatrix',
+        #     matrixIn=(
+        #         self._grp_offset.matrix,
+        #         self._grp_parent.worldMatrix,
+        #     )
+        # ).matrixSum
+        # util_decompose_default_ctrl_model_tm = libRigging.create_utility_node(
+        #     'decomposeMatrix',
+        #     inputMatrix=attr_default_ctrl_model_tm
+        # )
+        # pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputTranslate, self._grp_default_ctrl_model.translate)
+        # pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputRotate, self._grp_default_ctrl_model.rotate)
+        # pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputScale, self._grp_default_ctrl_model.scale)
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
         if self.jnt and constraint:
+            # Ensure that Maya will be able to add the constraint.
+            # This could fail if the object is already connected to something else (ex: an animCurve).
+            # For this reason we'll force a disconnection if necessary.
+            attrs_to_disconnect = ['t', 'tx', 'ty', 'tz', 'r', 'rx', 'ry', 'rz', 's', 'sx', 'sy', 'sz']
+            for attr_name in attrs_to_disconnect:
+                attr = self.jnt.attr(attr_name)
+                if attr.isDestination():
+                    log.warning('{0}.{1} need to be connected but already have connections. Connection broken.'.format(
+                        self.jnt.nodeName(), attr_name
+                    ))
+                    pymel.disconnectAttr(attr.inputs(plugs=True)[0], attr)
+                if attr.isLocked():
+                    log.warning('{0}.{1} need to be connected but was locked. Lock removed.')
+                    attr.unlock()
+
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
+
+    def _connect_default_ctrl_model(self, grp_ctrl_model):
+        """
+        Connect the bind pose of the avar to the bind pose of the ctrl model.
+        This can be overriden for more complex behavior.
+        """
+        # pymel.parentConstraint(self._grp_offset, grp_ctrl_model)
+        pymel.parentConstraint(self._grp_parent, grp_ctrl_model)
 
     def init_ctrl_model(self, cls, inst, inputs=None, cls_ctrl=None):
         """
@@ -608,7 +788,7 @@ class AvarSimple(AbstractAvar):
             self.ctrl.setParent(self.grp_anm)
 
         else:
-            if issubclass(self._CLS_MODEL_CTRL, ModelInteractiveCtrl):
+            if issubclass(self._CLS_MODEL_CTRL, ModelCtrlLinear):
                 # By default, an InteractiveCtrl follow the rotation of the head.
                 if parent_rot is None:
                     parent_rot = self.get_head_jnt()
@@ -626,6 +806,7 @@ class AvarSimple(AbstractAvar):
                     parent_scl=parent_scl,
                     grp_rig_name=self.get_nomenclature_anm_grp().resolve('ctrlModel'),
                     obj_mesh=next(iter(self.get_meshes()), None),
+                    attr_bind_tm=self._grp_output.worldMatrix,
                     # prevent name collision on rig grp
                     **kwargs
                 )
@@ -721,6 +902,9 @@ class AvarFollicle(AvarSimple):
         # TODO: Move to build, we don't want 1000 member properties.
         self._attr_length_v = None
         self._attr_length_u = None
+        
+        # Reference to the object containing the bind pose of the avar.
+        self._obj_offset = None
 
     def _hold_uv_multiplier(self):
         """
@@ -807,7 +991,7 @@ class AvarFollicle(AvarSimple):
 
         util_get_base_uv_absolute = libRigging.create_utility_node(
             'closestPointOnSurface',
-            inPosition=self._grp_offset.t,
+            inPosition=self.grp_offset.t,
             inputSurface=surface_shape.worldSpace
         )
 
@@ -863,21 +1047,21 @@ class AvarFollicle(AvarSimple):
         # This allow us to move or resize the plane without affecting the built rig. (if the rig is in neutral pose)
         #
         offset_name = nomenclature_rig.resolve('bindPoseRef')
-        obj_offset = pymel.createNode('transform', name=offset_name)
-        obj_offset.setParent(self._grp_offset)
+        self._obj_offset = pymel.createNode('transform', name=offset_name)
+        self._obj_offset.setParent(self.grp_offset)
 
         fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
-        # fol_offset = libRigging.create_follicle(obj_offset, self.surface, name=fol_offset_name)
+        # fol_offset = libRigging.create_follicle(self._obj_offset, self.surface, name=fol_offset_name)
         fol_offset_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
         fol_offset = fol_offset_shape.getParent()
         fol_offset.rename(fol_offset_name)
-        pymel.parentConstraint(fol_offset, obj_offset, maintainOffset=False)
+        pymel.parentConstraint(fol_offset, self._obj_offset, maintainOffset=False)
         fol_offset.setParent(self.grp_rig)
 
         # Create the influence follicle
         influence_name = nomenclature_rig.resolve('influenceRef')
         influence = pymel.createNode('transform', name=influence_name)
-        influence.setParent(self._grp_offset)
+        influence.setParent(self.grp_offset)
 
         fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
         fol_influence_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
@@ -891,14 +1075,14 @@ class AvarFollicle(AvarSimple):
         #
         attr_localTM = libRigging.create_utility_node('multMatrix', matrixIn=[
             influence.worldMatrix,
-            obj_offset.worldInverseMatrix
+            self._obj_offset.worldInverseMatrix
         ]).matrixSum
 
         # Since we are extracting the delta between the influence and the bindpose matrix, the rotation of the surface
         # is not taken in consideration wich make things less intuitive for the rigger.
         # So we'll add an adjustement matrix so the rotation of the surface is taken in consideration.
         util_decomposeTM_bindPose = libRigging.create_utility_node('decomposeMatrix',
-                                                                   inputMatrix=obj_offset.worldMatrix
+                                                                   inputMatrix=self._obj_offset.worldMatrix
                                                                    )
         attr_translateTM = libRigging.create_utility_node('composeMatrix',
                                                           inputTranslate=util_decomposeTM_bindPose.outputTranslate
@@ -907,7 +1091,7 @@ class AvarFollicle(AvarSimple):
                                                               inputMatrix=attr_translateTM,
                                                               ).outputMatrix
         attr_rotateTM = libRigging.create_utility_node('multMatrix',
-                                                       matrixIn=[obj_offset.worldMatrix, attr_translateTM_inv]
+                                                       matrixIn=[self._obj_offset.worldMatrix, attr_translateTM_inv]
                                                        ).matrixSum
         attr_rotateTM_inv = libRigging.create_utility_node('inverseMatrix',
                                                            inputMatrix=attr_rotateTM

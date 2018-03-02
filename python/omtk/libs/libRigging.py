@@ -62,6 +62,17 @@ def create_utility_node(_sClass, name=None, *args, **kwargs):
     return uNode
 
 
+def connect_matrix_to_node(attr_tm, node, name=None):
+    u = create_utility_node(
+        'decomposeMatrix',
+        name=name,
+        inputMatrix=attr_tm
+    )
+    pymel.connectAttr(u.outputTranslate, node.translate, force=True)
+    pymel.connectAttr(u.outputRotate, node.rotate, force=True)
+    pymel.connectAttr(u.outputScale, node.scale, force=True)
+    return u
+
 #
 # CtrlShapes Backup
 #
@@ -1373,7 +1384,7 @@ def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01, def
     """
     attr.set(0)
     pos_s = ref.getTranslation(space='world')
-    attr.set(-step_size)  # HACK: Jaw only deforme the face in the negative direction...
+    attr.set(-step_size)  # HACK: Jaw only deform the face in the negative direction...
     pos_e = ref.getTranslation(space='world')
     attr.set(0)
     distance = libPymel.distance_between_vectors(pos_s, pos_e) / step_size

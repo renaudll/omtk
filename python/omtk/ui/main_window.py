@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rlessard/packages/omtk/0.4.999/omtk/ui/main_window.ui'
+# Form implementation generated from reading ui file '/home/rlessard/packages/omtk/0.4.999/python/omtk/ui/main_window.ui'
 #
-# Created: Tue Jan 24 10:18:38 2017
+# Created: Tue Feb 20 10:34:54 2018
 #      by: pyside2-uic  running on Qt 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
@@ -71,7 +71,7 @@ class Ui_OpenRiggingToolkit(object):
         self.verticalLayout_5.addWidget(self.splitter)
         OpenRiggingToolkit.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(OpenRiggingToolkit)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 787, 28))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 787, 19))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -118,8 +118,8 @@ class Ui_OpenRiggingToolkit(object):
         self.actionRebuildAll.setObjectName("actionRebuildAll")
         self.actionCreateModule = QtWidgets.QAction(OpenRiggingToolkit)
         self.actionCreateModule.setObjectName("actionCreateModule")
-        self.actionAddNodeToModule = QtWidgets.QAction(OpenRiggingToolkit)
-        self.actionAddNodeToModule.setObjectName("actionAddNodeToModule")
+        self.actionAddSelectedInfluencesToModule = QtWidgets.QAction(OpenRiggingToolkit)
+        self.actionAddSelectedInfluencesToModule.setObjectName("actionAddSelectedInfluencesToModule")
         self.actionRemoveNodeFromModule = QtWidgets.QAction(OpenRiggingToolkit)
         self.actionRemoveNodeFromModule.setObjectName("actionRemoveNodeFromModule")
         self.actionMirrorJntsLToR = QtWidgets.QAction(OpenRiggingToolkit)
@@ -132,6 +132,8 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPluginManager.setObjectName("actionShowPluginManager")
         self.actionShowPreferences = QtWidgets.QAction(OpenRiggingToolkit)
         self.actionShowPreferences.setObjectName("actionShowPreferences")
+        self.actionAddSelectedMeshesToModule = QtWidgets.QAction(OpenRiggingToolkit)
+        self.actionAddSelectedMeshesToModule.setObjectName("actionAddSelectedMeshesToModule")
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addSeparator()
@@ -140,7 +142,8 @@ class Ui_OpenRiggingToolkit(object):
         self.menuRig.addAction(self.actionUnbuildAll)
         self.menuRig.addAction(self.actionRebuildAll)
         self.menuJoint.addAction(self.actionCreateModule)
-        self.menuJoint.addAction(self.actionAddNodeToModule)
+        self.menuJoint.addAction(self.actionAddSelectedInfluencesToModule)
+        self.menuJoint.addAction(self.actionAddSelectedMeshesToModule)
         self.menuJoint.addAction(self.actionRemoveNodeFromModule)
         self.menuInfluences.addAction(self.actionMirrorJntsLToR)
         self.menuInfluences.addAction(self.actionMirrorJntsRToL)
@@ -174,13 +177,14 @@ class Ui_OpenRiggingToolkit(object):
         self.actionUnbuildAll.setText(QtCompat.translate("OpenRiggingToolkit", "Unbuild All", None, -1))
         self.actionRebuildAll.setText(QtCompat.translate("OpenRiggingToolkit", "Rebuild All", None, -1))
         self.actionCreateModule.setText(QtCompat.translate("OpenRiggingToolkit", "Create Module", None, -1))
-        self.actionAddNodeToModule.setText(QtCompat.translate("OpenRiggingToolkit", "Add Selection", None, -1))
+        self.actionAddSelectedInfluencesToModule.setText(QtCompat.translate("OpenRiggingToolkit", "Add Selected Influences to Module", None, -1))
         self.actionRemoveNodeFromModule.setText(QtCompat.translate("OpenRiggingToolkit", "Remove Selection", None, -1))
         self.actionMirrorJntsLToR.setText(QtCompat.translate("OpenRiggingToolkit", "Mirror L -> R", None, -1))
         self.actionMirrorJntsRToL.setText(QtCompat.translate("OpenRiggingToolkit", "Mirror R -> L", None, -1))
         self.actionMirrorSelection.setText(QtCompat.translate("OpenRiggingToolkit", "Mirror using Selection", None, -1))
         self.actionShowPluginManager.setText(QtCompat.translate("OpenRiggingToolkit", "Plugin Manager", None, -1))
         self.actionShowPreferences.setText(QtCompat.translate("OpenRiggingToolkit", "Preferences", None, -1))
+        self.actionAddSelectedMeshesToModule.setText(QtCompat.translate("OpenRiggingToolkit", "Add Selected Meshes to Module", None, -1))
 
 from ..widget_logger import WidgetLogger
 from ..widget_list_modules import WidgetListModules

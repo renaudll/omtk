@@ -1,13 +1,13 @@
 from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
-from omtk.models import modelInteractiveCtrl
+from omtk.models import model_ctrl_linear
 
 
 class CtrlNose(rigFaceAvar.CtrlFaceMicro):
     pass
 
 
-class ModelMicroAvarNose(modelInteractiveCtrl.ModelInteractiveCtrl):
+class ModelMicroAvarNose(model_ctrl_linear.ModelCtrlLinear):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
         if avar_tweak:

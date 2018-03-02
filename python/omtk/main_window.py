@@ -1,6 +1,7 @@
 import functools
 import inspect
 import logging
+from collections import defaultdict
 
 import core
 
@@ -11,6 +12,7 @@ from omtk.core import classModule
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.ui import main_window
+from omtk import ui_shared
 
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
@@ -49,7 +51,8 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.actionMirrorJntsLToR.triggered.connect(self.on_mirror_influences_l_to_r)
         self.ui.actionMirrorJntsRToL.triggered.connect(self.on_mirror_influences_r_to_l)
         self.ui.actionMirrorSelection.triggered.connect(self.on_mirror_selection)
-        self.ui.actionAddNodeToModule.triggered.connect(self.on_addToModule)
+        self.ui.actionAddSelectedInfluencesToModule.triggered.connect(self.on_add_selected_influences_to_module)
+        self.ui.actionAddSelectedMeshesToModule.triggered.connect(self.on_add_selected_meshes_to_module)
         self.ui.actionRemoveNodeFromModule.triggered.connect(self.on_removeFromModule)
         self.ui.actionShowPluginManager.triggered.connect(self.on_show_pluginmanager)
         self.ui.actionShowPreferences.triggered.connect(self.on_show_preferences)
@@ -138,7 +141,7 @@ class AutoRig(QtWidgets.QMainWindow):
             actionRemove.triggered.connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
-            module = sel[0].rig
+            module = sel[0].metadata_data
 
             def is_exposed(val):
                 if not hasattr(val, '__can_show__'):
@@ -219,6 +222,52 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules.update()
         self.ui.widget_jnts.update()
         self.ui.widget_meshes.update()
+    
+    # --- Widget traversal methods ---
+    # todo: put this elsewhere?
+
+    def _get_selected_items_by_metadata_type(self, qtreeview, metadata_type):
+        items = qtreeview.selectedItems()
+        return [item for item in items if item.metadata_type == metadata_type]
+
+    def _get_qtreeview_selected_metadata(self, qtreeview, metadata_type, search_up=False):
+        items = self._get_selected_items_by_metadata_type(qtreeview, metadata_type)
+        return [item.metadata_data for item in items]
+
+    def get_selected_modules(self, search_up=False):
+        return self._get_qtreeview_selected_metadata(
+            self.ui.widget_modules.ui.treeWidget,
+            ui_shared.MetadataType.Module,
+            search_up=search_up
+        )
+
+    def get_selected_rigs(self, search_up=False):
+        return self._get_qtreeview_selected_metadata(
+            self.ui.widget_modules.ui.treeWidget,
+            ui_shared.MetadataType.Rig,
+            search_up=search_up
+        )
+
+    def get_selected_influences(self, search_up=False):
+        return self._get_qtreeview_selected_metadata(
+            self.ui.widget_influences.ui.treeWidget,
+            ui_shared.MetadataType.Influece,
+            search_up=search_up
+        )
+
+    def get_selected_meshes(self, search_up=False):
+        return self._get_qtreeview_selected_metadata(
+            self.ui.widget_meshes.ui.treeWidget,
+            ui_shared.MetadataType.Mesh,
+            search_up=search_up
+        )
+
+    def _get_parent_item_by_metadata_type(self, qtreewidgetitem, metadata_type):
+        while qtreewidgetitem and not qtreewidgetitem.metadata_type == metadata_type:
+            qtreewidgetitem = qtreewidgetitem.parent()
+        return qtreewidgetitem
+    
+    # --- Events ---
 
     def on_import(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(caption="File Save (.json)", filter="JSON (*.json)")
@@ -280,38 +329,54 @@ class AutoRig(QtWidgets.QMainWindow):
 
         menu.exec_(QtGui.QCursor.pos())
 
-    def on_addToModule(self):
+    def on_add_selected_influences_to_module(self):
+        selected_modules = self.get_selected_modules()
+        selected_meshes = self.get_selected_influences()
         need_update = False
-        selected_module_items = self.ui.widget_modules.ui.treeWidget.selectedItems()
-        selected_influences = self.ui.widget_jnts.get_selection()
 
-        for item in selected_module_items:
-            module = item.rig
-            if module:
-                for obj in selected_influences:
-                    if obj in module.input:
-                        continue
-                    module.input.append(obj)
-                    need_update = True
+        for module in selected_modules:
+            for mesh in selected_meshes:
+                if mesh in module.input:
+                    continue
+                module.input.append(mesh)
+                need_update = True
 
-        # TODO: Faster by manually connecting to the inputs?
+        if need_update:
+            self.export_networks()
+            self.update_ui()
+
+    def on_add_selected_meshes_to_module(self):
+        selected_modules = self.get_selected_modules()
+        selected_meshes = self.get_selected_meshes()
+        need_update = False
+
+        for module in selected_modules:
+            for mesh in selected_meshes:
+                if mesh in module.input:
+                    continue
+                module.input.append(mesh)
+                need_update = True
+
         if need_update:
             self.export_networks()
             self.update_ui()
 
     def on_removeFromModule(self):
         need_update = False
-        selected_module_items = self.ui.widget_modules.ui.treeWidget.selectedItems()
-        selected_influences = self.ui.widget_jnts.get_selection()
+        selected_items = self.ui.widget_modules.ui.treeWidget.selectedItems()
+        items_to_remove_by_module = defaultdict(list)
 
-        for item in selected_module_items:
-            module = item.rig
-            if module:
-                for obj in selected_influences:
-                    if obj not in module.input:
-                        continue
-                    module.input.remove(obj)
-                    need_update = True
+        for item in selected_items:
+            if item.metadata_type in (ui_shared.MetadataType.Influece, ui_shared.MetadataType.Mesh):
+                module_item = self._get_parent_item_by_metadata_type(item, ui_shared.MetadataType.Module)
+                module = module_item.metadata_data
+                influence = item.metadata_data
+                items_to_remove_by_module[module].append(influence)
+
+        for module, influences in items_to_remove_by_module.iteritems():
+            for influence in influences:
+                module.input.remove(influence)
+                need_update = True
 
         # TODO: Faster by manually connecting to the inputs?
         if need_update:

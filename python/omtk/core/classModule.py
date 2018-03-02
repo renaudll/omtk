@@ -362,9 +362,17 @@ class Module(object):
     @libPython.memoized_instancemethod
     def get_meshes(self):
         """
-        :return: A list of all inputs of type pymel.nodetypes.NurbsSurface.
+        :return: A list of all inputs of type pymel.nodetypes.Mesh.
         """
-        return [obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.Mesh)]
+        result = []
+        for input_ in self.input:
+            if isinstance(input_, pymel.nodetypes.Transform):
+                for shape in input_.getShapes(noIntermediate=True):
+                    if isinstance(shape, pymel.nodetypes.Mesh):
+                        result.append(shape)
+            elif isinstance(input_, pymel.nodetypes.Mesh):
+                result.append(input_)
+        return result
 
     @libPython.memoized_instancemethod
     def get_mesh(self):

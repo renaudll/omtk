@@ -891,6 +891,20 @@ class AvarGrpOnSurface(AvarGrp):
         if not self.get_meshes():
             raise Exception("Please provide one reference mesh to follow.")
 
+        # Ensure that if we are building macro avars, we have reference for all of them.
+        # If some are missing we won't be able to build.
+        if self.create_macro_horizontal:
+            if not self.get_jnt_l_mid():
+                raise Exception("Cannot find a reference input for the lft horizontal macro avar.")
+            if not self.get_jnt_r_mid():
+                raise Exception("Cannot find a reference input for the rgt horizontal macro avar.")
+
+        if self.create_macro_vertical:
+            if not self.get_jnt_upp_mid():
+                raise Exception("Cannot find a reference input for the upp macro avar.")
+            if not self.get_jnt_low_mid():
+                raise Exception("Cannot find a reference input for the dwn macro avar.")
+
     #
     # Influence getter functions.
     #
@@ -934,8 +948,14 @@ class AvarGrpOnSurface(AvarGrp):
         # TODO: Use the nomenclature instead of the position?
         """
         middle = self.get_pos_all_middle()
-        fn_filter = lambda jnt: jnt.getTranslation(space='world').x >= middle.x
-        return filter(fn_filter, self.jnts)
+        jnt_all = self.get_influence_all()  # ignore all influence, it have no side
+
+        def _filter(jnt):
+            if jnt == jnt_all:
+                return False
+            return jnt.getTranslation(space='world').x >= middle.x
+
+        return filter(_filter, self.jnts)
 
     @libPython.memoized_instancemethod
     def get_jnts_r(self):
@@ -944,8 +964,14 @@ class AvarGrpOnSurface(AvarGrp):
         # TODO: Use the nomenclature instead of the position?
         """
         middle = self.get_pos_all_middle()
-        fn_filter = lambda jnt: jnt.getTranslation(space='world').x < middle.x
-        return filter(fn_filter, self.jnts)
+        jnt_all = self.get_influence_all()
+
+        def _filter(jnt):
+            if jnt == jnt_all:
+                return False
+            return jnt.getTranslation(space='world').x < middle.x
+
+        return filter(_filter, self.jnts)
 
     @libPython.memoized_instancemethod
     def get_jnt_l_mid(self):
@@ -1525,6 +1551,13 @@ class AvarGrpOnSurface(AvarGrp):
                 # If we are dealing with a 'tweak' avar, it already inherit it's parent transform.
                 if self._is_tweak_avar(avar):
                     continue
+                
+                # Hack: Determine if the avar have an avar model.
+                # Sadly avar models are not implemented so we fallback to duck typing the _post_stack attribute
+                # which is added on simple avars.
+                if not hasattr(avar, '_post_stack'):
+                    continue
+                
                 self._add_macro_all_avar_contribution(avar)
 
     def _add_macro_all_avar_contribution(self, avar):

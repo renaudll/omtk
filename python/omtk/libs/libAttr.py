@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 import logging
+import re
 
 log = logging.getLogger('omtk')
 
@@ -662,3 +663,57 @@ def context_disconnected_attrs(attrs, hold_inputs=True, hold_outputs=True):
     data = hold_connections(attrs, hold_inputs=hold_inputs, hold_outputs=hold_outputs)
     yield True
     fetch_connections(data)
+
+
+def connect_t_to_avar():
+    """
+    Will always call connect_to_avar with the specific needed dict 
+    
+    :param ctrl: The ctrl we want that will control the fb, ud and lr avar
+    :param avar_node: The node on which we can find the avar we want to control
+    """
+
+    ctrl = pymel.selected()[0]
+    avar_node = pymel.selected()[1]
+
+    avar_info = {"avar_ud": "ty", "avar_fb": "tz", "avar_lr": "tx"}
+    connect_to_avar(ctrl, avar_node, avar_info)
+
+
+def connect_r_to_avar():
+    """
+    Will always call connect_to_avar with the specific needed dict 
+
+    :param ctrl: The ctrl we want that will control the fb, ud and lr avar
+    :param avar_node: The node on which we can find the avar we want to control
+    """
+
+    ctrl = pymel.selected()[0]
+    avar_node = pymel.selected()[1]
+
+    avar_info = {"avar_yw": "ry", "avar_rl": "rz", "avar_pt": "rx"}
+    connect_to_avar(ctrl, avar_node, avar_info)
+
+
+def connect_to_avar(ctrl, avar_node, mapping_dict):
+    """
+    Connect the translate attribute of a controller on the specific avar of the avar_node.
+    Take into consideration that the calibration should be done done to match 1 at the maximum displacement
+    
+    :param ctrl: The ctrl we want that will control the fb, ud and lr avar
+    :param avar_node: The node on which we can find the avar we want to control
+    :param mapping_dict: Dictionary in which the key represent the avar attribute name and the value the ctrl attribute
+                         that will drive this avar
+    """
+    regex_input_idx = "^input[[]{1}(\d)[]]{1}$"
+
+    # First get the weightBlended from the needed avar
+    for avar_name, ctrl_attr_name in mapping_dict.iteritems():
+        bw_list = avar_node.attr(avar_name).listConnections(c=False, d=False, t="blendWeighted")
+        if len(bw_list) != 1:
+            raise ("Could not connect ctrl {0} translation in avar node {1}".format(ctrl, avar_node))
+        match = re.search(regex_input_idx, bw_list[0].input.elements()[-1])
+        input_idx = int(match.group(1)) + 1
+        pymel.connectAttr(ctrl.attr(ctrl_attr_name), bw_list[0].input[input_idx])
+
+    pymel.select(ctrl)

@@ -6,6 +6,7 @@ from omtk.core.classModule import Module
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPython
+from omtk.libs import libAttr
 from omtk.modules import rigFK
 
 
@@ -33,11 +34,14 @@ class AdditiveFK(rigFK.FK):
         super(AdditiveFK, self).__init__(*args, **kwargs)
         self.num_ctrls = 1
         self.additive_ctrls = []
+        # Deactivate additive fk ctrl to prevent anybody to use it
+        self.enable_addfk_ctrl = True
 
     def build(self, *args, **kwargs):
         super(AdditiveFK, self).build(*args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
         # Ensure to create the finger ctrl in the good orientation
         if nomenclature_anm.side == self.rig.nomenclature.SIDE_L:
@@ -55,14 +59,24 @@ class AdditiveFK(rigFK.FK):
         for i, ctrl in enumerate(self.additive_ctrls):
             # Resolve ctrl name
             nomenclature = nomenclature_anm + self.rig.nomenclature(self.jnt.stripNamespace().nodeName())
-            if self._NAME_CTRL_MERGE and len(self.additive_ctrls) == 1:
-                name = nomenclature.resolve("addFk", "{0:02d}".format(i))
+            if not self._FORCE_INPUT_NAME:
+                if len(self.additive_ctrls) == 1 and len(self.chains) == 1:
+                    ctrl_name = nomenclature_anm.resolve("addFk")
+                elif len(self.chains) == 1 or self._NAME_CTRL_ENUMERATE:
+                    ctrl_name = nomenclature_anm.resolve("addFk", "{0:02d}".format(i))
+                else:
+                    ctrl_name = nomenclature.resolve("addFk")
             else:
-                name = nomenclature.resolve("addFk")
+                ctrl_name = nomenclature.resolve("addFk")
 
-            ctrl.build(name=name, refs=self.chain.start, normal=normal_data[self.rig.DEFAULT_UPP_AXIS])
+            ctrl.build(name=ctrl_name, refs=self.chain.start, normal=normal_data[self.rig.DEFAULT_UPP_AXIS])
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
+            # In case we don't want to see addFk ctrl, like in a hand.
+            # TODO - In this case, maybe the hand would be best to switch it's finger to fk
+            if not self.enable_addfk_ctrl:
+                ctrl.visibility.set(False)
+                libAttr.lock_hide_trs(ctrl)
 
         for i, ctrl in enumerate(self.ctrls):
             # HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems

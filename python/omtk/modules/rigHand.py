@@ -149,6 +149,11 @@ class Hand(Module):
                 sys_metacarpal.grp_anm.setParent(self.grp_anm)
 
             sys_finger.create_spaceswitch = False
+            # Force input name to prevent any ctrl duplication name when the chain only have 1 input
+            sys_finger._FORCE_INPUT_NAME = True
+            # Lock and hide addFk ctrl for the hand
+            # TODO - Switch to fi the fingers ?
+            sys_finger.enable_addfk_ctrl = False
             sys_finger.build()
             if sys_metacarpal:
                 sys_finger.grp_anm.setParent(sys_metacarpal.ctrls[0])

@@ -62,8 +62,8 @@ def reload_():
     from . import nodegraph_node_model_base
     reload(nodegraph_node_model_base)
 
-    from . import nodegraph_node_model_dagnode
-    reload(nodegraph_node_model_dagnode)
+    from . import nodegraph_node_model_dgnode
+    reload(nodegraph_node_model_dgnode)
 
     from . import nodegraph_node_model_component
     reload(nodegraph_node_model_component)

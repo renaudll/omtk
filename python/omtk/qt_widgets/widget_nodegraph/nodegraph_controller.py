@@ -15,7 +15,7 @@ from omtk.vendor.Qt import QtCore
 
 from . import nodegraph_node_model_base
 from . import nodegraph_node_model_component
-from . import nodegraph_node_model_dagnode
+from . import nodegraph_node_model_dgnode
 from . import nodegraph_node_model_root
 
 # Used for type checking
@@ -66,6 +66,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self._known_connections = set()
 
         # Keep track of which nodes, ports and connections are visible.
+        self._visible_node_models = set()
+        self._visible_port_models = set()
+        self._visible_connection_models = set()
 
         self._known_nodes_widgets = set()
         self._known_connections_widgets = set()
@@ -110,6 +113,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self._view.connectionRemoved.disconnect(self.on_connected_removed)
 
         self._view = view
+
+        # Restore visible nodes/ports/connections
+        for node_model in self._visible_node_models:
+            self.add_node_model_to_view(node_model)
+        for port_model in self._visible_port_models:
+            self.add_port_model_to_view(port_model)
+        for connection_model in self._visible_connection_models:
+            self.add_connection_model_to_view(connection_model)
 
         # Connect events
         view.connectionAdded.connect(self.on_connection_added)
@@ -261,6 +272,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         :param model:
         :return:
         """
+        # Remove associated widget if necessary
+        if self.is_node_model_in_view(model):
+            self.remove_node_model_from_view(model)
+
+
         widget = self._cache_node_widget_by_model.get(model, None)
         if widget:
             self.unregister_node_widget(widget)
@@ -310,7 +326,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                                                                                               component)
                 else:
                     return self._model.get_node_from_value(component)
-            return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self._model, val)
+            return nodegraph_node_model_dgnode.NodeGraphDgNodeModel(self._model, val)
 
         # model = self._model.get_node_from_value(val)
         # if isinstance(model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
@@ -546,12 +562,17 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         model_src_node = self.get_node_model_from_value(port_src_model.get_parent().get_metadata())
         model_dst_node = self.get_node_model_from_value(port_dst_model.get_parent().get_metadata())
 
-        widget_src_node = self.get_node_widget(model_src_node)
-        if not self.is_node_widget_in_view(widget_src_node):
-            self.add_node_widget_to_scene(widget_src_node)
-        widget_dst_node = self.get_node_widget(model_dst_node)
-        if not self.is_node_widget_in_view(widget_dst_node):
-            self.add_node_widget_to_scene(widget_dst_node)
+        if not self.is_node_model_in_view(model_src_node):
+            widget_src_node = self.add_node_model_to_view(model_src_node)
+
+        if not self.is_node_model_in_view(model_dst_node):
+            widget_dst_node = self.add_node_model_to_view(model_dst_node)
+        # widget_src_node = self.get_node_widget(model_src_node)
+        # if not self._is_node_widget_in_view(widget_src_node):
+        #     self._add_node_widget_to_view(widget_src_node)
+        # widget_dst_node = self.get_node_widget(model_dst_node)
+        # if not self._is_node_widget_in_view(widget_dst_node):
+        #     self._add_node_widget_to_view(widget_dst_node)
 
         # Hack:
         widget_dst_node_in_circle = widget_dst_port.inCircle()
@@ -589,25 +610,41 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Widget/View methods ---
 
-    def is_node_widget_in_view(self, node_widget):
+    def is_node_model_in_view(self, node_model):
+        return node_model in self._visible_node_models
+
+    # todo: deprecate
+    def _is_node_widget_in_view(self, node_widget):
         """Check if a QGraphicsItem instance is in the View."""
         return node_widget in self._known_nodes_widgets
 
-    def add_node_widget_to_scene(self, node_widget):
-        # todo: check for name clash?
-        self._view.addNode(node_widget)
-        self._known_nodes_widgets.add(node_widget)
+    def add_node_model_to_view(self, node_model):
+        # type: (NodeGraphNodeModel) -> None
+        self._visible_node_models.add(node_model)
 
-        # Hack: Enable the eventFilter on the node
-        # We can only do this once it's added to the scene
-        # todo: use signals for this?
-        node_widget.on_added_to_scene()
+        if self.get_view():
+            node_widget = self.get_node_widget(node_model)
+            # todo: check for name clash?
+            self._view.addNode(node_widget)
+            self._known_nodes_widgets.add(node_widget)
 
-    def remove_node_widget_from_scene(self, node_widget):
-        # type: (OmtkNodeGraphNodeWidget) -> None
-        node_widget.disconnectAllPorts(emitSignal=False)
-        self._view.removeNode(node_widget)
-        node_widget.on_removed_from_scene()
+            # Hack: Enable the eventFilter on the node
+            # We can only do this once it's added to the scene
+            # todo: use signals for this?
+            node_widget.on_added_to_scene()
+
+            return node_widget
+
+    def remove_node_model_from_view(self, node_model):
+        if not self.is_node_model_in_view(node_model):
+            return
+        self._visible_node_models.remove(node_model)
+
+        if self.get_view():
+            node_widget = self.get_node_widget(node_model)
+            node_widget.disconnectAllPorts(emitSignal=False)
+            self._view.removeNode(node_widget)
+            node_widget.on_removed_from_scene()
 
     # --- High-level methods ---
 
@@ -625,9 +662,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         if isinstance(self._current_level_model, self._cls_root_model):
             self._current_level_model.add_child(node_model)
 
-        if self.get_view():
-            node_widget = self.get_node_widget(node_model)
-            self.add_node_widget_to_scene(node_widget)
+        node_widget = self.add_node_model_to_view(node_model)
+        if node_widget:
 
             qrect = node_widget.rect()
             pos = self.get_view().get_available_position(qrect)
@@ -671,9 +707,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def delete_node(self, model):
         # type: (NodeGraphNodeModel) -> None
-        model.delete()  # this should fire some callbacks
-        widget = self.get_node_widget(model)
-        self.remove_node_widget_from_scene(widget)
+        model.delete()  # this should fire some callbacks0
         self.unregister_node_model(model)
 
     def get_selected_node_models(self):
@@ -734,8 +768,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         children = node_model.get_children()
         for child_model in children:
             child_model._node = node_model  # hack: parent is not correctly set at the moment
-            widget = self.get_node_widget(child_model)
-            self.add_node_widget_to_scene(widget)
+            self.add_node_model_to_view(child_model)
             # widgets.add(widget)
             self.expand_node_attributes(child_model)
             self.expand_node_connections(child_model)
@@ -747,8 +780,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             # Create inn node
             grp_inn = component.grp_inn
             node_model = self.get_node_model_from_value(grp_inn)
-            node_widget = self.get_node_widget(node_model)
-            self.add_node_widget_to_scene(node_widget)
+            node_widget = self.add_node_model_to_view(node_model)
             self.expand_node_attributes(node_model)
             self.expand_node_connections(node_model)
             self._widget_bound_inn = node_widget
@@ -756,8 +788,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             # Create out node
             grp_out = component.grp_out
             node_model = self.get_node_model_from_value(grp_out)
-            node_widget = self.get_node_widget(node_model)
-            self.add_node_widget_to_scene(node_widget)
+            node_widget = self.add_node(node_model)
             self.expand_node_attributes(node_model)
             self.expand_node_connections(node_model)
             self._widget_bound_out = node_widget
@@ -1040,7 +1071,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         from omtk.libs import libPyflowgraph
         models = self.get_selected_node_models()
         for model in models:
-            if not isinstance(model, nodegraph_node_model_dagnode.NodeGraphDagNodeModel):
+            if not isinstance(model, nodegraph_node_model_dgnode.NodeGraphDgNodeModel):
                 continue
             node = model.get_metadata()
             pos = libMayaNodeEditor.get_node_position(node)

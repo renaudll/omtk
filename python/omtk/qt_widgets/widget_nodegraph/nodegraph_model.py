@@ -10,6 +10,7 @@ from omtk.vendor import libSerialization
 
 from . import nodegraph_connection_model
 from . import nodegraph_node_model_component
+from . import nodegraph_node_model_dgnode
 from . import nodegraph_node_model_dagnode
 from . import nodegraph_node_model_module
 from . import nodegraph_node_model_rig
@@ -133,7 +134,10 @@ class NodeGraphModel(object):
             #     component = self._manager.import_network(network)
             #     return nodegraph_node_model_component.NodeGraphComponentModel(self, component)
 
-            return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self, val)
+            if isinstance(val, pymel.nodetypes.DagNode):
+                return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self, val)
+            else:
+                return nodegraph_node_model_dgnode.NodeGraphDgNodeModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Module:
             return nodegraph_node_model_module.NodeGraphModuleModel(self, val)

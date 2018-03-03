@@ -6,7 +6,7 @@ from omtk.core import entity_attribute
 from omtk.vendor.Qt import QtGui
 
 from . import nodegraph_node_model_base
-from . import nodegraph_node_model_dagnode
+from . import nodegraph_node_model_dgnode
 from . import pyflowgraph_node_widget
 
 if False:
@@ -108,7 +108,7 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         return pyflowgraph_node_widget.OmtkNodeGraphComponentNodeWidget
 
 
-class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dagnode.NodeGraphDagNodeModel):
+class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dgnode.NodeGraphDgNodeModel):
     """
     Since dagnode contain input and output network that define their bound, it is usefull for us
     to have access to a dedicated model for the bounds that point to the compound model.

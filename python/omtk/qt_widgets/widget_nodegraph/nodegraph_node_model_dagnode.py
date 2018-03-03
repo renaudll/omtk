@@ -5,10 +5,76 @@ from omtk.libs import libAttr, libPyflowgraph
 from omtk.vendor.Qt import QtCore
 
 from . import nodegraph_node_model_base
-from . import nodegraph_port_model
 from . import pyflowgraph_node_widget
+from . import nodegraph_connection_model
+from . import nodegraph_port_model
 
 log = logging.getLogger('omtk.nodegraph')
+
+
+class DagNodeParentPortModel(nodegraph_port_model.NodeGraphPortModel):
+    # __metaclass__ = abc.ABCMeta
+
+    def __init__(self, registry, parent):
+        super(DagNodeParentPortModel, self).__init__(registry, parent, 'hierarchy')
+
+    def is_interesting(self):
+        return True
+
+    def is_readable(self):
+        return True
+
+    def is_writable(self):
+        return True
+
+    def get_metadata(self):
+        return self._node.get_metadata()
+
+    def get_metatype(self):
+        from omtk.factories import factory_datatypes
+        return factory_datatypes.AttributeType.AttributeCompound
+
+    def get_output_connections(self, ctrl):
+        result = []
+        metadata = self.get_metadata()
+        children = metadata.getChildren()
+        for child in children:
+            model_dst_node = ctrl.get_node_model_from_value(child)
+            model_dst_port = DagNodeParentPortModel(self._registry, model_dst_node)
+            model_connection = nodegraph_connection_model.NodeGraphConnectionModel(self._registry, self, model_dst_port)
+            result.append(model_connection)
+        return result
+
+    def get_input_connections(self, ctrl):
+        result = []
+        metadata = self.get_metadata()
+        parent = metadata.getParent()
+        if parent:
+            model_src_node = ctrl.get_node_model_from_value(parent)
+            model_src_port = DagNodeParentPortModel(self._registry, model_src_node)
+            model_connection = nodegraph_connection_model.NodeGraphConnectionModel(self._registry, model_src_port, self)
+            result.append(model_connection)
+        return result
+
+    def connect_to(self, val):
+        # type: (pymel.PyNode) -> None
+        metadata = self.get_metadata()
+        val.setParent(metadata)
+
+    def connect_from(self, val):
+        # type: (pymel.PyNode) -> None
+        # todo: cycle validation?
+        metadata = self.get_metadata()
+        metadata.setParent(val)
+
+    def disconnect_from(self, val):
+        # type: (pymel.PyNode) -> None
+        metadata = self.get_metadata()
+        metadata.setParent(world=True)
+
+    # def disconnect_to(self, val):
+    #     # type: (pymel.PyNode) -> None
+    #     pass
 
 
 class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
@@ -50,12 +116,29 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         return list(libAttr.iter_contributing_attributes(self._pynode))
         # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
-    def iter_attributes(self):
+    def iter_attributes(self, ctrl):
+        # Expose parent attribute
+        metadata = self.get_metadata()
+        parent = metadata.getParent()
+        node_model = ctrl.get_node_model_from_value(metadata)
+        inst = DagNodeParentPortModel(self, node_model)
+        # inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+        yield inst
+
+        # yield self._registry.get_port_model_from_value(parent)
+
         for attr in self.get_attributes_raw_values():
             inst = self._registry.get_port_model_from_value(attr)
             # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
             # self._registry._register_attribute(inst)
             yield inst
+
+            # If the attribute is a multi attribute, we'll want to expose the first available.
+            if attr.isMulti():
+                next_available_index = attr.numElements() + 1
+                attr_available = attr[next_available_index]
+                inst = self._registry.get_port_model_from_value(attr_available)
+                yield inst
 
             # if attr.isMulti():
             #     num_elements = attr.numElements()
@@ -68,10 +151,10 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             #         yield inst
 
     # @decorators.memoized_instancemethod
-    def get_attributes(self):
+    def get_attributes(self, ctrl):
         # type: () -> List[NodeGraphPortModel]
         result = set()
-        for attr in self.iter_attributes():
+        for attr in self.iter_attributes(ctrl):
             result.add(attr)
         return result
 
@@ -88,5 +171,3 @@ class NodeGraphDagNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             node.setGraphPos(pos)
 
         return node
-
-

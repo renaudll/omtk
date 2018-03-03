@@ -110,7 +110,7 @@ class NodeGraphModel(object):
             return nodegraph_node_model_component.NodeGraphComponentModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Node:
-            network = None
+            network = val
             if isinstance(val, pymel.nodetypes.Network):
                 if libSerialization.is_network_from_class(val, Component.__name__):
                     network = val
@@ -210,7 +210,7 @@ class NodeGraphModel(object):
         if not isinstance(model_dst, nodegraph_port_model.NodeGraphPortModel):
             model_dst = self.get_port_model_from_value(model_dst)
 
-        inst = nodegraph_connection_model.NodeGraphConnectionModel(self, None, model_src, model_dst)
+        inst = nodegraph_connection_model.NodeGraphConnectionModel(self, model_src, model_dst)
         self._register_connections(inst)
         return inst
 

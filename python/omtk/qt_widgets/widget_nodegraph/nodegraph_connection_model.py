@@ -7,7 +7,7 @@ if False:
 
 
 class NodeGraphConnectionModel(object):
-    def __init__(self, registry, name, attr_src, attr_dst):
+    def __init__(self, registry, attr_src, attr_dst):
         self._registry = registry
         self._attr_src = attr_src
         self._attr_dst = attr_dst

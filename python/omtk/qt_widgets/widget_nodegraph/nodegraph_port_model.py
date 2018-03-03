@@ -97,7 +97,7 @@ class NodeGraphPortModel(object):
 
     # --- Connection related methods --- #
 
-    def get_input_connections(self):
+    def get_input_connections(self, ctrl):
         result = set()
 
         for val in self.impl.get_inputs():
@@ -106,7 +106,7 @@ class NodeGraphPortModel(object):
             result.add(inst)
         return result
 
-    def get_output_connections(self):
+    def get_output_connections(self, ctrl):
         result = set()
         for val in self.impl.get_outputs():
             model = self._registry.get_port_model_from_value(val)
@@ -114,8 +114,8 @@ class NodeGraphPortModel(object):
             result.add(inst)
         return result
 
-    def get_connections(self):
-        return self.get_input_connections() | self.get_output_connections()
+    def get_connections(self, ctrl):
+        return self.get_input_connections(ctrl) | self.get_output_connections(ctrl)
 
     def connect_from(self, val):
         """Called when an upstream connection is created using a view."""
@@ -191,7 +191,7 @@ class NodeGraphOpenMaya2PortModel(NodeGraphPortModel):
 class NodeGraphPymelPortModel(NodeGraphPortModel):
     """Define an attribute bound to a PyMel.Attribute datatype."""
 
-    def __init__(self, registry, node, pyattr, attr_node=None):
+    def __init__(self, registry, node, pyattr):
         name = pyattr.longName()
         super(NodeGraphPymelPortModel, self).__init__(registry, node, name)
         self._impl = nodegraph_port_adaptor.PymelAttributeNodeGraphPortImpl(pyattr)

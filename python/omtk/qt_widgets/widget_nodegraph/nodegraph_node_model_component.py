@@ -43,7 +43,7 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         return self._entity.get_children()
 
     @decorators.memoized_instancemethod
-    def get_attributes(self):
+    def get_attributes(self, ctrl):
         # type: () -> List[NodeGraphPortModel]
         result = set()
 

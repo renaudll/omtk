@@ -400,3 +400,20 @@ class Node(QtWidgets.QGraphicsWidget):
         for port in self.__ports:
             if isinstance(port, (OutputPort, IOPort)):
                 yield port
+
+    def removePort(self, port):
+        if isinstance(port, InputPort):
+            self.__inputPortsHolder.layout().removeItem(port)
+            # self.__inputPortsHolder.removePort
+            # self.__inputPortsHolder.addPort(port, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        elif isinstance(port, OutputPort):
+            self.__outputPortsHolder.layout().removeItem(port)
+            # self.__outputPortsHolder.addPort(port, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        else:
+            self.__ioPortsHolder.layout().removeItem(port)
+            # self.__ioPortsHolder.addPort(port, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        # self.__ports.append(port)
+        self.__ports.remove(port)
+        self.adjustSize()
+        # return port
+

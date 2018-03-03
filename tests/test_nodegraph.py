@@ -1,17 +1,18 @@
 import unittest
-from omtk.qt_widgets.widget_nodegraph import NodeGraphModel, NodeGraphController, NodeGraphView, NodeGraphControllerFilter
 import pymel.core as pymel
+from omtk.qt_widgets.widget_nodegraph import NodeGraphModel, NodeGraphController, NodeGraphView, NodeGraphControllerFilter
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class TestNodeGraph(unittest.TestCase):
     def setUp(self):
-        # self._qt_app = QtWidgets.QApplication([])
+        # if QtWidgets.qApp is None:
+        #     app = QtWidgets.QApplication([])
         self._registry = NodeGraphModel()
-        self._view = NodeGraphView()
+        # self._view = NodeGraphView()
         self._filter = NodeGraphControllerFilter(self._registry)
 
         self._controller = NodeGraphController(self._registry)
-        self._controller.set_view(self._view)
+        # self._controller.set_view(self._view)
 
     def test_transform(self):
         """Ensure that we are able to represent a single transform."""

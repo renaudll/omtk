@@ -124,6 +124,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_G, self.on_shortcut_group)
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D, self.on_shortcut_duplicate)
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_A, self.on_select_all)
+        self._create_shortcut(QtCore.Qt.Key_P, self.on_parent_selected)
 
         # todo: move elsewhere?
         self._create_shortcut(QtCore.Qt.Key_T, self.ui.widget_toolbar.create_favorite_callback('transform'))
@@ -162,6 +163,9 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_select_all(self):
         self.get_controller().select_all_nodes()
+
+    def on_parent_selected(self):
+        self.get_controller().on_parent_selected()
 
     @property
     def manager(self):

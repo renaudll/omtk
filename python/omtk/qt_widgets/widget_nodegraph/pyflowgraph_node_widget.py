@@ -209,7 +209,7 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
     # @decorators.log_info
     def callback_attribute_changed(self, msg, plug, *args, **kwargs):
         from maya import OpenMaya
-        print(' + '.join(self._analayse_callback_message(msg)))
+        # print(' + '.join(self._analayse_callback_message(msg)))
 
         if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
             attr_dagpath = plug.name()

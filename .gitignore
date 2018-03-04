@@ -1,5 +1,6 @@
 # Pycharm files
 .idea/*
+python/.idea/*
 
 *.egg-info/*
 cpp/includes/

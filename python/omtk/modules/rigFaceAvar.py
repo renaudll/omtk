@@ -63,6 +63,8 @@ class CtrlFaceMacro(BaseCtrlFace):
     def __createNode__(self, normal=(0, 0, 1), **kwargs):
         return libCtrlShapes.create_square(normal=normal, **kwargs)
 
+from omtk.models import model_avar_surface
+from omtk.models import model_avar_linear
 
 class AbstractAvar(classModule.Module):
     """
@@ -388,18 +390,20 @@ class AvarSimple(AbstractAvar):
     """
     _CLS_CTRL = None  # By default, an avar don't have an ctrl.
     _CLS_MODEL_CTRL = ModelCtrlLinear
+    _CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
 
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
 
-        self._stack = None
+        self._stack_post = None
         self.grp_offset = None
         self._grp_parent = None
 
         # Bind input for the ctrl model, can be modified by subclasses for custom behavior.
         self._grp_default_ctrl_model = None
-        
+
         self.model_ctrl = None
+        self.model_infl = None
 
         # In normal cases, an avar influence a joint.
         # However it is possible that the rigger might want to use other means (like blendshapes)
@@ -450,11 +454,6 @@ class AvarSimple(AbstractAvar):
         1) 'offset group'
            We start with the bind transform.
            The resulting matrix is in local (also known as pre-deform) space.
-        # 2) 'pre-avar stack'
-        #    This add any contribution before the avar.
-        #    Being a stack, it can be modified after creation if needed by adding layers to it.
-        #    Used for adding the jaw contribution on FaceLips module.
-        #    The resulting matrix is still in local space.
         3) 'avar stack'
            This compute the desired movement from the avar values.
            Being a stack, it can be modified after creation if needed by adding layers to it.
@@ -467,7 +466,7 @@ class AvarSimple(AbstractAvar):
         5) 'parent' group
            This matrix is identity at bind pose and will add the movement from the parent of the avar.
            The resulting matrix is in world space.
-           
+
         The final transform is computed by multiplying all these stacks togheter:
         - offset.matrix
         - pre-avar.worldMatrix
@@ -477,46 +476,11 @@ class AvarSimple(AbstractAvar):
         """
         nomenclature_rig = self.get_nomenclature_rig()
 
-        # Build pre-avar stack
-        # This is a list of matrix multiplication that will be executed BEFORE the avar.
-        # self._stack_pre = classNode.Node()
-        # self._stack_pre.build(name=nomenclature_rig.resolve('preAvar'))
-        # self._stack_pre.setParent(self.grp_rig)
-        # layer_stack_input = self._stack_pre.prepend_layer(name='input')
-        # 
-        # u = libRigging.create_utility_node(
-        #     'multMatrix',
-        #     matrixIn=(
-        #         self._grp_offset,
-        #     )
-        # )
-        # 
-        # libRigging.connect_matrix_to_node(
-        #     self._grp_offset.matrix,
-        #     layer_stack_input,
-        #     name=nomenclature_rig.resolve('decomposeOffset')
-        # )
-
-        # Build avar stack
-        self._stack = classNode.Node()
-        self._stack.build(name=nomenclature_rig.resolve('avar'))
-        self._stack.setParent(self.grp_rig)
-        self.build_stack(self._stack)
-        # layer_stack_input = self._stack.prepend_layer(name='input')
-        # 
-        # libRigging.connect_matrix_to_node(
-        #     self._stack_pre.worldMatrix,
-        #     layer_stack_input,
-        #     name=nomenclature_rig.resolve('decomposePreAvarTm'),
-        # )
-
-        # util_decompose_stack_pre = libRigging.create_utility_node(
-        #     'decomposeMatrix',
-        #     inputMatrix=self._stack_pre.worldMatrix,
-        # )
-        # pymel.connectAttr(util_decompose_stack_pre.outputTranslate, layer_stack_input.translate)
-        # pymel.connectAttr(util_decompose_stack_pre.outputRotate, layer_stack_input.rotate)
-        # pymel.connectAttr(util_decompose_stack_pre.outputScale, layer_stack_input.scale)
+        self.model_infl = self.init_module(self._CLS_MODEL_INFL, self.model_infl, suffix='avar')
+        # self.model_infl = model_avar_surface.AvarSurfaceModel(self.input, rig=self.rig, name=infl_model_name)
+        self.model_infl.build()
+        self.model_infl.grp_rig.setParent(self.grp_rig)
+        self.model_infl.connect_avar(self)
 
         # Build post-avar stack
         # This is a list of matrix multiplication that will be executed AFTER feeding the avar.
@@ -529,22 +493,7 @@ class AvarSimple(AbstractAvar):
         )
         # layer_stack_input = self._stack_post.prepend_layer(name='input')
         self._stack_post.setParent(post_stack_root)
-        
-        u = libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                self._stack.worldMatrix,
-                # self._grp_offset.matrix,
-            )
-        ).matrixSum
 
-        # libRigging.connect_matrix_to_node(
-        #     u,
-        #     # self._stack.worldMatrix,
-        #     self._stack_post.node,
-        #     name=nomenclature_rig.resolve('decomposeAvarStackTm'),
-        # )
-        
         libRigging.connect_matrix_to_node(
             self.grp_offset.matrix,
             post_stack_root,
@@ -564,7 +513,8 @@ class AvarSimple(AbstractAvar):
             'multMatrix',
             matrixIn=(
                 # self._stack_pre.worldMatrix,
-                self._stack.worldMatrix,
+                # self._stack.worldMatrix,
+                self.model_infl._attr_out_tm,
                 self._stack_post.worldMatrix,
                 # self._grp_offset.matrix,
                 self._grp_parent.matrix,
@@ -660,37 +610,6 @@ class AvarSimple(AbstractAvar):
         self.create_stacks()
 
         # ---------------------------------------------
-
-        # Build a default controller model
-        # This is sufficient for a simple model, however some more complex model might benefit from it.
-        # This is also used in FaceLipsAvar so that the linear model follow the jaw influence.
-        # self._grp_default_ctrl_model = pymel.createNode(
-        #     'transform',
-        #     name=nomenclature_rig.resolve('defaultCtrlModel'),
-        #     parent=self.grp_rig,
-        # )
-        # # self._connect_default_ctrl_model(self._grp_default_ctrl_model)
-        # 
-        # attr_ctrl_model_tm = self._grp_output.worldMatrix
-        # pymel.datatypes.Matrix(-1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
-        # 
-        # pymel.parentConstraint(self._grp_output, self._grp_default_ctrl_model)
-        # pymel.scaleConstraint(self._grp_output, self._grp_default_ctrl_model)
-
-        # attr_default_ctrl_model_tm = libRigging.create_utility_node(
-        #     'multMatrix',
-        #     matrixIn=(
-        #         self._grp_offset.matrix,
-        #         self._grp_parent.worldMatrix,
-        #     )
-        # ).matrixSum
-        # util_decompose_default_ctrl_model_tm = libRigging.create_utility_node(
-        #     'decomposeMatrix',
-        #     inputMatrix=attr_default_ctrl_model_tm
-        # )
-        # pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputTranslate, self._grp_default_ctrl_model.translate)
-        # pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputRotate, self._grp_default_ctrl_model.rotate)
-        # pymel.connectAttr(util_decompose_default_ctrl_model_tm.outputScale, self._grp_default_ctrl_model.scale)
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
@@ -879,430 +798,7 @@ class AvarFollicle(AvarSimple):
     A deformation point on the face that move accordingly to nurbsSurface.
     """
     SHOW_IN_UI = False
-    # _CLS_CTRL_MICRO = CtrlFaceMicro
-
-    _ATTR_NAME_U_BASE = 'baseU'
-    _ATTR_NAME_V_BASE = 'baseV'
-    _ATTR_NAME_U = 'surfaceU'
-    _ATTR_NAME_V = 'surfaceV'
-    _ATTR_NAME_MULT_LR = 'multiplierLr'
-    _ATTR_NAME_MULT_UD = 'multiplierUd'
-    _ATTR_NAME_MULT_FB = 'multiplierFb'
-
-    def __init__(self, *args, **kwargs):
-        super(AvarFollicle, self).__init__(*args, **kwargs)
-
-        self._attr_u_base = None
-        self._attr_v_base = None
-        self.attr_multiplier_lr = None
-        self.attr_multiplier_ud = None
-        self.attr_multiplier_fb = None
-        # self.ctrl_micro = None
-
-        # TODO: Move to build, we don't want 1000 member properties.
-        self._attr_length_v = None
-        self._attr_length_u = None
-        
-        # Reference to the object containing the bind pose of the avar.
-        self._obj_offset = None
-
-    def _hold_uv_multiplier(self):
-        """
-        Save the current uv multipliers.
-        It is very rare that the rigger will tweak this advanced setting manually,
-        however for legacy reasons, it might be useful when upgrading an old rig.
-        """
-        if isinstance(self.attr_multiplier_lr, pymel.Attribute) and self.attr_multiplier_lr.exists():
-            self.multiplier_lr = self.attr_multiplier_lr.get()
-        if isinstance(self.attr_multiplier_ud, pymel.Attribute) and self.attr_multiplier_ud.exists():
-            self.multiplier_ud = self.attr_multiplier_ud.get()
-        if isinstance(self.attr_multiplier_fb, pymel.Attribute) and self.attr_multiplier_fb.exists():
-            self.multiplier_fb = self.attr_multiplier_fb.get()
-
-    def unbuild(self):
-        self._hold_uv_multiplier()
-        super(AvarFollicle, self).unbuild()
-
-    def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
-        """
-        Resolve the relative parameterU and parameterV that will be sent to the follicles.
-        :return: A tuple containing two pymel.Attribute: the relative parameterU and relative parameterV.
-        """
-        # Apply custom multiplier
-        attr_u = libRigging.create_utility_node(
-            'multiplyDivide',
-            input1X=self.attr_lr,
-            input2X=self.attr_multiplier_lr
-        ).outputX
-
-        attr_v = libRigging.create_utility_node(
-            'multiplyDivide',
-            input1X=self.attr_ud,
-            input2X=self.attr_multiplier_ud
-        ).outputX
-
-        return attr_u, attr_v
-
-    def _get_follicle_absolute_uv_attr(self, mult_u=1.0, mult_v=1.0):
-        """
-        Resolve the absolute parameterU and parameterV that will be sent to the follicles.
-        :param mult_u: Custom multiplier
-        :param mult_v:
-        :return: A tuple containing two pymel.Attribute: the absolute parameterU and relative parameterV.
-        """
-        # TODO: Move attribute definition outside this function.
-        attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
-        attr_v_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V)
-
-        attr_u_relative, attr_v_relative = self._get_follicle_relative_uv_attr(mult_u=mult_u, mult_v=mult_v)
-
-        # Add base parameterU & parameterV
-        attr_u_cur = libRigging.create_utility_node(
-            'addDoubleLinear',
-            input1=self._attr_u_base,
-            input2=attr_u_relative
-        ).output
-
-        attr_v_cur = libRigging.create_utility_node(
-            'addDoubleLinear',
-            input1=self._attr_v_base,
-            input2=attr_v_relative
-        ).output
-
-        # TODO: Move attribute connection outside of this function.
-        pymel.connectAttr(attr_u_cur, attr_u_inn)
-        pymel.connectAttr(attr_v_cur, attr_v_inn)
-
-        return attr_u_inn, attr_v_inn
-
-    def build_stack(self, stack, mult_u=1.0, mult_v=1.0, parent_module=None):
-        """
-        The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
-        The decision of using transforms instead of multMatrix nodes is for clarity.
-        Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
-        """
-        # TODO: Maybe use sub-classing to differenciate when we need to use a surface or not.
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        #
-        # Extract the base U and V of the base influence using the stack parent. (the 'offset' node)
-        #
-        surface_shape = self.surface.getShape()
-
-        util_get_base_uv_absolute = libRigging.create_utility_node(
-            'closestPointOnSurface',
-            inPosition=self.grp_offset.t,
-            inputSurface=surface_shape.worldSpace
-        )
-
-        util_get_base_uv_normalized = libRigging.create_utility_node(
-            'setRange',
-            oldMinX=surface_shape.minValueU,
-            oldMaxX=surface_shape.maxValueU,
-            oldMinY=surface_shape.minValueV,
-            oldMaxY=surface_shape.maxValueV,
-            minX=0,
-            maxX=1,
-            minY=0,
-            maxY=1,
-            valueX=util_get_base_uv_absolute.parameterU,
-            valueY=util_get_base_uv_absolute.parameterV
-        )
-        attr_base_u_normalized = util_get_base_uv_normalized.outValueX
-        attr_base_v_normalized = util_get_base_uv_normalized.outValueY
-
-        self._attr_u_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U_BASE,
-                                            defaultValue=attr_base_u_normalized.get())
-        self._attr_v_base = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_V_BASE,
-                                            defaultValue=attr_base_v_normalized.get())
-
-        pymel.connectAttr(attr_base_u_normalized, self.grp_rig.attr(self._ATTR_NAME_U_BASE))
-        pymel.connectAttr(attr_base_v_normalized, self.grp_rig.attr(self._ATTR_NAME_V_BASE))
-
-        #
-        # Create follicle setup
-        # The setup is composed of two follicles.
-        # One for the "bind pose" and one "driven" by the avars..
-        # The delta between the "bind pose" and the "driven" follicles is then applied to the influence.
-        #
-
-        # Determine the follicle U and V on the reference nurbsSurface.
-        # jnt_pos = self.jnt.getTranslation(space='world')
-        # fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, jnt_pos)
-        base_u_val = self._attr_u_base.get()
-        base_v_val = self._attr_v_base.get()
-
-        # Resolve the length of each axis of the surface
-        self._attr_length_u, self._attr_length_v, arcdimension_shape = libRigging.create_arclengthdimension_for_nurbsplane(
-            self.surface)
-        arcdimension_transform = arcdimension_shape.getParent()
-        arcdimension_transform.rename(nomenclature_rig.resolve('arcdimension'))
-        arcdimension_transform.setParent(self.grp_rig)
-
-        #
-        # Create two follicle.
-        # - influenceFollicle: Affected by the ud and lr Avar
-        # - bindPoseFollicle: A follicle that stay in place and keep track of the original position.
-        # We'll then compute the delta of the position of the two follicles.
-        # This allow us to move or resize the plane without affecting the built rig. (if the rig is in neutral pose)
-        #
-        offset_name = nomenclature_rig.resolve('bindPoseRef')
-        self._obj_offset = pymel.createNode('transform', name=offset_name)
-        self._obj_offset.setParent(self.grp_offset)
-
-        fol_offset_name = nomenclature_rig.resolve('bindPoseFollicle')
-        # fol_offset = libRigging.create_follicle(self._obj_offset, self.surface, name=fol_offset_name)
-        fol_offset_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
-        fol_offset = fol_offset_shape.getParent()
-        fol_offset.rename(fol_offset_name)
-        pymel.parentConstraint(fol_offset, self._obj_offset, maintainOffset=False)
-        fol_offset.setParent(self.grp_rig)
-
-        # Create the influence follicle
-        influence_name = nomenclature_rig.resolve('influenceRef')
-        influence = pymel.createNode('transform', name=influence_name)
-        influence.setParent(self.grp_offset)
-
-        fol_influence_name = nomenclature_rig.resolve('influenceFollicle')
-        fol_influence_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
-        fol_influence = fol_influence_shape.getParent()
-        fol_influence.rename(fol_influence_name)
-        pymel.parentConstraint(fol_influence, influence, maintainOffset=False)
-        fol_influence.setParent(self.grp_rig)
-
-        #
-        # Extract the delta of the influence follicle and it's initial pose follicle
-        #
-        attr_localTM = libRigging.create_utility_node('multMatrix', matrixIn=[
-            influence.worldMatrix,
-            self._obj_offset.worldInverseMatrix
-        ]).matrixSum
-
-        # Since we are extracting the delta between the influence and the bindpose matrix, the rotation of the surface
-        # is not taken in consideration wich make things less intuitive for the rigger.
-        # So we'll add an adjustement matrix so the rotation of the surface is taken in consideration.
-        util_decomposeTM_bindPose = libRigging.create_utility_node('decomposeMatrix',
-                                                                   inputMatrix=self._obj_offset.worldMatrix
-                                                                   )
-        attr_translateTM = libRigging.create_utility_node('composeMatrix',
-                                                          inputTranslate=util_decomposeTM_bindPose.outputTranslate
-                                                          ).outputMatrix
-        attr_translateTM_inv = libRigging.create_utility_node('inverseMatrix',
-                                                              inputMatrix=attr_translateTM,
-                                                              ).outputMatrix
-        attr_rotateTM = libRigging.create_utility_node('multMatrix',
-                                                       matrixIn=[self._obj_offset.worldMatrix, attr_translateTM_inv]
-                                                       ).matrixSum
-        attr_rotateTM_inv = libRigging.create_utility_node('inverseMatrix',
-                                                           inputMatrix=attr_rotateTM
-                                                           ).outputMatrix
-        attr_finalTM = libRigging.create_utility_node('multMatrix',
-                                                      matrixIn=[attr_rotateTM_inv,
-                                                                attr_localTM,
-                                                                attr_rotateTM]
-                                                      ).matrixSum
-
-        util_decomposeTM = libRigging.create_utility_node('decomposeMatrix',
-                                                          inputMatrix=attr_finalTM
-                                                          )
-
-        #
-        # Resolve the parameterU and parameterV
-        #
-        self.attr_multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR,
-                                                  defaultValue=self.multiplier_lr)
-        self.attr_multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD,
-                                                  defaultValue=self.multiplier_ud)
-        self.attr_multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB,
-                                                  defaultValue=self.multiplier_fb)
-
-        attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr()
-
-        #
-        # Create the 1st (follicleLayer) that will contain the extracted position from the ud and lr Avar.
-        #
-        layer_follicle = stack.append_layer('follicleLayer')
-        pymel.connectAttr(util_decomposeTM.outputTranslate, layer_follicle.translate)
-
-        pymel.connectAttr(attr_u_inn, fol_influence.parameterU)
-        pymel.connectAttr(attr_v_inn, fol_influence.parameterV)
-        pymel.connectAttr(self._attr_u_base, fol_offset.parameterU)
-        pymel.connectAttr(self._attr_v_base, fol_offset.parameterV)
-
-        #
-        # The second layer (oobLayer for out-of-bound) that allow the follicle to go outside it's original plane.
-        # If the UD value is out the nurbsPlane UV range (0-1), ie 1.1, we'll want to still offset the follicle.
-        # For that we'll compute a delta between a small increment (0.99 and 1.0) and multiply it.
-        #
-        nomenclature_rig = self.get_nomenclature_rig()
-        oob_step_size = 0.001  # TODO: Expose a Maya attribute?
-
-        fol_clamped_v_name = nomenclature_rig.resolve('influenceClampedV')
-        fol_clamped_v_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
-        fol_clamped_v = fol_clamped_v_shape.getParent()
-        fol_clamped_v.rename(fol_clamped_v_name)
-        fol_clamped_v.setParent(self.grp_rig)
-
-        fol_clamped_u_name = nomenclature_rig.resolve('influenceClampedU')
-        fol_clamped_u_shape = libRigging.create_follicle2(self.surface, u=base_u_val, v=base_v_val)
-        fol_clamped_u = fol_clamped_u_shape.getParent()
-        fol_clamped_u.rename(fol_clamped_u_name)
-        fol_clamped_u.setParent(self.grp_rig)
-
-        # Clamp the values so they never fully reach 0 or 1 for U and V.
-        util_clamp_uv = libRigging.create_utility_node('clamp',
-                                                       inputR=attr_u_inn,
-                                                       inputG=attr_v_inn,
-                                                       minR=oob_step_size,
-                                                       minG=oob_step_size,
-                                                       maxR=1.0 - oob_step_size,
-                                                       maxG=1.0 - oob_step_size)
-        clamped_u = util_clamp_uv.outputR
-        clamped_v = util_clamp_uv.outputG
-
-        pymel.connectAttr(clamped_v, fol_clamped_v.parameterV)
-        pymel.connectAttr(attr_u_inn, fol_clamped_v.parameterU)
-
-        pymel.connectAttr(attr_v_inn, fol_clamped_u.parameterV)
-        pymel.connectAttr(clamped_u, fol_clamped_u.parameterU)
-
-        # Compute the direction to add for U and V if we are out-of-bound.
-        dir_oob_u = libRigging.create_utility_node('plusMinusAverage',
-                                                   operation=2,
-                                                   input3D=[
-                                                       fol_influence.translate,
-                                                       fol_clamped_u.translate
-                                                   ]).output3D
-        dir_oob_v = libRigging.create_utility_node('plusMinusAverage',
-                                                   operation=2,
-                                                   input3D=[
-                                                       fol_influence.translate,
-                                                       fol_clamped_v.translate
-                                                   ]).output3D
-
-        # Compute the offset to add for U and V
-
-        condition_oob_u_neg = libRigging.create_utility_node('condition',
-                                                             operation=4,  # less than
-                                                             firstTerm=attr_u_inn,
-                                                             secondTerm=0.0,
-                                                             colorIfTrueR=1.0,
-                                                             colorIfFalseR=0.0,
-                                                             ).outColorR
-        condition_oob_u_pos = libRigging.create_utility_node('condition',  # greater than
-                                                             operation=2,
-                                                             firstTerm=attr_u_inn,
-                                                             secondTerm=1.0,
-                                                             colorIfTrueR=1.0,
-                                                             colorIfFalseR=0.0,
-                                                             ).outColorR
-        condition_oob_v_neg = libRigging.create_utility_node('condition',
-                                                             operation=4,  # less than
-                                                             firstTerm=attr_v_inn,
-                                                             secondTerm=0.0,
-                                                             colorIfTrueR=1.0,
-                                                             colorIfFalseR=0.0,
-                                                             ).outColorR
-        condition_oob_v_pos = libRigging.create_utility_node('condition',  # greater than
-                                                             operation=2,
-                                                             firstTerm=attr_v_inn,
-                                                             secondTerm=1.0,
-                                                             colorIfTrueR=1.0,
-                                                             colorIfFalseR=0.0,
-                                                             ).outColorR
-
-        # Compute the amount of oob
-        oob_val_u_pos = libRigging.create_utility_node('plusMinusAverage', operation=2,
-                                                       input1D=[attr_u_inn, 1.0]).output1D
-        oob_val_u_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_u_inn, input2X=-1.0).outputX
-        oob_val_v_pos = libRigging.create_utility_node('plusMinusAverage', operation=2,
-                                                       input1D=[attr_v_inn, 1.0]).output1D
-        oob_val_v_neg = libRigging.create_utility_node('multiplyDivide', input1X=attr_v_inn, input2X=-1.0).outputX
-        oob_val_u = libRigging.create_utility_node('condition', operation=0, firstTerm=condition_oob_u_pos,
-                                                   secondTerm=1.0, colorIfTrueR=oob_val_u_pos,
-                                                   colorIfFalseR=oob_val_u_neg).outColorR
-        oob_val_v = libRigging.create_utility_node('condition', operation=0, firstTerm=condition_oob_v_pos,
-                                                   secondTerm=1.0, colorIfTrueR=oob_val_v_pos,
-                                                   colorIfFalseR=oob_val_v_neg).outColorR
-
-        oob_amount_u = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=oob_val_u,
-                                                      input2X=oob_step_size).outputX
-        oob_amount_v = libRigging.create_utility_node('multiplyDivide', operation=2, input1X=oob_val_v,
-                                                      input2X=oob_step_size).outputX
-
-        oob_offset_u = libRigging.create_utility_node('multiplyDivide', input1X=oob_amount_u, input1Y=oob_amount_u,
-                                                      input1Z=oob_amount_u, input2=dir_oob_u).output
-        oob_offset_v = libRigging.create_utility_node('multiplyDivide', input1X=oob_amount_v, input1Y=oob_amount_v,
-                                                      input1Z=oob_amount_v, input2=dir_oob_v).output
-
-        # Add the U out-of-bound-offset only if the U is between 0.0 and 1.0
-        oob_u_condition_1 = condition_oob_u_neg
-        oob_u_condition_2 = condition_oob_u_pos
-        oob_u_condition_added = libRigging.create_utility_node('addDoubleLinear',
-                                                               input1=oob_u_condition_1,
-                                                               input2=oob_u_condition_2
-                                                               ).output
-        oob_u_condition_out = libRigging.create_utility_node('condition',
-                                                             operation=0,  # equal
-                                                             firstTerm=oob_u_condition_added,
-                                                             secondTerm=1.0,
-                                                             colorIfTrue=oob_offset_u,
-                                                             colorIfFalse=[0, 0, 0]
-                                                             ).outColor
-
-        # Add the V out-of-bound-offset only if the V is between 0.0 and 1.0
-        oob_v_condition_1 = condition_oob_v_neg
-        oob_v_condition_2 = condition_oob_v_pos
-        oob_v_condition_added = libRigging.create_utility_node('addDoubleLinear',
-                                                               input1=oob_v_condition_1,
-                                                               input2=oob_v_condition_2
-                                                               ).output
-        oob_v_condition_out = libRigging.create_utility_node('condition',
-                                                             operation=0,  # equal
-                                                             firstTerm=oob_v_condition_added,
-                                                             secondTerm=1.0,
-                                                             colorIfTrue=oob_offset_v,
-                                                             colorIfFalse=[0, 0, 0]
-                                                             ).outColor
-
-        oob_offset = libRigging.create_utility_node('plusMinusAverage',
-                                                    input3D=[oob_u_condition_out, oob_v_condition_out]).output3D
-
-        layer_oob = stack.append_layer('oobLayer')
-        pymel.connectAttr(oob_offset, layer_oob.t)
-
-        #
-        # Create the third layer that apply the translation provided by the fb Avar.
-        #
-
-        layer_fb = stack.append_layer('fbLayer')
-        attr_get_fb = libRigging.create_utility_node('multiplyDivide',
-                                                     input1X=self.attr_fb,
-                                                     input2X=self._attr_length_u).outputX
-        attr_get_fb_adjusted = libRigging.create_utility_node('multiplyDivide',
-                                                              input1X=attr_get_fb,
-                                                              input2X=self.attr_multiplier_fb).outputX
-        pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
-
-        #
-        # Create the 4th layer (folRot) that apply the rotation provided by the follicle controlled by the ud and lr Avar.
-        # This is necessary since we don't want to rotation to affect the oobLayer and fbLayer.
-        #
-        layer_follicle_rot = stack.append_layer('folRot')
-        pymel.connectAttr(util_decomposeTM.outputRotate, layer_follicle_rot.rotate)
-
-        #
-        # Create a 5th layer that apply the avar rotation and scale..
-        #
-        layer_rot = stack.append_layer('rotLayer')
-        pymel.connectAttr(self.attr_yw, layer_rot.rotateY)
-        pymel.connectAttr(self.attr_pt, layer_rot.rotateX)
-        pymel.connectAttr(self.attr_rl, layer_rot.rotateZ)
-        pymel.connectAttr(self.attr_sx, layer_rot.scaleX)
-        pymel.connectAttr(self.attr_sy, layer_rot.scaleY)
-        pymel.connectAttr(self.attr_sz, layer_rot.scaleZ)
-
-        return stack
+    _CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):

@@ -14,3 +14,9 @@ Currently this is only used to link avars to ctrl/faceboard/sliders/etc.
 def _reload():
     import model_ctrl_linear
     reload(model_ctrl_linear)
+
+    import model_ctrl_interactive
+    reload(model_ctrl_interactive)
+    
+    import model_avar_surface
+    reload(model_avar_surface)

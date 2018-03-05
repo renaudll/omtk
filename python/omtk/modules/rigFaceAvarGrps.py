@@ -111,35 +111,35 @@ class ModelCtrlMacroAll(model_ctrl_linear.ModelCtrlLinear):
         super(ModelCtrlMacroAll, self).connect(avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
                                                sx=True, sy=True, sz=True)
 
-        #
-        # Compute the calibration automatically
-        #
-
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        # Compute the calibration automatically
-        attr_calibration_lr = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getCalibrationLr'),
-            input1X=avar.attr_multiplier_lr,
-            input2X=avar._attr_length_u
-        ).outputX
-        attr_calibration_ud = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getCalibrationUd'),
-            input1X=avar.attr_multiplier_ud,
-            input2X=avar._attr_length_v
-        ).outputX
-        attr_calibration_fb = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getCalibrationFb'),
-            input1X=avar.attr_multiplier_fb,
-            input2X=avar._attr_length_u
-        ).outputX
-
-        pymel.connectAttr(attr_calibration_lr, self.attr_sensitivity_tx)
-        pymel.connectAttr(attr_calibration_ud, self.attr_sensitivity_ty)
-        pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
+        # #
+        # # Compute the calibration automatically
+        # #
+        # 
+        # nomenclature_rig = self.get_nomenclature_rig()
+        # 
+        # # Compute the calibration automatically
+        # attr_calibration_lr = libRigging.create_utility_node(
+        #     'multiplyDivide',
+        #     name=nomenclature_rig.resolve('getCalibrationLr'),
+        #     input1X=avar.attr_multiplier_lr,
+        #     input2X=avar._attr_length_u
+        # ).outputX
+        # attr_calibration_ud = libRigging.create_utility_node(
+        #     'multiplyDivide',
+        #     name=nomenclature_rig.resolve('getCalibrationUd'),
+        #     input1X=avar.attr_multiplier_ud,
+        #     input2X=avar._attr_length_v
+        # ).outputX
+        # attr_calibration_fb = libRigging.create_utility_node(
+        #     'multiplyDivide',
+        #     name=nomenclature_rig.resolve('getCalibrationFb'),
+        #     input1X=avar.attr_multiplier_fb,
+        #     input2X=avar._attr_length_u
+        # ).outputX
+        # 
+        # pymel.connectAttr(attr_calibration_lr, self.attr_sensitivity_tx)
+        # pymel.connectAttr(attr_calibration_ud, self.attr_sensitivity_ty)
+        # pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
 
     def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
         parent_pos = avar._grp_output
@@ -844,7 +844,6 @@ class AvarGrpOnSurface(AvarGrp):
     """
     _CLS_AVAR = rigFaceAvar.AvarFollicle
     _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle  # Macro avars are always abstract (except the all macro which can potentially drive something)
-    
 
     def __init__(self, *args, **kwargs):
         super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
@@ -1551,13 +1550,13 @@ class AvarGrpOnSurface(AvarGrp):
                 # If we are dealing with a 'tweak' avar, it already inherit it's parent transform.
                 if self._is_tweak_avar(avar):
                     continue
-                
+
                 # Hack: Determine if the avar have an avar model.
                 # Sadly avar models are not implemented so we fallback to duck typing the _post_stack attribute
                 # which is added on simple avars.
                 if not hasattr(avar, '_post_stack'):
                     continue
-                
+
                 self._add_macro_all_avar_contribution(avar)
 
     def _add_macro_all_avar_contribution(self, avar):

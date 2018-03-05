@@ -8,23 +8,19 @@ from omtk.factories import factory_datatypes
 from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 
-from . import nodegraph_connection_model
-from . import nodegraph_node_model_component
-from . import nodegraph_node_model_dgnode
-from . import nodegraph_node_model_dagnode
-from . import nodegraph_node_model_module
-from . import nodegraph_node_model_rig
-from . import nodegraph_port_model
+from omtk.qt_widgets.nodegraph.models.node import node_rig, node_module, \
+    node_dag, node_dg, node_component
+from omtk.qt_widgets.nodegraph.models import port as port_model
 
 log = logging.getLogger('omtk.nodegraph')
 
 # for type hinting
 if False:
-    from .nodegraph_node_model_base import NodeGraphNodeModel
-    from .nodegraph_port_model import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
+    from omtk.qt_widgets.nodegraph.models.port import NodeGraphPortModel
 
 
-class NodeGraphModel(object):
+class NodeGraphRegistry(object):
     """
     Link node values to NodeGraph[Node/Port/Connection]Model.
     Does not handle the Component representation.
@@ -69,7 +65,7 @@ class NodeGraphModel(object):
             return
 
         # clear port cache
-        for attr in node_model.get_attributes_raw_values():
+        for attr in node_model.get_ports_metadata():
             try:
                 port_model = self._cache_ports.pop(attr)
                 log.debug("Invalidating {0}".format(port_model))
@@ -100,7 +96,7 @@ class NodeGraphModel(object):
     def _get_node_from_value(self, val):
         # type: (object) -> NodeGraphNodeModel
         """
-        Factory function for creating NodeGraphModel instances.
+        Factory function for creating NodeGraphRegistry instances.
         This handle all the caching and registration.
         """
         log.debug('Creating node model from {0}'.format(val))
@@ -108,7 +104,7 @@ class NodeGraphModel(object):
         # Handle pointer to a component datatype
         data_type = factory_datatypes.get_datatype(val)
         if data_type == factory_datatypes.AttributeType.Component:
-            return nodegraph_node_model_component.NodeGraphComponentModel(self, val)
+            return component.NodeGraphComponentModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Node:
             network = val
@@ -124,9 +120,9 @@ class NodeGraphModel(object):
                     from omtk import constants
                     if network:
                         if network.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
-                            return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self, val, component)
+                            return component.NodeGraphComponentInnBoundModel(self, val, component)
                         elif network.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
-                            return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self, val, component)
+                            return component.NodeGraphComponentOutBoundModel(self, val, component)
                         else:
                             raise Exception("Unreconnised network")
 
@@ -135,15 +131,15 @@ class NodeGraphModel(object):
             #     return nodegraph_node_model_component.NodeGraphComponentModel(self, component)
 
             if isinstance(val, pymel.nodetypes.DagNode):
-                return nodegraph_node_model_dagnode.NodeGraphDagNodeModel(self, val)
+                return node_dag.NodeGraphDagNodeModel(self, val)
             else:
-                return nodegraph_node_model_dgnode.NodeGraphDgNodeModel(self, val)
+                return node_dg.NodeGraphDgNodeModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Module:
-            return nodegraph_node_model_module.NodeGraphModuleModel(self, val)
+            return module.NodeGraphModuleModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Rig:
-            return nodegraph_node_model_rig.NodeGraphNodeRigModel(self, val)
+            return node_rig.NodeGraphNodeRigModel(self, val)
 
         raise Exception("Unsupported value {0} of type {1}".format(
             val, data_type
@@ -170,30 +166,30 @@ class NodeGraphModel(object):
 
             # node_model = self.get_node_from_value(node_value)  # still needed?
             # Let EntityAttribute defined if they are inputs or outputs
-            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+            inst = port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         elif isinstance(val, entity_attribute.EntityAttribute):
             node_value = val.parent
             node_model = self.get_node_from_value(node_value)
             # node_model = self.get_node_from_value(val.parent)
-            inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+            inst = port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         elif isinstance(val, pymel.Attribute):
             node_value = val.node()
             node_model = self.get_node_from_value(node_value)
-            inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val)
+            inst = port_model.NodeGraphPymelPortModel(self, node_model, val)
         else:
             datatype = factory_datatypes.get_datatype(val)
             if datatype == factory_datatypes.AttributeType.Node:
                 node_model = self.get_node_from_value(val)
-                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val.message)
+                inst = port_model.NodeGraphPymelPortModel(self, node_model, val.message)
             elif isinstance(val, module.Module):  # todo: use factory_datatypes?
                 node_value = val.rig
                 node_model = self.get_node_from_value(val.rig)
                 val = val.rig.get_attribute_by_name('modules')
-                inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+                inst = port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
             else:
                 node_value = val.node()
                 node_model = self.get_node_from_value(val.node())
-                inst = nodegraph_port_model.NodeGraphPymelPortModel(self, node_model, val)
+                inst = port_model.NodeGraphPymelPortModel(self, node_model, val)
 
         self._register_attribute(inst)
         return inst
@@ -208,10 +204,12 @@ class NodeGraphModel(object):
             return val
 
     def _get_connection_model_from_values(self, model_src, model_dst):
-        if not isinstance(model_src, nodegraph_port_model.NodeGraphPortModel):
+        from . import nodegraph_connection_model
+
+        if not isinstance(model_src, port_model.NodeGraphPortModel):
             model_src = self.get_port_model_from_value(model_src)
 
-        if not isinstance(model_dst, nodegraph_port_model.NodeGraphPortModel):
+        if not isinstance(model_dst, port_model.NodeGraphPortModel):
             model_dst = self.get_port_model_from_value(model_dst)
 
         inst = nodegraph_connection_model.NodeGraphConnectionModel(self, model_src, model_dst)

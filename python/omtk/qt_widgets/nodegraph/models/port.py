@@ -2,13 +2,12 @@ import abc
 
 import pymel.core as pymel
 from omtk.factories import factory_datatypes
-from omtk.qt_widgets.widget_nodegraph import pyflowgraph_port_widget as port_widget
 
-from . import nodegraph_port_adaptor
+from omtk.qt_widgets.nodegraph import nodegraph_port_adaptor
 
 if False:
-    from .nodegraph_controller import NodeGraphController
-    from .nodegraph_node_model_base import NodeGraphNodeModel
+    from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
+    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
 
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
@@ -25,7 +24,7 @@ class NodeGraphPortModel(object):
         self._impl = None
 
     def __repr__(self):
-        return '<NodeGraphPortModel {0}.{1}>'.format(self.get_parent().get_metadata(), self.get_name())
+        return '<Port {0}.{1}>'.format(self.get_parent().get_metadata(), self.get_name())
 
     def __hash__(self):
         return hash(self._node) ^ hash(self._name)
@@ -36,12 +35,12 @@ class NodeGraphPortModel(object):
     def __ne__(self, other):
         return not self == other
 
-    # def __gt__(self, other):
-    #     return self.get_name() > other.get_name()
-    #
-    # def __lt__(self, other):
-    #     return self.get_name() < other.get_name()
-    #
+    def __gt__(self, other):
+        return self.get_name() > other.get_name()
+
+    def __lt__(self, other):
+        return self.get_name() < other.get_name()
+
     # def __ge__(self, other):
     #     raise Exception("why?")
     #
@@ -97,7 +96,7 @@ class NodeGraphPortModel(object):
 
     # --- Connection related methods --- #
 
-    def get_input_connections(self, ctrl):
+    def get_input_connections(self):
         result = set()
 
         for val in self.impl.get_inputs():
@@ -106,7 +105,7 @@ class NodeGraphPortModel(object):
             result.add(inst)
         return result
 
-    def get_output_connections(self, ctrl):
+    def get_output_connections(self):
         result = set()
         for val in self.impl.get_outputs():
             model = self._registry.get_port_model_from_value(val)
@@ -114,8 +113,8 @@ class NodeGraphPortModel(object):
             result.add(inst)
         return result
 
-    def get_connections(self, ctrl):
-        return self.get_input_connections(ctrl) | self.get_output_connections(ctrl)
+    def get_connections(self):
+        return self.get_input_connections() | self.get_output_connections()
 
     def connect_from(self, val):
         """Called when an upstream connection is created using a view."""
@@ -136,6 +135,8 @@ class NodeGraphPortModel(object):
     # --- Widget export --- #
 
     def _get_widget_cls(self, ctrl):
+        from omtk.qt_widgets.nodegraph import pyflowgraph_port_widget as port_widget
+
         is_readable = self.is_readable()
         is_writable = self.is_writable()
         # Resolve port class

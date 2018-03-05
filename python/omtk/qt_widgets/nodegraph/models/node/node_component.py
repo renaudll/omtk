@@ -5,16 +5,15 @@ from omtk.core import component
 from omtk.core import entity_attribute
 from omtk.vendor.Qt import QtGui
 
-from . import nodegraph_node_model_base
-from . import nodegraph_node_model_dgnode
-from . import pyflowgraph_node_widget
+from omtk.qt_widgets.nodegraph.models.node import node_base, node_dg
+from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
 
 if False:
-    from .nodegraph_port_model import NodeGraphPortModel
-    from .nodegraph_controller import NodeGraphController
+    from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
 
 
-class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
+class NodeGraphComponentModel(node_base.NodeGraphEntityModel):
     """
     Define the data model for a Node representing a Component.
     A Component is a special OMTK datatypes that consist of an input network, an output network and one or multiple
@@ -43,14 +42,14 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         return self._entity.get_children()
 
     @decorators.memoized_instancemethod
-    def get_attributes(self, ctrl):
+    def get_ports(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()
 
         if not self._entity.is_built():
             return result
 
-        for attr_def in self.get_attributes_raw_values():
+        for attr_def in self.get_ports_metadata():
             # todo: use a factory?
             # log.debug('{0}'.format(attr_def))
             inst = self._registry.get_port_model_from_value(attr_def)
@@ -108,7 +107,7 @@ class NodeGraphComponentModel(nodegraph_node_model_base.NodeGraphEntityModel):
         return pyflowgraph_node_widget.OmtkNodeGraphComponentNodeWidget
 
 
-class NodeGraphComponentBoundBaseModel(nodegraph_node_model_dgnode.NodeGraphDgNodeModel):
+class NodeGraphComponentBoundBaseModel(node_dg.NodeGraphDgNodeModel):
     """
     Since dagnode contain input and output network that define their bound, it is usefull for us
     to have access to a dedicated model for the bounds that point to the compound model.

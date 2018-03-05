@@ -15,9 +15,9 @@ def reload_():
     reload(widget_toolbar)
 
     log.debug('Reloading widget_nodegraph')
-    from . import widget_nodegraph
-    reload(widget_nodegraph)
-    widget_nodegraph.reload_()
+    from . import nodegraph
+    reload(nodegraph)
+    nodegraph.reload_()
 
     log.debug('Reloading widget_component_wizard')
     from . import widget_component_wizard

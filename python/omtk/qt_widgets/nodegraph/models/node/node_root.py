@@ -1,11 +1,11 @@
-from . import nodegraph_node_model_base
+from omtk.qt_widgets.nodegraph.models.node import node_base
 
 # Used for type hinting
 if False:
-    from .nodegraph_node_model_base import NodeGraphNodeModel
+    from .node_base import NodeGraphNodeModel
 
 
-class NodeGraphNodeRootModel(nodegraph_node_model_base.NodeGraphNodeModel):
+class NodeGraphNodeRootModel(node_base.NodeGraphNodeModel):
     """
     Define the 'root' level of the NodeGraph.
     By inheriting from it you can customize what is displayed in the node editor.

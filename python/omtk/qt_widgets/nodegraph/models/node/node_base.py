@@ -3,14 +3,14 @@ import logging
 from omtk import decorators
 from omtk.core.component import Component
 from omtk.factories import factory_datatypes
-from omtk.qt_widgets.widget_nodegraph import pyflowgraph_node_widget
+from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
 
 # used for type hinting33
 if False:
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
-    from .nodegraph_port_model import NodeGraphPortModel
-    from .nodegraph_controller import NodeGraphController
-    from .pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
+    from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
+    from omtk.qt_widgets.nodegraph.pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -30,7 +30,8 @@ class NodeGraphNodeModel(object):
         return '<{0} {1}>'.format(self.__class__.__name__, self._name)
 
     def __hash__(self):
-        raise NotImplementedError  # this is implemented for PyNode atm
+        return hash(self._name)
+        # raise NotImplementedError  # this is implemented for PyNode atm
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -76,11 +77,11 @@ class NodeGraphNodeModel(object):
         # type: () -> List[NodeGraphNodeModel]
         return self._child_nodes
 
-    def get_attributes_raw_values(self):
+    def get_ports_metadata(self):
         # Used to invalidate cache
         return set()
 
-    def get_attributes(self, ctrl):
+    def get_ports(self):
         # type: () -> List[NodeGraphPortModel]
         return set()
 
@@ -93,26 +94,26 @@ class NodeGraphNodeModel(object):
         return True
 
     @decorators.memoized_instancemethod
-    def get_input_attributes(self, ctrl):
+    def get_input_attributes(self):
         # type: () -> list[NodeGraphPortModel]
-        return [attr for attr in self.get_attributes(ctrl) if attr.is_writable()]
+        return [attr for attr in self.get_ports() if attr.is_writable()]
 
     @decorators.memoized_instancemethod
-    def get_connected_input_attributes(self, ctrl):
+    def get_connected_input_attributes(self):
         # type: () -> list[NodeGraphPortModel]
-        return [attr for attr in self.get_input_attributes(ctrl) if attr.get_input_connections(ctrl)]
+        return [attr for attr in self.get_input_attributes() if attr.get_input_connections()]
 
     @decorators.memoized_instancemethod
-    def get_output_attributes(self, ctrl):
+    def get_output_attributes(self):
         # type: () -> list[NodeGraphPortModel]
-        return [attr for attr in self.get_attributes(ctrl) if attr.is_readable()]
+        return [attr for attr in self.get_ports() if attr.is_readable()]
 
     @decorators.memoized_instancemethod
-    def get_input_connections(self, ctrl):
+    def get_input_connections(self):
         # type: () -> list(NodeGraphPortModel)
         result = []
-        for attr in self.get_input_attributes(ctrl):
-            result.extend(attr.get_input_connections(ctrl))
+        for attr in self.get_input_attributes():
+            result.extend(attr.get_input_connections())
         return result
 
     @decorators.memoized_instancemethod
@@ -123,8 +124,8 @@ class NodeGraphNodeModel(object):
         return result
 
     @decorators.memoized_instancemethod
-    def get_connected_output_attributes(self, ctrl):
-        return [attr for attr in self.get_output_attributes(ctrl) if attr.get_output_connections(ctrl)]
+    def get_connected_output_attributes(self):
+        return [attr for attr in self.get_output_attributes() if attr.get_output_connections()]
 
     def _get_widget_label(self):
         """
@@ -163,16 +164,16 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
         return self._entity
 
     @decorators.memoized_instancemethod
-    def get_attributes_raw_values(self):
+    def get_ports_metadata(self):
         # Used to invalidate cache
         return self._entity.iter_attributes()
 
     @decorators.memoized_instancemethod
-    def get_attributes(self, ctrl):
+    def get_ports(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()
 
-        for attr_def in self.get_attributes_raw_values():
+        for attr_def in self.get_ports_metadata():
             # todo: use a factory?
             log.debug('{0}'.format(attr_def))
             inst = self._registry.get_port_model_from_value(attr_def)

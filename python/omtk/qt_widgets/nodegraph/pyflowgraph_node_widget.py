@@ -6,7 +6,7 @@ from maya import OpenMaya
 import pymel.core as pymel
 from omtk import decorators
 from omtk.factories import factory_datatypes
-from omtk.qt_widgets.widget_nodegraph.delegate_rename import NodeRenameDelegate
+from omtk.qt_widgets.nodegraph.delegate_rename import NodeRenameDelegate
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 

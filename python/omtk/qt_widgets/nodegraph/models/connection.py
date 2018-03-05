@@ -2,8 +2,8 @@ from omtk.vendor.enum34 import Enum
 
 # for type hinting only
 if False:
-    from .nodegraph_port_model import NodeGraphPortModel
-    from .nodegraph_node_model_base import NodeGraphNodeModel
+    from .port import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
 
 
 class NodeGraphConnectionModel(object):

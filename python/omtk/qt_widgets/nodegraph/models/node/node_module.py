@@ -1,8 +1,7 @@
-from . import nodegraph_node_model_base
+from omtk.qt_widgets.nodegraph.models.node import node_base
 
 
-class NodeGraphNodeRigModel(nodegraph_node_model_base.NodeGraphEntityModel):
-    # todo: move to base class?
+class NodeGraphModuleModel(node_base.NodeGraphEntityModel):
     def get_children(self):
         result = set()
         for sub_component in self._entity.iter_sub_components():

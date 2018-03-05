@@ -4,7 +4,6 @@ Define a controller for one specific GraphView.
 import logging
 
 from omtk import decorators
-from maya import OpenMaya
 import pymel.core as pymel
 from omtk import constants
 from omtk.core import component, session
@@ -13,17 +12,15 @@ from omtk.factories import factory_datatypes, factory_rc_menu
 from omtk.libs import libComponents
 from omtk.vendor.Qt import QtCore
 
-from . import nodegraph_node_model_base
-from . import nodegraph_node_model_component
-from . import nodegraph_node_model_dgnode
-from . import nodegraph_node_model_root
+from omtk.qt_widgets.nodegraph.models.node import node_base, node_dg, \
+    node_component, node_root
 
 # Used for type checking
 if False:
-    from .nodegraph_port_model import NodeGraphPortModel
+    from .port_model import NodeGraphPortModel
     from .nodegraph_connection_model import NodeGraphConnectionModel
     from .nodegraph_view import NodeGraphView
-    from .nodegraph_node_model_base import NodeGraphNodeModel
+    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
     from .pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
     from .pyflowgraph_port_widget import OmtkNodeGraphBasePortWidget
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
@@ -37,22 +34,27 @@ log = logging.getLogger('omtk.nodegraph')
 class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary for signal handling
     """
     Link node values to NodeGraph[Node/Port/Connection]Model.
-    DOES handle the Component representation by wrapper ``NodeGraphModel``.
+    DOES handle the Component representation by wrapper ``NodeGraphRegistry``.
     """
     onLevelChanged = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
 
     # Define the default root model to use
-    _cls_root_model = nodegraph_node_model_root.NodeGraphNodeRootModel
+    _cls_root_model = node_root.NodeGraphNodeRootModel
 
-    def __init__(self, model):
+    def __init__(self, model=None, view=None):
         super(NodeGraphController, self).__init__()  # needed for signal handling
         # type: (NodeGraphModel, NodeGraphView) -> ()
-        self._model = model
+        self._model = None
         self._view = None
         self._filter = None
         self._current_level_model = None
         self._current_level_data = None
+
+        if model:
+            self.set_model(model)
+        if view:
+            self.set_view(view)
 
         # Hold a reference to the inn and out node when inside a compound.
         self._widget_bound_inn = None
@@ -100,6 +102,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # type: () -> (List[NodeGraphPortModel])
         return self._known_attrs
 
+    def get_model(self):
+        # type: () -> NodeGraphGraphModel
+        return self._model
+
+    def set_model(self, model):
+        # type: (NodeGraphNodeModel) -> None
+        self._model = model
+
     def get_view(self):
         # type: () -> NodeGraphView
         return self._view
@@ -126,9 +136,12 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         view.connectionAdded.connect(self.on_connection_added)
         view.connectionRemoved.connect(self.on_connected_removed)
 
-    def set_filter(self, filter):
+    def set_filter(self, filter_):
         # type: (NodeGraphControllerFilter) -> None
-        self._filter = filter
+        self._filter = filter_
+
+        model = self.get_model()
+        model.set_filter(filter_)
 
     # --- Events ---
 
@@ -294,7 +307,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             val = self._get_node_model_from_value(key)
 
             # If we got a component model, ensure that we also cache it's bounds.
-            if isinstance(val, nodegraph_node_model_component.NodeGraphComponentModel):
+            if isinstance(val, component.NodeGraphComponentModel):
                 component = val.get_metadata()
                 self._cache_nodes[component] = val
                 self._cache_nodes[component.grp_inn] = val
@@ -309,6 +322,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         Return the visible model associated with a single value.
         Handle the special Component context.
         """
+        assert self._model
+
         # todo: cleanup
         log.debug('Requesting model from {0}'.format(val))
 
@@ -319,14 +334,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 component = self.manager.import_network(net)
                 if self._current_level_data == component:
                     if net.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
-                        return nodegraph_node_model_component.NodeGraphComponentInnBoundModel(self._model, val,
-                                                                                              component)
+                        return component.NodeGraphComponentInnBoundModel(self._model, val,
+                                                                         component)
                     if net.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
-                        return nodegraph_node_model_component.NodeGraphComponentOutBoundModel(self._model, val,
-                                                                                              component)
+                        return component.NodeGraphComponentOutBoundModel(self._model, val,
+                                                                         component)
                 else:
                     return self._model.get_node_from_value(component)
-            return nodegraph_node_model_dgnode.NodeGraphDgNodeModel(self._model, val)
+            return node_dg.NodeGraphDgNodeModel(self._model, val)
 
         # model = self._model.get_node_from_value(val)
         # if isinstance(model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
@@ -384,11 +399,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # node_parent_model = self.get_node_model_from_value(node_parent_inst) if node_parent_inst else None
         return node_parent_inst == self._current_level_data
 
-    def _iter_node_port_models(self, node_model):
-        for port_model in node_model.get_attributes(self):
-            if self.can_show_port(port_model):
-                yield port_model
-
+    # todo: needed?
     def expand_node_attributes(self, node_model):
         # type: (NodeGraphNodeModel) -> None
         """
@@ -396,8 +407,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         Add it in the pool if it didn't previously exist.
         :return:
         """
-        for port_model in sorted(self._iter_node_port_models(node_model)):
-            self.get_port_widget(port_model)
+        model = self.get_model()
+        for port_model in sorted(model.iter_ports()):
+            model.add_port(port_model)
+            if self.get_view():  # wip
+                self.get_port_widget(port_model)
 
     def expand_port_input_connections(self, port_model):
         for connection_model in self.get_port_input_connections(port_model):
@@ -406,6 +420,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def expand_port_output_connections(self, port_model):
         for connection_model in self.get_port_output_connections(port_model):
             self.get_connection_widget(connection_model)
+
+    def iter_ports(self, node_model):
+        for port_model in node_model.get_ports():
+            if self.can_show_port(port_model):
+                yield port_model
 
     def iter_port_output_connections(self, port_model):
         for connection_model in self.get_port_output_connections(port_model):
@@ -518,7 +537,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         :param port: A NodeGraphPortModel instance.
         :return: A PyFlowgraph Port instance.
         """
-        # log.debug('Creating widget for {0}'.format(port_model))
+        # log.debug('Creating widget for {0}'.format(port.py))
 
         # In Pyflowgraph, a Port need a Node.
         # Verify that we initialize the widget for the Node.
@@ -654,7 +673,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         Create a Widget in the NodeGraph for the provided NodeModel.
         :param node_model: An NodeGraphNodeModel to display.
         """
-        if not isinstance(node_model, nodegraph_node_model_base.NodeGraphNodeModel):
+        if not isinstance(node_model, node_base.NodeGraphNodeModel):
             node_model = self.get_node_model_from_value(node_model)
         self._register_node_model(node_model)
 
@@ -1071,7 +1090,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         from omtk.libs import libPyflowgraph
         models = self.get_selected_node_models()
         for model in models:
-            if not isinstance(model, nodegraph_node_model_dgnode.NodeGraphDgNodeModel):
+            if not isinstance(model, node_dg.NodeGraphDgNodeModel):
                 continue
             node = model.get_metadata()
             pos = libMayaNodeEditor.get_node_position(node)
@@ -1201,7 +1220,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         node_model = port_model.get_parent()
         port_widget = self.get_port_widget(port_model)
         # self.invalidate_node_model(node_model)
-        # self.invalidate_port_model(port_model)
+        # self.invalidate_port_model(port.py)
         self.expand_port_input_connections(port_model)  # todo: check first?
         self.expand_port_output_connections(port_model)
 
@@ -1214,7 +1233,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         port_model = self.get_port_model_from_value(value)
         self.invalidate_port_model(port_model)
-        # node_model = port_model.get_parent()
+        # node_model = port.py.get_parent()
         # self.expand_node_attributes(node_model)
 
         self.get_port_widget(port_model)

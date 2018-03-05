@@ -24,8 +24,8 @@ win.setCentralWidget(widget)
 win.show()
 """
 
-from . import nodegraph_model
-NodeGraphModel = nodegraph_model.NodeGraphModel
+from . import nodegraph_registry
+NodeGraphRegistry = nodegraph_registry.NodeGraphRegistry
 
 from . import nodegraph_widget
 NodeGraphWidget = nodegraph_widget.NodeGraphWidget
@@ -37,7 +37,7 @@ from . import nodegraph_controller
 NodeGraphController = nodegraph_controller.NodeGraphController
 
 from . import nodegraph_filter
-NodeGraphControllerFilter = nodegraph_filter.NodeGraphControllerFilter
+NodeGraphControllerFilter = nodegraph_filter.NodeGraphFilter
 
 
 def reload_():
@@ -50,8 +50,8 @@ def reload_():
     from .. import widget_toolbar
     reload(widget_toolbar)
 
-    from . import nodegraph_port_model
-    reload(nodegraph_port_model)
+    from . import port_model
+    reload(port_model)
 
     from . import nodegraph_port_adaptor
     reload(nodegraph_port_adaptor)
@@ -59,26 +59,12 @@ def reload_():
     from . import nodegraph_connection_model
     reload(nodegraph_connection_model)
 
-    from . import nodegraph_node_model_base
-    reload(nodegraph_node_model_base)
+    from . import models
+    reload(models)
+    models._reload()
 
-    from . import nodegraph_node_model_dgnode
-    reload(nodegraph_node_model_dgnode)
-
-    from . import nodegraph_node_model_component
-    reload(nodegraph_node_model_component)
-
-    from . import nodegraph_node_model_module
-    reload(nodegraph_node_model_module)
-
-    from . import nodegraph_node_model_rig
-    reload(nodegraph_node_model_rig)
-
-    from . import nodegraph_node_model_root
-    reload(nodegraph_node_model_root)
-
-    from . import nodegraph_model
-    reload(nodegraph_model)
+    from . import nodegraph_registry
+    reload(nodegraph_registry)
 
     from . import nodegraph_view
     reload(nodegraph_view)
@@ -106,7 +92,7 @@ def reload_():
     NodeGraphController = nodegraph_controller.NodeGraphController
 
     global NodeGraphModel
-    NodeGraphModel = nodegraph_model.NodeGraphModel
+    NodeGraphModel = nodegraph_registry.NodeGraphRegistry
 
     global NodeGraphControllerFilter
-    NodeGraphControllerFilter = nodegraph_filter.NodeGraphControllerFilter
+    NodeGraphControllerFilter = nodegraph_filter.NodeGraphFilter

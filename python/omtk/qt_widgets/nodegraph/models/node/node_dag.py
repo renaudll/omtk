@@ -1,13 +1,13 @@
 import logging
 import pymel.core as pymel
-from . import nodegraph_connection_model
-from . import nodegraph_port_model
-from . import nodegraph_node_model_dgnode
+from omtk.qt_widgets.nodegraph.models import port as port_model
+from omtk.qt_widgets.nodegraph.models import connection as connection_model
+from omtk.qt_widgets.nodegraph.models.node import node_dg
 
 log = logging.getLogger('omtk.nodegraph')
 
 
-class DagNodeParentPortModel(nodegraph_port_model.NodeGraphPortModel):
+class DagNodeParentPortModel(port_model.NodeGraphPortModel):
     # __metaclass__ = abc.ABCMeta
 
     def __init__(self, registry, parent):
@@ -29,25 +29,25 @@ class DagNodeParentPortModel(nodegraph_port_model.NodeGraphPortModel):
         from omtk.factories import factory_datatypes
         return factory_datatypes.AttributeType.AttributeCompound
 
-    def get_output_connections(self, ctrl):
+    def get_output_connections(self):
         result = []
         metadata = self.get_metadata()
         children = metadata.getChildren()
         for child in children:
-            model_dst_node = ctrl.get_node_model_from_value(child)
+            model_dst_node = self._registry.get_node_model_from_value(child)
             model_dst_port = DagNodeParentPortModel(self._registry, model_dst_node)
-            model_connection = nodegraph_connection_model.NodeGraphConnectionModel(self._registry, self, model_dst_port)
+            model_connection = connection_model.NodeGraphConnectionModel(self._registry, self, model_dst_port)
             result.append(model_connection)
         return result
 
-    def get_input_connections(self, ctrl):
+    def get_input_connections(self):
         result = []
         metadata = self.get_metadata()
         parent = metadata.getParent()
         if parent:
-            model_src_node = ctrl.get_node_model_from_value(parent)
+            model_src_node = self._registry.get_node_model_from_value(parent)
             model_src_port = DagNodeParentPortModel(self._registry, model_src_node)
-            model_connection = nodegraph_connection_model.NodeGraphConnectionModel(self._registry, model_src_port, self)
+            model_connection = connection_model.NodeGraphConnectionModel(self._registry, model_src_port, self)
             result.append(model_connection)
         return result
 
@@ -72,17 +72,17 @@ class DagNodeParentPortModel(nodegraph_port_model.NodeGraphPortModel):
     #     pass
 
 
-class NodeGraphDagNodeModel(nodegraph_node_model_dgnode.NodeGraphDgNodeModel):
+class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
     """Define the data model for a Node representing a DagNode."""
 
-    def iter_attributes(self, ctrl):
+    def iter_attributes(self,):
         # Expose parent attribute
         metadata = self.get_metadata()
         parent = metadata.getParent()
-        node_model = ctrl.get_node_model_from_value(metadata)
+        node_model = self._registry.get_node_from_value(metadata)
         inst = DagNodeParentPortModel(self, node_model)
         # inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         yield inst
 
-        for yielded in super(NodeGraphDagNodeModel, self).iter_attributes(ctrl):
+        for yielded in super(NodeGraphDagNodeModel, self).iter_attributes():
             yield yielded

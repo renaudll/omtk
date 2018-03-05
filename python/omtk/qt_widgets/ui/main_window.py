@@ -228,4 +228,4 @@ class Ui_OpenRiggingToolkit(object):
 
 from omtk.qt_widgets.widget_welcome.WidgetWelcome import WidgetWelcome
 from ..widget_outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
-from ..widget_nodegraph import NodeGraphWidget
+from ..nodegraph import NodeGraphWidget

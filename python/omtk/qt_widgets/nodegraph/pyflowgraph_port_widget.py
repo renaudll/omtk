@@ -44,7 +44,7 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
     #
     def _show_rename_delegate(self):
         # todo: share code with pyflowgraph_node_widget.py
-        from omtk.qt_widgets.widget_nodegraph.delegate_rename import NodeRenameDelegate
+        from omtk.qt_widgets.nodegraph.delegate_rename import NodeRenameDelegate
         node_name = self.getName()
         widget_title = self.labelItem()
         pos = self._graph.mapFromScene(widget_title.pos())

@@ -4,14 +4,12 @@ from omtk import decorators
 from omtk.libs import libAttr, libPyflowgraph
 from omtk.vendor.Qt import QtCore
 
-from . import nodegraph_node_model_base
-from . import pyflowgraph_node_widget
-from . import nodegraph_connection_model
-from . import nodegraph_port_model
+from omtk.qt_widgets.nodegraph.models.node import node_base
+from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
 
 log = logging.getLogger('omtk.nodegraph')
 
-class NodeGraphDgNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
+class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
     """Define the data model for a Node representing a DagNode."""
 
     def __init__(self, registry, pynode):
@@ -46,12 +44,12 @@ class NodeGraphDgNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
         return [self.get_metadata()]
 
     # @decorators.memoized_instancemethod
-    def get_attributes_raw_values(self):
+    def get_ports_metadata(self):
         return list(libAttr.iter_contributing_attributes(self._pynode))
         # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
-    def iter_attributes(self, ctrl):
-        for attr in self.get_attributes_raw_values():
+    def iter_attributes(self):
+        for attr in self.get_ports_metadata():
             inst = self._registry.get_port_model_from_value(attr)
             # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
             # self._registry._register_attribute(inst)
@@ -75,10 +73,10 @@ class NodeGraphDgNodeModel(nodegraph_node_model_base.NodeGraphNodeModel):
             #         yield inst
 
     # @decorators.memoized_instancemethod
-    def get_attributes(self, ctrl):
+    def get_ports(self):
         # type: () -> List[NodeGraphPortModel]
         result = set()
-        for attr in self.iter_attributes(ctrl):
+        for attr in self.iter_attributes():
             result.add(attr)
         return result
 

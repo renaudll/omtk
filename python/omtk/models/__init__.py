@@ -18,5 +18,11 @@ def _reload():
     import model_ctrl_interactive
     reload(model_ctrl_interactive)
     
+    import model_avar_base
+    reload(model_avar_base)
+    
+    import model_avar_linear
+    reload(model_avar_linear)
+    
     import model_avar_surface
     reload(model_avar_surface)

@@ -9,9 +9,9 @@ from omtk.libs import libRigging
 from omtk.libs import libPymel
 from omtk.libs import libAttr
 from omtk.libs import libHistory
+from omtk.models import model_avar_base
 
-
-class AvarSurfaceModel(classModule.Module):
+class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
     """
     A deformation point on the face that move accordingly to nurbsSurface.
     """
@@ -33,16 +33,6 @@ class AvarSurfaceModel(classModule.Module):
         self._attr_u_base = None
         self._attr_v_base = None
 
-        self._attr_inn_lr = None
-        self._attr_inn_ud = None
-        self._attr_inn_fb = None
-        self._attr_inn_yw = None
-        self._attr_inn_pt = None
-        self._attr_inn_rl = None
-        self._attr_inn_sx = None
-        self._attr_inn_sy = None
-        self._attr_inn_sz = None
-
         self._attr_inn_surface = None
         self._attr_inn_surface_tm = None
         self._attr_inn_surface_min_value_u = None
@@ -50,18 +40,10 @@ class AvarSurfaceModel(classModule.Module):
         self._attr_inn_surface_max_value_u = None
         self._attr_inn_surface_max_value_v = None
 
-        self._attr_inn_offset_tm = None
-        self._attr_out_tm = None
-
         # How much are we moving around the surface for a specific avar.
         self.multiplier_lr = 1.0
         self.multiplier_ud = 1.0
         self.multiplier_fb = 1.0
-
-        self.attr_multiplier_lr = None
-        self.attr_multiplier_ud = None
-        self.attr_multiplier_fb = None
-        # self.ctrl_micro = None
 
         self._attr_length_v = None
         self._attr_length_u = None
@@ -70,21 +52,17 @@ class AvarSurfaceModel(classModule.Module):
         self._obj_offset = None
 
     def unbuild(self):
-        self._hold_uv_multiplier()
-        super(AvarSurfaceModel, self).unbuild()
+        # Save the current uv multipliers.
+        # It is very rare that the rigger will tweak this advanced setting manually,
+        # however for legacy reasons, it might be useful when upgrading an old rig.
+        if isinstance(self.multiplier_lr, pymel.Attribute) and self.multiplier_lr.exists():
+            self.multiplier_lr = self.multiplier_lr.get()
+        if isinstance(self.multiplier_ud, pymel.Attribute) and self.multiplier_ud.exists():
+            self.multiplier_ud = self.multiplier_ud.get()
+        if isinstance(self.multiplier_fb, pymel.Attribute) and self.multiplier_fb.exists():
+            self.multiplier_fb = self.multiplier_fb.get()
 
-    def _hold_uv_multiplier(self):
-        """
-        Save the current uv multipliers.
-        It is very rare that the rigger will tweak this advanced setting manually,
-        however for legacy reasons, it might be useful when upgrading an old rig.
-        """
-        if isinstance(self.attr_multiplier_lr, pymel.Attribute) and self.attr_multiplier_lr.exists():
-            self.multiplier_lr = self.attr_multiplier_lr.get()
-        if isinstance(self.attr_multiplier_ud, pymel.Attribute) and self.attr_multiplier_ud.exists():
-            self.multiplier_ud = self.attr_multiplier_ud.get()
-        if isinstance(self.attr_multiplier_fb, pymel.Attribute) and self.attr_multiplier_fb.exists():
-            self.multiplier_fb = self.attr_multiplier_fb.get()
+        super(AvarSurfaceModel, self).unbuild()
 
     def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """
@@ -95,13 +73,13 @@ class AvarSurfaceModel(classModule.Module):
         attr_u = libRigging.create_utility_node(
             'multiplyDivide',
             input1X=self._attr_inn_lr,
-            input2X=self.attr_multiplier_lr
+            input2X=self.multiplier_lr
         ).outputX
 
         attr_v = libRigging.create_utility_node(
             'multiplyDivide',
             input1X=self._attr_inn_ud,
-            input2X=self.attr_multiplier_ud
+            input2X=self.multiplier_ud
         ).outputX
 
         return attr_u, attr_v
@@ -139,15 +117,7 @@ class AvarSurfaceModel(classModule.Module):
         return attr_u_inn, attr_v_inn
 
     def _create_interface(self):
-        self._attr_inn_lr = libAttr.addAttr(self.grp_rig, 'innAvarLr')
-        self._attr_inn_ud = libAttr.addAttr(self.grp_rig, 'innAvarUd')
-        self._attr_inn_fb = libAttr.addAttr(self.grp_rig, 'innAvarFb')
-        self._attr_inn_yw = libAttr.addAttr(self.grp_rig, 'innAvarYw')
-        self._attr_inn_pt = libAttr.addAttr(self.grp_rig, 'innAvarPt')
-        self._attr_inn_rl = libAttr.addAttr(self.grp_rig, 'innAvarRl')
-        self._attr_inn_sx = libAttr.addAttr(self.grp_rig, 'innAvarSx')
-        self._attr_inn_sy = libAttr.addAttr(self.grp_rig, 'innAvarSy')
-        self._attr_inn_sz = libAttr.addAttr(self.grp_rig, 'innAvarSz')
+        super(AvarSurfaceModel, self)._create_interface()
 
         self._attr_inn_surface = libAttr.addAttr(self.grp_rig, 'innSurface', dt='nurbsSurface')
         self._attr_inn_surface_tm = libAttr.addAttr(self.grp_rig, 'innSurfaceTm', dataType='matrix')
@@ -156,26 +126,17 @@ class AvarSurfaceModel(classModule.Module):
         self._attr_inn_surface_max_value_u = libAttr.addAttr(self.grp_rig, 'innSurfaceMaxValueU', defaultValue=1)
         self._attr_inn_surface_max_value_v = libAttr.addAttr(self.grp_rig, 'innSurfaceMaxValueV', defaultValue=1)
 
-        self.attr_multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR,
-                                                  defaultValue=self.multiplier_lr)
-        self.attr_multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD,
-                                                  defaultValue=self.multiplier_ud)
-        self.attr_multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB,
-                                                  defaultValue=self.multiplier_fb)
+        self.multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR, defaultValue=self.multiplier_lr)
+        self.multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD, defaultValue=self.multiplier_ud)
+        self.multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB, defaultValue=self.multiplier_fb)
 
-        self._attr_inn_offset_tm = libAttr.addAttr(self.grp_rig, 'innOffset', dt='matrix')
-        self._attr_out_tm = libAttr.addAttr(self.grp_rig, 'outTm', dataType='matrix')
 
-    def build(self, **kwargs):
+    def _build(self):
         """
         The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
         The decision of using transforms instead of multMatrix nodes is for clarity.
         Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
         """
-        super(AvarSurfaceModel, self).build(create_grp_anm=False, **kwargs)
-
-        self._create_interface()
-
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Currently our utilities expect a complete surface shape.
@@ -535,7 +496,7 @@ class AvarSurfaceModel(classModule.Module):
                                                      input2X=self._attr_length_u).outputX
         attr_get_fb_adjusted = libRigging.create_utility_node('multiplyDivide',
                                                               input1X=attr_get_fb,
-                                                              input2X=self.attr_multiplier_fb).outputX
+                                                              input2X=self.multiplier_fb).outputX
         pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
 
         #
@@ -555,8 +516,8 @@ class AvarSurfaceModel(classModule.Module):
         pymel.connectAttr(self._attr_inn_sx, layer_rot.scaleX)
         pymel.connectAttr(self._attr_inn_sy, layer_rot.scaleY)
         pymel.connectAttr(self._attr_inn_sz, layer_rot.scaleZ)
-
-        pymel.connectAttr(self._stack.worldMatrix, self._attr_out_tm)
+        
+        return self._stack.worldMatrix
 
     def connect_surface(self, surface):
         pymel.connectAttr(surface.worldSpace, self._attr_inn_surface)
@@ -565,20 +526,9 @@ class AvarSurfaceModel(classModule.Module):
         pymel.connectAttr(surface.maxValueU, self._attr_inn_surface_max_value_u)
         pymel.connectAttr(surface.minValueV, self._attr_inn_surface_min_value_v)
         pymel.connectAttr(surface.maxValueV, self._attr_inn_surface_max_value_v)
-
+        
     def connect_avar(self, avar):
-        pymel.connectAttr(avar.attr_lr, self._attr_inn_lr)
-        pymel.connectAttr(avar.attr_ud, self._attr_inn_ud)
-        pymel.connectAttr(avar.attr_fb, self._attr_inn_fb)
-        pymel.connectAttr(avar.attr_yw, self._attr_inn_yw)
-        pymel.connectAttr(avar.attr_pt, self._attr_inn_pt)
-        pymel.connectAttr(avar.attr_rl, self._attr_inn_rl)
-        pymel.connectAttr(avar.attr_sx, self._attr_inn_sx)
-        pymel.connectAttr(avar.attr_sy, self._attr_inn_sy)
-        pymel.connectAttr(avar.attr_sz, self._attr_inn_sz)
+        super(AvarSurfaceModel, self).connect_avar(avar)
 
-        # We take in account that the alembic have a surface associated with it which could be false.
-        # todo: move the surface logic here???
         self.connect_surface(avar.surface)
 
-        pymel.connectAttr(avar.grp_offset.matrix, self._attr_inn_offset_tm)

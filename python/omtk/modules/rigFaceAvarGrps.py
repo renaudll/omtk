@@ -9,7 +9,7 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
-from omtk.models import model_ctrl_linear
+from omtk.models import model_ctrl_linear, model_avar_linear
 from omtk.modules import rigFaceAvar
 
 log = logging.getLogger('omtk')
@@ -727,7 +727,7 @@ class AvarGrp(
             if not self._is_tweak_avar(avar):  # tweak avar have no ctrl and should not be calibrated
                 avar.calibrate()
 
-    def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, name=None, suffix=None):
+    def _init_avar(self, cls, inst, ref=None, cls_ctrl=None, cls_ctrl_model=None, cls_infl_model=None, name=None, suffix=None):
         """
         Factory method that initialize an avar instance only if necessary.
         If the instance already had been initialized in a previous build, it's correct value will be preserved,
@@ -739,6 +739,8 @@ class AvarGrp(
         :param inst: The current value. This should always exist since defined in the module constructor.
         :param ref:
         :param cls_ctrl: The desired ctrl class. We might want to remove this for simplicity
+        :param cls_ctrl_model: The desired controller model class.
+        :param cls_infl_model: The desired influence model class.
         :return: The initialized instance. If the instance was already fine, it is returned as is.
         """
         # Hack: Ensure ref is a list.
@@ -769,6 +771,10 @@ class AvarGrp(
         # Apply cls_ctrl_model override if specified
         if cls_ctrl_model:
             result._CLS_MODEL_CTRL = cls_ctrl_model
+
+        # Apply cls_infl_model override if specified
+        if cls_infl_model:
+            result._CLS_MODEL_INFL = cls_infl_model
 
         # Apply name override if specified
         if name:
@@ -810,6 +816,8 @@ class AvarGrp(
                 return False
         return True
 
+
+# todo: deprecate this class in favor of composition
 
 class AvarGrpOnSurface(AvarGrp):
     """
@@ -870,6 +878,11 @@ class AvarGrpOnSurface(AvarGrp):
     _CLS_CTRL_LOW = CtrlFaceLow
     _CLS_CTRL_ALL = CtrlFaceAll
     _CLS_MODEL_CTRL_ALL = ModelCtrlMacroAll
+
+    # We always want a linear avar-influence model for the 'all' macro avar.
+    # For example if eyelids are following a round surface, we still want the 'all' macro avar to be linear.
+    # However we might want to define the range from the shared surface.
+    _CLS_MODEL_INFL_ALL = model_avar_linear.AvarLinearModel
 
     SHOW_IN_UI = True
     UI_DISPLAY_NAME = 'AvarGrp'
@@ -1281,6 +1294,7 @@ class AvarGrpOnSurface(AvarGrp):
                 ref=avar_all_ref,
                 cls_ctrl=self._CLS_CTRL_UPP,
                 cls_ctrl_model=self._CLS_MODEL_CTRL_ALL,
+                cls_infl_model=self._CLS_MODEL_INFL_ALL,
                 name=avar_all_name
             )
             self.avar_all.name = avar_all_name
@@ -1551,16 +1565,11 @@ class AvarGrpOnSurface(AvarGrp):
                 if self._is_tweak_avar(avar):
                     continue
 
-                # Hack: Determine if the avar have an avar model.
-                # Sadly avar models are not implemented so we fallback to duck typing the _post_stack attribute
-                # which is added on simple avars.
-                if not hasattr(avar, '_post_stack'):
-                    continue
-
-                self._add_macro_all_avar_contribution(avar)
+                if avar.model_infl:
+                    self._add_macro_all_avar_contribution(avar)
 
     def _add_macro_all_avar_contribution(self, avar):
-        attr_avar_all_stack_result_tm = self.avar_all._stack.node.worldMatrix
+        attr_avar_all_stack_result_tm = self.avar_all.model_infl._attr_out_tm
         # attr_avar_all_offset_tm = self.avar_all._grp_offset.matrix
         # attr_avar_all_offset_tm_inv = self.avar_all._grp_offset.inverseMatrix
         attr_avar_all_offset_tm = self.avar_all._stack_post.worldMatrix

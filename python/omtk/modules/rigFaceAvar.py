@@ -28,6 +28,96 @@ def _connect_with_blend(attr_src, attr_dst, attr_amount):
     ).outputX
     pymel.connectAttr(attr_blended, attr_dst)
 
+
+def _blend_matrix_attribute(attr_tm_a, attr_tm_b, attr_blend_tx, attr_blend_ty, attr_blend_tz, attr_blend_rx,
+                            attr_blend_ry, attr_blend_rz, attr_blend_sx, attr_blend_sy, attr_blend_sz):
+    # todo: replace with a matrixBlend node?
+    u_decompose_a = libRigging.create_utility_node('decomposeMatrix', inputMatrix=attr_tm_a)
+    u_decompose_b = libRigging.create_utility_node('decomposeMatrix', inputMatrix=attr_tm_b)
+    u_compose_tm = libRigging.create_utility_node('composeMatrix')
+
+    attr_blend_tx = libRigging.create_utility_node('blendTwoAttr', input=[u_decompose_a.outputTranslateX,
+                                                                          u_decompose_b.outputTranslateX],
+                                                   attributesBlender=attr_blend_tx).output
+    attr_blend_ty = libRigging.create_utility_node('blendTwoAttr', input=[u_decompose_a.outputTranslateY,
+                                                                          u_decompose_b.outputTranslateY],
+                                                   attributesBlender=attr_blend_ty).output
+    attr_blend_tz = libRigging.create_utility_node('blendTwoAttr', input=[u_decompose_a.outputTranslateZ,
+                                                                          u_decompose_b.outputTranslateZ],
+                                                   attributesBlender=attr_blend_tz).output
+    attr_blend_rx = libRigging.create_utility_node('blendTwoAttr',
+                                                   input=[u_decompose_a.outputRotateX, u_decompose_b.outputRotateX],
+                                                   attributesBlender=attr_blend_rx).output
+    attr_blend_ry = libRigging.create_utility_node('blendTwoAttr',
+                                                   input=[u_decompose_a.outputRotateY, u_decompose_b.outputRotateY],
+                                                   attributesBlender=attr_blend_ry).output
+    attr_blend_rz = libRigging.create_utility_node('blendTwoAttr',
+                                                   input=[u_decompose_a.outputRotateZ, u_decompose_b.outputRotateZ],
+                                                   attributesBlender=attr_blend_rz).output
+    attr_blend_sx = libRigging.create_utility_node('blendTwoAttr',
+                                                   input=[u_decompose_a.outputScaleX, u_decompose_b.outputScaleX],
+                                                   attributesBlender=attr_blend_sx).output
+    attr_blend_sy = libRigging.create_utility_node('blendTwoAttr',
+                                                   input=[u_decompose_a.outputScaleY, u_decompose_b.outputScaleY],
+                                                   attributesBlender=attr_blend_sy).output
+    attr_blend_sz = libRigging.create_utility_node('blendTwoAttr',
+                                                   input=[u_decompose_a.outputScaleZ, u_decompose_b.outputScaleZ],
+                                                   attributesBlender=attr_blend_sz).output
+
+    pymel.connectAttr(attr_blend_tx, u_compose_tm.inputTranslateX)
+    pymel.connectAttr(attr_blend_ty, u_compose_tm.inputTranslateY)
+    pymel.connectAttr(attr_blend_tz, u_compose_tm.inputTranslateZ)
+    pymel.connectAttr(attr_blend_rx, u_compose_tm.inputRotateX)
+    pymel.connectAttr(attr_blend_ry, u_compose_tm.inputRotateY)
+    pymel.connectAttr(attr_blend_rz, u_compose_tm.inputRotateZ)
+    pymel.connectAttr(attr_blend_sx, u_compose_tm.inputScaleX)
+    pymel.connectAttr(attr_blend_sy, u_compose_tm.inputScaleY)
+    pymel.connectAttr(attr_blend_sz, u_compose_tm.inputScaleZ)
+
+    return u_compose_tm.outputMatrix
+
+
+def _blend_inn_matrix_attribute(attr_tm, attr_blend_tx, attr_blend_ty, attr_blend_tz, attr_blend_rx,
+                                attr_blend_ry, attr_blend_rz, attr_blend_sx, attr_blend_sy, attr_blend_sz):
+    # todo: replace with a matrixBlend node?
+    u_decompose_a = libRigging.create_utility_node('decomposeMatrix', inputMatrix=attr_tm)
+
+    attr_blend_t = libRigging.create_utility_node(
+        'multiplyDivide',
+        input1X=u_decompose_a.outputTranslateX,
+        input1Y=u_decompose_a.outputTranslateY,
+        input1Z=u_decompose_a.outputTranslateZ,
+        input2X=attr_blend_tx,
+        input2Y=attr_blend_ty,
+        input2Z=attr_blend_tz,
+    ).output
+    attr_blend_r = libRigging.create_utility_node(
+        'multiplyDivide',
+        input1X=u_decompose_a.outputRotateX,
+        input1Y=u_decompose_a.outputRotateY,
+        input1Z=u_decompose_a.outputRotateZ,
+        input2X=attr_blend_rx,
+        input2Y=attr_blend_ry,
+        input2Z=attr_blend_rz,
+    ).output
+    attr_blend_s = libRigging.create_utility_node(
+        'multiplyDivide',
+        input1X=u_decompose_a.outputScaleX,
+        input1Y=u_decompose_a.outputScaleY,
+        input1Z=u_decompose_a.outputScaleZ,
+        input2X=attr_blend_sx,
+        input2Y=attr_blend_sy,
+        input2Z=attr_blend_sz,
+    ).output
+
+    return libRigging.create_utility_node(
+        'composeMatrix',
+        inputTranslate=attr_blend_t,
+        inputRotate=attr_blend_r,
+        inputScale=attr_blend_s,
+    ).outputMatrix
+
+
 class BaseCtrlFace(classCtrl.BaseCtrl):
     def fetch_shapes(self):
         """
@@ -63,8 +153,10 @@ class CtrlFaceMacro(BaseCtrlFace):
     def __createNode__(self, normal=(0, 0, 1), **kwargs):
         return libCtrlShapes.create_square(normal=normal, **kwargs)
 
+
 from omtk.models import model_avar_surface
 from omtk.models import model_avar_linear
+
 
 class AbstractAvar(classModule.Module):
     """
@@ -476,7 +568,7 @@ class AvarSimple(AbstractAvar):
         """
         nomenclature_rig = self.get_nomenclature_rig()
 
-        self.model_infl = self.init_module(self._CLS_MODEL_INFL, self.model_infl, suffix='avar')
+        self.model_infl = self.init_module(self._CLS_MODEL_INFL, self.model_infl, suffix='avarModel')
         # self.model_infl = model_avar_surface.AvarSurfaceModel(self.input, rig=self.rig, name=infl_model_name)
         self.model_infl.build()
         self.model_infl.grp_rig.setParent(self.grp_rig)
@@ -500,13 +592,18 @@ class AvarSimple(AbstractAvar):
             name=nomenclature_rig.resolve('something')
         )
 
-        # util_decompose_stack_pre = libRigging.create_utility_node(
-        #     'decomposeMatrix',
-        #     inputMatrix=self._stack.worldMatrix,
-        # )
-        # pymel.connectAttr(util_decompose_stack_pre.outputTranslate, layer_stack_input.translate)
-        # pymel.connectAttr(util_decompose_stack_pre.outputRotate, layer_stack_input.rotate)
-        # pymel.connectAttr(util_decompose_stack_pre.outputScale, layer_stack_input.scale)
+        attr_avar_model_tm = _blend_inn_matrix_attribute(
+            self.model_infl._attr_out_tm,
+            self.affect_tx,
+            self.affect_ty,
+            self.affect_tz,
+            self.affect_rx,
+            self.affect_ry,
+            self.affect_rz,
+            self.affect_sx,
+            self.affect_sy,
+            self.affect_sz,
+        )
 
         # Take the result of the stack and add it on top of the bind-pose and parent group.
         self._attr_get_stack_local_tm = libRigging.create_utility_node(
@@ -514,7 +611,8 @@ class AvarSimple(AbstractAvar):
             matrixIn=(
                 # self._stack_pre.worldMatrix,
                 # self._stack.worldMatrix,
-                self.model_infl._attr_out_tm,
+                # self.model_infl._attr_out_tm,
+                attr_avar_model_tm,
                 self._stack_post.worldMatrix,
                 # self._grp_offset.matrix,
                 self._grp_parent.matrix,
@@ -524,18 +622,21 @@ class AvarSimple(AbstractAvar):
             'decomposeMatrix',
             inputMatrix=self._attr_get_stack_local_tm
         )
-        
+        pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.translate)
+        pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.rotate)
+        pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.scale)
+
         # We want the rigger to easily de-activate the avar logic for each channel.
         # This is mainly because they might want to to certain deformations with blendshapes instead.
-        _connect_with_blend(util_get_stack_local_tm.outputTranslateX, self._grp_output.translateX, self.affect_tx)
-        _connect_with_blend(util_get_stack_local_tm.outputTranslateY, self._grp_output.translateY, self.affect_ty)
-        _connect_with_blend(util_get_stack_local_tm.outputTranslateZ, self._grp_output.translateZ, self.affect_tz)
-        _connect_with_blend(util_get_stack_local_tm.outputRotateX, self._grp_output.rotateX, self.affect_rx)
-        _connect_with_blend(util_get_stack_local_tm.outputRotateY, self._grp_output.rotateY, self.affect_ry)
-        _connect_with_blend(util_get_stack_local_tm.outputRotateZ, self._grp_output.rotateZ, self.affect_rz)
-        _connect_with_blend(util_get_stack_local_tm.outputScaleX, self._grp_output.scaleX, self.affect_sx)
-        _connect_with_blend(util_get_stack_local_tm.outputScaleY, self._grp_output.scaleY, self.affect_sy)
-        _connect_with_blend(util_get_stack_local_tm.outputScaleZ, self._grp_output.scaleZ, self.affect_sz)
+        # _connect_with_blend(util_get_stack_local_tm.outputTranslateX, self._grp_output.translateX, self.affect_tx)
+        # _connect_with_blend(util_get_stack_local_tm.outputTranslateY, self._grp_output.translateY, self.affect_ty)
+        # _connect_with_blend(util_get_stack_local_tm.outputTranslateZ, self._grp_output.translateZ, self.affect_tz)
+        # _connect_with_blend(util_get_stack_local_tm.outputRotateX, self._grp_output.rotateX, self.affect_rx)
+        # _connect_with_blend(util_get_stack_local_tm.outputRotateY, self._grp_output.rotateY, self.affect_ry)
+        # _connect_with_blend(util_get_stack_local_tm.outputRotateZ, self._grp_output.rotateZ, self.affect_rz)
+        # _connect_with_blend(util_get_stack_local_tm.outputScaleX, self._grp_output.scaleX, self.affect_sx)
+        # _connect_with_blend(util_get_stack_local_tm.outputScaleY, self._grp_output.scaleY, self.affect_sy)
+        # _connect_with_blend(util_get_stack_local_tm.outputScaleZ, self._grp_output.scaleZ, self.affect_sz)
 
     def build(self, constraint=True, ctrl_size=1.0, ctrl_tm=None, jnt_tm=None, obj_mesh=None, follow_mesh=True,
               **kwargs):
@@ -603,7 +704,8 @@ class AvarSimple(AbstractAvar):
         # self._grp_offset.setTranslation(jnt_pos)
 
         if self.need_flip_lr() and self.jnt:
-            jnt_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0) * jnt_tm
+            jnt_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+                                            1.0) * jnt_tm
 
         self.grp_offset.setMatrix(jnt_tm)
 

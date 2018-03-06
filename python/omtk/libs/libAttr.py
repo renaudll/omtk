@@ -1195,7 +1195,6 @@ def _wip_explore_input_dependencies_recursive(start_node):
 
 
 def _wip_explore_output_dependencies(node):
-    print node
     children = pymel.listConnections(node, source=False, destination=True, skipConversionNodes=True)
 
     # ikHandle are a special case, they are not bound by connections.

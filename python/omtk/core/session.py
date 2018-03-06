@@ -251,7 +251,6 @@ class AutoRigManager(QtCore.QObject):
 
         return inst
 
-
     def execute_actions(self, actions):
         need_export_network = False
         # entities = self.get_selected_components()

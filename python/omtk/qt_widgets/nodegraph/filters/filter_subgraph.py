@@ -1,13 +1,15 @@
 import pymel.core as pymel
+
+from omtk.core import session
 from omtk.qt_widgets.nodegraph import nodegraph_filter
 
 if False:
     from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel
 
 
-class NodeGraphGraphProxyModel(nodegraph_filter.NodeGraphFilter):
+class NodeGraphSubgraphFilter(nodegraph_filter.NodeGraphFilter):
     def __init__(self, level=None):
-        super(NodeGraphGraphProxyModel, self).__init__()
+        super(NodeGraphSubgraphFilter, self).__init__()
         self._level = None
         if level:
             self.set_level(level)
@@ -42,4 +44,17 @@ class NodeGraphGraphProxyModel(nodegraph_filter.NodeGraphFilter):
         if not self.can_show_node(node_model):
             return False
 
-        return super(NodeGraphGraphProxyModel, self).can_show_connection(node_model)
+        return super(NodeGraphSubgraphFilter, self).can_show_connection(node_model)
+
+    def intercept_node(self, node):
+        s = session.get_session()
+        metadata = node.get_metadata()
+        parent = s._cache_components.get_node_parent(metadata) if isinstance(metadata, pymel.PyNode) else None
+
+        if not parent:
+            for yielded in super(NodeGraphSubgraphFilter, self).intercept_node(node):
+                yield yielded
+            return
+
+        node = node._registry.get_node_from_value(parent)
+        yield node

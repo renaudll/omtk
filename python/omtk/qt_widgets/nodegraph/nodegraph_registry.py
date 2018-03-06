@@ -104,7 +104,7 @@ class NodeGraphRegistry(object):
         # Handle pointer to a component datatype
         data_type = factory_datatypes.get_datatype(val)
         if data_type == factory_datatypes.AttributeType.Component:
-            return component.NodeGraphComponentModel(self, val)
+            return node_component.NodeGraphComponentModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Node:
             network = val

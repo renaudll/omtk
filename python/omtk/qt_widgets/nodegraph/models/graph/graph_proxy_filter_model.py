@@ -51,6 +51,11 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
 
         return super(GraphFilterProxyModel, self).can_show_connection(connection)
 
+    def iter_nodes(self):
+        for node in self._model.iter_nodes():
+            for yielded in self.intercept_node(node):
+                yield yielded
+
     def intercept_node(self, node):
         """Intercept a node to show something else instead."""
         if self._filter:
@@ -59,6 +64,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         else:
             yield node
 
+    # todo: implement?
     def intercept_port(self, port):
         """Intercept a port to show something else instead."""
         if self._filter:
@@ -67,6 +73,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         else:
             yield port
 
+    # todo: implement?
     # todo: rename with something more understandable
     def intercept_connection(self, connection):
         """Intercept a connection to show something else instead."""

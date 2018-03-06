@@ -75,7 +75,7 @@ class DagNodeParentPortModel(port_model.NodeGraphPortModel):
 class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
     """Define the data model for a Node representing a DagNode."""
 
-    def iter_attributes(self,):
+    def iter_ports(self, ):
         # Expose parent attribute
         metadata = self.get_metadata()
         parent = metadata.getParent()
@@ -84,5 +84,5 @@ class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
         # inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         yield inst
 
-        for yielded in super(NodeGraphDagNodeModel, self).iter_attributes():
+        for yielded in super(NodeGraphDagNodeModel, self).iter_ports():
             yield yielded

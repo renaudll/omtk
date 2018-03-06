@@ -59,7 +59,7 @@ class ComponentExample(ComponentScripted):
         self._attr_inn_hook_tm = None
         self._attr_out_matrices = None
 
-    def iter_attributes(self):
+    def iter_ports(self):
         defining_input_attr_names = (
             self.ATTR_NAME_INN_ANM_BIND,
             self.ATTR_NAME_INN_INF_BIND,
@@ -73,7 +73,7 @@ class ComponentExample(ComponentScripted):
             self.unbuild()
             self.build()
 
-        for attr_def in super(ComponentExample, self).iter_attributes():
+        for attr_def in super(ComponentExample, self).iter_ports():
             if attr_def.name in defining_input_attr_names:
                 attr_def._fn_set = _set
             yield attr_def

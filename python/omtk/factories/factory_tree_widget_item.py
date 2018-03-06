@@ -191,7 +191,7 @@ def _get_item_from_component(component, known_data_id=None):
     else:
         item = QtWidgets.QTreeWidgetItem(0)
 
-    keys = list(component.iter_attributes())
+    keys = list(component.iter_ports())
 
     # keys = sorted(component.__dict__.keys())  # prevent error if dictionary change during iteration
     for attr in keys:

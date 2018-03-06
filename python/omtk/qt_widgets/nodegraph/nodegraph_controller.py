@@ -139,7 +139,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def set_filter(self, filter_):
         # type: (NodeGraphControllerFilter) -> None
         self._filter = filter_
-
         model = self.get_model()
         model.set_filter(filter_)
 
@@ -400,18 +399,18 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         return node_parent_inst == self._current_level_data
 
     # todo: needed?
-    def expand_node_attributes(self, node_model):
+    def expand_node_attributes(self, node):
         # type: (NodeGraphNodeModel) -> None
         """
         Show all available attributes for a PyFlowgraph Node.
         Add it in the pool if it didn't previously exist.
         :return:
         """
-        model = self.get_model()
-        for port_model in sorted(model.iter_ports()):
-            model.add_port(port_model)
-            if self.get_view():  # wip
-                self.get_port_widget(port_model)
+        self._model.expand_node(node)
+        # for port_model in sorted(model.iter_ports()):
+        #     model.add_port(port_model)
+        #     if self.get_view():  # wip
+        #         self.get_port_widget(port_model)
 
     def expand_port_input_connections(self, port_model):
         for connection_model in self.get_port_input_connections(port_model):
@@ -443,7 +442,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             yield connection_model
 
     def _iter_node_output_connections(self, node_model):
-        for port_model in node_model.get_connected_output_attributes(self):
+        for port_model in node_model.get_connected_output_ports(self):
             if not self.can_show_port(port_model):
                 continue
 
@@ -464,7 +463,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 yield connection_model
 
     def _iter_node_input_connections(self, node_model):
-        for port_model in node_model.get_connected_input_attributes():
+        for port_model in node_model.get_connected_input_ports():
             if not self.can_show_port(port_model):
                 continue
 
@@ -482,14 +481,15 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
                 yield connection_model
 
-    def expand_node_connections(self, node_model, expand_downstream=True, expand_upstream=True):
+    def expand_node_ports(self, node, outputs=True, inputs=True):
         # type: (NodeGraphNodeModel) -> None
-        if expand_upstream:
-            for port_model in node_model.get_connected_output_attributes(self):
-                self.expand_port_output_connections(port_model)
-        if expand_downstream:
-            for port_model in node_model.get_connected_input_attributes(self):
-                self.expand_port_input_connections(port_model)
+        self._model.expand_node_ports(node, outputs=outputs, inputs=inputs)
+        # if inputs:
+        #     for port_model in node.get_connected_output_ports():
+        #         self.expand_port_output_connections(port_model)
+        # if outputs:
+        #     for port_model in node.get_connected_input_ports():
+        #         self.expand_port_input_connections(port_model)
 
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
@@ -691,7 +691,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             node_widget.setPos(pos)
 
             self.expand_node_attributes(node_model)
-            self.expand_node_connections(node_model)
+            self.expand_node_ports(node_model)
 
             return node_widget
 
@@ -790,7 +790,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self.add_node_model_to_view(child_model)
             # widgets.add(widget)
             self.expand_node_attributes(child_model)
-            self.expand_node_connections(child_model)
+            self.expand_node_ports(child_model)
 
         component = node_model.get_metadata()
         metatype = factory_datatypes.get_datatype(component)
@@ -801,7 +801,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             node_model = self.get_node_model_from_value(grp_inn)
             node_widget = self.add_node_model_to_view(node_model)
             self.expand_node_attributes(node_model)
-            self.expand_node_connections(node_model)
+            self.expand_node_ports(node_model)
             self._widget_bound_inn = node_widget
 
             # Create out node
@@ -809,7 +809,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             node_model = self.get_node_model_from_value(grp_out)
             node_widget = self.add_node(node_model)
             self.expand_node_attributes(node_model)
-            self.expand_node_connections(node_model)
+            self.expand_node_ports(node_model)
             self._widget_bound_out = node_widget
 
             self._widget_bound_inn.setGraphPos(QtCore.QPointF(-5000.0, 0))
@@ -923,7 +923,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         inn_attrs = set()
         out_attrs = set()
         for node_model in selected_nodes_model:
-            for port_dst in node_model.get_connected_input_attributes():
+            for port_dst in node_model.get_connected_input_ports():
                 # Ignore message attributes
                 attr = port_dst.get_metadata()
                 attr_type = attr.type()
@@ -938,7 +938,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
                     inn_attrs.add(port_dst.get_metadata())
 
-            for port_src in node_model.get_connected_output_attributes(self):
+            for port_src in node_model.get_connected_output_ports(self):
                 # Ignore message attributes
                 attr = port_src.get_metadata()
                 attr_type = attr.type()
@@ -954,51 +954,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                     out_attrs.add(port_src.get_metadata())
 
         return inn_attrs, out_attrs
-
-    def _get_decomposematrix_inputmatrix_output_connections(self, attr):
-        """
-        To call when encountering a decomposeMatrix.inputMatrix attribute.
-        This is used to skip previsible decomposeMatrix in the NodeGraph.
-        This will yield the inputMatrix attribute if the decomposeMatrix have non-previsible connections.
-        Otherwise it will yield all destination port of the decomposeMatrix.
-        A previsible connection it either:
-        - outputTranslate to translate
-        - outputRotate to rotate
-        - outputScale to scale
-        :param attr: A pymel.Attribute instance representing a decomposeMatrix.inputMatrix attribute.
-        """
-        def _is_previsible(connection_):
-            attr_src_ = connection_.get_source().get_metadata()
-            attr_dst_ = connection_.get_destination().get_metadata()
-            attr_src_name = attr_src_.longName()
-            attr_dst_name = attr_dst_.longName()
-            if attr_src_name == 'outputTranslate':  # and attr_dst_name == 'translate':
-                return True
-            if attr_src_name == 'outputRotate':  # and attr_dst_name == 'rotate':
-                return True
-            if attr_src_name == 'outputScale':  # and attr_dst_name == 'scale':
-                return True
-            return False
-
-        # attr_inputmatrix_model = self.get_port_mode
-        node = attr.node()
-        node_model = self.get_node_model_from_value(node)
-
-        # We will hold the connections in case we encounter an anormal connection.
-        results = []
-        for attr_dst in node_model.get_connected_output_attributes(self):
-            for connection in self.get_port_output_connections(attr_dst):
-                # for connection2 in self.get_port_output_connections(dst_node_model):
-                if _is_previsible(connection):
-                    new_connection = connection.get_destination()
-                    results.append(new_connection)
-                else:
-                    log.warning("Will no ignore {0} because of an unprevisible connection {1}.".format(node, connection))
-                    yield attr
-                    return
-
-        for result in results:
-            yield result
 
     def iter_port_connections(self, model):
         # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
@@ -1059,7 +1014,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         if attr_type == 'message':
             return
 
-        for connection in model.get_output_connections(self):
+        for connection in model.get_output_connections():
 
             # Redirect unitConversion input attribute
             attr_dst = connection.get_destination().get_metadata()
@@ -1125,7 +1080,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def expand_selected_nodes(self):
         for node_model in self.get_selected_node_models():
-            self.expand_node_connections(node_model)
+            self.expand_node_ports(node_model)
 
     def colapse_selected_nodes(self):
         for node_model in self.get_selected_node_models():
@@ -1234,7 +1189,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         port_model = self.get_port_model_from_value(value)
         self.invalidate_port_model(port_model)
         # node_model = port.py.get_parent()
-        # self.expand_node_attributes(node_model)
+        # self.expand_node(node_model)
 
         self.get_port_widget(port_model)
 

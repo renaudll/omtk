@@ -1,7 +1,7 @@
 from . import graph_model_abstract
 
 if False:
-    from .graph_model import NodeGraphModel
+    from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
 
 
 class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
@@ -9,6 +9,9 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
         self._model = None
         if model:
             self.set_source_model(model)
+
+    def reset(self):
+        return self._model.reset()
 
     def get_model(self):
         # type: () -> NodeGraphModel
@@ -39,39 +42,73 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
     # --- Abstract methods ---
 
     def iter_nodes(self):
-        for node in self.get_model().get_nodes():
+        for node in self._model.get_nodes():
             if self.can_show_node(node):
                 yield node
 
     def iter_ports(self):
-        for port in self.get_model().iter_ports():
+        for port in self._model.iter_ports():
             if self.can_show_port(port):
                 yield port
+
+    def iter_node_ports(self, node):
+        for port in self._model.iter_node_ports(node):
+            if self.can_show_port(port):
+                yield port
+
+    def iter_connections(self):
+        for connection in self._model.iter_connections():
+            if self.can_show_connection(connection):
+                yield connection
 
     def add_node(self, node, emit_signal=False):
         self._model.add_node(node, emit_signal=emit_signal)
 
     def remove_node(self, node, emit_signal=False):
-        self.get_model().remove_node(node, emit_signal=emit_signal)
+        self._model.remove_node(node, emit_signal=emit_signal)
 
     def get_node_position(self, node):
-        return self.get_model().get_node_position(node)
+        return self._model.get_node_position(node)
 
     def set_node_position(self, node, pos, emit_signal=True):
-        self.get_model().set_node_position(node, pos, emit_signal=emit_signal)
+        self._model.set_node_position(node, pos, emit_signal=emit_signal)
 
     def add_port(self, port, emit_signal=False):
-        self.get_model().add_port(port, emit_signal=emit_signal)
+        self._model.add_port(port, emit_signal=emit_signal)
 
     def remove_port(self, port, emit_signal=False):
-        self.get_model().remove_port(port, emit_signal=emit_signal)
+        self._model.remove_port(port, emit_signal=emit_signal)
 
     def add_connection(self, connection, emit_signal=False):
-        self.get_model().add_connection(connection, emit_signal=emit_signal)
+        self._model.add_connection(connection, emit_signal=emit_signal)
 
     def remove_connection(self, connection, emit_signal=False):
-        self.get_model().remove_connection(connection, emit_signal=emit_signal)
+        self._model.remove_connection(connection, emit_signal=emit_signal)
 
+    def expand_node(self, node):
+        # type: (NodeGraphNodeModel) -> None
+        self._model.expand_node(node)
 
+    def expand_node_ports(self, node, inputs=True, outputs=True):
+        # type: (NodeGraphNodeModel, bool, bool) -> None
+        self._model.expand_node_ports(node, outputs=True, inputs=True)
+
+    def expand_port_input_connections(self, port_model):
+        self._model.expand_port_input_connections(port_model)
+
+    def expand_port_output_connections(self, port_model):
+        self._model.expand_port_output_connections(port_model)
+
+    def expand_node_ports(self, node, inputs=True, outputs=True):
+        # todo: find a cleaner way?
+        # type: (NodeGraphNodeModel, bool, bool) -> None
+        for port in self.get_node_ports(node):
+            if outputs:
+                self.expand_port_output_connections(port)
+            if inputs:
+                self.expand_port_input_connections(port)
+
+        # Update cache
+        self._expanded_nodes_ports.add(node)
 
 

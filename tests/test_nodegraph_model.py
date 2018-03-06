@@ -27,7 +27,7 @@ class GraphRegistryTest(unittest.TestCase):
     #     transform_dst = pymel.createNode('transform')
     #     pymel.connectAttr(transform_src.translateX, transform_dst.translateX)
     #     node = self.registry.get_node_from_value(transform_src)
-    #     attributes = node.get_connected_output_attributes()
+    #     attributes = node.get_connected_output_ports()
     #     print(len(attributes))
     #     for a in sorted(attributes):
     #         print a
@@ -57,8 +57,8 @@ class GraphRegistryTest(unittest.TestCase):
 
         self.assertEqual(1, len(self.model._nodes))
 
-        inn_attrs = node_model.get_input_attributes()
-        out_attrs = node_model.get_output_attributes()
+        inn_attrs = node_model.get_input_ports()
+        out_attrs = node_model.get_output_ports()
 
         self.assertEqual(1, len(inn_attrs))
         self.assertEqual('translateX', inn_attrs[0].get_name())

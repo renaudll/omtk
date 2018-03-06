@@ -81,9 +81,13 @@ class NodeGraphNodeModel(object):
         # Used to invalidate cache
         return set()
 
+    def iter_ports(self):
+        return
+        yield
+
     def get_ports(self):
         # type: () -> List[NodeGraphPortModel]
-        return set()
+        return set(self.iter_ports())
 
     def allow_input_port_display(self, port_model, context=None):
         # type: (NodeGraphPortModel, NodeGraphController) -> bool
@@ -94,17 +98,17 @@ class NodeGraphNodeModel(object):
         return True
 
     @decorators.memoized_instancemethod
-    def get_input_attributes(self):
+    def get_input_ports(self):
         # type: () -> list[NodeGraphPortModel]
         return [attr for attr in self.get_ports() if attr.is_writable()]
 
     @decorators.memoized_instancemethod
-    def get_connected_input_attributes(self):
+    def get_connected_input_ports(self):
         # type: () -> list[NodeGraphPortModel]
-        return [attr for attr in self.get_input_attributes() if attr.get_input_connections()]
+        return [attr for attr in self.get_input_ports() if attr.get_input_connections()]
 
     @decorators.memoized_instancemethod
-    def get_output_attributes(self):
+    def get_output_ports(self):
         # type: () -> list[NodeGraphPortModel]
         return [attr for attr in self.get_ports() if attr.is_readable()]
 
@@ -112,20 +116,20 @@ class NodeGraphNodeModel(object):
     def get_input_connections(self):
         # type: () -> list(NodeGraphPortModel)
         result = []
-        for attr in self.get_input_attributes():
+        for attr in self.get_input_ports():
             result.extend(attr.get_input_connections())
         return result
 
     @decorators.memoized_instancemethod
     def get_output_connections(self):
         result = []
-        for attr in self.get_output_attributes():
+        for attr in self.get_output_ports():
             result.extend(attr.get_output_connections())
         return result
 
     @decorators.memoized_instancemethod
-    def get_connected_output_attributes(self):
-        return [attr for attr in self.get_output_attributes() if attr.get_output_connections()]
+    def get_connected_output_ports(self):
+        return [attr for attr in self.get_output_ports() if attr.get_output_connections()]
 
     def _get_widget_label(self):
         """
@@ -166,7 +170,7 @@ class NodeGraphEntityModel(NodeGraphNodeModel):
     @decorators.memoized_instancemethod
     def get_ports_metadata(self):
         # Used to invalidate cache
-        return self._entity.iter_attributes()
+        return self._entity.iter_ports()
 
     @decorators.memoized_instancemethod
     def get_ports(self):

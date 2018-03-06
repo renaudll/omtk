@@ -9,6 +9,7 @@ from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
 
 log = logging.getLogger('omtk.nodegraph')
 
+
 class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
     """Define the data model for a Node representing a DagNode."""
 
@@ -48,19 +49,29 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
         return list(libAttr.iter_contributing_attributes(self._pynode))
         # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
-    def iter_attributes(self):
+    def iter_ports(self):
         for attr in self.get_ports_metadata():
             inst = self._registry.get_port_model_from_value(attr)
             # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
             # self._registry._register_attribute(inst)
             yield inst
 
+            # Note: Multi-attribute are disabled for now, we might want to handle 'free' item
+            # if a special way before re-activating this.
+            # Otherwise we might have strange side effects.
+            # n = pymel.createNode('transform')
+            # n.worldMatrix.numElements()  # -> 0
+            # n.worldMatrix.type()
+            # n.worldMatrix.numElements() # -> 1, wtf
+            # n.worldMatrix[1]  # if we try to use the free index directly
+            # n.worldMatrix.numElements() # -> 2, wtf
+
             # If the attribute is a multi attribute, we'll want to expose the first available.
-            if attr.isMulti():
-                next_available_index = attr.numElements() + 1
-                attr_available = attr[next_available_index]
-                inst = self._registry.get_port_model_from_value(attr_available)
-                yield inst
+            # if attr.isMulti():
+            #     next_available_index = attr.numElements() if attr.numElements() else 0
+            #     attr_available = attr[next_available_index]
+            #     inst = self._registry.get_port_model_from_value(attr_available)
+            #     yield inst
 
             # if attr.isMulti():
             #     num_elements = attr.numElements()
@@ -71,14 +82,6 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
             #         # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
             #         # self._registry._register_attribute(inst)
             #         yield inst
-
-    # @decorators.memoized_instancemethod
-    def get_ports(self):
-        # type: () -> List[NodeGraphPortModel]
-        result = set()
-        for attr in self.iter_attributes():
-            result.add(attr)
-        return result
 
     def _get_widget_cls(self):
         return pyflowgraph_node_widget.OmtkNodeGraphDagNodeWidget

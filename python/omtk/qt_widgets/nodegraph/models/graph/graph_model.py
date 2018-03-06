@@ -1,4 +1,6 @@
 import abc
+import copy
+import pymel.core as pymel
 import logging
 from collections import defaultdict
 
@@ -44,7 +46,17 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._ports_by_connection = defaultdict(set)
         self._connections_by_port = defaultdict(set)
 
-    def reset(self):
+        # Keep track of which node and port have been expanded.
+        # This allow easier update when switching between filters.
+        self._expanded_nodes = set()  # todo: duplicate?
+        self._expanded_nodes_ports = set()
+
+    def reset(self, expand=True):
+        old_nodes = copy.copy(self._nodes)
+        # old_ports = set(self._ports)
+        expanded_nodes = set(self._expanded_nodes)
+        expanded_nodes_ports = set(self._expanded_nodes_ports)
+
         for node in list(self.get_nodes()):  # hack: prevent change during iteration
             self.remove_node(node, emit_signal=False)
 
@@ -58,17 +70,31 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         assert not self._ports_by_connection
         assert not self._connections_by_port
 
+        # Restore the visible nodes
+        for node in old_nodes:
+            self.add_node(node, emit_signal=False)
+
+        if expand:
+            for node in old_nodes:
+                if node in expanded_nodes:
+                    self.expand_node(node)
+
+                if node in expanded_nodes_ports:
+                    self.expand_node_ports(node)
+
     # --- Node methods ---
+
+    def iter_nodes(self):
+        return iter(self._nodes)
 
     def get_nodes(self):
         # type: () -> List[NodeGraphNodeModel]
         return self._nodes
 
-    def iter_nodes(self):
-        return iter(self._nodes)
-
     def add_node(self, node, emit_signal=False):
         # type: (NodeGraphNodeModel, bool) -> None
+        if node in self._nodes:
+            return
         self._nodes.add(node)
         self._pos_by_node[node] = QtCore.QPointF(0.0, 0.0)  # todo: handle automatic positioning
         if emit_signal:
@@ -78,6 +104,11 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         # type: (NodeGraphNodeModel, bool) -> None
         self._nodes.remove(node)
         self._pos_by_node.pop(node)
+
+        if node in self._expanded_nodes:
+            self._expanded_nodes.remove(node)
+        if node in self._expanded_nodes_ports:
+            self._expanded_nodes_ports.remove(node)
 
         # Remove node ports
         for port in list(self._ports_by_nodes[node]):  # hack: prevent change during iteration
@@ -100,17 +131,24 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
     # --- Port methods ---
 
+    def iter_ports(self):
+        return iter(self._ports)
+
     def get_ports(self):
-        # todo: optimize?
-        result = []
-        for node in self.get_nodes():
-            for port in node.iter_ports():
-                result.append(port)
-        return result
-        # return self._ports
+        # # todo: optimize?
+        # result = []
+        # for node in self.get_nodes():
+        #     for port in node.iter_ports():
+        #         result.append(port)
+        # return result
+        return self._ports
+
+    def iter_node_ports(self, node):
+        for port in node.iter_ports():
+            yield port
 
     def get_node_ports(self, node):
-        return self._ports_by_nodes[node]
+        return list(self.iter_node_ports(node))
 
     def add_port(self, port, emit_signal=False):
         # type: (NodeGraphPortModel, bool) -> None
@@ -118,6 +156,8 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
         # Remove port connections
         node = port.get_parent()
+        if not node in self._nodes:
+            self.add_node(node)
         self._ports_by_nodes[node].add(port)
         self._nodes_by_port[port].add(node)
 
@@ -129,7 +169,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._ports.remove(port)
 
         # Remove port connections
-        for connection in self._connections_by_port[port]:
+        for connection in list(self._connections_by_port[port]):  # hack: prevent change during iteration
             self.remove_connection(connection, emit_signal=emit_signal)
         self._connections_by_port.pop(port)
 
@@ -156,6 +196,10 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         # Update cache
         port_src = connection.get_source()
         port_dst = connection.get_destination()
+        if not port_src in self._ports:
+            self.add_port(port_src)
+        if not port_dst in self._ports:
+            self.add_port(port_dst)
         self._connections_by_port[port_src].add(connection)
         self._connections_by_port[port_dst].add(connection)
         self._ports_by_connection[connection].add(port_src)
@@ -178,37 +222,11 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
     # --- Exploration methods ---
 
-    def iter_ports(self):
-        for node in self.iter_nodes():
-            for port in node.get_ports():
-                yield port
-
-    # --- clean this
-
-    def expand_node_attributes(self, node):
-        # type: (NodeGraphNodeModel) -> None
-        """
-        Show all available attributes for a PyFlowgraph Node.
-        Add it in the pool if it didn't previously exist.
-        :return:
-        """
-        for port in sorted(self.iter_ports(node)):
-            self.add_port(port)
-            # self.get_port_widget(port_model)
-
-    def expand_node_connections(self, node_model, expand_downstream=True, expand_upstream=True):
-        # type: (NodeGraphNodeModel) -> None
-        if expand_upstream:
-            for port_model in node_model.get_connected_output_attributes(self):
-                self.expand_port_output_connections(port_model)
-        if expand_downstream:
-            for port_model in node_model.get_connected_input_attributes(self):
-                self.expand_port_input_connections(port_model)
-
-    def expand_port_input_connections(self, port_model):
-        for connection_model in self.get_port_input_connections(port_model):
-            self.get_connection_widget(connection_model)
-
-    def expand_port_output_connections(self, port_model):
-        for connection_model in self.get_port_output_connections(port_model):
-            self.get_connection_widget(connection_model)
+    # def iter_ports(self):
+    #     for node in self.iter_nodes():
+    #         for port in node.get_ports():
+    #             yield port
+    #
+    # def iter_node_ports(self, node):
+    #     for port in node.get_ports():
+    #         yield port

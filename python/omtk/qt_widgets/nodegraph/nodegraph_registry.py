@@ -204,7 +204,7 @@ class NodeGraphRegistry(object):
             return val
 
     def _get_connection_model_from_values(self, model_src, model_dst):
-        from . import nodegraph_connection_model
+        from omtk.qt_widgets.nodegraph.models import connection
 
         if not isinstance(model_src, port_model.NodeGraphPortModel):
             model_src = self.get_port_model_from_value(model_src)
@@ -212,7 +212,7 @@ class NodeGraphRegistry(object):
         if not isinstance(model_dst, port_model.NodeGraphPortModel):
             model_dst = self.get_port_model_from_value(model_dst)
 
-        inst = nodegraph_connection_model.NodeGraphConnectionModel(self, model_src, model_dst)
+        inst = connection.NodeGraphConnectionModel(self, model_src, model_dst)
         self._register_connections(inst)
         return inst
 

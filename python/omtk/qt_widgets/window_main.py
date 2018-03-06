@@ -117,7 +117,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
         # for rig in self.manager._roots:
         #     ctrl = self.ui.widget_node_editor.get_controller()
         #     model, widget = ctrl.add_node(rig)
-        #     ctrl.expand_node_connections(model)
+        #     ctrl.expand_node_ports(model)
 
         self.manager.onSceneChanged.connect(self.on_scene_changed)
         self.manager.onRigCreated.connect(self.on_manager_created_rig)

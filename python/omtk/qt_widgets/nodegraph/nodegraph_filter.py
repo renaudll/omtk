@@ -12,15 +12,27 @@ _attr_name_blacklist = (
 )
 
 if False:  # for type hinting
-    from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.models import NodeGraphMode, NodeGraphPortModel
 
 
 class NodeGraphFilter(object):
     """
     Define filtering rules for a NodeGraphController.
     """
-    def __init__(self):
-        self._show_libserialization_networks = False
+    def __init__(self, model=None):
+        self.model = None
+        if model:
+            self.set_model(model)
+
+        self.hide_libserialization_network = False
+
+    def get_model(self):
+        # type: () -> NodeGraphMode
+        return self._model
+
+    def set_model(self, model):
+        # type: (NodeGraphMode) -> None
+        self._model = model
 
     def can_show_node(self, node_model):
         # type: (NodeGraphNodeModel) -> bool
@@ -48,15 +60,32 @@ class NodeGraphFilter(object):
         if self._is_port_model_name_blacklisted(port_model.get_name()):
             return False
 
+        node = port_model.get_parent()
+        if not self.can_show_node(node):
+            return False
+
         return port_model.is_interesting()
 
     def can_show_connection(self, connection_model):
         # type: (NodeGraphConnectionModel) -> bool
         # libSerialization is leaving network everywhere.
         # Theses network are used as metadata, there's no reason we might want to see them instead for debugging.
-        if not self._show_libserialization_networks:
+        if not self.hide_libserialization_network:
             port_dst_model = connection_model.get_destination()
             node_dst = port_dst_model.get_parent().get_metadata()
             if node_dst.hasAttr('_class'):
                 return False
         return True
+
+    def intercept_node(self, node):
+        """Intercept a node to show something else instead."""
+        yield node
+
+    def intercept_port(self, port):
+        """Intercept a port to show something else instead."""
+        yield port
+
+    # todo: rename with something more understandable
+    def intercept_connection(self, connection):
+        """Intercept a connection to show something else instead."""
+        yield connection

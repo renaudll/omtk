@@ -250,7 +250,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
     def get_selected_influences(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_influences.ui.treeWidget,
+            self.ui.widget_jnts.ui.treeWidget,
             ui_shared.MetadataType.Influece,
             search_up=search_up
         )

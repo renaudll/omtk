@@ -70,6 +70,11 @@ class WidgetListInfluences(QtWidgets.QWidget):
             if self._is_influence(obj):  # todo: listen to the Rig class
                 qItem = QtWidgets.QTreeWidgetItem(0)
                 qItem.obj = obj
+
+                # Monkey-patch mesh QWidget
+                qItem.metadata_type = ui_shared.MetadataType.Influece
+                qItem.metadata_data = obj
+                
                 qItem.networks = networks
                 qItem.setText(0, obj_name)
                 qItem.setForeground(0, textBrush)

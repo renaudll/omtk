@@ -1,12 +1,8 @@
 import math
 import pymel.core as pymel
-from omtk.libs import libRigging
 from omtk.core.classNode import Node
 from omtk.libs import libAttr
-from omtk.libs import libPython
 from omtk.libs import libRigging
-from omtk.modules import rigFaceAvar
-from omtk.modules import rigFaceAvarGrps
 from . import model_avar_surface
 
 
@@ -242,7 +238,7 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         self._attr_inn_jaw_pitch = None
         self._attr_inn_jaw_ratio_default = None
         self._attr_inn_bypass_splitter = None
-        
+
         self._attr_out_jaw_ratio = None
 
     def _create_interface(self):
@@ -255,7 +251,7 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         self._attr_inn_ud_bypass = libAttr.addAttr(self.grp_rig, 'innBypassUD')
         # self._attr_inn_surface_length_u = libAttr.addAttr(self.grp_rig, 'innSurfaceLengthU', defaultValue=0)
         # self._attr_inn_surface_length_v = libAttr.addAttr(self.grp_rig, 'innSurfaceLengthV', defaultValue=0)
-        
+
         self._attr_out_jaw_ratio = libAttr.addAttr(self.grp_rig, 'outJawRatio')
 
     def connect_avar(self, avar):
@@ -267,7 +263,6 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         pymel.connectAttr(avar._attr_inn_jaw_ratio_default, self._attr_inn_jaw_ratio_default)
         pymel.connectAttr(avar._attr_bypass_splitter, self._attr_inn_bypass_splitter)
         pymel.connectAttr(avar.attr_ud_bypass, self._attr_inn_ud_bypass)
-        
 
     def _get_follicle_relative_uv_attr(self, **kwargs):
         nomenclature_rig = self.get_nomenclature_rig()

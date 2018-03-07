@@ -26,6 +26,18 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
     _ATTR_NAME_MULT_UD = 'multiplierUd'
     _ATTR_NAME_MULT_FB = 'multiplierFb'
 
+    # Define how many unit is moved in uv space in relation with the avars.
+    # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
+    # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
+    # However in production, we found that defining the range of avar using the whole is not flexible.
+    # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
+    # For this reason, we found that using a multiplier of 0.25 work best.
+    # This also help rigger visually since the surface plane have an edge at 0.25 location.
+    # todo: Move this to AvarFollicle.
+    default_multiplier_lr = 0.25
+    default_multiplier_ud = 0.25
+    default_multiplier_fb = 0.10
+
     def __init__(self, *args, **kwargs):
         super(AvarSurfaceModel, self).__init__(*args, **kwargs)
 
@@ -40,36 +52,13 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         self._attr_inn_surface_max_value_u = None
         self._attr_inn_surface_max_value_v = None
 
-        # Define how many unit is moved in uv space in relation with the avars.
-        # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
-        # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
-        # However in production, we found that defining the range of avar using the whole is not flexible.
-        # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
-        # For this reason, we found that using a multiplier of 0.25 work best.
-        # This also help rigger visually since the surface plane have an edge at 0.25 location.
-        # todo: Move this to AvarFollicle.
-        self.multiplier_lr = 0.25
-        self.multiplier_ud = 0.25
-        self.multiplier_fb = 0.10
-
         self._attr_length_v = None
         self._attr_length_u = None
 
         # Reference to the object containing the bind pose of the avar.
         self._obj_offset = None
 
-    def unbuild(self):
-        # Save the current uv multipliers.
-        # It is very rare that the rigger will tweak this advanced setting manually,
-        # however for legacy reasons, it might be useful when upgrading an old rig.
-        if isinstance(self.multiplier_lr, pymel.Attribute) and self.multiplier_lr.exists():
-            self.multiplier_lr = self.multiplier_lr.get()
-        if isinstance(self.multiplier_ud, pymel.Attribute) and self.multiplier_ud.exists():
-            self.multiplier_ud = self.multiplier_ud.get()
-        if isinstance(self.multiplier_fb, pymel.Attribute) and self.multiplier_fb.exists():
-            self.multiplier_fb = self.multiplier_fb.get()
 
-        super(AvarSurfaceModel, self).unbuild()
 
     def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """

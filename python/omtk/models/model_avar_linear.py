@@ -20,11 +20,6 @@ class AvarLinearModel(AvarInflBaseModel):
     def __init__(self, *args, **kwargs):
         super(AvarLinearModel, self).__init__(*args, **kwargs)
 
-        # How much are we moving around the surface for a specific avar.
-        self.multiplier_lr = 1.0
-        self.multiplier_ud = 1.0
-        self.multiplier_fb = 1.0
-
         # Reference to the object containing the bind pose of the avar.
         self._obj_offset = None
 

@@ -24,6 +24,10 @@ class AvarInflBaseModel(classModule.Module):
     _ATTR_NAME_MULT_LR = 'multiplierLr'
     _ATTR_NAME_MULT_UD = 'multiplierUd'
     _ATTR_NAME_MULT_FB = 'multiplierFb'
+    
+    default_multiplier_lr = 1.0
+    default_multiplier_ud = 1.0
+    default_multiplier_fb = 1.0
 
     def __init__(self, *args, **kwargs):
         super(AvarInflBaseModel, self).__init__(*args, **kwargs)
@@ -39,35 +43,19 @@ class AvarInflBaseModel(classModule.Module):
         self._attr_inn_sy = None
         self._attr_inn_sz = None
 
-        # # In normal cases, an avar influence a joint.
-        # # However it is possible that the rigger might want to use other means (like blendshapes)
-        # # for translation/rotation/scale, even per axis!
-        # # For this reason we'll expose filters that enable/disable an avar influence.
-        # self.affect_tx = True
-        # self.affect_ty = True
-        # self.affect_tz = True
-        # self.affect_rx = True
-        # self.affect_ry = True
-        # self.affect_rz = True
-        # self.affect_sx = True
-        # self.affect_sy = True
-        # self.affect_sz = True
-
         # The original transform of the influence
         self._attr_inn_offset_tm = None
 
         # The output transform of the system
         self._attr_out_tm = None
 
-        # ---
-
         # Reference to the object containing the bind pose of the avar.
         self._obj_offset = None
 
         # How much are we moving around the surface for a specific avar.
-        self.multiplier_lr = 1.0
-        self.multiplier_ud = 1.0
-        self.multiplier_fb = 1.0
+        self.multiplier_lr = self.default_multiplier_lr
+        self.multiplier_ud = self.default_multiplier_ud
+        self.multiplier_fb = self.default_multiplier_fb
 
     def _create_interface(self):
         # Create avar inputs
@@ -135,6 +123,22 @@ class AvarInflBaseModel(classModule.Module):
         self._create_interface()
         attr_tm = self._build()
         pymel.connectAttr(attr_tm, self._attr_out_tm)
+    
+    def unbuild(self):
+        # Cleanup old deprecated properties to prevent invalid pynode warning.
+        self.grp_offset = None
+        
+        # Save the current uv multipliers.
+        # It is very rare that the rigger will tweak this advanced setting manually,
+        # however for legacy reasons, it might be useful when upgrading an old rig.
+        if isinstance(self.multiplier_lr, pymel.Attribute) and self.multiplier_lr.exists():
+            self.multiplier_lr = self.multiplier_lr.get()
+        if isinstance(self.multiplier_ud, pymel.Attribute) and self.multiplier_ud.exists():
+            self.multiplier_ud = self.multiplier_ud.get()
+        if isinstance(self.multiplier_fb, pymel.Attribute) and self.multiplier_fb.exists():
+            self.multiplier_fb = self.multiplier_fb.get()
+        
+        super(AvarInflBaseModel, self).unbuild()
 
 
     def _build(self):

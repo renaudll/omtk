@@ -318,11 +318,11 @@ class AbstractAvar(classModule.Module):
             pymel.delete(self.avar_network)
             self.avar_network = None
 
-    def unbuild(self):
+    def unbuild(self, **kwargs):
         self.hold_avars()
         self.init_avars()
 
-        super(AbstractAvar, self).unbuild()
+        super(AbstractAvar, self).unbuild(**kwargs)
 
         # TODO: cleanup junk connections that Maya didn't delete by itself?
 
@@ -589,7 +589,7 @@ class AvarSimple(AbstractAvar):
                 attr_avar_model_tm,
                 self._stack_post.worldMatrix,
                 # self._grp_offset.matrix,
-                self._grp_parent.matrix,
+                self._grp_parent.matrix, 
             )
         ).matrixSum
         util_get_stack_local_tm = libRigging.create_utility_node(
@@ -875,14 +875,16 @@ class AvarSimple(AbstractAvar):
             self.affect_sz = self.affect_sz.get()
 
         if self.model_ctrl:
-            # Note: The model un-build process is only to needed to de-initialize some variables.
-            # If it fail, notify the user but don't crash.
-            try:
-                self.model_ctrl.unbuild()
-            except Exception, e:
-                self.warning("Error unbuilding ctrl model: {0}".format(str(e)))
+            self.model_ctrl.unbuild()
 
-        super(AvarSimple, self).unbuild()
+        # Disconnect input attributes BEFORE unbuilding the infl model.
+        # Otherwise this will break the bind pose.
+        self._disconnect_inputs()
+        
+        if self.model_infl:
+            self.model_infl.unbuild()
+
+        super(AvarSimple, self).unbuild(disconnect_attr=True)
 
         # Cleanup invalid references
         self.grp_offset = None

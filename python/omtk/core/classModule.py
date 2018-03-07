@@ -559,6 +559,19 @@ class Module(object):
         :return: A list of Module instances to build before this module.
         """
         return None
+    
+    def _disconnect_inputs(self):
+        for obj in self.input:
+            if isinstance(obj, pymel.nodetypes.Transform):
+                libAttr.disconnectAttr(obj.tx)
+                libAttr.disconnectAttr(obj.ty)
+                libAttr.disconnectAttr(obj.tz)
+                libAttr.disconnectAttr(obj.rx)
+                libAttr.disconnectAttr(obj.ry)
+                libAttr.disconnectAttr(obj.rz)
+                libAttr.disconnectAttr(obj.sx)
+                libAttr.disconnectAttr(obj.sy)
+                libAttr.disconnectAttr(obj.sz)
 
     def unbuild(self, disconnect_attr=True):
         """
@@ -571,17 +584,7 @@ class Module(object):
 
         # Ensure that there's no more connections in the input chain
         if disconnect_attr:
-            for obj in self.input:
-                if isinstance(obj, pymel.nodetypes.Transform):
-                    libAttr.disconnectAttr(obj.tx)
-                    libAttr.disconnectAttr(obj.ty)
-                    libAttr.disconnectAttr(obj.tz)
-                    libAttr.disconnectAttr(obj.rx)
-                    libAttr.disconnectAttr(obj.ry)
-                    libAttr.disconnectAttr(obj.rz)
-                    libAttr.disconnectAttr(obj.sx)
-                    libAttr.disconnectAttr(obj.sy)
-                    libAttr.disconnectAttr(obj.sz)
+            self._disconnect_inputs()
 
         # Delete the ctrls in reverse hyerarchy order.
         ctrls = self.get_ctrls()

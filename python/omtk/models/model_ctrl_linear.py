@@ -215,6 +215,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         grp_parent = pymel.createNode('transform', name=nomenclature_rig.resolve('parent'), parent=self.grp_rig)
         if head_jnt:
             pymel.parentConstraint(head_jnt, grp_parent, maintainOffset=True)
+            pymel.scaleConstraint(head_jnt, grp_parent, maintainOffset=True)
 
         grp_output = pymel.createNode(
             'transform',

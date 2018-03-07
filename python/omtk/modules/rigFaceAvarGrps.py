@@ -1485,6 +1485,16 @@ class AvarGrpOnSurface(AvarGrp):
             0, 0, 1, 0,
             pos.x, pos.y, pos.z, 1
         )
+        
+        # By default, we expect all joint from the right side of the face to be mirrored in 'behavior'.
+        # Since we are creating a new transformation matrix that didn't exist before, we'll need to follow the same rules.
+        if pos.x < 0:
+            jnt_tm = pymel.datatypes.Matrix(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, -1.0, 0.0, 0.0,
+                0.0, 0.0, -1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0) * jnt_tm 
+        
         return jnt_tm
 
     def _get_avar_macro_all_ctrl_tm(self):
@@ -1512,12 +1522,25 @@ class AvarGrpOnSurface(AvarGrp):
         if head_length:
             offset_z = head_length * 0.05
 
-        jnt_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            pos.x, pos.y, pos.z + offset_z, 1
-        )
+        if pos.x >= 0:
+            jnt_tm = pymel.datatypes.Matrix(
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                pos.x, pos.y, pos.z + offset_z, 1
+            )
+        else:
+            jnt_tm = pymel.datatypes.Matrix(
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                pos.x, pos.y, pos.z + offset_z, 1
+            )
+            jnt_tm = pymel.datatypes.Matrix(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, -1.0, 0.0, 0.0,
+                0.0, 0.0, -1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0) * jnt_tm
         return jnt_tm
 
     def _build_avar_macro_all(self, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False):

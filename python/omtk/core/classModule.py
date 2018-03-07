@@ -697,6 +697,9 @@ class Module(object):
         # todo: Validate inputs, we may need to modify the module if the inputs don't match!
 
         result = inst
+        
+        if inputs is None:
+            inputs = []
 
         if not type(inst) == cls:
             result = cls(inputs, rig=self.rig)

@@ -26,3 +26,7 @@ def _reload():
     
     import model_avar_surface
     reload(model_avar_surface)
+    
+    import model_avar_surface_lips
+    reload(model_avar_surface_lips)
+

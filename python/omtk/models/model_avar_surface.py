@@ -40,10 +40,17 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         self._attr_inn_surface_max_value_u = None
         self._attr_inn_surface_max_value_v = None
 
-        # How much are we moving around the surface for a specific avar.
-        self.multiplier_lr = 1.0
-        self.multiplier_ud = 1.0
-        self.multiplier_fb = 1.0
+        # Define how many unit is moved in uv space in relation with the avars.
+        # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
+        # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
+        # However in production, we found that defining the range of avar using the whole is not flexible.
+        # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
+        # For this reason, we found that using a multiplier of 0.25 work best.
+        # This also help rigger visually since the surface plane have an edge at 0.25 location.
+        # todo: Move this to AvarFollicle.
+        self.multiplier_lr = 0.25
+        self.multiplier_ud = 0.25
+        self.multiplier_fb = 0.10
 
         self._attr_length_v = None
         self._attr_length_u = None
@@ -126,10 +133,9 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         self._attr_inn_surface_max_value_u = libAttr.addAttr(self.grp_rig, 'innSurfaceMaxValueU', defaultValue=1)
         self._attr_inn_surface_max_value_v = libAttr.addAttr(self.grp_rig, 'innSurfaceMaxValueV', defaultValue=1)
 
-        self.multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR, defaultValue=self.multiplier_lr)
-        self.multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD, defaultValue=self.multiplier_ud)
-        self.multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB, defaultValue=self.multiplier_fb)
-
+        # self.multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR, defaultValue=self.multiplier_lr)
+        # self.multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD, defaultValue=self.multiplier_ud)
+        # self.multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB, defaultValue=self.multiplier_fb)
 
     def _build(self):
         """
@@ -146,6 +152,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
             name=nomenclature_rig.resolve('surface'),
         )
         self._surface = surface_shape.getParent()
+        self._surface.visibility.set(False)
         self._surface.setParent(self.grp_rig)
         self._surface.rename(nomenclature_rig.resolve('surface'))
         pymel.connectAttr(self._attr_inn_surface, surface_shape.create)

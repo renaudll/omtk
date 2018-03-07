@@ -28,26 +28,6 @@ class AvarLinearModel(AvarInflBaseModel):
         # Reference to the object containing the bind pose of the avar.
         self._obj_offset = None
 
-    def _create_interface(self):
-        super(AvarLinearModel, self)._create_interface()
-
-        self.multiplier_lr = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_MULT_LR,
-            defaultValue=self.multiplier_lr
-        )
-        self.multiplier_ud = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_MULT_UD,
-
-            defaultValue=self.multiplier_ud
-        )
-        self.multiplier_fb = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_MULT_FB,
-            defaultValue=self.multiplier_fb
-        )
-
     def _build(self):
         nomenclature_rig = self.get_nomenclature_rig()
 
@@ -76,15 +56,3 @@ class AvarLinearModel(AvarInflBaseModel):
         pymel.connectAttr(self._attr_inn_sz, grp_output.scaleZ)
 
         return grp_output.matrix
-
-        # self._stack = classNode.Node()
-        # self._stack.build(name=nomenclature_rig.resolve('avar'))
-        # self._stack.setParent(self.grp_rig)
-        # # self.build_stack(self._stack)
-        # 
-        # layer_pos = self._stack.append_layer('pos')
-        # pymel.connectAttr(self._attr_inn_lr, layer_pos.translateX)
-        # pymel.connectAttr(self._attr_inn_ud, layer_pos.translateY)
-        # pymel.connectAttr(self._attr_inn_fb, layer_pos.translateZ)
-        # 
-        # return self._stack.worldMatrix

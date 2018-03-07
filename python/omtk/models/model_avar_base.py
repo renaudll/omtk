@@ -69,10 +69,6 @@ class AvarInflBaseModel(classModule.Module):
         self.multiplier_ud = 1.0
         self.multiplier_fb = 1.0
 
-        self.attr_multiplier_lr = None
-        self.attr_multiplier_ud = None
-        self.attr_multiplier_fb = None
-
     def _create_interface(self):
         # Create avar inputs
         self._attr_inn_lr = libAttr.addAttr(self.grp_rig, 'innAvarLr')
@@ -84,6 +80,10 @@ class AvarInflBaseModel(classModule.Module):
         self._attr_inn_sx = libAttr.addAttr(self.grp_rig, 'innAvarSx')
         self._attr_inn_sy = libAttr.addAttr(self.grp_rig, 'innAvarSy')
         self._attr_inn_sz = libAttr.addAttr(self.grp_rig, 'innAvarSz')
+
+        self.multiplier_lr = libAttr.addAttr(self.grp_rig, 'innMultiplierLr', defaultValue=self.multiplier_lr)
+        self.multiplier_ud = libAttr.addAttr(self.grp_rig, 'innMultiplierUd', defaultValue=self.multiplier_ud)
+        self.multiplier_fb = libAttr.addAttr(self.grp_rig, 'innMultiplierFb', defaultValue=self.multiplier_fb)
 
         # Create influences
         _avar_filter_kwargs = {
@@ -117,11 +117,11 @@ class AvarInflBaseModel(classModule.Module):
 
         # # ----
         # 
-        # self.attr_multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR,
+        # self.multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR,
         #                                           defaultValue=self.multiplier_lr)
-        # self.attr_multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD,
+        # self.multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD,
         #                                           defaultValue=self.multiplier_ud)
-        # self.attr_multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB,
+        # self.multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB,
         #                                           defaultValue=self.multiplier_fb)
 
     def build(self, **kwargs):
@@ -134,47 +134,8 @@ class AvarInflBaseModel(classModule.Module):
 
         self._create_interface()
         attr_tm = self._build()
-
-        # u_tm_dry = libRigging.create_utility_node(
-        #     'decomposeMatrix',
-        #     inputMatrix=self._attr_inn_offset_tm,
-        # )
-        # u_tm_wet = libRigging.create_utility_node(
-        #     'decomposeMatrix',
-        #     inputMatrix=attr_tm,
-        # )
-        # u_tm_out = libRigging.create_utility_node(
-        #     'composeMatrix',
-        # )
-        # _connect_with_blend([u_tm_dry.outputTranslateX, u_tm_wet.outputTranslateX], u_tm_out.inputTranslateX,
-        #                     self.affect_tx)
-        # _connect_with_blend([u_tm_dry.outputTranslateY, u_tm_wet.outputTranslateY], u_tm_out.inputTranslateY,
-        #                     self.affect_ty)
-        # _connect_with_blend([u_tm_dry.outputTranslateZ, u_tm_wet.outputTranslateZ], u_tm_out.inputTranslateZ,
-        #                     self.affect_tz)
-        # _connect_with_blend([u_tm_dry.outputRotateX, u_tm_wet.outputRotateX], u_tm_out.inputRotateX, self.affect_rx)
-        # _connect_with_blend([u_tm_dry.outputRotateY, u_tm_wet.outputRotateY], u_tm_out.inputRotateY, self.affect_ry)
-        # _connect_with_blend([u_tm_dry.outputRotateZ, u_tm_wet.outputRotateZ], u_tm_out.inputRotateZ, self.affect_rz)
-        # _connect_with_blend([u_tm_dry.outputScaleX, u_tm_wet.outputScaleX], u_tm_out.inputScaleX, self.affect_sx)
-        # _connect_with_blend([u_tm_dry.outputScaleY, u_tm_wet.outputScaleY], u_tm_out.inputScaleY, self.affect_sy)
-        # _connect_with_blend([u_tm_dry.outputScaleZ, u_tm_wet.outputScaleZ], u_tm_out.inputScaleZ, self.affect_sz)
-        # pymel.connectAttr(u_tm_out.outputMatrix, self._attr_out_tm)
-        
         pymel.connectAttr(attr_tm, self._attr_out_tm)
 
-    def unbuild(self):
-        # # Hold the affect blend attributes
-        # self.affect_tx = self.affect_tx.get()
-        # self.affect_ty = self.affect_ty.get()
-        # self.affect_tz = self.affect_tz.get()
-        # self.affect_rx = self.affect_rx.get()
-        # self.affect_ry = self.affect_ry.get()
-        # self.affect_rz = self.affect_rz.get()
-        # self.affect_sx = self.affect_sx.get()
-        # self.affect_sy = self.affect_sy.get()
-        # self.affect_sz = self.affect_sz.get()
-
-        super(AvarInflBaseModel, self).unbuild()
 
     def _build(self):
         """

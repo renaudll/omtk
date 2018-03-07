@@ -7,6 +7,7 @@ from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
+from omtk.models import model_avar_surface_lips
 
 
 class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
@@ -17,223 +18,6 @@ class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
     pass
 
 
-class SplitterNode(Node):
-    """
-    A splitter is a node network that take the parameterV that is normally sent through the follicles and
-    split it between two destination: the follicles and the jaw ref constraint.
-    The more the jaw is opened, the more we'll transfer to the jaw ref before sending to the follicle.
-    This is mainly used to ensure that any lip movement created by the jaw is canceled when the
-    animator try to correct the lips and the jaw is open. Otherwise since the jaw space and the surface space
-
-    To compute the displacement caused by the was, we'll usethe circumference around the jaw pivot.
-    This create an 'approximation' that might be wrong if some translation also occur in the jaw.
-    todo: test with corrective jaw translation
-    """
-
-    def __init__(self):
-        super(SplitterNode, self).__init__()  # useless
-        self.attr_inn_jaw_pt = None
-        self.attr_inn_jaw_radius = None
-        self.attr_inn_surface_v = None
-        self.attr_inn_surface_range_v = None
-        self.attr_inn_jaw_default_ratio = None
-        self.attr_out_surface_v = None
-        self.attr_out_jaw_ratio = None
-
-    def build(self, nomenclature_rig, **kwargs):
-        super(SplitterNode, self).build(**kwargs)
-
-        #
-        # Create inn and out attributes.
-        #
-        grp_splitter_inn = pymel.createNode(
-            'network',
-            name=nomenclature_rig.resolve('udSplitterInn')
-        )
-
-        # The jaw opening amount in degree.
-        self.attr_inn_jaw_pt = libAttr.addAttr(grp_splitter_inn, 'innJawOpen')
-
-        # The relative uv coordinates normally sent to the follicles.
-        # Note that this value is expected to change at the output of the SplitterNode (see outSurfaceU and outSurfaceV)
-        self.attr_inn_surface_u = libAttr.addAttr(grp_splitter_inn, 'innSurfaceU')
-        self.attr_inn_surface_v = libAttr.addAttr(grp_splitter_inn, 'innSurfaceV')
-
-        # Use this switch to disable completely the splitter.
-        self.attr_inn_bypass = libAttr.addAttr(grp_splitter_inn, 'innBypassAmount')
-
-        # The arc length in world space of the surface controlling the follicles.
-        self.attr_inn_surface_range_v = libAttr.addAttr(grp_splitter_inn,
-                                                        'innSurfaceRangeV')  # How many degree does take the jaw to create 1 unit of surface deformation? (ex: 20)
-
-        # How much inn percent is the lips following the jaw by default.
-        # Note that this value is expected to change at the output of the SplitterNode (see attr_out_jaw_ratio)
-        self.attr_inn_jaw_default_ratio = libAttr.addAttr(grp_splitter_inn, 'jawDefaultRatio')
-
-        # The radius of the influence circle normally resolved by using the distance between the jaw and the avar as radius.
-        self.attr_inn_jaw_radius = libAttr.addAttr(grp_splitter_inn, 'jawRadius')
-
-        grp_splitter_out = pymel.createNode(
-            'network',
-            name=nomenclature_rig.resolve('udSplitterOut')
-        )
-
-        self.attr_out_surface_u = libAttr.addAttr(grp_splitter_out, 'outSurfaceU')
-        self.attr_out_surface_v = libAttr.addAttr(grp_splitter_out, 'outSurfaceV')
-        self.attr_out_jaw_ratio = libAttr.addAttr(grp_splitter_out,
-                                                  'outJawRatio')  # How much percent this influence follow the jaw after cancellation.
-
-        #
-        # Connect inn and out network nodes so they can easily be found from the SplitterNode.
-        #
-        attr_inn = libAttr.addAttr(grp_splitter_inn, longName='inn', attributeType='message')
-        attr_out = libAttr.addAttr(grp_splitter_out, longName='out', attributeType='message')
-        pymel.connectAttr(self.node.message, attr_inn)
-        pymel.connectAttr(self.node.message, attr_out)
-
-        #
-        # Create node networks
-        # Step 1: Get the jaw displacement in uv space (parameterV only).
-        #
-
-        attr_jaw_circumference = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawCircumference'),
-            input1X=self.attr_inn_jaw_radius,
-            input2X=(math.pi * 2.0)
-        ).outputX
-
-        attr_jaw_open_circle_ratio = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawOpenCircleRatio'),
-            operation=2,  # divide
-            input1X=self.attr_inn_jaw_pt,
-            input2X=360.0
-        ).outputX
-
-        attr_jaw_active_circumference = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawActiveCircumference'),
-            input1X=attr_jaw_circumference,
-            input2X=attr_jaw_open_circle_ratio
-        ).outputX
-
-        attr_jaw_v_range = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getActiveJawRangeInSurfaceSpace'),
-            operation=2,  # divide
-            input1X=attr_jaw_active_circumference,
-            input2X=self.attr_inn_surface_range_v
-        ).outputX
-
-        #
-        # Step 2: Resolve the output jaw_ratio
-        #
-
-        # Note that this can throw a zero division warning in Maya.
-        # To prevent that we'll use some black-magic-ugly-ass-trick.
-        attr_jaw_ratio_cancelation = libRigging.create_safe_division(
-            self.attr_inn_surface_v,
-            attr_jaw_v_range,
-            nomenclature_rig,
-            'getJawRatioCancellation'
-        )
-
-        attr_jaw_ratio_out_raw = libRigging.create_utility_node(
-            'plusMinusAverage',
-            name=nomenclature_rig.resolve('getJawRatioOutUnlimited'),
-            operation=2,  # substraction,
-            input1D=(
-                self.attr_inn_jaw_default_ratio,
-                attr_jaw_ratio_cancelation
-            )
-        ).output1D
-
-        attr_jaw_ratio_out_limited = libRigging.create_utility_node(
-            'clamp',
-            name=nomenclature_rig.resolve('getJawRatioOutLimited'),
-            inputR=attr_jaw_ratio_out_raw,
-            minR=0.0,
-            maxR=1.0
-        ).outputR
-
-        #
-        # Step 3: Resolve attr_out_surface_u & attr_out_surface_v
-        #
-
-        attr_inn_jaw_default_ratio_inv = libRigging.create_utility_node(
-            'reverse',
-            name=nomenclature_rig.resolve('getJawDefaultRatioInv'),
-            inputX=self.attr_inn_jaw_default_ratio
-        ).outputX
-
-        util_jaw_uv_default_ratio = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawDefaultRatioUvSpace'),
-            input1X=self.attr_inn_jaw_default_ratio,
-            input1Y=attr_inn_jaw_default_ratio_inv,
-            input2X=attr_jaw_v_range,
-            input2Y=attr_jaw_v_range
-        )
-        attr_jaw_uv_default_ratio = util_jaw_uv_default_ratio.outputX
-        attr_jaw_uv_default_ratio_inv = util_jaw_uv_default_ratio.outputY
-
-        attr_jaw_uv_limit_max = libRigging.create_utility_node(
-            'plusMinusAverage',
-            name=nomenclature_rig.resolve('getJawSurfaceLimitMax'),
-            operation=2,  # substract
-            input1D=(attr_jaw_v_range, attr_jaw_uv_default_ratio_inv)
-        ).output1D
-
-        attr_jaw_uv_limit_min = libRigging.create_utility_node(
-            'plusMinusAverage',
-            name=nomenclature_rig.resolve('getJawSurfaceLimitMin'),
-            operation=2,  # substract
-            input1D=(attr_jaw_uv_default_ratio, attr_jaw_v_range)
-        ).output1D
-
-        attr_jaw_cancel_range = libRigging.create_utility_node(
-            'clamp',
-            name=nomenclature_rig.resolve('getJawCancelRange'),
-            inputR=self.attr_inn_surface_v,
-            minR=attr_jaw_uv_limit_min,
-            maxR=attr_jaw_uv_limit_max
-        ).outputR
-
-        attr_out_surface_v_cancelled = libRigging.create_utility_node(
-            'plusMinusAverage',
-            name=nomenclature_rig.resolve('getCanceledUv'),
-            operation=2,  # substraction
-            input1D=(self.attr_inn_surface_v, attr_jaw_cancel_range)
-        ).output1D
-
-        #
-        # Connect output attributes
-        #
-        attr_inn_bypass_inv = libRigging.create_utility_node(
-            'reverse',
-            name=nomenclature_rig.resolve('getBypassInv'),
-            inputX=self.attr_inn_bypass
-        ).outputX
-
-        # Connect output jaw_ratio
-        attr_output_jaw_ratio = libRigging.create_utility_node(
-            'blendWeighted',
-            input=(attr_jaw_ratio_out_limited, self.attr_inn_jaw_default_ratio),
-            weight=(attr_inn_bypass_inv, self.attr_inn_bypass)
-        ).output
-        pymel.connectAttr(attr_output_jaw_ratio, self.attr_out_jaw_ratio)
-
-        # Connect output surface u
-        pymel.connectAttr(self.attr_inn_surface_u, self.attr_out_surface_u)
-
-        # Connect output surface_v
-        attr_output_surface_v = libRigging.create_utility_node(
-            'blendWeighted',
-            input=(attr_out_surface_v_cancelled, self.attr_inn_surface_v),
-            weight=(attr_inn_bypass_inv, self.attr_inn_bypass)
-        ).output
-        pymel.connectAttr(attr_output_surface_v, self.attr_out_surface_v)
 
 
 class FaceLipsAvar(rigFaceAvar.AvarFollicle):
@@ -241,7 +25,8 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     The Lips avar are special as they implement a Splitter mechanism that ensure the avars move in jaw space before moving in surface space.
     For this reason, we implement a new avar, 'avar_ud_bypass' to skip the splitter mechanism if necessary. (ex: avar_all)
     """
-    AVAR_NAME_UD_BYPASS = 'attr_ud_bypass'
+    AVAR_NAME_UD_BYPASS = '_attr_inn_ud_bypass'
+    _CLS_MODEL_INFL = model_avar_surface_lips.AvarSurfaceLipModel
 
     def __init__(self, *args, **kwargs):
         super(FaceLipsAvar, self).__init__(*args, **kwargs)
@@ -279,6 +64,9 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # todo: replace by a generic implementation for all modules? (ex: IK in Arm)
         self._parent_module = None
 
+        self._attr_jaw_bind_tm = None
+        self._attr_jaw_pitch = None
+
     def add_avars(self, attr_holder):
         """
         Create the network that contain all our avars.
@@ -288,11 +76,11 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         super(FaceLipsAvar, self).add_avars(attr_holder)
         self.attr_ud_bypass = self.add_avar(attr_holder, self.AVAR_NAME_UD_BYPASS)
 
-    def build_stack(self, stack, **kwargs):
+    def create_stacks(self):
+        super(FaceLipsAvar, self).create_stacks()
+
         nomenclature_rig = self.get_nomenclature_rig()
-        jnt_head = self.get_head_jnt()
         jnt_jaw = self.get_jaw_jnt()
-        jaw_pos = jnt_jaw.getTranslation(space='world')
         jaw_module = self.get_jaw_module()
 
         #
@@ -321,150 +109,126 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
             k=True
         )
 
-        self._target_jaw_bindpose = self._parent_module._ref_jaw_predeform
+        # self._target_jaw_bindpose = self._parent_module._ref_jaw_predeform
+        # self._attr_jaw_pitch = self._parent_module._attr_jaw_pt
+        
+        # Variable shared with the AvarInflModel
+        self._attr_jaw_bind_tm = self._parent_module._ref_jaw_predeform.matrix
         self._attr_jaw_pitch = self._parent_module._attr_jaw_pt
-
-        super(FaceLipsAvar, self).build_stack(stack, **kwargs)
 
         #
         # Create jaw influence layer
         # Create a reference object to extract the jaw displacement.
         #
 
-        # Compute the rotation introduced by the jaw.
-        # Note that the splitter only affect the jaw pitch (rotateX).
-        attr_rotation_adjusted = libRigging.create_utility_node(
-            'multiplyDivide',
-            input1X=self._parent_module._attr_jaw_pt,
-            input1Y=self._parent_module._attr_jaw_yw,
-            input1Z=self._parent_module._attr_jaw_rl,
-            input2X=self.attr_jaw_out_ratio,
-            input2Y=self._attr_inn_jaw_ratio_default,
-            input2Z=self._attr_inn_jaw_ratio_default,
-        ).output
-
-        attr_rotation_tm = libRigging.create_utility_node(
-            'composeMatrix',
-            inputRotate=attr_rotation_adjusted
-        ).outputMatrix
-
-        # Compute the arc offset relative to the avar root
-        self._attr_get_arc_tm = libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                self.grp_offset.matrix,  # todo: remove?
-                self._parent_module._ref_jaw_predeform.inverseMatrix,
-                attr_rotation_tm,
-                self._parent_module._ref_jaw_predeform.matrix,
-                self.grp_offset.inverseMatrix,  # todo: remove?
-            )
-        ).matrixSum
-
-        util_decompose_arc_tm = libRigging.create_utility_node(
-            'decomposeMatrix',
-            inputMatrix=self._attr_get_arc_tm
-        )
-
-        # Add the jaw influence as a new stack layer.
-        # layer_jaw_r = stack.prepend_layer(name='jawArcR')
-        # layer_jaw_t = stack.prepend_layer(name='jawArcT')
+        # # Compute the rotation introduced by the jaw.
+        # # Note that the splitter only affect the jaw pitch (rotateX).
+        # attr_rotation_adjusted = libRigging.create_utility_node(
+        #     'multiplyDivide',
+        #     input1X=self._parent_module._attr_jaw_pt,
+        #     input1Y=self._parent_module._attr_jaw_yw,
+        #     input1Z=self._parent_module._attr_jaw_rl,
+        #     input2X=self.model_infl._attr_out_jaw_ratio,
+        #     input2Y=self._attr_inn_jaw_ratio_default,
+        #     input2Z=self._attr_inn_jaw_ratio_default,
+        # ).output
         # 
-        # pymel.connectAttr(util_decompose_arc_tm.outputTranslate, layer_jaw_t.t)
-        # pymel.connectAttr(util_decompose_arc_tm.outputRotate, layer_jaw_r.r)
+        # attr_rotation_tm = libRigging.create_utility_node(
+        #     'composeMatrix',
+        #     inputRotate=attr_rotation_adjusted
+        # ).outputMatrix
+        # 
+        # # Compute the arc offset relative to the avar root
+        # self._attr_get_arc_tm = libRigging.create_utility_node(
+        #     'multMatrix',
+        #     matrixIn=(
+        #         self.grp_offset.matrix,  # todo: remove?
+        #         self._parent_module._ref_jaw_predeform.inverseMatrix,
+        #         attr_rotation_tm,
+        #         self._parent_module._ref_jaw_predeform.matrix,
+        #         self.grp_offset.inverseMatrix,  # todo: remove?
+        #     )
+        # ).matrixSum
+        # 
+        # # Connect jaw translation avars to the "jawT" layer.
+        # # layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
+        # self._attr_get_jaw_t = libRigging.create_utility_node(
+        #     'multiplyDivide',
+        #     input1X=jaw_module.avar_all.attr_lr,
+        #     input1Y=jaw_module.avar_all.attr_ud,
+        #     input1Z=jaw_module.avar_all.attr_fb,
+        #     input2X=self._attr_inn_jaw_ratio_default,
+        #     input2Y=self._attr_inn_jaw_ratio_default,
+        #     input2Z=self._attr_inn_jaw_ratio_default,
+        #     name=nomenclature_rig.resolve('getJawT'),
+        # ).output
 
-        # Connect jaw translation avars to the "jawT" layer.
-        # layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
-        self._attr_get_jaw_t = libRigging.create_utility_node(
-            'multiplyDivide',
-            input1X=jaw_module.avar_all.attr_lr,
-            input1Y=jaw_module.avar_all.attr_ud,
-            input1Z=jaw_module.avar_all.attr_fb,
-            input2X=self._attr_inn_jaw_ratio_default,
-            input2Y=self._attr_inn_jaw_ratio_default,
-            input2Z=self._attr_inn_jaw_ratio_default,
-            name=nomenclature_rig.resolve('getJawT'),
-        ).output
-        # pymel.connectAttr(self._attr_get_jaw_t, layer_jaw_t_to_t.translate)
+    
+    def unbuild(self):
+        super(FaceLipsAvar, self).unbuild()
 
-    # def _connect_default_ctrl_model(self, grp_ctrl_model):
-    #     """
-    #     Ensure the jaw influence is taken in account in the ctrl model bind tm.
-    #     """
-    #     # Determine the recommended ctrl model position.
-    #     # This could be feeded into a specific controller model or used as is.
-    #     attr_ctrl_model_bind_tm = libRigging.create_utility_node(
-    #         'multMatrix',
-    #         matrixIn=(
-    #             self._attr_get_arc_tm,
-    #             self._obj_offset.worldMatrix,
-    #         )
-    #     ).matrixSum
-    #     util_decompose = libRigging.create_utility_node(
-    #         'decomposeMatrix',
-    #         inputMatrix=attr_ctrl_model_bind_tm
+        # Cleanup invalid references
+        self.attr_jaw_out_ratio = None
+    
+    # def _get_follicle_relative_uv_attr(self, **kwargs):
+    #     nomenclature_rig = self.get_nomenclature_rig()
+    # 
+    #     attr_u, attr_v = super(FaceLipsAvar, self)._get_follicle_relative_uv_attr(**kwargs)
+    # 
+    #     #
+    #     # Create and connect Splitter Node
+    #     #
+    #     splitter = SplitterNode()
+    #     splitter.build(
+    #         nomenclature_rig,
+    #         name=nomenclature_rig.resolve('splitter')
     #     )
-    #     pymel.connectAttr(util_decompose.outputTranslate, grp_ctrl_model.translate)
-    #     pymel.connectAttr(util_decompose.outputRotate, grp_ctrl_model.rotate)
-
-    def _get_follicle_relative_uv_attr(self, **kwargs):
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        attr_u, attr_v = super(FaceLipsAvar, self)._get_follicle_relative_uv_attr(**kwargs)
-
-        #
-        # Create and connect Splitter Node
-        #
-        splitter = SplitterNode()
-        splitter.build(
-            nomenclature_rig,
-            name=nomenclature_rig.resolve('splitter')
-        )
-        splitter.setParent(self.grp_rig)
-
-        # Resolve the radius of the jaw influence. Used by the splitter.
-        attr_jaw_radius = libRigging.create_utility_node(
-            'distanceBetween',
-            name=nomenclature_rig.resolve('getJawRadius'),
-            point1=self.grp_offset.translate,
-            point2=self._target_jaw_bindpose.translate
-        ).distance
-
-        # Resolve the jaw pitch. Used by the splitter.
-        attr_jaw_pitch = self._attr_jaw_pitch
-
-        # Connect the splitter inputs
-        pymel.connectAttr(attr_u, splitter.attr_inn_surface_u)
-        pymel.connectAttr(attr_v, splitter.attr_inn_surface_v)
-        pymel.connectAttr(self._attr_inn_jaw_ratio_default, splitter.attr_inn_jaw_default_ratio)
-        pymel.connectAttr(self._attr_length_v, splitter.attr_inn_surface_range_v)
-        pymel.connectAttr(attr_jaw_radius, splitter.attr_inn_jaw_radius)
-        pymel.connectAttr(attr_jaw_pitch, splitter.attr_inn_jaw_pt)
-        pymel.connectAttr(self._attr_bypass_splitter, splitter.attr_inn_bypass)
-
-        attr_u = splitter.attr_out_surface_u
-        attr_v = splitter.attr_out_surface_v
-
-        # Create constraint to controller the jaw reference
-        self.attr_jaw_out_ratio = splitter.attr_out_jaw_ratio
-
-        #
-        # Implement the 'bypass' avars.
-        # Thoses avars bypass the splitter, used in corner cases only.
-        #
-        attr_attr_ud_bypass_adjusted = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getAdjustedUdBypass'),
-            input1X=self.attr_ud_bypass,
-            input2X=self.attr_multiplier_ud
-        ).outputX
-        attr_v = libRigging.create_utility_node(
-            'addDoubleLinear',
-            name=nomenclature_rig.resolve('addBypassAvar'),
-            input1=attr_v,
-            input2=attr_attr_ud_bypass_adjusted
-        ).output
-
-        return attr_u, attr_v
+    #     splitter.setParent(self.grp_rig)
+    # 
+    #     # Resolve the radius of the jaw influence. Used by the splitter.
+    #     attr_jaw_radius = libRigging.create_utility_node(
+    #         'distanceBetween',
+    #         name=nomenclature_rig.resolve('getJawRadius'),
+    #         point1=self.grp_offset.translate,
+    #         point2=self._target_jaw_bindpose.translate
+    #     ).distance
+    # 
+    #     # Resolve the jaw pitch. Used by the splitter.
+    #     attr_jaw_pitch = self._attr_jaw_pitch
+    # 
+    #     # Connect the splitter inputs
+    #     pymel.connectAttr(attr_u, splitter.attr_inn_surface_u)
+    #     pymel.connectAttr(attr_v, splitter.attr_inn_surface_v)
+    #     pymel.connectAttr(self._attr_inn_jaw_ratio_default, splitter.attr_inn_jaw_default_ratio)
+    #     pymel.connectAttr(self._attr_length_v, splitter.attr_inn_surface_range_v)
+    #     pymel.connectAttr(attr_jaw_radius, splitter.attr_inn_jaw_radius)
+    #     pymel.connectAttr(attr_jaw_pitch, splitter.attr_inn_jaw_pt)
+    #     pymel.connectAttr(self._attr_inn_bypass_splitter, splitter.attr_inn_bypass)
+    # 
+    #     attr_u = splitter.attr_out_surface_u
+    #     attr_v = splitter.attr_out_surface_v
+    # 
+    #     # Create constraint to controller the jaw reference
+    #     self.attr_jaw_out_ratio = splitter.attr_out_jaw_ratio
+    # 
+    #     #
+    #     # Implement the 'bypass' avars.
+    #     # Thoses avars bypass the splitter, used in corner cases only.
+    #     #
+    #     attr_attr_ud_bypass_adjusted = libRigging.create_utility_node(
+    #         'multiplyDivide',
+    #         name=nomenclature_rig.resolve('getAdjustedUdBypass'),
+    #         input1X=self._attr_inn_ud_bypass,
+    #         input2X=self.attr_multiplier_ud
+    #     ).outputX
+    #     attr_v = libRigging.create_utility_node(
+    #         'addDoubleLinear',
+    #         name=nomenclature_rig.resolve('addBypassAvar'),
+    #         input1=attr_v,
+    #         input2=attr_attr_ud_bypass_adjusted
+    #     ).output
+    # 
+    #     return attr_u, attr_v
 
 
 class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
@@ -810,12 +574,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         self._attr_jaw_rl = util_get_rotation_euler.outputRotateZ
 
         super(FaceLips, self)._build_avars(**kwargs)
-    
+
     def _patch_avars(self):
         super(FaceLips, self)._patch_avars()
         for avar in self._iter_all_avars():
-            self._add_jaw_contribution(avar)
-    
+            # We don't want the 'all' avar to be influenced by the jaw.
+            if avar != self.avar_all:
+                self._add_jaw_contribution(avar)
+
     def _add_jaw_contribution(self, avar):
         """
         Give the occasion for the AvarGrp to add a contribution before the avar.
@@ -828,7 +594,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         nomenclature_rig = self.get_nomenclature_rig()
         jaw_module = self.get_jaw_module()
 
-        attr_jaw_out_ratio = avar.attr_jaw_out_ratio
+        # todo: why is this still here? it should be in the AvarModel no?
+        attr_jaw_out_ratio = avar.model_infl._attr_out_jaw_ratio
         attr_inn_jaw_ratio_default = avar._attr_inn_jaw_ratio_default
         parent_jaw_yw = avar._parent_module._attr_jaw_yw
         parent_jaw_pt = avar._parent_module._attr_jaw_pt

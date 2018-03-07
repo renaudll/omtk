@@ -444,10 +444,6 @@ class AbstractAvar(classModule.Module):
         self.add_avars(self.grp_rig)
         self.fetch_avars()
 
-    def build_stack(self, stack, **kwargs):
-        pass
-        # raise NotImplementedError
-
     #
     # Ctrl connection
     #
@@ -518,22 +514,6 @@ class AvarSimple(AbstractAvar):
         # if self._CLS_MODEL_CTRL:
         #     self._CLS_MODEL_CTRL.validate(self)
 
-    def build_stack(self, stack, mult_u=1.0, mult_v=1.0, parent_module=None):
-        """
-        The dag stack is a stock of dagnode that act as additive deformer to controler the final position of
-        the drived joint.
-        """
-        layer_pos = stack.append_layer('pos')
-
-        _connect_with_blend(self.attr_lr, layer_pos.tx, self.affect_tx)
-        _connect_with_blend(self.attr_ud, layer_pos.ty, self.affect_ty)
-        _connect_with_blend(self.attr_fb, layer_pos.tz, self.affect_tz)
-        _connect_with_blend(self.attr_yw, layer_pos.ry, self.affect_rx)
-        _connect_with_blend(self.attr_pt, layer_pos.rx, self.affect_ry)
-        _connect_with_blend(self.attr_rl, layer_pos.rz, self.affect_rz)
-
-        return stack
-
     def create_stacks(self):
         """
         Create the route to compute the output transform for the avar.
@@ -567,12 +547,6 @@ class AvarSimple(AbstractAvar):
         - parent.matrix
         """
         nomenclature_rig = self.get_nomenclature_rig()
-
-        self.model_infl = self.init_module(self._CLS_MODEL_INFL, self.model_infl, suffix='avarModel')
-        # self.model_infl = model_avar_surface.AvarSurfaceModel(self.input, rig=self.rig, name=infl_model_name)
-        self.model_infl.build()
-        self.model_infl.grp_rig.setParent(self.grp_rig)
-        self.model_infl.connect_avar(self)
 
         # Build post-avar stack
         # This is a list of matrix multiplication that will be executed AFTER feeding the avar.
@@ -700,16 +674,26 @@ class AvarSimple(AbstractAvar):
             parent=self.grp_rig
         )
 
-        # Move the grp_offset to it's desired position.
-        # self._grp_offset.setTranslation(jnt_pos)
-
+        # We expect the right-side influence to be mirrored in behavior.
+        # However we still need consistency when moving left and right side controller together.
+        # So under the hood, add an offset matrix so they are aligned together. 
         if self.need_flip_lr() and self.jnt:
-            jnt_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
-                                            1.0) * jnt_tm
+            jnt_tm = pymel.datatypes.Matrix(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, -1.0, 0.0, 0.0,
+                0.0, 0.0, -1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0) * jnt_tm
 
         self.grp_offset.setMatrix(jnt_tm)
 
+        self.model_infl = self.init_module(self._CLS_MODEL_INFL, self.model_infl, suffix='avarModel')
+        # self.model_infl = model_avar_surface.AvarSurfaceModel(self.input, rig=self.rig, name=infl_model_name)
+        self.model_infl.build()
+        self.model_infl.grp_rig.setParent(self.grp_rig)
+
         self.create_stacks()
+
+        self.model_infl.connect_avar(self)
 
         # ---------------------------------------------
 
@@ -865,6 +849,11 @@ class AvarSimple(AbstractAvar):
             self.model_ctrl.calibrate()
 
     def unbuild(self):
+        # Unassign deprecated values to prevent warning when reserialiazing old avars
+        self.attr_multiplier_lr = None
+        self.attr_multiplier_ud = None
+        self.attr_multiplier_fb = None
+        
         # Hold avars filter
         if isinstance(self.affect_tx, pymel.Attribute):
             self.affect_tx = self.affect_tx.get()
@@ -892,7 +881,11 @@ class AvarSimple(AbstractAvar):
                 self.model_ctrl.unbuild()
             except Exception, e:
                 self.warning("Error unbuilding ctrl model: {0}".format(str(e)))
+
         super(AvarSimple, self).unbuild()
+
+        # Cleanup invalid references
+        self.grp_offset = None
 
 
 class AvarFollicle(AvarSimple):

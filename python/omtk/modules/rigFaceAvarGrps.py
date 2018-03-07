@@ -175,10 +175,6 @@ class AvarGrp(
 
     SHOW_IN_UI = True
 
-    # Disable if the AvarGrp don't need any geometry to function.
-    # This is mainly a workaround a limitation of the design which doesn't allow access to the avars without building.
-    VALIDATE_MESH = True
-
     # Enable this flag if the module contain only one influence.
     # ex: The FaceJaw module can accept two objects. The jaw and the jaw_end. However we consider the jaw_end as extra information for the positioning.
     # TODO: Find a generic way to get the InteractiveCtrl follicle position.
@@ -423,13 +419,6 @@ class AvarGrp(
         """
         super(AvarGrp, self).validate()
 
-        if self.VALIDATE_MESH:
-            avar_influences = self._get_avars_influences()
-            for jnt in avar_influences:
-                mesh = self.rig.get_farest_affected_mesh(jnt)
-                if not mesh:
-                    raise Exception("Can't find mesh affected by {0}.".format(jnt))
-
         # Try to resolve the head joint.
         # With strict=True, an exception will be raised if nothing is found.
         if self.get_head_jnt(strict=False) is None:
@@ -518,7 +507,6 @@ class AvarGrp(
 
     def _build_avar(self, avar, **kwargs):
         # HACK: Validate avars at runtime
-        # TODO: Find a way to validate before build without using VALIDATE_MESH
         try:
             avar.validate()
         except Exception, e:

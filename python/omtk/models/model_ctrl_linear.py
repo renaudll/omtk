@@ -138,8 +138,11 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
         # By default, we expect the rigger to mirror the face joints using the 'behavior' mode.
         if flip_lr:
-            ctrl_tm = pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0,
-                                             0.0, 1.0) * ctrl_tm
+            ctrl_tm = pymel.datatypes.Matrix(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, -1.0, 0.0, 0.0,
+                0.0, 0.0, -1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0) * ctrl_tm
 
         self._grp_bind_ctrl = pymel.createNode(
             'transform',
@@ -504,17 +507,28 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
         self._fix_ctrl_shape()
 
+        def _routine(attr, ref):
+            calib_pos = libRigging.calibrate_attr_using_translation(attr, ref, step_size=0.1)
+            calib_neg = libRigging.calibrate_attr_using_translation(attr, ref, step_size=-0.1)
+
+            # Use the highest value between the positive and negative axis.
+            # This is mainly because in lot of cases, the deformation will depend on the attribute sign.
+            # For example, LLipCornerLR positive can be pure skinning but LLipCornerLR negative can be pure morph.
+            # Using different calibration values depending on the sign is sadly not possible as
+            # maya react badly when the parent scale of the ctrl parent we are dragging change suddenly.
+            return calib_pos if calib_pos > calib_neg else calib_neg
+
         if tx and not self.ctrl.node.tx.isLocked():
-            sensitivity_tx = libRigging.calibrate_attr_using_translation(self.ctrl.node.tx, influence)
-            self.debug('Adjusting sensibility tx for {0} to {1}'.format(self, sensitivity_tx))
-            self.attr_sensitivity_tx.set(sensitivity_tx)
+            calib_val = _routine(self.ctrl.node.tx, influence)
+            self.debug('Adjusting sensibility tx for {0} to {1}'.format(self, calib_val))
+            self.attr_sensitivity_tx.set(calib_val)
 
         if ty and not self.ctrl.node.ty.isLocked():
-            sensitivity_ty = libRigging.calibrate_attr_using_translation(self.ctrl.node.ty, influence)
-            self.debug('Adjusting sensibility ty for {0} to {1}'.format(self, sensitivity_ty))
-            self.attr_sensitivity_ty.set(sensitivity_ty)
+            calib_val = _routine(self.ctrl.node.ty, influence)
+            self.debug('Adjusting sensibility ty for {0} to {1}'.format(self, calib_val))
+            self.attr_sensitivity_ty.set(calib_val)
 
         if tz and not self.ctrl.node.tz.isLocked():
-            sensitivity_tz = libRigging.calibrate_attr_using_translation(self.ctrl.node.tz, influence)
-            self.debug('Adjusting sensibility tz for {0} to {1}'.format(self, sensitivity_tz))
-            self.attr_sensitivity_tz.set(sensitivity_tz)
+            calib_val = _routine(self.ctrl.node.tz, influence)
+            self.debug('Adjusting sensibility tz for {0} to {1}'.format(self, calib_val))
+            self.attr_sensitivity_tz.set(calib_val)

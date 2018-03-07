@@ -100,7 +100,7 @@ class SampleTests(omtk_test.TestCase):
         rig = omtk.create()
         rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
         rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw')]))
-        rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips')]))
+        rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips'), pymel.PyNode('pSphereShape1')]))
 
         # Ensure there's only one nurbsSurface in the scene.
         self.assertEqual(self._get_scene_surface_count(), 1)
@@ -126,7 +126,10 @@ class SampleTests(omtk_test.TestCase):
         rig = omtk.create()
         rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
         rig.add_module(
-            rigFaceAvarGrps.AvarGrpOnSurface(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips')]))
+            rigFaceAvarGrps.AvarGrpOnSurface(
+                pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips'), pymel.PyNode('pSphereShape1')]
+            )
+        )
 
         # Validate the state of the scene before testing.
         self.assertEqual(self._get_scene_surface_count(), 1)

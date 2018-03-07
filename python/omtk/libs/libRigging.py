@@ -1384,10 +1384,10 @@ def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01, def
     """
     attr.set(0)
     pos_s = ref.getTranslation(space='world')
-    attr.set(-step_size)  # HACK: Jaw only deform the face in the negative direction...
+    attr.set(step_size)
     pos_e = ref.getTranslation(space='world')
     attr.set(0)
-    distance = libPymel.distance_between_vectors(pos_s, pos_e) / step_size
+    distance = libPymel.distance_between_vectors(pos_s, pos_e) / abs(step_size)
 
     if distance > epsilon:
         return distance

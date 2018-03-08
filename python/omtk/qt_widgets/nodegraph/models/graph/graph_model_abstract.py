@@ -3,7 +3,7 @@ import logging
 
 from omtk.vendor.Qt import QtCore
 from omtk.qt_widgets.nodegraph.models.node import node_base as node_model
-from omtk.qt_widgets.nodegraph.models import port as port_model
+from omtk.qt_widgets.nodegraph.models.port import port_base as port_model
 from omtk.qt_widgets.nodegraph.models import connection as connection_model
 
 log = logging.getLogger('omtk.nodegraph')
@@ -11,9 +11,7 @@ log = logging.getLogger('omtk.nodegraph')
 # for type hinting
 if False:
     from typing import List
-    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
-    from omtk.qt_widgets.nodegraph.nodegraph_connection_model import NodeGraphConnectionModel
-    from omtk.qt_widgets.nodegraph import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphPortModel, NodeGraphConnectionModel
 
 
 class QtCoreAbcMeta(type(QtCore.QObject), abc.ABCMeta):
@@ -41,13 +39,25 @@ class NodeGraphAbstractModel(QtCore.QObject):
     onConnectionAdded = QtCore.Signal(connection_model.NodeGraphConnectionModel)
     onConnectionRemoved = QtCore.Signal(connection_model.NodeGraphConnectionModel)
 
-    # def __init__(self):
-    #     super(NodeGraphAbstractModel, self).__init__()  # initialize Qt signals
+    onReset = QtCore.Signal()
+
+    def __init__(self):
+        super(NodeGraphAbstractModel, self).__init__()  # initialize Qt signals
+
+        # hack: for now any modification will reset the model
+        # todo: optimize this of course
+        # self.onNodeAdded.connect(self.reset)
+        # self.onNodeRemoved.connect(self.reset)
+        # self.onNodeMoved.connect(self.reset)
+        # self.onPortAdded.connect(self.reset)
+        # self.onPortRemoved.connect(self.reset)
+        # self.onConnectionAdded.connect(self.reset)
 
     @abc.abstractmethod
     def reset(self):
         # type: () -> None
         """"""
+        self.onReset.emit()
 
     # --- Node methods ---
 
@@ -144,8 +154,8 @@ class NodeGraphAbstractModel(QtCore.QObject):
     #     Add it in the pool if it didn't previously exist.
     #     :return:
     #     """
-    #     for port.py in sorted(self.iter_ports(node_model)):
-    #         self.get_port_widget(port.py)
+    #     for port_base.py in sorted(self.iter_ports(node_model)):
+    #         self.get_port_widget(port_base.py)
 
     # --- clean this
 
@@ -174,49 +184,19 @@ class NodeGraphAbstractModel(QtCore.QObject):
     # --- Utility methods
     # --- These method use the abstract methods
 
-    def expand_node(self, node):
-        # type: (NodeGraphNodeModel) -> None
-        """
-        Show all available attributes for a PyFlowgraph Node.
-        Add it in the pool if it didn't previously exist.
-        :return:
-        """
-        for port in sorted(self.iter_node_ports(node)):
-            self.add_port(port)
-            # self.get_port_widget(port_model)
-
-        # Update cache
-        self._expanded_nodes.add(node)
-
-    def expand_port(self, port, inputs=True, outputs=True):
-        # type: (NodeGraphPortModel, bool, bool) -> None
-        if inputs:
-            self.expand_port_input_connections(port)
-        if outputs:
-            self.expand_port_output_connections(port)
-
-    def expand_port_input_connections(self, port):
-        for connection in self.get_port_input_connections(port):
-            self.add_connection(connection, emit_signal=True)
-            # self.get_connection_widget(connection_model)
-
-    def expand_port_output_connections(self, port):
-        for connection in self.get_port_output_connections(port):
-            self.add_connection(connection, emit_signal=True)
-            # self.get_connection_widget(connection_model)
-
-    def expand_node_ports(self, node, inputs=True, outputs=True):
-        # type: (NodeGraphNodeModel, bool, bool) -> None
-        for port in self.get_node_ports(node):
-            if port not in self._ports:
-                self.add_port(port, emit_signal=False)
-            if outputs:
-                self.expand_port_output_connections(port)
-            if inputs:
-                self.expand_port_input_connections(port)
-
-        # Update cache
-        self._expanded_nodes_ports.add(node)
+    # def expand_node(self, node):
+    #     # type: (NodeGraphNodeModel) -> None
+    #     """
+    #     Show all available attributes for a PyFlowgraph Node.
+    #     Add it in the pool if it didn't previously exist.
+    #     :return:
+    #     """
+    #     for port in sorted(self.iter_node_ports(node)):
+    #         self.add_port(port, emit_signal=True)
+    #         # self.get_port_widget(port_model)
+    #
+    #     # Update cache
+    #     self._expanded_nodes.add(node)
 
     def iter_port_connections(self, port):
         # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]

@@ -492,7 +492,7 @@ class Rig(Entity):
         key = lambda mesh: mesh in shapes
         return libRigging.get_nearest_affected_mesh(jnt, key=key)
 
-    def get_farest_affected_mesh(self, jnt):
+    def get_fartest_affected_mesh(self, jnt):
         """
         Return the last mesh affected by provided object in the geometry stack.
         Usefull to identify which mesh to use in the 'doritos' setup.

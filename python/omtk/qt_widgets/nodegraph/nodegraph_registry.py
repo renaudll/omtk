@@ -3,21 +3,17 @@ import logging
 import pymel.core as pymel
 from omtk.core import entity_attribute, session
 from omtk.core import module
-from omtk.core.component import Component
 from omtk.factories import factory_datatypes
-from omtk.libs import libComponents
-from omtk.vendor import libSerialization
 
-from omtk.qt_widgets.nodegraph.models.node import node_rig, node_module, \
-    node_dag, node_dg, node_component
-from omtk.qt_widgets.nodegraph.models import port as port_model
+from omtk.qt_widgets.nodegraph.models.node import node_rig, node_dag, node_dg, node_component
+from omtk.qt_widgets.nodegraph.models.port import port_base
 
 log = logging.getLogger('omtk.nodegraph')
 
 # for type hinting
 if False:
     from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
-    from omtk.qt_widgets.nodegraph.models.port import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.models.port.port_base import NodeGraphPortModel, port as port_model
 
 
 class NodeGraphRegistry(object):
@@ -175,7 +171,7 @@ class NodeGraphRegistry(object):
         elif isinstance(val, pymel.Attribute):
             node_value = val.node()
             node_model = self.get_node_from_value(node_value)
-            inst = port_model.NodeGraphPymelPortModel(self, node_model, val)
+            inst = port_base.NodeGraphPymelPortModel(self, node_model, val)
         else:
             datatype = factory_datatypes.get_datatype(val)
             if datatype == factory_datatypes.AttributeType.Node:
@@ -206,10 +202,10 @@ class NodeGraphRegistry(object):
     def _get_connection_model_from_values(self, model_src, model_dst):
         from omtk.qt_widgets.nodegraph.models import connection
 
-        if not isinstance(model_src, port_model.NodeGraphPortModel):
+        if not isinstance(model_src, port_base.NodeGraphPortModel):
             model_src = self.get_port_model_from_value(model_src)
 
-        if not isinstance(model_dst, port_model.NodeGraphPortModel):
+        if not isinstance(model_dst, port_base.NodeGraphPortModel):
             model_dst = self.get_port_model_from_value(model_dst)
 
         inst = connection.NodeGraphConnectionModel(self, model_src, model_dst)

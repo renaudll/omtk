@@ -1,25 +1,25 @@
 """
 Provide a Preference class to store the user preferences of the local installation.
 """
-import os
 import inspect
 import json
 import logging
+import os
 
 from omtk import decorators
-from omtk.libs import libPython
+from omtk import constants
 
 log = logging.getLogger('omtk')
 
-from omtk import constants
-
 CONFIG_FILENAME = 'config.json'
+
 
 @decorators.memoized
 def _get_path_config_dir():
     current_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
     config_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
     return config_dir
+
 
 @decorators.memoized
 def get_path_preferences():
@@ -68,7 +68,7 @@ class Preferences(object):
             with open(path, 'r') as fp:
                 return json.load(fp)
         except Exception, e:
-            log.error('Error loading nodegraph configuration files: {0}'.format(e))
+            log.error('Error loading nodegraph_tests configuration files: {0}'.format(e))
             return {}
 
     def get_nodegraph_default_attr_map(self):

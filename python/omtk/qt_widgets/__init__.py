@@ -4,7 +4,6 @@ log = logging.getLogger('omtk')
 
 
 def reload_():
-    # Reload widget-breadcrumb (dependency of node-editor)
     log.debug('Reloading widget_breadcrumb')
     from omtk.qt_widgets import widget_breadcrumb
     reload(widget_breadcrumb)

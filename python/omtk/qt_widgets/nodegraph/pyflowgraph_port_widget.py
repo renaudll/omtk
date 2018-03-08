@@ -12,7 +12,7 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
     #     super(OmtkNodeGraphBasePortWidget, self).__init__(parent, graph, name, color, dataType)
     #
     #     self._ctrl = ctrl
-    #     self._model = model
+    #     self._registry = model
 
     def sceneEventFilter(self, watched, event):
         # print watched
@@ -24,7 +24,7 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
 
         if event.type() == QtCore.QEvent.Type.GraphicsSceneMouseDoubleClick:
             # def _callback(new_name):
-            #     self._ctrl.rename_port(self._model, new_name)
+            #     self._ctrl.rename_port(self._registry, new_name)
             #
             # delegate = delegate_rename.NodeRenameDelegate()
             # delegate.onSubmit.connect(_callback)
@@ -53,7 +53,7 @@ class OmtkNodeGraphBasePortWidget(QtWidgets.QGraphicsWidget):
 
         def submit_callback(new_name):
             print(new_name)
-            # self._ctrl.rename_node(self._model, new_name)
+            # self._ctrl.rename_node(self._registry, new_name)
 
         d = NodeRenameDelegate(self._graph)
         d.setText(node_name)

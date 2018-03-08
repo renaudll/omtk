@@ -2,7 +2,7 @@ from omtk.vendor.enum34 import Enum
 
 # for type hinting only
 if False:
-    from .port import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.models.port.port_base import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
 
 
@@ -38,11 +38,6 @@ class NodeGraphConnectionModel(object):
         """
         src_node_model = self._attr_src.get_parent()
         dst_node_model = self._attr_dst.get_parent()
-
-        class enum_PortKind(Enum):
-            normal = 1
-            compound_inn = 2
-            compound_out = 3
 
         class ConnectionKind(Enum):
             normal = 1

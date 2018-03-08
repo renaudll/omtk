@@ -1,8 +1,8 @@
-import pymel.core as pymel
 from pymel.util.enum import Enum
 from omtk.core import plugin_manager
 
 NONE_PLUGIN_TYPE = 'None'  # Enum value that represent the absence of any plugin
+
 
 def create_pymel_enum_from_plugin_type(plugin_type_name, add_null=False):
     pm = plugin_manager.plugin_manager

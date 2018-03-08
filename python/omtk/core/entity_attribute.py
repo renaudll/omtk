@@ -122,7 +122,7 @@ class EntityPymelAttributeCollection(EntityPymelAttribute):
             self.set(entries)
 
 
-def get_attrdef_from_attr(attr, is_input=False, is_output=False):
+def get_attribute_definition(attr, is_input=False, is_output=False):
     valid_types = factory_datatypes.get_attr_datatype(attr)
     if valid_types is None:
         log.warning("Cannot create AttributeDef from {0}".format(attr))

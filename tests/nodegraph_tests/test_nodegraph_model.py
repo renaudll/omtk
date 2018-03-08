@@ -10,6 +10,7 @@ from omtk.libs import libComponents
 from omtk.libs import libRigging
 from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
 from omtk.qt_widgets.nodegraph.nodegraph_registry import NodeGraphRegistry
+from omtk.qt_widgets.nodegraph.models import NodeGraphModel
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
@@ -17,8 +18,9 @@ log.setLevel(logging.DEBUG)
 
 class GraphRegistryTest(unittest.TestCase):
     def setUp(self):
-        self.model = NodeGraphRegistry()
-        self.controller = NodeGraphController(self.model)
+        self._registry = NodeGraphRegistry()
+        self._model = NodeGraphModel()
+        self.controller = NodeGraphController(self._model)
         cmds.file(new=True, force=True)
 
     # def test_node_model_from_transform(self):
@@ -50,12 +52,12 @@ class GraphRegistryTest(unittest.TestCase):
 
     def test_component_loading(self):
         """Ensure the registry is able to load a component and it's children."""
-        self.assertEqual(0, len(self.model._nodes))
+        self.assertEqual(0, len(self._registry._nodes))
 
         component = self._create_simple_compound()
         node_model, node_widget = self.controller.add_node(component)
 
-        self.assertEqual(1, len(self.model._nodes))
+        self.assertEqual(1, len(self._registry._nodes))
 
         inn_attrs = node_model.get_input_ports()
         out_attrs = node_model.get_output_ports()

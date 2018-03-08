@@ -1,16 +1,14 @@
 import logging
 import re
 
-from omtk import decorators
 import pymel.core as pymel
-
-logging.basicConfig()
+from omtk import decorators
 from omtk.core.entity import Entity
 from omtk.core.entity_attribute import EntityAttribute
-from omtk.libs import libPymel
-from omtk.libs import libPython
 from omtk.libs import libAttr
+from omtk.libs import libPymel
 
+logging.basicConfig()
 log = logging.getLogger('omtk')
 
 

@@ -1,10 +1,9 @@
 import collections
-import logging
 import inspect
+import logging
 
-from maya import cmds
 import pymel.core as pymel
-
+from maya import cmds
 from node import Node
 from omtk import constants
 from omtk.libs import libAttr
@@ -12,6 +11,7 @@ from omtk.libs import libPymel
 from omtk.libs import libRigging
 
 log = logging.getLogger('omtk')
+
 
 class BaseCtrl(Node):
     """
@@ -78,8 +78,8 @@ class BaseCtrl(Node):
         else:
             return default_size * multiplier
 
-
-    def __createNode__(self, size=None, normal=(1,0,0), multiplier=1.0, refs=None, offset=None, geometries=None, *args, **kwargs):
+    def __createNode__(self, size=None, normal=(1, 0, 0), multiplier=1.0, refs=None, offset=None, geometries=None,
+                       *args, **kwargs):
         """
         Create a simple circle nurbsCurve.
         size: The maximum dimension of the controller.
@@ -320,7 +320,8 @@ class BaseCtrl(Node):
         # Finally, if no index is still found, return the next possible one in the list
         return new_max_idx
 
-    def create_spaceswitch(self, module, parent, add_local=True, local_label=None, local_target=None, add_world=False, **kwargs):
+    def create_spaceswitch(self, module, parent, add_local=True, local_label=None, local_target=None, add_world=False,
+                           **kwargs):
         """
         Create the space switch attribute on the controller using a list of target found from it's module hierarchy.
         :param module: The module on which we want to process space switch targets
@@ -427,7 +428,7 @@ class BaseCtrl(Node):
         else:
             if self.targets_indexes:
                 self.node.space.set(self.targets_indexes[0])
-        
+
         # Sometimes Maya will be drunk and set a bad 'restRotate'.
         # We'll want to ensure ourself that there's no rest offset. (see Task #70729)
         parent_constraint.restTranslateX.set(0)
@@ -540,7 +541,7 @@ class BaseCtrl(Node):
                         out_connections = con.outColorR.listConnections(d=True, s=False)
                         if out_connections:
                             const = out_connections[0]
-                            const_target_weight_attr = con.outColorR.listConnections(d=True, s=False, p=True)[0]\
+                            const_target_weight_attr = con.outColorR.listConnections(d=True, s=False, p=True)[0] \
                                 .listConnections(d=True, s=False, p=True)
                             for target in const.target:
                                 const_target_name = const_target_weight_attr[0].name(fullDagPath=True)
@@ -549,10 +550,9 @@ class BaseCtrl(Node):
                                     target_obj = target.targetParentMatrix.listConnections(s=True)[0]
                                     dict_sw_data[index] = (name, target_obj)
                 if not target_found:
-                        dict_sw_data[index] = (name, None)
+                    dict_sw_data[index] = (name, None)
         else:
             pass
             # log.warning("No space attribute found on {0}".format(self.node))
 
         return dict_sw_data
-

@@ -324,7 +324,7 @@ class Segment(object):
         a_to_b_norm = a_to_b.normal()
         atp_dot_atb = a_to_p_norm * a_to_b_norm
 
-        return (atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon  else 0.0
+        return (atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon else 0.0
 
 
 class SegmentCollection(object):

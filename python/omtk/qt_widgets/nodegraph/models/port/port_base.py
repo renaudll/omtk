@@ -1,9 +1,9 @@
 import abc
 
+import omtk.qt_widgets.nodegraph.models.port.port_adaptor_entity
+import omtk.qt_widgets.nodegraph.models.port.port_adaptor_pymel
 import pymel.core as pymel
 from omtk.factories import factory_datatypes
-
-from omtk.qt_widgets.nodegraph import nodegraph_port_adaptor
 
 if False:
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
@@ -148,7 +148,8 @@ class NodeGraphPortModel(object):
 
             # In case of ambiguity, we will ask the node model.
             node_value = self.get_parent().get_metadata()
-            node_model = ctrl.get_node_model_from_value(node_value)
+            # node_model = ctrl.get_node_model_from_value(node_value)
+            node_model = self._registry.get_node_from_value(node_value)
             is_writable = node_model.allow_input_port_display(self, ctrl)
             is_readable = node_model.allow_output_port_display(self, ctrl)
             if is_readable and not is_writable:
@@ -198,7 +199,7 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
     def __init__(self, registry, node, pyattr):
         name = pyattr.longName()
         super(NodeGraphPymelPortModel, self).__init__(registry, node, name)
-        self._impl = nodegraph_port_adaptor.PymelAttributeNodeGraphPortImpl(pyattr)
+        self._impl = omtk.qt_widgets.nodegraph.models.port.port_adaptor_pymel.PymelAttributeNodeGraphPortImpl(pyattr)
         # self._pynode = attr_node if attr_node else pyattr.node()
         # self._pyattr = pyattr
 
@@ -253,7 +254,8 @@ class NodeGraphEntityAttributePortModel(NodeGraphPortModel):
     def __init__(self, registry, node, attr_def):
         name = attr_def.name
         super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
-        self._impl = nodegraph_port_adaptor.EntityAttributeNodeGraphPortImpl(attr_def)
+        self._impl = omtk.qt_widgets.nodegraph.models.port.port_adaptor_entity.EntityAttributeNodeGraphPortImpl(
+            attr_def)
 
 # # todo: replace double inheritence by composition
 # class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):

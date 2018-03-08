@@ -12,48 +12,44 @@ class NomenclatureTest(unittest.TestCase):
     Test include nomenclature.
     """
 
-    def _test_split_join(self, cls, expected_name, expected_tokens, expected_side=None):
+    def _test_split_join(self, cls, expected_name, expected_tokens, expected_result=None, expected_side=None):
         """
         Ensure nomenclature are consistent when split and joined.
+
+        Take a name, ex: l_arm_elbow_ctrl
+        Decompose it into tokens: ['l', 'arm', 'elbow', 'ctrl']
+        Recompose it from token, we expect to get the same result than previously: l_arm_elbow_ctrl
+
         :param cls:
         :param expected_name:
         :param expected_tokens:
         :param expected_side:
+        :param expected_result:
         :return:
         """
         tokens = cls.split(expected_name)
         self.assertEqual(tokens, expected_tokens)
         name = cls.join(tokens)
-        self.assertEqual(name, expected_name)
+        if expected_result is None:
+            expected_result = expected_name
+        self.assertEqual(name, expected_result)
 
     def test_snake_case(self):
-        pass
-        # # Construct a naming from scratch
-        # n = BaseName(tokens=['eye', 'jnt'], side=BaseName.SIDE_L)
-        # self.assertEqual(n.resolve(), 'l_eye_jnt')
-        #
-        # # Construct a naming from another existing naming
-        # n = BaseName('l_eye_jnt')
-        # self.assertEqual(n.prefix, None)
-        # self.assertEqual(n.suffix, None)
-        # self.assertEqual(n.side, n.SIDE_L)
-        #
-        # # Adding of tokens using suffix
-        # n = BaseName(tokens=['eye'], side=BaseName.SIDE_L, suffix='jnt')
-        # self.assertEqual(n.resolve(), 'l_eye_jnt')
-        # n.tokens.append('micro')
-        # self.assertEqual(n.resolve(), 'l_eye_micro_jnt')
-
         cls = NomenclatureSnakeCase
         self._test_split_join(cls, 'nose', ['nose'])
         self._test_split_join(cls, 'nose_ctrl', ['nose', 'ctrl'])
         self._test_split_join(cls, 'nose_l_ctrl', ['nose', 'l', 'ctrl'])
 
     def test_snake_case_pascal(self):
+        # snake pascal case is tricky
+        # we want to store the token as original provided (even if it is all lowercase)
         cls = NomenclatureSnakePascalCase
-        self._test_split_join(cls, 'Nose', ['nose'])
-        self._test_split_join(cls, 'Nose_Ctrl', ['nose', 'ctrl'])
-        self._test_split_join(cls, 'Nose_L_Ctrl', ['nose', 'l', 'ctrl'])
+        self._test_split_join(cls, 'Nose', ['Nose'], 'Nose')
+        self._test_split_join(cls, 'nose', ['nose'], 'Nose')
+        self._test_split_join(cls, 'Nose_Ctrl', ['Nose', 'Ctrl'], 'Nose_Ctrl')
+        self._test_split_join(cls, 'nose_ctrl', ['nose', 'ctrl'], 'Nose_Ctrl')
+        self._test_split_join(cls, 'Nose_L_Ctrl', ['Nose', 'L', 'Ctrl'], 'Nose_L_Ctrl')
+        self._test_split_join(cls, 'nose_l_ctrl', ['nose', 'l', 'ctrl'], 'Nose_L_Ctrl')
 
     def test_camel_case(self):
         cls = NomenclatureCamelCase

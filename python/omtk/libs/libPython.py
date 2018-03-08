@@ -1,9 +1,9 @@
 import gc
 import imp
-import logging
-import threading
 import itertools
+import logging
 import sys
+import threading
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
@@ -170,6 +170,7 @@ def dfs(graph, start, visited=None):
     for next in graph[start] - visited:
         dfs(graph, next, visited)
     return visited
+
 
 # http://eddmann.com/posts/using-iterative-deepening-depth-first-search-in-python/
 def id_dfs(puzzle, goal, get_moves, max_iteration=20, known=None):

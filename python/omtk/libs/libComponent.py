@@ -68,13 +68,13 @@ def _add_or_get_attr(holder, long_name, **kwargs):
 
 def _connect_matrix_to_trs(attr_inn, obj_out):
     # Connect internal_obj
-    decomposeTM = libRigging.create_utility_node(
+    util_decompose_tm = libRigging.create_utility_node(
         'decomposeMatrix',
         inputMatrix=attr_inn
     )
-    pymel.connectAttr(decomposeTM.outputTranslate, obj_out.translate)
-    pymel.connectAttr(decomposeTM.outputRotate, obj_out.rotate)
-    pymel.connectAttr(decomposeTM.outputScale, obj_out.scale)
+    pymel.connectAttr(util_decompose_tm.outputTranslate, obj_out.translate)
+    pymel.connectAttr(util_decompose_tm.outputRotate, obj_out.rotate)
+    pymel.connectAttr(util_decompose_tm.outputScale, obj_out.scale)
 
 
 def _export_input_world_tm(attr_holder, obj_external, prefix='', suffix='WorldMatrix'):

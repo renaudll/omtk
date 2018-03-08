@@ -7,6 +7,7 @@ import pymel.core as pymel
 from omtk import decorators
 from omtk.factories import factory_datatypes
 from omtk.qt_widgets.nodegraph.delegate_rename import NodeRenameDelegate
+from omtk.qt_widgets.nodegraph.filters import filter_standard
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
@@ -162,7 +163,9 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
     def callback_attribute_added(self, callback_id, mplug, _):
         attr_dagpath = mplug.name()
         attr_name = attr_dagpath.split('.')[-1]
-        if self._ctrl._filter._is_port_model_name_blacklisted(attr_name):
+
+        # todo: make it cleaner
+        if attr_name in filter_standard._attr_name_blacklist:
             log.info('Ignoring callback on {0}'.format(attr_dagpath))
             return
         attr_mobj = mplug.node()
@@ -227,7 +230,7 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
         :param kwargs: Absorb the OpenMaya callback keyword arguments
         """
         # todo: unregister node
-        log.debug("Removing {0} from nodegraph".format(pynode))
+        log.debug("Removing {0} from nodegraph_tests".format(pynode))
         if pynode:
             self._ctrl.callback_node_deleted(self._model)
             # widget = self._ctrl.get_node_widget(pynode)

@@ -3,20 +3,22 @@ __all__ = (
     'NodeGraphNodeModel',
 )
 
-# Node models
+import port
 from .node import node_base
+from . import connection
+from .graph import graph_model
+
+
+# Node models
 NodeGraphNodeModel = node_base.NodeGraphNodeModel
 
 # Port models
-from . import port
 NodeGraphPortModel = port.NodeGraphPortModel
 
 # Connection
-from . import connection
 NodeGraphConnectionModel = connection.NodeGraphConnectionModel
 
 # Graph models
-from .graph import graph_model
 NodeGraphModel = graph_model.NodeGraphModel
 
 
@@ -30,6 +32,7 @@ def reload_():
 
     # Port model
     reload(port)
+    port.reload_()
     global NodeGraphPortModel
     NodeGraphPortModel = port.NodeGraphPortModel
 

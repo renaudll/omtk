@@ -369,7 +369,7 @@ class Twistbone(Module):
     def get_farest_affected_meshes(self):
         results = set()
         for jnt in self.jnts:
-            mesh = self.rig.get_farest_affected_mesh(jnt)
+            mesh = self.rig.get_fartest_affected_mesh(jnt)
             if mesh:
                 results.add(mesh)
         return results

@@ -77,7 +77,7 @@ class NodeGraphSubgraphFilter(nodegraph_filter.NodeGraphFilter):
         if isinstance(node, node_component.NodeGraphComponentBoundBaseModel):
             if not port.is_user_defined():
                 return False
-        super(NodeGraphSubgraphFilter, self).can_show_port(port)
+        return super(NodeGraphSubgraphFilter, self).can_show_port(port)
 
     def can_show_connection(self, connection):
         # Get the node associated with the connection

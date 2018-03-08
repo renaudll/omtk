@@ -50,18 +50,13 @@ def reload_():
     from .. import widget_toolbar
     reload(widget_toolbar)
 
-    from . import port_model
-    reload(port_model)
-
-    from . import nodegraph_port_adaptor
-    reload(nodegraph_port_adaptor)
-
-    from . import nodegraph_connection_model
-    reload(nodegraph_connection_model)
+    from . import filters
+    reload(filters)
+    filters.reload_()
 
     from . import models
     reload(models)
-    models._reload()
+    models.reload_()
 
     from . import nodegraph_registry
     reload(nodegraph_registry)

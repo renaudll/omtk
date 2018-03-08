@@ -424,7 +424,7 @@ class AvarGrp(module.Module):  # todo: why do we inherit from Avar exactly? Is i
         if self.VALIDATE_MESH:
             avar_influences = self._get_avars_influences()
             for jnt in avar_influences:
-                mesh = self.rig.get_farest_affected_mesh(jnt)
+                mesh = self.rig.get_fartest_affected_mesh(jnt)
                 if not mesh:
                     raise Exception("Can't find mesh affected by {0}.".format(jnt))
 

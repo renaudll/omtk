@@ -30,6 +30,9 @@ from omtk import decorators
 from omtk.core import session
 from omtk.libs import libPyflowgraph
 from omtk.qt_widgets.nodegraph.ui import nodegraph_widget
+from omtk.qt_widgets.nodegraph.models import NodeGraphModel
+from omtk.qt_widgets.nodegraph.models.graph import graph_proxy_filter_model
+from omtk.qt_widgets.nodegraph.filters import filter_standard, filter_subgraph
 from omtk.vendor.Qt import QtWidgets, QtCore, QtGui
 
 from . import nodegraph_view
@@ -66,11 +69,26 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         # Configure NodeGraphView
-        # self._manager = None
-        self._model = _get_singleton_model()
+        self._registry = _get_singleton_model()
+
+        self._source_model = NodeGraphModel()
+
+        # Add a proxy-model to allow encapsulation
+        self._proxy_model_subgraph = graph_proxy_filter_model.GraphFilterProxyModel()
+        self._proxy_model_subgraph_filter = filter_subgraph.NodeGraphSubgraphFilter()
+        self._proxy_model_subgraph.set_source_model(self._source_model)
+        self._proxy_model_subgraph.set_filter(self._proxy_model_subgraph_filter)
+
+        # Create filter
+        self._filter = filter_standard.NodeGraphStandardFilter()
+
+        # Add a proxy-model to apply user display preferences
+        self._model = graph_proxy_filter_model.GraphFilterProxyModel()
+        self._model.set_source_model(self._proxy_model_subgraph)
+        self._model.set_filter(self._filter)
+
+        # Create ctrl
         self._ctrl = NodeGraphController(self._model)
-        self._filter = NodeGraphFilter(self._ctrl)  # todo: set filter in constructor?
-        self._ctrl.set_filter(self._filter)
         self._ctrl.onLevelChanged.connect(self.on_level_changed)
 
         # Keep track of the multiple views provided by the QTabWidget
@@ -220,7 +238,8 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_add(self):
         for obj in pymel.selected():
-            self._ctrl.add_node(obj)
+            node = self._registry.get_node_from_value(obj)
+            self._ctrl.add_node(node)
 
     def on_del(self):
         graph = self.ui.widget_view
@@ -293,7 +312,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.widget_breadcrumb.set_path(model)
 
     def on_level_changed(self, model):
-        """Called when the current level is changed using the nodegraph."""
+        """Called when the current level is changed using the nodegraph_tests."""
         self.ui.widget_breadcrumb.set_path(model)
 
     def keyPressEvent(self, event):

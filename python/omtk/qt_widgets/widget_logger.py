@@ -4,6 +4,7 @@ import logging
 from omtk.qt_widgets.ui import widget_logger
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
+log = logging.getLogger('omtk')
 
 def log_level_to_str(level):
     if level >= logging.CRITICAL:
@@ -215,7 +216,10 @@ class WidgetLogger(QtWidgets.QWidget):
                     self._widget.ui.tableView_logs.scrollToBottom()
                 except:
                     self._widget.remove_logger_handler()
-                self._widget.onRecordAdded.emit()
+                try:
+                    self._widget.onRecordAdded.emit()
+                except Exception, e:
+                    log.error(e)
 
         handler = QtHandler(self)
 

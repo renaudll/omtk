@@ -202,10 +202,6 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
     def get_port_output_connections(self, model):
         return list(self._iter_port_output_connections(model))  # cannot memoize a generator
 
-    def expand_node(self, node):
-        # type: (NodeGraphNodeModel) -> None
-        self._model.expand_node(node)
-
     def expand_port(self, port, inputs=True, outputs=True):
         # type: (NodeGraphPortModel, bool, bool) -> None
         self._model.expand_port(port, inputs=inputs, outputs=outputs)

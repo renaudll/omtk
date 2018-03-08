@@ -1,6 +1,8 @@
-from maya import cmds
-import copy
 import abc
+import copy
+
+from maya import cmds
+
 
 # todo: make tokens, suffix, prefix and side private. Use getter and setter functions were necessary.
 # todo: in add_tokens, reconize what is a suffix and what is a prefix

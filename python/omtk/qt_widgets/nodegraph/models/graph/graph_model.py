@@ -47,17 +47,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._ports_by_connection = defaultdict(set)
         self._connections_by_port = defaultdict(set)
 
-        # Keep track of which node and port have been expanded.
-        # This allow easier update when switching between filters.
-        self._expanded_nodes = set()  # todo: duplicate?
-        self._expanded_nodes_ports = set()
-
     def reset(self, expand=True):
-        old_nodes = copy.copy(self._nodes)
-        # old_ports = set(self._ports)
-        expanded_nodes = set(self._expanded_nodes)
-        expanded_nodes_ports = set(self._expanded_nodes_ports)
-
         for node in list(self.get_nodes()):  # hack: prevent change during iteration
             self.remove_node(node, emit_signal=False)
 
@@ -71,17 +61,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         assert not self._ports_by_connection
         assert not self._connections_by_port
 
-        # Restore the visible nodes
-        for node in old_nodes:
-            self.add_node(node, emit_signal=False)
-
-        if expand:
-            for node in old_nodes:
-                if node in expanded_nodes:
-                    self.expand_node(node)
-
-                if node in expanded_nodes_ports:
-                    self.expand_node_ports(node)
+        super(NodeGraphModel, self).reset()
 
     # --- Node methods ---
 
@@ -133,7 +113,12 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
     # --- Port methods ---
 
     def iter_ports(self):
-        return iter(self._ports)
+        for node in self.iter_nodes():
+            for port in self.iter_node_ports(node):
+                if not port in self._ports:
+                    self._ports.add(port)
+                yield port
+        # return iter(self._ports)
 
     def get_ports(self):
         # # todo: optimize?
@@ -142,7 +127,8 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         #     for port in node.iter_ports():
         #         result.append(port)
         # return result
-        return self._ports
+        # return self._ports
+        return list(self.iter_ports())
 
     def iter_node_ports(self, node):
         for port in node.iter_ports():

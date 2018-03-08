@@ -1,7 +1,6 @@
 import unittest
 import pymel.core as pymel
-from omtk.qt_widgets.nodegraph import NodeGraphModel, NodeGraphController, NodeGraphView, \
-    NodeGraphControllerFilter, NodeGraphProxyModel
+from omtk.qt_widgets.nodegraph.models import NodeGraphModel, NodeGraphController, NodeGraphView, NodeGraphProxyModel
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 from maya import cmds
 

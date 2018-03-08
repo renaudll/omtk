@@ -4,14 +4,12 @@ from contextlib import contextmanager
 
 from maya import OpenMaya
 from maya import cmds
+from omtk.libs import libPython
 from pymel import core as pymel
-from omtk import decorators
 
 log = logging.getLogger('omtk')
 
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
-
-
 _g_addAttr_kwargs_map = {
     'bool': {'at': 'double'},
     'long': {'at': 'long'},
@@ -1179,9 +1177,6 @@ def _wip_explore_input_dependencies(node):
             children.append(node)
 
     return children
-
-
-from omtk.libs import libPython
 
 
 def _wip_explore_input_dependencies_recursive(start_node):

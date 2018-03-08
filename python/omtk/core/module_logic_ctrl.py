@@ -54,7 +54,7 @@ class BaseCtrlModel(module.Module):
         """
         Define any action that need to be applied on the ctrl model AFTER everything is built and connected.
         This might be necessary since the ctrl model depend on the avars which itself might depend on other avars.
-        In thise situation we are not able to calibrate properly the ctrl model until everything is connected together. 
+        In this situation we are not able to calibrate properly the ctrl model until everything is connected together.
         """
         pass
 
@@ -235,7 +235,7 @@ class CtrlModelCalibratable(BaseCtrlModel):
             input2Z=self.attr_sensitivity_tz
         )
 
-        attr_adjustement_scale = libRigging.create_utility_node(
+        attr_adjustment_scale = libRigging.create_utility_node(
             'composeMatrix',
             inputScaleX=util_sensitivity_inv.outputX,
             inputScaleY=util_sensitivity_inv.outputY,
@@ -254,17 +254,17 @@ class CtrlModelCalibratable(BaseCtrlModel):
             inputMatrix=attr_adjustement_rot
         ).outputMatrix
 
-        attr_adjustement_tm = libRigging.create_utility_node(
+        attr_adjustment_tm = libRigging.create_utility_node(
             'multMatrix', matrixIn=[
                 attr_adjustement_rot,
-                attr_adjustement_scale,
+                attr_adjustment_scale,
                 attr_adjustement_rot_inv
             ]
         ).matrixSum
 
         attr_transform_geometry = libRigging.create_utility_node(
             'transformGeometry',
-            transform=attr_adjustement_tm,
+            transform=attr_adjustment_tm,
             inputGeometry=ctrl_shape_orig.local
         ).outputGeometry
         pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)

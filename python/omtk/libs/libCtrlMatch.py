@@ -163,7 +163,8 @@ def transfer_shape(source, target, flip=True):
         else:
             if not shapes_has_been_deleted:
                 shapesDel = target.getShapes()
-                if shapesDel: pymel.delete(shapesDel)
+                if shapesDel:
+                    pymel.delete(shapesDel)
                 shapes_has_been_deleted = True
 
             pymel.parent(sh, target, r=1, s=1)

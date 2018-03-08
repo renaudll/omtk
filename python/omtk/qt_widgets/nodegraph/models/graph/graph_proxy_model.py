@@ -3,15 +3,26 @@ from . import graph_model_abstract
 if False:
     from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
 
+# from omtk.vendor.Qt import QtCore
+# from omtk.qt_widgets.nodegraph.models.node import node_base as node_model
+# from omtk.qt_widgets.nodegraph.models import port as port_model
+# from omtk.qt_widgets.nodegraph.models import connection as connection_model
 
 class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
-    def __init__(self, model=None, filter=None):
+    """
+    Provides a base class for proxy item models that can do sorting,
+    filtering or other data processing tasks on a NodeGraphModel.
+    """
+
+    def __init__(self, model=None):
+        super(NodeGraphGraphProxyModel, self).__init__()
         self._model = None
         if model:
             self.set_source_model(model)
 
     def reset(self):
-        return self._model.reset()
+        self._model.reset()
+        super(NodeGraphGraphProxyModel, self).reset()
 
     def get_model(self):
         # type: () -> NodeGraphModel
@@ -23,12 +34,21 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
             self._model.onNodeAdded.disconnect(self.onNodeAdded)
             self._model.onNodeRemoved.disconnect(self.onNodeRemoved)
             self._model.onNodeMoved.disconnect(self.onNodeMoved)
+            self._model.onPortAdded.disconnect(self.onPortAdded)
+            self._model.onPortRemoved.disconnect(self.onPortRemoved)
+            self._model.onConnectionAdded.disconnect(self.onConnectionAdded)
+            self._model.onConnectionRemoved.disconnect(self.onConnectionRemoved)
 
         self._model = model
 
+        # todo: make it work!
         model.onNodeAdded.connect(self.onNodeAdded)
         model.onNodeRemoved.connect(self.onNodeRemoved)
         model.onNodeMoved.connect(self.onNodeMoved)
+        model.onPortAdded.connect(self.onPortAdded)
+        model.onPortRemoved.connect(self.onPortRemoved)
+        model.onConnectionAdded.connect(self.onConnectionAdded)
+        model.onConnectionRemoved.connect(self.onConnectionRemoved)
 
     def can_show_node(self, node):
         return True
@@ -61,10 +81,10 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
             if self.can_show_connection(connection):
                 yield connection
 
-    def add_node(self, node, emit_signal=False):
+    def add_node(self, node, emit_signal=True):
         self._model.add_node(node, emit_signal=emit_signal)
 
-    def remove_node(self, node, emit_signal=False):
+    def remove_node(self, node, emit_signal=True):
         self._model.remove_node(node, emit_signal=emit_signal)
 
     def get_node_position(self, node):
@@ -89,15 +109,15 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
         # type: (NodeGraphNodeModel) -> None
         self._model.expand_node(node)
 
-    def expand_node_ports(self, node, inputs=True, outputs=True):
-        # type: (NodeGraphNodeModel, bool, bool) -> None
-        self._model.expand_node_ports(node, outputs=True, inputs=True)
-
     def expand_port_input_connections(self, port_model):
         self._model.expand_port_input_connections(port_model)
 
     def expand_port_output_connections(self, port_model):
         self._model.expand_port_output_connections(port_model)
+
+    # def expand_node_ports(self, node, inputs=True, outputs=True):
+    #     # type: (NodeGraphNodeModel, bool, bool) -> None
+    #     self._model.expand_node_ports(node, outputs=True, inputs=True)
 
     def expand_node_ports(self, node, inputs=True, outputs=True):
         # todo: find a cleaner way?

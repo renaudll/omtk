@@ -1,7 +1,6 @@
 import logging
 import os
 import tempfile
-import itertools
 
 import pymel.core as pymel
 from omtk.core.component_definition import ComponentDefinition
@@ -148,13 +147,9 @@ def walk_available_component_definitions(search_scripted=True):
         log.debug('Registering {0} from {1}'.format(component_def, plugin))
         yield component_def
 
-from omtk import decorators
-
 
 class BrokenComponentError(Exception):
     """Raised when something fail because a node is inside and outside of a component at the same time."""
-
-
 
 
 def get_component_network_bounds():
@@ -180,6 +175,7 @@ def get_component_network_bounds():
 def get_component_metanetwork_from_hub_network(network, strict=True):
     def _filter(net):
         return libSerialization.is_network_from_class(net, 'Component')
+
     result = next(iter(libSerialization.get_connected_networks(network, key=_filter, recursive=False)), None)
     if not result and strict:
         raise Exception("Can't resolve meta-network from {0}".format(network))

@@ -1,6 +1,6 @@
 import logging
 import pymel.core as pymel
-from omtk.qt_widgets.nodegraph.models import port as port_model
+from omtk.qt_widgets.nodegraph.models.port import port_base as port_model
 from omtk.qt_widgets.nodegraph.models import connection as connection_model
 from omtk.qt_widgets.nodegraph.models.node import node_dg
 
@@ -34,7 +34,7 @@ class DagNodeParentPortModel(port_model.NodeGraphPortModel):
         metadata = self.get_metadata()
         children = metadata.getChildren()
         for child in children:
-            model_dst_node = self._registry.get_node_model_from_value(child)
+            model_dst_node = self._registry.get_node_from_value(child)
             model_dst_port = DagNodeParentPortModel(self._registry, model_dst_node)
             model_connection = connection_model.NodeGraphConnectionModel(self._registry, self, model_dst_port)
             result.append(model_connection)
@@ -45,7 +45,7 @@ class DagNodeParentPortModel(port_model.NodeGraphPortModel):
         metadata = self.get_metadata()
         parent = metadata.getParent()
         if parent:
-            model_src_node = self._registry.get_node_model_from_value(parent)
+            model_src_node = self._registry.get_node_from_value(parent)
             model_src_port = DagNodeParentPortModel(self._registry, model_src_node)
             model_connection = connection_model.NodeGraphConnectionModel(self._registry, model_src_port, self)
             result.append(model_connection)
@@ -80,7 +80,7 @@ class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
         metadata = self.get_metadata()
         parent = metadata.getParent()
         node_model = self._registry.get_node_from_value(metadata)
-        inst = DagNodeParentPortModel(self, node_model)
+        inst = DagNodeParentPortModel(self._registry, node_model)
         # inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
         yield inst
 

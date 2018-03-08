@@ -4,7 +4,6 @@ import pymel.core as pymel
 
 from omtk import constants
 from omtk.core import preferences
-from omtk.qt_widgets.nodegraph.models.node import node_dg
 from omtk.qt_widgets.nodegraph.nodegraph_filter import NodeGraphFilter
 
 if False:
@@ -43,6 +42,7 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         # type: (NodeGraphNodeModel) -> bool
         # Some DagNode types might be blacklisted.
         global _g_preferences
+        from omtk.qt_widgets.nodegraph.models.node import node_dg
 
         if isinstance(node_model, node_dg.NodeGraphDgNodeModel):
             blacklist = _g_preferences.get_nodegraph_blacklisted_nodetypes()
@@ -95,7 +95,7 @@ class NodeGraphStandardFilter(NodeGraphFilter):
     def intercept_connection(self, connection):
         # type: (NodeGraphConnectionModel) -> NodeGraphConnectionModel
         model = self.get_model()
-        registry = model.get_registry()
+        registry = connection._registry
         port_src = connection.get_source()
         port_dst = connection.get_destination()
         attr_src = port_src.get_metadata()

@@ -126,7 +126,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
             if not self.can_show_port(port_model):
                 continue
 
-            for connection_model in self._iter_port_input_connections(port_model):
+            for connection_model in self.iter_port_input_connections(port_model):
                 node_model_src = connection_model.get_source().get_parent()
 
                 # Ignore blacklisted nodes
@@ -152,15 +152,15 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
 
     def iter_port_connections(self, port):
         # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
-        for connection in self._iter_port_input_connections(port):
+        for connection in self.iter_port_input_connections(port):
             yield self.intercept_connection(connection)
-        for connection in self._iter_port_output_connections(port):
+        for connection in self.iter_port_output_connections(port):
             yield self.intercept_connection(connection)
 
     def get_port_connections(self, port):
         return list(self.iter_port_connections(port))
 
-    def _iter_port_input_connections(self, model):
+    def iter_port_input_connections(self, model):
         # type: (NodeGraphPortModel) -> list[NodeGraphConnectionModel]
         """
         Control what input connection models are exposed for the provided port model.
@@ -173,15 +173,15 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         if attr_type == 'message':
             return
 
-        for connection in model.get_input_connections(self):
+        for connection in model.get_input_connections():
             for yielded in self.intercept_connection(connection):
                 yield yielded
 
     @decorators.memoized_instancemethod
     def get_port_input_connections(self, model):
-        return list(self._iter_port_input_connections(model))  # cannot memoize a generator
+        return list(self.iter_port_input_connections(model))  # cannot memoize a generator
 
-    def _iter_port_output_connections(self, port):
+    def iter_port_output_connections(self, port):
         # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
         """
         Control what output connection models are exposed for the provided port model.
@@ -200,7 +200,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
 
     @decorators.memoized_instancemethod
     def get_port_output_connections(self, model):
-        return list(self._iter_port_output_connections(model))  # cannot memoize a generator
+        return list(self.iter_port_output_connections(model))  # cannot memoize a generator
 
     def expand_port(self, port, inputs=True, outputs=True):
         # type: (NodeGraphPortModel, bool, bool) -> None

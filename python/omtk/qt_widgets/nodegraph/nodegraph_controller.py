@@ -122,6 +122,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         model.onNodeAdded.connect(self.on_model_node_added)
         model.onNodeRemoved.connect(self.on_model_node_added)
         model.onPortAdded.connect(self.on_model_port_added)
+        # model.onPortAdded.connect(self.on_model_reset)
         model.onPortRemoved.connect(self.on_model_port_removed)
         model.onConnectionAdded.connect(self.on_model_connection_added)
         model.onConnectionRemoved.connect(self.on_model_connection_removed)
@@ -200,7 +201,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     @decorators.log_info
     def on_model_reset(self, expand=True):
         # Hold nodes
-        old_nodes = copy.copy(self._nodes)
+        old_nodes = copy.copy(self._model.get_nodes())
 
         # Hold nodes status
         expanded_nodes = set(self._expanded_nodes)
@@ -211,7 +212,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         # Fetch nodes
         for node in old_nodes:
-            self.add_node(node, emit_signal=False)
+            self._model.add_node(node, emit_signal=False)
 
         # Fetch nodes status
         if expand:
@@ -227,7 +228,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def on_model_node_added(self, node):
         # type: (NodeGraphNodeModel) -> None
-        self.add_node_model_to_view(node)
+        if self._view:  # todo: move in add_node_model_to_view?
+            self.add_node_model_to_view(node)
 
     @decorators.log_info
     def on_model_node_removed(self, node):
@@ -242,7 +244,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def on_model_port_added(self, port):
         # type: (NodeGraphPortModel) -> None
-        self.get_port_widget(port)
+        if self._view:
+            self.get_port_widget(port)
 
     @decorators.log_info
     def on_model_port_removed(self, port):
@@ -267,7 +270,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         for node in model.iter_nodes():
             self.add_node_model_to_view(node)
 
-        for port in model.iter_ports():
+        for port in sorted(model.iter_ports()):  # todo: use GraphProxyModel for sorting?
             self.get_port_widget(port)
 
         for connection in model.iter_connections():
@@ -408,13 +411,15 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             # if self.get_view():  # wip
             #     self.get_port_widget(port_model)
 
-    def expand_port_input_connections(self, port_model):
-        for connection_model in self.get_port_input_connections(port_model):
-            self.get_connection_widget(connection_model)
+    def expand_port_input_connections(self, port):
+        # type: (NodeGraphPortModel) -> None
+        for connection in self._model.iter_port_input_connections(port):
+            self.get_connection_widget(connection)
 
-    def expand_port_output_connections(self, port_model):
-        for connection_model in self.get_port_output_connections(port_model):
-            self.get_connection_widget(connection_model)
+    def expand_port_output_connections(self, port):
+        # type: (NodeGraphPortModel) -> None
+        for connection in self._model.iter_port_output_connections(port):
+            self.get_connection_widget(connection)
 
     def iter_ports(self, node_model):
         for port_model in node_model.get_ports():
@@ -778,7 +783,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def get_selected_node_models(self):
         # type: () -> List[NodeGraphNodeModel]
-        return [pfg_node._meta_data for pfg_node in self._view.getSelectedNodes()]
+        return [pfg_node._model for pfg_node in self._view.getSelectedNodes()]
 
     def get_selected_values(self):
         return [model.get_metadata() for model in self.get_selected_node_models()]
@@ -1002,89 +1007,89 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         return inn_attrs, out_attrs
 
-    def iter_port_connections(self, model):
-        # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
-        for connection in self._iter_port_input_connections(model):
-            yield connection
-        for connection in self._iter_port_output_connections(model):
-            yield connection
-
-    def _iter_port_input_connections(self, model):
-        # type: (NodeGraphPortModel) -> list[NodeGraphConnectionModel]
-        """
-        Control what input connection models are exposed for the provided port model.
-        :param model: The destination port model to use while resolving the connection models.
-        :return: A list of connection models using the provided port model as destination.
-        """
-        # Ignore message attributes
-        attr = model.get_metadata()
-        attr_type = attr.type()
-        if attr_type == 'message':
-            return
-
-        for connection in model.get_input_connections():
-
-            # Redirect unitConversion nodes
-            attr_src = connection.get_source().get_metadata()
-            node_src = attr_src.node()
-            if isinstance(node_src, pymel.nodetypes.UnitConversion) and attr_src.longName() == 'output':
-                model_src = self.get_port_model_from_value(node_src.input)
-                for new_connection in self.get_port_input_connections(model_src):
-                    yield self._model.get_connection_model_from_values(new_connection.get_source(), model)
-                return
-
-            # Redirect decomposeMatrix nodes
-            # todo: test
-            if isinstance(node_src, pymel.nodetypes.DecomposeMatrix) and attr_src.longName() in (
-            'outputTranslate', 'outputRotate', 'outputScale'):
-                inputmatrix_model = self.get_port_model_from_value(node_src.attr('inputMatrix'))
-                for sub_connection in self.get_port_input_connections(inputmatrix_model):
-                    new_connection = self._model.get_connection_model_from_values(sub_connection.get_source(), model)
-                    yield new_connection
-                return
-
-            yield connection
-
-    @decorators.memoized_instancemethod
-    def get_port_input_connections(self, model):
-        return list(self._iter_port_input_connections(model))  # cannot memoize a generator
-
-    def _iter_port_output_connections(self, model):
-        # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
-        """
-        Control what output connection models are exposed for the provided port model.
-        :param model: The source port model to use while resolving the connection models.
-        :return: A list of connection models using the provided port model as source.
-        """
-        # Ignore message attributes
-        attr = model.get_metadata()
-        attr_type = attr.type()
-        if attr_type == 'message':
-            return
-
-        for connection in model.get_output_connections():
-
-            # Redirect unitConversion input attribute
-            attr_dst = connection.get_destination().get_metadata()
-            node_dst = attr_dst.node()
-            if isinstance(node_dst, pymel.nodetypes.UnitConversion) and attr_dst.longName() == 'input':
-                model_dst = self.get_port_model_from_value(node_dst.output)
-                for new_connection in self.get_port_output_connections(model_dst):
-                    yield self._model.get_connection_model_from_values(model, new_connection.get_destination())
-                return
-
-            # Redirect decomposeMatrix
-            if isinstance(node_dst, pymel.nodetypes.DecomposeMatrix) and attr_dst.longName() == 'inputMatrix':
-                for real_attr_dst in self._get_decomposematrix_inputmatrix_output_connections(attr_dst):
-                    new_connection = self._model.get_connection_model_from_values(model, real_attr_dst)
-                    yield new_connection
-                return
-
-            yield connection
-
-    @decorators.memoized_instancemethod
-    def get_port_output_connections(self, model):
-        return list(self._iter_port_output_connections(model))  # cannot memoize a generator
+    # def iter_port_connections(self, model):
+    #     # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
+    #     for connection in self.iter_port_input_connections(model):
+    #         yield connection
+    #     for connection in self.iter_port_output_connections(model):
+    #         yield connection
+    # 
+    # def iter_port_input_connections(self, model):
+    #     # type: (NodeGraphPortModel) -> list[NodeGraphConnectionModel]
+    #     """
+    #     Control what input connection models are exposed for the provided port model.
+    #     :param model: The destination port model to use while resolving the connection models.
+    #     :return: A list of connection models using the provided port model as destination.
+    #     """
+    #     # Ignore message attributes
+    #     attr = model.get_metadata()
+    #     attr_type = attr.type()
+    #     if attr_type == 'message':
+    #         return
+    # 
+    #     for connection in model.get_input_connections():
+    # 
+    #         # Redirect unitConversion nodes
+    #         attr_src = connection.get_source().get_metadata()
+    #         node_src = attr_src.node()
+    #         if isinstance(node_src, pymel.nodetypes.UnitConversion) and attr_src.longName() == 'output':
+    #             model_src = self.get_port_model_from_value(node_src.input)
+    #             for new_connection in self.get_port_input_connections(model_src):
+    #                 yield self._model.get_connection_model_from_values(new_connection.get_source(), model)
+    #             return
+    # 
+    #         # Redirect decomposeMatrix nodes
+    #         # todo: test
+    #         if isinstance(node_src, pymel.nodetypes.DecomposeMatrix) and attr_src.longName() in (
+    #         'outputTranslate', 'outputRotate', 'outputScale'):
+    #             inputmatrix_model = self.get_port_model_from_value(node_src.attr('inputMatrix'))
+    #             for sub_connection in self.get_port_input_connections(inputmatrix_model):
+    #                 new_connection = self._model.get_connection_model_from_values(sub_connection.get_source(), model)
+    #                 yield new_connection
+    #             return
+    # 
+    #         yield connection
+    # 
+    # @decorators.memoized_instancemethod
+    # def get_port_input_connections(self, model):
+    #     return list(self.iter_port_input_connections(model))  # cannot memoize a generator
+    # 
+    # def iter_port_output_connections(self, model):
+    #     # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
+    #     """
+    #     Control what output connection models are exposed for the provided port model.
+    #     :param model: The source port model to use while resolving the connection models.
+    #     :return: A list of connection models using the provided port model as source.
+    #     """
+    #     # Ignore message attributes
+    #     attr = model.get_metadata()
+    #     attr_type = attr.type()
+    #     if attr_type == 'message':
+    #         return
+    # 
+    #     for connection in model.get_output_connections():
+    # 
+    #         # Redirect unitConversion input attribute
+    #         attr_dst = connection.get_destination().get_metadata()
+    #         node_dst = attr_dst.node()
+    #         if isinstance(node_dst, pymel.nodetypes.UnitConversion) and attr_dst.longName() == 'input':
+    #             model_dst = self.get_port_model_from_value(node_dst.output)
+    #             for new_connection in self.get_port_output_connections(model_dst):
+    #                 yield self._model.get_connection_model_from_values(model, new_connection.get_destination())
+    #             return
+    # 
+    #         # Redirect decomposeMatrix
+    #         if isinstance(node_dst, pymel.nodetypes.DecomposeMatrix) and attr_dst.longName() == 'inputMatrix':
+    #             for real_attr_dst in self._get_decomposematrix_inputmatrix_output_connections(attr_dst):
+    #                 new_connection = self._model.get_connection_model_from_values(model, real_attr_dst)
+    #                 yield new_connection
+    #             return
+    # 
+    #         yield connection
+    # 
+    # @decorators.memoized_instancemethod
+    # def get_port_output_connections(self, model):
+    #     return list(self.iter_port_output_connections(model))  # cannot memoize a generator
 
     # --- User actions, currently defined in the widget, should be moved in the controller ---
 

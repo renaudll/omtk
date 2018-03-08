@@ -4,7 +4,7 @@ from omtk import decorators
 from omtk.libs import libAttr, libPyflowgraph
 from omtk.vendor.Qt import QtCore
 
-from omtk.qt_widgets.nodegraph.models.node import node_base
+from . import node_base
 from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
 
 log = logging.getLogger('omtk.nodegraph')

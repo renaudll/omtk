@@ -1,6 +1,5 @@
 from omtk import constants
 from omtk.core import preferences
-from omtk.qt_widgets.nodegraph.models.node import node_dg
 
 # Hide the attributes we are ourself creating
 # todo: where to put this?
@@ -40,6 +39,8 @@ class NodeGraphFilter(object):
     def can_show_node(self, node_model):
         # type: (NodeGraphNodeModel) -> bool
         # Some DagNode types might be blacklisted.
+        from omtk.qt_widgets.nodegraph.models.node import node_dg
+
         if isinstance(node_model, node_dg.NodeGraphDgNodeModel):
             blacklist = preferences.get_preferences().get_nodegraph_blacklisted_nodetypes()
             node = node_model.get_metadata()

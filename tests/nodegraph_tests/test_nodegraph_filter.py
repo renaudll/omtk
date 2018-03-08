@@ -2,6 +2,7 @@ import unittest
 
 import pymel.core as pymel
 from maya import cmds
+import omtk_test
 from omtk.core import session
 from omtk.core.component import Component
 from omtk.qt_widgets.nodegraph import NodeGraphController, NodeGraphRegistry
@@ -12,6 +13,7 @@ from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 
 
+# todo: move this to omtk_test
 def _node_to_json(g, n):
     # type: (NodeGraphModel, NodeGraphNodeModel) -> dict
     return {
@@ -20,16 +22,18 @@ def _node_to_json(g, n):
     }
 
 
+# todo: move this to omtk_test
 def _graph_to_json(g):
     # type: (NodeGraphModel) -> dict
     return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}
 
 
+# todo: move this to omtk_test
 def _get_graph_node_names(g):
     return [n.get_name() for n in g.get_nodes()]
 
 
-class NodeGraphFilterTest(unittest.TestCase):
+class NodeGraphFilterTest(omtk_test.TestCase):
     def setUp(self):
         self.maxDiff = None
         self.registry = NodeGraphRegistry()

@@ -3,29 +3,30 @@ Define a controller for one specific GraphView.
 """
 import logging
 
-from omtk import decorators
 import pymel.core as pymel
 from omtk import constants
+from omtk import decorators
 from omtk.core import component, session
 from omtk.core import entity
 from omtk.factories import factory_datatypes, factory_rc_menu
 from omtk.libs import libComponents
-from omtk.vendor.Qt import QtCore
-
 from omtk.qt_widgets.nodegraph.models.node import node_base, node_dg, \
-    node_component, node_root
+    node_root
+from omtk.vendor.Qt import QtCore
 
 # Used for type checking
 if False:
-    from .port_model import NodeGraphPortModel
-    from .nodegraph_connection_model import NodeGraphConnectionModel
+    from typing import List, Generator
     from .nodegraph_view import NodeGraphView
-    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
-    from .pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
-    from .pyflowgraph_port_widget import OmtkNodeGraphBasePortWidget
+    from omtk.qt_widgets.nodegraph.models import NodeGraphModel, NodeGraphNodeModel, NodeGraphPortModel, \
+        NodeGraphConnectionModel
+    from omtk.qt_widgets.nodegraph.filters.filter_standard import NodeGraphFilter
+    from omtk.qt_widgets.nodegraph.pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
+    from omtk.qt_widgets.nodegraph.pyflowgraph_port_widget import OmtkNodeGraphBasePortWidget
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
 log = logging.getLogger('omtk.nodegraph')
+
 
 # todo: implement proxy model outside of controller?
 # todo: add model-in-view cache, calling set_view should display visible models
@@ -103,7 +104,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         return self._known_attrs
 
     def get_model(self):
-        # type: () -> NodeGraphGraphModel
+        # type: () -> NodeGraphModel
         return self._model
 
     def set_model(self, model):
@@ -137,7 +138,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         view.connectionRemoved.connect(self.on_connected_removed)
 
     def set_filter(self, filter_):
-        # type: (NodeGraphControllerFilter) -> None
+        # type: (NodeGraphFilter) -> None
         self._filter = filter_
         model = self.get_model()
         model.set_filter(filter_)
@@ -288,7 +289,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         if self.is_node_model_in_view(model):
             self.remove_node_model_from_view(model)
 
-
         widget = self._cache_node_widget_by_model.get(model, None)
         if widget:
             self.unregister_node_widget(widget)
@@ -426,6 +426,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 yield port_model
 
     def iter_port_output_connections(self, port_model):
+        # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
         for connection_model in self.get_port_output_connections(port_model):
             if not self.can_show_connection(connection_model):
                 continue
@@ -442,6 +443,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             yield connection_model
 
     def _iter_node_output_connections(self, node_model):
+        # type: (NodeGraphNodeModel) -> Generator[NodeGraphConnectionModel]
         for port_model in node_model.get_connected_output_ports(self):
             if not self.can_show_port(port_model):
                 continue
@@ -503,33 +505,33 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Widget factory ---
 
-    def get_node_widget(self, model):
-        # assert(isinstance(model, nodegraph_node_model_base.NodeGraphNodeModel))
+    def get_node_widget(self, node):
+        # assert(isinstance(node, nodegraph_node_model_base.NodeGraphNodeModel))
         try:
-            return self._cache_node_widget_by_model[model]
+            return self._cache_node_widget_by_model[node]
         except LookupError:
-            log.debug("Cannot find widget for {0}. Creating a new one.".format(model))
-            widget = self._get_node_widget(model)
-            self._cache_node_widget_by_model[model] = widget
-            self._cache_node_model_by_widget[widget] = model
+            log.debug("Cannot find widget for {0}. Creating a new one.".format(node))
+            widget = self._get_node_widget(node)
+            self._cache_node_widget_by_model[node] = widget
+            self._cache_node_model_by_widget[widget] = node
             return widget
 
-    def _get_node_widget(self, model):
+    def _get_node_widget(self, node):
         # type: (NodeGraphNodeModel) -> OmtkNodeGraphNodeWidget
-        # todo: how to we prevent from calling .get_widget() from the model directly? do we remove it?
+        # todo: how to we prevent from calling .get_widget() from the node directly? do we remove it?
         """
         Main entry-point for Widget creation.
         Handle caching and registration for widgets.
         :param node: A NodeGraphNodeModel instance.
         :return: A PyFlowgraph Node instance.
         """
-        node_widget = model.get_widget(self._view, self)
-        node_widget._omtk_model = model  # monkey-patch
+        node_widget = node.get_widget(self._view, self)
+        node_widget._omtk_model = node  # monkey-patch
 
         return node_widget
 
     @decorators.memoized_instancemethod
-    def get_port_widget(self, port_model):
+    def get_port_widget(self, port):
         # type: (NodeGraphPortModel) -> OmtkNodeGraphBasePortWidget
         """
         Main entry-point for Widget creation.
@@ -541,7 +543,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         # In Pyflowgraph, a Port need a Node.
         # Verify that we initialize the widget for the Node.
-        node_value = port_model.get_parent().get_metadata()
+        node_value = port.get_parent().get_metadata()
         node_model = self.get_node_model_from_value(node_value)
 
         # Hack: Hide Compound bound nodes when not inside the compound!
@@ -551,16 +553,17 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         #         node_model = compound_model
 
         node_widget = self.get_node_widget(node_model)
-        port_widget = port_model.get_widget(self, self._view, node_widget)
+        port_widget = port.get_widget(self, self._view, node_widget)
 
         # Update cache
-        self._cache_port_model_by_widget[port_widget] = port_model
-        self._cache_port_widget_by_model[port_model] = port_widget
+        self._cache_port_model_by_widget[port_widget] = port
+        self._cache_port_widget_by_model[port] = port_widget
 
         return port_widget
 
     @decorators.memoized_instancemethod
     def get_connection_widget(self, connection_model):
+        # type: (NodeGraphConnectionModel) -> OmtkNodeGraphBasePortWidget
         """
         Main entry-point for Widget creation.
         Handle caching and registration for widgets.
@@ -629,8 +632,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Widget/View methods ---
 
-    def is_node_model_in_view(self, node_model):
-        return node_model in self._visible_node_models
+    def is_node_model_in_view(self, node):
+        # type: (NodeGraphNodeModel) -> bool
+        return node in self._visible_node_models
 
     # todo: deprecate
     def _is_node_widget_in_view(self, node_widget):
@@ -654,13 +658,13 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             return node_widget
 
-    def remove_node_model_from_view(self, node_model):
-        if not self.is_node_model_in_view(node_model):
+    def remove_node_model_from_view(self, node):
+        if not self.is_node_model_in_view(node):
             return
-        self._visible_node_models.remove(node_model)
+        self._visible_node_models.remove(node)
 
         if self.get_view():
-            node_widget = self.get_node_widget(node_model)
+            node_widget = self.get_node_widget(node)
             node_widget.disconnectAllPorts(emitSignal=False)
             self._view.removeNode(node_widget)
             node_widget.on_removed_from_scene()
@@ -683,7 +687,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         node_widget = self.add_node_model_to_view(node_model)
         if node_widget:
-
             qrect = node_widget.rect()
             pos = self.get_view().get_available_position(qrect)
 
@@ -988,7 +991,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             # Redirect decomposeMatrix nodes
             # todo: test
-            if isinstance(node_src, pymel.nodetypes.DecomposeMatrix) and attr_src.longName() in ('outputTranslate', 'outputRotate', 'outputScale'):
+            if isinstance(node_src, pymel.nodetypes.DecomposeMatrix) and attr_src.longName() in (
+            'outputTranslate', 'outputRotate', 'outputScale'):
                 inputmatrix_model = self.get_port_model_from_value(node_src.attr('inputMatrix'))
                 for sub_connection in self.get_port_input_connections(inputmatrix_model):
                     new_connection = self._model.get_connection_model_from_values(sub_connection.get_source(), model)
@@ -1205,4 +1209,3 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         log.debug("Removing {0} from nodegraph".format(model))
         if model:
             self.remove_node(model, clear_cache=True)
-

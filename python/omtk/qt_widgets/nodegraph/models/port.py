@@ -94,6 +94,9 @@ class NodeGraphPortModel(object):
     def is_interesting(self):
         return self.impl.is_interesting()
 
+    def is_user_defined(self):
+        return self.impl.is_user_defined()
+
     # --- Connection related methods --- #
 
     def get_input_connections(self):

@@ -36,7 +36,7 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
     @decorators.memoized_instancemethod
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
-        return self._registry.get_node_parent(self._pynode)
+        return self._registry.get_component_from_obj(self._pynode)
 
     def get_metadata(self):
         return self._pynode

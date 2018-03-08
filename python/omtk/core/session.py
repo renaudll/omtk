@@ -15,7 +15,8 @@ from omtk.vendor.libSerialization import cache as libSerializationCache
 
 log = logging.getLogger('omtk')
 
-
+if False:  # for type hinting
+    from omtk.core.component import Component
 
 
 class ComponentCache(object):
@@ -36,7 +37,7 @@ class ComponentCache(object):
         self._cache_nodes_by_parent = defaultdict(set)
         self._component_network_by_hub_inn, self._component_network_by_hub_out = libComponents.get_component_network_bounds()
 
-    def get_node_parent(self, obj):
+    def get_component_from_obj(self, obj):
         try:
             return self._cache_parent_by_node[obj]
         except KeyError:
@@ -85,10 +86,10 @@ class ComponentCache(object):
             hub_out = None
 
         if hub_inn is None or hub_out is None:
-            if hub_inn != hub_out:
-                raise libComponents.BrokenComponentError("Found partial component bound for {0}. Input is {1}, output is {2}.".format(
-                    obj, hub_inn, hub_out
-                ))
+            # if hub_inn != hub_out:
+            #     raise libComponents.BrokenComponentError("Found partial component bound for {0}. Input is {1}, output is {2}.".format(
+            #         obj, hub_inn, hub_out
+            #     ))
             return None
 
         # Validate that we found two hub from the same component.
@@ -110,7 +111,7 @@ class ComponentCache(object):
         inst = self._session.import_network(net)
 
         # Ok, we got something, for speed purpose set the cache for all the nodes we explored.
-        for node in itertools.chain(known_inn, known_out):
+        for node in known_inn & known_out:
             if node not in self._cache_parent_by_node:
                 self._cache_parent_by_node[node] = inst
                 self._cache_nodes_by_parent[inst].add(node)
@@ -265,6 +266,10 @@ class AutoRigManager(QtCore.QObject):
 
             self.onSceneChanged.emit()
             # todo: update node editor?
+
+    def get_component_from_obj(self, obj):
+        # type: (pymel.PyNode) -> Component
+        return self._cache_components.get_component_from_obj(obj)
 
 
 @decorators.memoized

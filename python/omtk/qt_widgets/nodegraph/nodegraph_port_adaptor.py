@@ -136,6 +136,10 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         'wm',  # worldmatrix
     )
 
+    def is_user_defined(self):
+        attr_name = self._attr_name()
+        return attr_name in self._list_parent_user_defined_attrs()
+
     @decorators.memoized_instancemethod
     def is_interesting(self):
         # The user can specify in it's preference what he which to see by default.
@@ -162,7 +166,7 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
 
         # Any attributes not defined in the base MPxNode is interesting
         attr_name = self._attr_name()
-        if attr_name in self._list_parent_user_defined_attrs():
+        if self.is_user_defined():
             return True
         # Some attributes will always be interesting to us.
         if attr_name in self._interesting_attrs:

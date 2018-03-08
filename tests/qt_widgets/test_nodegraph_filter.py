@@ -2,15 +2,14 @@ import unittest
 
 import pymel.core as pymel
 from maya import cmds
-
 from omtk.core import session
 from omtk.core.component import Component
 from omtk.qt_widgets.nodegraph import NodeGraphController, NodeGraphRegistry
+from omtk.qt_widgets.nodegraph.filters.filter_metadata import NodeGraphMetadataFilter
+from omtk.qt_widgets.nodegraph.filters.filter_standard import NodeGraphStandardFilter
+from omtk.qt_widgets.nodegraph.filters.filter_subgraph import NodeGraphSubgraphFilter
 from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
-from omtk.qt_widgets.nodegraph.filters.filter_standard import NodeGraphStandardFilter
-from omtk.qt_widgets.nodegraph.filters.filter_metadata import NodeGraphMetadataFilter
-from omtk.qt_widgets.nodegraph.filters.filter_subgraph import NodeGraphSubgraphFilter
 
 
 def _node_to_json(g, n):
@@ -26,9 +25,13 @@ def _graph_to_json(g):
     return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}
 
 
+def _get_graph_node_names(g):
+    return [n.get_name() for n in g.get_nodes()]
+
+
 class NodeGraphFilterTest(unittest.TestCase):
     def setUp(self):
-        self.maxDiff=None
+        self.maxDiff = None
         self.registry = NodeGraphRegistry()
         source_model = NodeGraphModel()
         self.model = GraphFilterProxyModel(model=source_model)
@@ -39,7 +42,6 @@ class NodeGraphFilterTest(unittest.TestCase):
         self.assertEqual(0, len(self.model.get_nodes()))
         self.assertEqual(0, len(self.model.get_ports()))
 
-    @unittest.skip('')
     def test_port_filtering(self):
         """
         Ensure that we are able to:
@@ -88,7 +90,6 @@ class NodeGraphFilterTest(unittest.TestCase):
         self.assertEqual(1, len(self.model.get_nodes()))
         self.assertEqual(225, len(self.model.get_ports()))
 
-    @unittest.skip('')
     def test_connection_filtering(self):
         """
         Ensure we are able to ignore connections like non-message.
@@ -139,25 +140,39 @@ class NodeGraphFilterTest(unittest.TestCase):
         n3 = pymel.createNode('transform', name='c')
         pymel.connectAttr(n1.t, n2.t)
         pymel.connectAttr(n2.t, n3.t)
-        inst = Component.create({'inn': n2.t}, {'out': n2.t})
-        s.export_network(inst)  # hack: we need to export the component for it to be visible...
+        component = Component.create({'inn': n2.tx}, {'out': n2.tx})
+        s.export_network(component)  # hack: we need to export the component for it to be visible...
         s.clear_cache_components()  # hack: atm we need to clear the cache manually...
 
         m1 = self.registry.get_node_from_value(n1)
         m2 = self.registry.get_node_from_value(n2)
         m3 = self.registry.get_node_from_value(n3)
+        cm = self.registry.get_node_from_value(component)
         self.model.add_node(m1)
         self.model.add_node(m2)
         self.model.add_node(m3)
 
         filter = NodeGraphSubgraphFilter()
+
+        # Initialzie the filter
         self.ctrl.set_filter(filter)
+        snapshot = _get_graph_node_names(self.model)
+        self.assertEqual([u'a', u'component00', u'c'], snapshot)
 
-        snapshot = _graph_to_json(self.model)
-        print snapshot
+        # Enter subgraph
+        filter.set_level(cm)
+        snapshot = _get_graph_node_names(self.model)
+        self.assertEqual([u'component00:inn', u'component00:out', u'b'], snapshot)
 
+        # Exit subgraph, return to root
+        filter.set_level(None)
+        snapshot = _get_graph_node_names(self.model)
+        self.assertEqual([u'a', u'component00', u'c'], snapshot)
 
-
+        # Enter subgraph again for to be sure
+        filter.set_level(cm)
+        snapshot = _get_graph_node_names(self.model)
+        self.assertEqual([u'component00:inn', u'component00:out', u'b'], snapshot)
 
 # todo: test subgraph filter
 # todo: test decomposeMatrix filter

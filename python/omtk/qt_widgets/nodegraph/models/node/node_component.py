@@ -9,6 +9,7 @@ from omtk.qt_widgets.nodegraph.models.node import node_base, node_dg
 from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
 
 if False:
+    from typing import List
     from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
 

@@ -107,24 +107,24 @@ class NodeGraphRegistry(object):
             return node_component.NodeGraphComponentModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Node:
-            network = val
-            if isinstance(val, pymel.nodetypes.Network):
-                if libSerialization.is_network_from_class(val, Component.__name__):
-                    network = val
-                else:
-                    network = libComponents.get_component_metanetwork_from_hub_network(val)
-
-                    # todo: use internal data
-                    component = self.manager.import_network(network)
-
-                    from omtk import constants
-                    if network:
-                        if network.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
-                            return component.NodeGraphComponentInnBoundModel(self, val, component)
-                        elif network.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
-                            return component.NodeGraphComponentOutBoundModel(self, val, component)
-                        else:
-                            raise Exception("Unreconnised network")
+            # network = val
+            # if isinstance(val, pymel.nodetypes.Network):
+            #     if libSerialization.is_network_from_class(val, Component.__name__):
+            #         network = val
+            #     else:
+            #         network = libComponents.get_component_metanetwork_from_hub_network(val)
+            #
+            #         # todo: use internal data
+            #         component = self.manager.import_network(network)
+            #
+            #         from omtk import constants
+            #         if network:
+            #             if network.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
+            #                 return component.NodeGraphComponentInnBoundModel(self, val, component)
+            #             elif network.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
+            #                 return component.NodeGraphComponentOutBoundModel(self, val, component)
+            #             else:
+            #                 raise Exception("Unreconnised network")
 
             # if network:
             #     component = self._manager.import_network(network)
@@ -222,4 +222,4 @@ class NodeGraphRegistry(object):
                 yield node
 
     def get_node_parent(self, node):
-        return self.manager._cache_components.get_node_parent(node)
+        return self.manager._cache_components.get_component_from_obj(node)

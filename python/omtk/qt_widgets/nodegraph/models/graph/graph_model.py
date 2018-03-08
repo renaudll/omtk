@@ -12,6 +12,7 @@ log = logging.getLogger('omtk.nodegraph')
 
 # for type hinting
 if False:
+    from typing import List
     from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
     from omtk.qt_widgets.nodegraph.nodegraph_connection_model import NodeGraphConnectionModel
     from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel

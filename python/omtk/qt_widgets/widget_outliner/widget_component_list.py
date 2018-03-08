@@ -9,6 +9,9 @@ from omtk.libs import libComponents
 from omtk.qt_widgets.widget_outliner.ui import widget_list_componentdef
 from omtk.vendor.Qt import QtWidgets, QtCore
 
+if False:  # for type hinting
+    from typing import List
+
 log = logging.getLogger('omtk')
 
 ID_COL_NAME, ID_COL_VERSION, ID_COL_TYPE, ID_COL_DESCRIPTION = range(4)

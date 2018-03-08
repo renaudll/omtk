@@ -12,13 +12,16 @@ _attr_name_blacklist = (
 )
 
 if False:  # for type hinting
-    from omtk.qt_widgets.nodegraph.models import NodeGraphMode, NodeGraphPortModel
+    from typing import Generator
+    from omtk.qt_widgets.nodegraph.models import NodeGraphMode, NodeGraphNodeModel, NodeGraphPortModel, \
+        NodeGraphConnectionModel
 
 
 class NodeGraphFilter(object):
     """
     Define filtering rules for a NodeGraphController.
     """
+
     def __init__(self, model=None):
         self.model = None
         if model:
@@ -78,14 +81,17 @@ class NodeGraphFilter(object):
         return True
 
     def intercept_node(self, node):
+        # type: (NodeGraphNodeModel) -> Generator[NodeGraphNodeModel]
         """Intercept a node to show something else instead."""
         yield node
 
     def intercept_port(self, port):
+        # type: (NodeGraphPortModel) -> Generator[NodeGraphPortModel]
         """Intercept a port to show something else instead."""
         yield port
 
     # todo: rename with something more understandable
     def intercept_connection(self, connection):
+        # type: (NodeGraphConnectionModel) -> Generator[NodeGraphConnectionModel]
         """Intercept a connection to show something else instead."""
         yield connection

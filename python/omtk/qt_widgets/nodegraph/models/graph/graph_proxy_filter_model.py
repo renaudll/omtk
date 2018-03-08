@@ -3,6 +3,7 @@ from omtk.qt_widgets.nodegraph.models.graph.graph_proxy_model import NodeGraphGr
 from pymel import core as pymel
 
 if False:
+    from typing import List
     from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel
 
@@ -52,7 +53,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         return super(GraphFilterProxyModel, self).can_show_connection(connection)
 
     def iter_nodes(self):
-        for node in self._model.iter_nodes():
+        for node in super(GraphFilterProxyModel, self).iter_nodes():
             for yielded in self.intercept_node(node):
                 yield yielded
 

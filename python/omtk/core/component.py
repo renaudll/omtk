@@ -404,9 +404,9 @@ class Component(Entity):
             _subroutine(start_node)
             return known
 
-        # result = (set(self.grp_inn.listHistory(future=True)) & _listHistory(self.grp_out, future=False))
-        result = libAttr._wip_explore_output_dependencies_recursive(self.grp_inn)
-        result &= libAttr._wip_explore_input_dependencies_recursive(self.grp_out)
+        result = (set(self.grp_inn.listHistory(future=True)) & _listHistory(self.grp_out, future=False))
+        # result = libAttr._wip_explore_output_dependencies_recursive(self.grp_inn)
+        # result &= libAttr._wip_explore_input_dependencies_recursive(self.grp_out)
 
         result -= {self.grp_inn, self.grp_out}
         if self.grp_dag:

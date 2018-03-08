@@ -7,6 +7,7 @@ from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
 
 # used for type hinting33
 if False:
+    from typing import List
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
     from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController

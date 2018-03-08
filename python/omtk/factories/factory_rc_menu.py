@@ -8,6 +8,9 @@ from omtk.core.entity import Entity
 from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui, QtWidgets
 
+if False:  # type hinting
+    from typing import List
+    from omtk.core.component import Component
 
 def _get_actions(self, entities):
     """Recursively scan for actions stored inside entities."""
@@ -30,7 +33,7 @@ def _iter_components_recursive(entity):
 
 
 def get_menu(menu, components, fn_callback):
-    # type: (QWidgets.QMenu, List[Entity], function) -> QtGui.QMenu
+    # type: (QtWidgets.QMenu, List[Entity], function) -> QtGui.QMenu
     """
     Factory method that return an QtGui.QMenu to expose provided Component actions.
     :param menu:

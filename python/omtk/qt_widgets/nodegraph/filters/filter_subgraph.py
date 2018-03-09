@@ -30,7 +30,7 @@ class NodeGraphSubgraphFilter(nodegraph_filter.NodeGraphFilter):
         return self._level
 
     def set_level(self, level):
-        # type: (NodeGraphNodeModel) -> None
+        # type: (NodeGraphNodeModel | None) -> None
         # assert(isinstance(level, node_component.NodeGraphComponentModel))
 
         if level is None:  # root level
@@ -87,7 +87,7 @@ class NodeGraphSubgraphFilter(nodegraph_filter.NodeGraphFilter):
         if not self.can_show_node(node_model):
             return False
 
-        return super(NodeGraphSubgraphFilter, self).can_show_connection(node_model)
+        return super(NodeGraphSubgraphFilter, self).can_show_connection(connection)
 
     def intercept_node(self, node):
         # type: (NodeGraphNodeModel) -> Generator[NodeGraphNodeModel]

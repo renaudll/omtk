@@ -128,7 +128,7 @@ class NodeGraphView(PyFlowgraphView):
             rig.add_module(component)
 
         self._controller.expand_node_attributes(model)
-        self._controller.expand_node_ports(model)
+        self._controller.expand_node_connections(model)
         libPyflowgraph.arrange_upstream(widget)
         libPyflowgraph.arrange_downstream(widget)
 

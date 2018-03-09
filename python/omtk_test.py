@@ -1,15 +1,14 @@
 """
 Base classes and utility functions to handle unit-testing.
 """
-import unittest
+import datetime
 import os
 import sys
-import datetime
+import unittest
 from contextlib import contextmanager
 
-from maya import cmds
 import pymel.core as pymel
-
+from maya import cmds
 from omtk.vendor import libSerialization
 
 
@@ -253,3 +252,56 @@ class TestCase(unittest.TestCase):
             with self.verified_offset(objs, scale_tm, multiplier=test_scale_value):
                 rig.grp_anm.globalScale.set(test_scale_value)
             rig.grp_anm.globalScale.set(1.0)
+
+
+# todo: move this to omtk_test
+def _node_to_json(g, n):
+    # type: (NodeGraphModel, NodeGraphNodeModel) -> dict
+    return {
+        # 'name': n.get_name(),
+        'ports': [p.get_name() for p in sorted(g.get_node_ports(n))],
+    }
+
+
+# todo: move this to omtk_test
+def _graph_to_json(g):
+    # type: (NodeGraphModel) -> dict
+    return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}
+
+
+# todo: move this to omtk_test
+def _get_graph_node_names(g):
+    return [n.get_name() for n in g.get_nodes()]
+
+
+def _get_graph_connections_json(g):
+    # type: (NodeGraphModel) -> List[Dict]
+    return [{'src': c.get_source().get_path(), 'dst': c.get_destination().get_path()} for c in g.get_connections()]
+
+
+class NodeGraphTestCase(TestCase):
+    def __init__(self, *args, **kwargs):
+        super(NodeGraphTestCase, self).__init__(*args, **kwargs)
+        self.model = None
+
+    def assertGraphNodeCountEqual(self, expected):
+        actual = len(self.model.get_nodes())
+        self.assertEqual(expected, actual)
+
+    def assertGraphPortCountEqual(self, expected):
+        actual = len(self.model.get_ports())
+        self.assertEqual(expected, actual)
+
+    def assertGraphConnectionCountEqual(self, expected):
+        actual = len(self.model.get_connections())
+        self.assertEqual(expected, actual)
+
+    def assertGraphNodeNamesEqual(self, expected):
+        actual = _get_graph_node_names(self.model)
+        self.assertSetEqual(set(expected), set(actual))
+
+    def assetGraphConnectionsEqual(self, expected):
+        actual = _get_graph_connections_json(self.model)
+        actual = set(frozenset(c.items()) for c in actual)
+        expected = set(frozenset(c.items()) for c in expected)
+        self.assertEqual(actual, expected)

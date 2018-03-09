@@ -1,8 +1,6 @@
-import unittest
-
+import omtk_test
 import pymel.core as pymel
 from maya import cmds
-import omtk_test
 from omtk.core import session
 from omtk.core.component import Component
 from omtk.qt_widgets.nodegraph import NodeGraphController, NodeGraphRegistry
@@ -13,7 +11,7 @@ from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 
 
-# todo: move this to omtk_test
+# todo: move this to omtk_test.NodeGraphTestCase
 def _node_to_json(g, n):
     # type: (NodeGraphModel, NodeGraphNodeModel) -> dict
     return {
@@ -22,18 +20,13 @@ def _node_to_json(g, n):
     }
 
 
-# todo: move this to omtk_test
+# todo: move this to omtk_test.NodeGraphTestCase
 def _graph_to_json(g):
     # type: (NodeGraphModel) -> dict
     return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}
 
 
-# todo: move this to omtk_test
-def _get_graph_node_names(g):
-    return [n.get_name() for n in g.get_nodes()]
-
-
-class NodeGraphFilterTest(omtk_test.TestCase):
+class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
     def setUp(self):
         self.maxDiff = None
         self.registry = NodeGraphRegistry()
@@ -109,32 +102,64 @@ class NodeGraphFilterTest(omtk_test.TestCase):
         m2 = self.registry.get_node_from_value(n2)
         self.model.add_node(m1)
         self.model.add_node(m2)
-        self.ctrl.expand_node_ports(m1)
+        self.ctrl.expand_node_connections(m1)
 
-        self.assertEqual(2, len(self.model.get_nodes()))
-        self.assertEqual(221, len(self.model.get_ports()))  # yes that's a lot of ports
-        self.assertEqual(2, len(self.model.get_connections()))
+        self.assertGraphNodeCountEqual(2)
+        self.assertGraphPortCountEqual(439)  # yes that's a lot of ports
+        self.assertGraphConnectionCountEqual(2)
 
         filter_ = NodeGraphStandardFilter()
         filter_.hide_message_attribute_type = True
         self.ctrl.set_filter(filter_)
 
-        self.assertEqual(2, len(self.model.get_nodes()))
-        # self.assertEqual(457, len(self.model.get_ports()))  # yes that's a lot of ports
-        self.assertEqual(1, len(self.model.get_connections()))
+        self.assertGraphNodeCountEqual(2)
+        # self.assertGraphPortCountEqual(221)  # yes that's a lot of ports
+        self.assertGraphConnectionCountEqual(1)
 
-        # # Plot-twist, change the filter to a filter that only let message attribute pass through.
+        # Plot-twist, change the filter to a filter that only let message attribute pass through.
         filter_ = NodeGraphMetadataFilter()
         self.ctrl.set_filter(filter_)
 
-        self.assertEqual(2, len(self.model.get_nodes()))
-        self.assertEqual(1, len(self.model.get_connections()))
+        self.assertGraphNodeCountEqual(2)
+        self.assertGraphConnectionCountEqual(1)
 
         connection = self.model.get_connections()[0]
         port_src = connection.get_source()
         port_dst = connection.get_destination()
         self.assertEqual('message', port_src.get_metadata().type())
         self.assertEqual('message', port_dst.get_metadata().type())
+
+    def test_unitconversion_filtering(self):
+        """
+        When using the NodeGraphStandardFilter, unitConversion nodes are node shown.
+        """
+        n1 = pymel.createNode('transform', name='a')
+        n2 = pymel.createNode('transform', name='b')
+        pymel.connectAttr(n1.translateX, n2.rotateX)
+
+        # todo: this should work if we start with no filters, add the node and then change filters?
+        filter = NodeGraphStandardFilter()
+        self.ctrl.set_filter(filter)
+
+        m1 = self.registry.get_node_from_value(n1)
+        m2 = self.registry.get_node_from_value(n2)
+        self.ctrl.add_node(m1)
+        self.ctrl.add_node(m2)
+
+        self.assertGraphNodeNamesEqual([u'a', u'b'])
+        self.assetGraphConnectionsEqual([{'src': u'a.translateX', 'dst': u'b.rotateX'}])
+
+        # However, if you add the unitConversion node explicitly, we want to see it!
+        n3 = n1.translateX.outputs()[0]
+        m3 = self.registry.get_node_from_value(n3)
+        self.ctrl.add_node(m3)
+
+        self.assertGraphNodeNamesEqual([u'a', u'b', u'unitConversion1'])
+        self.assetGraphConnectionsEqual([
+            {'src': u'a.translateX', 'dst': u'b.rotateX'},
+            {'src': u'a.translateX', 'dst': u'unitConversion1.input'},
+            {'src': u'unitConversion1.output', 'dst': u'b.rotateX'},
+        ])
 
     def test_filter_subgraph(self):
         s = session.get_session()
@@ -160,23 +185,19 @@ class NodeGraphFilterTest(omtk_test.TestCase):
 
         # Initialzie the filter
         self.ctrl.set_filter(filter)
-        snapshot = _get_graph_node_names(self.model)
-        self.assertEqual([u'a', u'component00', u'c'], snapshot)
+        self.assertGraphNodeNamesEqual([u'a', u'c', u'component00'])
 
         # Enter subgraph
         filter.set_level(cm)
-        snapshot = _get_graph_node_names(self.model)
-        self.assertEqual([u'component00:inn', u'component00:out', u'b'], snapshot)
+        self.assertGraphNodeNamesEqual([u'component00:inn', u'component00:out', u'b'])
 
         # Exit subgraph, return to root
         filter.set_level(None)
-        snapshot = _get_graph_node_names(self.model)
-        self.assertEqual([u'a', u'component00', u'c'], snapshot)
+        self.assertGraphNodeNamesEqual([u'a', u'c', u'component00'])
 
         # Enter subgraph again for to be sure
         filter.set_level(cm)
-        snapshot = _get_graph_node_names(self.model)
-        self.assertEqual([u'component00:inn', u'component00:out', u'b'], snapshot)
+        self.assertGraphNodeNamesEqual([u'component00:inn', u'component00:out', u'b'])
 
 # todo: test subgraph filter
 # todo: test decomposeMatrix filter

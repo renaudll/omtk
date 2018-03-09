@@ -84,21 +84,21 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         else:
             yield connection
 
-    def iter_port_output_connections(self, port_model):
-        for connection_model in self.get_port_output_connections(port_model):
-            if not self.can_show_connection(connection_model):
-                continue
-            port_model_dst = connection_model.get_destination()
-            node_model_dst = port_model_dst.get_parent()
-
-            # Apply filter
-            if self._filter:
-                if not self._filter.can_show_node(node_model_dst):
-                    continue
-                if not self._filter.can_show_connection(connection_model):
-                    continue
-
-            yield self.intercept_connection(connection_model)
+    # def iter_port_output_connections(self, port_model):
+    #     for connection_model in self.get_port_output_connections(port_model):
+    #         if not self.can_show_connection(connection_model):
+    #             continue
+    #         port_model_dst = connection_model.get_destination()
+    #         node_model_dst = port_model_dst.get_parent()
+    #
+    #         # Apply filter
+    #         if self._filter:
+    #             if not self._filter.can_show_node(node_model_dst):
+    #                 continue
+    #             if not self._filter.can_show_connection(connection_model):
+    #                 continue
+    #
+    #         yield self.intercept_connection(connection_model)
 
     def _iter_node_output_connections(self, node_model):
         for port_model in node_model.get_connected_output_ports(self):
@@ -160,22 +160,17 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
     def get_port_connections(self, port):
         return list(self.iter_port_connections(port))
 
-    def iter_port_input_connections(self, model):
+    def iter_port_input_connections(self, port):
         # type: (NodeGraphPortModel) -> list[NodeGraphConnectionModel]
         """
         Control what input connection models are exposed for the provided port model.
         :param model: The destination port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as destination.
         """
-        # Ignore message attributes
-        attr = model.get_metadata()
-        attr_type = attr.type()
-        if attr_type == 'message':
-            return
-
-        for connection in model.get_input_connections():
-            for yielded in self.intercept_connection(connection):
-                yield yielded
+        for connection in self._model.iter_port_input_connections(port):
+            if not self._filter or self._filter.can_show_connection(connection):
+                for yielded in self.intercept_connection(connection):
+                    yield yielded
 
     @decorators.memoized_instancemethod
     def get_port_input_connections(self, model):
@@ -188,15 +183,10 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         :param port: The source port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as source.
         """
-        # Ignore message attributes
-        attr = port.get_metadata()
-        attr_type = attr.type()
-        if attr_type == 'message':
-            return
-
-        for connection in port.get_output_connections():
-            for yielded in self.intercept_connection(connection):
-                yield connection
+        for connection in self._model.iter_port_output_connections(port):
+            if not self._filter or self._filter.can_show_connection(connection):
+                for yielded in self.intercept_connection(connection):
+                    yield yielded
 
     @decorators.memoized_instancemethod
     def get_port_output_connections(self, model):
@@ -214,4 +204,4 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
 
     def expand_node_ports(self, node, inputs=True, outputs=True):
         # type: (NodeGraphNodeModel, bool, bool) -> None
-        self._model.expand_node_ports(node, inputs=True, outputs=True)
+        self._model.expand_node_connections(node, inputs=True, outputs=True)

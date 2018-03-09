@@ -57,6 +57,10 @@ class NodeGraphPortModel(object):
         """Return the unique name relative to the node."""
         return self._name
 
+    def get_path(self):
+        """Return the unique path relative to the graph."""
+        return self._node.get_name() + '.' + self._name
+
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
         """

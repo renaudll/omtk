@@ -88,8 +88,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
         # Keep track of which node and port have been expanded.
         # This allow easier update when switching between filters.
+        self._buffer_old_nodes = None
         self._expanded_nodes = set()  # todo: duplicate?
-        self._expanded_nodes_ports = set()
+        self._nodes_with_expanded_connections = set()
 
     @property
     def manager(self):
@@ -118,9 +119,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         if self._view:
             self.reset_view()
 
+        model.onAboutToBeReset.connect(self.on_model_about_to_be_reset)
         model.onReset.connect(self.on_model_reset)
         model.onNodeAdded.connect(self.on_model_node_added)
-        model.onNodeRemoved.connect(self.on_model_node_added)
+        model.onNodeRemoved.connect(self.on_model_node_removed)
         model.onPortAdded.connect(self.on_model_port_added)
         # model.onPortAdded.connect(self.on_model_reset)
         model.onPortRemoved.connect(self.on_model_port_removed)
@@ -198,34 +200,35 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Model events ---
 
+    def on_model_about_to_be_reset(self):
+        self._buffer_old_nodes = copy.copy(self._model.get_nodes())
+
     @decorators.log_info
     def on_model_reset(self, expand=True):
-        # Hold nodes
-        old_nodes = copy.copy(self._model.get_nodes())
-
-        # Hold nodes status
-        expanded_nodes = set(self._expanded_nodes)
-        expanded_nodes_ports = set(self._expanded_nodes_ports)
-
         for node in list(self.get_nodes()):  # hack: prevent change during iteration
             self.remove_node(node, emit_signal=False)
 
+        # If the new filter don't like previous nodes, don't add them.
+        # todo: is there a more stable way of retreiving this?
+        nodes_to_add = [node for node in self._buffer_old_nodes if not self._filter or self._filter.can_show_node(node)]
+
         # Fetch nodes
-        for node in old_nodes:
+        for node in nodes_to_add:
             self._model.add_node(node, emit_signal=False)
 
         # Fetch nodes status
         if expand:
-            for node in old_nodes:
-                if node in expanded_nodes:
+            for node in nodes_to_add:
+                if node in self._expanded_nodes:
                     self.expand_node(node)
 
-                if node in expanded_nodes_ports:
-                    self.expand_node_ports(node)
+                if node in self._nodes_with_expanded_connections:
+                    self.expand_node_connections(node)
 
         if self._view:
             self.reset_view()
 
+    @decorators.log_info
     def on_model_node_added(self, node):
         # type: (NodeGraphNodeModel) -> None
         if self._view:  # todo: move in add_node_model_to_view?
@@ -234,12 +237,13 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     @decorators.log_info
     def on_model_node_removed(self, node):
         # type: (NodeGraphNodeModel) -> None
-        raise NotImplementedError
+        if self._view and self.is_node_model_in_view(node):
+            self.remove_node_model_from_view(node)
 
     @decorators.log_info
     def on_model_node_moved(self, node, pos):
         # type: (NodeGraphNodeModel, QtCore.QPointF) -> None
-        widget = self.get_node_widget()
+        widget = self.get_node_widget(node)
         widget.setPos(pos)
 
     def on_model_port_added(self, port):
@@ -255,7 +259,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     @decorators.log_info
     def on_model_connection_added(self, connection):
         # type: (NodeGraphConnectionModel) -> None
-        self.get_connection_widget(connection)
+        if self._view:
+            self.get_connection_widget(connection)
 
     @decorators.log_info
     def on_model_connection_removed(self, connection):
@@ -283,87 +288,87 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Cache clearing method ---
 
-    def invalidate_node_value(self, key):
-        """Invalidate any cache referencing provided value."""
-        # todo: deprecate in favor of invalidate_node_model?
-        self._model.invalidate_node(key)
-        try:
-            self._cache_nodes.pop(key)
-        except LookupError:
-            pass
-
-        # For components, ensure that we also invalidate all their bounds.
-        # if isinstance(key, classComponent.Component):
-        #     self.invalidate_node(key.grp_inn)
-        #     self.invalidate_node(key.grp_out)
-
-    def invalidate_node_model(self, model):
-        # type: (NodeGraphNodeModel) -> None
-        """
-        Since the goal of a NodeGraphNodeModel is to take control of what the NodeGraph display even if it is
-        not related to the REAL networks in the Maya file, it can happen that we want to remove any cached value
-        related to that model when the context change.
-
-        For example, when going inside a Component, the NodeGraph will suddenly start to display the component
-        grp_inn and grp_out. When going outside a Component, theses node won't be shown.
-        :param model: A NodeGraphNodeModel instance to invalidate.
-        """
-        value = model.get_metadata()
-
-        # Note that we never invalidate the stored model related to the component.
-        # This is because we will always return this model when asked directly about it.
-        # Also the NodeGraphRootModel store reference it's children so we want to prevent
-        # as much as we can a new NodeGraphComponentModel instance from being created.
-        if isinstance(value, component.Component):
-            self.invalidate_node_value(value.grp_inn)
-            self.invalidate_node_value(value.grp_out)
-        else:
-            self.invalidate_node_value(value)
-
-    def invalidate_value(self, value):
-        # type: (NodeGraphPortModel) -> None
-        model = self.get_port_model_from_value(value)
-        widget = self._cache_node_widget_by_model.pop(model)
-        self._cache_port_model_by_widget.pop(model)
-        self._cache_port_widget_by_model.pop(widget)
-
-    def invalidate_port_model(self, model):
-        # type: (NodeGraphPortModel) -> None
-
-        # Invalidate any connection related to the attribute
-        for connection_model in self.iter_port_connections(model):
-            self.invalidate_connection_model(connection_model)
-
-        # Invalidate widget related with the model
-        # Note: PyFlowGraph does not allow us remove a port, we need to remove the whole node...
-
-        # self.invalidate_node_model(node_model)
-        widget = self._cache_port_widget_by_model.pop(model, None)
-        if widget:
-            self._cache_port_model_by_widget.pop(widget)
-
-            node_model = model.get_parent()
-            node_widget = self.get_node_widget(node_model)
-            node_widget.removePort(widget)
-
-    def invalidate_port_value(self, value):
-        # type: (object) -> None
-        model = self.get_port_model_from_value(value)
-        self.invalidate_port_model(model)
-
-    def invalidate_connection_value(self, value):
-        # type: (object) -> None
-        model = self.get_port_model_from_value(value)
-        self.invalidate_connection_model(model)
-
-    def invalidate_connection_model(self, model):
-        # type: (NodeGraphConnectionModel) -> None
-        # Invalidate widget related with the model
-        pass  # do we have something with the model? there's no cache
-
-        widget = self.get_connection_widget(model)
-        view = self.get_view()
-        view.removeConnection(widget, emitSignal=False)
+    # def invalidate_node_value(self, key):
+    #     """Invalidate any cache referencing provided value."""
+    #     # todo: deprecate in favor of invalidate_node_model?
+    #     self._model.invalidate_node(key)
+    #     try:
+    #         self._cache_nodes.pop(key)
+    #     except LookupError:
+    #         pass
+    #
+    #     # For components, ensure that we also invalidate all their bounds.
+    #     # if isinstance(key, classComponent.Component):
+    #     #     self.invalidate_node(key.grp_inn)
+    #     #     self.invalidate_node(key.grp_out)
+    #
+    # def invalidate_node_model(self, model):
+    #     # type: (NodeGraphNodeModel) -> None
+    #     """
+    #     Since the goal of a NodeGraphNodeModel is to take control of what the NodeGraph display even if it is
+    #     not related to the REAL networks in the Maya file, it can happen that we want to remove any cached value
+    #     related to that model when the context change.
+    #
+    #     For example, when going inside a Component, the NodeGraph will suddenly start to display the component
+    #     grp_inn and grp_out. When going outside a Component, theses node won't be shown.
+    #     :param model: A NodeGraphNodeModel instance to invalidate.
+    #     """
+    #     value = model.get_metadata()
+    #
+    #     # Note that we never invalidate the stored model related to the component.
+    #     # This is because we will always return this model when asked directly about it.
+    #     # Also the NodeGraphRootModel store reference it's children so we want to prevent
+    #     # as much as we can a new NodeGraphComponentModel instance from being created.
+    #     if isinstance(value, component.Component):
+    #         self.invalidate_node_value(value.grp_inn)
+    #         self.invalidate_node_value(value.grp_out)
+    #     else:
+    #         self.invalidate_node_value(value)
+    #
+    # def invalidate_value(self, value):
+    #     # type: (NodeGraphPortModel) -> None
+    #     model = self.get_port_model_from_value(value)
+    #     widget = self._cache_node_widget_by_model.pop(model)
+    #     self._cache_port_model_by_widget.pop(model)
+    #     self._cache_port_widget_by_model.pop(widget)
+    #
+    # def invalidate_port_model(self, model):
+    #     # type: (NodeGraphPortModel) -> None
+    #
+    #     # Invalidate any connection related to the attribute
+    #     for connection_model in self.iter_port_connections(model):
+    #         self.invalidate_connection_model(connection_model)
+    #
+    #     # Invalidate widget related with the model
+    #     # Note: PyFlowGraph does not allow us remove a port, we need to remove the whole node...
+    #
+    #     # self.invalidate_node_model(node_model)
+    #     widget = self._cache_port_widget_by_model.pop(model, None)
+    #     if widget:
+    #         self._cache_port_model_by_widget.pop(widget)
+    #
+    #         node_model = model.get_parent()
+    #         node_widget = self.get_node_widget(node_model)
+    #         node_widget.removePort(widget)
+    #
+    # def invalidate_port_value(self, value):
+    #     # type: (object) -> None
+    #     model = self.get_port_model_from_value(value)
+    #     self.invalidate_port_model(model)
+    #
+    # def invalidate_connection_value(self, value):
+    #     # type: (object) -> None
+    #     model = self.get_port_model_from_value(value)
+    #     self.invalidate_connection_model(model)
+    #
+    # def invalidate_connection_model(self, model):
+    #     # type: (NodeGraphConnectionModel) -> None
+    #     # Invalidate widget related with the model
+    #     pass  # do we have something with the model? there's no cache
+    #
+    #     widget = self.get_connection_widget(model)
+    #     view = self.get_view()
+    #     view.removeConnection(widget, emitSignal=False)
 
     def unregister_node_widget(self, widget):
         """
@@ -406,7 +411,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         model = self.get_model()
         # self._model.expand_node(node)
 
-        for port_model in sorted(model.iter_ports()):
+        for port_model in sorted(model.iter_node_ports(node)):
             model.add_port(port_model, emit_signal=True)
             # if self.get_view():  # wip
             #     self.get_port_widget(port_model)
@@ -414,12 +419,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     def expand_port_input_connections(self, port):
         # type: (NodeGraphPortModel) -> None
         for connection in self._model.iter_port_input_connections(port):
-            self.get_connection_widget(connection)
+            self._model.add_connection(connection)
+            # self.get_connection_widget(connection)
 
     def expand_port_output_connections(self, port):
         # type: (NodeGraphPortModel) -> None
         for connection in self._model.iter_port_output_connections(port):
-            self.get_connection_widget(connection)
+            self._model.add_connection(connection)
+            # self.get_connection_widget(connection)
 
     def iter_ports(self, node_model):
         for port_model in node_model.get_ports():
@@ -484,10 +491,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
                 yield connection_model
 
-    # def expand_node_ports(self, node, outputs=True, inputs=True):
+    # def expand_node_connections(self, node, outputs=True, inputs=True):
     #     # type: (NodeGraphNodeModel) -> None
     #     return  # todo: make it work!
-    #     self._model.expand_node_ports(node, outputs=outputs, inputs=inputs)
+    #     self._model.expand_node_connections(node, outputs=outputs, inputs=inputs)
     #     # if inputs:
     #     #     for port_model in node.get_connected_output_ports():
     #     #         self.expand_port_output_connections(port_model)
@@ -522,18 +529,18 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     #         self.add_connection(connection, emit_signal=True)
     #         # self.get_connection_widget(connection_model)
 
-    def expand_node_ports(self, node, inputs=True, outputs=True):
+    def expand_node_connections(self, node, inputs=True, outputs=True):
         # type: (NodeGraphNodeModel, bool, bool) -> None
         for port in self._model.iter_node_ports(node):
             # if port not in self._ports:
-            self._model.add_port(port, emit_signal=False)
+            #     self._model.add_port(port, emit_signal=False)
             if outputs:
                 self.expand_port_output_connections(port)
             if inputs:
                 self.expand_port_input_connections(port)
 
         # Update cache
-        self._expanded_nodes_ports.add(node)
+        self._nodes_with_expanded_connections.add(node)
 
     # --- Widget factory ---
 
@@ -683,12 +690,12 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         """Check if a QGraphicsItem instance is in the View."""
         return node_widget in self._known_nodes_widgets
 
-    def add_node_model_to_view(self, node_model):
+    def add_node_model_to_view(self, node):
         # type: (NodeGraphNodeModel) -> None
-        self._visible_node_models.add(node_model)
+        self._visible_node_models.add(node)
 
         if self.get_view():
-            node_widget = self.get_node_widget(node_model)
+            node_widget = self.get_node_widget(node)
             # todo: check for name clash?
             self._view.addNode(node_widget)
             self._known_nodes_widgets.add(node_widget)
@@ -696,6 +703,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             # Hack: Enable the eventFilter on the node
             # We can only do this once it's added to the scene
             # todo: use signals for this?
+            node.on_added_to_scene()
             node_widget.on_added_to_scene()
 
             return node_widget
@@ -709,12 +717,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             node_widget = self.get_node_widget(node)
             node_widget.disconnectAllPorts(emitSignal=False)
             self._view.removeNode(node_widget)
+
+            node.on_removed_from_scene()
             node_widget.on_removed_from_scene()
 
     # --- High-level methods ---
 
     def add_node(self, node_model):
-        # type: (NodeGraphNodeModel) -> OmtkNodeGraphNodeWidget
+        # type: (NodeGraphNodeModel) -> None
         """
         Create a Widget in the NodeGraph for the provided NodeModel.
         :param node_model: An NodeGraphNodeModel to display.
@@ -726,26 +736,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         model = self.get_model()
         model.add_node(node_model)
         self.expand_node_attributes(node_model)
-        self.expand_node_ports(node_model)
-        # model.expand_node(node_model)
-        # model.expand_node_ports(node_model)
-
-        # # Ensure the root model is remembering it's session
-        # if isinstance(self._current_level_model, self._cls_root_model):
-        #     self._current_level_model.add_child(node_model)
-        #
-        # node_widget = self.add_node_model_to_view(node_model)
-        # if node_widget:
-        #     qrect = node_widget.rect()
-        #     pos = self.get_view().get_available_position(qrect)
-        #
-        #     # node_widget.setGraphPos(pos)
-        #     node_widget.setPos(pos)
-        #
-        #     self.expand_node_attributes(node_model)
-        #     self.expand_node_ports(node_model)
-        #
-        #     return node_widget
+        self.expand_node_connections(node_model)
 
     def remove_node(self, node_model, clear_cache=False):
         """
@@ -842,7 +833,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self.add_node_model_to_view(child_model)
             # widgets.add(widget)
             self.expand_node_attributes(child_model)
-            self.expand_node_ports(child_model)
+            self.expand_node_connections(child_model)
 
         component = node_model.get_metadata()
         metatype = factory_datatypes.get_datatype(component)
@@ -853,7 +844,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             node_model = self.get_node_model_from_value(grp_inn)
             node_widget = self.add_node_model_to_view(node_model)
             self.expand_node_attributes(node_model)
-            self.expand_node_ports(node_model)
+            self.expand_node_connections(node_model)
             self._widget_bound_inn = node_widget
 
             # Create out node
@@ -861,7 +852,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             node_model = self.get_node_model_from_value(grp_out)
             node_widget = self.add_node(node_model)
             self.expand_node_attributes(node_model)
-            self.expand_node_ports(node_model)
+            self.expand_node_connections(node_model)
             self._widget_bound_out = node_widget
 
             self._widget_bound_inn.setGraphPos(QtCore.QPointF(-5000.0, 0))
@@ -1133,7 +1124,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def expand_selected_nodes(self):
         for node_model in self.get_selected_node_models():
-            self.expand_node_ports(node_model)
+            self.expand_node_connections(node_model)
 
     def colapse_selected_nodes(self):
         for node_model in self.get_selected_node_models():
@@ -1221,40 +1212,40 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Callbacks ---
 
-    def callback_attribute_added(self, value):
-        # return
-        # self.invalidate_port_value(value)
-        port_model = self.get_port_model_from_value(value)
-        node_model = port_model.get_parent()
-        port_widget = self.get_port_widget(port_model)
-        # self.invalidate_node_model(node_model)
-        # self.invalidate_port_model(port_base.py)
-        self.expand_port_input_connections(port_model)  # todo: check first?
-        self.expand_port_output_connections(port_model)
-
-    def callback_attribute_array_added(self, value):
-        # Something Maya will send notification for an attribute at index 99 (ex: multMatrix.matrixIn).
-        # We are not sure how to react at the moment so we'll simply ignore it.
-        if value.index() > value.array().numElements():
-            log.warning('Received a strange out of bound attribute. Ignoring. {0}'.format(value))
-            return
-
-        port_model = self.get_port_model_from_value(value)
-        self.invalidate_port_model(port_model)
-        # node_model = port_base.py.get_parent()
-        # self.expand_node(node_model)
-
-        self.get_port_widget(port_model)
-
-    def callback_node_deleted(self, model, *args, **kwargs):
-        """
-        Called when a known node is deleted in Maya.
-        Notify the view of the change.
-        :param model: The model that is being deleted
-        :param args: Absorb the OpenMaya callback arguments
-        :param kwargs: Absorb the OpenMaya callback keyword arguments
-        """
-        # todo: unregister node
-        log.debug("Removing {0} from nodegraph_tests".format(model))
-        if model:
-            self.remove_node(model, clear_cache=True)
+    # def callback_attribute_added(self, value):
+    #     # return
+    #     # self.invalidate_port_value(value)
+    #     port_model = self.get_port_model_from_value(value)
+    #     node_model = port_model.get_parent()
+    #     port_widget = self.get_port_widget(port_model)
+    #     # self.invalidate_node_model(node_model)
+    #     # self.invalidate_port_model(port_base.py)
+    #     self.expand_port_input_connections(port_model)  # todo: check first?
+    #     self.expand_port_output_connections(port_model)
+    #
+    # def callback_attribute_array_added(self, value):
+    #     # Something Maya will send notification for an attribute at index 99 (ex: multMatrix.matrixIn).
+    #     # We are not sure how to react at the moment so we'll simply ignore it.
+    #     if value.index() > value.array().numElements():
+    #         log.warning('Received a strange out of bound attribute. Ignoring. {0}'.format(value))
+    #         return
+    #
+    #     port_model = self.get_port_model_from_value(value)
+    #     self.invalidate_port_model(port_model)
+    #     # node_model = port_base.py.get_parent()
+    #     # self.expand_node(node_model)
+    #
+    #     self.get_port_widget(port_model)
+    #
+    # def callback_node_deleted(self, model, *args, **kwargs):
+    #     """
+    #     Called when a known node is deleted in Maya.
+    #     Notify the view of the change.
+    #     :param model: The model that is being deleted
+    #     :param args: Absorb the OpenMaya callback arguments
+    #     :param kwargs: Absorb the OpenMaya callback keyword arguments
+    #     """
+    #     # todo: unregister node
+    #     log.debug("Removing {0} from nodegraph_tests".format(model))
+    #     if model:
+    #         self.remove_node(model, clear_cache=True)

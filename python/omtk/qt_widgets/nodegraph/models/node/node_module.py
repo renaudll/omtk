@@ -1,7 +1,7 @@
-from omtk.qt_widgets.nodegraph.models.node import node_base
+from . import node_entity
 
 
-class NodeGraphModuleModel(node_base.NodeGraphEntityModel):
+class NodeGraphModuleModel(node_entity.NodeGraphEntityModel):
     def get_children(self):
         result = set()
         for sub_component in self._entity.iter_sub_components():

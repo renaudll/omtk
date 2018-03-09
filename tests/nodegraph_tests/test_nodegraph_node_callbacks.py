@@ -30,6 +30,10 @@ class NodeGraphFilterTest(omtk_test.TestCase):
         self.ctrl.add_node(self.model_1)
         self.ctrl.add_node(self.model_2)
 
+        # Hack: Force creation of callbacks
+        self.model_1.on_added_to_scene()
+        self.model_2.on_added_to_scene()
+
         # # Validate the graph is empty
         self.assertEqual(2, len(self.model.get_nodes()))
         # self.assertEqual(0, len(self.model.get_ports()))

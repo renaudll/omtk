@@ -1,4 +1,4 @@
-from omtk.qt_widgets.nodegraph.models.node import node_base
+from . import node_base
 
 # Used for type hinting
 if False:

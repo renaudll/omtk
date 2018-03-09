@@ -98,38 +98,51 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         registry = connection._registry
         port_src = connection.get_source()
         port_dst = connection.get_destination()
+
+        node_src = port_src.get_parent()
+        node_dst = port_dst.get_parent()
+
+        # todo: remove this?
         attr_src = port_src.get_metadata()
         attr_dst = port_dst.get_metadata()
-        node_src = attr_src.node()
-        node_dst = attr_dst.node()
+        pynode_src = attr_src.node()
+        pynode_dst = attr_dst.node()
 
         if self.hide_unitconversion_node:
-            # Redirect anything where destination is a unitConversion.input attribute.
-            if isinstance(node_dst, pymel.nodetypes.UnitConversion) and attr_dst.longName() == 'input':
-                model_dst = registry.get_port_model_from_value(node_dst.output)
+            is_src_node_visible = model.is_node_visible(node_src)
+            is_dst_node_visible = model.is_node_visible(node_dst)
+
+            # Redirect anything where destination is a unitConversion.input attribute
+            # EXCEPT if the unitConversion is already shown.
+            if isinstance(pynode_dst, pymel.nodetypes.UnitConversion) and attr_dst.longName() == 'input' and not is_dst_node_visible:
+                model_dst = registry.get_port_model_from_value(pynode_dst.output)
                 for new_connection in model.get_port_output_connections(model_dst):
-                    yield registry.get_connection_model_from_values(self.get_model(), new_connection.get_destination())
+                    yield registry.get_connection_model_from_values(connection.get_source(), new_connection.get_destination())
                 return
 
             # Redirect anything where the source is a unitConversion.output attribute.
-            if isinstance(node_src, pymel.nodetypes.UnitConversion) and attr_src.longName() == 'output':
-                model_src = registry.get_port_model_from_value(node_src.input)
-                for new_connection in model.get_port_input_connections(model_src):
-                    yield registry.get_connection_model_from_values(new_connection.get_source(), port_dst)
-                return
+            # EXCEPT if the unitConversion is already shown.
+            if isinstance(pynode_src, pymel.nodetypes.UnitConversion) and attr_src.longName() == 'output' and not is_src_node_visible:
+                model_src = registry.get_port_model_from_value(pynode_src.input)
+                if not model.is_node_visible(model_src):
+                    for new_connection in model.get_port_input_connections(model_src):
+                        yield registry.get_connection_model_from_values(new_connection.get_source(), port_dst)
+                    return
 
         if self.hide_predictable_decomposematrix_node:
             # Redirect anything where the destination is a predictable decomposeMatrix.inputMatrix attribute.
-            if isinstance(node_dst, pymel.nodetypes.DecomposeMatrix) and attr_dst.longName() == 'inputMatrix':
+            # EXCEPT if the unitConversion is already shown.
+            if isinstance(pynode_dst, pymel.nodetypes.DecomposeMatrix) and attr_dst.longName() == 'inputMatrix' and not is_dst_node_visible:
                 for real_attr_dst in self._get_decomposematrix_inputmatrix_output_connections(attr_dst):
                     new_connection = registry.get_connection_model_from_values(model, real_attr_dst)
                     yield new_connection
                 return
 
             # Redirect anything where the source is a predictable decomposeMatrix.output[Translate/Rotate/Scale] attribute.
-            if isinstance(node_src, pymel.nodetypes.DecomposeMatrix) and attr_src.longName() in (
-                    'outputTranslate', 'outputRotate', 'outputScale'):
-                inputmatrix_model = registry.get_port_model_from_value(node_src.attr('inputMatrix'))
+            # EXCEPT if the unitConversion is already shown.
+            if isinstance(pynode_src, pymel.nodetypes.DecomposeMatrix) and attr_src.longName() in (
+                    'outputTranslate', 'outputRotate', 'outputScale') and not is_src_node_visible:
+                inputmatrix_model = registry.get_port_model_from_value(pynode_src.attr('inputMatrix'))
                 for sub_connection in model.get_port_input_connections(inputmatrix_model):
                     new_connection = self._model.get_connection_model_from_values(sub_connection.get_source(),
                                                                                   port_dst)

@@ -39,6 +39,10 @@ class NodeGraphAbstractModel(QtCore.QObject):
     onConnectionAdded = QtCore.Signal(connection_model.NodeGraphConnectionModel)
     onConnectionRemoved = QtCore.Signal(connection_model.NodeGraphConnectionModel)
 
+    # Emitted before the model internal state has been invalidated.
+    onAboutToBeReset = QtCore.Signal()
+
+    # Emitted after the model internal state has been invalidted.
     onReset = QtCore.Signal()
 
     def __init__(self):
@@ -57,6 +61,7 @@ class NodeGraphAbstractModel(QtCore.QObject):
     def reset(self):
         # type: () -> None
         """"""
+        self.onAboutToBeReset.emit()
         self.onReset.emit()
 
     # --- Node methods ---
@@ -79,6 +84,11 @@ class NodeGraphAbstractModel(QtCore.QObject):
     @abc.abstractmethod
     def remove_node(self, node, emit_signal=False):
         # type: (NodeGraphNodeModel, bool) -> None
+        """"""
+
+    @abc.abstractmethod
+    def is_node_visible(self, node):
+        # type: (NodeGraphNodeModel) -> bool
         """"""
 
     @abc.abstractmethod
@@ -124,6 +134,11 @@ class NodeGraphAbstractModel(QtCore.QObject):
         # type: (NodeGraphPortModel, bool) -> None
         """"""
 
+    @abc.abstractmethod
+    def is_port_visible(self, port):
+        # type: (NodeGraphPortModel) -> bool
+        """"""
+
     # --- Connection methods ---
 
     @abc.abstractmethod
@@ -145,6 +160,11 @@ class NodeGraphAbstractModel(QtCore.QObject):
     @abc.abstractmethod
     def remove_connection(self, connection, emit_signal=False):
         # type: (NodeGraphConnectionModel, bool) -> None
+        """"""
+
+    @abc.abstractmethod
+    def is_connection_visible(self, connection):
+        # type: (NodeGraphConnectionModel) -> bool
         """"""
 
     def iter_port_connections(self, port):

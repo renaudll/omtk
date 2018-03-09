@@ -143,6 +143,8 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D, self.on_shortcut_duplicate)
         self._create_shortcut(QtCore.Qt.ControlModifier + QtCore.Qt.Key_A, self.on_select_all)
         self._create_shortcut(QtCore.Qt.Key_P, self.on_parent_selected)
+        self._create_shortcut(QtCore.Qt.Key_Plus, self.on_add)
+        self._create_shortcut(QtCore.Qt.Key_Minus, self.on_del)
 
         # todo: move elsewhere?
         self._create_shortcut(QtCore.Qt.Key_T, self.ui.widget_toolbar.create_favorite_callback('transform'))

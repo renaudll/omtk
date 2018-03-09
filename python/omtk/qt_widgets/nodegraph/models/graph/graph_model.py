@@ -48,8 +48,15 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._connections_by_port = defaultdict(set)
 
     def reset(self, expand=True):
+        self.onAboutToBeReset.emit()
+
         for node in list(self.get_nodes()):  # hack: prevent change during iteration
             self.remove_node(node, emit_signal=False)
+
+        # todo: remove this, they should get cleaned by themself
+        self._nodes = set()
+        self._ports = set()
+        self._connections = set()
 
         # gc check
         assert not self._nodes
@@ -61,7 +68,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         assert not self._ports_by_connection
         assert not self._connections_by_port
 
-        super(NodeGraphModel, self).reset()
+        self.onReset.emit()
 
     # --- Node methods ---
 
@@ -76,6 +83,9 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         # type: (NodeGraphNodeModel, bool) -> None
         if node in self._nodes:
             return
+
+        node.onDeleted.connect(self.on_node_deleted_from_maya)
+
         self._nodes.add(node)
         self._pos_by_node[node] = QtCore.QPointF(0.0, 0.0)  # todo: handle automatic positioning
         if emit_signal:
@@ -86,18 +96,21 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._nodes.remove(node)
         self._pos_by_node.pop(node)
 
-        if node in self._expanded_nodes:
-            self._expanded_nodes.remove(node)
-        if node in self._expanded_nodes_ports:
-            self._expanded_nodes_ports.remove(node)
+        # if node in self._expanded_nodes:
+        #     self._expanded_nodes.remove(node)
+        # if node in self._nodes_with_expanded_connections:
+        #     self._nodes_with_expanded_connections.remove(node)
 
         # Remove node ports
         for port in list(self._ports_by_nodes[node]):  # hack: prevent change during iteration
-            self.remove_port(port, emit_signal=emit_signal)
+            self.remove_port(port, emit_signal=False)  # we expect the user to know we're removing the port?
         self._ports_by_nodes.pop(node)
 
         if emit_signal:
             self.onNodeRemoved.emit(node)
+
+    def is_node_visible(self, node):
+        return node in self._nodes
 
     def get_node_position(self, node):
         # type: (NodeGraphNodeModel) -> None
@@ -137,21 +150,24 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
     def get_node_ports(self, node):
         return list(self.iter_node_ports(node))
 
-    def add_port(self, port, emit_signal=False):
+    def add_port(self, port, emit_signal=True):
         # type: (NodeGraphPortModel, bool) -> None
+        if port in self._ports:
+            return
+
         self._ports.add(port)
 
-        # Remove port connections
         node = port.get_parent()
         if not node in self._nodes:
             self.add_node(node)
+
         self._ports_by_nodes[node].add(port)
         self._nodes_by_port[port].add(node)
 
         if emit_signal:
             self.onPortAdded.emit(port)
 
-    def remove_port(self, port, emit_signal=False):
+    def remove_port(self, port, emit_signal=True):
         # type: (NodeGraphPortModel, bool) -> None
         self._ports.remove(port)
 
@@ -168,6 +184,9 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         if emit_signal:
             self.onPortRemoved.emit(port)
 
+    def is_port_visible(self, port):
+        return port in self._ports
+
     # --- Connection methods ---
 
     def iter_connections(self):
@@ -176,8 +195,11 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
     def get_connections(self):
         return self._connections
 
-    def add_connection(self, connection, emit_signal=False):
+    def add_connection(self, connection, emit_signal=True):
         # type: (NodeGraphConnectionModel, bool) -> None
+        if connection in self._connections:
+            return
+
         self._connections.add(connection)
 
         # Update cache
@@ -193,9 +215,9 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._ports_by_connection[connection].add(port_dst)
 
         if emit_signal:
-            self.onPortAdded.emit(connection)
+            self.onConnectionAdded.emit(connection)
 
-    def remove_connection(self, connection, emit_signal=False):
+    def remove_connection(self, connection, emit_signal=True):
         # type: (NodeGraphConnectionModel, bool) -> None
         self._connections.remove(connection)
 
@@ -205,15 +227,12 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._ports_by_connection.pop(connection)
 
         if emit_signal:
-            self.onPortRemoved.emit(connection)
+            self.onConnectionRemoved.emit(connection)
 
-    # --- Exploration methods ---
+    def is_connection_visible(self, connection):
+        return connection in self._connections
 
-    # def iter_ports(self):
-    #     for node in self.iter_nodes():
-    #         for port in node.get_ports():
-    #             yield port
-    #
-    # def iter_node_ports(self, node):
-    #     for port in node.get_ports():
-    #         yield port
+    # --- clean under this ---
+
+    def on_node_deleted_from_maya(self, node):
+        self.remove_node(node, emit_signal=True)

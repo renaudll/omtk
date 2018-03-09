@@ -2,13 +2,20 @@ import pymel.core as pymel
 from omtk.qt_widgets.nodegraph import nodegraph_filter
 
 if False:
-    from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphConnectionModel
+    from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphPortModel, NodeGraphConnectionModel
 
 
 class NodeGraphMetadataFilter(nodegraph_filter.NodeGraphFilter):
     """
     Simple filter than let only connection between message attribute pass.
     """
+    def can_show_port(self, port):
+        # type: (NodeGraphPortModel) -> bool
+        port_data = port.get_metadata()
+        if isinstance(port_data, pymel.Attribute) and port_data.type() == 'message':
+            return True
+        return super(NodeGraphMetadataFilter, self).can_show_port(port)
+
     def can_show_connection(self, connection):
         # type: (NodeGraphConnectionModel) -> bool
         port_src = connection.get_source()

@@ -12,8 +12,7 @@ log = logging.getLogger('omtk.nodegraph')
 
 # for type hinting
 if False:
-    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
-    from omtk.qt_widgets.nodegraph.models.port.port_base import NodeGraphPortModel, port as port_model
+    from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphPortModel, NodeGraphConnectionModel
 
 
 class NodeGraphRegistry(object):
@@ -162,12 +161,12 @@ class NodeGraphRegistry(object):
 
             # node_model = self.get_node_from_value(node_value)  # still needed?
             # Let EntityAttribute defined if they are inputs or outputs
-            inst = port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+            inst = port_base.NodeGraphEntityAttributePortModel(self, node_model, val)
         elif isinstance(val, entity_attribute.EntityAttribute):
             node_value = val.parent
             node_model = self.get_node_from_value(node_value)
             # node_model = self.get_node_from_value(val.parent)
-            inst = port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+            inst = port_base.NodeGraphEntityAttributePortModel(self, node_model, val)
         elif isinstance(val, pymel.Attribute):
             node_value = val.node()
             node_model = self.get_node_from_value(node_value)
@@ -176,21 +175,22 @@ class NodeGraphRegistry(object):
             datatype = factory_datatypes.get_datatype(val)
             if datatype == factory_datatypes.AttributeType.Node:
                 node_model = self.get_node_from_value(val)
-                inst = port_model.NodeGraphPymelPortModel(self, node_model, val.message)
+                inst = port_base.NodeGraphPymelPortModel(self, node_model, val.message)
             elif isinstance(val, module.Module):  # todo: use factory_datatypes?
                 node_value = val.rig
                 node_model = self.get_node_from_value(val.rig)
                 val = val.rig.get_attribute_by_name('modules')
-                inst = port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+                inst = port_base.NodeGraphEntityAttributePortModel(self, node_model, val)
             else:
                 node_value = val.node()
                 node_model = self.get_node_from_value(val.node())
-                inst = port_model.NodeGraphPymelPortModel(self, node_model, val)
+                inst = port_base.NodeGraphPymelPortModel(self, node_model, val)
 
         self._register_attribute(inst)
         return inst
 
     def get_connection_model_from_values(self, model_src, model_dst):
+        # type: (NodeGraphPortModel, NodeGraphPortModel) -> NodeGraphConnectionModel
         key = (model_src, model_dst)
         try:
             return self._cache_connections[key]
@@ -200,6 +200,9 @@ class NodeGraphRegistry(object):
             return val
 
     def _get_connection_model_from_values(self, model_src, model_dst):
+        # type: (NodeGraphPortModel, NodeGraphPortModel) -> NodeGraphConnectionModel
+        # assert(isinstance(model_src, port_base.NodeGraphPortModel))
+        # assert(isinstance(model_dst, port_base.NodeGraphPortModel))
         from omtk.qt_widgets.nodegraph.models import connection
 
         if not isinstance(model_src, port_base.NodeGraphPortModel):

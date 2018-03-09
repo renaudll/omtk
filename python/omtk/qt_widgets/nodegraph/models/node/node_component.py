@@ -1,3 +1,4 @@
+from . import node_entity
 import pymel.core as pymel
 
 from omtk import decorators
@@ -14,7 +15,7 @@ if False:
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
 
 
-class NodeGraphComponentModel(node_base.NodeGraphEntityModel):
+class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
     """
     Define the data model for a Node representing a Component.
     A Component is a special OMTK datatypes that consist of an input network, an output network and one or multiple

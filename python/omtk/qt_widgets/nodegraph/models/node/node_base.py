@@ -1,25 +1,27 @@
 import logging
 
 from omtk import decorators
-from omtk.core.component import Component
 from omtk.factories import factory_datatypes
-from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
+from omtk.vendor.Qt import QtCore
 
 # used for type hinting33
 if False:
     from typing import List
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
-    from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.models import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
     from omtk.qt_widgets.nodegraph.pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
 
 log = logging.getLogger('omtk.nodegraph')
 
 
-class NodeGraphNodeModel(object):
+class NodeGraphNodeModel(QtCore.QObject):  # QObject provide signals
     """Define the data model for a Node which can be used by multiple view."""
 
+    onDeleted = QtCore.Signal(QtCore.QObject)
+
     def __init__(self, registry, name):
+        super(NodeGraphNodeModel, self).__init__()  # initialize QObject
         self._name = name
         self._registry = registry
         self._child_nodes = set()
@@ -132,6 +134,8 @@ class NodeGraphNodeModel(object):
     def get_connected_output_ports(self):
         return [attr for attr in self.get_output_ports() if attr.get_output_connections()]
 
+    # --- View related methods
+
     def _get_widget_label(self):
         """
         Return the name that should be displayed in the Widget label.
@@ -142,6 +146,7 @@ class NodeGraphNodeModel(object):
         """
         Return the desired Widget class.
         """
+        from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
         return pyflowgraph_node_widget.OmtkNodeGraphNodeWidget
 
     def get_widget(self, graph, ctrl):
@@ -151,51 +156,16 @@ class NodeGraphNodeModel(object):
         inst = cls(graph, node_name, self, ctrl)
         return inst
 
+    def on_added_to_scene(self):
+        """
+        Called when the node is added to a view (scene).
+        """
+        pass
 
-class NodeGraphEntityModel(NodeGraphNodeModel):
-    """
-    Define the data model for a Node representing a Component.
-    A Component is a special OMTK datatypes that consist of an input network, an output network and one or multiple
-    maya nodes sandwitched in between.
-    """
-
-    def __init__(self, registry, entity):
-        name = entity.get_name()
-        super(NodeGraphEntityModel, self).__init__(registry, name)
-        self._entity = entity
-
-    def get_metadata(self):
-        # type: () -> Component
-        return self._entity
-
-    @decorators.memoized_instancemethod
-    def get_ports_metadata(self):
-        # Used to invalidate cache
-        return self._entity.iter_ports()
-
-    @decorators.memoized_instancemethod
-    def get_ports(self):
-        # type: () -> List[NodeGraphPortModel]
-        result = set()
-
-        for attr_def in self.get_ports_metadata():
-            # todo: use a factory?
-            log.debug('{0}'.format(attr_def))
-            inst = self._registry.get_port_model_from_value(attr_def)
-
-            # inst._node = self  # hack currently compound attribute won't point to the compound object...
+    def on_removed_from_scene(self):
+        """
+        Called when the node is removed from the view (scene).
+        """
+        pass
 
 
-            # inst = NodeGraphEntityPymelAttributePortModel(self._registry, self, attr_def)
-            # self._registry._register_attribute(inst)
-            result.add(inst)
-
-        return result
-
-    def _get_widget_label(self):
-        result = self._name
-        version_major, version_minor, version_patch = self._entity.get_version()
-        if version_major is not None and version_minor is not None and version_patch is not None:  # todo: more eleguant
-            result += 'v{0}.{1}.{2}'.format(version_major, version_minor, version_patch)
-
-        return result

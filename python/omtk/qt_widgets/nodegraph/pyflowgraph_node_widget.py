@@ -121,129 +121,129 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
     def __init__(self, graph, name, model, ctrl):
         super(OmtkNodeGraphDagNodeWidget, self).__init__(graph, name, model, ctrl)
 
-        self._callback_id_by_node_model = defaultdict(set)
+        # self._callback_id_by_node_model = defaultdict(set)
 
-    def delete(self):
-        self.remove_callbacks()
-        super(OmtkNodeGraphDagNodeWidget, self).delete()
-
-    def add_callbacks(self):
-        self.remove_callbacks()
-
-        meta_data = self._meta_data
-
-        # Add attribute added callback
-        callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
-            meta_data.__apimobject__(),
-            self.callback_attribute_added
-        )
-        self._callback_id_by_node_model[meta_data].add(callback_id)
-
-        # Add attribute changed (connected)
-        callback_id = OpenMaya.MNodeMessage.addAttributeChangedCallback(
-            meta_data.__apimobject__(),
-            self.callback_attribute_changed
-        )
-        self._callback_id_by_node_model[meta_data].add(callback_id)
-
-        # Add node deleted callback
-        callback_id = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
-            meta_data.__apimobject__(),
-            functools.partial(self.callback_node_deleted, meta_data)
-        )
-        self._callback_id_by_node_model[meta_data].add(callback_id)
-
-    def remove_callbacks(self):
-        for _, ids in self._callback_id_by_node_model.iteritems():
-            for id_ in ids:
-                OpenMaya.MNodeMessage.removeCallback(
-                    id_
-                )
-
-    def callback_attribute_added(self, callback_id, mplug, _):
-        attr_dagpath = mplug.name()
-        attr_name = attr_dagpath.split('.')[-1]
-
-        # todo: make it cleaner
-        if attr_name in filter_standard._attr_name_blacklist:
-            log.info('Ignoring callback on {0}'.format(attr_dagpath))
-            return
-        attr_mobj = mplug.node()
-        mfn = OpenMaya.MFnDependencyNode(attr_mobj)
-        obj_name = mfn.name()
-        log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
-
-        attr = pymel.Attribute(attr_dagpath)
-        self._ctrl.callback_attribute_added(attr)
-
-    @staticmethod
-    def _analayse_callback_message(msg):
-        if msg & OpenMaya.MNodeMessage.kConnectionMade:
-            yield 'kConnectionMade'
-        if msg & OpenMaya.MNodeMessage.kConnectionBroken:
-            yield 'kConnectionBroken'
-        if msg & OpenMaya.MNodeMessage.kAttributeEval:
-            yield 'kAttributeEval'
-        if msg & OpenMaya.MNodeMessage.kAttributeSet:
-            yield 'kAttributeSet'
-        if msg & OpenMaya.MNodeMessage.kAttributeLocked:
-            yield 'kAttributeLocked'
-        if msg & OpenMaya.MNodeMessage.kAttributeUnlocked:
-            yield 'kAttributeUnlocked'
-        if msg & OpenMaya.MNodeMessage.kAttributeAdded:
-            yield 'kAttributeAdded'
-        if msg & OpenMaya.MNodeMessage.kAttributeRemoved:
-            yield 'kAttributeRemoved'
-        if msg & OpenMaya.MNodeMessage.kAttributeRenamed:
-            yield 'kAttributeRenamed'
-        if msg & OpenMaya.MNodeMessage.kAttributeKeyable:
-            yield 'kAttributeKeyable'
-        if msg & OpenMaya.MNodeMessage.kAttributeUnkeyable:
-            yield 'kAttributeUnkeyable'
-        if msg & OpenMaya.MNodeMessage.kIncomingDirection:
-            yield 'kIncomingDirection'
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
-            yield 'kAttributeArrayAdded'
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayRemoved:
-            yield 'kAttributeArrayRemoved'
-        if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
-            yield 'kOtherPlugSet'
-
+    # def delete(self):
+    #     self.remove_callbacks()
+    #     super(OmtkNodeGraphDagNodeWidget, self).delete()
+    #
+    # def add_callbacks(self):
+    #     self.remove_callbacks()
+    #
+    #     meta_data = self._meta_data
+    #
+    #     # Add attribute added callback
+    #     callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
+    #         meta_data.__apimobject__(),
+    #         self.callback_attribute_added
+    #     )
+    #     self._callback_id_by_node_model[meta_data].add(callback_id)
+    #
+    #     # Add attribute changed (connected)
+    #     callback_id = OpenMaya.MNodeMessage.addAttributeChangedCallback(
+    #         meta_data.__apimobject__(),
+    #         self.callback_attribute_changed
+    #     )
+    #     self._callback_id_by_node_model[meta_data].add(callback_id)
+    #
+    #     # Add node deleted callback
+    #     callback_id = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
+    #         meta_data.__apimobject__(),
+    #         functools.partial(self.callback_node_deleted, meta_data)
+    #     )
+    #     self._callback_id_by_node_model[meta_data].add(callback_id)
+    #
+    # def remove_callbacks(self):
+    #     for _, ids in self._callback_id_by_node_model.iteritems():
+    #         for id_ in ids:
+    #             OpenMaya.MNodeMessage.removeCallback(
+    #                 id_
+    #             )
+    #
+    # def callback_attribute_added(self, callback_id, mplug, _):
+    #     attr_dagpath = mplug.name()
+    #     attr_name = attr_dagpath.split('.')[-1]
+    #
+    #     # todo: make it cleaner
+    #     if attr_name in filter_standard._attr_name_blacklist:
+    #         log.info('Ignoring callback on {0}'.format(attr_dagpath))
+    #         return
+    #     attr_mobj = mplug.node()
+    #     mfn = OpenMaya.MFnDependencyNode(attr_mobj)
+    #     obj_name = mfn.name()
+    #     log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
+    #
+    #     attr = pymel.Attribute(attr_dagpath)
+    #     self._ctrl.callback_attribute_added(attr)
+    #
+    # @staticmethod
+    # def _analayse_callback_message(msg):
+    #     if msg & OpenMaya.MNodeMessage.kConnectionMade:
+    #         yield 'kConnectionMade'
+    #     if msg & OpenMaya.MNodeMessage.kConnectionBroken:
+    #         yield 'kConnectionBroken'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeEval:
+    #         yield 'kAttributeEval'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeSet:
+    #         yield 'kAttributeSet'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeLocked:
+    #         yield 'kAttributeLocked'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeUnlocked:
+    #         yield 'kAttributeUnlocked'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeAdded:
+    #         yield 'kAttributeAdded'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeRemoved:
+    #         yield 'kAttributeRemoved'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeRenamed:
+    #         yield 'kAttributeRenamed'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeKeyable:
+    #         yield 'kAttributeKeyable'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeUnkeyable:
+    #         yield 'kAttributeUnkeyable'
+    #     if msg & OpenMaya.MNodeMessage.kIncomingDirection:
+    #         yield 'kIncomingDirection'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+    #         yield 'kAttributeArrayAdded'
+    #     if msg & OpenMaya.MNodeMessage.kAttributeArrayRemoved:
+    #         yield 'kAttributeArrayRemoved'
+    #     if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
+    #         yield 'kOtherPlugSet'
+    #
+    # # @decorators.log_info
+    # def callback_attribute_changed(self, msg, plug, *args, **kwargs):
+    #     from maya import OpenMaya
+    #     # print(' + '.join(self._analayse_callback_message(msg)))
+    #
+    #     if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+    #         attr_dagpath = plug.name()
+    #         attr = pymel.Attribute(attr_dagpath)
+    #         self._ctrl.callback_attribute_array_added(attr)
+    #
+    #
     # @decorators.log_info
-    def callback_attribute_changed(self, msg, plug, *args, **kwargs):
-        from maya import OpenMaya
-        # print(' + '.join(self._analayse_callback_message(msg)))
-
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
-            attr_dagpath = plug.name()
-            attr = pymel.Attribute(attr_dagpath)
-            self._ctrl.callback_attribute_array_added(attr)
-
-
-    @decorators.log_info
-    def callback_node_deleted(self, pynode, *args, **kwargs):
-        """
-        Called when a known node is deleted in Maya.
-        Notify the view of the change.
-        :param pynode: The pynode that is being deleted
-        :param args: Absorb the OpenMaya callback arguments
-        :param kwargs: Absorb the OpenMaya callback keyword arguments
-        """
-        # todo: unregister node
-        log.debug("Removing {0} from nodegraph_tests".format(pynode))
-        if pynode:
-            self._ctrl.callback_node_deleted(self._model)
-            # widget = self._ctrl.get_node_widget(pynode)
-            # widget.disconnectAllPorts()
-            # self._view.removeNode(widget)
-
-    def on_added_to_scene(self):
-        super(OmtkNodeGraphDagNodeWidget, self).on_added_to_scene()
-        self.add_callbacks()
-
-    def on_removed_from_scene(self):
-        super(OmtkNodeGraphDagNodeWidget, self).on_removed_from_scene()
-        self.remove_callbacks()
+    # def callback_node_deleted(self, pynode, *args, **kwargs):
+    #     """
+    #     Called when a known node is deleted in Maya.
+    #     Notify the view of the change.
+    #     :param pynode: The pynode that is being deleted
+    #     :param args: Absorb the OpenMaya callback arguments
+    #     :param kwargs: Absorb the OpenMaya callback keyword arguments
+    #     """
+    #     # todo: unregister node
+    #     log.debug("Removing {0} from nodegraph_tests".format(pynode))
+    #     if pynode:
+    #         self._ctrl.callback_node_deleted(self._model)
+    #         # widget = self._ctrl.get_node_widget(pynode)
+    #         # widget.disconnectAllPorts()
+    #         # self._view.removeNode(widget)
+    #
+    # def on_added_to_scene(self):
+    #     super(OmtkNodeGraphDagNodeWidget, self).on_added_to_scene()
+    #     self.add_callbacks()
+    #
+    # def on_removed_from_scene(self):
+    #     super(OmtkNodeGraphDagNodeWidget, self).on_removed_from_scene()
+    #     self.remove_callbacks()
 
 
 class OmtkNodeGraphComponentNodeWidget(OmtkNodeGraphNodeWidget):

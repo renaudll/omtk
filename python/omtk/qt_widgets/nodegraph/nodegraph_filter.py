@@ -92,7 +92,7 @@ class NodeGraphFilter(object):
         yield port
 
     # todo: rename with something more understandable
-    def intercept_connection(self, connection):
+    def intercept_connection(self, connection, port):
         # type: (NodeGraphConnectionModel) -> Generator[NodeGraphConnectionModel]
         """Intercept a connection to show something else instead."""
         yield connection

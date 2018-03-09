@@ -23,7 +23,7 @@ class NodeGraphView(PyFlowgraphView):
     dragLeave = QtCore.Signal(object)
     dragDrop = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
-    updateRequested = QtCore.Signal()
+    updateRequested = QtCore.Signal()  # todo: deprecate
 
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
@@ -117,21 +117,8 @@ class NodeGraphView(PyFlowgraphView):
         :param component:
         :return:
         """
-        # todo: move to controller?
-        log.debug("Creating component {0} (id {1})".format(component, id(component)))
-        model = self._controller.get_node_model_from_value(component)
-        widget = self._controller.add_node(model)
-
-        from omtk.core import module
-        if isinstance(component, module.Module):
-            rig = self.manager._root
-            rig.add_module(component)
-
-        self._controller.expand_node_attributes(model)
-        self._controller.expand_node_connections(model)
-        libPyflowgraph.arrange_upstream(widget)
-        libPyflowgraph.arrange_downstream(widget)
-
+        # todo: move to controller
+        self._controller.on_component_created(component)
         self.updateRequested.emit()
 
     def on_customContextMenuRequested(self, pos):

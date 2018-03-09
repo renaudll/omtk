@@ -82,8 +82,8 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
 
     def iter_connections(self):
         for connection in self._model.iter_connections():
-            if self.can_show_connection(connection):
-                yield connection
+            # if self.can_show_connection(connection):
+            yield connection
 
     def add_node(self, node, emit_signal=True):
         self._model.add_node(node, emit_signal=emit_signal)

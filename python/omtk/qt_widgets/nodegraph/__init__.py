@@ -39,6 +39,12 @@ NodeGraphController = nodegraph_controller.NodeGraphController
 from . import nodegraph_filter
 NodeGraphControllerFilter = nodegraph_filter.NodeGraphFilter
 
+from .models import NodeGraphModel
+from .models import NodeGraphNodeModel
+from .models import NodeGraphPortModel
+from .models import NodeGraphConnectionModel
+from .models.graph.graph_proxy_model import NodeGraphGraphProxyModel
+from .models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 
 def reload_():
     from . import pyflowgraph_node_widget

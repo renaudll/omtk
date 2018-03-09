@@ -1,6 +1,7 @@
 import logging
 
 import pymel.core as pymel
+from omtk import decorators
 from omtk.core import entity_attribute, session
 from omtk.core import module
 from omtk.factories import factory_datatypes
@@ -222,3 +223,10 @@ class NodeGraphRegistry(object):
 
     def get_node_parent(self, node):
         return self.manager._cache_components.get_component_from_obj(node)
+
+
+@decorators.memoized
+def _get_singleton_model():
+    from .nodegraph_registry import NodeGraphRegistry
+
+    return NodeGraphRegistry()

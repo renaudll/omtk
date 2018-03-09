@@ -26,9 +26,9 @@ win.show()
 import logging
 
 import pymel.core as pymel
-from omtk import decorators
 from omtk.core import session
 from omtk.libs import libPyflowgraph
+from omtk.qt_widgets.nodegraph.nodegraph_registry import _get_singleton_model
 from omtk.qt_widgets.nodegraph.ui import nodegraph_widget
 from omtk.qt_widgets.nodegraph.models import NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph import graph_proxy_filter_model
@@ -42,17 +42,10 @@ log = logging.getLogger('omtk.nodegraph')
 if False:  # for type hinting
     from .nodegraph_controller import NodeGraphController
 
-@decorators.memoized
-def _get_singleton_model():
-    from .nodegraph_registry import NodeGraphRegistry
-
-    return NodeGraphRegistry()
-
 
 class NodeGraphWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         from .nodegraph_controller import NodeGraphController
-        from omtk.qt_widgets.nodegraph.nodegraph_filter import NodeGraphFilter
 
         # Hack: We are NOT providing any parent
         # Otherwise we won't see the QMainWindow if embeded in another QMainWindow

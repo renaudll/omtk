@@ -4,6 +4,23 @@
     "defaultRenderUtilityList"
   ],
   "interesting_attributes": {
+    "transform": [
+      "translate",
+      "translateX",
+      "translateY",
+      "translateZ",
+      "rotate",
+      "rotateX",
+      "rotateY",
+      "rotateZ",
+      "scale",
+      "scaleX",
+      "scaleY",
+      "scaleZ",
+      "visibility",
+      "matrix",
+      "worldMatrix"
+    ],
     "decomposeMatrix": [
       "inputMatrix",
       "outputQuat",
@@ -18,7 +35,11 @@
       "outputTranslate",
       "outputTranslateX",
       "outputTranslateY",
-      "outputTranslateZ"
+      "outputTranslateZ",
+      "outputScale",
+      "outputScaleX",
+      "outputScaleY",
+      "outputScaleZ"
     ],
     "composeMatrix": [
       "inputQuat",
@@ -29,6 +50,10 @@
       "inputRotateX",
       "inputRotateY",
       "inputRotateZ",
+      "inputScale",
+      "inputScaleX",
+      "inputScaleY",
+      "inputScaleZ",
       "inputRotateOrder",
       "inputTranslate",
       "inputTranslateX",

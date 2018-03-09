@@ -276,13 +276,26 @@ def _get_graph_node_names(g):
 
 def _get_graph_connections_json(g):
     # type: (NodeGraphModel) -> List[Dict]
-    return [{'src': c.get_source().get_path(), 'dst': c.get_destination().get_path()} for c in g.get_connections()]
+    return [(c.get_source().get_path(), c.get_destination().get_path()) for c in g.get_connections()]
 
 
 class NodeGraphTestCase(TestCase):
     def __init__(self, *args, **kwargs):
         super(NodeGraphTestCase, self).__init__(*args, **kwargs)
         self.model = None
+
+    def setUp(self):
+        from omtk.qt_widgets.nodegraph import NodeGraphRegistry, NodeGraphModel, GraphFilterProxyModel, NodeGraphController
+        self.maxDiff = None
+        self.registry = NodeGraphRegistry()
+        source_model = NodeGraphModel()
+        self.model = GraphFilterProxyModel(model=source_model)
+        self.ctrl = NodeGraphController(model=self.model)
+        cmds.file(new=True, force=True)
+
+        # Validate the graph is empty
+        self.assertEqual(0, len(self.model.get_nodes()))
+        self.assertEqual(0, len(self.model.get_ports()))
 
     def assertGraphNodeCountEqual(self, expected):
         actual = len(self.model.get_nodes())
@@ -302,6 +315,11 @@ class NodeGraphTestCase(TestCase):
 
     def assetGraphConnectionsEqual(self, expected):
         actual = _get_graph_connections_json(self.model)
-        actual = set(frozenset(c.items()) for c in actual)
-        expected = set(frozenset(c.items()) for c in expected)
-        self.assertEqual(actual, expected)
+        actual = set(actual)
+        expected = set(expected)
+        self.assertEqual(expected, actual)
+
+    # todo: move this to omtk_test.NodeGraphTestCase
+    def _graph_to_json(self, g):
+        # type: (NodeGraphModel) -> dict
+        return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}

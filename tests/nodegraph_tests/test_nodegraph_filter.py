@@ -1,12 +1,10 @@
+import unittest
 import omtk_test
 import pymel.core as pymel
 from maya import cmds
-from omtk.core import session
-from omtk.core.component import Component
 from omtk.qt_widgets.nodegraph import NodeGraphController, NodeGraphRegistry
 from omtk.qt_widgets.nodegraph.filters.filter_metadata import NodeGraphMetadataFilter
 from omtk.qt_widgets.nodegraph.filters.filter_standard import NodeGraphStandardFilter
-from omtk.qt_widgets.nodegraph.filters.filter_subgraph import NodeGraphSubgraphFilter
 from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 
@@ -20,13 +18,11 @@ def _node_to_json(g, n):
     }
 
 
-# todo: move this to omtk_test.NodeGraphTestCase
-def _graph_to_json(g):
-    # type: (NodeGraphModel) -> dict
-    return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}
+
 
 
 class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
+
     def setUp(self):
         self.maxDiff = None
         self.registry = NodeGraphRegistry()
@@ -62,16 +58,16 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
 
         # Validate we see the new node with les attributes
         # self.assertEqual(13, len(self.model.get_ports()))
-        snapshot = _graph_to_json(self.model)
+        snapshot = self._graph_to_json(self.model)
         self.assertDictEqual(
             {
                 u'a': {
                     'ports': [
                         'hierarchy',
                         u'matrix',
-                        u'rotateX', u'rotateY', u'rotateZ',
-                        u'scaleX', u'scaleY', u'scaleZ',
-                        u'translateX', u'translateY', u'translateZ',
+                        u'rotate', u'rotateX', u'rotateY', u'rotateZ',
+                        u'scale', u'scaleX', u'scaleY', u'scaleZ',
+                        u'translate', u'translateX', u'translateY', u'translateZ',
                         u'visibility',
                         u'worldMatrix'
                     ]
@@ -131,7 +127,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
 
     def test_unitconversion_filtering(self):
         """
-        When using the NodeGraphStandardFilter, unitConversion nodes are node shown.
+        Ensure NodeGraphStandardFilter hide unitConversion nodes unless explicitly ask to.
         """
         n1 = pymel.createNode('transform', name='a')
         n2 = pymel.createNode('transform', name='b')
@@ -147,7 +143,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m2)
 
         self.assertGraphNodeNamesEqual([u'a', u'b'])
-        self.assetGraphConnectionsEqual([{'src': u'a.translateX', 'dst': u'b.rotateX'}])
+        self.assetGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])
 
         # However, if you add the unitConversion node explicitly, we want to see it!
         n3 = n1.translateX.outputs()[0]
@@ -156,49 +152,8 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
 
         self.assertGraphNodeNamesEqual([u'a', u'b', u'unitConversion1'])
         self.assetGraphConnectionsEqual([
-            {'src': u'a.translateX', 'dst': u'b.rotateX'},
-            {'src': u'a.translateX', 'dst': u'unitConversion1.input'},
-            {'src': u'unitConversion1.output', 'dst': u'b.rotateX'},
+            (u'a.translateX', u'b.rotateX'),
+            (u'a.translateX', u'unitConversion1.input'),
+            (u'unitConversion1.output', u'b.rotateX'),
         ])
 
-    def test_filter_subgraph(self):
-        s = session.get_session()
-
-        n1 = pymel.createNode('transform', name='a')
-        n2 = pymel.createNode('transform', name='b')
-        n3 = pymel.createNode('transform', name='c')
-        pymel.connectAttr(n1.t, n2.t)
-        pymel.connectAttr(n2.t, n3.t)
-        component = Component.create({'inn': n2.tx}, {'out': n2.tx})
-        s.export_network(component)  # hack: we need to export the component for it to be visible...
-        s.clear_cache_components()  # hack: atm we need to clear the cache manually...
-
-        m1 = self.registry.get_node_from_value(n1)
-        m2 = self.registry.get_node_from_value(n2)
-        m3 = self.registry.get_node_from_value(n3)
-        cm = self.registry.get_node_from_value(component)
-        self.model.add_node(m1)
-        self.model.add_node(m2)
-        self.model.add_node(m3)
-
-        filter = NodeGraphSubgraphFilter()
-
-        # Initialzie the filter
-        self.ctrl.set_filter(filter)
-        self.assertGraphNodeNamesEqual([u'a', u'c', u'component00'])
-
-        # Enter subgraph
-        filter.set_level(cm)
-        self.assertGraphNodeNamesEqual([u'component00:inn', u'component00:out', u'b'])
-
-        # Exit subgraph, return to root
-        filter.set_level(None)
-        self.assertGraphNodeNamesEqual([u'a', u'c', u'component00'])
-
-        # Enter subgraph again for to be sure
-        filter.set_level(cm)
-        self.assertGraphNodeNamesEqual([u'component00:inn', u'component00:out', u'b'])
-
-# todo: test subgraph filter
-# todo: test decomposeMatrix filter
-# todo: test libSerialization filter?

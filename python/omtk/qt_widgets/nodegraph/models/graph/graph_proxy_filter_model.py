@@ -76,10 +76,10 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
 
     # todo: implement?
     # todo: rename with something more understandable
-    def intercept_connection(self, connection):
+    def intercept_connection(self, connection, port):
         """Intercept a connection to show something else instead."""
         if self._filter:
-            for yielded in self._filter.intercept_connection(connection):
+            for yielded in self._filter.intercept_connection(connection, port):
                 yield yielded
         else:
             yield connection
@@ -101,11 +101,11 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
     #         yield self.intercept_connection(connection_model)
 
     def _iter_node_output_connections(self, node_model):
-        for port_model in node_model.get_connected_output_ports(self):
-            if not self.can_show_port(port_model):
+        for port in node_model.get_connected_output_ports(self):
+            if not self.can_show_port(port):
                 continue
 
-            for connection_model in self.iter_port_output_connections(port_model):
+            for connection_model in self.iter_port_output_connections(port):
                 node_model_dst = connection_model.get_destination().get_parent()
 
                 # Ignore blacklisted nodes
@@ -119,7 +119,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
                 if not self._filter.can_show_connection(connection_model):
                     continue
 
-                yield self.intercept_connection(connection_model)
+                yield self.intercept_connection(connection_model, port)
 
     def _iter_node_input_connections(self, node_model):
         for port_model in node_model.get_connected_input_ports():
@@ -138,7 +138,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
                 if not self._filter.can_show_connection(connection_model):
                     continue
 
-                yield self.intercept_connection(connection_model)
+                yield self.intercept_connection(connection_model, port_model)
 
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
@@ -153,9 +153,9 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
     def iter_port_connections(self, port):
         # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
         for connection in self.iter_port_input_connections(port):
-            yield self.intercept_connection(connection)
+            yield self.intercept_connection(connection, port)
         for connection in self.iter_port_output_connections(port):
-            yield self.intercept_connection(connection)
+            yield self.intercept_connection(connection, port)
 
     def get_port_connections(self, port):
         return list(self.iter_port_connections(port))
@@ -169,7 +169,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         """
         for connection in self._model.iter_port_input_connections(port):
             if not self._filter or self._filter.can_show_connection(connection):
-                for yielded in self.intercept_connection(connection):
+                for yielded in self.intercept_connection(connection, port):
                     yield yielded
 
     @decorators.memoized_instancemethod
@@ -185,7 +185,7 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
         """
         for connection in self._model.iter_port_output_connections(port):
             if not self._filter or self._filter.can_show_connection(connection):
-                for yielded in self.intercept_connection(connection):
+                for yielded in self.intercept_connection(connection, port):
                     yield yielded
 
     @decorators.memoized_instancemethod

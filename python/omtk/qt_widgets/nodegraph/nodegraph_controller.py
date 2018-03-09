@@ -9,6 +9,7 @@ from omtk import constants
 from omtk import decorators
 from omtk.core import component, session
 from omtk.core import entity
+from omtk.libs import libPyflowgraph
 from omtk.factories import factory_datatypes, factory_rc_menu
 from omtk.qt_widgets.nodegraph.models.node import node_dg, node_root
 from omtk.vendor.Qt import QtCore
@@ -68,9 +69,9 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self._known_connections = set()
 
         # Keep track of which nodes, ports and connections are visible.
-        self._visible_node_models = set()
-        self._visible_port_models = set()
-        self._visible_connection_models = set()
+        self._visible_nodes = set()
+        self._visible_ports = set()
+        self._visible_connections = set()
 
         self._known_nodes_widgets = set()
         self._known_connections_widgets = set()
@@ -144,11 +145,11 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self._view = view
 
         # Restore visible nodes/ports/connections
-        for node_model in self._visible_node_models:
+        for node_model in self._visible_nodes:
             self.add_node_model_to_view(node_model)
-        for port_model in self._visible_port_models:
+        for port_model in self._visible_ports:
             self.add_port_model_to_view(port_model)
-        for connection_model in self._visible_connection_models:
+        for connection_model in self._visible_connections:
             self.add_connection_model_to_view(connection_model)
 
         # Connect events
@@ -158,7 +159,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         self.reset_view()
 
     def set_filter(self, filter_):
-        # type: (NodeGraphFilter) -> None
+        # type: (NodeGraphFilter | None) -> None
         self._filter = filter_
         model = self.get_model()
         model.set_filter(filter_)
@@ -197,6 +198,35 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             self._widget_bound_inn.setMinimumWidth(60)
             self._widget_bound_inn.setMinimumHeight(rect.height())
             self._widget_bound_inn.setGraphPos(QtCore.QPointF(rect.topLeft()))
+
+    @decorators.log_info
+    def on_component_created(self, component):
+        """
+        Ensure the component is added to the view on creation.
+        This is not the place for any scene update routine.
+        :param component:
+        :return:
+        """
+        from omtk.qt_widgets.nodegraph import nodegraph_registry
+
+        log.debug("Creating component {0} (id {1})".format(component, id(component)))
+        registry = nodegraph_registry._get_singleton_model()
+        node = registry.get_node_from_value(component)
+
+        # todo: move this somewhere appropriate
+        from omtk.core import module
+        if isinstance(component, module.Module):
+            rig = self.manager._root
+            rig.add_module(component)
+
+        self.add_node(node)
+        self.expand_node_attributes(node)
+        self.expand_node_connections(node)
+
+        if self._view and self.is_node_in_view(node):
+            widget = self.get_node_widget(node)
+            libPyflowgraph.arrange_upstream(widget)
+            libPyflowgraph.arrange_downstream(widget)
 
     # --- Model events ---
 
@@ -237,8 +267,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     @decorators.log_info
     def on_model_node_removed(self, node):
         # type: (NodeGraphNodeModel) -> None
-        if self._view and self.is_node_model_in_view(node):
-            self.remove_node_model_from_view(node)
+        if self._view and self.is_node_in_view(node):
+            self.remove_node_from_view(node)
 
     @decorators.log_info
     def on_model_node_moved(self, node, pos):
@@ -389,8 +419,8 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         :return:
         """
         # Remove associated widget if necessary
-        if self.is_node_model_in_view(model):
-            self.remove_node_model_from_view(model)
+        if self.is_node_in_view(model):
+            self.remove_node_from_view(model)
 
         widget = self._cache_node_widget_by_model.get(model, None)
         if widget:
@@ -512,13 +542,6 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # self._view.addNode(node_widget)
         raise NotImplementedError
 
-    def expand_port(self, port, inputs=True, outputs=True):
-        # type: (NodeGraphPortModel, bool, bool) -> None
-        if inputs:
-            self.expand_port_input_connections(port)
-        if outputs:
-            self.expand_port_output_connections(port)
-
     # def expand_port_input_connections(self, port):
     #     for connection in self.get_port_input_connections(port):
     #         self.add_connection(connection, emit_signal=True)
@@ -529,15 +552,20 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
     #         self.add_connection(connection, emit_signal=True)
     #         # self.get_connection_widget(connection_model)
 
+    def iter_node_connections(self, node, inputs=True, outputs=True):
+        # type: (NodeGraphNodeModel, bool, bool) -> Generator[NodeGraphConnectionModel]
+        for port in self._model.iter_node_ports(node):
+            if outputs:
+                for connection in self._model.iter_port_output_connections(port):
+                    yield connection
+            if inputs:
+                for connection in self._model.iter_port_input_connections(port):
+                    yield connection
+
     def expand_node_connections(self, node, inputs=True, outputs=True):
         # type: (NodeGraphNodeModel, bool, bool) -> None
-        for port in self._model.iter_node_ports(node):
-            # if port not in self._ports:
-            #     self._model.add_port(port, emit_signal=False)
-            if outputs:
-                self.expand_port_output_connections(port)
-            if inputs:
-                self.expand_port_input_connections(port)
+        for connection in self.iter_node_connections(node, inputs=inputs, outputs=outputs):
+            self._model.add_connection(connection)
 
         # Update cache
         self._nodes_with_expanded_connections.add(node)
@@ -628,12 +656,12 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         # model_src_node = self.get_node_model_from_value(port_src_model.get_parent().get_metadata())
         # model_dst_node = self.get_node_model_from_value(port_dst_model.get_parent().get_metadata())
 
-        if not self.is_node_model_in_view(model_src_node):
+        if not self.is_node_in_view(model_src_node):
             widget_src_node = self.add_node_model_to_view(model_src_node)
         else:
             widget_src_node = self.get_node_widget(model_src_node)
 
-        if not self.is_node_model_in_view(model_dst_node):
+        if not self.is_node_in_view(model_dst_node):
             widget_dst_node = self.add_node_model_to_view(model_dst_node)
         else:
             widget_dst_node = self.get_node_widget(model_dst_node)
@@ -681,9 +709,15 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     # --- Widget/View methods ---
 
-    def is_node_model_in_view(self, node):
+    def is_node_in_view(self, node):
         # type: (NodeGraphNodeModel) -> bool
-        return node in self._visible_node_models
+        return node in self._visible_nodes
+
+    def is_port_in_view(self, port):
+        return port in self._visible_ports
+
+    def is_connection_in_view(self, connection):
+        return connection in self._visible_connections
 
     # todo: deprecate
     def _is_node_widget_in_view(self, node_widget):
@@ -692,7 +726,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
     def add_node_model_to_view(self, node):
         # type: (NodeGraphNodeModel) -> None
-        self._visible_node_models.add(node)
+        self._visible_nodes.add(node)
 
         if self.get_view():
             node_widget = self.get_node_widget(node)
@@ -708,10 +742,10 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
             return node_widget
 
-    def remove_node_model_from_view(self, node):
-        if not self.is_node_model_in_view(node):
+    def remove_node_from_view(self, node):
+        if not self.is_node_in_view(node):
             return
-        self._visible_node_models.remove(node)
+        self._visible_nodes.remove(node)
 
         if self.get_view():
             node_widget = self.get_node_widget(node)
@@ -721,22 +755,32 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
             node.on_removed_from_scene()
             node_widget.on_removed_from_scene()
 
+    def remove_port_from_view(self, port):
+        if not self.is_port_in_view(port):
+            return
+
+    def remove_connectioni_from_view(self, connection):
+        if not self.is_connection_in_view(connection):
+            return
+        self._visible_connections.remove(connection)
+
+        if self.get_view():
+            self._view.removeConnection(connection, emitSignal=False)
+
     # --- High-level methods ---
 
-    def add_node(self, node_model):
+    def add_node(self, node):
         # type: (NodeGraphNodeModel) -> None
         """
         Create a Widget in the NodeGraph for the provided NodeModel.
-        :param node_model: An NodeGraphNodeModel to display.
+        :param node: An NodeGraphNodeModel to display.
         """
-        # if not isinstance(node_model, node_base.NodeGraphNodeModel):
-        #     node_model = self.get_node_model_from_value(node_model)
-        # self._register_node_model(node_model)
-
-        model = self.get_model()
-        model.add_node(node_model)
-        self.expand_node_attributes(node_model)
-        self.expand_node_connections(node_model)
+        # if not isinstance(node, node_base.NodeGraphNodeModel):
+        #     node = self.get_node_from_value(node)
+        # self._register_node(node)
+        self._model.add_node(node)
+        self.expand_node_attributes(node)
+        self.expand_node_connections(node)
 
     def remove_node(self, node_model, clear_cache=False):
         """
@@ -780,14 +824,17 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
         return [model.get_metadata() for model in self.get_selected_node_models()]
 
     def clear(self):
+        # self._model.reset()
+
         # We won't call clear since we will keep a reference to the Widgets in case
         # we need to re-use them. Calling clear would make our cache point to invalid
         # data and cause a Qt crash.
         # self._view.clear()
-        for connection in list(self._view.iter_connections()):
-            self._view.removeConnection(connection, emitSignal=False)
-        for node_widget in list(self._view.iter_nodes()):
-            self._view.removeNode(node_widget, emitSignal=False)
+
+        for widget in list(self._view.iter_connections()):
+            self._view.removeConnection(widget, emitSignal=False)
+        for widget in list(self._view.iter_nodes()):
+            self._view.removeNode(widget, emitSignal=False)
 
         # Clear Node Model/Widget cache
         self._cache_node_widget_by_model.clear()
@@ -973,7 +1020,7 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
                 if attr_type == 'message':
                     continue
 
-                for connection_model in port_dst.get_input_connections(self):
+                for connection_model in port_dst.get_input_connections():
                     src_port_model = connection_model.get_source()
                     src_node_model = src_port_model.get_parent()
                     if src_node_model in selected_nodes_model:
@@ -981,14 +1028,14 @@ class NodeGraphController(QtCore.QObject):  # note: QtCore.QObject is necessary 
 
                     inn_attrs.add(port_dst.get_metadata())
 
-            for port_src in node_model.get_connected_output_ports(self):
+            for port_src in node_model.get_connected_output_ports():
                 # Ignore message attributes
                 attr = port_src.get_metadata()
                 attr_type = attr.type()
                 if attr_type == 'message':
                     continue
 
-                for connection_model in port_src.get_output_connections(self):
+                for connection_model in port_src.get_output_connections():
                     dst_port_model = connection_model.get_destination()
                     dst_node_model = dst_port_model.get_parent()
                     if dst_node_model in selected_nodes_model:

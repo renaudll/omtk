@@ -37,6 +37,17 @@ class ComponentCache(object):
         self._cache_nodes_by_parent = defaultdict(set)
         self._component_network_by_hub_inn, self._component_network_by_hub_out = libComponents.get_component_network_bounds()
 
+    def add_component_to_cache(self, component):
+        if component.grp_inn:
+            self._component_network_by_hub_inn[component.grp_inn] = component
+
+        if component.grp_out:
+            self._component_network_by_hub_out[component.grp_out] = component
+
+        for child in component.get_children():
+            self._cache_parent_by_node[child] = component
+            self._cache_nodes_by_parent[component].add(child)
+
     def get_component_from_obj(self, obj):
         try:
             return self._cache_parent_by_node[obj]
@@ -53,6 +64,15 @@ class ComponentCache(object):
         :param cache: Initialized internally.
         :return: A pymel.nodetypes.Network that can be deserialized.
         """
+
+        component = self._component_network_by_hub_inn.get(obj)
+        if component:
+            return component
+
+        component = self._component_network_by_hub_out.get(obj)
+        if component:
+            return component
+
         def _fn_goal_inn(n):
             return n in self._component_network_by_hub_inn and n is not obj
 
@@ -270,6 +290,9 @@ class AutoRigManager(QtCore.QObject):
     def get_component_from_obj(self, obj):
         # type: (pymel.PyNode) -> Component
         return self._cache_components.get_component_from_obj(obj)
+
+    def _register_new_component(self, component):
+        self._cache_components.add_component_to_cache(component)
 
 
 @decorators.memoized

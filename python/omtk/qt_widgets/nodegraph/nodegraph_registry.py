@@ -6,8 +6,8 @@ from omtk.core import entity_attribute, session
 from omtk.core import module
 from omtk.factories import factory_datatypes
 
-from omtk.qt_widgets.nodegraph.models.node import node_rig, node_dag, node_dg, node_component
-from omtk.qt_widgets.nodegraph.models.port import port_base
+from .models.node import node_rig, node_dag, node_dg, node_component
+from .models.port import port_base
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -157,7 +157,7 @@ class NodeGraphRegistry(object):
         # log.debug('Creating port model from {0}'.format(val))
         # todo: add support for pure EntityAttribute
         if isinstance(val, entity_attribute.EntityPymelAttribute):
-            node_value = val._attr.node()
+            node_value = val.parent
             node_model = self.get_node_from_value(node_value)
 
             # node_model = self.get_node_from_value(node_value)  # still needed?

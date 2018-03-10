@@ -22,10 +22,9 @@ class NodeGraphEntityModel(node_base.NodeGraphNodeModel):
         # type: () -> Component
         return self._entity
 
-    @decorators.memoized_instancemethod
     def get_ports_metadata(self):
         # Used to invalidate cache
-        return self._entity.iter_ports()
+        return list(self._entity.iter_attributes())
 
     @decorators.memoized_instancemethod
     def get_ports(self):

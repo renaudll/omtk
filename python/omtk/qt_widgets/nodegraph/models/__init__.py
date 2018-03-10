@@ -5,7 +5,7 @@ __all__ = (
 
 import port
 from .node import node_base
-from . import connection
+import connection
 from .graph import graph_model
 
 
@@ -24,18 +24,19 @@ NodeGraphModel = graph_model.NodeGraphModel
 
 
 def reload_():
-    # Node models
-    from . import node
-    reload(node)
-    node.reload_()
-    global NodeGraphNodeModel
-    NodeGraphNodeModel = node
-
     # Port model
     reload(port)
     port.reload_()
     global NodeGraphPortModel
     NodeGraphPortModel = port.NodeGraphPortModel
+
+    # Node models
+    from . import node
+    reload(node)
+    node.reload_()
+
+    global NodeGraphNodeModel
+    NodeGraphNodeModel = node_base.NodeGraphNodeModel
 
     # Connection model
     reload(connection)

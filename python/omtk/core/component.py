@@ -147,7 +147,7 @@ class Component(Entity):
         for attr in libAttr.iter_network_contributing_attributes(self.grp_inn):
             if attr not in custom_attrs:
                 continue
-            attr_def = get_attribute_definition(attr, is_input=True, is_output=False)
+            attr_def = get_attribute_definition(self, attr, is_input=True, is_output=False)
             if attr_def:
                 yield attr_def
 
@@ -156,7 +156,7 @@ class Component(Entity):
         for attr in libAttr.iter_network_contributing_attributes(self.grp_out):
             if attr not in custom_attrs:
                 continue
-            attr_def = get_attribute_definition(attr, is_input=False, is_output=True)
+            attr_def = get_attribute_definition(self, attr, is_input=False, is_output=True)
             if attr_def:
                 yield attr_def
 

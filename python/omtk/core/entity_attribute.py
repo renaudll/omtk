@@ -122,13 +122,13 @@ class EntityPymelAttributeCollection(EntityPymelAttribute):
             self.set(entries)
 
 
-def get_attribute_definition(attr, is_input=False, is_output=False):
+def get_attribute_definition(parent, attr, is_input=False, is_output=False):
     valid_types = factory_datatypes.get_attr_datatype(attr)
     if valid_types is None:
         log.warning("Cannot create AttributeDef from {0}".format(attr))
         return None
 
     if attr.isMulti():
-        return EntityPymelAttributeCollection(attr.node(), attr, is_input=is_input, is_output=is_output)
+        return EntityPymelAttributeCollection(parent, attr, is_input=is_input, is_output=is_output)
     else:
-        return EntityPymelAttribute(attr.node(), attr, is_input=is_input, is_output=is_output)
+        return EntityPymelAttribute(parent, attr, is_input=is_input, is_output=is_output)

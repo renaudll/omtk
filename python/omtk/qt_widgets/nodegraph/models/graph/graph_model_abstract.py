@@ -203,3 +203,25 @@ class NodeGraphAbstractModel(QtCore.QObject):
     def get_port_output_connections(self, model):
         return list(self.iter_port_output_connections(model))  # cannot memoize a generator
 
+    def iter_node_connections(self, node, inputs=True, outputs=True):
+        # type: (NodeGraphNodeModel, bool, bool) -> Generator[NodeGraphConnectionModel]
+        for port in self.iter_node_ports(node):
+            if outputs:
+                for connection in self.iter_port_output_connections(port):
+                    yield connection
+            if inputs:
+                for connection in self.iter_port_input_connections(port):
+                    yield connection
+
+    # # --- clean me
+    #
+    # def expand_node_ports(self, node):
+    #     # type: (NodeGraphNodeModel) -> None
+    #     """
+    #     Show all available attributes for a PyFlowgraph Node.
+    #     Add it in the pool if it didn't previously exist.
+    #     :return:
+    #     """
+    #     for port_model in sorted(self.iter_node_ports(node)):
+    #         self.add_port(port_model, emit_signal=True)
+

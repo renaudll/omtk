@@ -57,6 +57,11 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
             for yielded in self.intercept_node(node):
                 yield yielded
 
+    def iter_node_ports(self, node):
+        for port in super(GraphFilterProxyModel, self).iter_node_ports(node):
+            for yielded in self.intercept_port(port):
+                yield yielded
+
     def intercept_node(self, node):
         """Intercept a node to show something else instead."""
         if self._filter:

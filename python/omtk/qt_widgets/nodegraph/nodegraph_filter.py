@@ -71,14 +71,14 @@ class NodeGraphFilter(object):
         return port.is_interesting()
 
     def can_show_connection(self, connection):
-        # type: (NodeGraphConnectionModel) -> bool
-        # libSerialization is leaving network everywhere.
-        # Theses network are used as metadata, there's no reason we might want to see them instead for debugging.
-        if not self.hide_libserialization_network:
-            port_dst_model = connection.get_destination()
-            node_dst = port_dst_model.get_parent().get_metadata()
-            if node_dst.hasAttr('_class'):
-                return False
+        # # type: (NodeGraphConnectionModel) -> bool
+        # # libSerialization is leaving network everywhere.
+        # # Theses network are used as metadata, there's no reason we might want to see them instead for debugging.
+        # if not self.hide_libserialization_network:
+        #     port_dst_model = connection.get_destination()
+        #     node_dst = port_dst_model.get_parent().get_metadata()
+        #     if node_dst.hasAttr('_class'):
+        #         return False
         return True
 
     def intercept_node(self, node):

@@ -86,7 +86,8 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
             yield connection
 
     def add_node(self, node, emit_signal=True):
-        self._model.add_node(node, emit_signal=emit_signal)
+        if self.can_show_node(node):
+            self._model.add_node(node, emit_signal=emit_signal)
 
     def remove_node(self, node, emit_signal=True):
         self._model.remove_node(node, emit_signal=emit_signal)
@@ -101,6 +102,7 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
         self._model.set_node_position(node, pos, emit_signal=emit_signal)
 
     def add_port(self, port, emit_signal=True):
+        # todo: check if we can add port?
         self._model.add_port(port, emit_signal=emit_signal)
 
     def remove_port(self, port, emit_signal=True):
@@ -110,6 +112,7 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
         return self._model.is_port_visible()
 
     def add_connection(self, connection, emit_signal=True):
+        # todo: check if we can add connection?
         self._model.add_connection(connection, emit_signal=emit_signal)
 
     def remove_connection(self, connection, emit_signal=True):

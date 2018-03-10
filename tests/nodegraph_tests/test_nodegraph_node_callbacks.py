@@ -3,13 +3,8 @@ import unittest
 import pymel.core as pymel
 from maya import cmds
 import omtk_test
-from omtk.core import session
-from omtk.core.component import Component
 from omtk.qt_widgets.nodegraph import NodeGraphController, NodeGraphRegistry
-from omtk.qt_widgets.nodegraph.filters.filter_metadata import NodeGraphMetadataFilter
-from omtk.qt_widgets.nodegraph.filters.filter_standard import NodeGraphStandardFilter
-from omtk.qt_widgets.nodegraph.filters.filter_subgraph import NodeGraphSubgraphFilter
-from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
+from omtk.qt_widgets.nodegraph.models import NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 
 

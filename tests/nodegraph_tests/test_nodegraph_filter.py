@@ -18,23 +18,7 @@ def _node_to_json(g, n):
     }
 
 
-
-
-
 class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
-
-    def setUp(self):
-        self.maxDiff = None
-        self.registry = NodeGraphRegistry()
-        source_model = NodeGraphModel()
-        self.model = GraphFilterProxyModel(model=source_model)
-        self.ctrl = NodeGraphController(model=self.model)
-        cmds.file(new=True, force=True)
-
-        # Validate the graph is empty
-        self.assertEqual(0, len(self.model.get_nodes()))
-        self.assertEqual(0, len(self.model.get_ports()))
-
     def test_port_filtering(self):
         """
         Ensure that we are able to:
@@ -46,7 +30,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         m1 = self.registry.get_node_from_value(n1)
 
         self.model.add_node(m1)
-        self.ctrl.expand_node_attributes(m1)
+        self.ctrl.expand_node_ports(m1)
 
         # Validate we see the new node
         self.assertEqual(1, len(self.model.get_nodes()))

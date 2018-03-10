@@ -31,8 +31,8 @@ from omtk.libs import libPyflowgraph
 from omtk.qt_widgets.nodegraph.nodegraph_registry import _get_singleton_model
 from omtk.qt_widgets.nodegraph.ui import nodegraph_widget
 from omtk.qt_widgets.nodegraph.models import NodeGraphModel
-from omtk.qt_widgets.nodegraph.models.graph import graph_proxy_filter_model
-from omtk.qt_widgets.nodegraph.filters import filter_standard, filter_subgraph
+from omtk.qt_widgets.nodegraph.models.graph import graph_proxy_filter_model, graph_component_proxy_model
+from omtk.qt_widgets.nodegraph.filters import filter_standard
 from omtk.vendor.Qt import QtWidgets, QtCore, QtGui
 
 from . import nodegraph_view
@@ -66,22 +66,20 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
         self._source_model = NodeGraphModel()
 
-        # Add a proxy-model to allow encapsulation
-        self._proxy_model_subgraph = graph_proxy_filter_model.GraphFilterProxyModel()
-        self._proxy_model_subgraph_filter = filter_subgraph.NodeGraphSubgraphFilter()
-        self._proxy_model_subgraph.set_source_model(self._source_model)
-        self._proxy_model_subgraph.set_filter(self._proxy_model_subgraph_filter)
-
         # Create filter
         self._filter = filter_standard.NodeGraphStandardFilter()
 
         # Add a proxy-model to apply user display preferences
         self._model = graph_proxy_filter_model.GraphFilterProxyModel()
-        self._model.set_source_model(self._proxy_model_subgraph)
+        self._model.set_source_model(self._source_model)
         self._model.set_filter(self._filter)
 
+        # Add a proxy-model to allow encapsulation
+        self._proxy_model_subgraph = graph_component_proxy_model.GraphComponentProxyFilterModel()
+        self._proxy_model_subgraph.set_source_model(self._model)
+
         # Create ctrl
-        self._ctrl = NodeGraphController(self._model)
+        self._ctrl = NodeGraphController(model=self._proxy_model_subgraph)
         self._ctrl.onLevelChanged.connect(self.on_level_changed)
 
         # Keep track of the multiple views provided by the QTabWidget
@@ -122,7 +120,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.create_tab()
 
         # Load root level
-        self._ctrl.set_level(None)
+        # self._proxy_model_subgraph_filter.set_level(None)
 
         # Pre-fill the node editor
         self.on_add()

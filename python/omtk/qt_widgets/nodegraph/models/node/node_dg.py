@@ -71,10 +71,15 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
 
         pymel.delete(self._pynode)
 
-    @decorators.memoized_instancemethod
+    # @decorators.memoized_instancemethod
     def get_parent(self):
         # type: () -> NodeGraphNodeModel
-        return self._registry.get_component_from_obj(self._pynode)
+        # todo: move out of node_dg?
+        from omtk.core import session as session_
+        session = session_.get_session()
+        component = session.get_component_from_obj(self._pynode)
+        if component:
+            return self._registry.get_node_from_value(component)
 
     def get_metadata(self):
         return self._pynode
@@ -171,6 +176,7 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
         for _, ids in self._callback_id_by_node_model.iteritems():
             for id_ in ids:
                 OpenMaya.MNodeMessage.removeCallback(id_)
+        self._callback_id_by_node_model.clear()
 
     def callback_attribute_added(self, callback_id, mplug, _):
         return  # todo: make it work

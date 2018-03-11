@@ -1,12 +1,9 @@
 from . import graph_model_abstract
 
 if False:
+    from typing import Generator
     from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphModel
 
-# from omtk.vendor.Qt import QtCore
-# from omtk.qt_widgets.nodegraph.models.node import node_base as node_model
-# from omtk.qt_widgets.nodegraph.models import port as port_model
-# from omtk.qt_widgets.nodegraph.models import connection as connection_model
 
 class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
     """
@@ -54,40 +51,79 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
         model.onAboutToBeReset.connect(self.onAboutToBeReset.emit)
         model.onReset.connect(self.onReset.emit)
 
-    def can_show_node(self, node):
-        return True
+    # --- Filter methods ---
 
-    def can_show_port(self, port):
-        return True
+    def intercept_node(self, node):
+        yield node
 
-    def can_show_connection(self, connection):
-        return True
+    def intercept_port(self, port):
+        yield port
+
+    def intercept_connection(self, connection):
+        yield
 
     # --- Abstract methods ---
 
     def iter_nodes(self):
         for node in self._model.get_nodes():
-            if self.can_show_node(node):
-                yield node
+            yield node
+            # for yielded in self.intercept_node(node):
+            #     yield yielded
 
     def iter_ports(self):
         for port in self._model.iter_ports():
-            if self.can_show_port(port):
-                yield port
-
-    def iter_node_ports(self, node):
-        for port in self._model.iter_node_ports(node):
-            if self.can_show_port(port):
-                yield port
+            yield port
+            # for yielded in self.intercept_port(port):
+            #     yield yielded
 
     def iter_connections(self):
         for connection in self._model.iter_connections():
-            # if self.can_show_connection(connection):
             yield connection
+            # for yielded in self.intercept_connection(connection):
+            #     yield yielded
+
+    # --- Exploration methods ---
+
+    def iter_node_ports(self, node):
+        for port in self._model.iter_node_ports(node):
+            for yielded in self.intercept_port(port):
+                yield yielded
+
+    # Note: Not needed since iter_port_input_connections() and inter_port_outputs_connections()
+    # are already taken care of.
+
+    # def iter_port_connections(self, port):
+    #     # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
+    #     for connection in self.iter_port_input_connections(port):
+    #         yield self.intercept_connection(connection)
+    #     for connection in self.iter_port_output_connections(port):
+    #         yield self.intercept_connection(connection)
+
+    def iter_port_input_connections(self, port):
+        # type: (NodeGraphPortModel) -> List[NodeGraphConnectionModel]
+        """
+        Control what input connection models are exposed for the provided port model.
+        :param model: The destination port model to use while resolving the connection models.
+        :return: A list of connection models using the provided port model as destination.
+        """
+        for connection in self._model.iter_port_input_connections(port):
+            for yielded in self.intercept_connection(connection):
+                yield yielded
+
+    def iter_port_output_connections(self, port):
+        # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
+        """
+        Control what output connection models are exposed for the provided port model.
+        :param port: The source port model to use while resolving the connection models.
+        :return: A list of connection models using the provided port model as source.
+        """
+        for connection in self._model.iter_port_output_connections(port):
+            for yielded in self.intercept_connection(connection):
+                yield yielded
 
     def add_node(self, node, emit_signal=True):
-        if self.can_show_node(node):
-            self._model.add_node(node, emit_signal=emit_signal)
+        for yielded in self.intercept_node(node):
+            self._model.add_node(yielded, emit_signal=emit_signal)
 
     def remove_node(self, node, emit_signal=True):
         self._model.remove_node(node, emit_signal=emit_signal)
@@ -120,31 +156,3 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
 
     def is_connection_visible(self, connection):
         self._model.is_connection_visible(connection)
-
-    def expand_node(self, node):
-        # type: (NodeGraphNodeModel) -> None
-        self._model.expand_node(node)
-
-    def expand_port_input_connections(self, port_model):
-        self._model.expand_port_input_connections(port_model)
-
-    def expand_port_output_connections(self, port_model):
-        self._model.expand_port_output_connections(port_model)
-
-    # def expand_node_connections(self, node, inputs=True, outputs=True):
-    #     # type: (NodeGraphNodeModel, bool, bool) -> None
-    #     self._model.expand_node_connections(node, outputs=True, inputs=True)
-
-    def expand_node_ports(self, node, inputs=True, outputs=True):
-        # todo: find a cleaner way?
-        # type: (NodeGraphNodeModel, bool, bool) -> None
-        for port in self.get_node_ports(node):
-            if outputs:
-                self.expand_port_output_connections(port)
-            if inputs:
-                self.expand_port_input_connections(port)
-
-        # Update cache
-        self._expanded_nodes_ports.add(node)
-
-

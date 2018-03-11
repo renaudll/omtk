@@ -124,7 +124,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.assertGraphNodeNamesEqual([u'a', u'b', u'decomposeMatrix1'])
         self.assetGraphConnectionsEqual([
             (u'a.matrix', u'decomposeMatrix1.inputMatrix'),
-            # (u'decomposeMatrix1.outputTranslate', u'b.scale'),  # we need to add the decomposeMatrix explicitely to see this
+            (u'decomposeMatrix1.outputTranslate', u'b.scale'),
         ])
 
     def test_predictable_composematrix(self):

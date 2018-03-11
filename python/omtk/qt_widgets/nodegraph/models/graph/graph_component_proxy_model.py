@@ -100,8 +100,9 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
     # todo: move upper?
     def expand_node_connections(self, node, inputs=True, outputs=True):
         # type: (NodeGraphNodeModel, bool, bool) -> None
-        for connection in self.iter_node_connections(node, inputs=inputs, outputs=outputs):
-            self._model.add_connection(connection)
+        for node in self.intercept_node(node):
+            for connection in self.iter_node_connections(node, inputs=inputs, outputs=outputs):
+                self._model.add_connection(connection)
 
     def can_show_node(self, node):
         # type: (NodeGraphNodeModel) -> bool
@@ -142,7 +143,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
             # If we are inside the component, should it's input and output hub.
             # Otherwise show only the component.
             if self._level and c == self._level.get_metadata():
-               pass
+                yield node
             else:
                 yield registry.get_node_from_value(c)
             return
@@ -245,11 +246,6 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         else:
             yield connection
 
-    def iter_nodes(self):
-        for node in super(GraphComponentProxyFilterModel, self).iter_nodes():
-            for yielded in self.intercept_node(node):
-                yield yielded
-
     def iter_node_ports(self, node):
         for port in super(GraphComponentProxyFilterModel, self).iter_node_ports(node):
             for yielded in self.intercept_port(port):
@@ -276,26 +272,26 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
                 for yielded in self.intercept_connection(connection_model, port_model):
                     yield yielded
 
-    def iter_port_input_connections(self, model):
+    def iter_port_input_connections(self, port):
         # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
         """
         Control what output connection models are exposed for the provided port model.
-        :param model: The source port model to use while resolving the connection models.
+        :param port: The source port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as source.
         """
-        for connection in model.get_input_connections():
+        for connection in port.get_input_connections():
             if self.can_show_connection(connection):
                 for yielded in self.intercept_connection(connection):
                     yield yielded
 
-    def iter_port_output_connections(self, model):
+    def iter_port_output_connections(self, port):
         # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
         """
         Control what output connection models are exposed for the provided port model.
-        :param model: The source port model to use while resolving the connection models.
+        :param port: The source port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as source.
         """
-        for connection in model.get_output_connections():
+        for connection in port.get_output_connections():
             if self.can_show_connection(connection):
                 for yielded in self.intercept_connection(connection):
                     yield yielded

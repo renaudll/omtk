@@ -144,14 +144,8 @@ class NodeGraphStandardFilter(NodeGraphFilter):
                 return False
         return True
 
-    def intercept_connection(self, connection, port):
+    def intercept_connection(self, connection):
         # type: (NodeGraphConnectionModel) -> NodeGraphConnectionModel
-        """
-
-        :param connection:
-        :param port: The port where the intercept started from. This port cannot be acted upon since the user already known about it.
-        :return:
-        """
         model = self.get_model()
         registry = connection._registry
         port_src = connection.get_source()
@@ -213,11 +207,11 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         if self.hide_unitconversion_node:
             # Redirect anything where destination is a unitConversion.input attribute
             # EXCEPT if the unitConversion is already shown.
-            if port_src != port and isinstance(pynode_src, pymel.nodetypes.UnitConversion):
+            if not model.is_node_visible(node_src) and isinstance(pynode_src, pymel.nodetypes.UnitConversion):
                 for yielded in _intercept_unitconversion_connection():
                     yield yielded
                 return
-            if port_dst != port and isinstance(pynode_dst, pymel.nodetypes.UnitConversion):
+            if not model.is_node_visible(node_dst) and isinstance(pynode_dst, pymel.nodetypes.UnitConversion):
                 for yielded in _intercept_unitconversion_connection():
                     yield yielded
                 return
@@ -226,22 +220,22 @@ class NodeGraphStandardFilter(NodeGraphFilter):
             # Redirect anything where the destination is a predictable decomposeMatrix.inputMatrix attribute.
             # EXCEPT if the unitConversion is already shown.
 
-            if port_src != port and isinstance(pynode_src, pymel.nodetypes.DecomposeMatrix):
+            if isinstance(pynode_src, pymel.nodetypes.DecomposeMatrix) and not model.is_node_visible(node_src):
                 for yielded in _intercept_decomposematrix_connection():
                     yield yielded
                 return
 
-            if port_dst != port and isinstance(pynode_dst, pymel.nodetypes.DecomposeMatrix):
+            if isinstance(pynode_dst, pymel.nodetypes.DecomposeMatrix) and not model.is_node_visible(node_dst):
                 for yielded in _intercept_decomposematrix_connection():
                     yield yielded
                 return
 
-            if port_src != port and isinstance(pynode_src, pymel.nodetypes.ComposeMatrix) and is_composematrix_connection_predictable(connection):
+            if isinstance(pynode_src, pymel.nodetypes.ComposeMatrix) and not model.is_node_visible(node_src) and is_composematrix_connection_predictable(connection):
                 for yielded in _intercept_composematrix_connection():
                     yield yielded
                 return
 
-            if port_dst != port and isinstance(pynode_dst, pymel.nodetypes.ComposeMatrix) and is_composematrix_connection_predictable(connection):
+            if isinstance(pynode_dst, pymel.nodetypes.ComposeMatrix) and not model.is_node_visible(node_dst) and is_composematrix_connection_predictable(connection):
                 for yielded in _intercept_composematrix_connection():
                     yield yielded
                 return

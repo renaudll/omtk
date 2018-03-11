@@ -47,6 +47,7 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
             if self._can_show_connection(connection):
                 yield connection
 
+
 class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
     """
     Define the data model for a Node representing a Component.

@@ -30,7 +30,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         m1 = self.registry.get_node_from_value(n1)
 
         self.model.add_node(m1)
-        self.ctrl.expand_node_ports(m1)
+        self.model.expand_node_ports(m1)
 
         # Validate we see the new node
         self.assertEqual(1, len(self.model.get_nodes()))
@@ -140,4 +140,6 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
             (u'a.translateX', u'unitConversion1.input'),
             (u'unitConversion1.output', u'b.rotateX'),
         ])
+
+        # todo: test that if we add them back the unitConversion is still not shown
 

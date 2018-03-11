@@ -40,6 +40,7 @@ class NodeGraphFilter(object):
         # type: (NodeGraphNodeModel) -> bool
         # Some DagNode types might be blacklisted.
         from omtk.qt_widgets.nodegraph.models.node import node_dg
+        # todo: move to filter_standard
 
         if isinstance(node, node_dg.NodeGraphDgNodeModel):
             blacklist = preferences.get_preferences().get_nodegraph_blacklisted_nodetypes()
@@ -61,6 +62,7 @@ class NodeGraphFilter(object):
         :return: True if we can display this port.
         """
         # Some attributes (like omtk metadata) are blacklisted by default.
+        # todo: move to filter_standard
         if self._is_port_model_name_blacklisted(port.get_name()):
             return False
 
@@ -71,14 +73,6 @@ class NodeGraphFilter(object):
         return port.is_interesting()
 
     def can_show_connection(self, connection):
-        # # type: (NodeGraphConnectionModel) -> bool
-        # # libSerialization is leaving network everywhere.
-        # # Theses network are used as metadata, there's no reason we might want to see them instead for debugging.
-        # if not self.hide_libserialization_network:
-        #     port_dst_model = connection.get_destination()
-        #     node_dst = port_dst_model.get_parent().get_metadata()
-        #     if node_dst.hasAttr('_class'):
-        #         return False
         return True
 
     def intercept_node(self, node):
@@ -92,7 +86,7 @@ class NodeGraphFilter(object):
         yield port
 
     # todo: rename with something more understandable
-    def intercept_connection(self, connection, port):
+    def intercept_connection(self, connection):
         # type: (NodeGraphConnectionModel) -> Generator[NodeGraphConnectionModel]
         """Intercept a connection to show something else instead."""
         yield connection

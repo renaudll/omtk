@@ -70,23 +70,6 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
             (u'component00.outputX', u'n2.translateX'),
         ])
 
-    # def test_component_loading(self):
-    #     """Ensure the registry is able to load a component and it's children."""
-    #     self.assertEqual(0, len(self._registry._nodes))
-    #
-    #     component = self._create_simple_compound()
-    #     node_model, node_widget = self.controller.add_node(component)
-    #
-    #     self.assertEqual(1, len(self._registry._nodes))
-    #
-    #     inn_attrs = node_model.get_input_ports()
-    #     out_attrs = node_model.get_output_ports()
-    #
-    #     self.assertEqual(1, len(inn_attrs))
-    #     self.assertEqual('translateX', inn_attrs[0].get_name())
-    #     self.assertEqual(1, len(out_attrs))
-    #     self.assertEqual('translateY', inn_attrs[0].get_name())
-
 
 if __name__ == '__main__':
     unittest.main()

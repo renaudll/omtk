@@ -10,7 +10,7 @@ log = logging.getLogger('omtk.nodegraph')
 
 # for type hinting
 if False:
-    from typing import List
+    from typing import List, Generator
     from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphPortModel, NodeGraphConnectionModel
 
 
@@ -19,6 +19,7 @@ class QtCoreAbcMeta(type(QtCore.QObject), abc.ABCMeta):
     Helper class so abc.ABCMeta and QtCore.QObject play nicely together.
     src: https://stackoverflow.com/questions/46837947/how-to-create-an-abstract-base-class-in-python-which-derived-from-qobject
     """
+    # todo: abc.ABCMeta don't seem to work
     pass
 
 
@@ -45,18 +46,6 @@ class NodeGraphAbstractModel(QtCore.QObject):
     # Emitted after the model internal state has been invalidted.
     onReset = QtCore.Signal()
 
-    def __init__(self):
-        super(NodeGraphAbstractModel, self).__init__()  # initialize Qt signals
-
-        # hack: for now any modification will reset the model
-        # todo: optimize this of course
-        # self.onNodeAdded.connect(self.reset)
-        # self.onNodeRemoved.connect(self.reset)
-        # self.onNodeMoved.connect(self.reset)
-        # self.onPortAdded.connect(self.reset)
-        # self.onPortRemoved.connect(self.reset)
-        # self.onConnectionAdded.connect(self.reset)
-
     @abc.abstractmethod
     def reset(self):
         # type: () -> None
@@ -69,17 +58,27 @@ class NodeGraphAbstractModel(QtCore.QObject):
     @abc.abstractmethod
     def iter_nodes(self):
         # type: () -> List[NodeGraphNodeModel]
-        """"""
+        """
+        Yield all the nodes visible in the graph.
+        :return: A generator that yield NodeGraphNodeModel instances.
+        """
 
     def get_nodes(self):
         # type: () -> List[NodeGraphNodeModel]
-        """"""
+        """
+        Return all node visible in the graph.
+        :return: A list of NodeGraphNodeModel instances.
+        """
         return list(self.iter_nodes())
 
     @abc.abstractmethod
     def add_node(self, node, emit_signal=False):
         # type: (NodeGraphNodeModel, bool) -> None
-        """"""
+        """
+        Add a node to the graph.
+        :param node: A NodeGraphNodeModel instance.
+        :param emit_signal: If True, the onNodeAdded QSignal will emit.
+        """
 
     @abc.abstractmethod
     def remove_node(self, node, emit_signal=False):
@@ -112,17 +111,11 @@ class NodeGraphAbstractModel(QtCore.QObject):
 
     def get_ports(self):
         # type: () -> List[NodeGraphPortModel]
+        """
+        Return all node visible in the graph.
+        :return: A list of NodeGraphNodeModel instances.
+        """
         return list(self.iter_ports())
-
-    def iter_node_ports(self, node):
-        # type: (NodeGraphNodeModel) -> Generator[NodeGraphPortModel]
-        """"""
-        return
-        yield
-
-    def get_node_ports(self, node):
-        # type: (NodeGraphNodeModel) -> List[NodeGraphPortModel]
-        return list(self.iter_node_ports(node))
 
     @abc.abstractmethod
     def add_port(self, port, emit_signal=False):
@@ -167,6 +160,22 @@ class NodeGraphAbstractModel(QtCore.QObject):
         # type: (NodeGraphConnectionModel) -> bool
         """"""
 
+    # --- Exploration methods that add nothing to the graph ---
+
+    def iter_node_ports(self, node):
+        # type: (NodeGraphNodeModel) -> Generator[NodeGraphPortModel]
+        """
+        Yield all ports inside a node model. This don't add the port into the graph.
+        :param node: A NodeGraphNodeModel instance.
+        :return: A generator that yield NodeGraphPortModel.
+        """
+        return
+        yield
+
+    def get_node_ports(self, node):
+        # type: (NodeGraphNodeModel) -> List[NodeGraphPortModel]
+        return list(self.iter_node_ports(node))
+
     def iter_port_connections(self, port):
         # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
         for connection in self.iter_port_input_connections(port):
@@ -174,34 +183,34 @@ class NodeGraphAbstractModel(QtCore.QObject):
         for connection in self.iter_port_output_connections(port):
             yield connection
 
-        # for connection in port.get_input_connections(self):
-        #     yield connection
+    def get_port_connections(self, port):
+        return list(self.iter_port_connections(port))
 
-    def iter_port_input_connections(self, model):
+    def iter_port_input_connections(self, port):
         # type: (NodeGraphPortModel) -> list[NodeGraphConnectionModel]
         """
         Control what input connection models are exposed for the provided port model.
-        :param model: The destination port model to use while resolving the connection models.
+        :param port: The destination port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as destination.
         """
-        for connection in model.get_input_connections():
+        for connection in port.get_input_connections():
             yield connection
 
-    def get_port_input_connections(self, model):
-        return list(self.iter_port_input_connections(model))  # cannot memoize a generator
+    def get_port_input_connections(self, port):
+        return list(self.iter_port_input_connections(port))  # cannot memoize a generator
 
-    def iter_port_output_connections(self, model):
+    def iter_port_output_connections(self, port):
         # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
         """
         Control what output connection models are exposed for the provided port model.
-        :param model: The source port model to use while resolving the connection models.
+        :param port: The source port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as source.
         """
-        for connection in model.get_output_connections():
+        for connection in port.get_output_connections():
             yield connection
 
-    def get_port_output_connections(self, model):
-        return list(self.iter_port_output_connections(model))  # cannot memoize a generator
+    def get_port_output_connections(self, port):
+        return list(self.iter_port_output_connections(port))  # cannot memoize a generator
 
     def iter_node_connections(self, node, inputs=True, outputs=True):
         # type: (NodeGraphNodeModel, bool, bool) -> Generator[NodeGraphConnectionModel]
@@ -213,15 +222,33 @@ class NodeGraphAbstractModel(QtCore.QObject):
                 for connection in self.iter_port_input_connections(port):
                     yield connection
 
-    # # --- clean me
-    #
-    # def expand_node_ports(self, node):
-    #     # type: (NodeGraphNodeModel) -> None
-    #     """
-    #     Show all available attributes for a PyFlowgraph Node.
-    #     Add it in the pool if it didn't previously exist.
-    #     :return:
-    #     """
-    #     for port_model in sorted(self.iter_node_ports(node)):
-    #         self.add_port(port_model, emit_signal=True)
+    # --- Utility methods ---
 
+    def expand_node_ports(self, node):
+        # type: (NodeGraphNodeModel) -> None
+        """
+        Show all available attributes for a PyFlowgraph Node.
+        Add it in the pool if it didn't previously exist.
+        :return:
+        """
+        for port in sorted(self.iter_node_ports(node)):
+            self.add_port(port, emit_signal=True)
+
+    def expand_node_connections(self, node, inputs=True, outputs=True):
+        for port in self.iter_node_ports(node):
+            if inputs:
+                for connection in self.iter_port_input_connections(port):
+                    self.add_connection(connection)
+            if outputs:
+                for connection in self.iter_port_output_connections(port):
+                    self.add_connection(connection)
+
+    def expand_port_input_connections(self, port):
+        # type: (NodeGraphPortModel) -> None
+        for connection in self.iter_port_input_connections(port):
+            self.add_connection(connection)
+
+    def expand_port_output_connections(self, port):
+        # type: (NodeGraphPortModel) -> None
+        for connection in self.iter_port_output_connections(port):
+            self.add_connection(connection)

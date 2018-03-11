@@ -18,10 +18,10 @@ def reload_():
     reload(nodegraph)
     nodegraph.reload_()
 
-    log.debug('Reloading widget_component_wizard')
-    from . import widget_component_wizard
-    reload(widget_component_wizard)
-    widget_component_wizard.reload_()
+    log.debug('Reloading form_component_wizard')
+    from . import form_component_wizard
+    reload(form_component_wizard)
+    form_component_wizard.reload_()
 
     log.debug('Reloading widget_logger_ui')
     from omtk.qt_widgets.ui import widget_logger as widget_logger_ui
@@ -46,13 +46,13 @@ def reload_():
     from omtk.qt_widgets.ui import preferences_window as preferences_window_ui
     reload(preferences_window_ui)
 
-    log.debug('Reloading widget_outliner')
-    from omtk.qt_widgets import widget_outliner
-    reload(widget_outliner)
-    widget_outliner.reload_()
+    log.debug('Reloading outliner')
+    from omtk.qt_widgets import outliner
+    reload(outliner)
+    outliner.reload_()
 
     log.debug('Reloading widget_welcome_ui')
-    from omtk.qt_widgets.widget_welcome.ui import widget_welcome as widget_welcome_ui
+    from omtk.qt_widgets.form_welcome.ui import widget_welcome as widget_welcome_ui
     reload(widget_welcome_ui)
 
     log.debug('Reloading form_create_component')
@@ -80,8 +80,8 @@ def reload_():
     from omtk.qt_widgets import model_rig_templates
     reload(model_rig_templates)
 
-    log.debug('Reloading widget_welcome')
-    from omtk.qt_widgets.widget_welcome import WidgetWelcome
+    log.debug('Reloading form_welcome')
+    from omtk.qt_widgets.form_welcome import WidgetWelcome
     reload(WidgetWelcome)
 
     log.debug('Reloading preferences_window')

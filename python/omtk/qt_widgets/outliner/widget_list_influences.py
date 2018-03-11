@@ -6,7 +6,7 @@ import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libQt
-from omtk.qt_widgets.widget_outliner.ui import widget_list_influences
+from omtk.qt_widgets.outliner.ui import widget_list_influences
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 

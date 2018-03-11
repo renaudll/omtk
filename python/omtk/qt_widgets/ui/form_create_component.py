@@ -139,4 +139,4 @@ class Ui_MainWindow(object):
         self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:", None, -1))
         self.pushButton_submit.setText(QtWidgets.QApplication.translate("MainWindow", "Publish", None, -1))
 
-from ..widget_component_wizard import WidgetCreateComponentWizardParts
+from ..form_component_wizard import WidgetCreateComponentWizardParts

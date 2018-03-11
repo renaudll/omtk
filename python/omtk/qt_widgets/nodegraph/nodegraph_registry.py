@@ -159,9 +159,6 @@ class NodeGraphRegistry(object):
         if isinstance(val, entity_attribute.EntityPymelAttribute):
             node_value = val.parent
             node_model = self.get_node_from_value(node_value)
-
-            # node_model = self.get_node_from_value(node_value)  # still needed?
-            # Let EntityAttribute defined if they are inputs or outputs
             inst = port_base.NodeGraphEntityAttributePortModel(self, node_model, val)
         elif isinstance(val, entity_attribute.EntityAttribute):
             node_value = val.parent

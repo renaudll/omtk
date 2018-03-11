@@ -35,7 +35,7 @@ class Ui_OpenRiggingToolkit(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.widget_welcome.sizePolicy().hasHeightForWidth())
         self.widget_welcome.setSizePolicy(sizePolicy)
-        self.widget_welcome.setObjectName("widget_welcome")
+        self.widget_welcome.setObjectName("form_welcome")
         self.verticalLayout_9.addWidget(self.widget_welcome)
         self.stackedWidget.addWidget(self.page_1)
         self.page_2 = QtWidgets.QWidget()
@@ -226,6 +226,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create New", None, -1))
 
-from omtk.qt_widgets.widget_welcome.WidgetWelcome import WidgetWelcome
-from ..widget_outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
+from omtk.qt_widgets.form_welcome.WidgetWelcome import WidgetWelcome
+from ..outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
 from ..nodegraph import NodeGraphWidget

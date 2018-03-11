@@ -1,5 +1,5 @@
 from omtk.core import preferences, session
-from omtk.qt_widgets.widget_welcome.ui import widget_welcome
+from omtk.qt_widgets.form_welcome.ui import widget_welcome
 from omtk.vendor.Qt import QtCore, QtWidgets
 
 from omtk.qt_widgets import model_rig_definitions

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_outliner/ui/widget_list_meshes.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/outliner/ui/widget_list_meshes.ui'
 #
 # Created: Wed Dec 20 20:39:33 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0

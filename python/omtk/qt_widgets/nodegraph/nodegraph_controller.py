@@ -6,9 +6,8 @@ import logging
 
 import pymel.core as pymel
 from omtk import decorators
-from omtk.core import component, session
-from omtk.core import entity
-from omtk.libs import libPyflowgraph
+from omtk.core import component, session, entity
+from omtk.libs import libPyflowgraph, libPython
 from omtk.factories import  factory_rc_menu
 from omtk.qt_widgets.nodegraph.models.node import node_dg, node_root
 from omtk.vendor.Qt import QtCore
@@ -194,7 +193,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             self._widget_bound_inn.setMinimumHeight(rect.height())
             self._widget_bound_inn.setGraphPos(QtCore.QPointF(rect.topLeft()))
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_component_created(self, component):
         """
         Ensure the component is added to the view on creation.
@@ -228,7 +227,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def on_model_about_to_be_reset(self):
         self._buffer_old_nodes.update(copy.copy(self._model.get_nodes()))
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_reset(self, expand=True):
         for node in list(self.get_nodes()):  # hack: prevent change during iteration
             # self.remove_node(node, emit_signal=False)
@@ -254,43 +253,43 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         if self._view:
             self.reset_view()
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_node_added(self, node):
         # type: (NodeGraphNodeModel) -> None
         if self._view:  # todo: move in add_node_to_view?
             self.add_node_to_view(node)
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_node_removed(self, node):
         # type: (NodeGraphNodeModel) -> None
         if self._view and self.is_node_in_view(node):
             self.remove_node_from_view(node)
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_node_moved(self, node, pos):
         # type: (NodeGraphNodeModel, QtCore.QPointF) -> None
         widget = self.get_node_widget(node)
         widget.setPos(pos)
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_port_added(self, port):
         # type: (NodeGraphPortModel) -> None
-        print port
+        # print port
         if self._view:
             self.get_port_widget(port)
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_port_removed(self, port):
         # type: (NodeGraphPortModel) -> None
         raise NotImplementedError
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_connection_added(self, connection):
         # type: (NodeGraphConnectionModel) -> None
         if self._view:
             self.get_connection_widget(connection)
 
-    @decorators.log_info
+    # @decorators.log_info
     def on_model_connection_removed(self, connection):
         # type: (NodeGraphConnectionModel) -> None
         raise NotImplementedError
@@ -537,16 +536,17 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     # --- High-level methods ---
 
+    def add_nodes(self, *nodes, **kwargs):
+        [self.add_node(node, **kwargs) for node in nodes]
+
     def add_node(self, node, expand_ports=True, expand_connections=True):
         # type: (NodeGraphNodeModel) -> None
         """
         Create a Widget in the NodeGraph for the provided NodeModel.
         :param node: An NodeGraphNodeModel to display.
         """
-        # if not isinstance(node, node_base.NodeGraphNodeModel):
-        #     node = self.get_node_from_value(node)
-        # self._register_node(node)
         self._model.add_node(node)
+
         if expand_ports:
             self._model.expand_node_ports(node)
         if expand_connections:
@@ -851,9 +851,9 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         raise NotImplementedError
 
     def on_rc_menu_publish_component(self):
-        component = self.get_selected_node_models()[0].get_metadata()  # todo: secure this
+        inst = self.get_selected_node_models()[0].get_metadata()  # todo: secure this
         from omtk.qt_widgets import form_publish_component
-        form_publish_component.show(component)
+        form_publish_component.show(inst)
 
     def on_rcmenu_publish_module(self):
         from omtk.qt_widgets import form_create_component
@@ -882,3 +882,5 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         for node in new_nodes:
             self.add_node(node)
+
+

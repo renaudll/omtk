@@ -102,7 +102,6 @@ class NodeGraphView(PyFlowgraphView):
         return ['omtk-influences']
 
     def mimeData(self, items):
-        print "NodeGraphWidget::mimeData"
         self._mimedata = QtCore.QMimeData()
         self._mimedata.setData('omtk-influence', 'test')
         return self._mimedata
@@ -127,41 +126,3 @@ class NodeGraphView(PyFlowgraphView):
         self._menu = QtWidgets.QMenu()
         self._controller.on_right_click(self._menu)
         self._menu.popup(QtGui.QCursor.pos())
-
-    # --- Extending PyFlowGraphView ---
-
-    def get_available_position(self, node):
-        """Fake one until the real one work"""
-        try:
-            self._counter += 1
-        except AttributeError:
-            self._counter = 0
-
-        x = self._counter * node.width()
-        y = x
-        return QtCore.QPointF(x * 3, y * 2)
-
-    def real_get_available_position(self, qrect_item):
-        """
-        Return a position where we can position a QRectF without overlapping existing widgets.
-        """
-        qrect_scene = self.sceneRect()
-        item_width = qrect_item.width()
-        item_height = qrect_item.height()
-
-        def _does_intersect(guess):
-            for node in self.iter_nodes():
-                node_qrect = node.transform().mapRect(())
-                print(node_qrect)
-                if node_qrect.intersects(guess):
-                    return True
-
-            return False
-
-        for x in libPython.frange(qrect_scene.left(), qrect_scene.right()*2, item_width):
-            for y in libPython.frange(qrect_scene.top(), qrect_scene.bottom(), item_height):
-                qrect_candidate = QtCore.QRectF(x, y, item_width, item_height)
-                if not _does_intersect(qrect_candidate):
-                    print x, y
-                    return QtCore.QPointF(x, y)
-

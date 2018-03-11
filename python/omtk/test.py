@@ -9,7 +9,7 @@ reload(omtk)
 omtk.reload_()
 
 from omtk.vendor.Qt import QtWidgets
-from omtk.qt_widgets import widget_outliner
+from omtk.qt_widgets import outliner
 
 
 def test_widget(cls):
@@ -29,7 +29,7 @@ def run():
     global w2
     global w3
     global w4
-    w1 = test_widget(widget_outliner.OmtkBaseListWidget)
-    w2 = test_widget(widget_outliner.WidgetListMeshes)
-    w3 = test_widget(widget_outliner.WidgetListModules)
-    w4 = test_widget(widget_outliner.WidgetListComponentDefinition)
+    w1 = test_widget(outliner.OmtkBaseListWidget)
+    w2 = test_widget(outliner.WidgetListMeshes)
+    w3 = test_widget(outliner.WidgetListModules)
+    w4 = test_widget(outliner.WidgetListComponentDefinition)

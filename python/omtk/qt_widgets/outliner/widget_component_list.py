@@ -6,7 +6,7 @@ from omtk.core import session
 from omtk.core import component
 from omtk.core import component_definition
 from omtk.libs import libComponents
-from omtk.qt_widgets.widget_outliner.ui import widget_list_componentdef
+from omtk.qt_widgets.outliner.ui import widget_list_componentdef
 from omtk.vendor.Qt import QtWidgets, QtCore
 
 if False:  # for type hinting

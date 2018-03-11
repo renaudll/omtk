@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_component_wizard/ui/widget_component_wizard_parts.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/form_component_wizard/ui/widget_component_wizard_parts.ui'
 #
 # Created: Wed Dec 20 20:39:32 2017
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0

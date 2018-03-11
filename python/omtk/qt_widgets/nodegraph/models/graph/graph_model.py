@@ -25,14 +25,6 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
     NodeGraphRegistry are consumed
     """
 
-    # onNodeAdded = QtCore.Signal(nodegraph_node_model_base.NodeGraphNodeModel)
-    # onNodeRemoved = QtCore.Signal(nodegraph_node_model_base.NodeGraphNodeModel)
-    # onNodeMoved = QtCore.Signal(nodegraph_node_model_base.NodeGraphNodeModel, QtCore.QPointF)
-    # onPortAdded = QtCore.Signal(nodegraph_port_model.NodeGraphPortModel)
-    # onPortRemoved = QtCore.Signal(nodegraph_port_model.NodeGraphPortModel)
-    # onConnectionAdded = QtCore.Signal(nodegraph_connection_model.NodeGraphConnectionModel)
-    # onConnectionRemoved = QtCore.Signal(nodegraph_connection_model.NodeGraphConnectionModel)
-
     def __init__(self):
         super(NodeGraphModel, self).__init__()  # initialize Qt signals
 
@@ -86,8 +78,9 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
         node.onDeleted.connect(self.on_node_deleted_from_maya)
 
+        pos = self.get_available_position(node)
         self._nodes.add(node)
-        self._pos_by_node[node] = QtCore.QPointF(0.0, 0.0)  # todo: handle automatic positioning
+        self._pos_by_node[node] = pos  # todo: handle automatic positioning
         if emit_signal:
             self.onNodeAdded.emit(node)
 
@@ -236,3 +229,39 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
     def on_node_deleted_from_maya(self, node):
         self.remove_node(node, emit_signal=True)
+
+    # --- Automatic node positioning ---
+
+    def get_available_position(self, node):
+        """Fake one until the real one work"""
+        try:
+            self._counter += 1
+        except AttributeError:
+            self._counter = 0
+
+        node_width = 100
+        x = self._counter * node_width
+        y = x
+        return QtCore.QPointF(x * 3, y * 2)
+
+    def real_get_available_position(self, qrect_item):
+        """
+        Return a position where we can position a QRectF without overlapping existing widgets.
+        """
+        qrect_scene = self.sceneRect()
+        item_width = qrect_item.width()
+        item_height = qrect_item.height()
+
+        def _does_intersect(guess):
+            for node in self.iter_nodes():
+                node_qrect = node.transform().mapRect(())
+                if node_qrect.intersects(guess):
+                    return True
+
+            return False
+
+        for x in libPython.frange(qrect_scene.left(), qrect_scene.right()*2, item_width):
+            for y in libPython.frange(qrect_scene.top(), qrect_scene.bottom(), item_height):
+                qrect_candidate = QtCore.QRectF(x, y, item_width, item_height)
+                if not _does_intersect(qrect_candidate):
+                    return QtCore.QPointF(x, y)

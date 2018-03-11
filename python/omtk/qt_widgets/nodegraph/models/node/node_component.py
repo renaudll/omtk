@@ -15,12 +15,27 @@ if False:
     from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
 
+from omtk.qt_widgets.nodegraph.models.port import port_adaptor_base
+from omtk.qt_widgets.nodegraph.models.port import port_adaptor_entity
+
 
 class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
     """
     Any port in a NodeGraphComponentModel is simple a normal attribute associated with the inn or out hub.
     However we want to prevent any
     """
+    def __init__(self, registry, node, attr_def):
+        super(NodeGraphComponentPortModel, self).__init__(registry, node, attr_def)
+
+        name = attr_def.name
+        component = node.get_metadata()
+        grp_inn = component.grp_inn
+        grp_out = component.grp_out
+        grp_inn_attr = grp_inn.attr(name) if grp_inn.hasAttr(name) else None
+        grp_out_attr = grp_out.attr(name) if grp_out.hasAttr(name) else None
+        self._inn_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_inn_attr)
+        self._out_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_out_attr)
+
     def _can_show_connection(self, connection):
         port_src = connection.get_source()
         port_dst = connection.get_destination()
@@ -38,14 +53,56 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
         return True
 
     def get_input_connections(self):
-        for connection in super(NodeGraphComponentPortModel, self).get_input_connections():
-            if self._can_show_connection(connection):
-                yield connection
+        registry = self._registry
+        result = set()
+        for val in self._inn_adaptor.get_inputs():
+            model = registry.get_port_model_from_value(val)
+            inst = registry.get_connection_model_from_values(model, self)
+            result.add(inst)
+        return result
 
     def get_output_connections(self):
-        for connection in super(NodeGraphComponentPortModel, self).get_output_connections():
-            if self._can_show_connection(connection):
-                yield connection
+        registry = self._registry
+        result = set()
+        for val in self._out_adaptor.get_outputs():
+            model = registry.get_port_model_from_value(val)
+            inst = registry.get_connection_model_from_values(self, model)
+            result.add(inst)
+        return result
+
+    def is_readable(self):
+        return self._out_adaptor.is_readable()
+
+    def is_writable(self):
+        return self._inn_adaptor.is_writable()
+
+    def is_source(self):
+        return self._out_adaptor.is_source()
+
+    def is_destination(self):
+        return self._inn_adaptor.is_source()
+
+    def is_interesting(self):
+        return True
+
+    def is_user_defined(self):
+        return True  # we'll never receive non-user defined attributes
+
+    def connect_from(self, val):
+        """Called when an upstream connection is created using a view."""
+        self._inn_adaptor.connect_from(val)
+
+    def connect_to(self, val):
+        """Called when a downstream connection is created using a view."""
+        self._out_adaptor.connect_to(val)
+
+    def disconnect_from(self, val):
+        """Called when an upstream connection is removed using a view."""
+        self._inn_adaptor.disconnect_from(val)
+
+    def disconnect_to(self, val):
+        """Called when a downstream connection is removed using a view."""
+        self._out_adaptor.disconnect_to(val)
 
 
 class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
@@ -83,22 +140,7 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
             return
 
         for attr_def in self.get_ports_metadata():
-            # todo: use a factory?
-            # log.debug('{0}'.format(attr_def))
-            inst = NodeGraphComponentPortModel(self._registry, self, attr_def)
-            # inst = self._registry.get_port_model_from_value(attr_def)
-
-            # inst._node = self  # hack currently compound attribute won't point to the compound object...
-            # if isinstance(attr_def, entity_attribute.EntityPymelAttribute):
-            #     attr_node = attr_def._attr.node()
-            #     if attr_node == self._entity.grp_inn:
-            #         attr_def._node = self._entity.grp_inn
-            #     elif attr_node == self._entity.grp_out:
-            #         attr_def._node = self._entity.grp_out
-
-            # inst = NodeGraphEntityPymelAttributePortModel(self._registry, self, attr_def)
-            # self._registry._register_attribute(inst)
-            yield inst
+            yield NodeGraphComponentPortModel(self._registry, self, attr_def)
 
     def allow_input_port_display(self, port_model, context=None):
         # type: (NodeGraphPortModel, NodeGraphController) -> bool

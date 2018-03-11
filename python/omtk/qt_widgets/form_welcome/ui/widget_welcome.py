@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/widget_welcome/ui/widget_welcome.ui'
+# Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/form_welcome/ui/form_welcome.ui'
 #
 # Created: Sun Feb 11 15:44:50 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0

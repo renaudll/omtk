@@ -3,18 +3,21 @@ from omtk.factories import factory_datatypes
 from omtk.qt_widgets.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
 from omtk.qt_widgets.nodegraph.models.port.port_adaptor_pymel import PymelAttributeNodeGraphPortImpl
 from pymel import core as pymel
-
+from omtk.core import component
 
 class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
-    def __init__(self, data):
+    def __init__(self, data, adaptor=None):
         assert (isinstance(data, entity_attribute.EntityAttribute))
         self._data = data
 
         # Some EntityAttribute points to pymel attributes.
-        if isinstance(data, entity_attribute.EntityPymelAttribute):
-            self._pymel_adaptor = PymelAttributeNodeGraphPortImpl(data.get_raw_data())
+        if adaptor:
+            self._pymel_adaptor = adaptor
         else:
-            self._pymel_adaptor = None
+            if isinstance(data, entity_attribute.EntityPymelAttribute):
+                self._pymel_adaptor = PymelAttributeNodeGraphPortImpl(data.get_raw_data())
+            else:
+                self._pymel_adaptor = None
 
     def get_metadata(self):
         return self._data.get_raw_data()

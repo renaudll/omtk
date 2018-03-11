@@ -5,12 +5,15 @@ from maya import cmds
 from omtk import constants
 from omtk.core import session
 from omtk.core.entity import Entity
+from omtk.core.entity_attribute import EntityAttribute
 from omtk.core.entity_action import EntityAction
 from omtk.core.entity_attribute import get_attribute_definition
 from omtk.libs import libAttr
 from omtk.libs import libNamespaces
 from omtk.libs import libComponents
 from omtk.vendor import libSerialization
+from omtk.factories import factory_datatypes
+from omtk.core.entity_attribute import EntityPymelAttribute, EntityPymelAttributeCollection
 from pymel import core as pymel
 from . import component_definition
 
@@ -21,6 +24,50 @@ if False:  # for type hinting
     from omtk.core.component_definition import ComponentDefinition
 
 # todo: create ComponentScripted and ComponentSaved
+
+
+class ComponentAttribute(EntityAttribute):
+    def __init__(self, parent, name, attr, **kwargs):
+        super(ComponentAttribute, self).__init__(parent, name=name, **kwargs)
+        self.get_attribute_definition(parent, attr, True, True)
+
+        attr_inn = parent.grp_inn.attr(name) if parent.grp_inn and parent.grp_inn.hasAttr(name) else None
+        attr_out = parent.grp_out.attr(name) if parent.grp_out and parent.grp_out.hasAttr(name) else None
+        self._attr_inn = self.get_attribute_definition(parent, attr_inn) if attr_inn else None
+        self._attr_out = self.get_attribute_definition(parent, attr_out) if attr_out else None
+
+    def get_attribute_definition(self, parent, attr, is_input=False, is_output=False):
+        valid_types = factory_datatypes.get_attr_datatype(attr)
+        if valid_types is None:
+            log.warning("Cannot create AttributeDef from {0}".format(attr))
+            return None
+
+        if attr.isMulti():
+            return EntityPymelAttributeCollection(parent, attr, is_input=is_input, is_output=is_output)
+        else:
+            return EntityPymelAttribute(parent, attr, is_input=is_input, is_output=is_output)
+
+    def get(self):
+        raise NotImplementedError
+
+    def set(self, val):
+        raise NotImplementedError
+
+    def connect_from(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        self._attr_inn.disconnect_from(val)
+
+    def connect_to(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        self._attr_out.connect_to(val)
+
+    def disconnect_from(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        self._attr_inn.disconnect_from(val)
+
+    def disconnect_to(self, val):
+        assert (isinstance(val, pymel.Attribute))
+        self._attr_out.disconnect_to(val)
 
 
 class Component(Entity):
@@ -142,23 +189,16 @@ class Component(Entity):
         return self.is_built_interface()
 
     def iter_attributes(self):
-        # Hub inn
-        custom_attrs = self.grp_inn.listAttr(userDefined=True)
-        for attr in libAttr.iter_network_contributing_attributes(self.grp_inn):
-            if attr not in custom_attrs:
-                continue
-            attr_def = get_attribute_definition(self, attr, is_input=True, is_output=False)
-            if attr_def:
-                yield attr_def
+        attrs_inn = set(libAttr.iter_network_contributing_attributes(self.grp_inn))
+        attrs_out = set(libAttr.iter_network_contributing_attributes(self.grp_out))
+        custom_attrs = set(self.grp_inn.listAttr(userDefined=True)) | set(self.grp_out.listAttr(userDefined=True))
+        attrs_inn &= custom_attrs
+        attrs_out &= custom_attrs
 
-        # Hub out
-        custom_attrs = self.grp_out.listAttr(userDefined=True)
-        for attr in libAttr.iter_network_contributing_attributes(self.grp_out):
-            if attr not in custom_attrs:
-                continue
-            attr_def = get_attribute_definition(self, attr, is_input=False, is_output=True)
-            if attr_def:
-                yield attr_def
+        attr_by_name = {attr.longName(): attr for attr in attrs_inn | attrs_out}
+        for name, attr in attr_by_name.iteritems():
+            # yield get_attribute_definition(self, attr)
+            yield ComponentAttribute(self, name, attr)
 
     def iter_actions(self):
         for action in super(Component, self).iter_actions():

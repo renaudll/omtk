@@ -7,7 +7,7 @@ from omtk.libs import libPython
 from omtk.core import session
 from omtk.core.entity import Entity
 from omtk.factories import factory_rc_menu
-from omtk.qt_widgets.widget_outliner import widget_list_base
+from omtk.qt_widgets.outliner import widget_list_base
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 
 log = logging.getLogger('omtk')

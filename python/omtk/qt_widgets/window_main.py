@@ -447,8 +447,8 @@ class AutoRig(main_window_extended.MainWindowExtended):
     def on_create_component(self):
         from omtk.qt_widgets import form_create_component
         form_create_component.show()
-        # from omtk.qt_widgets import widget_component_wizard
-        # widget_component_wizard.show()
+        # from omtk.qt_widgets import form_component_wizard
+        # form_component_wizard.show()
 
     #
     # QMainWindow show/close events

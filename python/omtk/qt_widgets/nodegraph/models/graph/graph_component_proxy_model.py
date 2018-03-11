@@ -1,8 +1,13 @@
+import logging
+
 import pymel.core as pymel
-from . import graph_proxy_model
 from omtk.core import session
 from omtk.qt_widgets.nodegraph.models.node import node_component
 from omtk.vendor.enum34 import Enum
+
+from . import graph_proxy_model
+
+log = logging.getLogger('omtk')
 
 if False:
     from typing import List, Generator
@@ -10,6 +15,10 @@ if False:
 
 
 class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel):
+    """
+    Wrap the interface of a ``NodeGraphModel`` instance to modify what the user (and controller) see (and interact via signals).
+    """
+
     def __init__(self, model=None, level=None):
         super(GraphComponentProxyFilterModel, self).__init__(model=model)
 
@@ -151,7 +160,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
             # If the object parent is NOT a compound and we are NOT at root level, the object is hidden.
             # We decided to hide the object here instead of in can_show_node in case the user
             if self._level:
-                print("Hiding {}".format(node))
+                log.debug("Hiding {}".format(node))
                 return
 
         yield node
@@ -161,7 +170,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         s = session.get_session()
         node = port.get_parent()
         pynode = node.get_metadata()
-        component_data= s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
+        component_data = s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
 
         if component_data:
             component = registry.get_node_from_value(component_data)
@@ -192,7 +201,8 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         node_dst_data = node_dst.get_metadata()
 
         # If the source is the current compount, remap the connection to the hub inn.
-        if isinstance(node_src_data, component.Component) and self._level and self._level.get_metadata() == node_src_data:
+        if isinstance(node_src_data,
+                      component.Component) and self._level and self._level.get_metadata() == node_src_data:
             # Ignore internal connection
             if node_dst.get_parent() != self._level:
                 return
@@ -217,7 +227,8 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
                             return
 
         # If the destination is the current compound, remap the connection to the hub out.
-        if isinstance(node_dst_data, component.Component) and self._level and self._level.get_metadata() == node_dst_data:
+        if isinstance(node_dst_data,
+                      component.Component) and self._level and self._level.get_metadata() == node_dst_data:
             # Ignore external connection
             if node_src.get_parent() != self._level:
                 return
@@ -453,10 +464,10 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
             """
             connection_kind = get_connection_kind()
             if connection_kind in (
-                ConnectionKind.compound_inn_to_normal,
-                ConnectionKind.compound_inn_to_compound_inn,
-                ConnectionKind.compound_out_to_compound_out,
-                ConnectionKind.compound_out_to_normal,
+                    ConnectionKind.compound_inn_to_normal,
+                    ConnectionKind.compound_inn_to_compound_inn,
+                    ConnectionKind.compound_out_to_compound_out,
+                    ConnectionKind.compound_out_to_normal,
             ):
                 return node_dst
             else:
@@ -464,5 +475,3 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
 
         node_model = get_connection_node_model()
         return node_model
-
-

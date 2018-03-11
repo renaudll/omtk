@@ -1,28 +1,3 @@
-"""
-The NodeGraphWidget use PyFlowgraph to display node, attribute and connections.
-It use a NodeGraphModel generaly used as a singleton to store scene informations.
-Multiple NodeGraphController bound to this model can interact with multiples NodeGraphView.
-
-Usage example 1, handling MVC ourself
-from omtk.qt_widgets import nodegraph_widget
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-win = QtWidgets.QMainWindow()
-view = nodegraph_widget.NodeGraphView()
-model = nodegraph_widget.NodeGraphModel()
-ctrl = nodegraph_widget.NodeGraphController(model, view)
-win.setCentralWidget(view)
-win.show()
-
-Usage example 1, using prefab Widget
-from omtk.qt_widgets import nodegraph_widget
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-win = QtWidgets.QMainWindow()
-widget = nodegraph_widget.NodeGraphWidget()
-win.setCentralWidget(widget)
-win.show()
-"""
 import logging
 
 import pymel.core as pymel
@@ -156,7 +131,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
             view.frameAllNodes()
 
     def on_shortcut_tab(self):
-        from omtk.qt_widgets.widget_outliner import widget_component_list
+        from omtk.qt_widgets.outliner import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self._current_view)
         dialog.signalComponentCreated.connect(self._current_view.on_component_created)  # todo: move method?
         # dialog.setMinimumHeight(self.height())
@@ -311,5 +286,3 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     def keyPressEvent(self, event):
         # Prevent Maya from catching key events
         pass
-
-# from pyflowgraph.graph_view import GraphView as NodeGraphWidget

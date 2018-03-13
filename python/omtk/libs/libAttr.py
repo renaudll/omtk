@@ -717,3 +717,56 @@ def connect_to_avar(ctrl, avar_node, mapping_dict):
         pymel.connectAttr(ctrl.attr(ctrl_attr_name), bw_list[0].input[input_idx])
 
     pymel.select(ctrl)
+
+
+def connect_attr_to_visibility(input_attr_name):
+    """
+    This function will connect the input attribute into the visibility attribute of the selected objects.
+    If the output attribute is already connected, the function will try to see if it can be plugged
+    in parallel with it by using a multiple divide. If a multiple divide is found, the function will connect
+    to the next available input in it
+     
+    At the moment, the function only support attribute that can be connected in a multiple divide
+    
+    :param input_attr_name: The attribute which will serve as an input to drive the output attr. It need to be pass
+                       with it's full path (ex: Ctrl_Grp.visibility)
+    """
+
+    vis_attr_string = "visibility"
+    in_attr = pymel.Attribute(input_attr_name)
+    # in_attr_node = in_attr.node()
+    cur_sel = pymel.selected()
+
+    for sel in cur_sel:
+        if not sel.hasAttr(vis_attr_string):
+            continue
+        vis_attr = sel.attr(vis_attr_string)
+        con = vis_attr.listConnections(c=False, d=False, p=True)
+        num_con = len(con)
+        if num_con > 1:
+            # More than one connection ?? Should not happen
+            continue
+        elif num_con == 0:
+            # Do the direct connection
+            pymel.connectAttr(in_attr, vis_attr)
+        # prevent some useless node to be in the scene
+        else:
+            # TODO - Find a better way to detect if the attr is already connected or not. This one can possibly
+            # not work since listHistory is not specific to the attribute
+            '''
+            # If the selected node already have a connection to the input attribute, skip it
+            vis_hist = vis_attr.listHistory()
+            if in_attr_node in vis_hist:
+                continue
+            '''
+            # Keep the current connected attr, and setup multipleDoubleLinear
+            cur_con = con[0]
+            mdl = pymel.createNode("multDoubleLinear")
+            pymel.connectAttr(cur_con, mdl.input1)
+            pymel.connectAttr(in_attr, mdl.input2)
+            # Force the connection
+            pymel.connectAttr(mdl.output, vis_attr, force=True)
+
+
+
+

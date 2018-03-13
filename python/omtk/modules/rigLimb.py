@@ -92,6 +92,8 @@ class Limb(Module):
             inputs=self.chain_jnt,
             suffix='fk',
         )
+        # We want to keep the name of the input on the fk
+        self.sysFK._FORCE_INPUT_NAME = True
         self.sysFK.build(constraint=False, **kwargs)
 
         # Create twistbone system if needed

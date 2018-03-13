@@ -47,6 +47,8 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         # For example, the jaw ctrl model will influence a joint inside the head but the controller will be outside.
         self._grp_bind_ctrl = None
 
+        self._attr_inn_parent_tm = None
+
         self._stack = None
 
     def parent_to(self, parent):
@@ -180,6 +182,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         #
         # Add calibration-related attribute
         #
+
         # The values will be computed when attach_ctrl will be called
         libAttr.addAttr_separator(
             self.grp_rig,
@@ -209,14 +212,6 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             self.ctrl.scaleX.set(-1)
             libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
 
-        # Parent the ctrl model
-        # The parent will always be the Head.
-        head_jnt = self.get_head_jnt()
-        grp_parent = pymel.createNode('transform', name=nomenclature_rig.resolve('parent'), parent=self.grp_rig)
-        if head_jnt:
-            pymel.parentConstraint(head_jnt, grp_parent, maintainOffset=True)
-            pymel.scaleConstraint(head_jnt, grp_parent, maintainOffset=True)
-
         grp_output = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('output'),
@@ -227,37 +222,25 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             'multMatrix',
             matrixIn=(
                 self._grp_bind_ctrl.matrix,
-                grp_parent.matrix,
+                self._attr_inn_parent_tm,
+                self.rig.grp_anm.worldInverseMatrix
             )
         ).matrixSum
         libRigging.connect_matrix_to_node(attr_output_tm, grp_output)
 
-       
         # Create inverted attributes for sensibility
-        util_sensitivity_inv = libRigging.create_utility_node('multiplyDivide', operation=2,
-                                                              input1X=1.0, input1Y=1.0, input1Z=1.0,
-                                                              input2X=self.attr_sensitivity_tx,
-                                                              input2Y=self.attr_sensitivity_ty,
-                                                              input2Z=self.attr_sensitivity_tz
-                                                              )
+        util_sensitivity_inv = libRigging.create_utility_node(
+            'multiplyDivide', operation=2,
+            input1X=1.0, input1Y=1.0, input1Z=1.0,
+            input2X=self.attr_sensitivity_tx,
+            input2Y=self.attr_sensitivity_ty,
+            input2Z=self.attr_sensitivity_tz
+        )
         attr_sensibility_lr_inv = util_sensitivity_inv.outputX
         attr_sensibility_ud_inv = util_sensitivity_inv.outputY
         attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
 
-        #
-        # Apply scaling on the ctrl parent.
-        # This is were the 'black magic' happen.
-        #
-        if flip_lr:
-            attr_ctrl_offset_sx_inn = libRigging.create_utility_node(
-                'multiplyDivide',
-                input1X=self.attr_sensitivity_tx,
-                input2X=-1.0,
-                input2Y=-1.0,
-                input2Z=1.0,
-            ).outputX
-        else:
-            attr_ctrl_offset_sx_inn = self.attr_sensitivity_tx
+        attr_ctrl_offset_sx_inn = self.attr_sensitivity_tx
         attr_ctrl_offset_sy_inn = self.attr_sensitivity_ty
         attr_ctrl_offset_sz_inn = self.attr_sensitivity_tz
 
@@ -275,9 +258,40 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             )
             attr_ctrl_offset_sx_inn, attr_ctrl_offset_sy_inn, attr_ctrl_offset_sz_inn = u.outputX, u.outputY, u.outputZ
 
-        pymel.connectAttr(attr_ctrl_offset_sx_inn, self.ctrl.offset.scaleX)
-        pymel.connectAttr(attr_ctrl_offset_sy_inn, self.ctrl.offset.scaleY)
-        pymel.connectAttr(attr_ctrl_offset_sz_inn, self.ctrl.offset.scaleZ)
+        # Ensure the scaling of the parent is taken in account.
+        attr_calibration_scale_tm = libRigging.create_utility_node(
+            'composeMatrix',
+            name=nomenclature_rig.resolve('composeCalibrationScaleTm'),
+            inputScaleX=attr_ctrl_offset_sx_inn,
+            inputScaleY=attr_ctrl_offset_sy_inn,
+            inputScaleZ=attr_ctrl_offset_sz_inn,
+        ).outputMatrix
+        attr_ctrl_offset_scale_tm = libRigging.create_utility_node(
+            'multMatrix',
+            name=nomenclature_rig.resolve('getCtrlOffsetScaleTm'),
+            matrixIn=(
+                attr_calibration_scale_tm,
+                self._attr_inn_parent_tm,
+                self.rig.grp_anm.worldInverseMatrix,
+            )
+        ).matrixSum
+        attr_ctrl_offset_scale = libRigging.create_utility_node(
+            'decomposeMatrix',
+            inputMatrix=attr_ctrl_offset_scale_tm
+        ).outputScale
+
+        # Flip the x axis if we are on the right side of the face.
+        # We need to do it as the last step since this will result in a right-handed matrix
+        # which will be canceled out if we feed it into multMatrix or other maya nodes.
+        if flip_lr:
+            attr_ctrl_offset_scale = libRigging.create_utility_node(
+                'multiplyDivide',
+                input1=attr_ctrl_offset_scale,
+                input2X=-1.0,
+                input2Y=1.0,
+                input2Z=1.0,
+            ).output
+        pymel.connectAttr(attr_ctrl_offset_scale, self.ctrl.offset.scale)
 
         # Apply sensibility on the ctrl shape
         ctrl_shape = self.ctrl.node.getShape()

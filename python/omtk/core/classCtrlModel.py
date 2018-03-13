@@ -22,8 +22,17 @@ class BaseCtrlModel(classModule.Module):
         super(BaseCtrlModel, self).__init__(*args, **kwargs)
         self.ctrl = None
 
+        self._attr_inn_parent_tm = None
+
     def iter_ctrls(self):
         yield self.ctrl
+
+    def create_interface(self):
+        """
+        Define the input and output of the module.
+        The goal is to a a kind of component approach.
+        """
+        self._attr_inn_parent_tm = libAttr.addAttr(self.grp_rig, longName='innParentTm', dt='matrix')
 
     def build(self, module, ctrl_size=1.0, ctrl_name=None, **kwargs):
         """
@@ -33,6 +42,7 @@ class BaseCtrlModel(classModule.Module):
         :param kwargs: Any additional keyword argument will be provided to the parent method.
         """
         super(BaseCtrlModel, self).build(**kwargs)
+        self.create_interface()
 
         if not ctrl_name:
             ctrl_name = self.get_nomenclature_anm().resolve()
@@ -82,13 +92,11 @@ class CtrlModelCalibratable(BaseCtrlModel):
         self._attr_sensitivity_ty_inv = None
         self._attr_sensitivity_tz_inv = None
 
-    def build(self, module, **kwargs):
-        super(CtrlModelCalibratable, self).build(module, **kwargs)
+    def create_interface(self):
+        super(CtrlModelCalibratable, self).create_interface()
 
-        #
         # Add sensitivity attributes on the ctrl.
         # The values will be adjusted on calibration.
-        #
         libAttr.addAttr_separator(
             self.grp_rig,
             "ctrlCalibration"
@@ -111,6 +119,9 @@ class CtrlModelCalibratable(BaseCtrlModel):
         self.attr_sensitivity_tx.set(channelBox=True)
         self.attr_sensitivity_ty.set(channelBox=True)
         self.attr_sensitivity_tz.set(channelBox=True)
+
+    def build(self, module, **kwargs):
+        super(CtrlModelCalibratable, self).build(module, **kwargs)
 
         pymel.connectAttr(self.attr_sensitivity_tx, self.ctrl.offset.scaleX)
         pymel.connectAttr(self.attr_sensitivity_ty, self.ctrl.offset.scaleY)

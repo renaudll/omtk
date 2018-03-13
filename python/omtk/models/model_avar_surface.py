@@ -58,8 +58,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         # Reference to the object containing the bind pose of the avar.
         self._obj_offset = None
 
-
-
     def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """
         Resolve the relative parameterU and parameterV that will be sent to the follicles.

@@ -24,7 +24,7 @@ class AvarInflBaseModel(classModule.Module):
     _ATTR_NAME_MULT_LR = 'multiplierLr'
     _ATTR_NAME_MULT_UD = 'multiplierUd'
     _ATTR_NAME_MULT_FB = 'multiplierFb'
-    
+
     default_multiplier_lr = 1.0
     default_multiplier_ud = 1.0
     default_multiplier_fb = 1.0
@@ -81,36 +81,9 @@ class AvarInflBaseModel(classModule.Module):
             'maxValue': 1.0,
             'keyable': True
         }
-        # self.affect_tx = libAttr.addAttr(self.grp_rig, longName='affectTx', defaultValue=self.affect_tx,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_ty = libAttr.addAttr(self.grp_rig, longName='affectTy', defaultValue=self.affect_ty,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_tz = libAttr.addAttr(self.grp_rig, longName='affectTz', defaultValue=self.affect_tz,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_rx = libAttr.addAttr(self.grp_rig, longName='affectRx', defaultValue=self.affect_rx,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_ry = libAttr.addAttr(self.grp_rig, longName='affectRy', defaultValue=self.affect_ry,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_rz = libAttr.addAttr(self.grp_rig, longName='affectRz', defaultValue=self.affect_rz,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_sx = libAttr.addAttr(self.grp_rig, longName='affectSx', defaultValue=self.affect_sx,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_sy = libAttr.addAttr(self.grp_rig, longName='affectSy', defaultValue=self.affect_sy,
-        #                                  **_avar_filter_kwargs)
-        # self.affect_sz = libAttr.addAttr(self.grp_rig, longName='affectSz', defaultValue=self.affect_sz,
-        #                                  **_avar_filter_kwargs)
 
         self._attr_inn_offset_tm = libAttr.addAttr(self.grp_rig, 'innOffset', dt='matrix')
         self._attr_out_tm = libAttr.addAttr(self.grp_rig, 'outTm', dataType='matrix')
-
-        # # ----
-        # 
-        # self.multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR,
-        #                                           defaultValue=self.multiplier_lr)
-        # self.multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD,
-        #                                           defaultValue=self.multiplier_ud)
-        # self.multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB,
-        #                                           defaultValue=self.multiplier_fb)
 
     def build(self, **kwargs):
         """
@@ -123,11 +96,11 @@ class AvarInflBaseModel(classModule.Module):
         self._create_interface()
         attr_tm = self._build()
         pymel.connectAttr(attr_tm, self._attr_out_tm)
-    
+
     def unbuild(self):
         # Cleanup old deprecated properties to prevent invalid pynode warning.
         self.grp_offset = None
-        
+
         # Save the current uv multipliers.
         # It is very rare that the rigger will tweak this advanced setting manually,
         # however for legacy reasons, it might be useful when upgrading an old rig.
@@ -137,9 +110,8 @@ class AvarInflBaseModel(classModule.Module):
             self.multiplier_ud = self.multiplier_ud.get()
         if isinstance(self.multiplier_fb, pymel.Attribute) and self.multiplier_fb.exists():
             self.multiplier_fb = self.multiplier_fb.get()
-        
-        super(AvarInflBaseModel, self).unbuild()
 
+        super(AvarInflBaseModel, self).unbuild()
 
     def _build(self):
         """

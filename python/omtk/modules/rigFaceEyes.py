@@ -1,6 +1,6 @@
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classModule import Module
+from omtk.core import classCtrlModel
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libRigging
@@ -33,7 +33,7 @@ class CtrlEye(BaseCtrl):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
 
 
-class BaseAvarCtrlModel(Module):
+class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
     _CLS_CTRL = BaseCtrl
 
     def __init__(self, *args, **kwargs):
@@ -47,21 +47,13 @@ class BaseAvarCtrlModel(Module):
 
     # todo: implement correct build method that also create the ctrl.
     def build(self, avar, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(BaseAvarCtrlModel, self).build(**kwargs)
+        super(BaseAvarCtrlModel, self).build(avar, **kwargs)
 
         # Resolve ctrl matrix
         if ctrl_tm is None:
             ctrl_tm = self.get_default_tm_ctrl()
-
-        # Create ctrl
-        nomenclature_anm = self.get_nomenclature_anm()
-        ctrl_name = nomenclature_anm.resolve()
-        self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
-        self.ctrl.build(name=ctrl_name, size=ctrl_size)
         if ctrl_tm:
             self.ctrl.setMatrix(ctrl_tm)
-
-        self.ctrl.setParent(self.grp_anm)
 
     def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         raise NotImplementedError
@@ -184,7 +176,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
     """
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
-    SINGLE_PARENT = True
+    SINGLE_PARENT = True    
     _CLS_MODEL_CTRL_MICRO = ModelLookAt
     _CLS_CTRL_MICRO = CtrlEye
 

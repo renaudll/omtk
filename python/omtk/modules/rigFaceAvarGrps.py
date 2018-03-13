@@ -582,19 +582,44 @@ class AvarGrp(
             )
         ).matrixSum
 
-    def _parent_avar(self, avar, parent):
+    def _parent_avar(self, avar, parent_tm):
         """
         Connect the 'parent' group.
         This allow the avar resulting transform to be affected by something (ex: Head_Jnt).
         :param avar: 
-        :param parent: 
+        :param parent_tm: 
         :return: 
         """
-        # Create a simple constraint that can easily be interpreted by the rigger to see what is the parent of the avar.
-        if parent:
-            print parent, avar._grp_parent
-            pymel.parentConstraint(parent, avar._grp_parent, maintainOffset=True)
-            pymel.scaleConstraint(parent, avar._grp_parent, maintainOffset=True)
+        if avar.model_infl:
+            libRigging.connect_matrix_to_node(parent_tm, avar._grp_parent)
+            # avar.model_infl.connect_parent(parent_tm)
+        if avar.model_ctrl:
+            pymel.connectAttr(parent_tm, avar.model_ctrl._attr_inn_parent_tm)
+
+        # pymel.connectAttr(u.outputTranslate, avar._grp_parent.translate)
+        # pymel.connectAttr(u.outputRotate, avar._grp_parent.rotate)
+        # pymel.connectAttr(u.outputScale, avar._grp_parent.scale)
+
+    def _get_parent_identity_tm(self, parent):
+        print(parent)
+        # So correctly support non-uniform scaling, we need to rely on something more than scaleConstraint.
+        # For this reason we'll need to store ourself the bindpose of our parent.
+        grp_parent_bind = pymel.createNode(
+            'transform',
+            name=(parent.name() + '_BindPose')
+        )
+        grp_parent_bind.setParent(self.grp_rig)
+        grp_parent_bind.setMatrix(parent.getMatrix(worldSpace=True))
+
+        attr_get_parent_tm = libRigging.create_utility_node(
+            'multMatrix',
+            matrixIn=(
+                grp_parent_bind.worldInverseMatrix,
+                parent.worldMatrix,
+            ),
+        ).matrixSum
+
+        return attr_get_parent_tm
 
     def _parent_avars(self):
         """
@@ -603,6 +628,10 @@ class AvarGrp(
         """
         # If the deformation order is set to post (aka the deformer is in the final skinCluster)
         # we will want the offset node to follow it's original parent (ex: the head)
+        nomenclature_rig = self.get_nomenclature_rig()
+
+        attr_parent_tm_by_parent = {}
+
         for avar in self.get_all_avars():
             avar_parent = None
             if self.SINGLE_PARENT:
@@ -613,7 +642,7 @@ class AvarGrp(
                     avar_parent = self.parent
             else:
                 avar_parent = self.parent
-
+                
             # Hack: If the parent is the 'all' influence, we want to skip it since the 'all' influence is used in the stack.
             # Otherwise this will result in double-transformation.
             all_influence = self.get_influence_all()
@@ -621,7 +650,11 @@ class AvarGrp(
                 avar_parent = avar_parent.getParent()
 
             if avar_parent:
-                self._parent_avar(avar, avar_parent)
+                attr_parent_tm = attr_parent_tm_by_parent.get(avar_parent)
+                if not attr_parent_tm:
+                    attr_parent_tm = attr_parent_tm_by_parent[avar_parent] = self._get_parent_identity_tm(avar_parent)
+                
+                self._parent_avar(avar, attr_parent_tm)
 
     def _create_avars_ctrls(self, connect=False, **kwargs):
         for avar in self.avars:

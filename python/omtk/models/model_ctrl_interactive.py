@@ -23,7 +23,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     1) Create the setup (using build)
     2) Connecting the doritos ctrl to something
     3) Optionally call .calibrate()
-    
+
     WARNING: This ctrl model is deprecated and is NOT integrated into the system at the moment for time reasons.
     The default ctrl model for a face is model_ctrl_interactive.
     In an ideal scenario, the rigger would be able to choose which ctrl model he desire.
@@ -40,6 +40,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
+
+        self._parent_tm = None
 
         self._stack = None
 
@@ -76,6 +78,33 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         dir = pymel.datatypes.Point(0, 0, -1)
         result = self.rig.raycast_nearest(pos, dir, geos=geos)
         return result if result else pos
+
+    def create_interface(self):
+        super(ModelInteractiveCtrl, self).create_interface()
+
+        # The values will be computed when attach_ctrl will be called
+        libAttr.addAttr_separator(
+            self.grp_rig,
+            "ctrlCalibration"
+        )
+        self.attr_sensitivity_tx = libAttr.addAttr(
+            self.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TX,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_ty = libAttr.addAttr(
+            self.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TY,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_tz = libAttr.addAttr(
+            self.grp_rig,
+            longName=self._ATTR_NAME_SENSITIVITY_TZ,
+            defaultValue=1.0
+        )
+        self.attr_sensitivity_tx.set(channelBox=True)
+        self.attr_sensitivity_ty.set(channelBox=True)
+        self.attr_sensitivity_tz.set(channelBox=True)
 
     def build(self, avar, ref=None, ref_tm=None, grp_rig=None, obj_mesh=None, u_coord=None, v_coord=None,
               flip_lr=False, follow_mesh=True, ctrl_tm=None, ctrl_size=1.0, parent_pos=None,
@@ -137,33 +166,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             self.debug('Creating doritos on {0} using {1} as reference'.format(obj_mesh, self.jnt))
         else:
             self.debug('Creating doritos on {0}'.format(obj_mesh))
-
-        #
-        # Add attributes
-        #
-        # The values will be computed when attach_ctrl will be called
-        libAttr.addAttr_separator(
-            self.grp_rig,
-            "ctrlCalibration"
-        )
-        self.attr_sensitivity_tx = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TX,
-            defaultValue=1.0
-        )
-        self.attr_sensitivity_ty = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TY,
-            defaultValue=1.0
-        )
-        self.attr_sensitivity_tz = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TZ,
-            defaultValue=1.0
-        )
-        self.attr_sensitivity_tx.set(channelBox=True)
-        self.attr_sensitivity_ty.set(channelBox=True)
-        self.attr_sensitivity_tz.set(channelBox=True)
 
         # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
@@ -278,8 +280,11 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
             # Create inverse attributes for the ctrl
 
-            attr_ctrl_inv_r = libRigging.create_utility_node('multiplyDivide', input1=self.ctrl.node.r,
-                                                             input2=[-1, -1, -1]).output
+            attr_ctrl_inv_r = libRigging.create_utility_node(
+                'multiplyDivide',
+                input1=self.ctrl.node.r,
+                input2=[-1, -1, -1]
+            ).output
 
             pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
 
@@ -288,10 +293,11 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # This is were the 'black magic' happen.
         #
         if flip_lr:
-            attr_ctrl_offset_sx_inn = libRigging.create_utility_node('multiplyDivide',
-                                                                     input1X=self.attr_sensitivity_tx,
-                                                                     input2X=-1
-                                                                     ).outputX
+            attr_ctrl_offset_sx_inn = libRigging.create_utility_node(
+                'multiplyDivide',
+                input1X=self.attr_sensitivity_tx,
+                input2X=-1
+            ).outputX
         else:
             attr_ctrl_offset_sx_inn = self.attr_sensitivity_tx
         attr_ctrl_offset_sy_inn = self.attr_sensitivity_ty

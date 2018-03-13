@@ -668,6 +668,8 @@ class AvarSimple(AbstractAvar):
             parent=self.grp_rig,
         )
 
+        
+
         self._grp_output = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('output'),
@@ -717,6 +719,8 @@ class AvarSimple(AbstractAvar):
 
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
+
+            
 
     def _connect_default_ctrl_model(self, grp_ctrl_model):
         """

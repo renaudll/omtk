@@ -131,7 +131,7 @@ class Hand(Module):
             else:
                 sys_metacarpal = self.fk_sys_metacarpals[i]
                 sys_metacarpal = self.init_module(rigFK.FK, sys_metacarpal, inputs=jnts_metacarpal)
-                sys_metacarpal._NAME_CTRL_MERGE = False  # Ensure we'll always use the input name.
+                sys_metacarpal._FORCE_INPUT_NAME = True
                 self.fk_sys_metacarpals[i] = sys_metacarpal
 
             # Init finger module

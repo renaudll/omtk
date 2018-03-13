@@ -1,6 +1,6 @@
 name = 'omtk'
 
-version = '0.5.0rc4'
+version = '0.5.0rc5'
 
 requires = ['libSerialization-0.1+']
 

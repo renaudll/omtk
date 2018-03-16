@@ -141,5 +141,22 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
             (u'unitConversion1.output', u'b.rotateX'),
         ])
 
-        # todo: test that if we add them back the unitConversion is still not shown
+    def test_existing_unitconversion_filtering(self):
+        """
+        Ensure NodeGraphStandardFilter hide unitConversion nodes unless explicitly ask to.
+        """
+        n1 = pymel.createNode('transform', name='a')
+        n2 = pymel.createNode('transform', name='b')
+        pymel.connectAttr(n1.translateX, n2.rotateX)
 
+        # todo: this should work if we start with no filters, add the node and then change filters?
+        filter = NodeGraphStandardFilter()
+        self.ctrl.set_filter(filter)
+
+        m1 = self.registry.get_node_from_value(n1)
+        m2 = self.registry.get_node_from_value(n2)
+        self.ctrl.add_node(m1)
+        # self.ctrl.add_node(m2)
+
+        self.assertGraphNodeNamesEqual([u'a', u'b'])
+        self.assetGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])

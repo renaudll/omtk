@@ -4,6 +4,7 @@ import pymel.core as pymel
 from omtk import decorators
 from omtk.core import component
 from omtk.core import entity_attribute
+from omtk.core import session
 from omtk.vendor.Qt import QtGui
 
 from omtk.qt_widgets.nodegraph.models.node import node_base, node_dg
@@ -33,6 +34,7 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
         grp_out = component.grp_out
         grp_inn_attr = grp_inn.attr(name) if grp_inn.hasAttr(name) else None
         grp_out_attr = grp_out.attr(name) if grp_out.hasAttr(name) else None
+
         self._inn_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_inn_attr)
         self._out_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_out_attr)
 
@@ -124,6 +126,16 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
         # todo: verify it work
         pymel.delete(self._entity.get_children())
 
+    def get_parent(self):
+        # The parent of a component is either None or another component.
+        # To retreive the parent of a component, check one of it's connections?
+        for connection in self.get_input_connections():
+            node = connection.get_source().get_parent()
+            return node.get_parent()
+        for connection in self.get_output_connections():
+            node = connection.get_destination().get_parent()
+            return node.get_parent()
+
     def get_children(self):
         return [
             self._registry.get_node_from_value(pynode)
@@ -188,6 +200,7 @@ class NodeGraphComponentBoundBaseModel(node_dg.NodeGraphDgNodeModel):
     """
 
     def __init__(self, registry, pynode, component):
+        # type: (NodeGraphReistry, pymel.PyNode NodeGraphPortModel) -> None
         super(NodeGraphComponentBoundBaseModel, self).__init__(registry, pynode)
         self._component = component
 

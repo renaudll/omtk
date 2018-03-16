@@ -80,6 +80,8 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
 
                 for node in new_nodes:
                     self.add_node(node)
+
+                for node in new_nodes:
                     self.expand_node_ports(node)
 
                 for node in new_nodes:
@@ -103,8 +105,9 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         Add it in the pool if it didn't previously exist.
         :return:
         """
-        for port_model in sorted(self.iter_node_ports(node)):
-            self.add_port(port_model, emit_signal=True)
+        for node in self.intercept_node(node):
+            for port_model in sorted(self.iter_node_ports(node)):
+                self.add_port(port_model, emit_signal=True)
 
     # todo: move upper?
     def expand_node_connections(self, node, inputs=True, outputs=True):
@@ -129,41 +132,69 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
 
     # still used?
     def intercept_node(self, node):
+        from omtk.qt_widgets.nodegraph.models.node import node_component
+
         # type: (NodeGraphNodeModel) -> Generator[NodeGraphNodeModel]
         s = session.get_session()
         registry = node._registry
 
-        pynode = node.get_metadata()
-        c = s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
-
-        # If we just entered a level, yield the bound
-        if self._level and self._need_refresh:
-            self._need_refresh = False
-            if self._cur_level_bound_inn:
-                yield self._cur_level_bound_inn
-
-            if self._cur_level_bound_out:
-                yield self._cur_level_bound_out
-
-            for child in self._cur_level_children:
-                yield child
-
-        if c:
-            # If we are inside the component, should it's input and output hub.
-            # Otherwise show only the component.
-            if self._level and c == self._level.get_metadata():
+        # Handle compound bound.
+        # If we receive a bound node, only yield it if it's part of the current level.
+        if isinstance(node, node_component.NodeGraphComponentBoundBaseModel):
+            component_model = node.get_parent()
+            if self._level == component_model:
                 yield node
-            else:
-                yield registry.get_node_from_value(c)
             return
-        else:
-            # If the object parent is NOT a compound and we are NOT at root level, the object is hidden.
-            # We decided to hide the object here instead of in can_show_node in case the user
-            if self._level:
-                log.debug("Hiding {}".format(node))
-                return
 
-        yield node
+        # Handle compound.
+        # We only show compound nodes if the compound is not the current level.
+        # NOT TRUE, we want to display the compound if is a children of another level!
+        # todo: move to node?
+        def is_child_of(node_, parent):
+            while node_:
+                node_ = node_.get_parent()
+                if node_ == parent:
+                    return True
+            return False
+
+        if isinstance(node, node_component.NodeGraphComponentModel):
+            # If we are not in a subgraph, accept only nodes that have no parent.
+            if self._level is None:
+                if node.get_parent() is None:
+                    yield node
+            # If we are in a subgraph, accept any component that is child of the current subgraph.
+            else:
+                if is_child_of(node, self._level):
+                    yield node
+                else:
+                    print("Hiding {0} since it is not a child of {1}".format(node, self._level))
+            return
+
+        # Handle pynodes
+        # if is_child_of(node, self._level):
+        #     yield node
+        if node.get_parent() == self._level:
+            yield node
+        return
+
+        # # Handle pythondes
+        # pynode = node.get_metadata()
+        # c = s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
+        # if c:
+        #     # If we are inside the component, the input and output hub are already shown, just return.
+        #     if self._level and c == self._level.get_metadata():
+        #         return
+        #     else:
+        #         yield registry.get_node_from_value(c)
+        #     return
+        # else:
+        #     # If the object parent is NOT a compound and we are NOT at root level, the object is hidden.
+        #     # We decided to hide the object here instead of in can_show_node in case the user
+        #     if self._level:
+        #         log.debug("Hiding {}".format(node))
+        #         return
+        #
+        # yield node
 
     def intercept_port(self, port):
         registry = port._registry
@@ -181,81 +212,88 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
 
     def intercept_connection(self, connection):
         from omtk.core import component
+
         def _get_port_by_name(node, name):
             for port in node.iter_ports():
                 if port.get_name() == name:
                     return port
 
-        # If we encounter a connection to an hub node and we are NOT in the compound, we want to replace it with
-        # a conenction to the compound itself.
-        registry = connection._registry
-        s = session.get_session()
+        for connection in self.get_model().intercept_connection(connection):
+            # If we encounter a connection to an hub node and we are NOT in the compound, we want to replace it with
+            # a conenction to the compound itself.
+            registry = connection._registry
+            s = session.get_session()
 
-        need_swap = False
-        port_src = connection.get_source()
-        port_dst = connection.get_destination()
-        node_src = port_src.get_parent()
-        node_dst = port_dst.get_parent()
+            need_swap = False
+            port_src = connection.get_source()
+            port_dst = connection.get_destination()
+            node_src = port_src.get_parent()
+            node_dst = port_dst.get_parent()
 
-        node_src_data = node_src.get_metadata()
-        node_dst_data = node_dst.get_metadata()
+            node_src_data = node_src.get_metadata()
+            node_dst_data = node_dst.get_metadata()
 
-        # If the source is the current compount, remap the connection to the hub inn.
-        if isinstance(node_src_data,
-                      component.Component) and self._level and self._level.get_metadata() == node_src_data:
-            # Ignore internal connection
-            if node_dst.get_parent() != self._level:
-                return
-            attr = node_src_data.grp_inn.attr(port_src.get_name())
-            port_src = registry.get_port_model_from_value(attr)
-            need_swap = True
+            # If the source is the current compount, remap the connection to the hub inn.
+            if isinstance(node_src_data,
+                          component.Component) and self._level and self._level.get_metadata() == node_src_data:
+                # Ignore internal connection
+                if node_dst.get_parent() != self._level:
+                    return
+                attr = node_src_data.grp_inn.attr(port_src.get_name())
+                port_src = registry.get_port_model_from_value(attr)
+                need_swap = True
 
-        # If the connection to an output hub?
-        elif isinstance(node_src_data, pymel.PyNode):
-            c = s.get_component_from_obj(node_src_data)
-            if c:
-                c_model = registry.get_node_from_value(c)
-                if self._level != c_model:
-                    # Get the replacement port, it have the same name as the current port.
-                    port_src = _get_port_by_name(c_model, port_src.get_name())
-                    need_swap = True
+            # If the connection to an output hub?
+            elif isinstance(node_src_data, pymel.PyNode):
+                c = s.get_component_from_obj(node_src_data)
+                if c:
+                    c_model = registry.get_node_from_value(c)
+                    if self._level != c_model:
+                        # Get the replacement port, it have the same name as the current port.
+                        port_src = _get_port_by_name(c_model, port_src.get_name())
+                        need_swap = True
+                    else:
+                        # the source is from the component output, this mean that the connection cannot be shown
+                        if isinstance(node_dst_data, pymel.PyNode):
+                            c2 = s.get_component_from_obj(node_dst_data)
+                            if c2 != c:
+                                return
+
+            # If the destination is the current compound, remap the connection to the hub out.
+            if isinstance(node_dst_data,
+                          component.Component) and self._level and self._level.get_metadata() == node_dst_data:
+                # Ignore external connection
+                if node_src.get_parent() != self._level:
+                    return
+                attr = node_dst_data.grp_out.attr(port_dst.get_name())
+                port_dst = registry.get_port_model_from_value(attr)
+                need_swap = True
+
+            # If the connection from an input hub?
+            elif isinstance(node_dst_data, pymel.PyNode):
+                c = s.get_component_from_obj(node_dst_data)
+                if c:
+                    c_model = registry.get_node_from_value(c)
+                    if self._level != c_model:
+                        # Get the replacement port, it have the same name as the current port.
+                        port_dst = _get_port_by_name(c_model, port_dst.get_name())
+                        need_swap = True
+                    else:
+                        # the destination is from the component input, this mean that that connection cannot be shown
+                        if isinstance(node_src_data, pymel.PyNode):
+                            c2 = s.get_component_from_obj(node_src_data)
+                            if c2 != c:
+                                return
+
+            if need_swap:
+                # Hack: Ignore invalid ports for now...
+                # todo: fix this
+                if port_src is None or port_dst is None:
+                    yield connection
                 else:
-                    # the source is from the component output, this mean that the connection cannot be shown
-                    if isinstance(node_dst_data, pymel.PyNode):
-                        c2 = s.get_component_from_obj(node_dst_data)
-                        if c2 != c:
-                            return
-
-        # If the destination is the current compound, remap the connection to the hub out.
-        if isinstance(node_dst_data,
-                      component.Component) and self._level and self._level.get_metadata() == node_dst_data:
-            # Ignore external connection
-            if node_src.get_parent() != self._level:
-                return
-            attr = node_dst_data.grp_out.attr(port_dst.get_name())
-            port_dst = registry.get_port_model_from_value(attr)
-            need_swap = True
-
-        # If the connection from an input hub?
-        elif isinstance(node_dst_data, pymel.PyNode):
-            c = s.get_component_from_obj(node_dst_data)
-            if c:
-                c_model = registry.get_node_from_value(c)
-                if self._level != c_model:
-                    # Get the replacement port, it have the same name as the current port.
-                    port_dst = _get_port_by_name(c_model, port_dst.get_name())
-                    need_swap = True
-                else:
-                    # the destination is from the component input, this mean that that connection cannot be shown
-                    if isinstance(node_src_data, pymel.PyNode):
-                        c2 = s.get_component_from_obj(node_src_data)
-                        if c2 != c:
-                            return
-
-        if need_swap:
-            yield registry.get_connection_model_from_values(port_src, port_dst)
-        else:
-            yield connection
+                    yield registry.get_connection_model_from_values(port_src, port_dst)
+            else:
+                yield connection
 
     def iter_node_ports(self, node):
         for port in super(GraphComponentProxyFilterModel, self).iter_node_ports(node):
@@ -306,70 +344,6 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
             if self.can_show_connection(connection):
                 for yielded in self.intercept_connection(connection):
                     yield yielded
-
-    # def collapse_node_attributes(self, node_model):
-    #     # There's no API method to remove a port in PyFlowgraph.
-    #     # For now, we'll just re-created the node.
-    #     # node_widget = self.get_node_widget(node_model)
-    #     # self._view.removeNode(node_widget)
-    #     # self.get_node_widget.cache[node_model]  # clear cache
-    #     # node_widget = self.get_node_widget(node_model)
-    #     # self._view.addNode(node_widget)
-    #     raise NotImplementedError
-
-    # def iter_port_connections(self, port):
-    #     # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
-    #     for connection in self.iter_port_input_connections(port):
-    #         yield self.intercept_connection(connection, port)
-    #     for connection in self.iter_port_output_connections(port):
-    #         yield self.intercept_connection(connection, port)
-    #
-    # def get_port_connections(self, port):
-    #     return list(self.iter_port_connections(port))
-    #
-    # def iter_port_input_connections(self, port):
-    #     # type: (NodeGraphPortModel) -> list[NodeGraphConnectionModel]
-    #     """
-    #     Control what input connection models are exposed for the provided port model.
-    #     :param model: The destination port model to use while resolving the connection models.
-    #     :return: A list of connection models using the provided port model as destination.
-    #     """
-    #     for connection in self._model.iter_port_input_connections(port):
-    #         for yielded in self.intercept_connection(connection, port):
-    #             yield yielded
-    #
-    # @decorators.memoized_instancemethod
-    # def get_port_input_connections(self, model):
-    #     return list(self.iter_port_input_connections(model))  # cannot memoize a generator
-    #
-    # def iter_port_output_connections(self, port):
-    #     # type: (NodeGraphPortModel) -> List[NodeGraphPortModel]
-    #     """
-    #     Control what output connection models are exposed for the provided port model.
-    #     :param port: The source port model to use while resolving the connection models.
-    #     :return: A list of connection models using the provided port model as source.
-    #     """
-    #     for connection in self._model.iter_port_output_connections(port):
-    #         for yielded in self.intercept_connection(connection, port):
-    #             yield yielded
-
-    # @decorators.memoized_instancemethod
-    # def get_port_output_connections(self, model):
-    #     return list(self.iter_port_output_connections(model))  # cannot memoize a generator
-    #
-    # def expand_port(self, port, inputs=True, outputs=True):
-    #     # type: (NodeGraphPortModel, bool, bool) -> None
-    #     self._model.expand_port(port, inputs=inputs, outputs=outputs)
-    #
-    # def expand_port_input_connections(self, port):
-    #     self._model.expand_port_input_connections(port)
-    #
-    # def expand_port_output_connections(self, port):
-    #     self._model.expand_port_output_connections(port)
-    #
-    # def expand_node_ports(self, node, inputs=True, outputs=True):
-    #     # type: (NodeGraphNodeModel, bool, bool) -> None
-    #     self._model.expand_node_connections(node, inputs=True, outputs=True)
 
     def get_connection_parent(self, connection):
         # type: (NodeGraphNodeModel) -> NodeGraphNodeModel

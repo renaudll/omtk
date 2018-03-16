@@ -10,7 +10,7 @@ class NodeGraphConnectionModel(object):
         self._attr_dst = attr_dst
 
     def __repr__(self):
-        return '<NodeGraphConnectionModel {0}.{1} to {2}.{3}>'.format(
+        return '<Connection {0}.{1} to {2}.{3}>'.format(
             self._attr_src.get_parent(),
             self._attr_src.get_name(),
             self._attr_dst.get_parent(),

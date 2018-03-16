@@ -590,7 +590,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         return [model.get_metadata() for model in self.get_selected_node_models()]
 
     def clear(self):
-        # self._model.reset()
+        for node in self._model.get_nodes():
+            self._model.remove_node(node)
 
         # We won't call clear since we will keep a reference to the Widgets in case
         # we need to re-use them. Calling clear would make our cache point to invalid

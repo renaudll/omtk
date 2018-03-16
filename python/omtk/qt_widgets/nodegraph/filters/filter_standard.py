@@ -157,6 +157,12 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         # todo: remove this?
         attr_src = port_src.get_metadata()
         attr_dst = port_dst.get_metadata()
+
+        # For now, if any port don't have metadata, don't try anything.
+        if attr_src is None or attr_dst is None:
+            yield connection
+            return
+
         pynode_src = attr_src.node()
         pynode_dst = attr_dst.node()
 

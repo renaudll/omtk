@@ -26,24 +26,10 @@ class NodeGraphEntityModel(node_base.NodeGraphNodeModel):
         # Used to invalidate cache
         return list(self._entity.iter_attributes())
 
-    @decorators.memoized_instancemethod
-    def get_ports(self):
+    def iter_ports(self):
         # type: () -> List[NodeGraphPortModel]
-        result = set()
-
         for attr_def in self.get_ports_metadata():
-            # todo: use a factory?
-            log.debug('{0}'.format(attr_def))
-            inst = self._registry.get_port_model_from_value(attr_def)
-
-            # inst._node = self  # hack currently compound attribute won't point to the compound object...
-
-
-            # inst = NodeGraphEntityPymelAttributePortModel(self._registry, self, attr_def)
-            # self._registry._register_attribute(inst)
-            result.add(inst)
-
-        return result
+            yield self._registry.get_port_model_from_value(attr_def)
 
     def _get_widget_label(self):
         result = self._name

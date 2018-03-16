@@ -30,42 +30,6 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
         model = self.registry.get_node_from_value(node)
         return model
 
-    def test_compound_creation(self):
-        n1 = pymel.createNode('transform', name='n1')
-        n2 = pymel.createNode('transform', name='n2')
-        n3 = libRigging.create_utility_node('multiplyDivide', input1X=n1.translateX, name='u1')
-        m1 = self.registry.get_node_from_value(n1)
-        m2 = self.registry.get_node_from_value(n2)
-        m3 = self.registry.get_node_from_value(n3)
-        self.ctrl.add_nodes(m1, m2, m3)
-        pymel.connectAttr(n3.outputX, n2.translateX)
-
-        self.assertGraphNodeNamesEqual([u'n1', u'n2', u'u1'])
-
-        # Create a subgroup (group nodes)
-        component_model = self.ctrl.group_nodes([m3])
-        self.assertGraphNodeNamesEqual([u'n1', u'n2', u'component00'])
-        self.assetGraphConnectionsEqual([
-            (u'n1.translateX', u'component00.input1X'),
-            (u'component00.outputX', u'n2.translateX'),
-        ])
-
-        # Enter the subgrap
-        self.ctrl.set_level(component_model)
-        self.assertGraphNodeNamesEqual([u'component00:inn', u'u1', u'component00:out'])
-        self.assetGraphConnectionsEqual([
-            (u'component00:inn.input1X', u'u1.input1X'),
-            (u'u1.outputX', u'component00:out.outputX'),
-        ])
-
-        # Exit the subgraph
-        self.ctrl.set_level(None)
-        self.assertGraphNodeNamesEqual([u'n1', u'n2', u'component00'])
-        self.assetGraphConnectionsEqual([
-            (u'n1.translateX', u'component00.input1X'),
-            (u'component00.outputX', u'n2.translateX'),
-        ])
-
     def assertPortInfo(self, node, name, is_readable, is_writable):
         def _get_port_by_name(name):
             for port in self.model.iter_node_ports(node):
@@ -139,7 +103,7 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
         self.assertGraphNodeNamesEqual([u'n1', u'n2', u'n3', u'n4', u'n5'])
 
         # Create a subgroup (group nodes)
-        component_model = self.ctrl.group_nodes([m2, m3, m4])
+        component_1 = self.ctrl.group_nodes([m2, m3, m4])
         self.assertGraphNodeNamesEqual([u'n1', u'component00', u'n5'])
         self.assetGraphConnectionsEqual([
             (u'n1.translate', u'component00.translate'),
@@ -147,21 +111,49 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
         ])
 
         # Enter the subgrap
-        self.ctrl.set_level(component_model)
+        self.ctrl.set_level(component_1)
         self.assertGraphNodeNamesEqual([u'component00:inn', u'n2', u'n3', u'n4', u'component00:out'])
-        self.assetGraphConnectionsEqual()
+        self.assetGraphConnectionsEqual([
+            (u'component00:inn.translate', u'n2.translate'),
+            (u'n2.translate', u'n3.translate'),
+            (u'n3.translate', u'n4.translate'),
+            (u'n4.translate', u'component00:out.translate'),
+        ])
 
-        # Enter the sublevel
-        new_component = self.ctrl.group_nodes([m3])
+        # Create a new component
+        component2 = self.ctrl.group_nodes([m3])
         self.assertGraphNodeNamesEqual([u'component00:inn', u'n2', u'component01', u'n4', u'component00:out'])
-        self.ctrl.set_level(new_component)
-        self.assertGraphNodeNamesEqual([u'component01:inn', u'n3', u'component01:out'])
+        self.assetGraphConnectionsEqual([
+            (u'component00:inn.translate', u'n2.translate'),
+            (u'n2.translate', u'component01.translate'),
+            (u'component01.translate', u'n4.translate'),
+            (u'n4.translate', u'component00:out.translate'),
+        ])
 
-        # Exit the subgraph
+        # Enter the new component
+        self.ctrl.set_level(component2)
+        self.assertGraphNodeNamesEqual([u'component01:inn', u'n3', u'component01:out'])
+        self.assetGraphConnectionsEqual([
+            (u'component01:inn.translate', u'n3.translate'),
+            (u'n3.translate', u'component01:out.translate'),
+        ])
+
+        # Exit the new component
+        self.ctrl.set_level(component_1)
+        self.assertGraphNodeNamesEqual([u'component00:inn', u'n2', u'component01', u'n4', u'component00:out'])
+        self.assetGraphConnectionsEqual([
+            (u'component00:inn.translate', u'n2.translate'),
+            (u'n2.translate', u'component01.translate'),
+            (u'component01.translate', u'n4.translate'),
+            (u'n4.translate', u'component00:out.translate'),
+        ])
+
+        # Return to root level
+        self.ctrl.set_level(None)
         self.assertGraphNodeNamesEqual([u'n1', u'component00', u'n5'])
         self.assetGraphConnectionsEqual([
-            (u'n1.translateX', u'component00.input1X'),
-            (u'component00.outputX', u'n5.translateX'),
+            (u'n1.translate', u'component00.translate'),
+            (u'component00.translate', u'n5.translate'),
         ])
 
 

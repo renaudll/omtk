@@ -37,28 +37,32 @@ class Module(object):
         Redirect a debug message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        self.rig.debug(msg)
+        if self.rig:
+            self.rig.debug(msg)
 
     def info(self, msg):
         """
         Redirect an information message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        self.rig.info(msg)
+        if self.rig:
+            self.rig.info(msg)
 
     def warning(self, msg):
         """
         Redirect an warning message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        self.rig.warning(msg)
+        if self.rig:
+            self.rig.warning(msg)
 
     def error(self, msg):
         """
         Redirect an error message to the rig logger.
         """
         msg = '[{0}] {1}'.format(self.name, msg)
-        self.rig.error(msg)
+        if self.rig:
+            self.rig.error(msg)
 
     #
     # libSerialization implementation

@@ -117,9 +117,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
         def fn_can_show(qItem, query_regex):
             # Always shows non-module
-            if not hasattr(qItem, 'rig'):
-                return True
-            if not isinstance(qItem.metadata_data, classModule.Module):
+            if not qItem.metadata_type == ui_shared.MetadataType.Module:
                 return True
 
             module = qItem.metadata_data  # Retrieve monkey-patched data

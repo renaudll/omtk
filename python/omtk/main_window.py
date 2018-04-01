@@ -1,10 +1,12 @@
 import functools
 import inspect
+import os
 import logging
 from collections import defaultdict
 
 import core
 
+from maya import cmds
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk.core import api
@@ -74,6 +76,43 @@ class AutoRig(QtWidgets.QMainWindow):
         # failed_plugins = pm.get_failed_plugins()
         # if failed_plugins:
         #     log.warning("The following plugins failed to load: {0}".format(', '.join(str(p) for p in failed_plugins)))
+
+        # Build the template menu
+        available_templates = self._get_available_templates()
+        if available_templates:
+            menu_template = QtWidgets.QMenu(self.ui.menubar)
+            menu_template.setTitle("Templates")
+
+            for template in available_templates:
+                template_name = os.path.basename(template)
+                action = QtWidgets.QAction(template_name, self)
+                action.triggered.connect(functools.partial(self.action_import_template, template))
+                menu_template.addAction(action)
+
+            self.ui.menubar.addAction(menu_template.menuAction())
+
+    def action_import_template(self, path):
+        log.info('Importing template {0}'.format(path))
+        cmds.file(path, i=True)
+        self.on_update()
+
+    def _get_available_templates(self):
+        results = set()
+
+        for plugin_dir in os.environ.get('OMTK_PLUGINS', []).split(os.pathsep):
+            if not os.path.exists(plugin_dir):
+                continue
+
+            template_dir = os.path.join(plugin_dir, 'templates')
+            if not os.path.exists(template_dir):
+                continue
+
+            for filename in os.listdir(template_dir):
+                if filename.endswith('.ma') or filename.endswith('.mb'):
+                    path = os.path.join(template_dir, filename)
+                    results.add(path)
+
+        return results
 
     def create_callbacks(self):
         self.remove_callbacks()
@@ -222,7 +261,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules.update()
         self.ui.widget_jnts.update()
         self.ui.widget_meshes.update()
-    
+
     # --- Widget traversal methods ---
     # todo: put this elsewhere?
 
@@ -266,7 +305,7 @@ class AutoRig(QtWidgets.QMainWindow):
         while qtreewidgetitem and not qtreewidgetitem.metadata_type == metadata_type:
             qtreewidgetitem = qtreewidgetitem.parent()
         return qtreewidgetitem
-    
+
     # --- Events ---
 
     def on_import(self):

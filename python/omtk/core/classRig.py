@@ -520,6 +520,8 @@ class Rig(object):
     def build_grp(self, cls, val, name, *args, **kwargs):
         if not isinstance(val, cls):
             val = cls()
+            if cmds.objExists(name):
+                val.node = pymel.PyNode(name)
         if not val.is_built():
             val.build(*args, **kwargs)
             val.rename(name)

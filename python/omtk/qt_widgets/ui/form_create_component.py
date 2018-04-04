@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/form_create_component.ui'
 #
-# Created: Sat Feb  3 16:48:39 2018
+# Created: Tue Apr  3 21:09:17 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -139,4 +139,4 @@ class Ui_MainWindow(object):
         self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:", None, -1))
         self.pushButton_submit.setText(QtWidgets.QApplication.translate("MainWindow", "Publish", None, -1))
 
-from ..form_component_wizard import WidgetCreateComponentWizardParts
+from ..form_create_component import CreateComponentForm

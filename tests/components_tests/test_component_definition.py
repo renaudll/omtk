@@ -7,6 +7,7 @@ import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
 import tempfile
 from omtk.libs import libComponents
+from omtk.core import component
 from omtk.core import component_definition
 
 
@@ -48,7 +49,7 @@ class ComponentDefinitionTestCase(unittest.TestCase):
         success = cmds.file(self._tmp_path, open=True)
         print(success)
 
-        # Finally, the metadata we saved as fileInfo entries are retreivable using the old method.
+        # Finally, the metadata we saved as fileInfo entries are retrievable using the old method.
         for key, desired_val in component_def.get_metadata().iteritems():
             key = component_definition._metadata_prefix + key
             val = next(iter(cmds.fileInfo(key, query=True)), None)

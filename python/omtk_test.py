@@ -313,7 +313,7 @@ class NodeGraphTestCase(TestCase):
         actual = _get_graph_node_names(self.model)
         self.assertSetEqual(set(expected), set(actual))
 
-    def assetGraphConnectionsEqual(self, expected):
+    def assertGraphConnectionsEqual(self, expected):
         actual = _get_graph_connections_json(self.model)
         actual = set(actual)
         expected = set(expected)

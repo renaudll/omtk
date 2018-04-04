@@ -56,7 +56,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m2)
 
         self.assertGraphNodeNamesEqual([u'a', u'b'])
-        self.assetGraphConnectionsEqual([
+        self.assertGraphConnectionsEqual([
             (u'a.matrix', u'b.translate'),
             (u'a.matrix', u'b.translateX'),
             (u'a.matrix', u'b.translateY'),
@@ -76,7 +76,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m3)
 
         self.assertGraphNodeNamesEqual([u'a', u'b', u'decomposeMatrix1'])
-        self.assetGraphConnectionsEqual([
+        self.assertGraphConnectionsEqual([
             (u'a.matrix', u'b.translate'),
             (u'a.matrix', u'b.translateX'),
             (u'a.matrix', u'b.translateY'),
@@ -122,7 +122,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m2)
 
         self.assertGraphNodeNamesEqual([u'a', u'b', u'decomposeMatrix1'])
-        self.assetGraphConnectionsEqual([
+        self.assertGraphConnectionsEqual([
             (u'a.matrix', u'decomposeMatrix1.inputMatrix'),
             (u'decomposeMatrix1.outputTranslate', u'b.scale'),
         ])
@@ -154,7 +154,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m2)
 
         self.assertGraphNodeNamesEqual([u'a', u'b'])
-        self.assetGraphConnectionsEqual([
+        self.assertGraphConnectionsEqual([
             (u'a.translate', u'b.test'),
             (u'a.translateX', u'b.test'),
             (u'a.translateY', u'b.test'),
@@ -185,6 +185,6 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m2)
 
         self.assertGraphNodeNamesEqual([u'a', u'b', 'composeMatrix1'])
-        self.assetGraphConnectionsEqual([
+        self.assertGraphConnectionsEqual([
             (u'a.scaleX', u'composeMatrix1.inputTranslateX'),
         ])

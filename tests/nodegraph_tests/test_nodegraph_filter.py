@@ -127,7 +127,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m2)
 
         self.assertGraphNodeNamesEqual([u'a', u'b'])
-        self.assetGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])
+        self.assertGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])
 
         # However, if you add the unitConversion node explicitly, we want to see it!
         n3 = n1.translateX.outputs()[0]
@@ -135,7 +135,7 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         self.ctrl.add_node(m3)
 
         self.assertGraphNodeNamesEqual([u'a', u'b', u'unitConversion1'])
-        self.assetGraphConnectionsEqual([
+        self.assertGraphConnectionsEqual([
             (u'a.translateX', u'b.rotateX'),
             (u'a.translateX', u'unitConversion1.input'),
             (u'unitConversion1.output', u'b.rotateX'),
@@ -159,4 +159,4 @@ class NodeGraphFilterTest(omtk_test.NodeGraphTestCase):
         # self.ctrl.add_node(m2)
 
         self.assertGraphNodeNamesEqual([u'a', u'b'])
-        self.assetGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])
+        self.assertGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])

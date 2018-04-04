@@ -5,6 +5,7 @@ import unittest
 
 import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
+from omtk.core import component
 from omtk.core.component import Component
 
 class ComponentCreationTestCase(unittest.TestCase):
@@ -20,29 +21,56 @@ class ComponentCreationTestCase(unittest.TestCase):
         inn_attr_names = {attr.__melobject__() for attr in inn_attrs}
         self.assertEqual(inn_attr_names, expected_inn_attr_names)
 
-    def test_creation_manual(self):
+    def test_create_empty_component(self):
+        """Ensure we are able to create an empty component."""
+        namespace = 'component'
+        inst = component.create_empty(namespace=namespace)
+
+        cmpt_namespace = inst.get_namespace()
+        cmds.namespace(setNamespace=cmpt_namespace)
+
+        n1 = pymel.createNode('transform', name='n1')
+
+        self.assertIn(n1, inst)
+
+    def test_create_component_from_objects(self):
+        cmds.file(new=True, force=True)
+        obj = pymel.createNode('transform')
+
+        namespace = 'component'
+        inst = component.from_nodes([obj], namespace=namespace)
+
+        self.assertEqual(namespace, inst.get_namespace())
+        self.assertEqual(namespace, obj.namespace().strip(':'))
+
+    def test_create_component_from_attributes(self):
         """
         Ensure we are able to create a component by manually specifying the attributes we want.
         """
         cmds.file(new=True, force=True)
         src = pymel.createNode('transform')
         dst = pymel.createNode('transform')
-
         pymel.connectAttr(src.tx, dst.tx)
 
-        component = Component.create(
-            {'innVal': src.tx}, {'outVal': dst.tx}
+        namespace = 'component'
+        inst = component.from_attributes(
+            {'innVal': src.tx}, {'outVal': dst.tx}, namespace=namespace
         )
 
-        self.assertEqual(component.grp_inn.attr('innVal').inputs(plugs=True), [])
-        self.assertEqual(component.grp_inn.attr('innVal').outputs(plugs=True), [src.tx])
-        self.assertEqual(component.grp_out.attr('outVal').inputs(plugs=True), [dst.tx])
-        self.assertEqual(component.grp_out.attr('outVal').outputs(plugs=True), [])
+        # Validate that the attributes have been included in the component.
+        self.assertEqual(inst.grp_inn.attr('innVal').inputs(plugs=True), [])
+        self.assertEqual(inst.grp_inn.attr('innVal').outputs(plugs=True), [src.tx])
+        self.assertEqual(inst.grp_out.attr('outVal').inputs(plugs=True), [dst.tx])
+        self.assertEqual(inst.grp_out.attr('outVal').outputs(plugs=True), [])
 
-    def test_creation_manual_component(self):
+        # Validate that the objects are under a namespace.
+        for obj in [src, dst, inst.grp_inn, inst.grp_out]:
+            self.assertEqual(namespace, obj.namespace().strip(':'))
+
+    def test_create_component_from_compound_attributes(self):
         """
         Ensure we are able to create a component by manually specifying the attribute we want.
-        This time using component attribute types.
+        This time using compound attribute types.
         """
         cmds.file(new=True, force=True)
         src = pymel.createNode('transform')
@@ -50,65 +78,14 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         pymel.connectAttr(src.tx, dst.tx)
 
-        component = Component.create(
+        inst = component.from_attributes(
             {'innVal': src.t}, {'outVal': dst.rx}
         )
 
-        self.assertEqual(component.grp_inn.attr('innVal').inputs(plugs=True), [])
-        self.assertEqual(component.grp_inn.attr('innVal').outputs(plugs=True), [src.t])
-        self.assertEqual(component.grp_out.attr('outVal').inputs(plugs=True), [dst.rx])
-        self.assertEqual(component.grp_out.attr('outVal').outputs(plugs=True), [])
-
-    # the automatic detection of attribute is maybe to much foward-thinking for now,
-    # let's limit ourself to something simpler
-    # def test_constraint_network(self):
-    #     """
-    #     Ensure we are able to correctly manage a simple joint contrained to a controller.
-    #     This highlight the issues that can arise when using Maya constraints because of all the
-    #     two-way connections involved.
-    #     """
-    #     cmds.file(new=True, force=True)
-    #     anm = pymel.createNode('transform', name='anm')
-    #     jnt = pymel.createNode('transform', name='jnt')
-    #     pymel.parentConstraint(anm, jnt)
-    #
-    #     objs = [anm, jnt]
-    #
-    #     input_attrs, output_attrs = libComponents.identify_network_io_ports(objs)
-    #
-    #     expected_attrs_inn = {
-    #         'anm.parentMatrix[0]',
-    #         'anm.rotate',
-    #         'anm.rotateOrder',
-    #         'anm.rotatePivot',
-    #         'anm.rotatePivotTranslate',
-    #         'anm.scale',
-    #         'anm.translate',
-    #         'jnt.rotatePivot',
-    #         'jnt.rotateOrder',
-    #         'jnt.rotatePivotTranslate',
-    #         'jnt.parentInverseMatrix[0]',
-    #     }
-    #     expected_attrs_out = {
-    #         'jnt.rotateX',
-    #         'jnt.rotateY',
-    #         'jnt.rotateZ',
-    #         'jnt.translateX',
-    #         'jnt.translateY',
-    #         'jnt.translateZ',
-    #     }
-    #
-    #     self._debug_io_attrs(input_attrs, output_attrs)
-    #     self._asset_io_attributes_equal(input_attrs, expected_attrs_inn)
-    #     self._asset_io_attributes_equal(output_attrs, expected_attrs_out)
-    #
-    #     component = classComponent.Component.from_attributes(input_attrs, output_attrs)
-    #     hub_inn = component.grp_inn
-    #     hub_out = component.grp_out
-    #     for obj in objs:
-    #         for attr in obj.listAttr():
-    #             self.assertFalse(attr.isSource(), msg="Attribute {0} is source!".format(attr))
-    #             self.assertFalse(attr.isDestination(), msg="Attribute {0} is destination!".format(attr))
+        self.assertEqual(inst.grp_inn.attr('innVal').inputs(plugs=True), [])
+        self.assertEqual(inst.grp_inn.attr('innVal').outputs(plugs=True), [src.t])
+        self.assertEqual(inst.grp_out.attr('outVal').inputs(plugs=True), [dst.rx])
+        self.assertEqual(inst.grp_out.attr('outVal').outputs(plugs=True), [])
 
 
 if __name__ == '__main__':

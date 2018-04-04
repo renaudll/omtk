@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/outliner/ui/widget_list_meshes.ui'
 #
-# Created: Wed Dec 20 20:39:33 2017
+# Created: Tue Apr  3 21:09:17 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -35,6 +35,6 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form"))
-        self.btn_update.setText(QtWidgets.QApplication.translate("Form", "Update"))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.btn_update.setText(QtWidgets.QApplication.translate("Form", "Update", None, -1))
 

@@ -2,12 +2,12 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window.ui'
 #
-# Created: Sat Feb  3 16:48:39 2018
+# Created: Tue Apr  3 21:09:17 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtWidgets
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
@@ -35,7 +35,7 @@ class Ui_OpenRiggingToolkit(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.widget_welcome.sizePolicy().hasHeightForWidth())
         self.widget_welcome.setSizePolicy(sizePolicy)
-        self.widget_welcome.setObjectName("form_welcome")
+        self.widget_welcome.setObjectName("widget_welcome")
         self.verticalLayout_9.addWidget(self.widget_welcome)
         self.stackedWidget.addWidget(self.page_1)
         self.page_2 = QtWidgets.QWidget()
@@ -226,6 +226,6 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create New", None, -1))
 
-from omtk.qt_widgets.form_welcome.WidgetWelcome import WidgetWelcome
+from ..form_welcome import WidgetWelcome
 from ..outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
 from ..nodegraph import NodeGraphWidget

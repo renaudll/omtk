@@ -35,8 +35,8 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
         grp_inn_attr = grp_inn.attr(name) if grp_inn.hasAttr(name) else None
         grp_out_attr = grp_out.attr(name) if grp_out.hasAttr(name) else None
 
-        self._inn_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_inn_attr)
-        self._out_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_out_attr)
+        self._inn_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_inn_attr) if grp_inn_attr else None
+        self._out_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_out_attr) if grp_out_attr else None
 
     def _can_show_connection(self, connection):
         port_src = connection.get_source()
@@ -57,6 +57,11 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
     def get_input_connections(self):
         registry = self._registry
         result = set()
+
+        # grp_inn might not exist
+        if not self._inn_adaptor:
+            return result
+
         for val in self._inn_adaptor.get_inputs():
             model = registry.get_port_model_from_value(val)
             inst = registry.get_connection_model_from_values(model, self)
@@ -66,6 +71,11 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
     def get_output_connections(self):
         registry = self._registry
         result = set()
+
+        # grp_out might not exist
+        if not self._out_adaptor:
+            return result
+
         for val in self._out_adaptor.get_outputs():
             model = registry.get_port_model_from_value(val)
             inst = registry.get_connection_model_from_values(self, model)
@@ -73,16 +83,16 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
         return result
 
     def is_readable(self):
-        return self._out_adaptor.is_readable()
+        return self._out_adaptor.is_readable() if self._out_adaptor else False
 
     def is_writable(self):
-        return self._inn_adaptor.is_writable()
+        return self._inn_adaptor.is_writable() if self._inn_adaptor else False
 
     def is_source(self):
-        return self._out_adaptor.is_source()
+        return self._out_adaptor.is_source() if self._out_adaptor else False
 
     def is_destination(self):
-        return self._inn_adaptor.is_source()
+        return self._inn_adaptor.is_source() if self._inn_adaptor else False
 
     def is_interesting(self):
         return True

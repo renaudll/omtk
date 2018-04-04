@@ -652,8 +652,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             log.debug("Cannot naviguate to {0}".format(node_model))
 
     def navigate_up(self):
-        if self._current_level_data is None:
-            return
+        # if self._current_level_data is None:
+        #     return
 
         node_model = self._current_level_model.get_parent()
         if self.can_navigate_to(node_model):
@@ -819,6 +819,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     def group_nodes(self, nodes):
         # type: (List[NodeGraphNodeModel]) -> NodeGraphComponentModel
+        """
+        Create a component from the selected nodes.
+        Any selected nodes will be in the component.
+        Any connection that exit the selection will be redirected to the component 'inn' or 'out' nodes.
+        """
         # Remove grouped widgets
         for node in nodes:
             # node_model = self.get_node_model_from_value(node)
@@ -827,10 +832,17 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         registry = node._registry
 
+        # todo: better detection of dagnodes
+        dgnodes = [node.get_metadata() for node in nodes]
+
         inn_attrs, out_attrs = self._get_nodes_outsider_ports(nodes)
         inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
         out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
-        inst = component.Component.create(inn_attrs, out_attrs)  # todo: how do we handle dag nodes?
+        inst = component.from_attributes(
+            inn_attrs, 
+            out_attrs,
+            dagnodes=dgnodes,
+        )
 
         self.manager.export_network(inst)
         self.manager._register_new_component(inst)

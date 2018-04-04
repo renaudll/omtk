@@ -1,13 +1,11 @@
 import logging
 
-import omtk.constants
 from maya import cmds
 from omtk import constants
 from omtk.core import session
 from omtk.core.entity import Entity
 from omtk.core.entity_attribute import EntityAttribute
 from omtk.core.entity_action import EntityAction
-from omtk.core.entity_attribute import get_attribute_definition
 from omtk.libs import libAttr
 from omtk.libs import libNamespaces
 from omtk.libs import libComponents
@@ -21,6 +19,7 @@ log = logging.getLogger('omtk')
 
 
 if False:  # for type hinting
+    from typing import List
     from omtk.core.component_definition import ComponentDefinition
 
 # todo: create ComponentScripted and ComponentSaved
@@ -71,47 +70,55 @@ class ComponentAttribute(EntityAttribute):
 
 
 class Component(Entity):
+    """
+    A Component implement encapsulation in Maya
+    Components use namespaces to determine their content.
+    This is the simplest design available to us in Maya.
+    """
     # These need to be defined in order to register a component.
     component_id = None
     component_name = None
 
     need_grp_inn = True
     need_grp_out = True
-    need_grp_dag = True
 
-    def __init__(self, name=None):
+    def __init__(self, namespace=None):
         super(Component, self).__init__()
+
+        # todo: namespace is a keyword argument for compatibility with libSerialization
+        # fix libSerialization instead of modifying this code
+
+        self.namespace = namespace
 
         self.uid = self.component_id
 
-        # Not sure about this one
-        self.name = name if name else self.component_name
+        # Component can have a definition that define informations needed to identify them.
+        self.definition = None
 
-        self.version = None
-
-        self.author = ''
-
-        # Network object that hold all the input attributes.
+        # A component can have a 'inn' node.
+        # Each input custom attribute of this object will be exposed outside of the component.
         self.grp_inn = None
 
-        # Network object that hold all the output attributes.
+        # A component can have an 'out' node.
+        # Each output custom attribute of this object will be exposed outside of the component.
         self.grp_out = None
-
-        # Network object to hold any DagNode belonging to the component.
-        self.grp_dag = None
 
         # Used for dynamic components. Define if a Component content need to be regenerated.
         self._is_dirty_content = True
 
-    def get_name(self):
-        # todo: store the instance name in the class?
-        # currently we'll use the namespace which is not ideal
-        if self.grp_inn:
-            return self.grp_inn.namespace().strip(':')
-        if self.grp_out:
-            return self.grp_out.namespace().strip(':')
-        if self.grp_dag:
-            return self.grp_dag.namespace().strip(':')
+    def __contains__(self, item):
+        # type: (pymel.nodetypes.DependNode) -> bool
+        """
+        Check if a pymel.nodetypes.DependNode is inside the component.
+        :param item: A pymel.nodetypes.DependNode.
+        :return: True if the node is inside the component. False otherwise.
+        """
+        # todo: do we check recursively?
+        return item in self.get_children()
+
+    def get_namespace(self):
+        # type: () -> str
+        return self.namespace
 
     @classmethod
     def from_definition(cls, cls_def):
@@ -151,8 +158,6 @@ class Component(Entity):
             self.grp_inn = pymel.createNode('network', name='inn')
         if self.need_grp_out:
             self.grp_out = pymel.createNode('network', name='out')
-        if self.need_grp_dag:
-            self.grp_dag = pymel.createNode('transform', name='dag')
 
         pymel.select(sel)  # todo: keep_selection decorator
 
@@ -213,13 +218,10 @@ class Component(Entity):
             objs_to_delete.append(self.grp_inn)
         if self.grp_out and self.grp_out.exists():
             objs_to_delete.append(self.grp_out)
-        if self.grp_dag and self.grp_dag.exists():
-            objs_to_delete.append(self.grp_dag)
         if objs_to_delete:
             pymel.delete(objs_to_delete)
         self.grp_inn = None
         self.grp_out = None
-        self.grp_dag = None
 
     def optimize(self):
         # type: () -> bool
@@ -279,125 +281,6 @@ class Component(Entity):
         attr_src = self.grp_out.attr(attr_dst)
         pymel.connectAttr(attr_src, attr_dst)
 
-    # @classmethod
-    # def from_attributes(cls, attrs_inn, attrs_out, swap=False):
-    #     inst = cls()
-    #
-    #     hub_inn = pymel.createNode('network', name=constants.COMPONENT_HUB_INN_NAME)
-    #     hub_out = pymel.createNode('network', name=constants.COMPONENT_HUB_OUT_NAME)
-    #
-    #     for attr_inn in attrs_inn:
-    #         attr_name = libAttr.get_unique_attr_name(hub_inn, libAttr.escape_attr_name(attr_inn.longName()))
-    #         # Check if the attribute exist before transfering it.
-    #         # This can happen with build-in attribute like translateX since the hub is a transform.
-    #         # It might be more logical to use networks for this, but we'll stick with transforms for now.
-    #         data = libAttr.holdAttr(attr_inn, delete=False)
-    #         data['node'] = hub_inn
-    #         data['longName'] = attr_name
-    #         data['shortName'] = attr_name
-    #         data['niceName'] = attr_name
-    #         libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
-    #         hub_inn_attr = hub_inn.attr(attr_name)
-    #         libAttr.swapAttr(attr_inn, hub_inn_attr, inputs=False, outputs=swap)
-    #         if not swap:
-    #             pymel.connectAttr(hub_inn_attr, attr_inn)
-    #
-    #     for attr_out in attrs_out:
-    #         attr_name = libAttr.get_unique_attr_name(hub_out, libAttr.escape_attr_name(attr_out.longName()))
-    #         data = libAttr.holdAttr(attr_out, delete=False)
-    #         data['node'] = hub_out
-    #         data['longName'] = attr_name
-    #         data['shortName'] = attr_name
-    #         data['niceName'] = attr_name
-    #         libAttr.fetchAttr(data, reconnect_inputs=False, reconnect_outputs=False)
-    #         hub_out_attr = hub_out.attr(attr_name)
-    #         libAttr.swapAttr(hub_out_attr, attr_out, inputs=swap, outputs=False)
-    #         if not swap:
-    #             pymel.connectAttr(attr_out, hub_out_attr)
-    #             # if not isolate:
-    #             #    pymel.connectAttr(hub_out.attr(attr_name), attr_out)
-    #
-    #     inst.grp_inn = hub_inn
-    #     inst.grp_out = hub_out
-    #
-    #     if dag_root:
-    #         hub_dag = pymel.createNode('transform', name=constants.COMPONENT_HUB_DAG_NAME)
-    #         dag_root.setParent(hub_dag)
-    #         inst.grp_dag = hub_dag
-    #
-    #     libSerialization.export_network(inst)
-    #
-    #     return inst
-
-    @classmethod
-    def create(cls, attrs_inn, attrs_out, dagnodes=None):
-        """
-        Create a Component from existing nodes.
-        :param dagnodes: A list of nodes to include in the component.
-        :param attrs_inn: A dict(k, v) of public input attributes where k is attr name and v is the reference attribute.
-        :param attrs_out: A dict(k, v) of publish output attributes where k is attr name v is the reference attribute.
-        :return: Component instance.
-        """
-        # todo: do we want to force readable or writable attributes? can this fail?
-        # Find an available namespace
-        # This allow us to make sure that we'll have access to unique name.
-        # Note theses namespaces will be removed in any exported file.
-        namespace = libNamespaces.get_unique_namespace('component', enforce_suffix=True)
-        cmds.namespace(add=namespace)
-
-        inst = cls()
-
-        hub_inn = pymel.createNode('network', name='{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME))
-        hub_out = pymel.createNode('network', name='{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME))
-
-        def _escape_attr_name(attr_name):
-            return attr_name.replace('[', '').replace(']', '')  # todo: find a better way
-
-        # Create the hub_inn attribute.
-        for attr_name, attr_ref in attrs_inn.iteritems():
-            data = libAttr.AttributeData.from_pymel_attribute(attr_ref, store_inputs=True, store_outputs=True)
-            if not data.is_writable:
-                raise IOError("Expected a writable attribute as an input reference.")
-
-            attr_name = _escape_attr_name(attr_name)
-
-            data.rename(attr_name)
-            hub_attr = data.copy_to_node(hub_inn)
-            pymel.connectAttr(hub_attr, attr_ref, force=True)
-            data.connect_stored_inputs(hub_inn)
-
-        # Create the hub_out attribute.
-        for attr_name, attr_ref in attrs_out.iteritems():
-            data = libAttr.AttributeData.from_pymel_attribute(attr_ref, store_inputs=True, store_outputs=True)
-            if not data.is_readable:
-                raise IOError("Expected a readable attribute as an output reference.")
-
-            attr_name = _escape_attr_name(attr_name)
-
-            data.rename(attr_name)
-            hub_attr = data.copy_to_node(hub_out)
-            pymel.connectAttr(attr_ref, hub_attr)
-            data.connect_stored_outputs(hub_out)
-
-        inst.grp_inn = hub_inn
-        inst.grp_out = hub_out
-
-        if dagnodes:
-            hub_dag = pymel.createNode('transform', name='{0}:{1}'.format(namespace, constants.COMPONENT_HUB_DAG_NAME))
-            dagnodes_set = set(dagnodes)
-            for dagnode in dagnodes:
-                dagnode.rename('{0}:{1}'.format(namespace, dagnode.nodeName()))
-
-                # We'll only parent to the dag grp provided nodes that are not child of other provided node.
-                allparents_set = set(dagnode.getAllParents())
-                if not dagnodes_set & allparents_set:
-                    dagnode.setParent(hub_dag)
-            inst.grp_dag = hub_dag
-
-            libSerialization.export_network(inst)
-
-        return inst
-
     def explode(self):
         """Delete the component and it's hub, remaping the attribute to their original location."""
         if not self.is_built():
@@ -425,34 +308,18 @@ class Component(Entity):
         self.unbuild()
 
     def get_children(self):
-        # todo: we can determine the children by guessing or at import time
+        # type: () -> List[pymel.nodetypes.DependNode]
+        """
+        The children of the component are any DgNode that are under our namespace.
+        :return:
+        """
+        return pymel.ls('{0}:*'.format(self.namespace))
 
-        def _listHistory(start_node, **kwargs):
-            """
-            For reasons I ignore at the moment, listHistory will stop at joints.
-            This bypass it until I get a better understanding.
-            """
-            known = set()
-            def _subroutine(node):
-                for hist in node.listHistory(**kwargs):
-                    if hist in known:
-                        continue
-                    known.add(hist)
-
-                    if isinstance(hist, pymel.nodetypes.Joint):
-                        _subroutine(hist)
-            _subroutine(start_node)
-            return known
-
-        result = (set(self.grp_inn.listHistory(future=True)) & _listHistory(self.grp_out, future=False))
-        # result = libAttr._wip_explore_output_dependencies_recursive(self.grp_inn)
-        # result &= libAttr._wip_explore_input_dependencies_recursive(self.grp_out)
-
-        result -= {self.grp_inn, self.grp_out}
-        if self.grp_dag:
-            result.add(self.grp_dag)
-            result.update(self.grp_dag.listRelatives(allDescendents=True))
-        return result
+    def _get_metadata_node(self):
+        if self.grp_inn:
+            return libComponents.get_component_metanetwork_from_hub_network(self.grp_inn)
+        if self.grp_out:
+            return libComponents.get_component_metanetwork_from_hub_network(self.grp_out)
 
     def export(self, path):
         children = self.get_children()
@@ -463,9 +330,7 @@ class Component(Entity):
         m = session.get_session()
         network = m.export_network(self)
 
-        objs_to_export = children | {self.grp_inn, self.grp_out, network}
-        if self.grp_dag:
-            objs_to_export.add(self.grp_dag)
+        objs_to_export = set(children) | {self.grp_inn, self.grp_out, network}
 
         # Hold current file
         current_path = cmds.file(q=True, sn=True)
@@ -495,8 +360,6 @@ class Component(Entity):
             namespace = self.grp_inn.namespace()
         elif self.grp_out:
             namespace = self.grp_out.namespace()
-        elif self.grp_dag:
-            namespace = self.grp_dag.namespace()
         if namespace:
             libComponents.remove_namespace_from_file(path, namespace)
 
@@ -510,44 +373,11 @@ class Component(Entity):
         self.uid = component_def.uid
 
         # Re-export metadata
-        libSerialization.export_network(self)
+        network = libSerialization.export_network(self)
 
-
-# todo: create IComponent class?
-
-class ComponentScripted(Component):
-    @classmethod
-    def get_definition(cls):
-        from omtk.core import component_definition
-
-        inst = component_definition.ComponentScriptedDefinition(
-            uid=cls.component_id,
-            name=cls.component_name,
-            version=omtk.constants.get_version(),
-        )
-        inst.component_cls = cls
-        return inst
-
-    def build_content(self):
-        """
-        Build the content between the inn and out hub.
-        This is separated in it's own method since in some Component, changing an attribute value can necessitate
-        a rebuild of the content but not of the public interface.
-        :return:
-        """
-        pass
-
-    def build(self):
-        self.build_interface()
-        self.build_content()
-
-    def is_built_interface(self):
-        return \
-            self.grp_inn and self.grp_inn.exists() and \
-            self.grp_out and self.grp_out.exists()
-
-    def is_built(self):
-        return self.is_built_interface()
+        # Rename the network to match desired nomenclature
+        network_name = '{0}:{1}'.format(self.namespace, constants.COMPONENT_METANETWORK_NAME)
+        network.rename(network_name)
 
 
 # --- Actions ---
@@ -575,3 +405,105 @@ class ActionShowContentInNodeEditor(EntityAction):
         node_editor = self._create_node_editor()
         pymel.select(children)
         cmds.nodeEditor(node_editor, e=True, addNode='')
+
+
+def create_empty(namespace='component'):
+    # type: (str) -> Component
+    """
+    Create an empty component.
+    :param namespace:
+    :return:
+    """
+    namespace = libNamespaces.get_unique_namespace(namespace)
+    cmds.namespace(add=namespace)
+    inst = Component(namespace)
+    return inst
+
+
+def from_nodes(objs, namespace='component'):
+    # type: (List[pymel.nodetypes.DependNode], str) -> Component
+    """
+    Create a component from a set of nodes.
+    This will move these nodes into a unique namespace and return a Component instance.
+    :param objs: A list of pymel.nodetypes.DependNode.
+    :param namespace: The desired namespace. If not unique, a suffix will be added.
+    :return: A Component instance.
+    """
+    namespace = libNamespaces.get_unique_namespace(namespace)
+    cmds.namespace(add=namespace)
+
+    for obj in objs:
+        old_name = obj.name()
+        new_name = '{0}:{1}'.format(namespace, old_name)
+        obj.rename(new_name)
+
+    inst = Component(namespace)
+    return inst
+
+
+def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
+    """
+    Create a Component from existing nodes.
+    :param dagnodes: A list of nodes to include in the component.
+    :param attrs_inn: A dict(k, v) of public input attributes where k is attr name and v is the reference attribute.
+    :param attrs_out: A dict(k, v) of publish output attributes where k is attr name v is the reference attribute.
+    :return: Component instance.
+    """
+    # todo: do we want to force readable or writable attributes? can this fail?
+    # Find an available namespace
+    # This allow us to make sure that we'll have access to unique name.
+    # Note theses namespaces will be removed in any exported file.
+    namespace = libNamespaces.get_unique_namespace(namespace)
+    cmds.namespace(add=namespace)
+
+    inst = Component(namespace)
+
+    hub_inn = pymel.createNode('network', name='{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME))
+    hub_out = pymel.createNode('network', name='{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME))
+
+    def _escape_attr_name(attr_name):
+        return attr_name.replace('[', '').replace(']', '')  # todo: find a better way
+
+    # Create the hub_inn attribute.
+    for attr_name, attr_ref in attrs_inn.iteritems():
+        data = libAttr.AttributeData.from_pymel_attribute(attr_ref, store_inputs=True, store_outputs=True)
+        if not data.is_writable:
+            raise IOError("Expected a writable attribute as an input reference.")
+
+        attr_name = _escape_attr_name(attr_name)
+
+        data.rename(attr_name)
+        hub_attr = data.copy_to_node(hub_inn)
+        pymel.connectAttr(hub_attr, attr_ref, force=True)
+        data.connect_stored_inputs(hub_inn)
+
+    # Create the hub_out attribute.
+    for attr_name, attr_ref in attrs_out.iteritems():
+        data = libAttr.AttributeData.from_pymel_attribute(attr_ref, store_inputs=True, store_outputs=True)
+        if not data.is_readable:
+            raise IOError("Expected a readable attribute as an output reference.")
+
+        attr_name = _escape_attr_name(attr_name)
+
+        data.rename(attr_name)
+        hub_attr = data.copy_to_node(hub_out)
+        pymel.connectAttr(attr_ref, hub_attr)
+        data.connect_stored_outputs(hub_out)
+
+    # Resolve the objects between the hubs
+    dagnodes = set(dagnodes) if dagnodes else set()
+    dagnodes |= set(hub_inn.listHistory(future=True)) & set(hub_out.listHistory(future=False))
+
+    dagnodes.remove(hub_inn)  # already correctly named
+    dagnodes.remove(hub_out)  # already correctly named
+
+    inst.grp_inn = hub_inn
+    inst.grp_out = hub_out
+
+    if dagnodes:
+        for dagnode in dagnodes:
+            dagnode.rename('{0}:{1}'.format(namespace, dagnode.nodeName()))
+
+    libSerialization.export_network(inst)
+
+    return inst

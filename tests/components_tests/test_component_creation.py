@@ -40,8 +40,8 @@ class ComponentCreationTestCase(unittest.TestCase):
         namespace = 'component'
         inst = component.from_nodes([obj], namespace=namespace)
 
-        self.assertEqual(namespace, inst.get_namespace())
-        self.assertEqual(namespace, obj.namespace().strip(':'))
+        self.assertEqual('component1', inst.get_namespace())
+        self.assertEqual('component1', obj.namespace().strip(':'))
 
     def test_create_component_from_attributes(self):
         """
@@ -53,6 +53,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         pymel.connectAttr(src.tx, dst.tx)
 
         namespace = 'component'
+        expected_namespace = 'component1'
         inst = component.from_attributes(
             {'innVal': src.tx}, {'outVal': dst.tx}, namespace=namespace
         )
@@ -65,7 +66,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         # Validate that the objects are under a namespace.
         for obj in [src, dst, inst.grp_inn, inst.grp_out]:
-            self.assertEqual(namespace, obj.namespace().strip(':'))
+            self.assertEqual(expected_namespace, obj.namespace().strip(':'))
 
     def test_create_component_from_compound_attributes(self):
         """

@@ -27,7 +27,7 @@ class ComponentSetDefinitionTestCase(unittest.TestCase):
         cmpnt.set_definition(cmpnt_definition)
 
         # Setting the definition should create a 'meta' node.
-        self.assertTrue(cmds.objExists('{0}:{1}'.format(namespace, constants.COMPONENT_METANETWORK_NAME)))
+        self.assertTrue('component1:meta')
 
 if __name__ == '__main__':
     unittest.main()

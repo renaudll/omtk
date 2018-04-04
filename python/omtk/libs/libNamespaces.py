@@ -12,11 +12,11 @@ def get_all_namespaces():
     return cmds.namespaceInfo(listOnlyNamespaces=True, recurse=True)
 
 
-def get_unique_namespace(prefix, namespace_format='{0}{1:02d}', enforce_suffix=False):
+def get_unique_namespace(prefix, namespace_format='{0}{1}', enforce_suffix=False, suffix_start=1):
     all_namespaces = get_all_namespaces()
     if not enforce_suffix and prefix not in all_namespaces:
         return prefix
-    for i in itertools.count():
+    for i in itertools.count(suffix_start):
         new_namespace = namespace_format.format(prefix, i)
         if new_namespace not in all_namespaces:
             return new_namespace

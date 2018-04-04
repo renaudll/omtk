@@ -1,15 +1,23 @@
 import logging
 import os
 import tempfile
+from maya import cmds
 
 import pymel.core as pymel
+from omtk import constants
+
+from omtk.core import component
 from omtk.core.component_definition import ComponentDefinition
 from omtk.libs import libAttr
-from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.vendor import libSerialization
 
 log = logging.getLogger('omtk')
+
+
+if False:  # type hinting
+    from typing import List, Generator
+    from omtk.core.component import Component
 
 
 def identify_network_io_ports(objs):
@@ -152,24 +160,38 @@ class BrokenComponentError(Exception):
     """Raised when something fail because a node is inside and outside of a component at the same time."""
 
 
-def get_component_network_bounds():
+def iter_components():
+    # type: () -> Generator[Component]
     """
-    Return the metadata of the component parent of the provided component, starting from any object.
-    :param obj: A pymel.nodetypes.Network representing the output of a component.
-    :param cache: Initialized internally.
-    :return: A pymel.nodetypes.Network that can be deserialized.
+    Scan the scene and yield any components.
+    A network is considered a component if it match these 3 simple requirements:
+    - In is in a namespace
+    - It have an 'inn' object
+    - It have an 'out' object
     """
-    component_network_by_hub_inn = {}
-    component_network_by_hub_out = {}
-    networks = libSerialization.get_networks_from_class('Component')
-    for network in networks:
-        grp_inn = next(iter(network.attr('grp_inn').inputs()), None)
-        if grp_inn:
-            component_network_by_hub_inn[grp_inn] = network
-        grp_out = next(iter(network.attr('grp_out').inputs()), None)
-        if grp_out:
-            component_network_by_hub_out[grp_out] = network
-    return component_network_by_hub_inn, component_network_by_hub_out
+    for namespace in cmds.namespaceInfo(listNamespace=True):
+        namespace = namespace.strip(':')
+
+        # Ensure a 'inn' object exist.
+        grp_inn_dagpath = '{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME)
+        if not cmds.objExists(grp_inn_dagpath):
+            continue
+
+        # Ensure an 'out' object exist.
+        grp_out_dagpath = '{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME)
+        if not cmds.objExists(grp_out_dagpath):
+            continue
+
+        inst = component.Component(namespace)
+        inst.grp_inn = pymel.PyNode(grp_inn_dagpath)
+        inst.grp_out = pymel.PyNode(grp_out_dagpath)
+        yield inst
+
+
+def list_components():
+    # type: () -> List[Component]
+    return list(iter_components())
+
 
 
 def get_component_metanetwork_from_hub_network(network, strict=True):
@@ -234,73 +256,6 @@ def get_metanetwork_role(obj):
     if net_out == obj:
         return ComponentMetanetworkRole.Out
     return ComponentMetanetworkRole.NoRole
-
-
-def get_component_parent_network(obj, source=True, destination=True, cache=None, strict=False):
-    """
-    Return the metadata of the component parent of the provided component, optimized for starting at the input network.
-    :param obj: A pymel.nodetypes.Network representing the output of a component.
-    :param cache: Initialized internally.
-    :return: A pymel.nodetypes.Network that can be deserialized.
-    """
-    component_network_by_hub_inn, component_network_by_hub_out = get_component_network_bounds()
-
-    def _fn_goal_inn(n):
-        return n in component_network_by_hub_inn and n is not obj
-
-    def _fn_goal_out(n):
-        return n in component_network_by_hub_out and n is not obj
-
-    def _fn_explore_inn(n):
-        if n in component_network_by_hub_out:
-            n = get_inn_network_from_out_network(n, strict=True)
-        return pymel.listConnections(n, source=True, destination=False, skipConversionNodes=True)
-
-    # When searching for the right-side bound, we expect to encounter an output.
-    # If we encounter an component input network, this mean that this is a subcomponent and
-    # we can switch directly to it's outputs.
-    def _fn_explore_out(n):
-        if n in component_network_by_hub_inn:
-            n = get_out_network_from_inn_network(n, strict=True)
-        return pymel.listConnections(n, source=False, destination=True, skipConversionNodes=True)
-
-    # Keep track of the nodes we encounter while exploring.
-    # We'll add them to the cache since they are also between the same hub networks.
-    known_inn = set()
-    known_out = set()
-
-    try:
-        hub_inn = next(reversed(libPython.id_dfs(obj, _fn_goal_inn, _fn_explore_inn, known=known_inn)), None)
-    except StopIteration:
-        hub_inn = None
-    try:
-        hub_out = next(reversed(libPython.id_dfs(obj, _fn_goal_out, _fn_explore_out, known=known_out)), None)
-    except StopIteration:
-        hub_out = None
-
-    if hub_inn is None or hub_out is None:
-        if hub_inn != hub_out:
-            msg = "Found partial component bound for {0}. Input is {1}, output is {2}.".format(
-                obj, hub_inn, hub_out
-            )
-            if strict:
-                raise Exception(msg)
-            else:
-                log.warning(msg)
-        return hub_inn, hub_out
-
-    # Validate that we found two hub from the same component.
-    # If that's not the case, it might be that something is wrong with the component setup
-    # or that we are following connections that we didn't expected.
-    meta_network_inn = get_component_metanetwork_from_hub_network(hub_inn, strict=True)
-    meta_network_out = get_component_metanetwork_from_hub_network(hub_out, strict=True)
-    if meta_network_inn != meta_network_out:
-        raise Exception(
-            "Found bounds are not part of the same metanetwork. " +
-            "Input network {0} is part of {1}.".format(hub_inn, meta_network_inn) +
-            "Output network {0} is part of {1}.".format(hub_out, meta_network_out)
-        )
-    return hub_inn, hub_out
 
 
 def create_component_from_bounds(objs):

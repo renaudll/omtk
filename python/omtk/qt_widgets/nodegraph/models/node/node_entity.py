@@ -14,9 +14,12 @@ class NodeGraphEntityModel(node_base.NodeGraphNodeModel):
     """
 
     def __init__(self, registry, entity):
+        self._entity = entity
         name = entity.get_name()
         super(NodeGraphEntityModel, self).__init__(registry, name)
-        self._entity = entity
+
+    def __hash__(self):
+        return hash(self._entity)
 
     def get_metadata(self):
         # type: () -> Component

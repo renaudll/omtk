@@ -8,7 +8,6 @@ from omtk import constants
 from omtk.core import preferences
 from omtk.libs import libPython
 from omtk.libs import libAttr
-from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore
 from omtk.vendor.libSerialization import cache as libSerializationCache
@@ -26,6 +25,7 @@ class ComponentCache(object):
     def __init__(self, parent):
         self._component_network_by_hub_inn = {}
         self._component_network_by_hub_out = {}
+        self._component_by_namespace = {}
         self._cache_parent_by_node = {}
         self._cache_nodes_by_parent = defaultdict(set)
         self._session = parent
@@ -33,16 +33,20 @@ class ComponentCache(object):
         self.init_cache()
 
     def init_cache(self):
+        from omtk.libs import libComponents
         self._cache_parent_by_node = {}
         self._cache_nodes_by_parent = defaultdict(set)
-        self._component_network_by_hub_inn, self._component_network_by_hub_out = libComponents.get_component_network_bounds()
+        self._component_network_by_hub_inn = {}
+        self._component_network_by_hub_out = {}
+        self._component_by_namespace = {}
+
+        for component in libComponents.iter_components():
+            self.add_component_to_cache(component)
 
     def add_component_to_cache(self, component):
-        if component.grp_inn:
-            self._component_network_by_hub_inn[component.grp_inn] = component
-
-        if component.grp_out:
-            self._component_network_by_hub_out[component.grp_out] = component
+        self._component_network_by_hub_inn[component.grp_inn] = component
+        self._component_network_by_hub_out[component.grp_out] = component
+        self._component_by_namespace[component.namespace] = component
 
         for child in component.get_children():
             self._cache_parent_by_node[child] = component
@@ -64,79 +68,8 @@ class ComponentCache(object):
         :param cache: Initialized internally.
         :return: A pymel.nodetypes.Network that can be deserialized.
         """
-
-        component = self._component_network_by_hub_inn.get(obj)
-        if component:
-            return component
-
-        component = self._component_network_by_hub_out.get(obj)
-        if component:
-            return component
-
-        def _fn_goal_inn(n):
-            return n in self._component_network_by_hub_inn and n is not obj
-
-        def _fn_goal_out(n):
-            return n in self._component_network_by_hub_out and n is not obj
-
-        def _fn_explore_inn(n):
-            if n in self._component_network_by_hub_out:
-                n = libComponents.get_inn_network_from_out_network(n, strict=True)
-            return libAttr._wip_explore_input_dependencies(n)
-
-        # When searching for the right-side bound, we expect to encounter an output.
-        # If we encounter an component input network, this mean that this is a subcomponent and
-        # we can switch directly to it's outputs.
-        def _fn_explore_out(n):
-            if n in self._component_network_by_hub_inn:
-                n = libComponents.get_out_network_from_inn_network(n, strict=True)
-
-            return libAttr._wip_explore_output_dependencies(n)
-
-        known_inn = set()
-        known_out = set()
-
-        try:
-            hub_inn = next(reversed(libPython.id_dfs(obj, _fn_goal_inn, _fn_explore_inn, known=known_inn)), None)
-        except StopIteration:
-            hub_inn = None
-        try:
-            hub_out = next(reversed(libPython.id_dfs(obj, _fn_goal_out, _fn_explore_out, known=known_out)), None)
-        except StopIteration:
-            hub_out = None
-
-        if hub_inn is None or hub_out is None:
-            # if hub_inn != hub_out:
-            #     raise libComponents.BrokenComponentError("Found partial component bound for {0}. Input is {1}, output is {2}.".format(
-            #         obj, hub_inn, hub_out
-            #     ))
-            return None
-
-        # Validate that we found two hub from the same component.
-        # If that's not the case, it might be that something is wrong with the component setup
-        # or that we are following connections that we didn't expected.
-        meta_network_inn = libComponents.get_component_metanetwork_from_hub_network(hub_inn, strict=True)
-        meta_network_out = libComponents.get_component_metanetwork_from_hub_network(hub_out, strict=True)
-        if meta_network_inn != meta_network_out:
-            raise libComponents.BrokenComponentError(
-                "Found bounds are not part of the same metanetwork. " +
-                "Input network {0} is part of {1}.".format(hub_inn, meta_network_inn) +
-                "Output network {0} is part of {1}.".format(hub_out, meta_network_out)
-            )
-
-        net = libComponents.get_component_metanetwork_from_hub_network(hub_inn)
-        if not net:
-            raise libComponents.BrokenComponentError("Cannot resolve component from {0}".format(hub_inn))
-
-        inst = self._session.import_network(net)
-
-        # Ok, we got something, for speed purpose set the cache for all the nodes we explored.
-        for node in known_inn & known_out:
-            if node not in self._cache_parent_by_node:
-                self._cache_parent_by_node[node] = inst
-                self._cache_nodes_by_parent[inst].add(node)
-
-        return inst
+        namespace = obj.namespace().strip(':')
+        return self._component_by_namespace.get(namespace, None)
 
 
 class AutoRigManager(QtCore.QObject):

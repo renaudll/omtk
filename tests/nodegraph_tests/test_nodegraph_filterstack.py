@@ -65,16 +65,16 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
 
         # Create compound
         compound = self.ctrl.group_nodes([m2, m3])
-        self.assertGraphNodeNamesEqual([u'n1', u'component00'])
+        self.assertGraphNodeNamesEqual([u'n1', u'component1'])
         self.assertGraphConnectionsEqual([
-            (u'n1.matrix', u'component00.inputMatrix'),
+            (u'n1.matrix', u'component1.inputMatrix'),
         ])
 
         # Enter compound
         self.ctrl.set_level(compound)
-        self.assertGraphNodeNamesEqual([u'component00:inn', u'component00:out', u'n2'])
+        self.assertGraphNodeNamesEqual([u'component1:inn', u'component1:out', u'n2'])
         self.assertGraphConnectionsEqual([
-            (u'component00:inn.inputMatrix', u'n2.translate')
+            (u'component1:inn.inputMatrix', u'n2.translate')
         ])
 
 

@@ -200,24 +200,31 @@ class ComponentDefinition(object):
         if not metanetwork:
             metanetwork = libComponents.get_component_metanetwork_from_hub_network(hub_out, strict=False)
 
-        # If no metadata exist, create it from the .ma file header.
-        if not metanetwork:
-            log.warning("No metadata found in the scene. Reading data for {0}.".format(self.path))
-            # hack
-            from . import component
-            inst_def = ComponentDefinition.from_file(self.path)
-            inst = component.Component.from_definition(inst_def)
-            inst.need_grp_inn = False
-            inst.grp_inn = hub_inn
-            inst.need_grp_out = False
-            inst.grp_out = hub_out
-            inst.build_interface()
+        # todo: read the definition...
 
-            # from omtk.core import manager
-            # m = manager.get_manager()
-            # _ = m.export_network(inst)
-        else:
-            inst = m.import_network(metanetwork)
+        from omtk.core import component
+        inst = component.Component(namespace)
+        inst.grp_inn = hub_inn
+        inst.grp_out = hub_out
+
+        # # If no metadata exist, create it from the .ma file header.
+        # if not metanetwork:
+        #     log.warning("No metadata found in the scene. Reading data for {0}.".format(self.path))
+        #     # hack
+        #     from . import component
+        #     inst_def = ComponentDefinition.from_file(self.path)
+        #     inst = component.Component.from_definition(inst_def)
+        #     inst.need_grp_inn = False
+        #     inst.grp_inn = hub_inn
+        #     inst.need_grp_out = False
+        #     inst.grp_out = hub_out
+        #     inst.build_interface()
+        #
+        #     # from omtk.core import manager
+        #     # m = manager.get_manager()
+        #     # _ = m.export_network(inst)
+        # else:
+        #     inst = m.import_network(metanetwork)
 
         libComponents._connect_component_attributes(inst, map_inn, map_out)
 
@@ -244,7 +251,7 @@ class ComponentScriptedDefinition(ComponentDefinition):
     component_cls = None
 
     def instanciate(self, name='unamed', map_inn=None, map_out=None):
-        inst = self.component_cls(name=name)
+        inst = self.component_cls(name)
         inst.build_interface()
 
         # inst.build()

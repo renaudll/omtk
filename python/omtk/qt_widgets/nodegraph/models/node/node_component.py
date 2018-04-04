@@ -1,22 +1,17 @@
-from . import node_entity
 import pymel.core as pymel
-
-from omtk import decorators
 from omtk.core import component
-from omtk.core import entity_attribute
-from omtk.core import session
+from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
+from omtk.qt_widgets.nodegraph.models.node import node_dg
+from omtk.qt_widgets.nodegraph.models.port import port_base
 from omtk.vendor.Qt import QtGui
 
-from omtk.qt_widgets.nodegraph.models.node import node_base, node_dg
-from omtk.qt_widgets.nodegraph.models.port import port_base
-from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
+from . import node_entity
 
 if False:
     from typing import List
     from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
 
-from omtk.qt_widgets.nodegraph.models.port import port_adaptor_base
 from omtk.qt_widgets.nodegraph.models.port import port_adaptor_entity
 
 
@@ -25,6 +20,7 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
     Any port in a NodeGraphComponentModel is simple a normal attribute associated with the inn or out hub.
     However we want to prevent any
     """
+
     def __init__(self, registry, node, attr_def):
         super(NodeGraphComponentPortModel, self).__init__(registry, node, attr_def)
 
@@ -127,10 +123,7 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
     def __init__(self, registry, entity):
         assert (isinstance(entity, component.Component))
         super(NodeGraphComponentModel, self).__init__(registry, entity)
-
-    def __hash__(self):
-        # todo: find a better way
-        return hash(self._name)
+        self._name = entity.namespace
 
     def delete(self):
         # todo: verify it work
@@ -139,6 +132,7 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
     def get_parent(self):
         # The parent of a component is either None or another component.
         # To retreive the parent of a component, check one of it's connections?
+        # todo: use libComponents?
         for connection in self.get_input_connections():
             node = connection.get_source().get_parent()
             return node.get_parent()
@@ -232,8 +226,10 @@ class NodeGraphComponentBoundBaseModel(node_dg.NodeGraphDgNodeModel):
     def get_parent(self):
         return self._get_component()
 
+
 def _return_empty_array():
     return []
+
 
 class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
     _widget_background_color = QtGui.QColor(0, 195, 227)

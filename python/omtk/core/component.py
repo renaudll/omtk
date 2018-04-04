@@ -8,7 +8,6 @@ from omtk.core.entity_attribute import EntityAttribute
 from omtk.core.entity_action import EntityAction
 from omtk.libs import libAttr
 from omtk.libs import libNamespaces
-from omtk.libs import libComponents
 from omtk.vendor import libSerialization
 from omtk.factories import factory_datatypes
 from omtk.core.entity_attribute import EntityPymelAttribute, EntityPymelAttributeCollection
@@ -105,6 +104,9 @@ class Component(Entity):
 
         # Used for dynamic components. Define if a Component content need to be regenerated.
         self._is_dirty_content = True
+
+    def __hash__(self):
+        return hash(self.namespace)
 
     def __contains__(self, item):
         # type: (pymel.nodetypes.DependNode) -> bool
@@ -315,12 +317,6 @@ class Component(Entity):
         """
         return pymel.ls('{0}:*'.format(self.namespace))
 
-    def _get_metadata_node(self):
-        if self.grp_inn:
-            return libComponents.get_component_metanetwork_from_hub_network(self.grp_inn)
-        if self.grp_out:
-            return libComponents.get_component_metanetwork_from_hub_network(self.grp_out)
-
     def export(self, path):
         children = self.get_children()
         if not children:
@@ -361,6 +357,7 @@ class Component(Entity):
         elif self.grp_out:
             namespace = self.grp_out.namespace()
         if namespace:
+            from omtk.libs import libComponents  # todo: move the method to another module
             libComponents.remove_namespace_from_file(path, namespace)
 
         return True
@@ -378,7 +375,6 @@ class Component(Entity):
         # Rename the network to match desired nomenclature
         network_name = '{0}:{1}'.format(self.namespace, constants.COMPONENT_METANETWORK_NAME)
         network.rename(network_name)
-
 
 # --- Actions ---
 
@@ -414,7 +410,7 @@ def create_empty(namespace='component'):
     :param namespace:
     :return:
     """
-    namespace = libNamespaces.get_unique_namespace(namespace)
+    namespace = libNamespaces.get_unique_namespace(namespace, enforce_suffix=True)
     cmds.namespace(add=namespace)
     inst = Component(namespace)
     return inst
@@ -429,7 +425,7 @@ def from_nodes(objs, namespace='component'):
     :param namespace: The desired namespace. If not unique, a suffix will be added.
     :return: A Component instance.
     """
-    namespace = libNamespaces.get_unique_namespace(namespace)
+    namespace = libNamespaces.get_unique_namespace(namespace, enforce_suffix=True)
     cmds.namespace(add=namespace)
 
     for obj in objs:
@@ -453,7 +449,7 @@ def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     # Find an available namespace
     # This allow us to make sure that we'll have access to unique name.
     # Note theses namespaces will be removed in any exported file.
-    namespace = libNamespaces.get_unique_namespace(namespace)
+    namespace = libNamespaces.get_unique_namespace(namespace, enforce_suffix=True)
     cmds.namespace(add=namespace)
 
     inst = Component(namespace)
@@ -494,8 +490,8 @@ def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     dagnodes = set(dagnodes) if dagnodes else set()
     dagnodes |= set(hub_inn.listHistory(future=True)) & set(hub_out.listHistory(future=False))
 
-    dagnodes.remove(hub_inn)  # already correctly named
-    dagnodes.remove(hub_out)  # already correctly named
+    dagnodes.discard(hub_inn)  # already correctly named
+    dagnodes.discard(hub_out)  # already correctly named
 
     inst.grp_inn = hub_inn
     inst.grp_out = hub_out

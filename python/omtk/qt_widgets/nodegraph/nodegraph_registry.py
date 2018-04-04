@@ -6,7 +6,7 @@ from omtk.core import entity_attribute, session
 from omtk.core import module
 from omtk.factories import factory_datatypes
 
-from .models.node import node_rig, node_dag, node_dg, node_component
+from .models.node import node_rig, node_dag, node_dg, node_component, node_module
 from .models.port import port_base
 
 log = logging.getLogger('omtk.nodegraph')
@@ -132,7 +132,7 @@ class NodeGraphRegistry(object):
                 return node_dg.NodeGraphDgNodeModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Module:
-            return module.NodeGraphModuleModel(self, val)
+            return node_module.NodeGraphModuleModel(self, val)
 
         if data_type == factory_datatypes.AttributeType.Rig:
             return node_rig.NodeGraphNodeRigModel(self, val)

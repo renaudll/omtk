@@ -170,31 +170,14 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
                     print("Hiding {0} since it is not a child of {1}".format(node, self._level))
             return
 
-        # Handle pynodes
-        # if is_child_of(node, self._level):
-        #     yield node
-        if node.get_parent() == self._level:
+        # Is the node inside the current level?
+        parent = node.get_parent()
+        if parent == self._level:
             yield node
-        return
-
-        # # Handle pythondes
-        # pynode = node.get_metadata()
-        # c = s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
-        # if c:
-        #     # If we are inside the component, the input and output hub are already shown, just return.
-        #     if self._level and c == self._level.get_metadata():
-        #         return
-        #     else:
-        #         yield registry.get_node_from_value(c)
-        #     return
-        # else:
-        #     # If the object parent is NOT a compound and we are NOT at root level, the object is hidden.
-        #     # We decided to hide the object here instead of in can_show_node in case the user
-        #     if self._level:
-        #         log.debug("Hiding {}".format(node))
-        #         return
-        #
-        # yield node
+        # Is the node inside a compound that is inside the current level?
+        elif isinstance(parent, node_component.NodeGraphComponentModel):
+            if parent.get_parent() == self._level:
+                yield parent
 
     def intercept_port(self, port):
         registry = port._registry

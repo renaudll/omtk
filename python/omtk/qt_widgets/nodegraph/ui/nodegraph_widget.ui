@@ -16,9 +16,6 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="WidgetBreadcrumb" name="widget_breadcrumb" native="true"/>
-    </item>
-    <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
        <number>-1</number>
@@ -177,12 +174,6 @@
    <class>WidgetToolbar</class>
    <extends>QToolBar</extends>
    <header>...widget_toolbar.h</header>
-  </customwidget>
-  <customwidget>
-   <class>WidgetBreadcrumb</class>
-   <extends>QWidget</extends>
-   <header>...widget_breadcrumb.h</header>
-   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

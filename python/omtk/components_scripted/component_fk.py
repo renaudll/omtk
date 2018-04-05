@@ -51,8 +51,8 @@ class ComponentFk(ComponentScripted):
     ATTR_NAME_INN_ANM_TMS = 'anm'
     ATTR_NAME_OUT_INF_TMS = 'inf'
 
-    def __init__(self, **kwargs):
-        super(ComponentFk, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(ComponentFk, self).__init__(*args, **kwargs)
 
         # Pre-define inputs for scripted usage.
         self._attr_inn_chain = None

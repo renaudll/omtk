@@ -371,8 +371,8 @@ class ComponentIk(ComponentScripted):
     component_name = 'IK'
     component_id = constants.BuiltInComponentIds.Ik
 
-    def __init__(self, **kwargs):
-        super(ComponentIk, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(ComponentIk, self).__init__(*args, **kwargs)
 
         # Pre-define inputs for scripted usage.
         self._attr_inn_chain = None

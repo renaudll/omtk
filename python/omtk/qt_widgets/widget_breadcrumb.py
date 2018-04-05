@@ -3,7 +3,7 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 
 class WidgetBreadcrumb(QtWidgets.QWidget):
-    path_changed = QtCore.Signal(object)
+    onPathChanged = QtCore.Signal(object)
 
     def __init__(self, *args, **kwargs):
         super(WidgetBreadcrumb, self).__init__(*args, **kwargs)
@@ -49,7 +49,7 @@ class WidgetBreadcrumb(QtWidgets.QWidget):
 
     def on_path_changed(self, model):
         # self.set_path(model)
-        self.path_changed.emit(model)
+        self.onPathChanged.emit(model)
 
     # def on_path_changed(self, new_path):
     #     raise NotImplementedError

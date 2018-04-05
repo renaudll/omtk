@@ -4,6 +4,7 @@ import pymel.core as pymel
 from omtk.core import session
 from omtk.qt_widgets.nodegraph.models.node import node_component
 from omtk.vendor.enum34 import Enum
+from omtk.vendor.Qt import QtCore
 
 from . import graph_proxy_model
 
@@ -18,6 +19,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
     """
     Wrap the interface of a ``NodeGraphModel`` instance to modify what the user (and controller) see (and interact via signals).
     """
+    onLevelChanged = QtCore.Signal(object)
 
     def __init__(self, model=None, level=None):
         super(GraphComponentProxyFilterModel, self).__init__(model=model)
@@ -96,6 +98,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
                 self._need_refresh = True
 
         # self.reset()  # we need to refresh everything
+        self.onLevelChanged.emit(level)
 
     # todo: move upper?
     def expand_node_ports(self, node):

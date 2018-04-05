@@ -18,8 +18,8 @@ class ComponentGradientFloat(ComponentScripted):
     ATTR_NAME_INN_NUM_VALUES = 'numValues'
     ATTR_NAME_OUT_VALUES = 'outValues'
 
-    def __init__(self, **kwargs):
-        super(ComponentGradientFloat, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(ComponentGradientFloat, self).__init__(*args, **kwargs)
 
         self.attr_inn_value_s = None
         self.attr_inn_value_e = None

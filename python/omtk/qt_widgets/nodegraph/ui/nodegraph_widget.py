@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Tue Apr  3 21:09:17 2018
+# Created: Wed Apr  4 19:57:25 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,9 +17,6 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.widget_breadcrumb = WidgetBreadcrumb(self.centralwidget)
-        self.widget_breadcrumb.setObjectName("widget_breadcrumb")
-        self.verticalLayout.addWidget(self.widget_breadcrumb)
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         self.tabWidget.setObjectName("tabWidget")
         self.verticalLayout.addWidget(self.tabWidget)
@@ -122,5 +119,4 @@ class Ui_MainWindow(object):
         self.actionFrameAll.setText(QtWidgets.QApplication.translate("MainWindow", "Frame All", None, -1))
         self.actionFrameSelected.setText(QtWidgets.QApplication.translate("MainWindow", "Frame Selected", None, -1))
 
-from ...widget_breadcrumb import WidgetBreadcrumb
 from ...widget_toolbar import WidgetToolbar

@@ -31,7 +31,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     Link node values to NodeGraph[Node/Port/Connection]Model.
     DOES handle the Component representation by wrapper ``NodeGraphRegistry``.
     """
-    onLevelChanged = QtCore.Signal(object)  # todo: move to GraphComponentProxyFilterModel
+    onLevelChanged = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
 
     # Define the default root model to use
@@ -110,6 +110,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     def set_model(self, model):
         # type: (NodeGraphModel) -> None
+
         self._model = model
         if self._view:
             self.reset_view()
@@ -123,6 +124,9 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         model.onPortRemoved.connect(self.on_model_port_removed)
         model.onConnectionAdded.connect(self.on_model_connection_added)
         model.onConnectionRemoved.connect(self.on_model_connection_removed)
+
+        # note: We expect the last model to be a GraphComponentProxyFilterModel for now.
+        model.onLevelChanged.connect(self.onLevelChanged)
 
     def get_view(self):
         # type: () -> NodeGraphView

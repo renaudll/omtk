@@ -88,9 +88,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
         self.ui.widget_toolbar.onNodeCreated.connect(self.on_add)
 
-        # Connect events (breadcrumb)
-        # self.ui.widget_breadcrumb.path_changed.connect(self.on_breadcrumb_changed)
-
         # At least create one tab
         self.create_tab()
 
@@ -167,7 +164,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     def create_tab(self):
         from .. import widget_breadcrumb
         breakcrumb = widget_breadcrumb.WidgetBreadcrumb()
-        breakcrumb.path_changed.connect(self.on_breadcrumb_changed)
+        breakcrumb.onPathChanged.connect(self.on_breadcrumb_changed)
 
         controller = self.get_controller()
 
@@ -274,10 +271,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     def on_frame_selected(self):
         self._current_view.frameSelectedNodes()
 
-    def on_breadcrumb_changed(self, model):
-        """Called when the current level is changed using the breadcrumb widget."""
-        self._ctrl.set_level(model)
-        self.ui.widget_breadcrumb.set_path(model)
 
     def on_level_changed(self, model):
         """Called when the current level is changed using the nodegraph_tests."""

@@ -4,6 +4,9 @@ from omtk.core import component_definition
 
 
 class ComponentScripted(Component):
+    """
+    A Scripted component is a component where the construction of the internal network is done by script.
+    """
     @classmethod
     def get_definition(cls):
         inst = component_definition.ComponentScriptedDefinition(

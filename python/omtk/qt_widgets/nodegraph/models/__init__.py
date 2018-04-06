@@ -47,7 +47,6 @@ def reload_():
     from . import graph
     reload(graph)
     graph.reload_()
-    from .graph import graph_model
-    reload(graph_model)
+
     global NodeGraphModel
     NodeGraphModel = graph_model.NodeGraphModel

@@ -36,27 +36,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui = nodegraph_widget.Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # Configure NodeGraphView
-        self._registry = _get_singleton_model()
-
-        self._source_model = NodeGraphModel()
-
-        # Create filter
-        self._filter = filter_standard.NodeGraphStandardFilter()
-
-        # Add a proxy-model to apply user display preferences
-        self._model = graph_proxy_filter_model.GraphFilterProxyModel()
-        self._model.set_source_model(self._source_model)
-        self._model.set_filter(self._filter)
-
-        # Add a proxy-model to allow encapsulation
-        self._proxy_model_subgraph = graph_component_proxy_model.GraphComponentProxyFilterModel()
-        self._proxy_model_subgraph.set_source_model(self._model)
-
-        # Create ctrl
-        self._ctrl = NodeGraphController(model=self._proxy_model_subgraph)
-        self._ctrl.onLevelChanged.connect(self.on_level_changed)
-
         # Keep track of the multiple views provided by the QTabWidget
         self._current_view = None
         self._views = []
@@ -75,24 +54,16 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.actionUngroup.triggered.connect(self.on_ungroup)
         self.ui.actionFrameAll.triggered.connect(self.on_frame_all)
         self.ui.actionFrameSelected.triggered.connect(self.on_frame_selected)
-
         self.ui.actionLayoutUpstream.triggered.connect(self.on_arrange_upstream)
         self.ui.actionLayoutDownstream.triggered.connect(self.on_arrange_downstream)
         self.ui.actionLayoutSpring.triggered.connect(self.on_arrange_spring)
-        self.ui.actionMatchMayaEditorPositions.triggered.connect(self._ctrl.on_match_maya_editor_positions)
+        self.ui.actionMatchMayaEditorPositions.triggered.connect(self.on_match_maya_editor_positions)
         self.ui.actionLayoutRecenter.triggered.connect(self.on_arrange_recenter)
-
-        # self.ui.pushButton_arrange_upstream.pressed.connect(self.on_arrange_upstream)
-        # self.ui.pushButton_arrange_downstream.pressed.connect(self.on_arrange_downstream)
-        # self.ui.pushButton_arrange_spring.pressed.connect(self.on_arrange_spring)
 
         self.ui.widget_toolbar.onNodeCreated.connect(self.on_add)
 
         # At least create one tab
         self.create_tab()
-
-        # Load root level
-        # self._proxy_model_subgraph_filter.set_level(None)
 
         # Pre-fill the node editor
         self.on_add()
@@ -108,9 +79,16 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._create_shortcut(QtCore.Qt.Key_P, self.on_parent_selected)
         self._create_shortcut(QtCore.Qt.Key_Plus, self.on_add)
         self._create_shortcut(QtCore.Qt.Key_Minus, self.on_del)
-
         # todo: move elsewhere?
         self._create_shortcut(QtCore.Qt.Key_T, self.ui.widget_toolbar.create_favorite_callback('transform'))
+
+    def keyPressEvent(self, event):
+        """
+        This method is declared to prevent Maya from catching key events
+        """
+        pass
+
+    # --- Shortcuts ---
 
     def _create_shortcut(self, key, fn_):
         qt_key_sequence = QtGui.QKeySequence(key)
@@ -139,7 +117,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.get_controller().delete_selected_nodes()
 
     def on_shortcut_group(self):
-        self.get_controller().on_rcmenu_group_selection()
+        self.get_controller().group_selected_nodes()
 
     def on_shortcut_duplicate(self):
         self.get_controller().duplicate_selected_nodes()
@@ -161,34 +139,22 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     def get_view(self):
         return self._ctrl._view
 
+    def set_controller(self, ctrl):
+        self._ctrl = ctrl
+
     def create_tab(self):
-        from .. import widget_breadcrumb
-        breakcrumb = widget_breadcrumb.WidgetBreadcrumb()
-        breakcrumb.onPathChanged.connect(self.on_breadcrumb_changed)
-
-        controller = self.get_controller()
-
-        view = nodegraph_view.NodeGraphView(self)
-        view.set_model(self._ctrl)
-        view.endSelectionMoved.connect(self.on_selected_nodes_moved)  # ???
-
-        # view.setMouseTracking(True)
-        # Proper layout setup for tab
-        widget = QtWidgets.QWidget()
-        # widget.setMouseTracking(True)
-        layout = QtWidgets.QVBoxLayout(widget)
-        layout.addWidget(breakcrumb)
-        layout.addWidget(view)
+        from . import nodegraph_tab_widget
+        widget = nodegraph_tab_widget.NodeGraphTabWidget(self)
 
         # tab_view.setCurrentWidget(self._view)
         self.ui.tabWidget.addTab(widget, 'Tab 1')
         self.ui.tabWidget.addTab(QtWidgets.QWidget(), '+')
 
-        self._ctrl.set_view(view)
+        from omtk.qt_widgets.nodegraph import nodegraph_controller
+        ctrl = nodegraph_controller.NodeGraphController()
+        widget.set_ctrl(ctrl)
 
-        # Update internals
-        self._current_view = view
-        self._views.append(view)
+        self.set_controller(widget.get_controller())
 
         # Debugging
         i = self.ui.tabWidget.currentIndex()
@@ -201,20 +167,19 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
                 new_pos = (new_pos.x(), new_pos.y())
                 libPyflowgraph.save_node_position(node, new_pos)
 
+    # Connect shortcut buttons to the active controller.
+
     def on_add(self):
-        for obj in pymel.selected():
-            node = self._registry.get_node_from_value(obj)
-            self._ctrl.add_node(node)
+        self.get_controller().add_maya_selection_to_view()
 
     def on_del(self):
-        graph = self.ui.widget_view
-        graph.deleteSelectedNodes()
+        self.get_controller().remove_maya_selection_from_view()
 
     def on_clear(self):
-        self._ctrl.clear()
+        self.get_controller().clear()
 
     def on_expand(self):
-        self._ctrl.expand_selected_nodes()
+        self.get_controller().expand_selected_nodes()
 
     def on_expand_more(self):
         self.on_expand()
@@ -226,56 +191,38 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.on_expand()
 
     def on_colapse(self):
-        return self._ctrl.colapse_selected_nodes()
+        self.get_controller().colapse_selected_nodes()
 
     def on_navigate_down(self):
-        self._ctrl.navigate_down()
+        self.get_controller().navigate_down()
 
     def on_navigate_up(self):
-        self._ctrl.navigate_up()
-
-    def _get_active_node(self):
-        return next(iter(self._current_view.getSelectedNodes()), None)
+        self.get_controller().navigate_up()
 
     def on_arrange_upstream(self):
-        node = self._get_active_node()
-        if not node:
-            return
-        libPyflowgraph.arrange_upstream(node)
+        self.get_controller().arrange_upstream()
 
     def on_arrange_downstream(self):
-        node = self._get_active_node()
-        if not node:
-            return
-        libPyflowgraph.arrange_downstream(node)
+        self.get_controller().arrange_downstream()
 
     def on_arrange_spring(self):
-        pyflowgraph_nodes = self._current_view.getSelectedNodes()
-        libPyflowgraph.spring_layout(pyflowgraph_nodes)
-        self._current_view.frameAllNodes()
+        self.get_controller().arrange_spring()
+
+    def on_match_maya_editor_positions(self):
+        self.get_controller().on_match_maya_editor_positions()
 
     def on_group(self):
-        self._ctrl.on_rcmenu_group_selection()
+        self.get_controller().group_selected_nodes()
 
     def on_ungroup(self):
-        self._ctrl.on_rcmenu_ungroup_selection()
+        self.get_controller().ungroup_selected_nodes()
 
     def on_arrange_recenter(self):
-        pyflowgraph_nodes = self._current_view.getSelectedNodes()
-        libPyflowgraph.recenter_nodes(pyflowgraph_nodes)
-        self._current_view.frameSelectedNodes()
+        self.get_controller().arrange_recenter()
 
     def on_frame_all(self):
-        self._current_view.frameAllNodes()
+        self.get_controller().frame_all()
 
     def on_frame_selected(self):
-        self._current_view.frameSelectedNodes()
+        self.get_controller().frame_selected()
 
-
-    def on_level_changed(self, model):
-        """Called when the current level is changed using the nodegraph_tests."""
-        self.ui.widget_breadcrumb.set_path(model)
-
-    def keyPressEvent(self, event):
-        # Prevent Maya from catching key events
-        pass

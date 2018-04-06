@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>604</width>
+    <height>458</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="WidgetBreadcrumb" name="widget_breadcrumb" native="true"/>
+   </item>
+   <item>
+    <widget class="NodeGraphView" name="widget_nodegraph" native="true"/>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WidgetBreadcrumb</class>
+   <extends>QWidget</extends>
+   <header>..widgetbreadcrumb.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>NodeGraphView</class>
+   <extends>QWidget</extends>
+   <header>..nodegraphview.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

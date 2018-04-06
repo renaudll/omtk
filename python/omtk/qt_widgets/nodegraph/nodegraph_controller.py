@@ -10,6 +10,7 @@ from omtk.core import component, session, entity
 from omtk.libs import libPyflowgraph, libPython
 from omtk.factories import  factory_rc_menu
 from omtk.qt_widgets.nodegraph.models.node import node_dg, node_root
+from omtk.qt_widgets.nodegraph import nodegraph_registry
 from omtk.vendor.Qt import QtCore
 
 # Used for type checking
@@ -18,6 +19,7 @@ if False:
     from .nodegraph_view import NodeGraphView
     from omtk.qt_widgets.nodegraph.models import NodeGraphModel, NodeGraphNodeModel, NodeGraphPortModel, \
         NodeGraphConnectionModel
+    from omtk.qt_widgets.nodegraph.nodegraph_registry import NodeGraphRegistry
     from omtk.qt_widgets.nodegraph.filters.filter_standard import NodeGraphFilter
     from omtk.qt_widgets.nodegraph.pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
     from omtk.qt_widgets.nodegraph.pyflowgraph_port_widget import OmtkNodeGraphBasePortWidget
@@ -130,6 +132,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     def get_view(self):
         # type: () -> NodeGraphView
+        assert(bool(self._view))
         return self._view
 
     def set_view(self, view):
@@ -161,6 +164,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._filter = filter_
         model = self.get_model()
         model.set_filter(filter_)
+
+    def get_registry(self):
+        # type: () -> NodeGraphRegistry
+        return nodegraph_registry._get_singleton_model()
 
     # --- Events ---
 
@@ -682,7 +689,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             menu_action.triggered.connect(self.on_rcmenu_delete_attribute)
 
             menu_action = menu.addAction('Group')
-            menu_action.triggered.connect(self.on_rcmenu_group_selection)
+            menu_action.triggered.connect(self.group_selected_nodes)
 
             menu_action = menu.addAction('Publish as Component')
             menu_action.triggered.connect(self.on_rc_menu_publish_component)
@@ -692,7 +699,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         if any(True for val in values if isinstance(val, component.Component)):
             menu_action = menu.addAction('Ungroup')
-            menu_action.triggered.connect(self.on_rcmenu_ungroup_selection)
+            menu_action.triggered.connect(self.ungroup_selected_nodes)
 
         values = [v for v in values if isinstance(v, entity.Entity)]  # limit ourself to components
 
@@ -759,6 +766,22 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     # --- User actions, currently defined in the widget, should be moved in the controller ---
 
+    def add_maya_selection_to_view(self):
+        """
+        Add the current Maya selection to the view.
+        """
+        registry = self.get_registry()
+        for obj in pymel.selected():
+            node = registry.get_node_from_value(obj)
+            self.add_node(node)
+
+    def remove_maya_selection_from_view(self):
+        """
+        Remove the current Maya selection from the view if applicable.
+        """
+        view = self.get_view()
+        view.deleteSelectedNodes()  # todo: is this the desired way?
+
     def on_match_maya_editor_positions(self, multiplier=2.0):
         from omtk.libs import libMayaNodeEditor
         from omtk.libs import libPyflowgraph
@@ -805,9 +828,43 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         for node_model in self.get_selected_node_models():
             self.collapse_node_attributes(node_model)
 
+    def _get_active_node(self):
+        view = self.get_view()
+        return next(iter(view.getSelectedNodes()), None)
+
+    def arrange_upstream(self):
+        node = self._get_active_node()
+        if not node:
+            return
+        libPyflowgraph.arrange_upstream(node)
+
+    def arrange_downstream(self):
+        node = self._get_active_node()
+        if not node:
+            return
+        libPyflowgraph.arrange_downstream(node)
+
+    def arrange_spring(self):
+        view = self.get_view()
+        pyflowgraph_nodes = view.getSelectedNodes()
+        libPyflowgraph.spring_layout(pyflowgraph_nodes)
+        self._current_view.frameAllNodes()
+
+    def arrange_recenter(self):
+        view = self.get_view()
+        pyflowgraph_nodes = view.getSelectedNodes()
+        libPyflowgraph.recenter_nodes(pyflowgraph_nodes)
+        self._current_view.frameSelectedNodes()
+
+    def frame_all(self):
+        self._view.frameAllNodes()
+
+    def frame_selected(self):
+        self._view.frameSelectedNodes()
+
     # --- Right click menu events ---
 
-    def on_rcmenu_group_selection(self):
+    def group_selected_nodes(self):
         nodes = self.get_selected_node_models()
 
         # Resolve middle position, this is where the component will be positioned.
@@ -876,7 +933,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         from omtk.qt_widgets import form_create_component
         form_create_component.show()
 
-    def on_rcmenu_ungroup_selection(self):
+    def ungroup_selected_nodes(self):
         # Get selection components
         components = [val for val in self.get_selected_values() if isinstance(val, component.Component)]
         if not components:

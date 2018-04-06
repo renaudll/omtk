@@ -1,12 +1,9 @@
-import abc
-import copy
-import pymel.core as pymel
+
 import logging
 from collections import defaultdict
 
+from omtk.qt_widgets.nodegraph.models.graph import graph_model_abstract
 from omtk.vendor.Qt import QtCore
-
-from . import graph_model_abstract
 
 log = logging.getLogger('omtk.nodegraph')
 

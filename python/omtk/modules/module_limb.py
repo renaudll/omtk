@@ -308,7 +308,7 @@ def register_plugin():
     return Limb
 
 
-from omtk.core.component import ComponentScripted
+from omtk.core.component_scripted import ComponentScripted
 
 
 class ComponentLimb(ComponentScripted):

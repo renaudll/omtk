@@ -4,13 +4,12 @@ import pymel.core as pymel
 from omtk.core import session
 from omtk.libs import libPyflowgraph
 from omtk.qt_widgets.nodegraph.nodegraph_registry import _get_singleton_model
-from omtk.qt_widgets.nodegraph.ui import nodegraph_widget
-from omtk.qt_widgets.nodegraph.models import NodeGraphModel
+from omtk.qt_widgets.nodegraph.ui import nodegraph_tab_widget
+from omtk.qt_widgets.nodegraph.models.graph import graph_model
 from omtk.qt_widgets.nodegraph.models.graph import graph_proxy_filter_model, graph_component_proxy_model
 from omtk.qt_widgets.nodegraph.filters import filter_standard
 from omtk.vendor.Qt import QtWidgets, QtCore, QtGui
 
-from . import nodegraph_view
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -24,13 +23,13 @@ class NodeGraphTabWidget(QtWidgets.QMainWindow):
 
         super(NodeGraphTabWidget, self).__init__(parent)
 
-        self.ui = nodegraph_widget.Ui_MainWindow()
+        self.ui = nodegraph_tab_widget.Ui_Form()
         self.ui.setupUi(self)
 
         # Configure NodeGraphView
         self._registry = _get_singleton_model()
 
-        self._source_model = NodeGraphModel()
+        self._source_model = graph_model.NodeGraphModel()
 
         # Create filter
         self._filter = filter_standard.NodeGraphStandardFilter()
@@ -47,6 +46,10 @@ class NodeGraphTabWidget(QtWidgets.QMainWindow):
         # Create ctrl
         self._ctrl = NodeGraphController(model=self._proxy_model_subgraph)
         self._ctrl.onLevelChanged.connect(self.on_level_changed)
+
+        view = self.ui.widget_nodegraph
+        self._view = view
+        self._ctrl.set_view(view)
 
         # Pre-fill the node editor
         self.on_add()

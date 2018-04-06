@@ -1,7 +1,7 @@
 import collections
 
 import pymel.core as pymel
-from omtk.core.component import ComponentScripted
+from omtk.core.component_scripted import ComponentScripted
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.dag_builder import DagBuilder
 from omtk.core.module import Module

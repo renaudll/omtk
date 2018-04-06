@@ -1,11 +1,12 @@
 import logging
-from omtk import decorators
+
 import pymel.core as pymel
+from omtk import decorators
 from omtk.core import session
 from omtk.core.component_definition import ComponentDefinition
-from omtk.libs import libPyflowgraph
 from omtk.libs import libPython
-from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
+from omtk.vendor.Qt import QtCore
+from omtk.vendor.Qt import QtWidgets, QtGui
 from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # simple alias
 
 log = logging.getLogger('omtk.nodegraph')
@@ -24,10 +25,11 @@ class NodeGraphView(PyFlowgraphView):
     dragDrop = QtCore.Signal(object)
     actionRequested = QtCore.Signal(list)
     updateRequested = QtCore.Signal()  # todo: deprecate
+    nodeDragedIn = QtCore.Signal(object)
+    on_right_click = QtCore.Signal(QtWidgets.QMenu)
 
     def __init__(self, parent=None):
         super(NodeGraphView, self).__init__(parent=parent)
-        self.selectionChanged.connect(self.on_selection_changed)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_customContextMenuRequested)
@@ -53,7 +55,7 @@ class NodeGraphView(PyFlowgraphView):
     # -- CustomContextMenu --
 
     def on_selection_changed(self):
-        self._controller.on_selection_changed()
+        self.selectionChanged.emit()
 
     # --- Drag and Drop ----
 
@@ -94,7 +96,8 @@ class NodeGraphView(PyFlowgraphView):
         # new clean method
         if isinstance(drop_data, list):
             for entry in drop_data:
-                self._controller.add_node(entry)
+                self.nodeDragedIn.emit(entry)
+                # self._controller.add_node(entry)
 
         self.dragDrop.emit(event)
 
@@ -121,8 +124,8 @@ class NodeGraphView(PyFlowgraphView):
         self.updateRequested.emit()
 
     def on_customContextMenuRequested(self, pos):
-        from omtk.vendor.Qt import QtWidgets, QtGui
         # Store _menu to prevent undesired garbage collection
         self._menu = QtWidgets.QMenu()
-        self._controller.on_right_click(self._menu)
+        # self._controller.on_right_click(self._menu)
+        self.on_right_click.emit(self._menu)
         self._menu.popup(QtGui.QCursor.pos())

@@ -48,11 +48,6 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._current_level_model = None
         self._current_level_data = None
 
-        if model:
-            self.set_model(model)
-        if view:
-            self.set_view(view)
-
         # Hold a reference to the inn and out node when inside a compound.
         self._widget_bound_inn = None
         self._widget_bound_out = None
@@ -88,6 +83,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._buffer_old_nodes = set()  # nodes that the graph will try to display when the model is reset
         self._expanded_nodes = set()  # todo: duplicate?
         self._nodes_with_expanded_connections = set()
+
+        if model:
+            self.set_model(model)
+        if view:
+            self.set_view(view)
 
     @property
     def manager(self):
@@ -142,6 +142,9 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         if self._view:
             self._view.connectionAdded.disconnect(self.on_connection_added)
             self._view.connectionRemoved.disconnect(self.on_connected_removed)
+            self._view.selectionChanged.disconnect(self.on_selection_changed)
+            self._view.on_right_click.disconnect(self.on_right_click)
+            self._view.nodeDragedIn.disconnect(self.on_node_draged_in)
 
         self._view = view
 
@@ -156,6 +159,9 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         # Connect events
         view.connectionAdded.connect(self.on_connection_added)
         view.connectionRemoved.connect(self.on_connected_removed)
+        view.selectionChanged.connect(self.on_selection_changed)
+        view.on_right_click.connect(self.on_right_click)
+        view.nodeDragedIn.connect(self.on_node_draged_in)
 
         self.reset_view()
 
@@ -547,6 +553,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     # --- High-level methods ---
 
+    def on_node_draged_in(self, value):
+        registry = self.get_registry()
+        node = registry.get_node_from_value(value)
+        self.add_node(node)
+
     def add_nodes(self, *nodes, **kwargs):
         [self.add_node(node, **kwargs) for node in nodes]
 
@@ -691,13 +702,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             menu_action = menu.addAction('Group')
             menu_action.triggered.connect(self.group_selected_nodes)
 
+        if any(True for val in values if isinstance(val, component.Component)):
             menu_action = menu.addAction('Publish as Component')
             menu_action.triggered.connect(self.on_rc_menu_publish_component)
 
             menu_action = menu.addAction('Publish as Module')
             menu_action.triggered.connect(self.on_rcmenu_publish_module)
 
-        if any(True for val in values if isinstance(val, component.Component)):
             menu_action = menu.addAction('Ungroup')
             menu_action.triggered.connect(self.ungroup_selected_nodes)
 
@@ -848,13 +859,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         view = self.get_view()
         pyflowgraph_nodes = view.getSelectedNodes()
         libPyflowgraph.spring_layout(pyflowgraph_nodes)
-        self._current_view.frameAllNodes()
+        self._view.frameAllNodes()
 
     def arrange_recenter(self):
         view = self.get_view()
         pyflowgraph_nodes = view.getSelectedNodes()
         libPyflowgraph.recenter_nodes(pyflowgraph_nodes)
-        self._current_view.frameSelectedNodes()
+        self._view.frameSelectedNodes()
 
     def frame_all(self):
         self._view.frameAllNodes()

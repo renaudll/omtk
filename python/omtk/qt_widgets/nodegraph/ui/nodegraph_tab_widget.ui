@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>604</width>
-    <height>458</height>
+    <width>747</width>
+    <height>698</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -26,13 +32,13 @@
   <customwidget>
    <class>WidgetBreadcrumb</class>
    <extends>QWidget</extends>
-   <header>..widgetbreadcrumb.h</header>
+   <header>...widget_breadcrumb.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>NodeGraphView</class>
    <extends>QWidget</extends>
-   <header>..nodegraphview.h</header>
+   <header>..nodegraph_view.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

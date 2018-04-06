@@ -2,7 +2,7 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants
-from omtk.core.component import ComponentScripted
+from omtk.core.component_scripted import ComponentScripted
 from omtk.core.dag_builder import DagBuilder
 
 log = logging.getLogger('omtk')

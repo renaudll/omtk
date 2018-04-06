@@ -37,7 +37,9 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         # Keep track of the multiple views provided by the QTabWidget
-        self._current_view = None
+        self._ctrl = None
+        self._view = None
+        self._ctrls = []
         self._views = []
 
         # Connect events
@@ -61,9 +63,20 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.actionLayoutRecenter.triggered.connect(self.on_arrange_recenter)
 
         self.ui.widget_toolbar.onNodeCreated.connect(self.on_add)
+        self.ui.tabWidget.currentChanged.connect(self.on_tab_change)
 
         # At least create one tab
+        self.ui.tabWidget.blockSignals(True)
         self.create_tab()
+        self.create_tab()
+        self.create_tab()
+        self.create_tab_new()
+        self.ui.tabWidget.blockSignals(False)
+
+        # Hack: Select the first tab
+        self.ui.tabWidget.setCurrentIndex(0)
+        self.set_view(self._views[0])
+        self.set_controller(self._ctrls[0])
 
         # Pre-fill the node editor
         self.on_add()
@@ -99,7 +112,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         """
         Called when the user press ``f``. Frame selected nodes if there's a selection, otherwise frame everything.
         """
-        view = self._current_view
+        view = self.get_view()
         if view.getSelectedNodes():
             view.frameSelectedNodes()
         else:
@@ -107,8 +120,8 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_shortcut_tab(self):
         from omtk.qt_widgets.outliner import widget_component_list
-        dialog = widget_component_list.WidgetComponentList(self._current_view)
-        dialog.signalComponentCreated.connect(self._current_view.on_component_created)  # todo: move method?
+        dialog = widget_component_list.WidgetComponentList(self._view)
+        dialog.signalComponentCreated.connect(self._view.on_component_created)  # todo: move method?
         # dialog.setMinimumHeight(self.height())
         dialog.show()
         dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
@@ -137,37 +150,105 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         return self._ctrl
 
     def get_view(self):
-        return self._ctrl._view
+        return self._view
 
     def set_controller(self, ctrl):
         self._ctrl = ctrl
 
+    def add_controller(self, ctrl):
+        self.set_controller(ctrl)
+        self._ctrls.append(ctrl)
+
+    def set_view(self, view):
+        self._view = view
+
+    def add_view(self, view):
+        self.set_view(view)
+        self._views.append(view)
+
     def create_tab(self):
-        from . import nodegraph_tab_widget
-        widget = nodegraph_tab_widget.NodeGraphTabWidget(self)
-
-        # tab_view.setCurrentWidget(self._view)
-        self.ui.tabWidget.addTab(widget, 'Tab 1')
-        self.ui.tabWidget.addTab(QtWidgets.QWidget(), '+')
-
+        from omtk.qt_widgets.nodegraph import nodegraph_view
         from omtk.qt_widgets.nodegraph import nodegraph_controller
-        ctrl = nodegraph_controller.NodeGraphController()
-        widget.set_ctrl(ctrl)
+        from omtk.qt_widgets.nodegraph.models.graph import graph_model
 
-        self.set_controller(widget.get_controller())
+        tabWidget = self.ui.tabWidget
+        source_model = graph_model.NodeGraphModel()
+        filter = filter_standard.NodeGraphStandardFilter()
+        model = graph_proxy_filter_model.GraphFilterProxyModel()
+        model.set_source_model(source_model)
+        model.set_filter(filter)
+        proxy_model_subgraph = graph_component_proxy_model.GraphComponentProxyFilterModel()
+        proxy_model_subgraph.set_source_model(model)
+        view = nodegraph_view.NodeGraphView(self)
+        ctrl = nodegraph_controller.NodeGraphController(model=proxy_model_subgraph, view=view)
+        self.add_view(view)
+        self.add_controller(ctrl)
 
-        # Debugging
-        i = self.ui.tabWidget.currentIndex()
-        log.info('Current tab index is {}'.format(i))
+        # from omtk.qt_widgets.nodegraph import nodegraph_tab_widget
+        # widget = nodegraph_tab_widget.NodeGraphTabWidget(tabWidget)
+
+        # view.setMouseTracking(True)
+        # Proper layout setup for tab
+        widget = QtWidgets.QWidget()
+        # widget.setMouseTracking(True)
+        widget._widget = view
+        layout = QtWidgets.QVBoxLayout(widget)
+
+        from omtk.qt_widgets import widget_breadcrumb
+        breadcrumb = widget_breadcrumb.WidgetBreadcrumb(self)
+        layout.addWidget(breadcrumb)
+
+        layout.addWidget(view)
+
+
+
+
+
+        # tabWidget.blockSignals(True)
+        tabWidget.addTab(widget, 'Tab 1')
+        # tabWidget.blockSignals(False)
+
+        # ctrl = widget.get_controller()
+        # view = widget.get_view()
+
+
+        #
+        # view._tb = QtWidgets.QPushButton()
+        # view._tb.setText("x")
+        # tabWidget.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, view._tb)
+
+    def create_tab_new(self):
+        widget = QtWidgets.QWidget()
+        tabWidget = self.ui.tabWidget
+        tabWidget.blockSignals(True)
+        tabWidget.addTab(widget, '+')
+        tabWidget.blockSignals(False)
 
     def on_selected_nodes_moved(self):
-        for node in self._current_view.getSelectedNodes():
+        for node in self._view.getSelectedNodes():
             if node._meta_data:
                 new_pos = node.pos()  # for x reason, .getGraphPos don't work here
                 new_pos = (new_pos.x(), new_pos.y())
                 libPyflowgraph.save_node_position(node, new_pos)
 
     # Connect shortcut buttons to the active controller.
+
+    def on_tab_change(self, index):
+        if index == -1:
+            return
+        if index == len(self._views):  # '+' tab
+            self.ui.tabWidget.blockSignals(True)
+            self.ui.tabWidget.removeTab(index)
+            self.ui.tabWidget.blockSignals(False)
+            self.create_tab()
+            self.create_tab_new()
+
+        else:
+            index = index
+            view = self._views[index]
+            ctrl = self._ctrls[index]
+            self.set_controller(ctrl)
+            self.set_view(view)
 
     def on_add(self):
         self.get_controller().add_maya_selection_to_view()

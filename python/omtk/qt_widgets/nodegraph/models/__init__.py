@@ -22,7 +22,6 @@ NodeGraphConnectionModel = connection.NodeGraphConnectionModel
 NodeGraphModel = graph_model.NodeGraphModel
 
 
-
 def reload_():
     # Port model
     reload(port)

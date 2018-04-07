@@ -1,7 +1,13 @@
 {
-  "blacklisted_nodetypes": [
+  "blacklisted_node_types": [
     "nodeGraphEditorInfo",
     "defaultRenderUtilityList"
+  ],
+  "blacklisted_node_names": [
+    "sceneConfigurationScriptNode",
+    "renderLayerManager",
+    "defaultRenderLayer",
+    "uiConfigurationScriptNode"
   ],
   "interesting_attributes": {
     "transform": [

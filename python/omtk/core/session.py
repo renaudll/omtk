@@ -15,6 +15,7 @@ from omtk.vendor.libSerialization import cache as libSerializationCache
 log = logging.getLogger('omtk')
 
 if False:  # for type hinting
+    from typing import Optional
     from omtk.core.component import Component
 
 
@@ -60,6 +61,24 @@ class ComponentCache(object):
             self._cache_parent_by_node[obj] = val  # cache will update by itself
             self._cache_nodes_by_parent[val].add(obj)
             return val
+
+    def get_component_from_input_hub(self, obj):
+        # type: (pymel.nodetypes.DependNode) -> Optional[Component]
+        """
+        Return the component associated with an input hub.
+        :param obj: An object that is used as input hub.
+        :return: The associated Component or None if the provided object is not an input hub.
+        """
+        return self._component_network_by_hub_inn.get(obj, None)
+
+    def get_component_from_output_hub(self, obj):
+        # type: (pymel.nodetypes.DependNode) -> Optional[Component]
+        """
+        Return the component associated with an output hub.
+        :param obj: An object that is used as output hub.
+        :return: The associated Component or None if the provided object is not an output hub.
+        """
+        return self._component_network_by_hub_out.get(obj, None)
 
     def _get_node_parent(self, obj):
         """
@@ -223,6 +242,24 @@ class AutoRigManager(QtCore.QObject):
     def get_component_from_obj(self, obj):
         # type: (pymel.PyNode) -> Component
         return self._cache_components.get_component_from_obj(obj)
+
+    def get_component_from_input_hub(self, obj):
+        # type: (pymel.nodetypes.DependNode) -> Optional[Component]
+        """
+        Return the component associated with an input hub.
+        :param obj: An object that is used as input hub.
+        :return: The associated Component or None if the provided object is not an input hub.
+        """
+        return self._cache_components.get_component_from_input_hub(obj)
+
+    def get_component_from_output_hub(self, obj):
+        # type: (pymel.nodetypes.DependNode) -> Optional[Component]
+        """
+        Return the component associated with an output hub.
+        :param obj: An object that is used as output hub.
+        :return: The associated Component or None if the provided object is not an output hub.
+        """
+        return self._cache_components.get_component_from_output_hub(obj)
 
     def _register_new_component(self, component):
         self._cache_components.add_component_to_cache(component)

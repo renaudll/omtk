@@ -43,6 +43,71 @@ class ComponentCreationTestCase(unittest.TestCase):
         self.assertEqual('component1', inst.get_namespace())
         self.assertEqual('component1', obj.namespace().strip(':'))
 
+    def test_create_component_from_objects_nested(self):
+        """
+        Ensure desired behavior when creating a component sandwitched between existing connections.
+        """
+        cmds.file(new=True, force=True)
+        n1 = pymel.createNode('transform')
+        n2 = pymel.createNode('transform')
+        n3 = pymel.createNode('transform')
+        n4 = pymel.createNode('transform')
+        n5 = pymel.createNode('transform')
+        pymel.connectAttr(n1.tx, n2.tx)
+        pymel.connectAttr(n2.tx, n3.tx)
+        pymel.connectAttr(n3.tx, n4.tx)
+        pymel.connectAttr(n4.tx, n5.tx)
+
+        # Create first component
+        namespace = 'component'
+        c1 = component.from_nodes([n2, n3, n4], namespace=namespace)
+
+        self.assertEqual(c1.grp_inn.longName(), 'component1:inn')
+        self.assertEqual(c1.grp_out.longName(), 'component1:out')
+
+        # Validate connections
+        # Note that for now, create a component from nodes don't populate the hubs automatically.
+        # This might be something that we are interested to do but I'm scared atm haha.
+        # self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [n1.tx])
+        # self.assertEqual(c1.grp_inn.attr('innVal').outputs(plugs=True), [n2.tx])
+        # self.assertEqual(c1.grp_out.attr('outVal').inputs(plugs=True), [n4.tx])
+        # self.assertEqual(c1.grp_out.attr('outVal').outputs(plugs=True), [n5.tx])
+
+        # Validate namespaces
+        self.assertEqual('', self._get_namespace(n1))
+        self.assertEqual('component1', self._get_namespace(n2))
+        self.assertEqual('component1', self._get_namespace(n3))
+        self.assertEqual('component1', self._get_namespace(n4))
+        self.assertEqual('', self._get_namespace(n5))
+        self.assertEqual('component1', self._get_namespace(c1.grp_inn))
+        self.assertEqual('component1', self._get_namespace(c1.grp_out))
+
+        # Create a second component under the first component
+        namespace = 'component'
+        c2 = component.from_nodes([n3], namespace=namespace)
+
+        # Validate connections
+        # n1 -> c1 -> n2 -> c2 -> n3 -> c2 -> n4 -> c1 -> n5
+        # self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [n1.tx])
+        # self.assertEqual(c1.grp_inn.attr('innVal').outputs(plugs=True), [n2.tx])
+        # self.assertEqual(c2.grp_inn.attr('innVal').inputs(plugs=True), [n2.tx])
+        # self.assertEqual(c2.grp_inn.attr('innVal').outputs(plugs=True), [n3.tx])
+        # self.assertEqual(c2.grp_out.attr('outVal').inputs(plugs=True), [n3.tx])
+        # self.assertEqual(c2.grp_out.attr('outVal').outputs(plugs=True), [n4.tx])
+        # self.assertEqual(c1.grp_out.attr('outVal').inputs(plugs=True), [n4.tx])
+        # self.assertEqual(c1.grp_out.attr('outVal').outputs(plugs=True), [n5.tx])
+
+        # Validate namespaces
+        self.assertEqual('', self._get_namespace(n1))
+        self.assertEqual('component1', self._get_namespace(n2))
+        self.assertEqual('component1:component1', self._get_namespace(n3))
+        self.assertEqual('component1', self._get_namespace(n4))
+        self.assertEqual('', self._get_namespace(n5))
+        self.assertEqual('component1', self._get_namespace(c1.grp_inn))
+        self.assertEqual('component1', self._get_namespace(c1.grp_out))
+        self.assertEqual('component1:component1', self._get_namespace(c2.grp_inn))
+        self.assertEqual('component1:component1', self._get_namespace(c2.grp_out))
+
     def test_create_component_from_attributes(self):
         """
         Ensure we are able to create a component by manually specifying the attributes we want.
@@ -67,6 +132,74 @@ class ComponentCreationTestCase(unittest.TestCase):
         # Validate that the objects are under a namespace.
         for obj in [src, dst, inst.grp_inn, inst.grp_out]:
             self.assertEqual(expected_namespace, obj.namespace().strip(':'))
+
+    @staticmethod
+    def _get_namespace(obj):
+        return obj.namespace().strip(':')
+
+    def test_create_component_from_attributes_nested(self):
+        """
+        Ensure desired behavior when creating a component sandwitched between existing connections.
+        """
+        cmds.file(new=True, force=True)
+        n1 = pymel.createNode('transform')
+        n2 = pymel.createNode('transform')
+        n3 = pymel.createNode('transform')
+        n4 = pymel.createNode('transform')
+        n5 = pymel.createNode('transform')
+        pymel.connectAttr(n1.tx, n2.tx)
+        pymel.connectAttr(n2.tx, n3.tx)
+        pymel.connectAttr(n3.tx, n4.tx)
+        pymel.connectAttr(n4.tx, n5.tx)
+
+        # Create first component
+        namespace = 'component'
+        c1 = component.from_attributes(
+            {'innVal': n2.tx}, {'outVal': n4.tx}, namespace=namespace
+        )
+
+        # Validate connections
+        self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [n1.tx])
+        self.assertEqual(c1.grp_inn.attr('innVal').outputs(plugs=True), [n2.tx])
+        self.assertEqual(c1.grp_out.attr('outVal').inputs(plugs=True), [n4.tx])
+        self.assertEqual(c1.grp_out.attr('outVal').outputs(plugs=True), [n5.tx])
+
+        # Validate namespaces
+        self.assertEqual('', self._get_namespace(n1))
+        self.assertEqual('component1', self._get_namespace(n2))
+        self.assertEqual('component1', self._get_namespace(n3))
+        self.assertEqual('component1', self._get_namespace(n4))
+        self.assertEqual('', self._get_namespace(n5))
+        self.assertEqual('component1', self._get_namespace(c1.grp_inn))
+        self.assertEqual('component1', self._get_namespace(c1.grp_out))
+
+        # Create a second component under the first component
+        namespace = 'component'
+        c2 = component.from_attributes(
+            {'innVal': n3.tx}, {'outVal': n3.tx}, namespace=namespace
+        )
+
+        # Validate connections
+        # n1 -> c1 -> n2 -> c2 -> n3 -> c2 -> n4 -> c1 -> n5
+        self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [n1.tx])
+        self.assertEqual(c1.grp_inn.attr('innVal').outputs(plugs=True), [n2.tx])
+        self.assertEqual(c2.grp_inn.attr('innVal').inputs(plugs=True), [n2.tx])
+        self.assertEqual(c2.grp_inn.attr('innVal').outputs(plugs=True), [n3.tx])
+        self.assertEqual(c2.grp_out.attr('outVal').inputs(plugs=True), [n3.tx])
+        self.assertEqual(c2.grp_out.attr('outVal').outputs(plugs=True), [n4.tx])
+        self.assertEqual(c1.grp_out.attr('outVal').inputs(plugs=True), [n4.tx])
+        self.assertEqual(c1.grp_out.attr('outVal').outputs(plugs=True), [n5.tx])
+
+        # Validate namespaces
+        self.assertEqual('', self._get_namespace(n1))
+        self.assertEqual('component1', self._get_namespace(n2))
+        self.assertEqual('component1:component1', self._get_namespace(n3))
+        self.assertEqual('component1', self._get_namespace(n4))
+        self.assertEqual('', self._get_namespace(n5))
+        self.assertEqual('component1', self._get_namespace(c1.grp_inn))
+        self.assertEqual('component1', self._get_namespace(c1.grp_out))
+        self.assertEqual('component1:component1', self._get_namespace(c2.grp_inn))
+        self.assertEqual('component1:component1', self._get_namespace(c2.grp_out))
 
     def test_create_component_from_compound_attributes(self):
         """

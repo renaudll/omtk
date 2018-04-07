@@ -121,30 +121,30 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
         ])
 
         # Create a new component
-        component2 = self.ctrl.group_nodes([m3])
-        self.assertGraphNodeNamesEqual([u'component1:inn', u'n2', u'component01', u'n4', u'component1:out'])
+        component_2 = self.ctrl.group_nodes([m3])
+        self.assertGraphNodeNamesEqual([u'component1:inn', u'n2', u'component1:component1', u'n4', u'component1:out'])
         self.assertGraphConnectionsEqual([
             (u'component1:inn.translate', u'n2.translate'),
-            (u'n2.translate', u'component01.translate'),
-            (u'component01.translate', u'n4.translate'),
+            (u'n2.translate', u'component1:component1.translate'),
+            (u'component1:component1.translate', u'n4.translate'),
             (u'n4.translate', u'component1:out.translate'),
         ])
 
         # Enter the new component
-        self.ctrl.set_level(component2)
-        self.assertGraphNodeNamesEqual([u'component01:inn', u'n3', u'component01:out'])
+        self.ctrl.set_level(component_2)
+        self.assertGraphNodeNamesEqual([u'component1:component1:inn', u'n3', u'component1:component1:out'])
         self.assertGraphConnectionsEqual([
-            (u'component01:inn.translate', u'n3.translate'),
-            (u'n3.translate', u'component01:out.translate'),
+            (u'component1:component1:inn.translate', u'n3.translate'),
+            (u'n3.translate', u'component1:component1:out.translate'),
         ])
 
         # Exit the new component
         self.ctrl.set_level(component_1)
-        self.assertGraphNodeNamesEqual([u'component1:inn', u'n2', u'component01', u'n4', u'component1:out'])
+        self.assertGraphNodeNamesEqual([u'component1:inn', u'n2', u'component1:component1', u'n4', u'component1:out'])
         self.assertGraphConnectionsEqual([
             (u'component1:inn.translate', u'n2.translate'),
-            (u'n2.translate', u'component01.translate'),
-            (u'component01.translate', u'n4.translate'),
+            (u'n2.translate', u'component1:component1.translate'),
+            (u'component1:component1.translate', u'n4.translate'),
             (u'n4.translate', u'component1:out.translate'),
         ])
 

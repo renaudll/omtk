@@ -97,10 +97,18 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         from omtk.qt_widgets.nodegraph.models.node import node_dg
 
         if isinstance(node_model, node_dg.NodeGraphDgNodeModel):
-            blacklist = _g_preferences.get_nodegraph_blacklisted_nodetypes()
             node = node_model.get_metadata()
+
+            # Check if the node type is blacklisted
+            blacklist = _g_preferences.get_nodegraph_blacklisted_nodetypes()
             nodetype = node.type()
             if nodetype in blacklist:
+                return False
+
+            # Check if the node name is blacklisted
+            blacklist = _g_preferences.get_nodegraph_blacklisted_node_names()
+            node_name = str(node.stripNamespace().nodeName())
+            if node_name in blacklist:
                 return False
         return True
 
@@ -112,6 +120,10 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         :param port: The port to inspect.
         :return: True if we can display this port.
         """
+        node = port.get_parent()
+        if not self.can_show_node(node):
+            return False
+
         # Some attributes (like omtk metadata) are blacklisted by default.
         if _is_port_model_name_blacklisted(port.get_name()):
             return False

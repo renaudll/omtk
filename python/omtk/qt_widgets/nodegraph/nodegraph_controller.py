@@ -122,13 +122,12 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         model.onNodeAdded.connect(self.on_model_node_added)
         model.onNodeRemoved.connect(self.on_model_node_removed)
         model.onPortAdded.connect(self.on_model_port_added)
-        # model.onPortAdded.connect(self.on_model_reset)
         model.onPortRemoved.connect(self.on_model_port_removed)
         model.onConnectionAdded.connect(self.on_model_connection_added)
         model.onConnectionRemoved.connect(self.on_model_connection_removed)
 
         # note: We expect the last model to be a GraphComponentProxyFilterModel for now.
-        model.onLevelChanged.connect(self.onLevelChanged)
+        # model.onLevelChanged.connect(self.onLevelChanged)
 
     def get_view(self):
         # type: () -> NodeGraphView

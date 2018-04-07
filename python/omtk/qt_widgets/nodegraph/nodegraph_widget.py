@@ -68,8 +68,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         # At least create one tab
         self.ui.tabWidget.blockSignals(True)
         self.create_tab()
-        self.create_tab()
-        self.create_tab()
         self.create_tab_new()
         self.ui.tabWidget.blockSignals(False)
 
@@ -119,9 +117,10 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
             view.frameAllNodes()
 
     def on_shortcut_tab(self):
+        ctrl = self.get_controller()
         from omtk.qt_widgets.outliner import widget_component_list
         dialog = widget_component_list.WidgetComponentList(self._view)
-        dialog.signalComponentCreated.connect(self._view.on_component_created)  # todo: move method?
+        dialog.signalComponentCreated.connect(ctrl.on_component_created)  # todo: move method?
         # dialog.setMinimumHeight(self.height())
         dialog.show()
         dialog.ui.lineEdit_search.setFocus(QtCore.Qt.PopupFocusReason)
@@ -187,32 +186,30 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         # from omtk.qt_widgets.nodegraph import nodegraph_tab_widget
         # widget = nodegraph_tab_widget.NodeGraphTabWidget(tabWidget)
 
-        # view.setMouseTracking(True)
         # Proper layout setup for tab
         widget = QtWidgets.QWidget()
-        # widget.setMouseTracking(True)
         widget._widget = view
         layout = QtWidgets.QVBoxLayout(widget)
 
         from omtk.qt_widgets import widget_breadcrumb
         breadcrumb = widget_breadcrumb.WidgetBreadcrumb(self)
-        layout.addWidget(breadcrumb)
 
+        proxy_model_subgraph.onLevelChanged.connect(breadcrumb.set_path)
+
+        def _debug(level):
+            proxy_model_subgraph.set_level(level)
+            # print args, kwargs
+
+        breadcrumb.onPathChanged.connect(_debug)
+
+        layout.addWidget(breadcrumb)
         layout.addWidget(view)
 
+        num_tabs = len(self._views)
 
+        tabWidget.addTab(widget, 'Tab {0}'.format(num_tabs))
 
-
-
-        # tabWidget.blockSignals(True)
-        tabWidget.addTab(widget, 'Tab 1')
-        # tabWidget.blockSignals(False)
-
-        # ctrl = widget.get_controller()
-        # view = widget.get_view()
-
-
-        #
+        # Add a close button, is this how we want to do it?
         # view._tb = QtWidgets.QPushButton()
         # view._tb.setText("x")
         # tabWidget.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, view._tb)

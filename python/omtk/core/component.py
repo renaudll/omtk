@@ -402,6 +402,30 @@ class ActionShowContentInNodeEditor(EntityAction):
         pymel.select(children)
         cmds.nodeEditor(node_editor, e=True, addNode='')
 
+def _get_parent_namespace(nodes):
+    """
+    Resolve the parent namespace.
+    This allow a component to be inside another component.
+    However we don't want to have nodes in our component that don't share the same namespace since
+    a component cannot logically have multiple parents.
+    """
+    namespaces = {node.namespace().strip(':') for node in nodes}
+    if len(namespaces) > 1:
+        raise Exception("Cannot create component from nodes. Nodes don't share the same namespace.")
+    return next(iter(namespaces), None)
+
+def _get_nodes_from_attributes(attrs_inn, attrs_out):
+    """
+    Determine the common history between attributes that would be used to create a component.
+    """
+    hist_inn = set()
+    hist_out = set()
+    for attr_inn in attrs_inn:
+        hist_inn.update(attr_inn.listHistory(future=True))
+    for attr_out in attrs_out:
+        hist_out.update(attr_out.listHistory(future=False))
+    return hist_inn & hist_out
+
 
 def create_empty(namespace='component'):
     # type: (str) -> Component
@@ -425,17 +449,30 @@ def from_nodes(objs, namespace='component'):
     :param namespace: The desired namespace. If not unique, a suffix will be added.
     :return: A Component instance.
     """
+    parent_namespace = _get_parent_namespace(objs)
+    if parent_namespace:
+        namespace = '{0}:{1}'.format(parent_namespace, namespace)
     namespace = libNamespaces.get_unique_namespace(namespace, enforce_suffix=True)
     cmds.namespace(add=namespace)
 
     for obj in objs:
-        old_name = obj.name()
+        old_name = obj.stripNamespace().nodeName()
         new_name = '{0}:{1}'.format(namespace, old_name)
         obj.rename(new_name)
 
     inst = Component(namespace)
-    return inst
 
+    # We need an hub in and hub_out
+    # However we don't known about which attributes to expose so we'll just create the objects.
+    # todo: do we want to automatically populate the hubs?
+    hub_inn_dagpath = '{0}:{1}'.format(namespace, constants.COMPONENT_HUB_INN_NAME)
+    hub_out_dagpath = '{0}:{1}'.format(namespace, constants.COMPONENT_HUB_OUT_NAME)
+    hub_inn = pymel.PyNode(hub_inn_dagpath) if cmds.objExists(hub_inn_dagpath) else pymel.createNode('network', name=hub_inn_dagpath)
+    hub_out = pymel.PyNode(hub_out_dagpath) if cmds.objExists(hub_out_dagpath) else pymel.createNode('network', name=hub_out_dagpath)
+    inst.grp_inn = hub_inn
+    inst.grp_out = hub_out
+
+    return inst
 
 def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     """
@@ -445,6 +482,13 @@ def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     :param attrs_out: A dict(k, v) of publish output attributes where k is attr name v is the reference attribute.
     :return: Component instance.
     """
+    # Determine the parent namespace
+    dagnodes = _get_nodes_from_attributes(attrs_inn.values(), attrs_out.values())
+
+    parent_namespace = _get_parent_namespace(dagnodes)
+    if parent_namespace:
+        namespace = '{0}:{1}'.format(parent_namespace, namespace)
+
     # todo: do we want to force readable or writable attributes? can this fail?
     # Find an available namespace
     # This allow us to make sure that we'll have access to unique name.
@@ -498,7 +542,7 @@ def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
 
     if dagnodes:
         for dagnode in dagnodes:
-            dagnode.rename('{0}:{1}'.format(namespace, dagnode.nodeName()))
+            dagnode.rename('{0}:{1}'.format(namespace, dagnode.stripNamespace().nodeName()))
 
     libSerialization.export_network(inst)
 

@@ -219,62 +219,76 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
             node_src_data = node_src.get_metadata()
             node_dst_data = node_dst.get_metadata()
 
-            # If the source is the current compount, remap the connection to the hub inn.
-            if isinstance(node_src_data,
-                          component.Component) and self._level and self._level.get_metadata() == node_src_data:
-                # Ignore internal connection
-                if node_dst.get_parent() != self._level:
-                    return
-                attr = node_src_data.grp_inn.attr(port_src.get_name())
-                port_src = registry.get_port_model_from_value(attr)
-                need_swap = True
+            if isinstance(node_src_data, component.Component):
+                # If the source is the current compound, remap the connection to the hub inn.
+                if self._level and self._level.get_metadata() == node_src_data:
+                    # Ignore internal connection
+                    if node_dst.get_parent() != self._level:
+                        return
+                    attr = node_src_data.grp_inn.attr(port_src.get_name())
+                    port_src = registry.get_port_model_from_value(attr)
+                    need_swap = True
 
-            # If the connection to an output hub?
             elif isinstance(node_src_data, pymel.PyNode):
-                c = s.get_component_from_obj(node_src_data)
+                # If the source port from an input hub?
+                # If so, what component is the input hub associated with?
+                # If it's the current component, do nothing, let's show the hub.
+                # If it's a component UNDER the current component, show the component.
+                # Otherwise show nothing.
+                c = s.get_component_from_input_hub(node_src_data) or s.get_component_from_output_hub(node_src_data)
                 if c:
                     c_model = registry.get_node_from_value(c)
-                    if self._level != c_model:
-                        # Get the replacement port, it have the same name as the current port.
+                    # If the source if from the current component input hub, do nothing.
+                    if self._level == c_model:
+                        pass
+                    # If the source if from a component child of the current component, show the component instead of the hub.
+                    elif c_model.get_parent() == self._level:
                         port_src = _get_port_by_name(c_model, port_src.get_name())
                         need_swap = True
+                    # This should not happen, the intercept_node should have done the job already.
+                    # Just in case we'll shot a warning.
                     else:
-                        # the source is from the component output, this mean that the connection cannot be shown
-                        if isinstance(node_dst_data, pymel.PyNode):
-                            c2 = s.get_component_from_obj(node_dst_data)
-                            if c2 != c:
-                                return
+                        log.warning("{0} source is not visible in the current context. Hiding connection.".format(connection))
+                        return
 
-            # If the destination is the current compound, remap the connection to the hub out.
-            if isinstance(node_dst_data,
-                          component.Component) and self._level and self._level.get_metadata() == node_dst_data:
-                # Ignore external connection
-                if node_src.get_parent() != self._level:
-                    return
-                attr = node_dst_data.grp_out.attr(port_dst.get_name())
-                port_dst = registry.get_port_model_from_value(attr)
-                need_swap = True
+            if isinstance(node_dst_data, component.Component):
+                # If the destination is the current compound, remap the connection to the hub out.
+                if self._level and self._level.get_metadata() == node_dst_data:
+                    # Ignore external connection
+                    if node_src.get_parent() != self._level:
+                        return
+                    attr = node_dst_data.grp_out.attr(port_dst.get_name())
+                    port_dst = registry.get_port_model_from_value(attr)
+                    need_swap = True
 
             # If the connection from an input hub?
             elif isinstance(node_dst_data, pymel.PyNode):
-                c = s.get_component_from_obj(node_dst_data)
+                # If the destination port from an output hub?
+                # If so, what component is the output hub associated with?
+                # If it's the current component, do nothing, let's show the hub.
+                # If it's a component UNDER the current component, show the component.
+                # Otherwise show nothing.
+                c = s.get_component_from_input_hub(node_dst_data) or s.get_component_from_output_hub(node_dst_data)
                 if c:
                     c_model = registry.get_node_from_value(c)
-                    if self._level != c_model:
-                        # Get the replacement port, it have the same name as the current port.
+                    # If the source if from the current component input hub, do nothing.
+                    if self._level == c_model:
+                        pass
+                    # If the source if from a component child of the current component, show the component instead of the hub.
+                    elif c_model.get_parent() == self._level:
                         port_dst = _get_port_by_name(c_model, port_dst.get_name())
                         need_swap = True
+                    # This should not happen, the intercept_node should have done the job already.
+                    # Just in case we'll shot a warning.
                     else:
-                        # the destination is from the component input, this mean that that connection cannot be shown
-                        if isinstance(node_src_data, pymel.PyNode):
-                            c2 = s.get_component_from_obj(node_src_data)
-                            if c2 != c:
-                                return
+                        log.warning("{0} destination is not visible in the current context. Hiding connection.".format(connection))
+                        return
 
             if need_swap:
                 # Hack: Ignore invalid ports for now...
                 # todo: fix this
                 if port_src is None or port_dst is None:
+                    log.warning("Received invalid data when intercepting connection. Ignoring. {0} {1}".format(port_src, port_dst))
                     yield connection
                 else:
                     yield registry.get_connection_model_from_values(port_src, port_dst)

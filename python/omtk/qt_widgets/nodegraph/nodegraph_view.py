@@ -111,17 +111,17 @@ class NodeGraphView(PyFlowgraphView):
 
     # --- Events ---
 
-    @decorators.log_info
-    def on_component_created(self, component):
-        """
-        Ensure the component is added to the view on creation.
-        This is not the place for any scene update routine.
-        :param component:
-        :return:
-        """
-        # todo: move to controller
-        self._controller.on_component_created(component)
-        self.updateRequested.emit()
+    # @decorators.log_info
+    # def on_component_created(self, component):
+    #     """
+    #     Ensure the component is added to the view on creation.
+    #     This is not the place for any scene update routine.
+    #     :param component:
+    #     :return:
+    #     """
+    #     # todo: move to controller
+    #     self._controller.on_component_created(component)
+    #     self.updateRequested.emit()
 
     def on_customContextMenuRequested(self, pos):
         # Store _menu to prevent undesired garbage collection

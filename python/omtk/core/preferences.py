@@ -75,7 +75,10 @@ class Preferences(object):
         return self._get_config_nodegraph_raw().get('interesting_attributes', {})
 
     def get_nodegraph_blacklisted_nodetypes(self):
-        return self._get_config_nodegraph_raw().get('blacklisted_nodetypes', [])
+        return self._get_config_nodegraph_raw().get('blacklisted_node_types', [])
+
+    def get_nodegraph_blacklisted_node_names(self):
+        return self._get_config_nodegraph_raw().get('blacklisted_node_names', [])
 
     def get_default_rig_class(self):
         from omtk.core import plugin_manager

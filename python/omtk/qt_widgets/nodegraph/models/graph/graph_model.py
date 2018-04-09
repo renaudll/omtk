@@ -1,4 +1,4 @@
-
+import functools
 import logging
 from collections import defaultdict
 
@@ -73,7 +73,8 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         if node in self._nodes:
             return
 
-        node.onDeleted.connect(self.on_node_deleted_from_maya)
+        node.onDeleted.connect(self.on_node_unexpectedly_deleted)
+        node.onAttributeAdded.connect(self.on_attribute_unexpectedly_added)
 
         pos = self.get_available_position(node)
         self._nodes.add(node)
@@ -83,8 +84,16 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
     def remove_node(self, node, emit_signal=False):
         # type: (NodeGraphNodeModel, bool) -> None
+
+        if not self.is_node_visible(node):
+            log.warning("Cannot remove Node {0}. Node is not in view.".format(node))
+            return
+
         self._nodes.remove(node)
         self._pos_by_node.pop(node)
+
+        node.onDeleted.disconnect(self.on_node_unexpectedly_deleted)
+        node.onAttributeAdded.disconnect(self.on_attribute_unexpectedly_added)
 
         # if node in self._expanded_nodes:
         #     self._expanded_nodes.remove(node)
@@ -224,8 +233,21 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
     # --- clean under this ---
 
-    def on_node_deleted_from_maya(self, node):
+    def on_node_unexpectedly_deleted(self, node):
+        # type: (NodeGraphNodeModel) -> None
+        """
+        Called when the node is unexpectedly deleted.
+        :param node: A currently-visible NodeGraphNodeModel.
+        """
         self.remove_node(node, emit_signal=True)
+
+    def on_attribute_unexpectedly_added(self, port):
+        # type: (NodeGraphPortModel) -> None
+        """
+        Called when a new port is unexpectedly added.
+        :param port: A not-yet-visible NodeGraphPortModel.
+        """
+        self.add_port(port)
 
     # --- Automatic node positioning ---
 

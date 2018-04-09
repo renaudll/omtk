@@ -98,6 +98,21 @@
     "holdMatrix": [
       "inMatrix",
       "outMatrix"
+    ],
+    "blendColors": [
+      "blender",
+      "color1",
+      "color1R",
+      "color1G",
+      "color1B",
+      "color2",
+      "color2R",
+      "color2G",
+      "color2B",
+      "output",
+      "outputR",
+      "outputG",
+      "outputB"
     ]
   }
 }

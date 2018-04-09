@@ -135,7 +135,7 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
     #     # Add attribute added callback
     #     callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
     #         meta_data.__apimobject__(),
-    #         self.callback_attribute_added
+    #         self.on_attribute_unexpectedly_added
     #     )
     #     self._callback_id_by_node_model[meta_data].add(callback_id)
     #
@@ -160,7 +160,7 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
     #                 id_
     #             )
     #
-    # def callback_attribute_added(self, callback_id, mplug, _):
+    # def on_attribute_unexpectedly_added(self, callback_id, mplug, _):
     #     attr_dagpath = mplug.name()
     #     attr_name = attr_dagpath.split('.')[-1]
     #
@@ -174,7 +174,7 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
     #     log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
     #
     #     attr = pymel.Attribute(attr_dagpath)
-    #     self._ctrl.callback_attribute_added(attr)
+    #     self._ctrl.on_attribute_unexpectedly_added(attr)
     #
     # @staticmethod
     # def _analayse_callback_message(msg):

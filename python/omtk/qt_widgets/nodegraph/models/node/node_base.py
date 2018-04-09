@@ -18,7 +18,14 @@ log = logging.getLogger('omtk.nodegraph')
 class NodeGraphNodeModel(QtCore.QObject):  # QObject provide signals
     """Define the data model for a Node which can be used by multiple view."""
 
+    # Signal emitted when the node is unexpectedly deleted.
     onDeleted = QtCore.Signal(QtCore.QObject)
+
+    # Signal emitted when an attribute is unexpectedly added.
+    onAttributeAdded = QtCore.Signal(object)  # todo: port to QtCore.QObject
+
+    # Signal emitted when an attribute is unexpectedly removed.
+    onAttributeRemoved = QtCore.Signal(str)
 
     def __init__(self, registry, name):
         super(NodeGraphNodeModel, self).__init__()  # initialize QObject

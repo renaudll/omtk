@@ -78,6 +78,12 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
             result.add(inst)
         return result
 
+    def get_metadata_input(self):
+        return self._inn_adaptor.get_metadata()
+
+    def get_metadata_output(self):
+        return self._out_adaptor.get_metadata()
+
     def is_readable(self):
         return self._out_adaptor.is_readable() if self._out_adaptor else False
 

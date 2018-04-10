@@ -77,6 +77,18 @@ class NodeGraphPortModel(object):
     def get_metadata(self):
         return self.impl.get_metadata()
 
+    def get_metadata_input(self):
+        """
+        :return: The object associated with the port input.
+        """
+        return self.get_metadata()  # basic port share the same metadata for input and output
+
+    def get_metadata_output(self):
+        """
+        :return: The object associated with the port output.
+        """
+        return self.get_metadata()  # basic port share the same metadata for input and output
+
     def get_metatype(self):
         return self.impl.get_metatype()
 

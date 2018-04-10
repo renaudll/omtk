@@ -167,11 +167,12 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         node_dst = port_dst.get_parent()
 
         # todo: remove this?
-        attr_src = port_src.get_metadata()
-        attr_dst = port_dst.get_metadata()
+        attr_src = port_src.get_metadata_output()
+        attr_dst = port_dst.get_metadata_input()
 
         # For now, if any port don't have metadata, don't try anything.
         if attr_src is None or attr_dst is None:
+            log.warning("Cannot intercept connection that don't have any metadata! ({0}) Aborting".format(connection))
             yield connection
             return
 

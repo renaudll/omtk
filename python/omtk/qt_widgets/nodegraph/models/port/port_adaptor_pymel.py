@@ -72,6 +72,11 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
 
     @decorators.memoized_instancemethod
     def is_interesting(self):
+        # Any attributes not defined in the base MPxNode is interesting
+        attr_name = self._attr_name()
+        if self.is_user_defined():
+            return True
+
         # The user can specify in it's preference what he which to see by default.
         # todo: how can we prevent so much function call?
         s = session.get_session()
@@ -94,10 +99,6 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         if self.is_writable() and self.is_destination():
             return True
 
-        # Any attributes not defined in the base MPxNode is interesting
-        attr_name = self._attr_name()
-        if self.is_user_defined():
-            return True
         # Some attributes will always be interesting to us.
         if attr_name in self._interesting_attrs:
             return True

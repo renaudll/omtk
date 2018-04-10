@@ -1,24 +1,27 @@
 import logging
+import itertools
+import re
 
 from maya import cmds
 from omtk import constants
 from omtk.core import session
 from omtk.core.entity import Entity
-from omtk.core.entity_attribute import EntityAttribute
 from omtk.core.entity_action import EntityAction
+from omtk.core.entity_attribute import EntityAttribute
+from omtk.core import component_definition
+from omtk.core.entity_attribute import EntityPymelAttribute, EntityPymelAttributeCollection
+from omtk.factories import factory_datatypes
 from omtk.libs import libAttr
 from omtk.libs import libNamespaces
 from omtk.vendor import libSerialization
-from omtk.factories import factory_datatypes
-from omtk.core.entity_attribute import EntityPymelAttribute, EntityPymelAttributeCollection
 from pymel import core as pymel
-from . import component_definition
+
 
 log = logging.getLogger('omtk')
 
 
 if False:  # for type hinting
-    from typing import List
+    from typing import List, Dict
     from omtk.core.component_definition import ComponentDefinition
 
 # todo: create ComponentScripted and ComponentSaved
@@ -474,7 +477,60 @@ def from_nodes(objs, namespace='component'):
 
     return inst
 
-def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
+
+_g_regex_prefix = re.compile('(.*[^0-9]+)([0-9]*)$')
+
+
+def __get_unique_name(name, all_names, naming_format='{0}{1}', start=1):
+    """
+
+    >>> __get_unique_name('v1', ['v1', 'v2'])
+    'v3'
+    >>> __get_unique_name('v', ['v', 'v1', 'v2'])
+    'v3'
+
+    :param name:
+    :param all_names:
+    :param naming_format:
+    :param enforce_suffix:
+    :param start:
+    :return:
+    """
+    if not name in all_names:
+        return name
+
+    name, prefix = _g_regex_prefix.match(name).groups()
+    if prefix:
+        start = int(prefix) + 1  # we'll try next
+
+    for i in itertools.count(start):
+        new_name = naming_format.format(name, i)
+        if new_name not in all_names:
+            return new_name
+
+
+def from_attributes(attrs_inn, attrs_out, namespace='component'):
+    # type: (List[pymel.Attribute], List[pymel.Attribute], str) -> Component
+    attrs_inn_map = {}
+    attrs_out_map = {}
+
+    for attr in attrs_inn:
+        if attr in attrs_inn_map:
+            continue
+        attr_name = __get_unique_name(attr.longName(), attrs_inn_map)
+        attrs_inn_map[attr_name] = attr
+
+    for attr in attrs_out:
+        if attr in attrs_out_map:
+            continue
+        attr_name = __get_unique_name(attr.longName(), attrs_out_map)
+        attrs_out_map[attr_name] = attr
+
+    inst = from_attributes_map(attrs_inn_map, attrs_out_map, namespace=namespace)
+    return inst
+
+def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
+    # type: (Dict[str, pymel.Attribute], Dict[str, pymel.Attribute], List[pymel.PyNode], str) -> Component
     """
     Create a Component from existing nodes.
     :param dagnodes: A list of nodes to include in the component.

@@ -6,6 +6,7 @@ import unittest
 import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
 from omtk.core import component
+from omtk.libs import libRigging
 from omtk.core.component import Component
 
 class ComponentCreationTestCase(unittest.TestCase):
@@ -119,7 +120,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         namespace = 'component'
         expected_namespace = 'component1'
-        inst = component.from_attributes(
+        inst = component.from_attributes_map(
             {'innVal': src.tx}, {'outVal': dst.tx}, namespace=namespace
         )
 
@@ -154,7 +155,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         # Create first component
         namespace = 'component'
-        c1 = component.from_attributes(
+        c1 = component.from_attributes_map(
             {'innVal': n2.tx}, {'outVal': n4.tx}, namespace=namespace
         )
 
@@ -175,7 +176,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         # Create a second component under the first component
         namespace = 'component'
-        c2 = component.from_attributes(
+        c2 = component.from_attributes_map(
             {'innVal': n3.tx}, {'outVal': n3.tx}, namespace=namespace
         )
 
@@ -212,7 +213,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         pymel.connectAttr(src.tx, dst.tx)
 
-        inst = component.from_attributes(
+        inst = component.from_attributes_map(
             {'innVal': src.t}, {'outVal': dst.rx}
         )
 
@@ -220,6 +221,38 @@ class ComponentCreationTestCase(unittest.TestCase):
         self.assertEqual(inst.grp_inn.attr('innVal').outputs(plugs=True), [src.t])
         self.assertEqual(inst.grp_out.attr('outVal').inputs(plugs=True), [dst.rx])
         self.assertEqual(inst.grp_out.attr('outVal').outputs(plugs=True), [])
+
+    def test_create_blend_transforms_component(self):
+        """
+        Test a component known to by hard to create.
+        """
+        cmds.file(new=True, force=True)
+        n1 = pymel.createNode('transform', name='n1')
+        n2 = pymel.createNode('transform', name='n2')
+        n3 = pymel.createNode('transform', name='n3')
+        u1 = libRigging.create_utility_node(
+            'blendColors',
+            name='u1',
+            color1=n1.t,
+            color2=n2.t
+        )
+        pymel.connectAttr(u1.output, n3.t)
+        u2 = libRigging.create_utility_node(
+            'blendColors',
+            name='u2',
+            color1=n1.r,
+            color2=n2.r,
+        )
+        pymel.connectAttr(u2.output, n3.r)
+
+        inst = component.from_attributes([u1.color1, u1.color2, u2.color1, u2.color2], [u1.output, u2.output])
+
+        # This is what it should be when called from the ui.
+        # inst = component.from_nodes([u1, u2])
+
+        print list(inst.iter_attributes())
+        # self.assertEqual(inst.grp_inn.attr('innTranslate1').inputs(plugs=True), [])
+        # self.assertEqual(inst.grp_inn.attr('innTranslate1').outputs(plugs=True), [n1.t])
 
 
 if __name__ == '__main__':

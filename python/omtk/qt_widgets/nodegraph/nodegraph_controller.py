@@ -816,9 +816,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             self.delete_node(model)
 
     def duplicate_selected_nodes(self):
-        new_nodes = pymel.duplicate(pymel.selected())
-        for new_node in new_nodes:
-            self.add_node(new_node)
+        registry = self.get_registry()
+        pynodes = pymel.duplicate(pymel.selected())
+        for pynode in pynodes:
+            node = registry.get_node_from_value(pynode)
+            self.add_node(node)
 
     def select_all_nodes(self):
         view = self.get_view()
@@ -907,13 +909,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         dgnodes = [node.get_metadata() for node in nodes]
 
         inn_attrs, out_attrs = self._get_nodes_outsider_ports(nodes)
-        inn_attrs = dict((attr.longName(), attr) for attr in inn_attrs)
-        out_attrs = dict((attr.longName(), attr) for attr in out_attrs)
-        inst = component.from_attributes(
-            inn_attrs, 
-            out_attrs,
-            dagnodes=dgnodes,
-        )
+        inst = component.from_attributes(inn_attrs, out_attrs)
 
         self.manager.export_network(inst)
         self.manager._register_new_component(inst)

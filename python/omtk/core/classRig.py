@@ -14,6 +14,7 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs import libHistory
+from omtk.libs import libAttr
 
 log = logging.getLogger('omtk')
 
@@ -765,6 +766,7 @@ class Rig(object):
             if self.grp_jnt:
                 pymel.delete(
                     [module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
+                libAttr.unlock_trs(self.grp_jnt)
                 pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)

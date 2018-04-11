@@ -92,7 +92,11 @@ class AutoRig(QtWidgets.QMainWindow):
             self.ui.menubar.addAction(menu_template.menuAction())
 
     def action_import_template(self, path):
+        for root in self.roots:
+            pymel.delete(root._network)
+            self.on_rig_deleted(root)
         log.info('Importing template {0}'.format(path))
+        
         cmds.file(path, i=True)
         self.on_update()
 

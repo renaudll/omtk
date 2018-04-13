@@ -113,6 +113,14 @@
       "outputR",
       "outputG",
       "outputB"
-    ]
+    ],
+    "animCurveTA": ["output"],
+    "animCurveTL": ["output"],
+    "animCurveTT": ["output"],
+    "animCurveTU": ["output"],
+    "animCurveUA": ["output"],
+    "animCurveUL": ["output"],
+    "animCurveUT": ["output"],
+    "animCurveUU": ["output"]
   }
 }

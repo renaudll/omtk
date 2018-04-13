@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/nodegraph/ui/nodegraph_widget.ui'
 #
-# Created: Thu Apr  5 23:04:57 2018
+# Created: Thu Apr 12 20:29:31 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -88,6 +88,7 @@ class Ui_MainWindow(object):
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionLayoutSpring)
         self.toolBar.addAction(self.actionLayoutDownstream)
+        self.toolBar.addAction(self.actionMatchMayaEditorPositions)
         self.toolBar.addAction(self.actionFrameSelected)
         self.toolBar.addAction(self.actionLayoutRecenter)
 
@@ -110,6 +111,7 @@ class Ui_MainWindow(object):
         self.actionGroup.setText(QtWidgets.QApplication.translate("MainWindow", "Group", None, -1))
         self.actionUngroup.setText(QtWidgets.QApplication.translate("MainWindow", "Ungroup", None, -1))
         self.actionMatchMayaEditorPositions.setText(QtWidgets.QApplication.translate("MainWindow", "&Sync to Maya Node Editor", None, -1))
+        self.actionMatchMayaEditorPositions.setToolTip(QtWidgets.QApplication.translate("MainWindow", "Sync with Maya", None, -1))
         self.actionLayoutUpstream.setText(QtWidgets.QApplication.translate("MainWindow", "&Layout Upstream", None, -1))
         self.actionLayoutDownstream.setText(QtWidgets.QApplication.translate("MainWindow", "Layout &Downstream", None, -1))
         self.actionLayoutSpring.setText(QtWidgets.QApplication.translate("MainWindow", "La&yout Spring", None, -1))

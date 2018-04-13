@@ -58,6 +58,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui.actionFrameSelected.triggered.connect(self.on_frame_selected)
         self.ui.actionLayoutUpstream.triggered.connect(self.on_arrange_upstream)
         self.ui.actionLayoutDownstream.triggered.connect(self.on_arrange_downstream)
+        self.ui.actionMatchMayaEditorPositions.triggered.connect(self.on_arrange_maya)
         self.ui.actionLayoutSpring.triggered.connect(self.on_arrange_spring)
         self.ui.actionMatchMayaEditorPositions.triggered.connect(self.on_match_maya_editor_positions)
         self.ui.actionLayoutRecenter.triggered.connect(self.on_arrange_recenter)
@@ -282,6 +283,9 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
     def on_arrange_downstream(self):
         self.get_controller().arrange_downstream()
+
+    def on_arrange_maya(self):
+        self.get_controller().on_match_maya_editor_positions()
 
     def on_arrange_spring(self):
         self.get_controller().arrange_spring()

@@ -52,7 +52,7 @@ class Module(Entity):
         self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
         self.globalScale = None  # Each module is responsible for handling it scale!
 
-        # Sometimes the rigger might modify the module in a way which can prevent it from being un-built without causing issues.
+        # Sometimes the rigger might modify the module in a way which can prevent it from being rebuilt without causing issues.
         # Use this flag to notify omtk that the module should not be un-built under any circumstances.
         self.locked = False
 

@@ -53,6 +53,7 @@
    <addaction name="separator"/>
    <addaction name="actionLayoutSpring"/>
    <addaction name="actionLayoutDownstream"/>
+   <addaction name="actionMatchMayaEditorPositions"/>
    <addaction name="actionFrameSelected"/>
    <addaction name="actionLayoutRecenter"/>
   </widget>
@@ -126,6 +127,9 @@
   <action name="actionMatchMayaEditorPositions">
    <property name="text">
     <string>&amp;Sync to Maya Node Editor</string>
+   </property>
+   <property name="toolTip">
+    <string>Sync with Maya</string>
    </property>
   </action>
   <action name="actionLayoutUpstream">

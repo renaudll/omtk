@@ -139,12 +139,23 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
         # The parent of a component is either None or another component.
         # To retreive the parent of a component, check one of it's connections?
         # todo: use libComponents?
-        for connection in self.get_input_connections():
-            node = connection.get_source().get_parent()
-            return node.get_parent()
-        for connection in self.get_output_connections():
-            node = connection.get_destination().get_parent()
-            return node.get_parent()
+        from omtk.core import session
+        s = session.get_session()
+        current_namespace = self._entity.namespace
+        tokens = current_namespace.split(':')
+        if len(tokens) == 1:
+            return None
+        else:
+            parent_namespace = ':'.join(tokens[1:])
+            parent_component = s.get_component_from_namespace(parent_namespace)
+            model = self._registry.get_node_from_value(parent_component)
+            return model
+        # for connection in self.get_input_connections():
+        #     node = connection.get_source().get_parent()
+        #     return node.get_parent()
+        # for connection in self.get_output_connections():
+        #     node = connection.get_destination().get_parent()
+        #     return node.get_parent()
 
     def get_children(self):
         return [

@@ -90,6 +90,9 @@ class ComponentCache(object):
         namespace = obj.namespace().strip(':')
         return self._component_by_namespace.get(namespace, None)
 
+    def get_component_from_namespace(self, namespace):
+        return self._component_by_namespace.get(namespace)
+
 
 class AutoRigManager(QtCore.QObject):
     """
@@ -260,6 +263,9 @@ class AutoRigManager(QtCore.QObject):
         :return: The associated Component or None if the provided object is not an output hub.
         """
         return self._cache_components.get_component_from_output_hub(obj)
+
+    def get_component_from_namespace(self, namespace):
+        return self._cache_components.get_component_from_namespace(namespace)
 
     def _register_new_component(self, component):
         self._cache_components.add_component_to_cache(component)

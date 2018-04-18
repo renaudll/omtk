@@ -11,7 +11,7 @@ from omtk.libs import libPyflowgraph, libPython
 from omtk.factories import  factory_rc_menu
 from omtk.qt_widgets.nodegraph.models.node import node_dg, node_root
 from omtk.qt_widgets.nodegraph import nodegraph_registry
-from omtk.vendor.Qt import QtCore
+from omtk.vendor.Qt import QtCore, QtWidgets
 
 # Used for type checking
 if False:
@@ -185,11 +185,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     def on_connection_added(self, connection):
         port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
-        port_dst_model.connect_from(port_src_model.get_metadata())
+        port_dst_model.connect_from(port_src_model.get_metadata_output())
 
     def on_connected_removed(   self, connection):
         port_src_model, port_dst_model = self._get_port_models_from_connection(connection)
-        port_src_value = port_src_model.get_metadata()
+        port_src_value = port_src_model.get_metadata_input()
         port_dst_model.disconnect_from(port_src_value)
         # todo: find related port models
 
@@ -925,6 +925,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         form_add_attribute.show()
 
     def on_rcmenu_rename_attribute(self):
+        new_name = QtWidgets.QInputDialog.getText(None, "Rename Attribute", "New Name:")
+        print new_name
         raise NotImplementedError
 
     def on_rcmenu_delete_attribute(self):

@@ -240,4 +240,8 @@ def get_attr_datatype(attr):
         ))
         return
 
-    return _attr_type_by_native_type[native_type]
+    val = _attr_type_by_native_type[native_type]
+    if not val:
+        log.warning("Cannot resolve attribute type from attribute {0}. Unknown datatype {1}".format(attr, native_type))
+        return
+    return val

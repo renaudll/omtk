@@ -282,6 +282,10 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         # We will hold the connections in case we encounter an anormal connection.
         results = []
         for attr_dst in node_model.get_connected_output_ports():
+            # Ignore message output connections...
+            if attr_dst.get_metadata().type() == 'message':
+                continue
+
             for connection in model.get_port_output_connections(attr_dst):
                 # for connection2 in self.get_port_output_connections(dst_node_model):
                 if is_decomposematrix_connection_predictable(connection):

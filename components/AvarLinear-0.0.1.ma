@@ -1,9 +1,9 @@
 //Maya ASCII 2017ff05 scene
 //Name: AvarLinear-0.0.1.ma
-//Last modified: Thu, Apr 12, 2018 10:47:49 PM
+//Last modified: Thu, Apr 12, 2018 10:57:44 PM
 //Codeset: UTF-8
 requires maya "2017ff05";
-requires -nodeType "decomposeMatrix" "matrixNodes" "1.0";
+requires -nodeType "decomposeMatrix" -nodeType "composeMatrix" "matrixNodes" "1.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";
 fileInfo "product" "Maya 2017";
@@ -52,8 +52,6 @@ createNode transform -n "untitled_output_rig" -p "untitled_parent_rig";
 	rename -uid "8B23A980-0000-6CD8-5ACF-F8C0000003BB";
 createNode transform -n "untitled_stack_rig_pos" -p "untitled_offset_rig";
 	rename -uid "8B23A980-0000-6CD8-5ACF-F8C0000003B7";
-createNode transform -n "untitled_stack_rig" -p "untitled_stack_rig_pos";
-	rename -uid "8B23A980-0000-6CD8-5ACF-F8C0000003B4";
 createNode transform -s -n "persp";
 	rename -uid "518F3980-0000-0AF9-5AD0-1A17000002F2";
 	setAttr ".v" no;
@@ -165,6 +163,7 @@ createNode network -n "out";
 	addAttr -ci true -sn "worldMatrix0" -ln "worldMatrix0" -nn "worldMatrix0" -dt "matrix";
 createNode decomposeMatrix -n "decomposeMatrix1";
 	rename -uid "8B23A980-0000-6CD8-5ACF-F8C0000003BD";
+	setAttr ".ot" -type "double3" -0.004614 0.012304 -0.004614 ;
 	setAttr ".os" -type "double3" 1 1 1 ;
 	setAttr ".oqw" 1;
 createNode multMatrix -n "multMatrix1";
@@ -180,61 +179,22 @@ createNode unitConversion -n "unitConversion3";
 	rename -uid "8B23A980-0000-6CD8-5ACF-F8C0000003BA";
 	setAttr ".cf" 0.017453292519943295;
 createNode lightLinker -s -n "lightLinker1";
-	rename -uid "518F3980-0000-0AF9-5AD0-1A17000002FA";
+	rename -uid "518F3980-0000-0AF9-5AD0-1C540000036F";
 	setAttr -s 2 ".lnk";
 	setAttr -s 2 ".slnk";
 createNode shapeEditorManager -n "shapeEditorManager";
-	rename -uid "518F3980-0000-0AF9-5AD0-1A17000002FB";
+	rename -uid "518F3980-0000-0AF9-5AD0-1C5400000370";
 createNode poseInterpolatorManager -n "poseInterpolatorManager";
-	rename -uid "518F3980-0000-0AF9-5AD0-1A17000002FC";
+	rename -uid "518F3980-0000-0AF9-5AD0-1C5400000371";
 createNode displayLayerManager -n "layerManager";
-	rename -uid "518F3980-0000-0AF9-5AD0-1A17000002FD";
+	rename -uid "518F3980-0000-0AF9-5AD0-1C5400000372";
 createNode displayLayer -n "defaultLayer";
 	rename -uid "518F3980-0000-0AF9-5AD0-1A17000002FE";
 createNode renderLayerManager -n "renderLayerManager";
-	rename -uid "518F3980-0000-0AF9-5AD0-1A17000002FF";
+	rename -uid "518F3980-0000-0AF9-5AD0-1C5400000374";
 createNode renderLayer -n "defaultRenderLayer";
 	rename -uid "518F3980-0000-0AF9-5AD0-1A1700000300";
 	setAttr ".g" yes;
-createNode nodeGraphEditorInfo -n "MayaNodeEditorSavedTabsInfo";
-	rename -uid "518F3980-0000-0AF9-5AD0-1A4400000301";
-	setAttr ".tgi[0].tn" -type "string" "Untitled_1";
-	setAttr ".tgi[0].vl" -type "double2" -876.29368395152312 -391.66665110323237 ;
-	setAttr ".tgi[0].vh" -type "double2" 834.62701894054112 447.6190298322656 ;
-	setAttr -s 11 ".tgi[0].ni";
-	setAttr ".tgi[0].ni[0].x" 342.85714721679688;
-	setAttr ".tgi[0].ni[0].y" 390;
-	setAttr ".tgi[0].ni[0].nvs" 18304;
-	setAttr ".tgi[0].ni[1].x" 342.85714721679688;
-	setAttr ".tgi[0].ni[1].y" -281.42855834960938;
-	setAttr ".tgi[0].ni[1].nvs" 18304;
-	setAttr ".tgi[0].ni[2].x" -578.5714111328125;
-	setAttr ".tgi[0].ni[2].y" 390;
-	setAttr ".tgi[0].ni[2].nvs" 18304;
-	setAttr ".tgi[0].ni[3].x" 342.85714721679688;
-	setAttr ".tgi[0].ni[3].y" -135.71427917480469;
-	setAttr ".tgi[0].ni[3].nvs" 18304;
-	setAttr ".tgi[0].ni[4].x" 35.714286804199219;
-	setAttr ".tgi[0].ni[4].y" 127.14286041259766;
-	setAttr ".tgi[0].ni[4].nvs" 18304;
-	setAttr ".tgi[0].ni[5].x" -271.42855834960938;
-	setAttr ".tgi[0].ni[5].y" 390;
-	setAttr ".tgi[0].ni[5].nvs" 18304;
-	setAttr ".tgi[0].ni[6].x" 342.85714721679688;
-	setAttr ".tgi[0].ni[6].y" 68.571426391601562;
-	setAttr ".tgi[0].ni[6].nvs" 18304;
-	setAttr ".tgi[0].ni[7].x" 35.714286804199219;
-	setAttr ".tgi[0].ni[7].y" 244.28572082519531;
-	setAttr ".tgi[0].ni[7].nvs" 18304;
-	setAttr ".tgi[0].ni[8].x" 35.714286804199219;
-	setAttr ".tgi[0].ni[8].y" 10;
-	setAttr ".tgi[0].ni[8].nvs" 18304;
-	setAttr ".tgi[0].ni[9].x" -271.42855834960938;
-	setAttr ".tgi[0].ni[9].y" 68.571426391601562;
-	setAttr ".tgi[0].ni[9].nvs" 18304;
-	setAttr ".tgi[0].ni[10].x" 35.714286804199219;
-	setAttr ".tgi[0].ni[10].y" 390;
-	setAttr ".tgi[0].ni[10].nvs" 18304;
 createNode script -n "uiConfigurationScriptNode";
 	rename -uid "518F3980-0000-0AF9-5AD0-1A5400000302";
 	setAttr ".b" -type "string" (
@@ -271,7 +231,7 @@ createNode script -n "uiConfigurationScriptNode";
 		+ "\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Relationship Editor\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"referenceEditorPanel\" (localizedPanelLabel(\"Reference Editor\")) `;\n\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Reference Editor\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"componentEditorPanel\" (localizedPanelLabel(\"Component Editor\")) `;\n\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Component Editor\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"dynPaintScriptedPanelType\" (localizedPanelLabel(\"Paint Effects\")) `;\n"
 		+ "\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Paint Effects\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"scriptEditorPanel\" (localizedPanelLabel(\"Script Editor\")) `;\n\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Script Editor\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"profilerPanel\" (localizedPanelLabel(\"Profiler Tool\")) `;\n\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Profiler Tool\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"contentBrowserPanel\" (localizedPanelLabel(\"Content Browser\")) `;\n"
 		+ "\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Content Browser\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"hyperShadePanel\" (localizedPanelLabel(\"Hypershade\")) `;\n\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Hypershade\")) -mbv $menusOkayInPanels  $panelName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\t$panelName = `sceneUIReplacement -getNextScriptedPanel \"nodeEditorPanel\" (localizedPanelLabel(\"Node Editor\")) `;\n\tif (\"\" != $panelName) {\n\t\t$label = `panel -q -label $panelName`;\n\t\tscriptedPanel -edit -l (localizedPanelLabel(\"Node Editor\")) -mbv $menusOkayInPanels  $panelName;\n\n\t\t\t$editorName = ($panelName+\"NodeEditorEd\");\n            nodeEditor -e \n                -allAttributes 0\n                -allNodes 0\n                -autoSizeNodes 1\n"
-		+ "                -consistentNameSize 1\n                -createNodeCommand \"nodeEdCreateNodeCommand\" \n                -defaultPinnedState 0\n                -additiveGraphingMode 0\n                -settingsChangedCallback \"nodeEdSyncControls\" \n                -traversalDepthLimit -1\n                -keyPressCommand \"nodeEdKeyPressCommand\" \n                -nodeTitleMode \"name\" \n                -gridSnap 0\n                -gridVisibility 1\n                -popupMenuScript \"nodeEdBuildPanelMenus\" \n                -showNamespace 1\n                -showShapes 1\n                -showSGShapes 0\n                -showTransforms 1\n                -useAssets 1\n                -syncedSelection 1\n                -extendToShapes 1\n                -activeTab -1\n                -editorMode \"default\" \n                $editorName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\tif ($useSceneConfig) {\n        string $configName = `getPanel -cwl (localizedPanelLabel(\"Current Layout\"))`;\n        if (\"\" != $configName) {\n"
+		+ "                -consistentNameSize 1\n                -createNodeCommand \"nodeEdCreateNodeCommand\" \n                -defaultPinnedState 0\n                -additiveGraphingMode 0\n                -settingsChangedCallback \"nodeEdSyncControls\" \n                -traversalDepthLimit -1\n                -keyPressCommand \"nodeEdKeyPressCommand\" \n                -nodeTitleMode \"name\" \n                -gridSnap 0\n                -gridVisibility 1\n                -popupMenuScript \"nodeEdBuildPanelMenus\" \n                -showNamespace 1\n                -showShapes 1\n                -showSGShapes 0\n                -showTransforms 1\n                -useAssets 1\n                -syncedSelection 1\n                -extendToShapes 1\n                -activeTab 0\n                -editorMode \"default\" \n                $editorName;\n\t\tif (!$useSceneConfig) {\n\t\t\tpanel -e -l $label $panelName;\n\t\t}\n\t}\n\n\n\tif ($useSceneConfig) {\n        string $configName = `getPanel -cwl (localizedPanelLabel(\"Current Layout\"))`;\n        if (\"\" != $configName) {\n"
 		+ "\t\t\tpanelConfiguration -edit -label (localizedPanelLabel(\"Current Layout\")) \n\t\t\t\t-userCreated false\n\t\t\t\t-defaultImage \"vacantCell.xP:/\"\n\t\t\t\t-image \"\"\n\t\t\t\t-sc false\n\t\t\t\t-configString \"global string $gMainPane; paneLayout -e -cn \\\"single\\\" -ps 1 100 100 $gMainPane;\"\n\t\t\t\t-removeAllPanels\n\t\t\t\t-ap false\n\t\t\t\t\t(localizedPanelLabel(\"Persp View\")) \n\t\t\t\t\t\"modelPanel\"\n"
 		+ "\t\t\t\t\t\"$panelName = `modelPanel -unParent -l (localizedPanelLabel(\\\"Persp View\\\")) -mbv $menusOkayInPanels `;\\n$editorName = $panelName;\\nmodelEditor -e \\n    -cam `findStartUpCamera persp` \\n    -useInteractiveMode 0\\n    -displayLights \\\"default\\\" \\n    -displayAppearance \\\"smoothShaded\\\" \\n    -activeOnly 0\\n    -ignorePanZoom 0\\n    -wireframeOnShaded 0\\n    -headsUpDisplay 1\\n    -holdOuts 1\\n    -selectionHiliteDisplay 1\\n    -useDefaultMaterial 0\\n    -bufferMode \\\"double\\\" \\n    -twoSidedLighting 0\\n    -backfaceCulling 0\\n    -xray 0\\n    -jointXray 0\\n    -activeComponentsXray 0\\n    -displayTextures 0\\n    -smoothWireframe 0\\n    -lineWidth 1\\n    -textureAnisotropic 0\\n    -textureHilight 1\\n    -textureSampling 2\\n    -textureDisplay \\\"modulate\\\" \\n    -textureMaxSize 16384\\n    -fogging 0\\n    -fogSource \\\"fragment\\\" \\n    -fogMode \\\"linear\\\" \\n    -fogStart 0\\n    -fogEnd 100\\n    -fogDensity 0.1\\n    -fogColor 0.5 0.5 0.5 1 \\n    -depthOfFieldPreview 1\\n    -maxConstantTransparency 1\\n    -rendererName \\\"base_OpenGL_Renderer\\\" \\n    -objectFilterShowInHUD 1\\n    -isFiltered 0\\n    -colorResolution 256 256 \\n    -bumpResolution 512 512 \\n    -textureCompression 0\\n    -transparencyAlgorithm \\\"frontAndBackCull\\\" \\n    -transpInShadows 0\\n    -cullingOverride \\\"none\\\" \\n    -lowQualityLighting 0\\n    -maximumNumHardwareLights 1\\n    -occlusionCulling 0\\n    -shadingModel 0\\n    -useBaseRenderer 0\\n    -useReducedRenderer 0\\n    -smallObjectCulling 0\\n    -smallObjectThreshold -1 \\n    -interactiveDisableShadows 0\\n    -interactiveBackFaceCull 0\\n    -sortTransparent 1\\n    -nurbsCurves 1\\n    -nurbsSurfaces 1\\n    -polymeshes 1\\n    -subdivSurfaces 1\\n    -planes 1\\n    -lights 1\\n    -cameras 1\\n    -controlVertices 1\\n    -hulls 1\\n    -grid 1\\n    -imagePlane 1\\n    -joints 1\\n    -ikHandles 1\\n    -deformers 1\\n    -dynamics 1\\n    -particleInstancers 1\\n    -fluids 1\\n    -hairSystems 1\\n    -follicles 1\\n    -nCloths 1\\n    -nParticles 1\\n    -nRigids 1\\n    -dynamicConstraints 1\\n    -locators 1\\n    -manipulators 1\\n    -pluginShapes 1\\n    -dimensions 1\\n    -handles 1\\n    -pivots 1\\n    -textures 1\\n    -strokes 1\\n    -motionTrails 1\\n    -clipGhosts 1\\n    -greasePencils 1\\n    -shadows 0\\n    -captureSequenceNumber -1\\n    -width 999\\n    -height 716\\n    -sceneRenderFilter 0\\n    $editorName;\\nmodelEditor -e -viewSelected 0 $editorName;\\nmodelEditor -e \\n    -pluginObjects \\\"gpuCacheDisplayFilter\\\" 1 \\n    $editorName\"\n"
 		+ "\t\t\t\t\t\"modelPanel -edit -l (localizedPanelLabel(\\\"Persp View\\\")) -mbv $menusOkayInPanels  $panelName;\\n$editorName = $panelName;\\nmodelEditor -e \\n    -cam `findStartUpCamera persp` \\n    -useInteractiveMode 0\\n    -displayLights \\\"default\\\" \\n    -displayAppearance \\\"smoothShaded\\\" \\n    -activeOnly 0\\n    -ignorePanZoom 0\\n    -wireframeOnShaded 0\\n    -headsUpDisplay 1\\n    -holdOuts 1\\n    -selectionHiliteDisplay 1\\n    -useDefaultMaterial 0\\n    -bufferMode \\\"double\\\" \\n    -twoSidedLighting 0\\n    -backfaceCulling 0\\n    -xray 0\\n    -jointXray 0\\n    -activeComponentsXray 0\\n    -displayTextures 0\\n    -smoothWireframe 0\\n    -lineWidth 1\\n    -textureAnisotropic 0\\n    -textureHilight 1\\n    -textureSampling 2\\n    -textureDisplay \\\"modulate\\\" \\n    -textureMaxSize 16384\\n    -fogging 0\\n    -fogSource \\\"fragment\\\" \\n    -fogMode \\\"linear\\\" \\n    -fogStart 0\\n    -fogEnd 100\\n    -fogDensity 0.1\\n    -fogColor 0.5 0.5 0.5 1 \\n    -depthOfFieldPreview 1\\n    -maxConstantTransparency 1\\n    -rendererName \\\"base_OpenGL_Renderer\\\" \\n    -objectFilterShowInHUD 1\\n    -isFiltered 0\\n    -colorResolution 256 256 \\n    -bumpResolution 512 512 \\n    -textureCompression 0\\n    -transparencyAlgorithm \\\"frontAndBackCull\\\" \\n    -transpInShadows 0\\n    -cullingOverride \\\"none\\\" \\n    -lowQualityLighting 0\\n    -maximumNumHardwareLights 1\\n    -occlusionCulling 0\\n    -shadingModel 0\\n    -useBaseRenderer 0\\n    -useReducedRenderer 0\\n    -smallObjectCulling 0\\n    -smallObjectThreshold -1 \\n    -interactiveDisableShadows 0\\n    -interactiveBackFaceCull 0\\n    -sortTransparent 1\\n    -nurbsCurves 1\\n    -nurbsSurfaces 1\\n    -polymeshes 1\\n    -subdivSurfaces 1\\n    -planes 1\\n    -lights 1\\n    -cameras 1\\n    -controlVertices 1\\n    -hulls 1\\n    -grid 1\\n    -imagePlane 1\\n    -joints 1\\n    -ikHandles 1\\n    -deformers 1\\n    -dynamics 1\\n    -particleInstancers 1\\n    -fluids 1\\n    -hairSystems 1\\n    -follicles 1\\n    -nCloths 1\\n    -nParticles 1\\n    -nRigids 1\\n    -dynamicConstraints 1\\n    -locators 1\\n    -manipulators 1\\n    -pluginShapes 1\\n    -dimensions 1\\n    -handles 1\\n    -pivots 1\\n    -textures 1\\n    -strokes 1\\n    -motionTrails 1\\n    -clipGhosts 1\\n    -greasePencils 1\\n    -shadows 0\\n    -captureSequenceNumber -1\\n    -width 999\\n    -height 716\\n    -sceneRenderFilter 0\\n    $editorName;\\nmodelEditor -e -viewSelected 0 $editorName;\\nmodelEditor -e \\n    -pluginObjects \\\"gpuCacheDisplayFilter\\\" 1 \\n    $editorName\"\n"
@@ -281,6 +241,56 @@ createNode script -n "sceneConfigurationScriptNode";
 	rename -uid "518F3980-0000-0AF9-5AD0-1A5400000303";
 	setAttr ".b" -type "string" "playbackOptions -min 1 -max 120 -ast 1 -aet 200 ";
 	setAttr ".st" 6;
+createNode composeMatrix -n "composeMatrix1";
+	rename -uid "518F3980-0000-0AF9-5AD0-1C7800000379";
+createNode nodeGraphEditorInfo -n "MayaNodeEditorSavedTabsInfo";
+	rename -uid "518F3980-0000-0AF9-5AD0-1CA80000037A";
+	setAttr ".tgi[0].tn" -type "string" "Untitled_1";
+	setAttr ".tgi[0].vl" -type "double2" -842.35638357998744 -266.03349524084337 ;
+	setAttr ".tgi[0].vh" -type "double2" 685.68944978859747 439.59276539114654 ;
+	setAttr -s 14 ".tgi[0].ni";
+	setAttr ".tgi[0].ni[0].x" -434.28570556640625;
+	setAttr ".tgi[0].ni[0].y" -44.285713195800781;
+	setAttr ".tgi[0].ni[0].nvs" 18304;
+	setAttr ".tgi[0].ni[1].x" -829.9661865234375;
+	setAttr ".tgi[0].ni[1].y" 49.296909332275391;
+	setAttr ".tgi[0].ni[1].nvs" 18306;
+	setAttr ".tgi[0].ni[2].x" 180;
+	setAttr ".tgi[0].ni[2].y" 30;
+	setAttr ".tgi[0].ni[2].nvs" 18304;
+	setAttr ".tgi[0].ni[3].x" -741.4285888671875;
+	setAttr ".tgi[0].ni[3].y" 204.28572082519531;
+	setAttr ".tgi[0].ni[3].nvs" 18304;
+	setAttr ".tgi[0].ni[4].x" -127.14286041259766;
+	setAttr ".tgi[0].ni[4].y" -165.71427917480469;
+	setAttr ".tgi[0].ni[4].nvs" 18304;
+	setAttr ".tgi[0].ni[5].x" -434.28570556640625;
+	setAttr ".tgi[0].ni[5].y" 141.42857360839844;
+	setAttr ".tgi[0].ni[5].nvs" 18306;
+	setAttr ".tgi[0].ni[6].x" -434.79638671875;
+	setAttr ".tgi[0].ni[6].y" 706.02752685546875;
+	setAttr ".tgi[0].ni[6].nvs" 18306;
+	setAttr ".tgi[0].ni[7].x" 180;
+	setAttr ".tgi[0].ni[7].y" 284.28570556640625;
+	setAttr ".tgi[0].ni[7].nvs" 18304;
+	setAttr ".tgi[0].ni[8].x" 180;
+	setAttr ".tgi[0].ni[8].y" -68.571426391601562;
+	setAttr ".tgi[0].ni[8].nvs" 18304;
+	setAttr ".tgi[0].ni[9].x" 487.14285278320312;
+	setAttr ".tgi[0].ni[9].y" 30;
+	setAttr ".tgi[0].ni[9].nvs" 18304;
+	setAttr ".tgi[0].ni[10].x" -127.14286041259766;
+	setAttr ".tgi[0].ni[10].y" 31.428571701049805;
+	setAttr ".tgi[0].ni[10].nvs" 18304;
+	setAttr ".tgi[0].ni[11].x" 180;
+	setAttr ".tgi[0].ni[11].y" 185.71427917480469;
+	setAttr ".tgi[0].ni[11].nvs" 18304;
+	setAttr ".tgi[0].ni[12].x" -127.14286041259766;
+	setAttr ".tgi[0].ni[12].y" -67.142860412597656;
+	setAttr ".tgi[0].ni[12].nvs" 18304;
+	setAttr ".tgi[0].ni[13].x" -127.14286041259766;
+	setAttr ".tgi[0].ni[13].y" 130;
+	setAttr ".tgi[0].ni[13].nvs" 18304;
 select -ne :time1;
 	setAttr ".o" 1;
 	setAttr ".unw" 1;
@@ -296,6 +306,7 @@ select -ne :defaultShaderList1;
 	setAttr -s 4 ".s";
 select -ne :postProcessList1;
 	setAttr -s 2 ".p";
+select -ne :defaultRenderUtilityList1;
 select -ne :defaultRenderingList1;
 select -ne :initialShadingGroup;
 	setAttr ".ro" yes;
@@ -328,7 +339,7 @@ connectAttr "inn.msg" "Component1.grp_inn";
 connectAttr "out.msg" "Component1.grp_out";
 connectAttr "untitled_output_rig.wm" "out.worldMatrix0";
 connectAttr "multMatrix1.o" "decomposeMatrix1.imat";
-connectAttr "untitled_stack_rig.wm" "multMatrix1.i[0]";
+connectAttr "composeMatrix1.omat" "multMatrix1.i[0]";
 connectAttr "untitled_offset_rig.wim" "multMatrix1.i[1]";
 connectAttr "inf.avar_yw" "unitConversion1.i";
 connectAttr "inf.avar_pt" "unitConversion2.i";
@@ -339,21 +350,33 @@ relationship "shadowLink" ":lightLinker1" ":initialShadingGroup.message" ":defau
 relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
 connectAttr "layerManager.dli[0]" "defaultLayer.id";
 connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
-connectAttr "untitled_output_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[0].dn"
+connectAttr "inn.inputTranslateY" "composeMatrix1.ity";
+connectAttr "inn.inputTranslateX" "composeMatrix1.itx";
+connectAttr "inn.inputTranslateZ" "composeMatrix1.itz";
+connectAttr "inn.inputRotateX" "composeMatrix1.irx";
+connectAttr "inn.inputRotateY" "composeMatrix1.iry";
+connectAttr "inn.inputRotateZ" "composeMatrix1.irz";
+connectAttr "inf.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[0].dn";
+connectAttr "inn.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[1].dn";
+connectAttr "untitled_output_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[2].dn"
 		;
-connectAttr "untitled_parent_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[1].dn"
+connectAttr "untitled_offset_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[3].dn"
 		;
-connectAttr "untitled_offset_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[2].dn"
-		;
-connectAttr "untitled_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[3].dn";
-connectAttr "unitConversion3.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[4].dn";
+connectAttr "unitConversion2.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[4].dn";
 connectAttr "multMatrix1.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[5].dn";
-connectAttr "untitled_stack_rig_pos.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[6].dn"
+connectAttr "composeMatrix1.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[6].dn";
+connectAttr "untitled_parent_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[7].dn"
 		;
-connectAttr "unitConversion1.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[7].dn";
-connectAttr "unitConversion2.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[8].dn";
-connectAttr "inf.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[9].dn";
-connectAttr "decomposeMatrix1.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[10].dn"
+connectAttr "untitled_stack_rig_pos.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[8].dn"
 		;
+connectAttr "out.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[9].dn";
+connectAttr "unitConversion3.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[10].dn"
+		;
+connectAttr "untitled_rig.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[11].dn";
+connectAttr "unitConversion1.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[12].dn"
+		;
+connectAttr "decomposeMatrix1.msg" "MayaNodeEditorSavedTabsInfo.tgi[0].ni[13].dn"
+		;
+connectAttr "composeMatrix1.msg" ":defaultRenderUtilityList1.u" -na;
 connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
 // End of AvarLinear-0.0.1.ma

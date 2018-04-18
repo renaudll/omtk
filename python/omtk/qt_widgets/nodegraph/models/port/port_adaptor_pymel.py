@@ -112,3 +112,9 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
 
     def connect_to(self, val):
         pymel.connectAttr(self._data, val, force=True)
+
+    def disconnect_from(self, val):
+        pymel.disconnectAttr(val, self._data)
+
+    def disconnect_to(self, val):
+        pymel.disconnectAttr(self._data, val)

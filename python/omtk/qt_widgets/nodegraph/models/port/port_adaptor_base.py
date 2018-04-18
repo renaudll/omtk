@@ -51,4 +51,12 @@ class NodeGraphPortImpl(object):
     def connect_to(self, val):
         raise NotImplementedError
 
+    # @abc.abstractmethod
+    def disconnect_from(self, val):
+        raise NotImplementedError
+
+    # @abc.abstractmethod
+    def disconnect_to(self):
+        raise NotImplementedError
+
 

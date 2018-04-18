@@ -1,7 +1,8 @@
 {
   "blacklisted_node_types": [
     "nodeGraphEditorInfo",
-    "defaultRenderUtilityList"
+    "defaultRenderUtilityList",
+    "nodeGraphEditorInfo"
   ],
   "blacklisted_node_names": [
     "sceneConfigurationScriptNode",

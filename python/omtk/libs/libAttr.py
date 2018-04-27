@@ -767,6 +767,8 @@ def connect_attr_to_visibility(input_attr_name):
             # Force the connection
             pymel.connectAttr(mdl.output, vis_attr, force=True)
 
-
-
-
+def disconnect_trs(obj, inputs=True, outputs=True):
+    attr_names = ['t', 'tx', 'ty', 'tz', 'r', 'rx', 'ry', 'rz', 's', 'sx', 'sy', 'sz']
+    for attr_name in attr_names:
+        attr = obj.attr(attr_name)
+        disconnectAttr(attr, inputs=inputs, outputs=outputs)

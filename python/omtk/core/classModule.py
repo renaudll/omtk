@@ -323,6 +323,7 @@ class Module(object):
                 jnt = module.jnt
                 if libPymel.is_child_of(jnt, head_jnt):
                     return jnt
+                self.warning("Ignoring {0} as the main jaw influence. Not a child of {1}.".format(jnt, head_jnt))
 
         if strict:
             self.warning(
@@ -513,6 +514,12 @@ class Module(object):
                     if inn.segmentScaleCompensate.get():
                         self.info("Disabling segmentScaleCompensate on {0}".format(inn))
                         inn.segmentScaleCompensate.set(False)
+
+            # Remove any existing connections on the input joints.
+            # Sometimes the rigger might leave animation by accident.
+            # Note that to be safe we only do this for joints (objects that we are gonna control).
+            if isinstance(inn, pymel.nodetypes.Joint):
+                libAttr.disconnect_trs(inn)
 
         if create_grp_anm:
             grp_anm_name = grp_anm_name or self.get_nomenclature_anm_grp().resolve()

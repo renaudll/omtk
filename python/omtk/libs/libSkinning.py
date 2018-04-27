@@ -246,6 +246,13 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         return False
     jnt_dst_indexes = [influence_objects.index(target) for target in targets]
 
+    geometryDagPath = obj.__apimdagpath__()
+    try:
+        component = pymel.api.toComponentMObject(geometryDagPath)
+    except RuntimeError, e:
+        pymel.warning("Cannot access component for {0}. Is the shape empty?".format(obj))
+        return False
+
     # Store the affected joints only
     # This allow us to reference the index to navigate in the weights table.
     mint_influences = OpenMaya.MIntArray()
@@ -294,8 +301,6 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
     mfnSkinCluster = skinCluster.__apimfn__()
-    geometryDagPath = obj.__apimdagpath__()
-    component = pymel.api.toComponentMObject(geometryDagPath)
     mfnSkinCluster.getWeights(geometryDagPath, component, mint_influences, old_weights)
 
     # Compute new weights

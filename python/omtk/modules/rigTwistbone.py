@@ -85,7 +85,17 @@ class Twistbone(Module):
 
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, orient_ik_ctrl=True, num_twist=None, create_bend=None, realign=True, *args, **kwargs):
+    def build(self, orient_ik_ctrl=True, num_twist=None, create_bend=None, realign=True, disconnect_inputs=False, *args, **kwargs):
+        """
+        :param orient_ik_ctrl: 
+        :param num_twist: 
+        :param create_bend: 
+        :param realign: 
+        :param disconnect_inputs: Twistbones are one exception in which they use their inputs are reference only. For this reason we don't want to touch the inputs. 
+        :param args: 
+        :param kwargs: 
+        :return: 
+        """
         if len(self.chain_jnt) < 2:
             raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.chain_jnt), self.chain_jnt))
 
@@ -96,7 +106,7 @@ class Twistbone(Module):
         if create_bend is not None:
             self.create_bend = create_bend
 
-        super(Twistbone, self).build(create_grp_anm=self.create_bend, *args, **kwargs)
+        super(Twistbone, self).build(create_grp_anm=self.create_bend, disconnect_inputs=disconnect_inputs, *args, **kwargs)
 
         top_parent = self.chain[0].getParent()
         jnt_s = self.chain_jnt[0]
@@ -211,6 +221,7 @@ class Twistbone(Module):
                 else:
                     pymel.aimConstraint(sys_ribbon._follicles[i - 1], driver,
                                         mo=False, wut=2, wuo=jnt_s, aim=aim_vec_inverse, u=[0.0, 1.0, 0.0])
+            
             for ctrl, ref in zip(self.ctrls, ctrl_refs):
                 # libAttr.lock_hide_rotation(ctrl)
                 libAttr.lock_hide_scale(ctrl)

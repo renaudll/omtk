@@ -487,7 +487,7 @@ class Module(object):
         self.grp_rig is not None and self.grp_rig.exists())
 
     def build(self, create_grp_anm=True, create_grp_rig=True, grp_anm_name=None, grp_rig_name=None,
-              connect_global_scale=True, parent=True):
+              connect_global_scale=True, disconnect_inputs=True, parent=True):
         """
         Build the module following the provided rig rules.
         :param create_grp_anm: If True, a group for all the animation controller will be created.
@@ -518,8 +518,9 @@ class Module(object):
             # Remove any existing connections on the input joints.
             # Sometimes the rigger might leave animation by accident.
             # Note that to be safe we only do this for joints (objects that we are gonna control).
-            if isinstance(inn, pymel.nodetypes.Joint):
-                libAttr.disconnect_trs(inn)
+            if disconnect_inputs:
+                if isinstance(inn, pymel.nodetypes.Joint):
+                    libAttr.disconnect_trs(inn, inputs=True, outputs=False)
 
         if create_grp_anm:
             grp_anm_name = grp_anm_name or self.get_nomenclature_anm_grp().resolve()

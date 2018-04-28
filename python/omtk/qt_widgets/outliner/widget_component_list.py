@@ -107,6 +107,7 @@ class ComponentListLineEditEventFilter(QtCore.QObject):
                 return
         return super(ComponentListLineEditEventFilter, self).eventFilter(obj, event)
 
+from omtk.core import component_registry
 
 class WidgetComponentList(QtWidgets.QWidget):
     signalComponentCreated = QtCore.Signal(component.Component)
@@ -123,7 +124,8 @@ class WidgetComponentList(QtWidgets.QWidget):
         horizontal_header.setSectionResizeMode(horizontal_header.Stretch)
         view.verticalHeader().hide()
 
-        defs = list(libComponents.walk_available_component_definitions())
+        registry = component_registry.get_registry()
+        defs = registry.get_component_definitions()
         self.model = ComponentDefinitionTableModel(defs)
         self.model.load_maya_nodes()
         self.proxy_model = QtCore.QSortFilterProxyModel()

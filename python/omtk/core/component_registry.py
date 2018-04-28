@@ -130,6 +130,9 @@ class ComponentRegistry(object):
         latest_def = self.get_latest_component_version(search_def)
         return latest_def is not None and search_def == latest_def
 
+    def get_component_definitions(self):
+        return self._known_definitions
+
 
 @decorators.memoized
 def get_registry():

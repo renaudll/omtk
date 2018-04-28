@@ -180,6 +180,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         proxy_model_subgraph = graph_component_proxy_model.GraphComponentProxyFilterModel()
         proxy_model_subgraph.set_source_model(model)
         view = nodegraph_view.NodeGraphView(self)
+        view.selectionMoved.connect(self.on_selected_nodes_moved)
         ctrl = nodegraph_controller.NodeGraphController(model=proxy_model_subgraph, view=view)
         self.add_view(view)
         self.add_controller(ctrl)

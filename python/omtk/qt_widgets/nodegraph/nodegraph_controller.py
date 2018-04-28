@@ -711,7 +711,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             menu_action = menu.addAction('Ungroup')
             menu_action.triggered.connect(self.ungroup_selected_nodes)
 
-        values = [v for v in values if isinstance(v, entity.Entity)]  # limit ourself to components
+            menu_action = menu.addAction('Update')
+            menu_action.triggered.connect(self.update_selected_nodes)
+
+        values = [v for v in values if isinstance(v, entity.Entity)]  # limit ourself to _known_definitions
 
         # values = [v for v in values if factory_datatypes.get_datatype(v) == factory_datatypes.AttributeType.Component]
         # values = [node._meta_data for node in self.getSelectedNodes() if
@@ -874,6 +877,38 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def frame_selected(self):
         self._view.frameSelectedNodes()
 
+    def _update_node(self, node):
+        from omtk.qt_widgets.nodegraph.models.node import node_component
+        from omtk.core import component_registry
+        if not isinstance(node, node_component.NodeGraphComponentModel):
+            raise Exception
+
+        registry = component_registry.ComponentRegistry()  # todo: use singleton
+        cmpnt = node.get_metadata()
+        cmpnt_def = cmpnt.get_definition()
+        if registry.is_latest_component_version(cmpnt_def):
+            log.info("{} is already latest".format(cmpnt_def))
+            return
+
+        latest_def = registry.get_latest_component_version(cmpnt_def)
+        if not latest_def:
+            log.warning("Found no version available for {0} ({1})".format(cmpnt_def.name, cmpnt_def.uid))
+            return
+
+        old_namespace = cmpnt.namespace
+        data = cmpnt.hold_connections()
+        cmpnt.delete()
+        self.remove_node(node)
+        inst_2 = latest_def.instanciate(name=old_namespace)  # todo: rename to namespace
+        inst_2.fetch_connections(data)
+
+        new_node = self.get_registry().get_node_from_value(inst_2)
+        self.add_node(new_node)
+
+    def update_selected_nodes(self):
+        for node_model in self.get_selected_node_models():
+            self._update_node(node_model)
+
     # --- Right click menu events ---
 
     def group_selected_nodes(self):
@@ -942,7 +977,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         form_create_component.show()
 
     def ungroup_selected_nodes(self):
-        # Get selection components
+        # Get selection _known_definitions
         components = [val for val in self.get_selected_values() if isinstance(val, component.Component)]
         if not components:
             return

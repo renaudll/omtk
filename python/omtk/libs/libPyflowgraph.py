@@ -163,6 +163,8 @@ def get_node_position(node, use_stored_pos=True, use_maya_pos=True):
         # Otherwise use the saved position from the Maya NodeEditor.
         elif use_maya_pos:
             return libMayaNodeEditor.get_node_position(meta_data)
+    elif meta_type in (factory_datatypes.AttributeType.Component):
+        return get_node_position(meta_data.grp_inn, use_stored_pos=use_stored_pos, use_maya_pos=use_maya_pos)
 
 
 def save_node_position(node, pos):
@@ -180,6 +182,10 @@ def save_node_position(node, pos):
         else:
             attr = meta_data.attr(_GRAPH_POS_ATTR_NAME)
         attr.set(pos)
+        print "saving {0} position to {1}".format(meta_data, pos)
+
+    elif meta_type in (factory_datatypes.AttributeType.Component,):
+        save_node_position(meta_type.grp_inn, pos)  # todo: make it work?
 
 
 def pyflowgraph_to_networkxgraph(nodes):

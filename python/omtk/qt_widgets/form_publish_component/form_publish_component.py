@@ -7,6 +7,7 @@ import pymel.core as pymel
 from omtk.vendor.Qt import QtWidgets
 from omtk.libs import libAttr
 from omtk.core import component_definition
+from omtk.core import component_registry
 from omtk import log
 
 if False:  # for type hinting
@@ -47,9 +48,10 @@ class FormPublishComponent(QtWidgets.QMainWindow):
         )
 
     def on_submit(self):
+        registry = component_registry.get_registry()
         component_def = self.get_new_definition()
         self._component.set_definition(component_def)
-        path = component_def.get_path()
+        path = registry.get_path_from_component_def(component_def)
         log.info('Exporting component to {0}'.format(path))
         self._component.export(path)
         self.close()

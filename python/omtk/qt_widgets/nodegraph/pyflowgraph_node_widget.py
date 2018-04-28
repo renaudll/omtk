@@ -121,6 +121,9 @@ class OmtkNodeGraphDagNodeWidget(OmtkNodeGraphNodeWidget):
     def __init__(self, graph, name, model, ctrl):
         super(OmtkNodeGraphDagNodeWidget, self).__init__(graph, name, model, ctrl)
 
+    def __repr__(self):
+        return '<OmtkNodeGraphDagNodeWidget "{0}"'.format(str(self._meta_data))
+
         # self._callback_id_by_node_model = defaultdict(set)
 
     # def delete(self):

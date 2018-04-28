@@ -3,12 +3,13 @@ from collections import defaultdict
 import functools
 import pymel.core as pymel
 from maya import OpenMaya
-from omtk import decorators
-from omtk.libs import libAttr, libPyflowgraph
+from omtk import decorators, constants
+from omtk.libs import libAttr, libPyflowgraph, libMayaNodeEditor
 from omtk.vendor.Qt import QtCore
 
 from . import node_base
 from omtk.qt_widgets.nodegraph import pyflowgraph_node_widget
+from omtk.factories import factory_datatypes
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -259,3 +260,24 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
         """
         super(NodeGraphDgNodeModel, self).on_removed_from_scene()
         self.remove_callbacks()
+
+    def get_position(node):
+        # type: (PyFlowgraphNode) -> (float, float)
+        meta_data = node.get_metadata()
+
+        # If the node contain a saved position, use it.
+        if meta_data.hasAttr(constants.PyFlowGraphMetadataKeys.Position):
+            return meta_data.attr(constants.PyFlowGraphMetadataKeys.Position).get()
+
+    def save_position(node, pos):
+        meta_data = node.get_metadata()
+        attr_name = constants.PyFlowGraphMetadataKeys.Position
+
+        if not meta_data.hasAttr(attr_name):
+            pymel.addAttr(meta_data, longName=attr_name, at='float2')
+            pymel.addAttr(meta_data, longName=attr_name + 'X', at='float', parent=attr_name)
+            pymel.addAttr(meta_data, longName=attr_name + 'Y', at='float', parent=attr_name)
+            attr = meta_data.attr(attr_name)
+        else:
+            attr = meta_data.attr(attr_name)
+        attr.set(pos)

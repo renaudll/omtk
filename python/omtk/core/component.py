@@ -379,6 +379,56 @@ class Component(Entity):
         network_name = '{0}:{1}'.format(self.namespace, constants.COMPONENT_METANETWORK_NAME)
         network.rename(network_name)
 
+    def get_connections(self):
+        """
+        Return two dict(k,v) describing what is connected to the component.
+        This help with updating/promoting component.
+        """
+        map_inn = {}
+        map_out = {}
+        for attr in self.grp_inn.listAttr(userDefined=True):
+            if attr.isDestination():
+                map_inn[attr] = attr.inputs(plugs=True)
+        for attr in self.grp_out.listAttr(userDefined=True):
+            if attr.isSource():
+                map_out[attr] = attr.outputs(plugs=True)
+        return map_inn, map_out
+
+    def get_connections_relative(self):
+        """
+        :return: Two dict(k,v) where k is the name of a public attribute and v is a list of outside attributes connected to it.
+        """
+        old_map_inn, old_map_out = self.get_connections()
+        map_inn = {}
+        map_out = {}
+        for attr, vals in old_map_inn.iteritems():
+            map_inn[attr.longName()] = vals
+        for attr, vals in old_map_out.iteritems():
+            map_out[attr.longName()] = vals
+        return map_inn, map_out
+
+    def hold_connections(self):
+        map_inn, map_out = self.get_connections()
+        for attr_dst, attr_srcs in map_inn.iteritems():
+            for attr_src in attr_srcs:
+                pymel.disconnectAttr(attr_src, attr_dst)
+        for attr_src, attr_dsts in map_out.iteritems():
+            for attr_dst in attr_dsts:
+                pymel.disconnectAttr(attr_src, attr_dst)
+        return map_inn, map_out
+
+    def fetch_connections(self, map_inn, map_out):
+        for attr_name, attr_srcs in map_inn.iteritems():
+            for attr_src in attr_srcs:
+                self.connect_to_input_attr(attr_name, attr_src)
+        for attr_name, attr_dsts in map_out.iteritems():
+            for attr_dst in attr_dsts:
+                self.connect_to_output_attr(attr_name, attr_dst)
+
+    def delete(self):
+        self.unbuild()  # todo: merge methods?
+
+
 # --- Actions ---
 
 class ActionShowContentInNodeEditor(EntityAction):

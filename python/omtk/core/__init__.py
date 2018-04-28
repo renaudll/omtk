@@ -28,6 +28,7 @@ def reload_():
     import component_definition
     import component
     import component_scripted
+    import component_registry
     import ctrl
     import module
     import module_logic_avar
@@ -44,6 +45,7 @@ def reload_():
     reload(component_definition)
     reload(component)
     reload(component_scripted)
+    reload(component_registry)
     reload(node)
     reload(ctrl)
     reload(module)

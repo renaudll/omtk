@@ -144,6 +144,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             self._view.selectionChanged.disconnect(self.on_selection_changed)
             self._view.on_right_click.disconnect(self.on_right_click)
             self._view.nodeDragedIn.disconnect(self.on_node_draged_in)
+            self._view.selectionMoved.disconnect(self.on_selected_nodes_moved)
 
         self._view = view
 
@@ -161,6 +162,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         view.selectionChanged.connect(self.on_selection_changed)
         view.on_right_click.connect(self.on_right_click)
         view.nodeDragedIn.connect(self.on_node_draged_in)
+        view.selectionMoved.connect(self.on_selected_nodes_moved)
+
 
         self.reset_view()
 
@@ -290,7 +293,6 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     # @decorators.log_info
     def on_model_port_added(self, port):
         # type: (NodeGraphPortModel) -> None
-        # print port
         if self._view:
             self.get_port_widget(port)
 
@@ -388,6 +390,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         """
         node_widget = node.get_widget(self._view, self)
         node_widget._omtk_model = node  # monkey-patch
+
+        # Restore previously set node position
+        pos = libPyflowgraph.get_node_position(node)
+        if pos:
+            pos = QtCore.QPointF(*pos)
+            pos = node_widget.mapToScene(pos)
+            node_widget.setPos(pos)
 
         return node_widget
 
@@ -556,6 +565,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         registry = self.get_registry()
         node = registry.get_node_from_value(value)
         self.add_node(node)
+
+    def on_selected_nodes_moved(self):
+        for node in self.get_selected_node_models():
+            node_widget = self.get_node_widget(node)
+            pos = node_widget.scenePos()
+            # pos = node_widget.mapToScene(pos)
+            libPyflowgraph.save_node_position(node, (pos.x(), pos.y()))
 
     def add_nodes(self, *nodes, **kwargs):
         [self.add_node(node, **kwargs) for node in nodes]
@@ -812,7 +828,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
             widget = self.get_node_widget(model)
             widget.setPos(QtCore.QPointF(*pos))
-            libPyflowgraph.save_node_position(widget, pos)
+            libPyflowgraph.save_node_position(node, pos)
 
     def delete_selected_nodes(self):
         for model in self.get_selected_node_models():

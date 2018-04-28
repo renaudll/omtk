@@ -130,17 +130,6 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
     def _get_widget_cls(self):
         return pyflowgraph_node_widget.OmtkNodeGraphDagNodeWidget
 
-    def get_widget(self, graph, ctrl):
-        node = super(NodeGraphDgNodeModel, self).get_widget(graph, ctrl)
-
-        # Set position
-        pos = libPyflowgraph.get_node_position(node)
-        if pos:
-            pos = QtCore.QPointF(*pos)
-            node.setGraphPos(pos)
-
-        return node
-
     # --- Callbacks ---
 
     # def delete(self):

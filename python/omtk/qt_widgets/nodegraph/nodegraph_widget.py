@@ -180,7 +180,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         proxy_model_subgraph = graph_component_proxy_model.GraphComponentProxyFilterModel()
         proxy_model_subgraph.set_source_model(model)
         view = nodegraph_view.NodeGraphView(self)
-        view.selectionMoved.connect(self.on_selected_nodes_moved)
         ctrl = nodegraph_controller.NodeGraphController(model=proxy_model_subgraph, view=view)
         self.add_view(view)
         self.add_controller(ctrl)
@@ -222,13 +221,6 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         tabWidget.blockSignals(True)
         tabWidget.addTab(widget, '+')
         tabWidget.blockSignals(False)
-
-    def on_selected_nodes_moved(self):
-        for node in self._view.getSelectedNodes():
-            if node._meta_data:
-                new_pos = node.pos()  # for x reason, .getGraphPos don't work here
-                new_pos = (new_pos.x(), new_pos.y())
-                libPyflowgraph.save_node_position(node, new_pos)
 
     # Connect shortcut buttons to the active controller.
 

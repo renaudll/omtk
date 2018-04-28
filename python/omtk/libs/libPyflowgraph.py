@@ -13,8 +13,10 @@ log = logging.getLogger('omtk')
 
 _GRAPH_POS_ATTR_NAME = constants.PyFlowGraphMetadataKeys.Position
 
-if True:  # for type-hinting
+if False:  # for type-hinting
+    from typing import Tuple
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
+    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
 
 
 def _walk_downstream(node):
@@ -150,42 +152,56 @@ def arrange_downstream(node, padding_x=32, padding_y=10):
         arrange_downstream(child, padding_x=padding_x, padding_y=padding_y)
 
 
-def get_node_position(node, use_stored_pos=True, use_maya_pos=True):
+def _get_node_position(node, use_stored_pos=True, use_maya_pos=False):
+    # type: (pymel.PyNode, bool, bool) -> None
+    # If the node contain a saved position, use it.
+    if use_stored_pos and node.hasAttr(constants.PyFlowGraphMetadataKeys.Position):
+        pos = node.attr(constants.PyFlowGraphMetadataKeys.Position).get()
+        # print("Getting position. {0} at {1}".format(node, pos))
+        return pos
+    # Otherwise use the saved position from the Maya NodeEditor.
+    elif use_maya_pos:
+        pos = libMayaNodeEditor.get_node_position(node)
+        # print("Getting position. {0} at {1}".format(node, pos))
+        return pos
+
+
+def get_node_position(node, use_stored_pos=True, use_maya_pos=False):
+    # type: (NodeGraphNodeModel, bool, bool) -> (float, float)
     assert(use_stored_pos or use_maya_pos)
-    # type: (PyFlowgraphNode) -> (float, float)
-    meta_type = node._meta_type
-    meta_data = node._meta_data
+    meta_type = node.get_metatype()
+    meta_data = node.get_metadata()
 
     if meta_type in (factory_datatypes.AttributeType.Node,):
-        # If the node contain a saved position, use it.
-        if use_stored_pos and meta_data.hasAttr(constants.PyFlowGraphMetadataKeys.Position):
-            return meta_data.attr(constants.PyFlowGraphMetadataKeys.Position).get()
-        # Otherwise use the saved position from the Maya NodeEditor.
-        elif use_maya_pos:
-            return libMayaNodeEditor.get_node_position(meta_data)
-    elif meta_type in (factory_datatypes.AttributeType.Component):
-        return get_node_position(meta_data.grp_inn, use_stored_pos=use_stored_pos, use_maya_pos=use_maya_pos)
+        return _get_node_position(meta_data, use_stored_pos=use_stored_pos, use_maya_pos=use_maya_pos)
+    elif meta_type in (factory_datatypes.AttributeType.Component,):
+        return _get_node_position(meta_data.grp_inn, use_stored_pos=use_stored_pos, use_maya_pos=use_maya_pos)
+
+
+def _save_node_position(node, pos):
+    # type: (pymel.PyNode, Tuple[float,float]) -> None
+    if not node.hasAttr(_GRAPH_POS_ATTR_NAME):
+        pymel.addAttr(node, longName=_GRAPH_POS_ATTR_NAME, at='float2')
+        pymel.addAttr(node, longName=_GRAPH_POS_ATTR_NAME + 'X', at='float', parent=_GRAPH_POS_ATTR_NAME)
+        pymel.addAttr(node, longName=_GRAPH_POS_ATTR_NAME + 'Y', at='float', parent=_GRAPH_POS_ATTR_NAME)
+        attr = node.attr(_GRAPH_POS_ATTR_NAME)
+    else:
+        attr = node.attr(_GRAPH_POS_ATTR_NAME)
+    attr.set(pos)
+
+    # print("Saving position. {0} at {1}".format(node, pos))
 
 
 def save_node_position(node, pos):
-    # todo: type hint?
-    meta_type = node._meta_type
-    meta_data = node._meta_data
+    # type: (NodeGraphNodeModel, Tuple[float,float]) -> None
+    meta_type = node.get_metatype()
+    meta_data = node.get_metadata()
 
     if meta_type in (factory_datatypes.AttributeType.Node,):
-
-        if not meta_data.hasAttr(_GRAPH_POS_ATTR_NAME):
-            pymel.addAttr(meta_data, longName=_GRAPH_POS_ATTR_NAME, at='float2')
-            pymel.addAttr(meta_data, longName=_GRAPH_POS_ATTR_NAME + 'X', at='float', parent=_GRAPH_POS_ATTR_NAME)
-            pymel.addAttr(meta_data, longName=_GRAPH_POS_ATTR_NAME + 'Y', at='float', parent=_GRAPH_POS_ATTR_NAME)
-            attr = meta_data.attr(_GRAPH_POS_ATTR_NAME)
-        else:
-            attr = meta_data.attr(_GRAPH_POS_ATTR_NAME)
-        attr.set(pos)
-        print "saving {0} position to {1}".format(meta_data, pos)
+        _save_node_position(meta_data, pos)
 
     elif meta_type in (factory_datatypes.AttributeType.Component,):
-        save_node_position(meta_type.grp_inn, pos)  # todo: make it work?
+        _save_node_position(meta_data.grp_inn, pos)
 
 
 def pyflowgraph_to_networkxgraph(nodes):

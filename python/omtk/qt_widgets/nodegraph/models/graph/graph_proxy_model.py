@@ -40,7 +40,6 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
 
         self._model = model
 
-        # todo: make it work!
         model.onNodeAdded.connect(self.onNodeAdded.emit)
         model.onNodeRemoved.connect(self.onNodeRemoved.emit)
         model.onNodeMoved.connect(self.onNodeMoved.emit)

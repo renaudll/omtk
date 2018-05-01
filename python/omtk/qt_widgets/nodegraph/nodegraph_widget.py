@@ -3,7 +3,7 @@ import logging
 import pymel.core as pymel
 from omtk.core import session
 from omtk.libs import libPyflowgraph
-from omtk.qt_widgets.nodegraph.nodegraph_registry import _get_singleton_model
+from omtk.qt_widgets.nodegraph.nodegraph_registry import get_registry
 from omtk.qt_widgets.nodegraph.ui import nodegraph_widget
 from omtk.qt_widgets.nodegraph.models import NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph import graph_proxy_filter_model, graph_component_proxy_model

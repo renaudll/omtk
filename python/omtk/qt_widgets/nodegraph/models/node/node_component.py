@@ -131,6 +131,10 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
         super(NodeGraphComponentModel, self).__init__(registry, entity)
         self._name = entity.namespace
 
+    def rename(self, new_name):
+        component = self.get_metadata()
+        component.rename(new_name)
+
     def delete(self):
         # todo: verify it work
         pymel.delete(self._entity.get_children())

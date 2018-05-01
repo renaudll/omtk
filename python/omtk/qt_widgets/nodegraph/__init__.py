@@ -77,12 +77,6 @@ def reload_():
     from . import nodegraph_controller
     reload(nodegraph_controller)
 
-    from ui import nodegraph_tab_widget as nodegraph_tab_widget_ui
-    reload(nodegraph_tab_widget_ui)
-
-    from . import nodegraph_tab_widget
-    reload(nodegraph_tab_widget)
-
     from . import nodegraph_widget
     reload(nodegraph_widget)
 

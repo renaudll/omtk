@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 
 import pymel.core as pymel
 from omtk.core import session
@@ -35,6 +36,12 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         self._bound_out_dirty = False
         self._children_dirty = False
         self._need_refresh = False
+
+        # Used to keep reference of invisible children
+        self._child_by_component = defaultdict(set)
+        self._component_by_child = {}
+
+        # self.onNodeRemoved.connect(self.on_node_removed)
 
     def get_level(self):
         # type: () -> NodeGraphNodeModel
@@ -99,6 +106,18 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
 
         # self.reset()  # we need to refresh everything
         self.onLevelChanged.emit(level)
+
+    def add_node(self, node, emit_signal=True):
+        # If we add a component, we want to keep trace of it's children.
+        # This will allow us to properly react to Maya delete callbacks and remove the component
+        # if it ever become empty.
+        if isinstance(node, node_component.NodeGraphComponentModel):
+            children = node.get_children()
+            self._child_by_component[node] = children
+            for child in children:
+                self._component_by_child[child] = node
+
+        super(GraphComponentProxyFilterModel, self).add_node(node, emit_signal=emit_signal)
 
     # todo: move upper?
     def expand_node_ports(self, node):
@@ -449,3 +468,15 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
 
         node_model = get_connection_node_model()
         return node_model
+
+    # --- Events ---
+
+    # def on_node_removed(self, node):
+    #     """
+    #     Ensure that if the user remove anything under a Component we remove the component from the model.
+    #     """
+    #     print 'proxymodel', str(node)
+    #     for node in self.intercept_node(node):
+    #         if isinstance(node, node_component.NodeGraphComponentModel):
+    #             print len(node.get_children())
+    #             print node.get_children()

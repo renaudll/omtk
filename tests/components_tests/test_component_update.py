@@ -79,7 +79,7 @@ class ComponentUpdateTestCase(unittest.TestCase):
         self.assertFalse(self._registry.is_latest_component_version(inst.get_definition()))
         old_namespace = inst.namespace
         map_inn, map_out = inst.get_connections_relative()
-        inst.delete(disconnect=True)
+        inst.delete()
         inst_2 = c2_def.instanciate(name=old_namespace)  # todo: rename to namespace
         for attr_name, attr_srcs in map_inn.iteritems():
             for attr_src in attr_srcs:
@@ -90,7 +90,6 @@ class ComponentUpdateTestCase(unittest.TestCase):
         self.assertEqual(old_namespace, inst_2.namespace)
 
         self.assertEqual(2.0, t2.translateX.get())
-
 
 
 if __name__ == '__main__':

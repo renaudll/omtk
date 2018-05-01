@@ -53,6 +53,10 @@ class ComponentCache(object):
             self._cache_parent_by_node[child] = component
             self._cache_nodes_by_parent[component].add(child)
 
+    def get_component_from_namespace(self, namespace):
+        # type: (str) -> Component
+        return self._component_by_namespace.get(namespace, None)
+
     def get_component_from_obj(self, obj):
         try:
             return self._cache_parent_by_node[obj]
@@ -88,7 +92,7 @@ class ComponentCache(object):
         :return: A pymel.nodetypes.Network that can be deserialized.
         """
         namespace = obj.namespace().strip(':')
-        return self._component_by_namespace.get(namespace, None)
+        return self.get_component_from_namespace(namespace)
 
     def get_component_from_namespace(self, namespace):
         return self._component_by_namespace.get(namespace)
@@ -244,7 +248,8 @@ class AutoRigManager(QtCore.QObject):
 
     def get_component_from_obj(self, obj):
         # type: (pymel.PyNode) -> Component
-        return self._cache_components.get_component_from_obj(obj)
+        namespace = obj.namespace().strip(':')
+        return self._cache_components.get_component_from_namespace(namespace)
 
     def get_component_from_input_hub(self, obj):
         # type: (pymel.nodetypes.DependNode) -> Optional[Component]

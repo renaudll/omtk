@@ -90,7 +90,12 @@ def get_metadata_from_file(path):
 
 
 class ComponentDefinition(object):
-    def __init__(self, name, version=None, uid=None, author='', path=None):
+    """
+    A ComponentDefinition is a dict-like object
+    """
+    def __init__(self, name=None, version=None, uid=None, author='', path=None):
+        # hack: we support empty constructor since we are using libSerialization
+        # see: https://github.com/renaudll/omtk/issues/30
         self.uid = uid if uid else str(uuid.uuid4())
         self.name = name
         self.version = version if version else '0.0.0'
@@ -127,6 +132,15 @@ class ComponentDefinition(object):
                 raise MissingMetadataError("Missing field {0} in {1}".format(
                     field, metadata
                 ))
+
+    @classmethod
+    def empty(cls):
+        return cls(
+            uid=str(uuid.uuid4()),
+            name='unamed',
+            version='0.0.0',
+            author='author',
+        )
 
     @classmethod
     def from_metadata(cls, metadata):
@@ -208,29 +222,23 @@ class ComponentDefinition(object):
         inst.grp_out = hub_out
 
         # # If no metadata exist, create it from the .ma file header.
-        # if not metanetwork:
-        #     log.warning("No metadata found in the scene. Reading data for {0}.".format(self.path))
-        #     # hack
-        #     from . import component
-        #     inst_def = ComponentDefinition.from_file(self.path)
-        #     inst = component.Component.from_definition(inst_def)
-        #     inst.need_grp_inn = False
-        #     inst.grp_inn = hub_inn
-        #     inst.need_grp_out = False
-        #     inst.grp_out = hub_out
-        #     inst.build_interface()
-        #
-        #     # from omtk.core import manager
-        #     # m = manager.get_manager()
-        #     # _ = m.export_network(inst)
-        # else:
-        #     inst = m.import_network(metanetwork)
+        if not metanetwork:
+            log.warning("No metadata found in the scene. Reading data for {0}.".format(self.path))
+            # hack
+            from . import component
+            inst_def = ComponentDefinition.from_file(self.path)
+            network = m.export_network(inst_def)
+            network.rename(metanetwork_dagpath)
+            inst.grp_meta = network
 
         libComponents._connect_component_attributes(inst, map_inn, map_out)
 
         # from omtk import manager
         # m = manager.get_manager()
         # network = m.export_network(inst)
+
+        # todo: do we reaaaly need the cache? it's annoying to update...
+        session.get_session()._register_new_component(inst)
 
         return inst
 

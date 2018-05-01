@@ -13,6 +13,7 @@ if False:
     from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
     from omtk.qt_widgets.nodegraph.nodegraph_connection_model import NodeGraphConnectionModel
     from omtk.qt_widgets.nodegraph.port_model import NodeGraphPortModel
+    from omtk.qt_widgets.nodegraph.nodegraph_registry import NodeGraphRegistry
 
 
 class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
@@ -22,9 +23,10 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
     NodeGraphRegistry are consumed
     """
 
-    def __init__(self):
+    def __init__(self, registry=None):
         super(NodeGraphModel, self).__init__()  # initialize Qt signals
 
+        self._registry = None
         self._nodes = set()
         self._ports = set()
         self._connections = set()
@@ -35,6 +37,11 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
         self._ports_by_connection = defaultdict(set)
         self._connections_by_port = defaultdict(set)
+
+        from omtk.qt_widgets.nodegraph import nodegraph_registry
+        if registry is None:
+            registry = nodegraph_registry.get_registry()
+        self.set_registry(registry)
 
     def reset(self, expand=True):
         self.onAboutToBeReset.emit()
@@ -59,6 +66,21 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
         self.onReset.emit()
 
+    def set_registry(self, registry):
+        # type: (NodeGraphRegistry) -> None
+        if self._registry:
+            self._registry.onNodeDeleted.disconnect(self.on_node_unexpectedly_deleted)
+        #     self._registry.onAttributeAdded.disconnect(self.on_attribute_unexpectedly_added)
+        #     # self._registry.onAttributeRemoved.disconnect(self.)
+        registry.onNodeDeleted.connect(self.on_node_unexpectedly_deleted)
+        # registry.onAttributeAdded.connect(self.on_attribute_unexpectedly_added)
+        # # registry.onAttributeRemoved.connect()
+
+        # Pass any signals emitted by the registry.
+        registry.onNodeDeleted.connect(self.onNodeRemoved.emit)
+
+        self._registry = registry
+
     # --- Node methods ---
 
     def iter_nodes(self):
@@ -73,8 +95,8 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         if node in self._nodes:
             return
 
-        node.onDeleted.connect(self.on_node_unexpectedly_deleted)
-        node.onAttributeAdded.connect(self.on_attribute_unexpectedly_added)
+        # node.onDeleted.connect(self.on_node_unexpectedly_deleted)
+        # node.onAttributeAdded.connect(self.on_attribute_unexpectedly_added)
 
         pos = self.get_available_position(node)
         self._nodes.add(node)
@@ -86,24 +108,24 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         # type: (NodeGraphNodeModel, bool) -> None
 
         if not self.is_node_visible(node):
-            log.warning("Cannot remove Node {0}. Node is not in view.".format(node))
-            return
+            log.debug("Cannot remove Node {0}. Node is not in view.".format(node))
+        else:
 
-        self._nodes.remove(node)
-        self._pos_by_node.pop(node)
+            self._nodes.remove(node)
+            self._pos_by_node.pop(node)
 
-        node.onDeleted.disconnect(self.on_node_unexpectedly_deleted)
-        node.onAttributeAdded.disconnect(self.on_attribute_unexpectedly_added)
+            # node.onDeleted.disconnect(self.on_node_unexpectedly_deleted)
+            # node.onAttributeAdded.disconnect(self.on_attribute_unexpectedly_added)
 
-        # if node in self._expanded_nodes:
-        #     self._expanded_nodes.remove(node)
-        # if node in self._nodes_with_expanded_connections:
-        #     self._nodes_with_expanded_connections.remove(node)
+            # if node in self._expanded_nodes:
+            #     self._expanded_nodes.remove(node)
+            # if node in self._nodes_with_expanded_connections:
+            #     self._nodes_with_expanded_connections.remove(node)
 
-        # Remove node ports
-        for port in list(self._ports_by_nodes[node]):  # hack: prevent change during iteration
-            self.remove_port(port, emit_signal=False)  # we expect the user to know we're removing the port?
-        self._ports_by_nodes.pop(node)
+            # Remove node ports
+            for port in list(self._ports_by_nodes[node]):  # hack: prevent change during iteration
+                self.remove_port(port, emit_signal=False)  # we expect the user to know we're removing the port?
+            self._ports_by_nodes.pop(node)
 
         if emit_signal:
             self.onNodeRemoved.emit(node)

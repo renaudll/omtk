@@ -141,13 +141,19 @@ class Component(Entity):
         self._is_dirty_content = state
 
     def get_definition(self):
-        inst = component_definition.ComponentDefinition(
-            uid=self.uid,
-            name=self.name,
-            version=self.version,
-            author=self.author
-        )
-        return inst
+        # type: () -> ComponentDefinition
+        """
+        Return metadata associated with the component.
+        :return: A Component definition object.
+        """
+        metadata_dagpath = '{0}:metadata'.format(self.namespace)
+        if not cmds.objExists(metadata_dagpath):
+            return None
+        else:
+            metadata_node = pymel.PyNode(metadata_dagpath)
+            m = session.get_session()
+            component_def = m.import_network(metadata_node)
+            return component_def
 
     def build_interface(self):
         """
@@ -228,11 +234,16 @@ class Component(Entity):
         self.grp_inn = None
         self.grp_out = None
 
+        # todo: log remaining objects?
+        cmds.namespace(deleteNamespaceContent=True, removeNamespace=self.namespace)
+
     def optimize(self):
         # type: () -> bool
         """
         Implement optimisation routines. Call before publishing rig to animation.
-        :return:
+        There's multiple things that can be done here, here's some idea:
+        - Remove the inn and out hub.
+        - Check if decomposeMatrix are sent to composeMatrix and vice versa and remove them.
         """
         return False
 
@@ -279,11 +290,27 @@ class Component(Entity):
         return self.grp_out.listAttr()
 
     def connect_to_input_attr(self, attr_name, attr_src, **kwargs):
+        # type: (str, pymel.Attribute) -> None
+        if not self.grp_inn.hasAttr(attr_name):
+            log.warning("Cannot reconnect {0} to {1}. {0} doesnt exist.".format(attr_name, attr_src))
+            return
+        if not attr_src.exists():
+            log.warning("Cannot reconnect {0} to {1}. {1} doesnt exist.".format(attr_name, attr_src))
+            return
         attr_dst = self.grp_inn.attr(attr_name)
+        log.info("Connecting {0} to {1}".format(attr_src, attr_dst))
         pymel.connectAttr(attr_src, attr_dst)
 
     def connect_to_output_attr(self, attr_name, attr_dst, **kwargs):
-        attr_src = self.grp_out.attr(attr_dst)
+        # type: (str, pymel.Attribute) -> None
+        if not self.grp_out.hasAttr(attr_name):
+            log.warning("Cannot reconnect {0} to {1}. {0} doesnt exist.".format(attr_dst, attr_name))
+            return
+        if not attr_dst.exists():
+            log.warning("Cannot reconnect {0} to {1}. {1} doesnt exist.".format(attr_dst, attr_name))
+            return
+        attr_src = self.grp_out.attr(attr_name)
+        log.info("Connecting {0} to {1}".format(attr_src, attr_dst))
         pymel.connectAttr(attr_src, attr_dst)
 
     def explode(self):
@@ -408,11 +435,13 @@ class Component(Entity):
         return map_inn, map_out
 
     def hold_connections(self):
-        map_inn, map_out = self.get_connections()
-        for attr_dst, attr_srcs in map_inn.iteritems():
+        map_inn, map_out = self.get_connections_relative()
+        for attr_dst_name, attr_srcs in map_inn.iteritems():
+            attr_dst = self.grp_inn.attr(attr_dst_name)
             for attr_src in attr_srcs:
                 pymel.disconnectAttr(attr_src, attr_dst)
-        for attr_src, attr_dsts in map_out.iteritems():
+        for attr_src_name, attr_dsts in map_out.iteritems():
+            attr_src = self.grp_out.attr(attr_src_name)
             for attr_dst in attr_dsts:
                 pymel.disconnectAttr(attr_src, attr_dst)
         return map_inn, map_out
@@ -424,6 +453,14 @@ class Component(Entity):
         for attr_name, attr_dsts in map_out.iteritems():
             for attr_dst in attr_dsts:
                 self.connect_to_output_attr(attr_name, attr_dst)
+
+    def rename(self, new_namespace):
+        old_namespace = self.namespace
+        new_namespace = libNamespaces.get_unique_namespace(new_namespace)
+        cmds.namespace(addNamespace=new_namespace)
+        cmds.namespace(moveNamespace=(self.namespace, new_namespace))
+        cmds.namespace(removeNamespace=old_namespace)
+        self.namespace = new_namespace
 
     def delete(self):
         self.unbuild()  # todo: merge methods?
@@ -559,7 +596,7 @@ def __get_unique_name(name, all_names, naming_format='{0}{1}', start=1):
             return new_name
 
 
-def from_attributes(attrs_inn, attrs_out, namespace='component'):
+def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     # type: (List[pymel.Attribute], List[pymel.Attribute], str) -> Component
     attrs_inn_map = {}
     attrs_out_map = {}
@@ -576,7 +613,7 @@ def from_attributes(attrs_inn, attrs_out, namespace='component'):
         attr_name = __get_unique_name(attr.longName(), attrs_out_map)
         attrs_out_map[attr_name] = attr
 
-    inst = from_attributes_map(attrs_inn_map, attrs_out_map, namespace=namespace)
+    inst = from_attributes_map(attrs_inn_map, attrs_out_map, dagnodes=dagnodes, namespace=namespace)
     return inst
 
 def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
@@ -589,7 +626,12 @@ def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='componen
     :return: Component instance.
     """
     # Determine the parent namespace
-    dagnodes = _get_nodes_from_attributes(attrs_inn.values(), attrs_out.values())
+    if dagnodes is None:
+        dagnodes = set()
+    else:
+        dagnodes = set(dagnodes)  # enforce set for now...
+    additional_dagnodes = _get_nodes_from_attributes(attrs_inn.values(), attrs_out.values())
+    dagnodes.update(additional_dagnodes)
 
     parent_namespace = _get_parent_namespace(dagnodes)
     if parent_namespace:

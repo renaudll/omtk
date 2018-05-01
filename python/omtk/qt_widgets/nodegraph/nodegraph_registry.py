@@ -1,12 +1,14 @@
 import logging
-
+from collections import defaultdict
+from maya import OpenMaya
 import pymel.core as pymel
+import functools
 from omtk import decorators
 from omtk.core import entity_attribute, session
 from omtk.core import module
 from omtk.factories import factory_datatypes
-
-from .models.node import node_rig, node_dag, node_dg, node_component, node_module
+from omtk.vendor.Qt import QtCore
+from .models.node import node_base, node_rig, node_dag, node_dg, node_component, node_module
 from .models.port import port_base
 
 log = logging.getLogger('omtk.nodegraph')
@@ -16,13 +18,26 @@ if False:
     from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphPortModel, NodeGraphConnectionModel
 
 
-class NodeGraphRegistry(object):
+class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
     """
     Link node values to NodeGraph[Node/Port/Connection]Model.
-    Does not handle the Component representation.
     """
+    # todo: connect the signals bellow? it seem like it should be the registry job to track changes in Maya and notify the models.
+
+    # Signal emitted when a node is deleted from Maya.
+    # In this case the registry will automatically unregister the node and notify the models.
+    onNodeDeleted = QtCore.Signal(node_base.NodeGraphNodeModel)
+
+    # Signal emitted when an attribute is added.
+    # In this case the registry will automatically register the port and notify the models.
+    onAttributeAdded = QtCore.Signal(port_base.NodeGraphPortModel)
+
+    # Signal emitted when an attribute is removed from Maya.
+    onAttributeRemoved = QtCore.Signal(port_base.NodeGraphPortModel)
 
     def __init__(self):
+        super(NodeGraphRegistry, self).__init__()
+
         self._nodes = set()
         self._attributes = set()
         self._connections = set()
@@ -31,8 +46,20 @@ class NodeGraphRegistry(object):
 
         # We could use memoized decorator instead, but it's clearer when we manage the memoization manually.
         self._cache_nodes = {}  # k is a node raw value
+        self._cache_nodes_inv = {}
         self._cache_ports = {}  # k is a port raw value
+        self._cache_ports_inv = {}
         self._cache_connections = {}  # k is a 2-tuple of port model
+
+        # Used so we can invalidate ports when invalidating nodes
+        self._cache_ports_by_node = defaultdict(set)
+        self._cache_node_by_port = {}
+
+        self._callback_id_by_node_model = defaultdict(set)
+        self.add_callbacks()
+
+    def __del__(self):
+        self.remove_callbacks()
 
     @property
     def manager(self):
@@ -51,20 +78,25 @@ class NodeGraphRegistry(object):
 
     # --- Cache clearing method ---
 
-    def invalidate_node(self, node):
+    def invalidate_node(self, node_model):
+        # type: (NodeGraphNodeModel) -> None
         """Invalidate any cache referencing provided value."""
         # clean node cache
         try:
-            node_model = self._cache_nodes.pop(node)
+            node_value = self._cache_nodes_inv.pop(node_model)
             log.debug("Invalidating {0}".format(node_model))
+            self._cache_nodes.pop(node_value)
+            self._nodes.remove(node_model)  # todo: do we really need this cache? seem slower
         except LookupError:
             return
 
         # clear port cache
-        for attr in node_model.get_ports_metadata():
+        for port_model in self._cache_ports_by_node.pop(node_model, []):
             try:
-                port_model = self._cache_ports.pop(attr)
                 log.debug("Invalidating {0}".format(port_model))
+                attr = self._cache_ports_inv.pop(port_model)
+                self._cache_node_by_port.pop(port_model)
+                self._cache_ports.pop(attr)
             except LookupError:
                 continue
 
@@ -78,15 +110,19 @@ class NodeGraphRegistry(object):
                     self._cache_connections.pop(key)
                     log.debug("Invalidating {0}".format(connection_model))
 
+        # remove callbacks
+        self._remove_node_callback(node_model)
+
     # --- Access methods ---
 
     def get_node_from_value(self, key):
         # type: (object) -> NodeGraphNodeModel
         try:
             return self._cache_nodes[key]
-        except LookupError:
+        except Exception:  # LookupError
             val = self._get_node_from_value(key)
             self._cache_nodes[key] = val
+            self._cache_nodes_inv[val] = key
             return val
 
     def _get_node_from_value(self, val):
@@ -100,36 +136,20 @@ class NodeGraphRegistry(object):
         # Handle pointer to a component datatype
         data_type = factory_datatypes.get_datatype(val)
         if data_type == factory_datatypes.AttributeType.Component:
-            return node_component.NodeGraphComponentModel(self, val)
+            node = node_component.NodeGraphComponentModel(self, val)
+            # Hack: Force registration of all component children.
+            # This will ensure that node deletion signal get propagated.
+            node.get_children()
+
+            return node
 
         if data_type == factory_datatypes.AttributeType.Node:
-            # network = val
-            # if isinstance(val, pymel.nodetypes.Network):
-            #     if libSerialization.is_network_from_class(val, Component.__name__):
-            #         network = val
-            #     else:
-            #         network = libComponents.get_component_metanetwork_from_hub_network(val)
-            #
-            #         # todo: use internal data
-            #         component = self.manager.import_network(network)
-            #
-            #         from omtk import constants
-            #         if network:
-            #             if network.getAttr(constants.COMPONENT_HUB_INN_ATTR_NAME) == val:
-            #                 return component.NodeGraphComponentInnBoundModel(self, val, component)
-            #             elif network.getAttr(constants.COMPONENT_HUB_OUT_ATTR_NAME) == val:
-            #                 return component.NodeGraphComponentOutBoundModel(self, val, component)
-            #             else:
-            #                 raise Exception("Unreconnised network")
-
-            # if network:
-            #     component = self._manager.import_network(network)
-            #     return nodegraph_node_model_component.NodeGraphComponentModel(self, component)
-
             if isinstance(val, pymel.nodetypes.DagNode):
-                return node_dag.NodeGraphDagNodeModel(self, val)
+                node = node_dag.NodeGraphDagNodeModel(self, val)
             else:
-                return node_dg.NodeGraphDgNodeModel(self, val)
+                node = node_dg.NodeGraphDgNodeModel(self, val)
+            self._add_node_callback(node)
+            return node
 
         if data_type == factory_datatypes.AttributeType.Module:
             return node_module.NodeGraphModuleModel(self, val)
@@ -150,6 +170,10 @@ class NodeGraphRegistry(object):
         except LookupError:
             val = self._get_port_model_from_value(key)
             self._cache_ports[key] = val
+            self._cache_ports_inv[val] = key
+            node = val.get_parent()
+            self._cache_ports_by_node[node].add(val)
+            self._cache_node_by_port[val] = node
             return val
 
     def _get_port_model_from_value(self, val):
@@ -221,9 +245,182 @@ class NodeGraphRegistry(object):
     def get_node_parent(self, node):
         return self.manager._cache_components.get_component_from_obj(node)
 
+    # --- Maya callbacks ---
+    def _add_node_callback(self, metadata):
+        # type: (NodeGraphNodeModel) -> None
 
-@decorators.memoized
-def _get_singleton_model():
+        mobject = metadata.get_metadata().__apimobject__()
+
+        # Add attribute added callback
+        callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
+            mobject,
+            self.callback_attribute_added
+        )
+        self._callback_id_by_node_model[metadata].add(callback_id)
+
+        # Add attribute changed (connected)
+        # callback_id = OpenMaya.MNodeMessage.addAttributeChangedCallback(
+        #     mobject,
+        #     self.callback_attribute_changed
+        # )
+        # self._callback_id_by_node_model[metadata].add(callback_id)
+
+        # Add node deleted callback
+        # callback_id = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
+        #     mobject,
+        #     functools.partial(self.callback_node_deleted, metadata)
+        # )
+        self._callback_id_by_node_model[metadata].add(callback_id)
+
+    def add_callbacks(self):
+        self.remove_callbacks()
+
+        OpenMaya.MDGMessage.addNodeRemovedCallback(
+            self.callback_some_node_deleted,
+            "dependNode",
+        )
+
+    def callback_some_node_deleted(self, node, clientData):
+        # type: (OpenMaya.MObject, object) -> None
+        obj = pymel.PyNode(node)
+        node = self.get_node_from_value(obj)
+        self.callback_node_deleted(node)
+
+    def _remove_node_callback(self, node):
+        # type: (NodeGraphNodeModel) -> None
+        callback_ids = self._callback_id_by_node_model.get(node)
+        if callback_ids is None:
+            log.warning("Cannot remove callback. No callback set for {0}.".format(node))
+            return
+
+        for callback_id in callback_ids:
+            OpenMaya.MNodeMessage.removeCallback(callback_id)
+
+        self._callback_id_by_node_model.pop(node)
+
+    def remove_callbacks(self):
+        for metadata in self._callback_id_by_node_model.keys():
+            self._remove_node_callback(metadata)
+        # for _, ids in self._callback_id_by_node_model.iteritems():
+        #     for id_ in ids:
+        #         OpenMaya.MNodeMessage.removeCallback(id_)
+        # self._callback_id_by_node_model.clear()
+        assert(len(self._callback_id_by_node_model) == 0)  # should be empty
+
+    @staticmethod
+    def _analayse_callback_message(msg):
+        if msg & OpenMaya.MNodeMessage.kConnectionMade:
+            yield 'kConnectionMade'
+        if msg & OpenMaya.MNodeMessage.kConnectionBroken:
+            yield 'kConnectionBroken'
+        if msg & OpenMaya.MNodeMessage.kAttributeEval:
+            yield 'kAttributeEval'
+        if msg & OpenMaya.MNodeMessage.kAttributeSet:
+            yield 'kAttributeSet'
+        if msg & OpenMaya.MNodeMessage.kAttributeLocked:
+            yield 'kAttributeLocked'
+        if msg & OpenMaya.MNodeMessage.kAttributeUnlocked:
+            yield 'kAttributeUnlocked'
+        if msg & OpenMaya.MNodeMessage.kAttributeAdded:
+            yield 'kAttributeAdded'
+        if msg & OpenMaya.MNodeMessage.kAttributeRemoved:
+            yield 'kAttributeRemoved'
+        if msg & OpenMaya.MNodeMessage.kAttributeRenamed:
+            yield 'kAttributeRenamed'
+        if msg & OpenMaya.MNodeMessage.kAttributeKeyable:
+            yield 'kAttributeKeyable'
+        if msg & OpenMaya.MNodeMessage.kAttributeUnkeyable:
+            yield 'kAttributeUnkeyable'
+        if msg & OpenMaya.MNodeMessage.kIncomingDirection:
+            yield 'kIncomingDirection'
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+            yield 'kAttributeArrayAdded'
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayRemoved:
+            yield 'kAttributeArrayRemoved'
+        if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
+            yield 'kOtherPlugSet'
+
+    def callback_attribute_added(self, callback_id, mplug, _):
+        from omtk.qt_widgets.nodegraph.filters import filter_standard
+
+        attr_dagpath = mplug.name()
+        attr_name = attr_dagpath.split('.')[-1]
+
+        # todo: make it cleaner
+        if attr_name in filter_standard._attr_name_blacklist:
+            log.info('Ignoring callback on {0}'.format(attr_dagpath))
+            return
+
+        attr_mobj = mplug.node()
+        mfn = OpenMaya.MFnDependencyNode(attr_mobj)
+        obj_name = mfn.name()
+        log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
+
+        attr = pymel.Attribute(attr_dagpath)
+
+        port = self.get_port_model_from_value(attr)
+        self.onAttributeAdded.emit(port)
+
+    # @decorators.log_info
+    def callback_attribute_changed(self, msg, plug, *args, **kwargs):
+        """
+        Called when an attribute related to the node change in Maya.
+        :param msg:
+        :param plug:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        return  # todo: make it work
+        from maya import OpenMaya
+        # print(' + '.join(self._analayse_callback_message(msg)))
+
+        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+            attr_dagpath = plug.name()
+            # attr = pymel.Attribute(attr_dagpath)
+            self.onAttributeAdded.emit(attr_dagpath)
+            # print attr
+            # self._ctrl.callback_attribute_array_added(attr_dagpath)
+
+    @decorators.log_info
+    def callback_node_deleted(self, node, *args, **kwargs):
+        # type: (NodeGraphNodeModel, OpenMaya.MObject, OpenMaya.MDGModifier) -> None
+        """
+        Called when the node is deleted in Maya.
+        :param pynode: The pynode that is being deleted
+        :param args: Absorb the OpenMaya callback arguments
+        :param kwargs: Absorb the OpenMaya callback keyword arguments
+        """
+        log.info("[Registry Callback] {0} was deleted".format(node))
+        # node = self.get_node_from_value(pynode)
+
+
+
+        # Hack: If the node is part of a compound, ensure that the compound delete
+        # itself automatically if there's no more children.
+        # This might not be the best way to do, see QUESTIONS.txt 1.1.
+        if isinstance(node, node_dg.NodeGraphDgNodeModel):
+            parent = node.get_parent()
+            if parent:
+                parent_children = set(parent.get_children())
+                parent_children.remove(node)  # the node is not yet deleted
+                print node, len(parent_children), parent_children
+                if len(parent_children) == 0:
+                    self.onNodeDeleted.emit(parent)
+                    self.invalidate_node(parent)
+
+        # node.onDeleted.emit(node)
+        self.onNodeDeleted.emit(node)  # todo: do we need 2 signals?
+        self.invalidate_node(node)
+
+
+_g_registry = None
+# @decorators.memoized
+def get_registry():
+    # type: () -> NodeGraphRegistry
     from .nodegraph_registry import NodeGraphRegistry
-
-    return NodeGraphRegistry()
+    global _g_registry
+    if _g_registry is None:
+        _g_registry = NodeGraphRegistry()
+    return _g_registry
+    # return NodeGraphRegistry()

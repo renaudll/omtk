@@ -175,7 +175,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     def get_registry(self):
         # type: () -> NodeGraphRegistry
-        return nodegraph_registry._get_singleton_model()
+        return nodegraph_registry.get_registry()
 
     # --- Events ---
 
@@ -223,7 +223,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         from omtk.qt_widgets.nodegraph import nodegraph_registry
 
         log.debug("Creating component {0} (id {1})".format(component, id(component)))
-        registry = nodegraph_registry._get_singleton_model()
+        registry = nodegraph_registry.get_registry()
         node = registry.get_node_from_value(component)
 
         # todo: move this somewhere appropriate
@@ -400,8 +400,18 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         return node_widget
 
-    @decorators.memoized_instancemethod
     def get_port_widget(self, port):
+        # type: (NodeGraphPortModel) -> OmtkNodeGraphBasePortWidget
+        try:
+            return self._cache_port_widget_by_model[port]
+        except LookupError:
+            log.debug("Cannot find widget for {0}. Creating a new one.".format(port))
+            widget = self._get_port_widget(port)
+            self._cache_port_widget_by_model[port] = widget
+            self._cache_port_model_by_widget[widget] = port
+            return widget
+
+    def _get_port_widget(self, port):
         # type: (NodeGraphPortModel) -> OmtkNodeGraphBasePortWidget
         """
         Main entry-point for Widget creation.
@@ -427,8 +437,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         port_widget = port.get_widget(self, self._view, node_widget)
 
         # Update cache
-        self._cache_port_model_by_widget[port_widget] = port
-        self._cache_port_widget_by_model[port] = port_widget
+        # self._cache_port_model_by_widget[port_widget] = port
+        # self._cache_port_widget_by_model[port] = port_widget
 
         return port_widget
 
@@ -531,6 +541,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._visible_nodes.remove(node)
 
         if self.get_view():
+
+            for port in node.get_ports():
+                self.remove_port_from_view(port)
+
             node_widget = self.get_node_widget(node)
             node_widget.disconnectAllPorts(emitSignal=False)
             self._view.removeNode(node_widget)
@@ -546,8 +560,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         if not self.is_port_in_view(port):
             return
 
-        # widget = self._cache_port_widget_by_model.pop(port)
-        # self._cache_port_model_by_widget.pop(widget)
+        widget = self._cache_port_widget_by_model.pop(port)
+        self._cache_port_model_by_widget.pop(widget)
 
         self._visible_ports.remove(port)
 
@@ -600,9 +614,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             self._known_nodes.remove(node_model)
         except KeyError, e:
             log.warning(e)  # todo: fix this
-        widget = self.get_node_widget(node_model)
-        widget.disconnectAllPorts(emitSignal=False)
-        self._view.removeNode(widget)
+        model = self.get_model()
+        model.remove_node(node_model, emit_signal=True)
+        # widget = self.get_node_widget(node_model)
+        # widget.disconnectAllPorts(emitSignal=False)
+        # self._view.removeNode(widget)
 
     def rename_node(self, model, new_name):
         # type: (NodeGraphNodeModel, str) -> None
@@ -913,10 +929,12 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         old_namespace = cmpnt.namespace
         data = cmpnt.hold_connections()
-        cmpnt.delete()
-        self.remove_node(node)
+        # raise Exception
+        cmpnt.delete()  # note: we'll let the callbacks kick in
+        # self.remove_node(node)
+        # raise Exception
         inst_2 = latest_def.instanciate(name=old_namespace)  # todo: rename to namespace
-        inst_2.fetch_connections(data)
+        inst_2.fetch_connections(*data)
 
         new_node = self.get_registry().get_node_from_value(inst_2)
         self.add_node(new_node)
@@ -960,7 +978,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         dgnodes = [node.get_metadata() for node in nodes]
 
         inn_attrs, out_attrs = self._get_nodes_outsider_ports(nodes)
-        inst = component.from_attributes(inn_attrs, out_attrs)
+        inst = component.from_attributes(inn_attrs, out_attrs, dagnodes=dgnodes)
 
         self.manager.export_network(inst)
         self.manager._register_new_component(inst)

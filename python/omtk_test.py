@@ -301,6 +301,10 @@ class NodeGraphTestCase(TestCase):
         actual = len(self.model.get_nodes())
         self.assertEqual(expected, actual)
 
+    def assertGraphRegistryNodeCountEqual(self, expected):
+        actual = len(self.registry._nodes)
+        self.assertEqual(expected, actual)
+
     def assertGraphPortCountEqual(self, expected):
         actual = len(self.model.get_ports())
         self.assertEqual(expected, actual)

@@ -8,7 +8,7 @@ from omtk import decorators
 
 
 if False:  # for type hinting
-    from typing import List, Generator
+    from typing import List, Generator, Union
     from omtk.core.component import Component
     from omtk.core.component_definition import ComponentDefinition
 
@@ -129,6 +129,21 @@ class ComponentRegistry(object):
         # todo: check timestamp instead of version number?
         latest_def = self.get_latest_component_version(search_def)
         return latest_def is not None and search_def == latest_def
+
+    def get_latest_component_definition_by_name(self, name):
+        # type: (str) -> Union[ComponentDefinition,None]
+        """
+        Return the latest component matching the provided name.
+        :param name: The name to match.
+        :return: A ComponentDefinition.
+        """
+        latest_version = None
+        latest_definition = None
+        for cur_def in self._known_definitions:
+            if cur_def.name == name and (latest_version is None or latest_version < cur_def.version):
+                latest_version = cur_def.version
+                latest_definition = cur_def
+        return latest_definition
 
     def get_component_definitions(self):
         return self._known_definitions

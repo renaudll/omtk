@@ -21,6 +21,9 @@ class NodeGraphNodeModel(QtCore.QObject):  # QObject provide signals
     # Signal emitted when the node is unexpectedly deleted.
     onDeleted = QtCore.Signal(QtCore.QObject)
 
+    # Signal emitted when the node is renamed.
+    onRenamed = QtCore.Signal(QtCore.QObject)
+
     # Signal emitted when an attribute is unexpectedly added.
     onAttributeAdded = QtCore.Signal(object)  # todo: port to QtCore.QObject
 

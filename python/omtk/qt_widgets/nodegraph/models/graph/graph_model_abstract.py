@@ -32,25 +32,25 @@ class NodeGraphAbstractModel(QtCore.QObject):
     """
     __metaclass__ = QtCoreAbcMeta
 
-    # Signal emitted when a node is added in the view.
+    # Signal emitted when a node is added in the model.
     onNodeAdded = QtCore.Signal(node_model.NodeGraphNodeModel)
 
-    # Signal emitted when a node is removed from the view.
+    # Signal emitted when a node is removed from the model.
     onNodeRemoved = QtCore.Signal(node_model.NodeGraphNodeModel)
 
     # Signal emitted when a node position change.
     onNodeMoved = QtCore.Signal(node_model.NodeGraphNodeModel, QtCore.QPointF)
 
-    # Signal emitted when a node port is added in the view.
+    # Signal emitted when a node port is added in the model.
     onPortAdded = QtCore.Signal(port_model.NodeGraphPortModel)
 
-    # Signal emitted when a node port is removed from the view.
+    # Signal emitted when a node port is removed from the model.
     onPortRemoved = QtCore.Signal(port_model.NodeGraphPortModel)
 
-    # Signal emitted when a port connection is added in the view.
+    # Signal emitted when a port connection is added in the model.
     onConnectionAdded = QtCore.Signal(connection_model.NodeGraphConnectionModel)
 
-    # Signal emitted when a port connection is removed from the view.
+    # Signal emitted when a port connection is removed from the model.
     onConnectionRemoved = QtCore.Signal(connection_model.NodeGraphConnectionModel)
 
     # Signal emitted before the model internal state has been invalidated.

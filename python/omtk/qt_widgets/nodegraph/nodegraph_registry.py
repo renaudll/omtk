@@ -394,8 +394,6 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         log.info("[Registry Callback] {0} was deleted".format(node))
         # node = self.get_node_from_value(pynode)
 
-
-
         # Hack: If the node is part of a compound, ensure that the compound delete
         # itself automatically if there's no more children.
         # This might not be the best way to do, see QUESTIONS.txt 1.1.
@@ -404,7 +402,6 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
             if parent:
                 parent_children = set(parent.get_children())
                 parent_children.remove(node)  # the node is not yet deleted
-                print node, len(parent_children), parent_children
                 if len(parent_children) == 0:
                     self.onNodeDeleted.emit(parent)
                     self.invalidate_node(parent)

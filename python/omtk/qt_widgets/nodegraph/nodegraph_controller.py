@@ -3,6 +3,7 @@ Define a controller for one specific GraphView.
 """
 import copy
 import logging
+from collections import defaultdict
 
 import pymel.core as pymel
 from omtk import decorators
@@ -72,6 +73,9 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._cache_node_model_by_widget = {}
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
+
+        self._cache_node_by_port = {}
+        self._cache_ports_by_node = defaultdict(set)
 
         self._cache_nodes = {}
 
@@ -294,12 +298,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def on_model_port_added(self, port):
         # type: (NodeGraphPortModel) -> None
         if self._view:
-            self.get_port_widget(port)
+            self.add_port_to_view(port)
 
     # @decorators.log_info
     def on_model_port_removed(self, port):
         # type: (NodeGraphPortModel) -> None
-        raise NotImplementedError
+        if self._view:
+            self.remove_port_from_view(port)
 
     # @decorators.log_info
     def on_model_connection_added(self, connection):
@@ -538,11 +543,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def remove_node_from_view(self, node):
         if not self.is_node_in_view(node):
             return
+
         self._visible_nodes.remove(node)
 
         if self.get_view():
-
-            for port in node.get_ports():
+            for port in self._cache_ports_by_node.pop(node):
                 self.remove_port_from_view(port)
 
             node_widget = self.get_node_widget(node)
@@ -556,12 +561,31 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         widget = self._cache_node_widget_by_model.pop(node)
         self._cache_node_model_by_widget.pop(widget)
 
+    def add_port_to_view(self, port):
+        widget = self.get_port_widget(port)
+
+        # Update the cache
+        self._cache_port_widget_by_model[port] = widget
+        self._cache_port_model_by_widget[widget] = port
+
+        self._visible_ports.add(port)
+
+        # todo: use an add_port_to_view method?
+        node = port.get_parent()
+        self._cache_ports_by_node[node].add(port)
+        self._cache_node_by_port[port] = node
+
     def remove_port_from_view(self, port):
         if not self.is_port_in_view(port):
             return
 
+        # Clear Model <-> Widget cache
         widget = self._cache_port_widget_by_model.pop(port)
         self._cache_port_model_by_widget.pop(widget)
+
+        # Clear Node <-> Port cache
+        node = self._cache_node_by_port.pop(port)
+        self._cache_ports_by_node[node].discard(port)
 
         self._visible_ports.remove(port)
 
@@ -938,6 +962,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         new_node = self.get_registry().get_node_from_value(inst_2)
         self.add_node(new_node)
+
 
     def update_selected_nodes(self):
         for node_model in self.get_selected_node_models():

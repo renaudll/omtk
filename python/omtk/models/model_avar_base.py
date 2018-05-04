@@ -91,7 +91,7 @@ class AvarInflBaseModel(classModule.Module):
         The decision of using transforms instead of multMatrix nodes is for clarity.
         Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
         """
-        super(AvarInflBaseModel, self).build(create_grp_anm=False, **kwargs)
+        super(AvarInflBaseModel, self).build(create_grp_anm=False, disconnect_inputs=False, **kwargs)
 
         self._create_interface()
         attr_tm = self._build()

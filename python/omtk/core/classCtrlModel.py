@@ -41,7 +41,7 @@ class BaseCtrlModel(classModule.Module):
         :param ctrl_name: The desired ctrl name. If nothing is provided, the ctrl name will be automatically resolved.
         :param kwargs: Any additional keyword argument will be provided to the parent method.
         """
-        super(BaseCtrlModel, self).build(**kwargs)
+        super(BaseCtrlModel, self).build(disconnect_inputs=False, **kwargs)
         self.create_interface()
 
         if not ctrl_name:

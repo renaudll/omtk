@@ -439,7 +439,7 @@ class AbstractAvar(classModule.Module):
         """
         Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
         """
-        super(AbstractAvar, self).build(**kwargs)
+        super(AbstractAvar, self).build(disconnect_inputs=False, **kwargs)
 
         self.add_avars(self.grp_rig)
         self.fetch_avars()

@@ -470,7 +470,7 @@ class Component(Entity):
 
 class ActionShowContentInNodeEditor(EntityAction):
     def get_name(self):
-        return 'Show content in Node Editor.md'
+        return 'Show in Maya Node Editor'
 
     def _create_node_editor(self):
         cmds.window()
@@ -481,7 +481,7 @@ class ActionShowContentInNodeEditor(EntityAction):
         return p + 'NodeEditorEd'
 
     def execute(self):
-        children = self.component.get_children()
+        children = set(self.component.get_children())
         if not children:
             log.debug('Cannot open NodeEditor to explore {0} content. No children to display!'.format(self.component))
             return

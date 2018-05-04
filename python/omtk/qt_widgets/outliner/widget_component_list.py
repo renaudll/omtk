@@ -35,7 +35,7 @@ class ComponentDefinitionTableModel(QtCore.QAbstractTableModel):
 
     def __init__(self, entries):
         super(ComponentDefinitionTableModel, self).__init__()
-        self.__entries = entries
+        self.__entries = entries[:] # prevent modification by reference
 
     def load_maya_nodes(self):
         for node_type in sorted(cmds.allNodeTypes()):

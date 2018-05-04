@@ -290,12 +290,10 @@ def spring_layout(nodes):
     for pos in node_positions:
         average_pos_before += pos
     average_pos_before /= len(nodes)
-    print 'average_pos_before', average_pos_before
 
     import itertools
     bound_before_x = max(abs(a.x() - b.x()) for a, b in itertools.permutations(node_positions, 2))
     bound_before_y = max(abs(a.y() - b.y()) for a, b in itertools.permutations(node_positions, 2))
-    print 'bound before', bound_before_x, bound_before_y
 
     node_positions = [(pos.x(), pos.y()) for pos in node_positions]
 

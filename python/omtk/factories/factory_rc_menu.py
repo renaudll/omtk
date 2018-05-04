@@ -50,15 +50,15 @@ def get_menu(menu, components, fn_callback):
     from omtk.core import entity
 
     for component in components:
-        actions_map[(0, 'Component', 'Build')].append(
-            entity.ActionBuild(component)
-        )
-        actions_map[(0, 'Component', 'Unbuild')].append(
-            entity.ActionUnbuild(component)
-        )
-        actions_map[(0, 'Component', 'Rebuild')].append(
-            entity.ActionRebuild(component)
-        )
+        # actions_map[(0, 'Component', 'Build')].append(
+        #     entity.ActionBuild(component)
+        # )
+        # actions_map[(0, 'Component', 'Unbuild')].append(
+        #     entity.ActionUnbuild(component)
+        # )
+        # actions_map[(0, 'Component', 'Rebuild')].append(
+        #     entity.ActionRebuild(component)
+        # )
 
         # todo: add Lock
         # todo: add Unlock

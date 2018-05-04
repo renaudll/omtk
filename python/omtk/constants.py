@@ -59,7 +59,7 @@ class PyFlowGraphMetadataKeys:
     Position = '_graphpos'
 
 
-COMPONENT_HUB_INN_NAME = 'inn'
+COMPONENT_HUB_INN_NAME = 'inn'  # todo: change to 'in', 'inn' mean bed and breakfest...
 COMPONENT_HUB_OUT_NAME = 'out'
 COMPONENT_HUB_DAG_NAME = 'dag'
 COMPONENT_METANETWORK_NAME = 'metadata'

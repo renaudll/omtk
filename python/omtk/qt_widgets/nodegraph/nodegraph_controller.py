@@ -2,6 +2,7 @@
 Define a controller for one specific GraphView.
 """
 import copy
+import functools
 import logging
 from collections import defaultdict
 
@@ -18,6 +19,7 @@ from omtk.vendor.Qt import QtCore, QtWidgets
 if False:
     from typing import List, Generator
     from .nodegraph_view import NodeGraphView
+    from omtk.core.component import Component, ComponentDefinition
     from omtk.qt_widgets.nodegraph.models import NodeGraphModel, NodeGraphNodeModel, NodeGraphPortModel, \
         NodeGraphConnectionModel
     from omtk.qt_widgets.nodegraph.nodegraph_registry import NodeGraphRegistry
@@ -757,18 +759,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             menu_action = menu.addAction('Group')
             menu_action.triggered.connect(self.group_selected_nodes)
 
-        if any(True for val in values if isinstance(val, component.Component)):
-            menu_action = menu.addAction('Publish as Component')
-            menu_action.triggered.connect(self.on_rc_menu_publish_component)
-
-            menu_action = menu.addAction('Publish as Module')
-            menu_action.triggered.connect(self.on_rcmenu_publish_module)
-
-            menu_action = menu.addAction('Ungroup')
-            menu_action.triggered.connect(self.ungroup_selected_nodes)
-
-            menu_action = menu.addAction('Update')
-            menu_action.triggered.connect(self.update_selected_nodes)
+        components = [val for val in values if isinstance(val, component.Component)]
+        if components:
+            inst = components[0]
+            self._add_actions_for_component(menu, inst)
 
         values = [v for v in values if isinstance(v, entity.Entity)]  # limit ourself to _known_definitions
 
@@ -779,6 +773,42 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             return
 
         menu = factory_rc_menu.get_menu(menu, values, self.on_execute_action)
+
+    def _add_actions_for_component(self, menu, inst):
+        # type: (QtWidgets.QMenu, Component) -> None
+        """Add actions to provided menu specific to provided Component instance."""
+        from omtk.core import component_registry
+
+        menu.addSection("Component")
+
+        menu_action = menu.addAction('Publish...')
+        menu_action.triggered.connect(self.on_rc_menu_publish_component)
+        # menu_action = menu.addAction('Publish as Module')
+        # menu_action.triggered.connect(self.on_rcmenu_publish_module)
+        menu_action = menu.addAction('Ungroup')
+        menu_action.triggered.connect(self.ungroup_selected_nodes)
+
+        # If the component have a definition, we might want to update it.
+        component_def = inst.get_definition()
+        if not component_def:
+            log.debug("Found no definition for component {0}. Skipping additional menus.")
+        else:
+            registry = component_registry.get_registry()
+            component_versions = registry.get_component_versions(component_def)
+
+            if len(component_versions) > 1:
+                submenu = menu.addMenu("Update to...")
+                for component_version in component_versions:
+                    label = 'Update to {0}'.format(component_version.version)
+                    if component_version == component_def:
+                        label += ' (current)'
+                    menu_action = submenu.addAction(label)
+                    if component_version == component_def:
+                        menu_action.setEnabled(False)
+                    menu_action.triggered.connect(functools.partial(self.update_selected_nodes_to, component_version))
+
+            menu_action = menu.addAction('Update')
+            menu_action.triggered.connect(self.update_selected_nodes)
 
     def on_execute_action(self, actions):
         self.manager.execute_actions(actions)
@@ -933,7 +963,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def frame_selected(self):
         self._view.frameSelectedNodes()
 
-    def _update_node(self, node):
+    def _update_node_to_latest_version(self, node):
+        # type: (NodeGraphComponentModel, ComponentDefinition) -> None
         from omtk.qt_widgets.nodegraph.models.node import node_component
         from omtk.core import component_registry
         if not isinstance(node, node_component.NodeGraphComponentModel):
@@ -951,22 +982,33 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             log.warning("Found no version available for {0} ({1})".format(cmpnt_def.name, cmpnt_def.uid))
             return
 
-        old_namespace = cmpnt.namespace
-        data = cmpnt.hold_connections()
-        # raise Exception
-        cmpnt.delete()  # note: we'll let the callbacks kick in
-        # self.remove_node(node)
-        # raise Exception
-        inst_2 = latest_def.instanciate(name=old_namespace)  # todo: rename to namespace
-        inst_2.fetch_connections(*data)
+        self._update_node_to(cmpnt, latest_def)
 
-        new_node = self.get_registry().get_node_from_value(inst_2)
+    def _update_component_to(self, node, latest_def):
+        # type: (NodeGraphComponentModel, ComponentDefinition) -> None
+        """
+        Update a provided NodeGraphComponentModel to a provided ComponentDefinition.
+        This can be used to update/downgrade a Component to another version or to promote a Component to another type.
+        """
+        old_namespace = node.namespace
+        data = node.hold_connections()
+        node.delete()  # note: we'll let the callbacks kick in
+        new_inst = latest_def.instanciate(name=old_namespace)  # todo: rename to namespace
+        new_inst.fetch_connections(*data)
+        new_node = self.get_registry().get_node_from_value(new_inst)
         self.add_node(new_node)
-
 
     def update_selected_nodes(self):
         for node_model in self.get_selected_node_models():
-            self._update_node(node_model)
+            self._update_node_to_latest_version(node_model)
+
+    def update_selected_nodes_to(self, definition):
+        # type: (ComponentDefinition) -> None
+        from omtk.qt_widgets.nodegraph.models.node import node_component
+        for node in self.get_selected_node_models():
+            if isinstance(node, node_component.NodeGraphComponentModel):
+                component = node.get_metadata()
+                self._update_component_to(component, definition)
 
     # --- Right click menu events ---
 

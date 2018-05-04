@@ -33,3 +33,28 @@ def reload_():
     from . import widget_list_all
     reload(widget_list_all)
 
+    global OmtkBaseListWidget
+    OmtkBaseListWidget = widget_list_base.OmtkBaseListWidget
+
+    global OmtkBaseListWidgetRig
+    OmtkBaseListWidgetRig = widget_list_base.OmtkBaseListWidgetRig
+
+    global WidgetListInfluences
+    WidgetListInfluences = widget_list_influences.WidgetListInfluences
+
+    global WidgetListMeshes
+    WidgetListMeshes = widget_list_meshes.WidgetListMeshes
+
+    global WidgetListModules
+    WidgetListModules = widget_list_modules
+
+    global WidgetListComponentDefinition
+    WidgetListComponentDefinition = widget_list_componentdef.WidgetListComponentDefinition
+
+    global WidgetExtendedTree
+    WidgetExtendedTree = widget_extended_tree.WidgetExtendedTree
+
+    global WidgetListAll
+    WidgetListAll = widget_list_all.WidgetListAll
+
+

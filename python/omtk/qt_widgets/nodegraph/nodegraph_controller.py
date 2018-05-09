@@ -781,6 +781,9 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         menu.addSection("Component")
 
+        menu_action = menu.addAction("Properties")
+        menu_action.triggered.connect(self.on_show_properties_panel)
+
         menu_action = menu.addAction('Publish...')
         menu_action.triggered.connect(self.on_rc_menu_publish_component)
         # menu_action = menu.addAction('Publish as Module')
@@ -1067,6 +1070,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     def on_rcmenu_delete_attribute(self):
         raise NotImplementedError
+
+    def on_show_properties_panel(self):
+        from omtk.qt_widgets import form_component_properties
+        from omtk.qt_widgets.nodegraph.models.node import node_component
+
+        inst = next((val for val in self.get_selected_values() if isinstance(val, component.Component)), None)
+        form_component_properties.show(inst)
 
     def on_rc_menu_publish_component(self):
         inst = self.get_selected_node_models()[0].get_metadata()  # todo: secure this

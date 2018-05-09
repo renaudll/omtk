@@ -69,6 +69,11 @@ def reload_():
     reload(form_publish_component)
     form_publish_component.reload_()
 
+    log.debug('Reloading form_component_properties')
+    from omtk.qt_widgets import form_component_properties
+    reload(form_component_properties)
+    form_component_properties.reload_()
+
     # from omtk.qt_widgets import form_create_component
     # reload(form_create_component)
 

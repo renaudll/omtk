@@ -23,7 +23,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
     NodeGraphRegistry are consumed
     """
 
-    def __init__(self, registry=None):
+    def __init__(self, registry):
         super(NodeGraphModel, self).__init__()  # initialize Qt signals
 
         self._registry = None
@@ -38,9 +38,6 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         self._ports_by_connection = defaultdict(set)
         self._connections_by_port = defaultdict(set)
 
-        from omtk.qt_widgets.nodegraph import nodegraph_registry
-        if registry is None:
-            registry = nodegraph_registry.get_registry()
         self.set_registry(registry)
 
     def reset(self, expand=True):

@@ -22,6 +22,11 @@ class MainWindowExtended(QtWidgets.QMainWindow):
         # src: https://github.com/fredrikaverpil/pyvfx-boilerplate/blob/master/boilerplate.py#L110
         self.setProperty("saveWindowPref", True)
 
+        # Ensure that QWidgets are destroyed when the QMainWindow is closed.
+        # We have destroyed events connected in the code that need to be fired and this only
+        # seem fixable in the QMainWindow itself.
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+
         self._configure_widget_logger()
 
         self.set_logger(log)

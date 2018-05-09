@@ -42,9 +42,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     # Define the default root model to use
     _cls_root_model = node_root.NodeGraphNodeRootModel
 
-    def __init__(self, model=None, view=None):
+    def __init__(self, registry, model=None, view=None):
         super(NodeGraphController, self).__init__()  # needed for signal handling
         # type: (NodeGraphModel, NodeGraphView) -> ()
+        self._registry = None
         self._model = None
         self._view = None
         self._filter = None
@@ -90,6 +91,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._expanded_nodes = set()  # todo: duplicate?
         self._nodes_with_expanded_connections = set()
 
+        if registry:
+            self.set_registry(registry)
         if model:
             self.set_model(model)
         if view:
@@ -170,7 +173,6 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         view.nodeDragedIn.connect(self.on_node_draged_in)
         view.selectionMoved.connect(self.on_selected_nodes_moved)
 
-
         self.reset_view()
 
     def set_filter(self, filter_):
@@ -179,9 +181,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         model = self.get_model()
         model.set_filter(filter_)
 
+    def set_registry(self, registry):
+        # type: (NodeGraphRegistry) -> None
+        self._registry = registry
+
     def get_registry(self):
         # type: () -> NodeGraphRegistry
-        return nodegraph_registry.get_registry()
+        return self._registry
 
     # --- Events ---
 
@@ -229,7 +235,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         from omtk.qt_widgets.nodegraph import nodegraph_registry
 
         log.debug("Creating component {0} (id {1})".format(component, id(component)))
-        registry = nodegraph_registry.get_registry()
+        registry = self.get_registry()
         node = registry.get_node_from_value(component)
 
         # todo: move this somewhere appropriate

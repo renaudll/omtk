@@ -1,13 +1,11 @@
 import logging
+import functools
 
-import pymel.core as pymel
 from omtk.core import session
-from omtk.libs import libPyflowgraph
-from omtk.qt_widgets.nodegraph.nodegraph_registry import get_registry
 from omtk.qt_widgets.nodegraph.ui import nodegraph_widget
-from omtk.qt_widgets.nodegraph.models import NodeGraphModel
 from omtk.qt_widgets.nodegraph.models.graph import graph_proxy_filter_model, graph_component_proxy_model
 from omtk.qt_widgets.nodegraph.filters import filter_standard
+from omtk.qt_widgets.nodegraph import nodegraph_registry
 from omtk.vendor.Qt import QtWidgets, QtCore, QtGui
 
 from . import nodegraph_view
@@ -20,8 +18,6 @@ if False:  # for type hinting
 
 class NodeGraphWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
-        from .nodegraph_controller import NodeGraphController
-
         # Hack: We are NOT providing any parent
         # Otherwise we won't see the QMainWindow if embeded in another QMainWindow
         # Here's a reproduction example, tested in Maya-2017:
@@ -35,6 +31,13 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
 
         self.ui = nodegraph_widget.Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # The registry keep track of what is in Maya and listen to events.
+        # It need to be shared with each controllers (tabs) of the ui.
+        # It also need to be destroyed correctly.
+        # For this reason we'll initialize it in the NodeGraphWidget itself.
+        # Any tips for a better design is appreciated.
+        self._registry = nodegraph_registry.NodeGraphRegistry()
 
         # Keep track of the multiple views provided by the QTabWidget
         self._ctrl = None
@@ -93,6 +96,15 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._create_shortcut(QtCore.Qt.Key_Minus, self.on_del)
         # todo: move elsewhere?
         self._create_shortcut(QtCore.Qt.Key_T, self.ui.widget_toolbar.create_favorite_callback('transform'))
+
+        self.destroyed.connect(functools.partial(NodeGraphWidget.on_destroyed, self._registry))
+
+    # Note: The method is static, otherwise it make Maya crash.
+    # see: https://stackoverflow.com/questions/16842955/widgets-destroyed-signal-is-not-fired-pyqt
+    @staticmethod
+    def on_destroyed(registry):
+        print("NodeGraphWidget was destroyed")
+        registry.remove_callbacks()
 
     def keyPressEvent(self, event):
         """
@@ -172,7 +184,8 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         from omtk.qt_widgets.nodegraph.models.graph import graph_model
 
         tabWidget = self.ui.tabWidget
-        source_model = graph_model.NodeGraphModel()
+        registry = self._registry
+        source_model = graph_model.NodeGraphModel(registry)
         filter = filter_standard.NodeGraphStandardFilter()
         model = graph_proxy_filter_model.GraphFilterProxyModel()
         model.set_source_model(source_model)
@@ -180,7 +193,11 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         proxy_model_subgraph = graph_component_proxy_model.GraphComponentProxyFilterModel()
         proxy_model_subgraph.set_source_model(model)
         view = nodegraph_view.NodeGraphView(self)
-        ctrl = nodegraph_controller.NodeGraphController(model=proxy_model_subgraph, view=view)
+        ctrl = nodegraph_controller.NodeGraphController(
+            registry=registry,
+            model=proxy_model_subgraph,
+            view=view
+        )
         self.add_view(view)
         self.add_controller(ctrl)
 

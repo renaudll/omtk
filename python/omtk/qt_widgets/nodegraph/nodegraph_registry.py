@@ -56,10 +56,8 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         self._cache_node_by_port = {}
 
         self._callback_id_by_node_model = defaultdict(set)
+        self._callback_id_node_removed = None
         self.add_callbacks()
-
-    def __del__(self):
-        self.remove_callbacks()
 
     @property
     def manager(self):
@@ -273,9 +271,10 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         self._callback_id_by_node_model[metadata].add(callback_id)
 
     def add_callbacks(self):
+        print "Adding callbacks"
         self.remove_callbacks()
 
-        OpenMaya.MDGMessage.addNodeRemovedCallback(
+        self._callback_id_node_removed = OpenMaya.MDGMessage.addNodeRemovedCallback(
             self.callback_some_node_deleted,
             "dependNode",
         )
@@ -299,6 +298,11 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         self._callback_id_by_node_model.pop(node)
 
     def remove_callbacks(self):
+        print("Removing callbacks...")
+
+        if self._callback_id_node_removed is not None:
+            OpenMaya.MNodeMessage.removeCallback(self._callback_id_node_removed)
+
         for metadata in self._callback_id_by_node_model.keys():
             self._remove_node_callback(metadata)
         # for _, ids in self._callback_id_by_node_model.iteritems():
@@ -409,15 +413,3 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         # node.onDeleted.emit(node)
         self.onNodeDeleted.emit(node)  # todo: do we need 2 signals?
         self.invalidate_node(node)
-
-
-_g_registry = None
-# @decorators.memoized
-def get_registry():
-    # type: () -> NodeGraphRegistry
-    from .nodegraph_registry import NodeGraphRegistry
-    global _g_registry
-    if _g_registry is None:
-        _g_registry = NodeGraphRegistry()
-    return _g_registry
-    # return NodeGraphRegistry()

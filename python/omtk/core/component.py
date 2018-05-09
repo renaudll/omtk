@@ -400,10 +400,11 @@ class Component(Entity):
         self.uid = component_def.uid
 
         # Re-export metadata
-        network = libSerialization.export_network(self)
-
-        # Rename the network to match desired nomenclature
         network_name = '{0}:{1}'.format(self.namespace, constants.COMPONENT_METANETWORK_NAME)
+        if cmds.objExists(network_name):
+            cmds.delete(network_name)
+
+        network = libSerialization.export_network(component_def)
         network.rename(network_name)
 
     def get_connections(self):

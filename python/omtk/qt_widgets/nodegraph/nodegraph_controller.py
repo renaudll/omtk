@@ -1010,8 +1010,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         from omtk.qt_widgets.nodegraph.models.node import node_component
         for node in self.get_selected_node_models():
             if isinstance(node, node_component.NodeGraphComponentModel):
-                component = node.get_metadata()
-                self._update_component_to(component, definition)
+                inst = node.get_metadata()
+                self._update_component_to(inst, definition)
 
     # --- Right click menu events ---
 

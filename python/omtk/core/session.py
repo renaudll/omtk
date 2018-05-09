@@ -249,7 +249,18 @@ class AutoRigManager(QtCore.QObject):
     def get_component_from_obj(self, obj):
         # type: (pymel.PyNode) -> Component
         namespace = obj.namespace().strip(':')
-        return self._cache_components.get_component_from_namespace(namespace)
+
+        # A namespace might not be associated with a component but it's parent might.
+        # For this reason we'll try each possibilities, ex:
+        # - a:b:c
+        # - a:b
+        # - a
+        tokens = namespace.split(':')
+        for i in reversed(range(len(tokens))):
+            namespace = ':'.join(tokens[:i+1])
+            component = self._cache_components.get_component_from_namespace(namespace)
+            if component:
+                return component
 
     def get_component_from_input_hub(self, obj):
         # type: (pymel.nodetypes.DependNode) -> Optional[Component]

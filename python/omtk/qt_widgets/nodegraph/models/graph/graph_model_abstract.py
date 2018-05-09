@@ -113,9 +113,9 @@ class NodeGraphAbstractModel(QtCore.QObject):
         # type: (NodeGraphNodeModel, QtCore.QRectF, bool) -> None
         """"""
 
-    @abc.abstractmethod
     # --- Port methods ---
 
+    @abc.abstractmethod
     def iter_ports(self):
         # type: () -> Generator[NodeGraphPortModel]
         """"""
@@ -265,3 +265,15 @@ class NodeGraphAbstractModel(QtCore.QObject):
         # type: (NodeGraphPortModel) -> None
         for connection in self.iter_port_output_connections(port):
             self.add_connection(connection)
+
+    # --- Filtering methods ---
+    # do we want these?
+
+    def intercept_node(self, node):
+        yield node
+
+    def intercept_port(self, port):
+        yield port
+
+    def intercept_connection(self, connection):
+        yield connection

@@ -154,11 +154,8 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
 
     # still used?
     def intercept_node(self, node):
-        from omtk.qt_widgets.nodegraph.models.node import node_component
-
         # type: (NodeGraphNodeModel) -> Generator[NodeGraphNodeModel]
-        s = session.get_session()
-        registry = node._registry
+        from omtk.qt_widgets.nodegraph.models.node import node_component
 
         # Handle compound bound.
         # If we receive a bound node, only yield it if it's part of the current level.

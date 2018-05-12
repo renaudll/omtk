@@ -179,41 +179,6 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
         for attr_def in self.get_ports_metadata():
             yield NodeGraphComponentPortModel(self._registry, self, attr_def)
 
-    def allow_input_port_display(self, port_model, context=None):
-        # type: (NodeGraphPortModel, NodeGraphController) -> bool
-        """
-        Component network attributes are inputs and outputs at the same time.
-        For example, an input attribute is an output attribute when looking from inside the component.
-        The NodeGraphController server as context holder.
-        """
-        # todo: cleanup private variable usage
-        # If we are viewing the component content
-        if context:
-            if context._current_level_model == self:
-                return port_model.get_parent().get_metadata() == self._entity.grp_inn
-            else:
-                return port_model.get_parent().get_metadata() == self._entity.grp_out
-        return super(NodeGraphComponentModel, self).allow_input_port_display(port_model)
-
-    def allow_output_port_display(self, port_model, context=None):
-        # type: (NodeGraphController, NodeGraphPortModel) -> bool
-        """
-        Component network attributes are inputs and outputs at the same time.
-        For example, an output attribute is an input attribute when looking from inside the component.
-        The NodeGraphController server as context holder.
-        """
-        # todo: cleanup private variable usage
-        # If we are viewing the component content
-        if context:
-            if context._current_level_model == self:
-                return port_model.get_parent() == self._entity.grp_out
-            else:
-                return port_model.get_parent() == self._entity.grp_inn
-        return super(NodeGraphComponentModel, self).allow_output_port_display(port_model)
-
-        # def _get_node_widget_label(self):
-        #     return '{0} v{1}'.format(self._name, self._entity.version)
-
     def _get_widget_cls(self):
         return pyflowgraph_node_widget.OmtkNodeGraphComponentNodeWidget
 

@@ -27,6 +27,7 @@ if False:
     from omtk.qt_widgets.nodegraph.pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
     from omtk.qt_widgets.nodegraph.pyflowgraph_port_widget import OmtkNodeGraphBasePortWidget
     from omtk.qt_widgets.nodegraph.models.node.node_component import NodeGraphComponentModel
+    from omtk.qt_widgets.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -49,8 +50,6 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._model = None
         self._view = None
         self._filter = None
-        self._current_level_model = None
-        self._current_level_data = None
 
         # Hold a reference to the inn and out node when inside a compound.
         self._widget_bound_inn = None
@@ -126,7 +125,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         if self._view:
             self.reset_view()
 
-        model.onAboutToBeReset.connect(self.on_model_about_to_be_reset)
+        # model.onAboutToBeReset.connect(self.on_model_about_to_be_reset)
         model.onReset.connect(self.on_model_reset)
         model.onNodeAdded.connect(self.on_model_node_added)
         model.onNodeRemoved.connect(self.on_model_node_removed)
@@ -137,6 +136,14 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         # note: We expect the last model to be a GraphComponentProxyFilterModel for now.
         # model.onLevelChanged.connect(self.onLevelChanged)
+
+        # Check if the model use a SubgraphProxyModel.
+        # If yes, we'll keep a reference to it
+        from omtk.qt_widgets.nodegraph.models.graph import graph_component_proxy_model
+        while model:
+            if isinstance(model, graph_component_proxy_model.GraphComponentProxyFilterModel):
+                self._subgraph_proxy_model = model
+                break
 
     def get_view(self):
         # type: () -> NodeGraphView
@@ -255,31 +262,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     # --- Model events ---
 
-    def on_model_about_to_be_reset(self):
-        self._buffer_old_nodes.update(copy.copy(self._model.get_nodes()))
-
     # @decorators.log_info
-    def on_model_reset(self, expand=True):
+    def on_model_reset(self):
         for node in list(self.get_nodes()):  # hack: prevent change during iteration
             # self.remove_node(node, emit_signal=False)
             self.remove_node_from_view(node)
-
-        # If the new filter don't like previous nodes, don't add them.
-        # todo: is there a more stable way of retreiving this?
-        nodes_to_add = [node for node in self._buffer_old_nodes if not self._filter or self._filter.can_show_node(node)]
-
-        # Fetch nodes
-        for node in nodes_to_add:
-            self._model.add_node(node, emit_signal=False)
-
-        # Fetch nodes status
-        if expand:
-            for node in nodes_to_add:
-                if node in self._expanded_nodes:
-                    self._model.expand_node(node)
-
-                if node in self._nodes_with_expanded_connections:
-                    self.expand_node_connections(node)
 
         if self._view:
             self.reset_view()
@@ -446,8 +433,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         #     if self._current_level != compound_model:
         #         node_model = compound_model
 
+        graph = self.get_model()
+        is_input = graph.is_port_input(port)
+        is_output = graph.is_port_output(port)
         node_widget = self.get_node_widget(node_model)
-        port_widget = port.get_widget(self, self._view, node_widget)
+        port_widget = port.get_widget(self, self._view, node_widget, is_input=is_input, is_output=is_output)
 
         # Update cache
         # self._cache_port_model_by_widget[port_widget] = port
@@ -698,54 +688,6 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def set_level(self, node_model):
         if self._model:
             self._model.set_level(node_model)
-
-    def can_navigate_to(self, node_model):
-        if node_model is None:
-            return True
-
-        # We need at least one children to be able to jump into something.
-        # todo: is that always true? what happen to empty compound?
-        if not node_model.get_children():
-            log.debug("Cannot enter into {0} because there's no children!".format(node_model))
-            return False
-
-        # We don't want to enter the same model twice.
-        if self._current_level_data == node_model:
-            return False
-
-        # Currently since we can have 3 node model for a single compound (one model when seen from outside and two
-        # model when seen from the inside, the inn and the out), we need a better way to distinguish them.
-        # For now we'll use a monkey-patched data from libSerialization, however we need a better approach.
-        meta_data = node_model.get_metadata()
-        if hasattr(self._current_level_data, '_network') and hasattr(meta_data, '_network'):
-            current_network = self._current_level_data._network
-            new_network = meta_data._network
-            if current_network == new_network:
-                return False
-
-        return True
-
-    def navigate_down(self):
-        node_model = next(iter(self.get_selected_node_models()), None)
-        # if not node_model:
-        #     return None
-
-        if self.can_navigate_to(node_model):
-            self.set_level(node_model)
-            self.onLevelChanged.emit(node_model)
-        else:
-            log.debug("Cannot naviguate to {0}".format(node_model))
-
-    def navigate_up(self):
-        # if self._current_level_data is None:
-        #     return
-
-        node_model = self._current_level_model.get_parent()
-        if self.can_navigate_to(node_model):
-            self.set_level(node_model)
-            self.onLevelChanged.emit(node_model)
-        else:
-            log.debug("Cannot naviguate to {0}".format(node_model))
 
     # --- Events ---
 

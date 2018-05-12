@@ -33,7 +33,7 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
         self._proxy_model_subgraph = GraphComponentProxyFilterModel()
         self._proxy_model_subgraph.set_source_model(self._proxy_model_filter)
 
-        self.ctrl.set_model(self._proxy_model_subgraph)
+        self.ctrl.set_ctrl(self._proxy_model_subgraph)
 
     def test_compound_with_blacklisted_nodes(self):
         """

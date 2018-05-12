@@ -1,4 +1,5 @@
 import logging
+import copy
 from collections import defaultdict
 
 import pymel.core as pymel
@@ -41,17 +42,75 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         self._child_by_component = defaultdict(set)
         self._component_by_child = {}
 
+        self._nodes_by_level = defaultdict(set)
         # self.onNodeRemoved.connect(self.on_node_removed)
+
+    def hold_nodes(self):
+        level = self.get_level()
+        nodes = self.get_model().get_nodes()
+        self._nodes_by_level[level] = nodes
+
+    def fetch_nodes(self, expand=True):
+        level = self.get_level()
+        nodes = self._nodes_by_level.get(level)
+
+        if not nodes:
+            return
+
+        # If the new filter don't like previous nodes, don't add them.
+        # todo: is there a more stable way of retreiving this?
+        # nodes = [node for node in nodes if not self._filter or self._filter.can_show_node(node)]
+
+        # Fetch nodes
+        for node in nodes:
+            self.add_node(node, emit_signal=True)
+
+        # Fetch nodes status
+        if expand:
+            for node in nodes:
+                self.expand_node_ports(node)
+
+                self.expand_node_connections(node)
+
+                # todo: remember visible ports and connections?
 
     def get_level(self):
         # type: () -> NodeGraphNodeModel
         return self._level
+
+    def can_set_level_to(self, node):
+        if node is None:
+            return True
+
+        # We need at least one children to be able to jump into something.
+        # todo: is that always true? what happen to empty compound?
+        if not node.get_children():
+            log.debug("Cannot enter into {0} because there's no children!".format(node))
+            return False
+
+        # We don't want to enter the same model twice.
+        if self._level == node:
+            return False
+
+        # # Currently since we can have 3 node model for a single compound (one model when seen from outside and two
+        # # model when seen from the inside, the inn and the out), we need a better way to distinguish them.
+        # # For now we'll use a monkey-patched data from libSerialization, however we need a better approach.
+        # meta_data = node.get_metadata()
+        # if hasattr(self._current_level_data, '_network') and hasattr(meta_data, '_network'):
+        #     current_network = self._current_level_data._network
+        #     new_network = meta_data._network
+        #     if current_network == new_network:
+        #         return False
+
+        return True
 
     def set_level(self, level):
         # type: (NodeGraphNodeModel | None) -> None
         # assert(isinstance(level, node_component.NodeGraphComponentModel))
 
         self.onAboutToBeReset.emit()  # hack
+        self.hold_nodes()
+
         self._level = level
         self.reset()  # is this the right call? do we need to define a clear?
 
@@ -105,6 +164,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
                 self._need_refresh = True
 
         # self.reset()  # we need to refresh everything
+        self.fetch_nodes()
         self.onLevelChanged.emit(level)
 
     def add_node(self, node, emit_signal=True):
@@ -148,6 +208,59 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
             if not port.is_user_defined():
                 return False
         return super(GraphComponentProxyFilterModel, self).can_show_port(port)
+
+    def is_port_input(self, port):
+        node = port.get_parent()
+
+        # If the node is an input bound, we don't want to show the inputs.
+        if node == self._cur_level_bound_out:
+            return False
+
+        return super(GraphComponentProxyFilterModel, self).is_port_input(port)
+
+    def is_port_output(self, port):
+        node = port.get_parent()
+
+        # If the node is an output bound, we don't want to show the outputs.
+        if node == self._cur_level_bound_inn:
+            return False
+
+        return super(GraphComponentProxyFilterModel, self).is_port_output(port)
+
+    def allow_input_port_display(self, port_model, context=None):
+        # type: (NodeGraphPortModel, NodeGraphController) -> bool
+        """
+        Component network attributes are inputs and outputs at the same time.
+        For example, an input attribute is an output attribute when looking from inside the component.
+        The NodeGraphController server as context holder.
+        """
+        # todo: cleanup private variable usage
+        # If we are viewing the component content
+        if context:
+            if context._subgraph_proxy_model.get_level() == self:
+                return port_model.get_parent().get_metadata() == self._entity.grp_inn
+            else:
+                return port_model.get_parent().get_metadata() == self._entity.grp_out
+        return super(NodeGraphComponentModel, self).allow_input_port_display(port_model)
+
+    def allow_output_port_display(self, port_model, context=None):
+        # type: (NodeGraphController, NodeGraphPortModel) -> bool
+        """
+        Component network attributes are inputs and outputs at the same time.
+        For example, an output attribute is an input attribute when looking from inside the component.
+        The NodeGraphController server as context holder.
+        """
+        # todo: cleanup private variable usage
+        # If we are viewing the component content
+        if context:
+            if context._subgraph_proxy_model.get_level() == self:
+                return port_model.get_parent() == self._entity.grp_out
+            else:
+                return port_model.get_parent() == self._entity.grp_inn
+        return super(NodeGraphComponentModel, self).allow_output_port_display(port_model)
+
+        # def _get_node_widget_label(self):
+        #     return '{0} v{1}'.format(self._name, self._entity.version)
 
     def can_show_connection(self, connection):
         return True

@@ -153,30 +153,32 @@ class NodeGraphPortModel(object):
 
     # --- Widget export --- #
 
-    def _get_widget_cls(self, ctrl):
+    def _get_widget_cls(self, ctrl, is_input=None, is_output=None):
         from omtk.qt_widgets.nodegraph import pyflowgraph_port_widget as port_widget
 
-        is_readable = self.is_readable()
-        is_writable = self.is_writable()
+        if is_input is None:
+            is_input = self.is_readable()
+        if is_output is None:
+            is_output = self.is_writable()
         # Resolve port class
-        if is_readable and is_writable:
+        if is_input and is_output:
             # raise Exception("{0} cannot be input and output at the same time.".format(attr))
 
             # In case of ambiguity, we will ask the node model.
             node_value = self.get_parent().get_metadata()
             # node_model = ctrl.get_node_model_from_value(node_value)
             node_model = self._registry.get_node_from_value(node_value)
-            is_writable = node_model.allow_input_port_display(self, ctrl)
-            is_readable = node_model.allow_output_port_display(self, ctrl)
-            if is_readable and not is_writable:
+            is_output = node_model.allow_input_port_display(self, ctrl)
+            is_input = node_model.allow_output_port_display(self, ctrl)
+            if is_input and not is_output:
                 return port_widget.OmtkNodeGraphPortInWidget
-            elif not is_readable and is_writable:
+            elif not is_input and is_output:
                 return port_widget.OmtkNodeGraphPortOutput
             else:
                 return port_widget.OmtkNodeGraphPortIOWidget
-        elif not is_readable and not is_writable:
+        elif not is_input and not is_output:
             raise Exception("{0} is neither an input or an output.".format(self))
-        elif is_writable:
+        elif is_output:
             return port_widget.OmtkNodeGraphPortInWidget
         else:
             return port_widget.OmtkNodeGraphPortOutput
@@ -186,9 +188,9 @@ class NodeGraphPortModel(object):
         return factory_datatypes.get_port_color_from_datatype(metatype)
         # return QtGui.QColor(128, 170, 170, 255)  # todo: use factory_datatypes to get color
 
-    def get_widget(self, ctrl, graph, node):
+    def get_widget(self, ctrl, graph, node, is_input=None, is_output=None):
         # type: (NodeGraphController, PyFlowgraphView, PyFlowgraphNode) -> PyflowgraphBasePort
-        cls = self._get_widget_cls(ctrl)
+        cls = self._get_widget_cls(ctrl, is_input=is_input, is_output=is_output)
         color = self._get_widget_color()
 
         port = cls(

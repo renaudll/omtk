@@ -45,6 +45,8 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self._ctrls = []
         self._views = []
 
+        self._subgraph_proxy_model = None
+
         # Connect events
         self.ui.actionAdd.triggered.connect(self.on_add)
         self.ui.actionRemove.triggered.connect(self.on_del)
@@ -190,12 +192,12 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         model = graph_proxy_filter_model.GraphFilterProxyModel()
         model.set_source_model(source_model)
         model.set_filter(filter)
-        proxy_model_subgraph = graph_component_proxy_model.GraphComponentProxyFilterModel()
-        proxy_model_subgraph.set_source_model(model)
+        self._subgraph_proxy_model = graph_component_proxy_model.GraphComponentProxyFilterModel()
+        self._subgraph_proxy_model.set_source_model(model)
         view = nodegraph_view.NodeGraphView(self)
         ctrl = nodegraph_controller.NodeGraphController(
             registry=registry,
-            model=proxy_model_subgraph,
+            model=self._subgraph_proxy_model,
             view=view
         )
         self.add_view(view)
@@ -212,10 +214,10 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         from omtk.qt_widgets import widget_breadcrumb
         breadcrumb = widget_breadcrumb.WidgetBreadcrumb(self)
 
-        proxy_model_subgraph.onLevelChanged.connect(breadcrumb.set_path)
+        self._subgraph_proxy_model.onLevelChanged.connect(breadcrumb.set_path)
 
         def _debug(level):
-            proxy_model_subgraph.set_level(level)
+            self._subgraph_proxy_model.set_level(level)
             # print args, kwargs
 
         breadcrumb.onPathChanged.connect(_debug)
@@ -283,10 +285,23 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.get_controller().colapse_selected_nodes()
 
     def on_navigate_down(self):
-        self.get_controller().navigate_down()
+        model = self._subgraph_proxy_model
+
+        for node in self.get_selected_node_models():
+            if not model.can_set_level_to(node):
+                continue
+
+            model.set_level(node)
+            return
 
     def on_navigate_up(self):
-        self.get_controller().navigate_up()
+        # if self._current_level_data is None:
+        #     return
+        model = self._subgraph_proxy_model
+        level = model.get_level()
+
+        parent = level.get_parent()
+        model.set_level(parent)
 
     def on_arrange_upstream(self):
         self.get_controller().arrange_upstream()

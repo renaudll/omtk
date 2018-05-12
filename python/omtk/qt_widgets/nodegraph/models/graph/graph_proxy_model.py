@@ -146,6 +146,12 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
     def is_port_visible(self, port):
         return self._model.is_port_visible()
 
+    def is_port_input(self, port):
+        return self.get_model().is_port_input(port)
+
+    def is_port_output(self, port):
+        return self.get_model().is_port_output(port)
+
     def add_connection(self, connection, emit_signal=True):
         # todo: check if we can add connection?
         self._model.add_connection(connection, emit_signal=emit_signal)

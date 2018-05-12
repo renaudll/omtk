@@ -40,17 +40,17 @@ class NodeGraphView(PyFlowgraphView):
 
     # -- Model/View/Controller pattern --
 
-    def get_model(self):
+    def get_ctrl(self):
         # type: () -> NodeGraphController
-        return self._controller
+        return self._ctrl
 
-    def set_model(self, controller):
+    def set_ctrl(self, controller):
         # type: (NodeGraphController) -> None
         """
         Define the NodeGraphView controller.
         The fonction mention model to better match Qt internals.
         """
-        self._controller = controller
+        self._ctrl = controller
 
     # -- CustomContextMenu --
 
@@ -97,7 +97,7 @@ class NodeGraphView(PyFlowgraphView):
         if isinstance(drop_data, list):
             for entry in drop_data:
                 self.nodeDragedIn.emit(entry)
-                # self._controller.add_node(entry)
+                # self._ctrl.add_node(entry)
 
         self.dragDrop.emit(event)
 
@@ -120,12 +120,12 @@ class NodeGraphView(PyFlowgraphView):
     #     :return:
     #     """
     #     # todo: move to controller
-    #     self._controller.on_component_created(component)
+    #     self._ctrl.on_component_created(component)
     #     self.updateRequested.emit()
 
     def on_customContextMenuRequested(self, pos):
         # Store _menu to prevent undesired garbage collection
         self._menu = QtWidgets.QMenu()
-        # self._controller.on_right_click(self._menu)
+        # self._ctrl.on_right_click(self._menu)
         self.on_right_click.emit(self._menu)
         self._menu.popup(QtGui.QCursor.pos())

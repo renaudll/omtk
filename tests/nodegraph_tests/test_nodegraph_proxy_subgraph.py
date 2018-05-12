@@ -24,7 +24,7 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
 
         # Add a NodeGraphSubgraphProxyModel
         self.model = GraphComponentProxyFilterModel(model=self.model)
-        self.ctrl.set_model(self.model)
+        self.ctrl.set_ctrl(self.model)
 
     def _register_node(self, node):
         model = self.registry.get_node_from_value(node)

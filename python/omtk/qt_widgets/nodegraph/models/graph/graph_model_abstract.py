@@ -277,3 +277,11 @@ class NodeGraphAbstractModel(QtCore.QObject):
 
     def intercept_connection(self, connection):
         yield connection
+
+    def is_port_input(self, port):
+        # type: (NodeGraphPortModel) -> bool
+        return port.is_writable()
+
+    def is_port_output(self, port):
+        # type: (NodeGraphPortModel) -> bool
+        return port.is_readable()

@@ -102,14 +102,6 @@ class NodeGraphNodeModel(QtCore.QObject):  # QObject provide signals
         # type: () -> List[NodeGraphPortModel]
         return set(self.iter_ports())
 
-    def allow_input_port_display(self, port_model, context=None):
-        # type: (NodeGraphPortModel, NodeGraphController) -> bool
-        return True
-
-    def allow_output_port_display(self, port_model, context=None):
-        # type: (NodeGraphPortModel, NodeGraphController) -> bool
-        return True
-
     @decorators.memoized_instancemethod
     def get_input_ports(self):
         # type: () -> list[NodeGraphPortModel]

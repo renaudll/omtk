@@ -288,9 +288,9 @@ class NodeGraphTestCase(TestCase):
         from omtk.qt_widgets.nodegraph import NodeGraphRegistry, NodeGraphModel, GraphFilterProxyModel, NodeGraphController
         self.maxDiff = None
         self.registry = NodeGraphRegistry()
-        source_model = NodeGraphModel()
+        source_model = NodeGraphModel(self.registry)
         self.model = GraphFilterProxyModel(model=source_model)
-        self.ctrl = NodeGraphController(model=self.model)
+        self.ctrl = NodeGraphController(self.registry, model=self.model)
         cmds.file(new=True, force=True)
 
         # Validate the graph is empty

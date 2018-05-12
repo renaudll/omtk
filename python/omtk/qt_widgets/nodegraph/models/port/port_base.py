@@ -157,9 +157,9 @@ class NodeGraphPortModel(object):
         from omtk.qt_widgets.nodegraph import pyflowgraph_port_widget as port_widget
 
         if is_input is None:
-            is_input = self.is_readable()
+            is_input = self.is_writable()
         if is_output is None:
-            is_output = self.is_writable()
+            is_output = self.is_readable()
         # Resolve port class
         if is_input and is_output:
             # raise Exception("{0} cannot be input and output at the same time.".format(attr))
@@ -168,8 +168,6 @@ class NodeGraphPortModel(object):
             node_value = self.get_parent().get_metadata()
             # node_model = ctrl.get_node_model_from_value(node_value)
             node_model = self._registry.get_node_from_value(node_value)
-            is_output = node_model.allow_input_port_display(self, ctrl)
-            is_input = node_model.allow_output_port_display(self, ctrl)
             if is_input and not is_output:
                 return port_widget.OmtkNodeGraphPortInWidget
             elif not is_input and is_output:
@@ -179,9 +177,9 @@ class NodeGraphPortModel(object):
         elif not is_input and not is_output:
             raise Exception("{0} is neither an input or an output.".format(self))
         elif is_output:
-            return port_widget.OmtkNodeGraphPortInWidget
-        else:
             return port_widget.OmtkNodeGraphPortOutput
+        else:
+            return port_widget.OmtkNodeGraphPortInWidget
 
     def _get_widget_color(self):
         metatype = self.get_metatype()

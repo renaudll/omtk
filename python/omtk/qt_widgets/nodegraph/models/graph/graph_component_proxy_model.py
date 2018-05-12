@@ -213,7 +213,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         node = port.get_parent()
 
         # If the node is an input bound, we don't want to show the inputs.
-        if node == self._cur_level_bound_out:
+        if node == self._cur_level_bound_inn:
             return False
 
         return super(GraphComponentProxyFilterModel, self).is_port_input(port)
@@ -222,45 +222,10 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
         node = port.get_parent()
 
         # If the node is an output bound, we don't want to show the outputs.
-        if node == self._cur_level_bound_inn:
+        if node == self._cur_level_bound_out:
             return False
 
         return super(GraphComponentProxyFilterModel, self).is_port_output(port)
-
-    def allow_input_port_display(self, port_model, context=None):
-        # type: (NodeGraphPortModel, NodeGraphController) -> bool
-        """
-        Component network attributes are inputs and outputs at the same time.
-        For example, an input attribute is an output attribute when looking from inside the component.
-        The NodeGraphController server as context holder.
-        """
-        # todo: cleanup private variable usage
-        # If we are viewing the component content
-        if context:
-            if context._subgraph_proxy_model.get_level() == self:
-                return port_model.get_parent().get_metadata() == self._entity.grp_inn
-            else:
-                return port_model.get_parent().get_metadata() == self._entity.grp_out
-        return super(NodeGraphComponentModel, self).allow_input_port_display(port_model)
-
-    def allow_output_port_display(self, port_model, context=None):
-        # type: (NodeGraphController, NodeGraphPortModel) -> bool
-        """
-        Component network attributes are inputs and outputs at the same time.
-        For example, an output attribute is an input attribute when looking from inside the component.
-        The NodeGraphController server as context holder.
-        """
-        # todo: cleanup private variable usage
-        # If we are viewing the component content
-        if context:
-            if context._subgraph_proxy_model.get_level() == self:
-                return port_model.get_parent() == self._entity.grp_out
-            else:
-                return port_model.get_parent() == self._entity.grp_inn
-        return super(NodeGraphComponentModel, self).allow_output_port_display(port_model)
-
-        # def _get_node_widget_label(self):
-        #     return '{0} v{1}'.format(self._name, self._entity.version)
 
     def can_show_connection(self, connection):
         return True

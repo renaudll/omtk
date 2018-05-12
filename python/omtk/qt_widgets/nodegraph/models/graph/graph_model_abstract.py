@@ -30,7 +30,7 @@ class NodeGraphAbstractModel(QtCore.QObject):
     Subgraphs and filters can be implemented by feeding a NodeGraphRegistry through a NodeGraphProxyModel.
     NodeGraphRegistry are consumed
     """
-    __metaclass__ = QtCoreAbcMeta
+    # __metaclass__ = QtCoreAbcMeta
 
     # Signal emitted when a node is added in the model.
     onNodeAdded = QtCore.Signal(node_model.NodeGraphNodeModel)

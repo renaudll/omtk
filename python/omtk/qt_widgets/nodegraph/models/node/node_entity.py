@@ -29,7 +29,7 @@ class NodeGraphEntityModel(node_base.NodeGraphNodeModel):
         # Used to invalidate cache
         return list(self._entity.iter_attributes())
 
-    def iter_ports(self):
+    def scan_ports(self):
         # type: () -> List[NodeGraphPortModel]
         for attr_def in self.get_ports_metadata():
             yield self._registry.get_port_model_from_value(attr_def)

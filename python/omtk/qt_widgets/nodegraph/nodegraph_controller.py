@@ -587,6 +587,9 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         self._visible_ports.remove(port)
 
+        node_widget = self._cache_node_widget_by_model[node]
+        node_widget.removePort(widget)
+
     def remove_connection_from_view(self, connection):
         if not self.is_connection_in_view(connection):
             return

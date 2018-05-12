@@ -60,7 +60,7 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
         return list(libAttr.iter_contributing_attributes(self._pynode))
         # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
-    def iter_ports(self):
+    def scan_ports(self):
         for attr in self.get_ports_metadata():
             inst = self._registry.get_port_model_from_value(attr)
             # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)

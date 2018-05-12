@@ -67,11 +67,12 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         # type: (NodeGraphRegistry) -> None
         if self._registry:
             self._registry.onNodeDeleted.disconnect(self.on_node_unexpectedly_deleted)
-        #     self._registry.onAttributeAdded.disconnect(self.on_attribute_unexpectedly_added)
-        #     # self._registry.onAttributeRemoved.disconnect(self.)
+            self._registry.onAttributeAdded.disconnect(self.on_attribute_unexpectedly_added)
+            self._registry.onAttributeRemoved.disconnect(self.on_attribute_unexpectedly_removed)
+
         registry.onNodeDeleted.connect(self.on_node_unexpectedly_deleted)
-        # registry.onAttributeAdded.connect(self.on_attribute_unexpectedly_added)
-        # # registry.onAttributeRemoved.connect()
+        registry.onAttributeAdded.connect(self.on_attribute_unexpectedly_added)
+        registry.onAttributeRemoved.connect(self.on_attribute_unexpectedly_removed)
 
         # Pass any signals emitted by the registry.
         registry.onNodeDeleted.connect(self.onNodeRemoved.emit)
@@ -149,7 +150,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
                 if not port in self._ports:
                     self._ports.add(port)
                 yield port
-        # return iter(self._ports)
+        # return iter(self._cache_ports)
 
     def get_ports(self):
         # # todo: optimize?
@@ -158,7 +159,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         #     for port in node.iter_ports():
         #         result.append(port)
         # return result
-        # return self._ports
+        # return self._cache_ports
         return list(self.iter_ports())
 
     def iter_node_ports(self, node):
@@ -266,7 +267,14 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         Called when a new port is unexpectedly added.
         :param port: A not-yet-visible NodeGraphPortModel.
         """
+        node = port.get_parent()
+        node._register_port(port)
         self.add_port(port)
+
+    def on_attribute_unexpectedly_removed(self, port):
+        node = port.get_parent()
+        node._unregister_port(port)
+        self.remove_port(port)
 
     # --- Automatic node positioning ---
 

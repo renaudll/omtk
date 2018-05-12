@@ -170,7 +170,7 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
     def get_nodes(self):
         return self._entity.get_children()
 
-    def iter_ports(self):
+    def scan_ports(self):
         # type: () -> List[NodeGraphPortModel]
 
         if not self._entity.is_built():
@@ -194,9 +194,9 @@ class NodeGraphComponentBoundBaseModel(node_dg.NodeGraphDgNodeModel):
         super(NodeGraphComponentBoundBaseModel, self).__init__(registry, pynode)
         self._component = component
 
-    def iter_ports(self):
+    def scan_ports(self):
         # Only show userDefined ports.
-        for port in super(NodeGraphComponentBoundBaseModel, self).iter_ports():
+        for port in super(NodeGraphComponentBoundBaseModel, self).scan_ports():
             if port.is_user_defined():
                 yield port
 
@@ -220,8 +220,8 @@ def _return_empty_array():
 class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
     _widget_background_color = QtGui.QColor(0, 195, 227)
 
-    def iter_ports(self):
-        for port in super(NodeGraphComponentInnBoundModel, self).iter_ports():
+    def scan_ports(self):
+        for port in super(NodeGraphComponentInnBoundModel, self).scan_ports():
             # hack: prevent us from reading input connections
             # todo: make it cleaner!
             port.get_input_connections = _return_empty_array
@@ -243,8 +243,8 @@ class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):
 class NodeGraphComponentOutBoundModel(NodeGraphComponentBoundBaseModel):
     _widget_background_color = QtGui.QColor(255, 69, 84)
 
-    def iter_ports(self):
-        for port in super(NodeGraphComponentOutBoundModel, self).iter_ports():
+    def scan_ports(self):
+        for port in super(NodeGraphComponentOutBoundModel, self).scan_ports():
             # hack: prevent us from reading input connections
             # todo: make it cleaner!
             port.get_output_connections = _return_empty_array

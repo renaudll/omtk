@@ -287,7 +287,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     def on_navigate_down(self):
         model = self._subgraph_proxy_model
 
-        for node in self.get_selected_node_models():
+        for node in self.get_controller().get_selected_node_models():
             if not model.can_set_level_to(node):
                 continue
 

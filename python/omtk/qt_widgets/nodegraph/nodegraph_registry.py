@@ -252,7 +252,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         # Add attribute added callback
         callback_id = OpenMaya.MNodeMessage.addAttributeAddedOrRemovedCallback(
             mobject,
-            self.callback_attribute_added
+            self.callback_attribute_added_or_removed
         )
         self._callback_id_by_node_model[metadata].add(callback_id)
 
@@ -344,7 +344,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
             yield 'kOtherPlugSet'
 
-    def callback_attribute_added(self, callback_id, mplug, _):
+    def callback_attribute_added_or_removed(self, callback_id, mplug, _):
         from omtk.qt_widgets.nodegraph.filters import filter_standard
 
         attr_dagpath = mplug.name()
@@ -358,12 +358,24 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         attr_mobj = mplug.node()
         mfn = OpenMaya.MFnDependencyNode(attr_mobj)
         obj_name = mfn.name()
-        log.info('Attribute {0} added on {1}'.format(attr_name, obj_name))
+        # todo: add support for multi attribute added/removed
+        if callback_id == OpenMaya.MNodeMessage.kAttributeAdded:
+            log.info('Attribute {0} added to {1}'.format(attr_name, obj_name))
+            attr = pymel.Attribute(attr_dagpath)
+            port = self.get_port_model_from_value(attr)
+            self.onAttributeAdded.emit(port)
+        elif callback_id == OpenMaya.MNodeMessage.kAttributeRemoved:
+            log.info('Attribute {0} removed from {1}'.format(attr_name, obj_name))
+            attr = pymel.Attribute(attr_dagpath)
+            port = self.get_port_model_from_value(attr)
+            self.onAttributeRemoved.emit(port)
+        elif callback_id == OpenMaya.MNodeMessage.kAttributeArrayAdded:
+            log.info('To Implement: kAttributeArrayAdded {0}'.format(attr_dagpath))
+        elif callback_id == OpenMaya.MNodeMessage.kAttributeArrayRemoved:
+            log.info('To Implement: kAttributeArrayRemoved {0}'.format(attr_dagpath))
+        elif callback_id == OpenMaya.MNodeMessage.kAttributeRenamed:
+            log.info('To Implement: kAttributeRenamed {0}'.format(attr_dagpath))
 
-        attr = pymel.Attribute(attr_dagpath)
-
-        port = self.get_port_model_from_value(attr)
-        self.onAttributeAdded.emit(port)
 
     # @decorators.log_info
     def callback_attribute_changed(self, msg, plug, *args, **kwargs):

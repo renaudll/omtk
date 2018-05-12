@@ -6,7 +6,7 @@ from omtk.vendor.Qt import QtCore
 
 # used for type hinting33
 if False:
-    from typing import List
+    from typing import List, Generator
     from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
     from omtk.qt_widgets.nodegraph.models import NodeGraphPortModel
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
@@ -35,6 +35,7 @@ class NodeGraphNodeModel(QtCore.QObject):  # QObject provide signals
         self._name = name
         self._registry = registry
         self._child_nodes = set()
+        self._cache_ports = None
 
         # Add the new instance to the registry
         registry._register_node(self)
@@ -94,13 +95,30 @@ class NodeGraphNodeModel(QtCore.QObject):  # QObject provide signals
         # Used to invalidate cache
         return set()
 
+    def _register_port(self, port):
+        if self._cache_ports is None:
+            self._cache_ports = set()
+        self._cache_ports.add(port)
+
+    def _unregister_port(self, port):
+        self._cache_ports.discard(port)
+
     def iter_ports(self):
-        return
-        yield
+        # type: () -> Generator[NodeGraphPortModel]
+        for port in self.get_ports():
+            yield port
 
     def get_ports(self):
         # type: () -> List[NodeGraphPortModel]
-        return set(self.iter_ports())
+        if self._cache_ports is None:
+            for port in self.scan_ports():
+                self._register_port(port)
+        return self._cache_ports
+
+    def scan_ports(self):
+        # type: () -> Generator[NodeGraphPortModel]
+        return
+        yield
 
     @decorators.memoized_instancemethod
     def get_input_ports(self):

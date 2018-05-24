@@ -71,7 +71,9 @@ class NodeGraphStandardFilter(NodeGraphFilter):
             return False
 
         # Some attributes (like omtk metadata) are blacklisted by default.
-        if _is_port_model_name_blacklisted(port.get_name()):
+        port_name = port.get_name()
+        port_name = port_name.split('[')[0]
+        if _is_port_model_name_blacklisted(port_name):
             return False
 
         if self.hide_message_attribute_type:

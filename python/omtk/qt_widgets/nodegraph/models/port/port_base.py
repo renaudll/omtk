@@ -1,9 +1,12 @@
 import abc
+import logging
 
 import omtk.qt_widgets.nodegraph.models.port.port_adaptor_entity
 import omtk.qt_widgets.nodegraph.models.port.port_adaptor_pymel
 import pymel.core as pymel
 from omtk.factories import factory_datatypes
+
+log = logging.getLogger('omtk')
 
 if False:
     from omtk.qt_widgets.nodegraph.nodegraph_controller import NodeGraphController
@@ -96,7 +99,10 @@ class NodeGraphPortModel(object):
         return self.impl.is_readable()
 
     def is_writable(self):
-        return self.impl.is_writable()
+        try:
+            return self.impl.is_writable()
+        except Exception, e:
+            log.warning(e)
 
     def is_source(self):
         return self.impl.is_source()
@@ -223,7 +229,8 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         # todo: this is so unclean... cleanup reference to private values
         # We use the node hash since the same pymel.Attribute can refer
         # different node when dealing with Compound.
-        return hash(self._node) ^ hash(self._impl._data)
+        # print(hash(self._impl._data))
+        return hash(self._node) ^ hash(self._impl)
 
     # --- Connections related methods --- #
 
@@ -237,7 +244,10 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
         else:
             attr_dst = self._impl._data
 
-        pymel.connectAttr(val, attr_dst)
+        try:
+            pymel.connectAttr(val, attr_dst, force=True)
+        except RuntimeError, e:
+            log.warning(e)
 
     # todo: move to adaptor
     def connect_to(self, val):
@@ -245,7 +255,10 @@ class NodeGraphPymelPortModel(NodeGraphPortModel):
 
     # todo: move to adaptor
     def disconnect_from(self, val):
-        pymel.disconnectAttr(val, self._impl._data)
+        try:
+            pymel.disconnectAttr(val, self._impl._data)
+        except RuntimeError, e:
+            log.warning(e)
 
     # todo: move to adaptor
     def disconnect_to(self, val):

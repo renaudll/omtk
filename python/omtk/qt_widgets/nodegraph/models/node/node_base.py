@@ -105,7 +105,7 @@ class NodeGraphNodeModel(QtCore.QObject):  # QObject provide signals
 
     def iter_ports(self):
         # type: () -> Generator[NodeGraphPortModel]
-        for port in self.get_ports():
+        for port in list(self.get_ports()):
             yield port
 
     def get_ports(self):

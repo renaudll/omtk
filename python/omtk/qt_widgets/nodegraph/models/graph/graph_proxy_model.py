@@ -43,12 +43,18 @@ class NodeGraphGraphProxyModel(graph_model_abstract.NodeGraphAbstractModel):
         model.onNodeAdded.connect(self.onNodeAdded.emit)
         model.onNodeRemoved.connect(self.onNodeRemoved.emit)
         model.onNodeMoved.connect(self.onNodeMoved.emit)
-        model.onPortAdded.connect(self.onPortAdded.emit)
+        # model.onPortAdded.connect(self.onPortAdded.emit)
+        model.onPortAdded.connect(self.on_port_added)
         model.onPortRemoved.connect(self.onPortRemoved.emit)
         model.onConnectionAdded.connect(self.onConnectionAdded.emit)
         model.onConnectionRemoved.connect(self.onConnectionRemoved.emit)
         model.onAboutToBeReset.connect(self.onAboutToBeReset.emit)
         model.onReset.connect(self.onReset.emit)
+
+    def on_port_added(self, port):
+        # Prevent an undesirable port from being shown if we don't care about it.
+        for yielded in self.intercept_port(port):
+            self.onPortAdded.emit(yielded)
 
     # --- Filter methods ---
 

@@ -10,7 +10,14 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         assert (isinstance(data, pymel.Attribute))
         super(PymelAttributeNodeGraphPortImpl, self).__init__(data)
         self._pynode = data.node()
-        self._mfn = data.__apimattr__()  # OpenMaya.MFnAttribute, for optimization purpose
+        try:
+            self._mfn = data.__apimattr__()  # OpenMaya.MFnAttribute, for optimization purpose
+            self._mplug = data.__apimplug__()
+        except Exception, e:
+            print(str(e))
+
+    def __hash__(self):
+        return hash(self._mplug.name())  # todo: necessary?
 
     @decorators.memoized_instancemethod
     def _attr_name(self):
@@ -39,16 +46,17 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
             return self._data.isDestination()
 
     def get_inputs(self):
+        # type: () -> List[pymel.Attribute]
         # Hack: Don't display connection from the root of an array attribute (are_you_sure_about_that.jpeg)
-        if self._data.isMulti() and '[' not in self._data:
-            return []
+        # if self._data.isMulti() and '[' not in self._data:
+        #     return []
 
         return self._data.inputs(plugs=True)
 
     def get_outputs(self):
         # Hack: Don't display connection from the root of an array attribute (are_you_sure_about_that.jpeg)
-        if self._data.isMulti() and '[' not in self._data:
-            return []
+        # if self._data.isMulti() and '[' not in self._data:
+        #     return []
 
         return self._data.outputs(plugs=True)
 

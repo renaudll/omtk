@@ -24,7 +24,7 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
         super(NodeGraphDgNodeModel, self).__init__(registry, name)
 
     def __hash__(self):
-        return hash(self._pynode)
+        return hash(self._pynode.nodeName())
 
     def rename(self, new_name):
         self._pynode.rename(new_name)
@@ -78,21 +78,28 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
             # n.worldMatrix.numElements() # -> 2, wtf
 
             # If the attribute is a multi attribute, we'll want to expose the first available.
-            # if attr.isMulti():
-            #     next_available_index = attr.numElements() if attr.numElements() else 0
-            #     attr_available = attr[next_available_index]
-            #     inst = self._registry.get_port_model_from_value(attr_available)
-            #     yield inst
+            # if attr.isArray():
+            #
+            #     # hack, see above
+            #     attr.type()
+            #
 
-            # if attr.isMulti():
-            #     num_elements = attr.numElements()
-            #     for i in xrange(num_elements):
-            #         attr_child = attr.elementByLogicalIndex(i)
-            #     # for attr_child in attr:
-            #         inst = self._registry.get_port_model_from_value(attr_child)
-            #         # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
-            #         # self._registry._register_attribute(inst)
-            #         yield inst
+            if attr.isArray():
+                # hack, see above
+                attr.type()
+
+                num_elements = attr.numElements()
+                for i in xrange(num_elements):
+                    attr_child = attr.elementByLogicalIndex(i)
+                # for attr_child in attr:
+                    inst = self._registry.get_port_model_from_value(attr_child)
+                    # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
+                    # self._registry._register_attribute(inst)
+                    yield inst
+
+                attr_available = attr[num_elements]
+                inst = self._registry.get_port_model_from_value(attr_available)
+                yield inst
 
     def _get_widget_cls(self):
         return pyflowgraph_node_widget.OmtkNodeGraphDagNodeWidget

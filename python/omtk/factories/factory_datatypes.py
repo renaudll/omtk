@@ -63,7 +63,8 @@ class AttributeType:
     AttributeBool = 14
     AttributeString = 15
     AttributeCompound = 16
-    ComponentDefinition = 17
+    AttributeNurbsCurve = 17
+    ComponentDefinition = 18
 
 
 _attr_type_by_native_type = {
@@ -73,7 +74,8 @@ _attr_type_by_native_type = {
     pymel.datatypes.Point: AttributeType.AttributeVector4,
     pymel.datatypes.Matrix: AttributeType.AttributeMatrix,
     str: AttributeType.AttributeString,
-    bool: AttributeType.AttributeBool
+    bool: AttributeType.AttributeBool,
+    pymel.nodetypes.NurbsCurve: AttributeType.AttributeNurbsCurve,
 }
 
 # note: currently we try to use the same colors as in maya Node Editor.md

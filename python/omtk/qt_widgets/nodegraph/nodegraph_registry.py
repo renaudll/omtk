@@ -35,6 +35,9 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
     # Signal emitted when an attribute is removed from Maya.
     onAttributeRemoved = QtCore.Signal(port_base.NodeGraphPortModel)
 
+    # Signal emitted when a connection is created in Maya.
+    onConnectionCreated = QtCore.Signal(port_base.NodeGraphPortModel)
+
     def __init__(self):
         super(NodeGraphRegistry, self).__init__()
 
@@ -257,18 +260,18 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         self._callback_id_by_node_model[metadata].add(callback_id)
 
         # Add attribute changed (connected)
-        # callback_id = OpenMaya.MNodeMessage.addAttributeChangedCallback(
-        #     mobject,
-        #     self.callback_attribute_changed
-        # )
-        # self._callback_id_by_node_model[metadata].add(callback_id)
+        callback_id = OpenMaya.MNodeMessage.addAttributeChangedCallback(
+            mobject,
+            self.callback_attribute_changed
+        )
+        self._callback_id_by_node_model[metadata].add(callback_id)
 
         # Add node deleted callback
         # callback_id = OpenMaya.MNodeMessage.addNodeAboutToDeleteCallback(
         #     mobject,
         #     functools.partial(self.callback_node_deleted, metadata)
         # )
-        self._callback_id_by_node_model[metadata].add(callback_id)
+        # self._callback_id_by_node_model[metadata].add(callback_id)
 
     def add_callbacks(self):
         print "Adding callbacks"
@@ -375,28 +378,41 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
             log.info('To Implement: kAttributeArrayRemoved {0}'.format(attr_dagpath))
         elif callback_id == OpenMaya.MNodeMessage.kAttributeRenamed:
             log.info('To Implement: kAttributeRenamed {0}'.format(attr_dagpath))
-
+        elif callback_id == OpenMaya.MNodeMessage.kConnectionMade:
+            log.info('To Implement: kConnectionMade {0}'.format(attr_dagpath))
+            attr = pymel.Attribute(attr_dagpath)
+            print("!")
+        elif callback_id == OpenMaya.MNodeMessage.kConnectionBroken:
+            log.info('To Implement: kConnectionBroken {0}'.format(attr_dagpath))
 
     # @decorators.log_info
-    def callback_attribute_changed(self, msg, plug, *args, **kwargs):
+    def callback_attribute_changed(self, callback_id, plug, *args, **kwargs):
         """
         Called when an attribute related to the node change in Maya.
-        :param msg:
+        :param callback_id:
         :param plug:
         :param args:
         :param kwargs:
         :return:
         """
-        return  # todo: make it work
         from maya import OpenMaya
-        # print(' + '.join(self._analayse_callback_message(msg)))
 
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
+
+        # print(' + '.join(self._analayse_callback_message(callback_id)))
+        attr_dagpath = plug.name()
+
+        if callback_id & OpenMaya.MNodeMessage.kAttributeArrayAdded:
             attr_dagpath = plug.name()
-            # attr = pymel.Attribute(attr_dagpath)
-            self.onAttributeAdded.emit(attr_dagpath)
+            attr = pymel.Attribute(attr_dagpath)
+            self.onAttributeAdded.emit(attr)
             # print attr
             # self._ctrl.callback_attribute_array_added(attr_dagpath)
+        elif callback_id == OpenMaya.MNodeMessage.kConnectionMade:
+            log.info('To Implement: kConnectionMade {0}'.format(attr_dagpath))
+            attr = pymel.Attribute(attr_dagpath)
+            print("!")
+        elif callback_id == OpenMaya.MNodeMessage.kConnectionBroken:
+            log.info('To Implement: kConnectionBroken {0}'.format(attr_dagpath))
 
     @decorators.log_info
     def callback_node_deleted(self, node, *args, **kwargs):

@@ -125,6 +125,15 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         if self._view:
             self.reset_view()
 
+        # if self._model:
+        #     model.onReset.disconnect(self.on_model_reset)
+        #     model.onNodeAdded.disconnect(self.on_model_node_added)
+        #     model.onNodeRemoved.disconnect(self.on_model_node_removed)
+        #     model.onPortAdded.disconnect(self.on_model_port_added)
+        #     model.onPortRemoved.disconnect(self.on_model_port_removed)
+        #     model.onConnectionAdded.disconnect(self.on_model_connection_added)
+        #     model.onConnectionRemoved.disconnect(self.on_model_connection_removed)
+
         # model.onAboutToBeReset.connect(self.on_model_about_to_be_reset)
         model.onReset.connect(self.on_model_reset)
         model.onNodeAdded.connect(self.on_model_node_added)
@@ -137,7 +146,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         # note: We expect the last model to be a GraphComponentProxyFilterModel for now.
         # model.onLevelChanged.connect(self.onLevelChanged)
 
-        # Check if the model use a SubgraphProxyModel.
+        # Hack: Check if the model use a SubgraphProxyModel.
         # If yes, we'll keep a reference to it
         from omtk.qt_widgets.nodegraph.models.graph import graph_component_proxy_model
         while model:

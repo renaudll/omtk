@@ -75,6 +75,9 @@ class DagNodeParentPortModel(port_model.NodeGraphPortModel):
 class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
     """Define the data model for a Node representing a DagNode."""
 
+    def __hash__(self):
+        return hash(self._pynode.fullPath())
+
     def scan_ports(self):
         # Expose parent attribute
         metadata = self.get_metadata()

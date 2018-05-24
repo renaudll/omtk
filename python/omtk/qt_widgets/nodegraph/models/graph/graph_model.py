@@ -2,6 +2,7 @@ import functools
 import logging
 from collections import defaultdict
 
+from omtk.libs import libPython
 from omtk.qt_widgets.nodegraph.models.graph import graph_model_abstract
 from omtk.vendor.Qt import QtCore
 
@@ -62,6 +63,10 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         assert not self._connections_by_port
 
         self.onReset.emit()
+
+    def get_registry(self):
+        # type: (None) -> NodeGraphRegistry
+        return self._registry
 
     def set_registry(self, registry):
         # type: (NodeGraphRegistry) -> None
@@ -261,12 +266,13 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
         """
         self.remove_node(node, emit_signal=True)
 
-    def on_attribute_unexpectedly_added(self, port):
-        # type: (NodeGraphPortModel) -> None
+    def on_attribute_unexpectedly_added(self, attr):
+        # type: (pymel.Attribute) -> None
         """
         Called when a new port is unexpectedly added.
         :param port: A not-yet-visible NodeGraphPortModel.
         """
+        port = self.get_registry().get_port_model_from_value(attr)
         node = port.get_parent()
         node._register_port(port)
         self.add_port(port)

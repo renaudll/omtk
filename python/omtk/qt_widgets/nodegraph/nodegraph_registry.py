@@ -1,12 +1,15 @@
 import logging
+
+import omtk.constants
 from collections import defaultdict
 from maya import OpenMaya
 import pymel.core as pymel
-import functools
 from omtk import decorators
+from omtk import constants
 from omtk.core import entity_attribute, session
 from omtk.core import module
 from omtk.factories import factory_datatypes
+from omtk.libs import libOpenMaya
 from omtk.vendor.Qt import QtCore
 from .models.node import node_base, node_rig, node_dag, node_dg, node_component, node_module
 from .models.port import port_base
@@ -314,39 +317,6 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         # self._callback_id_by_node_model.clear()
         assert(len(self._callback_id_by_node_model) == 0)  # should be empty
 
-    @staticmethod
-    def _analayse_callback_message(msg):
-        if msg & OpenMaya.MNodeMessage.kConnectionMade:
-            yield 'kConnectionMade'
-        if msg & OpenMaya.MNodeMessage.kConnectionBroken:
-            yield 'kConnectionBroken'
-        if msg & OpenMaya.MNodeMessage.kAttributeEval:
-            yield 'kAttributeEval'
-        if msg & OpenMaya.MNodeMessage.kAttributeSet:
-            yield 'kAttributeSet'
-        if msg & OpenMaya.MNodeMessage.kAttributeLocked:
-            yield 'kAttributeLocked'
-        if msg & OpenMaya.MNodeMessage.kAttributeUnlocked:
-            yield 'kAttributeUnlocked'
-        if msg & OpenMaya.MNodeMessage.kAttributeAdded:
-            yield 'kAttributeAdded'
-        if msg & OpenMaya.MNodeMessage.kAttributeRemoved:
-            yield 'kAttributeRemoved'
-        if msg & OpenMaya.MNodeMessage.kAttributeRenamed:
-            yield 'kAttributeRenamed'
-        if msg & OpenMaya.MNodeMessage.kAttributeKeyable:
-            yield 'kAttributeKeyable'
-        if msg & OpenMaya.MNodeMessage.kAttributeUnkeyable:
-            yield 'kAttributeUnkeyable'
-        if msg & OpenMaya.MNodeMessage.kIncomingDirection:
-            yield 'kIncomingDirection'
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayAdded:
-            yield 'kAttributeArrayAdded'
-        if msg & OpenMaya.MNodeMessage.kAttributeArrayRemoved:
-            yield 'kAttributeArrayRemoved'
-        if msg & OpenMaya.MNodeMessage.kOtherPlugSet:
-            yield 'kOtherPlugSet'
-
     def callback_attribute_added_or_removed(self, callback_id, mplug, _):
         from omtk.qt_widgets.nodegraph.filters import filter_standard
 
@@ -354,21 +324,24 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         attr_name = attr_dagpath.split('.')[-1]
 
         # todo: make it cleaner
-        if attr_name in filter_standard._attr_name_blacklist:
+        if attr_name in omtk.constants._attr_name_blacklist:
             log.info('Ignoring callback on {0}'.format(attr_dagpath))
             return
 
         attr_mobj = mplug.node()
         mfn = OpenMaya.MFnDependencyNode(attr_mobj)
         obj_name = mfn.name()
+
+        log.info('[addAttributeAddedOrRemovedCallback] {0} {1}'.format(mplug.name(), libOpenMaya.debug_MNodeMessage_callback(callback_id)))
+
         # todo: add support for multi attribute added/removed
         if callback_id == OpenMaya.MNodeMessage.kAttributeAdded:
-            log.info('Attribute {0} added to {1}'.format(attr_name, obj_name))
+            # log.info('Attribute {0} added to {1}'.format(attr_name, obj_name))
             attr = pymel.Attribute(attr_dagpath)
             port = self.get_port_model_from_value(attr)
             self.onAttributeAdded.emit(port)
         elif callback_id == OpenMaya.MNodeMessage.kAttributeRemoved:
-            log.info('Attribute {0} removed from {1}'.format(attr_name, obj_name))
+            # log.info('Attribute {0} removed from {1}'.format(attr_name, obj_name))
             attr = pymel.Attribute(attr_dagpath)
             port = self.get_port_model_from_value(attr)
             self.onAttributeRemoved.emit(port)
@@ -397,22 +370,33 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         """
         from maya import OpenMaya
 
+        plug_name = plug.name()
 
-        # print(' + '.join(self._analayse_callback_message(callback_id)))
-        attr_dagpath = plug.name()
+        # Ignore evaluation events
+        if callback_id & OpenMaya.MNodeMessage.kAttributeEval:
+            return
+
+        # Ignore blacklisted attribute
+        attr_name = plug_name.split('.')[-1]
+        from omtk import constants
+        if attr_name in constants._attr_name_blacklist:
+            return
+
+        log.info('[addAttributeChangedCallback] {0} {1}'.format(plug.name(), libOpenMaya.debug_MNodeMessage_callback(callback_id)))
 
         if callback_id & OpenMaya.MNodeMessage.kAttributeArrayAdded:
-            attr_dagpath = plug.name()
-            attr = pymel.Attribute(attr_dagpath)
+            # log.info('[addAttributeChangedCallback] kAttributeArrayAdded {0}'.format(attr_dagpath))
+            attr = pymel.Attribute(plug_name)
             self.onAttributeAdded.emit(attr)
             # print attr
             # self._ctrl.callback_attribute_array_added(attr_dagpath)
-        elif callback_id == OpenMaya.MNodeMessage.kConnectionMade:
-            log.info('To Implement: kConnectionMade {0}'.format(attr_dagpath))
-            attr = pymel.Attribute(attr_dagpath)
-            print("!")
-        elif callback_id == OpenMaya.MNodeMessage.kConnectionBroken:
-            log.info('To Implement: kConnectionBroken {0}'.format(attr_dagpath))
+        elif callback_id & OpenMaya.MNodeMessage.kConnectionMade:
+            # log.info('[addAttributeChangedCallback] kConnectionMade {0}'.format(attr_dagpath))
+            attr = pymel.Attribute(plug_name)
+            # print("!")
+        elif callback_id & OpenMaya.MNodeMessage.kConnectionBroken:
+            pass
+            # log.info('[addAttributeChangedCallback] kConnectionBroken {0}'.format(attr_dagpath))
 
     @decorators.log_info
     def callback_node_deleted(self, node, *args, **kwargs):

@@ -77,29 +77,19 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
             # n.worldMatrix[1]  # if we try to use the free index directly
             # n.worldMatrix.numElements() # -> 2, wtf
 
-            # If the attribute is a multi attribute, we'll want to expose the first available.
-            # if attr.isArray():
-            #
-            #     # hack, see above
-            #     attr.type()
-            #
-
             if attr.isArray():
-                # hack, see above
+                # hack, If the attribute is a multi attribute, we'll want to expose the first available.
                 attr.type()
 
                 num_elements = attr.numElements()
                 for i in xrange(num_elements):
                     attr_child = attr.elementByLogicalIndex(i)
-                # for attr_child in attr:
                     inst = self._registry.get_port_model_from_value(attr_child)
-                    # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr_child)
-                    # self._registry._register_attribute(inst)
                     yield inst
 
-                attr_available = attr[num_elements]
-                inst = self._registry.get_port_model_from_value(attr_available)
-                yield inst
+                # attr_available = attr[num_elements]
+                # inst = self._registry.get_port_model_from_value(attr_available)
+                # yield inst
 
     def _get_widget_cls(self):
         return pyflowgraph_node_widget.OmtkNodeGraphDagNodeWidget

@@ -26,7 +26,8 @@
       "scaleZ",
       "visibility",
       "matrix",
-      "worldMatrix"
+      "worldMatrix",
+      "worldInverseMatrix"
     ],
     "decomposeMatrix": [
       "inputMatrix",

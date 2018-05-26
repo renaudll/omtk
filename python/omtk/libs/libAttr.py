@@ -1096,8 +1096,7 @@ def iter_contributing_attributes(obj):
         plug = mfn.findPlug(mo_attr)
 
         # We will ignore any child attribute since we want to explore them
-        # ourself. This is becose some attributes like renderLayerInfo[-1].renderLayerId
-        # don't really exist.
+        # ourself. This is because some attributes like renderLayerInfo[-1].renderLayerId don't really exist.
         if plug.isChild():
             continue
 

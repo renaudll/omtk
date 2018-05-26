@@ -45,6 +45,7 @@ _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE = {
 }
 
 
+# todo: convert to enum
 class AttributeType:
     Basic = 0
     Iterable = 1
@@ -211,16 +212,60 @@ def get_port_color_from_datatype(datatype):
 
 
 def get_attr_datatype(attr):
+    # type: (pymel.Attribute) -> None
+    """
+    Return the datatype associated with an Attribute.
+    :param attr: The attribute to query the time from.
+    :return: An enum value representing the attribute type in OMTK perspective.
+
+    Note that we might have difficulties guessing the type of an attribute.
+    This apparently simple task can be hard in Maya, mainly because some attributes that seem typed are in fact compounds.
+    ex: multMatrix.matrixIn look like an
+
+    Note 1
+    ------
+    We don't want to use pymel .type() method.
+    For some reason, if the array attribute don't have any children, checking a leaf will temporally create and remove a '99' attribute.
+
+    For example the following code:
+
+        from maya import OpenMaya
+        from omtk.libs import libMayaCallbacks
+        def fn_callback(callback_id, plug, *args):
+            print("{0}: {1}".format(plug.name(), libMayaCallbacks.debug_MNodeMessage_callback(callback_id)))
+
+        m = pymel.createNode('multMatrix')
+        OpenMaya.MNodeMessage.addAttributeChangedCallback(m.__apimobject__(), fn_callback)
+        m.matrixIn.numElements()  # return 0
+        m.matrixIn[0].type()  # will trigger callbacks
+
+    Will output:
+
+        multMatrix26.matrixIn[99]: kIncomingDirection, kAttributeArrayAdded
+        multMatrix26.matrixIn[99]: kIncomingDirection, kAttributeArrayRemoved
+
+    """
     attr_type = None
+
+    from maya import cmds
 
     # The array is typed, not it's elements.
     if attr.isElement():
         return get_attr_datatype(attr.array())
 
-    # Hack: some multi attributes will return None if we the type directly to the parent attribute.
-    # For this reason we'll check a leaf first.
+    # In some situations, trying to type an array attribute will return None. (todo: provide an example?)
     if attr_type is None and attr.isMulti():
-        attr_type = attr[0].type()
+        # log.warning("Getting a hard time typing {0}. Using sketchy method.".format(attr))
+
+        # # An array is always typed?
+        # from maya import OpenMaya
+        # mfn = OpenMaya.MFnTypedAttribute(attr.__apimobject__())
+        # type_ = mfn.attrType()
+        # if type_ == OpenMaya.MFnData.kMatrix
+        # todo: FIND A BETTER WAY!
+
+        # attr_type = attr[0].type()
+        attr_type = cmds.getAttr('{0}[0]'.format(attr.__melobject__()), type=True)
 
     if attr_type is None:
         attr_type = attr.type()

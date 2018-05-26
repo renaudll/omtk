@@ -89,3 +89,11 @@ def get_version():
             if result:
                 result = next(iter(result.groups()))
                 return result
+
+
+_attr_name_blacklist = (
+    PyFlowGraphMetadataKeys.Position,
+    PyFlowGraphMetadataKeys.Position + 'X',
+    PyFlowGraphMetadataKeys.Position + 'Y',
+    PyFlowGraphMetadataKeys.Position + 'Z',
+)

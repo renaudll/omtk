@@ -2,7 +2,7 @@ import logging
 
 import pymel.core as pymel
 
-from omtk import constants
+from omtk.constants import _attr_name_blacklist
 from omtk.core import preferences
 from omtk.qt_widgets.nodegraph.nodegraph_filter import NodeGraphFilter
 
@@ -13,12 +13,6 @@ log = logging.getLogger('omtk.nodegraph')
 
 # Hide the attributes we are ourself creating
 # todo: where to put this?
-_attr_name_blacklist = (
-    constants.PyFlowGraphMetadataKeys.Position,
-    constants.PyFlowGraphMetadataKeys.Position + 'X',
-    constants.PyFlowGraphMetadataKeys.Position + 'Y',
-    constants.PyFlowGraphMetadataKeys.Position + 'Z',
-)
 _g_preferences = preferences.get_preferences()
 
 

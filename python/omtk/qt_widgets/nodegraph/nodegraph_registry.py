@@ -1,16 +1,16 @@
 import logging
 
 import omtk.constants
+import pymel.core as pymel
 from collections import defaultdict
 from maya import OpenMaya
-import pymel.core as pymel
 from omtk import decorators
-from omtk import constants
 from omtk.core import entity_attribute, session
 from omtk.core import module
 from omtk.factories import factory_datatypes
 from omtk.libs import libOpenMaya
 from omtk.vendor.Qt import QtCore
+
 from .models.node import node_base, node_rig, node_dag, node_dg, node_component, node_module
 from .models.port import port_base
 
@@ -63,6 +63,9 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
 
         self._callback_id_by_node_model = defaultdict(set)
         self._callback_id_node_removed = None
+
+        self._listen_to_callbacks = True
+
         self.add_callbacks()
 
     @property
@@ -318,7 +321,6 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         assert(len(self._callback_id_by_node_model) == 0)  # should be empty
 
     def callback_attribute_added_or_removed(self, callback_id, mplug, _):
-        from omtk.qt_widgets.nodegraph.filters import filter_standard
 
         attr_dagpath = mplug.name()
         attr_name = attr_dagpath.split('.')[-1]
@@ -368,12 +370,21 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         :param kwargs:
         :return:
         """
-        from maya import OpenMaya
+        self._listen_to_callbacks = False
 
         plug_name = plug.name()
 
         # Ignore evaluation events
         if callback_id & OpenMaya.MNodeMessage.kAttributeEval:
+            return
+
+        # When we receive an event from Maya, we update our internal data in consequence.
+        # We are not suppose to modify the scene while inside a callback.
+        # However a lot of things in Maya can modify the scene even if we are just looking at some data.
+        # (ex: accidentally initializing an empty array plug by looking at it's type using Pymel)
+        # If this happen, we'll raise a warning but refuse to go further to prevent any potential loop.
+        if not self._listen_to_callbacks:
+            log.warning("Ignoring nested callbacks {0}: {1}".format(plug_name, libOpenMaya.debug_MNodeMessage_callback(callback_id)))
             return
 
         # Ignore blacklisted attribute
@@ -391,12 +402,15 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
             # print attr
             # self._ctrl.callback_attribute_array_added(attr_dagpath)
         elif callback_id & OpenMaya.MNodeMessage.kConnectionMade:
-            # log.info('[addAttributeChangedCallback] kConnectionMade {0}'.format(attr_dagpath))
-            attr = pymel.Attribute(plug_name)
-            # print("!")
+            if callback_id & OpenMaya.MNodeMessage.kIncomingDirection:  # listen to the destination
+                log.info('[addAttributeChangedCallback] kConnectionMade {0}'.format(plug_name))
+                print("!")
         elif callback_id & OpenMaya.MNodeMessage.kConnectionBroken:
-            pass
-            # log.info('[addAttributeChangedCallback] kConnectionBroken {0}'.format(attr_dagpath))
+            if callback_id & OpenMaya.MNodeMessage.kIncomingDirection:  # listen to the destination
+                log.info('[addAttributeChangedCallback] kConnectionMade {0}'.format(plug_name))
+                print("!")
+
+        _listen_to_callbacks = True
 
     @decorators.log_info
     def callback_node_deleted(self, node, *args, **kwargs):

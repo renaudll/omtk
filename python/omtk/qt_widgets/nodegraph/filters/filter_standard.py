@@ -4,6 +4,7 @@ import pymel.core as pymel
 
 from omtk.constants import _attr_name_blacklist
 from omtk.core import preferences
+from omtk.factories import factory_datatypes
 from omtk.qt_widgets.nodegraph.nodegraph_filter import NodeGraphFilter
 
 if False:
@@ -72,8 +73,9 @@ class NodeGraphStandardFilter(NodeGraphFilter):
 
         if self.hide_message_attribute_type:
             port_data = port.get_metadata()
+            port_type = port.get_metatype()
             # Warning: Calling .type() on an array attribute with 0 elements will create one element!
-            if isinstance(port_data, pymel.Attribute) and port_data.type() == 'message':
+            if port_type == factory_datatypes.AttributeType.AttributeMessage:
                 return False
 
         return port.is_interesting()

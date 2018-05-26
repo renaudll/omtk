@@ -1,5 +1,6 @@
 import pymel.core as pymel
 from omtk.qt_widgets.nodegraph import nodegraph_filter
+from omtk.factories import factory_datatypes
 
 if False:
     from omtk.qt_widgets.nodegraph.models import NodeGraphNodeModel, NodeGraphPortModel, NodeGraphConnectionModel
@@ -11,21 +12,21 @@ class NodeGraphMetadataFilter(nodegraph_filter.NodeGraphFilter):
     """
     def can_show_port(self, port):
         # type: (NodeGraphPortModel) -> bool
-        port_data = port.get_metadata()
-        if isinstance(port_data, pymel.Attribute) and port_data.type() == 'message':
-            return True
+        port_type = port.get_metatype()
+        if port_type != factory_datatypes.AttributeType.AttributeMessage:
+            return False
         return super(NodeGraphMetadataFilter, self).can_show_port(port)
 
     def can_show_connection(self, connection):
         # type: (NodeGraphConnectionModel) -> bool
         port_src = connection.get_source()
-        port_src_data = port_src.get_metadata()
-        if not isinstance(port_src_data, pymel.Attribute) or port_src_data.type() != 'message':
+        port_src_type = port_src.get_metatype()
+        if port_src_type != factory_datatypes.AttributeType.AttributeMessage:
             return False
 
         port_dst = connection.get_destination()
-        port_dst_data = port_dst.get_metadata()
-        if not isinstance(port_dst_data, pymel.Attribute) or port_dst_data.type() != 'message':
+        port_dst_type = port_dst.get_metatype()
+        if port_dst_type != factory_datatypes.AttributeType.AttributeMessage:
             return False
 
         return super(NodeGraphMetadataFilter, self).can_show_connection(connection)

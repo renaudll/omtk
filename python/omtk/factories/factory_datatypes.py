@@ -5,48 +5,13 @@ import collections
 import logging
 
 from omtk import decorators
-from omtk.libs import libPython
 from omtk.vendor.Qt import QtGui
 from pymel import core as pymel
+from omtk.vendor.enum34 import Enum
 
 log = logging.getLogger('omtk')
 
-_ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE = {
-    'bool': bool,
-    'long': int,
-    'short': int,
-    'byte': int,
-    'char': str,
-    'enum': int,
-    'float': float,
-    'double': float,
-    'doubleAngle': float,
-    'doubleLinear': float,
-    'string': str,
-    'stringArray': str,
-    'time': float,
-    'matrix': pymel.datatypes.Matrix,
-    'fltMatrix': pymel.datatypes.Matrix,
-    'float2': float,  # ???,  # ???
-    'float3': pymel.datatypes.Vector,
-    'double2': float,  # ???, # ???
-    'double3': pymel.datatypes.Vector,
-    'long2': int,  # ???,  # ???
-    'long3': pymel.datatypes.Vector,
-    'short2': pymel.datatypes.Vector,
-    'short3': pymel.datatypes.Vector,
-    'doubleArray': float,
-    'Int32Array': int,
-    'vectorArray': pymel.datatypes.Vector,
-    'nurbsCurve': pymel.nodetypes.NurbsCurve,
-    'nurbsSurface': pymel.nodetypes.NurbsSurface,
-    'mesh': pymel.nodetypes.Mesh,
-    'lattice': pymel.nodetypes.Lattice,
-}
-
-
-# todo: convert to enum
-class AttributeType:
+class AttributeType(Enum):
     Basic = 0
     Iterable = 1
     Dictionary = 2
@@ -65,8 +30,51 @@ class AttributeType:
     AttributeString = 15
     AttributeCompound = 16
     AttributeNurbsCurve = 17
-    ComponentDefinition = 18
+    AttributeNurbsSurface = 18
+    AttributeMesh = 19
+    AttributeLattice = 20
+    AttributeMessage = 21
+    ComponentDefinition = 22
 
+
+_g_attr_type_from_maya_attribute_type_str = {
+    'bool': AttributeType.AttributeBool,
+    'long': AttributeType.AttributeInt,
+    'short': AttributeType.AttributeInt,
+    'byte': AttributeType.AttributeInt,
+    'char': AttributeType.AttributeString,
+    'enum': AttributeType.AttributeInt,
+    'float': AttributeType.AttributeFloat,
+    'double': AttributeType.AttributeFloat,
+    'doubleAngle': AttributeType.AttributeFloat,
+    'doubleLinear': AttributeType.AttributeFloat,
+    'string': AttributeType.AttributeString,
+    'stringArray': AttributeType.AttributeString,
+    'time': AttributeType.AttributeFloat,
+    'matrix': AttributeType.AttributeMatrix,
+    'fltMatrix': AttributeType.AttributeMatrix,
+    'float2': AttributeType.AttributeFloat,  # ???,  # ???
+    'float3': AttributeType.AttributeVector3,
+    'double2': AttributeType.AttributeFloat,  # ???, # ???
+    'double3': AttributeType.AttributeVector3,
+    'double4': AttributeType.AttributeVector4,
+    'long2': AttributeType.AttributeInt,  # ???,  # ???
+    'long3': AttributeType.AttributeVector3,
+    'short2': AttributeType.AttributeVector3,
+    'short3': AttributeType.AttributeVector3,
+    'doubleArray': AttributeType.AttributeFloat,
+    'Int32Array': AttributeType.AttributeInt,
+    'vectorArray': AttributeType.AttributeVector3,
+    'nurbsCurve': AttributeType.AttributeNurbsCurve,
+    'nurbsSurface': AttributeType.AttributeNurbsSurface,
+    'mesh': AttributeType.AttributeMesh,
+    'lattice': AttributeType.AttributeLattice,
+    'compound': AttributeType.AttributeCompound,
+    'Tdatacompound': AttributeType.AttributeCompound,
+    'geometry': AttributeType.AttributeCompound,
+    'typed': AttributeType.AttributeCompound,
+    'message': AttributeType.AttributeMessage
+}
 
 _attr_type_by_native_type = {
     float: AttributeType.AttributeFloat,
@@ -210,9 +218,27 @@ def get_port_color_from_datatype(datatype):
         color = _g_default_port_color
     return color
 
+from maya import OpenMaya
+import re
+
+_g_regex_datatype_from_mel = re.compile('.*-dt "(\w*)".*')
+_g_regex_attributetype_from_mel = re.compile('.*-at "(\w*)".*')
+
+def _get_attr_datatype_from_mobject(mobject):
+    mfn = OpenMaya.MFnAttribute(mobject)
+    mel = mfn.getAddAttrCmd()
+    result = _g_regex_datatype_from_mel.match(mel)
+    if result:
+        datatype = next(iter(result.groups()), None)
+        return datatype
+
+    result = _g_regex_attributetype_from_mel.match(mel)
+    if result:
+        datatype = next(iter(result.groups()), None)
+        return datatype
 
 def get_attr_datatype(attr):
-    # type: (pymel.Attribute) -> None
+    # type: (pymel.Attribute) -> AttributeType
     """
     Return the datatype associated with an Attribute.
     :param attr: The attribute to query the time from.
@@ -254,21 +280,29 @@ def get_attr_datatype(attr):
         return get_attr_datatype(attr.array())
 
     # In some situations, trying to type an array attribute will return None. (todo: provide an example?)
-    if attr_type is None and attr.isMulti():
-        # log.warning("Getting a hard time typing {0}. Using sketchy method.".format(attr))
+    # if attr_type is None and attr.isMulti():
+    # log.warning("Getting a hard time typing {0}. Using sketchy method.".format(attr))
 
-        # # An array is always typed?
-        # from maya import OpenMaya
-        # mfn = OpenMaya.MFnTypedAttribute(attr.__apimobject__())
-        # type_ = mfn.attrType()
-        # if type_ == OpenMaya.MFnData.kMatrix
-        # todo: FIND A BETTER WAY!
+    # # An array is always typed?
+    from maya import OpenMaya
+    # mfn = OpenMaya.MFnTypedAttribute(attr.__apimobject__())
+    # type_ = mfn.attrType()
+    # if type_ == OpenMaya.MFnData.kMatrix
+    # todo: FIND A BETTER WAY!
 
-        # attr_type = attr[0].type()
-        attr_type = cmds.getAttr('{0}[0]'.format(attr.__melobject__()), type=True)
+    # todo: How do we know if the attribute is typed?
+    attr_type = _get_attr_datatype_from_mobject(attr.__apimobject__())
 
-    if attr_type is None:
-        attr_type = attr.type()
+    # Method #1: Use Pymel
+    # BAD because this will temporary create attribute and trigger a shitload of callbacks.
+    # attr_type = attr[0].type()
+
+    # Method #2: Use cmds
+    # BAD because it can return None on attributes like multMatrix.matrixIn
+    # attr_type = cmds.getAttr('{0}[0]'.format(attr.__melobject__()), type=True)
+
+    # if attr_type is None:
+    #     attr_type = attr.type()
 
     if attr_type is None:
         log.warning("Cannot resolve attribute type from attribute {0}.".format(
@@ -276,19 +310,29 @@ def get_attr_datatype(attr):
         ))
         return
 
-    if attr_type == 'TdataCompound':
-        return AttributeType.AttributeCompound
-
-    native_type = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE.get(attr_type, None)
-    if native_type is None:
-        log.warning("Cannot resolve metatype from attribute type {0}. {1}".format(
-            attr_type,
-            attr
-        ))
+    type_ = _g_attr_type_from_maya_attribute_type_str.get(attr_type)
+    if type_ is None:
+        log.warning("Cannot resolve metatype for {0} of type {1}.".format(attr, attr_type))
         return
 
-    val = _attr_type_by_native_type[native_type]
-    if not val:
-        log.warning("Cannot resolve attribute type from attribute {0}. Unknown datatype {1}".format(attr, native_type))
-        return
-    return val
+    return type_
+    #
+    # if attr_type == 'message':
+    #     return AttributeType.AttributeMessage
+    #
+    # if attr_type == 'TdataCompound':
+    #     return AttributeType.AttributeCompound
+    #
+    # native_type = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE.get(attr_type, None)
+    # if native_type is None:
+    #     log.warning("Cannot resolve metatype from attribute type {0}. {1}".format(
+    #         attr_type,
+    #         attr
+    #     ))
+    #     return
+    #
+    # val = _attr_type_by_native_type[native_type]
+    # if not val:
+    #     log.warning("Cannot resolve attribute type from attribute {0}. Unknown datatype {1}".format(attr, native_type))
+    #     return
+    # return val

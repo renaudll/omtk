@@ -10,7 +10,7 @@ import pymel.core as pymel
 from omtk import decorators
 from omtk.core import component, session, entity
 from omtk.libs import libPyflowgraph, libPython
-from omtk.factories import  factory_rc_menu
+from omtk.factories import factory_rc_menu, factory_datatypes
 from omtk.qt_widgets.nodegraph.models.node import node_dg, node_root
 from omtk.qt_widgets.nodegraph import nodegraph_registry
 from omtk.vendor.Qt import QtCore, QtWidgets
@@ -797,8 +797,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             for port_dst in node_model.get_connected_input_ports():
                 # Ignore message attributes
                 attr = port_dst.get_metadata()
-                attr_type = attr.type()
-                if attr_type == 'message':
+                attr_type = port_dst.get_metatype()
+                if attr_type == factory_datatypes.AttributeType.AttributeMessage:
                     continue
 
                 for connection_model in port_dst.get_input_connections():
@@ -812,8 +812,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             for port_src in node_model.get_connected_output_ports():
                 # Ignore message attributes
                 attr = port_src.get_metadata()
-                attr_type = attr.type()
-                if attr_type == 'message':
+                attr_type = port_src.get_metatype()
+                if attr_type == factory_datatypes.AttributeType.AttributeMessage:
                     continue
 
                 for connection_model in port_src.get_output_connections():

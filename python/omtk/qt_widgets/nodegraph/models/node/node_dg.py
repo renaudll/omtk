@@ -78,7 +78,10 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
             # n.worldMatrix.numElements() # -> 2, wtf
 
             if attr.isArray():
-                # hack, If the attribute is a multi attribute, we'll want to expose the first available.
+
+                # Hack: Some multi attribute like transform.worldInverseMatrix will be empty at first,
+                # but might be lazy initialized when we look at them. For consistency, we'll force themself
+                # to be initialized so we only deal with one state.
                 attr.type()
 
                 num_elements = attr.numElements()
@@ -87,9 +90,13 @@ class NodeGraphDgNodeModel(node_base.NodeGraphNodeModel):
                     inst = self._registry.get_port_model_from_value(attr_child)
                     yield inst
 
-                # attr_available = attr[num_elements]
-                # inst = self._registry.get_port_model_from_value(attr_available)
-                # yield inst
+                # Note: Accessing an attribute that don't exist will trigger it's creation.
+                # We need to use safer methods?
+                from maya import mel
+                next_available_index = mel.eval('getNextFreeMultiIndex "{0}" 0'.format(attr.__melobject__()))
+                attr_available = attr[next_available_index]
+                inst = self._registry.get_port_model_from_value(attr_available)
+                yield inst
 
     def _get_widget_cls(self):
         return pyflowgraph_node_widget.OmtkNodeGraphDagNodeWidget

@@ -4,6 +4,7 @@ import pymel.core as pymel
 
 from omtk import constants
 from omtk.core import preferences
+from omtk.factories import factory_datatypes
 from omtk.qt_widgets.nodegraph.nodegraph_filter import NodeGraphFilter
 
 if False:
@@ -202,7 +203,7 @@ class NodeGraphIntermediateNodeFilter(NodeGraphFilter):
         results = []
         for attr_dst in node_model.get_connected_output_ports():
             # Ignore message output connections...
-            if attr_dst.get_metadata().type() == 'message':
+            if attr_dst.get_metatype() == factory_datatypes.AttributeType.AttributeMessage:
                 continue
 
             for connection in model.get_port_output_connections(attr_dst):

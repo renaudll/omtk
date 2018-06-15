@@ -34,3 +34,11 @@ def with_temporary_namespace(namespace):
     cmds.namespace.set(namespace)
     yield
     cmds.namespace(set=old_namespace)
+
+
+def get_namespace(n):
+    # type: (object) -> str
+    try:
+        return n.namespace()
+    except:
+        return n.namespace

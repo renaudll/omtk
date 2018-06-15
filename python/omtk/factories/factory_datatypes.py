@@ -1,3 +1,4 @@
+# coding: utf-8
 """
 Help identifying datatypes for usage in factory methods.
 """
@@ -89,6 +90,7 @@ _attr_type_by_native_type = {
 
 # note: currently we try to use the same colors as in maya Node Editor.md
 _g_port_color_by_datatype = {
+    AttributeType.Basic: QtGui.QColor(0, 0, 0, 255),  # todo: define
     AttributeType.AttributeBool: QtGui.QColor(221, 135, 36, 255),
     AttributeType.AttributeFloat: QtGui.QColor(80, 230, 80, 255),
     AttributeType.AttributeInt: QtGui.QColor(0, 128, 1),
@@ -96,6 +98,7 @@ _g_port_color_by_datatype = {
     AttributeType.AttributeString: QtGui.QColor(10, 40, 195, 255),
     AttributeType.AttributeVector3: QtGui.QColor(0, 0, 0, 255),  # todo: define
     AttributeType.AttributeVector4: QtGui.QColor(0, 0, 0, 255),  # todo: define
+    AttributeType.AttributeCompound: QtGui.QColor(0, 0, 0, 255),  # todo: define
 }
 
 _g_default_port_color = QtGui.QColor(0, 0, 0, 255)
@@ -225,6 +228,12 @@ _g_regex_datatype_from_mel = re.compile('.*-dt "(\w*)".*')
 _g_regex_attributetype_from_mel = re.compile('.*-at "(\w*)".*')
 
 def _get_attr_datatype_from_mobject(mobject):
+    """
+    This is best way I've found of truly knowning the type of any attribute.
+    ¯\_(ツ)_/¯
+    :param mobject:
+    :return:
+    """
     mfn = OpenMaya.MFnAttribute(mobject)
     mel = mfn.getAddAttrCmd()
     result = _g_regex_datatype_from_mel.match(mel)

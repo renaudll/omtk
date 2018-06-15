@@ -88,7 +88,7 @@ def log_execution_time(NAME):
             m_NAME = NAME  # make mutable
             st = time.time()
             rv = f(*args, **kwargs)
-            print('Process {0} took {1:2.3f} seconds to execute.'.format(m_NAME, time.time() - st))
+            log.info('Process {0} took {1:2.3f} seconds to execute.'.format(m_NAME, time.time() - st))
             return rv
 
         return run
@@ -210,7 +210,6 @@ class cached_property(object):
             cache[self.__name__] = self.fget(inst)
             et = time.time() - st
             if (et - st) > 1:  # 1 second
-                print '[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}'.format(et, inst.__class__.__name__,
-                                                                                            self.__name__)
+                log.info('[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}'.format(et, inst.__class__.__name__, self.__name__))
 
         return cache[self.__name__]

@@ -289,7 +289,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         )
 
     def callback_some_node_deleted(self, node, clientData):
-        # type: (OpenMaya.MObject, object) -> None
+        # type: (OpenMaya.MDGMessage, object) -> None
         obj = pymel.PyNode(node)
         node = self.get_node_from_value(obj)
         self.callback_node_deleted(node)
@@ -298,7 +298,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         # type: (NodeGraphNodeModel) -> None
         callback_ids = self._callback_id_by_node_model.get(node)
         if callback_ids is None:
-            log.warning("Cannot remove callback. No callback set for {0}.".format(node))
+            log.debug("Cannot remove callback. No callback set for {0}.".format(node))
             return
 
         for callback_id in callback_ids:
@@ -317,7 +317,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         # for _, ids in self._callback_id_by_node_model.iteritems():
         #     for id_ in ids:
         #         OpenMaya.MNodeMessage.removeCallback(id_)
-        # self._callback_id_by_node_model.clear()
+        self._callback_id_by_node_model.clear()
         assert(len(self._callback_id_by_node_model) == 0)  # should be empty
 
     def callback_attribute_added_or_removed(self, callback_id, mplug, _):
@@ -384,7 +384,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         # (ex: accidentally initializing an empty array plug by looking at it's type using Pymel)
         # If this happen, we'll raise a warning but refuse to go further to prevent any potential loop.
         if not self._listen_to_callbacks:
-            log.warning("Ignoring nested callbacks {0}: {1}".format(plug_name, libOpenMaya.debug_MNodeMessage_callback(callback_id)))
+            # log.warning("Ignoring nested callbacks {0}: {1}".format(plug_name, libOpenMaya.debug_MNodeMessage_callback(callback_id)))
             return
 
         # Ignore blacklisted attribute

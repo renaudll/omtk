@@ -807,7 +807,11 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
                     if src_node_model in selected_nodes_model:
                         continue
 
-                    inn_attrs.add(port_dst.get_metadata())
+                    metadata = port_dst.get_metadata()
+                    if not metadata:
+                        log.warning("Can't find metadata for {}".format(metadata))
+                        continue
+                    inn_attrs.add(metadata)
 
             for port_src in node_model.get_connected_output_ports():
                 # Ignore message attributes
@@ -822,6 +826,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
                     if dst_node_model in selected_nodes_model:
                         continue
 
+                    metadata = port_src.get_metadata()
+                    if not metadata:
+                        log.warning("Can't find metadata for {}".format(metadata))
+                        continue
                     out_attrs.add(port_src.get_metadata())
 
         return inn_attrs, out_attrs
@@ -996,13 +1004,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         Any selected nodes will be in the component.
         Any connection that exit the selection will be redirected to the component 'inn' or 'out' nodes.
         """
+        registry = self.get_registry()
+
         # Remove grouped widgets
         for node in nodes:
             # node_model = self.get_node_model_from_value(node)
             self._model.remove_node(node)
             # self.remove_node_from_view(node)
-
-        registry = node._registry
 
         # todo: better detection of dagnodes
         dgnodes = [node.get_metadata() for node in nodes]

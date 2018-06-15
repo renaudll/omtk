@@ -6,11 +6,10 @@ import pymel.core as pymel
 from maya import cmds, OpenMaya
 
 from omtk import constants
-from omtk.libs import libPython
 from omtk.core import ctrl
 
 from omtk.vendor import libSerialization
-
+from omtk import log
 
 def list_from_MMatrix(m):
     # TODO: There's got to be a better way!
@@ -119,11 +118,11 @@ def get_ctrl_friend(obj_src):
     obj_dst_name = get_name_friend(obj_src_name)
 
     if obj_dst_name is None:
-        print("Can't find ctrl friend of {0}".format(obj_src_name))
+        log.info("Can't find ctrl friend of {0}".format(obj_src_name))
         return None
 
     if not cmds.objExists(obj_dst_name):
-        print ("Can't find ctrl named {0}".format(obj_dst_name))
+        log.info("Can't find ctrl named {0}".format(obj_dst_name))
         return None
 
     return pymel.PyNode(obj_dst_name)
@@ -190,7 +189,7 @@ def get_obj_mirror_def(obj):
                 network.attr('mirror_flip_rot_z').get()
             )
         except pymel.MayaAttributeError as e:
-            print(str(e))
+            log.warning(e)
 
     # If we cannot resolve the ctrl data, take a guess?
     pymel.warning("Can't resolve mirror data for {0}".format(obj))

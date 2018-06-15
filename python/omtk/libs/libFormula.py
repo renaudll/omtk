@@ -370,7 +370,6 @@ def parse(str, **inkwargs):
     vars = (var.strip() for var in re.split(_regex_splitVariables, str))
     vars = [var for var in vars if not var.isdigit()]
     vars = filter(lambda x: x, vars)
-    # print 'found vars:', vars
 
     # hack: add mathematical constants in variables
     kwargs = {

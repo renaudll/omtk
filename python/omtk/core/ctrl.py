@@ -210,7 +210,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute, node will be parented instead".format(self)
+            log.warning("[setParent] {0} don't have an offset attribute, node will be parented instead".format(self))
             return self.node.setParent(*args, **kwargs)
         return self.offset.setParent(*args, **kwargs)
 
@@ -220,7 +220,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            log.warning("[setParent] {0} don't have an offset attribute".format(self))
         return self.offset.setMatrix(*args, **kwargs)
 
     def setTranslation(self, *args, **kwargs):
@@ -229,7 +229,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            log.warning("[setParent] {0} don't have an offset attribute".format(self))
         return self.offset.setTranslation(*args, **kwargs)
 
     def setRotation(self, *args, **kwargs):
@@ -238,7 +238,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            log.warning("[setParent] {0} don't have an offset attribute".format(self))
         return self.offset.setRotation(*args, **kwargs)
 
     def hold_attrs_all(self):

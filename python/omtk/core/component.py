@@ -500,7 +500,12 @@ def _get_parent_namespace(nodes):
     However we don't want to have nodes in our component that don't share the same namespace since
     a component cannot logically have multiple parents.
     """
-    namespaces = {node.namespace().strip(':') for node in nodes}
+    def _get_namespace(n):
+        if isinstance(n, pymel.PyNode):
+            return n.namespace()
+        else:
+            return n.namespace
+    namespaces = {_get_namespace(node).strip(':') for node in nodes}
     if len(namespaces) > 1:
         raise Exception("Cannot create component from nodes. Nodes don't share the same namespace.")
     return next(iter(namespaces), None)
@@ -621,9 +626,10 @@ def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='componen
     # type: (Dict[str, pymel.Attribute], Dict[str, pymel.Attribute], List[pymel.PyNode], str) -> Component
     """
     Create a Component from existing nodes.
-    :param dagnodes: A list of nodes to include in the component.
     :param attrs_inn: A dict(k, v) of public input attributes where k is attr name and v is the reference attribute.
     :param attrs_out: A dict(k, v) of publish output attributes where k is attr name v is the reference attribute.
+    :param dagnodes: A list of nodes to include in the component.
+    :param namespace: A str for the created component namespace.
     :return: Component instance.
     """
     # Determine the parent namespace
@@ -634,14 +640,11 @@ def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='componen
     additional_dagnodes = _get_nodes_from_attributes(attrs_inn.values(), attrs_out.values())
     dagnodes.update(additional_dagnodes)
 
-    parent_namespace = _get_parent_namespace(dagnodes)
-    if parent_namespace:
-        namespace = '{0}:{1}'.format(parent_namespace, namespace)
-
     # todo: do we want to force readable or writable attributes? can this fail?
     # Find an available namespace
     # This allow us to make sure that we'll have access to unique name.
     # Note theses namespaces will be removed in any exported file.
+    from omtk.libs import libNamespaces
     namespace = libNamespaces.get_unique_namespace(namespace, enforce_suffix=True)
     cmds.namespace(add=namespace)
 
@@ -689,9 +692,17 @@ def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='componen
     inst.grp_inn = hub_inn
     inst.grp_out = hub_out
 
+
+    def _get_name(n):
+        try:  # pynodes
+            return n.nodeName()
+        except:  # component
+            return n.namespace
+
     if dagnodes:
         for dagnode in dagnodes:
-            dagnode.rename('{0}:{1}'.format(namespace, dagnode.stripNamespace().nodeName()))
+            from omtk.libs import libNamespaces
+            dagnode.rename('{0}:{1}'.format(namespace, _get_name(dagnode).split(':')[-1]))
 
     libSerialization.export_network(inst)
 

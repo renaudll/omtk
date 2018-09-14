@@ -75,6 +75,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self._cache_node_model_by_widget = {}
         self._cache_port_widget_by_model = {}
         self._cache_port_model_by_widget = {}
+        self._cache_connection_widget_by_model = {}
+        self._cache_connection_model_by_widget = {}
 
         self._cache_node_by_port = {}
         self._cache_ports_by_node = defaultdict(set)
@@ -314,12 +316,13 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def on_model_connection_added(self, connection):
         # type: (NodeGraphConnectionModel) -> None
         if self._view:
-            self.get_connection_widget(connection)
+            self.add_connection_to_view(connection)
 
     # @decorators.log_info
     def on_model_connection_removed(self, connection):
         # type: (NodeGraphConnectionModel) -> None
-        raise NotImplementedError
+        if self._view:
+            self.remove_connection_from_view(connection)
 
     def reset_view(self):
         self.clear()  # todo: rename to clear_view
@@ -599,13 +602,37 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         node_widget = self._cache_node_widget_by_model[node]
         node_widget.removePort(widget)
 
+    def add_connection_to_view(self, connection):
+        """
+        Add a connection to the graph view.
+        :param connection: The connection to add.
+        :type connection: NodeGraphConnectionModel
+        """
+        # Simply creating the widget is enough
+        widget = self.get_connection_widget(connection)
+
+        # Update cache
+        self._cache_connection_widget_by_model[connection] = widget
+        self._cache_connection_model_by_widget[widget] = connection
+
+        self._visible_connections.add(connection)
+
     def remove_connection_from_view(self, connection):
+        """
+        Remove a connection from the graph view.
+        :param connection: The connection to remove.
+        :type connection: NodeGraphConnectionModel
+        """
         if not self.is_connection_in_view(connection):
             return
         self._visible_connections.remove(connection)
 
+        # Clear Model <-> Widget cache
+        widget = self._cache_connection_widget_by_model.pop(connection)
+        self._cache_connection_model_by_widget.pop(widget)
+
         if self.get_view():
-            self._view.removeConnection(connection, emitSignal=False)
+            self._view.removeConnection(widget, emitSignal=False)
 
     # --- High-level methods ---
 
@@ -834,6 +861,65 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         return inn_attrs, out_attrs
 
+    def _get_attr_map_from_nodes(self, nodes):
+        """
+        From a group of nodes, identify the visible connection that evade from the group and store their attributes in a map.
+        This will be used to define which attribute will be part of a compound and what will be their names.
+        :param nodes:
+        :type nodes: List[NodeGraphNodeModel]
+        :return:
+        :rtype: Tuple[Dict[str, pymel.Attribute], Dict[str, pymel.Attribute]]
+        """
+        # todo: Move to GraphModel?
+        model = self.get_model()
+        map_inn = {}
+        map_out = {}
+        for node in nodes:
+            # Fill inputs
+            for connection in model.get_port_input_connections(node):
+                port_src = connection.get_source()
+                node_src = port_src.get_parent()
+
+                # Ignore connections that stay in the same namespace
+                if node_src in nodes:
+                    continue
+
+                # Get destination attribute, ignore any invalid type
+                port_dst = connection.get_destination()
+                metadata = port_dst.get_metadata()
+                if not isinstance(metadata, pymel.Attribute):
+                    log.warning("Ignoring connection %s, invalid destination metadata type. "
+                                "Expected pymel.Attribute, got %s." % connection, metadata)
+                    continue
+
+                key = port_src.get_name()
+                key = libPython.get_unique_key(key, map_inn)
+                map_inn[key] = metadata
+
+            # Fill outputs
+            for connection in model.get_port_output_connections(node):
+                port_dst = connection.get_destination()
+                node_dst = port_dst.get_parent()
+
+                # Ingore connections that say in the same namespace
+                if node_dst in nodes:
+                    continue
+
+                # Get source attribute, ignore any invalid type
+                port_src = connection.get_source()
+                metadata = port_src.get_metadata()
+                if not isinstance(metadata, pymel.Attribute):
+                    log.warning("Ignoring port %s, invalid source metadata type. "
+                                "Expected pymel.Attribute, got %s." % connection, metadata)
+                    continue
+
+                key = port_dst.get_name()
+                key = libPython.get_unique_key(key, map_out)
+                map_out[key] = metadata
+
+        return map_inn, map_out
+
+
     # --- User actions, currently defined in the widget, should be moved in the controller ---
 
     def add_maya_selection_to_view(self):
@@ -1015,8 +1101,12 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         # todo: better detection of dagnodes
         dgnodes = [node.get_metadata() for node in nodes]
 
-        inn_attrs, out_attrs = self._get_nodes_outsider_ports(nodes)
-        inst = component.from_attributes(inn_attrs, out_attrs, dagnodes=dgnodes)
+
+        map_inn, map_out = self._get_attr_map_from_nodes(nodes)
+        inst = component.from_attributes_map(map_inn, map_out, dagnodes=dgnodes)
+
+        # inn_attrs, out_attrs = self._get_nodes_outsider_ports(nodes)
+        # inst = component.from_attributes(inn_attrs, out_attrs, dagnodes=dgnodes)
 
         self.manager.export_network(inst)
         self.manager._register_new_component(inst)

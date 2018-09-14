@@ -189,6 +189,34 @@ class NodeGraphAbstractModel(QtCore.QObject):
         # type: (NodeGraphNodeModel) -> List[NodeGraphPortModel]
         return list(self.iter_node_ports(node))
 
+    def iter_node_input_connections(self, node):
+        """
+        Iterate through all connection where the destination is a port of the provided node.
+        :param node: The node which is the destination of the connection we want.
+        :type node: NodeGraphNodeModel
+        :return: Generator[NodeGraphConnectionModel]
+        """
+        for port in self.iter_node_ports(node):
+            for connection in self.iter_port_input_connections(port):
+                yield connection
+
+    def get_node_input_connections(self, node):
+        return list(self.iter_node_input_connections(node))
+
+    def iter_node_output_connections(self, node):
+        """
+        Iterate through all connections where the source is a port of the provided node.
+        :param node: The node which is the source of the connection we want.
+        :type node: NodeGraphNodeModel
+        :return: Generator[NodeGraphConnectionModel]
+        """
+        for port in self.iter_node_ports(node):
+            for connection in self.iter_port_output_connections(port):
+                yield connection
+
+    def get_node_output_connections(self, node):
+        return list(self.iter_node_output_connections(node))
+
     def iter_port_connections(self, port):
         # type: (NodeGraphPortModel) -> Generator[NodeGraphConnectionModel]
         for connection in self.iter_port_input_connections(port):

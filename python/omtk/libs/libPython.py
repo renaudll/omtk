@@ -4,9 +4,14 @@ import itertools
 import logging
 import sys
 import threading
+from omtk.core.component import _g_regex_prefix
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
+
+
+if False:  # for type hinting
+    from typing import List, Set, Dict, Tuple
 
 
 def does_module_exist(module_name):
@@ -205,3 +210,33 @@ def id_dfs(puzzle, goal, get_moves, max_iteration=20, known=None):
         route = dfs([puzzle], depth)
         if route:
             return route
+
+
+def get_unique_key(name, all_names, naming_format='{0}{1}', start=1):
+    """
+
+    >>> get_unique_key('v1', ['v1', 'v2'])
+    'v3'
+    >>> get_unique_key('v', ['v', 'v1', 'v2'])
+    'v3'
+
+    :param name:
+    :type name: str
+    :param all_names:
+    :type all_names: List[str] or Tuple[str] or Set[str] or Dict[str]
+    :param naming_format:
+    :param enforce_suffix:
+    :param start:
+    :return:
+    """
+    if not name in all_names:
+        return name
+
+    name, prefix = _g_regex_prefix.match(name).groups()
+    if prefix:
+        start = int(prefix) + 1  # we'll try next
+
+    for i in itertools.count(start):
+        new_name = naming_format.format(name, i)
+        if new_name not in all_names:
+            return new_name

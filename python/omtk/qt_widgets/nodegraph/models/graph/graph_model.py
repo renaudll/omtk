@@ -127,7 +127,7 @@ class NodeGraphModel(graph_model_abstract.NodeGraphAbstractModel):
 
             # Remove node ports
             for port in list(self._ports_by_nodes[node]):  # hack: prevent change during iteration
-                self.remove_port(port, emit_signal=False)  # we expect the user to know we're removing the port?
+                self.remove_port(port, emit_signal=emit_signal)  # we expect the user to know we're removing the port?
             self._ports_by_nodes.pop(node)
 
         if emit_signal:

@@ -1,5 +1,4 @@
 import logging
-import itertools
 import re
 
 from maya import cmds
@@ -13,6 +12,7 @@ from omtk.core.entity_attribute import EntityPymelAttribute, EntityPymelAttribut
 from omtk.factories import factory_datatypes
 from omtk.libs import libAttr
 from omtk.libs import libNamespaces
+from omtk.libs import libPython
 from omtk.vendor import libSerialization
 from pymel import core as pymel
 
@@ -536,7 +536,7 @@ def create_empty(namespace='component'):
     return inst
 
 
-def from_nodes(objs, namespace='component'):
+def from_nodes(objs, connections=True, namespace='component'):
     # type: (List[pymel.nodetypes.DependNode], str) -> Component
     """
     Create a component from a set of nodes.
@@ -574,34 +574,6 @@ def from_nodes(objs, namespace='component'):
 _g_regex_prefix = re.compile('(.*[^0-9]+)([0-9]*)$')
 
 
-def __get_unique_name(name, all_names, naming_format='{0}{1}', start=1):
-    """
-
-    >>> __get_unique_name('v1', ['v1', 'v2'])
-    'v3'
-    >>> __get_unique_name('v', ['v', 'v1', 'v2'])
-    'v3'
-
-    :param name:
-    :param all_names:
-    :param naming_format:
-    :param enforce_suffix:
-    :param start:
-    :return:
-    """
-    if not name in all_names:
-        return name
-
-    name, prefix = _g_regex_prefix.match(name).groups()
-    if prefix:
-        start = int(prefix) + 1  # we'll try next
-
-    for i in itertools.count(start):
-        new_name = naming_format.format(name, i)
-        if new_name not in all_names:
-            return new_name
-
-
 def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     # type: (List[pymel.Attribute], List[pymel.Attribute], str) -> Component
     attrs_inn_map = {}
@@ -610,17 +582,18 @@ def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     for attr in attrs_inn:
         if attr in attrs_inn_map:
             continue
-        attr_name = __get_unique_name(attr.longName(), attrs_inn_map)
+        attr_name = libPython.get_unique_key(attr.longName(), attrs_inn_map)
         attrs_inn_map[attr_name] = attr
 
     for attr in attrs_out:
         if attr in attrs_out_map:
             continue
-        attr_name = __get_unique_name(attr.longName(), attrs_out_map)
+        attr_name = libPython.get_unique_key(attr.longName(), attrs_out_map)
         attrs_out_map[attr_name] = attr
 
     inst = from_attributes_map(attrs_inn_map, attrs_out_map, dagnodes=dagnodes, namespace=namespace)
     return inst
+
 
 def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='component'):
     # type: (Dict[str, pymel.Attribute], Dict[str, pymel.Attribute], List[pymel.PyNode], str) -> Component

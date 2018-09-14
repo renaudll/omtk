@@ -123,6 +123,20 @@
     "animCurveUA": ["output"],
     "animCurveUL": ["output"],
     "animCurveUT": ["output"],
-    "animCurveUU": ["output"]
+    "animCurveUU": ["output"],
+    "vectorProduct": [
+      "input1",
+      "input1X",
+      "input1Y",
+      "input1Z",
+      "input2",
+      "input2X",
+      "input2Y",
+      "input2Z",
+      "output",
+      "outputX",
+      "outputY",
+      "outputZ"
+    ]
   }
 }

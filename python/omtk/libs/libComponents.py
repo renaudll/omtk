@@ -6,18 +6,18 @@ from maya import cmds
 import pymel.core as pymel
 from omtk import constants
 
-from omtk.core import component
-from omtk.core.component_definition import ComponentDefinition
+from omtk import component
+from omtk.component.component_definition import ComponentDefinition
 from omtk.libs import libAttr
 from omtk.libs import libRigging
 from omtk.vendor import libSerialization
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 if False:  # type hinting
     from typing import List, Generator
-    from omtk.core.component import Component
+    from omtk.component import Component
 
 
 def identify_network_io_ports(objs):
@@ -91,8 +91,65 @@ def optimize_network_io_ports(attrs_inn, attrs_out):
     raise NotImplementedError
 
 
-class BrokenComponentError(Exception):
-    """Raised when something fail because a node is inside and outside of a component at the same time."""
+def get_component_dir():
+    """Return the directory to save component to."""
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'components'))
+
+
+def walk_available_component_definitions(search_scripted=True):
+    # todo: clearly define where are the components in omtk
+    path_component_dir = get_component_dir()
+    if not os.path.exists(path_component_dir):
+        raise Exception()
+    paths = [path_component_dir]
+
+    known = set()
+
+    for dirname in paths:
+        log.debug('Searching component in {0}'.format(dirname))
+        if os.path.exists(dirname):
+            for filename in os.listdir(dirname):
+                basename, ext = os.path.splitext(filename)
+                if ext != '.ma':
+                    continue
+                path = os.path.join(dirname, filename)
+
+                log.debug('Creating ComponentDefinition from {0}'.format(path))
+                component_def = ComponentDefinition.from_file(path)
+                if not component_def:
+                    continue
+
+                key = hash((component_def.uid, component_def.version))
+                if key in known:
+                    raise MultipleComponentDefinitionError(
+                        "Found more than two component with the same uid and version: {0}".format(
+                            component_def
+                        )
+                    )
+                known.add(key)
+
+                log.debug('Registering {0} from {1}'.format(component_def, path))
+                yield component_def
+
+    from omtk.core import plugin_manager
+    pm = plugin_manager.plugin_manager
+
+    if search_scripted:
+        log.info("Searching ComponentScripted")
+        for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ComponentScriptedType.type_name):
+            component_def = plugin.cls.get_definition()
+            log.debug('Registering {0} from {1}'.format(component_def, plugin))
+            yield component_def
+
+    log.info("Searching modules")
+    for plugin in pm.get_loaded_plugins_by_type(plugin_manager.ModulePluginType.type_name):
+        try:
+            component_def = plugin.cls.get_definition()
+        except AttributeError, e:
+            log.warning("Error obtaining plugin class definition for {0}: {1}".format(plugin, e))
+            continue
+        log.debug('Registering {0} from {1}'.format(component_def, plugin))
+        yield component_def
 
 
 def iter_components():
@@ -197,7 +254,7 @@ def create_component_from_bounds(objs):
     """Initialize an unregistred Compound from objects defining the bounds."""
     input_attrs, output_attrs = identify_network_io_ports(objs)
 
-    from omtk.core.component import Component
+    from omtk.component import Component
     inst = Component.from_attributes(input_attrs, output_attrs)
 
     return inst

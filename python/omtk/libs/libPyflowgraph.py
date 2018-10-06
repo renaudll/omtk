@@ -9,14 +9,14 @@ from omtk.vendor.Qt import QtCore
 from pymel import core as pymel
 from omtk.libs import libMayaNodeEditor
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 _GRAPH_POS_ATTR_NAME = constants.PyFlowGraphMetadataKeys.Position
 
 if False:  # for type-hinting
     from typing import Tuple
     from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
-    from omtk.qt_widgets.nodegraph.models.node.node_base import NodeGraphNodeModel
+    from omtk.nodegraph.models.node.node_base import NodeModel
 
 
 def _walk_downstream(node):
@@ -167,7 +167,7 @@ def _get_node_position(node, use_stored_pos=True, use_maya_pos=False):
 
 
 def get_node_position(node, use_stored_pos=True, use_maya_pos=False):
-    # type: (NodeGraphNodeModel, bool, bool) -> (float, float)
+    # type: (NodeModel, bool, bool) -> (float, float)
     assert(use_stored_pos or use_maya_pos)
     meta_type = node.get_metatype()
     meta_data = node.get_metadata()
@@ -193,7 +193,7 @@ def _save_node_position(node, pos):
 
 
 def save_node_position(node, pos):
-    # type: (NodeGraphNodeModel, Tuple[float,float]) -> None
+    # type: (NodeModel, Tuple[float,float]) -> None
     meta_type = node.get_metatype()
     meta_data = node.get_metadata()
 

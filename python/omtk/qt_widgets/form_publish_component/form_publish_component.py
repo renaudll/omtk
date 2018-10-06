@@ -2,20 +2,23 @@
 Helper UI to create "Component".
 """
 
-from .ui import form_publish_component as ui_def
-import pymel.core as pymel
-from omtk.vendor.Qt import QtWidgets
-from omtk.libs import libAttr
-from omtk.core import component_definition
-from omtk.core import component_registry
-from omtk import log
+import logging
 
-if False:  # for type hinting
-    from omtk.core.component import Component
+from omtk.component import component_definition
+from omtk.component import component_registry
+from omtk.vendor.Qt import QtWidgets
+
+from .ui import form_publish_component as ui_def
+
+log = logging.getLogger(__name__)
 
 
 class FormPublishComponent(QtWidgets.QMainWindow):
     def __init__(self, component):
+        """
+
+        :param omtk.Component component:
+        """
         super(FormPublishComponent, self).__init__()
 
         self._component = component
@@ -28,14 +31,17 @@ class FormPublishComponent(QtWidgets.QMainWindow):
         self.load_component(component)
 
     def load_component(self, component):
-        # type: (Component) -> None
+        """
+
+        :param omtk.Component component: The component to load.
+        """
         component_def = component.get_definition()
         if component_def is None:
             log.warning("No definition associated with {0}. Creating an empty one.".format(component))
             component_def = component_definition.ComponentDefinition.empty()
         self.ui.lineEdit_name.setText(component_def.name)
         self.ui.lineEdit_author.setText(component_def.author)
-        self.ui.lineEdit_version.setText(      component_def.version)
+        self.ui.lineEdit_version.setText(component_def.version)
         self.ui.lineEdit_uid.setText(component_def.uid)
 
     def get_new_definition(self):
@@ -61,4 +67,3 @@ class FormPublishComponent(QtWidgets.QMainWindow):
         log.info('Exporting component to {0}'.format(path))
         self._component.export(path)
         self.close()
-

@@ -1,15 +1,11 @@
 """
 Ensure Component create from existing node networks work as intended.
 """
-import os
 import unittest
-import pymel.core as pymel  # easy standalone initialization
+
 from maya import cmds
-import tempfile
-from omtk.libs import libComponents
-from omtk import constants
-from omtk.core import component
-from omtk.core import component_definition
+from omtk import component
+from omtk.component import component_definition
 
 
 class ComponentSetDefinitionTestCase(unittest.TestCase):
@@ -28,6 +24,7 @@ class ComponentSetDefinitionTestCase(unittest.TestCase):
 
         # Setting the definition should create a 'meta' node.
         self.assertTrue('component1:meta')
+
 
 if __name__ == '__main__':
     unittest.main()

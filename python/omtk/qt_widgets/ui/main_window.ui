@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1189</width>
-    <height>855</height>
+    <width>1052</width>
+    <height>647</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -80,7 +80,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1189</width>
+     <width>1052</width>
      <height>20</height>
     </rect>
    </property>
@@ -142,7 +142,7 @@
    <property name="minimumSize">
     <size>
      <width>120</width>
-     <height>50</height>
+     <height>56</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -170,7 +170,7 @@
    <property name="minimumSize">
     <size>
      <width>120</width>
-     <height>50</height>
+     <height>56</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -198,7 +198,7 @@
    <property name="minimumSize">
     <size>
      <width>120</width>
-     <height>50</height>
+     <height>56</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -333,37 +333,37 @@
   <customwidget>
    <class>WidgetListModules</class>
    <extends>QWidget</extends>
-   <header>..widget_outliner.h</header>
+   <header location="global">omtk.outliner.widget_list_modules</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>WidgetListInfluences</class>
    <extends>QWidget</extends>
-   <header>..widget_outliner.h</header>
+   <header location="global">omtk.outliner.widget_list_influences</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>WidgetListMeshes</class>
    <extends>QWidget</extends>
-   <header>..widget_outliner.h</header>
+   <header location="global">omtk.outliner.widget_list_meshes</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>NodeGraphWidget</class>
    <extends>QWidget</extends>
-   <header>..widget_nodegraph.h</header>
+   <header location="global">omtk.nodegraph.nodegraph_widget</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>WidgetListComponentDefinition</class>
    <extends>QWidget</extends>
-   <header>..widget_outliner.h</header>
+   <header location="global">omtk.outliner.widget_list_componentdef</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>WidgetWelcome</class>
    <extends>QWidget</extends>
-   <header>..WidgetWelcome.h</header>
+   <header location="global">omtk.qt_widgets.form_welcome</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

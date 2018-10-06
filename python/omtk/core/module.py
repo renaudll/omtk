@@ -4,12 +4,12 @@ import re
 import pymel.core as pymel
 from omtk import decorators
 from omtk.core.entity import Entity
-from omtk.core.entity_attribute import EntityAttribute
+from omtk.core.entity_attribute import EntityPort
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 
 logging.basicConfig()
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 class Module(Entity):
@@ -93,8 +93,8 @@ class Module(Entity):
             self.input = val
             # todo: trigger signal?
 
-        yield EntityAttribute(self, 'inputs', is_input=True, is_output=False, fn_get=_fn_get, fn_set=_fn_set)
-        yield EntityAttribute(self, 'parent', is_input=True, is_output=False)
+        yield EntityPort(self, 'inputs', is_input=True, is_output=False, fn_get=_fn_get, fn_set=_fn_set)
+        yield EntityPort(self, 'parent', is_input=True, is_output=False)
 
         def _fn_get2():
             return self.rig
@@ -102,7 +102,7 @@ class Module(Entity):
         def _fn_set2(val):
             self.rig = val
 
-        yield EntityAttribute(self, 'rig', is_input=True, is_output=False, fn_get=_fn_get2, fn_set=_fn_set2)
+        yield EntityPort(self, 'rig', is_input=True, is_output=False, fn_get=_fn_get2, fn_set=_fn_set2)
 
     # --- Methods for logging
 
@@ -723,7 +723,7 @@ class Module(Entity):
 
     @classmethod
     def get_definition(cls):
-        from omtk.core import component_definition
+        from omtk.component import component_definition
 
         inst = component_definition.ComponentModuleDefinition(
             name=cls.__name__,

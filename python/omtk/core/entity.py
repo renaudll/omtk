@@ -16,7 +16,7 @@ from omtk import constants
 from omtk.core.entity_action import EntityAction
 from omtk.libs import libPython
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 class Entity(object):
@@ -112,7 +112,7 @@ class Entity(object):
     def iter_attributes(self):
         """
         A component can contain attribute that are exposed in the GUI.
-        :yield: EntityAttribute instances.
+        :yield: EntityPort instances.
         """
         return
         yield

@@ -10,7 +10,7 @@ from omtk.vendor.Qt import QtGui, QtWidgets
 
 if False:  # type hinting
     from typing import List
-    from omtk.core.component import Component
+    from omtk.component import Component
 
 def _get_actions(self, entities):
     """Recursively scan for actions stored inside entities."""
@@ -40,8 +40,8 @@ def get_menu(menu, components, fn_callback):
     :param components:
     :param fn_callback: The callback function to call. Actions will be passed as argument.
     :return:
+    :rtype: List[Component]
     """
-    # type: (List[Component]) -> None
     # Hardcoded menus, one day we will remove them
     actions_data = []
     cache_component_class_level = {}

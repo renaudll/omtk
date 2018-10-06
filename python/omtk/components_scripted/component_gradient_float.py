@@ -2,10 +2,10 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants
-from omtk.core.component_scripted import ComponentScripted
+from omtk.component.component_scripted import ComponentScripted
 from omtk.libs import libRigging
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 class ComponentGradientFloat(ComponentScripted):

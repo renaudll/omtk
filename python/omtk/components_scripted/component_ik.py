@@ -1,17 +1,10 @@
-import collections
-
 import pymel.core as pymel
-from omtk.core.component_scripted import ComponentScripted
-from omtk.core.ctrl import BaseCtrl
+from omtk import constants
+from omtk.component.component_scripted import ComponentScripted
 from omtk.core.dag_builder import DagBuilder
-from omtk.core.module import Module
-from omtk.libs import libAttr
 from omtk.libs import libFormula
-from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
-
-from omtk import constants
 
 
 def _get_chain_length_from_local_tms(tms):

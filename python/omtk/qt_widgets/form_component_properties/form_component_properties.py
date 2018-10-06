@@ -1,10 +1,10 @@
 from .ui import form_component_properties as ui_def
 from omtk.vendor.Qt import QtWidgets
-from omtk.core import component_definition
+from omtk.component import component_definition
 from omtk import log
 
 if False:  # for type hinting
-    from omtk.core.component import Component
+    from omtk.component import Component
 
 
 class ComponentPropertyWidget(QtWidgets.QMainWindow):

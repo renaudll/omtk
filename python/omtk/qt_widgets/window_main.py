@@ -7,16 +7,16 @@ import pymel.core as pymel
 from maya import OpenMaya
 from omtk import constants
 from omtk import decorators
-from omtk.core import preferences, session
+from omtk.core import preferences, manager
 from omtk.libs import libSkeleton
 from omtk.qt_widgets import main_window_extended
 from omtk.qt_widgets.ui import main_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-log = logging.getLogger('omtk')
-
 from omtk.vendor.enum34 import Enum
+
+log = logging.getLogger(__name__)
+
 
 class EnumSections(Enum):
     """Define the section available in the ui."""
@@ -24,7 +24,7 @@ class EnumSections(Enum):
     Edit = 1
 
 
-class AutoRig(main_window_extended.MainWindowExtended):
+class OmtkUI(main_window_extended.MainWindowExtended):
     # Called when the user launched Component actions, generally via a customContextMenu.
     actionRequested = QtCore.Signal(list)
 
@@ -36,7 +36,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
         self.callbacks_scene = []
         self.callbacks_nodes = None
 
-        super(AutoRig, self).__init__()
+        super(OmtkUI, self).__init__()
 
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
@@ -116,7 +116,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
         # Add existing rigs in the NodeGraph on startup
         # for rig in self.manager._roots:
         #     ctrl = self.ui.widget_node_editor.get_controller()
-        #     model, widget = ctrl.add_node(rig)
+        #     model, widget = ctrl.add_node_callbacks(rig)
         #     ctrl.expand_node_connections(model)
 
         self.manager.onSceneChanged.connect(self.on_scene_changed)
@@ -127,7 +127,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
 
     @property
     def manager(self):
-        return session.get_session()
+        return manager.get_session()
 
     def on_manager_created_rig(self, rig):
         node_editor_ctrl = self.ui.widget_node_editor.get_controller()
@@ -455,7 +455,7 @@ class AutoRig(main_window_extended.MainWindowExtended):
     #
 
     def showEvent(self, *args, **kwargs):
-        super(AutoRig, self).showEvent(*args, **kwargs)
+        super(OmtkUI, self).showEvent(*args, **kwargs)
 
     def closeEvent(self, *args, **kwargs):
         # Properly remove events
@@ -483,7 +483,7 @@ def show():
 
     global gui
 
-    gui = AutoRig()
+    gui = OmtkUI()
 
     # Create a frame geo to easilly move it from the center
     pFrame = gui.frameGeometry()

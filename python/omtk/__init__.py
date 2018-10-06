@@ -5,7 +5,7 @@ import os
 # from .core import *
 from .api import *
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)  # debugging
 
 try:
@@ -38,86 +38,25 @@ def build_ui_files():
             if os.path.exists(path_dst) and os.path.getctime(path_src) < os.path.getctime(path_dst):
                 continue
 
-            log.info('Building {0} to {1}'.format(
-                path_src,
-                path_dst
-            ))
+            log.info('Building %s to %s', path_src, path_dst)
 
             with open(path_dst_tmp, 'w') as fp:
                 pysideuic.compileUi(path_src, fp)
 
-            with open(path_dst_tmp, 'r') as fp_inn:
-                with open(path_dst, 'w') as fp_out:
-                    for line in fp_inn.readlines():
-                        line = line.replace('from PySide2 import ', 'from omtk.vendor.Qt import ')
-                        fp_out.write(line)
-
-
-            # todo: replace PySide2 call for omtk.vendor.Qt calls
+            with open(path_dst_tmp, 'r') as fp_inn, open(path_dst, 'w') as fp_out:
+                for line in fp_inn.readlines():
+                    line = line.replace('from PySide2 import ', 'from omtk.vendor.Qt import ')
+                    fp_out.write(line)
 
 
 def reload_(kill_ui=True):
-    import pymel.core as pymel
-
     """
     Reload all module in their respective order.
     """
-    log.debug('Reloading everything...')
-    # Hack: prevent a crash related to loosing our OpenMaya.MSceneMessage events.
-    try:
-        pymel.deleteUI('OpenRiggingToolkit')
-    except:
-        pass
-
-    if kill_ui:
-        # Try to kill the window to prevent any close event error
-        try:
-            pymel.deleteUI('OpenRiggingToolkit')
-        except:
-            pass
-
-    log.debug('Reloading constants')
-    import constants
-    reload(constants)
-
-    import decorators
-    reload(decorators)
-
-    log.debug('Reloading core')
-    import core
-    reload(core)
-    core.reload_()
-
-    log.debug('Reloading libs')
-    import libs
-    reload(libs)
-    libs.reload_()
-
-    log.debug('Reloading session')
-    from omtk.core import session
-    reload(session)
-
-    log.debug('Reloading factories')
-    from omtk import factories
-    reload(factories)
-    factories.reload_()
-
-    log.debug('Reloading ui_shared')
-    import constants_ui
-    reload(constants_ui)
-
-    log.debug('Reloading qt_widgets')
-    import qt_widgets
-    reload(qt_widgets)
-    qt_widgets.reload_()
-
-    log.debug('main_window')
-    from omtk.qt_widgets.ui import main_window as ui_main_window
-    reload(ui_main_window)
-
-    log.debug('Reloading main_window')
-    from omtk.qt_widgets import window_main
-    reload(window_main)
+    import sys
+    from omtk.libs.libPython import rreload
+    module = sys.modules[__name__]
+    rreload(module)
 
     from omtk.core import plugin_manager
     pm = plugin_manager.plugin_manager

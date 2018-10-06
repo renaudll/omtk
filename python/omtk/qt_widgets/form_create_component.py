@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from omtk import decorators
 import pymel.core as pymel
-from omtk.core import component
+from omtk import component
 from omtk.libs import libComponents
 from omtk.libs import libComponent
 from omtk.libs import libPython

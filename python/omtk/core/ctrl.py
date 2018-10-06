@@ -10,7 +10,7 @@ from omtk.libs import libAttr
 from omtk.libs import libPymel
 from omtk.libs import libRigging
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 class BaseCtrl(Node):

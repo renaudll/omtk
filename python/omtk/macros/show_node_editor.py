@@ -2,7 +2,7 @@ import logging
 
 from omtk.core.macro import BaseMacro
 from omtk.vendor.Qt import QtWidgets
-from omtk.qt_widgets import nodegraph
+from omtk import nodegraph
 from omtk.qt_widgets import main_window_extended
 
 _gui = None  # workaround garbage collection bug

@@ -1,15 +1,13 @@
 """
 Base classes and utility functions to handle unit-testing.
 """
-import datetime
-import os
-import sys
 import unittest
 from contextlib import contextmanager
 
 import pymel.core as pymel
 from maya import cmds
 from omtk.vendor import libSerialization
+from omtk.nodegraph import NodeGraphRegistry, GraphModel, GraphFilterProxyModel, NodeGraphController
 
 
 def _get_holded_shapes():
@@ -27,60 +25,56 @@ def _get_holded_shapes():
 # Decorators
 #
 
-
-def open_scene(path_local):
-    def deco_open(f):
-        def f_open(*args, **kwargs):
-            m_path_local = path_local  # make mutable
-
-            path = os.path.abspath(os.path.join(os.path.dirname(sys.modules[f.__module__].__file__), m_path_local))
-            if not os.path.exists(path):
-                raise Exception("File does not exist on disk! {0}".format(path))
-
-            cmds.file(path, open=True, f=True)
-            return f(*args, **kwargs)
-
-        return f_open
-
-    return deco_open
-
-
-def save_on_assert():
-    """
-    Backup the current scene if an exception is raise. Let the exception propagate afteward.
-    """
-
-    def deco(f):
-        try:
-            f()
-        except Exception:
-            current_path = cmds.file(q=True, sn=True)
-            if current_path:
-                dirname = os.path.dirname(current_path)
-                basename = os.path.basename(current_path)
-                filename, ext = os.path.splitext(basename)
-
-                timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
-                destination_path = os.path.join(dirname, '{}_{}{}'.format(filename, timestamp, ext))
-                print("Saving scene to {}".format(destination_path))
-                cmds.file(rename=destination_path)
-                cmds.file(save=True, type='mayaAscii')
-            raise
-
-    return deco
-
+offset_tms_by_rot = (
+    (
+        (90, 90, 90),
+         pymel.datatypes.Matrix(  # -z, y, x
+             0.0, 0.0, -1.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             1.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 1.0
+         )
+    ),
+    (
+        (180, 0, 0),
+         pymel.datatypes.Matrix(  # x, -y, -z
+             1.0, 0.0, 0.0, 0.0,
+             0.0, -1.0, 0.0, 0.0,
+             0.0, -0.0, -1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0
+         )
+    ),
+    (
+        (0, 180, 0),
+         pymel.datatypes.Matrix(  # -x, y ,-z
+             -1.0, 0.0, -0.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             0.0, 0.0, -1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0
+         )
+    ),
+    (
+        (0, 0, 180),
+         pymel.datatypes.Matrix(  # -x, -y, z
+             -1.0, 0.0, 0.0, 0.0,
+             -0.0, -1.0, 0.0, 0.0,
+             0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0
+         )
+    ),
+)
 
 def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0):
     """
-    Compare two pymel.datatypes.Matrix and assert if they are too far away.
-    :param a: A pymel.datatypes.Matrix instance.
-    :param b: A pymel.datatypes.Matrix instance.
-    :param r_epsilon: How much drift we accept in rotation.
-    :param t_epsilon: How much drift we accept in translation (in cm).
-    :param multiplier: How much scaling have been applied. This will affect t_epsilon and r_epsilon.
+    Raise an exception if two provided pymel.datatypes.Matrix are different depending of the provided parameters.
+
+    :param pymel.datatypes.Matrix a: A matrix
+    :param pymel.datatypes.Matrix b: Another matrix
+    :param float r_epsilon: How much drift we accept in rotation.
+    :param float t_epsilon: How much drift we accept in translation (in cm).
+    :param float multiplier: How much scaling have been applied. This will affect t_epsilon and r_epsilon.
     """
-    # Apply multiplier on epsilon
-    # This is necessary since if we're scaling 10 times, we expect 5 times more imprecision that if we're scaling 2 times.
+    # Adjust epsilon depending of the scale
     t_epsilon *= multiplier
 
     a_x, a_y, a_z, a_pos = a.data
@@ -106,6 +100,7 @@ class TestCase(unittest.TestCase):
         """
         Build a specific rig and verify the following:
         - Is the rig scaling correctly?
+
         :param rig: The rig to scale.
         :param test_translate: If True, the rig will be verified for translation.
         :param test_translate_value: The value to use when testing the translation.
@@ -115,10 +110,11 @@ class TestCase(unittest.TestCase):
         rig.build(strict=True)
         self.validate_built_rig(rig, **kwargs)
 
-    def _test_unbuild_rig(self, rig, test_shapes=True):
+    def _test_unbuild_rig(self, rig):
         """
         Unbuild a specific rig and verify the following:
         - Do we have extra or missing ctrl shapes after building?
+
         :param rig: The rig to unbuild.
         :param test_shapes: If True, the number of shape before and after will be checked.
         """
@@ -131,7 +127,6 @@ class TestCase(unittest.TestCase):
         """
         Build/Unbuild/Build all the rig in the scene and check for the following errors:
         - Is there junk shapes remaining? This could be a sign that we didn't cleanup correctly.
-        :return:
         """
         import omtk
 
@@ -148,15 +143,16 @@ class TestCase(unittest.TestCase):
         self.assertEqual(num_holder_shapes_before, num_holder_shapes_after)
 
     @contextmanager
-    def verified_offset(self, objs, offset_tm, pivot_tm=None, **kwargs):
+    def context_assertMatrixOffset(self, objs, offset_tm, pivot_tm=None, **kwargs):
         """
         Context that store the world matrix of provided object.
         An offset matrix is also provided that will be used to determine the desired world matrix of the objects.
         If when leaving the context the matrices don't match, an Exeption is raised.
         Use this function to test for scaling issue, flipping and double transformation.
-        :param objs:
-        :param offset_tm:
-        :param kwargs:
+
+        :param List[pymel.PyNode] objs:
+        :param pymel.datatypes.Matrix offset_tm:
+        :param Dict[str,object] kwargs: Any additional arguments will be fowarded to assetMatrixAlmostEqual.
         """
 
         # Store the base matrices
@@ -179,6 +175,7 @@ class TestCase(unittest.TestCase):
         """
         Build a specific rig and verify the following:
         - Is the rig scaling correctly?
+
         :param rig: The rig to scale.
         :param test_translate: If True, the rig will be verified for translation.
         :param test_translate_value: The value to use when testing the translation.
@@ -198,44 +195,13 @@ class TestCase(unittest.TestCase):
                 0, 0, 1, 0,
                 test_translate_value.x, test_translate_value.y, test_translate_value.z, 1.0
             )
-            with self.verified_offset(objs, offset_tm, multiplier=test_translate_value.length()):
+            with self.context_assertMatrixOffset(objs, offset_tm, multiplier=test_translate_value.length()):
                 rig.grp_anm.t.set(test_translate_value)
             rig.grp_anm.t.set(0, 0, 0)
 
         if test_rotate:
-            print("Validating rotate...")
-            offset_tms_by_rot = (
-                ((90, 90, 90),
-                 pymel.datatypes.Matrix(
-                     0.0, 0.0, -1.0, 0.0,
-                     0.0, 1.0, 0.0, 0.0,
-                     1.0, 0.0, 0.0, 0.0,
-                     0.0, 0.0, 0.0, 1.0
-                 )),
-                ((180, 0, 0),
-                 pymel.datatypes.Matrix(
-                     1.0, 0.0, 0.0, 0.0,
-                     0.0, -1.0, 0.0, 0.0,
-                     0.0, -0.0, -1.0, 0.0,
-                     0.0, 0.0, 0.0, 1.0
-                 )),
-                ((0, 180, 0),
-                 pymel.datatypes.Matrix(
-                     -1.0, 0.0, -0.0, 0.0,
-                     0.0, 1.0, 0.0, 0.0,
-                     0.0, 0.0, -1.0, 0.0,
-                     0.0, 0.0, 0.0, 1.0
-                 )),
-                ((0, 0, 180),
-                 pymel.datatypes.Matrix(
-                     -1.0, 0.0, 0.0, 0.0,
-                     -0.0, -1.0, 0.0, 0.0,
-                     0.0, 0.0, 1.0, 0.0,
-                     0.0, 0.0, 0.0, 1.0
-                 )),
-            )
             for rot, offset_tm in offset_tms_by_rot:
-                with self.verified_offset(objs, offset_tm):
+                with self.context_assertMatrixOffset(objs, offset_tm):
                     rig.grp_anm.r.set(rot)
                 rig.grp_anm.r.set(0, 0, 0)
 
@@ -249,81 +215,107 @@ class TestCase(unittest.TestCase):
                 0, 0, m, 0,
                 0, 0, 0, 1
             )
-            with self.verified_offset(objs, scale_tm, multiplier=test_scale_value):
+            with self.context_assertMatrixOffset(objs, scale_tm, multiplier=test_scale_value):
                 rig.grp_anm.globalScale.set(test_scale_value)
             rig.grp_anm.globalScale.set(1.0)
 
 
-# todo: move this to omtk_test
-def _node_to_json(g, n):
-    # type: (NodeGraphModel, NodeGraphNodeModel) -> dict
-    return {
-        # 'name': n.get_name(),
-        'ports': [p.get_name() for p in sorted(g.get_node_ports(n))],
-    }
-
-
-# todo: move this to omtk_test
-def _graph_to_json(g):
-    # type: (NodeGraphModel) -> dict
-    return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}
-
-
-# todo: move this to omtk_test
-def _get_graph_node_names(g):
-    return [n.get_name() for n in g.get_nodes()]
-
-
-def _get_graph_connections_json(g):
-    # type: (NodeGraphModel) -> List[Dict]
-    return [(c.get_source().get_path(), c.get_destination().get_path()) for c in g.get_connections()]
-
 
 class NodeGraphTestCase(TestCase):
+    """
+    Base TestCase for testing the interaction between:
+    - NodeGraphView
+    - NodeGraphRegistry
+    - NodeGraphModel
+    """
     def __init__(self, *args, **kwargs):
         super(NodeGraphTestCase, self).__init__(*args, **kwargs)
         self.model = None
 
     def setUp(self):
-        from omtk.qt_widgets.nodegraph import NodeGraphRegistry, NodeGraphModel, GraphFilterProxyModel, NodeGraphController
+
+        cmds.file(new=True, force=True)
         self.maxDiff = None
         self.registry = NodeGraphRegistry()
-        source_model = NodeGraphModel(self.registry)
+        source_model = GraphModel(self.registry)
         self.model = GraphFilterProxyModel(model=source_model)
         self.ctrl = NodeGraphController(self.registry, model=self.model)
-        cmds.file(new=True, force=True)
 
         # Validate the graph is empty
         self.assertEqual(0, len(self.model.get_nodes()))
         self.assertEqual(0, len(self.model.get_ports()))
 
     def assertGraphNodeCountEqual(self, expected):
+        """
+        Ensure that the number of nodes in the graph match the provided count.
+
+        :param int expected: The expected node counts in the graph.
+        :raise Exception: If the number of nodes in the graph is incorrect.
+        """
         actual = len(self.model.get_nodes())
         self.assertEqual(expected, actual)
 
     def assertGraphRegistryNodeCountEqual(self, expected):
+        """
+        Ensure that the number of registered nodes match the provided count.
+
+        :param int expected: The expected node count in the registry.
+        :raise Exception: If the number of nodes in the registry is incorrect.
+
+        """
         actual = len(self.registry._nodes)
         self.assertEqual(expected, actual)
 
     def assertGraphPortCountEqual(self, expected):
+        """
+        Ensure that the number of ports visible in the graph match the expected count.
+
+        :param int expected: The expected port count in the graph.
+        :raise Exception: If the number of ports visible in the graph is incorrect.
+        """
         actual = len(self.model.get_ports())
         self.assertEqual(expected, actual)
 
+    def assertGraphNodePortNamesEqual(self, node, expected):
+        """
+        Ensure that all the current ports in a provided nodes match.
+
+        :param omtk.nodegraph.NodeModel node: The node to retreive the port from.
+        :param List[str] expected: A sorted list of names to match
+        :raise Exception: If the name of any port don't match the expected value.
+        """
+        ports = self.model.get_node_ports(node)
+        actual = sorted(port.get_name() for port in ports)
+        self.assertEqual(expected, actual)
+
     def assertGraphConnectionCountEqual(self, expected):
+        """
+        Validate the the number of visible connections in the graph.
+
+        :param int expected: The expected number of connections in the graph.
+        :raise Exception: If the number of connections in the graph is unexpected.
+        """
         actual = len(self.model.get_connections())
         self.assertEqual(expected, actual)
 
     def assertGraphNodeNamesEqual(self, expected):
-        actual = _get_graph_node_names(self.model)
+        """
+        Validate the name of all the graph nodes.
+
+        :param List[str] expected: A sorted list of all the graph node names.
+        :raise Exception: If any node name don't match the expected value.
+        """
+        nodes = self.model.get_nodes()
+        actual = sorted([node.get_name() for node in nodes])
         self.assertSetEqual(set(expected), set(actual))
 
     def assertGraphConnectionsEqual(self, expected):
-        actual = _get_graph_connections_json(self.model)
-        actual = set(actual)
-        expected = set(expected)
-        self.assertEqual(expected, actual)
+        """
+        Validate the number of connections in the graph.
+        :param List[Tuple(str, str)] expected: A list of 2-tuple describing connection in the graph.
+        """
+        connections = self.model.get_connections()
+        actual = [connection.dump() for connection in connections]
 
-    # todo: move this to omtk_test.NodeGraphTestCase
-    def _graph_to_json(self, g):
-        # type: (NodeGraphModel) -> dict
-        return {n.get_name(): _node_to_json(g, n) for n in g.get_nodes()}
+        # Using set for comparison as we don't want the ordering to be taken in account.
+        self.assertEqual(set(expected), set(actual))

@@ -3,12 +3,9 @@ Ensure Component create from existing node networks work as intended.
 """
 import os
 import unittest
-import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
 import tempfile
-from omtk.libs import libComponents
-from omtk.core import component
-from omtk.core import component_definition
+from omtk.component import component_definition
 
 
 class ComponentDefinitionTestCase(unittest.TestCase):

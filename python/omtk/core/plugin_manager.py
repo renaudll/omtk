@@ -10,7 +10,7 @@ import traceback
 from omtk import constants
 from omtk.libs import libPython
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 class PluginStatus:
@@ -146,18 +146,23 @@ class PluginType(object):
         # Prevent reloading (for now)
         package = sys.modules.get(package_name, None)
         if package is None:
-            package = pkgutil.get_loader(package_name).load_module(package_name)
+            loader = pkgutil.get_loader(package_name)
+            if loader:
+                package = loader.load_module(package_name)
 
-        for loader, modname, ispkg in pkgutil.walk_packages(package.__path__):
-            # log.debug("Found plugin {0}".format(modname))
-            plugin = Plugin.from_module(modname, self.type_name)
-            self._plugins.append(plugin)
+        if package:
+            for loader, modname, ispkg in pkgutil.walk_packages(package.__path__):
+                # log.debug("Found plugin {0}".format(modname))
+                plugin = Plugin.from_module(modname, self.type_name)
+                self._plugins.append(plugin)
 
 
 class PluginManager(object):
     def __init__(self):
         self._plugins = []
         self._plugins_by_name = {}
+
+
 
     def register_plugin_type(self, plugin_type):
         # self._plugins_by_name[plugin_type.type_name] = libPython.LazySingleton(plugin_type)
@@ -251,16 +256,6 @@ class PluginManager(object):
 
         return list(reversed(result))
 
-    # def _extend_dependent_plugins(self, src_plugins):
-    #     other_plugins = [plugin for plugin in self.iter_plugins() if not plugin in src_plugins]
-    #
-    #     result = copy.copy(src_plugins)
-    #     for plugin in src_plugins:
-    #         for other_plugin in other_plugins:
-    #             if plugin in other_plugin:
-    #                 result.append(other_plugin)
-    #     return sorted(result)
-
     def get_summary(self):
         header_row = ('TYPE', 'NAME', 'DESC', 'STATUS')
 
@@ -300,11 +295,11 @@ class MacroPluginType(PluginType):
 
 
 class ModuleAvarLogicType(PluginType):
-    type_name = 'modules_avar_logic'
+    type_name = 'avar_logic'
 
 
 class ModuleCtrlLogicType(PluginType):
-    type_name = 'modules_ctrl_logic'
+    type_name = 'ctrl_logic'
 
 
 class ComponentScriptedType(PluginType):
@@ -331,6 +326,7 @@ def initialize():
     pm.register_plugin_type(ModuleCtrlLogicType)
     pm.register_plugin_type(ComponentScriptedType)
     # pm.register_plugin_type(UnitTestPluginType)
+
     return pm
 
 

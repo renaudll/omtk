@@ -1,12 +1,18 @@
-import logging
+"""
+This is the public API for omtk.
 
+Note to maintainers:
+This is for external use only, do not use this file in the codebase.
+Otherwise this will result in a cyclic import.
+"""
+
+import logging
 from omtk import decorators
 from omtk.core import plugin_manager
 from omtk.decorators import pymel_preserve_selection
-from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 __all__ = (
     'create',

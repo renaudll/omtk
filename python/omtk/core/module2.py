@@ -7,12 +7,11 @@ import pymel.core as pymel
 logging.basicConfig()
 from omtk.core.node import Node
 from omtk.core.entity import Entity
-from omtk.core.entity_attribute import EntityAttribute
+from omtk.core.entity_attribute import EntityPort
 from omtk.libs import libPymel
-from omtk.libs import libPython
 from omtk.libs import libAttr
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 class ModuleInputHub(Node):
@@ -27,7 +26,7 @@ class Module2(Entity):
     """
     In comparison with the legacy Module class which expose attribute in a single direction,
     this class expose inputs and outputs attributes in a way that is more representative of the
-    compound paradygme.
+    compound paradigm.
 
     A good example is an FK module which expose the following data:
     - inputs: The bind pose of the influences. Since these only serve as inputs, they can
@@ -35,6 +34,11 @@ class Module2(Entity):
     - outputs: The result of the rig computation. Normally this is the influences.
     - ctrl inputs: The world matrix of the animation controllers.
     - ctrl_offset outputs: The bind pose of the animation controllers.
+
+    DO NOT CALL THIS DIRECTLY, use rig.add_module.
+    :param List[pymel.PyNode] input: list containing all the dagnode necessary for the module creation.
+    :param str name: The name of the module.
+    :param rig: The parent of the module. Provided automatically by rig.add_module
     """
 
     # Static variable to know if we show the module in the UI list
@@ -48,15 +52,7 @@ class Module2(Entity):
     DEFAULT_NAME_USE_FIRST_INPUT = False
 
     # todo: since args is never used, maybe use to instead of _input?
-    def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
-        """
-        DO NOT CALL THIS DIRECTLY, use rig.add_module.
-        :param input: A pymel.general.PyNode list containing all the dagnode necessary for the module creation.
-        :param name: The name of the module.
-        :param rig: The parent of the module. Provided automatically by rig.add_module
-        :param args: TO REMOVE? #todo
-        :param kwargs: TO REMOVE? #todo
-        """
+    def __init__(self, input=None, name=None, rig=None):
         super(Module2, self).__init__(name=name)
         # Safety check, ensure that the name is a string and not a Nomenclature instance passed by accident.
         if name and not isinstance(name, basestring):
@@ -102,9 +98,9 @@ class Module2(Entity):
 
     def iter_attributes(self):
         for attr in self.grp_inn.listAttr(userDefined=True):
-            yield EntityAttribute(self, attr.longName(), is_input=True, is_output=False)
+            yield EntityPort(self, attr.longName(), is_input=True, is_output=False)
         for attr in self.grp_out.listAttr(userDefined=True):
-            yield EntityAttribute(self, attr.longName(), is_input=False, is_output=True)
+            yield EntityPort(self, attr.longName(), is_input=False, is_output=True)
 
     # --- Methods for logging
 

@@ -12,14 +12,14 @@ from omtk.core import nomenclature
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.entity import Entity
 from omtk.core.entity_action import EntityAction
-from omtk.core.entity_attribute import EntityAttribute
+from omtk.core.entity_attribute import EntityPort
 from omtk.core.node import Node
 from omtk.libs import libHistory
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 class CtrlRoot(BaseCtrl):
@@ -163,8 +163,8 @@ class Rig(Entity):
 
     def iter_attributes(self):
         def _getter(): return self.modules
-        yield EntityAttribute(self, 'modules', fn_get=_getter, is_output=True)
-        yield EntityAttribute(self, 'global_scale')
+        yield EntityPort(self, 'modules', fn_get=_getter, is_output=True)
+        yield EntityPort(self, 'global_scale')
 
     # --- Methods for logging
 

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/form_component_wizard/ui/widget_component_wizard_parts.ui'
 #
-# Created: Wed Dec 20 20:39:32 2017
+# Created: Sat Sep 29 16:35:03 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -43,9 +43,9 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form"))
-        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add"))
-        self.pushButton_remove.setText(QtWidgets.QApplication.translate("Form", "Remove"))
-        self.pushButton_connect.setText(QtWidgets.QApplication.translate("Form", "Connect"))
-        self.pushButton_disconnect.setText(QtWidgets.QApplication.translate("Form", "Disconnect"))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.pushButton_add.setText(QtWidgets.QApplication.translate("Form", "Add", None, -1))
+        self.pushButton_remove.setText(QtWidgets.QApplication.translate("Form", "Remove", None, -1))
+        self.pushButton_connect.setText(QtWidgets.QApplication.translate("Form", "Connect", None, -1))
+        self.pushButton_disconnect.setText(QtWidgets.QApplication.translate("Form", "Disconnect", None, -1))
 

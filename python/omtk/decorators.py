@@ -1,10 +1,14 @@
-import collections
 import contextlib
-import functools
 import logging
+import os
+import sys
+
+import collections
+import datetime
+import functools
 import time
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 
 def decorator(decorator):
@@ -19,12 +23,14 @@ def decorator(decorator):
     docstring and function attributes of functions to which
     it is applied.
     """
+
     def new_decorator(f):
         g = decorator(f)
         g.__name__ = f.__name__
         g.__doc__ = f.__doc__
         g.__dict__.update(f.__dict__)
         return g
+
     # Now a few lines needed to make simple_decorator itself
     # be a well-behaved decorator.
     new_decorator.__name__ = decorator.__name__
@@ -38,6 +44,7 @@ def log_info(func):
     def subroutine(*args, **kwargs):
         log.info('calling {}'.format(func.__name__))
         return func(*args, **kwargs)
+
     return subroutine
 
 
@@ -46,6 +53,7 @@ def log_warning(func):
     def subroutine(*args, **kwargs):
         log.warning('calling {}'.format(func.__name__))
         return func(*args, **kwargs)
+
     return subroutine
 
 
@@ -63,6 +71,7 @@ def pymel_preserve_selection():
         pymel.select(clear=True)
 
 
+@decorator
 def profiler(func):
     '''
     [debug] Inject this decorator in your function to automaticly run cProfile on them.
@@ -210,6 +219,56 @@ class cached_property(object):
             cache[self.__name__] = self.fget(inst)
             et = time.time() - st
             if (et - st) > 1:  # 1 second
-                log.info('[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}'.format(et, inst.__class__.__name__, self.__name__))
+                log.info(
+                    '[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}'.format(et, inst.__class__.__name__,
+                                                                                          self.__name__))
 
         return cache[self.__name__]
+
+
+def open_scene(path):
+    """
+    Decorator for opening a Maya file.
+    The provided path can be related to the file the function is defined.
+    :param str path: A relative path to the function location.
+    :return A decorator function
+    :rtype: type
+    """
+
+    def deco_open(f):
+        def f_open(*args, **kwargs):
+            from maya import cmds
+            path_ = os.path.abspath(os.path.join(os.path.dirname(sys.modules[f.__module__].__file__), path))
+            cmds.file(path_, open=True, f=True)
+            return f(*args, **kwargs)
+
+        return f_open
+
+    return deco_open
+
+
+@decorator
+def save_on_assert():
+    """
+    Backup the current scene if an exception is raise. Let the exception propagate afteward.
+    """
+
+    def deco(f):
+        try:
+            f()
+        except Exception:
+            from maya import cmds
+            current_path = cmds.file(q=True, sn=True)
+            if current_path:
+                dirname = os.path.dirname(current_path)
+                basename = os.path.basename(current_path)
+                filename, ext = os.path.splitext(basename)
+
+                timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
+                destination_path = os.path.join(dirname, '{}_{}{}'.format(filename, timestamp, ext))
+                print("Saving scene to {}".format(destination_path))
+                cmds.file(rename=destination_path)
+                cmds.file(save=True, type='mayaAscii')
+            raise
+
+    return deco

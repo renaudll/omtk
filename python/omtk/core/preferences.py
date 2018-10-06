@@ -9,10 +9,12 @@ import os
 from omtk import decorators
 from omtk import constants
 
-log = logging.getLogger('omtk')
+root_log = logging.getLogger(__name__)
+log = logging.getLogger('omtk.preferences')
 
 CONFIG_FILENAME = 'config.json'
 
+_DEFAULT_LOG_LEVEL = logging.INFO
 
 @decorators.memoized
 def _get_path_config_dir():
@@ -36,6 +38,7 @@ class Preferences(object):
     def __init__(self):
         self.default_rig = None
         self.hide_welcome_screen = True
+        self.log_level = logging.info
 
     def save(self, path=None):
         if path is None:
@@ -57,6 +60,9 @@ class Preferences(object):
             data = json.load(fp)
             self.__dict__.update(data)
 
+    def apply(self):
+        root_log.setLevel(self.level)
+
     @decorators.memoized
     def _get_config_nodegraph_raw(self):
         # todo: refactor preference class to better handle categories?
@@ -68,7 +74,7 @@ class Preferences(object):
             with open(path, 'r') as fp:
                 return json.load(fp)
         except Exception, e:
-            log.error('Error loading nodegraph_tests configuration files: {0}'.format(e))
+            log.error('Error loading nodegraph_unit_tests configuration files: {0}'.format(e))
             return {}
 
     def get_nodegraph_default_attr_map(self):

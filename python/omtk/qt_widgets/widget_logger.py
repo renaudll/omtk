@@ -4,17 +4,14 @@ import logging
 from omtk.qt_widgets.ui import widget_logger
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
-def log_level_to_str(level):
-    if level >= logging.CRITICAL:
-        return 'Critical'
-    if level >= logging.ERROR:
-        return 'Error'
-    if level >= logging.WARNING:
-        return 'Warning'
-    return 'Info'
-
+_LOG_LEVELS = (
+    logging.DEBUG,
+    logging.INFO,
+    logging.WARNING,
+    logging.ERROR,
+)
 
 class UiLoggerModel(QtCore.QAbstractTableModel):
     HEADER = ('Date', 'Type', 'Message')
@@ -77,7 +74,7 @@ class UiLoggerModel(QtCore.QAbstractTableModel):
         col_index = index.column()
         if col_index == self.ROW_LEVEL:
             level = record.levelno
-            return log_level_to_str(level)
+            return logging.getLevelName(level)
         elif col_index == self.ROW_MESSAGE:
             return record.message
         elif col_index == self.ROW_DATE:
@@ -145,6 +142,7 @@ class UiLoggerProxyModel(QtCore.QSortFilterProxyModel):
 
 class WidgetLogger(QtWidgets.QWidget):
     onRecordAdded = QtCore.Signal()
+    onLogLevelChanged = QtCore.Signal(int)
 
     def __init__(self, parent=None):
         super(WidgetLogger, self).__init__(parent=parent)
@@ -176,17 +174,53 @@ class WidgetLogger(QtWidgets.QWidget):
         header.setStretchLastSection(True)
         QtCompat.setSectionResizeMode(header, QtWidgets.QHeaderView.ResizeToContents)
 
+        # Fill LogLevel ComboBox
+        self._update_available_log_levels()
+
         # Connect events
         self.ui.comboBox_log_level.currentIndexChanged.connect(self.update_log_search_level)
         self.ui.lineEdit_log_search.textChanged.connect(self.update_log_search_query)
         self.ui.pushButton_logs_clear.pressed.connect(self.on_log_clear)
         self.ui.pushButton_logs_save.pressed.connect(self.on_log_save)
 
+    def _update_available_log_levels(self):
+        log_level_names = [logging.getLevelName(level).title() for level in _LOG_LEVELS]
+        self.ui.comboBox_log_level.clear()
+        self.ui.comboBox_log_level.addItems(log_level_names)
+
     def set_logger(self, logger):
         if self._logger:
+            self._unpatch_logger()
             self.remove_logger_handler()
         self._logger = logger
+        self._patch_logger()
         self.create_logger_handler()
+
+    def _get_index_from_level(self, level):
+        for i, log_level in enumerate(_LOG_LEVELS):
+            if level <= log_level:
+                return i
+
+    def _setLevelWrapper(self, level, *args, **kwargs):
+        self._old_logger_setLevel(level, *args, **kwargs)
+
+        try:
+            self.ui.comboBox_log_level.blockSignals(True)
+            index = self._get_index_from_level(level)
+            self.ui.comboBox_log_level.setCurrentIndex(index)
+            self.ui.comboBox_log_level.blockSignals(False)
+        except RuntimeError, e:
+            log.warning(e)
+
+        self.onLogLevelChanged.emit(level)
+
+    def _patch_logger(self):
+        """Wrap the setLevel signal so that any level change is reflected in the UI."""
+        self._old_logger_setLevel = self._logger.setLevel
+        self._logger.setLevel = self._setLevelWrapper
+
+    def _unpatch_logger(self):
+        self._logger.setLevel = self._old_logger_setLevel
 
     def model(self):
         return self.ui.tableView_logs.model().sourceModel()
@@ -241,14 +275,8 @@ class WidgetLogger(QtWidgets.QWidget):
     def update_log_search_level(self):
         index = self.ui.comboBox_log_level.currentIndex()
         model = self.ui.tableView_logs.model()
-        if index == 0:
-            model.set_loglevel_filter(logging.ERROR)
-        elif index == 1:
-            model.set_loglevel_filter(logging.WARNING)
-        elif index == 2:
-            model.set_loglevel_filter(logging.INFO)
-        elif index == 3:
-            model.set_loglevel_filter(logging.DEBUG)
+        level = _LOG_LEVELS[index]
+        model.set_loglevel_filter(level)
 
     def _save_logs(self, path):
         with open(path, 'w') as fp:
@@ -259,7 +287,7 @@ class WidgetLogger(QtWidgets.QWidget):
             for record in self._logging_records:
                 fp.write('{0},{1},{2}\n'.format(
                     str(datetime.datetime.fromtimestamp(record.created)),
-                    log_level_to_str(record.levelno),
+                    logging.getLevelName(record.levelno),
                     record.message
                 ))
 

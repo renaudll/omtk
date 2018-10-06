@@ -5,9 +5,9 @@ import unittest
 
 import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
-from omtk.core import component
+from omtk import component
 from omtk.libs import libRigging
-from omtk.core.component import Component
+
 
 class ComponentCreationTestCase(unittest.TestCase):
     def _debug_io_attrs(self, input_attrs, output_attrs):
@@ -142,6 +142,8 @@ class ComponentCreationTestCase(unittest.TestCase):
         """
         Ensure desired behavior when creating a component sandwitched between existing connections.
         """
+        # Create a 5-daisy-chain of nodes
+        # n1.tx -> n2.tx -> n3.tx -> n4.tx -> n5.tx
         cmds.file(new=True, force=True)
         n1 = pymel.createNode('transform')
         n2 = pymel.createNode('transform')
@@ -154,6 +156,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         pymel.connectAttr(n4.tx, n5.tx)
 
         # Create first component
+        # n1.tx -> ( n2.tx -> n3.tx -> n4.tx ) -> n5.tx
         namespace = 'component'
         c1 = component.from_attributes_map(
             {'innVal': n2.tx}, {'outVal': n4.tx}, namespace=namespace
@@ -174,14 +177,14 @@ class ComponentCreationTestCase(unittest.TestCase):
         self.assertEqual('component1', self._get_namespace(c1.grp_inn))
         self.assertEqual('component1', self._get_namespace(c1.grp_out))
 
-        # Create a second component under the first component
+        # Create a second component inside the first component
+        # n1 -> ( n2 -> ( n3.tx ) -> n4 ) -> c5
         namespace = 'component'
         c2 = component.from_attributes_map(
             {'innVal': n3.tx}, {'outVal': n3.tx}, namespace=namespace
         )
 
         # Validate connections
-        # n1 -> c1 -> n2 -> c2 -> n3 -> c2 -> n4 -> c1 -> n5
         self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [n1.tx])
         self.assertEqual(c1.grp_inn.attr('innVal').outputs(plugs=True), [n2.tx])
         self.assertEqual(c2.grp_inn.attr('innVal').inputs(plugs=True), [n2.tx])

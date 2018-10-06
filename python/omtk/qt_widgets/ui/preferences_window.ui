@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>OMTK - Preferences</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
+  <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
@@ -23,27 +23,47 @@
        </property>
       </widget>
      </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="comboBox_logLevel">
+       <item>
+        <property name="text">
+         <string>DEBUG</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>INFO</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>WARNING</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>ERROR</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Default Log Level</string>
+       </property>
+      </widget>
+     </item>
      <item row="0" column="1">
       <widget class="QComboBox" name="comboBox"/>
      </item>
     </layout>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox">
-     <property name="title">
-      <string>Advanced</string>
+    <widget class="QCheckBox" name="checkBox">
+     <property name="text">
+      <string>Hide Welcome Screen</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QCheckBox" name="checkBox">
-        <property name="text">
-         <string>Hide Welcome Screen</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-     <zorder>checkBox</zorder>
-     <zorder>checkBox</zorder>
     </widget>
    </item>
    <item>

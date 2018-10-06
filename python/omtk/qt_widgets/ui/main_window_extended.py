@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window_extended.ui'
 #
-# Created: Sat Feb  3 16:48:39 2018
+# Created: Sat Sep 29 16:35:03 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!

@@ -9,13 +9,13 @@ import logging
 
 import pymel.core as pymel
 from omtk import constants_ui
-from omtk.core.component_definition import ComponentDefinition
+from omtk.component.component_definition import ComponentDefinition
 from omtk.factories import factory_datatypes
 from omtk.factories.factory_datatypes import AttributeType, get_datatype
 from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 from omtk.decorators import log_info
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 _color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
 _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))

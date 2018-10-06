@@ -10,7 +10,7 @@ from omtk.vendor.Qt import QtGui
 from pymel import core as pymel
 from omtk.vendor.enum34 import Enum
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 class AttributeType(Enum):
     Basic = 0
@@ -115,8 +115,8 @@ def get_datatype(val):
     from omtk.core.module import Module
     from omtk.core.module2 import Module2
     from omtk.core.rig import Rig
-    from omtk.core.component_definition import ComponentDefinition
-    from omtk.core.entity_attribute import EntityAttribute
+    from omtk.component.component_definition import ComponentDefinition
+    from omtk.core.entity_attribute import EntityPort
 
     if val is None or isinstance(val, (
             bool,
@@ -152,7 +152,7 @@ def get_datatype(val):
     if isinstance(val, ComponentDefinition):
         return AttributeType.ComponentDefinition
 
-    raise Exception("Cannot resolve datatype for {0} {1}".format(type(val), val))
+    raise Exception("Unsupported data type %s: %s" % (type(val), val))
 
 
 @decorators.memoized
@@ -267,7 +267,7 @@ def get_attr_datatype(attr):
         from maya import OpenMaya
         from omtk.libs import libMayaCallbacks
         def fn_callback(callback_id, plug, *args):
-            print("{0}: {1}".format(plug.name(), libMayaCallbacks.debug_MNodeMessage_callback(callback_id)))
+            print("{0}: {1}".format(plug.name(), libMayaCallbacks.pformat_MNodeMessage_callback(callback_id)))
 
         m = pymel.createNode('multMatrix')
         OpenMaya.MNodeMessage.addAttributeChangedCallback(m.__apimobject__(), fn_callback)

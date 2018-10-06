@@ -1,14 +1,16 @@
 import gc
 import imp
+import inspect
 import itertools
 import logging
+import re
 import sys
 import threading
-from omtk.core.component import _g_regex_prefix
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
 
+_g_regex_prefix = re.compile('(.*[^0-9]+)([0-9]*)$')
 
 if False:  # for type hinting
     from typing import List, Set, Dict, Tuple
@@ -240,3 +242,49 @@ def get_unique_key(name, all_names, naming_format='{0}{1}', start=1):
         new_name = naming_format.format(name, i)
         if new_name not in all_names:
             return new_name
+
+
+def rreload(module):
+    """
+    Recursive reload function.
+    :param module:
+    """
+    _known = {type, object, None}
+    namespace = module.__name__
+
+    def _reload(m):
+        # print "scanning ", m
+        if m in _known:
+            return
+        _known.add(m)
+
+        # child?
+        m_name = m.__name__
+        if not m_name.startswith(namespace):
+            return
+
+        if m_name in sys.builtin_module_names:
+            return
+
+        # print "accepted", m
+        for name, value in inspect.getmembers(m):
+            if inspect.isclass(value):
+                cls_module = inspect.getmodule(value)
+                if module:
+                    if _reload(cls_module):  # if reload occured
+                        print "Successfully reloaded {}, will update {}".format(cls_module.__name__, name)
+                        # Update local class pointer
+                        cls_name = getattr(cls_module, value.__name__)
+                        print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, cls_module.__name__, name)
+                        setattr(m, name, cls_name)
+
+            if inspect.ismodule(value):
+                _reload(value)
+
+        print "Reloading %s" % m_name
+        reload(module)
+
+        return True
+
+    print namespace
+    _reload(module)

@@ -7,11 +7,10 @@ import unittest
 import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
 import tempfile
-from omtk.libs import libComponents
-from omtk.core import component
+from omtk import component
 from omtk.libs import libRigging
-from omtk.core.component_definition import ComponentDefinition
-from omtk.core.component_registry import ComponentRegistry
+from omtk.component import ComponentDefinition
+from omtk.component import ComponentRegistry
 
 
 class ComponentUpdateTestCase(unittest.TestCase):

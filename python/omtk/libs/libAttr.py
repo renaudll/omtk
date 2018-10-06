@@ -7,7 +7,7 @@ from maya import cmds
 from omtk.libs import libPython
 from pymel import core as pymel
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
 _g_addAttr_kwargs_map = {
@@ -1067,11 +1067,11 @@ def iter_leaf_attributes(obj, **kwargs):
 def iter_contributing_attributes(obj):
     """
     Yield all attributes contributing to the provided object.
-    :param obj: A pymel.PyNode instance.
-    :yield: pymel.Attribute instances.
+    :param OpenMaya.MFnDependencyNode obj: A pymel.PyNode instance.
+    # :yield: pymel.Attribute instances.
+    :return: A plug generator
+    :rtype: Generator[OpenMaya.MPlug]
     """
-
-    # type: (OpenMaya.MFnDependencyNode) -> Generator[OpenMaya.MPlug]
     def _iter_plug_children(plug_):
         yield plug_
         if plug_.isArray():

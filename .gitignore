@@ -36,3 +36,6 @@ config.json
 
 # NFS junk
 .nfs*
+
+# Qt compile junk
+*.tmp

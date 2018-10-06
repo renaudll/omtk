@@ -3,7 +3,7 @@ from omtk.vendor.Qt import QtCore, QtWidgets, QtGui
 
 from .ui import main_window_extended
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 
 # from omtk.vendor import pyvfxboilerplate
 

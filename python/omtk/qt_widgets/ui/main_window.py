@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/ui/main_window.ui'
 #
-# Created: Tue Apr  3 21:09:17 2018
+# Created: Sat Oct 13 15:05:20 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
         OpenRiggingToolkit.setObjectName("OpenRiggingToolkit")
-        OpenRiggingToolkit.resize(1189, 855)
+        OpenRiggingToolkit.resize(1052, 647)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -50,7 +50,7 @@ class Ui_OpenRiggingToolkit(object):
         self.horizontalLayout.addWidget(self.stackedWidget)
         OpenRiggingToolkit.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(OpenRiggingToolkit)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1189, 20))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1052, 20))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -69,7 +69,7 @@ class Ui_OpenRiggingToolkit(object):
         self.statusbar.setObjectName("statusbar")
         OpenRiggingToolkit.setStatusBar(self.statusbar)
         self.dockWidget_modules = QtWidgets.QDockWidget(OpenRiggingToolkit)
-        self.dockWidget_modules.setMinimumSize(QtCore.QSize(120, 50))
+        self.dockWidget_modules.setMinimumSize(QtCore.QSize(120, 56))
         self.dockWidget_modules.setObjectName("dockWidget_modules")
         self.dockWidgetContents_modules = QtWidgets.QWidget()
         self.dockWidgetContents_modules.setObjectName("dockWidgetContents_modules")
@@ -86,7 +86,7 @@ class Ui_OpenRiggingToolkit(object):
         self.dockWidget_modules.setWidget(self.dockWidgetContents_modules)
         OpenRiggingToolkit.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget_modules)
         self.dockWidget_influences = QtWidgets.QDockWidget(OpenRiggingToolkit)
-        self.dockWidget_influences.setMinimumSize(QtCore.QSize(120, 50))
+        self.dockWidget_influences.setMinimumSize(QtCore.QSize(120, 56))
         self.dockWidget_influences.setObjectName("dockWidget_influences")
         self.dockWidgetContents_jnts = QtWidgets.QWidget()
         self.dockWidgetContents_jnts.setObjectName("dockWidgetContents_jnts")
@@ -103,7 +103,7 @@ class Ui_OpenRiggingToolkit(object):
         self.dockWidget_influences.setWidget(self.dockWidgetContents_jnts)
         OpenRiggingToolkit.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget_influences)
         self.dockWidget_meshes = QtWidgets.QDockWidget(OpenRiggingToolkit)
-        self.dockWidget_meshes.setMinimumSize(QtCore.QSize(120, 50))
+        self.dockWidget_meshes.setMinimumSize(QtCore.QSize(120, 56))
         self.dockWidget_meshes.setObjectName("dockWidget_meshes")
         self.dockWidgetContents_meshes = QtWidgets.QWidget()
         self.dockWidgetContents_meshes.setObjectName("dockWidgetContents_meshes")
@@ -226,6 +226,9 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Preferences", None, -1))
         self.actionCreateComponent.setText(QtWidgets.QApplication.translate("OpenRiggingToolkit", "&Create New", None, -1))
 
-from ..form_welcome import WidgetWelcome
-from ..outliner import WidgetListMeshes, WidgetListInfluences, WidgetListComponentDefinition, WidgetListModules
-from ..nodegraph import NodeGraphWidget
+from omtk.nodegraph.nodegraph_widget import NodeGraphWidget
+from omtk.qt_widgets.form_welcome import WidgetWelcome
+from omtk.outliner.widget_list_meshes import WidgetListMeshes
+from omtk.outliner.widget_list_influences import WidgetListInfluences
+from omtk.outliner.widget_list_modules import WidgetListModules
+from omtk.outliner.widget_list_componentdef import WidgetListComponentDefinition

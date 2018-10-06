@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/rll/dev/python/omtk/python/omtk/qt_widgets/form_component_wizard/ui/widget_create_component.ui'
 #
-# Created: Wed Dec 20 20:39:32 2017
+# Created: Sat Sep 29 16:35:03 2018
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -72,9 +72,9 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "Component Creation Wizard"))
-        self.label_ctrl.setText(QtWidgets.QApplication.translate("MainWindow", "Ctrls:"))
-        self.label_infl.setText(QtWidgets.QApplication.translate("MainWindow", "Influences:"))
-        self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:"))
+        MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "Component Creation Wizard", None, -1))
+        self.label_ctrl.setText(QtWidgets.QApplication.translate("MainWindow", "Ctrls:", None, -1))
+        self.label_infl.setText(QtWidgets.QApplication.translate("MainWindow", "Influences:", None, -1))
+        self.label_guid.setText(QtWidgets.QApplication.translate("MainWindow", "Guides:", None, -1))
 
 from ..widget_create_component_wizard_parts import WidgetCreateComponentWizardParts

@@ -34,7 +34,7 @@ def enumerate_MNodeMessage_signals(msg):
         yield 'kOtherPlugSet'
 
 
-def debug_MNodeMessage_callback(msg):
+def pformat_MNodeMessage_callback(msg):
     return ', '.join(list(enumerate_MNodeMessage_signals(msg)))
 
 

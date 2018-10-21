@@ -129,16 +129,19 @@ class IGraphModel(QtCore.QObject):
 
     @abc.abstractmethod
     def iter_ports(self):
-        # type: () -> Generator[PortModel]
-        """"""
+        """
+        Iterate through all the ports in the graph.
+        :return: A port generator
+        :rtype: Generator[PortModel]
+        """
         return
         yield
 
     def get_ports(self):
-        # type: () -> List[PortModel]
         """
         Return all node visible in the graph.
-        :return: A list of NodeModel instances.
+        :return: A list of port
+        :rtype: List[PortModel]
         """
         return list(self.iter_ports())
 

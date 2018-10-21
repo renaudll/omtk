@@ -40,26 +40,27 @@ class NodeGraphWidgetCache(object):
         """
         # Unregister ports
         if recursive:
-            ports = self._cache_ports_by_node.pop(node)
-            for port in ports:
-                self.unregister_port(port)
+            ports = self._cache_ports_by_node.pop(node, None)
+            if ports:
+                for port in ports:
+                    self.unregister_port(port)
 
         # Unregister widget
-        widget = self._cache_node_widget_by_model.pop(node)
-
-        # Unregister node
-        self._cache_node_model_by_widget.pop(widget)
+        widget = self._cache_node_widget_by_model.pop(node, None)
+        if widget:
+            # Unregister node
+            self._cache_node_model_by_widget.pop(widget, None)
 
         return widget
 
-    def get_node_widget(self, node):
+    def get_widget_from_node(self, node):
         """
         Get the widget associated with the provided node.
         :param omtk.nodegraph.NodeModel node: The node associated with the widget.
         :return: The widget associated with the node.
         :rtype: OmtkNodeGraphNodeWidget
         """
-        return self._cache_node_widget_by_model[node]
+        return self._cache_node_widget_by_model.get(node)
 
     def get_node_from_widget(self, widget):
         """
@@ -68,7 +69,7 @@ class NodeGraphWidgetCache(object):
         :return: The node associated with the widget.
         :type: NodeModel
         """
-        return self._cache_node_model_by_widget[widget]
+        return self._cache_node_model_by_widget.get(widget)
 
     def register_port(self, port, widget):
         """
@@ -102,10 +103,10 @@ class NodeGraphWidgetCache(object):
         return widget
 
     def get_port_from_widget(self, widget):
-        return self._cache_port_model_by_widget[widget]
+        return self._cache_port_model_by_widget.get(widget)
 
     def get_widget_from_port(self, port):
-        return self._cache_port_widget_by_model[port]
+        return self._cache_port_widget_by_model.get(port)
 
     def register_connection(self, connection, widget):
         """
@@ -130,8 +131,8 @@ class NodeGraphWidgetCache(object):
         # Unregister model
         self._cache_connection_model_by_widget.pop(widget)
 
-    def get_connection_widget(self, connection):
-        return self._cache_connection_widget_by_model[connection]
+    def get_widget_from_connection(self, connection):
+        return self._cache_connection_widget_by_model.get(connection)
 
     def get_connection_from_widget(self, widget):
-        return self._cache_connection_model_by_widget[widget]
+        return self._cache_connection_model_by_widget.get(widget)

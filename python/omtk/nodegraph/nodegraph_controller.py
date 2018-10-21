@@ -12,7 +12,7 @@ from omtk.core import manager, entity
 from omtk.libs import libPyflowgraph, libPython
 from omtk.factories import factory_rc_menu, factory_datatypes
 from omtk.nodegraph.models.node import node_dg, node_root
-from omtk.nodegraph.nodgraph_controller_cache import NodeGraphWidgetCache
+from omtk.nodegraph.nodegraph_controller_cache import NodeGraphWidgetCache
 from omtk.component import component_base
 from omtk.vendor.Qt import QtCore, QtWidgets
 
@@ -121,7 +121,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def get_model(self):
         """
         :return:
-        :rtype: List[GraphModel]
+        :rtype: omtk.nodegraph.GraphModel
         """
         return self._model
 
@@ -398,10 +398,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
         # For now, we'll just re-created the node.
-        # node_widget = self.get_node_widget(node_model)
+        # node_widget = self.get_widget_from_node(node_model)
         # self._view.removeNode(node_widget)
-        # self.get_node_widget.cache[node_model]  # clear cache
-        # node_widget = self.get_node_widget(node_model)
+        # self.get_widget_from_node.cache[node_model]  # clear cache
+        # node_widget = self.get_widget_from_node(node_model)
         # self._view.addNode(node_widget)
         raise NotImplementedError
 
@@ -619,10 +619,10 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             return
 
         self._visible_nodes.remove(node)
+        model = self.get_model()
 
         if self.get_view():
-            # for port in  self._cache_ports_by_node.pop(node):
-            for port in  self.cache.get_port_from_widget(node):
+            for port in model.get_node_ports(node):
                 self.remove_port_from_view(port)
 
             node_widget = self.get_node_widget(node)
@@ -737,7 +737,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             log.warning(e)  # todo: fix this
         model = self.get_model()
         model.remove_node(node_model, emit=True)
-        # widget = self.get_node_widget(node_model)
+        # widget = self.get_widget_from_node(node_model)
         # widget.disconnectAllPorts(emitSignal=False)
         # self._view.removeNode(widget)
 
@@ -1157,7 +1157,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         # middle_pos = QtCore.QPointF()
         # for selected_node in selected_nodes:
         #     model = self.get_node_model_from_value(selected_node)
-        #     widget = self.get_node_widget(model)
+        #     widget = self.get_widget_from_node(model)
         #     widget_pos = QtCore.QPointF(widget.transform().dx(), widget.transform().dy())
         #     middle_pos += widget_pos
         # middle_pos /= len(selected_nodes)

@@ -108,7 +108,9 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
     @staticmethod
     def on_destroyed(registry):
         print("NodeGraphWidget was destroyed")
-        registry.session.remove_callbacks()
+        session = registry.session
+        if session:
+            session.remove_callbacks()
 
     def keyPressEvent(self, event):
         """

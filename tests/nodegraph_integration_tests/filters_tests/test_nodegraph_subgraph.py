@@ -1,5 +1,4 @@
-import omtk_test
-from omtk.libs import libRigging
+from omtk_test import omtk_test
 from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
 from pymel import core as pymel
 
@@ -51,7 +50,7 @@ class SubGraphProxyModelTestCase(omtk_test.NodeGraphTestCase):
         ])
 
 
-# class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
+# class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphBaseTestCase):
 #     def setUp(self):
 #         super(NodeGraphSubgraphFilterTestCase, self).setUp()
 #

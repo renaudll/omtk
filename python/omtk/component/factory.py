@@ -1,11 +1,9 @@
 """
 Factory providing component instances.
 """
-from maya import cmds
-import pymel.core as pymel
 from omtk import constants
 from omtk.component.component_base import Component, _get_parent_namespace, _get_nodes_from_attributes
-from omtk.libs import libNamespaces, libPython, libAttr
+from omtk.libs import libNamespaces, libPython
 from omtk.vendor import libSerialization
 
 
@@ -16,6 +14,7 @@ def create_empty(namespace='component'):
     :return: A ``Component`` instance.
     :rtype: Component
     """
+    from maya import cmds
     namespace = libNamespaces.get_unique_namespace(namespace, enforce_suffix=True)
     cmds.namespace(add=namespace)
     inst = Component(namespace)
@@ -31,6 +30,9 @@ def from_nodes(objs, connections=True, namespace='component'):
     :return: A ``Component`` instance.
     :rtype: Component
     """
+    from maya import cmds
+    import pymel.core as pymel
+
     parent_namespace = _get_parent_namespace(objs)
     if parent_namespace:
         namespace = '{0}:{1}'.format(parent_namespace, namespace)
@@ -97,6 +99,11 @@ def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='componen
     :return: Component instance.
     :rtype: Component
     """
+    import pymel.core as pymel
+    from maya import cmds
+    from omtk.libs import libAttr
+    from omtk.libs import libNamespaces
+
     # Determine the parent namespace
     if dagnodes is None:
         dagnodes = set()
@@ -105,7 +112,6 @@ def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='componen
     additional_dagnodes = _get_nodes_from_attributes(attrs_inn.values(), attrs_out.values())
     dagnodes.update(additional_dagnodes)
 
-    from omtk.libs import libNamespaces
 
     # Determine the parent namespace
     parent_namespace = None

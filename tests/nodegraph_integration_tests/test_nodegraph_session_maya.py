@@ -1,6 +1,6 @@
 import pymel.core as pymel
 from maya import cmds
-import omtk_test
+from omtk_test import omtk_test
 from omtk.nodegraph import NodeGraphRegistry
 from omtk.nodegraph.models import GraphModel
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel

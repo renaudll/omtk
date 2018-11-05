@@ -4,7 +4,6 @@ Utility method for dealing with namespaces.
 import contextlib
 import itertools
 
-from maya import cmds
 
 
 def get_parent(name):
@@ -13,6 +12,7 @@ def get_parent(name):
 
 
 def get_all_namespaces():
+    from maya import cmds
     cmds.namespace(setNamespace="::")
     return cmds.namespaceInfo(listOnlyNamespaces=True, recurse=True)
 
@@ -33,6 +33,7 @@ def with_temporary_namespace(namespace):
     Temporarily change the current namespace. Restore the original namespace afteward.
     :param namespace: The namespace to change to. If will be create if it doesnt exist.
     """
+    from maya import cmds
     old_namespace = cmds.namespaceInfo(currentNamespace=True)
     if not cmds.namespace(exists=namespace):
         cmds.namespace(add=namespace)

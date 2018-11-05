@@ -132,7 +132,19 @@ class NodeGraphWidgetCache(object):
         self._cache_connection_model_by_widget.pop(widget)
 
     def get_widget_from_connection(self, connection):
+        """
+        Retrieve the widget associated with the connection.
+        :param omtk.nodegraph.ConnectionModel connection: A connection
+        :return: A widget. None if the connection is not associated with a widget.
+        :rtype: QtWidgets.QWidget or None
+        """
         return self._cache_connection_widget_by_model.get(connection)
 
     def get_connection_from_widget(self, widget):
+        """
+        Retrieve the connected associated with the provided widget.
+        :param QtWidgets.QWidget widget: The widget associated with the connection.
+        :return: A connection. None if the widget does not represent an existing connection.
+        :rtype: omtk.nodegraph.ConnectionModel or None
+        """
         return self._cache_connection_model_by_widget.get(widget)

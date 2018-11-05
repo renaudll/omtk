@@ -2,7 +2,6 @@ import logging
 
 from omtk import constants
 from omtk.core import preferences
-from omtk.factories import factory_datatypes
 from omtk.nodegraph.nodegraph_filter import NodeGraphFilter
 
 
@@ -56,6 +55,8 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         :param port: The port to inspect.
         :return: True if we can display this port.
         """
+        from omtk.factories import factory_datatypes
+
         # Some attributes (like omtk metadata) are blacklisted by default.
         if self._is_port_model_name_blacklisted(port.get_name()):
             return False

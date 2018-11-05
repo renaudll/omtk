@@ -30,24 +30,22 @@ class DagNodeParentPortModel(port_model.PortModel):
         return factory_datatypes.AttributeType.AttributeCompound
 
     def get_output_connections(self):
+        registry = self._registry
         result = set()
-        metadata = self.get_metadata()
-        children = metadata.getChildren()
+        children = registry.get_children(self._node)
         for child in children:
-            model_dst_node = self._registry.get_node(child)
-            model_dst_port = DagNodeParentPortModel(self._registry, model_dst_node)
+            model_dst_port = DagNodeParentPortModel(self._registry, child)
             model_connection = connection_model.ConnectionModel(self._registry, self, model_dst_port)
             result.add(model_connection)
         return result
 
     def get_input_connections(self):
+        registry = self._registry
         result = set()
-        metadata = self.get_metadata()
-        parent = metadata.getParent()
+        parent = registry.get_parent(self._node)
         if parent:
-            model_src_node = self._registry.get_node(parent)
-            model_src_port = DagNodeParentPortModel(self._registry, model_src_node)
-            model_connection = connection_model.ConnectionModel(self._registry, model_src_port, self)
+            model_src_port = DagNodeParentPortModel(registry, parent)
+            model_connection = connection_model.ConnectionModel(registry, model_src_port, self)
             result.add(model_connection)
         return result
 
@@ -77,6 +75,9 @@ class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
 
     def __hash__(self):
         return hash(self._pynode.fullPath())
+
+    def get_parent(self):
+        return self._registry.get_parent(self)
 
     def scan_ports(self):
         # Expose parent attribute

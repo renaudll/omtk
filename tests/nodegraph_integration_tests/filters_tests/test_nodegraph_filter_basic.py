@@ -4,7 +4,7 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 import unittest
 import pymel.core as pymel
 
-import omtk_test
+from omtk_test import omtk_test
 from maya import cmds
 from omtk.nodegraph import NodeGraphRegistry, GraphModel, NodeGraphController, NodeGraphFilter
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel

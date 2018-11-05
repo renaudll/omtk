@@ -1,16 +1,13 @@
 import logging
 
-from maya import cmds
-from omtk import constants
 from omtk.component.component_port import ComponentPort
 from omtk.core import manager
 from omtk.core.entity import Entity
 from omtk.core.entity_action import EntityAction
-from omtk.libs import libAttr
 from omtk.libs import libNamespaces
 from omtk.vendor import libSerialization
-from pymel import core as pymel
 
+from omtk import constants
 
 log = logging.getLogger(__name__)
 
@@ -104,6 +101,9 @@ class Component(Entity):
         Return metadata associated with the component.
         :return: A Component definition object.
         """
+        from maya import cmds
+        import pymel.core as pymel
+
         metadata_dagpath = '{0}:metadata'.format(self.namespace)
         if not cmds.objExists(metadata_dagpath):
             return None
@@ -120,7 +120,7 @@ class Component(Entity):
         This is separated in it's own method since we might want to set public attributes before building
         the content, especially if the content depend on some attribute value.
         """
-
+        import pymel.core as pymel
         sel = pymel.selected()
 
         if self.need_grp_inn:
@@ -163,6 +163,7 @@ class Component(Entity):
         return self.is_built_interface()
 
     def iter_attributes(self):
+        from omtk.libs import libAttr
         attrs_inn = set(libAttr.iter_network_contributing_attributes(self.grp_inn))
         attrs_out = set(libAttr.iter_network_contributing_attributes(self.grp_out))
         custom_attrs = set(self.grp_inn.listAttr(userDefined=True)) | set(self.grp_out.listAttr(userDefined=True))
@@ -180,6 +181,9 @@ class Component(Entity):
         yield ActionShowContentInNodeEditor(self)
 
     def unbuild(self):
+        import pymel.core as pymel
+        from maya import cmds
+
         if not self.is_built():
             return
         objs_to_delete = []
@@ -218,6 +222,7 @@ class Component(Entity):
 
     def add_input_attr(self, long_name, **kwargs):
         # type: (str) -> pymel.Attribute
+        from omtk.libs import libAttr
         return libAttr.addAttr(self.grp_inn, long_name, **kwargs)
 
     def has_input_attr(self, attr_name):
@@ -233,6 +238,7 @@ class Component(Entity):
         return self.grp_inn.listAttr()
 
     def add_output_attr(self, long_name, **kwargs):
+        from omtk.libs import libAttr
         return libAttr.addAttr(self.grp_out, long_name, **kwargs)
 
     def has_output_attr(self, attr_name):
@@ -249,6 +255,7 @@ class Component(Entity):
 
     def connect_to_input_attr(self, attr_name, attr_src, **kwargs):
         # type: (str, pymel.Attribute) -> None
+        import pymel.core as pymel
         if not self.grp_inn.hasAttr(attr_name):
             log.warning("Cannot reconnect {0} to {1}. {0} doesnt exist.".format(attr_name, attr_src))
             return
@@ -261,6 +268,7 @@ class Component(Entity):
 
     def connect_to_output_attr(self, attr_name, attr_dst, **kwargs):
         # type: (str, pymel.Attribute) -> None
+        import pymel.core as pymel
         if not self.grp_out.hasAttr(attr_name):
             log.warning("Cannot reconnect {0} to {1}. {0} doesnt exist.".format(attr_dst, attr_name))
             return
@@ -277,6 +285,7 @@ class Component(Entity):
             raise Exception("Cannot explode an unbuilt component.")
 
         def _remap_attr(attr):
+            import pymel.core as pymel
             attr_src = next(iter(attr.inputs(plugs=True)), None)
             # if not attr_src:
             #     return
@@ -303,9 +312,13 @@ class Component(Entity):
         The children of the component are any DgNode that are under our namespace.
         :return:
         """
+        import pymel.core as pymel
         return pymel.ls('{0}:*'.format(self.namespace))
 
     def export(self, path):
+        import pymel.core as pymel
+        from maya import cmds
+
         children = self.get_children()
         if not children:
             raise Exception("Can't export component, component is empty!")
@@ -352,6 +365,7 @@ class Component(Entity):
 
     def set_definition(self, component_def):
         # type: (ComponentDefinition) -> None
+        from maya import cmds
         self.name = component_def.name
         self.author = component_def.author
         self.version = component_def.version
@@ -394,6 +408,7 @@ class Component(Entity):
         return map_inn, map_out
 
     def hold_connections(self):
+        import pymel.core as pymel
         map_inn, map_out = self.get_connections_relative()
         for attr_dst_name, attr_srcs in map_inn.iteritems():
             attr_dst = self.grp_inn.attr(attr_dst_name)
@@ -414,6 +429,7 @@ class Component(Entity):
                 self.connect_to_output_attr(attr_name, attr_dst)
 
     def rename(self, new_namespace):
+        from maya import cmds
         old_namespace = self.namespace
         new_namespace = libNamespaces.get_unique_namespace(new_namespace)
         cmds.namespace(addNamespace=new_namespace)
@@ -432,6 +448,7 @@ class ActionShowContentInNodeEditor(EntityAction):
         return 'Show in Maya Node Editor'
 
     def _create_node_editor(self):
+        from maya import cmds
         cmds.window()
         form = cmds.formLayout()
         p = cmds.scriptedPanel(type="nodeEditorPanel", label="Node Editor.md")
@@ -440,6 +457,9 @@ class ActionShowContentInNodeEditor(EntityAction):
         return p + 'NodeEditorEd'
 
     def execute(self):
+        from maya import cmds
+        import pymel.core as pymel
+
         children = set(self.component.get_children())
         if not children:
             log.debug('Cannot open NodeEditor to explore {0} content. No children to display!'.format(self.component))
@@ -451,6 +471,7 @@ class ActionShowContentInNodeEditor(EntityAction):
         pymel.select(children)
         cmds.nodeEditor(node_editor, e=True, addNode='')
 
+
 def _get_parent_namespace(nodes):
     """
     Resolve the parent namespace.
@@ -458,6 +479,7 @@ def _get_parent_namespace(nodes):
     However we don't want to have nodes in our component that don't share the same namespace since
     a component cannot logically have multiple parents.
     """
+    import pymel.core as pymel
     def _get_namespace(n):
         if isinstance(n, pymel.PyNode):
             return n.namespace()

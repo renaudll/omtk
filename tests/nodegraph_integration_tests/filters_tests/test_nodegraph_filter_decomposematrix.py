@@ -1,4 +1,4 @@
-import omtk_test
+from omtk_test import omtk_test
 import pymel.core as pymel
 from omtk.libs import libRigging
 

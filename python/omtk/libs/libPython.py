@@ -271,27 +271,36 @@ def rreload(module):
             # Reload class
             if inspect.isclass(value):
                 cls_module = inspect.getmodule(value)
-                if module:
-                    if _reload(cls_module):  # if reload occured
-                        # print "Successfully reloaded {}, will update {}".format(cls_module.__name__, name)
-                        # Update local class pointer
+                if cls_module:
+                    if not cls_module.__name__.startswith(namespace):
+                        continue
+                    _reload(cls_module)  # if reload occured
+                    # print "Successfully reloaded {}, will update {}".format(cls_module.__name__, name)
+                    # Update local class pointer
+                    try:
                         cls_name = getattr(cls_module, value.__name__)
-                        # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, cls_module.__name__, name)
-                        setattr(m, name, cls_name)
+                    except AttributeError as e:
+                        print("{}.{} error: {}".format(cls_module.__name__, value.__name__, e))
+                        continue
+
+                    # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, cls_module.__name__, name)
+                    setattr(m, name, cls_name)
 
             # Reload function
             if inspect.isfunction(value):
                 fn_module = inspect.getmodule(value)
                 if fn_module:
-                    if _reload(fn_module):
-                        try:
-                            cls_name = getattr(fn_module, value.__name__)
-                        except AttributeError as e:
-                            print("{}.{} error: {}".format(fn_module.__name__, value.__name__, e))
-                            continue
+                    if not fn_module.__name__.startswith(namespace):
+                        continue
+                    _reload(fn_module)
+                    try:
+                        cls_name = getattr(fn_module, value.__name__)
+                    except AttributeError as e:
+                        print("{}.{} error: {}".format(fn_module.__name__, value.__name__, e))
+                        continue
 
-                        # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, fn_module.__name__, name)
-                        setattr(m, name, cls_name)
+                    # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, fn_module.__name__, name)
+                    setattr(m, name, cls_name)
 
             if inspect.ismodule(value):
                 _reload(value)

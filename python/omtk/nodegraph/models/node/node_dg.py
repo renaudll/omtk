@@ -1,7 +1,5 @@
 import logging
-import pymel.core as pymel
 from omtk import constants
-from omtk.libs import libAttr
 from omtk.nodegraph.widgets import widget_node
 
 from . import node_base
@@ -27,6 +25,7 @@ class NodeGraphDgNodeModel(node_base.NodeModel):
         self._name = self._pynode.nodeName()
 
     def delete(self):
+        import pymel.core as pymel
         if not self._pynode.exists():
             log.warning("Can't delete already deleted node! {0}".format(self._pynode))
             return
@@ -34,14 +33,14 @@ class NodeGraphDgNodeModel(node_base.NodeModel):
         pymel.delete(self._pynode)
 
     # @decorators.memoized_instancemethod
-    def get_parent(self):
-        # type: () -> NodeModel
-        # todo: move out of node_dg?
-        from omtk.core import manager as session_
-        session = session_.get_session()
-        component = session.get_component_from_obj(self._pynode)
-        if component:
-            return self._registry.get_node(component)
+    # def get_parent(self):
+    #     # type: () -> NodeModel
+    #     # todo: move out of node_dg? should be in subgraph proxyfilter
+    #     from omtk.core import manager as session_
+    #     session = session_.get_session()
+    #     component = session.get_component_from_obj(self._pynode)
+    #     if component:
+    #         return self._registry.get_node(component)
 
     def get_metadata(self):
         return self._pynode
@@ -51,6 +50,7 @@ class NodeGraphDgNodeModel(node_base.NodeModel):
 
     # @decorators.memoized_instancemethod
     def get_ports_metadata(self):
+        from omtk.libs import libAttr
         return list(libAttr.iter_contributing_attributes(self._pynode))
         # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
@@ -107,6 +107,7 @@ class NodeGraphDgNodeModel(node_base.NodeModel):
             return meta_data.attr(constants.PyFlowGraphMetadataKeys.Position).get()
 
     def save_position(node, pos):
+        import pymel.core as pymel
         meta_data = node.get_metadata()
         attr_name = constants.PyFlowGraphMetadataKeys.Position
 

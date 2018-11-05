@@ -4,21 +4,14 @@ import logging
 import omtk.nodegraph.models.port.port_adaptor_entity
 import omtk.nodegraph.models.port.port_adaptor_pymel
 from omtk.nodegraph.models.port.port_adaptor_pymel import PymelAttributeNodeGraphPortImpl
-import pymel.core as pymel
-from omtk.factories import factory_datatypes
 
 log = logging.getLogger(__name__)
 
-if False:
-    from omtk.nodegraph.nodegraph_controller import NodeGraphController
-    from omtk.nodegraph.models.node.node_base import NodeModel
-
-    from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
-    from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
-    from omtk.vendor.pyflowgraph.port import Port as PyflowgraphBasePort
-
 
 class PortModel(object):
+    """
+    Application agnostic interface for a Port.
+    """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, registry, node, name):
@@ -211,6 +204,7 @@ class PortModel(object):
             return port_widget.OmtkNodeGraphPortInWidget
 
     def _get_widget_color(self):
+        from omtk.factories import factory_datatypes
         metatype = self.get_metatype()
         return factory_datatypes.get_port_color_from_datatype(metatype)
         # return QtGui.QColor(128, 170, 170, 255)  # todo: use factory_datatypes to get color
@@ -260,6 +254,8 @@ class NodeGraphPymelPortModel(PortModel):
 
     # todo: move to adaptor?
     def connect_from(self, val):
+        import pymel.core as pymel
+
         # Multi attributes cannot be directly connected to.
         # We need an available port.
         if self._impl._data.isMulti():
@@ -275,10 +271,14 @@ class NodeGraphPymelPortModel(PortModel):
 
     # todo: move to adaptor
     def connect_to(self, val):
+        import pymel.core as pymel
+
         pymel.connectAttr(self._impl._data, val)
 
     # todo: move to adaptor
     def disconnect_from(self, val):
+        import pymel.core as pymel
+
         try:
             pymel.disconnectAttr(val, self._impl._data)
         except RuntimeError, e:
@@ -286,21 +286,11 @@ class NodeGraphPymelPortModel(PortModel):
 
     # todo: move to adaptor
     def disconnect_to(self, val):
+        import pymel.core as pymel
+
         pymel.disconnectAttr(self._impl._data, val)
 
-        # --- Widget export --- #
 
-        # def get_widget(self, ctrl, graph, node):
-        #     widget = super(NodeGraphPymelPortModel, self).get_widget(ctrl, graph, node)
-        #
-        #     return widget
-
-
-class OpenMaya2PortModel(PortModel):
-    pass
-
-
-# todo: replace double inheritence by composition
 class NodeGraphEntityAttributePortModel(PortModel):
     """Define an attribute bound to an EntityPort instance."""
 
@@ -309,33 +299,3 @@ class NodeGraphEntityAttributePortModel(PortModel):
         super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
         self._impl = omtk.nodegraph.models.port.port_adaptor_entity.EntityAttributeNodeGraphPortImpl(
             attr_def)
-
-# # todo: replace double inheritence by composition
-# class NodeGraphEntityPymelAttributePortModel(NodeGraphPymelPortModel):
-#     def __init__(self, registry, node, attr_def):
-#         name = attr_def.name
-#         super(NodeGraphEntityPymelAttributePortModel, self).__init__(registry, node, attr_def._attr)
-#         self._attr_def = attr_def
-#
-#     def get_metadata(self):
-#         return self._attr_def._attr
-#
-#     def is_readable(self):
-#         return self._attr_def.is_output
-#
-#     def is_writable(self):
-#         return self._attr_def.is_input
-#
-#     def is_interesting(self):
-#         return True
-#
-#     def _get_widget_color(self):
-#         datatype = self.get_metatype()
-#         return factory_datatypes.get_port_color_from_datatype(datatype)
-#
-#         # What was the issue again?
-#         # We needed to support:
-#         # -  Entity (ex: module name)
-#         # -  Entity that point to pymel attribute (ex: module inputs)
-#         # -  Pymel attribute (ex: any node attr)
-#         # -  Pymel multi attribute (ex: any node attr)

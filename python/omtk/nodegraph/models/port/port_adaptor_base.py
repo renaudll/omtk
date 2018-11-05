@@ -4,7 +4,7 @@ This is a case of 'composition over inheritance'.
 """
 import abc
 
-from omtk.factories import factory_datatypes
+
 
 
 class NodeGraphPortImpl(object):
@@ -17,6 +17,7 @@ class NodeGraphPortImpl(object):
         return self._data
 
     def get_metatype(self):
+        from omtk.factories import factory_datatypes
         return factory_datatypes.get_attr_datatype(self._data)
 
     def is_source(self):

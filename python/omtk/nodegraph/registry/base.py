@@ -1,14 +1,12 @@
 import logging
 
-from collections import defaultdict
 from omtk.core import manager
-from omtk.nodegraph import nodegraph_factory
-from omtk.nodegraph.cache import Cache, CacheDefaultDict, NodeCache, PortCache, ConnectionCache
+from omtk.nodegraph.cache import NodeCache, PortCache, ConnectionCache
 from omtk.vendor.Qt import QtCore
 
-from .models.node import node_base
-from .models.port import port_base
-from .models.connection import ConnectionModel
+from omtk.nodegraph.models.node import node_base
+from omtk.nodegraph.models.port import port_base
+from omtk.nodegraph.models.connection import ConnectionModel
 
 log = logging.getLogger(__name__)
 
@@ -50,24 +48,6 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         self.cache_nodes_by_value = NodeCache(self)
         self.cache_ports_by_value = PortCache(self)
         self.cache_connection_by_value = ConnectionCache(self)
-
-        self.cache_ports_by_node = CacheDefaultDict(self, set)
-        self.cache_connections_by_port = CacheDefaultDict(self, set)
-
-        self._nodes_by_metadata = {}
-
-        # Used so we can invalidate ports when invalidating nodes
-        # self._cache_connections_by_port = defaultdict(set)
-        # self._cache_ports_by_node = defaultdict(set)
-        # self._cache_node_by_port = {}
-
-        self._callback_id_by_node_model = defaultdict(set)
-        self._callback_id_node_removed = None
-
-        self._mutex = True  # When False the Registry don't listen to callbacks.
-
-        self.cache_nodes_by_value.onUnregistered.connect(self.on_node_unregistered)
-        self.cache_ports_by_value.onUnregistered.connect(self.on_port_unregistered)
 
     @property
     def session(self):
@@ -199,16 +179,6 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
     def _invalidate_node(self, node):
         self.cache_nodes_by_value.unregister(node)
 
-    def on_node_unregistered(self, node):
-        ports = self.cache_ports_by_node.get(node)
-        for port in ports:
-            self._cache_ports_by_node.unregister(port)
-
-    def on_port_unregistered(self, port):
-        connections = self._cache_connections_by_port.get(port)
-        for connection in connections:
-            self._cache_connections_by_port.unregister(connection)
-
     # --- Access methods ---
 
     def get_node(self, key):
@@ -236,6 +206,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         :return:
         :rtype: NodeModel
         """
+        from omtk.nodegraph import nodegraph_factory
         return nodegraph_factory.get_node_from_value(self, val)
 
     def get_port(self, key):
@@ -255,8 +226,8 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
             self.cache_ports_by_value.register(key, port)
 
             # Save node <-> port association
-            node = port.get_parent()
-            self.cache_ports_by_node.register(node, port)
+            # node = port.get_parent()
+            # self.cache_ports_by_node.register(node, port)
 
         return port
 
@@ -267,6 +238,7 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         :return: A port
         :rtype: omtk.nodegraph.PortModel
         """
+        from omtk.nodegraph import nodegraph_factory
         inst = nodegraph_factory.get_port_from_value(self, val)
         self._register_attribute(inst)
         return inst
@@ -301,12 +273,80 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         :return: A ConnectionModel
         :rtype: ConnectionModel
         """
+        from omtk.nodegraph import nodegraph_factory
         # assert(isinstance(port_src, port_base.PortModel))
         # assert(isinstance(port_dst, port_base.PortModel))
         key = (port_src, port_dst)
         inst = nodegraph_factory.get_connection_from_value(self, port_src, port_dst)
         self.cache_connection_by_value.register(key, inst)
-        self.cache_connections_by_port.register(port_src, inst)
-        self.cache_connections_by_port.register(port_dst, inst)
         self._register_connections(inst)
         return inst
+
+    # --- Methods that interact with the DCC ---
+
+    def get_parent(self, node):
+        """
+        Get a node parent.
+
+        :param omtk.nodegraph.NodeModel node: The node to query
+        :return: The node parent. None if node have not parent.
+        :rtype: omtk.nodegraph.NodeModel or None
+        """
+        child_val = self.cache_nodes_by_value.get_key(node)
+        parent_val = self._get_parent_impl(child_val)
+        if parent_val is None:
+            return None
+        parent = self.get_node(parent_val)
+        return parent
+
+    def get_children(self, node):
+        """
+        Get a node children.
+
+        :param omtk.nodegraph.NodeModel node: The node to query
+        :return: A list of child.
+        :rtype: List[omtk.nodegraph.NodeModel]
+        """
+        parent_val = self.cache_nodes_by_value.get_key(node)
+        children_val = self._get_children_impl(parent_val)
+        children= [self.get_node(child_val) for child_val in children_val]
+        return children
+
+    def parent(self, child, parent):
+        """
+        Parent a node to another.
+
+        :param omtk.nodegraph.NodeModel child:
+        :param omtk.nodegraph.NodeModel parent:
+        """
+        child_val = self.cache_nodes_by_value.get_key(child)
+        parent_val = self.cache_nodes_by_value.get_key(parent)
+        self._set_parent_impl(child_val, parent_val)
+
+    # --- Implementation methods
+
+    def _get_parent_impl(self, val):
+        """
+        Abstract implementation for retrieving a child parent.
+        :param object val: A child raw value.
+        :return: A parent raw value.
+        :rtype: object
+        """
+        raise NotImplementedError
+
+    def _get_children_impl(self, val):
+        """
+        Abstract implementation for retrieving a node value children.
+        :param object val: A node raw value.
+        :return: A list of child values.
+        :rtype: List[object]
+        """
+        raise NotImplementedError
+
+    def _set_parent_impl(self, node, parent):
+        """
+        :param object node: The node to parent
+        :param object parent: The parent
+        """
+        raise NotImplementedError
+

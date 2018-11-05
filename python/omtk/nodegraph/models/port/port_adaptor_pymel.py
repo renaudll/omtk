@@ -1,11 +1,11 @@
-from maya import cmds
+
 from omtk import decorators
 from omtk.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
-from pymel import core as pymel
 
 
 class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
     def __init__(self, data):
+        from pymel import core as pymel
         assert (isinstance(data, pymel.Attribute))
         super(PymelAttributeNodeGraphPortImpl, self).__init__(data)
         self._pynode = data.node()
@@ -62,6 +62,7 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
     @decorators.memoized_instancemethod
     def _list_parent_user_defined_attrs(self):
         # We use cmds instead of pymel since we want to equivalent of pymel.Attribute.attrName().
+        from maya import cmds
         result = cmds.listAttr(self._pynode.__melobject__(), userDefined=True)
         # However, cmds.listAttr can return None...
         if not result:
@@ -98,13 +99,17 @@ class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         return False
 
     def connect_from(self, val):
+        from pymel import core as pymel
         pymel.connectAttr(val, self._data, force=True)
 
     def connect_to(self, val):
+        from pymel import core as pymel
         pymel.connectAttr(self._data, val, force=True)
 
     def disconnect_from(self, val):
+        from pymel import core as pymel
         pymel.disconnectAttr(val, self._data)
 
     def disconnect_to(self, val):
+        from pymel import core as pymel
         pymel.disconnectAttr(self._data, val)

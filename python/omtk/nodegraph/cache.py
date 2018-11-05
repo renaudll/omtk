@@ -47,6 +47,9 @@ class Cache(QtCore.QObject):
     def get(self, key):
         return self._map[key]
 
+    def get_key(self, val):
+        return self._map_inv[val]
+
 
 class CacheDefaultDict(Cache):
     def __init__(self, registry, type_):

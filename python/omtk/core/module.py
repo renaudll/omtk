@@ -1,7 +1,6 @@
 import logging
 import re
 
-import pymel.core as pymel
 from omtk import decorators
 from omtk.core.entity import Entity
 from omtk.core.entity_attribute import EntityPort
@@ -484,6 +483,7 @@ class Module(Entity):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
+        import pymel.core as pymel
         self.info("Building")
 
         # Enable/Disable dangerous flags.
@@ -559,6 +559,7 @@ class Module(Entity):
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
         :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
+        import pymel.core as pymel
         self.info("Un-building")
 
         # Unbuild any sub-module first

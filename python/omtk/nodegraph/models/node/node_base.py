@@ -1,16 +1,7 @@
 import logging
 
 from omtk import decorators
-from omtk.factories import factory_datatypes
 from omtk.vendor.Qt import QtCore
-
-# used for type hinting33
-if False:
-    from typing import List, Generator
-    from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView
-    from omtk.nodegraph.models import PortModel
-    from omtk.nodegraph.nodegraph_controller import NodeGraphController
-    from omtk.nodegraph.pyflowgraph_node_widget import OmtkNodeGraphNodeWidget
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -87,6 +78,7 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
 
     @decorators.memoized_instancemethod
     def get_metatype(self):
+        from omtk.factories import factory_datatypes
         return factory_datatypes.get_datatype(self.get_metadata())
 
     def get_nodes(self):

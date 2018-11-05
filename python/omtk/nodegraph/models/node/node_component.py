@@ -1,4 +1,4 @@
-import pymel.core as pymel
+
 from omtk import component
 from omtk.nodegraph.models.node import node_dg
 from omtk.nodegraph.models.node import node_entity
@@ -133,6 +133,7 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
         component.rename(new_name)
 
     def delete(self):
+        import pymel.core as pymel
         # todo: verify it work
         pymel.delete(self._entity.get_children())
 

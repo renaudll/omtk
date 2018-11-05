@@ -1,6 +1,5 @@
 import logging
 
-import pymel.core as pymel
 from omtk.core import manager
 from omtk.component.component_definition import ComponentDefinition
 from omtk.libs import libPython
@@ -80,6 +79,8 @@ class NodeGraphView(PyFlowgraphView):
         event.accept()
 
     def dropEvent(self, event):
+        import pymel.core as pymel
+
         super(NodeGraphView, self).dropEvent(event)
         mime_data = event.mimeData()
 

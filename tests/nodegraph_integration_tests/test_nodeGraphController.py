@@ -1,7 +1,6 @@
-from unittest import TestCase
 from omtk.vendor import mock
-from omtk_test import NodeGraphTestCase
-from omtk.nodegraph import NodeGraphController, GraphModel
+from omtk_test.omtk_test import NodeGraphTestCase
+from omtk.nodegraph import GraphModel
 
 class TestNodeGraphController(NodeGraphTestCase):
 

@@ -5,8 +5,6 @@ import logging
 import tempfile
 
 import omtk.constants
-import pymel.core as pymel
-from maya import cmds
 from omtk import constants
 from omtk.exceptions import MissingMetadataError
 from omtk.libs import libNamespaces
@@ -172,6 +170,8 @@ class ComponentDefinition(object):
         Create a Component in the scene from a ComponentDefinition.
         :return: A Component instance.
         """
+        import pymel.core as pymel
+        from maya import cmds
         from omtk.libs import libComponents
 
         if not self.path or not os.path.exists(self.path):

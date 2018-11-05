@@ -1,6 +1,5 @@
-import omtk
-import omtk_test
-import pymel.core as pymel
+from omtk_test import omtk_test
+
 
 class SampleTests(omtk_test.TestCase):
     # deactivated since it force loaded QtWidgets outside a QApplication
@@ -8,10 +7,7 @@ class SampleTests(omtk_test.TestCase):
         """
         Ensure we are able to completely reload omtk.
         """
-        import omtk
         # omtk.reload_()
-        from omtk.libs.libPython import rreload
-
 
     def test_create(self):
         """

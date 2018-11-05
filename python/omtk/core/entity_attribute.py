@@ -4,8 +4,7 @@ It deal with typing and validation (used for drag and drop events for now)
 """
 import logging
 
-import pymel.core as pymel
-from omtk.factories import factory_datatypes
+
 
 log = logging.getLogger(__name__)
 
@@ -67,6 +66,7 @@ class EntityPort(object):
 
 class EntityPymelPort(EntityPort):
     def __init__(self, parent, attr, **kwargs):
+        from omtk.factories import factory_datatypes
         self._attr = attr
         self._valid_types = factory_datatypes.get_attr_datatype(attr)
         super(EntityPymelPort, self).__init__(
@@ -84,18 +84,22 @@ class EntityPymelPort(EntityPort):
         return isinstance(val, self._valid_types)
 
     def connect_from(self, val):
+        import pymel.core as pymel
         assert (isinstance(val, pymel.Attribute))
         pymel.connectAttr(val, self._attr)
 
     def connect_to(self, val):
+        import pymel.core as pymel
         assert (isinstance(val, pymel.Attribute))
         pymel.connectAttr(self._attr, val)
 
     def disconnect_from(self, val):
+        import pymel.core as pymel
         assert (isinstance(val, pymel.Attribute))
         pymel.disconnectAttr(val, self._attr)
 
     def disconnect_to(self, val):
+        import pymel.core as pymel
         assert (isinstance(val, pymel.Attribute))
         pymel.disconnectAttr(self._attr, val)
 
@@ -129,6 +133,7 @@ class EntityPymelAttributeCollection(EntityPymelPort):
 
 
 def get_attribute_definition(parent, attr, is_input=False, is_output=False):
+    from omtk.factories import factory_datatypes
     valid_types = factory_datatypes.get_attr_datatype(attr)
     if valid_types is None:
         log.warning("Cannot create AttributeDef from {0}".format(attr))

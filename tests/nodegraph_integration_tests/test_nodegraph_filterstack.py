@@ -6,7 +6,7 @@ import unittest
 
 import pymel.core as pymel
 
-import omtk_test
+from omtk_test import omtk_test
 from omtk.libs import libRigging
 from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
 from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter

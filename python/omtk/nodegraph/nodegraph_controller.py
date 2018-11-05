@@ -5,15 +5,13 @@ import functools
 import logging
 
 import omtk.component.factory
-import pymel.core as pymel
 from omtk import decorators
 from omtk import component
 from omtk.core import manager, entity
 from omtk.libs import libPyflowgraph, libPython
-from omtk.factories import factory_rc_menu, factory_datatypes
+from omtk.factories import factory_rc_menu
 from omtk.nodegraph.models.node import node_dg, node_root
 from omtk.nodegraph.nodegraph_controller_cache import NodeGraphWidgetCache
-from omtk.component import component_base
 from omtk.vendor.Qt import QtCore, QtWidgets
 
 log = logging.getLogger(__name__)
@@ -660,7 +658,12 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
         self._visible_ports.remove(port)
         widget = self.cache.unregister_port(port)
-        node_widget = self.cache.get_node_widget(port.get_parent())
+        node_widget = self.cache.get_widget_from_node(port.get_parent())
+
+        if not node_widget:
+            log.warning("Can't remove port from view. Port %r is not in view." % port)
+            return
+
         node_widget.removePort(widget)
 
     def add_connection_to_view(self, connection):
@@ -877,6 +880,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         self.manager.execute_actions(actions)
 
     def on_selection_changed(self):
+        import pymel.core as pymel
         models = self.get_selected_node_models()
 
         new_selection = set()
@@ -891,6 +895,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             pymel.select(clear=True)
 
     def _get_nodes_outsider_ports(self, selected_nodes_model):
+        from omtk.factories import factory_datatypes
+
         inn_attrs = set()
         out_attrs = set()
         for node_model in selected_nodes_model:
@@ -943,6 +949,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         :return:
         :rtype: Tuple[Dict[str, pymel.Attribute], Dict[str, pymel.Attribute]]
         """
+        import pymel.core as pymel
+
         # todo: Move to GraphModel?
         model = self.get_model()
         map_inn = {}
@@ -999,6 +1007,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
         """
         Add the current Maya selection to the view.
         """
+        import pymel.core as pymel
         registry = self.get_registry()
         for obj in pymel.selected():
             node = registry.get_node(obj)
@@ -1035,6 +1044,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             self.delete_node(model)
 
     def duplicate_selected_nodes(self):
+        import pymel.core as pymel
         registry = self.get_registry()
         pynodes = pymel.duplicate(pymel.selected())
         for pynode in pynodes:
@@ -1048,6 +1058,7 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
             view.selectNode(node, emitSignal=True)
 
     def on_parent_selected(self):
+        import pymel.core as pymel
         pymel.parent()
         # todo: this should trigger internal callbacks
 

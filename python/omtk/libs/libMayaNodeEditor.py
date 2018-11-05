@@ -1,7 +1,6 @@
 """
 Methods to interact with Maya NodeEditor.
 """
-import pymel.core as pymel
 
 
 def _iter_node_positions(node):
@@ -24,6 +23,7 @@ def _iter_node_positions(node):
         The y position of the node
     )
     """
+    import pymel.core as pymel
     plugs_dependNode = node.message.outputs(plugs=True)
     for plug_dependNode in plugs_dependNode:
         # Only seek connections to nodeGraphEditorInfo nodes

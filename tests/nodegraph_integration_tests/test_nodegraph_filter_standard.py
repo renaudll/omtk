@@ -1,4 +1,4 @@
-import omtk_test
+from omtk_test import omtk_test
 import pymel.core as pymel
 from omtk.nodegraph.filters.filter_hide_message_ports import NodeGraphMetadataFilter
 from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter

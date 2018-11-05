@@ -1,6 +1,6 @@
 from unittest import TestCase
 from omtk.nodegraph.bindings.session_maya import MayaSession
-from omtk.nodegraph.nodegraph_registry import NodeGraphRegistry
+from omtk.nodegraph.registry.base import NodeGraphRegistry
 import pymel.core as pymel
 
 

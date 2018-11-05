@@ -48,6 +48,7 @@ class ComponentCache(object):
             self._component_by_metadata[metadata] = component
             self._cache_parent_by_node[metadata] = component
 
+        self._component_network_by_hub_inn[component.grp_inn] = component
         self._component_network_by_hub_out[component.grp_out] = component
         self._component_by_namespace[component.namespace] = component
 

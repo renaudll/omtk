@@ -1,12 +1,13 @@
+import logging
 from collections import defaultdict
 
-from pymel import core as pymel
-from maya import OpenMaya
-
 import omtk.constants
+from maya import OpenMaya
 from omtk.libs import libOpenMaya
-from omtk.nodegraph.nodegraph_registry import log
 from omtk.nodegraph.bindings.base import ISession
+from pymel import core as pymel
+
+log = logging.getLogger(__name__)
 
 
 # TODO: Add mutex when loading a new scene?
@@ -26,6 +27,13 @@ class MayaSession(ISession):
         self._callback_attribute_changed = None
         self._callback_id_node_removed = None
         self._callback_id_by_node = defaultdict(set)
+
+    def get_translator(self):
+        """
+        Return the logic to use when interpreting values from the session.
+        The translator
+        :return:
+        """
 
     def add_node_callbacks(self, node):
         """

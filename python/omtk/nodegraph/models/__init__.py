@@ -1,10 +1,12 @@
 __all__ = (
     'GraphModel',
     'NodeModel',
+    'PortModel',
+    'ConnectionModel',
 )
 
-import omtk.nodegraph.models.connection
 import port
+from omtk.nodegraph.models import connection
 from omtk.nodegraph.models.node import node_base
 
 from .graph import graph_model

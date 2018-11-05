@@ -1,7 +1,5 @@
 import logging
 from omtk.core.entity_attribute import EntityPort, EntityPymelAttributeCollection, EntityPymelPort
-from omtk.factories import factory_datatypes
-from pymel import core as pymel
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +21,8 @@ class ComponentPort(EntityPort):
         self._attr_out = self.get_attribute_definition(parent, attr_out) if attr_out else None
 
     def get_attribute_definition(self, parent, attr, is_input=False, is_output=False):
+        from omtk.factories import factory_datatypes
+
         valid_types = factory_datatypes.get_attr_datatype(attr)
         if valid_types is None:
             log.warning("Cannot create AttributeDef from {0}".format(attr))
@@ -40,17 +40,21 @@ class ComponentPort(EntityPort):
         raise NotImplementedError
 
     def connect_from(self, val):
+        from pymel import core as pymel
         assert (isinstance(val, pymel.Attribute))
         self._attr_inn.disconnect_from(val)
 
     def connect_to(self, val):
+        from pymel import core as pymel
         assert (isinstance(val, pymel.Attribute))
         self._attr_out.connect_to(val)
 
     def disconnect_from(self, val):
+        from pymel import core as pymel
         assert (isinstance(val, pymel.Attribute))
         self._attr_inn.disconnect_from(val)
 
     def disconnect_to(self, val):
+        from pymel import core as pymel
         assert (isinstance(val, pymel.Attribute))
         self._attr_out.disconnect_to(val)

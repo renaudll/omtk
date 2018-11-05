@@ -62,7 +62,15 @@ class IGraphModel(QtCore.QObject):
         self.onReset.emit()
 
     def dump(self):
-        return {node.get_name(): node.dump() for node in self.iter_nodes()}
+        nodes = sorted([node.get_name() for node in self.get_nodes()])
+        ports = sorted([port.get_path() for port in self.get_ports()])
+        connections = sorted(connection.dump() for connection in self.get_connections())
+
+        return {
+            "nodes": nodes,
+            "ports": ports,
+            "connections": connections,
+        }
 
     # --- Node methods ---
 

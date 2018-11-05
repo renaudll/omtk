@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 
-import pymel.core as pymel
 from omtk.core import manager
 from omtk.nodegraph.models.node import node_component
 from omtk.vendor.enum34 import Enum
@@ -10,10 +9,6 @@ from omtk.vendor.Qt import QtCore
 from . import graph_proxy_model
 
 log = logging.getLogger(__name__)
-
-if False:
-    from typing import List, Generator
-    from omtk.nodegraph.models import NodeModel
 
 
 class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel):
@@ -276,6 +271,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
                 yield parent
 
     def intercept_port(self, port):
+        import pymel.core as pymel
         registry = port._registry
         s = manager.get_session()
         node = port.get_parent()
@@ -298,6 +294,8 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
                     return port
 
         for connection in self.get_model().intercept_connection(connection):
+            import pymel.core as pymel
+
             # If we encounter a connection to an hub node and we are NOT in the compound, we want to replace it with
             # a conenction to the compound itself.
             registry = connection._registry

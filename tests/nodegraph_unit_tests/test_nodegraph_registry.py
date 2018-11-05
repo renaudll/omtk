@@ -1,11 +1,19 @@
 import pymel.core as pymel
 from maya import cmds
-import omtk_test
+from omtk_test import omtk_test
 from omtk.nodegraph import NodeGraphController, NodeGraphRegistry
 from omtk.component import component_registry
 from omtk.nodegraph.models import GraphModel
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 from omtk.nodegraph.bindings.session_maya import MayaSession
+from omtk.nodegraph.bindings.session_maya_mocked import MockedMayaSession
+
+
+class BaseDccAgnosticTest(omtk_test.TestCase):
+    def setUp(self):
+        self.session = MockedMayaSession()
+        self.registry = NodeGraphRegistry(session=self.session)
+
 
 
 class NodeGraphRegistryCallbackTestCase(omtk_test.NodeGraphTestCase):

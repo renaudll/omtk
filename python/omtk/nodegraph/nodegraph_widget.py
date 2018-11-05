@@ -5,15 +5,10 @@ from omtk.core import manager
 from omtk.nodegraph.ui import nodegraph_widget
 from omtk.nodegraph.models.graph import graph_proxy_filter_model, graph_component_proxy_model
 from omtk.nodegraph.filters import filter_standard
-from omtk.nodegraph import nodegraph_registry
+from omtk.nodegraph.registry import base
 from omtk.vendor.Qt import QtWidgets, QtCore, QtGui
 
-from . import nodegraph_view
-
 log = logging.getLogger('omtk.nodegraph')
-
-if False:  # for type hinting
-    from .nodegraph_controller import NodeGraphController
 
 
 class NodeGraphWidget(QtWidgets.QMainWindow):
@@ -39,7 +34,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         # It also need to be destroyed correctly.
         # For this reason we'll initialize it in the NodeGraphWidget itself.
         # Any tips for a better design is appreciated.
-        self._registry = nodegraph_registry.NodeGraphRegistry()
+        self._registry = base.NodeGraphRegistry()
 
         # Keep track of the multiple views provided by the QTabWidget
         self._ctrl = None

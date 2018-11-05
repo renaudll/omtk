@@ -5,7 +5,7 @@ import logging
 import unittest
 
 import pymel.core as pymel
-import omtk_test
+from omtk_test import omtk_test
 from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
 
 log = logging.getLogger('omtk')

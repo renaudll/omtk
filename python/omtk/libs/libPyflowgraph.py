@@ -4,19 +4,12 @@ Various functions to interact with pyflowgraph GraphView.
 import logging
 
 from omtk import constants
-from omtk.factories import factory_datatypes
 from omtk.vendor.Qt import QtCore
-from pymel import core as pymel
 from omtk.libs import libMayaNodeEditor
 
 log = logging.getLogger(__name__)
 
 _GRAPH_POS_ATTR_NAME = constants.PyFlowGraphMetadataKeys.Position
-
-if False:  # for type-hinting
-    from typing import Tuple
-    from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
-    from omtk.nodegraph.models.node.node_base import NodeModel
 
 
 def _walk_downstream(node):
@@ -168,6 +161,8 @@ def _get_node_position(node, use_stored_pos=True, use_maya_pos=False):
 
 def get_node_position(node, use_stored_pos=True, use_maya_pos=False):
     # type: (NodeModel, bool, bool) -> (float, float)
+    from omtk.factories import factory_datatypes
+
     assert(use_stored_pos or use_maya_pos)
     meta_type = node.get_metatype()
     meta_data = node.get_metadata()
@@ -179,6 +174,7 @@ def get_node_position(node, use_stored_pos=True, use_maya_pos=False):
 
 
 def _save_node_position(node, pos):
+    from pymel import core as pymel
     # type: (pymel.PyNode, Tuple[float,float]) -> None
     if not node.hasAttr(_GRAPH_POS_ATTR_NAME):
         pymel.addAttr(node, longName=_GRAPH_POS_ATTR_NAME, at='float2')
@@ -194,6 +190,7 @@ def _save_node_position(node, pos):
 
 def save_node_position(node, pos):
     # type: (NodeModel, Tuple[float,float]) -> None
+    from omtk.factories import factory_datatypes
     meta_type = node.get_metatype()
     meta_data = node.get_metadata()
 

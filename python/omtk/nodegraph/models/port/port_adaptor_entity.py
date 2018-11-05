@@ -1,12 +1,13 @@
 from omtk.core import entity_attribute
-from omtk.factories import factory_datatypes
+
 from omtk.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
 from omtk.nodegraph.models.port.port_adaptor_pymel import PymelAttributeNodeGraphPortImpl
-from pymel import core as pymel
 
 
 class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
     def __init__(self, data, adaptor=None):
+        from pymel import core as pymel
+
         assert (isinstance(data, entity_attribute.EntityPort))
         self._data = data
 
@@ -23,6 +24,7 @@ class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         return self._data.get_raw_data()
 
     def get_metatype(self):
+        from omtk.factories import factory_datatypes
         if isinstance(self._data, entity_attribute.EntityPymelPort):
             return factory_datatypes.get_attr_datatype(self._data.get_raw_data())
         else:
@@ -44,6 +46,9 @@ class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
         return False
 
     def is_destination(self):
+        from omtk.factories import factory_datatypes
+        import pymel.core as pymel
+
         if self._pymel_adaptor:
             return self._pymel_adaptor.is_destination()
 
@@ -68,7 +73,6 @@ class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
 
         return []
 
-    def get_outputs(self):
         if self._pymel_adaptor:
             return self._pymel_adaptor.get_outputs()
 

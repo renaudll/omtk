@@ -1,14 +1,9 @@
 import logging
-from omtk.factories import factory_datatypes
 from omtk.nodegraph.delegate_rename import NodeRenameDelegate
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 
 log = logging.getLogger('omtk)')
-
-# used for type hinting
-if False:
-    from .nodegraph_controller import NodeGraphController
 
 
 class NodeIcon(QtWidgets.QGraphicsWidget):
@@ -40,6 +35,8 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
         :param omtk.nodegraph.NodeModel model: The node model
         :param omtk.nodegraph.NodeGraphController ctrl: The graph controller
         """
+        from omtk.factories import factory_datatypes
+
         super(OmtkNodeGraphNodeWidget, self).__init__(graph, node_name)
 
         self._graph = graph

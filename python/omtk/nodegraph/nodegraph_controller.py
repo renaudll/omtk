@@ -13,11 +13,12 @@ from omtk.factories import factory_rc_menu
 from omtk.nodegraph.models.node import node_dg, node_root
 from omtk.nodegraph.nodegraph_controller_cache import NodeGraphWidgetCache
 from omtk.vendor.Qt import QtCore, QtWidgets
+from omtk.nodegraph.signal import Signal
 
 log = logging.getLogger(__name__)
 
 
-class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for signal handling
+class NodeGraphController(object):  # QtCore.QObject is necessary for signal handling
     """
     Link node values to NodeGraph[Node/Port/Connection]Model.
     DOES handle the Component representation by wrapper ``NodeGraphRegistry``.
@@ -26,8 +27,8 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
     :param GraphModel model:
     :param NodeGraphView view:
     """
-    onLevelChanged = QtCore.Signal(object)
-    actionRequested = QtCore.Signal(list)
+    onLevelChanged = Signal(object)
+    actionRequested = Signal(list)
 
     # Define the default root model to use
     _cls_root_model = node_root.NodeGraphNodeRootModel
@@ -1215,7 +1216,6 @@ class NodeGraphController(QtCore.QObject):  # QtCore.QObject is necessary for si
 
     def on_rcmenu_rename_attribute(self):
         new_name = QtWidgets.QInputDialog.getText(None, "Rename Attribute", "New Name:")
-        print new_name
         raise NotImplementedError
 
     def on_rcmenu_delete_attribute(self):

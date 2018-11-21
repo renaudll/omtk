@@ -7,8 +7,7 @@ import re
 import sys
 import threading
 
-logging = logging.getLogger('libPython')
-logging.setLevel(0)
+log = logging.getLogger(__name__)
 
 _g_regex_prefix = re.compile('(.*[^0-9]+)([0-9]*)$')
 
@@ -89,7 +88,7 @@ def get_class_def(class_name, base_class=object, relative=False):
                     return t
     except Exception as e:
         pass
-        # logging.warning("Error obtaining class definition for {0}: {1}".format(class_name, e))
+        # log.warning("Error obtaining class definition for {0}: {1}".format(class_name, e))
     return None
 
 
@@ -97,7 +96,7 @@ def create_class_instance(class_name):
     cls = get_class_def(class_name)
 
     if cls is None:
-        logging.warning("Can't find class definition '{0}'".format(class_name))
+        log.warning("Can't find class definition '{0}'".format(class_name))
         return None
 
     class_def = getattr(sys.modules[cls.__module__], cls.__name__)
@@ -106,7 +105,7 @@ def create_class_instance(class_name):
     try:
         return class_def()
     except Exception as e:
-        logging.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
+        log.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
         return None
 
 

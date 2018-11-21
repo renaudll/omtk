@@ -5,8 +5,9 @@ import os
 # from .core import *
 from .api import *
 
+logging.basicConfig(format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s")
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)  # debugging
+log.setLevel(logging.DEBUG)  # debugging
 
 try:
     from maya import cmds, mel

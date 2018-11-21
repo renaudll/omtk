@@ -1,5 +1,5 @@
 import logging
-from omtk.nodegraph.delegate_rename import NodeRenameDelegate
+from omtk.nodegraph.widgets.delegate_rename import NodeRenameDelegate
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.vendor.pyflowgraph.node import Node as PyFlowgraphNode
 

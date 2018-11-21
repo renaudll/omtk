@@ -56,15 +56,19 @@ log = logging.getLogger(__name__)
 #     def get_selection(self):
 #         return self.selection
 
+from omtk.nodegraph.bindings.base import ISession
+from omtk.nodegraph.signal import Signal
 
-class MockedSession(QtCore.QObject):
+class MockedSession(ISession):
     """
     Maya mock that try to match pymel symbols.
     """
-    nodeAdded = QtCore.Signal(MockedNode)
-    nodeRemoved = QtCore.Signal(MockedNode)
-    portAdded = QtCore.Signal(MockedPort)
-    portRemoved = QtCore.Signal(MockedPort)
+    nodeAdded = Signal(MockedNode)
+    nodeRemoved = Signal(MockedNode)
+    portAdded = Signal(MockedPort)
+    portRemoved = Signal(MockedPort)
+    connectionAdded = None  # TODO: Implement
+    connectionRemoved = None  # TODO: Implement
 
     def __init__(self):
         super(MockedSession, self).__init__()

@@ -9,11 +9,6 @@ from omtk.vendor.pyflowgraph.graph_view import GraphView as PyFlowgraphView  # s
 
 log = logging.getLogger(__name__)
 
-# used for type hinting
-if False:
-    from .nodegraph_controller import NodeGraphController
-    from omtk.component import Component
-
 class NodeGraphView(PyFlowgraphView):
     """
     Wrapper around a PyFlowgraphView with custom events.

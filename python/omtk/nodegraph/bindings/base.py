@@ -1,9 +1,10 @@
 from omtk.vendor.Qt import QtCore
 
 from omtk.nodegraph import NodeModel, PortModel, ConnectionModel
+from omtk.nodegraph.signal import Signal
 
 
-class ISession(QtCore.QObject):
+class ISession(object):
     """
     Interface for a session.
     A session is the link between the registry and a DCC application like Maya.
@@ -18,13 +19,13 @@ class ISession(QtCore.QObject):
     :signal connectionAdded: Called when a connection is created in the scene
     :signal connectionRemoved: Called when a connection is removed from the scene.
     """
-    nodeAdded = QtCore.Signal(NodeModel)
-    nodeRemoved = QtCore.Signal(NodeModel)
-    portAdded = QtCore.Signal(object, PortModel)
-    portChanged = QtCore.Signal(PortModel)
-    portRemoved = QtCore.Signal(PortModel)
-    connectionAdded = QtCore.Signal(ConnectionModel)
-    connectionRemoved = QtCore.Signal(ConnectionModel)
+    nodeAdded = Signal(NodeModel)
+    nodeRemoved = Signal(NodeModel)
+    portAdded = Signal(object, PortModel)
+    portChanged = Signal(PortModel)
+    portRemoved = Signal(PortModel)
+    connectionAdded = Signal(ConnectionModel)
+    connectionRemoved = Signal(ConnectionModel)
 
     def __init__(self, registry=None):
         super(ISession, self).__init__()  # QObject
@@ -56,8 +57,10 @@ class ISession(QtCore.QObject):
     def remove_callbacks(self):
         pass
 
+    # TODO: Move this to MayaSession
     def add_node_callbacks(self, node):
         pass
 
+    # TODO: Move this to MayaSession
     def remove_node_callbacks(self, node):
         pass

@@ -1,14 +1,12 @@
-import logging;
+import logging
 import math
 import re
 
 import pymel.core as pymel
 from maya import cmds
-
 from omtk.libs import libRigging
 
-log = logging.getLogger(__name__);
-log.setLevel(logging.INFO)
+log = logging.getLogger(__name__)
 
 
 class Operator(object):

@@ -2,6 +2,7 @@ import logging
 
 from omtk import decorators
 from omtk.vendor.Qt import QtCore
+from omtk.nodegraph.signal import Signal
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -10,16 +11,16 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
     """Define the data model for a Node which can be used by multiple view."""
 
     # Signal emitted when the node is unexpectedly deleted.
-    onDeleted = QtCore.Signal(QtCore.QObject)
+    onDeleted = Signal(object)
 
     # Signal emitted when the node is renamed.
-    onRenamed = QtCore.Signal(QtCore.QObject)
+    onRenamed = Signal(object)
 
     # Signal emitted when an attribute is unexpectedly added.
-    onPortAdded = QtCore.Signal(object)  # todo: port to QtCore.QObject
+    onPortAdded = Signal(object)  # todo: port to QtCore.QObject
 
     # Signal emitted when an attribute is unexpectedly removed.
-    onPortRemoved = QtCore.Signal(str)
+    onPortRemoved = Signal(str)
 
     def __init__(self, registry, name):
         super(NodeModel, self).__init__()  # initialize QObject
@@ -105,7 +106,6 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
         return self._pos
 
     def set_position(self, pos):
-        print pos
         self._pos = pos
 
     def get_ports_metadata(self):

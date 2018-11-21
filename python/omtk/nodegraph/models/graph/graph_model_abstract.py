@@ -5,6 +5,8 @@ from omtk.vendor.Qt import QtCore
 from omtk.nodegraph.models.node.node_base import NodeModel
 from omtk.nodegraph.models.port.port_base import PortModel
 from omtk.nodegraph.models.connection import ConnectionModel
+from omtk.nodegraph.signal import Signal
+
 
 log = logging.getLogger('omtk.nodegraph')
 
@@ -28,31 +30,31 @@ class IGraphModel(QtCore.QObject):
     # __metaclass__ = QtCoreAbcMeta
 
     # Signal emitted when a node is added in the model.
-    onNodeAdded = QtCore.Signal(NodeModel)
+    onNodeAdded = Signal(NodeModel)
 
     # Signal emitted when a node is removed from the model.
-    onNodeRemoved = QtCore.Signal(NodeModel)
+    onNodeRemoved = Signal(NodeModel)
 
     # Signal emitted when a node position change.
-    onNodeMoved = QtCore.Signal(NodeModel, QtCore.QPointF)
+    onNodeMoved = Signal(NodeModel, QtCore.QPointF)
 
     # Signal emitted when a node port is added in the model.
-    onPortAdded = QtCore.Signal(PortModel)
+    onPortAdded = Signal(PortModel)
 
     # Signal emitted when a node port is removed from the model.
-    onPortRemoved = QtCore.Signal(PortModel)
+    onPortRemoved = Signal(PortModel)
 
     # Signal emitted when a port connection is added in the model.
-    onConnectionAdded = QtCore.Signal(ConnectionModel)
+    onConnectionAdded = Signal(ConnectionModel)
 
     # Signal emitted when a port connection is removed from the model.
-    onConnectionRemoved = QtCore.Signal(ConnectionModel)
+    onConnectionRemoved = Signal(ConnectionModel)
 
     # Signal emitted before the model internal state has been invalidated.
-    onAboutToBeReset = QtCore.Signal()
+    onAboutToBeReset = Signal()
 
     # Signal emitted after the model internal state has been invalidated.
-    onReset = QtCore.Signal()
+    onReset = Signal()
 
     def __init__(self, registry):
         super(IGraphModel, self).__init__()

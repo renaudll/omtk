@@ -61,7 +61,7 @@ class Preferences(object):
             self.__dict__.update(data)
 
     def apply(self):
-        root_log.setLevel(self.level)
+        root_log.setLevel(self.log_level)
 
     @decorators.memoized
     def _get_config_nodegraph_raw(self):

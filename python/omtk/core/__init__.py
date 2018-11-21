@@ -6,7 +6,6 @@ import os
 from . import plugin_manager
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
 
 # Load configuration file
 # Currently this only allow the default rig class from being used.

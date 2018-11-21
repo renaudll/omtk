@@ -81,8 +81,8 @@ class MockedMayaRegistry(NodeGraphRegistry):
         :param MockedNode node: The removed node.
         """
         model = self.get_node(node)
-        self.onNodeDeleted.emit(model)
         self._invalidate_node(model)
+        self.onNodeDeleted.emit(model)
 
     def __callback_port_added(self, port):
         """

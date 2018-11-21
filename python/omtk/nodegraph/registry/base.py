@@ -2,7 +2,7 @@ import logging
 
 from omtk.core import manager
 from omtk.nodegraph.cache import NodeCache, PortCache, ConnectionCache
-from omtk.vendor.Qt import QtCore
+from omtk.nodegraph.signal import Signal
 
 from omtk.nodegraph.models.node import node_base
 from omtk.nodegraph.models.port import port_base
@@ -11,7 +11,7 @@ from omtk.nodegraph.models.connection import ConnectionModel
 log = logging.getLogger(__name__)
 
 
-class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
+class NodeGraphRegistry(object):  # QObject provide signals
     """
     Link node values to NodeGraph[Node/Port/Connection]Model.
 
@@ -25,13 +25,13 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
     :param ISession session: The DCC session attached to the registry.
            When something change in the DCC session, the registry will be notified.
     """
-    onNodeAdded = QtCore.Signal(node_base.NodeModel)
-    onNodeDeleted = QtCore.Signal(node_base.NodeModel)
-    onPortAdded = QtCore.Signal(port_base.PortModel)
-    onPortRemoved = QtCore.Signal(port_base.PortModel)
-    onConnectionCreated = QtCore.Signal(port_base.PortModel)
-    onConnectionAdded = QtCore.Signal(ConnectionModel)
-    onConnectionRemoved = QtCore.Signal(ConnectionModel)
+    onNodeAdded = Signal(node_base.NodeModel)
+    onNodeDeleted = Signal(node_base.NodeModel)
+    onPortAdded = Signal(port_base.PortModel)
+    onPortRemoved = Signal(port_base.PortModel)
+    onConnectionCreated = Signal(port_base.PortModel)
+    onConnectionAdded = Signal(ConnectionModel)
+    onConnectionRemoved = Signal(ConnectionModel)
 
     def __init__(self, session=None):
         super(NodeGraphRegistry, self).__init__()

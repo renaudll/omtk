@@ -5,6 +5,7 @@ from omtk.core import manager
 from omtk.nodegraph.models.node import node_component
 from omtk.vendor.enum34 import Enum
 from omtk.vendor.Qt import QtCore
+from omtk.nodegraph.signal import Signal
 
 from . import graph_proxy_model
 
@@ -19,7 +20,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     :param GraphModel model: The graph that we wish to filter.
     :param NodeModel level: The initial level.
     """
-    onLevelChanged = QtCore.Signal(object)
+    onLevelChanged = Signal(object)
 
     def __init__(self, registry, model=None, level=None):
         super(SubgraphProxyModel, self).__init__(registry, model=model)

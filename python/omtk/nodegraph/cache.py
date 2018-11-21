@@ -1,16 +1,14 @@
 from collections import defaultdict
 
 import logging
-
-from omtk.core import manager
-from omtk.vendor.Qt import QtCore
+from omtk.nodegraph.signal import Signal
 
 log = logging.getLogger(__name__)
 
 
-class Cache(QtCore.QObject):
-    onRegistered = QtCore.Signal(object)
-    onUnregistered = QtCore.Signal(object)
+class Cache(object):
+    onRegistered = Signal(object)
+    onUnregistered = Signal(object)
 
     def __init__(self, registry):  # note: registry might be temp
         super(Cache, self).__init__()  # QObject.__init__

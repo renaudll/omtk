@@ -8,7 +8,6 @@ import inspect
 import traceback
 
 from omtk import constants
-from omtk.libs import libPython
 
 log = logging.getLogger(__name__)
 
@@ -76,9 +75,10 @@ class Plugin(object):
         except Exception, e:
             self.status = PluginStatus.Failed
             self.description = e.message
-            log.warning("Plugin {0} failed to load! {1}".format(self.module_name, self.description))
-            exc_info = sys.exc_info()
-            traceback.print_exception(*exc_info)
+            log.warning("Plugin {0} failed to load: {1}".format(self.module_name, self.description))
+            # TODO: Print only on TRACE level?
+            # exc_info = sys.exc_info()
+            # traceback.print_exception(*exc_info)
 
     @classmethod
     def from_module(cls, name, type_name):

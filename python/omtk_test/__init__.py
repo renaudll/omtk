@@ -4,59 +4,70 @@ Base classes and utility functions to handle unit-testing.
 import unittest
 
 from omtk.nodegraph import GraphModel, GraphFilterProxyModel, NodeGraphController
+from omtk.nodegraph.bindings.base import ISession
 from omtk.nodegraph.registry.base import NodeGraphRegistry
+from omtk.nodegraph.registry.maya_mocked import MockedMayaRegistry
+from omtk.nodegraph.registry.maya_mocked import MockedSession
 
 
 #
 # Decorators
 #
 
-class TestCase(unittest.TestCase):
+class OmtkTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.maxDiff = None
 
-        super(TestCase, self).__init__(*args, **kwargs)
-
-    def _test_build_rig(self, rig, **kwargs):
-        """
-        Build a specific rig and verify the following:
-        - Is the rig scaling correctly?
-
-        :param rig: The rig to scale.
-        :param test_translate: If True, the rig will be verified for translation.
-        :param test_translate_value: The value to use when testing the translation.
-        :param test_scale: If True, the rig will be verified for scaling.
-        :param test_scale_value: The value to use when testing the scale.
-        """
-        rig.build(strict=True)
-        self.validate_built_rig(rig, **kwargs)
+        super(OmtkTestCase, self).__init__(*args, **kwargs)
 
 
-class NodeGraphBaseTestCase(TestCase):
+class NodeGraphBaseTestCase(OmtkTestCase):
     """
-    Base TestCase for testing the interaction between:
+    Base OmtkTestCase for testing the interaction between:
     - NodeGraphView
     - NodeGraphRegistry
     - NodeGraphModel
     """
+    _cls_session = None
     _cls_registry = NodeGraphRegistry
+    _cls_model = GraphModel
+    _cls_proxy_model = GraphFilterProxyModel
+    _cls_controller = NodeGraphController
 
     def __init__(self, *args, **kwargs):
         super(NodeGraphBaseTestCase, self).__init__(*args, **kwargs)
         self.model = None
 
-    def setUp(self):
-        from maya import cmds
-        cmds.file(new=True, force=True)
-        self.maxDiff = None
-        self.registry = self._cls_registry()
-        source_model = GraphModel(self.registry)
-        self.model = GraphFilterProxyModel(model=source_model)
-        self.ctrl = NodeGraphController(self.registry, model=self.model)
+    def setUp(self, *args, **kwargs):
+        super(NodeGraphBaseTestCase, self).setUp(*args, **kwargs)
+
+        self._session = self._cls_session() if self._cls_session else None
+        self._registry = self._cls_registry(session=self.session)
+        self.source_model = self._cls_model(self.registry)
+        self.model = self._cls_proxy_model(self.registry, model=self.source_model)
+        self.ctrl = self._cls_controller(self.registry, model=self.model)
 
         # Validate the graph is empty
         self.assertEqual(0, len(self.model.get_nodes()))
         self.assertEqual(0, len(self.model.get_ports()))
+
+    @property
+    def session(self):
+        """
+        Getter for the sesion
+        :return: The session
+        :rtype: ISession
+        """
+        return self._session
+
+    @property
+    def registry(self):
+        """
+        Getter for the registry
+        :return: The registry
+        :rtype omtk.nodegraph.NodeGraphRegistry
+        """
+        return self._registry
 
     def assertGraphNodeCountEqual(self, expected):
         """
@@ -121,6 +132,7 @@ class NodeGraphBaseTestCase(TestCase):
         nodes = self.model.get_nodes()
         actual = sorted([node.get_name() for node in nodes])
         self.assertSetEqual(set(expected), set(actual))
+        # self.assertEqual(len(expected), len(actual))  # in case some item where are duplicated
 
     def assertGraphConnectionsEqual(self, expected):
         """
@@ -131,10 +143,28 @@ class NodeGraphBaseTestCase(TestCase):
         actual = [connection.dump() for connection in connections]
 
         # Using set for comparison as we don't want the ordering to be taken in account.
-        self.assertEqual(set(expected), set(actual))
+        self.assertSetEqual(set(expected), set(actual))
+        self.assertEqual(len(expected), len(actual))  # in case some item where are duplicated
 
     def assertGraphEquals(self, expected):
         graph = self.model.dump()
         self.assertEqual(expected, graph)
 
 
+class NodeGraphMockedMayaTestCase(NodeGraphBaseTestCase):
+    _cls_session = MockedSession
+    _cls_registry = MockedMayaRegistry
+
+    @property
+    def session(self):
+        """
+        :rtype: MockedSession
+        """
+        return super(NodeGraphMockedMayaTestCase, self).session
+
+    @property
+    def registry(self):
+        """
+        :rtype: MockedMayaRegistry
+        """
+        return super(NodeGraphMockedMayaTestCase, self).registry

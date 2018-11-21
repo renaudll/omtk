@@ -75,6 +75,8 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         session.add_callbacks()
 
     def _connect_session(self, session):
+        super(NodeGraphRegistry, self)._connect_session(session)
+
         session.nodeAdded.connect(self.onNodeAdded.emit)
         # session.nodeRemoved.connect(self.onNodeDeleted.emit)
         # session.portAdded.connect(self.onPortAdded.emit)
@@ -89,6 +91,8 @@ class NodeGraphRegistry(QtCore.QObject):  # QObject provide signals
         session.connectionRemoved.connect(self.callback_connection_removed)
 
     def _disconnect_session(self, session):
+        super(NodeGraphRegistry, self)._disconnect_session(session)
+
         session.nodeAdded.disconnect(self.onNodeAdded.emit)
         # session.nodeRemoved.disconnect(self.onNodeDeleted.emit)
         # session.portAdded.disconnect(self.onPortAdded.emit)

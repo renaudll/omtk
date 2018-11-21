@@ -6,7 +6,7 @@ from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProx
 
 class GraphFilterTestCase(omtk_test.NodeGraphTestCase):
     """
-    TestCase that setup a simple graph network.
+    OmtkTestCase that setup a simple graph network.
     GraphModel -> GraphFilterProxyModel
     """
     def setUp(self):

@@ -1,8 +1,12 @@
-class MockedNode(object):
+from omtk.vendor.Qt import QtCore
+
+
+class MockedNode(QtCore.QObject):
     """
     A mocked Maya node
     """
     def __init__(self, registry, nodetype, name):
+        super(MockedNode, self).__init__()
         self._registry = registry
         self.name = name
         self.nodetype = nodetype
@@ -59,5 +63,6 @@ class MockedNode(object):
     def set_parent(self, parent):
         if self._parent:
             self._parent.children.remove(self)
-        parent.children.add(self)
+        if parent:
+            parent.children.add(self)
         self._parent = parent

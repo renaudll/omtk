@@ -1,6 +1,6 @@
 import unittest
-from omtk_test.mock_maya.base.session import MockedSession
-from omtk_test.mock_maya.cmds.session import MockedCmdsSession
+from omtk.vendor.mock_maya.base import MockedSession
+from omtk.vendor.mock_maya.cmds import MockedCmdsSession
 
 
 class MockedCmdsTestCase(unittest.TestCase):

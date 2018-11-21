@@ -4,7 +4,6 @@ import re
 from omtk import decorators
 from omtk.core.entity import Entity
 from omtk.core.entity_attribute import EntityPort
-from omtk.libs import libAttr
 from omtk.libs import libPymel
 
 logging.basicConfig()
@@ -559,6 +558,7 @@ class Module(Entity):
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
         :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
+        from omtk.libs import libAttr
         import pymel.core as pymel
         self.info("Un-building")
 

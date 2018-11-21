@@ -197,3 +197,17 @@ class NodeGraphMayaRigTestCase():
             with self.context_assertMatrixOffset(objs, scale_tm, multiplier=test_scale_value):
                 rig.grp_anm.globalScale.set(test_scale_value)
             rig.grp_anm.globalScale.set(1.0)
+
+    def _test_build_rig(self, rig, **kwargs):
+        """
+        Build a specific rig and verify the following:
+        - Is the rig scaling correctly?
+
+        :param rig: The rig to scale.
+        :param test_translate: If True, the rig will be verified for translation.
+        :param test_translate_value: The value to use when testing the translation.
+        :param test_scale: If True, the rig will be verified for scaling.
+        :param test_scale_value: The value to use when testing the scale.
+        """
+        rig.build(strict=True)
+        self.validate_built_rig(rig, **kwargs)

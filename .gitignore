@@ -10,6 +10,11 @@ cpp/build/*
  Mac OS X
 *.DS_Store
 
+# py.test
+.cache
+.coverage
+.coveragerc
+
 # Xcode
 *.pbxuser
 *.mode1v3

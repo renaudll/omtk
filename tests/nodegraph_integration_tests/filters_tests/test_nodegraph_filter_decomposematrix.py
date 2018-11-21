@@ -1,4 +1,4 @@
-from omtk_test import omtk_test
+from omtk_test import NodeGraphBaseTestCase
 import pymel.core as pymel
 from omtk.libs import libRigging
 
@@ -6,7 +6,7 @@ from omtk.libs import libRigging
 from omtk.nodegraph.filters.filter_intermediate_nodes import IntermediateNodeFilter
 
 
-class IntermediateNodeFilterTestCase(omtk_test.NodeGraphTestCase):
+class IntermediateNodeFilterTestCase(NodeGraphBaseTestCase):
     def setUp(self):
         super(IntermediateNodeFilterTestCase, self).setUp()
 

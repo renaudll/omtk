@@ -1,17 +1,17 @@
 """
 Contains functions and classes to aid in the unit testing process within Maya.
 The main classes are:
-TestCase - A derived class of unittest.TestCase which add convenience functionality such as auto plug-in
+OmtkTestCase - A derived class of unittest.OmtkTestCase which add convenience functionality such as auto plug-in
            loading/unloading, and auto temporary file name generation and cleanup.
 TestResult - A derived class of unittest.TextTestResult which customizes the test result so we can do things like do a
             file new between each test and suppress script editor output.
 To write tests for this system you need to,
-    a) Derive from cmt.test.TestCase
+    a) Derive from cmt.test.OmtkTestCase
     b) Write one or more tests that use the unittest module's assert methods to validate the results.
 Example usage:
 # test_sample.py
-from cmt.test import TestCase
-class SampleTests(TestCase):
+from cmt.test import OmtkTestCase
+class SampleTests(OmtkTestCase):
     def test_create_sphere(self):
         sphere = cmds.polySphere(n='mySphere')[0]
         self.assertEqual('mySphere', sphere)
@@ -152,7 +152,7 @@ def set_temp_dir(directory):
 
 def set_delete_files(value):
     """Set whether temp files should be deleted after running all tests in a test case.
-    @param value: True to delete files registered with a TestCase.
+    @param value: True to delete files registered with a OmtkTestCase.
     """
     Settings.delete_files = value
 
@@ -184,7 +184,7 @@ def add_to_path(path):
 
 class TestCase(unittest.TestCase):
     """Base class for unit test cases run in Maya.
-    Tests do not have to inherit from this TestCase but this derived TestCase contains convenience
+    Tests do not have to inherit from this OmtkTestCase but this derived OmtkTestCase contains convenience
     functions to load/unload plug-ins and clean up temporary files.
     """
 
@@ -202,7 +202,7 @@ class TestCase(unittest.TestCase):
 
     @classmethod
     def load_plugin(cls, plugin):
-        """Load the given plug-in and saves it to be unloaded when the TestCase is finished.
+        """Load the given plug-in and saves it to be unloaded when the OmtkTestCase is finished.
         @param plugin: Plug-in name.
         """
         cmds.loadPlugin(plugin, qt=True)
@@ -219,7 +219,7 @@ class TestCase(unittest.TestCase):
     def delete_temp_files(cls):
         """Delete the temp files in the cache and clear the cache."""
         # If we don't want to keep temp files around for debugging purposes, delete them when
-        # all tests in this TestCase have been run
+        # all tests in this OmtkTestCase have been run
         if Settings.delete_files:
             for f in cls.files_created:
                 if os.path.exists(f):
@@ -299,14 +299,14 @@ class TestResult(unittest.TextTestResult):
 
     def stopTest(self, test):
         """Called after an individual test is run.
-        @param test: TestCase that just ran."""
+        @param test: OmtkTestCase that just ran."""
         super(TestResult, self).stopTest(test)
         if Settings.file_new:
             cmds.file(f=True, new=True)
 
     def addSuccess(self, test):
         """Override the base addSuccess method so we can store a list of the successful tests.
-        @param test: TestCase that successfully ran."""
+        @param test: OmtkTestCase that successfully ran."""
         super(TestResult, self).addSuccess(test)
         self.successes.append(test)
 

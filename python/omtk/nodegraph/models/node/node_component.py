@@ -3,6 +3,7 @@ from omtk import component
 from omtk.nodegraph.models.node import node_dg
 from omtk.nodegraph.models.node import node_entity
 from omtk.nodegraph.models.port import port_base
+from omtk.nodegraph.models.node.node_base import NodeModel
 from omtk.nodegraph.widgets import widget_node
 from omtk.vendor.Qt import QtGui
 from omtk.nodegraph.models.port import port_adaptor_entity
@@ -187,20 +188,19 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
         return widget_node.OmtkNodeGraphComponentNodeWidget
 
 
-class NodeGraphComponentBoundBaseModel(node_dg.NodeGraphDgNodeModel):
+class NodeGraphComponentBoundBaseModel(NodeModel):
     """
     Since dagnode contain input and output network that define their bound, it is usefull for us
     to have access to a dedicated model for the bounds that point to the compound model.
     """
 
-    def __init__(self, registry, pynode, component):
+    def __init__(self, registry, node):
         """
         :param omtk.nodegraph.NodeGraphRegistry registry:
-        :param pymel.PyNode pynode:
-        :param PortModel component:
+        :param NodeModel node: The original node.
         """
-        super(NodeGraphComponentBoundBaseModel, self).__init__(registry, pynode)
-        self._component = component
+        super(NodeGraphComponentBoundBaseModel, self).__init__(registry, node.get_name())
+        self._node = node
 
     def scan_ports(self):
         # Only show userDefined ports.
@@ -208,13 +208,13 @@ class NodeGraphComponentBoundBaseModel(node_dg.NodeGraphDgNodeModel):
             if port.is_user_defined():
                 yield port
 
-    def get_parent(self):
-        """
-
-        :return:
-        :rtype: omtk.nodegraph.PortModel
-        """
-        return self._component
+    # def get_parent(self):
+    #     """
+    #
+    #     :return:
+    #     :rtype: omtk.nodegraph.PortModel
+    #     """
+    #     return self._component
 
 
 class NodeGraphComponentInnBoundModel(NodeGraphComponentBoundBaseModel):

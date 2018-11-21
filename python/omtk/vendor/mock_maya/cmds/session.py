@@ -1,6 +1,5 @@
 from omtk.vendor.enum34 import Enum
-from omtk_test.mock_maya.base.port import MockedPort
-from omtk_test.mock_maya.base.session import MockedSession
+from omtk.vendor.mock_maya.base import MockedSession
 
 
 class EnumTypes(Enum):
@@ -18,9 +17,17 @@ class MockedCmdsSession(object):
     def __init__(self, session=None):
         if session is None:
             session = MockedSession()
-        self.session = session
+        self._session = session
 
-    def addAttr(self, longName=None, **kwargs):
+    @property
+    def session(self):
+        """
+        :return:
+        :rtype: MockedSession
+        """
+        return self._session
+
+    def addAttr(self, *objects, **kwargs):
         """ Create an attribute
         https://download.autodesk.com/us/maya/2011help/CommandsPython/addAttr.html
 
@@ -56,8 +63,18 @@ class MockedCmdsSession(object):
 
         :return:
         """
-        port = MockedPort(longName)
-        self.session.nodes.ports.add(port)
+        # Retreive the attribute name.
+        longName = kwargs.get('longName')
+        shortName = kwargs.get('shortName')
+        if not longName and not shortName:
+            raise RuntimeError("New attribute needs either a long (-ln) or short (-sn) attribute name.")
+
+        # todo: fix this
+        name = longName if longName else shortName
+
+        for object in objects:
+            node = self.session.get_node_by_match(object)
+            self.session.create_port(node, name)
 
     def _select(self, node):
         node.selected = True
@@ -82,7 +99,11 @@ class MockedCmdsSession(object):
         if not skipSelect:
             self.select([name])
 
-        return node
+        return name
+
+    def delete(self, name):
+        node = self.session.get_node_by_name(name)
+        self.session.remove_node(node)
 
     def ls(self, pattern=None, fullPath=False, selection=False, **kwargs):  # TODO: Verify symbol name?
         """

@@ -22,9 +22,8 @@ class GraphModel(graph_model_abstract.IGraphModel):
     """
 
     def __init__(self, registry):
-        super(GraphModel, self).__init__()  # initialize Qt signals
+        super(GraphModel, self).__init__(registry)  # initialize Qt signals
 
-        self._registry = None
         self._nodes = set()
         self._ports = set()
         self._connections = set()

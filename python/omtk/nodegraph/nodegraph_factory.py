@@ -1,7 +1,7 @@
 """
 Factory module to create NodeModel, PortModel and ConnectionModel.
 """
-from omtk.core import entity_attribute, module
+from omtk.core import entity_attribute
 
 
 # TODO: Deprecate pymel?
@@ -15,7 +15,6 @@ def get_node_from_value(registry, val):
     :return: A ``NodeModel`` instance
     :rtype: omtk.nodegraph.NodeModel
     """
-    import pymel.core as pymel
     from omtk.factories import factory_datatypes
 
     session = registry.session
@@ -33,6 +32,7 @@ def get_node_from_value(registry, val):
         return node
 
     if data_type == factory_datatypes.AttributeType.Node:
+        import pymel.core as pymel
         if isinstance(val, pymel.nodetypes.DagNode):
             from omtk.nodegraph.models.node import node_dag
             node = node_dag.NodeGraphDagNodeModel(registry, val)

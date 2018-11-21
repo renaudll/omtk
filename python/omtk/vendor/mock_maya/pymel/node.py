@@ -12,8 +12,8 @@ class MockedPymelNode(object):
         self.__node = node
         self.selected = False
 
-    # def __repr__(self):
-    #     return '<Mocked pymel.PyNode "{0}">'.format(self.__node.dagpath)
+    def __repr__(self):
+        return '<Mocked pymel.PyNode "{0}">'.format(self.__node.dagpath)
 
     def __melobject__(self):
         return self.__node.__melobject__()
@@ -32,7 +32,7 @@ class MockedPymelNode(object):
         parent = self.__node.parent
         if parent is None:
             return None
-        return registry._nodes[parent]
+        return registry._node_to_pynode(parent)
 
     def _expand(self, node):
         try:
@@ -40,9 +40,9 @@ class MockedPymelNode(object):
         except AttributeError:
             return node
 
-    def setParent(self, parent):
+    def setParent(self, *args, **kwargs):
         registry = self.__registry
-        registry.parent(self, parent)
+        registry.parent(self, *args, **kwargs)
 
     def getChildren(self):
         raise NotImplementedError

@@ -54,6 +54,37 @@ class IGraphModel(QtCore.QObject):
     # Signal emitted after the model internal state has been invalidated.
     onReset = QtCore.Signal()
 
+    def __init__(self, registry):
+        super(IGraphModel, self).__init__()
+        self._registry = None
+        self.set_registry(registry)
+
+    @property
+    def registry(self):
+        """
+        Getter for the registry.
+        :return: The registry
+        :rtype: omtk.nodegraph.NodeGraphRegistry
+        """
+        return self._registry
+
+    def get_registry(self):
+        """
+        Return the registry associated with the graph.
+        The registry is the interface to any DCC application like Maya.
+        :return:
+        :rtype omtk.nodegraph.NodeGraphRegistry
+        """
+        return self._registry
+
+    def set_registry(self, registry):
+        """
+        The the registry associated with the graph.
+        The registry is the interface to any DCC application like Maya.
+        :param NodeGraphRegistry registry: The graph new registry.
+        """
+        self._registry = registry
+
     @abc.abstractmethod
     def reset(self):
         # type: () -> None

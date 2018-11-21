@@ -8,7 +8,7 @@ from maya import standalone
 standalone.initialize()
 
 
-class TemplateTestCase(unittest.TestCase):
+class TemplateTestCase(unittest.OmtkTestCase):
     def setUp(self):
         pass
 

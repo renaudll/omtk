@@ -16,8 +16,8 @@ class GraphFilterProxyModel(NodeGraphGraphProxyModel):
     :param omtk.nodegrpah.GraphModel: The graph to filter.
     """
 
-    def __init__(self, filter=None, model=None):
-        super(GraphFilterProxyModel, self).__init__(model=model)
+    def __init__(self, registry, filter=None, model=None):
+        super(GraphFilterProxyModel, self).__init__(registry, model=model)
 
         self._filters = []
         if filter:

@@ -7,8 +7,8 @@ class NodeGraphGraphProxyModel(graph_model_abstract.IGraphModel):
     filtering or other data processing tasks on a GraphModel.
     """
 
-    def __init__(self, model=None):
-        super(NodeGraphGraphProxyModel, self).__init__()
+    def __init__(self, registry, model=None):
+        super(NodeGraphGraphProxyModel, self).__init__(registry)
         self._model = None
         if model:
             self.set_source_model(model)
@@ -45,8 +45,8 @@ class NodeGraphGraphProxyModel(graph_model_abstract.IGraphModel):
         model.onNodeAdded.connect(self.onNodeAdded.emit)
         model.onNodeRemoved.connect(self.onNodeRemoved.emit)
         model.onNodeMoved.connect(self.onNodeMoved.emit)
-        # model.onPortAdded.connect(self.onPortAdded.emit)
-        model.onPortAdded.connect(self.on_port_added)
+        model.onPortAdded.connect(self.onPortAdded.emit)
+        # model.onPortAdded.connect(self.on_port_added)
         model.onPortRemoved.connect(self.onPortRemoved.emit)
         model.onConnectionAdded.connect(self.onConnectionAdded.emit)
         model.onConnectionRemoved.connect(self.onConnectionRemoved.emit)
@@ -68,10 +68,10 @@ class NodeGraphGraphProxyModel(graph_model_abstract.IGraphModel):
         model.onAboutToBeReset.disconnect(self.onAboutToBeReset)
         model.onReset.disconnect(self.onReset)
 
-    def on_port_added(self, port):
-        # Prevent an undesirable port from being shown if we don't care about it.
-        for yielded in self.intercept_port(port):
-            self.onPortAdded.emit(yielded)
+    # def on_port_added(self, port):
+    #     # Prevent an undesirable port from being shown if we don't care about it.
+    #     for yielded in self.intercept_port(port):
+    #         self.onPortAdded.emit(yielded)
 
     # --- Filter methods ---
 
@@ -176,8 +176,8 @@ class NodeGraphGraphProxyModel(graph_model_abstract.IGraphModel):
         :param bool emit: If True, the ``onNodeAdded`` Qt Signal will be emitted.
         :rtype: None
         """
-        for yielded in self.intercept_node(node):
-            self._model.add_node(yielded, emit=emit)
+        # We'll add the node to the source model at let signals propagate back.
+        self._model.add_node(node, emit=emit)
 
     def remove_node(self, node, emit=True):
         self._model.remove_node(node, emit=emit)

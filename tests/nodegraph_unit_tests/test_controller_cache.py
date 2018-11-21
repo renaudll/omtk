@@ -6,13 +6,15 @@ from omtk.vendor.mock import MagicMock
 
 
 class BaseControllerCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self, *args, **kwargs):
+        super(BaseControllerCacheTest, self).setUp(*args, **kwargs)
+
         self.cache = NodeGraphWidgetCache()
 
 
 class TestCacheNodeRegistration(BaseControllerCacheTest):
-    def setUp(self):
-        super(TestCacheNodeRegistration, self).setUp()
+    def setUp(self, *args, **kwargs):
+        super(TestCacheNodeRegistration, self).setUp(*args, **kwargs)
 
         self.node = MagicMock()
         self.widget = MagicMock()
@@ -34,8 +36,8 @@ class TestCacheNodeRegistration(BaseControllerCacheTest):
 
 
 class TestCachePortRegistration(BaseControllerCacheTest):
-    def setUp(self):
-        super(TestCachePortRegistration, self).setUp()
+    def setUp(self, *args, **kwargs):
+        super(TestCachePortRegistration, self).setUp(*args, **kwargs)
 
         self.port = MagicMock()
         self.widget = MagicMock()

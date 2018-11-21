@@ -2,10 +2,7 @@ import logging
 from collections import defaultdict
 
 import omtk.constants
-from maya import OpenMaya
-from omtk.libs import libOpenMaya
 from omtk.nodegraph.bindings.base import ISession
-from pymel import core as pymel
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +37,7 @@ class MayaSession(ISession):
         Called when a node is atted to the registry bound to the DCC application or mock. ???
         :param NodeModel node: The node being add to the registry.
         """
+        from maya import OpenMaya
         mobject = node.get_metadata().__apimobject__()
 
         # Add attribute added callback
@@ -67,9 +65,11 @@ class MayaSession(ISession):
 
     def remove_node_callbacks(self, node):
         """
-        :param NodeModel node:
-        :return:
+        Remove only callbacks associated with nodes.
+        :param NodeModel node: The node to remove the callbacks from.
         """
+        from maya import OpenMaya
+
         callback_ids = self._callback_id_by_node.get(node)
         if callback_ids is None:
             log.debug("Cannot remove callback. No callback set for {0}.".format(node))
@@ -81,6 +81,10 @@ class MayaSession(ISession):
         self._callback_id_by_node.pop(node)
 
     def remove_callbacks(self):
+        """
+        Remove all registered callbacks (including node callbacks.
+        """
+        from maya import OpenMaya
         if self._callback_id_node_removed is not None:
             OpenMaya.MNodeMessage.removeCallback(self._callback_id_node_removed)
 
@@ -92,6 +96,9 @@ class MayaSession(ISession):
         assert (len(self._callback_id_by_node) == 0)  # should be empty
 
     def _on_port_added_or_removed(self, callback_id, mplug, _):
+        from maya import OpenMaya
+        from omtk.libs import libOpenMaya
+
         registry = self.registry
 
         dagpath = mplug.name()
@@ -127,6 +134,8 @@ class MayaSession(ISession):
             log.warning('To Implement: kConnectionBroken %s', dagpath)
 
     def _callback_port_added(self, dagpath, registry):
+        import pymel.core as pymel
+
         # log.debug('Attribute {0} added to {1}'.format(attr_name, obj_name))
         attr = pymel.Attribute(dagpath)
         port = registry.get_port(attr)
@@ -134,6 +143,8 @@ class MayaSession(ISession):
         self.portAdded.emit(attr, port)
 
     def _callback_port_removed(self, dagpath, registry):
+        import pymel.core as pymel
+
         attr = pymel.Attribute(dagpath)
         port = registry.get_port(attr)
         self.portRemoved.emit(port)
@@ -146,6 +157,8 @@ class MayaSession(ISession):
         :param object clientData: ???
         :return:
         """
+        import pymel.core as pymel
+
         registry = self.registry
         obj = pymel.PyNode(node)
         node = registry.get_node(obj)
@@ -155,10 +168,13 @@ class MayaSession(ISession):
     def _on_attribute_changed(self, callback_id, plug, otherPlug, clientData):
         """
         Called when an attribute related to the node change in Maya.
-        :param callback_id:
+        :param callback_id: maya.OpenMaya.MCallbackId
         :param plug:
         :return:
         """
+        from maya import OpenMaya
+        from omtk.libs import libOpenMaya
+
         registry = self.registry
 
         # When we receive an event from Maya, we update our internal data in consequence.
@@ -186,34 +202,80 @@ class MayaSession(ISession):
 
         log.debug('[addAttributeChangedCallback] {0} {1}'.format(plug.name(), libOpenMaya.pformat_MNodeMessage_callback(callback_id)))
 
+        self.__on_attribute_changed(callback_id, otherPlug, plug_name, registry)
+
+        self._mutex = True
+
+    def __on_attribute_changed(self, callback_id, plug, otherPlug, registry, emit=True):
+        """
+
+        :param callback_id:
+        :param otherPlug:
+        :param plug_name:
+        :param registry:
+        """
+        from maya import OpenMaya
+
+        plug_name = plug.name()
+
         if callback_id & OpenMaya.MNodeMessage.kAttributeArrayAdded:
-            log.debug('[addAttributeChangedCallback] kAttributeArrayAdded %s', plug_name)
-            attr = pymel.Attribute(plug_name)
-            port = registry.get_port(attr)
-            registry.onPortAdded.emit(port)
-            # self._ctrl.callback_attribute_array_added(attr_dagpath)
+            self._on_attribute_array_added(plug_name, registry)
 
         elif callback_id & OpenMaya.MNodeMessage.kConnectionMade:
             otherPlug_name = otherPlug.name()
             if callback_id & OpenMaya.MNodeMessage.kIncomingDirection:  # listen to the destination
-                log.info('[addAttributeChangedCallback] kConnectionMade: %s to %s', otherPlug_name, plug_name)
-                attr_src = pymel.Attribute(otherPlug_name)
-                attr_dst = pymel.Attribute(plug_name)
-                port_src = registry.get_port(attr_src)
-                port_dst = registry.get_port(attr_dst)
-                connection = registry.get_connection(port_src, port_dst)
-                self.connectionAdded.emit(connection)
+                self._on_connection_made(otherPlug_name, plug_name, registry)
 
         elif callback_id & OpenMaya.MNodeMessage.kConnectionBroken:
             otherPlug_name = otherPlug.name()
-            if callback_id & OpenMaya.MNodeMessage.kIncomingDirection:  # listen to the destination
-                log.info('[addAttributeChangedCallback] kConnectionBroken %s to %s', otherPlug_name, plug_name)
-                attr_src = pymel.Attribute(otherPlug_name)
-                attr_dst = pymel.Attribute(plug_name)
-                port_src = registry.get_port(attr_src)
-                port_dst = registry.get_port(attr_dst)
-                connection = registry.get_connection(port_src, port_dst)
-                self.connectionRemoved.emit(connection)
+            self._on_connection_broken(callback_id, otherPlug_name, plug_name, registry)
 
-        self._mutex = True
+    def _on_connection_broken(self, callback_id, otherPlug_name, plug_name, registry):
+        """
+
+        :param callback_id:
+        :param otherPlug_name:
+        :param plug_name:
+        :param registry:
+        :return:
+        """
+        from maya import OpenMaya
+
+        if callback_id & OpenMaya.MNodeMessage.kIncomingDirection:  # listen to the destination
+            log.info('[addAttributeChangedCallback] kConnectionBroken %s to %s', otherPlug_name, plug_name)
+            attr_src = pymel.Attribute(otherPlug_name)
+            attr_dst = pymel.Attribute(plug_name)
+            port_src = registry.get_port(attr_src)
+            port_dst = registry.get_port(attr_dst)
+            connection = registry.get_connection(port_src, port_dst)
+            self.connectionRemoved.emit(connection)
+
+    def _on_connection_made(self, otherPlug_name, plug_name, registry):
+        """
+
+        :param otherPlug_name:
+        :param plug_name:
+        :param registry:
+        :return:
+        """
+        log.info('[addAttributeChangedCallback] kConnectionMade: %s to %s', otherPlug_name, plug_name)
+        attr_src = pymel.Attribute(otherPlug_name)
+        attr_dst = pymel.Attribute(plug_name)
+        port_src = registry.get_port(attr_src)
+        port_dst = registry.get_port(attr_dst)
+        connection = registry.get_connection(port_src, port_dst)
+        self.connectionAdded.emit(connection)
+
+    def _on_attribute_array_added(self, plug_name, registry):
+        """
+
+        :param plug_name:
+        :param registry:
+        :return:
+        """
+        log.debug('[addAttributeChangedCallback] kAttributeArrayAdded %s', plug_name)
+        attr = pymel.Attribute(plug_name)
+        port = registry.get_port(attr)
+        registry.onPortAdded.emit(port)
+        # self._ctrl.callback_attribute_array_added(attr_dagpath)
 

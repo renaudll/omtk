@@ -1649,7 +1649,7 @@ def patch(
     default because it can be dangerous. With it switched on you can write
     passing tests against APIs that don't actually exist!
 
-    Patch can be used as a `TestCase` class decorator. It works by
+    Patch can be used as a `OmtkTestCase` class decorator. It works by
     decorating each test method in the class. This reduces the boilerplate
     code when your test methods share a common patchings set. `patch` finds
     tests by looking for method names that start with `patch.TEST_PREFIX`.

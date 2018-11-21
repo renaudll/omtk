@@ -16,7 +16,6 @@ from omtk.core.entity_attribute import EntityPort
 from omtk.core.node import Node
 from omtk.libs import libHistory
 from omtk.libs import libPymel
-from omtk.libs import libPython
 from omtk.libs import libRigging
 
 log = logging.getLogger(__name__)

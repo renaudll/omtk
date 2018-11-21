@@ -79,3 +79,17 @@ def get_common_namespace(nodes):
         if namespace:
             return namespace
     return None
+
+
+def is_child_of(child, parent):
+    """
+    :param str child:
+    :param str parent:
+    :return:
+    """
+    if not child:
+        return False
+    child_parent = get_parent(child)
+    if child_parent == parent:
+        return True
+    return is_child_of(child_parent, parent)

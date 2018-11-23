@@ -1,6 +1,6 @@
 import pymel.core as pymel
 from maya import cmds
-from omtk_test import omtk_test
+import omtk_test
 from omtk.nodegraph import NodeGraphController, NodeGraphRegistry
 from omtk.component import component_registry
 from omtk.nodegraph.models import GraphModel
@@ -8,7 +8,7 @@ from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProx
 from omtk.nodegraph.bindings.session_maya import MayaSession
 
 
-class NodeGraphRegistryCallbackTestCase(omtk_test.NodeGraphTestCase):
+class NodeGraphRegistryCallbackTestCase(omtk_test.NodeGraphBaseTestCase):
     """
     Ensure that the NodeGraphRegistry correctly react to Maya events.
     """
@@ -17,13 +17,7 @@ class NodeGraphRegistryCallbackTestCase(omtk_test.NodeGraphTestCase):
 
         cmds.file(new=True, force=True)
 
-        self.session = MayaSession()
-        self.registry = NodeGraphRegistry(session=self.session)
-        self.source_model = GraphModel(registry=self.registry)
-        self.model = GraphFilterProxyModel(model=self.source_model)
-        self.ctrl = NodeGraphController(registry=self.registry, model=self.model)
-
-        self.t1 = pymel.createNode('transform', name='a')
+        self.t1 = self.session.create_node('transform', name='a')
         self.m1 = self.registry.get_node(self.t1)
         self.ctrl.add_node(self.m1)
         self.assertEqual(1, len(self.model.get_nodes()))

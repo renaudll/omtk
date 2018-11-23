@@ -1,9 +1,5 @@
-import pymel.core as pymel
 from omtk.nodegraph import nodegraph_filter
 from omtk.factories import factory_datatypes
-
-if False:
-    from omtk.nodegraph.models import NodeModel, PortModel, ConnectionModel
 
 
 class NodeGraphMetadataFilter(nodegraph_filter.NodeGraphFilter):
@@ -11,7 +7,12 @@ class NodeGraphMetadataFilter(nodegraph_filter.NodeGraphFilter):
     Simple filter than let only connection between message attribute pass.
     """
     def can_show_port(self, port):
-        # type: (PortModel) -> bool
+        """
+        Check if a port is displayable according to the filter.
+        :param PortModel port: The port to inspect.
+        :return: True if we can display this port.
+        :rtype: bool
+        """
         port_type = port.get_metatype()
         if port_type != factory_datatypes.AttributeType.AttributeMessage:
             return False

@@ -94,6 +94,10 @@ class PortModel(object):
         return self.get_metadata()  # basic port share the same metadata for input and output
 
     def get_metatype(self):
+        """
+        :return: The type of the attribute as an enum value.
+        :rtype: omtk.constants.AttributeType
+        """
         return self.impl.get_metatype()
 
     def is_readable(self):

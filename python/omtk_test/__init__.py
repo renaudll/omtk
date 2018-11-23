@@ -8,11 +8,9 @@ from omtk.nodegraph.bindings.base import ISession
 from omtk.nodegraph.registry.base import NodeGraphRegistry
 from omtk.nodegraph.registry.maya_mocked import MockedMayaRegistry
 from omtk.nodegraph.registry.maya_mocked import MockedSession
+from omtk.vendor.mock_maya.cmds.session import MockedCmdsSession
+from omtk.vendor.mock_maya.pymel.session import MockedPymelSession
 
-
-#
-# Decorators
-#
 
 class OmtkTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -38,14 +36,19 @@ class NodeGraphBaseTestCase(OmtkTestCase):
         super(NodeGraphBaseTestCase, self).__init__(*args, **kwargs)
         self.model = None
 
-    def setUp(self, *args, **kwargs):
-        super(NodeGraphBaseTestCase, self).setUp(*args, **kwargs)
+    def setUp(self):
+        super(NodeGraphBaseTestCase, self).setUp()
 
         self._session = self._cls_session() if self._cls_session else None
         self._registry = self._cls_registry(session=self.session)
-        self.source_model = self._cls_model(self.registry)
-        self.model = self._cls_proxy_model(self.registry, model=self.source_model)
-        self.ctrl = self._cls_controller(self.registry, model=self.model)
+        self.source_model = self._cls_model(registry=self.registry)
+        self.model = self._cls_proxy_model(registry=self.registry, model=self.source_model)
+        self.ctrl = self._cls_controller(registry=self.registry, model=self.model)
+
+        # By default, expose cmds or pymel mock if needed
+        if self._cls_session:
+            self.cmds = MockedCmdsSession(session=self.session)
+            self.pymel = MockedPymelSession(session=self.session)
 
         # Validate the graph is empty
         self.assertEqual(0, len(self.model.get_nodes()))

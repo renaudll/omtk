@@ -4,6 +4,9 @@ from omtk.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
 
 
 class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):
+    """
+    Port interface for the Pymel API.
+    """
     def __init__(self, data):
         from pymel import core as pymel
         assert (isinstance(data, pymel.Attribute))

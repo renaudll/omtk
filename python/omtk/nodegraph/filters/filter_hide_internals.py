@@ -3,7 +3,7 @@ from omtk.nodegraph import NodeGraphFilter
 from omtk.nodegraph.models.node.node_dg import NodeGraphDgNodeModel
 
 # @staticmethod
-#     def _is_port_model_name_blacklisted(port_name):
+#     def _is_port_name_blacklisted(port_name):
 #         return port_name in constants._attr_name_blacklist
 
 

@@ -21,8 +21,11 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         self.hide_message_attribute_type = True
 
     def can_show_node(self, node_model):
-        # type: (NodeModel) -> bool
-        # Some DagNode types might be blacklisted.
+        """
+        Determine if a node can be shown.
+        :param omtk.nodegraph.NodeModel node_model: The node to check
+        :return: True if the node can be shown. False if it's blacklisted.
+        """
         global _g_preferences
         from omtk.nodegraph.models.node import node_dg
 
@@ -44,21 +47,21 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         return True
 
     @staticmethod
-    def _is_port_model_name_blacklisted(port_name):
+    def _is_port_name_blacklisted(port_name):
         return port_name in constants._attr_name_blacklist
 
     def can_show_port(self, port):
-        # type: (PortModel) -> bool
         """
         Check if a port is displayable according to the filter.
         The default behavior is to check if the port is considered "interesting".
-        :param port: The port to inspect.
+        :param PortModel port: The port to inspect.
         :return: True if we can display this port.
+        :rtype: bool
         """
         from omtk.factories import factory_datatypes
 
         # Some attributes (like omtk metadata) are blacklisted by default.
-        if self._is_port_model_name_blacklisted(port.get_name()):
+        if self._is_port_name_blacklisted(port.get_name()):
             return False
 
         node = port.get_parent()
@@ -68,7 +71,7 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         # Some attributes (like omtk metadata) are blacklisted by default.
         port_name = port.get_name()
         port_name = port_name.split('[')[0]
-        if self._is_port_model_name_blacklisted(port_name):
+        if self._is_port_name_blacklisted(port_name):
             return False
 
         if self.hide_message_attribute_type:

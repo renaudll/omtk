@@ -3,6 +3,9 @@ from omtk.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
 
 
 class OpenMaya2AttributeNodeGraphPortImp(NodeGraphPortImpl):
+    """
+    Port interface for the OpenMaya2 API.
+    """
     def __init__(self, data):
         assert(isinstance(data, om2.MFnAttribute))
         super(OpenMaya2AttributeNodeGraphPortImp, self).__init__(data)

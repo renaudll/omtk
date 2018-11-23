@@ -49,6 +49,12 @@ class NodeGraphRegistry(object):  # QObject provide signals
         self.cache_ports_by_value = PortCache(self)
         self.cache_connection_by_value = ConnectionCache(self)
 
+        # Moved out to remove registry references from cache
+        self.cache_nodes_by_value.onUnregistered.connect(self.on_node_unregistered)
+
+    def on_node_unregistered(self, node_model):
+        self.session.remove_node_callbacks(node_model)
+
     @property
     def session(self):
         """

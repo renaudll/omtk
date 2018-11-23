@@ -3,22 +3,15 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 """
 import logging
 import unittest
-
-import pymel.core as pymel
-from omtk_test import omtk_test
+from omtk_test import NodeGraphMockedMayaTestCase
 from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
-    def setUp(self):
-        super(NodeGraphSubgraphFilterTestCase, self).setUp()
-
-        # Add a NodeGraphSubgraphProxyModel
-        self.model = GraphComponentProxyFilterModel(model=self.model)
-        self.ctrl.set_model(self.model)
+class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
+    _cls_proxy_model = GraphComponentProxyFilterModel
 
     def _register_node(self, node):
         model = self.registry.get_node(node)

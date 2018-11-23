@@ -4,19 +4,17 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 import logging
 import unittest
 
-import pymel.core as pymel
-
-from omtk_test import omtk_test
-from omtk.libs import libRigging
-from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
 from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter
+from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
+from omtk.vendor.mock_maya.decorators import mock_pymel
+import omtk_test
 
-log = logging.getLogger('omtk')
+log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
+class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaTestCase):
     def setUp(self):
         super(NodeGraphSubgraphFilterTestCase, self).setUp()
 
@@ -38,17 +36,21 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphTestCase):
         """
         """
         # Create network
-        n1 = pymel.createNode('transform', name='n1')
-        n2 = pymel.createNode('transform', name='n2')
-        u1 = libRigging.create_utility_node(
-            'decomposeMatrix',
-            name='n3',
-            inputMatrix=n1.matrix,
-        )
-        pymel.connectAttr(u1.outputTranslate, n2.translate)
+        with mock_pymel(self.session) as pymel:
+            from omtk.libs import libRigging
+
+            n1 = pymel.createNode('transform', name='n1')
+            n2 = pymel.createNode('transform', name='n2')
+            u1 = libRigging.create_utility_node(
+                'decomposeMatrix',
+                name='n3',
+                inputMatrix=n1.matrix,
+            )
+            pymel.connectAttr(u1.outputTranslate, n2.translate)
 
         # Register network
         def _register(n): return self.registry.get_node(n)
+
         m1 = _register(n1)
         m2 = _register(n2)
         m3 = _register(u1)

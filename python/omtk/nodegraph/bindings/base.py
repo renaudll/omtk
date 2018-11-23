@@ -10,7 +10,7 @@ class ISession(object):
     A session is the link between the registry and a DCC application like Maya.
     :param NodeGraphRegistry registry: A registry to bind to the session.
 
-    Qt signals:
+    Signals:
     :signal nodeAdded Called when a node is added in the scene
     :signal nodeRemoved: Called when a node is removed from the scene
     :signal portAdded: Called when a port is added in the scene

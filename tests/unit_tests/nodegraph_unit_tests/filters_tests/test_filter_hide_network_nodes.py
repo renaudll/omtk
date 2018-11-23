@@ -3,7 +3,6 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 """
 import unittest
 
-import pymel.core as pymel
 from omtk.nodegraph.filters.filter_hide_network_nodes import NodeGraphMetadataFilter
 from omtk.libs import libAttr
 

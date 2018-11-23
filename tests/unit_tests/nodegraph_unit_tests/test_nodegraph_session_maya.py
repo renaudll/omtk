@@ -1,28 +1,25 @@
-import pymel.core as pymel
-from maya import cmds
-from omtk_test import omtk_test
-from omtk.nodegraph import NodeGraphRegistry
-from omtk.nodegraph.models import GraphModel
-from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
-from omtk.nodegraph.bindings.session_maya import MayaSession
+import omtk_test
 
-
+from omtk.nodegraph.registry.maya_mocked import MockedSession
 # TODO: Add test when the node is not visible, we should not add the port/connection
 
 
-class NodeGraphMayaSessionTestCase(omtk_test.NodeGraphTestCase):
-    def setUp(self):
-        cmds.file(new=True, force=True)
+class NodeGraphMayaSessionTestCase(omtk_test.NodeGraphBaseTestCase):
+    _cls_session = MockedSession
 
-        self.maxDiff = None
-        self.session = MayaSession()
-        self.registry = NodeGraphRegistry(session=self.session)
-        self.source_model = GraphModel(self.registry)
-        self.model = GraphFilterProxyModel(model=self.source_model)
+    @property
+    def session(self):
+        """
+        rtype: MockedSession
+        """
+        return super(NodeGraphMayaSessionTestCase, self).session
+
+    def setUp(self):
+        super(NodeGraphMayaSessionTestCase, self).setUp()
 
         # Create a simple network
-        self.node_1 = pymel.createNode('transform', name='a')
-        self.node_2 = pymel.createNode('transform', name='b')
+        self.node_1 = self.session.create_node('transform', name='a')
+        self.node_2 = self.session.create_node('transform', name='b')
         self.model_1 = self.registry.get_node(self.node_1)
         self.model_2 = self.registry.get_node(self.node_2)
 
@@ -33,7 +30,7 @@ class NodeGraphMayaSessionTestCase(omtk_test.NodeGraphTestCase):
         self.assertGraphNodeCountEqual(1)
 
         # Delete the node from the graph
-        pymel.delete(self.node_1)
+        self.session.remove_node(self.node_1)
         self.assertGraphNodeCountEqual(0)
 
     def test_delete_port(self):
@@ -46,10 +43,12 @@ class NodeGraphMayaSessionTestCase(omtk_test.NodeGraphTestCase):
 
         # Create attribute, ensure it is added to the graph
         ports_count = len(self.model.get_ports())
-        pymel.addAttr(self.node_1, longName="test")  # since the node is visible, this will add the port
+        # since the node is visible, this will add the port
+        port_1 = self.session.create_port(self.node_1, "test")
         self.assertGraphPortCountEqual(ports_count+1)
 
         # Remove attribute from session, ensure it is removed from the graph
+        self.session.remove_port(port_1)
         pymel.deleteAttr(self.node_1, attribute="test")
         self.assertGraphPortCountEqual(ports_count)
 

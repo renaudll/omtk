@@ -1,12 +1,11 @@
-import pymel.core as pymel
-from omtk_test.omtk_test import NodeGraphTestCase
+from omtk_test import NodeGraphMockedMayaTestCase
 
 
-class NodeGraphParentPortTestCase(NodeGraphTestCase):
+class NodeGraphParentPortTestCase(NodeGraphMockedMayaTestCase):
     def setUp(self, *args, **kwargs):
         super(NodeGraphParentPortTestCase, self).setUp(*args, **kwargs)
-        self.n1 = pymel.createNode("transform", name="parent")
-        self.n2 = pymel.createNode("transform", name="child")
+        self.n1 = self.pymel.createNode("transform", name="parent")
+        self.n2 = self.pymel.createNode("transform", name="child")
         self.n2.setParent(self.n1)
         self.m1 = self.registry.get_node(self.n1)
         self.m2 = self.registry.get_node(self.n2)

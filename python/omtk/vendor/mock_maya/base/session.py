@@ -1,11 +1,9 @@
-import logging
 import itertools
+import logging
 import string
 
-from omtk.vendor.Qt import QtCore
 from omtk.vendor.mock_maya.base import MockedNode
 from omtk.vendor.mock_maya.base import MockedPort
-
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +56,7 @@ log = logging.getLogger(__name__)
 
 from omtk.nodegraph.bindings.base import ISession
 from omtk.nodegraph.signal import Signal
+from omtk.nodegraph.cache import CachedDefaultDict
 
 class MockedSession(ISession):
     """
@@ -75,6 +74,7 @@ class MockedSession(ISession):
         self.nodes = set()
         self.ports = set()
         self.selection = set()
+        self.ports_by_node = CachedDefaultDict(set)
 
     def exists(self, dagpath):
         return bool(self.get_node_by_match(dagpath, strict=False))
@@ -145,6 +145,7 @@ class MockedSession(ISession):
         :rtype: MockedPort
         """
         port = MockedPort(node, name)
+        self.ports_by_node[node].add(port)
         self.ports.add(port)
         if emit:
             self.portAdded.emit(port)
@@ -161,6 +162,16 @@ class MockedSession(ISession):
         self.ports.remove(port)
         if emit:
             self.portRemoved.emit(port)
+
+    def remove_node_port(self, node, name, emit=True):
+        """
+
+        :param MockedNode node:
+        :param name:
+        :param emit:
+        :return:
+        """
+
 
     def get_selection(self):
         return self.selection

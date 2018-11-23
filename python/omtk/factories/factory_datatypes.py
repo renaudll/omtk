@@ -4,13 +4,22 @@ Help identifying datatypes for usage in factory methods.
 """
 import collections
 import logging
+import re
 
 from omtk import decorators
 from omtk.vendor.Qt import QtGui
-from pymel import core as pymel
 from omtk.vendor.enum34 import Enum
 
+try:
+    from pymel import core as pymel
+except ImportError:
+    pymel = None
+
+_g_regex_datatype_from_mel = re.compile('.*-dt "(\w*)".*')
+_g_regex_attributetype_from_mel = re.compile('.*-at "(\w*)".*')
+
 log = logging.getLogger(__name__)
+
 
 class AttributeType(Enum):
     Basic = 0
@@ -103,6 +112,18 @@ _g_port_color_by_datatype = {
 
 _g_default_port_color = QtGui.QColor(0, 0, 0, 255)
 
+_registry_datatype = [
+    bool, int, float, long, basestring, type
+]
+
+if pymel:
+    _registry_datatype.extend((
+        pymel.util.enum.EnumValue,
+        pymel.datatypes.Vector,
+        pymel.datatypes.Point,
+        pymel.datatypes.Matrix,
+    ))
+
 
 def get_datatype(val):
     """
@@ -116,20 +137,10 @@ def get_datatype(val):
     from omtk.core.module2 import Module2
     from omtk.core.rig import Rig
     from omtk.component.component_definition import ComponentDefinition
-    from omtk.core.entity_attribute import EntityPort
 
-    if val is None or isinstance(val, (
-            bool,
-            int,
-            float,
-            long,
-            basestring,
-            type,
-            pymel.util.enum.EnumValue,
-            pymel.datatypes.Vector,
-            pymel.datatypes.Point,
-            pymel.datatypes.Matrix,
-    )):
+    global _registry_datatype
+
+    if val is None or isinstance(val, _registry_datatype):
         return AttributeType.Basic
     if isinstance(val, (list, set, tuple)):
         return AttributeType.Iterable
@@ -221,11 +232,6 @@ def get_port_color_from_datatype(datatype):
         color = _g_default_port_color
     return color
 
-from maya import OpenMaya
-import re
-
-_g_regex_datatype_from_mel = re.compile('.*-dt "(\w*)".*')
-_g_regex_attributetype_from_mel = re.compile('.*-at "(\w*)".*')
 
 def _get_attr_datatype_from_mobject(mobject):
     """
@@ -234,6 +240,8 @@ def _get_attr_datatype_from_mobject(mobject):
     :param mobject:
     :return:
     """
+    from maya import OpenMaya
+
     mfn = OpenMaya.MFnAttribute(mobject)
     mel = mfn.getAddAttrCmd()
     result = _g_regex_datatype_from_mel.match(mel)
@@ -245,6 +253,7 @@ def _get_attr_datatype_from_mobject(mobject):
     if result:
         datatype = next(iter(result.groups()), None)
         return datatype
+
 
 def get_attr_datatype(attr):
     # type: (pymel.Attribute) -> AttributeType
@@ -278,70 +287,20 @@ def get_attr_datatype(attr):
 
         multMatrix26.matrixIn[99]: kIncomingDirection, kAttributeArrayAdded
         multMatrix26.matrixIn[99]: kIncomingDirection, kAttributeArrayRemoved
-
     """
-    attr_type = None
-
-    from maya import cmds
-
     # The array is typed, not it's elements.
     if attr.isElement():
         return get_attr_datatype(attr.array())
 
-    # In some situations, trying to type an array attribute will return None. (todo: provide an example?)
-    # if attr_type is None and attr.isMulti():
-    # log.warning("Getting a hard time typing {0}. Using sketchy method.".format(attr))
-
-    # # An array is always typed?
-    from maya import OpenMaya
-    # mfn = OpenMaya.MFnTypedAttribute(attr.__apimobject__())
-    # type_ = mfn.attrType()
-    # if type_ == OpenMaya.MFnData.kMatrix
-    # todo: FIND A BETTER WAY!
-
-    # todo: How do we know if the attribute is typed?
     attr_type = _get_attr_datatype_from_mobject(attr.__apimobject__())
 
-    # Method #1: Use Pymel
-    # BAD because this will temporary create attribute and trigger a shitload of callbacks.
-    # attr_type = attr[0].type()
-
-    # Method #2: Use cmds
-    # BAD because it can return None on attributes like multMatrix.matrixIn
-    # attr_type = cmds.getAttr('{0}[0]'.format(attr.__melobject__()), type=True)
-
-    # if attr_type is None:
-    #     attr_type = attr.type()
-
     if attr_type is None:
-        log.warning("Cannot resolve attribute type from attribute {0}.".format(
+        raise Exception("Cannot resolve attribute type from attribute {0}.".format(
             attr
         ))
-        return
 
     type_ = _g_attr_type_from_maya_attribute_type_str.get(attr_type)
     if type_ is None:
-        log.warning("Cannot resolve metatype for {0} of type {1}.".format(attr, attr_type))
-        return
+        raise Exception("Cannot resolve metatype for {0} of type {1}.".format(attr, attr_type))
 
     return type_
-    #
-    # if attr_type == 'message':
-    #     return AttributeType.AttributeMessage
-    #
-    # if attr_type == 'TdataCompound':
-    #     return AttributeType.AttributeCompound
-    #
-    # native_type = _ENTITY_ATTR_TYPE_BY_MAYA_ATTR_TYPE.get(attr_type, None)
-    # if native_type is None:
-    #     log.warning("Cannot resolve metatype from attribute type {0}. {1}".format(
-    #         attr_type,
-    #         attr
-    #     ))
-    #     return
-    #
-    # val = _attr_type_by_native_type[native_type]
-    # if not val:
-    #     log.warning("Cannot resolve attribute type from attribute {0}. Unknown datatype {1}".format(attr, native_type))
-    #     return
-    # return val

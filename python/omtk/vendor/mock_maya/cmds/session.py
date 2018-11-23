@@ -252,6 +252,20 @@ class MockedCmdsSession(object):
 
         return [port.name for port in _iter()]
 
+    def nodeType(self, name):
+        """
+        Return the node type as a string.
+        param bool apiType: Return the MFn::Type value (as a string) corresponding to the given node.
+        This is particularly useful when the given node is defined by a plug-in,
+        since in this case, the MFn::Type value corresponds to the underlying proxy class.
+        param bool inherited: Return a string array containing the names of each of the base node types
+        inherited by the given object.
+        :return: The type of the node.
+        :rtype bool
+        """
+        node = self.session.get_node_by_name(name)
+        return node.type
+
     def objExists(self, pattern):
         return self.session.exists(pattern)
 

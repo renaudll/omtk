@@ -3,31 +3,29 @@ Ensure we are able to reconize that a Component should be updated and to update 
 """
 import os
 import shutil
+import tempfile
 import unittest
+
 import pymel.core as pymel  # easy standalone initialization
 from maya import cmds
-import tempfile
 from omtk import component
-from omtk.libs import libRigging
 from omtk.component import ComponentDefinition
 from omtk.component import ComponentRegistry
+from omtk.libs import libRigging
+from omtk_test.test_case_maya import BaseMayaTestCase
 
 
-class ComponentUpdateTestCase(unittest.TestCase):
+class ComponentUpdateTestCase(BaseMayaTestCase):
+    _cls_registry = ComponentRegistry
+
     def setUp(self):
-        # Create an empty file to play with.
-        # self._tmp_path = tempfile.mktemp('.ma')
-        cmds.file(new=True, force=True)
-        # cmds.file(rename=self._tmp_path)
-        # cmds.file(save=True, force=True, type='mayaAscii')
+        super(ComponentUpdateTestCase, self).setUp()
 
         self._tmp_dir = tempfile.mkdtemp()
-
-        self._registry = ComponentRegistry([self._tmp_dir])
+        self._registry = self._cls_registry([self._tmp_dir])
 
     def tearDown(self):
-        # if os.path.exists(self._tmp_path):
-        #     os.remove(self._tmp_path)
+        super(ComponentUpdateTestCase, self).tearDown()
         if os.path.exists(self._tmp_dir):
             shutil.rmtree(self._tmp_dir)
 

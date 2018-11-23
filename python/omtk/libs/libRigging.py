@@ -1,19 +1,17 @@
+"""
+This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
+"""
 import logging
-import logging as log
 import math
 
 import pymel.core as pymel
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
-
-import libPython
 from omtk import constants
 from omtk.libs import libPymel
 
-'''
-This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
-'''
+log = logging.getLogger(__name__)
 __aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector, pymel.datatypes.Point]
 
 

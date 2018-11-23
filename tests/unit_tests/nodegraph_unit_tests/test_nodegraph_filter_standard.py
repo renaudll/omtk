@@ -1,10 +1,16 @@
-from omtk_test import omtk_test
-import pymel.core as pymel
+import omtk_test
 from omtk.nodegraph.filters.filter_hide_message_ports import NodeGraphMetadataFilter
 from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter
 
 
-class NodeGraphFilterStandardTest(omtk_test.NodeGraphTestCase):
+class BaseNodeGraphFilterTestCase(omtk_test.NodeGraphMockedMayaTestCase):
+    _cls_filter = None
+
+    def setUp(self):
+        super(BaseNodeGraphFilterTestCase, self).setUp()
+
+
+class NodeGraphFilterStandardTest(omtk_test.NodeGraphMockedMayaTestCase):
     def setUp(self):
         super(NodeGraphFilterStandardTest, self).setUp()
 
@@ -12,7 +18,7 @@ class NodeGraphFilterStandardTest(omtk_test.NodeGraphTestCase):
         self.ctrl.set_filter(filter_)
 
     def test_on_off(self):
-        n1 = pymel.createNode('transform', name='a')
+        n1 = self.session.create_node('transform', name='b')
         m1 = self.registry.get_node(n1)
         self.model.add_node(m1)
 
@@ -36,7 +42,7 @@ class NodeGraphFilterStandardTest(omtk_test.NodeGraphTestCase):
         - UnApply a NodeGraphFilter
         """
         # Configure a basic network
-        n1 = pymel.createNode('transform', name='a')
+        n1 = self.session.createNode('transform', name='a')
         m1 = self.registry.get_node(n1)
 
         self.model.add_node(m1)
@@ -55,7 +61,6 @@ class NodeGraphFilterStandardTest(omtk_test.NodeGraphTestCase):
                 ]
             },
         })
-
 
     def test_connection_filtering(self):
         """

@@ -8,12 +8,12 @@ log = logging.getLogger(__name__)
 
 
 # TODO: Add mutex when loading a new scene?
-# TODO: Remove dependence on registry? We have signals for this.
+# TODO: Remove dependence on REGISTRY_DEFAULT? We have signals for this.
 
 class MayaSession(ISession):
     """
-    Interface between the registry and a Maya session.
-    :param NodeGraphRegistry registry: A registry to bind to the session.
+    Interface between the REGISTRY_DEFAULT and a Maya session.
+    :param NodeGraphRegistry registry: A REGISTRY_DEFAULT to bind to the session.
     """
     def __init__(self, registry=None):
         super(MayaSession, self).__init__(registry)
@@ -34,8 +34,8 @@ class MayaSession(ISession):
 
     def add_node_callbacks(self, node):
         """
-        Called when a node is atted to the registry bound to the DCC application or mock. ???
-        :param NodeModel node: The node being add to the registry.
+        Called when a node is atted to the REGISTRY_DEFAULT bound to the DCC application or mock. ???
+        :param NodeModel node: The node being add to the REGISTRY_DEFAULT.
         """
         from maya import OpenMaya
         mobject = node.get_metadata().__apimobject__()
@@ -139,7 +139,7 @@ class MayaSession(ISession):
         # log.debug('Attribute {0} added to {1}'.format(attr_name, obj_name))
         attr = pymel.Attribute(dagpath)
         port = registry.get_port(attr)
-        # registry.onPortAdded.emit(port)
+        # REGISTRY_DEFAULT.onPortAdded.emit(port)
         self.portAdded.emit(attr, port)
 
     def _callback_port_removed(self, dagpath, registry):

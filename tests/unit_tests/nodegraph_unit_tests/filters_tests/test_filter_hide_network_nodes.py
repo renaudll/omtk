@@ -4,10 +4,9 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 import unittest
 
 from omtk.nodegraph.filters.filter_hide_network_nodes import NodeGraphMetadataFilter
-from omtk.libs import libAttr
 
 from .base import GraphFilterTestCase
-
+from omtk.vendor.mock_maya.decorators import mock_pymel
 
 class HideNetworkNodesFilterTestCase(GraphFilterTestCase):
     """
@@ -36,9 +35,11 @@ class HideNetworkNodesFilterTestCase(GraphFilterTestCase):
 
     def test_port_visibility(self):
         """Ensure that adding a network node port to the graph don't add anything."""
-        pynode = pymel.createNode('network')
-        attr = libAttr.addAttr(pynode, 'test')
-        port = self.registry.get_port(attr)
+        with mock_pymel(self.session) as pymel:
+            pynode = pymel.createNode('network')
+            from omtk.libs import libAttr
+            attr = libAttr.addAttr(pynode, 'test')
+            port = self.registry.get_port(attr)
 
         self.assertGraphIsEmpty()
         self.model.add_port(port)
@@ -46,10 +47,11 @@ class HideNetworkNodesFilterTestCase(GraphFilterTestCase):
 
     def test_connection_source_visibility(self):
         """Ensure that adding a connection from a network node to the graph don't add anything."""
-        pynode_src = pymel.createNode('network')
-        pynode_dst = pymel.createNode('transform')
-        pymel.addAttr(pynode_dst, longName='test', at='message')
-        pymel.connectAttr(pynode_src.message, pynode_dst.test)
+        with mock_pymel(self.session) as pymel:
+            pynode_src = pymel.createNode('network')
+            pynode_dst = pymel.createNode('transform')
+            pymel.addAttr(pynode_dst, longName='test', at='message')
+            pymel.connectAttr(pynode_src.message, pynode_dst.test)
         connection = self.registry.get_connection(pynode_src, pynode_dst)
 
         self.assertGraphIsEmpty()

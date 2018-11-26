@@ -5,7 +5,7 @@ class ConnectionModel(object):
     """
     def __init__(self, registry, port_src, port_dst):
         """
-        :param omtk.nodegraph.NodeGraphRegistry registry: The registry holding the connection.
+        :param omtk.nodegraph.NodeGraphRegistry registry: The REGISTRY_DEFAULT holding the connection.
         :param omtk.nodegraph.PortModel port_src: The source port.
         :param omtk.nodegraph.PortModel port_dst: The destination port.
         """

@@ -1,6 +1,4 @@
 from omtk.nodegraph.filters.filter_intermediate_nodes import IntermediateNodeFilter
-from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter
-from pymel import core as pymel
 
 from base import GraphFilterTestCase
 
@@ -16,9 +14,9 @@ class NodeGraphFilterIntermediateTest(GraphFilterTestCase):
         """
         Ensure NodeGraphStandardFilter hide unitConversion nodes unless explicitly ask to.
         """
-        n1 = pymel.createNode('transform', name='a')
-        n2 = pymel.createNode('transform', name='b')
-        pymel.connectAttr(n1.translateX, n2.rotateX)
+        n1 = self.session.create_node('transform', name='a')
+        n2 = self.session.create_node('transform', name='b')
+        self.session.create_connection(n1.translateX, n2.rotateX)
 
         # todo: this should work if we start with no filters, add the node and then change filters?
         filter = IntermediateNodeFilter()

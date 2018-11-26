@@ -14,6 +14,8 @@ class MockedPymelSession(MockedCmdsSession):
 
         self.session.nodeAdded.connect(self.__callback_node_added)
         self.session.nodeRemoved.connect(self.__callback_node_removed)
+        self.session.portAdded.connect(self.__callback_port_added)
+        self.session.portRemoved.connect(self.__callback_port_removed)
 
         self.__registry = {}
 
@@ -31,6 +33,13 @@ class MockedPymelSession(MockedCmdsSession):
         :param MockedNode node: The node being removed.
         """
         self.__registry.pop(node, None)
+
+    def __callback_port_added(self, port):
+        mock = MockedPymelPort(self.session, port)
+        self.__registry[port] = mock
+
+    def __callback_port_removed(self, port):
+        self.__registry.pop(port, None)
 
     def _attribute(self, args):
         """
@@ -55,12 +64,21 @@ class MockedPymelSession(MockedCmdsSession):
     def _node_to_pynode(self, node):
         """
         Get a MockedPymelNode from an MockedNode instance.
+
         :param MockedNode node: A mocked node
         :return: A registered MockedPymelNode instance.
         :rtype: MockedPymelNode
         :raise KeyError: If the provided MockedNode is not registered.
         """
         return self.__registry[node]
+
+    def _port_to_attribute(self, port):
+        """
+        Get a MockedPymelPort from a MockedPort instance.
+        :param port:
+        :return:
+        """
+        return self.__registry[port]
 
     def _to_mel(self, data):
         """
@@ -91,10 +109,9 @@ class MockedPymelSession(MockedCmdsSession):
         attrs = super(MockedPymelSession, self).listAttr(objects)
         return [MockedPymelPort(self, attr) for attr in attrs]
 
-    def addAttr(self, *args, **kwargs):
-        raise NotImplementedError
-        # port = MockedPort(longName)
-        # self.session.nodes.ports.add(port)
+    def addAttr(self, *objects, **kwargs):
+        objects = [self._to_mel(object) for object in objects]
+        super(MockedPymelSession, self).addAttr(*objects, **kwargs)
 
     def select(self, names):
         super(MockedPymelSession, self).select(names)
@@ -103,3 +120,13 @@ class MockedPymelSession(MockedCmdsSession):
     def parent(self, *dagnodes, **kwargs):
         names = [self._to_mel(node) for node in dagnodes]
         super(MockedPymelSession, self).parent(*names, **kwargs)
+
+    def connectAttr(self, src, dst, **kwargs):
+        src = self._to_mel(src)
+        dst = self._to_mel(dst)
+        super(MockedPymelSession, self).connectAttr(src, dst, **kwargs)
+
+    def disconnectAttr(self, src, dst, **kwargs):
+        src = self._to_mel(src)
+        dst = self._to_mel(dst)
+        super(MockedPymelSession, self).disconnectAttr(src, dst, **kwargs)

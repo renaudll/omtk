@@ -1,7 +1,5 @@
 from omtk_test import NodeGraphBaseTestCase
-import pymel.core as pymel
-from omtk.libs import libRigging
-
+from omtk.vendor.mock_maya.decorators import mock_pymel
 
 from omtk.nodegraph.filters.filter_intermediate_nodes import IntermediateNodeFilter
 
@@ -18,24 +16,28 @@ class IntermediateDecomposeMatrixTestCase(IntermediateNodeFilterTestCase):
     def setUp(self):
         super(IntermediateDecomposeMatrixTestCase, self).setUp()
 
-        n1 = pymel.createNode('transform', name='a')
-        n2 = pymel.createNode('transform', name='b')
-        n3 = libRigging.create_utility_node(
-            'decomposeMatrix',
-            inputMatrix=n1.matrix
-        )
-        pymel.connectAttr(n3.outputTranslate, n2.translate)
-        pymel.connectAttr(n3.outputTranslateX, n2.translateX)
-        pymel.connectAttr(n3.outputTranslateY, n2.translateY)
-        pymel.connectAttr(n3.outputTranslateZ, n2.translateZ)
-        pymel.connectAttr(n3.outputRotate, n2.rotate)
-        pymel.connectAttr(n3.outputRotateX, n2.rotateX)
-        pymel.connectAttr(n3.outputRotateY, n2.rotateY)
-        pymel.connectAttr(n3.outputRotateZ, n2.rotateZ)
-        pymel.connectAttr(n3.outputScale, n2.scale)
-        pymel.connectAttr(n3.outputScaleX, n2.scaleX)
-        pymel.connectAttr(n3.outputScaleY, n2.scaleY)
-        pymel.connectAttr(n3.outputScaleZ, n2.scaleZ)
+        # Build stage with pymel
+        with mock_pymel(self.session) as pymel:
+            from omtk.libs import libRigging
+            
+            n1 = pymel.createNode('transform', name='a')
+            n2 = pymel.createNode('transform', name='b')
+            n3 = libRigging.create_utility_node(
+                'decomposeMatrix',
+                inputMatrix=n1.matrix
+            )
+            pymel.connectAttr(n3.outputTranslate, n2.translate)
+            pymel.connectAttr(n3.outputTranslateX, n2.translateX)
+            pymel.connectAttr(n3.outputTranslateY, n2.translateY)
+            pymel.connectAttr(n3.outputTranslateZ, n2.translateZ)
+            pymel.connectAttr(n3.outputRotate, n2.rotate)
+            pymel.connectAttr(n3.outputRotateX, n2.rotateX)
+            pymel.connectAttr(n3.outputRotateY, n2.rotateY)
+            pymel.connectAttr(n3.outputRotateZ, n2.rotateZ)
+            pymel.connectAttr(n3.outputScale, n2.scale)
+            pymel.connectAttr(n3.outputScaleX, n2.scaleX)
+            pymel.connectAttr(n3.outputScaleY, n2.scaleY)
+            pymel.connectAttr(n3.outputScaleZ, n2.scaleZ)
 
         self.n1 = n1
         self.n2 = n2

@@ -30,9 +30,6 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
         self._child_nodes = set()
         self._cache_ports = set()
 
-        # Add the new instance to the registry
-        registry._register_node(self)
-
     def __repr__(self):
         return '<{0} {1}>'.format(self.__class__.__name__, self._name)
 
@@ -76,6 +73,13 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
     @decorators.memoized_instancemethod
     def get_metadata(self):
         return None
+
+    def get_type(self):
+        """
+        Get the node type as a string
+        :rtype: str
+        """
+        return str(self.get_metatype())
 
     @decorators.memoized_instancemethod
     def get_metatype(self):
@@ -201,11 +205,17 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
         """
         Return the desired Widget class.
         """
-        from omtk.nodegraph.widgets import node_widget
-        return pyflowgraph_node_widget.OmtkNodeGraphNodeWidget
+        from omtk.nodegraph.widgets.widget_node import OmtkNodeGraphNodeWidget
+        return OmtkNodeGraphNodeWidget
 
     def get_widget(self, graph, ctrl):
-        # type: (PyFlowgraphView, NodeGraphController) -> OmtkNodeGraphNodeWidget
+        """
+
+        :param PyFlowgraphView graph:
+        :param NodeGraphController ctrl:
+        :return:
+        :rtype: OmtkNodeGraphNodeWidget
+        """
         node_name = self._get_widget_label()
         cls = self._get_widget_cls()
         inst = cls(graph, node_name, self, ctrl)

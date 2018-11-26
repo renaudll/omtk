@@ -1,6 +1,4 @@
 from omtk_test import NodeGraphMockedMayaTestCase
-from maya import cmds
-from omtk.nodegraph import NodeGraphRegistry, GraphModel, NodeGraphController
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 
 

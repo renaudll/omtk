@@ -181,27 +181,27 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         #     self._bound_inn_dirty = False
         #     self._bound_out_dirty = False
         #
-        #     registry = level._registry
+        #     REGISTRY_DEFAULT = level._registry
         #
         #     # Pre-allocate bounds on Component levels
         #     if isinstance(level, node_component.NodeGraphComponentModel):
         #         c = level.get_metadata()
         #
-        #         c_model = registry.get_node(c)
+        #         c_model = REGISTRY_DEFAULT.get_node(c)
         #
         #         new_nodes = []
         #
         #         if c.grp_inn:
-        #             g = node_component.NodeGraphComponentInnBoundModel(registry, c.grp_inn, c_model)
+        #             g = node_component.NodeGraphComponentInnBoundModel(REGISTRY_DEFAULT, c.grp_inn, c_model)
         #             self._cur_level_bound_inn = g
         #             new_nodes.append(g)
         #
         #         if c.grp_out:
-        #             g = node_component.NodeGraphComponentOutBoundModel(registry, c.grp_out, c_model)
+        #             g = node_component.NodeGraphComponentOutBoundModel(REGISTRY_DEFAULT, c.grp_out, c_model)
         #             self._cur_level_bound_out = g
         #             new_nodes.append(g)
         #
-        #         self._cur_level_children = [registry.get_node(child) for child in c.get_children()]
+        #         self._cur_level_children = [REGISTRY_DEFAULT.get_node(child) for child in c.get_children()]
         #
         #         new_nodes.extend(self._cur_level_children)
         #
@@ -286,7 +286,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
 
     def _is_valid_level(self, level):
         """
-        :param registry:
+        :param REGISTRY_DEFAULT:
         :param level:
         :return:
         """
@@ -469,14 +469,14 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         # node_level = self._get_node_level(node)
 
         # import pymel.core as pymel
-        # registry = port._registry
+        # REGISTRY_DEFAULT = port._registry
         # s = manager.get_session()
         # node = port.get_parent()
         # pynode = node.get_metadata()
         # component_data = s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
         #
         # if component_data:
-        #     component = registry.get_node(component_data)
+        #     component = REGISTRY_DEFAULT.get_node(component_data)
         #     if component != self._level:
         #         pass
         #
@@ -495,7 +495,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     #
     #         # If we encounter a connection to an hub node and we are NOT in the compound, we want to replace it with
     #         # a conenction to the compound itself.
-    #         registry = connection._registry
+    #         REGISTRY_DEFAULT = connection._registry
     #         s = manager.get_session()
     #
     #         need_swap = False
@@ -514,7 +514,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     #                 if node_dst.get_parent() != self._level:
     #                     return
     #                 attr = node_src_data.grp_inn.attr(port_src.get_name())
-    #                 port_src = registry.get_port(attr)
+    #                 port_src = REGISTRY_DEFAULT.get_port(attr)
     #                 need_swap = True
     #
     #         elif isinstance(node_src_data, pymel.PyNode):
@@ -532,7 +532,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     #             c = s.get_component_from_input_hub(node_src_data) or \
     #                 s.get_component_from_output_hub(node_src_data)
     #             if c:
-    #                 c_model = registry.get_node(c)
+    #                 c_model = REGISTRY_DEFAULT.get_node(c)
     #                 # If the source if from the current component input hub, do nothing.
     #                 if self._level == c_model:
     #                     pass
@@ -553,7 +553,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     #                 if node_src.get_parent() != self._level:
     #                     return
     #                 attr = node_dst_data.grp_out.attr(port_dst.get_name())
-    #                 port_dst = registry.get_port(attr)
+    #                 port_dst = REGISTRY_DEFAULT.get_port(attr)
     #                 need_swap = True
     #
     #         # If the connection from an input hub?
@@ -572,7 +572,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     #             c = s.get_component_from_input_hub(node_dst_data) or \
     #                 s.get_component_from_output_hub(node_dst_data)
     #             if c:
-    #                 c_model = registry.get_node(c)
+    #                 c_model = REGISTRY_DEFAULT.get_node(c)
     #                 # If the source if from the current component input hub, do nothing.
     #                 if self._level == c_model:
     #                     pass
@@ -593,7 +593,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     #                 log.warning("Received invalid data when intercepting connection. Ignoring. {0} {1}".format(port_src, port_dst))
     #                 yield connection
     #             else:
-    #                 yield registry.get_connection(port_src, port_dst)
+    #                 yield REGISTRY_DEFAULT.get_connection(port_src, port_dst)
     #         else:
     #             yield connection
 

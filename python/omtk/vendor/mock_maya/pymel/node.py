@@ -4,32 +4,50 @@ class MockedPymelNode(object):
     """
     :param MockedNode node:
 
-    :param registry:
-    :type.registry: omtk_test.mock_maya.pymel.session.MockedPymelSession
+    :param REGISTRY_DEFAULT:
+    :type.REGISTRY_DEFAULT: omtk_test.mock_maya.pymel.session.MockedPymelSession
     """
-    def __init__(self, registry, node):
-        self.__registry = registry
-        self.__node = node
+    def __init__(self, pymel, node):
+        self.__pymel = pymel
+        self.__session = pymel.session
+        self._node = node
         self.selected = False
 
     def __repr__(self):
-        return '<Mocked pymel.PyNode "{0}">'.format(self.__node.dagpath)
+        return '<Mocked pymel.PyNode "{0}">'.format(self._node.dagpath)
+
+    def __getattr__(self, item):
+        """
+        pymel behavior when __getattr__ is called is to try to resolve a port with the name.
+        :param str item: The attribute name.
+        :return:
+        :raise: AttributeError: If no port if found matching the name.
+        """
+        session = self.__session
+        pymel = self.__pymel
+
+        port = session.get_node_port_by_name(self._node, item)
+        if port:
+            mock = pymel._port_to_attribute(port)
+            return mock
+
+        raise AttributeError("{} has no attribute or method named '{}'".format(self, item))
 
     def __melobject__(self):
-        return self.__node.__melobject__()
+        return self._node.__melobject__()
 
     def name(self):
-        return self.__node.name
+        return self._node.name
 
     def nodeName(self):
-        return self.__node.name
+        return self._node.name
 
     def fullPath(self):
-        return self.__node.dagpath
+        return self._node.dagpath
 
     def getParent(self):
         registry = self.__registry
-        parent = self.__node.parent
+        parent = self._node.parent
         if parent is None:
             return None
         return registry._node_to_pynode(parent)

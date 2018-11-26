@@ -12,5 +12,8 @@ class MockedPymelPort(object):
     def __repr__(self):
         return '<Mocked pymel.Attribute "{0}">'.format(self._port.name)
 
+    def __melobject__(self):
+        return self._port.dagpath
+
     def name(self):
         return self._port.name

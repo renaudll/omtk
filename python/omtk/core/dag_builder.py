@@ -15,8 +15,8 @@ class DagBuilder(object):
         """
         Wrapper around libRigging.create_utility_node that cache results to ease rig optimisation at creation time.
         This mean that even if create_utility_node is called multiple time, only one utility node is truly used.
-        :param args: Any arguments are fowarded to libRigging.create_utility_node
-        :param kwargs: Any keyword arguments are fowarded to libRigging.create_utility_node
+        :param args: Any arguments are forwarded to libRigging.create_utility_node
+        :param kwargs: Any keyword arguments are forwarded to libRigging.create_utility_node
         :return: A pymel.nodetypes.DagNode instance.
         """
         return libRigging.create_utility_node(*args, **kwargs)

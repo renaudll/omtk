@@ -23,11 +23,11 @@ class TestNodeGraphController(NodeGraphMockedMayaTestCase):
         self.ctrl.set_model(model)
         self.assertIs(model, self.ctrl.get_model())
 
-    def test_set_view(self):
-        """Validate that the view we set is the view we get."""
-        view = mock.MagicMock()
-        self.ctrl.set_view(view)
-        self.assertIs(view, self.ctrl.get_view())
+    # def test_set_view(self):
+    #     """Validate that the view we set is the view we get."""
+    #     view = mock.MagicMock()
+    #     self.ctrl.set_view(view)
+    #     self.assertIs(view, self.ctrl.get_view())
 
     # def test_set_filter(self):
     #     self.fail()

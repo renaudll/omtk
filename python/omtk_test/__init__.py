@@ -10,6 +10,7 @@ from omtk.nodegraph.registry.maya_mocked import MockedMayaRegistry
 from omtk.nodegraph.registry.maya_mocked import MockedSession
 from omtk.vendor.mock_maya.cmds.session import MockedCmdsSession
 from omtk.vendor.mock_maya.pymel.session import MockedPymelSession
+from omtk.vendor.mock_maya.base.presets import REGISTRY_DEFAULT
 
 
 class OmtkTestCase(unittest.TestCase):
@@ -32,18 +33,17 @@ class NodeGraphBaseTestCase(OmtkTestCase):
     _cls_proxy_model = GraphFilterProxyModel
     _cls_controller = NodeGraphController
 
-    def __init__(self, *args, **kwargs):
-        super(NodeGraphBaseTestCase, self).__init__(*args, **kwargs)
-        self.model = None
+    def _create_session(self):
+        return self._cls_session() if self._cls_session else None
 
     def setUp(self):
         super(NodeGraphBaseTestCase, self).setUp()
 
-        self._session = self._cls_session() if self._cls_session else None
+        self._session = self._create_session()
         self._registry = self._cls_registry(session=self.session)
-        self.source_model = self._cls_model(registry=self.registry)
-        self.model = self._cls_proxy_model(registry=self.registry, model=self.source_model)
-        self.ctrl = self._cls_controller(registry=self.registry, model=self.model)
+        self.source_model = self._cls_model(registry=self.registry) if self._cls_model else None
+        self.model = self._cls_proxy_model(registry=self.registry, model=self.source_model) if self._cls_proxy_model else None
+        self.ctrl = self._cls_controller(registry=self.registry, model=self.model) if self._cls_model else None
 
         # By default, expose cmds or pymel mock if needed
         if self._cls_session:
@@ -51,8 +51,9 @@ class NodeGraphBaseTestCase(OmtkTestCase):
             self.pymel = MockedPymelSession(session=self.session)
 
         # Validate the graph is empty
-        self.assertEqual(0, len(self.model.get_nodes()))
-        self.assertEqual(0, len(self.model.get_ports()))
+        if self.model:
+            self.assertEqual(0, len(self.model.get_nodes()))
+            self.assertEqual(0, len(self.model.get_ports()))
 
     @property
     def session(self):
@@ -66,8 +67,8 @@ class NodeGraphBaseTestCase(OmtkTestCase):
     @property
     def registry(self):
         """
-        Getter for the registry
-        :return: The registry
+        Getter for the REGISTRY_DEFAULT
+        :return: The REGISTRY_DEFAULT
         :rtype omtk.nodegraph.NodeGraphRegistry
         """
         return self._registry
@@ -86,8 +87,8 @@ class NodeGraphBaseTestCase(OmtkTestCase):
         """
         Ensure that the number of registered nodes match the provided count.
 
-        :param int expected: The expected node count in the registry.
-        :raise Exception: If the number of nodes in the registry is incorrect.
+        :param int expected: The expected node count in the REGISTRY_DEFAULT.
+        :raise Exception: If the number of nodes in the REGISTRY_DEFAULT is incorrect.
 
         """
         actual = len(self.registry._nodes)
@@ -156,7 +157,16 @@ class NodeGraphBaseTestCase(OmtkTestCase):
 
 class NodeGraphMockedMayaTestCase(NodeGraphBaseTestCase):
     _cls_session = MockedSession
+    _cls_session_preset = REGISTRY_DEFAULT  # This one is an object instead of a class???
     _cls_registry = MockedMayaRegistry
+
+    def _create_session(self):
+        return self._cls_session(preset=self._session_preset) if self._cls_session else None
+
+    def setUp(self):
+        self._session_preset = self._cls_session_preset if self._cls_session_preset else None
+
+        super(NodeGraphMockedMayaTestCase, self).setUp()
 
     @property
     def session(self):

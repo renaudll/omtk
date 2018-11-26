@@ -130,7 +130,7 @@ class WidgetComponentList(QtWidgets.QWidget):
         view.setModel(self.proxy_model)
         # view.resizeColumnsToContents()
 
-        # Ensure that specific key press on the QLineEdit are fowarded to the WidgetComponentList
+        # Ensure that specific key press on the QLineEdit are forwarded to the WidgetComponentList
         event_filter = ComponentListLineEditEventFilter()
         event_filter.set_parent(self)
         self.ui.lineEdit_search.installEventFilter(event_filter)

@@ -29,7 +29,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         self.ui = nodegraph_widget.Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # The registry keep track of what is in Maya and listen to events.
+        # The REGISTRY_DEFAULT keep track of what is in Maya and listen to events.
         # It need to be shared with each controllers (tabs) of the ui.
         # It also need to be destroyed correctly.
         # For this reason we'll initialize it in the NodeGraphWidget itself.

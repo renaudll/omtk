@@ -41,7 +41,7 @@ NodeGraphController = nodegraph_controller.NodeGraphController
 
 # from omtk_nodegraph import nodegraph_filter
 
-# NodeGraphFilter = nodegraph_filter.NodeGraphFilter
+from omtk.nodegraph.nodegraph_filter import NodeGraphFilter
 
 from omtk.nodegraph.models import GraphModel, NodeModel, PortModel, ConnectionModel
 from omtk.nodegraph.models.graph.graph_model_abstract import IGraphModel

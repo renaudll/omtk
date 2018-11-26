@@ -7,8 +7,8 @@ from omtk.nodegraph.signal import Signal
 class ISession(object):
     """
     Interface for a session.
-    A session is the link between the registry and a DCC application like Maya.
-    :param NodeGraphRegistry registry: A registry to bind to the session.
+    A session is the link between the REGISTRY_DEFAULT and a DCC application like Maya.
+    :param NodeGraphRegistry registry: A REGISTRY_DEFAULT to bind to the session.
 
     Signals:
     :signal nodeAdded Called when a node is added in the scene
@@ -36,15 +36,15 @@ class ISession(object):
     @property
     def registry(self):
         """
-        Return the registry associated with the session.
+        Return the REGISTRY_DEFAULT associated with the session.
         :return:
         """
         return self._registry
 
     def set_registry(self, registry):
         """
-        Self the registry to notify in case something happen in the session.
-        :param NodeGraphRegistry registry: The registry subscribing to our events.
+        Self the REGISTRY_DEFAULT to notify in case something happen in the session.
+        :param NodeGraphRegistry registry: The REGISTRY_DEFAULT subscribing to our events.
         """
         self._registry = registry
 

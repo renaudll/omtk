@@ -19,6 +19,9 @@ class Cache(object):
         self._map = {}
         self._map_inv = {}
 
+    def __len__(self):
+        return len(self._map)
+
     def register(self, key, val):
         """
         Register a ressource
@@ -47,11 +50,27 @@ class Cache(object):
     def get_key(self, val):
         return self._map_inv[val]
 
+    def keys(self):
+        return self._map.keys()
+
 
 class CachedDefaultDict(Cache):
     def __init__(self, type_):
         super(CachedDefaultDict, self).__init__()
         self._map = defaultdict(type_)
+
+    def register(self, key, val):
+        self._map[key].add(val)
+        self._map_inv[val] = key
+
+    def unregister(self, key):
+        vals = self._map.pop(key)
+        if vals:
+            for val in vals:
+                self._map_inv.pop(val, None)
+
+    def unregister_val(self, key, val):
+        self._map[key].remove(val)
 
 
 class NodeCache(Cache):

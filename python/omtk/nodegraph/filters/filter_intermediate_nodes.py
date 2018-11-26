@@ -1,8 +1,6 @@
 import logging
 
-import pymel.core as pymel
 from omtk.factories import factory_datatypes
-from omtk.nodegraph.models.node.node_dg import NodeGraphDgNodeModel
 from omtk.nodegraph.nodegraph_filter import NodeGraphFilter
 
 # TODO: Start doing some caching
@@ -118,16 +116,20 @@ class IntermediateNodeFilter(NodeGraphFilter):
         self.hide_predictable_decomposematrix_node = True
 
     def intercept_node(self, node):
-        # Note that we don't use can_show_node() since this will prevent any
-        # port from a predictable intermediate node from being intercepted.
-        if isinstance(node, NodeGraphDgNodeModel):
-            pynode = node.get_metadata()
-            if isinstance(pynode, pymel.nodetypes.ComposeMatrix):
-                if is_composematrix_predictable(node):
-                    return
-            elif isinstance(pynode, pymel.nodetypes.DecomposeMatrix):
-                if is_decomposematrix_predictable(node):
-                    return
+        """
+
+        :param omtk.nodegraph.NodeModel node:
+        :return:
+        """
+        node_type = node.get_type()
+
+        # Ignore predictable composeMatrix
+        if node_type == 'composeMatrix' and is_composematrix_predictable(node):
+            return
+
+        # Ignore predictable decomposeMatrix
+        if node_type == 'decomposeMatrix' and is_decomposematrix_predictable(node):
+            return
 
         for yielded in super(IntermediateNodeFilter, self).intercept_node(node):
             yield yielded
@@ -203,11 +205,14 @@ class IntermediateNodeFilter(NodeGraphFilter):
         if self.hide_unitconversion_node:
             # Redirect anything where destination is a unitConversion.input attribute
             # EXCEPT if the unitConversion is already shown.
-            if not model.is_node_visible(node_src) and isinstance(pynode_src, pymel.nodetypes.UnitConversion):
+            node_src_type = node_src.get_type()
+            node_dst_type = node_dst.get_type()
+
+            if not model.is_node_visible(node_src) and node_src_type == 'unitConversion':
                 for yielded in _intercept_unitconversion_connection():
                     yield yielded
                 return
-            if not model.is_node_visible(node_dst) and isinstance(pynode_dst, pymel.nodetypes.UnitConversion):
+            if not model.is_node_visible(node_dst) and node_dst_type == 'unitConversion':
                 for yielded in _intercept_unitconversion_connection():
                     yield yielded
                 return

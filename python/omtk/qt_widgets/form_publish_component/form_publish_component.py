@@ -60,7 +60,7 @@ class FormPublishComponent(QtWidgets.QMainWindow):
         registry = component_registry.get_registry()
         component_def = self.get_new_definition()
 
-        # todo: Ensure there's no component with the same uid and version in the registry!
+        # todo: Ensure there's no component with the same uid and version in the REGISTRY_DEFAULT!
 
         self._component.set_definition(component_def)
         path = registry.get_path_from_component_def(component_def)

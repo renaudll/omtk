@@ -25,7 +25,7 @@ class NodeGraphRegistryCallbackTestCase(omtk_test.NodeGraphBaseTestCase):
 
     def test_delete_dagnode(self):
         """
-        Ensure that if a node is deleted by Maya, it is automatically removed from the registry and models.
+        Ensure that if a node is deleted by Maya, it is automatically removed from the REGISTRY_DEFAULT and models.
         """
         pymel.delete(self.t1)  # This should trigger a session callback.
 

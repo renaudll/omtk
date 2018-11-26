@@ -66,13 +66,13 @@ class PortModel(object):
         return self._node.get_name() + '.' + self._name
 
     def get_parent(self):
-        # type: () -> NodeModel
         """
         By default, an attribute share the same parent than it's node.
         However this is not always true, for example a Compound input hub
         output attribute have the Compound a it's parent. However a Compound
         input hub input attribute have the Compound parent as it's parent.
         :return:
+        :rtype: omtk.nodegraph.NodeModel
         """
         return self._node
 
@@ -192,7 +192,7 @@ class PortModel(object):
 
             # In case of ambiguity, we will ask the node model.
             node_value = self.get_parent().get_metadata()
-            # node_model = ctrl.get_node_model_from_value(node_value)
+            # model_node = ctrl.get_node_model_from_value(node_value)
             node_model = self._registry.get_node(node_value)
             if is_input and not is_output:
                 return port_widget.OmtkNodeGraphPortInWidget
@@ -303,3 +303,4 @@ class NodeGraphEntityAttributePortModel(PortModel):
         super(NodeGraphEntityAttributePortModel, self).__init__(registry, node, name)
         self._impl = omtk.nodegraph.models.port.port_adaptor_entity.EntityAttributeNodeGraphPortImpl(
             attr_def)
+

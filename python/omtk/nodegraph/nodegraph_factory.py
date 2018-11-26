@@ -60,7 +60,7 @@ def get_port_from_value(registry, val):
     """
     Factory method for PortModel
 
-    :param omtk.nodegraph.Registry registry: The registry
+    :param omtk.nodegraph.Registry registry: The REGISTRY_DEFAULT
     :param object val: A value associated with a port (str, pymel.Attribute)
     :return: A ``PortModel`` instance
     :rtype: omtk.nodegraph.PortModel
@@ -78,7 +78,7 @@ def get_port_from_value(registry, val):
     if isinstance(val, entity_attribute.EntityPort):
         node_value = val.parent
         node_model = registry.get_node(node_value)
-        # node_model = registry.get_node(val.parent)
+        # model_node = REGISTRY_DEFAULT.get_node(val.parent)
         inst = port_base.NodeGraphEntityAttributePortModel(registry, node_model, val)
         return inst
 
@@ -115,7 +115,7 @@ def get_connection_from_value(registry, port_src, port_dst):
     """
     Get a connection object from two ports.
 
-    :param omtk.nodegraph.NodeGraphRegistry registry: The registry
+    :param omtk.nodegraph.NodeGraphRegistry registry: The REGISTRY_DEFAULT
     :param omtk.nodegraph.PortModel port_src: The source port
     :param omtk.nodegraph.PortModel port_dst: The destination port
     :return: A ``ConnectionModel`` instance

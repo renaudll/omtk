@@ -87,7 +87,7 @@ class NodeGraphMayaRigTestCase():
 
         :param List[pymel.PyNode] objs:
         :param pymel.datatypes.Matrix offset_tm:
-        :param Dict[str,object] kwargs: Any additional arguments will be fowarded to assetMatrixAlmostEqual.
+        :param Dict[str,object] kwargs: Any additional arguments will be forwarded to assetMatrixAlmostEqual.
         """
 
         # Store the base matrices

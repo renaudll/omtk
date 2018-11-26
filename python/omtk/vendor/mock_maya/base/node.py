@@ -11,7 +11,11 @@ class MockedNode(QtCore.QObject):
         self.name = name
         self.nodetype = nodetype
         self._parent = None
+        self.ports = set()  # internal REGISTRY_DEFAULT of ports associated with the node
         self.children = set()
+
+    def __hash__(self):
+        return hash(self.dagpath)
 
     def __repr__(self):
         return '<Mocked Node "{}">'.format(self.dagpath)
@@ -66,3 +70,9 @@ class MockedNode(QtCore.QObject):
         if parent:
             parent.children.add(self)
         self._parent = parent
+
+    def get_port_by_name(self, name):
+        for port in self.ports:
+            if port.name == name:
+                return port
+        return None

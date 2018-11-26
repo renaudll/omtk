@@ -301,3 +301,35 @@ class MockedCmdsSession(object):
 
         for child in children:
             child.set_parent(parent)
+
+    def connectAttr(self, src, dst, force=False, lock=False, nextAvailable=False, referenceDest=False):
+        """
+        https://help.autodesk.com/cloudhelp/2016/ENU/Maya-Tech-Docs/Commands/connectAttr.html
+
+        :param src: The connection source port.
+        :type src: MockedPymelPort or str
+        :param dst: The connection destination port.
+        :type dst: MockedPymelPort or str
+        :param bool force:
+        :param bool lock:
+        :param bool nextAvailable:
+        :param bool referenceDest:
+        """
+        port_src = self.session.get_port_by_match(src)
+        port_dst = self.session.get_port_by_match(dst)
+        # todo: what if connection already exist?
+        self.session.create_connection(port_src, port_dst)
+
+    def disconnectAttr(self, src, dst, nextAvailable=False):
+        """
+        https://help.autodesk.com/cloudhelp/2016/ENU/Maya-Tech-Docs/Commands/disconnectAttr.html
+        :param src: The connection source port.
+        :type src: MockedPymelPort or str
+        :param dst: The connection destination port.
+        :type dst: MockedPymelPort or str
+        :param bool nextAvailable:
+        """
+        port_src = self.session.get_port_by_match(src)
+        port_dst = self.session.get_port_by_match(dst)
+        connection = self.session.get_connection_by_ports(port_src, port_dst)
+        self.session.remove_connection(connection)

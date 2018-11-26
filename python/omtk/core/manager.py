@@ -152,7 +152,7 @@ class AutoRigManager(QtCore.QObject):
 
     def import_components(self):
         """
-        Fill the component registry with any serialized _known_definitions in the scene.
+        Fill the component REGISTRY_DEFAULT with any serialized _known_definitions in the scene.
         """
         from omtk import component
         cls_name = component.Component.__name__

@@ -68,8 +68,8 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     def get_registry(self):
         """
-        Return the registry associated with the graph.
-        The registry is the interface to any DCC application like Maya.
+        Return the REGISTRY_DEFAULT associated with the graph.
+        The REGISTRY_DEFAULT is the interface to any DCC application like Maya.
         :return:
         :rtype omtk.nodegraph.NodeGraphRegistry
         """
@@ -77,9 +77,9 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     def set_registry(self, registry):
         """
-        The the registry associated with the graph.
-        The registry is the interface to any DCC application like Maya.
-        :param NodeGraphRegistry registry: The graph new registry.
+        The the REGISTRY_DEFAULT associated with the graph.
+        The REGISTRY_DEFAULT is the interface to any DCC application like Maya.
+        :param NodeGraphRegistry registry: The graph new REGISTRY_DEFAULT.
         """
         if self._registry:
             self._unregister_registry(self._registry)
@@ -91,26 +91,28 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     def _register_registry(self, registry):
         """
-        Add callbacks to a registry Qt Signal so we can intercept it.
-        :param NodeGraphRegistry registry: The registry to connect.
+        Add callbacks to a REGISTRY_DEFAULT Qt Signal so we can intercept it.
+        :param NodeGraphRegistry registry: The REGISTRY_DEFAULT to connect.
         """
         registry.onNodeDeleted.connect(self.on_node_unexpectedly_deleted)
         registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
         registry.onPortRemoved.connect(self.on_attribute_unexpectedly_removed)
+        registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
         registry.onConnectionRemoved.connect(self.on_connection_unexpectedly_removed)
 
-        # registry.onNodeDeleted.connect(self.onNodeRemoved.emit)
+        # REGISTRY_DEFAULT.onNodeDeleted.connect(self.onNodeRemoved.emit)
 
     def _unregister_registry(self, registry):
         """
-        Remove callbacks from a registry Qt Signal.
+        Remove callbacks from a REGISTRY_DEFAULT Qt Signal.
         """
         registry.onNodeDeleted.disconnect(self.on_node_unexpectedly_deleted)
         registry.onPortAdded.disconnect(self.on_attribute_unexpectedly_added)
         registry.onPortRemoved.disconnect(self.on_attribute_unexpectedly_removed)
+        registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
         registry.onConnectionRemoved.disconnect(self.on_connection_unexpectedly_removed)
 
-        # registry.onNodeDeleted.disconnect(self.onNodeRemoved.emit)
+        # REGISTRY_DEFAULT.onNodeDeleted.disconnect(self.onNodeRemoved.emit)
 
     # --- Node methods ---
 
@@ -150,7 +152,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     def _register_node(self, node, pos=None):
         """
-        Add a node to the registry.
+        Add a node to the REGISTRY_DEFAULT.
         If the node is already registered, nothing happen.
         :param GraphModel node: The node to register.
         :param QtCore.QPointF pos: The position of the node. Optional.
@@ -175,7 +177,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     def _unregister_node(self, node, emit=True):
         """
-        Remove a node from the registry.
+        Remove a node from the REGISTRY_DEFAULT.
         :param node: The node to unregister.
         """
         self._nodes.remove(node)
@@ -305,7 +307,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     def _unregister_port(self, port):
         """
-        Remove a port from the internal registry.
+        Remove a port from the internal REGISTRY_DEFAULT.
         :param PortModel port: The port to unregister.
         """
         self._ports.remove(port)
@@ -403,12 +405,15 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     def on_attribute_unexpectedly_removed(self, port):
         """
-        Callback called when a port is unexpectedly removed from the registry associated with the graph.
+        Callback called when a port is unexpectedly removed from the REGISTRY_DEFAULT associated with the graph.
         :param omtk.nodegraph.PortModel port: The port that was removed.
         """
         node = port.get_parent()
         node._unregister_port(port)
         self.remove_port(port)
+
+    def on_connection_unexpectedly_added(self, connection):
+        self.add_connection(connection)
 
     def on_connection_unexpectedly_removed(self, connection):
         self.remove_connection(connection)

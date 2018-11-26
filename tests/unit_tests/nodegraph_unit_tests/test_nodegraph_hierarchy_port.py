@@ -25,7 +25,7 @@ class NodeGraphParentPortTestCase(NodeGraphMockedMayaTestCase):
         Validate that when two DagNodes are parented, we add a 'parent' port.
         :return:
         """
-        # self.session.parent(self.n1, self.n2)
+        # self.session.parent(self.node, self.n2)
         # TODO: This don't work because the hierarchy connection should be added by a GraphProxyModel!
         self.assertGraphConnectionsEqual((
             (u'parent.hierarchy', u'child.hierarchy'),

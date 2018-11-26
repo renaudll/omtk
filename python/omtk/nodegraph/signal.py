@@ -2,10 +2,11 @@ import logging
 import threading
 
 log = logging.getLogger(__name__)
-
+log.setLevel(logging.INFO)
 
 # TODO: Replace with https://github.com/dgovil/PySignal ?
 # TODO: Implement __str__ that query sender?
+
 
 class Signal(object):
     """
@@ -47,11 +48,11 @@ class Signal(object):
         """
         Call all functions registered to this signal.
 
-        :param object args: Any arguments will be fowarded to the registered callables.
-        :param object kwargs: Any arguments will be fowarded to the registed callables.
+        :param object args: Any arguments will be forwarded to the registered callable.
+        :param object kwargs: Any arguments will be forwarded to the registered callable.
         """
         if self._block:
-            log.warning("Skipping emit since block is True.")
+            log.debug("Skipping emit since block is True.")
             return
 
         log.debug("Signal %s emitted", self)

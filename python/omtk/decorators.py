@@ -226,6 +226,14 @@ class cached_property(object):
         return cache[self.__name__]
 
 
+def singleton(cls):
+    instances = {}
+    def wrapper(*args, **kwargs):
+        if cls not in instances:
+          instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+    return wrapper
+
 def open_scene(path):
     """
     Decorator for opening a Maya file.

@@ -30,7 +30,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         cmpt_namespace = inst.get_namespace()
         cmds.namespace(setNamespace=cmpt_namespace)
 
-        n1 = pymel.createNode('transform', name='n1')
+        n1 = pymel.createNode('transform', name='node')
 
         self.assertIn(n1, inst)
 
@@ -69,7 +69,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         # Validate connections
         # Note that for now, create a component from nodes don't populate the hubs automatically.
         # This might be something that we are interested to do but I'm scared atm haha.
-        # self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [n1.tx])
+        # self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [node.tx])
         # self.assertEqual(c1.grp_inn.attr('innVal').outputs(plugs=True), [n2.tx])
         # self.assertEqual(c1.grp_out.attr('outVal').inputs(plugs=True), [n4.tx])
         # self.assertEqual(c1.grp_out.attr('outVal').outputs(plugs=True), [n5.tx])
@@ -88,8 +88,8 @@ class ComponentCreationTestCase(unittest.TestCase):
         c2 = component.from_nodes([n3], namespace=namespace)
 
         # Validate connections
-        # n1 -> c1 -> n2 -> c2 -> n3 -> c2 -> n4 -> c1 -> n5
-        # self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [n1.tx])
+        # node -> c1 -> n2 -> c2 -> n3 -> c2 -> n4 -> c1 -> n5
+        # self.assertEqual(c1.grp_inn.attr('innVal').inputs(plugs=True), [node.tx])
         # self.assertEqual(c1.grp_inn.attr('innVal').outputs(plugs=True), [n2.tx])
         # self.assertEqual(c2.grp_inn.attr('innVal').inputs(plugs=True), [n2.tx])
         # self.assertEqual(c2.grp_inn.attr('innVal').outputs(plugs=True), [n3.tx])
@@ -143,7 +143,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         Ensure desired behavior when creating a component sandwitched between existing connections.
         """
         # Create a 5-daisy-chain of nodes
-        # n1.tx -> n2.tx -> n3.tx -> n4.tx -> n5.tx
+        # node.tx -> n2.tx -> n3.tx -> n4.tx -> n5.tx
         cmds.file(new=True, force=True)
         n1 = pymel.createNode('transform')
         n2 = pymel.createNode('transform')
@@ -156,7 +156,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         pymel.connectAttr(n4.tx, n5.tx)
 
         # Create first component
-        # n1.tx -> ( n2.tx -> n3.tx -> n4.tx ) -> n5.tx
+        # node.tx -> ( n2.tx -> n3.tx -> n4.tx ) -> n5.tx
         namespace = 'component'
         c1 = component.from_attributes_map(
             {'innVal': n2.tx}, {'outVal': n4.tx}, namespace=namespace
@@ -178,7 +178,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         self.assertEqual('component1', self._get_namespace(c1.grp_out))
 
         # Create a second component inside the first component
-        # n1 -> ( n2 -> ( n3.tx ) -> n4 ) -> c5
+        # node -> ( n2 -> ( n3.tx ) -> n4 ) -> c5
         namespace = 'component'
         c2 = component.from_attributes_map(
             {'innVal': n3.tx}, {'outVal': n3.tx}, namespace=namespace
@@ -230,7 +230,7 @@ class ComponentCreationTestCase(unittest.TestCase):
         Test a component known to by hard to create.
         """
         cmds.file(new=True, force=True)
-        n1 = pymel.createNode('transform', name='n1')
+        n1 = pymel.createNode('transform', name='node')
         n2 = pymel.createNode('transform', name='n2')
         n3 = pymel.createNode('transform', name='n3')
         u1 = libRigging.create_utility_node(
@@ -255,7 +255,7 @@ class ComponentCreationTestCase(unittest.TestCase):
 
         print list(inst.iter_attributes())
         # self.assertEqual(inst.grp_inn.attr('innTranslate1').inputs(plugs=True), [])
-        # self.assertEqual(inst.grp_inn.attr('innTranslate1').outputs(plugs=True), [n1.t])
+        # self.assertEqual(inst.grp_inn.attr('innTranslate1').outputs(plugs=True), [node.t])
 
 
 if __name__ == '__main__':

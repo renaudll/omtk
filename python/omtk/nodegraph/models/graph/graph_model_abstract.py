@@ -11,23 +11,14 @@ from omtk.nodegraph.signal import Signal
 log = logging.getLogger('omtk.nodegraph')
 
 
-class QtCoreAbcMeta(type(QtCore.QObject), abc.ABCMeta):
-    """
-    Helper class so abc.ABCMeta and QtCore.QObject play nicely together.
-    src: https://stackoverflow.com/questions/46837947/how-to-create-an-abstract-base-class-in-python-which-derived-from-qobject
-    """
-    # todo: abc.ABCMeta don't seem to work
-    pass
-
-
-class IGraphModel(QtCore.QObject):
+class IGraphModel(object):
 
     """
     Define a nodal network from various NodeGraph[Node/Port/Connection]Model instances.
     Subgraphs and filters can be implemented by feeding a NodeGraphRegistry through a NodeGraphProxyModel.
     NodeGraphRegistry are consumed
     """
-    # __metaclass__ = QtCoreAbcMeta
+    # __metaclass__ = abc.ABCMeta
 
     # Signal emitted when a node is added in the model.
     onNodeAdded = Signal(NodeModel)
@@ -64,16 +55,16 @@ class IGraphModel(QtCore.QObject):
     @property
     def registry(self):
         """
-        Getter for the registry.
-        :return: The registry
+        Getter for the REGISTRY_DEFAULT.
+        :return: The REGISTRY_DEFAULT
         :rtype: omtk.nodegraph.NodeGraphRegistry
         """
         return self._registry
 
     def get_registry(self):
         """
-        Return the registry associated with the graph.
-        The registry is the interface to any DCC application like Maya.
+        Return the REGISTRY_DEFAULT associated with the graph.
+        The REGISTRY_DEFAULT is the interface to any DCC application like Maya.
         :return:
         :rtype omtk.nodegraph.NodeGraphRegistry
         """
@@ -81,9 +72,9 @@ class IGraphModel(QtCore.QObject):
 
     def set_registry(self, registry):
         """
-        The the registry associated with the graph.
-        The registry is the interface to any DCC application like Maya.
-        :param NodeGraphRegistry registry: The graph new registry.
+        The the REGISTRY_DEFAULT associated with the graph.
+        The REGISTRY_DEFAULT is the interface to any DCC application like Maya.
+        :param NodeGraphRegistry registry: The graph new REGISTRY_DEFAULT.
         """
         self._registry = registry
 
@@ -188,55 +179,81 @@ class IGraphModel(QtCore.QObject):
 
     @abc.abstractmethod
     def add_port(self, port, emit=False):
-        # type: (PortModel, bool) -> None
-        """"""
+        """
+        Add a port to the graph.
+        :param PortModel port: The port to add
+        :param bool emit: If True, the `onPortAdded` signal will be emitted.
+        """
 
     @abc.abstractmethod
     def remove_port(self, port, emit=False):
-        # type: (PortModel, bool) -> None
-        """"""
+        """
+        Remove a port from the graph.
+        :param PortModel port: The port to remove
+        :param emit: If True, the `onPortRemoved` signal will be emitted.
+        """
 
     @abc.abstractmethod
     def is_port_visible(self, port):
-        # type: (PortModel) -> bool
-        """"""
+        """
+        Determine if a port is visible.
+        :param PortModel port: The port to query
+        :return: True if the port is visible. False otherwise.
+        :rtype: bool
+        """
 
     # --- Connection methods ---
 
     @abc.abstractmethod
     def iter_connections(self):
-        # type: () -> List[ConnectionModel]
-        """"""
+        """
+        Iterate through all graph connections.
+        :return: A connection generator
+        :rtype Generator[ConnectionModel]
+        """
 
     @abc.abstractmethod
     def get_connections(self):
-        # type: () -> List[ConnectionModel]
-        """"""
+        """
+        Get all the graph connections.
+        :return: A list of connections
+        :rtype: List[ConnectionModel]
+        """
         return list(self.iter_connections())
 
     @abc.abstractmethod
     def add_connection(self, connection, emit=False):
-        # type: (ConnectionModel, bool) -> None
-        """"""
+        """
+        Add a connection to the graph.
+        :param ConnectionModel connection: The connection to add
+        :param bool emit: If True, the `onConnectionAdded` signal will be emitted.
+        """
 
     @abc.abstractmethod
     def remove_connection(self, connection, emit=False):
-        # type: (ConnectionModel, bool) -> None
-        """"""
+        """
+        Remove a connection from the graph.
+        :param ConnectionModel connection: The connection to remove
+        :param bool emit: If True, the `onConnectionRemoved` signal will be emitted.
+        """
 
     @abc.abstractmethod
     def is_connection_visible(self, connection):
-        # type: (ConnectionModel) -> bool
-        """"""
+        """
+        Determine if a connection is visible.
+        :param ConnectionModel connection: The connection to query.
+        :return: True if the connection is visible. False otherwise.
+        :rtype: bool
+        """
 
     # --- Exploration methods that add nothing to the graph ---
 
     def iter_node_ports(self, node):
-        # type: (NodeModel) -> Generator[PortModel]
         """
         Yield all ports inside a node model. This don't add the port into the graph.
         :param node: A NodeModel instance.
         :return: A generator that yield PortModel.
+        :rtype: Generator[PortModel]
         """
         return
         yield
@@ -320,13 +337,11 @@ class IGraphModel(QtCore.QObject):
                     yield connection
 
     # --- Utility methods ---
-
     def expand_node_ports(self, node):
-        # type: (NodeModel) -> None
         """
         Show all available attributes for a PyFlowgraph Node.
         Add it in the pool if it didn't previously exist.
-        :return:
+        :param NodeModel node: The node to scan.
         """
         for port in sorted(self.iter_node_ports(node)):
             self.add_port(port, emit=True)

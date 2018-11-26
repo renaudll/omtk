@@ -7,8 +7,8 @@ class NodeGraphUnitTest(NodeGraphTestCase):
 
     def get_registry(self):
         """
-        Same as .registry but with type-hinting
-        :return: The registry
+        Same as .REGISTRY_DEFAULT but with type-hinting
+        :return: The REGISTRY_DEFAULT
         :rtype: MayaRegistry
         """
         return self.registry

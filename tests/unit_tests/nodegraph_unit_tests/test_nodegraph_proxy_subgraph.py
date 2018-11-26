@@ -31,7 +31,7 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
         Ensure that we support subgraphs networks where an attribute is both an input and an output (io).
         """
         # Create network
-        n1 = pymel.createNode('transform', name='n1')
+        n1 = pymel.createNode('transform', name='node')
         n2 = pymel.createNode('transform', name='n2')
         n3 = pymel.createNode('transform', name='n3')
         pymel.connectAttr(n1.t, n2.t)
@@ -42,18 +42,18 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
         m2 = self.registry.get_node(n2)
         m3 = self.registry.get_node(n3)
         self.ctrl.add_nodes(m1, m2, m3)
-        self.assertGraphNodeNamesEqual([u'n1', u'n2', u'n3'])
+        self.assertGraphNodeNamesEqual([u'node', u'n2', u'n3'])
         self.assertGraphConnectionsEqual([
-            (u'n1.translate', u'n2.translate'),
+            (u'node.translate', u'n2.translate'),
             (u'n2.translate', u'n3.translate'),
         ])
 
         # Create a subgroup (group nodes)
         component = self.ctrl.group_nodes([m2])
-        self.assertGraphNodeNamesEqual([u'n1', u'component1', u'n3'])
+        self.assertGraphNodeNamesEqual([u'node', u'component1', u'n3'])
         self.assertPortInfo(component, 'translate', is_readable=True, is_writable=True)
         self.assertGraphConnectionsEqual([
-            (u'n1.translate', u'component1.translate'),
+            (u'node.translate', u'component1.translate'),
             (u'component1.translate', u'n3.translate'),
         ])
 
@@ -68,7 +68,7 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
         """
         # Create network
         def _create_transform(name): return pymel.createNode('transform', name=name)
-        n1 = _create_transform('n1')
+        n1 = _create_transform('node')
         n2 = _create_transform('n2')
         n3 = _create_transform('n3')
         n4 = _create_transform('n4')
@@ -87,13 +87,13 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
         m5 = _register(n5)
 
         self.ctrl.add_nodes(m1, m2, m3, m4, m5)
-        self.assertGraphNodeNamesEqual([u'n1', u'n2', u'n3', u'n4', u'n5'])
+        self.assertGraphNodeNamesEqual([u'node', u'n2', u'n3', u'n4', u'n5'])
 
         # Create a subgroup (group nodes)
         component_1 = self.ctrl.group_nodes([m2, m3, m4])
-        self.assertGraphNodeNamesEqual([u'n1', u'component1', u'n5'])
+        self.assertGraphNodeNamesEqual([u'node', u'component1', u'n5'])
         self.assertGraphConnectionsEqual([
-            (u'n1.translate', u'component1.translate'),
+            (u'node.translate', u'component1.translate'),
             (u'component1.translate', u'n5.translate'),
         ])
 
@@ -137,9 +137,9 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
 
         # Return to root level
         self.ctrl.set_level(None)
-        self.assertGraphNodeNamesEqual([u'n1', u'component1', u'n5'])
+        self.assertGraphNodeNamesEqual([u'node', u'component1', u'n5'])
         self.assertGraphConnectionsEqual([
-            (u'n1.translate', u'component1.translate'),
+            (u'node.translate', u'component1.translate'),
             (u'component1.translate', u'n5.translate'),
         ])
 

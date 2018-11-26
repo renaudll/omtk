@@ -1,10 +1,9 @@
 import logging
-import pymel.core as pymel
 from omtk.nodegraph.models.port import port_base as port_model
 from omtk.nodegraph.models import connection as connection_model
 from omtk.nodegraph.models.node import node_dg
 
-log = logging.getLogger('omtk.nodegraph')
+log = logging.getLogger(__name__)
 
 
 class DagNodeParentPortModel(port_model.PortModel):
@@ -14,6 +13,7 @@ class DagNodeParentPortModel(port_model.PortModel):
         super(DagNodeParentPortModel, self).__init__(registry, parent, 'hierarchy')
 
     def is_interesting(self):
+        # A dag node is always interesting.
         return True
 
     def is_readable(self):
@@ -50,18 +50,24 @@ class DagNodeParentPortModel(port_model.PortModel):
         return result
 
     def connect_to(self, val):
-        # type: (pymel.PyNode) -> None
+        """
+        :param pymel.PyNode val:
+        """
         metadata = self.get_metadata()
         val.setParent(metadata)
 
     def connect_from(self, val):
-        # type: (pymel.PyNode) -> None
+        """
+        :param pymel.PyNode val:
+        """
         # todo: cycle validation?
         metadata = self.get_metadata()
         metadata.setParent(val)
 
     def disconnect_from(self, val):
-        # type: (pymel.PyNode) -> None
+        """
+        :param pymel.PyNode val:
+        """
         metadata = self.get_metadata()
         metadata.setParent(world=True)
 
@@ -84,7 +90,7 @@ class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
         metadata = self.get_metadata()
         node_model = self._registry.get_node(metadata)
         inst = DagNodeParentPortModel(self._registry, node_model)
-        # inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, node_model, val)
+        # inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, model_node, val)
         yield inst
 
         for yielded in super(NodeGraphDagNodeModel, self).scan_ports():

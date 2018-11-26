@@ -39,7 +39,7 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaTestCase):
         with mock_pymel(self.session) as pymel:
             from omtk.libs import libRigging
 
-            n1 = pymel.createNode('transform', name='n1')
+            n1 = pymel.createNode('transform', name='node')
             n2 = pymel.createNode('transform', name='n2')
             u1 = libRigging.create_utility_node(
                 'decomposeMatrix',
@@ -57,18 +57,18 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaTestCase):
 
         # Add the source node, we should not see the decomposeMatrix node.
         self.ctrl.add_nodes(m1, m2, m3)
-        self.assertGraphNodeNamesEqual([u'n1', u'n2', u'n3'])
+        self.assertGraphNodeNamesEqual([u'node', u'n2', u'n3'])
         self.assertGraphConnectionsEqual([
-            (u'n1.matrix', u'n2.translate'),
-            (u'n1.matrix', u'n3.inputMatrix'),
+            (u'node.matrix', u'n2.translate'),
+            (u'node.matrix', u'n3.inputMatrix'),
             (u'n3.outputTranslate', u'n2.translate'),
         ])
 
         # Create compound
         compound = self.ctrl.group_nodes([m2, m3])
-        self.assertGraphNodeNamesEqual([u'n1', u'component1'])
+        self.assertGraphNodeNamesEqual([u'node', u'component1'])
         self.assertGraphConnectionsEqual([
-            (u'n1.matrix', u'component1.inputMatrix'),
+            (u'node.matrix', u'component1.inputMatrix'),
         ])
 
         # Enter compound

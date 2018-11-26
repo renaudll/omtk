@@ -220,15 +220,15 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
 
     def set_registry(self, registry):
         """
-        Set the registry.
+        Set the REGISTRY_DEFAULT.
         :param NodeGraphRegistry registry:
         """
         self._registry = registry
 
     def get_registry(self):
         """
-        Get the registry.
-        :return: The registry where all the node, port and connections are stored.
+        Get the REGISTRY_DEFAULT.
+        :return: The REGISTRY_DEFAULT where all the node, port and connections are stored.
         :rtype: NodeGraphRegistry
         """
         return self._registry
@@ -397,10 +397,10 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
     def collapse_node_attributes(self, node_model):
         # There's no API method to remove a port in PyFlowgraph.
         # For now, we'll just re-created the node.
-        # node_widget = self.get_widget_from_node(node_model)
+        # node_widget = self.get_widget_from_node(model_node)
         # self._view.removeNode(node_widget)
-        # self.get_widget_from_node.cache[node_model]  # clear cache
-        # node_widget = self.get_widget_from_node(node_model)
+        # self.get_widget_from_node.cache[model_node]  # clear cache
+        # node_widget = self.get_widget_from_node(model_node)
         # self._view.addNode(node_widget)
         raise NotImplementedError
 
@@ -469,14 +469,14 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
         # In Pyflowgraph, a Port need a Node.
         # Verify that we initialize the widget for the Node.
         # node_value = port.get_parent().get_metadata()
-        # node_model = self.get_node_model_from_value(node_value)
+        # model_node = self.get_node_model_from_value(node_value)
         node_model = port.get_parent()
 
         # Hack: Hide Compound bound nodes when not inside the compound!
-        # if isinstance(node_model, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
-        #     compound_model = self.get_node_model_from_value(node_model.get_parent())
+        # if isinstance(model_node, nodegraph_node_model_component.NodeGraphComponentBoundBaseModel):
+        #     compound_model = self.get_node_model_from_value(model_node.get_parent())
         #     if self._current_level != compound_model:
-        #         node_model = compound_model
+        #         model_node = compound_model
 
         graph = self.get_model()
         is_input = graph.is_port_input(port)
@@ -741,7 +741,7 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
             log.warning(e)  # todo: fix this
         model = self.get_model()
         model.remove_node(node_model, emit=True)
-        # widget = self.get_widget_from_node(node_model)
+        # widget = self.get_widget_from_node(model_node)
         # widget.disconnectAllPorts(emitSignal=False)
         # self._view.removeNode(widget)
 
@@ -1187,7 +1187,7 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
 
         # Remove grouped widgets
         for node in nodes:
-            # node_model = self.get_node_model_from_value(node)
+            # model_node = self.get_node_model_from_value(node)
             self._model.remove_node(node)
             # self.remove_node_from_view(node)
 

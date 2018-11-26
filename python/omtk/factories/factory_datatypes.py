@@ -86,16 +86,30 @@ _g_attr_type_from_maya_attribute_type_str = {
     'message': AttributeType.AttributeMessage
 }
 
+# Type by Native type
+
 _attr_type_by_native_type = {
     float: AttributeType.AttributeFloat,
     int: AttributeType.AttributeInt,
-    pymel.datatypes.Vector: AttributeType.AttributeVector3,
-    pymel.datatypes.Point: AttributeType.AttributeVector4,
-    pymel.datatypes.Matrix: AttributeType.AttributeMatrix,
     str: AttributeType.AttributeString,
     bool: AttributeType.AttributeBool,
-    pymel.nodetypes.NurbsCurve: AttributeType.AttributeNurbsCurve,
+
 }
+
+
+def _register_pymel_type_by_native_type(pymel):
+    _attr_type_by_native_type.update({
+        pymel.datatypes.Vector: AttributeType.AttributeVector3,
+        pymel.datatypes.Point: AttributeType.AttributeVector4,
+        pymel.datatypes.Matrix: AttributeType.AttributeMatrix,
+        pymel.nodetypes.NurbsCurve: AttributeType.AttributeNurbsCurve,
+    })
+
+
+if pymel:
+    _register_pymel_type_by_native_type(pymel)
+
+# Port color by data type
 
 # note: currently we try to use the same colors as in maya Node Editor.md
 _g_port_color_by_datatype = {

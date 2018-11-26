@@ -40,7 +40,9 @@ def mock_pymel(session):
     :return: A context
     :rtype: contextmanager.GeneratorContextManager
     """
+    pymel = session if isinstance(session, MockedPymelSession) else MockedPymelSession(session)
 
-    with mock.patch('pymel.core', session):
-        with mock.patch('pymel', session):
-            yield session
+
+    # with mock.patch('pymel.core', session):
+    #     with mock.patch('pymel', session):
+    yield pymel

@@ -1,6 +1,5 @@
-import pymel.core as pymel
+
 from omtk.nodegraph import NodeGraphFilter
-from omtk.nodegraph.models.node.node_dg import NodeGraphDgNodeModel
 
 
 class NodeGraphMetadataFilter(NodeGraphFilter):
@@ -15,9 +14,9 @@ class NodeGraphMetadataFilter(NodeGraphFilter):
         :return: True if the node is visible. False otherwise.
         :rtype: bool
         """
-        if isinstance (node, NodeGraphDgNodeModel):
-            pynode = node.get_metadata()
-            if isinstance(pynode, pymel.nodetypes.Network):
-                return False
+        node_type = node.get_type()
+        raise Exception(node_type)
+        if node_type == 'network':
+            return False
 
         return True

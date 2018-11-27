@@ -1,13 +1,15 @@
 import logging
+
+import omtk.nodegraph.models.node
 from omtk import constants
 from omtk.nodegraph.widgets import widget_node
 
-from . import node_base
+from omtk.nodegraph.models.node import node_base
 
 log = logging.getLogger('omtk.nodegraph')
 
 
-class NodeGraphDgNodeModel(node_base.NodeModel):
+class NodeGraphDgNodeModel(omtk.nodegraph.models.node.NodeModel):
     """Define the data model for a Node representing a DagNode."""
 
     def __init__(self, registry, pynode):

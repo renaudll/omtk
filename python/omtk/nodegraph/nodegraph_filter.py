@@ -42,7 +42,7 @@ class NodeGraphFilter(object):
 
     def can_show_port(self, port):
         """
-        Check if a port is displayable according to the filter.
+        Determine if a port can be shown.
         The default behavior is to check if the port is considered "interesting".
         :param PortModel port: The port to inspect.
         :return: True if we can display this port.
@@ -55,7 +55,7 @@ class NodeGraphFilter(object):
 
     def can_show_connection(self, connection):
         """
-
+        Determine if a connection can be shown.
         :param omtk.nodegraph.ConnectionModel connection:
         :return: True if the connect can be shown, False if it is filtered out.
         """

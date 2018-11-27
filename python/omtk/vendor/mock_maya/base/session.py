@@ -8,7 +8,6 @@ from omtk.nodegraph.signal import Signal
 from omtk.vendor.mock_maya.base import MockedConnection
 from omtk.vendor.mock_maya.base import MockedNode
 from omtk.vendor.mock_maya.base import MockedPort
-from omtk.vendor.mock_maya.base import presets
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +34,8 @@ class MockedSession(ISession):
         self.selection = set()
         self.ports_by_node = CachedDefaultDict(set)
         self.presets = preset
+
+    # --- Public methods
 
     def exists(self, dagpath):
         return bool(self.get_node_by_match(dagpath, strict=False))
@@ -97,16 +98,17 @@ class MockedSession(ISession):
         node = MockedNode(self, node_type, name)
         self.nodes.add(node)
 
+        if emit:
+            signal = self.nodeAdded
+            log.debug("%s emited with %s", signal, node)
+            signal.emit(node)
+
         # Add port from configuration if needed
         if self.presets:
             preset = self.presets.get(node_type)
             if preset:
                 preset.apply(self, node)
 
-        if emit:
-            signal = self.nodeAdded
-            log.debug("%s emited with %s", signal, node)
-            signal.emit(node)
         return node
 
     def remove_node(self, node, emit=True):
@@ -153,10 +155,10 @@ class MockedSession(ISession):
         for conn in connections:
             self.remove_connection(conn, emit=emit)
 
-        self.ports.remove(port)
-
         if emit:
             self.portRemoved.emit(port)
+
+        self.ports.remove(port)
 
     def remove_node_port(self, node, name, emit=True):
         """
@@ -191,9 +193,9 @@ class MockedSession(ISession):
         :param bool emit: If True, the `connectionRemoved` signal will be emitted.
         :return:
         """
-        self.connections.remove(connection)
         if emit:
             self.connectionRemoved.emit(connection)
+        self.connections.remove(connection)
 
     # Node methods
 
@@ -235,3 +237,39 @@ class MockedSession(ISession):
         :rtype: bool
         """
         return any(connection.dst is port for connection in self.connections)
+
+    def get_port_input_connections(self, port):
+        """
+        Retrieve the connections that use the provided port as destination.
+        :param MockedPort port: The port to query.
+        :return: A set of mocked connections
+        :rtype: Set[MockedConnection]
+        """
+        return {connection for connection in self.connections if connection.dst is port}
+
+    def get_port_output_connections(self, port):
+        """
+        Retrieve the connections that use the provided port as destination.
+        :param MockedPort port: The port to query.
+        :return: A set of mocked connections
+        :rtype: Set[MockedConnection]
+        """
+        return {connection for connection in self.connections if connection.dst is port}
+
+    def get_port_inputs(self, port):
+        """
+        Retrieve all port that take part in a connection where the provided port is the destination.
+        :param MockedPort port: The port to query.
+        :return: A set of mocked ports.
+        :rtype: Set[MockedPort]
+        """
+        return {connection.src for connection in self.get_port_input_connections(port)}
+
+    def get_port_outputs(self, port):
+        """
+        Retrieve all port that take part in a connection where the provided port is the source.
+        :param MockedPort port: The port to query.
+        :return: A set of mocked ports.
+        :rtype: Set[MockedPort]
+        """
+        return {connection.dst for connection in self.get_port_output_connections(port)}

@@ -5,8 +5,8 @@ import unittest
 
 from omtk_test import NodeGraphMockedMayaTestCase
 from omtk.nodegraph import NodeGraphFilter
-from omtk.nodegraph.models.node.node_dag import NodeGraphDagNodeModel
-from omtk.nodegraph.models.port.port_base import NodeGraphPymelPortModel
+from omtk.nodegraph.models._deprecated import NodeGraphDagNodeModel
+from omtk.nodegraph.models._deprecated.port_pymel import NodeGraphPymelPortModel
 from omtk.vendor.mock_maya.decorators import mock_pymel
 
 

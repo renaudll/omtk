@@ -1,11 +1,12 @@
+import abc
 import logging
 
 from omtk.core import manager
 from omtk.nodegraph.cache import NodeCache, PortCache, ConnectionCache, CachedDefaultDict
 from omtk.nodegraph.signal import Signal
 
-from omtk.nodegraph.models.node import node_base
-from omtk.nodegraph.models.port import port_base
+from omtk.nodegraph.models.node import NodeModel
+from omtk.nodegraph.models.port import PortModel
 from omtk.nodegraph.models.connection import ConnectionModel
 
 log = logging.getLogger(__name__)
@@ -25,11 +26,12 @@ class NodeGraphRegistry(object):  # QObject provide signals
     :param ISession session: The DCC session attached to the REGISTRY_DEFAULT.
            When something change in the DCC session, the REGISTRY_DEFAULT will be notified.
     """
-    onNodeAdded = Signal(node_base.NodeModel)
-    onNodeDeleted = Signal(node_base.NodeModel)
-    onPortAdded = Signal(port_base.PortModel)
-    onPortRemoved = Signal(port_base.PortModel)
-    onConnectionCreated = Signal(port_base.PortModel)
+    __metaclass__ = abc.ABCMeta
+    onNodeAdded = Signal(NodeModel)
+    onNodeDeleted = Signal(NodeModel)
+    onPortAdded = Signal(PortModel)
+    onPortRemoved = Signal(PortModel)
+    onConnectionCreated = Signal(PortModel)
     onConnectionAdded = Signal(ConnectionModel)
     onConnectionRemoved = Signal(ConnectionModel)
 
@@ -116,8 +118,6 @@ class NodeGraphRegistry(object):  # QObject provide signals
         session.add_callbacks()
 
     def _connect_session(self, session):
-        super(NodeGraphRegistry, self)._connect_session(session)
-
         session.nodeAdded.connect(self.onNodeAdded.emit)
         # session.nodeRemoved.connect(self.onNodeDeleted.emit)
         # session.portAdded.connect(self.onPortAdded.emit)
@@ -133,8 +133,6 @@ class NodeGraphRegistry(object):  # QObject provide signals
         session.connectionRemoved.connect(self.callback_connection_removed)
 
     def _disconnect_session(self, session):
-        super(NodeGraphRegistry, self)._disconnect_session(session)
-
         session.nodeAdded.disconnect(self.onNodeAdded.emit)
         # session.nodeRemoved.disconnect(self.onNodeDeleted.emit)
         # session.portAdded.disconnect(self.onPortAdded.emit)
@@ -154,7 +152,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
         :param omtk.nodegraph.NodeModel node:
         :return:
         """
-        from omtk.nodegraph.models.node import node_dg
+        from omtk.nodegraph.models._deprecated import node_dg
 
         log.info("%s was deleted", node)
 
@@ -219,7 +217,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
         return list(self._nodes) if safe else self._nodes
 
     def _register_node(self, node, val):
-        assert isinstance(node, node_base.NodeModel)
+        assert isinstance(node, NodeModel)
 
         if node in self._nodes:
             raise Exception("Node is already registered. This is a bug. {}".format(node))
@@ -234,7 +232,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
         :param PortModel port: The port to register
         :param object val: The value associated with the port
         """
-        assert isinstance(port, port_base.PortModel)
+        assert isinstance(port, PortModel)
 
         if port in self._attributes:
             raise Exception("Port is already registered. This is a bug. {}".format(port))
@@ -269,7 +267,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
     # --- Cache clearing method ---
 
     def _unregister_node(self, node):
-        self._nodes.remove(node)
+        self._nodes.discard(node)
         self.cache_nodes_by_value.unregister(node)
         self.cache_ports_by_node.unregister(node)
 
@@ -277,6 +275,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
         node = port.get_parent()
 
         self._attributes.remove(port)
+        self.cache_ports_by_value.unregister(port)
         self.cache_ports_by_node.unregister_val(node, port)
 
     def _unregister_connection(self, connection):
@@ -287,21 +286,34 @@ class NodeGraphRegistry(object):  # QObject provide signals
         port_src = connection.get_source()
         port_dst = connection.get_destination()
 
-        self._connections.remove(connection)
-
+        self._connections.discard(connection)
+        self.cache_connection_by_value.unregister((port_src, port_dst))
         self.cache_connections_by_port.unregister_val(port_src, connection)
         self.cache_connections_by_port.unregister_val(port_dst, connection)
 
     # --- Access methods ---
 
+    def _conform_node_key(self, key):
+        """
+        Allow us to change the key that will be used to resolve a NodeModel.
+
+        :param object key: The key
+        :return: The key to use
+        :rtype: object
+        """
+        return key
+
     def get_node(self, key):
         """
         Return a OMTK compatible node from an object instance.
+
         :param object key: An object representable as a node.
         :return: A OMTK node.
         :rtype: NodeModel
         :raise Exception: If value is invalid.
         """
+        key = self._conform_node_key(key)
+
         # Memoize
         try:
             node = self.cache_nodes_by_value.get(key)
@@ -312,23 +324,35 @@ class NodeGraphRegistry(object):  # QObject provide signals
             self._register_node(node, key)
         return node
 
+    @abc.abstractmethod
     def _get_node(self, val):
         """
         Return a node representation of the provided value.
+
         :param object val:
         :return:
         :rtype: NodeModel
         """
-        from omtk.nodegraph import nodegraph_factory
-        return nodegraph_factory.get_node_from_value(self, val)
+
+    def _conform_port_key(self, key):
+        """
+        Allow us to change the key that will be used to resolve a NodeModel.
+
+        :param object key: The key
+        :return: The key to use
+        :rtype: object
+        """
+        return key
 
     def get_port(self, key):
         """
         Get or create a node from a value.
-        :param val: An object representable as a port (str, pymel.Attribute, etc)
+
+        :param object key: An object representable as a port (str, pymel.Attribute, etc)
         :return: A port
         :rtype: omtk.nodegraph.PortModel
         """
+        key = self._conform_port_key(key)
         # Memoize
         try:
             port = self.cache_ports_by_value.get(key)
@@ -343,27 +367,28 @@ class NodeGraphRegistry(object):  # QObject provide signals
 
         return port
 
+    @abc.abstractmethod
     def _get_port(self, val):
         """
         Create a port from a value.
+
         :param val: An object representable as a port (str, pymel.Attribute, etc)
         :return: A port
         :rtype: omtk.nodegraph.PortModel
         """
-        from omtk.nodegraph import nodegraph_factory
-        inst = nodegraph_factory.get_port_from_value(self, val)
-        return inst
 
     def get_connection(self, port_src, port_dst):
         """
         Get or create a ``ConnectionModel`` from two ``PortModel``.
-        :param port_src: The source port.
-        :type model: PortModel
-        :param port_dst: The destination port.
-        :type model: PortModel
+
+        :param PortModel port_src: The source port.
+        :param PortModel port_dst: The destination port.
         :return: A ConnectionModel
         :rtype: ConnectionModel
         """
+        assert(isinstance(port_src, PortModel))
+        assert(isinstance(port_dst, PortModel))
+
         key = (port_src, port_dst)
         try:
             connection = self.cache_connection_by_value.get(key)
@@ -376,6 +401,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
     def _get_connection(self, port_src, port_dst):
         """
         Create a ``ConnectionModel`` from two ``PortModel``.
+
         :param port_src: The source port.
         :type port_src: PortModel
         :param port_dst: The destination port.
@@ -384,8 +410,8 @@ class NodeGraphRegistry(object):  # QObject provide signals
         :rtype: ConnectionModel
         """
         from omtk.nodegraph import nodegraph_factory
-        # assert(isinstance(port_src, port_base.PortModel))
-        # assert(isinstance(port_dst, port_base.PortModel))
+        # assert(isinstance(port_src, PortModel))
+        # assert(isinstance(port_dst, PortModel))
         key = (port_src, port_dst)
         inst = nodegraph_factory.get_connection_from_value(self, port_src, port_dst)
         self.cache_connection_by_value.register(key, inst)
@@ -449,6 +475,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
 
     # --- Implementation methods
 
+    @abc.abstractmethod
     def _get_parent_impl(self, val):
         """
         Abstract implementation for retrieving a child parent.
@@ -458,6 +485,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def _get_children_impl(self, val):
         """
         Abstract implementation for retrieving a node value children.
@@ -467,6 +495,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def _set_parent_impl(self, node, parent):
         """
         :param object node: The node to parent
@@ -474,6 +503,7 @@ class NodeGraphRegistry(object):  # QObject provide signals
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def _scan_nodes(self):
         raise NotImplementedError
 

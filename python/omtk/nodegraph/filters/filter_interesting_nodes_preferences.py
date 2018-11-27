@@ -2,7 +2,7 @@ import logging
 
 from omtk.core import preferences as preference_
 from omtk.nodegraph.filters.filter_interesting_nodes import InterestingNodePortFilter
-from omtk.nodegraph.models.node import node_dg
+from omtk.nodegraph.models._deprecated import node_dg
 
 log = logging.getLogger(__name__)
 

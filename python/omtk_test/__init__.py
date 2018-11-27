@@ -3,7 +3,7 @@ Base classes and utility functions to handle unit-testing.
 """
 import unittest
 
-from omtk.nodegraph import GraphModel, GraphFilterProxyModel, NodeGraphController
+from omtk.nodegraph import GraphModel, GraphFilterProxyModel
 from omtk.nodegraph.bindings.base import ISession
 from omtk.nodegraph.registry.base import NodeGraphRegistry
 from omtk.nodegraph.registry.maya_mocked import MockedMayaRegistry
@@ -30,8 +30,8 @@ class NodeGraphBaseTestCase(OmtkTestCase):
     _cls_session = None
     _cls_registry = NodeGraphRegistry
     _cls_model = GraphModel
-    _cls_proxy_model = GraphFilterProxyModel
-    _cls_controller = NodeGraphController
+    _cls_proxy_model = None
+    _cls_controller = None
 
     def _create_session(self):
         return self._cls_session() if self._cls_session else None
@@ -42,8 +42,8 @@ class NodeGraphBaseTestCase(OmtkTestCase):
         self._session = self._create_session()
         self._registry = self._cls_registry(session=self.session)
         self.source_model = self._cls_model(registry=self.registry) if self._cls_model else None
-        self.model = self._cls_proxy_model(registry=self.registry, model=self.source_model) if self._cls_proxy_model else None
-        self.ctrl = self._cls_controller(registry=self.registry, model=self.model) if self._cls_model else None
+        self.model = self._cls_proxy_model(registry=self.registry, model=self.source_model) if self._cls_proxy_model else self.source_model
+        self.ctrl = self._cls_controller(registry=self.registry, model=self.model) if self._cls_controller else None
 
         # By default, expose cmds or pymel mock if needed
         if self._cls_session:
@@ -181,3 +181,20 @@ class NodeGraphMockedMayaTestCase(NodeGraphBaseTestCase):
         :rtype: MockedMayaRegistry
         """
         return super(NodeGraphMockedMayaTestCase, self).registry
+
+
+class NodeGraphMockedMayaFilterTestCase(NodeGraphMockedMayaTestCase):
+    """
+    Base class for a TestCase that test a NodeGraph filter under a mocked maya environment.
+    """
+    _cls_proxy_model = GraphFilterProxyModel
+    _cls_filter = None
+
+    def _create_filter(self):
+        return self._cls_filter()
+
+    def setUp(self):
+        super(NodeGraphMockedMayaFilterTestCase, self).setUp()
+
+        self.filter = self._create_filter()
+        self.model.set_filter(self.filter)

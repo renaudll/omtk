@@ -1,13 +1,8 @@
-import logging
-
 from omtk import decorators
-from omtk.vendor.Qt import QtCore
 from omtk.nodegraph.signal import Signal
 
-log = logging.getLogger('omtk.nodegraph')
 
-
-class NodeModel(QtCore.QObject):  # QObject provide signals
+class NodeModel(object):  # QObject provide signals
     """Define the data model for a Node which can be used by multiple view."""
 
     # Signal emitted when the node is unexpectedly deleted.
@@ -22,9 +17,10 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
     # Signal emitted when an attribute is unexpectedly removed.
     onPortRemoved = Signal(str)
 
-    def __init__(self, registry, name):
+    def __init__(self, registry, impl):
         super(NodeModel, self).__init__()  # initialize QObject
-        self._name = name
+        self._impl = impl
+        self._name = self.impl.get_name()
         self._pos = None
         self._registry = registry
         self._child_nodes = set()
@@ -35,13 +31,19 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
 
     def __hash__(self):
         return hash(self._name)
-        # raise NotImplementedError  # this is implemented for PyNode atm
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __ne__(self, other):
-        return not (self == other)
+        return hash(self) != hash(other)
+
+    @property
+    def impl(self):
+        """
+        :rtype: omtk.nodegraph.adaptors.NodeGraphNodeAdaptor
+        """
+        return self._impl
 
     def dump(self):
         """
@@ -79,12 +81,7 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
         Get the node type as a string
         :rtype: str
         """
-        return str(self.get_metatype())
-
-    @decorators.memoized_instancemethod
-    def get_metatype(self):
-        from omtk.factories import factory_datatypes
-        return factory_datatypes.get_datatype(self.get_metadata())
+        return self.impl.get_type()
 
     def get_nodes(self):
         """
@@ -232,5 +229,3 @@ class NodeModel(QtCore.QObject):  # QObject provide signals
         Called when the node is removed from the view (scene).
         """
         pass
-
-

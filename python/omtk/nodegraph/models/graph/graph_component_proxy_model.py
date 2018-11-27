@@ -2,9 +2,9 @@ import logging
 from collections import defaultdict
 
 from omtk.core import manager
-from omtk.nodegraph.models.node import node_component
+from omtk.nodegraph.models._deprecated import node_component
 from omtk.vendor.enum34 import Enum
-from omtk.vendor.Qt import QtCore
+from omtk.nodegraph.signal import Signal
 
 from . import graph_proxy_model
 
@@ -15,7 +15,7 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
     """
     Wrap the interface of a ``GraphModel`` instance to modify what the user (and controller) see (and interact via signals).
     """
-    onLevelChanged = QtCore.Signal(object)
+    onLevelChanged = Signal(object)
 
     def __init__(self, model=None, level=None):
         super(GraphComponentProxyFilterModel, self).__init__(model=model)

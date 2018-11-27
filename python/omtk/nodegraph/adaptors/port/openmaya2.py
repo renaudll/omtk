@@ -1,5 +1,5 @@
 from maya.api import OpenMaya as om2
-from omtk.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
+from omtk.nodegraph.adaptors.port.base import NodeGraphPortImpl
 
 
 class OpenMaya2AttributeNodeGraphPortImp(NodeGraphPortImpl):

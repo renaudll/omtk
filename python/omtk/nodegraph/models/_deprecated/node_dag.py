@@ -1,12 +1,14 @@
 import logging
+
+import omtk.nodegraph.models.port
 from omtk.nodegraph.models.port import port_base as port_model
 from omtk.nodegraph.models import connection as connection_model
-from omtk.nodegraph.models.node import node_dg
+from omtk.nodegraph.models._deprecated import node_dg
 
 log = logging.getLogger(__name__)
 
 
-class DagNodeParentPortModel(port_model.PortModel):
+class DagNodeParentPortModel(omtk.nodegraph.models.port.PortModel):
     # __metaclass__ = abc.ABCMeta
 
     def __init__(self, registry, parent):

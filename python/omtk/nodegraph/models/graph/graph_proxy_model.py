@@ -179,6 +179,13 @@ class NodeGraphGraphProxyModel(graph_model_abstract.IGraphModel):
         # We'll add the node to the source model at let signals propagate back.
         self._model.add_node(node, emit=emit)
 
+    def add_all_nodes(self, emit=False):
+        """
+        Ensure that all registered nodes are in the graph.
+        :param bool emit: If True, the `onNodeAdded` signal will be emitted.
+        """
+        self._model.add_all_nodes(emit=emit)
+
     def remove_node(self, node, emit=True):
         self._model.remove_node(node, emit=emit)
 

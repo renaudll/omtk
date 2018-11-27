@@ -10,7 +10,7 @@ from omtk import component
 from omtk.core import manager, entity
 from omtk.libs import libPyflowgraph, libPython
 from omtk.factories import factory_rc_menu
-from omtk.nodegraph.models.node import node_dg, node_root
+from omtk.nodegraph.models._deprecated import node_dg, node_component, node_root
 from omtk.nodegraph.nodegraph_controller_cache import NodeGraphWidgetCache
 from omtk.vendor.Qt import QtCore, QtWidgets
 from omtk.nodegraph.signal import Signal
@@ -1110,7 +1110,6 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
         ???
         :param NodeGraphComponentModel node:
         """
-        from omtk.nodegraph.models.node import node_component
         from omtk import component_registry
         if not isinstance(node, node_component.NodeGraphComponentModel):
             raise Exception

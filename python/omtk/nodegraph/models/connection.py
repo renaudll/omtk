@@ -21,18 +21,17 @@ class ConnectionModel(object):
             self._port_dst.get_name()
         )
 
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return hash(self) != hash(other)
+
     def __hash__(self):
         # Previously we hashed the two ports and combined together with the ^ operator.
         # return hash(self._port_src) ^ hash(self._port_dst)
         # However this clashed, so instead we combine the paths.
         return hash(self._port_src.get_path() + self._port_dst.get_path())
-
-
-    def __eq__(self, other):
-        return hash(self) == hash(other)
-
-    def __ne__(self, other):
-        return not self == other
 
     def dump(self):
         port_src = self.get_source()

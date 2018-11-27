@@ -1,6 +1,7 @@
-from omtk.nodegraph.registry.base import NodeGraphRegistry
-from omtk.nodegraph.cache import Cache
 import pymel.core as pymel
+from omtk.nodegraph.adaptors.node.pymel import NodeGraphNodePymelAdaptor
+from omtk.nodegraph.models.node import NodeModel
+from omtk.nodegraph.registry.base import NodeGraphRegistry
 
 
 class MayaRegistry(NodeGraphRegistry):
@@ -8,12 +9,7 @@ class MayaRegistry(NodeGraphRegistry):
     Maya REGISTRY_DEFAULT based on Pymel
     """
 
-    def __init__(self, *args, **kwargs):
-        super(MayaRegistry, self).__init__(*args, **kwargs)
-
-        self.cache_node_key_by_value = Cache(self)
-
-    def __get_key(self, value):
+    def _conform_node_key(self, key):
         """
         Allow multiple values to be map to the same key.
         For example in Maya, a node can be represented by:
@@ -28,26 +24,36 @@ class MayaRegistry(NodeGraphRegistry):
         #     return value
 
         # pymel
-        if isinstance(value, pymel.PyNode):
-            return value
+        if isinstance(key, pymel.PyNode):
+            return key
 
         # cmds
-        if isinstance(value, basestring):
-            return pymel.PyNode(value)
+        if isinstance(key, basestring):
+            return pymel.PyNode(key)
 
-        raise Exception("Unsupported value {} ({})".format(value, type(value)))
+        raise Exception("Unsupported value {} ({})".format(key, type(key)))
 
-    def _get_node_key(self, key):
-        try:
-            abskey = self.cache_node_key_by_value.get(key)
-        except KeyError:
-            abskey = self.__get_key(key)
-            self.cache_node_key_by_value.register(key, abskey)
-        return abskey
+    def _get_node(self, val):
+        """
+        Return a node representation of the provided value.
+        :param object val:
+        :return:
+        :rtype: NodeModel
+        """
+        assert (isinstance(val, pymel.PyNode))
+        impl = NodeGraphNodePymelAdaptor(val)
+        return NodeModel(self, impl)
 
-    def get_node(self, key):
-        realkey = self._get_node_key(key)
-        return super(MayaRegistry, self).get_node(realkey)
+    def _get_port(self, val):
+        """
+        Create a port from a value.
+        :param val: An object representable as a port (str, pymel.Attribute, etc)
+        :return: A port
+        :rtype: omtk.nodegraph.PortModel
+        """
+        from omtk.nodegraph import nodegraph_factory
+        inst = nodegraph_factory.get_port_from_value(self, val)
+        return inst
 
     def _get_parent_impl(self, val):
         """

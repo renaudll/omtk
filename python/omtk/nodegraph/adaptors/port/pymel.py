@@ -1,6 +1,6 @@
 
 from omtk import decorators
-from omtk.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
+from omtk.nodegraph.adaptors.port.base import NodeGraphPortImpl
 
 
 class PymelAttributeNodeGraphPortImpl(NodeGraphPortImpl):

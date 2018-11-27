@@ -1,12 +1,11 @@
 from omtk.core import entity_attribute
 
-from omtk.nodegraph.models.port.port_adaptor_base import NodeGraphPortImpl
-from omtk.nodegraph.models.port.port_adaptor_pymel import PymelAttributeNodeGraphPortImpl
+from omtk.nodegraph.adaptors.port.base import NodeGraphPortImpl
+from omtk.nodegraph.adaptors.port.pymel import PymelAttributeNodeGraphPortImpl
 
 
 class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
     def __init__(self, data, adaptor=None):
-        from pymel import core as pymel
 
         assert (isinstance(data, entity_attribute.EntityPort))
         self._data = data

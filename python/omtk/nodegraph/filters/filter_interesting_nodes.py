@@ -1,4 +1,3 @@
-from omtk import constants
 from omtk.core import preferences
 from omtk.nodegraph import NodeGraphFilter
 
@@ -17,7 +16,7 @@ class InterestingNodePortFilter(NodeGraphFilter):
 
     def _is_node_interesting(self, node):
         # Some DagNode types might be blacklisted.
-        from omtk.nodegraph.models.node import node_dg
+        from omtk.nodegraph.models._deprecated import node_dg
         # todo: move to filter_standard
 
         if isinstance(node, node_dg.NodeGraphDgNodeModel):

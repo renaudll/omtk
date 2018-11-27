@@ -1,10 +1,8 @@
 import logging
 from collections import defaultdict
 
-from omtk.core import manager
-from omtk.nodegraph.models.node import node_component
+from omtk.nodegraph.models._deprecated import node_component
 from omtk.vendor.enum34 import Enum
-from omtk.vendor.Qt import QtCore
 from omtk.nodegraph.signal import Signal
 
 from . import graph_proxy_model
@@ -404,7 +402,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         return
 
     def _get_node_from_component(self, registry, component):
-        from omtk.nodegraph.models.node.node_component import NodeGraphComponentModel
+        from omtk.nodegraph.models._deprecated import NodeGraphComponentModel
         # todo: register node?
         cls = NodeGraphComponentModel
         inst = cls(registry, component)

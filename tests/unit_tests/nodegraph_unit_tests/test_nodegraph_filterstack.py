@@ -1,36 +1,19 @@
 """
-Ensure propre behaviour or the GraphController, GraphRegistry and every related models.
+Ensure proper behaviour or the GraphController, GraphRegistry and every related models.
 """
 import logging
 import unittest
 
-from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter
-from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
-from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
-from omtk.vendor.mock_maya.decorators import mock_pymel
 import omtk_test
+from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter
+from omtk.vendor.mock_maya.decorators import mock_pymel
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaTestCase):
-    def setUp(self):
-        super(NodeGraphSubgraphFilterTestCase, self).setUp()
-
-        # Create filter
-        self._filter = NodeGraphStandardFilter()
-
-        # Add a proxy-model to apply user display preferences
-        self._proxy_model_filter = GraphFilterProxyModel()
-        self._proxy_model_filter.set_source_model(self.model)
-        self._proxy_model_filter.set_filter(self._filter)
-
-        # Add a proxy-model to allow encapsulation
-        self._proxy_model_subgraph = GraphComponentProxyFilterModel()
-        self._proxy_model_subgraph.set_source_model(self._proxy_model_filter)
-
-        self.ctrl.set_ctrl(self._proxy_model_subgraph)
+class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaFilterTestCase):
+    _cls_filter = NodeGraphStandardFilter
 
     def test_compound_with_blacklisted_nodes(self):
         """

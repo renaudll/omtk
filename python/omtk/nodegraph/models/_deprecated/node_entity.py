@@ -1,12 +1,13 @@
 import logging
 
+import omtk.nodegraph.models.node
 from omtk import decorators
-from . import node_base
+from omtk.nodegraph.models.node import node_base
 
 log = logging.getLogger(__name__)
 
 
-class NodeGraphEntityModel(node_base.NodeModel):
+class NodeGraphEntityModel(omtk.nodegraph.models.node.NodeModel):
     """
     Define the data model for a Node representing a Component.
     A Component is a special OMTK datatypes that consist of an input network, an output network and one or multiple

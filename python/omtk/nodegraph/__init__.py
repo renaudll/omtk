@@ -35,9 +35,9 @@ NodeGraphRegistry = base.NodeGraphRegistry
 # from omtk.nodegraph import nodegraph_view
 # NodeGraphView = nodegraph_view.NodeGraphView
 
-from omtk.nodegraph import nodegraph_controller
+# from omtk.nodegraph import nodegraph_controller
 
-NodeGraphController = nodegraph_controller.NodeGraphController
+# NodeGraphController = nodegraph_controller.NodeGraphController
 
 # from omtk_nodegraph import nodegraph_filter
 
@@ -47,5 +47,6 @@ from omtk.nodegraph.models import GraphModel, NodeModel, PortModel, ConnectionMo
 from omtk.nodegraph.models.graph.graph_model_abstract import IGraphModel
 from omtk.nodegraph.models.graph.graph_proxy_model import NodeGraphGraphProxyModel
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
+from omtk.nodegraph.bindings.base import ISession
 
 # from omtk.nodegraph.signal import Signal

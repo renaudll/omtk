@@ -27,6 +27,12 @@ class MockedPort(object):
         self.writable = writable
         self.interesting = interesting
 
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return hash(self) != hash(other)
+
     def __hash__(self):
         return hash(self.dagpath)
 

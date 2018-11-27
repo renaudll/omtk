@@ -5,7 +5,8 @@ from omtk.vendor.mock_maya.base import MockedPort
 from omtk.vendor.mock_maya.base import MockedSession
 from omtk.vendor.mock_maya.pymel import MockedPymelNode
 from omtk.vendor.mock_maya.pymel import MockedPymelPort
-from omtk.nodegraph.models.port.port_adaptor_mocked import NodeGraphMockedPortImpl
+from omtk.nodegraph.adaptors.node.mocked import NodeGraphMockedNodeAdaptor
+from omtk.nodegraph.adaptors.port.mocked import NodeGraphMockedPortImpl
 
 
 class MockedMayaRegistry(NodeGraphRegistry):
@@ -129,11 +130,19 @@ class MockedMayaRegistry(NodeGraphRegistry):
 
         :param MockedConnection connection: The removed connection
         """
-        model = self.get_connection(connection.src, connection.dst)
+        model_port_src = self.get_port(connection.src)
+        model_port_dst = self.get_port(connection.dst)
+        model = self.get_connection(model_port_src, model_port_dst)
         self.onConnectionRemoved.emit(model)
         self._unregister_connection(model)
 
     # --- Parent class implementation ---
+
+    def _conform_node_key(self, key):
+        # Special case for pymel.PyNode mock
+        if isinstance(key, MockedPymelNode):
+            return key._node
+        return key
 
     def _get_node(self, val):
         """
@@ -141,11 +150,16 @@ class MockedMayaRegistry(NodeGraphRegistry):
         :return: A graph node model
         :rtype: NodeModel
         """
-        # Special case for pymel.PyNode mock
-        if isinstance(val, MockedPymelNode):
-            val  = val._node
+        assert isinstance(val, MockedNode)
 
-        return NodeModel(self, val.name)
+        impl = NodeGraphMockedNodeAdaptor(val)
+        return NodeModel(self, impl)
+
+    def _conform_port_key(self, key):
+        # Special case for pymel.Attribute mock
+        if isinstance(key, MockedPymelPort):
+            return key._node
+        return key
 
     def _get_port(self, val):
         """
@@ -153,10 +167,7 @@ class MockedMayaRegistry(NodeGraphRegistry):
         :return: A graph port model
         :rtype: PortModel
         """
-        # Special case for pymel.Attribute mock
-        if isinstance(val, MockedPymelPort):
-            val = val._node
-
+        assert isinstance(val, MockedPort)
         node = val.node
         node_model = self.get_node(node)
         inst = PortModel(self, node_model, val.name)
@@ -185,6 +196,10 @@ class MockedMayaRegistry(NodeGraphRegistry):
         :param MockedNode parent: The parent
         """
         node.set_parent(parent)
+
+    def _scan_nodes(self):
+        for node in self.nodes:
+            self.get_node(node)
 
     # --- Helper methods ---
 

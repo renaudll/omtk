@@ -25,6 +25,8 @@ class MayaSession(ISession):
         self._callback_id_node_removed = None
         self._callback_id_by_node = defaultdict(set)
 
+    # --- Public methods ---
+
     def get_translator(self):
         """
         Return the logic to use when interpreting values from the session.
@@ -105,7 +107,7 @@ class MayaSession(ISession):
         attr_name = dagpath.split('.')[-1]
 
         # TODO: make it cleaner
-        if attr_name in omtk.constants._attr_name_blacklist:
+        if attr_name in omtk.constants.BLACKLISTED_PORT_NAMES:
             log.info('Ignoring callback on {0}'.format(dagpath))
             return
 
@@ -197,7 +199,7 @@ class MayaSession(ISession):
         # Ignore blacklisted attribute
         attr_name = plug_name.split('.')[-1]
         from omtk import constants
-        if attr_name in constants._attr_name_blacklist:
+        if attr_name in constants.BLACKLISTED_PORT_NAMES:
             return
 
         log.debug('[addAttributeChangedCallback] {0} {1}'.format(plug.name(), libOpenMaya.pformat_MNodeMessage_callback(callback_id)))
@@ -239,6 +241,7 @@ class MayaSession(ISession):
         :param registry:
         :return:
         """
+        import pymel.core as pymel
         from maya import OpenMaya
 
         if callback_id & OpenMaya.MNodeMessage.kIncomingDirection:  # listen to the destination
@@ -258,6 +261,7 @@ class MayaSession(ISession):
         :param registry:
         :return:
         """
+        import pymel.core as pymel
         log.info('[addAttributeChangedCallback] kConnectionMade: %s to %s', otherPlug_name, plug_name)
         attr_src = pymel.Attribute(otherPlug_name)
         attr_dst = pymel.Attribute(plug_name)
@@ -273,6 +277,7 @@ class MayaSession(ISession):
         :param registry:
         :return:
         """
+        import pymel.core as pymel
         log.debug('[addAttributeChangedCallback] kAttributeArrayAdded %s', plug_name)
         attr = pymel.Attribute(plug_name)
         port = registry.get_port(attr)

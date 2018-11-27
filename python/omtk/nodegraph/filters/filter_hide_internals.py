@@ -1,10 +1,10 @@
 from omtk import constants
 from omtk.nodegraph import NodeGraphFilter
-from omtk.nodegraph.models.node.node_dg import NodeGraphDgNodeModel
+from omtk.nodegraph.models._deprecated import NodeGraphDgNodeModel
 
 # @staticmethod
 #     def _is_port_name_blacklisted(port_name):
-#         return port_name in constants._attr_name_blacklist
+#         return port_name in constants.BLACKLISTED_PORT_NAMES
 
 
 class HideInternalsFilter(NodeGraphFilter):
@@ -15,7 +15,7 @@ class HideInternalsFilter(NodeGraphFilter):
         super(HideInternalsFilter, self).__init__(**kwargs)
 
         self.hide_libserialization_networks = True
-        self._blacklisted_attr_names = constants._attr_name_blacklist
+        self._blacklisted_attr_names = constants.BLACKLISTED_PORT_NAMES
 
     def can_show_node(self, node):
         """

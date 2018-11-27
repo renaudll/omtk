@@ -1,16 +1,15 @@
+import omtk.nodegraph.models._deprecated.port_entityattribute
 
 from omtk import component
-from omtk.nodegraph.models.node import node_dg
-from omtk.nodegraph.models.node import node_entity
-from omtk.nodegraph.models.port import port_base
-from omtk.nodegraph.models.node.node_base import NodeModel
+from omtk.nodegraph.models._deprecated import node_entity
+from omtk.nodegraph.models.node import NodeModel
 from omtk.nodegraph.widgets import widget_node
 from omtk.vendor.Qt import QtGui
-from omtk.nodegraph.models.port import port_adaptor_entity
+from omtk.nodegraph.adaptors.port import entity
 
 
-
-class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
+class NodeGraphComponentPortModel(
+    omtk.nodegraph.models._deprecated.port_entityattribute.NodeGraphEntityAttributePortModel):
     """
     Any port in a NodeGraphComponentModel is simple a normal attribute associated with the inn or out hub.
     However we want to prevent any
@@ -26,8 +25,8 @@ class NodeGraphComponentPortModel(port_base.NodeGraphEntityAttributePortModel):
         grp_inn_attr = grp_inn.attr(name) if grp_inn.hasAttr(name) else None
         grp_out_attr = grp_out.attr(name) if grp_out.hasAttr(name) else None
 
-        self._inn_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_inn_attr) if grp_inn_attr else None
-        self._out_adaptor = port_adaptor_entity.PymelAttributeNodeGraphPortImpl(grp_out_attr) if grp_out_attr else None
+        self._inn_adaptor = entity.PymelAttributeNodeGraphPortImpl(grp_inn_attr) if grp_inn_attr else None
+        self._out_adaptor = entity.PymelAttributeNodeGraphPortImpl(grp_out_attr) if grp_out_attr else None
 
     def _can_show_connection(self, connection):
         port_src = connection.get_source()

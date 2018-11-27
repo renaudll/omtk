@@ -1,5 +1,4 @@
-from omtk.vendor.Qt import QtCore
-
+import abc
 from omtk.nodegraph import NodeModel, PortModel, ConnectionModel
 from omtk.nodegraph.signal import Signal
 
@@ -19,6 +18,8 @@ class ISession(object):
     :signal connectionAdded: Called when a connection is created in the scene
     :signal connectionRemoved: Called when a connection is removed from the scene.
     """
+    __metaclass__ = abc.ABCMeta
+
     nodeAdded = Signal(NodeModel)
     nodeRemoved = Signal(NodeModel)
     portAdded = Signal(object, PortModel)

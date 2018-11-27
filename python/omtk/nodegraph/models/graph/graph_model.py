@@ -132,7 +132,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
         """
         return self._nodes
 
-    def add_node(self, node, emit=False):
+    def add_node(self, node, emit=True):
         """
         Add a node to the graph.
         :param GraphModel node: The node to add.
@@ -149,6 +149,14 @@ class GraphModel(graph_model_abstract.IGraphModel):
             self.onNodeAdded.emit(node)
 
         self.set_node_position(node, pos)
+
+    def add_all_nodes(self, emit=True):
+        """
+        Ensure that all registered nodes are in the graph.
+        :param bool emit: If True, the `onNodeAdded` signal will be emitted.
+        """
+        for node in self.registry.nodes:
+            self.add_node(node, emit=emit)
 
     def _register_node(self, node, pos=None):
         """

@@ -1,7 +1,6 @@
-from omtk.vendor.Qt import QtCore
 
 
-class MockedNode(QtCore.QObject):
+class MockedNode(object):
     """
     A mocked Maya node
     """
@@ -13,6 +12,12 @@ class MockedNode(QtCore.QObject):
         self._parent = None
         self.ports = set()  # internal REGISTRY_DEFAULT of ports associated with the node
         self.children = set()
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return hash(self) != hash(other)
 
     def __hash__(self):
         return hash(self.dagpath)

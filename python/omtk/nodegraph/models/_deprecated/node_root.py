@@ -1,11 +1,8 @@
-from . import node_base
-
-# Used for type hinting
-if False:
-    from .node_base import NodeModel
+import omtk.nodegraph.models.node
+from omtk.nodegraph.models.node import node_base
 
 
-class NodeGraphNodeRootModel(node_base.NodeModel):
+class NodeGraphNodeRootModel(omtk.nodegraph.models.node.NodeModel):
     """
     Define the 'root' level of the NodeGraph.
     By inheriting from it you can customize what is displayed in the node editor.

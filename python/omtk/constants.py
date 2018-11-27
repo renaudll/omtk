@@ -91,7 +91,7 @@ def get_version():
                 return result
 
 
-_attr_name_blacklist = (
+BLACKLISTED_PORT_NAMES = (
     PyFlowGraphMetadataKeys.Position,
     PyFlowGraphMetadataKeys.Position + 'X',
     PyFlowGraphMetadataKeys.Position + 'Y',

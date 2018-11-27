@@ -8,6 +8,12 @@ class MockedConnection(object):
         self._port_src = port_src
         self._port_dst = port_dst
 
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return hash(self) != hash(other)
+
     def __hash__(self):
         return hash(self.src.dagpath + self.dst.dagpath)
 

@@ -2,8 +2,8 @@ import abc
 import logging
 
 from omtk.vendor.Qt import QtCore
-from omtk.nodegraph.models.node.node_base import NodeModel
-from omtk.nodegraph.models.port.port_base import PortModel
+from omtk.nodegraph.models.node import NodeModel
+from omtk.nodegraph.models.port import PortModel
 from omtk.nodegraph.models.connection import ConnectionModel
 from omtk.nodegraph.signal import Signal
 
@@ -86,8 +86,8 @@ class IGraphModel(object):
         self.onReset.emit()
 
     def dump(self):
-        nodes = sorted([node.get_name() for node in self.get_nodes()])
-        ports = sorted([port.get_path() for port in self.get_ports()])
+        nodes = sorted(node.get_name() for node in self.get_nodes())
+        ports = sorted(port.get_path() for port in self.get_ports())
         connections = sorted(connection.dump() for connection in self.get_connections())
 
         return {
@@ -115,15 +115,22 @@ class IGraphModel(object):
         return list(self.iter_nodes())
 
     @abc.abstractmethod
-    def add_node(self, node, emit=False):
+    def add_node(self, node, emit=False):  # TODO: Why emit if False?
         """
         Add a node to the graph.
         :param NodeModel node: A NodeModel instance.
-        :param bool emit: If True, the onNodeAdded QSignal will emit.
+        :param bool emit: If True, the onNodeAdded signal will emitted.
         """
 
     @abc.abstractmethod
-    def remove_node(self, node, emit=False):
+    def add_all_nodes(self, emit=True):
+        """
+        Ensure that all registered nodes are in the graph.
+        :param bool emit: If True, the `onNodeAdded` signal will be emitted.
+        """
+
+    @abc.abstractmethod
+    def remove_node(self, node, emit=False):  # TODO: Why emit if False?
         """
         Remove a node from the graph.
         :param omtk.nodegraph.NodeModel node: The node to remove.

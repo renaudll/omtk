@@ -19,6 +19,9 @@ class Cache(object):
         self._map = {}
         self._map_inv = {}
 
+    def __contains__(self, item):
+        return item in self._map
+
     def __len__(self):
         return len(self._map)
 
@@ -34,13 +37,19 @@ class Cache(object):
 
     def unregister(self, key):
         """
-        Unregister a ressource
-        :param omtk.nodegraph.NodeModel key: An instance or the key to an instance.
+        Unregister a resource
+        :param object key: A registered value or a registered key.
         :raise LookupError: When the resource is not registered.
         """
         log.debug("Registering %s", key)
+
+        val = self._map_inv.pop(key, None)
+        if val:
+            self._map.pop(val, None)
+
         val = self._map.pop(key, None)
-        self._map_inv.pop(val, None)
+        if val:
+            self._map_inv.pop(val, None)
 
     # --- Access methods ---
 
@@ -64,19 +73,24 @@ class CachedDefaultDict(Cache):
         self._map_inv[val] = key
 
     def unregister(self, key):
-        vals = self._map.pop(key)
+        vals = self._map.pop(key, None)
         if vals:
             for val in vals:
                 self._map_inv.pop(val, None)
 
     def unregister_val(self, key, val):
-        self._map[key].remove(val)
+        container = self._map.get(key)
+        if not container:
+            return
+
+        container.discard(val)
+        # If there's no more entry, remove the set
+        if not container:
+            self._map.pop(key)
 
 
 class NodeCache(Cache):
-    def unregister(self, node_model):
-        super(NodeCache, self).unregister(node_model)
-
+    pass
 
 
 class PortCache(Cache):

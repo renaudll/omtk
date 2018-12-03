@@ -6,13 +6,16 @@ class MockedPort(object):
     Pymel.Attribute mock.
     """
 
-    def __init__(self, node, name, port_type='long', value=0, readable=True, writable=True, interesting=True):
+    def __init__(self, node, name, port_type='long', short_name=None, nice_name=None, value=0,
+                 readable=True, writable=True, interesting=True):
         """
         Create a Maya port mock.
 
         :param MockedNode node: The node associated with the port.
         :param name: The name of the port.
         :param port_type: The type of the port. See omtk.contants_maya.EnumAttrTypes
+        :param str short_name: The 'short' name of the port. (ex: transform.t)
+        :param str nice_name: The 'nice' name of the port. (ex: transform.translateMcTranslate)
         :param object value: The value of the port.
         :param readable: 1
         :param writable:
@@ -21,6 +24,8 @@ class MockedPort(object):
         super(MockedPort, self).__init__()
         self.node = node
         self.name = name
+        self.short_name = short_name or name
+        self.nice_name = nice_name or name
         self._type = EnumAttrTypes(port_type)
         self.value = value
         self.readable = readable

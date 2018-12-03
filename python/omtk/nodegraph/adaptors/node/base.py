@@ -37,3 +37,9 @@ class NodeGraphNodeAdaptor(object):
         :return: The type of the node
         :rtype: str
         """
+
+    @abc.abstractmethod
+    def delete(self):
+        """
+        Delete the node from the scene.
+        """

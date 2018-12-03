@@ -9,8 +9,8 @@ class MockedPymelSession(MockedCmdsSession):
 
     :param MockedSession session: The mocked session for this adaptor.
     """
-    def __init__(self, *args, **kwargs):
-        super(MockedPymelSession, self).__init__(*args, **kwargs)
+    def __init__(self, session, *args, **kwargs):
+        super(MockedPymelSession, self).__init__(session, *args, **kwargs)
 
         self.session.nodeAdded.connect(self.__callback_node_added)
         self.session.nodeRemoved.connect(self.__callback_node_removed)

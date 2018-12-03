@@ -218,6 +218,10 @@ class MockedSession(ISession):
         for port in self.ports_by_node.get(node):
             if port.name == name:
                 return port
+            elif port.short_name == name:
+                return port
+            elif port.nice_name == name:
+                return port
         return None
 
     def port_is_source(self, port):

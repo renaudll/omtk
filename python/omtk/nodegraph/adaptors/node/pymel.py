@@ -21,3 +21,6 @@ class NodeGraphNodePymelAdaptor(NodeGraphNodeAdaptor):
 
     def get_parent(self):
         return self.data.getParent()
+
+    def delete(self):
+        return pymel.delete(self.data)

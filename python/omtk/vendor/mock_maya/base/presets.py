@@ -1,4 +1,4 @@
-from omtk.constants_maya import EnumAttrTypes
+import json
 
 
 class NodePreset(object):
@@ -7,7 +7,10 @@ class NodePreset(object):
 
     def apply(self, session, node):
         for name, kwargs in self._map.iteritems():
-            session.create_port(node, name, **kwargs)
+            try:
+                session.create_port(node, name, **kwargs)
+            except Exception as e:  # FIXME
+                pass
 
     @classmethod
     def fromDict(cls, map):
@@ -19,7 +22,7 @@ class NodePresetRegistry(object):
         self._registry = {}
 
     def register(self, node_type, preset):
-        assert(isinstance(preset, NodePreset))
+        assert (isinstance(preset, NodePreset))
 
         if node_type in self._registry:
             raise Exception("Preset is already registered.")
@@ -37,21 +40,13 @@ class NodePresetRegistry(object):
         return self._registry.get(node_type)
 
 
+_path_schema = '/home/rll/dev/python/omtk/python/omtk/vendor/mock_maya/schema.json'
+
 REGISTRY_DEFAULT = NodePresetRegistry()
-REGISTRY_DEFAULT.register(
-    'transform', NodePreset.fromDict({
-        'translate': {},
-        'translateX': {},
-        'translateY': {},
-        'translateZ': {},
-        'rotate': {},
-        'rotateX': {},
-        'rotateY': {},
-        'rotateZ': {},
-        'scale': {},
-        'scaleX': {},
-        'scaleY': {},
-        'scaleZ': {},
-        'message': {'port_type': EnumAttrTypes.message},
-    })
-)
+
+with open(_path_schema) as fp:
+    data = json.load(fp)
+
+    for node_type, attr_data in data.iteritems():
+        preset = NodePreset(attr_data)
+        REGISTRY_DEFAULT.register(node_type, preset)

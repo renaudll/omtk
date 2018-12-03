@@ -1,5 +1,6 @@
 """
 Factory module to create NodeModel, PortModel and ConnectionModel.
+# TODO: DEPRECATE ALL OF THIS!!! Composition over inheritance
 """
 import omtk.nodegraph.models._deprecated.port_entityattribute
 import omtk.nodegraph.models._deprecated.port_pymel
@@ -124,7 +125,6 @@ def get_connection_from_value(registry, port_src, port_dst):
     :return: A ``ConnectionModel`` instance
     :rtype: omtk.nodegraph.ConnectionModel
     """
-    from omtk.nodegraph.models.port import port_base
     from omtk.nodegraph.models import connection
 
     if not isinstance(port_src, omtk.nodegraph.models.port.PortModel):

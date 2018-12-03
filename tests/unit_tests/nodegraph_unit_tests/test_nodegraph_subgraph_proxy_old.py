@@ -5,6 +5,7 @@ import logging
 import unittest
 from omtk_test import NodeGraphMockedMayaTestCase
 from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
+from omtk.vendor.mock_maya.decorators import mock_pymel
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -31,17 +32,16 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
         Ensure that we support subgraphs networks where an attribute is both an input and an output (io).
         """
         # Create network
-        n1 = pymel.createNode('transform', name='node')
-        n2 = pymel.createNode('transform', name='n2')
-        n3 = pymel.createNode('transform', name='n3')
-        pymel.connectAttr(n1.t, n2.t)
-        pymel.connectAttr(n2.t, n3.t)
+        with mock_pymel(self.session) as pymel:
+            n1 = pymel.createNode('transform', name='node')
+            n2 = pymel.createNode('transform', name='n2')
+            n3 = pymel.createNode('transform', name='n3')
+            pymel.connectAttr(n1.t, n2.t)
+            pymel.connectAttr(n2.t, n3.t)
 
         # Register network
-        m1 = self.registry.get_node(n1)
-        m2 = self.registry.get_node(n2)
-        m3 = self.registry.get_node(n3)
-        self.ctrl.add_nodes(m1, m2, m3)
+        self.model.add_all_nodes()
+
         self.assertGraphNodeNamesEqual([u'node', u'n2', u'n3'])
         self.assertGraphConnectionsEqual([
             (u'node.translate', u'n2.translate'),
@@ -67,16 +67,17 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
         Ensure that we are able to navigate between multiple nested subgraphs.
         """
         # Create network
-        def _create_transform(name): return pymel.createNode('transform', name=name)
-        n1 = _create_transform('node')
-        n2 = _create_transform('n2')
-        n3 = _create_transform('n3')
-        n4 = _create_transform('n4')
-        n5 = _create_transform('n5')
-        pymel.connectAttr(n1.t, n2.t)
-        pymel.connectAttr(n2.t, n3.t)
-        pymel.connectAttr(n3.t, n4.t)
-        pymel.connectAttr(n4.t, n5.t)
+        with mock_pymel(self.session) as pymel:
+            def _create_transform(name): return pymel.createNode('transform', name=name)
+            n1 = _create_transform('node')
+            n2 = _create_transform('n2')
+            n3 = _create_transform('n3')
+            n4 = _create_transform('n4')
+            n5 = _create_transform('n5')
+            pymel.connectAttr(n1.t, n2.t)
+            pymel.connectAttr(n2.t, n3.t)
+            pymel.connectAttr(n3.t, n4.t)
+            pymel.connectAttr(n4.t, n5.t)
 
         # Register network
         def _register(n): return self.registry.get_node(n)
@@ -86,7 +87,7 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
         m4 = _register(n4)
         m5 = _register(n5)
 
-        self.ctrl.add_nodes(m1, m2, m3, m4, m5)
+        self.model.add_all_nodes()
         self.assertGraphNodeNamesEqual([u'node', u'n2', u'n3', u'n4', u'n5'])
 
         # Create a subgroup (group nodes)

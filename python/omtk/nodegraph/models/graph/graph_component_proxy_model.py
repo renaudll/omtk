@@ -17,8 +17,8 @@ class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel)
     """
     onLevelChanged = Signal(object)
 
-    def __init__(self, model=None, level=None):
-        super(GraphComponentProxyFilterModel, self).__init__(model=model)
+    def __init__(self, registry=None, model=None, level=None):
+        super(GraphComponentProxyFilterModel, self).__init__(registry=registry, model=model)
 
         self._level = None
         if level:

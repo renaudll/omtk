@@ -152,7 +152,7 @@ class MockedMayaRegistry(NodeGraphRegistry):
         """
         assert isinstance(val, MockedNode)
 
-        impl = NodeGraphMockedNodeAdaptor(val)
+        impl = NodeGraphMockedNodeAdaptor(self.session, val)
         return NodeModel(self, impl)
 
     def _conform_port_key(self, key):

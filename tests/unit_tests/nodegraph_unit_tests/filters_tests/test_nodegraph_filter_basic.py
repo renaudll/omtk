@@ -3,11 +3,9 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 """
 import unittest
 
-from omtk_test import NodeGraphMockedMayaTestCase
 from omtk.nodegraph import NodeGraphFilter
-from omtk.nodegraph.models._deprecated import NodeGraphDagNodeModel
-from omtk.nodegraph.models._deprecated.port_pymel import NodeGraphPymelPortModel
 from omtk.vendor.mock_maya.decorators import mock_pymel
+from omtk_test import NodeGraphMockedMayaTestCase
 
 
 class CameraFilter(NodeGraphFilter):
@@ -16,9 +14,6 @@ class CameraFilter(NodeGraphFilter):
     """
 
     def intercept_node(self, node):
-        if not isinstance(node, NodeGraphDagNodeModel):
-            return
-
         node_type = node.get_type()
         if node_type == 'camera':
             return
@@ -38,14 +33,12 @@ class MessageFilter(NodeGraphFilter):
         :return: A port generator
         rtype: Generator[NodeGraphPortModel]
         """
-        if not isinstance(port, NodeGraphPymelPortModel):
-            return
-
         port_name = port.get_name()
         if port_name != 'message':
             return
 
         yield port
+
 
 class NodeGraphFilterMockedMayaTestCase(NodeGraphMockedMayaTestCase):
     _cls_filter = None
@@ -61,8 +54,8 @@ class SimpleNodeGraphFilterTestCase(NodeGraphFilterMockedMayaTestCase):
     """
     Test a simple NodeGraphFilter that only let camera goes through.
     """
-    def test_can_show_node(self):
 
+    def test_can_show_node(self):
         with mock_pymel(self.session) as pymel:
             for pynode in pymel.ls():
                 node = self.registry.get_node(pynode)
@@ -81,6 +74,7 @@ class SimpleGraphPortFilterTestCase(NodeGraphMockedMayaTestCase):
     """
     Test a simple NodeGraphFilter that only let message attributes goes throught.
     """
+
     def test_can_shot_port(self):
         with mock_pymel(self.session) as pymel:
             pynode = pymel.PyNode('top')

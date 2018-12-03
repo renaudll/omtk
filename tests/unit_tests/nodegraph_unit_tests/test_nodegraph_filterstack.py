@@ -6,7 +6,7 @@ import unittest
 
 import omtk_test
 from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter
-from omtk.vendor.mock_maya.decorators import mock_pymel
+from omtk.vendor.mock_maya.decorators import mock_pymel, mock_cmds
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -19,17 +19,18 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaFilterTestCas
         """
         """
         # Create network
-        with mock_pymel(self.session) as pymel:
-            from omtk.libs import libRigging
+        with mock_cmds(self.session) as cmds:
+            with mock_pymel(self.session) as pymel:
+                from omtk.libs import libRigging
 
-            n1 = pymel.createNode('transform', name='node')
-            n2 = pymel.createNode('transform', name='n2')
-            u1 = libRigging.create_utility_node(
-                'decomposeMatrix',
-                name='n3',
-                inputMatrix=n1.matrix,
-            )
-            pymel.connectAttr(u1.outputTranslate, n2.translate)
+                n1 = pymel.createNode('transform', name='n1')
+                n2 = pymel.createNode('transform', name='n2')
+                u1 = libRigging.create_utility_node(
+                    'decomposeMatrix',
+                    name='n3',
+                    inputMatrix=n1.matrix,
+                )
+                pymel.connectAttr(u1.outputTranslate, n2.translate)
 
         # Register network
         def _register(n): return self.registry.get_node(n)
@@ -39,11 +40,11 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaFilterTestCas
         m3 = _register(u1)
 
         # Add the source node, we should not see the decomposeMatrix node.
-        self.ctrl.add_nodes(m1, m2, m3)
-        self.assertGraphNodeNamesEqual([u'node', u'n2', u'n3'])
+        self.model.add_all_nodes()
+        self.assertGraphNodeNamesEqual([u'n1', u'n2', u'n3'])
         self.assertGraphConnectionsEqual([
-            (u'node.matrix', u'n2.translate'),
-            (u'node.matrix', u'n3.inputMatrix'),
+            (u'n1.matrix', u'n2.translate'),
+            (u'n1.matrix', u'n3.inputMatrix'),
             (u'n3.outputTranslate', u'n2.translate'),
         ])
 
@@ -51,7 +52,7 @@ class NodeGraphSubgraphFilterTestCase(omtk_test.NodeGraphMockedMayaFilterTestCas
         compound = self.ctrl.group_nodes([m2, m3])
         self.assertGraphNodeNamesEqual([u'node', u'component1'])
         self.assertGraphConnectionsEqual([
-            (u'node.matrix', u'component1.inputMatrix'),
+            (u'n1.matrix', u'component1.inputMatrix'),
         ])
 
         # Enter compound

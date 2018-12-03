@@ -1,8 +1,6 @@
 import logging
 
 import omtk.nodegraph.models.node
-from omtk import decorators
-from omtk.nodegraph.models.node import node_base
 
 log = logging.getLogger(__name__)
 

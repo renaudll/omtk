@@ -5,7 +5,6 @@ import logging
 import math
 
 import pymel.core as pymel
-from maya import OpenMaya
 from maya import cmds
 from maya import mel
 from omtk import constants
@@ -476,6 +475,7 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
     Return the recommended size of a controller if it was created for this obj.
     :param obj: The object to analyze.
     """
+    from maya import OpenMaya
     # TODO: Move to a cleaner location?
     if isinstance(obj, pymel.nodetypes.Joint):
 
@@ -540,6 +540,8 @@ def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
     :param debug: If True, spaceLocators will be created at intersection points.
     :return: pymel.datatypes.Point list containing the intersection points.
     """
+    from maya import OpenMaya
+
     # Cast pos to OpenMaya.MPoint if necessary.
     if type(pos) != OpenMaya.MPoint:
         pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)

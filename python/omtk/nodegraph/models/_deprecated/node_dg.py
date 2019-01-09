@@ -2,7 +2,7 @@ import logging
 
 import omtk.nodegraph.models.node
 from omtk import constants
-from omtk.nodegraph.widgets import widget_node
+from omtk.nodegraph.widgets import node
 
 from omtk.nodegraph.models.node import node_base
 
@@ -28,7 +28,7 @@ class NodeGraphDgNodeModel(omtk.nodegraph.models.node.NodeModel):
 
     def delete(self):
         import pymel.core as pymel
-        if not self._pynode.exists():
+        if not self._pynode.node_exist():
             log.warning("Can't delete already deleted node! {0}".format(self._pynode))
             return
 
@@ -42,7 +42,7 @@ class NodeGraphDgNodeModel(omtk.nodegraph.models.node.NodeModel):
     #     session = session_.get_session()
     #     component = session.get_component_from_obj(self._pynode)
     #     if component:
-    #         return self._registry.get_node(component)
+    #         return self._session.get_node(component)
 
     def get_metadata(self):
         return self._pynode
@@ -60,8 +60,8 @@ class NodeGraphDgNodeModel(omtk.nodegraph.models.node.NodeModel):
         raise Exception("Deprecated, use registry._scan_node_ports.")
         for attr in self.get_ports_metadata():
             inst = self._registry.get_port(attr)
-            # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
-            # self._registry._register_port(inst)
+            # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._session, self, attr)
+            # self._session._register_port(inst)
             yield inst
 
             # Note: Multi-attribute are disabled for now, we might want to handle 'free' item
@@ -96,7 +96,7 @@ class NodeGraphDgNodeModel(omtk.nodegraph.models.node.NodeModel):
                 yield inst
 
     def _get_widget_cls(self):
-        return widget_node.OmtkNodeGraphDagNodeWidget
+        return node.OmtkNodeGraphDagNodeWidget
 
     # --- Callbacks ---
 

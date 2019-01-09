@@ -21,8 +21,8 @@ class NodeGraphNodeRootModel(omtk.nodegraph.models.node.NodeModel):
 
     def guess_children(self):
         results = []
-        # rigs = self._registry.manager.get_rigs()
+        # rigs = self._session.manager.get_rigs()
         # for rig in rigs:
-        #     model = self._registry.get_node(rig)
+        #     model = self._session.get_node(rig)
         #     results.append(model)
         return results

@@ -2,7 +2,7 @@ from omtk import decorators
 from omtk.nodegraph.signal import Signal
 
 
-class NodeModel(object):  # QObject provide signals
+class NodeModel(object):
     """Define the data model for a Node which can be used by multiple view."""
 
     # Signal emitted when the node is unexpectedly deleted.
@@ -12,13 +12,14 @@ class NodeModel(object):  # QObject provide signals
     onRenamed = Signal(object)
 
     # Signal emitted when an attribute is unexpectedly added.
-    onPortAdded = Signal(object)  # todo: port to QtCore.QObject
+    onPortAdded = Signal(object)
 
     # Signal emitted when an attribute is unexpectedly removed.
     onPortRemoved = Signal(str)
 
     def __init__(self, registry, impl):
         super(NodeModel, self).__init__()  # initialize QObject
+
         self._impl = impl
         self._name = self.impl.get_name()
         self._pos = None
@@ -202,7 +203,7 @@ class NodeModel(object):  # QObject provide signals
         """
         Return the desired Widget class.
         """
-        from omtk.nodegraph.widgets.widget_node import OmtkNodeGraphNodeWidget
+        from omtk.nodegraph.widgets.node import OmtkNodeGraphNodeWidget
         return OmtkNodeGraphNodeWidget
 
     def get_widget(self, graph, ctrl):

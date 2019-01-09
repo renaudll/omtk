@@ -7,13 +7,6 @@ class InterestingNodePortFilter(NodeGraphFilter):
     Filter than only let node and port juged as "interesting" through.
     """
 
-    # def __init__(self, model=None):
-    #     self.model = None
-    #     if model:
-    #         self.set_model(model)
-    #
-    #     self.hide_libserialization_network = False
-
     def _is_node_interesting(self, node):
         # Some DagNode types might be blacklisted.
         from omtk.nodegraph.models._deprecated import node_dg

@@ -34,7 +34,7 @@ class WidgetListModules(widget_list_base.OmtkBaseListWidget):
     #     self.ui = widget_list_modules.Ui_Form()
     #     self.ui.setupUi(self)
     #
-    #     # Tweak gui
+    #     # Tweak _gui
     #     self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
     #
     #     # Connect signal
@@ -223,7 +223,7 @@ class WidgetListModules(widget_list_base.OmtkBaseListWidget):
     # 
     # def on_module_selection_changed(self):
     #     # Filter deleted networks
-    #     networks = [net for net in self.get_selected_objects() if net and net.exists()]
+    #     networks = [net for net in self.get_selected_objects() if net and net.node_exist()]
     #     pymel.select(networks)
     # 
     # def on_module_changed(self, item):
@@ -425,7 +425,7 @@ class WidgetListModules(widget_list_base.OmtkBaseListWidget):
     # 
     #             # Manually delete network
     #             network = rig._network
-    #             if network and network.exists():
+    #             if network and network.node_exist():
     #                 pymel.delete(network)
     # 
     #             self.deletedRig.emit(rig)

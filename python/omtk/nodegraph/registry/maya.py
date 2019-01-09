@@ -1,7 +1,7 @@
 import pymel.core as pymel
 from omtk.nodegraph.adaptors.node.pymel import NodeGraphNodePymelAdaptor
 from omtk.nodegraph.models.node import NodeModel
-from omtk.nodegraph.registry.base import NodeGraphRegistry
+from omtk.nodegraph.registry import NodeGraphRegistry
 
 
 class MayaRegistry(NodeGraphRegistry):
@@ -51,8 +51,8 @@ class MayaRegistry(NodeGraphRegistry):
         :return: A port
         :rtype: omtk.nodegraph.PortModel
         """
-        from omtk.nodegraph import nodegraph_factory
-        inst = nodegraph_factory.get_port_from_value(self, val)
+        from omtk.nodegraph import factory
+        inst = factory.get_port_from_value(self, val)
         return inst
 
     def _get_parent_impl(self, val):
@@ -96,8 +96,8 @@ class MayaRegistry(NodeGraphRegistry):
 
         for attr in attrs:
             inst = self.get_port(attr)
-            # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._registry, self, attr)
-            # self._registry._register_port(inst)
+            # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._session, self, attr)
+            # self._session._register_port(inst)
             yield inst
 
             # Note: Multi-attribute are disabled for now, we might want to handle 'free' item

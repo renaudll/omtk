@@ -2,10 +2,6 @@ from omtk import constants
 from omtk.nodegraph import NodeGraphFilter
 from omtk.nodegraph.models._deprecated import NodeGraphDgNodeModel
 
-# @staticmethod
-#     def _is_port_name_blacklisted(port_name):
-#         return port_name in constants.BLACKLISTED_PORT_NAMES
-
 
 class HideInternalsFilter(NodeGraphFilter):
     """

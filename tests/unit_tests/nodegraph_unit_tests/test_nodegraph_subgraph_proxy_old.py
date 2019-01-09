@@ -5,7 +5,7 @@ import logging
 import unittest
 from omtk_test import NodeGraphMockedMayaTestCase
 from omtk.nodegraph.models.graph.graph_component_proxy_model import GraphComponentProxyFilterModel
-from omtk.vendor.mock_maya.decorators import mock_pymel
+from maya_mock.decorators import mock_pymel
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

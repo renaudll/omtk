@@ -1,10 +1,6 @@
-from omtk.nodegraph.registry.base import NodeGraphRegistry
+from omtk.nodegraph.registry import NodeGraphRegistry
 from omtk.nodegraph import NodeModel, PortModel
-from omtk.vendor.mock_maya.base import MockedNode
-from omtk.vendor.mock_maya.base import MockedPort
-from omtk.vendor.mock_maya.base import MockedSession
-from omtk.vendor.mock_maya.pymel import MockedPymelNode
-from omtk.vendor.mock_maya.pymel import MockedPymelPort
+from maya_mock import MockedNode, MockedPort, MockedSession, MockedPymelNode, MockedPymelPort
 from omtk.nodegraph.adaptors.node.mocked import NodeGraphMockedNodeAdaptor
 from omtk.nodegraph.adaptors.port.mocked import NodeGraphMockedPortImpl
 
@@ -23,6 +19,10 @@ class MockedMayaRegistry(NodeGraphRegistry):
         self.__nodes = set()
         self.__ports = set()
         self.__connections = set()
+
+    def __del__(self):
+        if self.session:
+            self._disconnect_session(self._session)
 
     @property
     def session(self):
@@ -55,31 +55,30 @@ class MockedMayaRegistry(NodeGraphRegistry):
         """
         :param MockedSession session:
         """
-        session.nodeAdded.connect(self.__callback_node_added)
-        session.nodeRemoved.connect(self.__callback_node_removed)
-        session.portAdded.connect(self.__callback_port_added)
-        session.portRemoved.connect(self.__callback_port_removed)
-        session.connectionAdded.connect(self.__callback_connection_added)
-        session.connectionRemoved.connect(self.__callback_connection_removed)
+        session.onNodeAdded.connect(self.__callback_node_added)
+        session.onNodeRemoved.connect(self.__callback_node_removed)
+        session.onPortAdded.connect(self.__callback_port_added)
+        session.onPortRemoved.connect(self.__callback_port_removed)
+        session.onConnectionAdded.connect(self.__callback_connection_added)
+        session.onConnectionRemoved.connect(self.__callback_connection_removed)
 
     def _disconnect_session(self, session):
         """
         :param MockedSession session:
         """
-        session.nodeAdded.disconnect(self.__callback_node_added)
-        session.nodeRemoved.disconnect(self.__callback_node_removed)
-        session.portAdded.disconnect(self.__callback_port_added)
-        session.portRemoved.disconnect(self.__callback_port_removed)
-        session.connectionAdded.connect(self.__callback_connection_added)
-        session.connectionRemoved.connect(self.__callback_connection_removed)
+        session.onNodeAdded.disconnect(self.__callback_node_added)
+        session.onNodeRemoved.disconnect(self.__callback_node_removed)
+        session.onPortAdded.disconnect(self.__callback_port_added)
+        session.onPortRemoved.disconnect(self.__callback_port_removed)
+        session.onConnectionAdded.connect(self.__callback_connection_added)
+        session.onConnectionRemoved.connect(self.__callback_connection_removed)
 
     def __callback_node_added(self, node):
         """
         Callback when a node is added to the scene.
         :param MockedNode node: The added node.
         """
-        model = self.get_node(node)  # this will register the node
-        # self._register_node(model)
+        model = self.get_node(node)  # this SHOULD register the node
         self.onNodeAdded.emit(model)
 
     def __callback_node_removed(self, node):
@@ -198,7 +197,8 @@ class MockedMayaRegistry(NodeGraphRegistry):
         node.set_parent(parent)
 
     def _scan_nodes(self):
-        for node in self.nodes:
+        """Scan a session and register all it's nodes."""
+        for node in self.session.nodes:
             self.get_node(node)
 
     # --- Helper methods ---

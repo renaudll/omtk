@@ -2,7 +2,7 @@ import logging
 
 from omtk import constants
 from omtk.core import preferences
-from omtk.nodegraph.nodegraph_filter import NodeGraphFilter
+from omtk.nodegraph.filter_ import NodeGraphFilter
 from omtk.constants_maya import EnumAttrTypes
 
 log = logging.getLogger(__name__)
@@ -15,9 +15,14 @@ class NodeGraphStandardFilter(NodeGraphFilter):
 
     def __init__(self, settings=None):
         super(NodeGraphStandardFilter, self).__init__()
-        self.hide_libserialization_network = False
-        self.hide_message_attribute_type = True
         self.settings = settings if settings else preferences.get_preferences()
+
+        self._hide_libserialization_network = False
+        self._hide_message_attribute_type = True
+        self._blacklisted_node_names = set()
+        self._blacklisted_node_types = set()
+        self._blacklisted_port_names = self.settings.get_nodegraph_blacklisted_port_names()
+        self._blacklisted_port_types = set()
 
     def can_show_node(self, node_model):
         """
@@ -48,17 +53,19 @@ class NodeGraphStandardFilter(NodeGraphFilter):
         """
         # Apply port name blacklist
         port_name = port.get_name()
-        if port_name in self.settings.get_nodegraph_blacklisted_port_names():
+        # blacklist = self.settings.get_nodegraph_blacklisted_port_names()
+        blacklist = self._blacklisted_port_names
+        if port_name in blacklist:
             return False
 
         node = port.get_parent()
         if not self.can_show_node(node):
             return False
 
-        if self.hide_message_attribute_type:
+        if self._hide_message_attribute_type:
             port_type = port.get_metatype()
-            # Warning: Calling .type() on an array attribute with 0 elements will create one element!
-            if port_type == EnumAttrTypes.message:
+            if port_type.value == EnumAttrTypes.message.value:
+                log.info('Hiding %s', port)
                 return False
 
         if not port.is_interesting():
@@ -77,7 +84,7 @@ class NodeGraphStandardFilter(NodeGraphFilter):
 
         # libSerialization is leaving network everywhere.
         # Theses network are fused as metadata, there's no reason we might want to see them instead for debugging.
-        if self.hide_libserialization_network:
+        if self._hide_libserialization_network:
             port_dst_model = connection.get_destination()
             node_dst = port_dst_model.get_parent().get_metadata()
             if node_dst.hasAttr('_class'):

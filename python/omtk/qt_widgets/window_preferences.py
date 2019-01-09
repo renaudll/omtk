@@ -5,7 +5,6 @@ from omtk.core import preferences
 from omtk.qt_widgets.ui import preferences_window
 from omtk.vendor.Qt import QtCore, QtWidgets
 
-
 log = logging.getLogger('omtk.preferences')
 root_log = logging.getLogger(__name__)
 
@@ -80,9 +79,10 @@ class PreferencesWindow(QtWidgets.QDialog):
         self._prefs.save()
 
 
-gui = PreferencesWindow()
+_gui = None
 
 
 def show():
-    global gui
-    gui.show()
+    global _gui
+    _gui = PreferencesWindow()
+    _gui.show()

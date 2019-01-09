@@ -21,6 +21,10 @@ except ImportError:
 
 
 def build_ui_files():
+    """
+    Build all QT .ui file into their .py equivalent.
+    For development purpose.
+    """
     try:
         import pysideuic
     except ImportError:

@@ -89,15 +89,27 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
         self._registry = registry
 
+    def _connect_registry(self, registry):
+        """
+
+        :param omtk.nodegraph.NodeGraphRegistry registry: The graph registered to connection from this session.
+        """
+        registry.onNode
+        registry.onNodeDeleted.connect(self.on_node_unexpectedly_deleted)
+        # registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
+        registry.onPortRemoved.connect(self.on_attribute_unexpectedly_removed)
+        # registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
+        registry.onConnectionRemoved.connect(self.on_connection_unexpectedly_removed)
+
     def _register_registry(self, registry):
         """
         Add callbacks to a REGISTRY_DEFAULT Qt Signal so we can intercept it.
         :param NodeGraphRegistry registry: The REGISTRY_DEFAULT to connect.
         """
         registry.onNodeDeleted.connect(self.on_node_unexpectedly_deleted)
-        registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
+        # registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
         registry.onPortRemoved.connect(self.on_attribute_unexpectedly_removed)
-        registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
+        # registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
         registry.onConnectionRemoved.connect(self.on_connection_unexpectedly_removed)
 
         # REGISTRY_DEFAULT.onNodeDeleted.connect(self.onNodeRemoved.emit)
@@ -107,9 +119,9 @@ class GraphModel(graph_model_abstract.IGraphModel):
         Remove callbacks from a REGISTRY_DEFAULT Qt Signal.
         """
         registry.onNodeDeleted.disconnect(self.on_node_unexpectedly_deleted)
-        registry.onPortAdded.disconnect(self.on_attribute_unexpectedly_added)
+        # registry.onPortAdded.disconnect(self.on_attribute_unexpectedly_added)
         registry.onPortRemoved.disconnect(self.on_attribute_unexpectedly_removed)
-        registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
+        # registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
         registry.onConnectionRemoved.disconnect(self.on_connection_unexpectedly_removed)
 
         # REGISTRY_DEFAULT.onNodeDeleted.disconnect(self.onNodeRemoved.emit)
@@ -132,10 +144,10 @@ class GraphModel(graph_model_abstract.IGraphModel):
         """
         return self._nodes
 
-    def add_node(self, node, emit=True):
+    def add_node(self, node, emit=True, expand=False):
         """
         Add a node to the graph.
-        :param GraphModel node: The node to add.
+        :param omtk.nodegraph.NodeModel node: The node to add.
         :param bool emit: If True, the ``onNodeAdded`` Qt Signal will be emitted.
         :rtype: None
         """
@@ -150,13 +162,9 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
         self.set_node_position(node, pos)
 
-    def add_all_nodes(self, emit=True):
-        """
-        Ensure that all registered nodes are in the graph.
-        :param bool emit: If True, the `onNodeAdded` signal will be emitted.
-        """
-        for node in self.registry.nodes:
-            self.add_node(node, emit=emit)
+        if expand:
+            self.expand_node_ports(node)
+            self.expand_node_connections(node)
 
     def _register_node(self, node, pos=None):
         """
@@ -199,7 +207,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
     def is_node_visible(self, node):
         """
         Query a node visibility in the graph.
-        :param node: The node to inspect.
+        :param NodeModel node: The node to inspect.
         :return: True if the node is visible in the graph. False otherwise.
         :rtype: bool
         """
@@ -230,28 +238,31 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
     # --- Port methods ---
 
+    @property
+    def ports(self):
+        """
+        Mutable accessor to the ports.
+        :return: A set of ports.
+        :rtype: set(PortModel)
+        """
+        return self._ports
+
     def iter_ports(self):
         """
         Iterate through all the known ports.
         :return: A port generator.
         :rtype: Generator[PortModel]
         """
-        for port in self._ports:
+        for port in iter(self._ports):
             yield port
-        # for node in self.iter_nodes():
-        #     for port in self.iter_node_ports(node):
-        #         if not port in self._ports:
-        #             self._ports.add(port)
-        #         yield port
-        # return iter(self._cache_ports)
 
     def get_ports(self):
         """
         Return all known ports.
-        :return: A list of ports.
-        :rtype: Generator[PortModel]
+        :return: A set of ports.
+        :rtype: Set[PortModel]
         """
-        return list(self.iter_ports())
+        return self._ports
 
     def iter_node_ports(self, node):
         """
@@ -260,17 +271,16 @@ class GraphModel(graph_model_abstract.IGraphModel):
         :return: A port generator.
         :rtype: Iterator[PortModel]
         """
-        for port in node.iter_ports():
-            yield port
+        return iter(self.get_node_ports(node))
 
     def get_node_ports(self, node):
         """
-        Provide all the ports associated to a node.
+        Provide all registered ports associated to a node.
         :param NodeModel node: The node to inspect.
         :return: A list of ports.
         :rtype: List[PortModel]
         """
-        return list(self.iter_node_ports(node))
+        return self.registry.cache_ports_by_node.get(node) or []
 
     def add_port(self, port, emit=True):
         """
@@ -297,11 +307,11 @@ class GraphModel(graph_model_abstract.IGraphModel):
     def remove_port(self, port, emit=True):
         """
         Remove a port from the graph.
+        No nothing if the port don't exist.
+
         :param port: The port to remove.
         :param emit: If True, the Qt Signal ``onPortRemoved`` will be emitted.
         """
-        # TODO: What if the port don't exist?
-
         # Remove port connections
         for connection in list(self._connections_by_port[port]):  # hack: prevent change during iteration
             self.remove_connection(connection, emit=emit)
@@ -318,6 +328,10 @@ class GraphModel(graph_model_abstract.IGraphModel):
         Remove a port from the internal REGISTRY_DEFAULT.
         :param PortModel port: The port to unregister.
         """
+        if port not in self._ports:
+            log.warning("Cannot unregister an unregistered port. %s", port)
+            return
+
         self._ports.remove(port)
         for node in self._nodes_by_port[port]:
             self._ports_by_nodes[node].remove(port)
@@ -376,7 +390,11 @@ class GraphModel(graph_model_abstract.IGraphModel):
         :param ConnectionModel connection: The connection to remove.
         :param emit: If True, the ``onConnectionRemoved`` Qt Signal will be emitted.
         """
-        self._connections.remove(connection)
+        try:
+            self._connections.remove(connection)
+        except KeyError:
+            log.warning("Connection is not in graph, %s", connection)
+            return
 
         # Update cache
         for port in self._ports_by_connection[connection]:

@@ -177,7 +177,7 @@ class PortModel(object):
     # --- Widget export --- #
 
     def _get_widget_cls(self, ctrl, is_input=None, is_output=None):
-        from omtk.nodegraph.widgets import widget_port as port_widget
+        from omtk.nodegraph.widgets import port as port_widget
 
         if is_input is None:
             is_input = self.is_writable()

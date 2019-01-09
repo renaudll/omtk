@@ -1,7 +1,7 @@
 import logging
 
 from omtk.factories import factory_datatypes
-from omtk.nodegraph.nodegraph_filter import NodeGraphFilter
+from omtk.nodegraph.filter_ import NodeGraphFilter
 
 # TODO: Start doing some caching
 
@@ -41,13 +41,24 @@ _g_composematrix_predictable_outputs_inv = {v: k for k, v in _g_composematrix_pr
 
 
 def is_connection_predictable_from_map(connection, map_):
-    attr_src_ = connection.get_source().get_metadata()
-    attr_dst_ = connection.get_destination().get_metadata()
-    attr_src_name = attr_src_.longName()
-    attr_dst_name = attr_dst_.longName()
+    """
+    Determine if a connection is predictable.
+    The connection is predictable if going from a port that we expect to another port that we expert..
+    :param omtk.nodegraph.ConnectionModel connection: The connection to inspect.
+    :return: True if the connection is predictable, False otherwise.
+    :rtype: bool
+    """
+    port_src = connection.get_source()
+    port_dst = connection.get_destination()
+    port_src_name = port_src.get_name()
+    port_dst_name = port_dst.get_name()
+    # attr_src_ = connection.get_source().get_metadata()
+    # attr_dst_ = connection.get_destination().get_metadata()
+    # attr_src_name = attr_src_.name
+    # attr_dst_name = attr_dst_.name
 
     def _goal(src, dst):
-        return attr_src_name == src and attr_dst_name == dst
+        return port_src_name == src and port_dst_name == dst
 
     return any(True for src, dst in map_.iteritems() if _goal(src, dst))
 
@@ -121,56 +132,67 @@ class IntermediateNodeFilter(NodeGraphFilter):
         :param omtk.nodegraph.NodeModel node:
         :return:
         """
-        node_type = node.get_type()
+        model = self.get_model()
 
-        # Ignore predictable composeMatrix
-        if node_type == 'composeMatrix' and is_composematrix_predictable(node):
-            return
+        # We only want to intercept predictable composeMatrix/decomposeMatrix if they are not already visible (explicit)
+        if not model.is_node_visible(node):
+            node_type = node.get_type()
 
-        # Ignore predictable decomposeMatrix
-        if node_type == 'decomposeMatrix' and is_decomposematrix_predictable(node):
-            return
+            # Ignore predictable composeMatrix
+            if node_type == 'composeMatrix' and is_composematrix_predictable(node):
+                return
+
+            # Ignore predictable decomposeMatrix
+            if node_type == 'decomposeMatrix' and is_decomposematrix_predictable(node):
+                return
 
         for yielded in super(IntermediateNodeFilter, self).intercept_node(node):
             yield yielded
 
     def intercept_connection(self, connection):
-        # type: (NodeGraphConnectionModel) -> NodeGraphConnectionModel
+        """
+        Hide any connection related to an intermediate node.
+        :param ConnectionModel connection: The connection to intercept
+        :return: A connection iterator
+        :rtype: Generator[ConnectionModel]
+        """
         model = self.get_model()
         registry = connection._registry
         port_src = connection.get_source()
         port_dst = connection.get_destination()
+        port_src_name = port_src.get_name()
+        port_dst_name = port_dst.get_name()
 
         node_src = port_src.get_parent()
         node_dst = port_dst.get_parent()
 
         # todo: remove this?
-        attr_src = port_src.get_metadata_output()
-        attr_dst = port_dst.get_metadata_input()
+        # attr_src = port_src.get_metadata_output()
+        # attr_dst = port_dst.get_metadata_input()
 
         # For now, if any port don't have metadata, don't try anything.
-        if attr_src is None or attr_dst is None:
-            log.warning("Cannot intercept connection that don't have any metadata! ({0}) Aborting".format(connection))
-            yield connection
-            return
+        # if attr_src is None or attr_dst is None:
+        #     log.warning("Cannot intercept connection that don't have any metadata! ({0}) Aborting".format(connection))
+        #     yield connection
+        #     return
 
-        pynode_src = attr_src.node()
-        pynode_dst = attr_dst.node()
+        # pynode_src = port_src.get_parent()
+        # pynode_dst = port_dst.get_parent()
 
         is_src_node_visible = model.is_node_visible(node_src)
         is_dst_node_visible = model.is_node_visible(node_dst)
 
         def _intercept_unitconversion_connection():
-            if attr_dst.longName() == 'input' and not is_dst_node_visible:
-                model_dst = registry.get_port(pynode_dst.output)
+            if port_dst_name == 'input' and not is_dst_node_visible:
+                model_dst = registry.get_node_port_by_name(node_dst, 'output')
                 for new_connection in model.get_port_output_connections(model_dst):
                     yield registry.get_connection(port_src, new_connection.get_destination())
                 return
 
             # Redirect anything where the source is a unitConversion.output attribute.
             # EXCEPT if the unitConversion is already shown.
-            if attr_src.longName() == 'output' and not is_src_node_visible:
-                model_src = registry.get_port(pynode_src.input)
+            if port_src_name == 'output' and not is_src_node_visible:
+                model_src = registry.get_node_port_by_name(node_src, 'input')
                 if not model.is_node_visible(model_src):
                     for new_connection in model.get_port_input_connections(model_src):
                         yield registry.get_connection(new_connection.get_source(), port_dst)
@@ -178,15 +200,15 @@ class IntermediateNodeFilter(NodeGraphFilter):
 
         def _intercept_decomposematrix_connection():
             # Redirect "[1] -> inputMatrix" to "[1] -> [2]"
-            if attr_dst.longName() == 'inputMatrix' and not is_dst_node_visible:
-                for sub_connection in self._get_decomposematrix_inputmatrix_output_connections(registry, attr_dst):
+            if port_dst_name == 'inputMatrix' and not is_dst_node_visible:
+                for sub_connection in self._get_decomposematrix_inputmatrix_output_connections(registry, port_dst):
                     new_connection = registry.get_connection(port_src, sub_connection)
                     yield new_connection
                 return
 
             # Redirect "output[Translate/Rotate/Scale] -> [1]" to "[2] -> [1]"
-            if attr_src.longName() in _g_decomposematrix_predictable_inputs and not is_src_node_visible:
-                new_port_src = registry.get_port(pynode_src.attr('inputMatrix'))
+            if port_src_name in _g_decomposematrix_predictable_inputs and not is_src_node_visible:
+                new_port_src = registry.get_node_port_by_name(node_src, 'inputMatrix')
                 for sub_connection in model.get_port_input_connections(new_port_src):
                     new_connection = registry.get_connection(sub_connection.get_source(), port_dst)
                     yield new_connection
@@ -194,10 +216,10 @@ class IntermediateNodeFilter(NodeGraphFilter):
             pass
 
         def _intercept_composematrix_connection():
-            if attr_dst.longName() in _g_composematrix_predictable_outputs and not is_dst_node_visible:
+            if port_dst_name in _g_composematrix_predictable_outputs and not is_dst_node_visible:
                 redirection_port = registry.get_port(pynode_dst.attr('outputMatrix'))
                 for sub_connection in model.get_port_output_connections(redirection_port):
-                    new_connection = registry.get_connection(attr_src,
+                    new_connection = registry.get_connection(port_src,
                                                              sub_connection.get_destination())
                     yield new_connection
                 return
@@ -220,32 +242,34 @@ class IntermediateNodeFilter(NodeGraphFilter):
         if self.hide_predictable_decomposematrix_node:
             # Redirect anything where the destination is a predictable decomposeMatrix.inputMatrix attribute.
             # EXCEPT if the unitConversion is already shown.
+            node_src_type = node_src.get_type()
+            node_dst_type = node_dst.get_type()
 
-            if isinstance(pynode_src, pymel.nodetypes.DecomposeMatrix) and not model.is_node_visible(node_src):
+            if node_src_type == 'decomposeMatrix' and not model.is_node_visible(node_src):
                 for yielded in _intercept_decomposematrix_connection():
                     yield yielded
                 return
 
-            if isinstance(pynode_dst, pymel.nodetypes.DecomposeMatrix) and not model.is_node_visible(node_dst):
+            if node_dst_type == 'decomposeMatrix' and not model.is_node_visible(node_dst):
                 for yielded in _intercept_decomposematrix_connection():
                     yield yielded
                 return
 
-            if isinstance(pynode_src, pymel.nodetypes.ComposeMatrix) and not model.is_node_visible(
-                    node_src) and is_composematrix_connection_predictable(connection):
+            if node_src_type == 'composeMatrix' and not model.is_node_visible(node_src) and \
+                    is_composematrix_connection_predictable(connection):
                 for yielded in _intercept_composematrix_connection():
                     yield yielded
                 return
 
-            if isinstance(pynode_dst, pymel.nodetypes.ComposeMatrix) and not model.is_node_visible(
-                    node_dst) and is_composematrix_connection_predictable(connection):
+            if node_dst_type == 'composeMatrix' and not model.is_node_visible(node_dst) and \
+                    is_composematrix_connection_predictable(connection):
                 for yielded in _intercept_composematrix_connection():
                     yield yielded
                 return
 
         yield connection
 
-    def _get_decomposematrix_inputmatrix_output_connections(self, registry, attr):
+    def _get_decomposematrix_inputmatrix_output_connections(self, registry, port):
         """
         To call when encountering a decomposeMatrix.inputMatrix attribute.
         This is used to skip previsible decomposeMatrix in the NodeGraph.
@@ -255,13 +279,13 @@ class IntermediateNodeFilter(NodeGraphFilter):
         - outputTranslate to translate
         - outputRotate to rotate
         - outputScale to scale
-        :param attr: A pymel.Attribute instance representing a decomposeMatrix.inputMatrix attribute.
+        :param PortModel port: A decomposeMatrix.inputMatrix port.
         """
         model = self.get_model()
 
         # attr_inputmatrix_model = self.get_port_mode
-        node = attr.node()
-        node_model = registry.get_node(node)
+        node_model = port.get_parent()
+        # node_model = registry.get_node(node)
 
         # We will hold the connections in case we encounter an anormal connection.
         results = []
@@ -277,8 +301,8 @@ class IntermediateNodeFilter(NodeGraphFilter):
                     results.append(new_connection)
                 else:
                     log.warning(
-                        "Will no ignore {0} because of an unpredictable connection {1}.".format(node, connection))
-                    yield attr
+                        "Will no ignore {0} because of an unpredictable connection {1}.".format(node_model, connection))
+                    yield port
                     return
 
         for result in results:

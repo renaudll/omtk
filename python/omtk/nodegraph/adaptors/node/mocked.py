@@ -1,9 +1,12 @@
 from omtk.nodegraph.adaptors.node.base import NodeGraphNodeAdaptor
-from omtk.vendor.mock_maya import MockedNode
-from omtk.vendor.mock_maya import MockedSession
+from maya_mock import MockedNode
+from maya_mock import MockedSession
 
 
 class NodeGraphMockedNodeAdaptor(NodeGraphNodeAdaptor):
+    """
+    omtk.nodegraph.NodeModel adaptor for maya_mock.MockedNode.
+    """
     def __init__(self, session, data):
         assert isinstance(data, MockedNode)
         super(NodeGraphMockedNodeAdaptor, self).__init__(data)
@@ -30,7 +33,7 @@ class NodeGraphMockedNodeAdaptor(NodeGraphNodeAdaptor):
         return self.node.parent
 
     def get_type(self):
-        return self.node.nodetype
+        return self.node.type
 
     def delete(self):
         return self.session.remove_node(self.node)

@@ -304,10 +304,10 @@ def rreload(module):
             if inspect.ismodule(value):
                 _reload(value)
 
-        print "Reloading %s" % m_name
+        # print "Reloading %s" % m_name
         reload(module)
 
         return True
 
-    print namespace
+    print "rreloading %s" % module.__name__
     _reload(module)

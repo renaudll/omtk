@@ -10,13 +10,13 @@ class ISession(object):
     :param NodeGraphRegistry registry: A REGISTRY_DEFAULT to bind to the session.
 
     Signals:
-    :signal nodeAdded Called when a node is added in the scene
-    :signal nodeRemoved: Called when a node is removed from the scene
-    :signal portAdded: Called when a port is added in the scene
+    :signal onNodeAdded Called when a node is added in the scene
+    :signal onNodeRemoved: Called when a node is removed from the scene
+    :signal onPortAdded: Called when a port is added in the scene
     :signal portChanged: Called when a port change somehow. This can be broad.
-    :signal portRemoved: Called when a port is removed from the scene
-    :signal connectionAdded: Called when a connection is created in the scene
-    :signal connectionRemoved: Called when a connection is removed from the scene.
+    :signal onPortRemoved: Called when a port is removed from the scene
+    :signal onConnectionAdded: Called when a connection is created in the scene
+    :signal onConnectionRemoved: Called when a connection is removed from the scene.
     """
     __metaclass__ = abc.ABCMeta
 

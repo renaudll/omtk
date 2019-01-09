@@ -1,9 +1,11 @@
 from omtk.nodegraph.adaptors.port.base import NodeGraphPortImpl
-from omtk.vendor.mock_maya.base.port import MockedPort
-from omtk.vendor.mock_maya.base.session import MockedSession
+from maya_mock import MockedSession, MockedPort
 
 
 class NodeGraphMockedPortImpl(NodeGraphPortImpl):
+    """
+    omtk.nodegraph.PortModel interface for maya_mock.MockedPort.
+    """
     def __init__(self, session, *args, **kwargs):
         self._session = session
         super(NodeGraphMockedPortImpl, self).__init__(*args, **kwargs)

@@ -1,14 +1,16 @@
 import logging
 from collections import defaultdict
 
+from omtk.nodegraph.adaptors.node.component import NodeGraphComponentNodeAdaptor
+from omtk.nodegraph.cache import NodeCache
 from omtk.nodegraph.models._deprecated import node_component
-from omtk.vendor.enum34 import Enum
+from omtk.nodegraph.models.node import NodeModel
 from omtk.nodegraph.signal import Signal
+from omtk.vendor.enum34 import Enum
 
 from . import graph_proxy_model
 
 log = logging.getLogger(__name__)
-
 
 
 class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
@@ -27,17 +29,12 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         if level:
             self.set_level(level)
 
-        # self._cur_level_bound_inn = None
-        # self._cur_level_bound_out = None
-        # self._cur_level_children = None
-        # self._bound_inn_dirty = False
-        # self._bound_out_dirty = False
-        # self._children_dirty = False
-        # self._need_refresh = False
         self._bound_inn_before = None
         self._bound_inn_after = None
         self._bound_out_before = None
         self._bound_out_after = None
+
+        self.node_by_component = NodeCache()
 
         # Used to keep reference of invisible children
         self._child_by_component = defaultdict(set)
@@ -138,7 +135,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         """
         :param str level: The new level in the form of a namespace (ex: "component1")
         """
-        assert(isinstance(level, str))
+        assert (isinstance(level, str))
 
         self._level = level
 
@@ -164,60 +161,6 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
 
         self._bound_out_before = node_out_model
         self._bound_out_after = node_out_bound
-
-        # self.onAboutToBeReset.emit()  # hack
-        # self.hold_nodes()
-        #
-        # self._level = level
-        # self.reset()  # is this the right call? do we need to define a clear?
-        #
-        # if level is None:  # root level
-        #     self._cur_level_bound_inn = None
-        #     self._cur_level_bound_out = None
-        #     self._cur_level_children = []
-        # else:
-        #     self._bound_inn_dirty = False
-        #     self._bound_out_dirty = False
-        #
-        #     REGISTRY_DEFAULT = level._registry
-        #
-        #     # Pre-allocate bounds on Component levels
-        #     if isinstance(level, node_component.NodeGraphComponentModel):
-        #         c = level.get_metadata()
-        #
-        #         c_model = REGISTRY_DEFAULT.get_node(c)
-        #
-        #         new_nodes = []
-        #
-        #         if c.grp_inn:
-        #             g = node_component.NodeGraphComponentInnBoundModel(REGISTRY_DEFAULT, c.grp_inn, c_model)
-        #             self._cur_level_bound_inn = g
-        #             new_nodes.append(g)
-        #
-        #         if c.grp_out:
-        #             g = node_component.NodeGraphComponentOutBoundModel(REGISTRY_DEFAULT, c.grp_out, c_model)
-        #             self._cur_level_bound_out = g
-        #             new_nodes.append(g)
-        #
-        #         self._cur_level_children = [REGISTRY_DEFAULT.get_node(child) for child in c.get_children()]
-        #
-        #         new_nodes.extend(self._cur_level_children)
-        #
-        #         for node in new_nodes:
-        #             self.add_node(node)
-        #
-        #         for node in new_nodes:
-        #             self.expand_node_ports(node)
-        #
-        #         for node in new_nodes:
-        #             self.expand_node_connections(node)
-        #
-        #         self._children_dirty = False
-        #         self._need_refresh = True
-        #
-        # # self.reset()  # we need to refresh everything
-        # self.fetch_nodes()
-        # self.onLevelChanged.emit(level)
 
     def add_node(self, node, emit=True):
         # If we add a component, we want to keep trace of it's children.
@@ -250,17 +193,6 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
             for connection in self.iter_node_connections(node, inputs=inputs, outputs=outputs):
                 self._model.add_connection(connection)
 
-    # def can_show_node(self, node):
-    #     # type: (NodeModel) -> bool
-    #     return node.get_parent() == self._level
-    #
-    # def can_show_port(self, port):
-    #     node = port.get_parent()
-    #     if isinstance(node, node_component.NodeGraphComponentBoundBaseModel):
-    #         if not port.is_user_defined():
-    #             return False
-    #     return super(SubgraphProxyModel, self).can_show_port(port)
-
     def is_port_input(self, port):
         node = port.get_parent()
 
@@ -288,7 +220,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         :param level:
         :return:
         """
-        fn_exist = self.registry.session.exists
+        fn_exist = self.registry.session.node_exist
         node_in_dagpath = "{}:inn".format(level)
         node_out_dagpath = "{}:out".format(level)
         return fn_exist(node_in_dagpath) and fn_exist(node_out_dagpath)
@@ -301,7 +233,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         :param str child: The child level.
         """
         from omtk.libs import libNamespaces
-        assert(libNamespaces.is_child_of(child, parent))
+        assert (libNamespaces.is_child_of(child, parent))
 
         guess = child
         guesses = []
@@ -360,7 +292,6 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
     def _registry_component(self, component, level):
         self._component_by_level[level] = component
 
-
     # still used?
     def intercept_node(self, node):
         """
@@ -397,203 +328,37 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         # This will display "component1:component2" and not "component1".
         actual_level = self._get_nearest_level(level, node_level)
         component = self._get_component_by_level(actual_level)
-        inst = self._get_node_from_component(registry, component)
+        inst = self.get_node_from_component(component)
         yield inst
         return
 
-    def _get_node_from_component(self, registry, component):
-        from omtk.nodegraph.models._deprecated import NodeGraphComponentModel
-        # todo: register node?
-        cls = NodeGraphComponentModel
-        inst = cls(registry, component)
-        return inst
+    def get_node_from_component(self, component):
+        # Memoize
+        try:
+            node = self.node_by_component.get(component)
 
-        #
-        # # Handle compound bound.
-        # # If we receive a bound node, only yield it if it's part of the current level.
-        # if isinstance(node, node_component.NodeGraphComponentBoundBaseModel):
-        #     component_model = node.get_parent()
-        #     if self._level == component_model:
-        #         yield node
-        #     return
-        #
-        # # Handle compound.
-        # # We only show compound nodes if the compound is not the current level.
-        # # NOT TRUE, we want to display the compound if is a children of another level!
-        # # todo: move to node?
-        # def is_child_of(node_, parent):
-        #     while node_:
-        #         node_ = node_.get_parent()
-        #         if node_ == parent:
-        #             return True
-        #     return False
-        #
-        # if isinstance(node, node_component.NodeGraphComponentModel):
-        #     # If we are not in a subgraph, accept only nodes that have no parent.
-        #     if self._level is None:
-        #         if node.get_parent() is None:
-        #             yield node
-        #     # If we are in a subgraph, accept any component that is child of the current subgraph.
-        #     else:
-        #         if is_child_of(node, self._level):
-        #             yield node
-        #         else:
-        #             print("Hiding {0} since it is not a child of {1}".format(node, self._level))
-        #     return
-        #
-        # # Is the node inside the current level?
-        # parent = node.get_parent()
-        # if parent == self._level:
-        #     yield node
-        # # Is the node inside a compound that is inside the current level?
-        # elif isinstance(parent, node_component.NodeGraphComponentModel):
-        #     if parent.get_parent() == self._level:
-        #         yield parent
+        # Fetch and register if necessary
+        except LookupError:
+            node = self._get_node_from_component(component)
+            self.node_by_component.register(component, node)
+        return node
+
+    def _get_node_from_component(self, component):
+        impl = NodeGraphComponentNodeAdaptor(component)
+        node = NodeModel(self.registry, impl)
+        return node
 
     def intercept_port(self, port):
+        from omtk.libs import libNamespaces
+
         # Ignore any port that is not on the current level
         node = port.get_parent()
         node_level = self._get_node_level(node)
         level = self.get_level()
-        if node_level != level:
+        if not libNamespaces.is_child_of(node_level, level):
             return
 
         yield port
-        # node = port.get_parent()
-        #
-        # for yielded in self.intercept_node(node):
-        #     if isinstance(yielded, node_component.NodeGraphComponentModel):
-        #         yield
-        # node_level = self._get_node_level(node)
-
-        # import pymel.core as pymel
-        # REGISTRY_DEFAULT = port._registry
-        # s = manager.get_session()
-        # node = port.get_parent()
-        # pynode = node.get_metadata()
-        # component_data = s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
-        #
-        # if component_data:
-        #     component = REGISTRY_DEFAULT.get_node(component_data)
-        #     if component != self._level:
-        #         pass
-        #
-        # yield port
-    #
-    # def intercept_connection(self, connection):
-    #     from omtk import component
-    #
-    #     def _get_port_by_name(node, name):
-    #         for port in node.iter_ports():
-    #             if port.get_name() == name:
-    #                 return port
-    #
-    #     for connection in self.get_model().intercept_connection(connection):
-    #         import pymel.core as pymel
-    #
-    #         # If we encounter a connection to an hub node and we are NOT in the compound, we want to replace it with
-    #         # a conenction to the compound itself.
-    #         REGISTRY_DEFAULT = connection._registry
-    #         s = manager.get_session()
-    #
-    #         need_swap = False
-    #         port_src = connection.get_source()
-    #         port_dst = connection.get_destination()
-    #         node_src = port_src.get_parent()
-    #         node_dst = port_dst.get_parent()
-    #
-    #         node_src_data = node_src.get_metadata()
-    #         node_dst_data = node_dst.get_metadata()
-    #
-    #         if isinstance(node_src_data, component.Component):
-    #             # If the source is the current compound, remap the connection to the hub inn.
-    #             if self._level and self._level.get_metadata() == node_src_data:
-    #                 # Ignore internal connection
-    #                 if node_dst.get_parent() != self._level:
-    #                     return
-    #                 attr = node_src_data.grp_inn.attr(port_src.get_name())
-    #                 port_src = REGISTRY_DEFAULT.get_port(attr)
-    #                 need_swap = True
-    #
-    #         elif isinstance(node_src_data, pymel.PyNode):
-    #             # If the source port from an input hub?
-    #             # If so, what component is the input hub associated with?
-    #             # If it's the current component, do nothing, let's show the hub.
-    #             # If it's a component UNDER the current component, show the component.
-    #             # Otherwise show nothing.
-    #
-    #             # If the source is a component metadata, we don't want to display it.
-    #             c = s.get_component_from_metadata(node_src_data)
-    #             if c:
-    #                 return
-    #
-    #             c = s.get_component_from_input_hub(node_src_data) or \
-    #                 s.get_component_from_output_hub(node_src_data)
-    #             if c:
-    #                 c_model = REGISTRY_DEFAULT.get_node(c)
-    #                 # If the source if from the current component input hub, do nothing.
-    #                 if self._level == c_model:
-    #                     pass
-    #                 # If the source if from a component child of the current component, show the component instead of the hub.
-    #                 elif c_model.get_parent() == self._level:
-    #                     port_src = _get_port_by_name(c_model, port_src.get_name())
-    #                     need_swap = True
-    #                 # This should not happen, the intercept_node should have done the job already.
-    #                 # Just in case we'll shot a warning.
-    #                 else:
-    #                     log.warning("{0} source is not visible in the current context. Hiding connection.".format(connection))
-    #                     return
-    #
-    #         if isinstance(node_dst_data, component.Component):
-    #             # If the destination is the current compound, remap the connection to the hub out.
-    #             if self._level and self._level.get_metadata() == node_dst_data:
-    #                 # Ignore external connection
-    #                 if node_src.get_parent() != self._level:
-    #                     return
-    #                 attr = node_dst_data.grp_out.attr(port_dst.get_name())
-    #                 port_dst = REGISTRY_DEFAULT.get_port(attr)
-    #                 need_swap = True
-    #
-    #         # If the connection from an input hub?
-    #         elif isinstance(node_dst_data, pymel.PyNode):
-    #             # If the destination port from an output hub?
-    #             # If so, what component is the output hub associated with?
-    #             # If it's the current component, do nothing, let's show the hub.
-    #             # If it's a component UNDER the current component, show the component.
-    #             # Otherwise show nothing.
-    #
-    #             # If the destination is from a component metadata, we don't want to display it.
-    #             c = s.get_component_from_metadata(node_dst_data)
-    #             if c:
-    #                 return
-    #
-    #             c = s.get_component_from_input_hub(node_dst_data) or \
-    #                 s.get_component_from_output_hub(node_dst_data)
-    #             if c:
-    #                 c_model = REGISTRY_DEFAULT.get_node(c)
-    #                 # If the source if from the current component input hub, do nothing.
-    #                 if self._level == c_model:
-    #                     pass
-    #                 # If the source if from a component child of the current component, show the component instead of the hub.
-    #                 elif c_model.get_parent() == self._level:
-    #                     port_dst = _get_port_by_name(c_model, port_dst.get_name())
-    #                     need_swap = True
-    #                 # This should not happen, the intercept_node should have done the job already.
-    #                 # Just in case we'll shot a warning.
-    #                 else:
-    #                     log.warning("{0} destination is not visible in the current context. Hiding connection.".format(connection))
-    #                     return
-    #
-    #         if need_swap:
-    #             # Hack: Ignore invalid ports for now...
-    #             # todo: fix this
-    #             if port_src is None or port_dst is None:
-    #                 log.warning("Received invalid data when intercepting connection. Ignoring. {0} {1}".format(port_src, port_dst))
-    #                 yield connection
-    #             else:
-    #                 yield REGISTRY_DEFAULT.get_connection(port_src, port_dst)
-    #         else:
-    #             yield connection
 
     def iter_node_ports(self, node):
         for port in super(SubgraphProxyModel, self).iter_node_ports(node):

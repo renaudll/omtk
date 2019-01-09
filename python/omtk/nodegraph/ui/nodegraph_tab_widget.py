@@ -34,4 +34,4 @@ class Ui_Form(object):
         Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
 
 from ...widget_breadcrumb import WidgetBreadcrumb
-from ..nodegraph_view import NodeGraphView
+from ..view import NodeGraphView

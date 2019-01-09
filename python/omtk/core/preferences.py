@@ -81,14 +81,14 @@ class Preferences(object):
         return self._get_config_nodegraph_raw().get('interesting_attributes', {})
 
     def get_nodegraph_blacklisted_nodetypes(self):
-        return self._get_config_nodegraph_raw().get('blacklisted_node_types', [])
+        return self._get_config_nodegraph_raw().get('_blacklisted_node_types', [])
 
     def get_nodegraph_blacklisted_node_names(self):
-        return self._get_config_nodegraph_raw().get('blacklisted_node_names', [])
+        return self._get_config_nodegraph_raw().get('_blacklisted_node_names', [])
 
     def get_nodegraph_blacklisted_port_names(self):
         data = self._get_config_nodegraph_raw()
-        return set(data.get('blacklisted_port_names', [])) | set(constants.BLACKLISTED_PORT_NAMES)
+        return set(data.get('_blacklisted_port_names', [])) | set(constants.BLACKLISTED_PORT_NAMES)
 
     def get_default_rig_class(self):
         from omtk.core import plugin_manager

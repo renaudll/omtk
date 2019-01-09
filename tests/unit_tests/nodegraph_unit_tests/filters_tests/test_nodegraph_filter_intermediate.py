@@ -1,63 +1,57 @@
+import pytest
+
 from omtk.nodegraph.filters.filter_intermediate_nodes import IntermediateNodeFilter
+from omtk_test import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
 
-from base import GraphFilterTestCase
+
+@pytest.fixture
+def schema(schema_default):
+    return schema_default
 
 
-class NodeGraphFilterIntermediateTest(GraphFilterTestCase):
-    # def setUp(self):
-    #     super(NodeGraphFilterIntermediateTest, self).setUp()
+@pytest.fixture
+def filter_():
+    return IntermediateNodeFilter()
 
-        # filter_ = IntermediateNodeFilter()
-        # self.model.add_filter(filter_)
 
-    def test_unitconversion_filtering(self):
-        """
-        Ensure NodeGraphStandardFilter hide unitConversion nodes unless explicitly ask to.
-        """
-        n1 = self.session.create_node('transform', name='a')
-        n2 = self.session.create_node('transform', name='b')
-        self.session.create_connection(n1.translateX, n2.rotateX)
+def test_unitconversion_filtering(session, registry, model, pymel):
+    """
+    Ensure NodeGraphStandardFilter hide unitConversion nodes unless explicitly ask to.
+    """
+    n1 = pymel.createNode('transform', name='a')
+    n2 = pymel.createNode('transform', name='b')
+    pymel.connectAttr(n1.translateX, n2.rotateX)
 
-        # todo: this should work if we start with no filters, add the node and then change filters?
-        filter = IntermediateNodeFilter()
-        self.ctrl.set_filter(filter)
+    model.add_all()
 
-        m1 = self.registry.get_node(n1)
-        m2 = self.registry.get_node(n2)
-        self.ctrl.add_node(m1)
-        self.ctrl.add_node(m2)
+    assertGraphNodeNamesEqual(model, [u'a', u'b'])
+    assertGraphConnectionsEqual(model, [(u'a.translateX', u'b.rotateX')])
 
-        self.assertGraphNodeNamesEqual([u'a', u'b'])
-        self.assertGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])
+    # However, if you add the unitConversion node explicitly, we want to see it!
+    n3 = n1.translateX.outputs()[0]
+    m3 = registry.get_node(n3)
+    model.add_node(m3)
 
-        # However, if you add the unitConversion node explicitly, we want to see it!
-        n3 = n1.translateX.outputs()[0]
-        m3 = self.registry.get_node(n3)
-        self.ctrl.add_node(m3)
+    assertGraphNodeNamesEqual(model, [u'a', u'b', u'unitConversion1'])
+    assertGraphConnectionsEqual(model, [
+        (u'a.translateX', u'b.rotateX'),
+        (u'a.translateX', u'unitConversion1.input'),
+        (u'unitConversion1.output', u'b.rotateX'),
+    ])
 
-        self.assertGraphNodeNamesEqual([u'a', u'b', u'unitConversion1'])
-        self.assertGraphConnectionsEqual([
-            (u'a.translateX', u'b.rotateX'),
-            (u'a.translateX', u'unitConversion1.input'),
-            (u'unitConversion1.output', u'b.rotateX'),
-        ])
 
-    def test_existing_unitconversion_filtering(self):
-        """
-        Ensure NodeGraphStandardFilter hide unitConversion nodes unless explicitly ask to.
-        """
-        n1 = pymel.createNode('transform', name='a')
-        n2 = pymel.createNode('transform', name='b')
-        pymel.connectAttr(n1.translateX, n2.rotateX)
+def test_existing_unitconversion_filtering(session, registry, model, pymel):
+    """
+    Ensure NodeGraphStandardFilter hide unitConversion nodes unless explicitly ask to.
+    """
+    n1 = pymel.createNode('transform', name='a')
+    n2 = pymel.createNode('transform', name='b')
+    pymel.connectAttr(n1.translateX, n2.rotateX)
 
-        # todo: this should work if we start with no filters, add the node and then change filters?
-        filter = IntermediateNodeFilter()
-        self.ctrl.set_filter(filter)
+    m1 = registry.get_node(n1)
+    m2 = registry.get_node(n2)
+    model.add_node(m1)
+    # ctrl.add_node_callbacks(m2)
 
-        m1 = self.registry.get_node(n1)
-        m2 = self.registry.get_node(n2)
-        self.ctrl.add_node(m1)
-        # self.ctrl.add_node_callbacks(m2)
-
-        self.assertGraphNodeNamesEqual([u'a', u'b'])
-        self.assertGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])
+    assertGraphNodeNamesEqual([u'a', u'b'])
+    assertGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])

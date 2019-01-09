@@ -266,7 +266,12 @@ class IGraphModel(object):
         yield
 
     def get_node_ports(self, node):
-        # type: (NodeModel) -> List[PortModel]
+        """
+        Get all ports related to a specific node.
+        :param NodeModel node: The node to inspect.
+        :return: A list of port
+        :rtype: List[PortModel]
+        """
         return list(self.iter_node_ports(node))
 
     def iter_node_input_connections(self, node):
@@ -308,11 +313,11 @@ class IGraphModel(object):
         return list(self.iter_port_connections(port))
 
     def iter_port_input_connections(self, port):
-        # type: (PortModel) -> list[ConnectionModel]
         """
         Control what input connection models are exposed for the provided port model.
-        :param port: The destination port model to use while resolving the connection models.
+        :param PortModel port: The destination port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as destination.
+        :rtype: Generator[ConnectionModel]
         """
         for connection in port.get_input_connections():
             yield connection
@@ -321,11 +326,11 @@ class IGraphModel(object):
         return list(self.iter_port_input_connections(port))  # cannot memoize a generator
 
     def iter_port_output_connections(self, port):
-        # type: (PortModel) -> List[PortModel]
         """
         Control what output connection models are exposed for the provided port model.
-        :param port: The source port model to use while resolving the connection models.
+        :param PortModel port: The source port model to use while resolving the connection models.
         :return: A list of connection models using the provided port model as source.
+        :rtype: Generator[PortModel]
         """
         for connection in port.get_output_connections():
             yield connection
@@ -371,6 +376,45 @@ class IGraphModel(object):
         # type: (PortModel) -> None
         for connection in self.iter_port_output_connections(port):
             self.add_connection(connection)
+
+    def add_all(self, nodes=True, ports=True, connections=True, emit=True):
+        """
+        Utility method that ensure all registered nodes, ports and connections are in the graph.
+        :param bool nodes: If True, all registered nodes will be added to the graph.
+        :param bool ports: If True, all registered ports will be added to the graph.
+        :param bool connections: If True, all registered connections will be added to the graph.
+        :param bool emit: If True, signals will be emitted for each node node/port/connection.
+        """
+        if nodes:
+            self.add_all_nodes(emit=emit)
+        if ports:
+            self.add_all_ports(emit=emit)
+        if connections:
+            self.add_all_connections(emit=emit)
+
+    def add_all_nodes(self, emit=True):
+        """
+        Ensure that all registered nodes are in the graph.
+        :param bool emit: If True, the `onNodeAdded` signal will be emitted for each new nodes.
+        """
+        for node in self.registry.nodes:
+            self.add_node(node, emit=emit)
+
+    def add_all_ports(self, emit=True):
+        """
+        Ensure that all registered ports are in the graph.
+        :param bool emit: If True, the `onPortAdded` signal will be emitted for each new ports.
+        """
+        for port in self.registry.ports:
+            self.add_port(port, emit=emit)
+
+    def add_all_connections(self, emit=True):
+        """
+        Ensure that all registered connections are in the graph.
+        :param bool emit: If True, the `onConnectionAdded` signal will be emitted for each new connections.
+        """
+        for connection in self.registry.connections:
+            self.add_connection(connection, emit=emit)
 
     # --- Filtering methods ---
     # do we want these?

@@ -1,18 +1,22 @@
 """
 Ensure propre behaviour or the GraphController, GraphRegistry and every related models.
 """
+import pytest
 import logging
 import unittest
 
-from omtk_test import NodeGraphMockedMayaTestCase
 from omtk.nodegraph.models.graph.subgraph_proxy_model import SubgraphProxyModel
+from omtk_test import NodeGraphMockedMayaTestCase
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
 
 
+
+
 class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
     _cls_proxy_model = SubgraphProxyModel
+    _cls_session_preset = None
 
     def test_empty_component(self):
         """
@@ -43,8 +47,6 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
 
         self.assertGraphNodeNamesEqual(["component1"])
 
-
-
     def test_component_with_port(self):
         # Create session
         n1 = self.session.create_node("transform", "component1:inn")
@@ -56,19 +58,18 @@ class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
 
         # Add nodes to graph
         for node in self.session.nodes:
-            node_model = self.registry.get_node(node)
-            self.model.add_node(node_model)
+            self.registry.get_node(node)
+
+        self.model.add_all_nodes()
 
         expected = {
-            "nodes": [
-                "component1",
-            ],
-            "ports": [
-                "component1.in1",
-                "component1.in2",
-                "component1.in3",
-            ],
-            "connections": []
+            'connections': [],
+            'nodes': ['component1'],
+            'ports': [
+                'component1:inn.in1',
+                'component1:inn.in2',
+                'component1:inn.in3'
+            ]
         }
         actual = self.model.dump()
         print actual

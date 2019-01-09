@@ -3,7 +3,7 @@ import omtk.nodegraph.models._deprecated.port_entityattribute
 from omtk import component
 from omtk.nodegraph.models._deprecated import node_entity
 from omtk.nodegraph.models.node import NodeModel
-from omtk.nodegraph.widgets import widget_node
+from omtk.nodegraph.widgets import node
 from omtk.vendor.Qt import QtGui
 from omtk.nodegraph.adaptors.port import entity
 
@@ -184,7 +184,7 @@ class NodeGraphComponentModel(node_entity.NodeGraphEntityModel):
             yield NodeGraphComponentPortModel(self._registry, self, attr_def)
 
     def _get_widget_cls(self):
-        return widget_node.OmtkNodeGraphComponentNodeWidget
+        return node.OmtkNodeGraphComponentNodeWidget
 
 
 class NodeGraphComponentBoundBaseModel(NodeModel):

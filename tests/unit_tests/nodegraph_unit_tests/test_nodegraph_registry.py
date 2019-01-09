@@ -1,142 +1,176 @@
-from omtk_test import NodeGraphMockedMayaTestCase
-from omtk.component import component_registry
-from omtk.vendor.mock_maya import MockedCmdsSession
+import pytest
 
 
-class NodeGraphRegistryCallbackTestCase(NodeGraphMockedMayaTestCase):
+@pytest.fixture()
+def node(registry, session, model, cmds):
+    return session.create_node('transform', name='a')
+
+
+@pytest.fixture()
+def port(session, node):
+    return session.create_port(node, 'test')
+
+
+@pytest.fixture()
+def connection(session, node):
+    port_src = session.create_port(node, 'testSrc')
+    port_dst = session.create_port(node, 'testDst')
+    connection = session.create_connection(port_src, port_dst)
+    return connection
+
+
+def assert_registry_empty(registry):
     """
-    Ensure that the NodeGraphRegistry correctly react to Maya events.
+    Utility method that asset that the provided registry is completely empty.
+
+    :param registry:
     """
-    _cls_controller = None
-    _cls_model = None
-    _cls_proxy_model = None
-    _cls_session_preset = None
-
-    def setUp(self):
-        super(NodeGraphRegistryCallbackTestCase, self).setUp()
-        self.cmds = MockedCmdsSession(session=self.session)
-
-        self.node = self.session.create_node('transform', name='a')
-        self.model_node = self.registry.get_node(self.node)
-        self.assertEqual(1, len(self.registry.get_nodes()))
-
-    def _assert_registry_empty(self):
-        self._assert_registry_node_empty()
-        self._assert_registry_port_empty()
-        self._assert_registry_connection_empty()
-
-    def _assert_registry_node_empty(self):
-        self.assertFalse(self.registry.nodes)
-        self.assertFalse(self.registry.cache_nodes_by_value)
-
-    def _assert_registry_port_empty(self):
-        self.assertFalse(self.registry.ports)
-        self.assertFalse(self.registry.cache_ports_by_value)
-        self.assertFalse(self.registry.cache_ports_by_node)
-
-    def _assert_registry_connection_empty(self):
-        self.assertFalse(self.registry.connections)
-        self.assertFalse(self.registry.cache_connections_by_port)
-        self.assertFalse(self.registry.cache_connection_by_value)
-
-    def test_create_node(self):
-        self.assertIn(self.model_node, self.registry.nodes)
-
-    def test_delete_dagnode(self):
-        """
-        Ensure that if a node is deleted by Maya, it is automatically removed from the REGISTRY_DEFAULT and models.
-        """
-        self.session.remove_node(self.node)
-
-        # Assert that the node was deleted from model and REGISTRY_DEFAULT
-        self._assert_registry_empty()
+    assert_registry_node_empty(registry)
+    assert_registry_port_empty(registry)
+    assert_registry_connection_empty(registry)
 
 
-class NodeGraphRegistryCallbackPortTestCase(NodeGraphRegistryCallbackTestCase):
-    def setUp(self):
-        super(NodeGraphRegistryCallbackPortTestCase, self).setUp()
+def assert_registry_node_empty(registry):
+    """
+    Utility method that assert that no node information exist in the provided registry.
 
-        # Build session
-        self.port = self.session.create_port(self.node, 'test')
-
-        # Build registry
-        self.model_port = self.registry.get_port(self.port)
-
-    def test_create_port(self):
-        """
-        Ensure that when a port is added by Maya, it is automatically added on visible nodes.
-        Ensure that when a port is removed by Maya, it is automatically removed from visible nodes.
-        """
-        self.assertIn(self.model_port, self.registry.ports)
-
-    def test_remove_port(self):
-        self.session.remove_port(self.port)
-        self.assertNotIn(self.model_port, self.registry.ports)
+    :param registry:
+    """
+    assert not registry.nodes
+    assert not registry.cache_nodes_by_value
 
 
-class NodeGraphRegistryCallbackConnectionTestCase(NodeGraphRegistryCallbackTestCase):
-    def setUp(self):
-        super(NodeGraphRegistryCallbackConnectionTestCase, self).setUp()
+def assert_registry_port_empty(registry):
+    """
+    Utility method that assert that no port information exist in the provided registry.
 
-        # Build session
-        self.port_src = self.session.create_port(self.node, 'testSrc')
-        self.port_dst = self.session.create_port(self.node, 'testDst')
-        self.connection = self.session.create_connection(self.port_src, self.port_dst)
-
-        # Build registry
-        self.model_port_src = self.registry.get_port(self.port_src)
-        self.model_port_dst = self.registry.get_port(self.port_dst)
-        self.model_connection = self.registry.get_connection(self.model_port_src, self.model_port_dst)
-
-    def test_create_connection(self):
-        """
-        Ensure that when a connection is added to the scene, it is also added to the registry.
-        """
-        self.assertIn(self.model_connection, self.registry.connections)
-
-    def test_remove_connection(self):
-        """
-        Ensure that when a connection is removed from the scene, it is also removed from the registry.
-        """
-        self.session.remove_connection(self.connection)
-        self.assertNotIn(self.model_connection, self.registry.connections)
-
-    def test_remove_src_port(self):
-        """
-        Ensure that when a connection source port is removed from the scene,
-        the connection is also removed from the registry.
-        """
-        self.session.remove_port(self.port_src)
-        self.assertNotIn(self.model_port_src, self.registry.ports)
-        self.assertIn(self.model_port_dst, self.registry.ports)
-        self.assertNotIn(self.model_connection, self.registry.connections)
-
-    def test_remove_dst_port(self):
-        """
-        Ensure that when a connection source port is removed from the scene,
-        the connection is also removed from the registry.
-        """
-        self.session.remove_port(self.port_dst)
-        self.assertIn(self.model_port_src, self.registry.ports)
-        self.assertNotIn(self.model_port_dst, self.registry.ports)
-        self.assertNotIn(self.model_connection, self.registry.connections)
+    :param registry:
+    """
+    assert not registry.ports
+    assert not registry.cache_ports_by_value
+    assert not registry.cache_ports_by_node
 
 
-# TODO: Move the following to the compound proxy model tests
-# class NodeGraphRegistryCompoundCallbackTestCase(NodeGraphMockedMayaTestCase):
-#     """
-#     Ensure that the NodeGraphRegistry correctly react to Maya events.
-#     """
-#     def setUp(self, *args, **kwargs):
-#         super(NodeGraphRegistryCompoundCallbackTestCase, self).setUp(*args, **kwargs)
-#         registry = component_registry.get_registry()
-#         component_def = registry.get_latest_component_definition_by_name('Float2Float')
-#         self.c1 = component_def.instanciate()
-#         self.model_node = self.registry.get_node(self.c1)
-#         self.ctrl.add_node(self.model_node)
-#
-#     def test_delete(self):
-#         """Ensure that when we delete a compound, it is automatically removed from visible nodes."""
-#         self.c1.delete()  # should trigger callbacks
-#         self.assertGraphNodeCountEqual(0)
-#         self.assertGraphRegistryNodeCountEqual(0)
+def assert_registry_connection_empty(registry):
+    """
+    Utility method that assert no connection information exist in the provided registry.
+
+    :param registry:
+    """
+    assert not registry.connections
+    assert not registry.cache_connections_by_port
+    assert not registry.cache_connection_by_value
+
+
+def test_create_node(node, registry):
+    """
+    Assert that a node model exist in the registry.
+    """
+    node_model = registry.get_node(node)
+    assert node_model in registry.nodes
+
+
+def test_delete_dagnode(registry, session, node):
+    """
+    Ensure that a node that is deleted in Maya is automatically remove from the registry.
+    """
+    node_model = registry.get_node(node)
+    session.remove_node(node)
+
+    assert node_model not in registry.nodes
+    assert_registry_empty(registry)
+
+
+def test_create_port(registry, port):
+    """Ensure that when a port is added by Maya, it is automatically added on visible nodes."""
+    port_model = registry.get_port(port)
+    assert port_model in registry.ports
+
+
+def test_remove_port(registry, session, port):
+    """Ensure that when a port is removed by Maya, it is automatically removed from visible nodes."""
+    port_model = registry.get_port(port)
+    session.remove_port(port)
+    assert port_model not in registry.ports
+
+
+def test_register_connection(registry, connection):
+    """Ensure that when a connection is registered, it is in the global list of connections."""
+    port_model_src = registry.get_port(connection.src)
+    port_model_dst = registry.get_port(connection.dst)
+    connection_model = registry.get_connection(port_model_src, port_model_dst)
+    assert connection_model in registry.connections
+
+
+def test_register_connection_ports(registry, connection):
+    """Ensure that when a connection is registerd, it's source and destination ports are also registered."""
+    port_model_src = registry.get_port(connection.src)
+    port_model_dst = registry.get_port(connection.dst)
+    connection_model = registry.get_connection(port_model_src, port_model_dst)
+    assert connection_model.get_source() in registry.ports
+    assert connection_model.get_destination() in registry.ports
+
+
+def test_unregister_connection(registry, session, connection):
+    """Ensure that when a connection is removed from the scene, it is also removed from the registry."""
+    port_model_src = registry.get_port(connection.src)
+    port_model_dst = registry.get_port(connection.dst)
+    connection_model = registry.get_connection(port_model_src, port_model_dst)
+    session.remove_connection(connection)
+    assert connection_model not in registry.connections
+
+
+def test_unregister_connection_source_port(registry, session, connection):
+    """Ensure that if a connection source port is removed from the scene, the connection is also unregistered."""
+    port_model_src = registry.get_port(connection.src)
+    port_model_dst = registry.get_port(connection.dst)
+    connection_model = registry.get_connection(port_model_src, port_model_dst)
+    session.remove_port(connection.src)
+    assert connection_model.get_source() not in registry.ports
+    assert connection_model.get_destination() in registry.ports
+    assert connection_model not in registry.connections
+
+
+def test_unregister_connection_destination_port(registry, session, connection):
+    """Ensure that when a connection source port is removed from the scene, the connection is also unregistered."""
+    port_model_src = registry.get_port(connection.src)
+    port_model_dst = registry.get_port(connection.dst)
+    connection_model = registry.get_connection(port_model_src, port_model_dst)
+    session.remove_port(connection.dst)
+    assert connection_model.get_source() in registry.ports
+    assert connection_model.get_destination() not in registry.ports
+    assert connection_model not in registry.connections
+
+
+def test_cache_nodes_by_value(registry, node):
+    """Assert the cache_nodes_by_value property is updated when a node is added."""
+    node_model = registry.get_node(node)
+    assert registry.cache_nodes_by_value.get(node) is node_model
+
+
+def test_cache_ports_by_value(registry, port):
+    """Assert the cache_ports_by_value property is updated when a node is added."""
+    port_model = registry.get_port(port)
+    assert registry.cache_ports_by_value.get(port) is port_model
+
+
+def test_cache_ports_by_node(registry, node, port):
+    """Assert the cache_ports_by_node property is updated when a node is added."""
+    node_model = registry.get_node(node)
+    port_model = registry.get_port(port)
+    assert port_model in registry.cache_ports_by_node.get(node_model)
+
+
+def test_cache_connections_by_port(registry, port, connection):
+    """Assert the cache_connections_by_port property is updated when a node is added."""
+    port_model = registry.get_port(port)
+    connection_model = registry.get_connection(port_model, port_model)
+    assert connection_model in registry.cache_connections_by_port.get(port_model)
+
+
+def test_cache_connection_by_value(registry, port):
+    """Assert the cache_connection_by_value property is updated when a node is added."""
+    port_model = registry.get_port(port)
+    key = (port_model, port_model)
+    connection_model = registry.get_connection(*key)
+    assert registry.cache_connection_by_value.get(key) is connection_model

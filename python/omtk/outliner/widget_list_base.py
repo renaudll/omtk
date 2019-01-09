@@ -33,7 +33,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
         self.ui = widget_list_base.Ui_Form()
         self.ui.setupUi(self)
 
-        # Tweak gui
+        # Tweak _gui
         self.ui.treeWidget.setStyleSheet(constants_ui._STYLE_SHEET)
 
         # Configure drag&drop
@@ -225,7 +225,7 @@ class OmtkBaseListWidget(QtWidgets.QWidget):
     @log_info
     def on_selection_changed(self):
         # Filter deleted networks
-        networks = [net for net in self.iter_selection() if net and net.exists()]
+        networks = [net for net in self.iter_selection() if net and net.node_exist()]
         print networks
         pymel.select(networks)
 

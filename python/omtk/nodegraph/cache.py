@@ -41,7 +41,7 @@ class Cache(object):
         :param object key: A registered value or a registered key.
         :raise LookupError: When the resource is not registered.
         """
-        log.debug("Registering %s", key)
+        log.debug("Unregistering %s", key)
 
         val = self._map_inv.pop(key, None)
         if val:

@@ -128,9 +128,10 @@ class PluginManagerWindow(QtWidgets.QMainWindow):
         self._proxy_model.set_search_query(query)
 
 
-gui = PluginManagerWindow()
+_gui = None
 
 
 def show():
-    global gui
+    global _gui
+    gui = PluginManagerWindow()
     gui.show()

@@ -2,7 +2,7 @@
 from omtk.nodegraph import NodeGraphFilter
 
 
-class NodeGraphMetadataFilter(NodeGraphFilter):
+class HideNetworkNodesFilter(NodeGraphFilter):
     """
     Simple filter than hide nodes of type network.
     """
@@ -15,7 +15,6 @@ class NodeGraphMetadataFilter(NodeGraphFilter):
         :rtype: bool
         """
         node_type = node.get_type()
-        raise Exception(node_type)
         if node_type == 'network':
             return False
 

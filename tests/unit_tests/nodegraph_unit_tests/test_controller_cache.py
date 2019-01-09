@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 # from omtk.nodegraph import NodeModel, PortModel, ConnectionModel
-from omtk.nodegraph.nodegraph_controller_cache import NodeGraphWidgetCache
+from omtk.nodegraph.controller_cache import NodeGraphWidgetCache
 from omtk.vendor.mock import MagicMock
 
 

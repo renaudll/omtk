@@ -22,7 +22,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui = widget_list_influences.Ui_Form()
         self.ui.setupUi(self)
 
-        # Tweak gui
+        # Tweak _gui
         self.ui.treeWidget.setStyleSheet(omtk.constants_ui._STYLE_SHEET)
 
         # Connect signals
@@ -140,7 +140,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         result = []
         for item in self.ui.treeWidget.selectedItems():
             meta_data = item._meta_data
-            if meta_data.exists():
+            if meta_data.node_exist():
                 result.append(meta_data)
         return result
 

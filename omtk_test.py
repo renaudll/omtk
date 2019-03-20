@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from maya import cmds
 import pymel.core as pymel
 
-import libSerialization
+from omtk.vendor import libSerialization
 
 
 def _get_holded_shapes():

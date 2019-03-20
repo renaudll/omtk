@@ -3,7 +3,7 @@ import mayaunittest
 import pymel.core as pymel
 import omtk
 import omtk_test
-import libSerialization
+from omtk.vendor import libSerialization
 
 
 class SampleTests(omtk_test.TestCase):

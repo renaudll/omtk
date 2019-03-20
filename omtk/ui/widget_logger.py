@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from Qt import QtCore, QtGui, QtWidgets, QtCompat
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 class Ui_Form(object):
     def setupUi(self, Form):

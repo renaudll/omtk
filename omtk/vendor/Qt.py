@@ -44,7 +44,7 @@ Default resolution order:
 
 Usage:
     >> import sys
-    >> from Qt import QtWidgets
+    >> from omtk.vendor.Qt import QtWidgets
     >> app = QtWidgets.QApplication(sys.argv)
     >> button = QtWidgets.QPushButton("Hello World")
     >> button.show()
@@ -97,7 +97,7 @@ def convert(lines):
     """
 
     def parse(line):
-        line = line.replace("from PySide2 import", "from Qt import")
+        line = line.replace("from PySide2 import", "from omtk.vendor.Qt import")
         line = line.replace("QtWidgets.QApplication.translate",
                             "Qt.QtCompat.translate")
         return line

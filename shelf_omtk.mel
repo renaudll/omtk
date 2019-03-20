@@ -42,7 +42,7 @@ global proc shelf_omtk () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.libs import libSerialization\n\nnetworks = libSerialization.get_networks_from_class('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n" 
+        -annotation "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import AutoRig\nfrom omtk.vendor import libSerialization\n\nnetworks = libSerialization.get_networks_from_class('RigRoot')\nfor network in networks:\n    rigroot = libSerialization.importFromNetwork(network)\n    rigroot.Build()\n    pymel.delete(network)\n    libSerialization.exportToNetwork(rigroot)\n\n"
         -enableBackground 0
         -align "center" 
         -label "# Build Rig\nimport pymel.core as pymel\nfrom omtk.rigging import ..." 

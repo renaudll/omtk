@@ -21,11 +21,13 @@ def distance_between_nodes(x, y):
     bx, b, bz = y.getTranslation(space="world")
     return ((ax - bx) ** 2 + (ay - b) ** 2 + (az - bz) ** 2) ** 0.5
 
+
 def distance_between_vectors(a, b):
     """
     http://darkvertex.com/wp/2010/06/05/python-distance-between-2-vectors/
     """
-    return (  (a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2  ) **0.5
+    return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2) ** 0.5
+
 
 def is_child_of(node, potential_parent):
     while node:
@@ -34,8 +36,10 @@ def is_child_of(node, potential_parent):
         node = node.getParent()
     return False
 
+
 class PyNodeChain(list):
     """A container for manipulating lists of hosts"""
+
     @property
     def start(self):
         return next(iter(self), None)
@@ -49,7 +53,7 @@ class PyNodeChain(list):
         return self
 
     def duplicate(self):
-        #Hack - Convert self into list even if self is a list to prevent duplicate self parameter in pymel.duplicate
+        # Hack - Convert self into list even if self is a list to prevent duplicate self parameter in pymel.duplicate
         new_chain = pymel.duplicate(list(self), renameChildren=True, parentOnly=True)
         return PyNodeChain(new_chain)
 
@@ -113,10 +117,12 @@ def get_chains_from_objs(objs):
                     chain.append(obj)
     return [PyNodeChain(chain) for chain in chains]
 
+
 def iter_parents(obj):
     while obj.getParent() is not None:
         obj = obj.getParent()
         yield obj
+
 
 def get_parents(obj):
     return list(iter_parents(obj))
@@ -130,18 +136,41 @@ def get_parents(obj):
     '''
 
 
+def get_common_parents(objs):
+    """
+    Return the first parent that all provided objects share.
+    :param objs: A list of pymel.PyNode instances.
+    :return: A pymel.PyNode instance.
+    """
+    parent_sets = set()
+    for jnt in objs:
+        parent_set = set(get_parents(jnt))
+        if not parent_sets:
+            parent_sets = parent_set
+        else:
+            parent_sets &= parent_set
+
+    result = next(iter(reversed(sorted(parent_sets, key=get_num_parents))), None)
+    if result and result in objs:
+        result = result.getParent()
+    return result
+
+
 class Tree(object):
     __slots__ = ('val', 'children', 'parent')
+
     def __init__(self, val):
         self.val = val
         self.children = []
         self.parent = None
+
     def append(self, tree):
         self.children.append(tree)
         tree.parent = self
 
     def __repr__(self):
         return '<Tree {0}>'.format(self.val)
+
 
 def get_tree_from_objs(objs, sort=False):
     """
@@ -183,23 +212,24 @@ def ls(*args, **kwargs):
 
 # Wrapper for pymel.ls that return only objects without parents.
 def ls_root(*args, **kwargs):
-    #TODO: Better finding of the root joint
-    return PyNodeChain(filter(lambda x: x.getParent() is None or type(x.getParent()) != pymel.nt.Joint, iter(pymel.ls(*args, **kwargs))))
+    # TODO: Better finding of the root joint
+    return PyNodeChain(filter(lambda x: x.getParent() is None or type(x.getParent()) != pymel.nt.Joint,
+                              iter(pymel.ls(*args, **kwargs))))
 
 
 def ls_root_anms(pattern='anm*', **kwargs):
     return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_geos(pattern='geo*',**kwargs):
+def ls_root_geos(pattern='geo*', **kwargs):
     return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_rigs(pattern='rig*',**kwargs):
+def ls_root_rigs(pattern='rig*', **kwargs):
     return ls_root(pattern, type='transform', **kwargs)
 
 
-def ls_root_jnts(pattern='jnt*',**kwargs):
+def ls_root_jnts(pattern='jnt*', **kwargs):
     return ls_root(pattern, type='transform', **kwargs)
 
 
@@ -219,6 +249,7 @@ def isinstance_of_shape(obj, cls=pymel.nodetypes.Shape):
     elif isinstance(obj, pymel.nodetypes.Shape):
         return isinstance(obj, cls)
 
+
 def create_zero_grp(obj):
     zero_grp = pymel.createNode('transform')
     new_name = obj.name() + '_' + 'zero_grp'
@@ -235,9 +266,11 @@ def create_zero_grp(obj):
 
     return zero_grp
 
+
 def zero_out_objs(objs):
     for o in objs:
         create_zero_grp(o)
+
 
 #
 # pymel.datatypes extensions.
@@ -248,12 +281,13 @@ class Segment(object):
     In Maya there's no class to represent a segment.
     This is the pymel.datatypes.Segment I've always wanted.
     """
+
     def __init__(self, pos_s, pos_e):
         self.pos_s = pos_s
         self.pos_e = pos_e
 
-        #self.pos_s = numpy.array(pos_s.x, pos_s.y, pos_s.z)
-        #self.pos_e = numpy.array(pos_e.x, pos_e.y, pos_e.z)
+        # self.pos_s = numpy.array(pos_s.x, pos_s.y, pos_s.z)
+        # self.pos_e = numpy.array(pos_e.x, pos_e.y, pos_e.z)
 
     def closest_point(self, p):
         """
@@ -312,7 +346,7 @@ class SegmentCollection(object):
                 return segment, distance_normalized
             elif i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
                 return segment, 0.0
-            elif i == (num_segments-1) and distance_normalized > bound_max:  # Handle out-of-bound
+            elif i == (num_segments - 1) and distance_normalized > bound_max:  # Handle out-of-bound
                 return segment, 1.0
         raise Exception("Can't resolve segment for {0}".format(pos))
 
@@ -328,15 +362,15 @@ class SegmentCollection(object):
             if i == 0:
                 weights = [0] * num_knots
                 weights[0] = 1.0
-            elif i == (num_knots-1):
+            elif i == (num_knots - 1):
                 weights = [0] * num_knots
                 weights[-1] = 1.0
             else:
                 weights = []
                 total_weight = 0.0
                 for j in range(num_knots):
-                    distance = abs(j-i)
-                    weight = max(0, 1.0-(distance/dropoff))
+                    distance = abs(j - i)
+                    weight = max(0, 1.0 - (distance / dropoff))
                     total_weight += weight
                     weights.append(weight)
                 weights = [weight / total_weight for weight in weights]
@@ -376,9 +410,9 @@ class SegmentCollection(object):
     def from_transforms(cls, objs):
         segments = []
         num_objs = len(objs)
-        for i in range(num_objs-1):
+        for i in range(num_objs - 1):
             obj_s = objs[i]
-            obj_e = objs[i+1]
+            obj_e = objs[i + 1]
             mfn_transform_s = obj_s.__apimfn__()
             mfn_transform_e = obj_e.__apimfn__()
             pos_s = OpenMaya.MVector(mfn_transform_s.getTranslation(OpenMaya.MSpace.kWorld))
@@ -391,9 +425,48 @@ class SegmentCollection(object):
     def from_positions(cls, positions):
         segments = []
         num_positions = len(positions)
-        for i in range(num_positions-1):
+        for i in range(num_positions - 1):
             pos_s = positions[i]
-            pos_e = positions[i+1]
+            pos_e = positions[i + 1]
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)
+
+
+def get_rotation_from_matrix(tm):
+    """
+    Bypass pymel bug
+    see https://github.com/LumaPictures/pymel/issues/355
+    """
+    return pymel.datatypes.TransformationMatrix(tm).rotate
+
+
+def makeIdentity_safe(obj, translate=False, rotate=False, scale=False, apply=False, **kwargs):
+    """
+    Extended pymel.makeIdentity method that won't crash for idiotic reasons.
+    """
+    from . import libAttr
+
+    affected_attrs = []
+
+    # Ensure the shape don't have any extra transformation.
+    if apply:
+        if translate:
+            libAttr.unlock_translation(obj)
+            affected_attrs.extend([
+                obj.translate, obj.translateX, obj.translateY, obj.translateZ
+            ])
+        if rotate:
+            libAttr.unlock_rotation(obj)
+            affected_attrs.extend([
+                obj.rotate, obj.rotateX, obj.rotateY, obj.rotateZ
+            ])
+        if scale:
+            libAttr.unlock_scale(obj)
+            affected_attrs.extend([
+                obj.scale, obj.scaleX, obj.scaleY, obj.scaleZ
+            ])
+
+    # Make identify will faile if attributes are connected...
+    with libAttr.context_disconnected_attrs(affected_attrs, hold_inputs=True, hold_outputs=False):
+        pymel.makeIdentity(obj, apply=apply, translate=translate, rotate=rotate, scale=scale, **kwargs)

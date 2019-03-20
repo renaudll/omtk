@@ -1,10 +1,11 @@
-from PySide import QtCore, QtGui
-
 from ui import preferences_window
 from omtk.core import plugin_manager
 from omtk.core import preferences
 
-class PreferencesWindow(QtGui.QDialog):
+from omtk.vendor.Qt import QtCore, QtWidgets
+
+
+class PreferencesWindow(QtWidgets.QDialog):
     searchQueryChanged = QtCore.Signal(str)
 
     def __init__(self, parent=None):
@@ -23,7 +24,7 @@ class PreferencesWindow(QtGui.QDialog):
 
         default_rig_type_name = preferences.preferences.get_default_rig_class().__name__
         if default_rig_type_name in rig_plugins_names:
-            self.ui.comboBox.setCurrentIndex(rig_plugins_names.index(default_rig_type_name)+1)
+            self.ui.comboBox.setCurrentIndex(rig_plugins_names.index(default_rig_type_name) + 1)
 
         # Connect events
         self.ui.comboBox.currentIndexChanged.connect(self.on_default_rig_changed)
@@ -32,11 +33,14 @@ class PreferencesWindow(QtGui.QDialog):
         if index == 0:
             preferences.preferences.default_rig = None
         else:
-            preferences.preferences.default_rig = self.rig_plugins[index-1].cls.__name__
+            preferences.preferences.default_rig = self.rig_plugins[index - 1].cls.__name__
 
         preferences.preferences.save()
 
+
 gui = PreferencesWindow()
+
+
 def show():
     global gui
     gui.show()

@@ -1,23 +1,29 @@
+import copy
 import traceback
 import time
 import logging
 from maya import cmds
 import pymel.core as pymel
+from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import className
-from omtk.core import classModule
-from omtk.core import constants
+from omtk.core import api
 from omtk.core.utils import decorator_uiexpose
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
+from omtk.libs import libHistory
+from omtk.libs import libAttr
+
 log = logging.getLogger('omtk')
+
 
 class CtrlRoot(BaseCtrl):
     """
     The main ctrl. Support global uniform scaling only.
     """
+
     def __init__(self, *args, **kwargs):
         super(CtrlRoot, self).__init__(create_offset=False, *args, **kwargs)
 
@@ -29,24 +35,23 @@ class CtrlRoot(BaseCtrl):
         node = pymel.circle(*args, **kwargs)[0]
         make = node.getShape().create.inputs()[0]
         make.radius.set(size)
-        make.normal.set((0,1,0))
+        make.normal.set((0, 1, 0))
 
         return node
 
-    def build(self, *args, **kwargs):
+    def build(self, create_global_scale_attr=True, *args, **kwargs):
         super(CtrlRoot, self).build(*args, **kwargs)
 
         # Add a globalScale attribute to replace the sx, sy and sz.
-        if not self.node.hasAttr('globalScale'):
+        if create_global_scale_attr and not self.node.hasAttr('globalScale'):
             pymel.addAttr(self.node, longName='globalScale', k=True, defaultValue=1.0, minValue=0.001)
             pymel.connectAttr(self.node.globalScale, self.node.sx)
             pymel.connectAttr(self.node.globalScale, self.node.sy)
             pymel.connectAttr(self.node.globalScale, self.node.sz)
             self.node.s.set(lock=True, channelBox=False)
 
-
-    @staticmethod
-    def _get_recommended_radius(rig, min_size=1.0):
+    @classmethod
+    def _get_recommended_radius(cls, rig, min_size=1.0):
         """
         Analyze the scene and return the recommended radius using the scene geometry.
         """
@@ -66,10 +71,12 @@ class CtrlRoot(BaseCtrl):
             z_max - z_min
         ) / 2.0
 
+
 class RigGrp(Node):
     """
     Simple Node re-implementation that throw whatever was parented to it outside before un-building and re-parent them after building.
     """
+
     # def __init__(self, *args, **kwargs):
     #     self.extra = None  # Holder for any nodes that were parented to the group when un-building.
     #     super(RigGrp, self).__init__(*args, **kwargs)
@@ -91,10 +98,11 @@ class RigGrp(Node):
             if not keep_if_children:
                 children = self.node.getChildren()
                 if children:
-                    #self.extra = children
+                    # self.extra = children
                     for child in children:
-                        pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
-                        child.setParent(world=True)
+                        if not isinstance(child, pymel.nt.NurbsCurve):
+                            pymel.warning("Ejecting {0} from {1} before deletion".format(child, self.node))
+                            child.setParent(world=True)
                 super(RigGrp, self).unbuild(*args, **kwargs)
 
 
@@ -108,6 +116,20 @@ class Rig(object):
     AVAR_NAME_LOW = 'Low'
     AVAR_NAME_ALL = 'All'
 
+    # Define what axis to use as the 'up' axis.
+    # This generally mean in which Axis will the Limb elbow/knee be pointing at.
+    # The default is Z since it work great with Maya default xyz axis order.
+    # However some riggers might prefer otherwise for personal or backward-compatibility reasons (omtk_cradle)
+    DEFAULT_UPP_AXIS = constants.Axis.z
+
+    # Define how to resolve the transform for IKCtrl on Arm and Leg.
+    # Before 0.4, the ctrl was using the same transform than it's offset.
+    # However animators don't like that since it mean that the 'Y' axis is not related to the world 'Y'.
+    # From 0.4 and after, there WILL be rotation values in the ik ctrl channel box.
+    # If thoses values are set to zero, this will align the hands and feet with the world.
+    LEGACY_ARM_IK_CTRL_ORIENTATION = False
+    LEGACY_LEG_IK_CTRL_ORIENTATION = False
+
     def __init__(self, name=None):
         self.name = name if name else self.DEFAULT_NAME
         self.modules = []
@@ -116,12 +138,12 @@ class Rig(object):
         self.grp_jnt = None  # Joint grp, usually the root jnt
         self.grp_rig = None  # Data grp
         self.grp_master = None  # Main grp of the rig
-        self.grp_backup = None # Backup grp, contain anything we saved during unbuild.
+        self.grp_backup = None  # Backup grp, contain anything we saved during unbuild.
         self.layer_anm = None
         self.layer_geo = None
         self.layer_rig = None
+        self.layer_jnt = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
-        self._up_axis = constants.Axis.z  # This is the axis that will point in the bending direction
 
     #
     # Logging implementation
@@ -175,15 +197,29 @@ class Rig(object):
     def __len__(self):
         return self.modules.__len__()
 
+    def __nonzero__(self):
+        """
+        Prevent an empty rig to be considered as False since it can still contain usefull informations.
+        :return: True, always.
+        """
+        return True
+
     def insert(self, index, value):
         self.modules.insert(index, value)
-        value._parent = self # Store the parent for optimized network serialization (see libs.libSerialization)
+        value._parent = self  # Store the parent for optimized network serialization (see libs.libSerialization)
 
     def __iter__(self):
         return iter(self.modules)
 
     def __str__(self):
-        return '{0} <{1}>'.format(self.name, self.__class__.__name__)
+        version = getattr(self, 'version', '')
+        if version:
+            version = ' v{}'.format(version)
+        return '{} <{}{}>'.format(
+            self.name.encode('utf-8'),
+            self.__class__.__name__,
+            version
+        )
 
     #
     # libSerialization implementation
@@ -198,7 +234,6 @@ class Rig(object):
             self.modules = filter(None, self.modules)
         except (AttributeError, TypeError):
             pass
-
 
     #
     # Main implementation
@@ -223,7 +258,14 @@ class Rig(object):
 
         # Resolve name to use
         default_name = inst.get_default_name()
-        default_name = self._get_unique_name(default_name)  # Ensure name is unique
+
+        # Resolve the default name using the current nomenclature.
+        # This allow specific nomenclature from being applied.
+        # ex: At Squeeze, we always want the names in PascalCase.
+        default_name = self.nomenclature(default_name).resolve()
+
+        # Ensure name is unique
+        default_name = self._get_unique_name(default_name)
         inst.name = default_name
 
         self.modules.append(inst)
@@ -238,19 +280,31 @@ class Rig(object):
 
     def _invalidate_cache_by_module(self, inst):
         # Some cached values might need to be invalidated depending on the module type.
-        from omtk.modules.rigFaceJaw import FaceJaw
-        if isinstance(inst, FaceJaw):
-            try:
-                del self._cache[self.get_jaw_jnt.__name__]
-            except (LookupError, AttributeError):
-                pass
+        # from omtk.modules.rigFaceJaw import FaceJaw
+        # if isinstance(inst, FaceJaw):
+        #     try:
+        #         del self._cache[self.get_jaw_jnt.__name__]
+        #     except (LookupError, AttributeError):
+        #         pass
+        #
+        # from omtk.modules.rigHead import Head
+        # if isinstance(inst, Head):
+        #     try:
+        #         del self._cache[self.get_head_jnt.__name__]
+        #     except (LookupError, AttributeError):
+        #         pass
 
-        from omtk.modules.rigHead import Head
-        if isinstance(inst, Head):
-            try:
-                del self._cache[self.get_head_jnt.__name__]
-            except (LookupError, AttributeError):
-                pass
+        # Remove Module.get_head_jnt cache
+        try:
+            del inst._cache[inst.get_head_jnt.__name__]
+        except (LookupError, AttributeError):
+            pass
+
+        # Remove Module.get_jaw_jnt cache
+        try:
+            del inst._cache[inst.get_jaw_jnt.__name__]
+        except (LookupError, AttributeError):
+            pass
 
     def is_built(self):
         """
@@ -291,11 +345,55 @@ class Rig(object):
         """
         return True
 
-    def _is_influence(self, jnt):
+    @libPython.memoized_instancemethod
+    def _get_all_input_shapes(self):
+        """
+        Used for quick lookup (see self._is_potential_deformable).
+        :return: All the module inputs shapes.
+        """
+        result = set()
+        for module in self.modules:
+            if module.input:
+                for input in module.input:
+                    if isinstance(input, pymel.nodetypes.Transform):
+                        result.update(input.getShapes(noIntermediate=True))
+                    elif not input.intermediateObject.get():
+                        result.add(input)
+        return result
+
+    def _is_potential_influence(self, jnt):
+        """
+        Take a potential influence and validate that it is not blacklisted.
+        Currently any influence under the rig group is automatically ignored.
+        :param mesh: A pymel.PyNode representing an influence object.
+        :return: True if the object is a good deformable candidate.
+        """
         # Ignore any joint in the rig group (like joint used with ikHandles)
         if libPymel.is_valid_PyNode(self.grp_rig):
             if libPymel.is_child_of(jnt, self.grp_rig.node):
                 return False
+        return True
+
+    def _is_potential_deformable(self, mesh):
+        """
+        Take a potential deformable shape and validate that it is not blacklisted.
+        Currently any deformable under the rig group is automatically ignored.
+        :param mesh: A pymel.PyNode representing a deformable object.
+        :return: True if the object is a good deformable candidate.
+        """
+        # Any intermediate shape is automatically discarded.
+        if isinstance(mesh, pymel.nodetypes.Shape) and mesh.intermediateObject.get():
+            return False
+
+        # Ignore any mesh in the rig group (like mesh used for ribbons)
+        if libPymel.is_valid_PyNode(self.grp_rig):
+            if libPymel.is_child_of(mesh, self.grp_rig.node):
+                return False
+
+        # Any mesh that is used as an input in a module is used for rigging.
+        # if mesh in self._get_all_input_shapes():
+        #     return False
+
         return True
 
     def get_potential_influences(self):
@@ -305,31 +403,73 @@ class Rig(object):
         :key: Provide a function for filtering the results.
         """
         result = pymel.ls(type='joint') + list(set([shape.getParent() for shape in pymel.ls(type='nurbsSurface')]))
-        result = filter(self._is_influence, result)
+        result = [obj for obj in result if self._is_potential_influence(obj)]
         return result
+
+    def get_influences(self, key=None):
+        result = set()
+        for module in self.modules:
+            for obj in module.input:
+                if key is None or key(obj):
+                    result.add(obj)
+        return list(result)
+
+    def iter_ctrls(self, include_grp_anm=True):
+        if include_grp_anm and self.grp_anm and self.grp_anm.exists():
+            yield self.grp_anm
+        for module in self.modules:
+            if module.is_built():
+                for ctrl in module.iter_ctrls():
+                    if ctrl:
+                        yield ctrl
+
+    def get_ctrls(self, **kwargs):
+        return list(self.iter_ctrls(**kwargs))
+
+    @libPython.memoized_instancemethod
+    def get_influences_jnts(self):
+        return self.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
+
+    @libPython.memoized_instancemethod
+    def get_shapes(self):
+        """
+        :return: All meshes under the mesh group. If found nothing, scan the whole scene.
+        Note that we support mesh AND nurbsSurfaces.
+        """
+        shapes = None
+        if self.grp_geo and self.grp_geo.exists():
+            shapes = self.grp_geo.listRelatives(allDescendents=True, shapes=True)
+            shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
+
+        if not shapes:
+            self.warning("Found no mesh under the mesh group, scanning the whole scene.")
+            shapes = pymel.ls(type='surfaceShape')
+            shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
+
+        # Apply constraint.
+        shapes = [shape for shape in shapes if self._is_potential_deformable(shape)]
+
+        return shapes
 
     @libPython.memoized_instancemethod
     def get_meshes(self):
         """
-        :return: All meshes under the mesh group. If found nothing, scan the whole scene.
+        :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
         """
-        meshes = None
-        if self.grp_geo and self.grp_geo.exists():
-            shapes = self.grp_geo.listRelatives(allDescendents=True, shapes=True)
-            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
+        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.Mesh), self.get_shapes())
 
-        if not meshes:
-            self.warning("Found no mesh under the mesh group, scanning the whole scene.")
-            shapes = pymel.ls(type='mesh')
-            meshes = [shape for shape in shapes if not shape.intermediateObject.get()]
-
-        return meshes
+    @libPython.memoized_instancemethod
+    def get_surfaces(self):
+        """
+        :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
+        """
+        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.NurbsSurface), self.get_shapes())
 
     def get_nearest_affected_mesh(self, jnt):
         """
         Return the immediate mesh affected by provided object in the geometry stack.
         """
-        key = lambda mesh: mesh in self.get_meshes()
+        key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_nearest_affected_mesh(jnt, key=key)
 
     def get_farest_affected_mesh(self, jnt):
@@ -337,14 +477,30 @@ class Rig(object):
         Return the last mesh affected by provided object in the geometry stack.
         Usefull to identify which mesh to use in the 'doritos' setup.
         """
-        key = lambda mesh: mesh in self.get_meshes()
+        key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
+    
+    def raycast_nearest(self, pos, dir, geos=None):
+        """
+        Return the nearest point on any of the rig registered geometries using provided position and direction.
+        """
+        if not geos:
+            geos = self.get_shapes()
+        if not geos:
+            return None
 
-    def raycast_farthest(self, pos, dir):
+        result = libRigging.ray_cast_nearest(pos, dir, geos)
+        if not result:
+            return None
+
+        return result
+
+    def raycast_farthest(self, pos, dir, geos=None):
         """
-        Return the farest point on any of the rig registered geometries using provided position and direction.
+        Return the farthest point on any of the rig registered geometries using provided position and direction.
         """
-        geos = self.get_meshes()
+        if not geos:
+            geos = self.get_shapes()
         if not geos:
             return None
 
@@ -365,19 +521,36 @@ class Rig(object):
     def build_grp(self, cls, val, name, *args, **kwargs):
         if not isinstance(val, cls):
             val = cls()
+            if cmds.objExists(name):
+                val.node = pymel.PyNode(name)
         if not val.is_built():
             val.build(*args, **kwargs)
             val.rename(name)
         return val
 
-    def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
-                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False):
-        # Hack: Invalidate any cache before building anything.
-        # This ensure we always have fresh data.
+    def _clear_cache(self):
+        """
+        Some attributes in the a rig are cached.
+        This call remove any cache to ensure we only work with up-to-date values.
+        """
         try:
             del self._cache
         except AttributeError:
             pass
+        for module in self.modules:
+            # todo: implement _clear_cache on modules?
+            if module:
+                try:
+                    del module._cache
+                except AttributeError:
+                    pass
+
+    def pre_build(self, create_master_grp=False, create_grp_jnt=True, create_grp_anm=True,
+                  create_grp_rig=True, create_grp_geo=True, create_display_layers=True, create_grp_backup=False,
+                  create_layer_jnt=False):
+        # Hack: Invalidate any cache before building anything.
+        # This ensure we always have fresh data.
+        self._clear_cache()
 
         # Look for a root joint
         if create_grp_jnt:
@@ -391,15 +564,6 @@ class Rig(object):
                     self.warning("Could not find any root joint, master ctrl will not drive anything")
                     # self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
 
-        # Ensure all joints have segmentScaleComprensate deactivated.
-        # This allow us to scale adequately and support video game rigs.
-        # If for any mean stretch and squash are necessary, implement
-        # them on a new joint chains parented to the skeletton.
-        # TODO: Move elsewere?
-        all_jnts = libPymel.ls(type='joint')
-        for jnt in all_jnts:
-            jnt.segmentScaleCompensate.set(False)
-
         # Create the master grp
         if create_master_grp:
             self.grp_master = self.build_grp(RigGrp, self.grp_master, self.name + '_' + self.nomenclature.type_rig)
@@ -409,7 +573,6 @@ class Rig(object):
             grp_anim_size = CtrlRoot._get_recommended_radius(self)
             self.grp_anm = self.build_grp(CtrlRoot, self.grp_anm, self.nomenclature.root_anm_name, size=grp_anim_size)
 
-
         # Create grp_rig
         if create_grp_rig:
             self.grp_rig = self.build_grp(RigGrp, self.grp_rig, self.nomenclature.root_rig_name)
@@ -418,13 +581,13 @@ class Rig(object):
         if create_grp_geo:
             all_geos = libPymel.ls_root_geos()
             self.grp_geo = self.build_grp(RigGrp, self.grp_geo, self.nomenclature.root_geo_name)
-            #if all_geos:
+            # if all_geos:
             #    all_geos.setParent(self.grp_geo)
 
         if create_grp_backup:
             self.grp_backup = self.build_grp(RigGrp, self.grp_backup, self.nomenclature.root_backup_name)
 
-        #Parent all grp on the master grp
+        # Parent all grp on the master grp
         if self.grp_master:
             if self.grp_jnt:
                 self.grp_jnt.setParent(self.grp_master.node)
@@ -464,7 +627,47 @@ class Rig(object):
                 self.layer_geo = pymel.PyNode(self.nomenclature.layer_geo_name)
             pymel.editDisplayLayerMembers(self.layer_geo, self.grp_geo, noRecurse=True)
 
-    def build(self, skip_validation=False, strict=False, **kwargs):
+            if create_layer_jnt:
+                if not pymel.objExists(self.nomenclature.layer_jnt_name):
+                    self.layer_jnt = pymel.createDisplayLayer(name=self.nomenclature.layer_jnt_name, number=1,
+                                                              empty=True)
+                    self.layer_jnt.color.set(1)  # Black?
+                    self.layer_jnt.visibility.set(0)  # Hidden
+                    self.layer_jnt.displayType.set(2)  # Frozen
+                else:
+                    self.layer_jnt = pymel.PyNode(self.nomenclature.layer_jnt_name)
+                pymel.editDisplayLayerMembers(self.layer_jnt, self.grp_jnt, noRecurse=True)
+
+    def _sort_modules_by_dependencies(self, modules):
+        """
+        Sort modules in a way that module that depend on other modules are after them in the list.
+        :param modules: A list of unsorted Module instances.
+        :return: A list of sorted Module instances.
+        """
+        unsorted_modules = set(copy.copy(modules))
+        sorted_modules = []
+        while unsorted_modules:
+            modules_without_dependencies = set()
+            for module in unsorted_modules:
+                dependencies = set(module.get_dependencies_modules() or []) & set(unsorted_modules)
+                if not dependencies:
+                    modules_without_dependencies.add(module)
+            unsorted_modules -= modules_without_dependencies
+
+            for module in modules_without_dependencies:
+                sorted_modules.append(module)
+
+        return sorted_modules
+
+    def build(self, modules=None, skip_validation=False, strict=False, **kwargs):
+        """
+        Build the whole rig or part of the rig.
+        :param modules: The modules to build. If nothing is provided everything will be built.
+        :param skip_validation: If True, no final validation will be done. Don't use it.
+        :param strict: If True, an exception will immediately be raised if anything fail in the build process.
+        :param kwargs: Any additional keyword arguments will be passed on each modules build method.
+        :return: True if sucessfull, False otherwise.
+        """
         # # Aboard if already built
         # if self.is_built():
         #     self.warning("Can't build {0} because it's already built!".format(self))
@@ -487,57 +690,90 @@ class Rig(object):
         #
         self.pre_build()
 
+        #
+        # Resolve modules to build
+        #
+
+        # If no modules are provided, build everything.
+        if modules is None:
+            modules = self.modules
+
+        # Filter any module that don't have an input.
+        modules = filter(lambda module: module.jnt, modules)
+
+        # Sort modules by ascending hierarchical order.
+        # This ensure modules are built in the proper order.
+        # This should not be necessary, however it can happen (ex: dpSpine provided space switch target only available after building it).
+        modules = sorted(modules, key=(lambda x: libPymel.get_num_parents(x.chain_jnt.start)))
+
+        # Add modules dependencies
+        for i in reversed(xrange(len(modules))):
+            module = modules[i]
+            dependencies = module.get_dependencies_modules()
+            if dependencies:
+                for dependency in dependencies:
+                    if not dependency in modules:
+                        modules.insert(i, dependency)
+
+        # Sort modules by their dependencies
+        modules = self._sort_modules_by_dependencies(modules)
+
+        log.debug("Will build modules in the specified order: {0}".format(', '.join([str(m) for m in modules])))
 
         #
-        # Build
+        # Build modules
         #
-        modules = sorted(self.modules, key=(lambda module: libPymel.get_num_parents(module.chain_jnt.start)))
-        for module in modules:
-            if module.is_built():
-                continue
+        current_namespace = cmds.namespaceInfo(currentNamespace=True)
 
-            if not skip_validation:
-                try:
-                    module.validate()
-                except Exception, e:
-                    self.warning("Can't build {0}: {1}".format(module, e))
-                    if strict:
-                        traceback.print_exc()
-                        raise(e)
+        try:
+            for module in modules:
+                if module.is_built():
                     continue
 
-            if not module.locked:
-                try:
-                    module.build(self, **kwargs)
-                    self.post_build_module(module)
-                except Exception, e:
-                    self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
-                    traceback.print_exc()
-                    if strict:
-                        raise(e)
-            '''
-            try:
-                # Skip any locked module
+                if not skip_validation:
+                    try:
+                        module.validate()
+                    except Exception, e:
+                        self.warning("Can't build {0}: {1}".format(module, e))
+                        if strict:
+                            traceback.print_exc()
+                            raise e
+                        continue
+
                 if not module.locked:
-                    print("Building {0}...".format(module))
-                    module.build(self, **kwargs)
-                self.post_build_module(module)
-            except Exception, e:
-                pymel.error(str(e))
-            '''
-            #    logging.error("\n\nAUTORIG BUILD FAIL! (see log)\n")
-            #    traceback.print_stack()
-            #    logging.error(str(e))
-            #    raise e
+                    try:
+                        # Switch namespace if needed
+                        module_namespace = module.get_inputs_namespace()
+                        module_namespace = module_namespace or ':'
+                        if module_namespace != current_namespace:
+                            cmds.namespace(setNamespace=':' + module_namespace)
+                            current_namespace = module_namespace
+
+                        module.build(**kwargs)
+                        self.post_build_module(module)
+                    except Exception, e:
+                        self.error(
+                            "Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
+                        traceback.print_exc()
+                        if strict:
+                            raise e
+        finally:
+            # Ensure we always return to the default namespace.
+            cmds.namespace(setNamespace=':')
 
         # Connect global scale to jnt root
         if self.grp_anm:
             if self.grp_jnt:
-                pymel.delete([module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
+                pymel.delete(
+                    [module for module in self.grp_jnt.getChildren() if isinstance(module, pymel.nodetypes.Constraint)])
+                libAttr.unlock_trs(self.grp_jnt)
                 pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
                 pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
+
+        # Store the version of omtk used to build the rig.
+        self.version = api.get_version()
 
         self.debug("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
 
@@ -555,7 +791,6 @@ class Rig(object):
                 module.grp_rig.longName(), module
             ))
             pymel.delete(module.grp_rig)
-
 
         # Prevent animators from accidentaly moving offset nodes
         # TODO: Lock more?
@@ -581,6 +816,9 @@ class Rig(object):
         if self._color_ctrl:
             self.color_module_ctrl(module)
 
+        # Store the version of omtk used to generate the rig.
+        module.version = api.get_version()
+
     def _unbuild_node(self, val, keep_if_children=False):
         if isinstance(val, Node):
             if val.is_built():
@@ -604,10 +842,12 @@ class Rig(object):
             # In that situation we'll unparent the module grp_anm and grp_rig node.
             if module.locked:
                 if module.grp_anm and module.grp_anm.exists() and module.grp_anm.getParent() == self.grp_anm.node:
-                    pymel.warning("Ejecting {0} from {1} before deletion".format(module.grp_anm.name(), self.grp_anm.name()))
+                    pymel.warning(
+                        "Ejecting {0} from {1} before deletion".format(module.grp_anm.name(), self.grp_anm.name()))
                     module.grp_anm.setParent(world=True)
                 if module.grp_rig and module.grp_rig.exists() and module.grp_rig.getParent() == self.grp_rig.node:
-                    pymel.warning("Ejecting {0} from {1} before deletion".format(module.grp_rig.name(), self.grp_rig.name()))
+                    pymel.warning(
+                        "Ejecting {0} from {1} before deletion".format(module.grp_rig.name(), self.grp_rig.name()))
                     module.grp_rig.setParent(world=True)
             else:
                 try:
@@ -616,7 +856,7 @@ class Rig(object):
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                     traceback.print_exc()
                     if strict:
-                        raise(e)
+                        raise (e)
 
     def _unbuild_nodes(self):
         # Delete anm_grp
@@ -636,7 +876,7 @@ class Rig(object):
         self._unbuild_nodes()
 
         # Remove any references to missing pynodes
-        #HACK --> Remove clean invalid PyNode
+        # HACK --> Remove clean invalid PyNode
         self._clean_invalid_pynodes()
         if self.modules is None:
             self.modules = []
@@ -667,7 +907,7 @@ class Rig(object):
             for ctrl in module.get_ctrls():
                 if libPymel.is_valid_PyNode(ctrl):
                     if not ctrl.drawOverride.overrideEnabled.get():
-                        nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.name())
+                        nomenclature_ctrl = nomenclature_anm.rebuild(ctrl.stripNamespace().nodeName())
                         side = nomenclature_ctrl.side
                         color = color_by_side.get(side, self.CENTER_CTRL_COLOR)
                         ctrl.drawOverride.overrideEnabled.set(1)
@@ -693,15 +933,25 @@ class Rig(object):
                     if pattern in token:
                         return jnt
 
+    # @libPython.memoized_instancemethod
+    # def get_head_jnt(self, strict=True):
+    #     return next(iter(self.get_head_jnts(strict=strict)), None)
+
     @libPython.memoized_instancemethod
-    def get_head_jnt(self, strict=True):
+    def get_head_jnts(self, strict=True):
+        """
+        Necessary to support multiple heads on a character.
+        :param strict: Raise a warning if nothing is found.
+        :return: A list of pymel.general.PyNode instance that are into an Head Module.
+        """
+        result = []
         from omtk.modules import rigHead
         for module in self.modules:
             if isinstance(module, rigHead.Head):
-                return module.jnt
-        if strict:
+                result.append(module.jnt)
+        if strict and not result:
             self.warning("Cannot found Head in rig! Please create a {0} module!".format(rigHead.Head.__name__))
-        return None
+        return result
 
     @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
@@ -714,64 +964,24 @@ class Rig(object):
         return None
 
     @libPython.memoized_instancemethod
-    def get_face_macro_ctrls_distance_from_head(self, multiplier=1.2, default_distance=20):
+    def get_head_length(self, jnt_head):
         """
-        :return: The recommended distance between the head middle and the face macro ctrls.
+        Resolve a head influence height using raycasts.
+        This is in the Rig class to increase performance using the caching mechanism.
+        :param jnt_head: The head influence to mesure.
+        :return: A float representing the head length. None if unsuccessful.
         """
-        jnt_head = self.get_head_jnt()
-        if not jnt_head:
-            log.warning("Cannot resolve desired macro avars distance from head. Using default ({0})".format(default_distance))
-            return default_distance
-
         ref_tm = jnt_head.getMatrix(worldSpace=True)
 
-        geometries = libRigging.get_affected_geometries(jnt_head)
-
-        # Resolve the top of the head location
-        pos = pymel.datatypes.Point(ref_tm.translate)
-        #dir = pymel.datatypes.Point(1,0,0) * ref_tm
-        #dir = dir.normal()
-        # This is strange but not pointing to the world sometime don't work...
-        # TODO: FIX ME
-        dir = pymel.datatypes.Point(0,1,0)
-
-        top = next(iter(libRigging.ray_cast(pos, dir, geometries)), None)
-        if not top:
-            raise Exception("Can't resolve head top location using raycasts!")
-
-        # Resolve the middle of the head
-        middle = ((top-pos) * 0.5) + pos
-
-        # Find the front of the face
-        # For now, one raycase seem fine.
-        #dir = pymel.datatypes.Point(0,-1,0) * ref_tm
-        #dir.normalize()
-        dir = pymel.datatypes.Point(0,0,1)
-        front = next(iter(libRigging.ray_cast(middle, dir, geometries)), None)
-        if not front:
-            raise Exception("Can't resolve head front location using raycasts!")
-
-        distance = libPymel.distance_between_vectors(middle, front)
-
-        return distance * multiplier
-
-    @libPython.memoized_instancemethod
-    def get_head_length(self):
-        jnt_head = self.get_head_jnt()
-        if not jnt_head:
-            self.warning("Can't resolve head length!")
-
-        ref_tm = jnt_head.getMatrix(worldSpace=True)
-
-        geometries = libRigging.get_affected_geometries(jnt_head)
+        geometries = libHistory.get_affected_shapes(jnt_head)
 
         # Resolve the top of the head location
         bot = pymel.datatypes.Point(ref_tm.translate)
-        #dir = pymel.datatypes.Point(1,0,0) * ref_tm
-        #dir = dir.normal()
+        # dir = pymel.datatypes.Point(1,0,0) * ref_tm
+        # dir = dir.normal()
         # This is strange but not pointing to the world sometime don't work...
         # TODO: FIX ME
-        dir = pymel.datatypes.Point(0,1,0)
+        dir = pymel.datatypes.Point(0, 1, 0)
 
         top = libRigging.ray_cast_farthest(bot, dir, geometries)
         if not top:

@@ -1,9 +1,9 @@
-import collections
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
-from omtk.libs import libRigging, libCtrlShapes
-from omtk.core import constants
+from omtk.libs import libPython
+from omtk.libs import libRigging
+
 
 class CtrlFk(BaseCtrl):
     def __createNode__(self, *args, **kwargs):
@@ -17,7 +17,7 @@ class CtrlFk(BaseCtrl):
         make = next(iter(node.inputs()), None)
         if make:
             # TODO: Multiply radius???
-            #make.radius.set(size)
+            # make.radius.set(size)
             make.degree.set(1)
             make.sections.set(8)
 
@@ -27,14 +27,28 @@ class CtrlFk(BaseCtrl):
 class FK(Module):
     """
     A Simple FK with support for multiple hyerarchy.
+
+    Note that there's multiple way to name the ctrls.
+    1) Use the inputs as reference ( _NAME_CTRL_ENUMERATE = False )
+    ex: (module name is arm_l)
+    jnt_upperarm_l -> ctrl_arm_upperarm_l
+    jnt_forearm_l  -> ctrl_arm_forearm_l
+    2) Use enumeration ( _NAME_CTRL_ENUMERATE = True )
+    ex: (module name is arm_l)
+    jnt_upperarm_l -> ctrl_arm_01_l
+    jnt_forearm_l  -> ctrl_arm_02_l
+    ex:
     """
     DEFAULT_NAME_USE_FIRST_INPUT = True
+    _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name.
+    _FORCE_INPUT_NAME = False  # Force using the name of the input in the name of the ctrl
+    # Otherwise they will use their associated input name.
     _CLS_CTRL = CtrlFk
 
     def __init__(self, *args, **kwargs):
         super(FK, self).__init__(*args, **kwargs)
         self.ctrls = []
-        self.sw_translate=False
+        self.sw_translate = False
         self.create_spaceswitch = True
 
     #
@@ -47,140 +61,65 @@ class FK(Module):
         # Ensure there's no None value in the .ctrls array.
         # This can happen if the rigging delete the stored shape before rebuilding.
         try:
-            self.ctrls= filter(None, self.ctrls)
+            self.ctrls = filter(None, self.ctrls)
         except (AttributeError, TypeError):
             pass
         super(FK, self).__callbackNetworkPostBuild__()
 
-    def build(self, constraint=True, parent=True, create_grp_anm=True, *args, **kwargs):
-        super(FK, self).build(create_grp_rig=False, *args, **kwargs)
+    def build(self, constraint=True, parent=True, create_grp_anm=True, create_grp_rig=False, *args, **kwargs):
+        super(FK, self).build(create_grp_rig=create_grp_rig, *args, **kwargs)
         nomenclature_anm = self.get_nomenclature_anm()
+        nomenclature_rig = self.get_nomenclature_rig()
 
-        # Define ctrls
-        num_ctrls = 0
-        if self.ctrls:
-            num_ctrls = len(self.ctrls)
-        chain_first_ctrl_idx = 0
-        for i, chain in enumerate(self.chains):
-            if not self.ctrls or chain_first_ctrl_idx + len(chain) > num_ctrls:
-                for input in chain:
-                    ctrl = self._CLS_CTRL()
-                    self.ctrls.append(ctrl)
-                    num_ctrls += 1
-
-            # Create ctrls
-            for input, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
-                ctrl_nomenclature = nomenclature_anm.rebuild(input.name())
-                ctrl_name = ctrl_nomenclature.resolve('fk')
-                ctrl.build(name=ctrl_name, refs=input, geometries=self.rig.get_meshes())
-                ctrl.setMatrix(input.getMatrix(worldSpace=True))
-
-            if self.create_spaceswitch:
-                if self.sw_translate:
-                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(self, self.parent, add_world=True)
-                else:
-                    self.ctrls[chain_first_ctrl_idx].create_spaceswitch(self, self.parent,
-                                                                        skipTranslate=['x', 'y', 'z'], add_world=True)
-
-            self.ctrls[chain_first_ctrl_idx].setParent(self.grp_anm)
-            for j in range(chain_first_ctrl_idx + 1, chain_first_ctrl_idx + len(chain)):
-                self.ctrls[j].setParent(self.ctrls[j - 1])
-
-            # Connect jnt -> anm
-            if constraint is True:
-                for inn, ctrl in zip(chain, self.ctrls[chain_first_ctrl_idx:chain_first_ctrl_idx + len(chain)]):
-                    pymel.parentConstraint(ctrl, inn)
-                    pymel.connectAttr(ctrl.scaleX, inn.scaleX)
-                    pymel.connectAttr(ctrl.scaleY, inn.scaleY)
-                    pymel.connectAttr(ctrl.scaleZ, inn.scaleZ)
-
-            chain_first_ctrl_idx += len(chain)
-
-        '''
-        # Connect to parent
-        if parent and self.parent is not None:
-            pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
-            #pymel.scaleConstraint(self.parent, self.grp_anm, maintainOffset=True)
-        '''
-
-class CtrlFkAdd(BaseCtrl):
-    def __createNode__(self, size=None, refs=None, *args, **kwargs):
-        # Resolve size automatically if refs are provided.
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
-        if size is None and ref is not None:
-            size = libRigging.get_recommended_ctrl_size(ref)
-        else:
-            size = 1.0
-
-        node = libCtrlShapes.create_shape_needle(size=size, *args, **kwargs)
-
-        return node
-
-
-class AdditiveFK(FK):
-    """
-    An AdditiveFK chain is a standard FK chain that have one or many additional controllers to rotate the entire chain.
-    """
-    _CLASS_CTRL_IK = CtrlFkAdd
-
-    def __init__(self, *args, **kwargs):
-        super(AdditiveFK, self).__init__(*args, **kwargs)
-        self.num_ctrls = 1
-        self.additive_ctrls = []
-
-    def build(self, *args, **kwargs):
-        super(AdditiveFK, self).build(*args, **kwargs)
-
-        nomenclature_anm = self.get_nomenclature_anm()
-
-        # Ensure to create the finger ctrl in the good orientation
-        if nomenclature_anm.side == self.rig.nomenclature.SIDE_L:
-            normal_data = {constants.Axis.x: (1, 0, 0), constants.Axis.y: (0, 1, 0), constants.Axis.z: (0, 0, 1)}
-        else:
-            normal_data = {constants.Axis.x: (-1, 0, 0), constants.Axis.y: (0, -1, 0), constants.Axis.z: (0, 0, -1)}
-
-        # TODO: Support multiple additive ctrls
-        # TODO: Rename
-        self.additive_ctrls = filter(None, self.additive_ctrls)
-        if not self.additive_ctrls:
-            ctrl_add = CtrlFkAdd()
-            self.additive_ctrls.append(ctrl_add)
-        #HACK - Temp since we don't support multiple ctrl for the moment
-        ctrl_add = self.additive_ctrls[0]
-        for i, ctrl in enumerate(self.additive_ctrls):
-            name = nomenclature_anm.resolve("addFk{0:02d}".format(i))
-            ctrl.build(name=name, refs=self.chain.start, normal=normal_data[self.rig._up_axis])
-            ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
-            ctrl.setParent(self.grp_anm)
-
+        # Initialize ctrls
+        libPython.resize_list(self.ctrls, len(self.jnts))
         for i, ctrl in enumerate(self.ctrls):
-            #HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems
-            if i == 0:
-                ctrl.offset = ctrl.append_layer("gimbal")
-            attr_rotate_x = libRigging.create_utility_node('addDoubleLinear',
-                                                           input1=ctrl.offset.rotateX.get(),
-                                                           input2=ctrl_add.rotateX
-                                                           ).output
-            attr_rotate_y = libRigging.create_utility_node('addDoubleLinear',
-                                                           input1=ctrl.offset.rotateY.get(),
-                                                           input2=ctrl_add.rotateY
-                                                           ).output
-            attr_rotate_z = libRigging.create_utility_node('addDoubleLinear',
-                                                           input1=ctrl.offset.rotateZ.get(),
-                                                           input2=ctrl_add.rotateZ
-                                                           ).output
-            pymel.connectAttr(attr_rotate_x, ctrl.offset.rotateX)
-            pymel.connectAttr(attr_rotate_y, ctrl.offset.rotateY)
-            pymel.connectAttr(attr_rotate_z, ctrl.offset.rotateZ)
+            self.ctrls[i] = self.init_ctrl(self._CLS_CTRL, ctrl)
 
-        # Constraint the fk ctrls in position to the additive fk ctrls
-        pymel.pointConstraint(ctrl_add, self.ctrls[0].offset)
+        for i, chain in enumerate(self.chains):
+            # Build chain ctrls
+            chain_ctrls = []
+            for j, jnt in enumerate(chain):
+                jnt_index = self.jnts.index(jnt)  # todo: optimize performance by created a map?
+                ctrl = self.ctrls[jnt_index]
+                chain_ctrls.append(ctrl)
 
-    def iter_ctrls(self):
-        for ctrl in super(AdditiveFK, self).iter_ctrls():
-            yield ctrl
-        for ctrl in self.additive_ctrls:
-            yield ctrl
+                # Resolve ctrl name.
+                # TODO: Validate with multiple chains
+                nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace().nodeName())
+                if not self._FORCE_INPUT_NAME:
+                    if len(self.jnts) == 1 and len(self.chains) == 1:
+                        ctrl_name = nomenclature_anm.resolve()
+                    elif len(self.chains) == 1 or self._NAME_CTRL_ENUMERATE:
+                        ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(j))
+                    else:
+                        ctrl_name = nomenclature.resolve()
+                else:
+                    ctrl_name = nomenclature.resolve()
+
+                ctrl.build(name=ctrl_name, refs=jnt, geometries=self.rig.get_meshes())
+                ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
+
+                # Build space-switch for first chain ctrl
+                if j == 0:
+                    if self.create_spaceswitch:
+                        if self.sw_translate:
+                            ctrl.create_spaceswitch(self, self.parent, add_world=True)
+                        else:
+                            ctrl.create_spaceswitch(self, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
+
+            if chain_ctrls:
+                chain_ctrls[0].setParent(self.grp_anm)
+                libRigging.create_hyerarchy(chain_ctrls)
+
+        # Constraint jnts to ctrls if necessary
+        if constraint is True:
+            for jnt, ctrl in zip(self.jnts, self.ctrls):
+                pymel.parentConstraint(ctrl, jnt, maintainOffset=True)
+                pymel.connectAttr(ctrl.scaleX, jnt.scaleX)
+                pymel.connectAttr(ctrl.scaleY, jnt.scaleY)
+                pymel.connectAttr(ctrl.scaleZ, jnt.scaleZ)
+
 
 def register_plugin():
     return FK

@@ -1,6 +1,11 @@
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk.libs import libPymel
+import logging
+
+
+log = logging.getLogger('omtk')
+
 
 def get_skin_cluster(obj):
     if isinstance(obj, pymel.nodetypes.SkinCluster):
@@ -10,7 +15,20 @@ def get_skin_cluster(obj):
             return hist
     return None
 
-#@decorators.profiler
+
+def get_skin_cluster_influence_objects(skincluster):
+    """
+    Wrapper around pymel that wrap OpenMaya.MFnSkinCluster.influenceObjects() which crash when 
+    a skinCluster have zero influences.
+    :param skincluster: A pymel.nodetypes.SkinCluster instance. 
+    :return: A list in pymel.PyNode instances.
+    """
+    try:
+        return skincluster.influenceObjects()
+    except RuntimeError:
+        return []
+
+# @decorators.profiler
 def transfer_weights(obj, sources, target, add_missing_influences=False):
     """
     Transfer skin weights from multiples joints to a specific joint.
@@ -33,7 +51,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
         raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
 
     # Resolve influence indices
-    influence_jnts = skinCluster.influenceObjects()
+    influence_jnts = get_skin_cluster_influence_objects(skinCluster)
 
     # Add target if missing, otherwise thrown an error.
     if target not in influence_jnts:
@@ -62,14 +80,14 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
     if target.lockInfluenceWeights.get():
         target.lockInfluenceWeights.set(False)
 
-
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
     mfnSkinCluster = skinCluster.__apimfn__()
 
     # Hack: If for any reasons a skinCluster was provided, use the first shape.
+    # We also verify the number of vertices in case the mesh have no vertices.
     if isinstance(obj, pymel.nodetypes.SkinCluster):
-        new_obj = next(iter(obj.getOutputGeometry()), None)
+        new_obj = next((shape for shape in obj.getOutputGeometry() if isinstance(shape, pymel.nodetypes.Mesh) and shape.numVertices() > 0), None)
         if new_obj is None:
             pymel.warning("Can't transfert weights. No geometry found affected by {0}.".format(obj))
             return
@@ -97,7 +115,11 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
             i = jnt_dst_index + (v * num_jnts)
             new_weights[i] += total_weight
 
-    mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights, old_weights)
+    # Note: We don't use old_weights since it cause a crash in Windows.
+    # Please investigate further before using old_weights in the call.
+    # mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights, old_weights)
+    mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights)
+
 
 def transfer_weights_replace(source, target):
     """
@@ -106,10 +128,10 @@ def transfer_weights_replace(source, target):
     """
     skinToReset = set()
 
-    #TODO : Ensure that the transfered lockInfluenceWeight attr work correctly (The lock icon doesn't appear in the skinCluster)
+    # TODO : Ensure that the transfered lockInfluenceWeight attr work correctly (The lock icon doesn't appear in the skinCluster)
     if source.hasAttr('lockInfluenceWeights'):
         attr_lockInfluenceWeights_src = source.lockInfluenceWeights
-        #The target bone could possibly not have the attribute
+        # The target bone could possibly not have the attribute
         if target.hasAttr('lockInfluenceWeights'):
             attr_lockInfluenceWeights_dst = target.lockInfluenceWeights
         else:
@@ -136,7 +158,7 @@ def transfer_weights_replace(source, target):
                 pymel.disconnectAttr(attr_worldMatrix_src, plug)
                 pymel.connectAttr(attr_worldMatrix_dst, plug)
 
-    #HACK : Evaluate back all skinCluster in which we changed connections
+    # HACK : Evaluate back all skinCluster in which we changed connections
     pymel.dgdirty(skinToReset)
 
     '''
@@ -158,8 +180,10 @@ def transfer_weights_replace(source, target):
                 pass
     '''
 
+
 def interp_linear(r, s, e):
     return (e - s) * r + s
+
 
 def interp_cubic(x):
     """
@@ -167,15 +191,27 @@ def interp_cubic(x):
     """
     return (x * x) * (3.0 - (2.0 * x))
 
-def _get_point_weights_from_segments_weights(segments, segments_weights, pos):
+
+INTERP_LINEAR, INTERP_CUBIC = range(2)
+
+
+def _get_point_weights_from_segments_weights(segments, segments_weights, pos, interp=INTERP_CUBIC):
     knot_index, ratio = segments.closest_segment_index(pos)
-    knot_index_next = knot_index + 1 # TODO: Handle out of bound
+    knot_index_next = knot_index + 1  # TODO: Handle out of bound
     point_weights_inn = segments_weights[knot_index]
     point_weights_out = segments_weights[knot_index_next]
-    point_weights = [(weight_out - weight_inn)*interp_cubic(ratio) + weight_inn for weight_inn, weight_out in zip(point_weights_inn, point_weights_out)]
+    if interp == INTERP_LINEAR:
+        point_weights = [(weight_out - weight_inn) * ratio + weight_inn for weight_inn, weight_out in
+                         zip(point_weights_inn, point_weights_out)]
+    elif interp == INTERP_CUBIC:
+        point_weights = [(weight_out - weight_inn) * interp_cubic(ratio) + weight_inn for weight_inn, weight_out in
+                         zip(point_weights_inn, point_weights_out)]
+    else:
+        raise Exception("Unexpected interpolation method {}".format(interp))
     return point_weights
 
-#@libPython.profiler
+
+# @libPython.profiler
 def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_straight_line=False):
     """
     Automatically assign skin weights from source to destinations using the vertices position.
@@ -191,7 +227,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
 
     # Resolve source indices
-    influence_objects = skinCluster.influenceObjects()
+    influence_objects = get_skin_cluster_influence_objects(skinCluster)
     try:
         jnt_src_index = influence_objects.index(source)
     except ValueError:
@@ -209,6 +245,13 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         ))
         return False
     jnt_dst_indexes = [influence_objects.index(target) for target in targets]
+
+    geometryDagPath = obj.__apimdagpath__()
+    try:
+        component = pymel.api.toComponentMObject(geometryDagPath)
+    except RuntimeError, e:
+        pymel.warning("Cannot access component for {0}. Is the shape empty?".format(obj))
+        return False
 
     # Store the affected joints only
     # This allow us to reference the index to navigate in the weights table.
@@ -231,9 +274,9 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         num_positions = len(knot_positions)
         # Resolve segment lengths
         segment_lengths = []
-        for i in range(num_positions-1):
+        for i in range(num_positions - 1):
             pos_s = knot_positions[i]
-            pos_e = knot_positions[i+1]
+            pos_e = knot_positions[i + 1]
             length = (pos_s - pos_e).length()
             segment_lengths.append(length)
             total_length += length
@@ -258,8 +301,6 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
     mfnSkinCluster = skinCluster.__apimfn__()
-    geometryDagPath = obj.__apimdagpath__()
-    component = pymel.api.toComponentMObject(geometryDagPath)
     mfnSkinCluster.getWeights(geometryDagPath, component, mint_influences, old_weights)
 
     # Compute new weights
@@ -268,7 +309,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
 
     knot_weights = segments.get_knot_weights(dropoff=dropoff)
 
-    it_geometry= OpenMaya.MItGeometry(geometryDagPath)
+    it_geometry = OpenMaya.MItGeometry(geometryDagPath)
     vert_index = 0
     while not it_geometry.isDone():
         memory_location = (chunk_size * vert_index)
@@ -276,7 +317,8 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         if source_weight:
             # Get the current weights already assigned to the target weight
             target_memory_location = memory_location + 1
-            cur_target_weights = [old_weights[i] for i in range(target_memory_location, target_memory_location + len(targets))]
+            cur_target_weights = [old_weights[i] for i in
+                                  range(target_memory_location, target_memory_location + len(targets))]
             # Resolve weight using the vtx/cv position
             pos = OpenMaya.MVector(it_geometry.position(OpenMaya.MSpace.kWorld))  # MVector allow us to use .length()
             weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos)
@@ -297,17 +339,20 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
         it_geometry.next()
         vert_index += 1
 
-    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+    # Note: We don't use old_weights since it cause a crash in Windows.
+    # Please investigate further before using old_weights in the call.
+    # mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights)
 
 
-def assign_weights_from_segments(shape, jnts, dropoff=1.5):
+def assign_weights_from_segments(shape, jnts, dropoff=1.5, interp=INTERP_CUBIC):
     # Resolve skinCluster
     skinCluster = get_skin_cluster(shape)
     if skinCluster is None:
         raise Exception("Can't find skinCluster on {0}".format(shape.__melobject__()))
 
     # Resolve influence indices
-    influence_objects = skinCluster.influenceObjects()
+    influence_objects = get_skin_cluster_influence_objects(skinCluster)
     jnt_indices = [influence_objects.index(jnt) for jnt in jnts]
 
     # Create the OpenMaya influence MIntArray
@@ -331,13 +376,13 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
     new_weights = OpenMaya.MDoubleArray(old_weights.length(), 0)
 
     # Iterate through all vtx/cvs
-    it_geometry= OpenMaya.MItGeometry(geometryDagPath)
+    it_geometry = OpenMaya.MItGeometry(geometryDagPath)
     vert_index = 0
     while not it_geometry.isDone():
         # Resolve weight using the vtx/cv position
         memory_location = (chunk_size * vert_index) + jnt_indices[0]
         pos = OpenMaya.MVector(it_geometry.position(OpenMaya.MSpace.kWorld))  # MVector allow us to use .length()
-        weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos)
+        weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos, interp=interp)
 
         # Write weights
         for weight in weights:
@@ -347,12 +392,15 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5):
         it_geometry.next()
         vert_index += 1
 
+    # Note: We don't use old_weights since it cause a crash in Windows.
+    # Please investigate further before using old_weights in the call.
+    # mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
+    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights)
 
-    mfnSkinCluster.setWeights(geometryDagPath, component, mint_influences, new_weights, old_weights)
 
-#TODO : Reset the bind pose at the same time to prevent any problem
+# TODO : Reset the bind pose at the same time to prevent any problem
 def reset_skin_cluster(skinCluster):
-    influenceObjs = skinCluster.influenceObjects()
+    influenceObjs = get_skin_cluster_influence_objects(skinCluster)
     pymel.skinCluster(skinCluster, e=True, unbindKeepHistory=True)
     for obj in skinCluster.getOutputGeometry():
         pymel.skinCluster(influenceObjs + [obj], tsb=True)
@@ -367,3 +415,70 @@ def reset_selection_skin_cluster():
 
     for skinCluster in skinClusters:
         reset_skin_cluster(skinCluster)
+
+
+def _get_skinClusters_from_inputs(obj):
+    skinClusters = set()
+    jnts = [jnt for jnt in obj if jnt and jnt.exists()]  # Only handle existing objects
+    for jnt in jnts:
+        for hist in jnt.listHistory(future=True):
+            if isinstance(hist, pymel.nodetypes.SkinCluster):
+                skinClusters.add(hist)
+    return skinClusters
+
+
+def assign_twist_weights(src, dsts):
+    """
+    Automatically find any skinCluster associated with provided arguments and weights from a single influences
+    to multiple influences on a line.
+    :param src: A pymel.PyNode, generally of type pymel.nodetypes.Joint.
+    :param dsts: A list of pymel.PyNode, generally of type pymel.nodetypes.Join.
+    """
+    skin_deformers = _get_skinClusters_from_inputs([src])
+    meshes = set()
+
+    for skin_deformer in skin_deformers:
+        # Ensure the source joint is in the skinCluster influences
+        influenceObjects = get_skin_cluster_influence_objects(skin_deformer)
+        if src not in influenceObjects:
+            continue
+
+        # Add skinCluster output geometries to the cache
+        for output_geometry in skin_deformer.getOutputGeometry():
+            if isinstance(output_geometry, pymel.nodetypes.Mesh):
+                meshes.add(output_geometry)
+
+        # Add new joints as influence.
+        for dst in dsts:
+            if dst in influenceObjects:
+                continue
+            skin_deformer.addInfluence(dst, lockWeights=True, weight=0.0)
+            dst.lockInfluenceWeights.set(False)
+
+    for mesh in meshes:
+        log.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), src.name()))
+        # Transfer weight, note that since we use force_straight line, the influence
+        # don't necessaryy need to be in their bind pose.
+        transfer_weights_from_segments(mesh, src, dsts, force_straight_line=True)
+
+
+def unassign_twist_weights(dsts, src):
+    """
+    Automatically find any skinCluster associated with provided arguments and transfer all weights from
+    multiples influences to a single influence.
+    :param dsts: A list of pymel.PyNode, generally of type pymel.nodetypes.Join.
+    :param src: A pymel.PyNode, generally of type pymel.nodetypes.Joint.
+    """
+    for skin_deformer in _get_skinClusters_from_inputs(dsts):
+        # Ensure that the start joint is in the skin cluster
+        influenceObjects = get_skin_cluster_influence_objects(skin_deformer)
+        if src not in influenceObjects:
+            skin_deformer.addInfluence(src, lockWeights=True, weight=0.0)
+            src.lockInfluenceWeights.set(False)
+
+        # Ensure subjnts are transfert correctly
+        to_transfer = []
+        for dst in dsts:
+            if dst in influenceObjects:
+                to_transfer.append(dst)
+        transfer_weights(skin_deformer, to_transfer, src, add_missing_influences=True)

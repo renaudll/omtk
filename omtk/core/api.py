@@ -1,3 +1,4 @@
+import inspect
 import os
 import re
 import contextlib
@@ -35,7 +36,8 @@ def get_version():
     This is used to analyze old rigs and recommend specific scripts to correct them if needed.
     :return:
     """
-    package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'package.py'))
+    root_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
+    package_path = os.path.abspath(os.path.join(root_dir, '..', '..', 'package.py'))
     if not os.path.exists(package_path):
         raise Exception("Cannot find package file! {}".format(package_path))
     regex_getversion = re.compile('^version *= [\'|"]*([0-9a-z\.]*)[\'|"]$')

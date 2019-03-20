@@ -35,3 +35,7 @@ config.json
 
 # NFS junk
 .nfs*
+
+# py.test files
+.cache
+.coverage

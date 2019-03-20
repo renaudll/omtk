@@ -103,7 +103,7 @@ class AutoRig(QtWidgets.QMainWindow):
     def _get_available_templates(self):
         results = set()
 
-        for plugin_dir in os.environ.get('OMTK_PLUGINS', []).split(os.pathsep):
+        for plugin_dir in os.environ.get('OMTK_PLUGINS', '').split(os.pathsep):
             if not os.path.exists(plugin_dir):
                 continue
 

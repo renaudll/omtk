@@ -1,12 +1,13 @@
+import logging
+import sys
+
 import pymel.core as pymel
 from maya import OpenMaya
 from maya import cmds
-import sys
-import logging
+
 import core
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def is_valid_PyNode(val):
@@ -39,6 +40,7 @@ core.register_type_pymel(
 
 def _get_pynode_uuid(pynode):
     return cmds.ls(pynode.__melobject__(), uuid=True)[0]
+
 
 def _create_attr(name, data):
     """
@@ -445,7 +447,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     #     try:
     #         return libPython.objects_by_id(inst_id)
     #     except Exception, e:
-    #         log.debug("Cache missed for {0}".format(inst_id))
+    #         LOG.debug("Cache missed for {0}".format(inst_id))
 
     cls_name = network.getAttr('_class')
 

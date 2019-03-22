@@ -149,7 +149,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         node_inn_dagpath = "{}:inn".format(level)
         node_inn = session.get_node_by_name(node_inn_dagpath)
         node_inn_model = registry.get_node(node_inn)
-        node_inn_bound = node_component.NodeGraphComponentInnBoundModel(registry, node_inn_model)
+        node_inn_bound = node_component.NodeGraphComponentInnBoundModel(registry, node_inn_model._impl)
 
         self._bound_inn_before = node_inn_model
         self._bound_inn_after = node_inn_bound
@@ -157,7 +157,7 @@ class SubgraphProxyModel(graph_proxy_model.NodeGraphGraphProxyModel):
         node_out_dagpath = "{}:out".format(level)
         node_out = session.get_node_by_name(node_out_dagpath)
         node_out_model = registry.get_node(node_out)
-        node_out_bound = node_component.NodeGraphComponentOutBoundModel(registry, node_out_model)
+        node_out_bound = node_component.NodeGraphComponentOutBoundModel(registry, node_out_model._impl)
 
         self._bound_out_before = node_out_model
         self._bound_out_after = node_out_bound

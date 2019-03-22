@@ -25,11 +25,13 @@ Usage example 1, using prefab Widget
     >>> win.show()
 """
 
-from omtk.nodegraph.registry import NodeGraphRegistry
+# from omtk.nodegraph.adaptors import NodeGraphNodeAdaptor
+# from omtk.nodegraph.adaptors import NodeGraphPortImpl
+from omtk.nodegraph.bindings.base import ISession
 from omtk.nodegraph.filter_ import NodeGraphFilter
 from omtk.nodegraph.models import GraphModel, NodeModel, PortModel, ConnectionModel
 from omtk.nodegraph.models.graph.graph_model_abstract import IGraphModel
-from omtk.nodegraph.models.graph.graph_proxy_model import NodeGraphGraphProxyModel
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
-from omtk.nodegraph.bindings.base import ISession
+from omtk.nodegraph.models.graph.graph_proxy_model import NodeGraphGraphProxyModel
+from omtk.nodegraph.registry import NodeGraphRegistry
 from omtk.nodegraph.signal import Signal

@@ -43,5 +43,5 @@ def registry(session):
 @pytest.fixture()
 def model(registry):
     model = GraphModel(registry=registry)
-    model.add_all()
+    # model.add_all()
     return model

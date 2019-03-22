@@ -1,13 +1,16 @@
-from omtk_test import omtk_test
+import omtk_test
 
 
-class SampleTests(omtk_test.TestCase):
+class SampleTests(omtk_test.OmtkTestCase):
     # deactivated since it force loaded QtWidgets outside a QApplication
     def test_reload(self):
         """
         Ensure we are able to completely reload omtk.
         """
-        # omtk.reload_()
+        import omtk
+        print(omtk)
+        from omtk.libs.libPython import rreload
+        rreload(omtk)
 
     def test_create(self):
         """
@@ -19,9 +22,3 @@ class SampleTests(omtk_test.TestCase):
         rig = omtk.create(name=rig_name)
         self.assertTrue(isinstance(rig, Rig))
         self.assertTrue(rig.name == rig_name)
-
-
-import omtk
-print(omtk)
-from omtk.libs.libPython import rreload
-rreload(omtk)

@@ -2,15 +2,16 @@
 WIP on converting libSerialization to OpenMaya2
 This is gonna be a long one, however it would be a great learning experience.
 """
+import logging
+import sys
+
 import pymel.core as pymel
 from maya import OpenMaya
 from maya import cmds
-import sys
-import logging
+
 import core
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 from maya.api import OpenMaya as om2
 
@@ -52,6 +53,7 @@ core.register_type_pymel(
 
 def _get_pynode_uuid(pynode):
     return cmds.ls(pynode.__melobject__(), uuid=True)[0]
+
 
 def _create_attr(name, data):
     """
@@ -547,6 +549,7 @@ def _get_network_class(mfn):
         plug = mfn.findPlug('_class', True)
         return plug.asString()
 
+
 def is_network_from_class(mfn, cls_name):
     """
     Inspect a potentially serialized pymel.nodetypes.Network and check if
@@ -556,7 +559,7 @@ def is_network_from_class(mfn, cls_name):
     :return: True if the network original class match the provided class name.
 
     """
-    network_class =_get_network_class(mfn)
+    network_class = _get_network_class(mfn)
     if network_class:
         return cls_name in network_class.split('.')
     return None

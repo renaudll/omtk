@@ -1,5 +1,5 @@
 from omtk.nodegraph.registry.maya_mocked import MockedMayaRegistry
-from omtk.vendor.mock_maya.base import MockedSession
+from maya_mock import MockedSession
 from omtk_test import NodeGraphBaseTestCase, OmtkTestCase
 from omtk.nodegraph.models.graph.subgraph_proxy_model import SubgraphProxyModel
 

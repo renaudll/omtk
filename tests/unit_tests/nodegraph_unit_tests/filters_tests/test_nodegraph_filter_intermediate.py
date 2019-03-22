@@ -28,11 +28,10 @@ def test_unitconversion_filtering(session, registry, model, pymel):
     assertGraphConnectionsEqual(model, [(u'a.translateX', u'b.rotateX')])
 
     # However, if you add the unitConversion node explicitly, we want to see it!
-    n3 = n1.translateX.outputs()[0]
-    m3 = registry.get_node(n3)
-    model.add_node(m3)
+    model.add_node(registry.get_node(n2))
 
-    assertGraphNodeNamesEqual(model, [u'a', u'b', u'unitConversion1'])
+    expected = [u'a', u'b', u'unitConversion1']
+    assertGraphNodeNamesEqual(model, expected)
     assertGraphConnectionsEqual(model, [
         (u'a.translateX', u'b.rotateX'),
         (u'a.translateX', u'unitConversion1.input'),
@@ -53,5 +52,5 @@ def test_existing_unitconversion_filtering(session, registry, model, pymel):
     model.add_node(m1)
     # ctrl.add_node_callbacks(m2)
 
-    assertGraphNodeNamesEqual([u'a', u'b'])
-    assertGraphConnectionsEqual([(u'a.translateX', u'b.rotateX')])
+    assertGraphNodeNamesEqual(model, [u'a', u'b'])
+    assertGraphConnectionsEqual(model, [(u'a.translateX', u'b.rotateX')])

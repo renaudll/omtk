@@ -1,96 +1,87 @@
 """
 Ensure propre behaviour or the GraphController, GraphRegistry and every related models.
 """
-import pytest
 import logging
-import unittest
 
+import pytest
 from omtk.nodegraph.models.graph.subgraph_proxy_model import SubgraphProxyModel
-from omtk_test import NodeGraphMockedMayaTestCase
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
 
 
+@pytest.fixture
+def model(model, registry):
+    """
+    Wrap the model under a model that support filtering through filters.
+
+    :rtype: GraphFilterProxyModel
+    """
+    proxy_model = SubgraphProxyModel(registry=registry)
+    proxy_model.set_source_model(model)
+    return proxy_model
 
 
-class NodeGraphSubgraphFilterTestCase(NodeGraphMockedMayaTestCase):
-    _cls_proxy_model = SubgraphProxyModel
-    _cls_session_preset = None
-
-    def test_empty_component(self):
-        """
-        Ensure that as soon as we see an "inn" and "out" object inside a namespace we interpret it as a component.
-        """
-        n1 = self.registry.create_node("transform", "component1:inn")
-        n2 = self.registry.create_node("transform", "component1:out")
-        self.model.add_node(n1)
-        self.model.add_node(n2)
-        self.assertGraphNodeNamesEqual(["component1"])
-
-    def test_component_with_node(self):
-        """
-        Ensure that we are correctly filtering nested namespaces.
-        """
-        n1 = self.registry.create_node("transform", "component1:inn")
-        n2 = self.registry.create_node("transform", "component1:component2:inn")
-        n3 = self.registry.create_node("transform", "component1:component2:component3:inn")
-        n4 = self.registry.create_node("transform", "component1:component2:component3:out")
-        n5 = self.registry.create_node("transform", "component1:component2:out")
-        n6 = self.registry.create_node("transform", "component1:out")
-        self.model.add_node(n1)
-        self.model.add_node(n2)
-        self.model.add_node(n3)
-        self.model.add_node(n4)
-        self.model.add_node(n5)
-        self.model.add_node(n6)
-
-        self.assertGraphNodeNamesEqual(["component1"])
-
-    def test_component_with_port(self):
-        # Create session
-        n1 = self.session.create_node("transform", "component1:inn")
-        n2 = self.session.create_node("transform", "component1:someNode")
-        n3 = self.session.create_node("transform", "component1:out")
-        p1 = self.session.create_port(n1, "in1")
-        p2 = self.session.create_port(n1, "in2")
-        p3 = self.session.create_port(n1, "in3")
-
-        # Add nodes to graph
-        for node in self.session.nodes:
-            self.registry.get_node(node)
-
-        self.model.add_all_nodes()
-
-        expected = {
-            'connections': [],
-            'nodes': ['component1'],
-            'ports': [
-                'component1:inn.in1',
-                'component1:inn.in2',
-                'component1:inn.in3'
-            ]
-        }
-        actual = self.model.dump()
-        print actual
-        self.assertEqual(expected, actual)
-
-    def test_inside_component_with_node(self):
-        """
-        Ensure that we can correct navigate into a level.
-        """
-        n1 = self.registry.create_node("transform", "component1:inn")
-        n2 = self.registry.create_node("transform", "component1:someNode")
-        n3 = self.registry.create_node("transform", "component1:out")
-        self.model.add_node(n1)
-        self.model.add_node(n2)
-        self.model.add_node(n3)
-
-        component = self.model._get_component_by_level("component1")
-        component_node = self.model._get_node_from_component(self.registry, component)
-        self.model.set_level("component1")
-        self.assertGraphNodeNamesEqual(["component1:inn", "component1:someNode", "component1:out"])
+def test_empty_component(session, registry, model):
+    """ Ensure that as soon as we see an "inn" and "out" object inside a namespace we interpret it as a component."""
+    session.create_node("transform", "component1:inn")
+    session.create_node("transform", "component1:out")
+    registry.scan_session()
+    model.add_all()
+    actual = [node.get_name() for node in model.get_nodes()]
+    assert actual == ["component1"]
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_component_with_node(session, registry, model):
+    """ Ensure that we are correctly filtering nested namespaces."""
+    session.create_node("transform", "component1:inn")
+    session.create_node("transform", "component1:component2:inn")
+    session.create_node("transform", "component1:component2:component3:inn")
+    session.create_node("transform", "component1:component2:component3:out")
+    session.create_node("transform", "component1:component2:out")
+    session.create_node("transform", "component1:out")
+    registry.scan_session()
+    model.add_all()
+    actual = [node.get_name() for node in model.get_nodes()]
+    assert actual == ["component1"]
+
+
+def test_component_with_port(session, registry, model):
+    # Create session
+    n1 = session.create_node("transform", "component1:inn")
+    session.create_node("transform", "component1:someNode")
+    session.create_node("transform", "component1:out")
+    session.create_port(n1, "in1")
+    session.create_port(n1, "in2")
+    session.create_port(n1, "in3")
+
+    registry.scan_session()
+    model.add_all()
+
+    expected = {
+        'connections': [],
+        'nodes': ['component1'],
+        'ports': [
+            'component1:inn.in1',
+            'component1:inn.in2',
+            'component1:inn.in3'
+        ]
+    }
+    actual = model.dump()
+    assert actual == expected
+
+
+def test_inside_component_with_node(registry, model):
+    """Ensure that we can correct navigate into a level."""
+    n1 = registry.create_node("transform", "component1:inn")
+    n2 = registry.create_node("transform", "component1:someNode")
+    n3 = registry.create_node("transform", "component1:out")
+    model.add_node(n1)
+    model.add_node(n2)
+    model.add_node(n3)
+
+    component = model._get_component_by_level("component1")
+    # component_node = model._get_node_from_component(registry, component)
+    model.set_level("component1")
+    actual = [node.get_name() for node in model.get_nodes()]
+    assert actual == ["component1:inn", "component1:someNode", "component1:out"]

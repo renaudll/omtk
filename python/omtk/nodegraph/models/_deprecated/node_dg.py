@@ -4,7 +4,6 @@ import omtk.nodegraph.models.node
 from omtk import constants
 from omtk.nodegraph.widgets import node
 
-from omtk.nodegraph.models.node import node_base
 
 log = logging.getLogger('omtk.nodegraph')
 

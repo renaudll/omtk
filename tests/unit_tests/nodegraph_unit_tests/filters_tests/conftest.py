@@ -16,6 +16,5 @@ def model(model, registry, filter_):
     """
     proxy_model = GraphFilterProxyModel(registry=registry)
     proxy_model.set_source_model(model)
-    print 2
     proxy_model.add_filter(filter_)
     return proxy_model

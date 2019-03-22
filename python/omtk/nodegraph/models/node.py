@@ -18,6 +18,11 @@ class NodeModel(object):
     onPortRemoved = Signal(str)
 
     def __init__(self, registry, impl):
+        """
+        NodeGraphNodeAdaptor
+        :param registry:
+        :param impl:
+        """
         super(NodeModel, self).__init__()  # initialize QObject
 
         self._impl = impl

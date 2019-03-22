@@ -1,17 +1,20 @@
 import pymel.core as pymel
 from maya import cmds
+
 import omtk_test
-from omtk.nodegraph import NodeGraphController, NodeGraphRegistry
 from omtk.component import component_registry
+from omtk.nodegraph import NodeGraphRegistry
+from omtk.nodegraph.bindings.session_maya import MayaSession
+from omtk.nodegraph.controller import NodeGraphController
 from omtk.nodegraph.models import GraphModel
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
-from omtk.nodegraph.bindings.session_maya import MayaSession
 
 
 class NodeGraphRegistryCallbackTestCase(omtk_test.NodeGraphBaseTestCase):
     """
     Ensure that the NodeGraphRegistry correctly react to Maya events.
     """
+
     def setUp(self):
         self.maxDiff = None
 
@@ -46,10 +49,11 @@ class NodeGraphRegistryCallbackTestCase(omtk_test.NodeGraphBaseTestCase):
         self.assertGraphPortCountEqual(num_ports)
 
 
-class NodeGraphRegistryCompoundCallbackTestCase(omtk_test.NodeGraphTestCase):
+class NodeGraphRegistryCompoundCallbackTestCase(omtk_test.NodeGraphBaseTestCase):
     """
     Ensure that the NodeGraphRegistry correctly react to Maya events.
     """
+
     def setUp(self):
         self.maxDiff = None
         self.session = MayaSession()

@@ -1,4 +1,11 @@
 #!/bin/bash
+# Linux bash script to simplify testing omtk with pytest
+
+# Expose omtk
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+OMTK_PYTHON="${DIR}/python"
+echo "[setup] Adding to PYTHONPATH: ${OMTK_PYTHON}"
+PYTHONPATH="${OMTK_PYTHON}:{$PYTHONPATH}"
 
 # Expose mayapy
 _MAYA_BIN=$(readlink -f `command -v maya`)
@@ -15,14 +22,4 @@ echo "[setup] Adding to PYTHONPATH: ${_PYTEST_DIR}"
 PYTHONPATH="${PYTHONPATH}:${_PYTEST_DIR}"
 
 # Run unit tests
-echo "########################################################################"
-echo "# Running unit tests"
-
-(cd "tests/unit_tests" && py.test $@ --cov=omtk --cov-branch --cov-report term-missing)
-
-# Run integation tests
-echo "########################################################################"
-echo "# Running integration tests"
-
-# echo "mayapy: $(which mayapy)"
-# (cd "tests/integration_tests" && mayapy -m "py.test" $@ --cov=omtk --cov-branch --cov-report term-missing)
+mayapy -m "py.test" $@ --cov=omtk--cov-branch --cov-report term-missing

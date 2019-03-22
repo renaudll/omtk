@@ -1,5 +1,7 @@
 import abc
-from omtk.nodegraph import NodeModel, PortModel, ConnectionModel
+from omtk.nodegraph.models.node import NodeModel
+from omtk.nodegraph.models.port import PortModel
+from omtk.nodegraph.models.connection import ConnectionModel
 from omtk.nodegraph.signal import Signal
 
 

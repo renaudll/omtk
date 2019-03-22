@@ -1,5 +1,4 @@
 import omtk.nodegraph.models.node
-from omtk.nodegraph.models.node import node_base
 
 
 class NodeGraphNodeRootModel(omtk.nodegraph.models.node.NodeModel):

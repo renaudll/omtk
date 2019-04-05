@@ -4,8 +4,8 @@ Test a preconfigured filter that hide message type ports.
 import pytest
 
 from omtk.nodegraph.filters.filter_metadata import NodeGraphMetadataFilter
-from omtk_test import assertGraphConnectionCountEqual
-from omtk_test import assertGraphIsEmpty
+from tests.helpers import assertGraphConnectionCountEqual
+from tests.helpers import assertGraphIsEmpty
 
 
 @pytest.fixture
@@ -22,13 +22,14 @@ def test_hiding_network_node(session, registry, model, pymel):
     assertGraphIsEmpty(model)
 
 
-def test_hiding_message_port(session, registry, model):
+def test_hiding_message_port(cmds, registry, model):
     """Ensure that adding a connection from a network node to the graph don't add anything."""
-    node_src = session.create_node('transform')
-    node_dst = session.create_node('transform')
-    port_src = session.create_port(node_src, 'message')
-    port_dst = session.create_port(node_dst, 'message')
-    session.create_connection(port_src, port_dst)
+    node_src = cmds.createNode('transform', name='a')
+    node_dst = cmds.createNode('transform', name='b')
+    port_src = cmds.addAttr(node_src, ln='testSrc', at='message')
+    port_dst = cmds.addAttr(node_dst, ln='testDst', at='message')
+    cmds.connectAttr('a.testSrc', 'a.testDst')
+
     registry.scan_session()
     model.add_all()
 

@@ -1,13 +1,11 @@
-import constants
 import logging
 import os
 
-# from .core import *
+import constants
 from .api import *
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s")
 log = logging.getLogger(__name__)
-# log.setLevel(logging.DEBUG)  # debugging
 
 try:
     from maya import cmds, mel
@@ -30,7 +28,7 @@ def build_ui_files():
     except ImportError:
         import pyside2uic as pysideuic
 
-    for dirpath, dirnames, filenames in os.walk(os.path.dirname(__file__)):
+    for dirpath, _, filenames in os.walk(os.path.dirname(__file__)):
         for filename in filenames:
             basename, ext = os.path.splitext(filename)
             if ext != '.ui':

@@ -104,15 +104,20 @@ def from_attributes_map(attrs_inn, attrs_out, dagnodes=None, namespace='componen
     from omtk.libs import libAttr
     from omtk.libs import libNamespaces
 
+    assert dagnodes is None or None not in dagnodes
+
     # Determine the parent namespace
     if dagnodes is None:
         dagnodes = set()
     else:
         dagnodes = set(dagnodes)  # enforce set for now...
+
+
+
     additional_dagnodes = _get_nodes_from_attributes(attrs_inn.values(), attrs_out.values())
     dagnodes.update(additional_dagnodes)
 
-
+    assert None not in dagnodes
     # Determine the parent namespace
     parent_namespace = None
     if parent_namespace is None:

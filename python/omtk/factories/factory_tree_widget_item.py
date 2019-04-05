@@ -177,6 +177,12 @@ def get(value, known_data_id=None):
 
 
 def _get_item_from_component(component, known_data_id=None):
+    """
+
+    :param component:
+    :param known_data_id:
+    :return:
+    """
     # Prevent cyclic dependency by not showing two component twice.
     if known_data_id is None:
         known_data_id = set()
@@ -190,6 +196,9 @@ def _get_item_from_component(component, known_data_id=None):
         item = TreeWidgetItemComponent(0, meta_type, component)
     else:
         item = QtWidgets.QTreeWidgetItem(0)
+
+    if not hasattr(component, 'iter_ports'):
+        raise Exception("Cannot get %s (%s) ports: %r" % (component, type(component), component))
 
     keys = list(component.iter_ports())
 

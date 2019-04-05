@@ -62,6 +62,17 @@ def assert_registry_connection_empty(registry):
     assert not registry.cache_connection_by_value
 
 
+def test_set_session(registry, session):
+    """
+    Assert that we can set and unset the registry session.
+    """
+    registry.set_session(None)
+    assert registry.session is None
+
+    registry.set_session(session)
+    assert registry.session is session
+
+
 def test_create_node(node, registry):
     """
     Assert that a node model exist in the registry.

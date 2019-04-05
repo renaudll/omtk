@@ -4,6 +4,7 @@ import threading
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+
 # TODO: Replace with https://github.com/dgovil/PySignal ?
 # TODO: Implement __str__ that query sender?
 
@@ -17,12 +18,17 @@ class Signal(object):
 
     :param args: The signature of the signal. This is the type of argument that we expect to pass. Unused
     """
+
     def __init__(self, *args):
         self._mutex = threading.RLock()
         self._funcs = set()
         self._block = False
 
     def __repr__(self):
+        """
+        :return: A string representation of the signal
+        :rtype: str
+        """
         # TODO: Retrieve sender name?
         return "<Signal {}>".format(self.__class__)
 
@@ -67,4 +73,7 @@ class Signal(object):
             self.block(False)
 
     def block(self, state):
+        """ The the `block` mutex state
+        :param bool state: The new state (True of False)
+        """
         self._block = state

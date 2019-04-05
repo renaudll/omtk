@@ -9,7 +9,6 @@ from omtk.libs import libMayaNodeEditor
 
 log = logging.getLogger(__name__)
 
-_GRAPH_POS_ATTR_NAME = constants.PyFlowGraphMetadataKeys.Position
 
 
 def _walk_downstream(node):
@@ -143,62 +142,6 @@ def arrange_downstream(node, padding_x=32, padding_y=10):
         pos_y += child.size().height() + padding_y
         # pos_y += spacing_y
         arrange_downstream(child, padding_x=padding_x, padding_y=padding_y)
-
-
-def _get_node_position(node, use_stored_pos=True, use_maya_pos=False):
-    # type: (pymel.PyNode, bool, bool) -> None
-    # If the node contain a saved position, use it.
-    if use_stored_pos and node.hasAttr(constants.PyFlowGraphMetadataKeys.Position):
-        pos = node.attr(constants.PyFlowGraphMetadataKeys.Position).get()
-        # print("Getting position. {0} at {1}".format(node, pos))
-        return pos
-    # Otherwise use the saved position from the Maya NodeEditor.
-    elif use_maya_pos:
-        pos = libMayaNodeEditor.get_node_position(node)
-        # print("Getting position. {0} at {1}".format(node, pos))
-        return pos
-
-
-def get_node_position(node, use_stored_pos=True, use_maya_pos=False):
-    # type: (NodeModel, bool, bool) -> (float, float)
-    from omtk.factories import factory_datatypes
-
-    assert(use_stored_pos or use_maya_pos)
-    meta_type = node.get_metatype()
-    meta_data = node.get_metadata()
-
-    if meta_type in (factory_datatypes.AttributeType.Node,):
-        return _get_node_position(meta_data, use_stored_pos=use_stored_pos, use_maya_pos=use_maya_pos)
-    elif meta_type in (factory_datatypes.AttributeType.Component,):
-        return _get_node_position(meta_data.grp_inn, use_stored_pos=use_stored_pos, use_maya_pos=use_maya_pos)
-
-
-def _save_node_position(node, pos):
-    from pymel import core as pymel
-    # type: (pymel.PyNode, Tuple[float,float]) -> None
-    if not node.hasAttr(_GRAPH_POS_ATTR_NAME):
-        pymel.addAttr(node, longName=_GRAPH_POS_ATTR_NAME, at='float2')
-        pymel.addAttr(node, longName=_GRAPH_POS_ATTR_NAME + 'X', at='float', parent=_GRAPH_POS_ATTR_NAME)
-        pymel.addAttr(node, longName=_GRAPH_POS_ATTR_NAME + 'Y', at='float', parent=_GRAPH_POS_ATTR_NAME)
-        attr = node.attr(_GRAPH_POS_ATTR_NAME)
-    else:
-        attr = node.attr(_GRAPH_POS_ATTR_NAME)
-    attr.set(pos)
-
-    # print("Saving position. {0} at {1}".format(node, pos))
-
-
-def save_node_position(node, pos):
-    # type: (NodeModel, Tuple[float,float]) -> None
-    from omtk.factories import factory_datatypes
-    meta_type = node.get_metatype()
-    meta_data = node.get_metadata()
-
-    if meta_type in (factory_datatypes.AttributeType.Node,):
-        _save_node_position(meta_data, pos)
-
-    elif meta_type in (factory_datatypes.AttributeType.Component,):
-        _save_node_position(meta_data.grp_inn, pos)
 
 
 def pyflowgraph_to_networkxgraph(nodes):

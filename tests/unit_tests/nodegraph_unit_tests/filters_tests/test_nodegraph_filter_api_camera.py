@@ -5,7 +5,7 @@ import pytest
 
 from maya_mock.decorators import mock_pymel
 from omtk.nodegraph import NodeGraphFilter
-from omtk_test import assertGraphNodeNamesEqual
+from tests.helpers import assertGraphNodeNamesEqual
 
 
 @pytest.fixture

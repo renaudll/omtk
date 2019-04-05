@@ -56,11 +56,11 @@ class NodeGraphDgNodeModel(omtk.nodegraph.models.node.NodeModel):
         # return list(libAttr.iter_contributing_attributes_openmaya2(self._pynode.__melobject__()))
 
     def scan_ports(self):
-        raise Exception("Deprecated, use registry._scan_node_ports.")
+        raise Exception("Deprecated, use component_registry._scan_node_ports.")
         for attr in self.get_ports_metadata():
             inst = self._registry.get_port(attr)
-            # inst = nodegraph_port_model.NodeGraphPymelPortModel(self._session, self, attr)
-            # self._session._register_port(inst)
+            # component_inst_v1 = nodegraph_port_model.NodeGraphPymelPortModel(self._session, self, attr)
+            # self._session._register_port(component_inst_v1)
             yield inst
 
             # Note: Multi-attribute are disabled for now, we might want to handle 'free' item

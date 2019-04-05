@@ -447,7 +447,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     #     try:
     #         return libPython.objects_by_id(inst_id)
     #     except Exception, e:
-    #         LOG.debug("Cache missed for {0}".format(inst_id))
+    #         log.debug("Cache missed for {0}".format(inst_id))
 
     cls_name = network.getAttr('_class')
 

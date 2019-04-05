@@ -1,7 +1,7 @@
 from omtk.core import entity_attribute
 
 from omtk.nodegraph.adaptors.port.base import NodeGraphPortImpl
-from omtk.nodegraph.adaptors.port.pymel import PymelAttributeNodeGraphPortImpl
+from omtk.nodegraph.adaptors.port.pymel_ import PymelAttributeNodeGraphPortImpl
 
 
 class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
@@ -46,7 +46,7 @@ class EntityAttributeNodeGraphPortImpl(NodeGraphPortImpl):
 
     def is_destination(self):
         from omtk.factories import factory_datatypes
-        import pymel.core as pymel
+        import pymel_.core as pymel
 
         if self._pymel_adaptor:
             return self._pymel_adaptor.is_destination()

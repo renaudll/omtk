@@ -126,17 +126,15 @@ _g_port_color_by_datatype = {
 
 _g_default_port_color = QtGui.QColor(0, 0, 0, 255)
 
-_registry_datatype = [
-    bool, int, float, long, basestring, type
-]
+_registry_datatype = (bool, int, float, long, basestring, type)
 
 if pymel:
-    _registry_datatype.extend((
+    _registry_datatype += (
         pymel.util.enum.EnumValue,
         pymel.datatypes.Vector,
         pymel.datatypes.Point,
         pymel.datatypes.Matrix,
-    ))
+    )
 
 
 def get_datatype(val):
@@ -217,6 +215,7 @@ def get_icon_from_datatype(data, datatype=None):
         return _create("out_objectSet.png")
 
     log.warning("Cannot resolve icon from datatype {0}".format(datatype))
+    return _create("/transform.svg")
 
 
 @decorators.memoized

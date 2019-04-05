@@ -4,7 +4,7 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 import pytest
 
 from omtk.nodegraph import NodeGraphFilter
-from omtk_test import assertGraphNodePortNamesEqual
+from tests.helpers import assertGraphNodePortNamesEqual
 
 
 class MessageFilter(NodeGraphFilter):

@@ -3,13 +3,14 @@ from collections import defaultdict
 
 import omtk
 from omtk.libs import libPython
-from omtk.nodegraph.models.graph import graph_model_abstract
+from omtk.nodegraph.models.graph import igraph
+from omtk.nodegraph.models.node import NodeModel
 from omtk.vendor.Qt import QtCore
 
 log = logging.getLogger('omtk.nodegraph')
 
 
-class GraphModel(graph_model_abstract.IGraphModel):
+class GraphModel(igraph.IGraphModel):
     """
     A Graph is a network of nodes (NodeModel).
     Nodes have ports (PortModel).
@@ -94,11 +95,10 @@ class GraphModel(graph_model_abstract.IGraphModel):
 
         :param omtk.nodegraph.NodeGraphRegistry registry: The graph registered to connection from this session.
         """
-        registry.onNode
         registry.onNodeDeleted.connect(self.on_node_unexpectedly_deleted)
-        # registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
+        # component_registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
         registry.onPortRemoved.connect(self.on_attribute_unexpectedly_removed)
-        # registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
+        # component_registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
         registry.onConnectionRemoved.connect(self.on_connection_unexpectedly_removed)
 
     def _register_registry(self, registry):
@@ -107,9 +107,9 @@ class GraphModel(graph_model_abstract.IGraphModel):
         :param NodeGraphRegistry registry: The REGISTRY_DEFAULT to connect.
         """
         registry.onNodeDeleted.connect(self.on_node_unexpectedly_deleted)
-        # registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
+        # component_registry.onPortAdded.connect(self.on_attribute_unexpectedly_added)
         registry.onPortRemoved.connect(self.on_attribute_unexpectedly_removed)
-        # registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
+        # component_registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
         registry.onConnectionRemoved.connect(self.on_connection_unexpectedly_removed)
 
         # REGISTRY_DEFAULT.onNodeDeleted.connect(self.onNodeRemoved.emit)
@@ -119,9 +119,9 @@ class GraphModel(graph_model_abstract.IGraphModel):
         Remove callbacks from a REGISTRY_DEFAULT Qt Signal.
         """
         registry.onNodeDeleted.disconnect(self.on_node_unexpectedly_deleted)
-        # registry.onPortAdded.disconnect(self.on_attribute_unexpectedly_added)
+        # component_registry.onPortAdded.disconnect(self.on_attribute_unexpectedly_added)
         registry.onPortRemoved.disconnect(self.on_attribute_unexpectedly_removed)
-        # registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
+        # component_registry.onConnectionAdded.connect(self.on_connection_unexpectedly_added)
         registry.onConnectionRemoved.disconnect(self.on_connection_unexpectedly_removed)
 
         # REGISTRY_DEFAULT.onNodeDeleted.disconnect(self.onNodeRemoved.emit)
@@ -151,6 +151,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
         :param bool emit: If True, the ``onNodeAdded`` Qt Signal will be emitted.
         :rtype: None
         """
+        assert isinstance(node, NodeModel)
         if node in self._nodes:
             return
 
@@ -231,6 +232,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
         """
         self._pos_by_node[node] = pos
 
+        assert isinstance(node, NodeModel)
         node.set_position(pos)
 
         if emit:
@@ -393,7 +395,7 @@ class GraphModel(graph_model_abstract.IGraphModel):
         try:
             self._connections.remove(connection)
         except KeyError:
-            log.warning("Connection is not in graph, %s", connection)
+            log.debug("Connection is not in graph, %s", connection)
             return
 
         # Update cache

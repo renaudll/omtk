@@ -2,36 +2,30 @@ import os
 import re
 
 from omtk import decorators
+from omtk.vendor.enum34 import Enum
 
-class Axis:
-    """
-    Fake enum as class with constant variable to represent the axis value that could change
-    """
+
+class Axis(Enum):
+    """Fake enum as class with constant variable to represent the axis value that could change."""
     x = 'X'
     y = 'Y'
     z = 'Z'
 
 
-class SpaceSwitchReservedIndex:
-    """
-    Fake enum as class with constant variable to represent the reserved index in controller space switch
-    """
+class SpaceSwitchReservedInde(Enum):
+    """Fake enum as class with constant variable to represent the reserved index in controller space switch."""
     world = -3
     local = -2
     root = -1
 
 
-class ComponentActionFlags:
-    """
-    Flags used when exposing Rig or Module functionality in the ui.
-    """
+class ComponentActionFlag(Enum):
+    """Flags used when exposing Rig or Module functionality in the ui."""
     trigger_network_export = 1
 
 
-class EnvironmentVariables:
-    """
-    Customize the behavior of OMTK by defining thoses environment variables.
-    """
+class EnvironmentVariables(Enum):
+    """Customize the behavior of OMTK by defining thoses environment variables."""
     # Force a specific rig type as default.
     # Usefull for project-specific configurations.
     OMTK_DEFAULT_RIG = 'OMTK_DEFAULT_RIG'
@@ -40,10 +34,8 @@ class EnvironmentVariables:
     OMTK_PLUGINS = 'OMTK_PLUGINS'
 
 
-class BuiltInComponentIds:
-    """
-    There Component ids are used internally and should never be used for something else.
-    """
+class BuiltInComponentIds(Enum):
+    """There Component ids are used internally and should never be used for something else."""
     Ik = '9458f1c5-8962-4338-a233-54808cc5f520'
     IkSoftSolver = 'e6259812-d64d-4509-a051-828e5ed36234'
     Fk = '3f8cba02-ca89-494e-aeba-e1e1dcf23f3d'
@@ -53,9 +45,7 @@ class BuiltInComponentIds:
 
 
 class PyFlowGraphMetadataKeys:
-    """
-    Metadata maya attributes that are created when using the node graph.
-    """
+    """Metadata maya attributes that are created when using the node graph."""
     Position = '_graphpos'
 
 
@@ -68,15 +58,14 @@ COMPONENT_HUB_INN_ATTR_NAME = 'grp_inn'
 COMPONENT_HUB_OUT_ATTR_NAME = 'grp_out'
 
 
-
 @decorators.memoized
 def get_version():
-    # type: () -> str
     """
     Read the REZ package associated with the project and return the current version.
     This is used to analyze old rigs and recommend specific scripts to correct them if needed.
 
     :return: The fully qualified version as a str instance.
+    :rtype: str
     """
     package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'package.py'))
     if not os.path.exists(package_path):

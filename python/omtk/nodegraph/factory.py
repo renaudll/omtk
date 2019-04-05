@@ -17,9 +17,9 @@ def get_port_from_value(registry, val):
     :return: A ``PortModel`` instance
     :rtype: omtk.nodegraph.PortModel
     """
-    from omtk.nodegraph.models.port import port_base
     import pymel.core as pymel
     from omtk.factories import factory_datatypes
+    from omtk.core.module import Module
 
     if isinstance(val, entity_attribute.EntityPymelPort):
         node_value = val.parent
@@ -49,7 +49,7 @@ def get_port_from_value(registry, val):
         return inst
 
     # OMTK module
-    if isinstance(val, module.Module):  # todo: use factory_datatypes?
+    if isinstance(val, Module):  # todo: use factory_datatypes?
         # node_value = val.rig
         node_model = registry.get_node(val.rig)
         val = val.rig.get_attribute_by_name('modules')

@@ -1,17 +1,17 @@
 import logging
 
 from omtk.core.macro import BaseMacro
-from omtk.vendor.Qt import QtWidgets
-from omtk import nodegraph
+from omtk.nodegraph.widget import NodeGraphWidget
 from omtk.qt_widgets import main_window_extended
+from omtk.vendor.Qt import QtWidgets
 
 _gui = None  # workaround garbage collection bug
+log = logging.getLogger(__name__)
 
 
 class ShowNodeEditor(BaseMacro):
     def run(self):
-        cls = nodegraph.nodegraph_widget.NodeGraphWidget
-        log = logging.getLogger('omtk.nodegraph')
+        cls = NodeGraphWidget
 
         global _gui
         _gui = main_window_extended.MainWindowExtended()
@@ -22,8 +22,6 @@ class ShowNodeEditor(BaseMacro):
 
         _gui.set_logger(log)
         _gui.show()
-
-
 
 
 def register_plugin():

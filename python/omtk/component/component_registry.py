@@ -5,15 +5,12 @@ import logging
 import os
 
 from omtk import decorators
-from omtk.component import component_definition
+from omtk.component.component_base import Component
+from omtk.component.component_definition import ComponentDefinition
 from omtk.exceptions import MultipleComponentDefinitionError
 
-if False:  # for type hinting
-    from typing import List, Generator, Union
-    from omtk.component import Component
-    from omtk.component.component_definition import ComponentDefinition
-
 log = logging.getLogger(__name__)
+
 
 def get_default_components_dir():
     """Return the directory to save component to."""
@@ -21,6 +18,10 @@ def get_default_components_dir():
 
 
 class ComponentRegistry(object):
+    """
+    A storage for exported components.
+    """
+
     def __init__(self, paths=None):
         self.paths = paths if paths else [get_default_components_dir()]
 
@@ -35,6 +36,11 @@ class ComponentRegistry(object):
         self._known_definitions = [c for c in self._scan()]
 
     def _scan(self):
+        """
+
+        :return: A component definition generator
+        :rtype: generator(ComponentDefinition)
+        """
         known = set()
 
         for path_dir in self.paths:
@@ -49,7 +55,7 @@ class ComponentRegistry(object):
                 path = os.path.join(path_dir, filename)
 
                 log.debug('Creating ComponentDefinition from {0}'.format(path))
-                component_def = component_definition.ComponentDefinition.from_file(path)
+                component_def = ComponentDefinition.from_file(path)
                 if not component_def:
                     continue
 
@@ -91,9 +97,16 @@ class ComponentRegistry(object):
         return path
 
     def register(self, inst, inst_def):
-        # type: (Component, ComponentDefinition) -> str
+        """
+        Save a component to the registry.
+        :param omtk.component.Component inst: A component instance
+        :param omtk.component.ComponentDefinition inst_def: The component definition
+        :return: An absolute path to the save component.
+        :rtype: str
+        """
         path = self.get_path_from_component_def(inst_def)
         dirname = os.path.dirname(path)
+
         if not os.path.exists(dirname):
             raise Exception("Can't register component. Destination directory does not exist. {0}".format(dirname))
         if os.path.exists(path):
@@ -103,9 +116,18 @@ class ComponentRegistry(object):
         inst.set_definition(inst_def)  # Ensure the definition is set
         inst.export(path)
         self._known_definitions.append(inst_def)
+
+        log.info('Registered %s (%s) at %r' % (inst, inst_def, path))
+
         return path
 
     def _iter_component_versions(self, search_def):
+        """
+
+        :param search_def:
+        :return:
+        :rtype: generator(ComponentDefinition
+        """
         # type: (ComponentDefinition) -> Generator[ComponentDefinition]
         """Resolve all the available versions for a specific component."""
         for component_def in self._known_definitions:
@@ -124,7 +146,10 @@ class ComponentRegistry(object):
     def is_latest_component_version(self, search_def):
         # type: (ComponentDefinition) -> bool
         """Check if a component need to be updated. Return True if an update is needed, False otherwise."""
-        # todo: check timestamp instead of version number?
+        # todo: check timestamp instead of version number?)
+        if isinstance(search_def, Component):
+            search_def = search_def.get_definition()
+
         latest_def = self.get_latest_component_version(search_def)
         return latest_def is not None and search_def == latest_def
 

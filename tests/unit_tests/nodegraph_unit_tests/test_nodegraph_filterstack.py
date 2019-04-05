@@ -11,7 +11,6 @@ from omtk.nodegraph.filters.filter_standard import NodeGraphStandardFilter
 from omtk.nodegraph.models.graph.graph_proxy_filter_model import GraphFilterProxyModel
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 @pytest.fixture

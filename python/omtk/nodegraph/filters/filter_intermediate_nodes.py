@@ -285,7 +285,7 @@ class IntermediateNodeFilter(NodeGraphFilter):
 
         # attr_inputmatrix_model = self.get_port_mode
         node_model = port.get_parent()
-        # node_model = registry.get_node(node)
+        # node_model = component_registry.get_node(node)
 
         # We will hold the connections in case we encounter an anormal connection.
         results = []

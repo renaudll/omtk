@@ -1,7 +1,7 @@
 import pytest
 
 from omtk.nodegraph.filters.filter_intermediate_nodes import IntermediateNodeFilter
-from omtk_test import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
+from tests.helpers import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
 
 
 @pytest.fixture

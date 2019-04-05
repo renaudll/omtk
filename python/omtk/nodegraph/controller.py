@@ -370,13 +370,13 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
             pass
         # self._cache.clear()
 
-        for node in model.iter_nodes():
+        for node in model.get_nodes():
             self.add_node_to_view(node)
 
-        for port in sorted(model.ports):  # todo: use GraphProxyModel for sorting?
+        for port in sorted(model.get_ports()):  # todo: use GraphProxyModel for sorting?
             self.get_port_widget(port)
 
-        for connection in model.iter_connections():
+        for connection in model.get_connections():
             self.get_connection_widget(connection)
 
     # --- Model utilities ---
@@ -435,7 +435,7 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
         node_widget._omtk_model = node  # monkey-patch
 
         # Restore previously set node position
-        pos = libPyflowgraph.get_node_position(node)
+        pos = node.get_position()
         if pos:
             pos = QtCore.QPointF(*pos)
             pos = node_widget.mapToScene(pos)
@@ -958,7 +958,7 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
                 metadata = port_dst.get_metadata()
                 if not isinstance(metadata, pymel.Attribute):
                     log.warning("Ignoring connection %s, invalid destination metadata type. "
-                                "Expected pymel.Attribute, got %s." % connection, metadata)
+                                "Expected pymel.Attribute, got %s." % (connection, metadata))
                     continue
 
                 key = port_src.get_name()
@@ -979,7 +979,7 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
                 metadata = port_src.get_metadata()
                 if not isinstance(metadata, pymel.Attribute):
                     log.warning("Ignoring port %s, invalid source metadata type. "
-                                "Expected pymel.Attribute, got %s." % connection, metadata)
+                                "Expected pymel.Attribute, got %s." % (connection, metadata))
                     continue
 
                 key = port_dst.get_name()
@@ -1178,19 +1178,14 @@ class NodeGraphController(object):  # QtCore.QObject is necessary for signal han
             # self.remove_node_from_view(node)
 
         # todo: better detection of dagnodes
-        dgnodes = [node.get_metadata() for node in nodes]
-
+        dgnodes = filter(None, (node.get_metadata() for node in nodes))
 
         map_inn, map_out = self._get_attr_map_from_nodes(nodes)
         inst = omtk.component.factory.from_attributes_map(map_inn, map_out, dagnodes=dgnodes)
 
-        # inn_attrs, out_attrs = self._get_nodes_outsider_ports(nodes)
-        # inst = component.from_attributes(inn_attrs, out_attrs, dagnodes=dgnodes)
-
         self.manager.export_network(inst)
         self.manager._register_new_component(inst)
         new_node = registry.get_node(inst)
-
         self.add_node(new_node)
 
         return new_node

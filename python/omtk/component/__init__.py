@@ -1,30 +1,17 @@
+"""Components help suggesting encapsulation in Maya."""
+from component_base import Component, ComponentPort
+from component_definition import ComponentDefinition, ComponentModuleDefinition, ComponentScriptedDefinition
+from component_registry import ComponentRegistry
+from component_scripted import ComponentScripted
+from factory import create_empty, from_attributes, from_attributes_map, from_nodes
+
 __all__ = (
     'Component',
     'ComponentDefinition',
     'ComponentPort',
     'ComponentRegistry',
-    #    'ComponentScripted',
+    'ComponentScripted',
     'from_nodes',
     'from_attributes',
     'from_attributes_map',
 )
-
-import component_base
-import component_definition
-import component_port
-import component_registry
-# import component_scripted
-from omtk.component import factory
-
-# Public API
-create_empty = factory.create_empty
-from_attributes = factory.from_attributes
-from_attributes_map = factory.from_attributes_map
-from_nodes = factory.from_nodes
-
-
-Component = component_base.Component
-ComponentDefinition = component_definition.ComponentDefinition
-ComponentPort = component_port.ComponentPort
-ComponentRegistry = component_registry.ComponentRegistry
-# ComponentScripted = component_scripted.ComponentScripted

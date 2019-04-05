@@ -45,14 +45,12 @@ class OmtkNodeGraphNodeWidget(PyFlowgraphNode):
 
         # Monkey-patch our metadata
         meta_data = model.get_metadata()
-        meta_type = model.get_metatype()
+        node_type = model.get_type()
         self._meta_data = meta_data
         self._meta_type = factory_datatypes.get_datatype(meta_data)
 
         # Set icon
-
-        # meta_type = self.get_metatype()
-        icon = factory_datatypes.get_icon_from_datatype(meta_data, meta_type)
+        icon = factory_datatypes.get_icon_from_datatype(meta_data, node_type)
         item = NodeIcon(icon)
         self.getHeader().layout().insertItem(0, item)
 

@@ -252,10 +252,10 @@ def rreload(module):
     namespace = module.__name__
 
     def _reload(m):
-        # print "scanning ", m
         if m in _known:
             return
         _known.add(m)
+        print "scanning ", m
 
         # child?
         m_name = m.__name__
@@ -267,13 +267,19 @@ def rreload(module):
 
         # print "accepted", m
         for name, value in inspect.getmembers(m):
+            # Reload module
+            if inspect.ismodule(value):
+                if not value.__name__.startswith(namespace):
+                    continue
+                _reload(value)  # if reload occurred
+
             # Reload class
-            if inspect.isclass(value):
+            elif inspect.isclass(value):
                 cls_module = inspect.getmodule(value)
                 if cls_module:
                     if not cls_module.__name__.startswith(namespace):
                         continue
-                    _reload(cls_module)  # if reload occured
+                    _reload(cls_module)  # if reload occurred
                     # print "Successfully reloaded {}, will update {}".format(cls_module.__name__, name)
                     # Update local class pointer
                     try:
@@ -286,7 +292,7 @@ def rreload(module):
                     setattr(m, name, cls_name)
 
             # Reload function
-            if inspect.isfunction(value):
+            elif inspect.isfunction(value):
                 fn_module = inspect.getmodule(value)
                 if fn_module:
                     if not fn_module.__name__.startswith(namespace):
@@ -311,3 +317,12 @@ def rreload(module):
 
     print "rreloading %s" % module.__name__
     _reload(module)
+
+
+def grouper(n, iterable):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(itertools.islice(it, n))
+        if not chunk:
+            return
+        yield chunk

@@ -3,9 +3,10 @@ import functools
 
 from omtk.core import manager
 from omtk.nodegraph.ui import nodegraph_widget
-from omtk.nodegraph.models.graph import graph_proxy_filter_model, graph_component_proxy_model
+from omtk.nodegraph.models.graph import graph_proxy_filter_model
+from omtk.nodegraph.models.graph.subgraph_proxy_model import SubgraphProxyModel
 from omtk.nodegraph.filters import filter_standard
-from omtk.nodegraph.registry import base
+from omtk.nodegraph.registry.maya_ import MayaRegistry
 from omtk.vendor.Qt import QtWidgets, QtCore, QtGui
 
 log = logging.getLogger('omtk.nodegraph')
@@ -34,7 +35,7 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         # It also need to be destroyed correctly.
         # For this reason we'll initialize it in the NodeGraphWidget itself.
         # Any tips for a better design is appreciated.
-        self._registry = base.NodeGraphRegistry()
+        self._registry = MayaRegistry()
 
         # Keep track of the multiple views provided by the QTabWidget
         self._ctrl = None
@@ -188,10 +189,10 @@ class NodeGraphWidget(QtWidgets.QMainWindow):
         registry = self._registry
         source_model = graph_model.GraphModel(registry)
         filter = filter_standard.NodeGraphStandardFilter()
-        model = graph_proxy_filter_model.GraphFilterProxyModel()
+        model = graph_proxy_filter_model.GraphFilterProxyModel(registry)
         model.set_source_model(source_model)
         model.set_filter(filter)
-        self._subgraph_proxy_model = graph_component_proxy_model.GraphComponentProxyFilterModel()
+        self._subgraph_proxy_model = SubgraphProxyModel(registry)
         self._subgraph_proxy_model.set_source_model(model)
         view = view.NodeGraphView(self)
         ctrl = controller.NodeGraphController(

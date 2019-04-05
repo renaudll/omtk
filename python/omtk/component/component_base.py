@@ -1,5 +1,6 @@
 import logging
 
+from omtk import constants
 from omtk.component.component_port import ComponentPort
 from omtk.core import manager
 from omtk.core.entity import Entity
@@ -7,15 +8,7 @@ from omtk.core.entity_action import EntityAction
 from omtk.libs import libNamespaces
 from omtk.vendor import libSerialization
 
-from omtk import constants
-
 log = logging.getLogger(__name__)
-
-
-if False:  # for type hinting
-    from omtk.component.component_definition import ComponentDefinition
-
-# todo: create ComponentScripted and ComponentSaved
 
 
 class Component(Entity):
@@ -45,7 +38,7 @@ class Component(Entity):
 
         self.uid = self.component_id
 
-        # Component can have a definition that define informations needed to identify them.
+        # Component can have a definition that define information needed to identify them.
         self.definition = None
 
         # A component can have a 'inn' node.
@@ -55,9 +48,6 @@ class Component(Entity):
         # A component can have an 'out' node.
         # Each output custom attribute of this object will be exposed outside of the component.
         self.grp_out = None
-
-        # Used for dynamic components. Define if a Component content need to be regenerated.
-        self._is_dirty_content = True
 
     def __hash__(self):
         return hash(self.namespace)
@@ -71,29 +61,6 @@ class Component(Entity):
         """
         # todo: do we check recursively?
         return item in self.get_children()
-
-    def get_namespace(self):
-        # type: () -> str
-        return self.namespace
-
-    @classmethod
-    def from_definition(cls, cls_def):
-        """
-        :param omtk.component.ComponentDefinition cls_def:
-        :return:
-        :rtype: Component
-        """
-        inst = cls()
-        inst.name = cls_def.name
-        inst.version = cls_def.version
-        inst.author = cls_def.author
-        return inst
-
-    def is_dirty_content(self):
-        return self._is_dirty_content
-
-    def set_content_dirty(self, state=True):
-        self._is_dirty_content = state
 
     def get_definition(self):
         # type: () -> ComponentDefinition
@@ -197,64 +164,109 @@ class Component(Entity):
         self.grp_out = None
 
         # todo: log remaining objects?
-        cmds.namespace(deleteNamespaceContent=True, removeNamespace=self.namespace)
+        cmds.namespace(mergeNamespaceWithParent=True, removeNamespace=self.namespace)
 
     def optimize(self):
-        # type: () -> bool
         """
         Implement optimisation routines. Call before publishing rig to animation.
         There's multiple things that can be done here, here's some idea:
         - Remove the inn and out hub.
         - Check if decomposeMatrix are sent to composeMatrix and vice versa and remove them.
+
+        :return:
+        :rtype: bool
         """
         return False
 
     def is_modified(self):
-        # type: () -> bool
         """
         Check if a component have been modified since it's construction.
-        todo: implement it, how???
-        :return:
+
+        :rtype: bool
         """
         raise NotImplementedError
 
     # --- Interface management ---
 
     def add_input_attr(self, long_name, **kwargs):
-        # type: (str) -> pymel.Attribute
+        """
+
+        :param str long_name:
+        :param kwargs:
+        :return:
+        :rtype: pymel.Attribute
+        """
         from omtk.libs import libAttr
         return libAttr.addAttr(self.grp_inn, long_name, **kwargs)
 
     def has_input_attr(self, attr_name):
-        # type: (str) -> bool
+        """
+        :param str attr_name:
+        :return:
+        :rtype: bool
+        """
         return self.grp_inn.hasAttr(attr_name)
 
     def get_input_attr(self, attr_name):
-        # type: (str) -> pymel.Attribute
+        """
+        :param str attr_name:
+        :return:
+        :rtype: bool
+        """
         return self.grp_inn.attr(attr_name)
 
     def get_input_attributes(self):
-        # type: (str) -> List[pymel.Attribute]
-        return self.grp_inn.listAttr()
+        """
+
+        :return:
+        :rtype: list of pymel.Attribute
+        """
+        return self.grp_inn.listAttr(userDefined=True)
 
     def add_output_attr(self, long_name, **kwargs):
+        """
+
+        :param str long_name:
+        :param kwargs:
+        :return: An attribute
+        :rtype: pymel.Attribute
+        """
         from omtk.libs import libAttr
         return libAttr.addAttr(self.grp_out, long_name, **kwargs)
 
     def has_output_attr(self, attr_name):
+        """
+
+        :param str attr_name:
+        :return:
+        :rtype: bool
+        """
         # type: (str) -> bool
         return self.grp_out.hasAttr(attr_name)
 
     def get_output_attr(self, attr_name):
-        # type: (str) -> pymel.Attribute
+        """
+
+        :param str attr_name:
+        :return:
+        :rtype: pymel.Attribute
+        """
         return self.grp_out.attr(attr_name)
 
     def get_output_attributes(self):
-        # type: (str) -> List[pymel.Attribute]
-        return self.grp_out.listAttr()
+        """
+
+        :return: List of attributes
+        :rtype: list of pymel.Attribute
+        """
+        return self.grp_out.listAttr(userDefined=True)
 
     def connect_to_input_attr(self, attr_name, attr_src, **kwargs):
-        # type: (str, pymel.Attribute) -> None
+        """
+
+        :param str attr_name:
+        :param pymel.Attribute attr_src:
+        """
         import pymel.core as pymel
         if not self.grp_inn.hasAttr(attr_name):
             log.warning("Cannot reconnect {0} to {1}. {0} doesnt exist.".format(attr_name, attr_src))
@@ -266,18 +278,23 @@ class Component(Entity):
         log.info("Connecting {0} to {1}".format(attr_src, attr_dst))
         pymel.connectAttr(attr_src, attr_dst)
 
-    def connect_to_output_attr(self, attr_name, attr_dst, **kwargs):
-        # type: (str, pymel.Attribute) -> None
+    def connect_to_output_attr(self, attr_name, attr, **kwargs):
+        """
+
+        :param str attr_name:
+        :param pymel.Attribute attr:
+        :param kwargs:
+        """
         import pymel.core as pymel
         if not self.grp_out.hasAttr(attr_name):
-            log.warning("Cannot reconnect {0} to {1}. {0} doesnt exist.".format(attr_dst, attr_name))
+            log.warning("Cannot reconnect {0} to {1}. {0} doesnt exist.".format(attr, attr_name))
             return
-        if not attr_dst.exists():
-            log.warning("Cannot reconnect {0} to {1}. {1} doesnt exist.".format(attr_dst, attr_name))
+        if not attr.exists():
+            log.warning("Cannot reconnect {0} to {1}. {1} doesnt exist.".format(attr, attr_name))
             return
         attr_src = self.grp_out.attr(attr_name)
-        log.info("Connecting {0} to {1}".format(attr_src, attr_dst))
-        pymel.connectAttr(attr_src, attr_dst)
+        log.info("Connecting {0} to {1}".format(attr_src, attr))
+        pymel.connectAttr(attr_src, attr)
 
     def explode(self):
         """Delete the component and it's hub, remaping the attribute to their original location."""
@@ -287,8 +304,6 @@ class Component(Entity):
         def _remap_attr(attr):
             import pymel.core as pymel
             attr_src = next(iter(attr.inputs(plugs=True)), None)
-            # if not attr_src:
-            #     return
             if attr_src:
                 pymel.disconnectAttr(attr_src, attr)
             for attr_dst in attr.outputs(plugs=True):
@@ -307,17 +322,22 @@ class Component(Entity):
         self.unbuild()
 
     def get_children(self):
-        # type: () -> List[pymel.nodetypes.DependNode]
         """
         The children of the component are any DgNode that are under our namespace.
         :return:
+        :rtype list pymel.nodetypes.DependNode
         """
         import pymel.core as pymel
         return pymel.ls('{0}:*'.format(self.namespace))
 
     def export(self, path):
+        """
+
+        :param str path:
+        """
         import pymel.core as pymel
         from maya import cmds
+        from omtk.libs.libAttr import context_disconnected_attrs
 
         children = self.get_children()
         if not children:
@@ -338,9 +358,8 @@ class Component(Entity):
         grp_out_attrs = set(self.grp_out.listAttr())
         grp_out_attrs.remove(self.grp_out.message)
 
-        with libAttr.context_disconnected_attrs(grp_inn_attrs, hold_inputs=True, hold_outputs=False):
-            with libAttr.context_disconnected_attrs(grp_out_attrs, hold_inputs=False, hold_outputs=True):
-
+        with context_disconnected_attrs(grp_inn_attrs, hold_inputs=True, hold_outputs=False):
+            with context_disconnected_attrs(grp_out_attrs, hold_inputs=False, hold_outputs=True):
                 pymel.select(objs_to_export)
                 cmds.file(rename=path)
                 cmds.file(force=True, exportSelected=True, type="mayaAscii")
@@ -361,10 +380,12 @@ class Component(Entity):
             from omtk.libs import libComponents  # todo: move the method to another module
             libComponents.remove_namespace_from_file(path, namespace)
 
-        return True
-
     def set_definition(self, component_def):
-        # type: (ComponentDefinition) -> None
+        """
+
+        :param ComponentDefinition component_def:
+        :return:
+        """
         from maya import cmds
         self.name = component_def.name
         self.author = component_def.author
@@ -440,6 +461,28 @@ class Component(Entity):
     def delete(self):
         self.unbuild()  # todo: merge methods?
 
+    def update(self, new_def):
+        """
+        Update a component to a new definition.
+        This will try to preserve any attribute connection.
+
+        :param new_def: A component definition
+        :return: A new component instance
+        """
+        old_namespace = self.namespace
+        map_inn, map_out = self.get_connections_relative()
+        self.delete()
+
+        inst_2 = new_def.instanciate(name=old_namespace)  # todo: rename to namespace
+        for attr_name, attr_srcs in map_inn.iteritems():
+            for attr_src in attr_srcs:
+                inst_2.connect_to_input_attr(attr_name, attr_src)
+        for attr_name, attr_dsts in map_out.iteritems():
+            for attr_dst in attr_dsts:
+                inst_2.connect_to_output_attr(attr_name, attr_dst)
+
+        return inst_2
+
 
 # --- Actions ---
 
@@ -472,6 +515,13 @@ class ActionShowContentInNodeEditor(EntityAction):
         cmds.nodeEditor(node_editor, e=True, addNode='')
 
 
+def __get_namespace(n):
+    try:
+        return n.namespace()
+    except AttributeError:
+        return n.namespace
+
+
 def _get_parent_namespace(nodes):
     """
     Resolve the parent namespace.
@@ -479,16 +529,12 @@ def _get_parent_namespace(nodes):
     However we don't want to have nodes in our component that don't share the same namespace since
     a component cannot logically have multiple parents.
     """
-    import pymel.core as pymel
-    def _get_namespace(n):
-        if isinstance(n, pymel.PyNode):
-            return n.namespace()
-        else:
-            return n.namespace
-    namespaces = {_get_namespace(node).strip(':') for node in nodes}
+
+    namespaces = {__get_namespace(node).strip(':') for node in nodes}
     if len(namespaces) > 1:
         raise Exception("Cannot create component from nodes. Nodes don't share the same namespace.")
     return next(iter(namespaces), None)
+
 
 def _get_nodes_from_attributes(attrs_inn, attrs_out):
     """
@@ -501,5 +547,3 @@ def _get_nodes_from_attributes(attrs_inn, attrs_out):
     for attr_out in attrs_out:
         hist_out.update(attr_out.listHistory(future=False))
     return hist_inn & hist_out
-
-

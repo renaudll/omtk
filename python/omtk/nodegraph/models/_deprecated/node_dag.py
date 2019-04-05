@@ -92,7 +92,7 @@ class NodeGraphDagNodeModel(node_dg.NodeGraphDgNodeModel):
         metadata = self.get_metadata()
         node_model = self._registry.get_node(metadata)
         inst = DagNodeParentPortModel(self._registry, node_model)
-        # inst = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, model_node, val)
+        # component_inst_v1 = nodegraph_port_model.NodeGraphEntityAttributePortModel(self, model_node, val)
         yield inst
 
         for yielded in super(NodeGraphDagNodeModel, self).scan_ports():

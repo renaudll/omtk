@@ -1,4 +1,4 @@
-from omtk.nodegraph.adaptors.port.pymel import PymelAttributeNodeGraphPortImpl
+from omtk.nodegraph.adaptors.port.pymel_ import PymelAttributeNodeGraphPortImpl
 from omtk.nodegraph.models.port import PortModel, log
 
 

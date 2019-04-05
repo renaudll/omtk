@@ -2,7 +2,7 @@ import pytest
 
 from maya_mock.decorators import mock_pymel
 from omtk.nodegraph.filters.filter_intermediate_nodes import IntermediateNodeFilter
-from omtk_test import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
+from tests.helpers import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
 
 
 @pytest.fixture

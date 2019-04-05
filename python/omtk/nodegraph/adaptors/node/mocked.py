@@ -8,6 +8,12 @@ class NodeGraphMockedNodeAdaptor(NodeGraphNodeAdaptor):
     omtk.nodegraph.NodeModel adaptor for maya_mock.MockedNode.
     """
     def __init__(self, session, data):
+        """
+
+        :param session:
+        :param data:
+        :type data: maya_mock.MockedNode
+        """
         assert isinstance(data, MockedNode)
         super(NodeGraphMockedNodeAdaptor, self).__init__(data)
         self._session = session

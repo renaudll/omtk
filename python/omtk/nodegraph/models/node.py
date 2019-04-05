@@ -89,6 +89,12 @@ class NodeModel(object):
         """
         return self.impl.get_type()
 
+    def get_metatype(self):
+        # TODO: Cleanup or deprecate this shit...
+        # We will want a better way to represent non-maya type as nodes
+        from omtk.factories import factory_datatypes
+        return factory_datatypes.AttributeType.Node
+
     def get_nodes(self):
         """
         Used for selection purpose. Return what should be selected if the node is selected.

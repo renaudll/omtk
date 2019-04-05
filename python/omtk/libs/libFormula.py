@@ -1,14 +1,18 @@
+from collections import MutableMapping
+import abc
 import logging
 import math
 import re
 
 import pymel.core as pymel
-from maya import cmds
+import six
+
 from omtk.libs import libRigging
 
 log = logging.getLogger(__name__)
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Operator(object):
     @staticmethod
     def can_optimise(*args):
@@ -18,12 +22,32 @@ class Operator(object):
         return True
 
     @staticmethod
+    @abc.abstractmethod
     def execute(arg1, arg2):
-        raise NotImplementedError
+        """
+        Execute the operator on two in-memory values.
+
+        :param arg1: Left operator
+        :type arg1: pymel.Attribute, int, float, bool, str
+        :param arg2: Right operator
+        :type arg2: pymel.Attribute, int, float, bool, str
+        :return: The result
+        :rtype: int, float, bool, str
+        """
 
     @staticmethod
+    @abc.abstractmethod
     def create(arg1, arg2):
-        raise NotImplementedError
+        """
+        Create a maya network to parse the formula. Return an output attribute.
+
+        :param object arg1: Left operator
+        :type arg1: pymel.Attribute, int, float, bool, str
+        :param object arg2: Right operator
+        :type arg2: pymel.Attribute, int, float, bool, str
+        :return: A pymel attribute to query for the result.
+        :rtype: pymel.Attribute
+        """
 
 
 class OperatorAddition(Operator):
@@ -71,11 +95,6 @@ class OperatorDivision(Operator):
 class OperatorPow(Operator):
     @staticmethod
     def execute(arg1, arg2):
-        try:
-            return math.pow(arg1, arg2)
-        except Exception, e:
-            log.error("Can't execute {0} ^ {1}: {2}".format(arg1, arg2, e)),
-
         return math.pow(arg1, arg2)
 
     @staticmethod
@@ -86,13 +105,13 @@ class OperatorPow(Operator):
 class OperatorDistance(Operator):
     # Ensure that we correctly cast the arguments if '0' is provided.
     # ex: 0~a where 'a' is a vector or a matrix
-    @staticmethod
-    def _get_identity_by_type(type):
-        if type == pymel.datatypes.Matrix:
-            return pymel.datatypes.Matrix()
-        if type == pymel.datatypes.Vector:
-            return pymel.datatypes.Vector()
-        raise Exception("Cannot cast type {0}".format(type))
+    _supported_types = (pymel.datatypes.Matrix, pymel.datatypes.Vector)
+
+    @classmethod
+    def _get_identity_by_type(cls, type):
+        if not type in cls._supported_types:
+            raise NotImplementedError("Cannot cast type {0}".format(type))
+        return type()
 
     @staticmethod
     def _handle_args(arg1, arg2):
@@ -106,9 +125,6 @@ class OperatorDistance(Operator):
     def execute(arg1, arg2):
         arg1, arg2 = OperatorDistance._handle_args(arg1, arg2)
         log.debug('[distance:execute] {0} * {1}'.format(arg1, arg2))
-
-        # todo: check for matrix
-
         return arg1 * arg2
 
     @staticmethod
@@ -118,14 +134,14 @@ class OperatorDistance(Operator):
         # todo: check if we want to use inMatrix1 & inMatrix2 or point1 & point2
         kwargs = {}
 
-        if isinstance(arg1, pymel.datatypes.Matrix) or (isinstance(arg1, pymel.Attribute) or arg1.type() == 'matrix'):
+        if isinstance(arg1, pymel.datatypes.Matrix) or (isinstance(arg1, pymel.Attribute) and arg1.type() == 'matrix'):
             kwargs['inMatrix1'] = arg1
         elif isinstance(arg1, pymel.nodetypes.Transform):
             kwargs['inMatrix1'] = arg1.worldMatrix
         else:
             kwargs['point1'] = arg1
 
-        if isinstance(arg2, pymel.datatypes.Matrix) or (isinstance(arg2, pymel.Attribute) or arg2.type() == 'matrix'):
+        if isinstance(arg2, pymel.datatypes.Matrix) or (isinstance(arg2, pymel.Attribute) and arg2.type() == 'matrix'):
             kwargs['inMatrix2'] = arg2
         elif isinstance(arg2, pymel.nodetypes.Transform):
             kwargs['inMatrix2'] = arg2.worldMatrix
@@ -138,7 +154,7 @@ class OperatorDistance(Operator):
 class OperatorEqual(Operator):
     @staticmethod
     def execute(arg1, arg2):
-        log.execute('[equal:execute] {0} * {1}'.format(arg1, arg2))
+        log.debug('[equal:execute] {0} * {1}'.format(arg1, arg2))
         return arg1 == arg2;
 
     @staticmethod
@@ -150,7 +166,7 @@ class OperatorEqual(Operator):
 class OperatorNotEqual(Operator):
     @staticmethod
     def execute(arg1, arg2):
-        return arg1 != arg2;
+        return arg1 != arg2
 
     @staticmethod
     def create(*args, **kwargs):
@@ -245,14 +261,6 @@ def basic_cast(str):
         pass
 
     return str
-
-
-def convert_basic_value(str):
-    # handle parenthesis
-    if isinstance(str, list):
-        return _create_nodes(*str)
-
-    return basic_cast(str)
 
 
 def rlen(L):
@@ -455,40 +463,3 @@ class Formula(object):
             self
         return parse(self._formula_, **self._vars_)
     '''
-
-
-#
-# Unit testing
-#
-
-def _test_squash():
-    # ex:creating a bell-curve type squash
-    cmds.file(new=True, f=True)
-    transform, shape = pymel.sphere()
-    stretch = transform.sy
-    squash = parse("1 / (e^(x^2))", x=stretch)
-    pymel.connectAttr(squash, transform.sx)
-    pymel.connectAttr(squash, transform.sz)
-    return True
-
-
-def _test_squash2(step_size=10):
-    cmds.file(new=True, f=True)
-    root = pymel.createNode('transform', name='root')
-    pymel.addAttr(root, longName='amount', defaultValue=1.0, k=True)
-    pymel.addAttr(root, longName='shape', defaultValue=math.e, k=True)
-    pymel.addAttr(root, longName='offset', defaultValue=0.0, k=True)
-    attAmount = root.attr('amount')
-    attShape = root.attr('shape')
-    attOffset = root.attr('offset')
-    attInput = parse("amount^2", amount=attAmount)
-    for i in range(0, 100, step_size):
-        cyl, make = pymel.cylinder()
-        cyl.rz.set(90)
-        cyl.ty.set(i + step_size / 2)
-        make.heightRatio.set(step_size)
-        attSquash = parse("amount^(1/(shape^((x+offset)^2)))", x=(i - 50) / 50.0, amount=attInput, shape=attShape,
-                          offset=attOffset)
-        pymel.connectAttr(attSquash, cyl.sy)
-        pymel.connectAttr(attSquash, cyl.sz)
-    return True

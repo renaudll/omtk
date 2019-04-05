@@ -4,7 +4,7 @@ Ensure propre behaviour or the GraphController, GraphRegistry and every related 
 import logging
 
 from maya_mock.decorators import mock_pymel
-from omtk_test import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
+from tests.helpers import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
 
 log = logging.getLogger(__name__)
 

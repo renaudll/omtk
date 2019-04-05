@@ -1,11 +1,12 @@
+import logging
 import os
 import re
-import uuid
-import logging
 import tempfile
+import uuid
 
 import omtk.constants
 from omtk import constants
+from omtk.component.component_base import Component
 from omtk.exceptions import MissingMetadataError
 from omtk.libs import libNamespaces
 
@@ -22,6 +23,15 @@ _component_metadata_mandatory_fields = (
 
 
 def write_metadata_to_ma_file(path, metadata):
+    """
+    Write metadata to a Maya file.
+
+    :param str path:
+    :param metadata:
+    :return: True if successful, False otherwise
+    :rtype bool
+    """
+    # TODO: Replace with the appropriate Maya function
     path_tmp = tempfile.mktemp()
     success = False
     found = False
@@ -57,6 +67,12 @@ def write_metadata_to_ma_file(path, metadata):
 
 
 def iter_ma_file_metadata(path):
+    """
+
+    :param path: An absolute path to a Maya file.
+    :return: A key-value pair generator
+    :rtype: generator(tuple(str, str))
+    """
     with open(path, 'r') as fp:
         line = fp.readline()
         if not _regex_ma_header.match(line):
@@ -76,6 +92,13 @@ def iter_ma_file_metadata(path):
 
 
 def get_metadata_from_file(path):
+    """
+    Read a file header and return it's metadata.
+
+    :param path:
+    :return: A metadata dict
+    :rtype: dict(str, object)
+    """
     metadata = {}
     for key, val in iter_ma_file_metadata(path):
         if key.startswith(_metadata_prefix):
@@ -88,6 +111,7 @@ class ComponentDefinition(object):
     """
     A ComponentDefinition is a dict-like object
     """
+
     def __init__(self, name=None, version=None, uid=None, author='', path=None):
         # hack: we support empty constructor since we are using libSerialization
         # see: https://github.com/renaudll/omtk/issues/30
@@ -122,7 +146,6 @@ class ComponentDefinition(object):
     @classmethod
     def _validate_metadata(cls, metadata):
         for field in _component_metadata_mandatory_fields:
-            field_with_prefix = _metadata_prefix + field
             if field not in metadata:
                 raise MissingMetadataError("Missing field {0} in {1}".format(
                     field, metadata
@@ -140,7 +163,7 @@ class ComponentDefinition(object):
     @classmethod
     def from_metadata(cls, metadata):
         return cls(
-            uid = metadata.get('uid', uuid.uuid4()),
+            uid=metadata.get('uid', uuid.uuid4()),
             name=metadata.get('name', 'unamed'),
             version=metadata.get('version', '???'),
             author=metadata.get('author')
@@ -148,7 +171,13 @@ class ComponentDefinition(object):
 
     @classmethod
     def from_file(cls, path, validate=False):
-        # type: (str) -> ComponentDefinition
+        """
+
+        :param str path:
+        :param bool validate:
+        :return:
+        :rtype omtk.component.ComponentDefinition
+        """
         metadata = get_metadata_from_file(path)
         if validate:
             try:
@@ -165,10 +194,14 @@ class ComponentDefinition(object):
         return write_metadata_to_ma_file(path, metadata)
 
     def instanciate(self, name=None, map_inn=None, map_out=None):
-        # type: () -> (Component, pymel.nodetypes.Network)
         """
         Create a Component in the scene from a ComponentDefinition.
+
+        :param name:
+        :param map_inn:
+        :param map_out:
         :return: A Component instance.
+        :rtype: omtk.component.Component
         """
         import pymel.core as pymel
         from maya import cmds
@@ -213,8 +246,7 @@ class ComponentDefinition(object):
 
         # todo: read the definition...
 
-        from omtk import component
-        inst = component.Component(namespace)
+        inst = Component(namespace)
         inst.grp_inn = hub_inn
         inst.grp_out = hub_out
 
@@ -222,17 +254,12 @@ class ComponentDefinition(object):
         if not metanetwork:
             log.warning("No metadata found in the scene. Reading data for {0}.".format(self.path))
             # hack
-            from . import component
             inst_def = ComponentDefinition.from_file(self.path)
             network = m.export_network(inst_def)
             network.rename(metanetwork_dagpath)
             inst.grp_meta = network
 
         libComponents._connect_component_attributes(inst, map_inn, map_out)
-
-        # from omtk import manager
-        # m = manager.get_manager()
-        # network = m.export_network(inst)
 
         # todo: do we reaaaly need the cache? it's annoying to update...
         manager.get_session()._register_new_component(inst)
@@ -249,6 +276,7 @@ class ComponentDefinition(object):
         filename = '{0}-{1}.ma'.format(self.name, self.version)
         return os.path.join(dirname, filename)
 
+
 # todo: create IComponentDefinition class?
 
 
@@ -259,7 +287,7 @@ class ComponentScriptedDefinition(ComponentDefinition):
         inst = self.component_cls(name)
         inst.build_interface()
 
-        # inst.build()
+        # component_inst_v1.build()
 
         from omtk.libs import libComponents
         libComponents._connect_component_attributes(inst, map_inn, map_out)

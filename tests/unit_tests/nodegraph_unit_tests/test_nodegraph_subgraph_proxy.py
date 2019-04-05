@@ -7,7 +7,6 @@ import pytest
 from omtk.nodegraph.models.graph.subgraph_proxy_model import SubgraphProxyModel
 
 log = logging.getLogger('omtk')
-log.setLevel(logging.DEBUG)
 
 
 @pytest.fixture

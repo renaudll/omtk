@@ -8,7 +8,7 @@
 #
 # from . import graph_proxy_model
 #
-# LOG = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 #
 #
 # class GraphComponentProxyFilterModel(graph_proxy_model.NodeGraphGraphProxyModel):
@@ -17,8 +17,8 @@
 #     """
 #     onLevelChanged = Signal(object)
 #
-#     def __init__(self, registry=None, model=None, level=None):
-#         super(GraphComponentProxyFilterModel, self).__init__(registry=registry, model=model)
+#     def __init__(self, component_registry=None, model=None, level=None):
+#         super(GraphComponentProxyFilterModel, self).__init__(component_registry=component_registry, model=model)
 #
 #         self._level = None
 #         if level:
@@ -79,7 +79,7 @@
 #         # We need at least one children to be able to jump into something.
 #         # todo: is that always true? what happen to empty compound?
 #         if not node.get_children():
-#             LOG.debug("Cannot enter into {0} because there's no children!".format(node))
+#             log.debug("Cannot enter into {0} because there's no children!".format(node))
 #             return False
 #
 #         # We don't want to enter the same model twice.
@@ -116,27 +116,27 @@
 #             self._bound_inn_dirty = False
 #             self._bound_out_dirty = False
 #
-#             registry = level._registry
+#             component_registry = level._registry
 #
 #             # Pre-allocate bounds on Component levels
 #             if isinstance(level, node_component.NodeGraphComponentModel):
 #                 c = level.get_metadata()
 #
-#                 c_model = registry.get_node(c)
+#                 c_model = component_registry.get_node(c)
 #
 #                 new_nodes = []
 #
 #                 if c.grp_inn:
-#                     g = node_component.NodeGraphComponentInnBoundModel(registry, c.grp_inn, c_model)
+#                     g = node_component.NodeGraphComponentInnBoundModel(component_registry, c.grp_inn, c_model)
 #                     self._cur_level_bound_inn = g
 #                     new_nodes.append(g)
 #
 #                 if c.grp_out:
-#                     g = node_component.NodeGraphComponentOutBoundModel(registry, c.grp_out, c_model)
+#                     g = node_component.NodeGraphComponentOutBoundModel(component_registry, c.grp_out, c_model)
 #                     self._cur_level_bound_out = g
 #                     new_nodes.append(g)
 #
-#                 self._cur_level_children = [registry.get_node(child) for child in c.get_children()]
+#                 self._cur_level_children = [component_registry.get_node(child) for child in c.get_children()]
 #
 #                 new_nodes.extend(self._cur_level_children)
 #
@@ -272,14 +272,14 @@
 #
 #     def intercept_port(self, port):
 #         import pymel.core as pymel
-#         registry = port._registry
+#         component_registry = port._registry
 #         s = manager.get_session()
 #         node = port.get_parent()
 #         pynode = node.get_metadata()
 #         component_data = s.get_component_from_obj(pynode) if isinstance(pynode, pymel.PyNode) else None
 #
 #         if component_data:
-#             component = registry.get_node(component_data)
+#             component = component_registry.get_node(component_data)
 #             if component != self._level:
 #                 pass
 #
@@ -298,7 +298,7 @@
 #
 #             # If we encounter a connection to an hub node and we are NOT in the compound, we want to replace it with
 #             # a conenction to the compound itself.
-#             registry = connection._registry
+#             component_registry = connection._registry
 #             s = manager.get_session()
 #
 #             need_swap = False
@@ -317,7 +317,7 @@
 #                     if node_dst.get_parent() != self._level:
 #                         return
 #                     attr = node_src_data.grp_inn.attr(port_src.get_name())
-#                     port_src = registry.get_port(attr)
+#                     port_src = component_registry.get_port(attr)
 #                     need_swap = True
 #
 #             elif isinstance(node_src_data, pymel.PyNode):
@@ -335,7 +335,7 @@
 #                 c = s.get_component_from_input_hub(node_src_data) or \
 #                     s.get_component_from_output_hub(node_src_data)
 #                 if c:
-#                     c_model = registry.get_node(c)
+#                     c_model = component_registry.get_node(c)
 #                     # If the source if from the current component input hub, do nothing.
 #                     if self._level == c_model:
 #                         pass
@@ -346,7 +346,7 @@
 #                     # This should not happen, the intercept_node should have done the job already.
 #                     # Just in case we'll shot a warning.
 #                     else:
-#                         LOG.warning("{0} source is not visible in the current context. Hiding connection.".format(connection))
+#                         log.warning("{0} source is not visible in the current context. Hiding connection.".format(connection))
 #                         return
 #
 #             if isinstance(node_dst_data, component.Component):
@@ -356,7 +356,7 @@
 #                     if node_src.get_parent() != self._level:
 #                         return
 #                     attr = node_dst_data.grp_out.attr(port_dst.get_name())
-#                     port_dst = registry.get_port(attr)
+#                     port_dst = component_registry.get_port(attr)
 #                     need_swap = True
 #
 #             # If the connection from an input hub?
@@ -375,7 +375,7 @@
 #                 c = s.get_component_from_input_hub(node_dst_data) or \
 #                     s.get_component_from_output_hub(node_dst_data)
 #                 if c:
-#                     c_model = registry.get_node(c)
+#                     c_model = component_registry.get_node(c)
 #                     # If the source if from the current component input hub, do nothing.
 #                     if self._level == c_model:
 #                         pass
@@ -386,17 +386,17 @@
 #                     # This should not happen, the intercept_node should have done the job already.
 #                     # Just in case we'll shot a warning.
 #                     else:
-#                         LOG.warning("{0} destination is not visible in the current context. Hiding connection.".format(connection))
+#                         log.warning("{0} destination is not visible in the current context. Hiding connection.".format(connection))
 #                         return
 #
 #             if need_swap:
 #                 # Hack: Ignore invalid ports for now...
 #                 # todo: fix this
 #                 if port_src is None or port_dst is None:
-#                     LOG.warning("Received invalid data when intercepting connection. Ignoring. {0} {1}".format(port_src, port_dst))
+#                     log.warning("Received invalid data when intercepting connection. Ignoring. {0} {1}".format(port_src, port_dst))
 #                     yield connection
 #                 else:
-#                     yield registry.get_connection(port_src, port_dst)
+#                     yield component_registry.get_connection(port_src, port_dst)
 #             else:
 #                 yield connection
 #

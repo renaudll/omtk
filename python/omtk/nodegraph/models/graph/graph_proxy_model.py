@@ -1,7 +1,7 @@
-from . import graph_model_abstract
+from . import igraph
 
 
-class NodeGraphGraphProxyModel(graph_model_abstract.IGraphModel):
+class NodeGraphGraphProxyModel(igraph.IGraphModel):
     """
     Provides a base class for proxy item models that can do sorting,
     filtering or other data processing tasks on a GraphModel.

@@ -1,27 +1,29 @@
-from omtk.nodegraph.registry import NodeGraphRegistry
-from omtk.nodegraph import NodeModel, PortModel
+from omtk.nodegraph.models import NodeModel, PortModel
 from maya_mock import MockedNode, MockedPort, MockedSession, MockedPymelNode, MockedPymelPort
 from omtk.nodegraph.adaptors.node.mocked import NodeGraphMockedNodeAdaptor
+from omtk.nodegraph.adaptors.node.component import NodeGraphComponentNodeAdaptor
 from omtk.nodegraph.adaptors.port.mocked import NodeGraphMockedPortImpl
+from omtk.nodegraph.registry.base import NodeGraphRegistry
 
 
 class MockedMayaRegistry(NodeGraphRegistry):
     """
     A MayaSession mock class to use in unittests.
     """
-    def __init__(self, session=None):
-        # A MockedRegistry need a MockedSession
-        if session is None:
-            session = MockedSession()
+    def __init__(self, session):
+        assert session is not None
 
-        super(MockedMayaRegistry, self).__init__(session=session)
-
+        self._session = None
         self.__nodes = set()
         self.__ports = set()
         self.__connections = set()
 
+        self.set_session(session)
+
+        super(MockedMayaRegistry, self).__init__()
+
     def __del__(self):
-        if self.session:
+        if self.session is not None:
             self._disconnect_session(self._session)
 
     @property
@@ -33,45 +35,44 @@ class MockedMayaRegistry(NodeGraphRegistry):
 
     def set_session(self, session):
         """
-        Set the DCC session associated with the REGISTRY_DEFAULT.
-        Any events in the session will be forwarded to the REGISTRY_DEFAULT.
+        Set the session linked to the component_registry.
 
         :param MockedSession session: The new session associated with the REGISTRY_DEFAULT.
         """
-        assert(session is None or isinstance(session, MockedSession))
         old_session = self._session
-        if old_session:
+        if old_session is not None:
             self._disconnect_session(old_session)
-            # old_session.remove_callbacks()
-            # self._session.set_registry(None)
 
         self._session = session
 
-        # session.set_registry(self)
-        self._connect_session(session)
-        # session.add_callbacks()
+        if session is not None:
+            self._connect_session(session)
 
     def _connect_session(self, session):
         """
-        :param MockedSession session:
+        Connect all signals from this session to a component_registry object signal.
+
+        :param maya_mock.MockedSession session: The component_registry to connect.
         """
-        session.onNodeAdded.connect(self.__callback_node_added)
-        session.onNodeRemoved.connect(self.__callback_node_removed)
-        session.onPortAdded.connect(self.__callback_port_added)
-        session.onPortRemoved.connect(self.__callback_port_removed)
-        session.onConnectionAdded.connect(self.__callback_connection_added)
-        session.onConnectionRemoved.connect(self.__callback_connection_removed)
+        session.onNodeAdded.connect(self._callback_node_added)
+        session.onNodeRemoved.connect(self._callback_node_removed)
+        session.onPortAdded.connect(self._callback_port_added)
+        session.onPortRemoved.connect(self._callback_port_removed)
+        session.onConnectionAdded.connect(self._callback_connection_added)
+        session.onConnectionRemoved.connect(self._callback_connection_removed)
 
     def _disconnect_session(self, session):
         """
-        :param MockedSession session:
+        Disconnect all signals from this session to a (previously connected) component_registry object.
+
+        :param maya_mock.MockedSession session: The session to disconnect.
         """
-        session.onNodeAdded.disconnect(self.__callback_node_added)
-        session.onNodeRemoved.disconnect(self.__callback_node_removed)
-        session.onPortAdded.disconnect(self.__callback_port_added)
-        session.onPortRemoved.disconnect(self.__callback_port_removed)
-        session.onConnectionAdded.connect(self.__callback_connection_added)
-        session.onConnectionRemoved.connect(self.__callback_connection_removed)
+        session.onNodeAdded.disconnect(self._callback_node_added)
+        session.onNodeRemoved.disconnect(self._callback_node_removed)
+        session.onPortAdded.connect(self._callback_port_added)
+        session.onPortRemoved.disconnect(self._callback_port_removed)
+        session.onConnectionAdded.disconnect(self._callback_connection_added)
+        session.onConnectionRemoved.disconnect(self._callback_connection_removed)
 
     def __callback_node_added(self, node):
         """
@@ -81,7 +82,7 @@ class MockedMayaRegistry(NodeGraphRegistry):
         model = self.get_node(node)  # this SHOULD register the node
         self.onNodeAdded.emit(model)
 
-    def __callback_node_removed(self, node):
+    def _callback_node_removed(self, node):
         """
         Called when a node is removed from the scene.
 
@@ -91,7 +92,7 @@ class MockedMayaRegistry(NodeGraphRegistry):
         self.onNodeDeleted.emit(model)
         self._unregister_node(model)
 
-    def __callback_port_added(self, port):
+    def _callback_port_added(self, port):
         """
         Called when a port is added to the scene.
 
@@ -102,7 +103,7 @@ class MockedMayaRegistry(NodeGraphRegistry):
         self.__ports.add(port)
         self.onPortAdded.emit(model)
 
-    def __callback_port_removed(self, port):
+    def _callback_port_removed(self, port):
         """
         Called when a port is removed from the scene.
 
@@ -112,7 +113,7 @@ class MockedMayaRegistry(NodeGraphRegistry):
         self.onPortRemoved.emit(model)
         self._unregister_port(model)
 
-    def __callback_connection_added(self, connection):
+    def _callback_connection_added(self, connection):
         """
         Called when a connection is added to the scene.
 
@@ -123,12 +124,15 @@ class MockedMayaRegistry(NodeGraphRegistry):
         model = self.get_connection(port_src, port_dst)  # this will register the connection
         self.onConnectionAdded.emit(model)
 
-    def __callback_connection_removed(self, connection):
+    def _callback_connection_removed(self, connection):
         """
         Called when a connection is removed from the scene.
 
         :param MockedConnection connection: The removed connection
         """
+        assert connection.src
+        assert connection.dst
+
         model_port_src = self.get_port(connection.src)
         model_port_dst = self.get_port(connection.dst)
         model = self.get_connection(model_port_src, model_port_dst)
@@ -141,6 +145,14 @@ class MockedMayaRegistry(NodeGraphRegistry):
         # Special case for pymel.PyNode mock
         if isinstance(key, MockedPymelNode):
             return key._node
+
+        # str -> MockedNode
+        if isinstance(key, basestring):
+            new_key = self.session.get_node_by_name(key)
+            if new_key is None:
+                raise Exception("%r does not exist in %s" % (key, self))
+            return new_key
+
         return key
 
     def _get_node(self, val):
@@ -149,15 +161,27 @@ class MockedMayaRegistry(NodeGraphRegistry):
         :return: A graph node model
         :rtype: NodeModel
         """
-        assert isinstance(val, MockedNode)
-
-        impl = NodeGraphMockedNodeAdaptor(self.session, val)
+        # TODO: how do we support compound in a mocked and real environment?
+        from omtk.component import Component
+        assert isinstance(val, (MockedNode, Component))
+        if isinstance(val, MockedNode):
+            impl = NodeGraphMockedNodeAdaptor(self.session, val)  # HACK
+        elif isinstance(val, Component):
+            impl = NodeGraphComponentNodeAdaptor(self, val)
         return NodeModel(self, impl)
 
     def _conform_port_key(self, key):
         # Special case for pymel.Attribute mock
         if isinstance(key, MockedPymelPort):
             return key._node
+
+        # str -> MockedNode
+        if isinstance(key, basestring):
+            new_key = self.session.get_port_by_match(key)
+            if new_key is None:
+                raise Exception("%r does not exist in %s" % (key, self))
+            return new_key
+
         return key
 
     def _get_port(self, val):
@@ -198,6 +222,8 @@ class MockedMayaRegistry(NodeGraphRegistry):
 
     def _scan_nodes(self):
         """Scan a session and register all it's nodes."""
+        assert self.session is not None
+
         for node in self.session.nodes:
             self.get_node(node)
 

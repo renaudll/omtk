@@ -1,18 +1,13 @@
 import pytest
+
 from omtk.nodegraph.controller import NodeGraphController
-from omtk_test import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
-
-
-@pytest.fixture
-def schema(schema_default):
-    """Use a preconfigured schema to mirror as close as possible Maya behavior."""
-    return schema_default
+from tests.helpers import assertGraphNodeNamesEqual, assertGraphConnectionsEqual
 
 
 @pytest.fixture
 def ctrl(registry, model):
     """Pytest fixture for a NodegraphController. Currently return the model."""
-    NodeGraphController(
+    return NodeGraphController(
         registry=registry,
         model=model,
         view=None
@@ -20,33 +15,33 @@ def ctrl(registry, model):
 
 
 @pytest.fixture
-def preconfigured_session(session, registry, model, ctrl):
+def preconfigured_session(cmds, registry, model, ctrl):
     """(unused) Pytest fixture for a pre-configured session with a float-2-float graph inside."""
-    n1 = session.create_node('transform', name='n1')
-    n2 = session.create_node('transform', name='n2')
-    n3 = session.create_node('transform', name='n3')
+    n1 = cmds.createNode('transform', name='n1')
+    n2 = cmds.createNode('transform', name='n2')
+    n3 = cmds.createNode('transform', name='n3')
+    cmds.addAttr(n1, longName='testA')
+    cmds.addAttr(n2, longName='testB')
+    cmds.addAttr(n3, longName='testC')
+    cmds.connectAttr('n1.testA', 'n2.testB')
+    cmds.connectAttr('n2.testB', 'n3.testC')
 
-    # Connect n1.tx to n2.tx
-    port_src = n1.get_port_by_name('translateX')
-    port_dst = n2.get_port_by_name('translateX')
-    session.create_connection(port_src, port_dst)
+    registry.scan_session()
+    model.add_all()
 
-    # Connect n2.tx to n3.tx
-    port_src = n2.get_port_by_name('translateX')
-    port_dst = n3.get_port_by_name('translateX')
-    session.create_connection(port_src, port_dst)
+    node = registry.get_node('n2')
+    assert node
+    component = ctrl.group_nodes([node])
 
-    component = ctrl.group_nodes([registry.get_node(n2)])
-
-    return n1, n2, n3, component
+    return component
 
 
 def test_subgraph(session, registry, model, ctrl, preconfigured_session):
-    n1, n2, n3, component = preconfigured_session
+    component = preconfigured_session
 
-    assertGraphNodeNamesEqual(model, [u'node', u'component1', u'n3'])
+    assertGraphNodeNamesEqual(model, [u'n1', u'component1', u'n3'])
     assertGraphConnectionsEqual(model, [
-        (u'node.translateX', u'component1.translateX'),
+        (u'n1.translateX', u'component1.translateX'),
         (u'component1.translateX', u'n3.translateX'),
     ])
 

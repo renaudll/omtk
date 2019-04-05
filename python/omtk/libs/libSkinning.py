@@ -385,7 +385,7 @@ def reset_skin_cluster(skinCluster):
         pymel.skinCluster(influenceObjs + [obj], tsb=True)
 
 
-def reset_selection_skin_cluster():
+def reset_selected_skin_cluster():
     # Collect skinClusters
     skinClusters = set()
     for obj in pymel.selected():

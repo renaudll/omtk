@@ -19,6 +19,10 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 log = logging.getLogger('omtk')
 
 
+class CustomTreeWidget(QtWidgets.QTreeWidgetItem):
+    pass
+
+
 class WidgetListModules(QtWidgets.QWidget):
     needExportNetwork = QtCore.Signal()
     needImportNetwork = QtCore.Signal()
@@ -93,7 +97,7 @@ class WidgetListModules(QtWidgets.QWidget):
             return
 
         for root in self._rigs:
-            qItem = self._rig_to_tree_widget(root)
+            qItem = self._get_qtreewidgetitem(root)
             self.ui.treeWidget.addTopLevelItem(qItem)
             self.ui.treeWidget.expandItem(qItem)
         self.refresh_ui()
@@ -222,6 +226,7 @@ class WidgetListModules(QtWidgets.QWidget):
             qitem.setBackground(0, self._color_locked)
             label += ' (locked)'
         elif module.is_built():
+            # Add a warning on outdated versions
             version_major, version_minor, version_patch = module.get_version()
             if version_major is not None and version_minor is not None and version_patch is not None:
                 warning_msg = ''
@@ -274,33 +279,75 @@ class WidgetListModules(QtWidgets.QWidget):
         qitem.metadata_data = rig
         qitem.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
-    def _rig_to_tree_widget(self, module):
-        qItem = QtWidgets.QTreeWidgetItem(0)
-        if hasattr(module, '_network'):
-            qItem.net = module._network
+    def _get_qtreewidgetitem(self, value):
+        widget = CustomTreeWidget(0)
+        if hasattr(value, '_network'):
+            widget.net = value._network
         else:
-            pymel.warning("{0} have no _network attributes".format(module))
-        # qItem.rig = module
+            pymel.warning("{0} have no _network attributes".format(value))
 
-        if isinstance(module, classModule.Module):
-            self._update_qitem_module(qItem, module)
-        elif isinstance(module, classRig.Rig):
-            self._update_qitem_rig(qItem, module)
+        if isinstance(value, classModule.Module):
+            self._update_qitem_module(widget, value)
+        elif isinstance(value, classRig.Rig):
+            self._update_qitem_rig(widget, value)
+            self._rig_to_qtreewidgetitem(value, widget)
 
-            sorted_modules = sorted(module, key=lambda mod: mod.name)
-            for child in sorted_modules:
-                qSubItem = self._rig_to_tree_widget(child)
-                qSubItem.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
-                for input in child.input:
-                    qInputItem = QtWidgets.QTreeWidgetItem(0)
-                    qInputItem.setText(0, input.name())
-                    qInputItem.metadata_type = ui_shared.MetadataType.Influece  # todo: support mesh metadata?
-                    qInputItem.metadata_data = input
-                    ui_shared._set_icon_from_type(input, qInputItem)
-                    qSubItem.addChild(qInputItem)
-                qItem.addChild(qSubItem)
+        return widget
 
-        return qItem
+    def _rig_to_qtreewidgetitem(self, rig, parent):
+        """
+        Convert a Rig object to a QTreeWidgetItem
+
+        :param omtk.Rig rig: A module object
+        :param parent: A QTreeWidgetItem object
+        """
+        known = set()
+        sorted_modules = sorted(rig, key=lambda mod: mod.name)
+        for module in sorted_modules:
+            self._module_to_qtreewidget(module, parent, known)
+
+    def _module_to_qtreewidget(self, module, parent, known):
+        """
+        Convert a Module object to a QTreeWidgetItem
+
+        :param omtk.Module module: A module object
+        :param parent: A QTreeWidgetItem
+        :type parent: omtk.vendor.QtWidgets.QTreeWidgetItem
+        """
+        # Cyclic loop filter
+        if module in known:
+            return
+        known.add(module)
+
+        widget = self._get_qtreewidgetitem(module)
+        widget.setIcon(0, QtGui.QIcon(":/out_objectSet.png"))
+
+        # List inputs
+        inputs = module.input
+        if inputs:
+            for input in inputs:
+                qInputItem = CustomTreeWidget(0)
+                qInputItem.setText(0, input.name())
+                qInputItem.metadata_type = ui_shared.MetadataType.Influence  # todo: support mesh metadata?
+                qInputItem.metadata_data = input
+                ui_shared.set_icon_from_type(input, qInputItem)
+                widget.addChild(qInputItem)
+        parent.addChild(widget)
+
+        # List sub modules
+        for attrname in dir(module):
+            if attrname.startswith('_'):  # ignore private attr
+                continue
+
+            attr = getattr(module, attrname)
+
+            if isinstance(attr, (tuple, list, set)):
+                for subattr in attr:
+                    if isinstance(subattr, classModule.Module):
+                        self._module_to_qtreewidget(subattr, widget, known)
+
+            if isinstance(attr, classModule.Module):
+                self._module_to_qtreewidget(attr, widget, known)
 
     #
     # Events

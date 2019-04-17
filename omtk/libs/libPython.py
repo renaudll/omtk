@@ -4,6 +4,7 @@ import threading
 import time
 import functools
 import collections
+import inspect
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
@@ -282,3 +283,96 @@ class LazySingleton(object):
             finally:
                 self.lock.release()
         return self.instance
+
+
+def rreload(module):
+    """
+    Recursive reload function.
+    :param module:
+    """
+    _known = {type, object, None}
+    _reloaded = {}
+    _namespace = module.__name__
+
+    def _filter(m):
+        """
+        Determine if a module should be ignored.
+
+        :param m:
+        :return:
+        """
+        name = m.__name__
+
+        if m in _known:
+            return False
+
+        if not name.startswith(_namespace):
+            return False
+
+        if name in sys.builtin_module_names:
+            return False
+
+        return True
+
+    def _reload(m):
+        """
+
+        :param m: A python module
+        """
+        m_name = m.__name__
+        if m_name in _known:
+            return _reloaded[m.__name__]
+
+        if not _filter(m):
+            return None
+        _known.add(m)
+
+        # print "accepted", m
+        for name, value in inspect.getmembers(m):
+            # Reload module
+            if inspect.ismodule(value):
+                if _filter(value):
+                    _reload(value)  # if reload occurred
+
+            # Reload class
+            elif inspect.isclass(value):
+                cls_module = inspect.getmodule(value)
+                if cls_module:
+                    if _filter(cls_module):
+                        cls_module = _reload(cls_module)  # if reload occurred
+
+                        # print "Successfully reloaded {}, will update {}".format(cls_module.__name__, name)
+                        # Update local class pointer
+                        try:
+                            cls_name = getattr(cls_module, value.__name__)
+                        except AttributeError as e:
+                            print("{}.{} error: {}".format(cls_module.__name__, value.__name__, e))
+                            continue
+
+                        # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, cls_module.__name__, name)
+                        setattr(m, name, cls_name)
+
+            # Reload function
+            elif inspect.isfunction(value):
+                fn_module = inspect.getmodule(value)
+                if fn_module:
+                    if _filter(fn_module):
+                        # print 'reloading function %s' % [value, fn_module]
+                        fn_module = _reload(fn_module)
+
+                        try:
+                            cls_name = getattr(fn_module, value.__name__)
+                        except AttributeError as e:
+                            print("{}.{} error: {}".format(fn_module.__name__, value.__name__, e))
+                            continue
+
+                        # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, fn_module.__name__, name)
+                        setattr(m, name, cls_name)
+
+        print "reload %s" % m_name
+        reload(module)
+        _reloaded[m_name] = module
+        return module
+
+    # print "rreloading %s" % module.__name__
+    _reload(module)

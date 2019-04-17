@@ -29,23 +29,3 @@ if os.path.exists(config_path):
 
 # Load plugins
 plugin_manager.plugin_manager.get_plugins()  # force evaluating lazy singleton (todo: remove it?)
-
-
-def _reload():
-    reload(api)  # this won't reload functions imported in the main module. Use api directly if you are debugging it.
-    reload(utils)
-    reload(className)
-    reload(classNode)
-    reload(classCtrl)
-    reload(classCtrlModel)
-    reload(classModule)
-    reload(classModuleMap)
-    reload(classModuleCompound)
-    reload(classRig)
-
-    import plugin_manager
-    reload(plugin_manager)
-    plugin_manager.plugin_manager.reload_all()
-
-    import preferences
-    reload(preferences)

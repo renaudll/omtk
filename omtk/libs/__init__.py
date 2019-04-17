@@ -19,18 +19,3 @@ import libStringMap
 import libUtils
 import libHistory
 import libComponent
-
-def _reload():
-    reload(libAttr)
-    reload(libCtrlShapes)
-    reload(libFormula)
-    reload(libPython)
-    reload(libQt)
-    reload(libPymel)
-    reload(libSkeleton)
-    reload(libRigging)
-    reload(libSkinning)
-    reload(libStringMap)
-    reload(libUtils)
-    reload(libHistory)
-    reload(libComponent)

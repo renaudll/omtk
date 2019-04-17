@@ -52,6 +52,7 @@ class SampleTests(omtk_test.TestCase):
 
     @omtk_test.open_scene('./test_lips.ma')
     def test_avar_connection_persistence(self):
+        """Validate connection between avars is conserved between rebuilds."""
         import omtk
         from omtk.modules import rigHead
         from omtk.modules import rigFaceJaw
@@ -61,8 +62,8 @@ class SampleTests(omtk_test.TestCase):
         # Create a base rig
         rig = omtk.create()
         rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
-        module_jaw = rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw')]))
-        module_lips = rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint')))
+        module_jaw = rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw'), pymel.PyNode('pSphereShape1')]))
+        module_lips = rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('pSphereShape1')]))
         rig.build(strict=True)
 
         # Connect some avars

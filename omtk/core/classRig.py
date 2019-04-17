@@ -149,21 +149,21 @@ class Rig(object):
     # Logging implementation
     #
 
-    def debug(self, msg):
+    def debug(self, msg, *args, **kwargs):
         msg = '[{0}] {1}'.format(self.name, msg)
-        log.debug(msg)
+        log.debug(msg, *args, **kwargs)
 
-    def info(self, msg):
+    def info(self, msg, *args, **kwargs):
         msg = '[{0}] {1}'.format(self.name, msg)
-        log.info(msg)
+        log.info(msg, *args, **kwargs)
 
-    def warning(self, msg):
+    def warning(self, msg, *args, **kwargs):
         msg = '[{0}] {1}'.format(self.name, msg)
-        log.warning(msg)
+        log.warning(msg, *args, **kwargs)
 
-    def error(self, msg):
+    def error(self, msg, *args, **kwargs):
         msg = '[{0}] {1}'.format(self.name, msg)
-        log.error(msg)
+        log.error(msg, *args, **kwargs)
 
     #
     # className.BaseNomenclature implementation
@@ -365,7 +365,7 @@ class Rig(object):
         """
         Take a potential influence and validate that it is not blacklisted.
         Currently any influence under the rig group is automatically ignored.
-        :param mesh: A pymel.PyNode representing an influence object.
+        :param jnt: A pymel.PyNode representing an influence object.
         :return: True if the object is a good deformable candidate.
         """
         # Ignore any joint in the rig group (like joint used with ikHandles)
@@ -449,7 +449,7 @@ class Rig(object):
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
         if not shapes:
-            self.warning("Found no mesh under the mesh group, scanning the whole scene.")
+            self.warning("Found no mesh under %r, scanning the whole scene.", self.grp_geo)
             shapes = pymel.ls(type='surfaceShape')
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
@@ -586,7 +586,7 @@ class Rig(object):
 
         # Create grp_geo
         if create_grp_geo:
-            all_geos = libPymel.ls_root_geos()
+            # all_geos = libPymel.ls_root_geos()
             self.grp_geo = self.build_grp(RigGrp, self.grp_geo, self.nomenclature.root_geo_name)
             # if all_geos:
             #    all_geos.setParent(self.grp_geo)
@@ -877,7 +877,7 @@ class Rig(object):
         :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
         :return: True if successful.
         """
-        self.info("Un-building")
+        self.debug("Un-building")
 
         self._unbuild_modules(strict=strict, **kwargs)
         self._unbuild_nodes()

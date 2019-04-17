@@ -29,6 +29,8 @@ class AvarInflBaseModel(classModule.Module):
     default_multiplier_ud = 1.0
     default_multiplier_fb = 1.0
 
+    support_no_inputs = True
+
     def __init__(self, *args, **kwargs):
         super(AvarInflBaseModel, self).__init__(*args, **kwargs)
 

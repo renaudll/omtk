@@ -1,7 +1,9 @@
 import logging
-
 import pymel.core as pymel
 from maya import OpenMaya
+from maya import cmds
+
+log = logging.getLogger(__name__)
 
 
 #
@@ -10,7 +12,14 @@ from maya import OpenMaya
 #
 
 def is_valid_PyNode(val):
-    return (val and hasattr(val, 'exists') and val.exists()) if val else None
+    if not hasattr(val, '__melobject__'):
+        return False
+    fn = getattr(val, '__melobject__')
+    if not callable(fn):
+        return False
+    mel = fn()
+    return cmds.objExists(mel)
+    # return (val and hasattr(val, 'exists') and val.exists()) if val else None
 
 
 def distance_between_nodes(x, y):

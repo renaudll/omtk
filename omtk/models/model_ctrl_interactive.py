@@ -15,8 +15,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
     For clarity purposes, this is built in the rig so the animator don't need to see the whole setup.
 
-    However an InterfactiveCtrl might still have to be callibrated.
-    This is necessay to keep the InteractiveCtrl values in a specific range (ex: -1 to 1) in any scale.
+    However an InteractiveCtrl might still have to be ccalibrated
+    This is necessary to keep the InteractiveCtrl values in a specific range (ex: -1 to 1) in any scale.
     The calibration apply non-uniform scaling on the ctrl parent to cheat the difference.
 
     For this reason an InteractiveCtrl is created using the following steps:

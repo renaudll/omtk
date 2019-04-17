@@ -17,7 +17,7 @@ class SampleTests(omtk_test.TestCase):
         """
         Ensure that the basic built-in plugins are successfully loaded.
         """
-        from omtk import plugin_manager
+        from omtk.core import plugin_manager
         pm = plugin_manager.plugin_manager
 
         loaded_plugin_names = [plugin.cls.__name__ for plugin in pm.get_loaded_plugins_by_type('modules')]
@@ -99,18 +99,12 @@ class SampleTests(omtk_test.TestCase):
         # Create a base rig
         rig = omtk.create()
         rig.add_module(rigHead.Head([pymel.PyNode('jnt_head')]))
-        rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw')]))
+        rig.add_module(rigFaceJaw.FaceJaw([pymel.PyNode('jnt_jaw')] + [pymel.PyNode('surface_lips'), pymel.PyNode('pSphereShape1')]))
         rig.add_module(rigFaceLips.FaceLips(pymel.ls('jnt_lip*', type='joint') + [pymel.PyNode('surface_lips'), pymel.PyNode('pSphereShape1')]))
-
-        # Ensure there's only one nurbsSurface in the scene.
-        self.assertEqual(self._get_scene_surface_count(), 1)
 
         rig.build(strict=True)
         rig.unbuild(strict=True)
         rig.build(strict=True)
-
-        # Ensure there's still only one nurbsSurface in the scene.
-        self.assertEqual(self._get_scene_surface_count(), 1)
 
     @omtk_test.open_scene('./test_lips.ma')
     def test_avargrp_areaonsurface_withsurface(self):
@@ -135,10 +129,6 @@ class SampleTests(omtk_test.TestCase):
         self.assertEqual(self._get_scene_surface_count(), 1)
 
         rig.build(strict=True)
-
-        # Ensure there's one one nurbsSurface in the scene.
-        self.assertEqual(self._get_scene_surface_count(), 1)
-
         rig.unbuild(strict=True)
 
         # Ensure there's still one nurbsSurface in the scene.
@@ -150,9 +140,6 @@ class SampleTests(omtk_test.TestCase):
 
         # Re-created the rig and ensure the new surface was correctly created.
         rig.build(strict=True)
-
-        # Ensure there's still one nurbsSurface in the scene.
-        self.assertEqual(self._get_scene_surface_count(), 1)
 
     @omtk_test.open_scene('../examples/rig_rlessard_template01.ma')
     def test_rig_rlessard(self):

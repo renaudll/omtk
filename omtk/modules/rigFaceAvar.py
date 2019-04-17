@@ -9,12 +9,15 @@ import pymel.core as pymel
 from omtk.core import classCtrl
 from omtk.core import classModule
 from omtk.core import classNode
-from omtk.models.model_ctrl_linear import ModelCtrlLinear
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
+from omtk.models import model_avar_linear
+from omtk.models import model_avar_surface
+from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
+from omtk.models.model_ctrl_linear import ModelCtrlLinear
 
 log = logging.getLogger('omtk')
 
@@ -154,8 +157,7 @@ class CtrlFaceMacro(BaseCtrlFace):
         return libCtrlShapes.create_square(normal=normal, **kwargs)
 
 
-from omtk.models import model_avar_surface
-from omtk.models import model_avar_linear
+
 
 
 class AbstractAvar(classModule.Module):
@@ -477,7 +479,7 @@ class AvarSimple(AbstractAvar):
     A doritos setup allow the controller to always be on the surface of the face.
     """
     _CLS_CTRL = None  # By default, an avar don't have an ctrl.
-    _CLS_MODEL_CTRL = ModelCtrlLinear
+    _CLS_MODEL_CTRL = ModelInteractiveCtrl
     _CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
 
     def __init__(self, *args, **kwargs):
@@ -668,8 +670,6 @@ class AvarSimple(AbstractAvar):
             parent=self.grp_rig,
         )
 
-        
-
         self._grp_output = pymel.createNode(
             'transform',
             name=nomenclature_rig.resolve('output'),
@@ -689,7 +689,6 @@ class AvarSimple(AbstractAvar):
         self.grp_offset.setMatrix(jnt_tm)
 
         self.model_infl = self.init_module(self._CLS_MODEL_INFL, self.model_infl, suffix='avarModel')
-        # self.model_infl = model_avar_surface.AvarSurfaceModel(self.input, rig=self.rig, name=infl_model_name)
         self.model_infl.build()
         self.model_infl.grp_rig.setParent(self.grp_rig)
 
@@ -745,7 +744,7 @@ class AvarSimple(AbstractAvar):
         # todo: Validate inputs, we may need to modify the module if the inputs don't match!
 
         result = self.init_module(
-            cls, inst, inputs=inputs
+            cls, inst, inputs=inputs, suffix='ctrlModel'
         )
 
         # Ensure the model have the same name as it's parent module.
@@ -778,7 +777,7 @@ class AvarSimple(AbstractAvar):
             self.model_ctrl = self.init_ctrl_model(
                 self._CLS_MODEL_CTRL,
                 self.model_ctrl,
-                inputs=self.input,
+                inputs=self.input
             )
         else:
             self.model_ctrl = None

@@ -11,7 +11,7 @@ class MetadataType:
     """
     Rig = 0
     Module = 1
-    Influece = 2
+    Influence = 2
     Mesh = 3
 
 
@@ -58,11 +58,11 @@ _STYLE_SHEET = \
     """
 
 
-def _set_icon_from_type(obj, qItem):
+def set_icon_from_type(obj, qItem):
     if isinstance(obj, pymel.nodetypes.Joint):
         qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
     elif isinstance(obj, pymel.nodetypes.Transform):
-        _set_icon_from_type(obj.getShape(), qItem)
+        set_icon_from_type(obj.getShape(), qItem)
     elif isinstance(obj, pymel.nodetypes.NurbsCurve):
         qItem.setIcon(0, QtGui.QIcon(":/nurbsCurve.svg"))
     elif isinstance(obj, pymel.nodetypes.NurbsSurface):

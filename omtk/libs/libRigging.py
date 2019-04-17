@@ -1068,8 +1068,7 @@ def get_closest_point_on_shape(shape, pos):
         return get_closest_point_on_mesh(shape, pos)
     elif isinstance(shape, pymel.nodetypes.NurbsSurface):
         return get_closest_point_on_surface(shape, pos)
-    else:
-        raise IOError("Unexpected datatype. Expected Mesh or NurbsSurface, got {0}".format(type(shape)))
+    raise NotImplementedError("Unexpected data type. Expected Mesh or NurbsSurface, got {0}({1})".format(shape, type(shape)))
 
 
 def get_closest_point_on_shapes(meshes, pos):

@@ -9,7 +9,9 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
-from omtk.models import model_ctrl_linear, model_avar_linear
+from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
+from omtk.models.model_ctrl_linear import ModelCtrlLinear
+from omtk.models import model_avar_linear
 from omtk.modules import rigFaceAvar
 
 log = logging.getLogger('omtk')
@@ -93,7 +95,8 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
 # Models
 #
 
-class ModelMicroAvarCtrl(model_ctrl_linear.ModelCtrlLinear):
+
+class ModelMicroAvarCtrl(ModelInteractiveCtrl):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
         if avar_tweak:
@@ -105,41 +108,10 @@ class ModelMicroAvarCtrl(model_ctrl_linear.ModelCtrlLinear):
             super(ModelMicroAvarCtrl, self).connect(avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx,
                                                     sy=sy, sz=sz)
 
-
-class ModelCtrlMacroAll(model_ctrl_linear.ModelCtrlLinear):
+class ModelCtrlMacroAll(ModelCtrlLinear):
     def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
         super(ModelCtrlMacroAll, self).connect(avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True,
                                                sx=True, sy=True, sz=True)
-
-        # #
-        # # Compute the calibration automatically
-        # #
-        # 
-        # nomenclature_rig = self.get_nomenclature_rig()
-        # 
-        # # Compute the calibration automatically
-        # attr_calibration_lr = libRigging.create_utility_node(
-        #     'multiplyDivide',
-        #     name=nomenclature_rig.resolve('getCalibrationLr'),
-        #     input1X=avar.attr_multiplier_lr,
-        #     input2X=avar._attr_length_u
-        # ).outputX
-        # attr_calibration_ud = libRigging.create_utility_node(
-        #     'multiplyDivide',
-        #     name=nomenclature_rig.resolve('getCalibrationUd'),
-        #     input1X=avar.attr_multiplier_ud,
-        #     input2X=avar._attr_length_v
-        # ).outputX
-        # attr_calibration_fb = libRigging.create_utility_node(
-        #     'multiplyDivide',
-        #     name=nomenclature_rig.resolve('getCalibrationFb'),
-        #     input1X=avar.attr_multiplier_fb,
-        #     input2X=avar._attr_length_u
-        # ).outputX
-        # 
-        # pymel.connectAttr(attr_calibration_lr, self.attr_sensitivity_tx)
-        # pymel.connectAttr(attr_calibration_ud, self.attr_sensitivity_ty)
-        # pymel.connectAttr(attr_calibration_fb, self.attr_sensitivity_tz)
 
     def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
         parent_pos = avar._grp_output
@@ -269,6 +241,10 @@ class AvarGrp(
 
     @libPython.memoized_instancemethod
     def _get_absolute_parent_level_by_influences(self):
+        """
+        :return: A map of all module joints by their parent level.
+        :rtype: dict
+        """
         result = defaultdict(list)
         for jnt in self.jnts:
             level = libPymel.get_num_parents(jnt)
@@ -277,10 +253,12 @@ class AvarGrp(
 
     # todo: implement Tree datatype
     def _get_highest_absolute_parent_level(self):
-        return min(self._get_absolute_parent_level_by_influences().keys())
+        levels = self._get_absolute_parent_level_by_influences().keys()
+        return min(levels) if levels else 0
 
     def _get_hierarchy_depth(self):
-        return max(self._get_relative_parent_level_by_influences().keys())
+        levels = self._get_relative_parent_level_by_influences().keys()
+        return max(levels) if levels else 0
 
     def _can_create_tweak_avars(self):
         # If the hierarchy depth is of only 1, the avar_all have priority.
@@ -915,7 +893,10 @@ class AvarGrpOnSurface(AvarGrp):
     def validate(self):
         super(AvarGrpOnSurface, self).validate()
 
-        # Ensure that we support the hyerarchy of the influences.
+        if not self.jnts:
+            raise Exception("Can't build module with zero joints.")
+
+        # Ensure that we support the hierarchy of the influences.
         influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
         if influence_hyearchy_deepness > 2:
             raise Exception("Unsupported hierarchy depth! Please revise your inputs hierarchy.")

@@ -459,6 +459,7 @@ class Module(object):
         """
         if self.rig is None:
             raise Exception("Can't resolve rig for module. {0}".format(self))
+
         if not self.input and not support_no_inputs:
             raise Exception("Can't build module with zero inputs. {0}".format(self))
 
@@ -592,7 +593,7 @@ class Module(object):
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
         :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
-        self.info("Un-building")
+        self.debug("Un-building")
 
         # Ensure that there's no more connections in the input chain
         if disconnect_attr:

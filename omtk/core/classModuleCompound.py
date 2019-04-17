@@ -18,7 +18,6 @@ def _connect_matrix_attr_to_transform(attr_tm, node):
     pymel.connectAttr(util_decompose.outputScale, node.scale)
 
 
-
 class CompoundModule(Module):
     def __init__(self, *args, **kwargs):
         super(CompoundModule, self).__init__(*args, **kwargs)

@@ -72,13 +72,13 @@ class WidgetListInfluences(QtWidgets.QWidget):
                 qItem.obj = obj
 
                 # Monkey-patch mesh QWidget
-                qItem.metadata_type = ui_shared.MetadataType.Influece
+                qItem.metadata_type = ui_shared.MetadataType.Influence
                 qItem.metadata_data = obj
                 
                 qItem.networks = networks
                 qItem.setText(0, obj_name)
                 qItem.setForeground(0, textBrush)
-                ui_shared._set_icon_from_type(obj, qItem)
+                ui_shared.set_icon_from_type(obj, qItem)
                 qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
                 if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
                     qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)

@@ -294,7 +294,7 @@ class AutoRig(QtWidgets.QMainWindow):
     def get_selected_influences(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
             self.ui.widget_jnts.ui.treeWidget,
-            ui_shared.MetadataType.Influece,
+            ui_shared.MetadataType.Influence,
             search_up=search_up
         )
 
@@ -410,7 +410,7 @@ class AutoRig(QtWidgets.QMainWindow):
         items_to_remove_by_module = defaultdict(list)
 
         for item in selected_items:
-            if item.metadata_type in (ui_shared.MetadataType.Influece, ui_shared.MetadataType.Mesh):
+            if item.metadata_type in (ui_shared.MetadataType.Influence, ui_shared.MetadataType.Mesh):
                 module_item = self._get_parent_item_by_metadata_type(item, ui_shared.MetadataType.Module)
                 module = module_item.metadata_data
                 influence = item.metadata_data

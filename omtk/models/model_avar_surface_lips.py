@@ -3,7 +3,7 @@ import pymel.core as pymel
 from omtk.core.classNode import Node
 from omtk.libs import libAttr
 from omtk.libs import libRigging
-from . import model_avar_surface
+from omtk.models import model_avar_surface
 
 
 class SplitterNode(Node):

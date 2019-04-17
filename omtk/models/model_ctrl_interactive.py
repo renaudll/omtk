@@ -142,6 +142,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         # Resolve u and v coordinates
         # todo: check if we really want to resolve the u and v ourself since it's now connected.
+
+        # If a mesh was provided explicitly as input, use it.
+        obj_mesh = obj_mesh or self.get_mesh()
+
         if obj_mesh is None:
             # We'll scan all available geometries and use the one with the shortest distance.
             meshes = libHistory.get_affected_shapes(ref)

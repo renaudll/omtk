@@ -369,8 +369,15 @@ class Rig(object):
         :return: True if the object is a good deformable candidate.
         """
         # Ignore any joint in the rig group (like joint used with ikHandles)
-        if libPymel.is_valid_PyNode(self.grp_rig):
-            if libPymel.is_child_of(jnt, self.grp_rig.node):
+        grp_rig = self.grp_rig
+
+        # Conform self.grp_rig to a PyNode
+        # This attribute should always be a RigGrp but on older rig it can be a node.
+        if isinstance(grp_rig, RigGrp):
+            grp_rig = grp_rig.node
+
+        if libPymel.is_valid_PyNode(grp_rig):
+            if libPymel.is_child_of(jnt, grp_rig):
                 return False
         return True
 

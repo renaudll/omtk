@@ -4,30 +4,34 @@ from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 import pymel.core as pymel
 
-class CtrlLidUpp(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_upp()
+
+class CtrlEyeLidUpp(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_upp(size=size)
 
 
-class CtrlLidLow(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
-        return libCtrlShapes.create_triangle_low()
+class CtrlEyeLidLow(rigFaceAvar.BaseCtrlFace):
+    def __createNode__(self, size=1.0, **kwargs):
+        return libCtrlShapes.create_triangle_low(size=size)
 
 
-class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
+class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp setup customized for Eyelids rigging.
     FaceLids behave the same a a standard AvarGrp with an Upp and Low section.
     However to adapt ourself to non-symetrical eyes, we use two surface to slide on.
     """
-    _CLS_CTRL_UPP = CtrlLidUpp
-    _CLS_CTRL_LOW = CtrlLidLow
-    IS_SIDE_SPECIFIC=True
+    _CLS_CTRL_UPP = CtrlEyeLidUpp
+    _CLS_CTRL_LOW = CtrlEyeLidLow
+    IS_SIDE_SPECIFIC = True
+    CREATE_MACRO_AVAR_HORIZONTAL = True
+    CREATE_MACRO_AVAR_VERTICAL = True
+    CREATE_MACRO_AVAR_ALL = True
 
     SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
-        super(FaceLids, self).__init__(*args, **kwargs)
+        super(FaceEyeLids, self).__init__(*args, **kwargs)
         self.surface_upp = None
         self.surface_low = None
 
@@ -39,10 +43,12 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         If the user provided it's own surface (via the input property), we'll use it for the upper AND lower lids.
         This is mainly to support custom surface like spheres for very cartoony characters.
         """
+
         # Get all surfaces provided by the input property.
         def get_surface(obj):
             if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface):
                 return obj
+
         surfaces = filter(None, map(get_surface, self.input))
 
         # If the user provided surface, pop them out of the input property and store them in the surface_[upp/low] property.
@@ -72,13 +78,14 @@ class FaceLids(rigFaceAvarGrps.AvarGrpAreaOnSurface):
         else:
             avar.surface = self.surface_low
 
-    def get_module_name(self):
-        return 'Lid'
+    def get_default_name(self):
+        return 'eyelid'
 
     def get_multiplier_u(self):
         # Since the V go all around the sphere, it is too much range.
         # We'll restrict ourself only to a single quadrant.
         return 0.25
 
+
 def register_plugin():
-    return FaceLids
+    return FaceEyeLids

@@ -4,7 +4,7 @@ from maya import cmds
 import pymel.core as pymel
 import omtk
 import omtk
-import libSerialization
+from omtk.vendor import libSerialization
 from omtk.libs import libRigging
 from omtk.modules.rigArm import Arm
 from omtk.animation import ikfkTools

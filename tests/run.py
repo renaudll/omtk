@@ -10,4 +10,3 @@ path_module_omtk = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 sys.path.append(path_module_omtk)
 
 mayaunittest.run_tests_from_commandline(directories=[os.path.dirname(__file__)])
-

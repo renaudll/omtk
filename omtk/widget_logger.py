@@ -1,15 +1,8 @@
-import re
 import logging
 import datetime
-import pymel.core as pymel
-from PySide import QtCore
-from PySide import QtGui
 from ui import widget_logger
 
-from omtk.libs import libSkinning
-from omtk.libs import libQt
-
-import ui_shared
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
 log = logging.getLogger('omtk')
 
@@ -22,6 +15,7 @@ def log_level_to_str(level):
     if level >= logging.WARNING:
         return 'Warning'
     return 'Info'
+
 
 class UiLoggerModel(QtCore.QAbstractTableModel):
     HEADER = ('Date', 'Type', 'Message')
@@ -104,23 +98,14 @@ class UiLoggerModel(QtCore.QAbstractTableModel):
         self.beginInsertRows(QtCore.QModelIndex(), num_items, num_items)
         self.items.append(item)
         self.endInsertRows()
-        #
-        # top = self.createIndex(num_items, 0, 0)
-        # bot = self.createIndex(num_items, len(self.header), 0)
-        # self.dataChanged.emit(top, bot)
 
-    '''
-    def sort(self, col, order):
-        """sort table by given column number col"""
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        self.data = sorted(self.data,
-                           key=operator.itemgetter(col))
-        if order == Qt.DescendingOrder:
-            self.data.reverse()
-        self.emit(SIGNAL("layoutChanged()"))
-    '''
+    def reset(self):
+        """Backport of Qt4 .reset method()"""
+        self.beginResetModel()
+        self.endResetModel()
 
-class UiLoggerProxyModel(QtGui.QSortFilterProxyModel):
+
+class UiLoggerProxyModel(QtCore.QSortFilterProxyModel):
     def __init__(self, *args, **kwargs):
         super(UiLoggerProxyModel, self).__init__(*args, **kwargs)
         self._log_level_interest = logging.WARNING
@@ -153,8 +138,13 @@ class UiLoggerProxyModel(QtGui.QSortFilterProxyModel):
 
         return True
 
+    def reset(self):
+        """Backport of Qt4 .reset method()"""
+        self.beginResetModel()
+        self.endResetModel()
 
-class WidgetLogger(QtGui.QWidget):
+
+class WidgetLogger(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(WidgetLogger, self).__init__(parent=parent)
 
@@ -180,8 +170,9 @@ class WidgetLogger(QtGui.QWidget):
         self.ui.tableView_logs.setModel(table_proxy_model)
         # self.ui.tableView_logs.setModel(self._table_log_model)
 
-        self.ui.tableView_logs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.ui.tableView_logs.horizontalHeader().setStretchLastSection(True)
+        header = self.ui.tableView_logs.horizontalHeader()
+        header.setStretchLastSection(True)
+        QtCompat.setSectionResizeMode(header, QtWidgets.QHeaderView.ResizeToContents)
 
         self.create_logger_handler()
 
@@ -193,17 +184,33 @@ class WidgetLogger(QtGui.QWidget):
 
         log.info('Opened OMTK GUI')
 
-
     def create_logger_handler(self):
         class QtHandler(logging.Handler):
-            def __init__(self):
+            """Custom Qt Handler for our logger"""
+
+            def __init__(self, main_class):
+                """
+                Initialize the handler
+                """
                 logging.Handler.__init__(self)
+                self._main_class = main_class
 
-            def emit(self_, record):
-                self._logging_records.append(record)
-                self.ui.tableView_logs.model().reset()
+            def emit(self, record):
+                """
+                When the handler emit something, update the table view messages
+                :param record: The record that been emitted
+                :return:
+                """
+                # TODO - Find a solution for the problem where if the UI is not closed correctly,
+                # tableView_log is not valid
+                self._main_class._logging_records.append(record)
+                try:
+                    self._main_class.ui.tableView_logs.model().reset()
+                    self._main_class.ui.tableView_logs.scrollToBottom()
+                except:
+                    self._main_class.remove_logger_handler()
 
-        handler = QtHandler()
+        handler = QtHandler(self)
 
         # handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         log.addHandler(handler)
@@ -250,7 +257,7 @@ class WidgetLogger(QtGui.QWidget):
         if self.root:
             default_name = '{0}_{1}'.format(default_name, self.root.name)
 
-        path, _ = QtGui.QFileDialog.getSaveFileName(self, "Save logs", '{0}.log'.format(default_name), ".log")
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save logs", '{0}.log'.format(default_name), ".log")
         if path:
             self._save_logs(path)
 

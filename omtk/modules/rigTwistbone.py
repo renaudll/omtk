@@ -27,13 +27,14 @@ class NonRollJoint(Node):
     """
     Used for quaternion extraction.
     """
+
     def build(self, extract_world_up, name=None, *args, **kwargs):
         super(NonRollJoint, self).build(name=name, *args, **kwargs)
 
         pymel.select(clear=True)
         self.start = pymel.joint()
         self.end = pymel.joint()
-        self.end.setTranslation([1,0,0])
+        self.end.setTranslation([1, 0, 0])
         pymel.makeIdentity((self.start, self.end), apply=True, r=True)
 
         self.ikHandle, ikEffector = pymel.ikHandle(
@@ -84,7 +85,17 @@ class Twistbone(Module):
 
         super(Twistbone, self).__init__(*args, **kwargs)
 
-    def build(self, orient_ik_ctrl=True, num_twist=None, create_bend=None, realign=True, *args, **kwargs):
+    def build(self, orient_ik_ctrl=True, num_twist=None, create_bend=None, realign=True, disconnect_inputs=False, *args, **kwargs):
+        """
+        :param orient_ik_ctrl: 
+        :param num_twist: 
+        :param create_bend: 
+        :param realign: 
+        :param disconnect_inputs: Twistbones are one exception in which they use their inputs are reference only. For this reason we don't want to touch the inputs. 
+        :param args: 
+        :param kwargs: 
+        :return: 
+        """
         if len(self.chain_jnt) < 2:
             raise Exception("Invalid input count. Expected 2, got {0}. {1}".format(len(self.chain_jnt), self.chain_jnt))
 
@@ -92,17 +103,18 @@ class Twistbone(Module):
         if num_twist:
             self.num_twist = num_twist
 
-        if create_bend:
+        if create_bend is not None:
             self.create_bend = create_bend
 
-        super(Twistbone, self).build(create_grp_anm=self.create_bend, *args, **kwargs)
-
-        nomenclature_rig = self.get_nomenclature_rig()
-        nomenclature_jnt = self.get_nomenclature_jnt()
+        super(Twistbone, self).build(create_grp_anm=self.create_bend, disconnect_inputs=disconnect_inputs, *args, **kwargs)
 
         top_parent = self.chain[0].getParent()
         jnt_s = self.chain_jnt[0]
         jnt_e = self.chain_jnt[1]
+
+        nomenclature_rig = self.get_nomenclature_rig()
+        nomenclature_jnt = self.rig.nomenclature(jnt_s.stripNamespace().nodeName(),
+                                                 suffix=self.rig.nomenclature.type_jnt)  # Hack: find a better way!
 
         scalable_grp = pymel.createNode('transform')
         scalable_grp.setParent(self.grp_rig)
@@ -127,12 +139,13 @@ class Twistbone(Module):
             ep = jnt_e.getTranslation(space='world')
             delta = ep - sp
             for i, subjnt in enumerate(self.subjnts):
-                ratio = float(i) / (num_subjnts-1)
+                ratio = float(i) / (num_subjnts - 1)
                 tm = base_tm.copy()
                 tm.translate = delta * ratio + sp
                 subjnt.setMatrix(tm, worldSpace=True)
 
-        self.subjnts[0].setParent(jnt_s)
+        if self.subjnts[0].getParent() != jnt_s:
+            self.subjnts[0].setParent(jnt_s)
 
         driver_grp = pymel.createNode('transform')
         driver_grp.setParent(scalable_grp)
@@ -146,8 +159,13 @@ class Twistbone(Module):
         # Rename the skinning subjnts
         for i, sub_jnt in enumerate(self.subjnts):
             sub_jnt.segmentScaleCompensate.set(0)  # Remove segment scale compensate
+
             # Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
-            jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            # nomenclature_inf = nomenclature_jnt.copy()
+            # nomenclature_inf.add_tokens('twist', '{0:02d}'.format(i))
+            # jnt_name = nomenclature_inf.resolve()
+            # jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
+            jnt_name = nomenclature_jnt.resolve('{0:02d}'.format(i))
             sub_jnt.rename(jnt_name)
 
         driver_refs = []
@@ -165,7 +183,7 @@ class Twistbone(Module):
             driver_jnt_ref.setParent(driver_jnt)
             driver_jnt_ref.setMatrix(driver_jnt.getMatrix(worldSpace=True), worldSpace=True)
             driver_jnt_ref.rename(driver_name + '_ref')
-            driver_refs.append(driver_jnt_ref) # Keep them to connect the ref on the subjnts later
+            driver_refs.append(driver_jnt_ref)  # Keep them to connect the ref on the subjnts later
             if self.create_bend:
                 if i != 0 and i != (len(driverjnts) - 1):  # There will be no ctrl for the first and last twist jnt
                     ctrl_driver = pymel.createNode("transform")
@@ -179,11 +197,11 @@ class Twistbone(Module):
             pymel.pointConstraint(jnt_s, driverjnts[0], mo=False)
             pymel.pointConstraint(jnt_e, driverjnts[-1], mo=False)
 
-        mid_idx = math.ceil((self.num_twist/2.0))
-        before_mid_idx = math.floor((self.num_twist/2.0))
+        mid_idx = math.ceil((self.num_twist / 2.0))
+        before_mid_idx = math.floor((self.num_twist / 2.0))
         if self.create_bend:
             # Create Ribbon
-            sys_ribbon = Ribbon(self.subjnts, name=nomenclature_rig.resolve("bendRibbon"), rig=self.rig)
+            sys_ribbon = self.init_module(Ribbon, None, inputs=self.subjnts)
             sys_ribbon.build(create_ctrl=False, degree=3, num_ctrl=self.num_twist, no_subdiv=False, rot_fol=False)
             self.ctrls = sys_ribbon.create_ctrls(ctrls=self.ctrls, no_extremity=True,
                                                  constraint_rot=False, refs=self.chain_jnt[1])
@@ -193,7 +211,8 @@ class Twistbone(Module):
                 # Aim constraint the driver to create the bend effect. Skip the middle one if it as one
                 # TODO - Find a best way to determine the side
                 aim_vec = [1.0, 0.0, 0.0] if nomenclature_rig.side == nomenclature_rig.SIDE_L else [-1.0, 0.0, 0.0]
-                aim_vec_inverse = [-1.0, 0.0, 0.0] if nomenclature_rig.side == nomenclature_rig.SIDE_L else [1.0, 0.0, 0.0]
+                aim_vec_inverse = [-1.0, 0.0, 0.0] if nomenclature_rig.side == nomenclature_rig.SIDE_L else [1.0, 0.0,
+                                                                                                             0.0]
                 if mid_idx != before_mid_idx and i == (mid_idx - 1):
                     continue
                 if i <= mid_idx - 1:
@@ -202,8 +221,9 @@ class Twistbone(Module):
                 else:
                     pymel.aimConstraint(sys_ribbon._follicles[i - 1], driver,
                                         mo=False, wut=2, wuo=jnt_s, aim=aim_vec_inverse, u=[0.0, 1.0, 0.0])
+            
             for ctrl, ref in zip(self.ctrls, ctrl_refs):
-                #libAttr.lock_hide_rotation(ctrl)
+                # libAttr.lock_hide_rotation(ctrl)
                 libAttr.lock_hide_scale(ctrl)
                 ctrl.setParent(self.grp_anm)
                 pymel.parentConstraint(ref, ctrl.offset, mo=True)
@@ -224,11 +244,25 @@ class Twistbone(Module):
             pymel.pointConstraint(jnt_s, nonroll_sys_start.node)
         pymel.parentConstraint(jnt_s, nonroll_sys_start.ikHandle, maintainOffset=True)
 
+        
+        # Create the upvector for the twist end
+        # It will be aligned in rotation with the twist start
+        end_upvector = pymel.createNode(
+            'transform',
+            name=nomenclature_rig.resolve('twistUpVector'),
+            parent=self.grp_rig
+        )
+        end_upvector.setMatrix(jnt_s.getMatrix(worldSpace=True))
+        end_upvector.setTranslation(jnt_e.getTranslation(space='world'))
+        pymel.parentConstraint(jnt_e, end_upvector, maintainOffset=True)
+
         # Create the second non-roll system
         nonroll_sys_end = NonRollJoint()
-        nonroll_sys_end.build(jnt_e, name=nomenclature_rig.resolve("nonrollEnd"))
-        nonroll_sys_end.setMatrix(jnt_e.getMatrix(worldSpace=True), worldSpace=True)
-        # nonroll_sys_end.setTranslation(jnt_e.getTranslation(space='world'), space='world')
+        nonroll_sys_end.build(end_upvector, name=nomenclature_rig.resolve("nonrollEnd"))
+        # Align the end non-roll system with the start joint to ensure rotation match and
+        # after set it's position to the end joint
+        nonroll_sys_end.setMatrix(jnt_s.getMatrix(worldSpace=True), worldSpace=True)
+        nonroll_sys_end.setTranslation(jnt_e.getTranslation(space='world'), space='world')
         pymel.orientConstraint(jnt_s, nonroll_sys_end.node, maintainOffset=True)
         pymel.pointConstraint(jnt_e, nonroll_sys_end.node)
         pymel.parentConstraint(jnt_e, nonroll_sys_end.ikHandle, maintainOffset=True)
@@ -292,51 +326,21 @@ class Twistbone(Module):
 
     @decorator_uiexpose()
     def assign_twist_weights(self):
-        skin_deformers = self.get_skinClusters_from_inputs()
-
-        for skin_deformer in skin_deformers:
-            # Ensure the source joint is in the skinCluster influences
-            influenceObjects = skin_deformer.influenceObjects()
-            if self.chain_jnt.start not in influenceObjects:
-                continue
-
-            # Add new joints as influence.
-            for subjnt in self.subjnts:
-                if subjnt in influenceObjects:
-                    continue
-                skin_deformer.addInfluence(subjnt, lockWeights=True, weight=0.0)
-                subjnt.lockInfluenceWeights.set(False)
-
-        for mesh in self.get_farest_affected_meshes():
-            self.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), self.name))
-            # Transfer weight, note that since we use force_straight line, the influence
-            # don't necessaryy need to be in their bind pose.
-            libSkinning.transfer_weights_from_segments(mesh, self.chain_jnt.start, self.subjnts, force_straight_line=True)
+        libSkinning.assign_twist_weights(self.chain_jnt.start, self.subjnts)
 
     @decorator_uiexpose()
     def unassign_twist_weights(self):
         """
-        Handle the skin transfert from the subjnts (twists) to the first input. Will be used if the number of twists
-        change between builds
+        Handle the skin transfert from the subjnts (twists) to the first input. 
+        Will be used if the number of twists change between builds
         :return: Nothing
         """
-        for skin_deformer in self.get_skinClusters_from_subjnts():
-            # Ensure that the start joint is in the skin cluster
-            influenceObjects = skin_deformer.influenceObjects()
-            if self.chain_jnt.start not in influenceObjects:
-                skin_deformer.addInfluence(self.chain_jnt.start, lockWeights=True, weight=0.0)
-                self.chain_jnt.start.lockInfluenceWeights.set(False)
-
-            # Ensure subjnts are transfert correctly
-            to_transfer = []
-            for subjnt in self.subjnts:
-                if subjnt in influenceObjects:
-                    to_transfer.append(subjnt)
-            libSkinning.transfer_weights(skin_deformer, to_transfer, self.chain_jnt.start)
+        libSkinning.unassign_twist_weights(self.subjnts, self.chain_jnt.start)
 
     def get_skinClusters_from_inputs(self):
         skinClusters = set()
-        for jnt in self.chain_jnt:
+        jnts = [jnt for jnt in self.chain_jnt if jnt and jnt.exists()]  # Only handle existing objects
+        for jnt in jnts:
             for hist in jnt.listHistory(future=True):
                 if isinstance(hist, pymel.nodetypes.SkinCluster):
                     skinClusters.add(hist)
@@ -344,11 +348,11 @@ class Twistbone(Module):
 
     def get_skinClusters_from_subjnts(self):
         skinClusters = set()
-        if self.subjnts:
-            for jnt in self.subjnts:
-                for hist in jnt.listHistory(future=True):
-                    if isinstance(hist, pymel.nodetypes.SkinCluster):
-                        skinClusters.add(hist)
+        jnts = [jnt for jnt in self.subjnts if jnt and jnt.exists()]  # Only handle existing objects
+        for jnt in jnts:
+            for hist in jnt.listHistory(future=True, levels=1):
+                if isinstance(hist, pymel.nodetypes.SkinCluster):
+                    skinClusters.add(hist)
         return skinClusters
 
     def get_farest_affected_meshes(self):
@@ -364,11 +368,9 @@ class Twistbone(Module):
         Unbuild the twist bone
         '''
 
-        '''
         # Remove twistbones skin
-        for mesh in self.get_farest_affected_mesh():
-            libSkinning.transfer_weights(mesh, self.subjnts, self.jnt)
-        '''
+        self.unassign_twist_weights()
+
         # React if the user deleted some twist influences.
         self.subjnts = filter(libPymel.is_valid_PyNode, self.subjnts)
 
@@ -396,6 +398,7 @@ class Twistbone(Module):
             pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
             self.subjnts = None
         '''
+
 
 def register_plugin():
     return Twistbone

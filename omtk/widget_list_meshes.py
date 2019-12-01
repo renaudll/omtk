@@ -1,15 +1,16 @@
 import re
 import pymel.core as pymel
-from PySide import QtCore
-from PySide import QtGui
 from ui import widget_list_meshes
 
 from omtk.libs import libSkinning
 from omtk.libs import libQt
 
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+
 import ui_shared
 
-class WidgetListMeshes(QtGui.QWidget):
+
+class WidgetListMeshes(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(WidgetListMeshes, self).__init__(parent=parent)
 
@@ -23,7 +24,6 @@ class WidgetListMeshes(QtGui.QWidget):
         self.ui.lineEdit_search.textChanged.connect(self.on_meshes_query_changed)
         self.ui.pushButton_selectGrpMeshes.pressed.connect(self.on_SelectGrpMeshes)
         self.ui.btn_update.pressed.connect(self.update)
-
 
     def set_rig(self, rig, update=True):
         self._rig = rig
@@ -41,7 +41,7 @@ class WidgetListMeshes(QtGui.QWidget):
         #     self._rig.get_meshes.func.im_self.cache.clear()
         # except Exception, e:
         #     pass
-        all_meshes = self._rig.get_meshes()
+        all_meshes = self._rig.get_shapes()
 
         if all_meshes:
             widget_root = self.ui.treeWidget.invisibleRootItem()
@@ -51,7 +51,7 @@ class WidgetListMeshes(QtGui.QWidget):
 
                 skincluster = libSkinning.get_skin_cluster(mesh)
                 if skincluster:
-                    influences = sorted(skincluster.influenceObjects())
+                    influences = sorted(libSkinning.get_skin_cluster_influence_objects(skincluster))
 
                 self._fill_widget_meshes(widget_root, mesh, influences)
 
@@ -61,10 +61,10 @@ class WidgetListMeshes(QtGui.QWidget):
         textBrush = QtGui.QBrush(QtCore.Qt.white)
 
         # Add mesh
-        item_mesh = QtGui.QTreeWidgetItem(0)
+        item_mesh = QtWidgets.QTreeWidgetItem(0)
         item_mesh.setText(0, str(mesh))
         item_mesh.setForeground(0, textBrush)
-        ui_shared._set_icon_from_type(mesh.getParent(), item_mesh)
+        ui_shared.set_icon_from_type(mesh.getParent(), item_mesh)
         qt_parent.addChild(item_mesh)
 
         # Monkey-patch mesh QWidget
@@ -74,16 +74,15 @@ class WidgetListMeshes(QtGui.QWidget):
         # Add influences
         if influences:
             for influence in influences:
-                item = QtGui.QTreeWidgetItem(0)
+                item = QtWidgets.QTreeWidgetItem(0)
                 item.setText(0, str(influence))
                 item.setForeground(0, textBrush)
-                ui_shared._set_icon_from_type(influence, item)
+                ui_shared.set_icon_from_type(influence, item)
                 item_mesh.addChild(item)
 
                 # Monkey-patch influence QWidget
-                item.metadata_type = ui_shared.MetadataType.Influece
+                item.metadata_type = ui_shared.MetadataType.Influence
                 item.metadata_data = influence
-
 
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:
@@ -91,7 +90,7 @@ class WidgetListMeshes(QtGui.QWidget):
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
-            if qItem.metadata_type == ui_shared.MetadataType.Influece:  # Always show influences
+            if qItem.metadata_type == ui_shared.MetadataType.Influence:  # Always show influences
                 return True
 
             return not query_regex or re.match(query_regex, qItem.text(0), re.IGNORECASE)

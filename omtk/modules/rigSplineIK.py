@@ -9,6 +9,7 @@ class SplineIK(Module):
     """
     Generic ik setup on a spline.
     """
+
     def __init__(self, *args, **kwargs):
         super(SplineIK, self).__init__(*args, **kwargs)
         self.bStretch = True
@@ -16,11 +17,11 @@ class SplineIK(Module):
         self.ikEffector = None
         self.ikHandle = None
 
-
     def build(self, stretch=True, squash=False, *args, **kwargs):
         # TODO: Use self.chain_jnt
         self._joints = [input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
-        self._curves = [input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
+        self._curves = [input for input in self.input if
+                        libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
 
         if len(self._joints) < 2:
             raise Exception("Can't build SplineIK. Expected at least two joints, got {0}".format(self._joints))
@@ -33,7 +34,8 @@ class SplineIK(Module):
 
         # todo: handle multiple curves?
         curve = next(iter(self._curves), None)
-        curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)), None)
+        curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)),
+                           None)
 
         # Create ik solver
         handle_name = nomenclature_rig.resolve('ikHandle')
@@ -66,13 +68,13 @@ class SplineIK(Module):
                     pymel.connectAttr(squash, jnt.sy, force=True)
                     pymel.connectAttr(squash, jnt.sz, force=True)
 
-
     def unbuild(self):
         # hack: the ikEffector is parented to the bone chain and need to be deleted manually
         if libPymel.is_valid_PyNode(self.ikEffector):
             pymel.delete(self.ikEffector)
 
         super(SplineIK, self).unbuild()
+
 
 def register_plugin():
     return SplineIK

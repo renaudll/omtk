@@ -37,7 +37,7 @@ def get_version():
     :return:
     """
     root_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    package_path = os.path.abspath(os.path.join(root_dir, '..', '..', 'package.py'))
+    package_path = os.path.abspath(os.path.join(root_dir, '..', 'package.py'))
     if not os.path.exists(package_path):
         raise Exception("Cannot find package file! {}".format(package_path))
     regex_getversion = re.compile('^version *= [\'|"]*([0-9a-z\.]*)[\'|"]$')

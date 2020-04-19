@@ -8,7 +8,6 @@ if re.match('maya.*', os.path.basename(sys.executable), re.IGNORECASE):
 # Reload libs
 import libAttr
 import libCtrlShapes
-import libFormula
 import libPython
 import libQt
 import libPymel

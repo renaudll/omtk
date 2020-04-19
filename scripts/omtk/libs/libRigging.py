@@ -273,7 +273,6 @@ def create_squash_atts(attr_stretch, samples):
     :param attr_stretch: # The stretch attribute.
     :param samples: Number of samples to resolve.
     """
-    import libFormula
     if not isinstance(attr_stretch, pymel.Attribute):
         raise IOError("Expected pymel Attribute, got {0} ({1})".format(attr_stretch, type(attr_stretch)))
 
@@ -287,13 +286,8 @@ def create_squash_atts(attr_stretch, samples):
         # 0 = Maximum Squash
         # 1 = No Squash
         # see see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
-        blend = libFormula.parse("x^2", x=pos)
-
-        attr_squash = libFormula.parse("((max-min)*blend)+min",
-                                       min=attr_stretch_inv,
-                                       max=1,
-                                       blend=blend
-                                       )
+        blend = create_utility_node("multiplyDivide", operation=3, input1X=pos, input2X=2).outputX
+        attr_squash = create_utility_node("blendTwoAttr", input=[attr_stretch_inv, 1], attributesBlender=blend)
 
         return_vals.append(attr_squash)
     return return_vals

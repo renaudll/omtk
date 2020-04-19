@@ -3,7 +3,6 @@ import re
 
 import pymel.core as pymel
 
-logging.basicConfig()
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr

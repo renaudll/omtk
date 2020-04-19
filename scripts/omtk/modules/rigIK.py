@@ -1,15 +1,13 @@
 import functools
 import collections
-from pymel.util.enum import Enum
 import pymel.core as pymel
 from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
-from omtk.core.classNode import Node
 from omtk.libs import libRigging
 from omtk.libs import libAttr
-from omtk.libs import libFormula
 from omtk.libs import libPymel
+from omtk.core.compounds import MANAGER
 
 
 def _get_vector_from_axis(axis):
@@ -129,103 +127,6 @@ class CtrlIkSwivel(BaseCtrl):
         return self.node
 
 
-class SoftIkNode(Node):
-    """
-    Softik implementation class. Inherit of the base node class
-    Note that the SoftIkNode is a dagnode so it will be automatically cleaned when the module is un-built.
-    """
-
-    def build(self, **kwargs):
-        """
-        Build function for the softik node
-        :return: Nothing
-        """
-        super(SoftIkNode, self).build(**kwargs)
-        formula = libFormula.Formula()
-        fn_add_attr = functools.partial(libAttr.addAttr, self.node, hasMinValue=True, hasMaxValue=True)
-        formula.inMatrixS = fn_add_attr(longName='inMatrixS', dt='matrix')
-        formula.inMatrixE = fn_add_attr(longName='inMatrixE', dt='matrix')
-        formula.inRatio = fn_add_attr(longName='inRatio', at='float')
-        formula.inStretch = fn_add_attr(longName='inStretch', at='float')
-        formula.inChainLength = fn_add_attr(longName='inChainLength', at='float', defaultValue=1.0)
-
-        # inDistance is the distance between the start of the chain and the ikCtrl
-        formula.inDistance = "inMatrixS~inMatrixE"
-        # distanceSoft is the distance before distanceMax where the softIK kick in.
-        # ex: For a chain of length 10.0 with a ratio of 0.1, the distanceSoft will be 1.0.
-        formula.distanceSoft = "inChainLength*inRatio"
-        # distanceSafe is the distance where there's no softIK.
-        # ex: For a chain of length 10.0 with a ratio of 0.1, the distanceSafe will be 9.0.
-        formula.distanceSafe = "inChainLength-distanceSoft"
-        # This represent the soft-ik state
-        # When the soft-ik kick in, the value is 0.0.
-        # When the stretch kick in, the value is 1.0.
-        # |-----------|-----------|----------|
-        # -1          0.0         1.0         +++
-        # -dBase      dSafe       dMax
-        # Hack: Prevent potential division by zero.
-        # Originally we were using a condition, however in Maya 2016+ in Parallel or Serial evaluation mode, this
-        # somehow evalated the division even when the condition was False.
-        formula.distanceSoftClamped = libRigging.create_utility_node('clamp',
-                                                                     inputR=formula.distanceSoft,
-                                                                     minR=0.0001,
-                                                                     maxR=999
-                                                                     ).outputR
-        formula.deltaSafeSoft = "(inDistance-distanceSafe)/distanceSoftClamped"
-
-        # outDistanceSoft is the desired ikEffector distance from the chain start after aplying the soft-ik
-        # If there's no stretch, this will be directly applied to the ikEffector.
-        # If there's stretch, this will be used to compute the amount of stretch needed to reach the ikCtrl
-        # while preserving the shape.
-        formula.outDistanceSoft = "(distanceSoft*(1-(e^(deltaSafeSoft*-1))))+distanceSafe"
-
-        # Affect ikEffector distance only where inDistance if bigger than distanceSafe.
-        formula.outDistance = libRigging.create_utility_node('condition',
-                                                             operation=2,
-                                                             firstTerm=formula.deltaSafeSoft,
-                                                             secondTerm=0.0,
-                                                             colorIfTrueR=formula.outDistanceSoft,
-                                                             colorIfFalseR=formula.inDistance
-                                                             ).outColorR
-        # Affect ikEffector when we're not using stretching
-        formula.outDistance = libRigging.create_utility_node('blendTwoAttr',
-                                                             input=[formula.outDistance, formula.inDistance],
-                                                             attributesBlender=formula.inStretch).output
-
-        #
-        # Handle Stretching
-        #
-
-        # If we're using softIk AND stretchIk, we'll use the outRatioSoft to stretch the joints enough so
-        # that the ikEffector reach the ikCtrl.
-        formula.outStretch = "inDistance/outDistanceSoft"
-
-        # Apply the softIK only AFTER the distanceSafe
-        formula.outStretch = libRigging.create_utility_node('condition',
-                                                            operation=2,
-                                                            firstTerm=formula.inDistance,
-                                                            secondTerm=formula.distanceSafe,
-                                                            colorIfTrueR=formula.outStretch,
-                                                            colorIfFalseR=1.0
-                                                            ).outColorR
-
-        # Apply stretching only if inStretch is ON
-        formula.outStretch = libRigging.create_utility_node('blendTwoAttr',
-                                                            input=[1.0, formula.outStretch],
-                                                            attributesBlender=formula.inStretch).output
-
-        #
-        # Connect outRatio and outStretch to our softIkNode
-        #
-        # fnAddAttr(longName='outTranslation', dt='float3')
-        formula.outRatio = "outDistance/inDistance"
-        attr_ratio = fn_add_attr(longName='outRatio', at='float')
-        pymel.connectAttr(formula.outRatio, attr_ratio)
-
-        attr_stretch = fn_add_attr(longName='outStretch', at='float')
-        pymel.connectAttr(formula.outStretch, attr_stretch)
-
-
 # Todo: Support more complex IK limbs (ex: 2 knees)
 class IK(Module):
     """
@@ -280,36 +181,39 @@ class IK(Module):
         Setup the softik system a ik system
         :param ik_handle_to_constraint: A list of ik handles to constraint on the soft-ik network.
         :param stretch_chains: A list of chains to connect the stretch to.
-        :return: Nothing
         """
         nomenclature_rig = self.get_nomenclature_rig()
 
+        # Create public attributes
         oAttHolder = self.ctrl_ik
         fnAddAttr = functools.partial(libAttr.addAttr, hasMinValue=True, hasMaxValue=True)
-        attInRatio = fnAddAttr(oAttHolder, longName='softIkRatio', niceName='SoftIK', defaultValue=0, minValue=0,
-                               maxValue=50, k=True)
-        attInStretch = fnAddAttr(oAttHolder, longName='stretch', niceName='Stretch', defaultValue=0, minValue=0,
-                                 maxValue=1.0, k=True)
+        attInRatio = fnAddAttr(
+            oAttHolder, longName='softIkRatio', niceName='SoftIK', defaultValue=0, minValue=0, maxValue=50, k=True
+        )
+        attInStretch = fnAddAttr(
+            oAttHolder, longName='stretch', niceName='Stretch', defaultValue=0, minValue=0, maxValue=1.0, k=True
+        )
+
         # Adjust the ratio in percentage so animators understand that 0.03 is 3%
         attInRatio = libRigging.create_utility_node('multiplyDivide', input1X=attInRatio, input2X=0.01).outputX
 
-        # Create and configure SoftIK solver
+        # Adjust the original chain length with the global scale modifier
+        attLength = libRigging.create_utility_node(
+            "multiplyDivide", input1X=self.chain_length, input2X=self.grp_rig.globalScale
+        ).outputX
+
+        # Create the network computing the soft ik stretch
         soft_ik_network_name = nomenclature_rig.resolve('softik')
-        soft_ik_network = SoftIkNode()
-        soft_ik_network.build(name=soft_ik_network_name)
-        soft_ik_network.setParent(self.grp_rig)
+        compound = MANAGER.create_compound(name="omtk.SoftIkStretch", namespace=soft_ik_network_name)
+        pymel.connectAttr(attInRatio, "%s.ratio" % compound.input)
+        pymel.connectAttr(attInStretch, "%s.stretch" % compound.input)
+        pymel.connectAttr(self._ikChainGrp.worldMatrix, "%s.start" % compound.input)
+        pymel.connectAttr(self._ik_handle_target.worldMatrix, "%s.end" % compound.input)
+        pymel.connectAttr(attLength, "%s.length" % compound.input)
+        attOutStretch = pymel.Attribute("%s.stretch" % compound.output)
+        attOutRatio = pymel.Attribute("%s.ratio" % compound.output)
+        attOutRatioInv = libRigging.create_utility_node('reverse', inputX=attOutRatio).outputX
 
-        pymel.connectAttr(attInRatio, soft_ik_network.inRatio)
-        pymel.connectAttr(attInStretch, soft_ik_network.inStretch)
-        pymel.connectAttr(self._ikChainGrp.worldMatrix, soft_ik_network.inMatrixS)
-        pymel.connectAttr(self._ik_handle_target.worldMatrix, soft_ik_network.inMatrixE)
-        attr_distance = libFormula.parse('distance*globalScale',
-                                         distance=self.chain_length,
-                                         globalScale=self.grp_rig.globalScale)
-        pymel.connectAttr(attr_distance, soft_ik_network.inChainLength)
-
-        attOutRatio = soft_ik_network.outRatio
-        attOutRatioInv = libRigging.create_utility_node('reverse', inputX=soft_ik_network.outRatio).outputX
         # TODO: Improve softik ratio when using multiple ik handle. Not the same ratio will be used depending of the angle
         for handle in ik_handle_to_constraint:
             pointConstraint = pymel.pointConstraint(self._ik_handle_target, self._ikChainGrp, handle)
@@ -324,16 +228,16 @@ class IK(Module):
                 obj = stretch_chain[i]
                 util_get_t = libRigging.create_utility_node(
                     'multiplyDivide',
-                    input1X=soft_ik_network.outStretch,
-                    input1Y=soft_ik_network.outStretch,
-                    input1Z=soft_ik_network.outStretch,
+                    input1X=attOutStretch,
+                    input1Y=attOutStretch,
+                    input1Z=attOutStretch,
                     input2=obj.t.get()
                 )
                 pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
                 pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
                 pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
 
-        return soft_ik_network
+        compound.explode(remove_namespace=True)  # TODO: Should be done on the post-build of the rig
 
     def create_ik_handle(self, solver='ikRPsolver'):
         """

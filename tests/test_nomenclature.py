@@ -1,9 +1,6 @@
-import os
-import mayaunittest
-from maya import cmds
-import omtk
+import unittest
 
-class NomenclatureTestCase(mayaunittest.TestCase):
+class NomenclatureTestCase(unittest.TestCase):
 
     def test(self):
         from omtk.core.className import BaseName

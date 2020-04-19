@@ -1,7 +1,7 @@
-import mayaunittest
+import unittest
 from omtk.rigs.rigSqueeze import SqueezeNomenclature
 
-class NomenclatureTestCase(mayaunittest.TestCase):
+class NomenclatureTestCase(unittest.TestCase):
 
     def test(self):
         # Construct a naming from scratch

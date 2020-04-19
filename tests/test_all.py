@@ -1,9 +1,7 @@
 import unittest
-import mayaunittest
 import pymel.core as pymel
 import omtk
 import omtk_test
-from omtk.vendor import libSerialization
 
 
 class SampleTests(omtk_test.TestCase):
@@ -50,7 +48,7 @@ class SampleTests(omtk_test.TestCase):
         for plugin_name in builtin_plugin_names:
             self.assertIn(plugin_name, loaded_plugin_names)
 
-    @omtk_test.open_scene('./test_lips.ma')
+    @omtk_test.open_scene('./resources/test_lips.ma')
     def test_avar_connection_persistence(self):
         """Validate connection between avars is conserved between rebuilds."""
         import omtk
@@ -90,7 +88,7 @@ class SampleTests(omtk_test.TestCase):
         surface_shapes = [shape for shape in pymel.ls(type='nurbsSurface') if not shape.intermediateObject.get()]
         return len(surface_shapes)
 
-    @omtk_test.open_scene('./test_lips.ma')
+    @omtk_test.open_scene('./resources/test_lips.ma')
     def test_avargrp_withsurface(self):
         import omtk
         from omtk.modules import rigHead
@@ -107,7 +105,7 @@ class SampleTests(omtk_test.TestCase):
         rig.unbuild(strict=True)
         rig.build(strict=True)
 
-    @omtk_test.open_scene('./test_lips.ma')
+    @omtk_test.open_scene('./resources/test_lips.ma')
     def test_avargrp_areaonsurface_withsurface(self):
         """
         Ensure there's always a nurbsSurface created for an AvarGrpOnSurface and that it is correctly propageted
@@ -146,17 +144,17 @@ class SampleTests(omtk_test.TestCase):
     def test_rig_rlessard(self):
         self._build_unbuild_build_all(test_translate=True, test_rotate=True, test_scale=True)
 
-    @omtk_test.open_scene('./test_interactivefk01.ma')
+    @omtk_test.open_scene('./resources/test_interactivefk01.ma')
     def test_interactivefk01(self):
         self._build_unbuild_build_all(test_translate=False, test_rotate=False,
                                       test_scale=False)  # todo: re-enabled test t/r/s
 
-    @omtk_test.open_scene('./test_interactivefk02.ma')
+    @omtk_test.open_scene('./resources/test_interactivefk02.ma')
     def test_interactivefk02(self):
         self._build_unbuild_build_all(test_translate=False, test_rotate=False,
                                       test_scale=False)  # todo: re-enabled test t/r/s
 
-    @omtk_test.open_scene('./test_interactivefk03.ma')
+    @omtk_test.open_scene('./resources/test_interactivefk03.ma')
     def test_interactivefk03(self):
         self._build_unbuild_build_all(test_translate=False, test_rotate=False,
                                       test_scale=False)  # todo: re-enabled test t/r/s

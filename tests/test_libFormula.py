@@ -1,8 +1,8 @@
-import mayaunittest
+import unittest
 from omtk.libs import libFormula
 import pymel.core as pymel
 
-class SampleTests(mayaunittest.TestCase):
+class SampleTests(unittest.TestCase):
 
     def _create_pymel_node(self, val_tx=1, val_ty=2, val_tz=3, val_rx=4, val_ry=5, val_rz=6, val_sx=7, val_sy=8, val_sz=9):
         t = pymel.createNode('transform')

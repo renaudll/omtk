@@ -1,16 +1,13 @@
-import os
-import mayaunittest
-from maya import cmds
+import unittest
 import pymel.core as pymel
-import omtk
 import omtk
 from omtk.vendor import libSerialization
 from omtk.libs import libRigging
 from omtk.modules.rigArm import Arm
 from omtk.animation import ikfkTools
-from omtk.animation import ikfkTools
 
-class SampleTests(mayaunittest.TestCase):
+
+class SampleTests(unittest.TestCase):
 
     def _create_simple_arm_build_and_export(self):
         jnt_1 = pymel.joint(position=[0,0,0])

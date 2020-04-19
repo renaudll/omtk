@@ -6,9 +6,9 @@ import inspect
 import json
 import logging
 
-log = logging.getLogger('omtk')
-
 from omtk import constants
+
+log = logging.getLogger('omtk')
 
 CONFIG_FILENAME = 'config.json'
 

@@ -290,15 +290,12 @@ class MacroPluginType(PluginType):
     type_name = 'macros'
 
 
-# class UnitTestPluginType(PluginType):
-#     type_name = 'tests'
-
 def initialize():
     # Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
     plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, '').split(os.pathsep)
     plugin_dirs = filter(None, plugin_dirs)
     for path in plugin_dirs:
-        if not path in sys.path:
+        if path not in sys.path:
             log.info("Adding to sys.path {0}".format(path))
             sys.path.append(path)
 

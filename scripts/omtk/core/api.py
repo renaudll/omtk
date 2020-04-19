@@ -1,4 +1,3 @@
-import inspect
 import os
 import re
 import contextlib
@@ -8,6 +7,14 @@ import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
+
+_PACKAGE_PATH = os.path.abspath(os.path.join(
+    os.path.dirname(__file__),  # /script/omtk/core/
+    '..',   # /script/omtk
+    '..',  # /script/
+    '..',  # /
+    'package.py',  # /package.py
+))
 
 log = logging.getLogger('omtk')
 log.setLevel(logging.DEBUG)
@@ -36,12 +43,10 @@ def get_version():
     This is used to analyze old rigs and recommend specific scripts to correct them if needed.
     :return:
     """
-    root_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    package_path = os.path.abspath(os.path.join(root_dir, '..', 'package.py'))
-    if not os.path.exists(package_path):
-        raise Exception("Cannot find package file! {}".format(package_path))
-    regex_getversion = re.compile('^version *= [\'|"]*([0-9a-z\.]*)[\'|"]$')
-    with open(package_path, 'r') as fp:
+    if not os.path.exists(_PACKAGE_PATH):
+        raise Exception("Cannot find package file! {}".format(_PACKAGE_PATH))
+    regex_getversion = re.compile(r'^version *= [\'|"]*([0-9a-z\.]*)[\'|"]$')
+    with open(_PACKAGE_PATH, 'r') as fp:
         for line in fp:
             line = line.strip('\n')
             result = regex_getversion.match(line)

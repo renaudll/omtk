@@ -1,7 +1,7 @@
 # Pycharm files
 .idea/*
 
-*.egg-info/*
+/*.egg-info/
 cpp/includes/
 
 /*cpp-related exclude*/
@@ -22,10 +22,11 @@ xcuserdata/
 *.o
 *.pyc
 
-#Python modules
+# Python modules
 MANIFEST
 dist/
 build/
+venv/
 
 # Backup files
 *~.nib
@@ -38,4 +39,11 @@ config.json
 
 # py.test files
 .cache
+
+# coverage files
 .coverage
+coverage.xml
+htmlcov/
+
+# tox files
+.tox/

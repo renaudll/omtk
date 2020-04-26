@@ -27,6 +27,6 @@ def _reload():
 
 
 def show():
-    import main_window
+    from omtk.widgets import main_window
 
     main_window.show()

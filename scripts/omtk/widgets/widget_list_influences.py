@@ -1,6 +1,6 @@
 import re
 import pymel.core as pymel
-from ui import widget_list_influences
+from omtk.widgets.ui import widget_list_influences
 
 from omtk.libs import libQt
 from omtk.libs import libPython

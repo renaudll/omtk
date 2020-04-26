@@ -2,7 +2,7 @@ from omtk.core import plugin_manager
 
 from omtk.vendor.Qt import QtCore, QtWidgets
 
-from ui import pluginmanager_window
+from omtk.widgets.ui import pluginmanager_window
 
 
 class PluginListModel(QtCore.QAbstractTableModel):
@@ -39,16 +39,17 @@ class PluginListModel(QtCore.QAbstractTableModel):
             col_index = index.column()
             if col_index == self.ROW_NAME:
                 return plugin.name
-            elif col_index == self.ROW_TYPE:
+            if col_index == self.ROW_TYPE:
                 return plugin.type_name.title()
-            elif col_index == self.ROW_STAT:
+            if col_index == self.ROW_STAT:
                 return plugin.status
-            elif col_index == self.ROW_LOCA:
+            if col_index == self.ROW_LOCA:
                 return plugin.module.__file__ if plugin.module else "n/a"
-            elif col_index == self.ROW_DESC:
+            if col_index == self.ROW_DESC:
                 return plugin.description
             return ""
-        elif role == QtCore.Qt.BackgroundColorRole:
+
+        if role == QtCore.Qt.BackgroundColorRole:
             plugin = self.items[index.row()]
             if plugin.status == plugin_manager.PluginStatus.Failed:
                 return QtCore.Qt.red

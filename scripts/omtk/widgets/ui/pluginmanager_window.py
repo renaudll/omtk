@@ -50,16 +50,8 @@ class Ui_mainWindow(object):
         self.actionSearchQueryChanged.setObjectName("actionSearchQueryChanged")
 
         self.retranslateUi(mainWindow)
-        QtCore.QObject.connect(
-            self.pushButton_reload,
-            QtCore.SIGNAL("released()"),
-            self.actionReload.trigger,
-        )
-        QtCore.QObject.connect(
-            self.lineEdit_search,
-            QtCore.SIGNAL("textChanged(QString)"),
-            self.actionSearchQueryChanged.trigger,
-        )
+        self.pushButton_reload.released.connect(self.actionReload.trigger)
+        self.lineEdit_search.textChanged.connect(self.actionSearchQueryChanged.trigger)
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
 
     def retranslateUi(self, mainWindow):

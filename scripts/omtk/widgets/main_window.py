@@ -1,10 +1,13 @@
+"""
+Main OMTK window.
+"""
 import functools
 import inspect
 import os
 import logging
 from collections import defaultdict
 
-import core
+import omtk.core
 
 from maya import cmds
 import pymel.core as pymel
@@ -13,18 +16,19 @@ from omtk.core import api
 from omtk.core import classModule
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
-from omtk.ui import main_window
-from omtk import ui_shared
+from omtk.libs import libQt
+from omtk.widgets.ui import main_window
+from omtk.widgets import ui_shared, pluginmanager_window, preferences_window
 
 from omtk.vendor import libSerialization
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+from omtk.vendor.Qt import QtGui, QtWidgets
 
 log = logging.getLogger("omtk")
 
 
 class AutoRig(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
-        super(AutoRig, self).__init__()
+        super(AutoRig, self).__init__(parent)
 
         # Internal data
         self.root = None
@@ -101,7 +105,7 @@ class AutoRig(QtWidgets.QMainWindow):
         for root in self.roots:
             pymel.delete(root._network)
             self.on_rig_deleted(root)
-        log.info("Importing template {0}".format(path))
+        log.info("Importing template %s" % path)
 
         cmds.file(path, i=True)
         self.on_update()
@@ -235,12 +239,12 @@ class AutoRig(QtWidgets.QMainWindow):
 
     @libPython.log_execution_time("import_networks")
     def import_networks(self, *args, **kwargs):
-        self.roots = core.find()
+        self.roots = omtk.core.find()
         self.root = next(iter(self.roots), None)
 
         # Create a rig instance if the scene is empty.
         if self.root is None:
-            self.root = core.create()
+            self.root = omtk.core.create()
             self.roots = [self.root]
             self.export_networks()  # Create network tree in the scene
 
@@ -339,7 +343,7 @@ class AutoRig(QtWidgets.QMainWindow):
             return
 
         # Remove previous rigs
-        all_rigs = core.find()
+        all_rigs = omtk.core.find()
         for rig in all_rigs:
             if rig._network.exists():
                 pymel.delete(rig._network)
@@ -350,7 +354,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.on_update()
 
     def on_export(self):
-        all_rigs = core.find()
+        all_rigs = omtk.core.find()
 
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             caption="File Save (.json)", filter="JSON (*.json)"
@@ -431,8 +435,8 @@ class AutoRig(QtWidgets.QMainWindow):
 
         for item in selected_items:
             if item.metadata_type in (
-                ui_shared.MetadataType.Influence,
-                ui_shared.MetadataType.Mesh,
+                    ui_shared.MetadataType.Influence,
+                    ui_shared.MetadataType.Mesh,
             ):
                 module_item = self._get_parent_item_by_metadata_type(
                     item, ui_shared.MetadataType.Module
@@ -509,12 +513,10 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_jnts.update()
 
     def on_show_pluginmanager(self):
-        from omtk import pluginmanager_window
 
         pluginmanager_window.show()
 
     def on_show_preferences(self):
-        from omtk import preferences_window
 
         preferences_window.show()
 
@@ -530,47 +532,25 @@ class AutoRig(QtWidgets.QMainWindow):
         try:
             self.ui.widget_logger.remove_logger_handler()
         except Exception, e:
-            log.warning("Error removing logging handler: {0}:".format(e))
+            log.warning("Error removing logging handler: %s", e)
         try:
             self.remove_callbacks()
         except Exception, e:
-            log.warning("Error removing callbacks: {0}".format(e))
+            log.warning("Error removing callbacks: %s", e)
         QtWidgets.QMainWindow.closeEvent(self, *args)
-
-        #
-        # Logger handling
-        #
-
-
-gui = None
-
-
-def _maya_main_window():  # TODO: Relocate
-    """Return Maya's main window"""
-    for obj in QtWidgets.QApplication.instance().topLevelWidgets():
-        if obj.objectName() == "MayaWindow":
-            return obj
-    raise RuntimeError("Could not find MayaWindow instance")
 
 
 def show():
+    """
+    Show the dialog.
+    :return:
+    """
     # Try to kill latest Autorig ui window
     try:
         pymel.deleteUI("OpenRiggingToolkit")
-    except:
+    except Exception:
         pass
 
-    global gui
-
-    gui = AutoRig(parent=_maya_main_window)
-
-    # Create a frame geo to easilly move it from the center
-    pFrame = gui.frameGeometry()
-    pScreen = QtWidgets.QApplication.desktop().screenNumber(
-        QtWidgets.QApplication.desktop().cursor().pos()
-    )
-    ptCenter = QtWidgets.QApplication.desktop().screenGeometry(pScreen).center()
-    pFrame.moveCenter(ptCenter)
-    gui.move(pFrame.topLeft())
-
+    gui = AutoRig(parent=libQt.get_maya_window())
+    libQt.center_window(gui)
     gui.show()

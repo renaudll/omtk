@@ -1,6 +1,6 @@
 import re
 import pymel.core as pymel
-from ui import widget_list_meshes
+from omtk.widgets.ui import widget_list_meshes
 
 from omtk.libs import libSkinning
 from omtk.libs import libQt

@@ -6,10 +6,10 @@ import logging
 import itertools
 
 import pymel.core as pymel
-from ui import widget_list_modules
+from omtk.widgets.ui import widget_list_modules
 
 from omtk import constants
-from omtk import ui_shared
+from omtk.widgets import ui_shared
 from omtk.libs import libQt
 from omtk.core import classModule
 from omtk.core import classRig

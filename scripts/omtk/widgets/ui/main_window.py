@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
+from omtk.vendor.Qt import QtCore, QtWidgets, QtCompat
 
 
 class Ui_OpenRiggingToolkit(object):
@@ -256,7 +256,7 @@ class Ui_OpenRiggingToolkit(object):
         )
 
 
-from ..widget_logger import WidgetLogger
-from ..widget_list_modules import WidgetListModules
-from ..widget_list_meshes import WidgetListMeshes
-from ..widget_list_influences import WidgetListInfluences
+from omtk.widgets.widget_logger import WidgetLogger
+from omtk.widgets.widget_list_modules import WidgetListModules
+from omtk.widgets.widget_list_meshes import WidgetListMeshes
+from omtk.widgets.widget_list_influences import WidgetListInfluences

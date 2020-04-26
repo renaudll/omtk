@@ -29,10 +29,10 @@ The following rules simplify the implementation of the system and must be respec
 
 Omtk vendor the following third party libraries:
 
-### libFormula
-A lightweight programming language that create maya utility nodes setup by parsing mathematical formulas.
+### omtk-compound
+Lightweight encapsulation framework for Autodesk Maya
 
-Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.libs.libFormula).
+Read the [documentation](https://github.com/renaudll/omtk-compound).
 
 ### libSerialization
 An IO module that allow serialization/deserialisation of Python objects to Maya networks.
@@ -44,9 +44,24 @@ Minimal Python 2 & 3 shim around all Qt bindings - PySide, PySide2, PyQt4 and Py
 
 Read the [documentation](https://github.com/mottosso/Qt.py)
 
-### Testing
+## Testing
 
-If you are on Linux and have `pytest` installed you can run the unittests with the `test.sh` script.
+To run the tests you'll need to install tox in a virtualenv our your system.
+
+```bash
+pip install tox
+```
+
+To run the tests on Maya 2020, Windows:
+
+```bash
+tox -e test-maya2020-windows
+```
+
+To run the tests on Maya 2020, Linux:
+```bash
+tox -e test-maya2020-linux
+```
 
 ### Support
 

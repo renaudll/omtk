@@ -2,37 +2,37 @@
     {
         "label": "Show",
         "image": "omtk_rig_show.png",
-        "command": "import omtk; reload(omtk); omtk._reload()\nomtk.show()"
+        "command": "import omtk; reload(omtk); omtk.show()"
     },
     {
         "label": "Build All",
         "image": "omtk_rig_build_all.png",
-        "command": "import omtk; reload(omtk); omtk._reload()\nomtk.build_all()"
+        "command": "import omtk; reload(omtk); omtk.build_all()"
     },
     {
         "label": "Unbuild All",
         "image": "omtk_rig_unbuild_all.png",
-        "command": "import omtk; reload(omtk); omtk._reload()\nomtk.unbuild_all()"
+        "command": "import omtk; reload(omtk); omtk.unbuild_all()"
     },
     {
         "label": "Build Selected",
         "image": "omtk_rig_build_selection.png",
-        "command": "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()"
+        "command": "import omtk; reload(omtk); omtk.build_selected()"
     },
     {
         "label": "Unbuild Selected",
         "image": "omtk_rig_unbuild_selection.png",
-        "command": "import omtk; reload(omtk); omtk._reload(); omtk.unbuild_selected()"
+        "command": "import omtk; reload(omtk); omtk.unbuild_selected()"
     },
     {
         "label": "Rebuild Selected",
         "image": "omtk_rig_rebuild_selection.png",
-        "command": "import omtk; reload(omtk); omtk._reload(); omtk.build_selected()"
+        "command": "import omtk; reload(omtk); omtk.build_selected()"
     },
     {
         "label": "Calibrate Selected",
         "image": "omtk_rig_ctrl_calibrate.png",
-        "command": "import omtk; reload(omtk); omtk._reload(); omtk.calibrate_selected()"
+        "command": "import omtk; reload(omtk); omtk.calibrate_selected()"
     },
     {
         "label": "Controller Bake",

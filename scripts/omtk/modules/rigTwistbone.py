@@ -243,7 +243,6 @@ class Twistbone(Module):
             pymel.orientConstraint(top_parent, nonroll_sys_start.node, maintainOffset=True)
             pymel.pointConstraint(jnt_s, nonroll_sys_start.node)
         pymel.parentConstraint(jnt_s, nonroll_sys_start.ikHandle, maintainOffset=True)
-
         
         # Create the upvector for the twist end
         # It will be aligned in rotation with the twist start
@@ -277,8 +276,8 @@ class Twistbone(Module):
         # The last ref will be directly be connected
         pymel.connectAttr(nonroll_sys_end.twist_extractor.rotateX, driver_refs[-1].rotateX)
 
-        # Finally, compute the twist value for the middle twists joints, also connect the ctrl rotation in the system
-        # for more control
+        # Finally, compute the twist value for the middle twists joints,
+        # also connect the ctrl rotation in the system for more control.
         twist_split_len = len(driver_refs[1:-1])
         for i, ref in enumerate(driver_refs[1:-1]):
             blend_w_node = pymel.createNode("blendWeighted")
@@ -299,6 +298,34 @@ class Twistbone(Module):
         # Cleanup
         nonroll_sys_start.setParent(scalable_grp)
         nonroll_sys_end.setParent(scalable_grp)
+
+        pymel.addAttr(self.grp_rig, longName="extractedOldS")
+        pymel.addAttr(self.grp_rig, longName="extractedOldE")
+        pymel.connectAttr(driver_refs[0].rotateX, self.grp_rig.extractedOldS)
+        pymel.connectAttr(driver_refs[-1].rotateX, self.grp_rig.extractedOldE)
+
+        # And now for the compound approach
+        from omtk.core.compounds import MANAGER
+        extractor = MANAGER.create_compound(
+            name="omtk.TwistExtractor", namespace=nomenclature_rig.resolve("getTwistS")
+        )
+        extractor_inn = pymel.PyNode(extractor.input)
+        extractor_out = pymel.PyNode(extractor.output)
+        # TODO: Will bind pose be preserved on file save?
+        # TODO: The worldMatrix attribute will bypass global scaling, is this okay?
+        extractor_inn.bind1.set(top_parent.getMatrix(worldSpace=True) if top_parent else pymel.datatypes.Matrix())
+        extractor_inn.bind2.set(jnt_s.getMatrix(worldSpace=True))
+        extractor_inn.bind3.set(jnt_e.getMatrix(worldSpace=True))
+        if top_parent:
+            pymel.connectAttr(top_parent.worldMatrix, extractor_inn.inn1)
+        pymel.connectAttr(jnt_s.worldMatrix, extractor_inn.inn2)
+        pymel.connectAttr(jnt_e.worldMatrix, extractor_inn.inn3)
+
+        print(self.grp_rig, type(self.grp_rig))
+        pymel.addAttr(self.grp_rig, longName="extractedNewS")
+        pymel.addAttr(self.grp_rig, longName="extractedNewE")
+        pymel.connectAttr(extractor_out.outTwistS, self.grp_rig.extractedNewS)
+        pymel.connectAttr(extractor_out.outTwistE, self.grp_rig.extractedNewE)
 
         # Compute the Stretch
         attr_stretch_raw = libRigging.create_stretch_node_between_2_bones(jnt_s, jnt_e, self.grp_rig.globalScale)

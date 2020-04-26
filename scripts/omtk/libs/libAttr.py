@@ -2,50 +2,11 @@ from contextlib import contextmanager
 import logging
 import re
 
-log = logging.getLogger('omtk')
 
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
 from pymel import core as pymel
 
-kwargsMap = {
-    'bool': {'at': 'double'},
-    'long': {'at': 'long'},
-    'short': {'at': 'short'},
-    'byte': {'at': 'byte'},
-    'char': {'at': 'char'},
-    'enum': {'at': 'enum'},
-    'float': {'at': 'float'},
-    'double': {'at': 'double'},
-    'doubleAngle': {'at': 'doubleAngle'},
-    'doubleLinear': {'at': 'doubleLinear'},
-    'string': {'dt': 'string'},
-    'stringArray': {'dt': 'stringArray'},
-    'compound': {'at': 'compound'},
-    'message': {'at': 'message'},
-    'time': {'at': 'time'},
-    'matrix': {'dt': 'matrix'},
-    'fltMatrix': {'at': 'fltMatrix'},
-    'reflectanceRGB': {'dt': 'reflectanceRGB'},
-    'reflectance': {'at': 'reflectance'},
-    'spectrumRGB': {'dt': 'spectrumRGB'},
-    'spectrum': {'at': 'spectrum'},
-    'float2': {'dt': 'float2'},
-    'float3': {'dt': 'float3'},
-    'double2': {'dt': 'double2'},
-    'double3': {'dt': 'double3'},
-    'long2': {'dt': 'long2'},
-    'long3': {'dt': 'long3'},
-    'short2': {'dt': 'short2'},
-    'short3': {'dt': 'short3'},
-    'doubleArray': {'dt': 'doubleArray'},
-    'Int32Array': {'dt': 'Int32Array'},
-    'vectorArray': {'dt': 'vectorArray'},
-    'nurbsCurve': {'dt': 'nurbsCurve'},
-    'nurbsSurface': {'dt': 'nurbsSurface'},
-    'mesh': {'dt': 'mesh'},
-    'lattice': {'dt': 'lattice'},
-    'pointArray': {'dt': 'pointArray'}
-}
+log = logging.getLogger('omtk')
 
 
 def disconnectAttr(attr, inputs=True, outputs=True):
@@ -62,111 +23,6 @@ def disconnectAttr(attr, inputs=True, outputs=True):
     if attr_is_locked: attr.lock()
 
 
-# TODO: test
-def swapAttr(a, b, inputs=True, outputs=True):
-    def _get_attr_inn(att):
-        return next(iter(att.inputs(plugs=True)), att.get())
-
-    def _set_attr_inn(att, data):
-        if isinstance(data, pymel.Attribute):
-            pymel.connectAttr(data, att)
-        else:
-            att.set(data)
-
-    def _get_attr_out(att):
-        return att.outputs(plugs=True)
-
-    def _set_attr_out(att, data):
-        for attrOut in data:
-            pymel.connectAttr(att, attrOut)
-
-    a_inputs = _get_attr_inn(a)
-    b_inputs = _get_attr_inn(b)
-    a_outputs = _get_attr_out(a)
-    b_outputs = _get_attr_out(b)
-
-    disconnectAttr(a)
-    disconnectAttr(b)
-
-    if inputs is True:
-        _set_attr_inn(a, b_inputs)
-        _set_attr_inn(b, a_inputs)
-
-    if outputs:
-        _set_attr_out(a, b_outputs)
-        _set_attr_out(b, a_outputs)
-
-
-def sortAttr(node):
-    raise NotImplementedError
-
-
-# TODO: finish
-def holdAttr(attr, delete=True):
-    data = {
-        'node': attr.node(),
-        'longName': attr.longName(),
-        'shortName': attr.shortName(),
-        'niceName': pymel.attributeName(attr),
-        'inputs': attr.inputs(plugs=True),
-        'outputs': attr.outputs(plugs=True),
-        'isMulti': attr.isMulti(),
-        'type': attr.type(),
-        'locked': attr.isLocked(),
-        'keyable': attr.isKeyable(),
-        'hidden': attr.isHidden()
-    }
-
-    if delete:
-        pymel.deleteAttr(attr)
-    return data
-
-
-def fetchAttr(data):
-    node = data['node']
-
-    kwargs = kwargsMap[data['type']]
-
-    pymel.addAttr(node,
-                  longName=data['longName'],
-                  multi=data['isMulti'],
-                  niceName=data['niceName'],
-                  keyable=data['keyable'],
-                  hidden=data['hidden'],
-                  **kwargs
-                  )
-    attr = node.attr(data['longName'])
-
-    # Re-connect inputs
-    if not data['isMulti']:
-        inn = next(iter(data['inputs']), None)
-        if inn: pymel.connectAttr(inn, attr)
-    else:
-        for i, inn in enumerate(data['inputs']):
-            pymel.connectAttr(inn, attr[i])
-
-    # Re-connect outputs
-    if not data['isMulti']:
-        for i, output in enumerate(data['outputs']):
-            pymel.connectAttr(attr, output)
-    else:
-        for i, output in enumerate(data['outputs']):
-            if output:
-                pymel.connectAttr(attr[i], output)
-
-
-# Normally we can use pymel.renameAttr but this work on multi-attributes also
-def renameAttr(node, oldname, newname):
-    assert (isinstance(node, pymel.PyNode))
-    if not node.hasAttr(oldname): return
-    data = holdAttr(node.attr(oldname))
-    data['longName'] = newname
-    data['niceName'] = newname
-    data['shortName'] = newname
-    fetchAttr(data)
-    return True
-
-
 def hold_attrs(attr, hold_curve=True):
     """
     Hold a specific @attr attribute.
@@ -176,7 +32,8 @@ def hold_attrs(attr, hold_curve=True):
             return attr.get()
 
         for input in attr.inputs(plugs=True):
-            if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
+            if isinstance(input.node(),
+                          (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
                 pymel.disconnectAttr(input,
                                      attr)  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
                 return input
@@ -224,7 +81,8 @@ def addAttr(node, longName=None, *args, **kwargs):
 
 
 def addAttr_separator(obj, attr_name, *args, **kwargs):
-    attr = addAttr(obj, longName=attr_name, niceName=attr_name, at='enum', en='------------', k=True)
+    attr = addAttr(obj, longName=attr_name, niceName=attr_name, at='enum',
+                   en='------------', k=True)
     attr.lock()
 
 
@@ -351,7 +209,8 @@ def unlock_scale(node, x=True, y=True, z=True, xyz=True):
     unlock_attrs(unlock_list)
 
 
-def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=True, rz=True, sx=True, sy=True, sz=True,
+def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=True,
+                            rz=True, sx=True, sy=True, sz=True,
                             force=False):
     """
     Utility method to connect multiple attributes between two transform nodes.
@@ -562,7 +421,8 @@ def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0)
         else:
             if depth >= max_depth:
                 return False
-            if is_connected_to(attr_inn, attr, recursive=recursive, max_depth=max_depth, depth=depth + 1):
+            if is_connected_to(attr_inn, attr, recursive=recursive, max_depth=max_depth,
+                               depth=depth + 1):
                 return True
 
     return False
@@ -709,9 +569,12 @@ def connect_to_avar(ctrl, avar_node, mapping_dict):
 
     # First get the weightBlended from the needed avar
     for avar_name, ctrl_attr_name in mapping_dict.iteritems():
-        bw_list = avar_node.attr(avar_name).listConnections(c=False, d=False, t="blendWeighted")
+        bw_list = avar_node.attr(avar_name).listConnections(c=False, d=False,
+                                                            t="blendWeighted")
         if len(bw_list) != 1:
-            raise ("Could not connect ctrl {0} translation in avar node {1}".format(ctrl, avar_node))
+            raise (
+                "Could not connect ctrl {0} translation in avar node {1}".format(ctrl,
+                                                                                 avar_node))
         match = re.search(regex_input_idx, bw_list[0].input.elements()[-1])
         input_idx = int(match.group(1)) + 1
         pymel.connectAttr(ctrl.attr(ctrl_attr_name), bw_list[0].input[input_idx])
@@ -766,6 +629,7 @@ def connect_attr_to_visibility(input_attr_name):
             pymel.connectAttr(in_attr, mdl.input2)
             # Force the connection
             pymel.connectAttr(mdl.output, vis_attr, force=True)
+
 
 def disconnect_trs(obj, inputs=True, outputs=True):
     attr_names = ['t', 'tx', 'ty', 'tz', 'r', 'rx', 'ry', 'rz', 's', 'sx', 'sy', 'sz']

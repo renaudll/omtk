@@ -17,4 +17,3 @@ import libSkinning
 import libStringMap
 import libUtils
 import libHistory
-import libComponent

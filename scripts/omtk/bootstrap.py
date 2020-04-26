@@ -8,14 +8,20 @@ import os
 
 from maya import cmds
 
-_SCHEMA = os.path.join(os.path.dirname(__file__), "..", "..", "shelf.json")
-with open(_SCHEMA) as fp:
-    _ENTRIES = json.load(fp)
 _LOG = logging.getLogger(__name__)
 _LOG.setLevel(logging.DEBUG)
 
 
-def _initialize_shelf(shelf):
+def _load_config():
+    """
+    Load shelf definitions.
+    """
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "shelf.json")
+    with open(path) as fp:
+        return json.load(fp)
+
+
+def _init_shelf(shelf):
     """ Create a shelf, deleting the previous one if needed.
 
     :param shelf: The name of the shelf
@@ -35,9 +41,10 @@ def build_shelf(shelf_name):
     """
     _LOG.debug("Creating %s shelf", shelf_name)
 
-    _initialize_shelf(shelf_name)
+    config = _load_config()
+    _init_shelf(shelf_name)
 
-    for entry in _ENTRIES:
+    for entry in config:
         cmds.setParent(shelf_name)
         cmds.shelfButton(
             image=entry.get("image", "commandButton.png"),

@@ -1,5 +1,4 @@
 import logging
-import logging as log
 import math
 
 import pymel.core as pymel
@@ -7,13 +6,11 @@ from maya import OpenMaya
 from maya import cmds
 from maya import mel
 
-import libPython
 from omtk import constants
 from omtk.libs import libPymel
 
-'''
-This method facilitate the creation of utility nodes by connecting/settings automaticly attributes.
-'''
+_LOG = logging.getLogger(__name__)
+
 __aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector,
                  pymel.datatypes.Point]
 
@@ -28,8 +25,7 @@ def is_basic_type(_val):
 
 
 def connect_or_set_attr(_attr, _val):
-    if isinstance(_val, list) or isinstance(_val, tuple):
-
+    if isinstance(_val, (list, tuple)):
         # Note: List attribute and compound attribute don't have the same way of iterating.
         if _attr.isArray():
             for i, val in enumerate(_val):
@@ -43,10 +39,6 @@ def connect_or_set_attr(_attr, _val):
                 "Can't apply value {0} on attribute {1}, need an array or compound".format(
                     _val, _attr))
 
-        '''
-        for i, pSubValue in enumerate(_val):
-            ConnectOrSetAttr(_attr.elementByLogicalIndex(i), pSubValue)
-        '''
     else:
         if isinstance(_val, pymel.Attribute):
             pymel.connectAttr(_val, _attr, force=True)
@@ -529,7 +521,7 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
                             geometries)  # Ensure we only deal with meshes
 
     if geometries is None:
-        log.warning("Cannot get recommended ctrl size. No geometries to do raycast on!")
+        _LOG.warning("Cannot get recommended ctrl size. No geometries to do raycast on!")
         return default_size
 
     # Create a number of raycast for each geometry. Use the longuest distance.
@@ -1324,37 +1316,59 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
     if not attr_dst.isDestination():
         pymel.connectAttr(util_blend.output, attr_dst, force=True, **kwargs)
 
-
-def _get_or_create_blendweighted_for_attr(attr):
-    # Check on which attribute @attr_dst is connected to (if applicable).
-    attr_dst_input = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
-
-    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
-    if attr_dst_input is None or not isinstance(attr_dst_input.node(),
-                                                pymel.nodetypes.BlendWeighted):
-        util_blend = pymel.createNode('blendWeighted')
-
-        if attr_dst_input is not None:
-            next_available = util_blend.input.numElements()
-            pymel.connectAttr(attr_dst_input, util_blend.input[next_available])
-    else:
-        util_blend = attr_dst_input.node()
-
     return util_blend
 
 
-def connectAttrs_withBlendWeighted(attrs_src, attr_dst, weights=None):
-    util_blend = _get_or_create_blendweighted_for_attr(attr_dst)
-    if not attr_dst.isDestination():
-        pymel.connectAttr(util_blend.output, attr_dst, force=True)
+def _get_or_create_blendweighted_for_attr(attr):
+    """
+    Ensure that an attribute is connected to a blendWeighted node.
+    If the attribute is already connected, inject an intermediate blendWeighted node.
+    :param attr: An attribute to connect to
+    :type attr: pymel.Attribute
+    :return: A blendWeighted node
+    :rtype: pymel.nodetypes.BlendWeighted
+    """
+    src_attr = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
+    src_node = src_attr.node() if src_attr else None
+
+    if isinstance(src_node, pymel.nodetypes.BlendWeighted):
+        return src_node
+
+    blend = pymel.createNode('blendWeighted')
+
+    if src_attr:
+        next_available = blend.input.numElements()
+        pymel.connectAttr(src_attr, blend.input[next_available])
+
+    return blend
+
+
+def connectAttrs_withBlendWeighted(srcs, dst, weights=None):
+    """
+    Connect multiples source attributes to a destination attribute
+    with a blendWeighted node. For optimisation purpose, if the destination attribute
+    is already connected to a blendWeighted node, it will be re-used.
+
+    :param srcs: The source attributes
+    :type srcs: list of pymel.Attribute
+    :param dst: The destination attributes
+    :type dst: pymel.Attribute
+    :param weights: An optional list of weights to use
+    :type weight: list[float] or list[pymel.Attribute]
+    :return: The used blendWeighted node
+    :rtype: pymel.nodetypes.BlendWeighted
+    """
+    util_blend = _get_or_create_blendweighted_for_attr(dst)
+    if not dst.isDestination():
+        pymel.connectAttr(util_blend.output, dst, force=True)
 
     if weights is None:
-        weights = [None] * len(attrs_src)
-    for attr_src, weight in zip(attrs_src, weights):
-        attr_dst = get_multi_attr_available_slot(util_blend.input)
-        pymel.connectAttr(attr_src, attr_dst)
-        if weight is not None:
-            index_dst = attr_dst.index()
+        weights = [None] * len(srcs)
+    for src, weight in zip(srcs, weights):
+        dst = get_multi_attr_available_slot(util_blend.input)
+        pymel.connectAttr(src, dst)
+        if weight:
+            index_dst = dst.index()
             attr_weight = util_blend.weight[index_dst]
             if isinstance(weight, pymel.Attribute):
                 pymel.connectAttr(weight, attr_weight)
@@ -1444,9 +1458,9 @@ def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01,
 
     if distance > epsilon:
         return distance
-    else:
-        log.warning("Can't detect sensibility for {0}".format(attr))
-        return default
+
+    _LOG.warning("Can't detect sensibility for %s", attr)
+    return default
 
 
 def debug_matrix_attr(attr):

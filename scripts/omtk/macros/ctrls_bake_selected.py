@@ -19,14 +19,26 @@ def _fix_ctrl_shape(ctrl):
     grp_offset = ctrl.getParent()
 
     def get_orig_shape(shape):
-        return next((hist for hist in shape.listHistory()
-                     if isinstance(hist, pymel.nodetypes.NurbsCurve)
-                     and hist != shape
-                     and hist.intermediateObject.get()), None)
+        return next(
+            (
+                hist
+                for hist in shape.listHistory()
+                if isinstance(hist, pymel.nodetypes.NurbsCurve)
+                and hist != shape
+                and hist.intermediateObject.get()
+            ),
+            None,
+        )
 
     def get_transformGeometry(shape):
-        return next((hist for hist in shape.listHistory()
-                     if isinstance(hist, pymel.nodetypes.TransformGeometry)), None)
+        return next(
+            (
+                hist
+                for hist in shape.listHistory()
+                if isinstance(hist, pymel.nodetypes.TransformGeometry)
+            ),
+            None,
+        )
 
     for shape in ctrl.getShapes(noIntermediate=True):
         # Resolve orig shape
@@ -40,20 +52,22 @@ def _fix_ctrl_shape(ctrl):
         if not util_transform_geometry:
             pymel.warning("Skipping {}. Cannot find transformGeometry.".format(shape))
             continue
-        attr_compensation_tm = next(iter(util_transform_geometry.transform.inputs(plugs=True)), None)
+        attr_compensation_tm = next(
+            iter(util_transform_geometry.transform.inputs(plugs=True)), None
+        )
         if not attr_compensation_tm:
             pymel.warning("Skipping {}. Cannot find compensation matrix.".format(shape))
             continue
 
-        tmp_shape = pymel.createNode('nurbsCurve')
+        tmp_shape = pymel.createNode("nurbsCurve")
         tmp_shape.getParent().setParent(grp_offset)
 
         # Apply the inverted compensation matrix to access the desired orig_shape 'create' attr.
         tmp_transform_geometry = libRigging.create_utility_node(
-            'transformGeometry',
+            "transformGeometry",
             inputGeometry=shape.local,
             transform=attr_compensation_tm,
-            invertTransform=True
+            invertTransform=True,
         )
         attr_output_geometry = tmp_transform_geometry.outputGeometry
         pymel.connectAttr(attr_output_geometry, tmp_shape.create)

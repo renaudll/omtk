@@ -6,12 +6,13 @@ import re
 # src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
 from pymel import core as pymel
 
-log = logging.getLogger('omtk')
+log = logging.getLogger("omtk")
 
 
 def disconnectAttr(attr, inputs=True, outputs=True):
     attr_is_locked = attr.isLocked()
-    if attr_is_locked: attr.unlock()
+    if attr_is_locked:
+        attr.unlock()
 
     if inputs:
         for attr_in in attr.inputs(plugs=True):
@@ -20,7 +21,8 @@ def disconnectAttr(attr, inputs=True, outputs=True):
         for attr_out in attr.outputs(plugs=True):
             pymel.disconnectAttr(attr, attr_out)
 
-    if attr_is_locked: attr.lock()
+    if attr_is_locked:
+        attr.lock()
 
 
 def hold_attrs(attr, hold_curve=True):
@@ -32,10 +34,12 @@ def hold_attrs(attr, hold_curve=True):
             return attr.get()
 
         for input in attr.inputs(plugs=True):
-            if isinstance(input.node(),
-                          (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
-                pymel.disconnectAttr(input,
-                                     attr)  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
+            if isinstance(
+                input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)
+            ):
+                pymel.disconnectAttr(
+                    input, attr
+                )  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
                 return input
         return attr.get()
     return attr
@@ -75,18 +79,25 @@ def transfer_connections(attr_src, attr_dst):
 
 
 def addAttr(node, longName=None, *args, **kwargs):
-    assert (longName)
+    assert longName
     pymel.addAttr(node, longName=longName, *args, **kwargs)
     return node.attr(longName)
 
 
 def addAttr_separator(obj, attr_name, *args, **kwargs):
-    attr = addAttr(obj, longName=attr_name, niceName=attr_name, at='enum',
-                   en='------------', k=True)
+    attr = addAttr(
+        obj,
+        longName=attr_name,
+        niceName=attr_name,
+        at="enum",
+        en="------------",
+        k=True,
+    )
     attr.lock()
 
 
 # Lock/unlock Function
+
 
 def lock_attrs(attr_list):
     for attr in attr_list:
@@ -113,13 +124,13 @@ def unlock_trs(node, *args, **kwargs):
 def lock_translation(node, x=True, y=True, z=True):
     lock_list = []
     if x:
-        translate_x = node.attr('translateX')
+        translate_x = node.attr("translateX")
         lock_list.append(translate_x)
     if y:
-        translate_y = node.attr('translateY')
+        translate_y = node.attr("translateY")
         lock_list.append(translate_y)
     if z:
-        translate_z = node.attr('translateZ')
+        translate_z = node.attr("translateZ")
         lock_list.append(translate_z)
 
     lock_attrs(lock_list)
@@ -128,16 +139,16 @@ def lock_translation(node, x=True, y=True, z=True):
 def unlock_translation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
-        translate_x = node.attr('translateX')
+        translate_x = node.attr("translateX")
         unlock_list.append(translate_x)
     if y:
-        translate_y = node.attr('translateY')
+        translate_y = node.attr("translateY")
         unlock_list.append(translate_y)
     if z:
-        translate_z = node.attr('translateZ')
+        translate_z = node.attr("translateZ")
         unlock_list.append(translate_z)
     if xyz:
-        translate = node.attr('translate')
+        translate = node.attr("translate")
         unlock_list.append(translate)
 
     unlock_attrs(unlock_list)
@@ -146,13 +157,13 @@ def unlock_translation(node, x=True, y=True, z=True, xyz=True):
 def lock_rotation(node, x=True, y=True, z=True):
     lock_list = []
     if x:
-        rotate_x = node.attr('rotateX')
+        rotate_x = node.attr("rotateX")
         lock_list.append(rotate_x)
     if y:
-        rotate_y = node.attr('rotateY')
+        rotate_y = node.attr("rotateY")
         lock_list.append(rotate_y)
     if z:
-        rotate_z = node.attr('rotateZ')
+        rotate_z = node.attr("rotateZ")
         lock_list.append(rotate_z)
 
     lock_attrs(lock_list)
@@ -161,16 +172,16 @@ def lock_rotation(node, x=True, y=True, z=True):
 def unlock_rotation(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
-        rotate_x = node.attr('rotateX')
+        rotate_x = node.attr("rotateX")
         unlock_list.append(rotate_x)
     if y:
-        rotate_y = node.attr('rotateY')
+        rotate_y = node.attr("rotateY")
         unlock_list.append(rotate_y)
     if z:
-        rotate_z = node.attr('rotateZ')
+        rotate_z = node.attr("rotateZ")
         unlock_list.append(rotate_z)
     if xyz:
-        rotate = node.attr('rotate')
+        rotate = node.attr("rotate")
         unlock_list.append(rotate)
 
     unlock_attrs(unlock_list)
@@ -179,13 +190,13 @@ def unlock_rotation(node, x=True, y=True, z=True, xyz=True):
 def lock_scale(node, x=True, y=True, z=True):
     lock_list = []
     if x:
-        scale_x = node.attr('scaleX')
+        scale_x = node.attr("scaleX")
         lock_list.append(scale_x)
     if y:
-        scale_y = node.attr('scaleY')
+        scale_y = node.attr("scaleY")
         lock_list.append(scale_y)
     if z:
-        scale_z = node.attr('scaleZ')
+        scale_z = node.attr("scaleZ")
         lock_list.append(scale_z)
 
     lock_attrs(lock_list)
@@ -194,24 +205,35 @@ def lock_scale(node, x=True, y=True, z=True):
 def unlock_scale(node, x=True, y=True, z=True, xyz=True):
     unlock_list = []
     if x:
-        scale_x = node.attr('scaleX')
+        scale_x = node.attr("scaleX")
         unlock_list.append(scale_x)
     if y:
-        scale_y = node.attr('scaleY')
+        scale_y = node.attr("scaleY")
         unlock_list.append(scale_y)
     if z:
-        scale_z = node.attr('scaleZ')
+        scale_z = node.attr("scaleZ")
         unlock_list.append(scale_z)
     if xyz:
-        scale = node.attr('scale')
+        scale = node.attr("scale")
         unlock_list.append(scale)
 
     unlock_attrs(unlock_list)
 
 
-def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=True,
-                            rz=True, sx=True, sy=True, sz=True,
-                            force=False):
+def connect_transform_attrs(
+    src,
+    dst,
+    tx=True,
+    ty=True,
+    tz=True,
+    rx=True,
+    ry=True,
+    rz=True,
+    sx=True,
+    sy=True,
+    sz=True,
+    force=False,
+):
     """
     Utility method to connect multiple attributes between two transform nodes.
     :param src: The source transform.
@@ -249,6 +271,7 @@ def connect_transform_attrs(src, dst, tx=True, ty=True, tz=True, rx=True, ry=Tru
 
 # Hide Function#
 
+
 def hide_attrs(attr_list):
     for attr in attr_list:
         attr.setKeyable(False)
@@ -274,13 +297,13 @@ def unhide_trs(node, *args, **kwargs):
 def hide_translation(node, x=True, y=True, z=True):
     hide_list = []
     if x:
-        translate_x = node.attr('translateX')
+        translate_x = node.attr("translateX")
         hide_list.append(translate_x)
     if y:
-        translate_y = node.attr('translateY')
+        translate_y = node.attr("translateY")
         hide_list.append(translate_y)
     if z:
-        translate_z = node.attr('translateZ')
+        translate_z = node.attr("translateZ")
         hide_list.append(translate_z)
 
     hide_attrs(hide_list)
@@ -289,13 +312,13 @@ def hide_translation(node, x=True, y=True, z=True):
 def unhide_translation(node, x=True, y=True, z=True):
     unhide_list = []
     if x:
-        translate_x = node.attr('translateX')
+        translate_x = node.attr("translateX")
         unhide_list.append(translate_x)
     if y:
-        translate_y = node.attr('translateY')
+        translate_y = node.attr("translateY")
         unhide_list.append(translate_y)
     if z:
-        translate_z = node.attr('translateZ')
+        translate_z = node.attr("translateZ")
         unhide_list.append(translate_z)
 
     unhide_attrs(unhide_list)
@@ -304,13 +327,13 @@ def unhide_translation(node, x=True, y=True, z=True):
 def hide_rotation(node, x=True, y=True, z=True):
     hide_list = []
     if x:
-        rotate_x = node.attr('rotateX')
+        rotate_x = node.attr("rotateX")
         hide_list.append(rotate_x)
     if y:
-        rotate_y = node.attr('rotateY')
+        rotate_y = node.attr("rotateY")
         hide_list.append(rotate_y)
     if z:
-        rotate_z = node.attr('rotateZ')
+        rotate_z = node.attr("rotateZ")
         hide_list.append(rotate_z)
 
     hide_attrs(hide_list)
@@ -319,13 +342,13 @@ def hide_rotation(node, x=True, y=True, z=True):
 def unhide_rotation(node, x=True, y=True, z=True):
     unhide_list = []
     if x:
-        rotate_x = node.attr('rotateX')
+        rotate_x = node.attr("rotateX")
         unhide_list.append(rotate_x)
     if y:
-        rotate_y = node.attr('rotateY')
+        rotate_y = node.attr("rotateY")
         unhide_list.append(rotate_y)
     if z:
-        rotate_z = node.attr('rotateZ')
+        rotate_z = node.attr("rotateZ")
         unhide_list.append(rotate_z)
 
     unhide_attrs(unhide_list)
@@ -334,13 +357,13 @@ def unhide_rotation(node, x=True, y=True, z=True):
 def hide_scale(node, x=True, y=True, z=True):
     hide_list = []
     if x:
-        scale_x = node.attr('scaleX')
+        scale_x = node.attr("scaleX")
         hide_list.append(scale_x)
     if y:
-        scale_y = node.attr('scaleY')
+        scale_y = node.attr("scaleY")
         hide_list.append(scale_y)
     if z:
-        scale_z = node.attr('scaleZ')
+        scale_z = node.attr("scaleZ")
         hide_list.append(scale_z)
 
     hide_attrs(hide_list)
@@ -349,19 +372,20 @@ def hide_scale(node, x=True, y=True, z=True):
 def unhide_scale(node, x=True, y=True, z=True):
     unhide_list = []
     if x:
-        scale_x = node.attr('scaleX')
+        scale_x = node.attr("scaleX")
         unhide_list.append(scale_x)
     if y:
-        scale_y = node.attr('scaleY')
+        scale_y = node.attr("scaleY")
         unhide_list.append(scale_y)
     if z:
-        scale_z = node.attr('scaleZ')
+        scale_z = node.attr("scaleZ")
         unhide_list.append(scale_z)
 
     unhide_attrs(unhide_list)
 
 
 # Lock/Hide shortcut
+
 
 def lock_hide_trs(node, *args, **kwargs):
     lock_trs(node, *args, **kwargs)
@@ -413,7 +437,7 @@ def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0)
     for attr in node.listAttr(connectable=True, hasData=True):
         # HACK: Skip problematic avars...
         # TODO: Find a better way
-        if '[' in attr.name():
+        if "[" in attr.name():
             continue
 
         if attr == attr_inn:
@@ -421,8 +445,13 @@ def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0)
         else:
             if depth >= max_depth:
                 return False
-            if is_connected_to(attr_inn, attr, recursive=recursive, max_depth=max_depth,
-                               depth=depth + 1):
+            if is_connected_to(
+                attr_inn,
+                attr,
+                recursive=recursive,
+                max_depth=max_depth,
+                depth=depth + 1,
+            ):
                 return True
 
     return False
@@ -433,11 +462,7 @@ def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0)
 #
 
 attr_inn_by_out_by_type = {
-    'reverse': {
-        'outputX': 'inputX',
-        'outputY': 'inputY',
-        'outputZ': 'inputZ'
-    }
+    "reverse": {"outputX": "inputX", "outputY": "inputY", "outputZ": "inputZ"}
 }
 
 
@@ -470,7 +495,7 @@ def get_settable_attr(attr):
             return False
 
         classification = pymel.getClassification(attr.node().type())
-        if any(True for token in classification if 'utility' in token):
+        if any(True for token in classification if "utility" in token):
             return False
 
         return True
@@ -483,6 +508,7 @@ def get_settable_attr(attr):
 #
 # Connection holding
 #
+
 
 def hold_connections(attrs, hold_inputs=True, hold_outputs=True):
     """
@@ -569,12 +595,15 @@ def connect_to_avar(ctrl, avar_node, mapping_dict):
 
     # First get the weightBlended from the needed avar
     for avar_name, ctrl_attr_name in mapping_dict.iteritems():
-        bw_list = avar_node.attr(avar_name).listConnections(c=False, d=False,
-                                                            t="blendWeighted")
+        bw_list = avar_node.attr(avar_name).listConnections(
+            c=False, d=False, t="blendWeighted"
+        )
         if len(bw_list) != 1:
             raise (
-                "Could not connect ctrl {0} translation in avar node {1}".format(ctrl,
-                                                                                 avar_node))
+                "Could not connect ctrl {0} translation in avar node {1}".format(
+                    ctrl, avar_node
+                )
+            )
         match = re.search(regex_input_idx, bw_list[0].input.elements()[-1])
         input_idx = int(match.group(1)) + 1
         pymel.connectAttr(ctrl.attr(ctrl_attr_name), bw_list[0].input[input_idx])
@@ -616,12 +645,12 @@ def connect_attr_to_visibility(input_attr_name):
         else:
             # TODO - Find a better way to detect if the attr is already connected or not. This one can possibly
             # not work since listHistory is not specific to the attribute
-            '''
+            """
             # If the selected node already have a connection to the input attribute, skip it
             vis_hist = vis_attr.listHistory()
             if in_attr_node in vis_hist:
                 continue
-            '''
+            """
             # Keep the current connected attr, and setup multipleDoubleLinear
             cur_con = con[0]
             mdl = pymel.createNode("multDoubleLinear")
@@ -632,7 +661,7 @@ def connect_attr_to_visibility(input_attr_name):
 
 
 def disconnect_trs(obj, inputs=True, outputs=True):
-    attr_names = ['t', 'tx', 'ty', 'tz', 'r', 'rx', 'ry', 'rz', 's', 'sx', 'sy', 'sz']
+    attr_names = ["t", "tx", "ty", "tz", "r", "rx", "ry", "rz", "s", "sx", "sy", "sz"]
     for attr_name in attr_names:
         attr = obj.attr(attr_name)
         disconnectAttr(attr, inputs=inputs, outputs=outputs)

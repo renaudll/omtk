@@ -51,7 +51,9 @@ class WidgetListMeshes(QtWidgets.QWidget):
 
                 skincluster = libSkinning.get_skin_cluster(mesh)
                 if skincluster:
-                    influences = sorted(libSkinning.get_skin_cluster_influence_objects(skincluster))
+                    influences = sorted(
+                        libSkinning.get_skin_cluster_influence_objects(skincluster)
+                    )
 
                 self._fill_widget_meshes(widget_root, mesh, influences)
 
@@ -90,10 +92,14 @@ class WidgetListMeshes(QtWidgets.QWidget):
             query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
-            if qItem.metadata_type == ui_shared.MetadataType.Influence:  # Always show influences
+            if (
+                qItem.metadata_type == ui_shared.MetadataType.Influence
+            ):  # Always show influences
                 return True
 
-            return not query_regex or re.match(query_regex, qItem.text(0), re.IGNORECASE)
+            return not query_regex or re.match(
+                query_regex, qItem.text(0), re.IGNORECASE
+            )
 
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             can_show = fn_can_show(qt_item, query_regex)

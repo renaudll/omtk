@@ -14,15 +14,17 @@ def get_avars_networks_from_selection(objs):
     """
 
     def fn_skip(network):
-        return libSerialization.is_network_from_class(network, 'Rig')
+        return libSerialization.is_network_from_class(network, "Rig")
 
     def fn_filter(network):
-        return libSerialization.is_network_from_class(network, 'AbstractAvar')
+        return libSerialization.is_network_from_class(network, "AbstractAvar")
 
     if objs is None:
         objs = pymel.selected()
 
-    networks = libSerialization.get_connected_networks(objs, key=fn_filter, key_skip=fn_skip)
+    networks = libSerialization.get_connected_networks(
+        objs, key=fn_filter, key_skip=fn_skip
+    )
 
     # avars = filter(None, [libSerialization.import_network(network) for network in networks])
 
@@ -31,16 +33,19 @@ def get_avars_networks_from_selection(objs):
 
 def iter_connected_ctrl_models_networks(objs):
     def fn_skip(network):
-        return libSerialization.is_network_from_class(network, 'Module') and not libSerialization.is_network_from_class(
-            network, 'BaseCtrlModel')
+        return libSerialization.is_network_from_class(
+            network, "Module"
+        ) and not libSerialization.is_network_from_class(network, "BaseCtrlModel")
 
     def fn_filter(network):
-        return libSerialization.is_network_from_class(network, 'BaseCtrlModel')
+        return libSerialization.is_network_from_class(network, "BaseCtrlModel")
 
     if objs is None:
         objs = pymel.selected()
 
-    for network in libSerialization.iter_connected_networks(objs, key=fn_filter, key_skip=fn_skip):
+    for network in libSerialization.iter_connected_networks(
+        objs, key=fn_filter, key_skip=fn_skip
+    ):
         yield network
 
 
@@ -75,9 +80,11 @@ class ToogleAvarSelection(macros.BaseMacro):
         if is_animation_mode:
             result = set()
             for network in avar_networks:
-                if network.hasAttr('grp_rig'):
-                    grp_rig = next(iter(network.attr('grp_rig').inputs()), None)
-                    if grp_rig and grp_rig.hasAttr('avar_ud'):  # we duck type avars by checking the UD avar
+                if network.hasAttr("grp_rig"):
+                    grp_rig = next(iter(network.attr("grp_rig").inputs()), None)
+                    if grp_rig and grp_rig.hasAttr(
+                        "avar_ud"
+                    ):  # we duck type avars by checking the UD avar
                         result.add(grp_rig)
             pymel.select(result)
 
@@ -86,14 +93,19 @@ class ToogleAvarSelection(macros.BaseMacro):
             result = set()
 
             def fn_filter(network):
-                return isinstance(network, pymel.nodetypes.Network) and \
-                       libSerialization.is_network_from_class(network, 'BaseCtrl')
+                return isinstance(
+                    network, pymel.nodetypes.Network
+                ) and libSerialization.is_network_from_class(network, "BaseCtrl")
 
             for avar_network in avar_networks:
-                if avar_network.hasAttr('ctrl'):
-                    for hist in avar_network.attr('ctrl').listHistory():
+                if avar_network.hasAttr("ctrl"):
+                    for hist in avar_network.attr("ctrl").listHistory():
                         if fn_filter(hist):
-                            ctrl = next(iter(hist.attr('node').inputs()), None) if hist.hasAttr('node') else None
+                            ctrl = (
+                                next(iter(hist.attr("node").inputs()), None)
+                                if hist.hasAttr("node")
+                                else None
+                            )
                             if ctrl:
                                 result.add(ctrl)
             pymel.select(result)

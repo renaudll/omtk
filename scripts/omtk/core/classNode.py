@@ -11,21 +11,27 @@ class Node(object):
     """
 
     def __init__(self, data=None, create=False, *args, **kwargs):
-        self.__dict__['node'] = data
-        self.__dict__['_network_name'] = 'untitled'
+        self.__dict__["node"] = data
+        self.__dict__["_network_name"] = "untitled"
         self._layers = []  # TODO: Use libPymel.PyNodeChain?
 
         if create is True:
             self.build(*args, **kwargs)
-            assert (isinstance(self.node, pymel.PyNode))
+            assert isinstance(self.node, pymel.PyNode)
 
     def __getattr__(self, attr_name):
-        if self.__dict__['node'] and not isinstance(self.__dict__['node'], pymel.PyNode) and not self.__dict__['node'] is None:
+        if (
+            self.__dict__["node"]
+            and not isinstance(self.__dict__["node"], pymel.PyNode)
+            and not self.__dict__["node"] is None
+        ):
             raise TypeError(
-                "RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(type(self.__dict__['node']),
-                                                                                    self.__dict__['node']))
-        elif hasattr(self.__dict__['node'], attr_name):
-            return getattr(self.__dict__['node'], attr_name)
+                "RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(
+                    type(self.__dict__["node"]), self.__dict__["node"]
+                )
+            )
+        elif hasattr(self.__dict__["node"], attr_name):
+            return getattr(self.__dict__["node"], attr_name)
 
     def __str__(self):
         """
@@ -39,7 +45,7 @@ class Node(object):
             return super(Node, self).__str__()
 
     def __createNode__(self, *args, **kwargs):
-        return pymel.createNode('transform', *args, **kwargs)
+        return pymel.createNode("transform", *args, **kwargs)
 
     def __getNetworkName__(self):
         """
@@ -51,8 +57,10 @@ class Node(object):
         # This ensure that as long as the instance is in memory, built or unbuilt
         # it will still have the correct name.
         if self.is_built():
-            self._network_name = self.stripNamespace().nodeName()  # .name() can return full dagpath, cause warnings
-        return 'net_{0}_{1}'.format(self.__class__.__name__.lower(), self._network_name)
+            self._network_name = (
+                self.stripNamespace().nodeName()
+            )  # .name() can return full dagpath, cause warnings
+        return "net_{0}_{1}".format(self.__class__.__name__.lower(), self._network_name)
 
     def exists(self):
         if self.node is None:
@@ -84,9 +92,9 @@ class Node(object):
         >>> layer_2.getParent() == layer_1
         True
         """
-        new_layer = pymel.createNode('transform')
+        new_layer = pymel.createNode("transform")
         if name:
-            new_name = self.node.name() + '_' + name
+            new_name = self.node.name() + "_" + name
             new_layer.rename(new_name)
 
         new_layer.setMatrix(self.node.getMatrix(worldSpace=True))
@@ -117,15 +125,17 @@ class Node(object):
         >>> layer_3.getParent() == layer_2
         True
         """
-        new_layer = pymel.createNode('transform')
+        new_layer = pymel.createNode("transform")
         if name:
-            new_name = self.node.name() + '_' + name
+            new_name = self.node.name() + "_" + name
             new_layer.rename(new_name)
 
         if i == 0:
             return self.prepend_layer(name=name)
         elif i > len(self._layers) - 1:  # todo: add __len__ functionality?
-            return self.append_layer(name=name)  # note: we are reproducing the list.insert functionality
+            return self.append_layer(
+                name=name
+            )  # note: we are reproducing the list.insert functionality
         else:
             # Faster than setMatrix
             new_layer.setParent(self._layers[i - 1])
@@ -151,9 +161,9 @@ class Node(object):
         >>> layer_2.getParent() == layer_1
         True
         """
-        new_layer = pymel.createNode('transform')
+        new_layer = pymel.createNode("transform")
         if name:
-            new_name = self.node.name() + '_' + name
+            new_name = self.node.name() + "_" + name
             new_layer.rename(new_name)
 
         # Note: Removed for performance
@@ -196,11 +206,8 @@ class Node(object):
         stack_parent = self.getParent()
 
         return libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                self.getParent().worldInverseMatrix,
-                self.node.worldMatrix
-            )
+            "multMatrix",
+            matrixIn=(self.getParent().worldInverseMatrix, self.node.worldMatrix),
         ).matrixSum
 
     def getParent(self, **kwargs):

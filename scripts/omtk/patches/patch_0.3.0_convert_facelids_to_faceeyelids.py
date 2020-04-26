@@ -7,12 +7,12 @@ Run this script to convert a pre-0.3.0 scene.
 from omtk.vendor import libSerialization
 
 cls_rename_map = (
-    ('FaceLids', 'FaceEyeLids'),
-    ('CtrlLidUpp', 'CtrlEyeLidUpp'),
-    ('CtrlLidLow', 'CtrlEyeLidLow'),
-    ('AvarGrpAreaOnSurface', 'AvarGrpOnSurface')
+    ("FaceLids", "FaceEyeLids"),
+    ("CtrlLidUpp", "CtrlEyeLidUpp"),
+    ("CtrlLidLow", "CtrlEyeLidLow"),
+    ("AvarGrpAreaOnSurface", "AvarGrpOnSurface"),
 )
-affected_attr_names = ('_class', '_class_namespace')
+affected_attr_names = ("_class", "_class_namespace")
 
 for old_name, new_name in cls_rename_map:
     for net in libSerialization.get_networks_from_class(old_name):
@@ -22,4 +22,11 @@ for old_name, new_name in cls_rename_map:
                 continue
             print("Renaming {}".format(net))
             attr = net.attr(attr_name)
-            attr.set('.'.join((token.replace(old_name, new_name) for token in attr.get().split('.'))))
+            attr.set(
+                ".".join(
+                    (
+                        token.replace(old_name, new_name)
+                        for token in attr.get().split(".")
+                    )
+                )
+            )

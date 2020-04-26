@@ -5,6 +5,7 @@ import copy
 # todo: make tokens, suffix, prefix and side private. Use getter and setter functions were necessary.
 # todo: in add_tokens, reconize what is a suffix and what is a prefix
 
+
 class BaseName(object):
     """
     This class handle the naming of object.
@@ -60,30 +61,31 @@ class BaseName(object):
     'head_ctrl'
 
     """
-    separator = '_'
 
-    type_anm = 'anm'
-    type_anm_grp = 'anm_grp'
-    type_jnt = 'jnt'
-    type_rig = 'rig'
-    type_rig_grp = 'data_grp'
+    separator = "_"
 
-    root_anm_name = 'anms'
-    root_geo_name = 'geos'
-    root_jnt_name = 'jnts'
-    root_rig_name = 'data'
-    root_backup_name = 'backup'
+    type_anm = "anm"
+    type_anm_grp = "anm_grp"
+    type_jnt = "jnt"
+    type_rig = "rig"
+    type_rig_grp = "data_grp"
 
-    layer_anm_name = 'layer_anm'
-    layer_rig_name = 'layer_rig'
-    layer_geo_name = 'layer_geo'
-    layer_jnt_name = 'layer_jnts'
+    root_anm_name = "anms"
+    root_geo_name = "geos"
+    root_jnt_name = "jnts"
+    root_rig_name = "data"
+    root_backup_name = "backup"
+
+    layer_anm_name = "layer_anm"
+    layer_rig_name = "layer_rig"
+    layer_geo_name = "layer_geo"
+    layer_jnt_name = "layer_jnts"
 
     KNOWN_PREFIXES = []
     KNOWN_SUFFIXES = []
 
-    SIDE_L = 'l'
-    SIDE_R = 'r'
+    SIDE_L = "l"
+    SIDE_R = "r"
 
     def __init__(self, name=None, tokens=None, prefix=0, suffix=0, side=0):
         self.tokens = []
@@ -250,7 +252,7 @@ class BaseName(object):
         name = self._join_tokens(tokens)
 
         # If we have name conflicts, we WILL want to crash.
-        '''
+        """
         # Prevent maya from crashing by guarantying that the name is unique.
         if cmds.objExists(name):
             name_old = name
@@ -258,7 +260,7 @@ class BaseName(object):
             cmds.warning("Name {0} already exist, using {1} instead.".format(
                 name_old, name
             ))
-        '''
+        """
 
         return name
 

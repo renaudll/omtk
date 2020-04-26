@@ -6,7 +6,7 @@ import pymel.core as pymel
 logging.basicConfig()
 
 # HACK: Load matrixNodes.dll
-pymel.loadPlugin('matrixNodes', quiet=True)
+pymel.loadPlugin("matrixNodes", quiet=True)
 
 
 def _reload():
@@ -17,14 +17,16 @@ def _reload():
 
     # Hack: prevent a crash related to loosing our OpenMaya.MSceneMessage events.
     try:
-        pymel.deleteUI('OpenRiggingToolkit')
+        pymel.deleteUI("OpenRiggingToolkit")
     except:
         pass
 
     import omtk
+
     libPython.rreload(omtk)
 
 
 def show():
     import main_window
+
     main_window.show()

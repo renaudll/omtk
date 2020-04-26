@@ -9,6 +9,7 @@
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
+
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -41,4 +42,3 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         Form.setWindowTitle(QtCompat.translate("Form", "Form", None, -1))
         self.btn_update.setText(QtCompat.translate("Form", "Update", None, -1))
-

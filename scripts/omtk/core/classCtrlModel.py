@@ -16,6 +16,7 @@ class BaseCtrlModel(classModule.Module):
     """
     Define a minimal implementation that only build the ctrl itself.
     """
+
     _CLS_CTRL = None
 
     def __init__(self, *args, **kwargs):
@@ -32,7 +33,9 @@ class BaseCtrlModel(classModule.Module):
         Define the input and output of the module.
         The goal is to a a kind of component approach.
         """
-        self._attr_inn_parent_tm = libAttr.addAttr(self.grp_rig, longName='innParentTm', dt='matrix')
+        self._attr_inn_parent_tm = libAttr.addAttr(
+            self.grp_rig, longName="innParentTm", dt="matrix"
+        )
 
     def build(self, module, ctrl_size=1.0, ctrl_name=None, **kwargs):
         """
@@ -49,10 +52,7 @@ class BaseCtrlModel(classModule.Module):
 
         # Create ctrl
         self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
-        self.ctrl.build(
-            name=ctrl_name,
-            size=ctrl_size
-        )
+        self.ctrl.build(name=ctrl_name, size=ctrl_size)
         self.ctrl.setParent(self.grp_anm)
 
 
@@ -75,9 +75,10 @@ class CtrlModelCalibratable(BaseCtrlModel):
     the ctrl shape construction history, otherwise re-calibrating would result
     in a squewed shape.
     """
-    _ATTR_NAME_SENSITIVITY_TX = 'sensitivityX'
-    _ATTR_NAME_SENSITIVITY_TY = 'sensitivityY'
-    _ATTR_NAME_SENSITIVITY_TZ = 'sensitivityZ'
+
+    _ATTR_NAME_SENSITIVITY_TX = "sensitivityX"
+    _ATTR_NAME_SENSITIVITY_TY = "sensitivityY"
+    _ATTR_NAME_SENSITIVITY_TZ = "sensitivityZ"
 
     def __init__(self, *args, **kwargs):
         super(CtrlModelCalibratable, self).__init__(*args, **kwargs)
@@ -97,24 +98,15 @@ class CtrlModelCalibratable(BaseCtrlModel):
 
         # Add sensitivity attributes on the ctrl.
         # The values will be adjusted on calibration.
-        libAttr.addAttr_separator(
-            self.grp_rig,
-            "ctrlCalibration"
-        )
+        libAttr.addAttr_separator(self.grp_rig, "ctrlCalibration")
         self.attr_sensitivity_tx = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TX,
-            defaultValue=1.0
+            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TX, defaultValue=1.0
         )
         self.attr_sensitivity_ty = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TY,
-            defaultValue=1.0
+            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TY, defaultValue=1.0
         )
         self.attr_sensitivity_tz = libAttr.addAttr(
-            self.grp_rig,
-            longName=self._ATTR_NAME_SENSITIVITY_TZ,
-            defaultValue=1.0
+            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TZ, defaultValue=1.0
         )
         self.attr_sensitivity_tx.set(channelBox=True)
         self.attr_sensitivity_ty.set(channelBox=True)
@@ -137,7 +129,7 @@ class CtrlModelCalibratable(BaseCtrlModel):
         tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
         ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
-        ctrl_shape_orig.rename('{0}Orig'.format(ctrl_shape.name()))
+        ctrl_shape_orig.rename("{0}Orig".format(ctrl_shape.name()))
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
         for cp in ctrl_shape.cp:
@@ -149,47 +141,50 @@ class CtrlModelCalibratable(BaseCtrlModel):
         # to hide the non-uniform scaling.
         #
         util_sensitivity_inv = libRigging.create_utility_node(
-            'multiplyDivide', operation=2,
-            input1X=1.0, input1Y=1.0, input1Z=1.0,
+            "multiplyDivide",
+            operation=2,
+            input1X=1.0,
+            input1Y=1.0,
+            input1Z=1.0,
             input2X=self.attr_sensitivity_tx,
             input2Y=self.attr_sensitivity_ty,
-            input2Z=self.attr_sensitivity_tz
+            input2Z=self.attr_sensitivity_tz,
         )
         self._attr_sensibility_lr_inv = util_sensitivity_inv.outputX
         self._attr_sensibility_ud_inv = util_sensitivity_inv.outputY
         self._attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
 
         attr_adjustement_scale = libRigging.create_utility_node(
-            'composeMatrix',
+            "composeMatrix",
             inputScaleX=self._attr_sensibility_lr_inv,
             inputScaleY=self._attr_sensibility_ud_inv,
-            inputScaleZ=self._attr_sensibility_fb_inv
+            inputScaleZ=self._attr_sensibility_fb_inv,
         ).outputMatrix
 
         attr_adjustement_rot = libRigging.create_utility_node(
-            'composeMatrix',
+            "composeMatrix",
             inputRotateX=self.ctrl.node.rotateX,
             inputRotateY=self.ctrl.node.rotateY,
-            inputRotateZ=self.ctrl.node.rotateZ
+            inputRotateZ=self.ctrl.node.rotateZ,
         ).outputMatrix
 
         attr_adjustement_rot_inv = libRigging.create_utility_node(
-            'inverseMatrix',
-            inputMatrix=attr_adjustement_rot
+            "inverseMatrix", inputMatrix=attr_adjustement_rot
         ).outputMatrix
 
         attr_adjustement_tm = libRigging.create_utility_node(
-            'multMatrix', matrixIn=[
+            "multMatrix",
+            matrixIn=[
                 attr_adjustement_rot,
                 attr_adjustement_scale,
-                attr_adjustement_rot_inv
-            ]
+                attr_adjustement_rot_inv,
+            ],
         ).matrixSum
 
         attr_transform_geometry = libRigging.create_utility_node(
-            'transformGeometry',
+            "transformGeometry",
             transform=attr_adjustement_tm,
-            inputGeometry=ctrl_shape_orig.local
+            inputGeometry=ctrl_shape_orig.local,
         ).outputGeometry
         pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
 
@@ -203,18 +198,30 @@ class CtrlModelCalibratable(BaseCtrlModel):
             return
 
         if tx and not self.ctrl.node.tx.isLocked():
-            sensitivity_tx = libRigging.calibrate_attr_using_translation(self.ctrl.node.tx, ref)
-            self.debug('Adjusting sensibility tx for {0} to {1}'.format(self, sensitivity_tx))
+            sensitivity_tx = libRigging.calibrate_attr_using_translation(
+                self.ctrl.node.tx, ref
+            )
+            self.debug(
+                "Adjusting sensibility tx for {0} to {1}".format(self, sensitivity_tx)
+            )
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.ctrl.node.ty.isLocked():
-            sensitivity_ty = libRigging.calibrate_attr_using_translation(self.ctrl.node.ty, ref)
-            self.debug('Adjusting sensibility ty for {0} to {1}'.format(self, sensitivity_ty))
+            sensitivity_ty = libRigging.calibrate_attr_using_translation(
+                self.ctrl.node.ty, ref
+            )
+            self.debug(
+                "Adjusting sensibility ty for {0} to {1}".format(self, sensitivity_ty)
+            )
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.ctrl.node.tz.isLocked():
-            sensitivity_tz = libRigging.calibrate_attr_using_translation(self.ctrl.node.tz, ref)
-            self.debug('Adjusting sensibility tz for {0} to {1}'.format(self, sensitivity_tz))
+            sensitivity_tz = libRigging.calibrate_attr_using_translation(
+                self.ctrl.node.tz, ref
+            )
+            self.debug(
+                "Adjusting sensibility tz for {0} to {1}".format(self, sensitivity_tz)
+            )
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
     def unbuild(self, **kwargs):

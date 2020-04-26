@@ -4,21 +4,21 @@ from ui import widget_logger
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
-log = logging.getLogger('omtk')
+log = logging.getLogger("omtk")
 
 
 def log_level_to_str(level):
     if level >= logging.CRITICAL:
-        return 'Critical'
+        return "Critical"
     if level >= logging.ERROR:
-        return 'Error'
+        return "Error"
     if level >= logging.WARNING:
-        return 'Warning'
-    return 'Info'
+        return "Warning"
+    return "Info"
 
 
 class UiLoggerModel(QtCore.QAbstractTableModel):
-    HEADER = ('Date', 'Type', 'Message')
+    HEADER = ("Date", "Type", "Message")
 
     ROW_LEVEL = 1
     ROW_MESSAGE = 2
@@ -84,9 +84,7 @@ class UiLoggerModel(QtCore.QAbstractTableModel):
         elif col_index == self.ROW_DATE:
             return str(datetime.datetime.fromtimestamp(record.created))
         else:
-            Exception("Unexpected row. Expected 0 or 1, got {0}".format(
-                col_index
-            ))
+            Exception("Unexpected row. Expected 0 or 1, got {0}".format(col_index))
 
     def headerData(self, col, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
@@ -177,12 +175,14 @@ class WidgetLogger(QtWidgets.QWidget):
         self.create_logger_handler()
 
         # Connect events
-        self.ui.comboBox_log_level.currentIndexChanged.connect(self.update_log_search_level)
+        self.ui.comboBox_log_level.currentIndexChanged.connect(
+            self.update_log_search_level
+        )
         self.ui.lineEdit_log_search.textChanged.connect(self.update_log_search_query)
         self.ui.pushButton_logs_clear.pressed.connect(self.on_log_clear)
         self.ui.pushButton_logs_save.pressed.connect(self.on_log_save)
 
-        log.info('Opened OMTK GUI')
+        log.info("Opened OMTK GUI")
 
     def create_logger_handler(self):
         class QtHandler(logging.Handler):
@@ -240,24 +240,28 @@ class WidgetLogger(QtWidgets.QWidget):
             model.set_loglevel_filter(logging.DEBUG)
 
     def _save_logs(self, path):
-        with open(path, 'w') as fp:
+        with open(path, "w") as fp:
             # Write header
-            fp.write('Date,Level,Message\n')
+            fp.write("Date,Level,Message\n")
 
             # Write content
             for record in self._logging_records:
-                fp.write('{0},{1},{2}\n'.format(
-                    str(datetime.datetime.fromtimestamp(record.created)),
-                    log_level_to_str(record.levelno),
-                    record.message
-                ))
+                fp.write(
+                    "{0},{1},{2}\n".format(
+                        str(datetime.datetime.fromtimestamp(record.created)),
+                        log_level_to_str(record.levelno),
+                        record.message,
+                    )
+                )
 
     def on_log_save(self):
         default_name = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm%S")
         if self.root:
-            default_name = '{0}_{1}'.format(default_name, self.root.name)
+            default_name = "{0}_{1}".format(default_name, self.root.name)
 
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save logs", '{0}.log'.format(default_name), ".log")
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save logs", "{0}.log".format(default_name), ".log"
+        )
         if path:
             self._save_logs(path)
 

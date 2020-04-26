@@ -11,11 +11,12 @@ class AvarLinearModel(AvarInflBaseModel):
     """
     A deformation point on the face that move accordingly to nurbsSurface.
     """
+
     SHOW_IN_UI = False
 
-    _ATTR_NAME_MULT_LR = 'multiplierLr'
-    _ATTR_NAME_MULT_UD = 'multiplierUd'
-    _ATTR_NAME_MULT_FB = 'multiplierFb'
+    _ATTR_NAME_MULT_LR = "multiplierLr"
+    _ATTR_NAME_MULT_UD = "multiplierUd"
+    _ATTR_NAME_MULT_FB = "multiplierFb"
 
     def __init__(self, *args, **kwargs):
         super(AvarLinearModel, self).__init__(*args, **kwargs)
@@ -27,13 +28,11 @@ class AvarLinearModel(AvarInflBaseModel):
         nomenclature_rig = self.get_nomenclature_rig()
 
         grp_output = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('output'),
-            parent=self.grp_rig,
+            "transform", name=nomenclature_rig.resolve("output"), parent=self.grp_rig,
         )
 
         attr_get_t = libRigging.create_utility_node(
-            'multiplyDivide',
+            "multiplyDivide",
             input1X=self._attr_inn_lr,
             input1Y=self._attr_inn_ud,
             input1Z=self._attr_inn_fb,

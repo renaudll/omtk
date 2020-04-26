@@ -9,17 +9,17 @@ import inspect
 from omtk import constants
 from omtk.libs import libPython
 
-log = logging.getLogger('omtk')
+log = logging.getLogger("omtk")
 
 
 class PluginStatus:
-    Loaded = 'Loaded'
-    Unloaded = 'Unloaded'
-    Failed = 'Failed'
+    Loaded = "Loaded"
+    Unloaded = "Unloaded"
+    Failed = "Failed"
 
 
 class Plugin(object):
-    root_package_name = 'omtk'
+    root_package_name = "omtk"
 
     def __init__(self, module_name, type_name):
         self.name = module_name
@@ -43,7 +43,9 @@ class Plugin(object):
         self.description = None
 
         # Resolve full module path
-        module_path = '{0}.{1}.{2}'.format(self.root_package_name, self.type_name, self.module_name)
+        module_path = "{0}.{1}.{2}".format(
+            self.root_package_name, self.type_name, self.module_name
+        )
 
         try:
             # Load module using import_module before using pkgutil
@@ -60,22 +62,32 @@ class Plugin(object):
                 self.module = pkgutil.get_loader(module_path).load_module(module_path)
 
             # Ensure there is a register_plugin function
-            if not hasattr(self.module, 'register_plugin') or not hasattr(self.module.register_plugin, '__call__'):
-                raise Exception("Cannot register plugin {0}. No register_plugin function found!".format(
-                    self.module_name
-                ))
+            if not hasattr(self.module, "register_plugin") or not hasattr(
+                self.module.register_plugin, "__call__"
+            ):
+                raise Exception(
+                    "Cannot register plugin {0}. No register_plugin function found!".format(
+                        self.module_name
+                    )
+                )
 
             # Get module class
             self.cls = self.module.register_plugin()
             self.name = self.cls.__name__
             self.description = self.cls.__doc__
             if self.description:
-                self.description = next(iter(filter(None, self.description.split('\n'))), None)
+                self.description = next(
+                    iter(filter(None, self.description.split("\n"))), None
+                )
             self.status = PluginStatus.Loaded
         except Exception, e:
             self.status = PluginStatus.Failed
             self.description = str(e)
-            log.warning("Plugin {0} failed to load! {0}".format(self.module_name, self.description))
+            log.warning(
+                "Plugin {0} failed to load! {0}".format(
+                    self.module_name, self.description
+                )
+            )
 
     @classmethod
     def from_module(cls, name, type_name):
@@ -92,7 +104,9 @@ class Plugin(object):
         elif inspect.ismodule(item):
             item_module = item
         else:
-            raise NotImplementedError("Unexpected type {0} for value {1}.".format(type(item), item))
+            raise NotImplementedError(
+                "Unexpected type {0} for value {1}.".format(type(item), item)
+            )
 
         # If there's no associated module, we deduct that it cannot be contained.
         if item.module is None:
@@ -136,8 +150,8 @@ class PluginType(object):
         if not self.type_name:
             raise Exception("Please subclass Plugin before loading.")
 
-        root_package_name = 'omtk'
-        package_name = root_package_name + '.' + self.type_name
+        root_package_name = "omtk"
+        package_name = root_package_name + "." + self.type_name
         # log.debug("Checking {0}".format(package_name))
 
         # Prevent reloading (for now)
@@ -173,7 +187,9 @@ class PluginManager(object):
 
     def iter_loaded_plugins_by_type(self, type_name):
         def fn_filter(plugin):
-            return plugin.status == PluginStatus.Loaded and plugin.type_name == type_name
+            return (
+                plugin.status == PluginStatus.Loaded and plugin.type_name == type_name
+            )
 
         for plugin in self.iter_plugins(key=fn_filter):
             yield plugin
@@ -253,13 +269,13 @@ class PluginManager(object):
     #     return sorted(result)
 
     def get_summary(self):
-        header_row = ('TYPE', 'NAME', 'DESC', 'STATUS')
+        header_row = ("TYPE", "NAME", "DESC", "STATUS")
 
         # Build rows
         rows = []
         for plugin in self.get_plugins():
             rows.append(
-                (plugin.type_name, plugin.name, plugin.description or '', plugin.status)
+                (plugin.type_name, plugin.name, plugin.description or "", plugin.status)
             )
         rows = sorted(rows)
 
@@ -271,28 +287,33 @@ class PluginManager(object):
             column_widths.append(width)
 
         # Print rows
-        format_str = '| {0} |'.format(
-            ' | '.join('{{{0}:{1}}}'.format(i, width) for i, width in enumerate(column_widths)))
+        format_str = "| {0} |".format(
+            " | ".join(
+                "{{{0}:{1}}}".format(i, width) for i, width in enumerate(column_widths)
+            )
+        )
         print(format_str.format(*header_row))
         for row in rows:
             print(format_str.format(*row))
 
 
 class ModulePluginType(PluginType):
-    type_name = 'modules'
+    type_name = "modules"
 
 
 class RigPluginType(PluginType):
-    type_name = 'rigs'
+    type_name = "rigs"
 
 
 class MacroPluginType(PluginType):
-    type_name = 'macros'
+    type_name = "macros"
 
 
 def initialize():
     # Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
-    plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, '').split(os.pathsep)
+    plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, "").split(
+        os.pathsep
+    )
     plugin_dirs = filter(None, plugin_dirs)
     for path in plugin_dirs:
         if path not in sys.path:

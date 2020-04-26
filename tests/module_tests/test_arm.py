@@ -13,7 +13,7 @@ def arm_without_parent():
     """
     Create a scene with an arm.
     """
-    names = ['jnt_upperarm_l', 'jnt_forearm_l', 'jnt_hand_l']
+    names = ["jnt_upperarm_l", "jnt_forearm_l", "jnt_hand_l"]
     positions = [[0, 0, 0], [3, 0, -2], [6, 0, 0]]
     jnts = [pymel.joint(name=name, position=pos) for name, pos in zip(names, positions)]
     libRigging.align_joints_to_direction(jnts, [0, 0, -1])

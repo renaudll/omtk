@@ -14,16 +14,23 @@ def _get_module_networks_from_selection(module_name):
     """
 
     def fn_skip(network):
-        return libSerialization.is_network_from_class(network, 'Rig')
+        return libSerialization.is_network_from_class(network, "Rig")
 
     def fn_key(network):
         return libSerialization.is_network_from_class(network, module_name)
 
     sel = pymel.selected()
-    networks = libSerialization.get_connected_networks(sel, recursive=True, key=fn_key, key_skip=fn_skip)
+    networks = libSerialization.get_connected_networks(
+        sel, recursive=True, key=fn_key, key_skip=fn_skip
+    )
 
-    modules = [libSerialization.import_network(network, fn_skip=fn_skip) for network in networks]
-    modules = filter(None, modules)  # Filter any invalid networks that libSerialization doesn't protect us from.
+    modules = [
+        libSerialization.import_network(network, fn_skip=fn_skip)
+        for network in networks
+    ]
+    modules = filter(
+        None, modules
+    )  # Filter any invalid networks that libSerialization doesn't protect us from.
     return modules
 
 
@@ -35,16 +42,20 @@ def _call_on_networks_by_class(fn_name, module_name):
             logging.warning("Can't find attribute {0} in {1}".format(fn_name, module))
             continue
         fn = getattr(module, fn_name)
-        if not hasattr(fn, '__call__'):
-            logging.warning("Can't execute {0} in {1}, not callable!".format(fn_name, module))
+        if not hasattr(fn, "__call__"):
+            logging.warning(
+                "Can't execute {0} in {1}, not callable!".format(fn_name, module)
+            )
             continue
 
         # Execute function
         try:
             fn()
         except Exception, e:
-            logging.warning("Error excecuting {0} in {1}! {2}".format(fn_name, module, str(e)))
+            logging.warning(
+                "Error excecuting {0} in {1}! {2}".format(fn_name, module, str(e))
+            )
 
 
-switchToIk = functools.partial(_call_on_networks_by_class, 'switch_to_ik', 'Limb')
-switchToFk = functools.partial(_call_on_networks_by_class, 'switch_to_fk', 'Limb')
+switchToIk = functools.partial(_call_on_networks_by_class, "switch_to_ik", "Limb")
+switchToFk = functools.partial(_call_on_networks_by_class, "switch_to_fk", "Limb")

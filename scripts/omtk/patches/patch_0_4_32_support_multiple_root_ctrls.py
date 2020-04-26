@@ -15,7 +15,7 @@ def _get_ctrl_model_parent_grp(ctrl_model):
     if ctrl_model and ctrl_model.is_built():
         grp_rig = ctrl_model.grp_rig
         for child in grp_rig.getChildren():
-            if '_parent' in child.nodeName().lower():
+            if "_parent" in child.nodeName().lower():
                 return child
 
 
@@ -26,7 +26,9 @@ def _grp_parent_need_fix(grp_parent):
 
 
 def _patch_grp_parent(grp_parent, rig):
-    u = libRigging.create_utility_node('decomposeMatrix', inputMatrix=rig.grp_anm.worldMatrix)
+    u = libRigging.create_utility_node(
+        "decomposeMatrix", inputMatrix=rig.grp_anm.worldMatrix
+    )
     pymel.connectAttr(u.outputTranslate, grp_parent.translate, force=True)
     pymel.connectAttr(u.outputRotate, grp_parent.rotate, force=True)
     pymel.connectAttr(u.outputScale, grp_parent.scale, force=True)
@@ -37,9 +39,14 @@ def _iter_all_ctrl_models():
     for rig in rigs:
         for module in rig.modules:
             if isinstance(module, rigFaceAvarGrps.AvarGrp) and module.get_version() < (
-            0, 4, 32):  # AvarGrp contain avars
+                0,
+                4,
+                32,
+            ):  # AvarGrp contain avars
                 for avar in module._iter_all_avars():
-                    if isinstance(avar, rigFaceAvar.AvarSimple):  # AvarSimple introduced the ctrl_model attribute
+                    if isinstance(
+                        avar, rigFaceAvar.AvarSimple
+                    ):  # AvarSimple introduced the ctrl_model attribute
                         ctrl_model = avar.model_ctrl
                         if isinstance(ctrl_model, model_ctrl_linear.ModelCtrlLinear):
                             yield rig, ctrl_model
@@ -54,4 +61,3 @@ def run():
         if _grp_parent_need_fix(grp_parent):
             logging.info("Patching {0}".format(grp_parent))
             _patch_grp_parent(grp_parent, rig)
-

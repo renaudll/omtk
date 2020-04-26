@@ -9,7 +9,7 @@ from omtk.libs import libAttr
 from omtk.libs import libPymel
 from omtk.libs import libRigging
 
-log = logging.getLogger('omtk')
+log = logging.getLogger("omtk")
 
 
 class BaseCtrl(Node):
@@ -73,11 +73,17 @@ class BaseCtrl(Node):
         self.node = None
         self.rotateOrder = None  # Keep the axis order information on unbuild
 
-        self.targets = []  # A list representing all the space switch target for the ctrl
-        self.targets_indexes = []  # A list representing all the space switch target indexes for the ctrl
+        self.targets = (
+            []
+        )  # A list representing all the space switch target for the ctrl
+        self.targets_indexes = (
+            []
+        )  # A list representing all the space switch target indexes for the ctrl
         # We need to keep the local index separately because self referencing break maya deletion mechanism (*%&?%*&)
         self.local_index = constants.SpaceSwitchReservedIndex.local
-        self._reserved_index = []  # A list representing all the index already reserved for the space switch target
+        self._reserved_index = (
+            []
+        )  # A list representing all the index already reserved for the space switch target
 
         super(BaseCtrl, self).__init__(create=create, *args, **kwargs)
 
@@ -90,15 +96,31 @@ class BaseCtrl(Node):
         return self.offset
     '''
 
-    def _get_recommended_size(self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs):
+    def _get_recommended_size(
+        self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs
+    ):
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if ref is not None:
-            return libRigging.get_recommended_ctrl_size(ref, geometries=geometries, **kwargs) * multiplier
+            return (
+                libRigging.get_recommended_ctrl_size(
+                    ref, geometries=geometries, **kwargs
+                )
+                * multiplier
+            )
         else:
             return default_size * multiplier
 
-    def __createNode__(self, size=None, normal=(1, 0, 0), multiplier=1.0, refs=None, offset=None, geometries=None,
-                       *args, **kwargs):
+    def __createNode__(
+        self,
+        size=None,
+        normal=(1, 0, 0),
+        multiplier=1.0,
+        refs=None,
+        offset=None,
+        geometries=None,
+        *args,
+        **kwargs
+    ):
         """
         Create a simple circle nurbsCurve.
         size: The maximum dimension of the controller.
@@ -131,7 +153,7 @@ class BaseCtrl(Node):
         """
         # TODO: Add support for multiple shapes?
         if self.can_fetch_shapes():
-            self.node = pymel.createNode('transform')
+            self.node = pymel.createNode("transform")
             self.fetch_shapes()
         else:
             super(BaseCtrl, self).build(name=None, *args, **kwargs)
@@ -145,7 +167,7 @@ class BaseCtrl(Node):
 
         # Create an intermediate parent if necessary
         if self._create_offset:
-            self.offset = self.append_layer('offset')
+            self.offset = self.append_layer("offset")
 
         # Fetch stored animations
         # Disabled for now, see method docstring.
@@ -158,15 +180,15 @@ class BaseCtrl(Node):
 
     def restore_bind_pose(self):
         val_by_att_names = {
-            'translateX': 0,
-            'translateY': 0,
-            'translateZ': 0,
-            'rotateX': 0,
-            'rotateY': 0,
-            'rotateZ': 0,
-            'scaleX': 1,
-            'scaleY': 1,
-            'scaleZ': 1
+            "translateX": 0,
+            "translateY": 0,
+            "translateZ": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "scaleZ": 1,
         }
         for attr_name, val in val_by_att_names.iteritems():
             if not self.node.hasAttr(attr_name):
@@ -193,24 +215,84 @@ class BaseCtrl(Node):
 
     def hold_transform_limits(self):
         """Store internally any limits set on the controller."""
-        self.minTransXLimit = self.node.minTransXLimit.get() if self.node.minTransXLimitEnable.get() else None
-        self.maxTransXLimit = self.node.maxTransXLimit.get() if self.node.maxTransXLimitEnable.get() else None
-        self.minTransYLimit = self.node.minTransYLimit.get() if self.node.minTransYLimitEnable.get() else None
-        self.maxTransYLimit = self.node.maxTransYLimit.get() if self.node.maxTransYLimitEnable.get() else None
-        self.minTransZLimit = self.node.minTransZLimit.get() if self.node.minTransZLimitEnable.get() else None
-        self.maxTransZLimit = self.node.maxTransZLimit.get() if self.node.maxTransZLimitEnable.get() else None
-        self.minRotXLimit = self.node.minRotXLimit.get() if self.node.minRotXLimitEnable.get() else None
-        self.maxRotXLimit = self.node.maxRotXLimit.get() if self.node.maxRotXLimitEnable.get() else None
-        self.minRotYLimit = self.node.minRotYLimit.get() if self.node.minRotYLimitEnable.get() else None
-        self.maxRotYLimit = self.node.maxRotYLimit.get() if self.node.maxRotYLimitEnable.get() else None
-        self.minRotZLimit = self.node.minRotZLimit.get() if self.node.minRotZLimitEnable.get() else None
-        self.maxRotZLimit = self.node.maxRotZLimit.get() if self.node.maxRotZLimitEnable.get() else None
-        self.minScaleXLimit = self.node.minScaleXLimit.get() if self.node.minScaleXLimitEnable.get() else None
-        self.maxScaleXLimit = self.node.maxScaleXLimit.get() if self.node.maxScaleXLimitEnable.get() else None
-        self.minScaleYLimit = self.node.minScaleYLimit.get() if self.node.minScaleYLimitEnable.get() else None
-        self.maxScaleYLimit = self.node.maxScaleYLimit.get() if self.node.maxScaleYLimitEnable.get() else None
-        self.minScaleZLimit = self.node.minScaleZLimit.get() if self.node.minScaleZLimitEnable.get() else None
-        self.maxScaleZLimit = self.node.maxScaleZLimit.get() if self.node.maxScaleZLimitEnable.get() else None
+        self.minTransXLimit = (
+            self.node.minTransXLimit.get()
+            if self.node.minTransXLimitEnable.get()
+            else None
+        )
+        self.maxTransXLimit = (
+            self.node.maxTransXLimit.get()
+            if self.node.maxTransXLimitEnable.get()
+            else None
+        )
+        self.minTransYLimit = (
+            self.node.minTransYLimit.get()
+            if self.node.minTransYLimitEnable.get()
+            else None
+        )
+        self.maxTransYLimit = (
+            self.node.maxTransYLimit.get()
+            if self.node.maxTransYLimitEnable.get()
+            else None
+        )
+        self.minTransZLimit = (
+            self.node.minTransZLimit.get()
+            if self.node.minTransZLimitEnable.get()
+            else None
+        )
+        self.maxTransZLimit = (
+            self.node.maxTransZLimit.get()
+            if self.node.maxTransZLimitEnable.get()
+            else None
+        )
+        self.minRotXLimit = (
+            self.node.minRotXLimit.get() if self.node.minRotXLimitEnable.get() else None
+        )
+        self.maxRotXLimit = (
+            self.node.maxRotXLimit.get() if self.node.maxRotXLimitEnable.get() else None
+        )
+        self.minRotYLimit = (
+            self.node.minRotYLimit.get() if self.node.minRotYLimitEnable.get() else None
+        )
+        self.maxRotYLimit = (
+            self.node.maxRotYLimit.get() if self.node.maxRotYLimitEnable.get() else None
+        )
+        self.minRotZLimit = (
+            self.node.minRotZLimit.get() if self.node.minRotZLimitEnable.get() else None
+        )
+        self.maxRotZLimit = (
+            self.node.maxRotZLimit.get() if self.node.maxRotZLimitEnable.get() else None
+        )
+        self.minScaleXLimit = (
+            self.node.minScaleXLimit.get()
+            if self.node.minScaleXLimitEnable.get()
+            else None
+        )
+        self.maxScaleXLimit = (
+            self.node.maxScaleXLimit.get()
+            if self.node.maxScaleXLimitEnable.get()
+            else None
+        )
+        self.minScaleYLimit = (
+            self.node.minScaleYLimit.get()
+            if self.node.minScaleYLimitEnable.get()
+            else None
+        )
+        self.maxScaleYLimit = (
+            self.node.maxScaleYLimit.get()
+            if self.node.maxScaleYLimitEnable.get()
+            else None
+        )
+        self.minScaleZLimit = (
+            self.node.minScaleZLimit.get()
+            if self.node.minScaleZLimitEnable.get()
+            else None
+        )
+        self.maxScaleZLimit = (
+            self.node.maxScaleZLimit.get()
+            if self.node.maxScaleZLimitEnable.get()
+            else None
+        )
 
     def fetch_transform_limits(self):
         self.node.minTransXLimitEnable.set(self.minTransXLimit is not None)
@@ -273,7 +355,11 @@ class BaseCtrl(Node):
         Delete ctrl setup, but store the animation, shapes and rotate order0.
         """
         if not libPymel.is_valid_PyNode(self.node):
-            raise Exception("Can't hold ctrl attribute! Some information may be lost... {0}".format(self.node))
+            raise Exception(
+                "Can't hold ctrl attribute! Some information may be lost... {0}".format(
+                    self.node
+                )
+            )
         else:
             self.rotateOrder = self.node.rotateOrder.get()
             self.hold_attrs_all()
@@ -294,7 +380,7 @@ class BaseCtrl(Node):
         if self.node is not None:
             self.node.rename(_sName, *args, **kwargs)
         if self.offset is not None:
-            self.offset.rename(_sName + '_offset')
+            self.offset.rename(_sName + "_offset")
 
     def setParent(self, *args, **kwargs):
         """
@@ -302,7 +388,9 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute, node will be parented instead".format(self)
+            print "[setParent] {0} don't have an offset attribute, node will be parented instead".format(
+                self
+            )
             return self.node.setParent(*args, **kwargs)
         return self.offset.setParent(*args, **kwargs)
 
@@ -381,8 +469,11 @@ class BaseCtrl(Node):
 
         # Populate a list that represent all index already in use in the system
         if not self._reserved_index:
-            self._reserved_index = [member[1] for member in inspect.getmembers(constants.SpaceSwitchReservedIndex)
-                                    if not member[0].startswith("__") and not member[0].endswith("__")]
+            self._reserved_index = [
+                member[1]
+                for member in inspect.getmembers(constants.SpaceSwitchReservedIndex)
+                if not member[0].startswith("__") and not member[0].endswith("__")
+            ]
             if self.local_index not in self._reserved_index:
                 self._reserved_index.append(self.local_index)
 
@@ -406,14 +497,24 @@ class BaseCtrl(Node):
         # Since reserved index are always negative, we know that the first possible index is 0
         for i in xrange(0, new_max_idx + 1):
             if i not in self._reserved_index:
-                self._reserved_index.append(i)  # Hack the reserved target list to include the new used index
+                self._reserved_index.append(
+                    i
+                )  # Hack the reserved target list to include the new used index
                 return i
 
         # Finally, if no index is still found, return the next possible one in the list
         return new_max_idx
 
-    def create_spaceswitch(self, module, parent, add_local=True, local_label=None, local_target=None, add_world=False,
-                           **kwargs):
+    def create_spaceswitch(
+        self,
+        module,
+        parent,
+        add_local=True,
+        local_label=None,
+        local_target=None,
+        add_world=False,
+        **kwargs
+    ):
         """
         Create the space switch attribute on the controller using a list of target found from it's module hierarchy.
         :param module: The module on which we want to process space switch targets
@@ -432,14 +533,19 @@ class BaseCtrl(Node):
         # - targets: Contain the space switch targets.
         # - labels: Contain the visible text for each targets
         # - indexes: Contain the stored logical index for each targets. Note that some indexes are reserved.
-        targets, labels, indexes = self.get_spaceswitch_targets(module, parent,
-                                                                add_world=add_world, add_local=add_local)
+        targets, labels, indexes = self.get_spaceswitch_targets(
+            module, parent, add_world=add_world, add_local=add_local
+        )
         if not targets:
-            module.warning("Can't add space switch on {0}. No targets found!".format(self.node.__melobject__()))
+            module.warning(
+                "Can't add space switch on {0}. No targets found!".format(
+                    self.node.__melobject__()
+                )
+            )
             return
 
         if local_label is None:
-            local_label = 'Local'
+            local_label = "Local"
 
         # Resolve the niceName of the targets
         for i in range(len(targets)):
@@ -475,8 +581,7 @@ class BaseCtrl(Node):
                 indexes.append(constants.SpaceSwitchReservedIndex.local)
                 labels.append(local_label)
             else:
-                enum_string += local_label + "=" + \
-                               str(self.local_index)
+                enum_string += local_label + "=" + str(self.local_index)
 
         # The enum string will skip index if needed
         for label, index in zip(labels, indexes):
@@ -489,26 +594,32 @@ class BaseCtrl(Node):
             if target not in self.targets:
                 self.targets.append(target)
                 if indexes[i] in self.targets_indexes:
-                    log.warning("Index ({0}) is already used for space switch on ctrl {1}. "
-                                "Strange behavior could happen".format(indexes[i], self.name()))
+                    log.warning(
+                        "Index ({0}) is already used for space switch on ctrl {1}. "
+                        "Strange behavior could happen".format(indexes[i], self.name())
+                    )
                 self.targets_indexes.append(indexes[i])
 
         # Create the parent constraint before adding the local since local target will be set to itself
         # to keep a serialized link to the local target
-        layer_space_switch = self.append_layer('spaceSwitch')
-        parent_constraint = pymel.parentConstraint(targets, layer_space_switch, maintainOffset=True, **kwargs)
+        layer_space_switch = self.append_layer("spaceSwitch")
+        parent_constraint = pymel.parentConstraint(
+            targets, layer_space_switch, maintainOffset=True, **kwargs
+        )
 
-        attr_space = libAttr.addAttr(self.node, 'space', at='enum', enumName=enum_string, k=True)
+        attr_space = libAttr.addAttr(
+            self.node, "space", at="enum", enumName=enum_string, k=True
+        )
         atts_weights = parent_constraint.getWeightAliasList()
 
         for i, att_weight in enumerate(atts_weights):
             index_to_match = indexes[i]
             att_enabled = libRigging.create_utility_node(  # Equal
-                'condition',
+                "condition",
                 firstTerm=attr_space,
                 secondTerm=index_to_match,
                 colorIfTrueR=1,
-                colorIfFalseR=0
+                colorIfFalseR=0,
             ).outColorR
             pymel.connectAttr(att_enabled, att_weight)
 
@@ -530,8 +641,17 @@ class BaseCtrl(Node):
         parent_constraint.restRotateY.set(0)
         parent_constraint.restRotateZ.set(0)
 
-    def get_spaceswitch_targets(self, module, jnt, add_world=True, add_root=True, add_local=True,
-                                root_name='Root', world_name='World', **kwargs):
+    def get_spaceswitch_targets(
+        self,
+        module,
+        jnt,
+        add_world=True,
+        add_root=True,
+        add_local=True,
+        root_name="Root",
+        world_name="World",
+        **kwargs
+    ):
         """
         Return the list of target used by the space switch of a controller. It will try get all module pin location it
         can find from it's jnt parameter
@@ -560,7 +680,11 @@ class BaseCtrl(Node):
             if module.rig.grp_rig not in targets:
                 targets.append(module.rig.grp_rig)
                 # World will always be -1
-                indexes.append(self.get_bestmatch_index(module.rig.grp_rig, constants.SpaceSwitchReservedIndex.world))
+                indexes.append(
+                    self.get_bestmatch_index(
+                        module.rig.grp_rig, constants.SpaceSwitchReservedIndex.world
+                    )
+                )
                 target_names.append(world_name)
             else:
                 idx = targets.index(module.rig.grp_rig)
@@ -572,7 +696,11 @@ class BaseCtrl(Node):
                 targets.append(module.rig.grp_anm)
                 target_names.append(root_name)
                 # The root will always be index 1, because we want to let local to be 0
-                indexes.append(self.get_bestmatch_index(module.rig.grp_anm, constants.SpaceSwitchReservedIndex.root))
+                indexes.append(
+                    self.get_bestmatch_index(
+                        module.rig.grp_anm, constants.SpaceSwitchReservedIndex.root
+                    )
+                )
             else:
                 idx = targets.index(module.rig.grp_anm)
                 target_names[idx] = root_name
@@ -602,8 +730,12 @@ class BaseCtrl(Node):
         # index in the space attribute to be free to fix manually
         for i, t in reversed(list(enumerate(targets))):
             if t is None:
-                log.warning("Space switch index {0} target is None on {1}, "
-                            "maybe a manual connection will be needed".format(indexes[i], self.name))
+                log.warning(
+                    "Space switch index {0} target is None on {1}, "
+                    "maybe a manual connection will be needed".format(
+                        indexes[i], self.name
+                    )
+                )
                 targets.pop(i)
                 target_names.pop(i)
                 indexes.pop(i)
@@ -615,7 +747,7 @@ class BaseCtrl(Node):
         Return a dictionnary representing the enum space switch attribute data (space name, index and object)
         :return: A dictionary representing the data of the space switch style [index] = (name, target_obj)
         """
-        space_attr = getattr(self.node, 'space', None)
+        space_attr = getattr(self.node, "space", None)
         dict_sw_data = {}
 
         # log.info("Processing {0}".format(self.node))
@@ -624,7 +756,9 @@ class BaseCtrl(Node):
             enum_items = space_attr.getEnums().items()
             enum_items.sort(key=lambda tup: tup[1])
 
-            all_enum_connections = [con for con in space_attr.listConnections(d=True, s=False)]
+            all_enum_connections = [
+                con for con in space_attr.listConnections(d=True, s=False)
+            ]
             for name, index in enum_items:
                 target_found = False
                 for con in all_enum_connections:
@@ -633,13 +767,20 @@ class BaseCtrl(Node):
                         out_connections = con.outColorR.listConnections(d=True, s=False)
                         if out_connections:
                             const = out_connections[0]
-                            const_target_weight_attr = con.outColorR.listConnections(d=True, s=False, p=True)[0] \
-                                .listConnections(d=True, s=False, p=True)
+                            const_target_weight_attr = con.outColorR.listConnections(
+                                d=True, s=False, p=True
+                            )[0].listConnections(d=True, s=False, p=True)
                             for target in const.target:
-                                const_target_name = const_target_weight_attr[0].name(fullDagPath=True)
+                                const_target_name = const_target_weight_attr[0].name(
+                                    fullDagPath=True
+                                )
                                 target_name = target.targetWeight.name(fullDagPath=True)
                                 if target_name == const_target_name:
-                                    target_obj = target.targetParentMatrix.listConnections(s=True)[0]
+                                    target_obj = target.targetParentMatrix.listConnections(
+                                        s=True
+                                    )[
+                                        0
+                                    ]
                                     dict_sw_data[index] = (name, target_obj)
                 if not target_found:
                     dict_sw_data[index] = (name, None)

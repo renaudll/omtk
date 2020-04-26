@@ -31,18 +31,24 @@ def list_from_MMatrix(m):
         m(3, 0),
         m(3, 1),
         m(3, 2),
-        m(3, 3)
+        m(3, 3),
     ]
 
 
 def mirror_matrix_axis(m, axis):
     m_flip = OpenMaya.MMatrix()
     if axis == constants.Axis.x:
-        OpenMaya.MScriptUtil.createMatrixFromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip)
+        OpenMaya.MScriptUtil.createMatrixFromList(
+            [-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip
+        )
     elif axis == constants.Axis.y:
-        OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip)
+        OpenMaya.MScriptUtil.createMatrixFromList(
+            [1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip
+        )
     elif axis == constants.Axis.z:
-        OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], m_flip)
+        OpenMaya.MScriptUtil.createMatrixFromList(
+            [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], m_flip
+        )
     else:
         raise Exception("Unsupported axis. Got {0}".format(axis))
     m = m * m_flip
@@ -93,9 +99,9 @@ def flip_matrix_axis_rot(m, axis):
     return m
 
 
-def get_name_friend(obj_src_name, separator='_'):
-    tokens_side_l = ['l', 'L', 'lf', 'LF', 'left', 'Left']
-    tokens_side_r = ['r', 'R', 'rt', 'RT', 'right', 'Right']
+def get_name_friend(obj_src_name, separator="_"):
+    tokens_side_l = ["l", "L", "lf", "LF", "left", "Left"]
+    tokens_side_r = ["r", "R", "rt", "RT", "right", "Right"]
 
     # Resolve obj_dst_name
     tokens_src = obj_src_name.split(separator)
@@ -123,17 +129,25 @@ def get_ctrl_friend(obj_src):
         return None
 
     if not cmds.objExists(obj_dst_name):
-        print ("Can't find ctrl named {0}".format(obj_dst_name))
+        print("Can't find ctrl named {0}".format(obj_dst_name))
         return None
 
     return pymel.PyNode(obj_dst_name)
 
 
-def mirror_matrix(m,
-                  mirror_x=False, mirror_y=False, mirror_z=False,
-                  flip_pos_x=False, flip_pos_y=False, flip_pos_z=False,
-                  flip_rot_x=False, flip_rot_y=False, flip_rot_z=False,
-                  parent_ref=None):
+def mirror_matrix(
+    m,
+    mirror_x=False,
+    mirror_y=False,
+    mirror_z=False,
+    flip_pos_x=False,
+    flip_pos_y=False,
+    flip_pos_z=False,
+    flip_rot_x=False,
+    flip_rot_y=False,
+    flip_rot_z=False,
+    parent_ref=None,
+):
     """
     Mirror a pose using the local matrix and a flip vector.
     Note that you can store the flip vector in the BaseCtrl instance of each ctrls.
@@ -141,9 +155,12 @@ def mirror_matrix(m,
 
     # Mirror axis if necessary
     # Note that in 99.9% of case we only want to mirror one axis.
-    if (mirror_x or mirror_y or mirror_z) and not (flip_rot_x or flip_rot_y or flip_rot_z):
+    if (mirror_x or mirror_y or mirror_z) and not (
+        flip_rot_x or flip_rot_y or flip_rot_z
+    ):
         raise Exception(
-            "When mirroring, please at least flip one axis, otherwise you might end of with a right handed matrix!")
+            "When mirroring, please at least flip one axis, otherwise you might end of with a right handed matrix!"
+        )
     if mirror_x:
         m = mirror_matrix_axis(m, constants.Axis.x)
     if mirror_y:
@@ -171,23 +188,27 @@ def mirror_matrix(m,
 
 
 def get_obj_mirror_def(obj):
-    network_is_ctrl = lambda x: libSerialization.is_network_from_class(x, classCtrl.BaseCtrl.__name__.split('.')[-1])
-    networks = libSerialization.get_connected_networks([obj], key=network_is_ctrl, recursive=False)
+    network_is_ctrl = lambda x: libSerialization.is_network_from_class(
+        x, classCtrl.BaseCtrl.__name__.split(".")[-1]
+    )
+    networks = libSerialization.get_connected_networks(
+        [obj], key=network_is_ctrl, recursive=False
+    )
     network = next(iter(networks), None)
 
     if network:
         # HACK: We read the attributes directly
         try:
             return (
-                network.attr('mirror_x').get(),
-                network.attr('mirror_y').get(),
-                network.attr('mirror_z').get(),
-                network.attr('mirror_flip_pos_x').get(),
-                network.attr('mirror_flip_pos_y').get(),
-                network.attr('mirror_flip_pos_z').get(),
-                network.attr('mirror_flip_rot_x').get(),
-                network.attr('mirror_flip_rot_y').get(),
-                network.attr('mirror_flip_rot_z').get()
+                network.attr("mirror_x").get(),
+                network.attr("mirror_y").get(),
+                network.attr("mirror_z").get(),
+                network.attr("mirror_flip_pos_x").get(),
+                network.attr("mirror_flip_pos_y").get(),
+                network.attr("mirror_flip_pos_z").get(),
+                network.attr("mirror_flip_rot_x").get(),
+                network.attr("mirror_flip_rot_y").get(),
+                network.attr("mirror_flip_rot_z").get(),
             )
         except pymel.MayaAttributeError as e:
             print(str(e))
@@ -201,8 +222,10 @@ def get_obj_mirror_def(obj):
 def mirror_objs(objs):
     # Only work on transforms
     objs = filter(
-        lambda obj: isinstance(obj, pymel.nodetypes.Transform) and not isinstance(obj, pymel.nodetypes.Constraint),
-        objs)
+        lambda obj: isinstance(obj, pymel.nodetypes.Transform)
+        and not isinstance(obj, pymel.nodetypes.Constraint),
+        objs,
+    )
 
     # Resolve desired poses without affecting anything
     tms_by_objs = {}
@@ -230,5 +253,7 @@ def mirror_objs(objs):
         tm = tms_by_objs[mfn_transform_src]
         # HACK: Use cmds so undoes are working
         # mfn_transform_src.set(tm)
-        cmds.xform(mfn_transform_src.__melobject__(), matrix=list_from_MMatrix(tm.asMatrix()))
+        cmds.xform(
+            mfn_transform_src.__melobject__(), matrix=list_from_MMatrix(tm.asMatrix())
+        )
     cmds.undoInfo(closeChunk=True)

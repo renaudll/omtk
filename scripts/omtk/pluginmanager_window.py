@@ -10,7 +10,8 @@ class PluginListModel(QtCore.QAbstractTableModel):
     QTableModel that list attributes.
     # TODO: Benchmark pymel.Attribute vs lazy proxy class.
     """
-    HEADER = ('Name', 'Type', 'Status', 'Location', 'Description')
+
+    HEADER = ("Name", "Type", "Status", "Location", "Description")
 
     ROW_NAME = 0
     ROW_TYPE = 1
@@ -43,10 +44,10 @@ class PluginListModel(QtCore.QAbstractTableModel):
             elif col_index == self.ROW_STAT:
                 return plugin.status
             elif col_index == self.ROW_LOCA:
-                return plugin.module.__file__ if plugin.module else 'n/a'
+                return plugin.module.__file__ if plugin.module else "n/a"
             elif col_index == self.ROW_DESC:
                 return plugin.description
-            return ''
+            return ""
         elif role == QtCore.Qt.BackgroundColorRole:
             plugin = self.items[index.row()]
             if plugin.status == plugin_manager.PluginStatus.Failed:

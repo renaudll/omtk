@@ -83,9 +83,11 @@ class Hand(Module):
         for chain in self.chains:
             chain_length = len(chain)
             if chain_length > 5:
-                raise Exception("Unsupported chain length for {0}. Expected 4 or less, got {1}".format(
-                    chain, chain_length
-                ))
+                raise Exception(
+                    "Unsupported chain length for {0}. Expected 4 or less, got {1}".format(
+                        chain, chain_length
+                    )
+                )
 
     def build(self, *args, **kwargs):
         super(Hand, self).build(parent=False, *args, **kwargs)
@@ -130,15 +132,15 @@ class Hand(Module):
                 self.fk_sys_metacarpals[i] = None
             else:
                 sys_metacarpal = self.fk_sys_metacarpals[i]
-                sys_metacarpal = self.init_module(rigFK.FK, sys_metacarpal, inputs=jnts_metacarpal)
+                sys_metacarpal = self.init_module(
+                    rigFK.FK, sys_metacarpal, inputs=jnts_metacarpal
+                )
                 sys_metacarpal._FORCE_INPUT_NAME = True
                 self.fk_sys_metacarpals[i] = sys_metacarpal
 
             # Init finger module
             self.sysFingers[i] = self.init_module(
-                rigFKAdditive.AdditiveFK,
-                self.sysFingers[i],
-                inputs=jnts_phalanges
+                rigFKAdditive.AdditiveFK, self.sysFingers[i], inputs=jnts_phalanges
             )
 
         # Build modules
@@ -163,8 +165,8 @@ class Hand(Module):
         # Rig the 'cup' setup
         sys_metacarpals = filter(None, self.fk_sys_metacarpals)
         if len(sys_metacarpals) >= 2:
-            pos_inn = sys_metacarpals[0].ctrls[0].getTranslation(space='world')
-            pos_out = sys_metacarpals[-1].ctrls[0].getTranslation(space='world')
+            pos_inn = sys_metacarpals[0].ctrls[0].getTranslation(space="world")
+            pos_out = sys_metacarpals[-1].ctrls[0].getTranslation(space="world")
             pos_mid = ((pos_out - pos_inn) / 2.0) + pos_inn
 
             # Resolve the metacarpal plane orientation
@@ -177,37 +179,53 @@ class Hand(Module):
             y = x.cross(z)  # Ensure the up vector is orthogonal
             y.normalize()
             ref_tm = pymel.datatypes.Matrix(
-                z.x, z.y, z.z, 0.0,
-                y.x, y.y, y.z, 0.0,
-                x.x, x.y, x.z, 0.0,
-                pos_mid.x, pos_mid.y, pos_mid.z, 1.0
+                z.x,
+                z.y,
+                z.z,
+                0.0,
+                y.x,
+                y.y,
+                y.z,
+                0.0,
+                x.x,
+                x.y,
+                x.z,
+                0.0,
+                pos_mid.x,
+                pos_mid.y,
+                pos_mid.z,
+                1.0,
             )
-            rig_metacarpal_center = pymel.spaceLocator(name=nomenclature_rig.resolve('metacarpCenter'))
+            rig_metacarpal_center = pymel.spaceLocator(
+                name=nomenclature_rig.resolve("metacarpCenter")
+            )
             rig_metacarpal_center.setMatrix(ref_tm)
             rig_metacarpal_center.setParent(self.grp_rig)
-            pymel.parentConstraint(self.parent, rig_metacarpal_center, maintainOffset=True)
+            pymel.parentConstraint(
+                self.parent, rig_metacarpal_center, maintainOffset=True
+            )
 
             # Create the 'cup' attribute
             attr_holder = self.grp_anm
-            pymel.addAttr(attr_holder, longName='cup', keyable=True)
-            attr_cup = attr_holder.attr('cup')
+            pymel.addAttr(attr_holder, longName="cup", keyable=True)
+            attr_cup = attr_holder.attr("cup")
 
             for i, ctrl_metacarpal in enumerate(sys_metacarpals):
                 width = pos_inn.distanceTo(pos_out)
-                pos = ctrl_metacarpal.ctrls[0].getTranslation(space='world')
+                pos = ctrl_metacarpal.ctrls[0].getTranslation(space="world")
                 ratio = (pos - pos_inn).length() / width
 
                 grp_pivot_name = nomenclature_rig.resolve(
-                    ctrl_metacarpal.input[0].stripNamespace().nodeName() + '_pivot')
-                grp_pivot = pymel.createNode('transform', name=grp_pivot_name)
+                    ctrl_metacarpal.input[0].stripNamespace().nodeName() + "_pivot"
+                )
+                grp_pivot = pymel.createNode("transform", name=grp_pivot_name)
                 grp_pivot.setMatrix(ref_tm)
                 grp_pivot.setParent(rig_metacarpal_center)
 
                 multiplier = (ratio * 2.0) - 1.0
-                attr_rotate_x = libRigging.create_utility_node('multiplyDivide',
-                                                               input1X=attr_cup,
-                                                               input2X=multiplier,
-                                                               ).outputX
+                attr_rotate_x = libRigging.create_utility_node(
+                    "multiplyDivide", input1X=attr_cup, input2X=multiplier,
+                ).outputX
                 pymel.connectAttr(attr_rotate_x, grp_pivot.rotateY)
 
                 # jnt_phalange_inn = next(iter(jnt_metacarpal.getChildren()))
@@ -219,7 +237,9 @@ class Hand(Module):
                 # Note that the cup system worked with a partial parentConstraint.
                 # I've remove it since it was breaking things.
                 # TODO: Make it work again.
-                pymel.parentConstraint(grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True)
+                pymel.parentConstraint(
+                    grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True
+                )
 
                 # HACK: Override the phalanges rig parent
                 # sysFinger = metacarpals_sys[i]

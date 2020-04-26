@@ -9,6 +9,7 @@
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
+
 class Ui_OpenRiggingToolkit(object):
     def setupUi(self, OpenRiggingToolkit):
         OpenRiggingToolkit.setObjectName("OpenRiggingToolkit")
@@ -29,10 +30,14 @@ class Ui_OpenRiggingToolkit(object):
         self.label_modules.setObjectName("label_modules")
         self.verticalLayout.addWidget(self.label_modules)
         self.widget_modules = WidgetListModules(self.layoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.widget_modules.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.widget_modules.sizePolicy().hasHeightForWidth()
+        )
         self.widget_modules.setSizePolicy(sizePolicy)
         self.widget_modules.setObjectName("widget_modules")
         self.verticalLayout.addWidget(self.widget_modules)
@@ -45,7 +50,9 @@ class Ui_OpenRiggingToolkit(object):
         self.label_jnts.setObjectName("label_jnts")
         self.verticalLayout_2.addWidget(self.label_jnts)
         self.widget_jnts = WidgetListInfluences(self.layoutWidget1)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.widget_jnts.sizePolicy().hasHeightForWidth())
@@ -61,10 +68,14 @@ class Ui_OpenRiggingToolkit(object):
         self.label.setObjectName("label")
         self.verticalLayout_3.addWidget(self.label)
         self.widget_meshes = WidgetListMeshes(self.layoutWidget2)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.widget_meshes.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.widget_meshes.sizePolicy().hasHeightForWidth()
+        )
         self.widget_meshes.setSizePolicy(sizePolicy)
         self.widget_meshes.setObjectName("widget_meshes")
         self.verticalLayout_3.addWidget(self.widget_meshes)
@@ -95,10 +106,14 @@ class Ui_OpenRiggingToolkit(object):
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.widget_logger = WidgetLogger(self.dockWidgetContents)
         self.widget_logger.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.widget_logger.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.widget_logger.sizePolicy().hasHeightForWidth()
+        )
         self.widget_logger.setSizePolicy(sizePolicy)
         self.widget_logger.setObjectName("widget_logger")
         self.verticalLayout_4.addWidget(self.widget_logger)
@@ -119,7 +134,9 @@ class Ui_OpenRiggingToolkit(object):
         self.actionCreateModule = QtWidgets.QAction(OpenRiggingToolkit)
         self.actionCreateModule.setObjectName("actionCreateModule")
         self.actionAddSelectedInfluencesToModule = QtWidgets.QAction(OpenRiggingToolkit)
-        self.actionAddSelectedInfluencesToModule.setObjectName("actionAddSelectedInfluencesToModule")
+        self.actionAddSelectedInfluencesToModule.setObjectName(
+            "actionAddSelectedInfluencesToModule"
+        )
         self.actionRemoveNodeFromModule = QtWidgets.QAction(OpenRiggingToolkit)
         self.actionRemoveNodeFromModule.setObjectName("actionRemoveNodeFromModule")
         self.actionMirrorJntsLToR = QtWidgets.QAction(OpenRiggingToolkit)
@@ -133,7 +150,9 @@ class Ui_OpenRiggingToolkit(object):
         self.actionShowPreferences = QtWidgets.QAction(OpenRiggingToolkit)
         self.actionShowPreferences.setObjectName("actionShowPreferences")
         self.actionAddSelectedMeshesToModule = QtWidgets.QAction(OpenRiggingToolkit)
-        self.actionAddSelectedMeshesToModule.setObjectName("actionAddSelectedMeshesToModule")
+        self.actionAddSelectedMeshesToModule.setObjectName(
+            "actionAddSelectedMeshesToModule"
+        )
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addSeparator()
@@ -160,31 +179,82 @@ class Ui_OpenRiggingToolkit(object):
         QtCore.QMetaObject.connectSlotsByName(OpenRiggingToolkit)
 
     def retranslateUi(self, OpenRiggingToolkit):
-        OpenRiggingToolkit.setWindowTitle(QtCompat.translate("OpenRiggingToolkit", "Open Rigging Toolkit", None, -1))
-        self.label_modules.setText(QtCompat.translate("OpenRiggingToolkit", "Modules", None, -1))
-        self.label_jnts.setText(QtCompat.translate("OpenRiggingToolkit", "Influences", None, -1))
+        OpenRiggingToolkit.setWindowTitle(
+            QtCompat.translate("OpenRiggingToolkit", "Open Rigging Toolkit", None, -1)
+        )
+        self.label_modules.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Modules", None, -1)
+        )
+        self.label_jnts.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Influences", None, -1)
+        )
         self.label.setText(QtCompat.translate("OpenRiggingToolkit", "Meshes", None, -1))
-        self.menuFile.setTitle(QtCompat.translate("OpenRiggingToolkit", "File", None, -1))
+        self.menuFile.setTitle(
+            QtCompat.translate("OpenRiggingToolkit", "File", None, -1)
+        )
         self.menuRig.setTitle(QtCompat.translate("OpenRiggingToolkit", "Rig", None, -1))
-        self.menuJoint.setTitle(QtCompat.translate("OpenRiggingToolkit", "Modules", None, -1))
-        self.menuInfluences.setTitle(QtCompat.translate("OpenRiggingToolkit", "Influences", None, -1))
-        self.menuSettings.setTitle(QtCompat.translate("OpenRiggingToolkit", "Settings", None, -1))
-        self.actionUpdate.setText(QtCompat.translate("OpenRiggingToolkit", "Update All", None, -1))
-        self.actionUpdate.setToolTip(QtCompat.translate("OpenRiggingToolkit", "Update", None, -1))
-        self.actionImport.setText(QtCompat.translate("OpenRiggingToolkit", "Import", None, -1))
-        self.actionExport.setText(QtCompat.translate("OpenRiggingToolkit", "Export", None, -1))
-        self.actionBuildAll.setText(QtCompat.translate("OpenRiggingToolkit", "Build All", None, -1))
-        self.actionUnbuildAll.setText(QtCompat.translate("OpenRiggingToolkit", "Unbuild All", None, -1))
-        self.actionRebuildAll.setText(QtCompat.translate("OpenRiggingToolkit", "Rebuild All", None, -1))
-        self.actionCreateModule.setText(QtCompat.translate("OpenRiggingToolkit", "Create Module", None, -1))
-        self.actionAddSelectedInfluencesToModule.setText(QtCompat.translate("OpenRiggingToolkit", "Add Selected Influences to Module", None, -1))
-        self.actionRemoveNodeFromModule.setText(QtCompat.translate("OpenRiggingToolkit", "Remove Selection", None, -1))
-        self.actionMirrorJntsLToR.setText(QtCompat.translate("OpenRiggingToolkit", "Mirror L -> R", None, -1))
-        self.actionMirrorJntsRToL.setText(QtCompat.translate("OpenRiggingToolkit", "Mirror R -> L", None, -1))
-        self.actionMirrorSelection.setText(QtCompat.translate("OpenRiggingToolkit", "Mirror using Selection", None, -1))
-        self.actionShowPluginManager.setText(QtCompat.translate("OpenRiggingToolkit", "Plugin Manager", None, -1))
-        self.actionShowPreferences.setText(QtCompat.translate("OpenRiggingToolkit", "Preferences", None, -1))
-        self.actionAddSelectedMeshesToModule.setText(QtCompat.translate("OpenRiggingToolkit", "Add Selected Meshes to Module", None, -1))
+        self.menuJoint.setTitle(
+            QtCompat.translate("OpenRiggingToolkit", "Modules", None, -1)
+        )
+        self.menuInfluences.setTitle(
+            QtCompat.translate("OpenRiggingToolkit", "Influences", None, -1)
+        )
+        self.menuSettings.setTitle(
+            QtCompat.translate("OpenRiggingToolkit", "Settings", None, -1)
+        )
+        self.actionUpdate.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Update All", None, -1)
+        )
+        self.actionUpdate.setToolTip(
+            QtCompat.translate("OpenRiggingToolkit", "Update", None, -1)
+        )
+        self.actionImport.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Import", None, -1)
+        )
+        self.actionExport.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Export", None, -1)
+        )
+        self.actionBuildAll.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Build All", None, -1)
+        )
+        self.actionUnbuildAll.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Unbuild All", None, -1)
+        )
+        self.actionRebuildAll.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Rebuild All", None, -1)
+        )
+        self.actionCreateModule.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Create Module", None, -1)
+        )
+        self.actionAddSelectedInfluencesToModule.setText(
+            QtCompat.translate(
+                "OpenRiggingToolkit", "Add Selected Influences to Module", None, -1
+            )
+        )
+        self.actionRemoveNodeFromModule.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Remove Selection", None, -1)
+        )
+        self.actionMirrorJntsLToR.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Mirror L -> R", None, -1)
+        )
+        self.actionMirrorJntsRToL.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Mirror R -> L", None, -1)
+        )
+        self.actionMirrorSelection.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Mirror using Selection", None, -1)
+        )
+        self.actionShowPluginManager.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Plugin Manager", None, -1)
+        )
+        self.actionShowPreferences.setText(
+            QtCompat.translate("OpenRiggingToolkit", "Preferences", None, -1)
+        )
+        self.actionAddSelectedMeshesToModule.setText(
+            QtCompat.translate(
+                "OpenRiggingToolkit", "Add Selected Meshes to Module", None, -1
+            )
+        )
+
 
 from ..widget_logger import WidgetLogger
 from ..widget_list_modules import WidgetListModules

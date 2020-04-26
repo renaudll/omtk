@@ -6,6 +6,7 @@ class ModuleMap(Module):
     Define a Module that use a CtrlModel to control each inputs.
     # todo: Use this new class in the AvarGrp class!!!!!!
     """
+
     _CLS_CTRL_MODEL = None  # please redefine!
     _CLS_CTRL = None  # please redefine!
     DEFAULT_NAME_USE_FIRST_INPUT = True
@@ -35,13 +36,12 @@ class ModuleMap(Module):
         # Use existing model if possible.
         if not isinstance(model, cls_model):
             if model:
-                self.warning("Unexpected Model type for {0}. Expected {1}, got {2}.".format(
-                    model, cls_model.__name__, type(model).__name__
-                ))
-            model = cls_model(
-                inputs,
-                rig=self.rig
-            )
+                self.warning(
+                    "Unexpected Model type for {0}. Expected {1}, got {2}.".format(
+                        model, cls_model.__name__, type(model).__name__
+                    )
+                )
+            model = cls_model(inputs, rig=self.rig)
 
         # Hack: Ensure a model has a name.
         if not model.name:
@@ -90,20 +90,24 @@ class ModuleMap(Module):
         for model in self.models:
             self.build_model(model, **kwargs)
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, connect_global_scale=True,
-              parent=True, **model_kwargs):
+    def build(
+        self,
+        create_grp_anm=True,
+        create_grp_rig=True,
+        connect_global_scale=True,
+        parent=True,
+        **model_kwargs
+    ):
         super(ModuleMap, self).build(
             create_grp_anm=create_grp_anm,
             create_grp_rig=create_grp_rig,
             connect_global_scale=connect_global_scale,
-            parent=parent
+            parent=parent,
         )
 
         self.models = self.init_models()
 
-        self.build_models(
-            **model_kwargs
-        )
+        self.build_models(**model_kwargs)
 
     def unbuild(self, **kwargs):
         for model in self.models:

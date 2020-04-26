@@ -8,31 +8,33 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
-_PACKAGE_PATH = os.path.abspath(os.path.join(
-    os.path.dirname(__file__),  # /script/omtk/core/
-    '..',   # /script/omtk
-    '..',  # /script/
-    '..',  # /
-    'package.py',  # /package.py
-))
+_PACKAGE_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),  # /script/omtk/core/
+        "..",  # /script/omtk
+        "..",  # /script/
+        "..",  # /
+        "package.py",  # /package.py
+    )
+)
 
-log = logging.getLogger('omtk')
+log = logging.getLogger("omtk")
 log.setLevel(logging.DEBUG)
 
 __all__ = (
-    'get_version',
-    'create',
-    'find',
-    'find_one',
-    'build_all',
-    'unbuild_all',
-    'build_selected',
-    'unbuild_selected',
-    'calibrate_selected',
-    'build_modules_by_type',
-    'unbuild_modules_by_type',
-    'rebuild_modules_by_type',
-    'run_macro'
+    "get_version",
+    "create",
+    "find",
+    "find_one",
+    "build_all",
+    "unbuild_all",
+    "build_selected",
+    "unbuild_selected",
+    "calibrate_selected",
+    "build_modules_by_type",
+    "unbuild_modules_by_type",
+    "rebuild_modules_by_type",
+    "run_macro",
 )
 
 
@@ -46,7 +48,7 @@ def get_version():
     if not os.path.exists(_PACKAGE_PATH):
         raise Exception("Cannot find package file! {}".format(_PACKAGE_PATH))
     regex_getversion = re.compile(r'^version = [\'|"]*([0-9a-z.]*)[\'|"]$')
-    with open(_PACKAGE_PATH, 'r') as fp:
+    with open(_PACKAGE_PATH, "r") as fp:
         for line in fp:
             line = line.strip()
             match = regex_getversion.match(line)
@@ -57,6 +59,7 @@ def get_version():
 
 def create(*args, **kwargs):
     from omtk.core import preferences
+
     cls = preferences.preferences.get_default_rig_class()
     return cls(*args, **kwargs)
 
@@ -68,9 +71,13 @@ def find():
     from omtk.vendor import libSerialization
 
     # TODO: Find why when a scene is open for a long time, this function is slower
-    networks = libSerialization.get_networks_from_class('Rig')
-    results = [libSerialization.import_network(network, module='omtk') for network in networks]
-    results = filter(None, results)  # Prevent un-serializable networks from passing through.
+    networks = libSerialization.get_networks_from_class("Rig")
+    results = [
+        libSerialization.import_network(network, module="omtk") for network in networks
+    ]
+    results = filter(
+        None, results
+    )  # Prevent un-serializable networks from passing through.
     return results
 
 
@@ -82,7 +89,7 @@ def find_one():
 
 
 # @libPython.profiler
-@libPython.log_execution_time('build_all')
+@libPython.log_execution_time("build_all")
 def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
@@ -98,7 +105,7 @@ def build_all(strict=False):
 
 
 # @libPython.profiler
-@libPython.log_execution_time('unbuild_all')
+@libPython.log_execution_time("unbuild_all")
 def unbuild_all(strict=False):
     from omtk.vendor import libSerialization
 
@@ -141,7 +148,7 @@ def _get_modules_from_selection(sel=None):
             plug_node = plug.node()
             if not isinstance(plug_node, pymel.nodetypes.Network):
                 continue
-            if libSerialization.is_network_from_class(plug_node, 'Rig'):
+            if libSerialization.is_network_from_class(plug_node, "Rig"):
                 return plug_node
         return None
 
@@ -155,14 +162,16 @@ def _get_modules_from_selection(sel=None):
         return get_rig_network_from_module(network) is not None
 
     def fn_skip(network):
-        return libSerialization.is_network_from_class(network, 'Rig')
+        return libSerialization.is_network_from_class(network, "Rig")
 
     if sel is None:
         sel = pymel.selected()
 
     # Resolve the rig network from the selection
 
-    module_networks = libSerialization.get_connected_networks(sel, key=is_module_child_of_rig, key_skip=fn_skip)
+    module_networks = libSerialization.get_connected_networks(
+        sel, key=is_module_child_of_rig, key_skip=fn_skip
+    )
     if not module_networks:
         pymel.warning("Found no module related to selection.")
         return None, None
@@ -211,7 +220,7 @@ def build_selected(sel=None):
         rig.build(modules=modules)
 
         # Re-export network
-        if hasattr(rig, '_network'):
+        if hasattr(rig, "_network"):
             pymel.delete(rig._network)
         libSerialization.export_network(rig)
 
@@ -225,7 +234,7 @@ def build_modules_by_type(module_type):
         rig.build(modules=modules)
 
         # Re-export network
-        if hasattr(rig, '_network'):
+        if hasattr(rig, "_network"):
             pymel.delete(rig._network)
         libSerialization.export_network(rig)
 
@@ -240,7 +249,7 @@ def unbuild_modules_by_type(module_type):
             module.unbuild()
 
         # Re-export network
-        if hasattr(rig, '_network'):
+        if hasattr(rig, "_network"):
             pymel.delete(rig._network)
         libSerialization.export_network(rig)
 
@@ -258,7 +267,7 @@ def rebuild_modules_by_type(module_type):
         rig.build(modules=modules)
 
         # Re-export network
-        if hasattr(rig, '_network'):
+        if hasattr(rig, "_network"):
             pymel.delete(rig._network)
         libSerialization.export_network(rig)
 
@@ -280,7 +289,7 @@ def unbuild_selected(sel=None):
             module.unbuild()
 
         # Re-export network
-        if hasattr(rig, '_network'):
+        if hasattr(rig, "_network"):
             pymel.delete(rig._network)
         libSerialization.export_network(rig)
 
@@ -305,15 +314,18 @@ def calibrate_selected(sel=None):
     rig, modules = _get_modules_from_selection()
     # Build selected modules
     for module in modules:
-        if hasattr(module, 'calibrate') and hasattr(module.calibrate, '__call__'):
+        if hasattr(module, "calibrate") and hasattr(module.calibrate, "__call__"):
             module.calibrate()
 
 
 def _get_macro_by_name(macro_name):
     from omtk.core import plugin_manager
+
     pm = plugin_manager.plugin_manager
 
-    for macro in pm.iter_loaded_plugins_by_type(plugin_manager.MacroPluginType.type_name):
+    for macro in pm.iter_loaded_plugins_by_type(
+        plugin_manager.MacroPluginType.type_name
+    ):
         if macro.module_name == macro_name:
             return macro.cls()
 

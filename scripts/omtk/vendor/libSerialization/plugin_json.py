@@ -2,12 +2,7 @@ import os
 import json
 import core
 
-__all__ = (
-    'export_json',
-    'export_json_file',
-    'import_json',
-    'import_json_file'
-)
+__all__ = ("export_json", "export_json_file", "import_json", "import_json_file")
 
 #
 # Json Support
@@ -33,7 +28,7 @@ def export_json_file(data, path, mkdir=True, indent=4, **kwargs):
 
     data_dict = core.export_dict(data)
 
-    with open(path, 'w') as fp:
+    with open(path, "w") as fp:
         json.dump(data_dict, fp, indent=indent, **kwargs)
 
     return True
@@ -46,8 +41,10 @@ def import_json(str_, **kwargs):
 
 def import_json_file(path, **kwargs):
     if not os.path.exists(path):
-        raise Exception("Can't importFromJsonFile, file does not exist! {0}".format(path))
+        raise Exception(
+            "Can't importFromJsonFile, file does not exist! {0}".format(path)
+        )
 
-    with open(path, 'r') as fp:
+    with open(path, "r") as fp:
         data = json.load(fp, **kwargs)
         return core.import_dict(data)

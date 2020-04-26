@@ -9,6 +9,7 @@ class MetadataType:
     """
     Used to quickly determine what metadata have been monkey-patched to a QWidget.
     """
+
     Rig = 0
     Module = 1
     Influence = 2
@@ -17,8 +18,7 @@ class MetadataType:
 
 # http://forums.cgsociety.org/archive/index.php?t-1096914.html
 # Use the intern maya ressources icon
-_STYLE_SHEET = \
-    """
+_STYLE_SHEET = """
 
       QTreeView::item::selected
       {

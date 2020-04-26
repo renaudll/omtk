@@ -7,11 +7,11 @@ from omtk.libs import libRigging
 
 class CtrlFk(BaseCtrl):
     def __createNode__(self, *args, **kwargs):
-        '''
+        """
         if 'shoulder' in name.lower():
             node = libCtrlShapes.create_shape_double_needle(size=size*0.04, normal=(0, 0, 1), *args, **kwargs)
         else:
-        '''
+        """
         node = super(CtrlFk, self).__createNode__(multiplier=1.1, *args, **kwargs)
 
         make = next(iter(node.inputs()), None)
@@ -39,9 +39,12 @@ class FK(Module):
     jnt_forearm_l  -> ctrl_arm_02_l
     ex:
     """
+
     DEFAULT_NAME_USE_FIRST_INPUT = True
     _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name.
-    _FORCE_INPUT_NAME = False  # Force using the name of the input in the name of the ctrl
+    _FORCE_INPUT_NAME = (
+        False  # Force using the name of the input in the name of the ctrl
+    )
     # Otherwise they will use their associated input name.
     _CLS_CTRL = CtrlFk
 
@@ -66,7 +69,15 @@ class FK(Module):
             pass
         super(FK, self).__callbackNetworkPostBuild__()
 
-    def build(self, constraint=True, parent=True, create_grp_anm=True, create_grp_rig=False, *args, **kwargs):
+    def build(
+        self,
+        constraint=True,
+        parent=True,
+        create_grp_anm=True,
+        create_grp_rig=False,
+        *args,
+        **kwargs
+    ):
         super(FK, self).build(create_grp_rig=create_grp_rig, *args, **kwargs)
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
@@ -80,18 +91,22 @@ class FK(Module):
             # Build chain ctrls
             chain_ctrls = []
             for j, jnt in enumerate(chain):
-                jnt_index = self.jnts.index(jnt)  # todo: optimize performance by created a map?
+                jnt_index = self.jnts.index(
+                    jnt
+                )  # todo: optimize performance by created a map?
                 ctrl = self.ctrls[jnt_index]
                 chain_ctrls.append(ctrl)
 
                 # Resolve ctrl name.
                 # TODO: Validate with multiple chains
-                nomenclature = nomenclature_anm + self.rig.nomenclature(jnt.stripNamespace().nodeName())
+                nomenclature = nomenclature_anm + self.rig.nomenclature(
+                    jnt.stripNamespace().nodeName()
+                )
                 if not self._FORCE_INPUT_NAME:
                     if len(self.jnts) == 1 and len(self.chains) == 1:
                         ctrl_name = nomenclature_anm.resolve()
                     elif len(self.chains) == 1 or self._NAME_CTRL_ENUMERATE:
-                        ctrl_name = nomenclature_anm.resolve('{0:02d}'.format(j))
+                        ctrl_name = nomenclature_anm.resolve("{0:02d}".format(j))
                     else:
                         ctrl_name = nomenclature.resolve()
                 else:
@@ -106,7 +121,12 @@ class FK(Module):
                         if self.sw_translate:
                             ctrl.create_spaceswitch(self, self.parent, add_world=True)
                         else:
-                            ctrl.create_spaceswitch(self, self.parent, skipTranslate=['x', 'y', 'z'], add_world=True)
+                            ctrl.create_spaceswitch(
+                                self,
+                                self.parent,
+                                skipTranslate=["x", "y", "z"],
+                                add_world=True,
+                            )
 
             if chain_ctrls:
                 chain_ctrls[0].setParent(self.grp_anm)

@@ -10,6 +10,7 @@ class AvarEye(rigFaceAvar.AvarSimple):
     """
     Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
     """
+
     pass
 
 
@@ -55,7 +56,19 @@ class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
         if ctrl_tm:
             self.ctrl.setMatrix(ctrl_tm)
 
-    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+    def connect(
+        self,
+        avar,
+        ud=True,
+        fb=True,
+        lr=True,
+        yw=True,
+        pt=True,
+        rl=True,
+        sx=True,
+        sy=True,
+        sz=True,
+    ):
         raise NotImplementedError
 
 
@@ -63,6 +76,7 @@ class ModelLookAt(BaseAvarCtrlModel):
     """
     This controller avars from an object aimConstrained to a ctrl.
     """
+
     _CLS_CTRL = BaseCtrl
 
     def __init__(self, *args, **kwargs):
@@ -79,80 +93,97 @@ class ModelLookAt(BaseAvarCtrlModel):
         """
         Find the chin location. This is the preffered location for the jaw doritos.
         """
-        jnt_pos = self.jnt.getTranslation(space='world')
+        jnt_pos = self.jnt.getTranslation(space="world")
         head_jnt = self.get_head_jnt()
         head_length = self.rig.get_head_length(head_jnt)
         if not head_length:
-            pymel.warning("Can't resolve head length! The eyes ctrl location might be erroned.")
+            pymel.warning(
+                "Can't resolve head length! The eyes ctrl location might be erroned."
+            )
         offset_z = head_length * 2 if head_length else 0
         return pymel.datatypes.Matrix(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
             jnt_pos.x,
             jnt_pos.y,
-            jnt_pos.z + offset_z
+            jnt_pos.z + offset_z,
         )
 
     def build(self, avar, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(ModelLookAt, self).build(avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
+        super(ModelLookAt, self).build(
+            avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs
+        )
 
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Build an aim node in-place for performance
         # This separated node allow the joints to be driven by the avars.
-        aim_grp_name = nomenclature_rig.resolve('lookgrp')
-        aim_grp = pymel.createNode('transform', name=aim_grp_name)
+        aim_grp_name = nomenclature_rig.resolve("lookgrp")
+        aim_grp = pymel.createNode("transform", name=aim_grp_name)
         aim_grp.setParent(self.grp_rig)
 
-        aim_node_name = nomenclature_rig.resolve('looknode')
-        aim_node = pymel.createNode('transform', name=aim_node_name)
+        aim_node_name = nomenclature_rig.resolve("looknode")
+        aim_node = pymel.createNode("transform", name=aim_node_name)
         aim_node.setParent(aim_grp)
 
-        aim_grp.setTranslation(self.jnt.getTranslation(space='world'))
+        aim_grp.setTranslation(self.jnt.getTranslation(space="world"))
         # aim_grp.setMatrix(self.jnt.getMatrix(worldSpace=True))
         if self.parent:
             pymel.parentConstraint(self.parent, aim_grp, maintainOffset=True)
 
-        aim_target_name = nomenclature_rig.resolve('target')
-        aim_target = pymel.createNode('transform', name=aim_target_name)
+        aim_target_name = nomenclature_rig.resolve("target")
+        aim_target = pymel.createNode("transform", name=aim_target_name)
         aim_target.setParent(aim_grp)
         self.target = aim_target  # todo: remove?
         pymel.pointConstraint(self.ctrl, aim_target, maintainOffset=False)
 
         # Build an upnode for the eyes.
         # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.
-        aim_upnode_name = nomenclature_rig.resolve('upnode')
+        aim_upnode_name = nomenclature_rig.resolve("upnode")
 
-        aim_upnode = pymel.createNode('transform', name=aim_upnode_name)
+        aim_upnode = pymel.createNode("transform", name=aim_upnode_name)
 
         aim_upnode.setParent(self.grp_rig)
         pymel.parentConstraint(aim_grp, aim_upnode, maintainOffset=True)
 
-        pymel.aimConstraint(aim_target, aim_node,
-                            maintainOffset=True,
-                            aimVector=(0.0, 0.0, 1.0),
-                            upVector=(0.0, 1.0, 0.0),
-                            worldUpObject=aim_upnode,
-                            worldUpType='object'
-                            )
+        pymel.aimConstraint(
+            aim_target,
+            aim_node,
+            maintainOffset=True,
+            aimVector=(0.0, 0.0, 1.0),
+            upVector=(0.0, 1.0, 0.0),
+            worldUpObject=aim_upnode,
+            worldUpType="object",
+        )
 
         # Position objects
-        aim_grp.setTranslation(self.jnt.getTranslation(space='world'))
+        aim_grp.setTranslation(self.jnt.getTranslation(space="world"))
         # aim_grp.setParent(self._grp_offset)  # todo: add begin , end property
         # aim_grp.t.set(0, 0, 0)
         # aim_grp.r.set(0, 0, 0)
         jnt_tm = self.jnt.getMatrix(worldSpace=True)
         jnt_pos = jnt_tm.translate
         aim_upnode_pos = pymel.datatypes.Point(0, 1, 0) + jnt_pos
-        aim_upnode.setTranslation(aim_upnode_pos, space='world')
+        aim_upnode.setTranslation(aim_upnode_pos, space="world")
         aim_target_pos = pymel.datatypes.Point(0, 0, 1) + jnt_pos
-        aim_target.setTranslation(aim_target_pos, space='world')
+        aim_target.setTranslation(aim_target_pos, space="world")
 
         # pymel.parentConstraint(aim_node, stack, maintainOffset=True)
 
         # Convert the rotation to avars to additional values can be added.
-        util_decomposeMatrix = libRigging.create_utility_node('decomposeMatrix', inputMatrix=aim_node.matrix)
+        util_decomposeMatrix = libRigging.create_utility_node(
+            "decomposeMatrix", inputMatrix=aim_node.matrix
+        )
 
         self._attr_out_lr = util_decomposeMatrix.outputTranslateX
         self._attr_out_ud = util_decomposeMatrix.outputTranslateY
@@ -161,7 +192,19 @@ class ModelLookAt(BaseAvarCtrlModel):
         self._attr_out_pt = util_decomposeMatrix.outputRotateX
         self._attr_out_rl = util_decomposeMatrix.outputRotateZ
 
-    def connect(self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
+    def connect(
+        self,
+        avar,
+        ud=True,
+        fb=True,
+        lr=True,
+        yw=True,
+        pt=True,
+        rl=True,
+        sx=True,
+        sy=True,
+        sz=True,
+    ):
         libRigging.connectAttr_withBlendWeighted(self._attr_out_lr, avar.attr_lr)
         libRigging.connectAttr_withBlendWeighted(self._attr_out_ud, avar.attr_ud)
         libRigging.connectAttr_withBlendWeighted(self._attr_out_fb, avar.attr_fb)
@@ -174,9 +217,10 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
     """
     Look-at setup with avars support.
     """
+
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
-    SINGLE_PARENT = True    
+    SINGLE_PARENT = True
     _CLS_MODEL_CTRL_MICRO = ModelLookAt
     _CLS_CTRL_MICRO = CtrlEye
 
@@ -190,13 +234,15 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
     def validate_version(self, major_version, minor_version, patch_version):
         # See internal task #67368
         if major_version == 0 and minor_version == 4 and patch_version < 24:
-            raise Exception("This version have issues with the space-switch 'Head' target.")
+            raise Exception(
+                "This version have issues with the space-switch 'Head' target."
+            )
 
     def handle_surface(self):
         pass  # todo: better class schema!
 
     def get_default_name(self):
-        return 'Eyes'
+        return "Eyes"
 
     def get_parent_obj(self, **kwargs):
         result = self.get_head_jnt(strict=False)
@@ -220,7 +266,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         y_min = None
         y_max = None
         for avar in self.avars:
-            pos = avar.ctrl.getTranslation(space='world')
+            pos = avar.ctrl.getTranslation(space="world")
             ctrl_positions.append(pos)
             ctrl_pos_average += pos
             if x_min is None or pos.x < x_min:
@@ -241,8 +287,14 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)
         jnt_head = self.get_parent_obj()
-        self.ctrl_all.create_spaceswitch(self, jnt_head, add_local=True, local_label='Head', local_target=jnt_head,
-                                         add_world=True)
+        self.ctrl_all.create_spaceswitch(
+            self,
+            jnt_head,
+            add_local=True,
+            local_label="Head",
+            local_target=jnt_head,
+            add_world=True,
+        )
         self.ctrl_all.rename(ctrl_all_name)
         self.ctrl_all.setParent(self.grp_anm)
 

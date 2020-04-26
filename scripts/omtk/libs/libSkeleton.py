@@ -13,12 +13,15 @@ def mirror_obj(obj_src, obj_dst=None):
     This use existing joint and doesn't break the skin or the network associated with the joints.
     """
     from omtk.animation import mirrorPose
+
     if obj_dst is None:
         obj_dst = mirrorPose.get_ctrl_friend(obj_src)
     if obj_src is obj_dst:
         return False
     tm = obj_src.getMatrix(worldSpace=True)
-    new_tm = mirrorPose.mirror_matrix(tm, mirror_x=True, flip_rot_x=True, flip_rot_y=True, flip_rot_z=True)
+    new_tm = mirrorPose.mirror_matrix(
+        tm, mirror_x=True, flip_rot_x=True, flip_rot_y=True, flip_rot_z=True
+    )
     obj_dst.setMatrix(new_tm, worldSpace=True)
     return obj_dst
 
@@ -42,13 +45,28 @@ def transfer_rotation_to_joint_orient(obj):
     def is_attr_accessible(attr):
         return not attr.isFreeToChange() == OpenMaya.MPlug.kFreeToChange
 
-    if is_attr_accessible(obj.rotateX) or is_attr_accessible(obj.rotateY) or is_attr_accessible(obj.rotateZ):
-        pymel.warning("Can't transfer rotation to joint orient. {0} rotation is locked.".format(obj.name()))
+    if (
+        is_attr_accessible(obj.rotateX)
+        or is_attr_accessible(obj.rotateY)
+        or is_attr_accessible(obj.rotateZ)
+    ):
+        pymel.warning(
+            "Can't transfer rotation to joint orient. {0} rotation is locked.".format(
+                obj.name()
+            )
+        )
         return
 
-    if is_attr_accessible(obj.jointOrientX) or is_attr_accessible(obj.jointOrientY) or is_attr_accessible(
-            obj.jointOrientZ):
-        pymel.warning("Can't transfer rotation to joint orient. {0} jointOrient is locked.".format(obj.name()))
+    if (
+        is_attr_accessible(obj.jointOrientX)
+        or is_attr_accessible(obj.jointOrientY)
+        or is_attr_accessible(obj.jointOrientZ)
+    ):
+        pymel.warning(
+            "Can't transfer rotation to joint orient. {0} jointOrient is locked.".format(
+                obj.name()
+            )
+        )
         return
 
     obj.jointOrientX.set(math.degrees(rotation_xyz.x))
@@ -61,6 +79,7 @@ def transfer_rotation_to_joint_orient(obj):
 
 def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
     from omtk.animation import mirrorPose
+
     obj_dst = mirrorPose.get_ctrl_friend(obj_src)
     if obj_dst is None:
         src_name = obj_src.name()
@@ -68,7 +87,7 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
         if src_name == dst_name:
             return False
 
-        obj_dst = pymel.createNode('joint')
+        obj_dst = pymel.createNode("joint")
         obj_dst.rename(dst_name)
 
         obj_src_parent = obj_src.getParent()
@@ -78,8 +97,11 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
                 obj_dst.setParent(obj_dst_parent)
 
     mirror_obj(obj_src, obj_dst)
-    if handle_joint_orient and isinstance(obj_src, pymel.nodetypes.Joint) and isinstance(obj_dst,
-                                                                                         pymel.nodetypes.Joint):
+    if (
+        handle_joint_orient
+        and isinstance(obj_src, pymel.nodetypes.Joint)
+        and isinstance(obj_dst, pymel.nodetypes.Joint)
+    ):
         transfer_rotation_to_joint_orient(obj_dst)
         obj_dst.radius.set(obj_src.radius.get())
     return obj_dst

@@ -8,9 +8,7 @@ from omtk.libs import libRigging
 def _connect_with_blend(attrs, attr_dst, attr_amount):
     """Quick function that create two attributes with a blend factor."""
     attr_blended = libRigging.create_utility_node(
-        'blendTwoAttr',
-        attributesBlender=attr_amount,
-        input=attrs,
+        "blendTwoAttr", attributesBlender=attr_amount, input=attrs,
     ).output
     pymel.connectAttr(attr_blended, attr_dst)
 
@@ -19,11 +17,12 @@ class AvarInflBaseModel(classModule.Module):
     """
     A deformation point on the face that move accordingly to nurbsSurface.
     """
+
     SHOW_IN_UI = False
 
-    _ATTR_NAME_MULT_LR = 'multiplierLr'
-    _ATTR_NAME_MULT_UD = 'multiplierUd'
-    _ATTR_NAME_MULT_FB = 'multiplierFb'
+    _ATTR_NAME_MULT_LR = "multiplierLr"
+    _ATTR_NAME_MULT_UD = "multiplierUd"
+    _ATTR_NAME_MULT_FB = "multiplierFb"
 
     default_multiplier_lr = 1.0
     default_multiplier_ud = 1.0
@@ -61,31 +60,39 @@ class AvarInflBaseModel(classModule.Module):
 
     def _create_interface(self):
         # Create avar inputs
-        self._attr_inn_lr = libAttr.addAttr(self.grp_rig, 'innAvarLr')
-        self._attr_inn_ud = libAttr.addAttr(self.grp_rig, 'innAvarUd')
-        self._attr_inn_fb = libAttr.addAttr(self.grp_rig, 'innAvarFb')
-        self._attr_inn_yw = libAttr.addAttr(self.grp_rig, 'innAvarYw')
-        self._attr_inn_pt = libAttr.addAttr(self.grp_rig, 'innAvarPt')
-        self._attr_inn_rl = libAttr.addAttr(self.grp_rig, 'innAvarRl')
-        self._attr_inn_sx = libAttr.addAttr(self.grp_rig, 'innAvarSx')
-        self._attr_inn_sy = libAttr.addAttr(self.grp_rig, 'innAvarSy')
-        self._attr_inn_sz = libAttr.addAttr(self.grp_rig, 'innAvarSz')
+        self._attr_inn_lr = libAttr.addAttr(self.grp_rig, "innAvarLr")
+        self._attr_inn_ud = libAttr.addAttr(self.grp_rig, "innAvarUd")
+        self._attr_inn_fb = libAttr.addAttr(self.grp_rig, "innAvarFb")
+        self._attr_inn_yw = libAttr.addAttr(self.grp_rig, "innAvarYw")
+        self._attr_inn_pt = libAttr.addAttr(self.grp_rig, "innAvarPt")
+        self._attr_inn_rl = libAttr.addAttr(self.grp_rig, "innAvarRl")
+        self._attr_inn_sx = libAttr.addAttr(self.grp_rig, "innAvarSx")
+        self._attr_inn_sy = libAttr.addAttr(self.grp_rig, "innAvarSy")
+        self._attr_inn_sz = libAttr.addAttr(self.grp_rig, "innAvarSz")
 
-        self.multiplier_lr = libAttr.addAttr(self.grp_rig, 'innMultiplierLr', defaultValue=self.multiplier_lr)
-        self.multiplier_ud = libAttr.addAttr(self.grp_rig, 'innMultiplierUd', defaultValue=self.multiplier_ud)
-        self.multiplier_fb = libAttr.addAttr(self.grp_rig, 'innMultiplierFb', defaultValue=self.multiplier_fb)
+        self.multiplier_lr = libAttr.addAttr(
+            self.grp_rig, "innMultiplierLr", defaultValue=self.multiplier_lr
+        )
+        self.multiplier_ud = libAttr.addAttr(
+            self.grp_rig, "innMultiplierUd", defaultValue=self.multiplier_ud
+        )
+        self.multiplier_fb = libAttr.addAttr(
+            self.grp_rig, "innMultiplierFb", defaultValue=self.multiplier_fb
+        )
 
         # Create influences
         _avar_filter_kwargs = {
-            'hasMinValue': True,
-            'hasMaxValue': True,
-            'minValue': 0.0,
-            'maxValue': 1.0,
-            'keyable': True
+            "hasMinValue": True,
+            "hasMaxValue": True,
+            "minValue": 0.0,
+            "maxValue": 1.0,
+            "keyable": True,
         }
 
-        self._attr_inn_offset_tm = libAttr.addAttr(self.grp_rig, 'innOffset', dt='matrix')
-        self._attr_out_tm = libAttr.addAttr(self.grp_rig, 'outTm', dataType='matrix')
+        self._attr_inn_offset_tm = libAttr.addAttr(
+            self.grp_rig, "innOffset", dt="matrix"
+        )
+        self._attr_out_tm = libAttr.addAttr(self.grp_rig, "outTm", dataType="matrix")
 
     def build(self, **kwargs):
         """
@@ -93,7 +100,9 @@ class AvarInflBaseModel(classModule.Module):
         The decision of using transforms instead of multMatrix nodes is for clarity.
         Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
         """
-        super(AvarInflBaseModel, self).build(create_grp_anm=False, disconnect_inputs=False, **kwargs)
+        super(AvarInflBaseModel, self).build(
+            create_grp_anm=False, disconnect_inputs=False, **kwargs
+        )
 
         self._create_interface()
         attr_tm = self._build()
@@ -106,11 +115,20 @@ class AvarInflBaseModel(classModule.Module):
         # Save the current uv multipliers.
         # It is very rare that the rigger will tweak this advanced setting manually,
         # however for legacy reasons, it might be useful when upgrading an old rig.
-        if isinstance(self.multiplier_lr, pymel.Attribute) and self.multiplier_lr.exists():
+        if (
+            isinstance(self.multiplier_lr, pymel.Attribute)
+            and self.multiplier_lr.exists()
+        ):
             self.multiplier_lr = self.multiplier_lr.get()
-        if isinstance(self.multiplier_ud, pymel.Attribute) and self.multiplier_ud.exists():
+        if (
+            isinstance(self.multiplier_ud, pymel.Attribute)
+            and self.multiplier_ud.exists()
+        ):
             self.multiplier_ud = self.multiplier_ud.get()
-        if isinstance(self.multiplier_fb, pymel.Attribute) and self.multiplier_fb.exists():
+        if (
+            isinstance(self.multiplier_fb, pymel.Attribute)
+            and self.multiplier_fb.exists()
+        ):
             self.multiplier_fb = self.multiplier_fb.get()
 
         super(AvarInflBaseModel, self).unbuild()

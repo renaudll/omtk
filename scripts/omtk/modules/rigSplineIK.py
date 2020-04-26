@@ -19,14 +19,29 @@ class SplineIK(Module):
 
     def build(self, stretch=True, squash=False, *args, **kwargs):
         # TODO: Use self.chain_jnt
-        self._joints = [input for input in self.input if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)]
-        self._curves = [input for input in self.input if
-                        libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)]
+        self._joints = [
+            input
+            for input in self.input
+            if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)
+        ]
+        self._curves = [
+            input
+            for input in self.input
+            if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)
+        ]
 
         if len(self._joints) < 2:
-            raise Exception("Can't build SplineIK. Expected at least two joints, got {0}".format(self._joints))
+            raise Exception(
+                "Can't build SplineIK. Expected at least two joints, got {0}".format(
+                    self._joints
+                )
+            )
         if len(self._curves) < 1:
-            raise Exception("Can't build SplineIK. Expected at least one nurbsCurve, got {0}".format(self._curves))
+            raise Exception(
+                "Can't build SplineIK. Expected at least one nurbsCurve, got {0}".format(
+                    self._curves
+                )
+            )
 
         super(SplineIK, self).build(*args, **kwargs)
 
@@ -34,12 +49,18 @@ class SplineIK(Module):
 
         # todo: handle multiple curves?
         curve = next(iter(self._curves), None)
-        curve_shape = next((shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)),
-                           None)
+        curve_shape = next(
+            (
+                shape
+                for shape in curve.getShapes()
+                if isinstance(shape, pymel.nodetypes.NurbsCurve)
+            ),
+            None,
+        )
 
         # Create ik solver
-        handle_name = nomenclature_rig.resolve('ikHandle')
-        eff_name = nomenclature_rig.resolve('ikEffector')
+        handle_name = nomenclature_rig.resolve("ikHandle")
+        eff_name = nomenclature_rig.resolve("ikEffector")
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,
@@ -48,7 +69,8 @@ class SplineIK(Module):
             createCurve=False,
             name=handle_name,
             parentCurve=False,
-            snapCurve=False)
+            snapCurve=False,
+        )
         self.ikHandle.setParent(self.grp_rig)
         self.ikEffector.rename(eff_name)
 

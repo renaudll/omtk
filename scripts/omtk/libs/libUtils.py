@@ -2,10 +2,10 @@ import pymel.core as pymel
 import logging
 from omtk.libs import libSkinning
 
-'''
+"""
 This method will create a locator at the center of the selection.
 Support : Transform objects, vertices, faces and edges selection
-'''
+"""
 
 
 def get_center(objs):
@@ -14,7 +14,7 @@ def get_center(objs):
     for obj in objs:
         if isinstance(obj, pymel.general.MeshVertex):
             for vert in obj:
-                pos += vert.getPosition(space='world')
+                pos += vert.getPosition(space="world")
                 count += 1
         elif isinstance(obj, pymel.nodetypes.Transform):
             pos += obj.getTranslation(space="world")
@@ -32,7 +32,9 @@ def get_center(objs):
             pos += obj.getPosition(space="world")
             count += 1
         else:
-            logging.warning("Unsupported data type ({0}), will be skipped".format(type(obj)))
+            logging.warning(
+                "Unsupported data type ({0}), will be skipped".format(type(obj))
+            )
     if count != 0:
         pos /= count
     return pos
@@ -42,12 +44,12 @@ def createLocToCenter():
     old_selection = pymel.selected()
     p3Pos = get_center(pymel.selected(flatten=True))
     pPoint = pymel.general.spaceLocator()
-    pPoint.setTranslation(p3Pos, space='world')
+    pPoint.setTranslation(p3Pos, space="world")
     if old_selection:
         pymel.select(old_selection)
 
 
-'''Snap two or more objects with the last selected using their world matrix'''
+"""Snap two or more objects with the last selected using their world matrix"""
 
 
 def snapObj():
@@ -63,7 +65,7 @@ def snapObj():
         oCurSource.setMatrix(pMatrixToMatch, worldSpace=True)
 
 
-'''Get skin cluster attach to an objects'''
+"""Get skin cluster attach to an objects"""
 
 
 def getSkinCluster(_oObj):
@@ -73,7 +75,7 @@ def getSkinCluster(_oObj):
     return None
 
 
-'''Get bone included in a skin'''
+"""Get bone included in a skin"""
 
 
 def getSkinBones():

@@ -7,7 +7,7 @@ from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
 
-log = logging.getLogger('omtk')
+log = logging.getLogger("omtk")
 
 
 class Module(object):
@@ -35,7 +35,7 @@ class Module(object):
         """
         Redirect a debug message to the rig logger.
         """
-        msg = '[{0}] {1}'.format(self.name, msg)
+        msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
             self.rig.debug(msg)
 
@@ -43,7 +43,7 @@ class Module(object):
         """
         Redirect an information message to the rig logger.
         """
-        msg = '[{0}] {1}'.format(self.name, msg)
+        msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
             self.rig.info(msg)
 
@@ -51,7 +51,7 @@ class Module(object):
         """
         Redirect an warning message to the rig logger.
         """
-        msg = '[{0}] {1}'.format(self.name, msg)
+        msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
             self.rig.warning(msg)
 
@@ -59,7 +59,7 @@ class Module(object):
         """
         Redirect an error message to the rig logger.
         """
-        msg = '[{0}] {1}'.format(self.name, msg)
+        msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
             self.rig.error(msg)
 
@@ -79,10 +79,14 @@ class Module(object):
             pass
 
         # Hack: Workaround a bug in the ui that can propagate invalid characters in the module...
-        REGEX_PATTERN = '( *)<.*>( *)'
-        if re.match('.*{0}.*'.format(REGEX_PATTERN), self.name):
-            new_name = re.sub(REGEX_PATTERN, '', self.name)
-            log.warning("Invalid characters in Module name. Replacing {0} by {1}".format(self.name, new_name))
+        REGEX_PATTERN = "( *)<.*>( *)"
+        if re.match(".*{0}.*".format(REGEX_PATTERN), self.name):
+            new_name = re.sub(REGEX_PATTERN, "", self.name)
+            log.warning(
+                "Invalid characters in Module name. Replacing {0} by {1}".format(
+                    self.name, new_name
+                )
+            )
             self.name = new_name
 
     def __getNetworkName__(self):
@@ -91,7 +95,7 @@ class Module(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        return 'net_{0}_{1}'.format(self.__class__.__name__, self.get_module_name())
+        return "net_{0}_{1}".format(self.__class__.__name__, self.get_module_name())
 
     #
     # Nomenclature implementation
@@ -142,9 +146,7 @@ class Module(object):
         """
         :return: The nomenclature to use for animation controllers.
         """
-        name = self.rig.nomenclature(
-            name=self.get_module_name()
-        )
+        name = self.rig.nomenclature(name=self.get_module_name())
         return name
 
     @libPython.memoized_instancemethod
@@ -153,8 +155,7 @@ class Module(object):
         :return: The nomenclature to use for animation controllers.
         """
         name = self.rig.nomenclature(
-            name=self.get_module_name(),
-            suffix=self.rig.nomenclature.type_anm
+            name=self.get_module_name(), suffix=self.rig.nomenclature.type_anm
         )
         return name
 
@@ -164,8 +165,7 @@ class Module(object):
         :return: The nomenclature to use for group that hold multiple animation controllers. (one per module)
         """
         name = self.rig.nomenclature(
-            name=self.get_module_name(),
-            suffix=self.rig.nomenclature.type_anm_grp
+            name=self.get_module_name(), suffix=self.rig.nomenclature.type_anm_grp
         )
         return name
 
@@ -175,8 +175,7 @@ class Module(object):
         :return: The nomenclature to use for rig objects.
         """
         name = self.rig.nomenclature(
-            name=self.get_module_name(),
-            suffix=self.rig.nomenclature.type_rig
+            name=self.get_module_name(), suffix=self.rig.nomenclature.type_rig
         )
         return name
 
@@ -186,8 +185,7 @@ class Module(object):
         :return: The nomenclature to use for group that hold multiple rig objects. (one per module)
         """
         name = self.rig.nomenclature(
-            name=self.get_module_name(),
-            suffix=self.rig.nomenclature.type_rig_grp
+            name=self.get_module_name(), suffix=self.rig.nomenclature.type_rig_grp
         )
         return name
 
@@ -197,8 +195,7 @@ class Module(object):
         :return: The nomenclature to use if we need to create new joints from the module. (ex: twistbones)
         """
         name = self.rig.nomenclature(
-            name=self.get_module_name(),
-            suffix=self.rig.nomenclature.type_jnt
+            name=self.get_module_name(), suffix=self.rig.nomenclature.type_jnt
         )
         return name
 
@@ -233,7 +230,11 @@ class Module(object):
         """
         :return: A list of all inputs of type pymel.nodetypes.Joint.
         """
-        jnts = [obj for obj in self.input if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)]
+        jnts = [
+            obj
+            for obj in self.input
+            if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
+        ]
         return jnts
 
     @libPython.cached_property()
@@ -241,7 +242,9 @@ class Module(object):
         """
         :return: The first input of type pymel.nodetypes.Joint.
         """
-        return next(iter(filter(None, self.jnts)), None)  # Hack: remove filter, find why it happen
+        return next(
+            iter(filter(None, self.jnts)), None
+        )  # Hack: remove filter, find why it happen
 
     @libPython.cached_property()
     def chains(self):
@@ -298,7 +301,9 @@ class Module(object):
         # todo: check with proximity
         default_head = next(iter(head_jnts), None)
         if default_head:
-            self.warning("Cannot resolve head influence! Using default {}".format(default_head))
+            self.warning(
+                "Cannot resolve head influence! Using default {}".format(default_head)
+            )
             return default_head
 
     @libPython.memoized_instancemethod
@@ -317,16 +322,24 @@ class Module(object):
 
         # Find a Jaw module that have influence under the head.
         from omtk.modules import rigFaceJaw
+
         for module in self.rig.modules:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 jnt = module.jnt
                 if libPymel.is_child_of(jnt, head_jnt):
                     return jnt
-                self.warning("Ignoring {0} as the main jaw influence. Not a child of {1}.".format(jnt, head_jnt))
+                self.warning(
+                    "Ignoring {0} as the main jaw influence. Not a child of {1}.".format(
+                        jnt, head_jnt
+                    )
+                )
 
         if strict:
             self.warning(
-                "Cannot found a {0} influence. Please create a {0} module!".format(rigFaceJaw.FaceJaw.__name__))
+                "Cannot found a {0} influence. Please create a {0} module!".format(
+                    rigFaceJaw.FaceJaw.__name__
+                )
+            )
         return None
 
     @libPython.memoized_instancemethod
@@ -342,11 +355,22 @@ class Module(object):
 
         jnt_jaw = self.get_jaw_jnt()
         if jnt_jaw:
-            module_jaw = next(iter(module for module in self.rig.modules if
-                                   isinstance(module, rigFaceJaw.FaceJaw) and jnt_jaw in module.input), None)
+            module_jaw = next(
+                iter(
+                    module
+                    for module in self.rig.modules
+                    if isinstance(module, rigFaceJaw.FaceJaw)
+                    and jnt_jaw in module.input
+                ),
+                None,
+            )
 
         if module_jaw is None and strict:
-            self.warning("Cannot found a {} module. Please create one!".format(rigFaceJaw.FaceJaw.__name__))
+            self.warning(
+                "Cannot found a {} module. Please create one!".format(
+                    rigFaceJaw.FaceJaw.__name__
+                )
+            )
         return module_jaw
 
     @libPython.memoized_instancemethod
@@ -354,7 +378,11 @@ class Module(object):
         """
         :return: A list of all inputs of type pymel.nodetypes.NurbsSurface.
         """
-        return [obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)]
+        return [
+            obj
+            for obj in self.input
+            if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        ]
 
     @libPython.memoized_instancemethod
     def get_surface(self):
@@ -397,15 +425,19 @@ class Module(object):
         """
         # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
         if name and not isinstance(name, basestring):
-            raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
-                type(name), name
-            ))
+            raise IOError(
+                "Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
+                    type(name), name
+                )
+            )
 
         self.rig = rig  # Reference to the parent rig instance.
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None
-        self.canPinTo = True  # If raised, the network can be used as a space-switch pin-point
+        self.canPinTo = (
+            True  # If raised, the network can be used as a space-switch pin-point
+        )
         self.globalScale = None  # Each module is responsible for handling it scale!
 
         # Sometimes the rigger might modify the module in a way which can prevent it from being un-built without causing issues.
@@ -424,7 +456,10 @@ class Module(object):
         if input:
             if not isinstance(input, list):
                 raise IOError(
-                    "Unexpected type for argument input. Expected list, got {0}. {1}".format(type(input), input))
+                    "Unexpected type for argument input. Expected list, got {0}. {1}".format(
+                        type(input), input
+                    )
+                )
             self.input = input
         else:
             self.input = []
@@ -432,24 +467,22 @@ class Module(object):
         self.name = name
 
     def __str__(self):
-        version = getattr(self, 'version', '')
+        version = getattr(self, "version", "")
         if version:
-            version = ' v{}'.format(version)
-        return '{} <{}{}>'.format(
-            self.name.encode('utf-8'),
-            self.__class__.__name__,
-            version
+            version = " v{}".format(version)
+        return "{} <{}{}>".format(
+            self.name.encode("utf-8"), self.__class__.__name__, version
         )
 
     def get_version(self):
-        if not hasattr(self, 'version'):
+        if not hasattr(self, "version"):
             return None, None, None
         version_info = str(self.version)
-        regex = '^[0-9]+\.[0-9]+\.[0-9]+$'
+        regex = "^[0-9]+\.[0-9]+\.[0-9]+$"
         if not re.match(regex, version_info):
             self.warning("Cannot understand version format: {}".format(version_info))
             return None, None, None
-        return tuple(int(token) for token in version_info.split('.'))
+        return tuple(int(token) for token in version_info.split("."))
 
     def validate(self, support_no_inputs=False):
         """
@@ -465,8 +498,11 @@ class Module(object):
         # Ensure that IF we have namespaces, they are the same for all inputs.
         namespaces = set(input.namespace() for input in self.input if input)
         if len(namespaces) > 1:
-            raise Exception("Found multiple namespaces for inputs: {0}".format(
-                ', '.join('"{0}"'.format(namespace) for namespace in namespaces)))
+            raise Exception(
+                "Found multiple namespaces for inputs: {0}".format(
+                    ", ".join('"{0}"'.format(namespace) for namespace in namespaces)
+                )
+            )
 
         return True
 
@@ -484,10 +520,19 @@ class Module(object):
         Returns: True if the rig think it have been built.
         """
         return (self.grp_anm is not None and self.grp_anm.exists()) or (
-        self.grp_rig is not None and self.grp_rig.exists())
+            self.grp_rig is not None and self.grp_rig.exists()
+        )
 
-    def build(self, create_grp_anm=True, create_grp_rig=True, grp_anm_name=None, grp_rig_name=None,
-              connect_global_scale=True, disconnect_inputs=True, parent=True):
+    def build(
+        self,
+        create_grp_anm=True,
+        create_grp_rig=True,
+        grp_anm_name=None,
+        grp_rig_name=None,
+        connect_global_scale=True,
+        disconnect_inputs=True,
+        parent=True,
+    ):
         """
         Build the module following the provided rig rules.
         :param create_grp_anm: If True, a group for all the animation controller will be created.
@@ -504,7 +549,9 @@ class Module(object):
             # The inheritsTransform flag is evil and will prevent the rig from correctly scaling.
             if isinstance(inn, pymel.nodetypes.Transform):
                 if not inn.inheritsTransform.get():
-                    self.warning("Enabling inheritsTransform for the best on {0}".format(inn))
+                    self.warning(
+                        "Enabling inheritsTransform for the best on {0}".format(inn)
+                    )
                     inn.inheritsTransform.set(True)
 
                 # The segmentScaleCompensate is not supported since we need to support video-game rigs at the best
@@ -512,7 +559,9 @@ class Module(object):
                 # Also this will prevent the rig from correctly propagating scaling.
                 if isinstance(inn, pymel.nodetypes.Joint):
                     if inn.segmentScaleCompensate.get():
-                        self.info("Disabling segmentScaleCompensate on {0}".format(inn))
+                        self.debug(
+                            "Disabling segmentScaleCompensate on {0}".format(inn)
+                        )
                         inn.segmentScaleCompensate.set(False)
 
             # Remove any existing connections on the input joints.
@@ -524,15 +573,15 @@ class Module(object):
 
         if create_grp_anm:
             grp_anm_name = grp_anm_name or self.get_nomenclature_anm_grp().resolve()
-            self.grp_anm = pymel.createNode('transform', name=grp_anm_name)
+            self.grp_anm = pymel.createNode("transform", name=grp_anm_name)
         if create_grp_rig:
             grp_rig_name = grp_rig_name or self.get_nomenclature_rig_grp().resolve()
-            self.grp_rig = pymel.createNode('transform', name=grp_rig_name)
+            self.grp_rig = pymel.createNode("transform", name=grp_rig_name)
             # libAttr.lock_hide_trs(self.grp_rig)  # This line break the hands!
 
             if connect_global_scale:
                 # todo: keep it here?
-                pymel.addAttr(self.grp_rig, longName='globalScale', defaultValue=1.0)
+                pymel.addAttr(self.grp_rig, longName="globalScale", defaultValue=1.0)
                 self.globalScale = self.grp_rig.globalScale
 
         # Apply parenting if necessary.
@@ -549,7 +598,9 @@ class Module(object):
         """
         if self.parent is None:
             if fallback_to_anm_grp:
-                self.debug("Found no immediate parent. Will be parented to the anm grp.")
+                self.debug(
+                    "Found no immediate parent. Will be parented to the anm grp."
+                )
                 return self.rig.grp_anm
             else:
                 self.debug("Found no immediate parent. ")
@@ -559,7 +610,9 @@ class Module(object):
         if module:
             desired_parent = module.get_parent(self.parent)
             if desired_parent:
-                self.debug("Will be parented to {0}, {1}".format(module, desired_parent))
+                self.debug(
+                    "Will be parented to {0}, {1}".format(module, desired_parent)
+                )
                 return desired_parent
 
         return self.parent
@@ -571,7 +624,7 @@ class Module(object):
         :return: A list of Module instances to build before this module.
         """
         return None
-    
+
     def _disconnect_inputs(self):
         for obj in self.input:
             if isinstance(obj, pymel.nodetypes.Transform):
@@ -616,8 +669,8 @@ class Module(object):
 
         # Reset any cached properties
         # todo: ensure it's the best way
-        if '_cache' in self.__dict__:
-            self.__dict__.pop('_cache')
+        if "_cache" in self.__dict__:
+            self.__dict__.pop("_cache")
 
     def get_parent(self, parent):
         """
@@ -658,7 +711,10 @@ class Module(object):
         If the name is None, it will be reserved automatically.
         :param jnt: The joint we want as a target. If None, will return the first input
         """
-        first_joint = next((input for input in self.input if isinstance(input, pymel.nodetypes.Joint)), None)
+        first_joint = next(
+            (input for input in self.input if isinstance(input, pymel.nodetypes.Joint)),
+            None,
+        )
         if first_joint:
             to_return = None
             if jnt and jnt == first_joint:
@@ -685,10 +741,12 @@ class Module(object):
         if not isinstance(inst, cls):
             old_shapes = None
             if inst is not None:
-                self.warning("Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
-                    cls, type(inst)
-                ))
-                old_shapes = inst.shapes if hasattr(inst, 'shapes') else None
+                self.warning(
+                    "Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
+                        cls, type(inst)
+                    )
+                )
+                old_shapes = inst.shapes if hasattr(inst, "shapes") else None
 
             result = cls()
 
@@ -712,7 +770,7 @@ class Module(object):
         # todo: Validate inputs, we may need to modify the module if the inputs don't match!
 
         result = inst
-        
+
         if inputs is None:
             inputs = []
 

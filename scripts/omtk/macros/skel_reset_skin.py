@@ -1,4 +1,3 @@
-
 from omtk.core.macros import BaseMacro
 from omtk.libs import libSkinning
 

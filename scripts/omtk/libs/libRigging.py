@@ -11,8 +11,14 @@ from omtk.libs import libPymel
 
 _LOG = logging.getLogger(__name__)
 
-__aBasicTypes = [int, float, bool, pymel.datatypes.Matrix, pymel.datatypes.Vector,
-                 pymel.datatypes.Point]
+__aBasicTypes = [
+    int,
+    float,
+    bool,
+    pymel.datatypes.Matrix,
+    pymel.datatypes.Vector,
+    pymel.datatypes.Point,
+]
 
 _X_AXIS = pymel.datatypes.Vector.xAxis
 _Y_AXIS = pymel.datatypes.Vector.yAxis
@@ -37,7 +43,9 @@ def connect_or_set_attr(_attr, _val):
         else:
             raise Exception(
                 "Can't apply value {0} on attribute {1}, need an array or compound".format(
-                    _val, _attr))
+                    _val, _attr
+                )
+            )
 
     else:
         if isinstance(_val, pymel.Attribute):
@@ -46,9 +54,10 @@ def connect_or_set_attr(_attr, _val):
             _attr.set(_val)
         else:
             raise TypeError(
-                '[ConnectOrSetAttr] Invalid value for attribute {} of type {} and value {}'.format(
-                    _attr.name(),
-                    type(_val), _val))
+                "[ConnectOrSetAttr] Invalid value for attribute {} of type {} and value {}".format(
+                    _attr.name(), type(_val), _val
+                )
+            )
 
 
 def create_utility_node(_sClass, name=None, *args, **kwargs):
@@ -56,19 +65,17 @@ def create_utility_node(_sClass, name=None, *args, **kwargs):
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
-                '[CreateUtilityNode] UtilityNode {0} doesn\'t have an {1} attribute.'.format(
-                    _sClass, sAttrName))
+                "[CreateUtilityNode] UtilityNode {0} doesn't have an {1} attribute.".format(
+                    _sClass, sAttrName
+                )
+            )
         else:
             connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
     return uNode
 
 
 def connect_matrix_to_node(attr_tm, node, name=None):
-    u = create_utility_node(
-        'decomposeMatrix',
-        name=name,
-        inputMatrix=attr_tm
-    )
+    u = create_utility_node("decomposeMatrix", name=name, inputMatrix=attr_tm)
     pymel.connectAttr(u.outputTranslate, node.translate, force=True)
     pymel.connectAttr(u.outputRotate, node.rotate, force=True)
     pymel.connectAttr(u.outputScale, node.scale, force=True)
@@ -85,8 +92,10 @@ def hold_ctrl_shapes(transform, parent=None):
 
     # Resolve all shapes (pymel.nodetypes.CurveShape only for now)
     def is_shape(shape):
-        return isinstance(shape,
-                          pymel.nodetypes.CurveShape) and not shape.intermediateObject.get()
+        return (
+            isinstance(shape, pymel.nodetypes.CurveShape)
+            and not shape.intermediateObject.get()
+        )
 
     all_shapes = filter(is_shape, transform.getShapes(noIntermediate=True))
     if not all_shapes:
@@ -110,7 +119,7 @@ def hold_ctrl_shapes(transform, parent=None):
         # Theorically it's possible to create a new nurbsCurve and connect/disconnect it's create attribute.
         # However without triggering a viewport refresh using the refresh command, the connect/disconnect trick don't work.
 
-        tmp1 = pymel.createNode('transform')
+        tmp1 = pymel.createNode("transform")
         src_shape.setParent(tmp1, relative=True, shape=True)
         tmp2 = pymel.duplicate(tmp1)[0]
         dst_shape = tmp2.getShape()
@@ -121,7 +130,7 @@ def hold_ctrl_shapes(transform, parent=None):
             dst_shape.intermediateObject.set(False)
         pymel.delete(tmp2)
 
-    '''
+    """
     dst_shapes = []
     for src_shape in all_shapes_orig:
         #src_type = src_shape.longName.type()
@@ -129,24 +138,25 @@ def hold_ctrl_shapes(transform, parent=None):
         tmp = dst_shape.getParent()
         pymel.nodeCast(src_shape, dst_shape)
         pymel.delete(tmp)
-    '''
+    """
 
-    '''
+    """
     snapshot = pymel.duplicate(transform, parentOnly=True, returnRootsOnly=True)[0]
     for shape in all_shapes_orig:
         shape.setParent(snapshot, s=True, r=True)
         if shape.intermediateObject.get():
             shape.intermediateObject.set(False)
-    '''
+    """
 
     if parent:
         dst_transform.setParent(parent)
     else:
         dst_transform.setParent(world=True)
 
-    new_name = '_{0}'.format(transform.name())
-    cmds.rename(dst_transform.longName(),
-                new_name)  # For strange reasons, using .rename don't always work.
+    new_name = "_{0}".format(transform.name())
+    cmds.rename(
+        dst_transform.longName(), new_name
+    )  # For strange reasons, using .rename don't always work.
     try:
         pymel.makeIdentity(dst_transform, scale=True, apply=True)
     except:
@@ -159,23 +169,24 @@ def hold_ctrl_shapes(transform, parent=None):
 def fetch_ctrl_shapes(source, target):
     # Remove any previous shapes
     pymel.delete(
-        filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), target.getShapes()))
+        filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), target.getShapes())
+    )
     for source_shape in source.getShapes():
         source_shape.template.set(False)
         source_shape.setParent(target, r=True, s=True)
-        source_shape.rename(target.name() + 'Shape')
+        source_shape.rename(target.name() + "Shape")
 
     # TODO: Support AnnotationShapes
     pymel.delete(source)
 
 
 def hold_all_ctrl_shapes(**kwargs):
-    aCtrls = [o.getParent() for o in pymel.ls('anm_*', type='nurbsCurve')]
+    aCtrls = [o.getParent() for o in pymel.ls("anm_*", type="nurbsCurve")]
     return [hold_ctrl_shapes(oCtrl, **kwargs) for oCtrl in aCtrls]
 
 
 def fetch_all_ctrl_shapes():
-    ctrls = [o.getParent() for o in pymel.ls('_anm_*', type='nurbsCurve')]
+    ctrls = [o.getParent() for o in pymel.ls("_anm_*", type="nurbsCurve")]
 
     for ctrl in ctrls:
         target_name = ctrl.name()[1:]
@@ -185,14 +196,16 @@ def fetch_all_ctrl_shapes():
 
 
 def create_strech_attr_from_curve(curve_shape):
-    curveLength = create_utility_node('curveInfo',
-                                      inputCurve=curve_shape.worldSpace).arcLength
-    return create_utility_node('multiplyDivide', operation=2, input1X=curveLength,
-                               input2X=curveLength.get()).outputX
+    curveLength = create_utility_node(
+        "curveInfo", inputCurve=curve_shape.worldSpace
+    ).arcLength
+    return create_utility_node(
+        "multiplyDivide", operation=2, input1X=curveLength, input2X=curveLength.get()
+    ).outputX
 
 
 def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
-    arcLengthDimension_shape = pymel.createNode('arcLengthDimension')
+    arcLengthDimension_shape = pymel.createNode("arcLengthDimension")
     arcLengthDimension_shape.uParamValue.set(u)
     arcLengthDimension_shape.vParamValue.set(v)
     pymel.connectAttr(nurbs_shape.worldSpace, arcLengthDimension_shape.nurbsGeometry)
@@ -215,16 +228,20 @@ def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
     :param nurbs_shape: The pymel.nodetypes.NurbsSurface node.
     :return: The stretch attribute and an arcLengthDimension that will need to be parented somewhere.
     """
-    attr_length_u, attr_length_v, arcLengthDimension_shape = create_arclengthdimension_for_nurbsplane(
-        nurbs_shape, u=u,
-        v=v)
+    (
+        attr_length_u,
+        attr_length_v,
+        arcLengthDimension_shape,
+    ) = create_arclengthdimension_for_nurbsplane(nurbs_shape, u=u, v=v)
     attr_length_v = arcLengthDimension_shape.arcLengthInV
-    multiply_node = create_utility_node('multiplyDivide', operation=2,
-                                        input1X=attr_length_u,
-                                        input2X=attr_length_u.get(),
-                                        input1Y=attr_length_v,
-                                        input2Y=attr_length_v.get()
-                                        )
+    multiply_node = create_utility_node(
+        "multiplyDivide",
+        operation=2,
+        input1X=attr_length_u,
+        input2X=attr_length_u.get(),
+        input1Y=attr_length_v,
+        input2Y=attr_length_v.get(),
+    )
     attr_stretch_u = multiply_node.outputX
     attr_stretch_v = multiply_node.outputY
     return attr_stretch_u, attr_stretch_v, arcLengthDimension_shape
@@ -232,48 +249,52 @@ def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
 
 def create_stretch_node_between_2_bones(start, end, attr_scale=None):
     # Compute the Stretch
-    start_world_trans_attr = create_utility_node('decomposeMatrix',
-                                                 inputMatrix=start.worldMatrix
-                                                 ).outputTranslate
+    start_world_trans_attr = create_utility_node(
+        "decomposeMatrix", inputMatrix=start.worldMatrix
+    ).outputTranslate
 
-    end_world_trans_attr = create_utility_node('decomposeMatrix',
-                                               inputMatrix=end.worldMatrix
-                                               ).outputTranslate
+    end_world_trans_attr = create_utility_node(
+        "decomposeMatrix", inputMatrix=end.worldMatrix
+    ).outputTranslate
 
-    distance_nonroll_attr = create_utility_node('distanceBetween',
-                                                point1=start_world_trans_attr,
-                                                point2=end_world_trans_attr
-                                                ).distance
+    distance_nonroll_attr = create_utility_node(
+        "distanceBetween", point1=start_world_trans_attr, point2=end_world_trans_attr
+    ).distance
 
     # Adjust with a scale attribute if necessary
     scale_adjust_attr = distance_nonroll_attr.get()
     if attr_scale:
-        scale_adjust_attr = create_utility_node('multiplyDivide',
-                                                input1X=attr_scale,
-                                                input2X=distance_nonroll_attr.get(),
-                                                operation=1
-                                                ).outputX
+        scale_adjust_attr = create_utility_node(
+            "multiplyDivide",
+            input1X=attr_scale,
+            input2X=distance_nonroll_attr.get(),
+            operation=1,
+        ).outputX
 
-    stretch_factor = create_utility_node('multiplyDivide',
-                                         input1X=distance_nonroll_attr,
-                                         input2X=scale_adjust_attr,
-                                         operation=2
-                                         )
+    stretch_factor = create_utility_node(
+        "multiplyDivide",
+        input1X=distance_nonroll_attr,
+        input2X=scale_adjust_attr,
+        operation=2,
+    )
 
     return stretch_factor.outputX
 
 
 def create_squash_attr_simple(attr_stretch):
-    return create_utility_node('multiplyDivide', operation=2, input1X=1.0,
-                               input2X=attr_stretch).outputX
+    return create_utility_node(
+        "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch
+    ).outputX
 
 
 def create_squash_attr(attr_stretch):
     # return next(iter(create_squash_atts(attr_stretch, 1)))
-    attr_stretch_inv = create_utility_node('multiplyDivide', operation=2, input1X=1.0,
-                                           input2X=attr_stretch).outputX
-    return create_utility_node('multiplyDivide', operation=3, input1X=attr_stretch_inv,
-                               input2X=2).outputX
+    attr_stretch_inv = create_utility_node(
+        "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch
+    ).outputX
+    return create_utility_node(
+        "multiplyDivide", operation=3, input1X=attr_stretch_inv, input2X=2
+    ).outputX
 
 
 def create_squash_atts(attr_stretch, samples):
@@ -285,12 +306,15 @@ def create_squash_atts(attr_stretch, samples):
     :param samples: Number of samples to resolve.
     """
     if not isinstance(attr_stretch, pymel.Attribute):
-        raise IOError("Expected pymel Attribute, got {0} ({1})".format(attr_stretch,
-                                                                       type(
-                                                                           attr_stretch)))
+        raise IOError(
+            "Expected pymel Attribute, got {0} ({1})".format(
+                attr_stretch, type(attr_stretch)
+            )
+        )
 
-    attr_stretch_inv = create_utility_node('multiplyDivide', operation=2, input1X=1.0,
-                                           input2X=attr_stretch).outputX
+    attr_stretch_inv = create_utility_node(
+        "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch
+    ).outputX
 
     return_vals = []
     for i in range(samples):
@@ -300,10 +324,12 @@ def create_squash_atts(attr_stretch, samples):
         # 0 = Maximum Squash
         # 1 = No Squash
         # see see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
-        blend = create_utility_node("multiplyDivide", operation=3, input1X=pos,
-                                    input2X=2).outputX
-        attr_squash = create_utility_node("blendTwoAttr", input=[attr_stretch_inv, 1],
-                                          attributesBlender=blend)
+        blend = create_utility_node(
+            "multiplyDivide", operation=3, input1X=pos, input2X=2
+        ).outputX
+        attr_squash = create_utility_node(
+            "blendTwoAttr", input=[attr_stretch_inv, 1], attributesBlender=blend
+        )
 
         return_vals.append(attr_squash)
     return return_vals
@@ -331,7 +357,7 @@ def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
     """
 
     # Create nurbsPlane
-    num_patches_u = (len(jnts) - 1)
+    num_patches_u = len(jnts) - 1
     plane = pymel.nurbsPlane(d=degree, u=num_patches_u)[0]
 
     # Note that the choosed offset is not arbitrary.
@@ -386,13 +412,20 @@ def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
         # Add edge (note that we always add the first and last edge edge).
         if is_first or is_last or add_inside_edges:
             all_positions.append(
-                interp_linear_multiple(v_ratios, pos_upp_inn, pos_dwn_inn))
+                interp_linear_multiple(v_ratios, pos_upp_inn, pos_dwn_inn)
+            )
 
         # Add in-betweens
-        if is_last:  # For obvious reasons, we don't want to add any points after the last edge.
+        if (
+            is_last
+        ):  # For obvious reasons, we don't want to add any points after the last edge.
             continue
 
-        num_inbetweens = num_inbetweens_outside if is_first or is_before_last else num_inbetweens_inside
+        num_inbetweens = (
+            num_inbetweens_outside
+            if is_first or is_before_last
+            else num_inbetweens_inside
+        )
 
         if num_inbetweens:
             pos_upp_out = edges_positions_upp[i + 1]
@@ -404,8 +437,11 @@ def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
                 all_positions.append(interp_linear_multiple(v_ratios, pos_upp, pos_dwn))
 
     # Add last edge
-    all_positions.append(interp_linear_multiple(v_ratios, edges_positions_upp[-1],
-                                                edges_positions_dwn[-1]))
+    all_positions.append(
+        interp_linear_multiple(
+            v_ratios, edges_positions_upp[-1], edges_positions_dwn[-1]
+        )
+    )
 
     # Model the plane
     for u in range(len(all_positions)):
@@ -422,7 +458,7 @@ def create_nurbsCurve_from_joints(obj_s, obj_e, samples=2, num_cvs=3):
     coords = []
     for i in range(num_cvs):
         ratio = float(i) / (num_cvs - 1)
-        oord = (pos_s + (ratio * (pos_e - pos_s)))
+        oord = pos_s + (ratio * (pos_e - pos_s))
         coords.append(oord)
 
     nurbsCurve = pymel.curve(d=samples, p=coords)
@@ -437,8 +473,8 @@ def create_hyerarchy(_oObjs):
 
 def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
     tm = obj_s.getMatrix(worldSpace=True)
-    pos_s = obj_s.getTranslation(space='world')
-    pos_e = obj_e.getTranslation(space='world')
+    pos_s = obj_s.getTranslation(space="world")
+    pos_e = obj_e.getTranslation(space="world")
 
     new_objs = []
 
@@ -449,7 +485,7 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
 
         new_obj = pymel.duplicate(obj_s, parentOnly=True)[0]
         new_obj.setMatrix(tm, worldSpace=True)
-        new_obj.setTranslation(pos, space='world')
+        new_obj.setTranslation(pos, space="world")
         new_objs.append(new_obj)
 
     new_objs[0].setParent(world=True)
@@ -462,7 +498,7 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
     return libPymel.PyNodeChain(new_objs)
 
 
-'''
+"""
 def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
     if not isinstance(ctrl_shape, pymel.nodetypes.NurbsCurve):
         raise Exception("Unexpected input, expected NurbsCurve, got {0}.".format(type(ctrl_shape)))
@@ -496,15 +532,23 @@ def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
 
         cv_new_pos = pos + (dir * length * multiplier)
         ctrl_shape.cv[i].setPosition(cv_new_pos, space='world')
-'''
+"""
 
 
 # todo: check if memoized is really necessary?
 # @libPython.memoized
-def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=0.0,
-                              weight_neg_x=0.0, weight_y=1.0,
-                              weight_neg_y=1.0, weight_z=0.0, weight_neg_z=0.0,
-                              default_size=1.0):
+def get_recommended_ctrl_size(
+    obj,
+    geometries=None,
+    default_value=1.0,
+    weight_x=0.0,
+    weight_neg_x=0.0,
+    weight_y=1.0,
+    weight_neg_y=1.0,
+    weight_z=0.0,
+    weight_neg_z=0.0,
+    default_size=1.0,
+):
     """
     Return the recommended size of a controller if it was created for this obj.
     :param obj: The object to analyze.
@@ -517,11 +561,14 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
         geometries = set()
         for skinCluster in skinClusters:
             geometries.update(skinCluster.getOutputGeometry())
-        geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh),
-                            geometries)  # Ensure we only deal with meshes
+        geometries = filter(
+            lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries
+        )  # Ensure we only deal with meshes
 
     if geometries is None:
-        _LOG.warning("Cannot get recommended ctrl size. No geometries to do raycast on!")
+        _LOG.warning(
+            "Cannot get recommended ctrl size. No geometries to do raycast on!"
+        )
         return default_size
 
     # Create a number of raycast for each geometry. Use the longuest distance.
@@ -600,17 +647,28 @@ def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
 
         if isinstance(mfn_geo, OpenMaya.MFnMesh):
             for dir in dirs:
-                mfn_geo.intersect(pos, dir, buffer_results, tolerance,
-                                  OpenMaya.MSpace.kWorld)
+                mfn_geo.intersect(
+                    pos, dir, buffer_results, tolerance, OpenMaya.MSpace.kWorld
+                )
         elif isinstance(mfn_geo, OpenMaya.MFnNurbsSurface):
             uArray = OpenMaya.MDoubleArray()
             vArray = OpenMaya.MDoubleArray()
             for dir in dirs:
-                mfn_geo.intersect(pos, dir, uArray, vArray, buffer_results, tolerance,
-                                  OpenMaya.MSpace.kWorld)
+                mfn_geo.intersect(
+                    pos,
+                    dir,
+                    uArray,
+                    vArray,
+                    buffer_results,
+                    tolerance,
+                    OpenMaya.MSpace.kWorld,
+                )
         else:
-            pymel.warning("Can't proceed with raycast, mesh is invalid: {0}".format(
-                geometry.__melobject__()))
+            pymel.warning(
+                "Can't proceed with raycast, mesh is invalid: {0}".format(
+                    geometry.__melobject__()
+                )
+            )
             continue
 
         for i in range(buffer_results.length()):
@@ -646,20 +704,34 @@ def snap(obj_dst, obj_src):
 # This is usefull for building a rig without any geometry.
 #
 
+
 def create_boxes():
     boxes = []
-    for jnt in pymel.ls(type='joint'):
+    for jnt in pymel.ls(type="joint"):
         joint_data = JointData(jnt)
         if joint_data.is_valid():
             length = joint_data.length
-            transform, make = pymel.polyCube(height=length, width=length * 0.33,
-                                             depth=length * 0.33)
-            r_offset = pymel.datatypes.Matrix(0, -1.0, -0.0, 0.0, 1.0, 0, 0.0, 0.0, 0.0,
-                                              -0.0, 1.0, 0.0,
-                                              joint_data.dir[0] * length * 0.5,
-                                              joint_data.dir[1] * length * 0.5,
-                                              joint_data.dir[2] * length * 0.5,
-                                              1.0)
+            transform, make = pymel.polyCube(
+                height=length, width=length * 0.33, depth=length * 0.33
+            )
+            r_offset = pymel.datatypes.Matrix(
+                0,
+                -1.0,
+                -0.0,
+                0.0,
+                1.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                -0.0,
+                1.0,
+                0.0,
+                joint_data.dir[0] * length * 0.5,
+                joint_data.dir[1] * length * 0.5,
+                joint_data.dir[2] * length * 0.5,
+                1.0,
+            )
             cylinder_tm = r_offset
             transform.setParent(jnt)
             transform.setMatrix(cylinder_tm)
@@ -669,9 +741,14 @@ def create_boxes():
 
 def collect_proxy_boxes():
     return_values = []
-    for obj in pymel.ls(type='transform'):
-        if any((hist for hist in obj.listHistory() if
-                isinstance(hist, pymel.nodetypes.PolyCube))):
+    for obj in pymel.ls(type="transform"):
+        if any(
+            (
+                hist
+                for hist in obj.listHistory()
+                if isinstance(hist, pymel.nodetypes.PolyCube)
+            )
+        ):
             if isinstance(obj.getParent(), pymel.nodetypes.Joint):
                 return_values.append(obj)
     return return_values
@@ -686,27 +763,32 @@ def finalize_boxes():
         weights.extend([i] * len(box.vtx))
 
     # mergeboxes
-    polyUnite = pymel.createNode('polyUnite')
+    polyUnite = pymel.createNode("polyUnite")
     itt = 0
     for box in boxes:
         for shape in box.getShapes():
             pymel.connectAttr(shape.worldMatrix, polyUnite.inputMat[itt])
             pymel.connectAttr(shape.outMesh, polyUnite.inputPoly[itt])
             itt += 1
-    outputMesh = pymel.createNode('mesh')
+    outputMesh = pymel.createNode("mesh")
     pymel.connectAttr(polyUnite.output, outputMesh.inMesh)
     # pymel.delete(boxes)
 
     # set skin weights
     pymel.skinCluster(jnts, outputMesh.getParent(), toSelectedBones=True)
-    skinCluster = next((hist for hist in outputMesh.listHistory() if
-                        isinstance(hist, pymel.nodetypes.SkinCluster)),
-                       None)
+    skinCluster = next(
+        (
+            hist
+            for hist in outputMesh.listHistory()
+            if isinstance(hist, pymel.nodetypes.SkinCluster)
+        ),
+        None,
+    )
     for vtx, inf in zip(iter(outputMesh.vtx), weights):
         skinCluster.setWeights(vtx, [inf], [1])
 
 
-'''
+"""
 # src: http://tech-artists.org/forum/showthread.php?4384-Vector-math-and-Maya
 from pymel.core.datatypes import Vector, Matrix, Point
 def matrix_from_normal(up_vect, front_vect):
@@ -725,28 +807,22 @@ def matrix_from_normal(up_vect, front_vect):
         up_vect.x, up_vect.y, up_vect.z, 0,
         front_vect.x, front_vect.y, front_vect.z, 0,
         0,0,0,1)
-'''
+"""
 
 
 # todo: move to libPymel
 def get_matrix_axis_x(tm):
-    return pymel.datatypes.Vector(
-        tm.a00, tm.a01, tm.a02
-    )
+    return pymel.datatypes.Vector(tm.a00, tm.a01, tm.a02)
 
 
 # todo: move to libPymel
 def get_matrix_axis_y(tm):
-    return pymel.datatypes.Vector(
-        tm.a10, tm.a11, tm.a12
-    )
+    return pymel.datatypes.Vector(tm.a10, tm.a11, tm.a12)
 
 
 # todo: move to libPymel
 def get_matrix_axis_z(tm):
-    return pymel.datatypes.Vector(
-        tm.a20, tm.a21, tm.a22
-    )
+    return pymel.datatypes.Vector(tm.a20, tm.a21, tm.a22)
 
 
 # todo: move to libPymel
@@ -759,17 +835,18 @@ def get_matrix_axis(tm, axis):
     elif axis == constants.Axis.z:
         fn = get_matrix_axis_z
     else:
-        raise IOError("Unexpected axis. Got {}".format(
-            axis
-        ))
+        raise IOError("Unexpected axis. Got {}".format(axis))
 
     return fn(tm)
 
 
 # todo: move to libPymel
-def get_matrix_from_direction(look_vec, upp_vec,
-                              look_axis=pymel.datatypes.Vector.xAxis,
-                              upp_axis=pymel.datatypes.Vector.zAxis):
+def get_matrix_from_direction(
+    look_vec,
+    upp_vec,
+    look_axis=pymel.datatypes.Vector.xAxis,
+    upp_axis=pymel.datatypes.Vector.zAxis,
+):
     # print look_axis, look_vec
     # print upp_axis, upp_vec
     # Ensure we deal with normalized vectors
@@ -786,56 +863,87 @@ def get_matrix_from_direction(look_vec, upp_vec,
     # Build resulting matrix
     #
 
-    tm = pymel.datatypes.Matrix(
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 1
-    )
+    tm = pymel.datatypes.Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
 
     # Add look component
     axis = look_axis
     vec = look_vec
     tm += pymel.datatypes.Matrix(
-        axis.x * vec.x, axis.x * vec.y, axis.x * vec.z, 0,
-        axis.y * vec.x, axis.y * vec.y, axis.y * vec.z, 0,
-        axis.z * vec.x, axis.z * vec.y, axis.z * vec.z, 0,
-        0, 0, 0, 0
+        axis.x * vec.x,
+        axis.x * vec.y,
+        axis.x * vec.z,
+        0,
+        axis.y * vec.x,
+        axis.y * vec.y,
+        axis.y * vec.z,
+        0,
+        axis.z * vec.x,
+        axis.z * vec.y,
+        axis.z * vec.z,
+        0,
+        0,
+        0,
+        0,
+        0,
     )
 
     # Add upp component
     axis = upp_axis
     vec = upp_vec
     tm += pymel.datatypes.Matrix(
-        axis.x * vec.x, axis.x * vec.y, axis.x * vec.z, 0,
-        axis.y * vec.x, axis.y * vec.y, axis.y * vec.z, 0,
-        axis.z * vec.x, axis.z * vec.y, axis.z * vec.z, 0,
-        0, 0, 0, 0
+        axis.x * vec.x,
+        axis.x * vec.y,
+        axis.x * vec.z,
+        0,
+        axis.y * vec.x,
+        axis.y * vec.y,
+        axis.y * vec.z,
+        0,
+        axis.z * vec.x,
+        axis.z * vec.y,
+        axis.z * vec.z,
+        0,
+        0,
+        0,
+        0,
+        0,
     )
 
     # Add side component
     axis = look_axis.cross(upp_axis)
     vec = side_vec
     tm += pymel.datatypes.Matrix(
-        axis.x * vec.x, axis.x * vec.y, axis.x * vec.z, 0,
-        axis.y * vec.x, axis.y * vec.y, axis.y * vec.z, 0,
-        axis.z * vec.x, axis.z * vec.y, axis.z * vec.z, 0,
-        0, 0, 0, 0
+        axis.x * vec.x,
+        axis.x * vec.y,
+        axis.x * vec.z,
+        0,
+        axis.y * vec.x,
+        axis.y * vec.y,
+        axis.y * vec.z,
+        0,
+        axis.z * vec.x,
+        axis.z * vec.y,
+        axis.z * vec.z,
+        0,
+        0,
+        0,
+        0,
+        0,
     )
 
     return tm
 
 
 def align_joints_to_view(
-        joints, cam, affect_pos=True, look_axis=_X_AXIS, upp_axis=_Z_Axis
+    joints, cam, affect_pos=True, look_axis=_X_AXIS, upp_axis=_Z_Axis
 ):
     """
     Align the up axis of selected joints to the look axis of a camera.
     """
-    pos_start = joints[0].getTranslation(space='world')
+    pos_start = joints[0].getTranslation(space="world")
 
     # Get camera direction
-    cam_pos = cam.getTranslation(space='world')
+    cam_pos = cam.getTranslation(space="world")
     direction = cam_pos - pos_start
 
     align_joints_to_dir(
@@ -844,7 +952,7 @@ def align_joints_to_view(
 
 
 def align_joints_to_direction(
-        joints, direction, affect_pos=True, look_axis=_X_AXIS, upp_axis=_Z_Axis
+    joints, direction, affect_pos=True, look_axis=_X_AXIS, upp_axis=_Z_Axis
 ):
     """
     Align the up axis of selected joints to a direction vector.
@@ -856,14 +964,14 @@ def align_joints_to_direction(
     :param upp_axis:
     :return:
     """
-    pos_start = joints[0].getTranslation(space='world')
+    pos_start = joints[0].getTranslation(space="world")
 
     # Conform direction to Vector
     direction = pymel.datatypes.Vector(direction)
     direction.normalize()  # TODO: Do no modify by reference
 
     # Store original positions
-    positions_orig = [joint.getTranslation(space='world') for joint in joints]
+    positions_orig = [joint.getTranslation(space="world") for joint in joints]
 
     # Compute positions that respect the plane
     positions = []
@@ -894,7 +1002,7 @@ def align_joints_to_direction(
                 positions.append(new_joint_pos)
     else:
         for joint in joints:
-            positions.append(joint.getTranslation(space='world'))
+            positions.append(joint.getTranslation(space="world"))
 
     # Compute transforms
     transforms = []
@@ -918,11 +1026,13 @@ def align_joints_to_direction(
             # Next ref_y_axis will use parent correct up axis to prevent flipping
             direction = y_axis
 
-            tm = get_matrix_from_direction(x_axis, y_axis, look_axis=look_axis,
-                                           upp_axis=upp_axis)
+            tm = get_matrix_from_direction(
+                x_axis, y_axis, look_axis=look_axis, upp_axis=upp_axis
+            )
         else:
             tm = transforms[
-                i - 1].copy()  # Last joint share the same rotation as it's parent
+                i - 1
+            ].copy()  # Last joint share the same rotation as it's parent
 
         # Add translation
         if affect_pos:
@@ -943,7 +1053,7 @@ def get_active_camera():
     Thanks to Nohra Seif for the snippet!
     """
     # seems that $gMainPane contain the name of the main window pane layout holding the panels.
-    main_pane = mel.eval('string $test = $gMainPane;')
+    main_pane = mel.eval("string $test = $gMainPane;")
     if main_pane != "":
         # get the layout's immediate children
         main_pane_ctrls = pymel.paneLayout(main_pane, q=True, childArray=True)
@@ -952,20 +1062,22 @@ def get_active_camera():
             panel_name = pymel.getPanel(containing=main_pane_ctrls[i])
             if "" != panel_name:
                 # Return the type of the specified panel.
-                if ("modelPanel" == pymel.getPanel(typeOf=panel_name)):
+                if "modelPanel" == pymel.getPanel(typeOf=panel_name):
                     # Return whether the control can actually be seen by the user, isObscured for invisible
                     if not (pymel.control(main_pane_ctrls[i], q=True, isObscured=True)):
-                        model_editor = pymel.modelPanel(panel_name, q=True,
-                                                        modelEditor=True)
+                        model_editor = pymel.modelPanel(
+                            panel_name, q=True, modelEditor=True
+                        )
                         if model_editor:
                             # If this view is already active, let's continue to use it.
                             if pymel.modelEditor(model_editor, q=True, activeView=True):
                                 # get the camera in the current modelPanel
                                 return pymel.PyNode(
-                                    pymel.modelPanel(model_editor, q=True, camera=True))
+                                    pymel.modelPanel(model_editor, q=True, camera=True)
+                                )
 
 
-def align_selected_joints_to_active_view(default_cam='persp'):
+def align_selected_joints_to_active_view(default_cam="persp"):
     sel = pymel.selected()
     cam = get_active_camera()
     if not cam:
@@ -977,7 +1089,7 @@ def align_selected_joints_to_active_view(default_cam='persp'):
 def align_selected_joints_to_persp():
     # TODO: Deprecated, remove me after 2016-05-01
     sel = pymel.selected()
-    cam = pymel.PyNode('persp')
+    cam = pymel.PyNode("persp")
     align_joints_to_view(sel, cam)
 
 
@@ -998,8 +1110,9 @@ def get_nearest_affected_mesh(jnt, key=None):
     """
     Return the immediate mesh affected by provided object in the geometry stack.
     """
-    affected_meshes = [hist for hist in jnt.listHistory(future=True) if
-                       _filter_shape(hist, key)]
+    affected_meshes = [
+        hist for hist in jnt.listHistory(future=True) if _filter_shape(hist, key)
+    ]
 
     return next(iter(affected_meshes), None)
 
@@ -1009,8 +1122,9 @@ def get_farest_affected_mesh(jnt, key=None):
     Return the last mesh affected by provided object in the geometry stack.
     Usefull to identify which mesh to use in the 'doritos' setup.
     """
-    affected_meshes = [hist for hist in jnt.listHistory(future=True) if
-                       _filter_shape(hist, key)]
+    affected_meshes = [
+        hist for hist in jnt.listHistory(future=True) if _filter_shape(hist, key)
+    ]
 
     return next(iter(reversed(affected_meshes)), None)
 
@@ -1041,16 +1155,16 @@ def get_closest_point_on_mesh(mesh, pos):
         raise IOError("Unexpected datatype. Expected Mesh, got {0}".format(type(mesh)))
 
     # closestPointOnMesh ignores polymesh transforms
-    util_transformGeometry = create_utility_node('transformGeometry',
-                                                 inputGeometry=mesh.outMesh,
-                                                 transform=mesh.worldMatrix
-                                                 )
+    util_transformGeometry = create_utility_node(
+        "transformGeometry", inputGeometry=mesh.outMesh, transform=mesh.worldMatrix
+    )
 
     # TODO: maybe support multiple uv sets?
-    util_cpom = create_utility_node('closestPointOnMesh',
-                                    inPosition=pos,
-                                    inMesh=util_transformGeometry.outputGeometry
-                                    )
+    util_cpom = create_utility_node(
+        "closestPointOnMesh",
+        inPosition=pos,
+        inMesh=util_transformGeometry.outputGeometry,
+    )
 
     pos = util_cpom.position.get()
     u = util_cpom.parameterU.get()
@@ -1067,14 +1181,16 @@ def get_closest_point_on_surface(nurbsSurface, pos):
         nurbsSurface = nurbsSurface.getShape(noIntermediate=True)
 
     if not isinstance(nurbsSurface, pymel.nodetypes.NurbsSurface):
-        raise IOError("Unexpected datatype. Expected NurbsSurface, got {0}".format(
-            type(nurbsSurface)))
+        raise IOError(
+            "Unexpected datatype. Expected NurbsSurface, got {0}".format(
+                type(nurbsSurface)
+            )
+        )
 
     # closestPointOnSurface don't listen to transform so we'll need to duplicate the shape.
-    util_cpos = create_utility_node('closestPointOnSurface',
-                                    inPosition=pos,
-                                    inputSurface=nurbsSurface.worldSpace
-                                    )
+    util_cpos = create_utility_node(
+        "closestPointOnSurface", inPosition=pos, inputSurface=nurbsSurface.worldSpace
+    )
 
     pos = util_cpos.position.get()
     u = util_cpos.parameterU.get()
@@ -1101,7 +1217,9 @@ def get_closest_point_on_shape(shape, pos):
         return get_closest_point_on_surface(shape, pos)
     raise NotImplementedError(
         "Unexpected data type. Expected Mesh or NurbsSurface, got {0}({1})".format(
-            shape, type(shape)))
+            shape, type(shape)
+        )
+    )
 
 
 def get_closest_point_on_shapes(meshes, pos):
@@ -1128,7 +1246,7 @@ def get_closest_point_on_shapes(meshes, pos):
 
 
 def get_point_on_surface_from_uv(shape, u, v):
-    follicle_shape = pymel.createNode('follicle')
+    follicle_shape = pymel.createNode("follicle")
     follicle_shape.parameterU.set(u)
     follicle_shape.parameterV.set(v)
 
@@ -1142,7 +1260,9 @@ def get_point_on_surface_from_uv(shape, u, v):
     else:
         raise Exception(
             "Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(
-                type(shape), shape))
+                type(shape), shape
+            )
+        )
 
     pos = follicle_shape.outTranslate.get()
     follicle_transform = follicle_shape.getParent()
@@ -1161,7 +1281,7 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
     :param connect_transform: If True, the output position and rotation will affect the follicle transform. Set the False if you wish to delete the transform afterward.
     :return: The created follicle shape.
     """
-    follicle_shape = pymel.createNode('follicle')
+    follicle_shape = pymel.createNode("follicle")
     if isinstance(u, pymel.Attribute):
         pymel.connectAttr(u, follicle_shape.parameterU)
     else:
@@ -1178,19 +1298,21 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
     elif isinstance(shape, pymel.nodetypes.Mesh):
-        '''
+        """
         # closestPointOnMesh ignores polymesh transforms
         util_transformGeometry = create_utility_node('transformGeometry',
                                                      inputGeometry=shape.outMesh,
                                                      transform=shape.worldMatrix
                                                      )
-        '''
+        """
 
         pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception(
             "Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(
-                shape.type(), shape))
+                shape.type(), shape
+            )
+        )
 
     if connect_transform:
         follicle_transform = follicle_shape.getParent()
@@ -1203,7 +1325,7 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
 def get_average_pos_between_vectors(jnts):
     pos = pymel.datatypes.Vector()
     for jnt in jnts:
-        pos += jnt.getTranslation(space='world')
+        pos += jnt.getTranslation(space="world")
     return pos / len(jnts)
 
 
@@ -1216,7 +1338,7 @@ def get_average_pos_between_nodes(jnts):
     middle.z = 0
 
     for jnt in jnts:
-        jnt_pos = jnt.getTranslation(space='world')
+        jnt_pos = jnt.getTranslation(space="world")
         jnt_pos.y = 0
         jnt_pos.z = 0
         distance = libPymel.distance_between_vectors(jnt_pos, middle)
@@ -1231,8 +1353,20 @@ def get_average_pos_between_nodes(jnts):
 # Driven Keys Methods
 #
 
-def create_animCurveU(type, kt, kv, kit=None, kot=None, kix=None, kiy=None, kox=None,
-                      koy=None, pre=0, pst=0):
+
+def create_animCurveU(
+    type,
+    kt,
+    kv,
+    kit=None,
+    kot=None,
+    kix=None,
+    kiy=None,
+    kox=None,
+    koy=None,
+    pre=0,
+    pst=0,
+):
     """
     :param type:
     :param keys: A tuple containing the following values: key time, key value
@@ -1241,16 +1375,16 @@ def create_animCurveU(type, kt, kv, kit=None, kot=None, kix=None, kiy=None, kox=
     :return:
     """
     # Use a temporary node to create the curve
-    tmp = pymel.createNode('transform')
+    tmp = pymel.createNode("transform")
 
     # Resolve the attributes we'll want to "connect"
     att_src = tmp.sx
     att_dst = None
-    if type == 'animCurveUU':
+    if type == "animCurveUU":
         att_dst = tmp.sy
-    elif type == 'animCurveUL':
+    elif type == "animCurveUL":
         att_dst = tmp.tx
-    elif type == 'animCurveUA':
+    elif type == "animCurveUA":
         att_dst = tmp.rx
     else:
         raise NotImplemented("Unexpected animCurve type. Got {0}.".format(type))
@@ -1289,13 +1423,15 @@ def create_animCurveU(type, kt, kv, kit=None, kot=None, kix=None, kiy=None, kox=
 
 def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs):
     # Check on which attribute @attr_dst is connected to (if applicable).
-    attr_dst_input = next(iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)),
-                          None)
+    attr_dst_input = next(
+        iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)), None
+    )
 
     # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
-    if attr_dst_input is None or not isinstance(attr_dst_input.node(),
-                                                pymel.nodetypes.BlendWeighted):
-        util_blend = pymel.createNode('blendWeighted')
+    if attr_dst_input is None or not isinstance(
+        attr_dst_input.node(), pymel.nodetypes.BlendWeighted
+    ):
+        util_blend = pymel.createNode("blendWeighted")
 
         if attr_dst_input is not None:
             next_available = util_blend.input.numElements()
@@ -1307,8 +1443,9 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
 
     # todo: use blendWeighted for the multiplier?
     if multiplier:
-        attr_src = create_utility_node('multiplyDivide', input1X=attr_src,
-                                       input2X=multiplier).outputX
+        attr_src = create_utility_node(
+            "multiplyDivide", input1X=attr_src, input2X=multiplier
+        ).outputX
 
     next_input = get_multi_attr_available_slot(util_blend.input)
     pymel.connectAttr(attr_src, next_input)
@@ -1334,7 +1471,7 @@ def _get_or_create_blendweighted_for_attr(attr):
     if isinstance(src_node, pymel.nodetypes.BlendWeighted):
         return src_node
 
-    blend = pymel.createNode('blendWeighted')
+    blend = pymel.createNode("blendWeighted")
 
     if src_attr:
         next_available = blend.input.numElements()
@@ -1405,15 +1542,24 @@ def getAttrOutput(attr, plugs=True, skipBlendWeighted=False, **kwargs):
         return [attr.node() for attr in attr_outs]
 
 
-def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', force=True,
-                                     kt=(-1.0, 0.0, 1.0),
-                                     kv=(-1.0, 0.0, 1.0), kit=(4, 2, 4), kot=(4, 2, 4),
-                                     pre='linear', pst='linear'):
+def connectAttr_withLinearDrivenKeys(
+    attr_src,
+    attr_dst,
+    type="animCurveUU",
+    force=True,
+    kt=(-1.0, 0.0, 1.0),
+    kv=(-1.0, 0.0, 1.0),
+    kit=(4, 2, 4),
+    kot=(4, 2, 4),
+    pre="linear",
+    pst="linear",
+):
     # Skip if a connection already exist
     for node in getAttrOutput(attr_src, plugs=False, skipBlendWeighted=True):
-        if 'animCurveU' in node.type():
-            drivenkey_outplugs = getAttrOutput(node.output, plugs=True,
-                                               skipBlendWeighted=True)
+        if "animCurveU" in node.type():
+            drivenkey_outplugs = getAttrOutput(
+                node.output, plugs=True, skipBlendWeighted=True
+            )
             for drivenkey_outplug in drivenkey_outplugs:
                 if drivenkey_outplug == attr_dst:
                     if force:
@@ -1422,37 +1568,40 @@ def connectAttr_withLinearDrivenKeys(attr_src, attr_dst, type='animCurveUU', for
                         pymel.delete(node)
                     else:
                         print(
-                        "Can't connect. Attribute {0} is already connected to {1} via {2}".format(
-                            attr_src.longName(),
-                            attr_dst.longName(),
-                            drivenkey_outplug.node().longName()
-                        ))
+                            "Can't connect. Attribute {0} is already connected to {1} via {2}".format(
+                                attr_src.longName(),
+                                attr_dst.longName(),
+                                drivenkey_outplug.node().longName(),
+                            )
+                        )
                         return
 
-    animCurve = create_animCurveU('animCurveUU',
-                                  kt=kt,
-                                  kv=kv,
-                                  kit=kit,  # Spline/Linear/Spline
-                                  kot=kot,  # Spline/Linear/Spline
-                                  pre=pre,
-                                  pst=pst
-                                  )
-    animCurve.rename('{0}_{1}'.format(attr_src.node().name(), attr_src.longName()))
+    animCurve = create_animCurveU(
+        "animCurveUU",
+        kt=kt,
+        kv=kv,
+        kit=kit,  # Spline/Linear/Spline
+        kot=kot,  # Spline/Linear/Spline
+        pre=pre,
+        pst=pst,
+    )
+    animCurve.rename("{0}_{1}".format(attr_src.node().name(), attr_src.longName()))
     pymel.connectAttr(attr_src, animCurve.input)
     return connectAttr_withBlendWeighted(animCurve.output, attr_dst)
 
 
-def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01,
-                                     default=1.0):
+def calibrate_attr_using_translation(
+    attr, ref, step_size=0.1, epsilon=0.01, default=1.0
+):
     """
     Return the distance that @ref move when @attr is changed.
     This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
     Note that to compensate non-linear movement, a small value (@step_size) is used.
     """
     attr.set(0)
-    pos_s = ref.getTranslation(space='world')
+    pos_s = ref.getTranslation(space="world")
     attr.set(step_size)
-    pos_e = ref.getTranslation(space='world')
+    pos_e = ref.getTranslation(space="world")
     attr.set(0)
     distance = libPymel.distance_between_vectors(pos_s, pos_e) / abs(step_size)
 
@@ -1464,10 +1613,7 @@ def calibrate_attr_using_translation(attr, ref, step_size=0.1, epsilon=0.01,
 
 
 def debug_matrix_attr(attr):
-    util_decompose = create_utility_node(
-        'decomposeMatrix',
-        inputMatrix=attr
-    )
+    util_decompose = create_utility_node("decomposeMatrix", inputMatrix=attr)
     loc = pymel.spaceLocator()
     pymel.connectAttr(util_decompose.outputTranslate, loc.translate)
     pymel.connectAttr(util_decompose.outputRotate, loc.rotate)
@@ -1488,24 +1634,24 @@ def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix)
     """
     # Create a condition that force the denominator to have a non-zero value.
     attr_numerator_fake = create_utility_node(
-        'condition',
-        name=nomenclature.resolve('{}SafePre'.format(suffix)),
+        "condition",
+        name=nomenclature.resolve("{}SafePre".format(suffix)),
         firstTerm=attr_denominator,
         colorIfFalseR=attr_denominator,
         colorIfTrueR=0.01,
     ).outColorR
     attr_result = create_utility_node(
-        'multiplyDivide',
+        "multiplyDivide",
         name=nomenclature.resolve(suffix),
         operation=2,  # division,
         input1X=attr_numerator,
-        input2X=attr_numerator_fake
+        input2X=attr_numerator_fake,
     ).outputX
     attr_result_safe = create_utility_node(
-        'condition',
-        name=nomenclature.resolve('{}SafePost'.format(suffix)),
+        "condition",
+        name=nomenclature.resolve("{}SafePost".format(suffix)),
         firstTerm=attr_denominator,
         colorIfFalseR=attr_result,
-        colorIfTrueR=0.0
+        colorIfTrueR=0.0,
     ).outColorR
     return attr_result_safe

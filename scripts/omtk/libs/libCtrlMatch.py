@@ -8,10 +8,16 @@ from omtk.libs import libRigging
 
 
 def get_orig_shape(shape):
-    return next((hist for hist in shape.listHistory()
-                 if isinstance(hist, pymel.nodetypes.NurbsCurve)
-                 and hist != shape
-                 and hist.intermediateObject.get()), None)
+    return next(
+        (
+            hist
+            for hist in shape.listHistory()
+            if isinstance(hist, pymel.nodetypes.NurbsCurve)
+            and hist != shape
+            and hist.intermediateObject.get()
+        ),
+        None,
+    )
 
 
 def safety_check(check_object=None, check_curve_list=None):
@@ -28,7 +34,9 @@ def get_previous_controller_info(previous_controler):
     # this implementation assumes your only using one shape or that the the first shape of children shapes is representative of the lot
     assumed_only_shape = previous_controler.getShape()
 
-    if assumed_only_shape.overrideEnabled.get():  # will return False if it isn't activated
+    if (
+        assumed_only_shape.overrideEnabled.get()
+    ):  # will return False if it isn't activated
         if assumed_only_shape.overrideRGBColors.get():
             rgb_color = assumed_only_shape.overrideColorRGB.get()
             color_info = [True, True, rgb_color]
@@ -39,7 +47,9 @@ def get_previous_controller_info(previous_controler):
         color_info = [False, False, []]
 
     if assumed_only_shape.visibility.isConnected():
-        visibility_connection_info = assumed_only_shape.visibility.connections(plugs=True)[0]
+        visibility_connection_info = assumed_only_shape.visibility.connections(
+            plugs=True
+        )[0]
 
     else:
         visibility_connection_info = False
@@ -55,8 +65,14 @@ def adapt_to_orig_shape(source, target):
     """
 
     def get_transformGeometry(shape):
-        return next((hist for hist in shape.listHistory()
-                     if isinstance(hist, pymel.nodetypes.TransformGeometry)), None)
+        return next(
+            (
+                hist
+                for hist in shape.listHistory()
+                if isinstance(hist, pymel.nodetypes.TransformGeometry)
+            ),
+            None,
+        )
 
     # Resolve orig shape
     shape_orig = get_orig_shape(target)
@@ -66,17 +82,19 @@ def adapt_to_orig_shape(source, target):
     if not util_transform_geometry:
         target.warning("Skipping {}. Cannot find transformGeometry.".format(target))
         return
-    attr_compensation_tm = next(iter(util_transform_geometry.transform.inputs(plugs=True)), None)
+    attr_compensation_tm = next(
+        iter(util_transform_geometry.transform.inputs(plugs=True)), None
+    )
 
     if not attr_compensation_tm:
         target.warning("Skipping {}. Cannot find compensation matrix.".format(target))
         return
 
     tmp_transform_geometry = libRigging.create_utility_node(
-        'transformGeometry',
+        "transformGeometry",
         inputGeometry=source.local,
         transform=attr_compensation_tm,
-        invertTransform=True
+        invertTransform=True,
     )
 
     # source.getParent().setParent(grp_offset) JG modification source should already be in place
@@ -121,9 +139,13 @@ def controller_matcher(selection=None, mirror_prefix=None, flip=True):
             if skip_mechanism:
                 pass
             else:
-                target_name = selected_object.name().replace(current_side, _possible_sides[0])
+                target_name = selected_object.name().replace(
+                    current_side, _possible_sides[0]
+                )
                 if pymel.objExists(target_name):
-                    target = pymel.PyNode(selected_object.name().replace(current_side, _possible_sides[0]))
+                    target = pymel.PyNode(
+                        selected_object.name().replace(current_side, _possible_sides[0])
+                    )
                     transfer_shape(selected_object, target, flip=True)
 
 
@@ -134,7 +156,7 @@ def transfer_shape(source, target, flip=True):
     target_shape_orig = get_orig_shape(target_shape)
 
     dup = pymel.duplicate(source, rc=1)[0]
-    tmp = pymel.createNode('transform')
+    tmp = pymel.createNode("transform")
     pymel.parent(tmp, dup)
     pymel.xform(tmp, t=(0, 0, 0), ro=(0, 0, 0), scale=(1, 1, 1))
     pymel.parent(tmp, w=1)
@@ -142,7 +164,7 @@ def transfer_shape(source, target, flip=True):
         pymel.parent(sh, tmp, r=1, s=1)
 
     pymel.delete(dup)
-    temp_grp_negScale = pymel.createNode('transform')
+    temp_grp_negScale = pymel.createNode("transform")
     pymel.parent(tmp, temp_grp_negScale)
     if flip:
         temp_grp_negScale.scaleX.set(-1)
@@ -150,7 +172,9 @@ def transfer_shape(source, target, flip=True):
     pymel.parent(tmp, target)
     pymel.delete(temp_grp_negScale)
 
-    pymel.makeIdentity(tmp, t=True)  # this brings translate values at 0 before scale freezing
+    pymel.makeIdentity(
+        tmp, t=True
+    )  # this brings translate values at 0 before scale freezing
     pymel.makeIdentity(tmp, apply=True, t=True, r=True, s=True)
     pymel.parent(tmp, w=1)
 
@@ -163,7 +187,8 @@ def transfer_shape(source, target, flip=True):
         else:
             if not shapes_has_been_deleted:
                 shapesDel = target.getShapes()
-                if shapesDel: pymel.delete(shapesDel)
+                if shapesDel:
+                    pymel.delete(shapesDel)
                 shapes_has_been_deleted = True
 
             pymel.parent(sh, target, r=1, s=1)

@@ -22,6 +22,7 @@ def _is_surface(shape):
 # Utility functions that compliment pymel.listHistory.
 #
 
+
 def _iter_history(shape, key=None, fn_stop=None, stop_at_shape=False, **kwargs):
     """
     Go through the history of the provided shapes and yield interesting elements.
@@ -34,11 +35,20 @@ def _iter_history(shape, key=None, fn_stop=None, stop_at_shape=False, **kwargs):
     """
     # Determine what condition make us stop iterating though history.
     if stop_at_shape:
-        shape_start = shape.getShape() if isinstance(shape, pymel.nodetypes.Transform) else shape
+        shape_start = (
+            shape.getShape() if isinstance(shape, pymel.nodetypes.Transform) else shape
+        )
         if fn_stop:
-            fn_stop = lambda shape: isinstance(shape, pymel.nodetypes.Shape) and shape != shape_start or fn_stop(shape)
+            fn_stop = (
+                lambda shape: isinstance(shape, pymel.nodetypes.Shape)
+                and shape != shape_start
+                or fn_stop(shape)
+            )
         else:
-            fn_stop = lambda shape: isinstance(shape, pymel.nodetypes.Shape) and shape != shape_start
+            fn_stop = (
+                lambda shape: isinstance(shape, pymel.nodetypes.Shape)
+                and shape != shape_start
+            )
 
     for hist in shape.listHistory(**kwargs):
         if hist == shape:
@@ -73,6 +83,7 @@ def get_history_previous_sibling(shape, **kwargs):
 # Utility functions to resolve skinning shapes from influences.
 #
 
+
 def iter_affected_shapes(objs, key=None):
     """
     :param obj: A reference object, generally a pymel.nodetypes.Joint.
@@ -88,7 +99,10 @@ def iter_affected_shapes(objs, key=None):
         if isinstance(obj, pymel.nodetypes.Joint):
             # Collect all geometries affected by the joint.
             for hist in obj.worldMatrix.outputs():
-                if isinstance(hist, pymel.nodetypes.SkinCluster) and not hist in known_skinClusters:
+                if (
+                    isinstance(hist, pymel.nodetypes.SkinCluster)
+                    and not hist in known_skinClusters
+                ):
                     known_skinClusters.append(hist)
                     for geometry in hist.getOutputGeometry():
                         if key is None or key(geometry):

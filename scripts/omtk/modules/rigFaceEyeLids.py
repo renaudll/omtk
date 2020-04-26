@@ -21,6 +21,7 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
     FaceLids behave the same a a standard AvarGrp with an Upp and Low section.
     However to adapt ourself to non-symetrical eyes, we use two surface to slide on.
     """
+
     _CLS_CTRL_UPP = CtrlEyeLidUpp
     _CLS_CTRL_LOW = CtrlEyeLidLow
     IS_SIDE_SPECIFIC = True
@@ -62,11 +63,11 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
         # Create surfaces if they were not provided
         if self.surface_upp is None:
             pymel.warning("Can't find surface for {0}, creating one.".format(self))
-            self.surface_upp = self.create_surface(name='SurfaceUpp')
+            self.surface_upp = self.create_surface(name="SurfaceUpp")
 
         if self.surface_low is None:
             pymel.warning("Can't find surface for {0}, creating one.".format(self))
-            self.surface_low = self.create_surface(name='SurfaceLow')
+            self.surface_low = self.create_surface(name="SurfaceLow")
 
         # We still provide the surface property in case we need a controller to be connected directly to it.
         self.surface = self.surface_upp
@@ -79,7 +80,7 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
             avar.surface = self.surface_low
 
     def get_default_name(self):
-        return 'eyelid'
+        return "eyelid"
 
     def get_multiplier_u(self):
         # Since the V go all around the sphere, it is too much range.

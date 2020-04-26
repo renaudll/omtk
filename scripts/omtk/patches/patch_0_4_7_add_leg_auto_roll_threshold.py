@@ -3,11 +3,14 @@ In omtk 0.4.7, the Leg module now preserve the auto-roll threshold value.
 Run this script to convert a pre-0.4.7 scene.
 """
 
-import omtk; reload(omtk); omtk._reload()
+import omtk
+
+reload(omtk)
+omtk._reload()
 from omtk.modules import rigLeg
 import pymel.core as pymel
 
-NET_ATTR_NAME = 'attrAutoRollThreshold'
+NET_ATTR_NAME = "attrAutoRollThreshold"
 
 
 def _module_need_patch(module):
@@ -22,7 +25,9 @@ def _module_need_patch(module):
         return False
 
     # Verify module version
-    major, minor, patch = [int(val) for val in getattr(module, 'version', '0.0.0').split('.')]
+    major, minor, patch = [
+        int(val) for val in getattr(module, "version", "0.0.0").split(".")
+    ]
     if major > 0 or minor > 4 or patch > 7:
         return False
 
@@ -38,9 +43,9 @@ def _patch_module(module):
     net = module.sysIK._network
     ctrl = module.sysIK.ctrl_ik
     attr_anm = ctrl.rollAutoThreshold
-    if not net.hasAttr('attrAutoRollThreshold'):
+    if not net.hasAttr("attrAutoRollThreshold"):
         print("Fixing {}".format(net))
-        pymel.addAttr(net, longName='attrAutoRollThreshold')
+        pymel.addAttr(net, longName="attrAutoRollThreshold")
         pymel.connectAttr(attr_anm, net.attrAutoRollThreshold)
 
 

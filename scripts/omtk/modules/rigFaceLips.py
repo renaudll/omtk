@@ -18,14 +18,13 @@ class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
     pass
 
 
-
-
 class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     """
     The Lips avar are special as they implement a Splitter mechanism that ensure the avars move in jaw space before moving in surface space.
     For this reason, we implement a new avar, 'avar_ud_bypass' to skip the splitter mechanism if necessary. (ex: avar_all)
     """
-    AVAR_NAME_UD_BYPASS = '_attr_inn_ud_bypass'
+
+    AVAR_NAME_UD_BYPASS = "_attr_inn_ud_bypass"
     _CLS_MODEL_INFL = model_avar_surface_lips.AvarSurfaceLipModel
 
     def __init__(self, *args, **kwargs):
@@ -87,31 +86,31 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         # Create additional attributes to control the jaw layer
         #
 
-        libAttr.addAttr_separator(self.grp_rig, 'jawLayer')
+        libAttr.addAttr_separator(self.grp_rig, "jawLayer")
         self._attr_inn_jaw_ratio_default = libAttr.addAttr(
             self.grp_rig,
-            'jawRatioDefault',
+            "jawRatioDefault",
             defaultValue=0.5,
             hasMinValue=True,
             hasMaxValue=True,
             minValue=0,
             maxValue=1,
-            k=True
+            k=True,
         )
         self._attr_bypass_splitter = libAttr.addAttr(
             self.grp_rig,
-            'jawSplitterBypass',
+            "jawSplitterBypass",
             defaultValue=0.0,
             hasMinValue=True,
             hasMaxValue=True,
             minValue=0,
             maxValue=1,
-            k=True
+            k=True,
         )
 
         # self._target_jaw_bindpose = self._parent_module._ref_jaw_predeform
         # self._attr_jaw_pitch = self._parent_module._attr_jaw_pt
-        
+
         # Variable shared with the AvarInflModel
         self._attr_jaw_bind_tm = self._parent_module._ref_jaw_predeform.matrix
         self._attr_jaw_pitch = self._parent_module._attr_jaw_pt
@@ -132,12 +131,12 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         #     input2Y=self._attr_inn_jaw_ratio_default,
         #     input2Z=self._attr_inn_jaw_ratio_default,
         # ).output
-        # 
+        #
         # attr_rotation_tm = libRigging.create_utility_node(
         #     'composeMatrix',
         #     inputRotate=attr_rotation_adjusted
         # ).outputMatrix
-        # 
+        #
         # # Compute the arc offset relative to the avar root
         # self._attr_get_arc_tm = libRigging.create_utility_node(
         #     'multMatrix',
@@ -149,7 +148,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         #         self.grp_offset.inverseMatrix,  # todo: remove?
         #     )
         # ).matrixSum
-        # 
+        #
         # # Connect jaw translation avars to the "jawT" layer.
         # # layer_jaw_t_to_t = stack.prepend_layer(name='jawT')
         # self._attr_get_jaw_t = libRigging.create_utility_node(
@@ -163,18 +162,17 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         #     name=nomenclature_rig.resolve('getJawT'),
         # ).output
 
-    
     def unbuild(self):
         super(FaceLipsAvar, self).unbuild()
 
         # Cleanup invalid references
         self.attr_jaw_out_ratio = None
-    
+
     # def _get_follicle_relative_uv_attr(self, **kwargs):
     #     nomenclature_rig = self.get_nomenclature_rig()
-    # 
+    #
     #     attr_u, attr_v = super(FaceLipsAvar, self)._get_follicle_relative_uv_attr(**kwargs)
-    # 
+    #
     #     #
     #     # Create and connect Splitter Node
     #     #
@@ -184,7 +182,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     #         name=nomenclature_rig.resolve('splitter')
     #     )
     #     splitter.setParent(self.grp_rig)
-    # 
+    #
     #     # Resolve the radius of the jaw influence. Used by the splitter.
     #     attr_jaw_radius = libRigging.create_utility_node(
     #         'distanceBetween',
@@ -192,10 +190,10 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     #         point1=self.grp_offset.translate,
     #         point2=self._target_jaw_bindpose.translate
     #     ).distance
-    # 
+    #
     #     # Resolve the jaw pitch. Used by the splitter.
     #     attr_jaw_pitch = self._attr_jaw_pitch
-    # 
+    #
     #     # Connect the splitter inputs
     #     pymel.connectAttr(attr_u, splitter.attr_inn_surface_u)
     #     pymel.connectAttr(attr_v, splitter.attr_inn_surface_v)
@@ -204,13 +202,13 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     #     pymel.connectAttr(attr_jaw_radius, splitter.attr_inn_jaw_radius)
     #     pymel.connectAttr(attr_jaw_pitch, splitter.attr_inn_jaw_pt)
     #     pymel.connectAttr(self._attr_inn_bypass_splitter, splitter.attr_inn_bypass)
-    # 
+    #
     #     attr_u = splitter.attr_out_surface_u
     #     attr_v = splitter.attr_out_surface_v
-    # 
+    #
     #     # Create constraint to controller the jaw reference
     #     self.attr_jaw_out_ratio = splitter.attr_out_jaw_ratio
-    # 
+    #
     #     #
     #     # Implement the 'bypass' avars.
     #     # Thoses avars bypass the splitter, used in corner cases only.
@@ -227,7 +225,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     #         input1=attr_v,
     #         input2=attr_attr_ud_bypass_adjusted
     #     ).output
-    # 
+    #
     #     return attr_u, attr_v
 
 
@@ -237,6 +235,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     Lips have the same behavior than an AvarGrpUppLow.
     However the lip curl is also connected between the macro avars and the micro avars.
     """
+
     _CLS_AVAR = FaceLipsAvar
     _CLS_AVAR_MACRO = FaceLipsAvar  # necessary to feed the jawArc to the ctrl model
     IS_SIDE_SPECIFIC = False
@@ -267,9 +266,11 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             if jaw_module.is_built():
                 version_major, version_minor, version_patch = jaw_module.get_version()
                 if version_major == 0 and version_minor == 4 and version_patch < 18:
-                    raise Exception("Associated Jaw module version is too low. Expected 0.4.18+, got {}.{}.{}".format(
-                        version_major, version_minor, version_patch
-                    ))
+                    raise Exception(
+                        "Associated Jaw module version is too low. Expected 0.4.18+, got {}.{}.{}".format(
+                            version_major, version_minor, version_patch
+                        )
+                    )
 
     def validate_version(self, major_version, minor_version, patch_version):
         if major_version == 0 and minor_version == 4 and patch_version < 23:
@@ -277,7 +278,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def get_avars_corners(self, macro=True):
         # todo: move upper?
-        fnFilter = lambda avar: 'corner' in avar.name.lower()
+        fnFilter = lambda avar: "corner" in avar.name.lower()
         result = filter(fnFilter, self.avars)
 
         if macro and self.create_macro_horizontal:
@@ -289,7 +290,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         return result
 
     def get_default_name(self):
-        return 'lip'
+        return "lip"
 
     def connect_macro_avar(self, avar_macro, avar_micros):
         pass
@@ -321,8 +322,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         #     kot=(2, 2, 2), pre='linear', pst='linear'
         # )
 
-    def _connect_avar_macro_horizontal(self, avar_parent, avar_children, connect_ud=True, connect_lr=True,
-                                       connect_fb=True):
+    def _connect_avar_macro_horizontal(
+        self,
+        avar_parent,
+        avar_children,
+        connect_ud=True,
+        connect_lr=True,
+        connect_fb=True,
+    ):
         """
         Connect micro avars to horizontal macro avar. (avar_l and avar_r)
         This configure the avar_lr connection differently depending on the position of each micro avars.
@@ -337,15 +344,15 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
         if connect_lr:
             avar_middle = self.get_avar_mid()
-            pos_s = avar_middle.jnt.getTranslation(space='world')
-            pos_e = avar_parent.jnt.getTranslation(space='world')
+            pos_s = avar_middle.jnt.getTranslation(space="world")
+            pos_e = avar_parent.jnt.getTranslation(space="world")
 
             for avar_child in avar_children:
                 # We don't want to connect the middle Avar.
                 if avar_child == avar_middle:
                     continue
 
-                pos = avar_child.jnt.getTranslation(space='world')
+                pos = avar_child.jnt.getTranslation(space="world")
 
                 # Compute the ratio between the middle and the corner.
                 # ex: In the lips, we want the lips to stretch when the corner are taken appart.
@@ -356,15 +363,23 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 ratio = max(0, ratio)
                 ratio = min(ratio, 1)
 
-                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, avar_child.attr_lr,
-                                                            kv=(-ratio, 0.0, ratio))
+                libRigging.connectAttr_withLinearDrivenKeys(
+                    avar_parent.attr_lr, avar_child.attr_lr, kv=(-ratio, 0.0, ratio)
+                )
 
     def _build_avar_macro_l(self):
         # Create left avar if necessary
         ref = self.get_jnt_l_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_l, self.get_avar_mid(), self.get_avars_micro_l(),
-                                              self._CLS_CTRL_LFT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(
+                self.avar_l,
+                self.get_avar_mid(),
+                self.get_avars_micro_l(),
+                self._CLS_CTRL_LFT,
+                connect_lr=True,
+                connect_ud=False,
+                connect_fb=False,
+            )
 
     def _connect_avar_macro_l(self, avar, child_avars):
         super(FaceLips, self)._connect_avar_macro_l(avar, child_avars)
@@ -372,14 +387,25 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         # Connect the corner other avars
         avar_l_corner = self.get_avar_l_corner()
         if avar_l_corner and avar_l_corner in child_avars:
-            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_ud, avar_l_corner.attr_ud)
-            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_lr, avar_l_corner.attr_lr)
+            libRigging.connectAttr_withLinearDrivenKeys(
+                avar.attr_ud, avar_l_corner.attr_ud
+            )
+            libRigging.connectAttr_withLinearDrivenKeys(
+                avar.attr_lr, avar_l_corner.attr_lr
+            )
 
     def _build_avar_macro_r(self):  # Create right avar if necessary
         ref = self.get_jnt_r_mid()
         if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(self.avar_r, self.get_avar_mid(), self.get_avars_micro_r(),
-                                              self._CLS_CTRL_RGT, connect_lr=True, connect_ud=False, connect_fb=False)
+            self._build_avar_macro_horizontal(
+                self.avar_r,
+                self.get_avar_mid(),
+                self.get_avars_micro_r(),
+                self._CLS_CTRL_RGT,
+                connect_lr=True,
+                connect_ud=False,
+                connect_fb=False,
+            )
 
     def _connect_avar_macro_r(self, avar, child_avars):
         super(FaceLips, self)._connect_avar_macro_r(avar, child_avars)
@@ -387,8 +413,12 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         # Connect the corner other avars
         avar_r_corner = self.get_avar_r_corner()
         if avar_r_corner and avar_r_corner in child_avars:
-            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_ud, avar_r_corner.attr_ud)
-            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_lr, avar_r_corner.attr_lr)
+            libRigging.connectAttr_withLinearDrivenKeys(
+                avar.attr_ud, avar_r_corner.attr_ud
+            )
+            libRigging.connectAttr_withLinearDrivenKeys(
+                avar.attr_lr, avar_r_corner.attr_lr
+            )
 
     @libPython.memoized_instancemethod
     def _get_mouth_width(self):
@@ -409,7 +439,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         """
         # parent_pos = self.avar_all._grp_output
         parent_rot = self.avar_all._grp_output
-        super(FaceLips, self)._create_avar_macro_all_ctrls(parent_pos=parent_pos, parent_rot=parent_rot, **kwargs)
+        super(FaceLips, self)._create_avar_macro_all_ctrls(
+            parent_pos=parent_pos, parent_rot=parent_rot, **kwargs
+        )
 
     def get_dependencies_modules(self):
         return [self.get_jaw_module()]
@@ -472,7 +504,9 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                     avar_pos_x = avar.grp_offset.tx.get()
                     ratio = abs(avar_pos_x - min_x / mouth_width)
                     ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
-                    ratio = 1.0 - libRigging.interp_football(ratio)  # apply football shape
+                    ratio = 1.0 - libRigging.interp_football(
+                        ratio
+                    )  # apply football shape
                 else:
                     ratio = 1.0
 
@@ -497,15 +531,23 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         libRigging.connectAttr_withLinearDrivenKeys(
             self.avar_l.attr_ud,
             avar_micro_corner_l._attr_inn_jaw_ratio_default,
-            kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
-            kot=(2, 2, 2), pre='linear', pst='linear'
+            kt=(1.0, 0.0, -1.0),
+            kv=(0.0, 0.5, 1.0),
+            kit=(2, 2, 2),
+            kot=(2, 2, 2),
+            pre="linear",
+            pst="linear",
         )
 
         libRigging.connectAttr_withLinearDrivenKeys(
             self.avar_r.attr_ud,
             avar_micro_corner_r._attr_inn_jaw_ratio_default,
-            kt=(1.0, 0.0, -1.0), kv=(0.0, 0.5, 1.0), kit=(2, 2, 2),
-            kot=(2, 2, 2), pre='linear', pst='linear'
+            kt=(1.0, 0.0, -1.0),
+            kv=(0.0, 0.5, 1.0),
+            kit=(2, 2, 2),
+            kot=(2, 2, 2),
+            pre="linear",
+            pst="linear",
         )
 
         # Ensure that the all macro avar bypass the jaw splitter as we expect it to be 100% linear.
@@ -521,33 +563,33 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         nomenclature_rig = self.get_nomenclature_rig()
         jnt_head = self.get_head_jnt()
         jnt_jaw = self.get_jaw_jnt()
-        pos_jaw = jnt_jaw.getTranslation(space='world')
+        pos_jaw = jnt_jaw.getTranslation(space="world")
 
         #
         # Build a network that evaluate the jaw transform in relation with it's bind pose.
         # This will be used by avars to computer the 'jawArcT' and 'jawArcR' layer.
         #
         self._ref_jaw_predeform = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('refJawPreDeform'),
-            parent=self.grp_rig
+            "transform",
+            name=nomenclature_rig.resolve("refJawPreDeform"),
+            parent=self.grp_rig,
         )
         self._ref_jaw_predeform.setTranslation(pos_jaw)
 
         # Create jaw bind-pose reference
         ref_head = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('refJawBefore'),
-            parent=self.grp_rig
+            "transform",
+            name=nomenclature_rig.resolve("refJawBefore"),
+            parent=self.grp_rig,
         )
         ref_head.setTranslation(pos_jaw)
         pymel.parentConstraint(jnt_head, ref_head, maintainOffset=True)
 
         # Create jaw actual pose reference
         ref_jaw = pymel.createNode(
-            'transform',
-            name=nomenclature_rig.resolve('refJawAfter'),
-            parent=self.grp_rig
+            "transform",
+            name=nomenclature_rig.resolve("refJawAfter"),
+            parent=self.grp_rig,
         )
         ref_jaw.setTranslation(pos_jaw)
         pymel.parentConstraint(jnt_jaw, ref_jaw, maintainOffset=True)
@@ -557,16 +599,11 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         # This happen in maya when using constraint with multiple targets since
         # Maya use individual values in it's computations.
         attr_get_relative_tm = libRigging.create_utility_node(
-            'multMatrix',
-            matrixIn=(
-                ref_jaw.worldMatrix,
-                ref_head.worldInverseMatrix,
-            )
+            "multMatrix", matrixIn=(ref_jaw.worldMatrix, ref_head.worldInverseMatrix,)
         ).matrixSum
 
         util_get_rotation_euler = libRigging.create_utility_node(
-            'decomposeMatrix',
-            inputMatrix=attr_get_relative_tm
+            "decomposeMatrix", inputMatrix=attr_get_relative_tm
         )
 
         self._attr_jaw_pt = util_get_rotation_euler.outputRotateX
@@ -590,7 +627,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         :return: A modified matrix, still relative to the bind matrix.
         """
         # todo: use a patching function?
-        new_layer = avar._stack_post.append_layer(name='jawContribution')
+        new_layer = avar._stack_post.append_layer(name="jawContribution")
         nomenclature_rig = self.get_nomenclature_rig()
         jaw_module = self.get_jaw_module()
 
@@ -604,8 +641,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         # Compute the rotation introduced by the jaw.
         # Note that the splitter only affect the jaw pitch (rotateX).
         attr_rotation_adjusted = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawRotate'),
+            "multiplyDivide",
+            name=nomenclature_rig.resolve("getJawRotate"),
             input1X=parent_jaw_pt,
             input1Y=parent_jaw_yw,
             input1Z=parent_jaw_rl,
@@ -615,15 +652,15 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         ).output
 
         attr_rotation_tm = libRigging.create_utility_node(
-            'composeMatrix',
-            name=nomenclature_rig.resolve('getJawRotateTm'),
-            inputRotate=attr_rotation_adjusted
+            "composeMatrix",
+            name=nomenclature_rig.resolve("getJawRotateTm"),
+            inputRotate=attr_rotation_adjusted,
         ).outputMatrix
 
         # Connect jaw translation avars to the "jawT" layer.
         attr_get_jaw_t = libRigging.create_utility_node(
-            'multiplyDivide',
-            name=nomenclature_rig.resolve('getJawTranslate'),
+            "multiplyDivide",
+            name=nomenclature_rig.resolve("getJawTranslate"),
             input1X=jaw_module.avar_all.attr_lr,
             input1Y=jaw_module.avar_all.attr_ud,
             input1Z=jaw_module.avar_all.attr_fb,
@@ -633,8 +670,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         ).output
 
         attr_get_jaw_t_tm = libRigging.create_utility_node(
-            'composeMatrix',
-            name=nomenclature_rig.resolve('getJawTranslateTm'),
+            "composeMatrix",
+            name=nomenclature_rig.resolve("getJawTranslateTm"),
             inputTranslate=attr_get_jaw_t,
         ).outputMatrix
 
@@ -643,21 +680,20 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         jaw_avar_offset_tm = jaw_avar.grp_offset.worldMatrix
         jaw_avar_offset_tm_inv = jaw_avar.grp_offset.worldInverseMatrix
         result_tm = libRigging.create_utility_node(
-            'multMatrix',
-            name=nomenclature_rig.resolve('getPostAvarTm'),
+            "multMatrix",
+            name=nomenclature_rig.resolve("getPostAvarTm"),
             matrixIn=(
                 avar.grp_offset.matrix,
                 jaw_avar_offset_tm_inv,  # go into jaw space
                 attr_get_jaw_t_tm,  # apply jaw translation
                 attr_rotation_tm,  # apply jaw rotation
                 jaw_avar_offset_tm,  # exit jaw space
-                avar.grp_offset.inverseMatrix
+                avar.grp_offset.inverseMatrix,
             ),
         ).matrixSum
 
         util_decompose_result_tm = libRigging.create_utility_node(
-            'decomposeMatrix',
-            inputMatrix=result_tm,
+            "decomposeMatrix", inputMatrix=result_tm,
         )
         pymel.connectAttr(util_decompose_result_tm.outputTranslate, new_layer.translate)
         pymel.connectAttr(util_decompose_result_tm.outputRotate, new_layer.rotate)

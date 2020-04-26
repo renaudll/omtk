@@ -8,9 +8,9 @@ import logging
 
 from omtk import constants
 
-log = logging.getLogger('omtk')
+log = logging.getLogger("omtk")
 
-CONFIG_FILENAME = 'config.json'
+CONFIG_FILENAME = "config.json"
 
 
 def get_path_preferences():
@@ -18,7 +18,7 @@ def get_path_preferences():
     :return: The search path of the configuration file.
     """
     current_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    config_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
+    config_dir = os.path.abspath(os.path.join(current_dir, "..", ".."))
     config_path = os.path.join(config_dir, CONFIG_FILENAME)
     return config_path
 
@@ -32,7 +32,7 @@ class Preferences(object):
             path = get_path_preferences()
 
         data = self.__dict__
-        with open(path, 'w') as fp:
+        with open(path, "w") as fp:
             json.dump(data, fp)
 
     def load(self, path=None):
@@ -43,7 +43,7 @@ class Preferences(object):
             log.warning("Can't find config file. Using default config.")
             return
 
-        with open(path, 'r') as fp:
+        with open(path, "r") as fp:
             data = json.load(fp)
             self.__dict__.update(data)
 
@@ -53,18 +53,23 @@ class Preferences(object):
         # Listen to an environment variable to drive the default rig for specific projects.
         default_rig = self.default_rig
 
-        default_rig_override = os.environ.get(constants.EnvironmentVariables.OMTK_DEFAULT_RIG, None)
+        default_rig_override = os.environ.get(
+            constants.EnvironmentVariables.OMTK_DEFAULT_RIG, None
+        )
         if default_rig_override:
             default_rig = default_rig_override
 
         if default_rig:
-            for plugin in plugin_manager.plugin_manager.iter_loaded_plugins_by_type('rigs'):
+            for plugin in plugin_manager.plugin_manager.iter_loaded_plugins_by_type(
+                "rigs"
+            ):
                 if plugin.cls.__name__ == default_rig:
                     return plugin.cls
             log.warning("Can't find default rig type {0}.".format(default_rig))
 
         # If no match is found, return the base implementation
         from omtk.core import classRig
+
         return classRig.Rig
 
 

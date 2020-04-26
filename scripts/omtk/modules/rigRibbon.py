@@ -36,7 +36,9 @@ class Ribbon(Module):
         self._follicles = []
         self.ribbon_chain_grp = None
 
-    def create_ctrls(self, ctrls=None, no_extremity=False, constraint_rot=True, **kwargs):
+    def create_ctrls(
+        self, ctrls=None, no_extremity=False, constraint_rot=True, **kwargs
+    ):
         """
         This function can be used to create controllers on the ribbon joints.
         :param no_extremity: Tell if we want extremity ctrls
@@ -94,9 +96,13 @@ class Ribbon(Module):
             # fol_u = split_value * i
             # TODO: Validate that we don't need to inverse the rotation separately.
             jnt_pos = jnt.getMatrix(worldSpace=True).translate
-            pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self._ribbon_shape, jnt_pos)
+            pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(
+                self._ribbon_shape, jnt_pos
+            )
             fol_name = nomenclature_rig.resolve("ribbonFollicle{0:02d}".format(i))
-            fol_shape = libRigging.create_follicle2(self._ribbon_shape, u=fol_u, v=fol_v)
+            fol_shape = libRigging.create_follicle2(
+                self._ribbon_shape, u=fol_u, v=fol_v
+            )
             fol = fol_shape.getParent()
             fol.rename(fol_name)
             if constraint_rot:
@@ -106,8 +112,17 @@ class Ribbon(Module):
 
             self._follicles.append(fol)
 
-    def build(self, no_subdiv=False, num_ctrl=None, degree=3, create_ctrl=True, constraint=False, rot_fol=True, *args,
-              **kwargs):
+    def build(
+        self,
+        no_subdiv=False,
+        num_ctrl=None,
+        degree=3,
+        create_ctrl=True,
+        constraint=False,
+        rot_fol=True,
+        *args,
+        **kwargs
+    ):
         super(Ribbon, self).build(create_grp_anm=create_ctrl, *args, **kwargs)
         if num_ctrl is not None:
             self.num_ctrl = num_ctrl
@@ -116,17 +131,30 @@ class Ribbon(Module):
 
         # Create the plane and align it with the selected bones
         plane_tran = next(
-            (input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
+            (
+                input
+                for input in self.input
+                if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)
+            ),
+            None,
+        )
         if plane_tran is None:
             plane_name = nomenclature_rig.resolve("ribbonPlane")
-            if no_subdiv:  # We don't want any subdivision in the plane, so use only 2 bones to create it
+            if (
+                no_subdiv
+            ):  # We don't want any subdivision in the plane, so use only 2 bones to create it
                 no_subdiv_degree = 2
                 if degree < 2:
                     no_subdiv_degree = degree
-                plane_tran = libRigging.create_nurbs_plane_from_joints([self.chain_jnt[0], self.chain_jnt[-1]],
-                                                                       degree=no_subdiv_degree, width=self.width)
+                plane_tran = libRigging.create_nurbs_plane_from_joints(
+                    [self.chain_jnt[0], self.chain_jnt[-1]],
+                    degree=no_subdiv_degree,
+                    width=self.width,
+                )
             else:
-                plane_tran = libRigging.create_nurbs_plane_from_joints(self.chain_jnt, degree=degree, width=self.width)
+                plane_tran = libRigging.create_nurbs_plane_from_joints(
+                    self.chain_jnt, degree=degree, width=self.width
+                )
             plane_tran.rename(plane_name)
             plane_tran.setParent(self.grp_rig)
         self._ribbon_shape = plane_tran.getShape()
@@ -145,15 +173,18 @@ class Ribbon(Module):
         # Create the joints that will drive the ribbon.
         # TODO: Support other shapes than straight lines...
         self._ribbon_jnts = libRigging.create_chain_between_objects(
-            self.chain_jnt.start, self.chain_jnt.end, self.num_ctrl, parented=False)
+            self.chain_jnt.start, self.chain_jnt.end, self.num_ctrl, parented=False
+        )
 
         # Group all the joints
-        ribbon_chain_grp_name = nomenclature_rig.resolve('ribbonChainGrp')
-        self.ribbon_chain_grp = pymel.createNode('transform', name=ribbon_chain_grp_name, parent=self.grp_rig)
+        ribbon_chain_grp_name = nomenclature_rig.resolve("ribbonChainGrp")
+        self.ribbon_chain_grp = pymel.createNode(
+            "transform", name=ribbon_chain_grp_name, parent=self.grp_rig
+        )
         align_chain = True if len(self.chain_jnt) == len(self._ribbon_jnts) else False
         for i, jnt in enumerate(self._ribbon_jnts):
             # Align the ribbon joints with the real joint to have a better rotation ctrl
-            ribbon_jnt_name = nomenclature_rig.resolve('ribbonJnt{0:02d}'.format(i))
+            ribbon_jnt_name = nomenclature_rig.resolve("ribbonJnt{0:02d}".format(i))
             jnt.rename(ribbon_jnt_name)
             jnt.setParent(self.ribbon_chain_grp)
             if align_chain:
@@ -163,7 +194,9 @@ class Ribbon(Module):
         # TODO - Improve skinning smoothing by setting manually the skin...
         pymel.skinCluster(list(self._ribbon_jnts), plane_tran, dr=1.0, mi=2.0, omi=True)
         try:
-            libSkinning.assign_weights_from_segments(self._ribbon_shape, self._ribbon_jnts, dropoff=1.0)
+            libSkinning.assign_weights_from_segments(
+                self._ribbon_shape, self._ribbon_jnts, dropoff=1.0
+            )
         except ZeroDivisionError, e:
             pass
 
@@ -176,12 +209,12 @@ class Ribbon(Module):
             self.globalScale.connect(self.ribbon_chain_grp.scaleY)
             self.globalScale.connect(self.ribbon_chain_grp.scaleZ)
 
-        '''
+        """
         if constraint:
             for source, target in zip(self._ribbon_jnts, self.chain_jnt):
                 print source, target
                 pymel.parentConstraint(source, target, maintainOffset=True)
-        '''
+        """
 
     def unbuild(self):
         super(Ribbon, self).unbuild()

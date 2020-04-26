@@ -1,6 +1,7 @@
 from decorators import memoized
 from .core import get_class_namespace, get_class_module_root
 
+
 def iter_subclasses_recursive(cls):
     yield cls
 
@@ -11,11 +12,13 @@ def iter_subclasses_recursive(cls):
     except TypeError:  # This will fail when encountering the 'type' datatype.
         pass
 
+
 def iter_module_subclasses_recursive(module_root, cls):
     for sub_cls in iter_subclasses_recursive(cls):
         cur_module_root = get_class_module_root(sub_cls)
         if module_root == cur_module_root:
             yield sub_cls
+
 
 class Cache(object):
     def __init__(self):
@@ -43,10 +46,14 @@ class Cache(object):
         if module_name is None:
             cache = self._get_cls_cache(base_class=base_class)
         else:
-            cache = self._get_cls_cache_by_module(module_name=module_name, base_class=base_class)
+            cache = self._get_cls_cache_by_module(
+                module_name=module_name, base_class=base_class
+            )
         return cache.get(cls_name, None)
 
-    def get_class_by_namespace(self, cls_namespace, module_name=None, base_class=object):
+    def get_class_by_namespace(
+        self, cls_namespace, module_name=None, base_class=object
+    ):
         if module_name is None:
             cache = self._get_cls_cache(base_class=base_class)
         else:

@@ -13,7 +13,9 @@ class CtrlIkArm(rigIK.CtrlIk):
 
 
 def get_spaceswitch_targets(self, module, *args, **kwargs):
-    targets, labels, indexes = super(CtrlIkArm, self).get_spaceswitch_targets(module, *args, **kwargs)
+    targets, labels, indexes = super(CtrlIkArm, self).get_spaceswitch_targets(
+        module, *args, **kwargs
+    )
     jnt_head = module.get_head_jnt()
     if jnt_head:
         targets.append(jnt_head)
@@ -60,9 +62,9 @@ class ArmIk(rigIK.IK):
             inn_tm_dir,
             inn_tm_upp,
             look_axis=pymel.datatypes.Vector(1, 0, 0),
-            upp_axis=pymel.datatypes.Vector(0, -1,
-                                            0) if side == self.rig.nomenclature.SIDE_R else pymel.datatypes.Vector(0, 1,
-                                                                                                                   0)
+            upp_axis=pymel.datatypes.Vector(0, -1, 0)
+            if side == self.rig.nomenclature.SIDE_R
+            else pymel.datatypes.Vector(0, 1, 0),
         )
         ctrl_tm.translate = inf_tm.translate
 
@@ -73,6 +75,7 @@ class Arm(rigLimb.Limb):
     """
     IK/FK Setup customized for Arm riging.
     """
+
     _CLASS_SYS_IK = ArmIk
 
     def __init__(self, *args, **kwargs):

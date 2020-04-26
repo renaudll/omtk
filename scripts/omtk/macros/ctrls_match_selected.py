@@ -8,7 +8,9 @@ from omtk.libs import libCtrlMatch
 
 class CtrlMatchSelected(macros.BaseMacro):
     def run(self):
-        libCtrlMatch.controller_matcher(selection=pymel.selected(), mirror_prefix=None, flip=False)
+        libCtrlMatch.controller_matcher(
+            selection=pymel.selected(), mirror_prefix=None, flip=False
+        )
 
 
 def register_plugin():

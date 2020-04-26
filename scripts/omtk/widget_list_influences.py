@@ -30,7 +30,9 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui.treeWidget.customContextMenuRequested.connect(self.onRightClick)
 
         # Connect events
-        self.ui.treeWidget.itemSelectionChanged.connect(self.on_influence_selection_changed)
+        self.ui.treeWidget.itemSelectionChanged.connect(
+            self.on_influence_selection_changed
+        )
         self.ui.lineEdit_search.textChanged.connect(self.on_query_changed)
         self.ui.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
         self.ui.btn_update.pressed.connect(self.update)
@@ -40,7 +42,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         if update:
             self.update()
 
-    @libPython.log_execution_time('update_ui_jnts')
+    @libPython.log_execution_time("update_ui_jnts")
     def update(self, *args, **kwargs):
         self.ui.treeWidget.clear()
 
@@ -62,8 +64,10 @@ class WidgetListInfluences(QtWidgets.QWidget):
         if obj:
             obj_name = obj.name()
 
-            fnFilter = lambda x: libSerialization.is_network_from_class(x, 'Module')
-            networks = libSerialization.get_connected_networks(obj, key=fnFilter, recursive=False)
+            fnFilter = lambda x: libSerialization.is_network_from_class(x, "Module")
+            networks = libSerialization.get_connected_networks(
+                obj, key=fnFilter, recursive=False
+            )
 
             textBrush = QtGui.QBrush(QtCore.Qt.white)
 
@@ -74,12 +78,14 @@ class WidgetListInfluences(QtWidgets.QWidget):
                 # Monkey-patch mesh QWidget
                 qItem.metadata_type = ui_shared.MetadataType.Influence
                 qItem.metadata_data = obj
-                
+
                 qItem.networks = networks
                 qItem.setText(0, obj_name)
                 qItem.setForeground(0, textBrush)
                 ui_shared.set_icon_from_type(obj, qItem)
-                qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
+                qItem.setCheckState(
+                    0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked
+                )
                 if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
                     qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
                 qt_parent.addChild(qItem)
@@ -93,8 +99,9 @@ class WidgetListInfluences(QtWidgets.QWidget):
         Supported influences are joints and nurbsSurface.
         :return:
         """
-        return libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or \
-               libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        return libPymel.isinstance_of_transform(
+            obj, pymel.nodetypes.Joint
+        ) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
 
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:

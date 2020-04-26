@@ -9,6 +9,7 @@
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
+
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -21,7 +22,9 @@ class Ui_Form(object):
         self.label_2 = QtWidgets.QLabel(Form)
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_4.addWidget(self.label_2)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_4.addItem(spacerItem)
         self.label_4 = QtWidgets.QLabel(Form)
         self.label_4.setObjectName("label_4")
@@ -59,10 +62,19 @@ class Ui_Form(object):
         self.label_2.setText(QtCompat.translate("Form", "Logs", None, -1))
         self.label_4.setText(QtCompat.translate("Form", "Search", None, -1))
         self.label_3.setText(QtCompat.translate("Form", "Level:", None, -1))
-        self.comboBox_log_level.setItemText(0, QtCompat.translate("Form", "Error", None, -1))
-        self.comboBox_log_level.setItemText(1, QtCompat.translate("Form", "Warning", None, -1))
-        self.comboBox_log_level.setItemText(2, QtCompat.translate("Form", "Info", None, -1))
-        self.comboBox_log_level.setItemText(3, QtCompat.translate("Form", "Debug", None, -1))
+        self.comboBox_log_level.setItemText(
+            0, QtCompat.translate("Form", "Error", None, -1)
+        )
+        self.comboBox_log_level.setItemText(
+            1, QtCompat.translate("Form", "Warning", None, -1)
+        )
+        self.comboBox_log_level.setItemText(
+            2, QtCompat.translate("Form", "Info", None, -1)
+        )
+        self.comboBox_log_level.setItemText(
+            3, QtCompat.translate("Form", "Debug", None, -1)
+        )
         self.pushButton_logs_save.setText(QtCompat.translate("Form", "Save", None, -1))
-        self.pushButton_logs_clear.setText(QtCompat.translate("Form", "Clear", None, -1))
-
+        self.pushButton_logs_clear.setText(
+            QtCompat.translate("Form", "Clear", None, -1)
+        )

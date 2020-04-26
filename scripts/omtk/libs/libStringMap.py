@@ -9,7 +9,7 @@ class StringMap(object):
     def set_fields(self, **kwargs):
         new_fields = {}
         for key, val in kwargs.iteritems():
-            new_fields['{0}'.format(key)] = val
+            new_fields["{0}".format(key)] = val
         self.fields = kwargs
 
     def __str__(self):

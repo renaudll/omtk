@@ -11,10 +11,11 @@ log = logging.getLogger(__name__)
 # However it allow us to have more bells and whistles.
 #
 
+
 def is_valid_PyNode(val):
-    if not hasattr(val, '__melobject__'):
+    if not hasattr(val, "__melobject__"):
         return False
-    fn = getattr(val, '__melobject__')
+    fn = getattr(val, "__melobject__")
     if not callable(fn):
         return False
     mel = fn()
@@ -82,8 +83,12 @@ class PyNodeChain(list):
 
     # get the first pynode that have the attr
     def __getattr__(self, key):
-        logging.warning("Searching unknow attribute {key} in {self}", key=key, self=self)
-        first_node = next((node for node in self.__dict__['_list'] if hasattr(node, key)), None)
+        logging.warning(
+            "Searching unknow attribute {key} in {self}", key=key, self=self
+        )
+        first_node = next(
+            (node for node in self.__dict__["_list"] if hasattr(node, key)), None
+        )
         if first_node is not None:
             return getattr(first_node, key)
         raise AttributeError
@@ -135,14 +140,14 @@ def iter_parents(obj):
 
 def get_parents(obj):
     return list(iter_parents(obj))
-    '''
+    """
     parents = []
     while obj.getParent() is not None:
         parent = obj.getParent()
         parents.append(parent)
         obj = parent
     return parents
-    '''
+    """
 
 
 def get_common_parents(objs):
@@ -166,7 +171,7 @@ def get_common_parents(objs):
 
 
 class Tree(object):
-    __slots__ = ('val', 'children', 'parent')
+    __slots__ = ("val", "children", "parent")
 
     def __init__(self, val):
         self.val = val
@@ -178,7 +183,7 @@ class Tree(object):
         tree.parent = self
 
     def __repr__(self):
-        return '<Tree {0}>'.format(self.val)
+        return "<Tree {0}>".format(self.val)
 
 
 def get_tree_from_objs(objs, sort=False):
@@ -192,7 +197,7 @@ def get_tree_from_objs(objs, sort=False):
     root = Tree(None)
 
     def dag_is_child_of(dag_parent, dag_child):
-        return dag_child.startswith(dag_parent + '|')
+        return dag_child.startswith(dag_parent + "|")
 
     last_knot = root
     for dagpath in dagpaths:
@@ -215,6 +220,7 @@ def get_tree_from_objs(objs, sort=False):
 # ls() reimplementations
 #
 
+
 def ls(*args, **kwargs):
     return PyNodeChain(pymel.ls(*args, **kwargs))
 
@@ -222,24 +228,28 @@ def ls(*args, **kwargs):
 # Wrapper for pymel.ls that return only objects without parents.
 def ls_root(*args, **kwargs):
     # TODO: Better finding of the root joint
-    return PyNodeChain(filter(lambda x: x.getParent() is None or type(x.getParent()) != pymel.nt.Joint,
-                              iter(pymel.ls(*args, **kwargs))))
+    return PyNodeChain(
+        filter(
+            lambda x: x.getParent() is None or type(x.getParent()) != pymel.nt.Joint,
+            iter(pymel.ls(*args, **kwargs)),
+        )
+    )
 
 
-def ls_root_anms(pattern='anm*', **kwargs):
-    return ls_root(pattern, type='transform', **kwargs)
+def ls_root_anms(pattern="anm*", **kwargs):
+    return ls_root(pattern, type="transform", **kwargs)
 
 
-def ls_root_geos(pattern='geo*', **kwargs):
-    return ls_root(pattern, type='transform', **kwargs)
+def ls_root_geos(pattern="geo*", **kwargs):
+    return ls_root(pattern, type="transform", **kwargs)
 
 
-def ls_root_rigs(pattern='rig*', **kwargs):
-    return ls_root(pattern, type='transform', **kwargs)
+def ls_root_rigs(pattern="rig*", **kwargs):
+    return ls_root(pattern, type="transform", **kwargs)
 
 
-def ls_root_jnts(pattern='jnt*', **kwargs):
-    return ls_root(pattern, type='transform', **kwargs)
+def ls_root_jnts(pattern="jnt*", **kwargs):
+    return ls_root(pattern, type="transform", **kwargs)
 
 
 #
@@ -260,8 +270,8 @@ def isinstance_of_shape(obj, cls=pymel.nodetypes.Shape):
 
 
 def create_zero_grp(obj):
-    zero_grp = pymel.createNode('transform')
-    new_name = obj.name() + '_' + 'zero_grp'
+    zero_grp = pymel.createNode("transform")
+    new_name = obj.name() + "_" + "zero_grp"
     zero_grp.rename(new_name)
 
     # Note: Removed for performance
@@ -284,6 +294,7 @@ def zero_out_objs(objs):
 #
 # pymel.datatypes extensions.
 #
+
 
 class Segment(object):
     """
@@ -315,7 +326,7 @@ class Segment(object):
         return pymel.datatypes.Vector(
             a.x + a_to_b.x * dist_norm,
             a.y + a_to_b.y * dist_norm,
-            a.z + a_to_b.z * dist_norm
+            a.z + a_to_b.z * dist_norm,
         )
 
     def closest_point_normalized_distance(self, p, epsilon=0.001):
@@ -333,7 +344,9 @@ class Segment(object):
         a_to_b_norm = a_to_b.normal()
         atp_dot_atb = a_to_p_norm * a_to_b_norm
 
-        return (atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon  else 0.0
+        return (
+            (atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon else 0.0
+        )
 
 
 class SegmentCollection(object):
@@ -355,7 +368,9 @@ class SegmentCollection(object):
                 return segment, distance_normalized
             elif i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
                 return segment, 0.0
-            elif i == (num_segments - 1) and distance_normalized > bound_max:  # Handle out-of-bound
+            elif (
+                i == (num_segments - 1) and distance_normalized > bound_max
+            ):  # Handle out-of-bound
                 return segment, 1.0
         raise Exception("Can't resolve segment for {0}".format(pos))
 
@@ -386,7 +401,7 @@ class SegmentCollection(object):
             knots_weights.append(weights)
         return knots_weights
 
-    '''
+    """
     def get_weights(self, pos, dropoff=1.0, normalize=True):
         # Compute the 'SegmentCollection' relative ratio and return the weight for each knots.
         closest_segment, relative_ratio = self.closest_segment(pos)
@@ -413,7 +428,7 @@ class SegmentCollection(object):
             weights = [weight / total_weights for weight in weights]
 
         return weights
-    '''
+    """
 
     @classmethod
     def from_transforms(cls, objs):
@@ -424,8 +439,12 @@ class SegmentCollection(object):
             obj_e = objs[i + 1]
             mfn_transform_s = obj_s.__apimfn__()
             mfn_transform_e = obj_e.__apimfn__()
-            pos_s = OpenMaya.MVector(mfn_transform_s.getTranslation(OpenMaya.MSpace.kWorld))
-            pos_e = OpenMaya.MVector(mfn_transform_e.getTranslation(OpenMaya.MSpace.kWorld))
+            pos_s = OpenMaya.MVector(
+                mfn_transform_s.getTranslation(OpenMaya.MSpace.kWorld)
+            )
+            pos_e = OpenMaya.MVector(
+                mfn_transform_e.getTranslation(OpenMaya.MSpace.kWorld)
+            )
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)
@@ -450,7 +469,9 @@ def get_rotation_from_matrix(tm):
     return pymel.datatypes.TransformationMatrix(tm).rotate
 
 
-def makeIdentity_safe(obj, translate=False, rotate=False, scale=False, apply=False, **kwargs):
+def makeIdentity_safe(
+    obj, translate=False, rotate=False, scale=False, apply=False, **kwargs
+):
     """
     Extended pymel.makeIdentity method that won't crash for idiotic reasons.
     """
@@ -462,20 +483,20 @@ def makeIdentity_safe(obj, translate=False, rotate=False, scale=False, apply=Fal
     if apply:
         if translate:
             libAttr.unlock_translation(obj)
-            affected_attrs.extend([
-                obj.translate, obj.translateX, obj.translateY, obj.translateZ
-            ])
+            affected_attrs.extend(
+                [obj.translate, obj.translateX, obj.translateY, obj.translateZ]
+            )
         if rotate:
             libAttr.unlock_rotation(obj)
-            affected_attrs.extend([
-                obj.rotate, obj.rotateX, obj.rotateY, obj.rotateZ
-            ])
+            affected_attrs.extend([obj.rotate, obj.rotateX, obj.rotateY, obj.rotateZ])
         if scale:
             libAttr.unlock_scale(obj)
-            affected_attrs.extend([
-                obj.scale, obj.scaleX, obj.scaleY, obj.scaleZ
-            ])
+            affected_attrs.extend([obj.scale, obj.scaleX, obj.scaleY, obj.scaleZ])
 
     # Make identify will faile if attributes are connected...
-    with libAttr.context_disconnected_attrs(affected_attrs, hold_inputs=True, hold_outputs=False):
-        pymel.makeIdentity(obj, apply=apply, translate=translate, rotate=rotate, scale=scale, **kwargs)
+    with libAttr.context_disconnected_attrs(
+        affected_attrs, hold_inputs=True, hold_outputs=False
+    ):
+        pymel.makeIdentity(
+            obj, apply=apply, translate=translate, rotate=rotate, scale=scale, **kwargs
+        )

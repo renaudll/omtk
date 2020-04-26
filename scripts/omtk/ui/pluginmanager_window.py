@@ -9,6 +9,7 @@
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
+
 class Ui_mainWindow(object):
     def setupUi(self, mainWindow):
         mainWindow.setObjectName("mainWindow")
@@ -30,7 +31,9 @@ class Ui_mainWindow(object):
         self.pushButton_reload = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_reload.setObjectName("pushButton_reload")
         self.horizontalLayout.addWidget(self.pushButton_reload)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout.addItem(spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout)
         mainWindow.setCentralWidget(self.centralwidget)
@@ -47,13 +50,26 @@ class Ui_mainWindow(object):
         self.actionSearchQueryChanged.setObjectName("actionSearchQueryChanged")
 
         self.retranslateUi(mainWindow)
-        QtCore.QObject.connect(self.pushButton_reload, QtCore.SIGNAL("released()"), self.actionReload.trigger)
-        QtCore.QObject.connect(self.lineEdit_search, QtCore.SIGNAL("textChanged(QString)"), self.actionSearchQueryChanged.trigger)
+        QtCore.QObject.connect(
+            self.pushButton_reload,
+            QtCore.SIGNAL("released()"),
+            self.actionReload.trigger,
+        )
+        QtCore.QObject.connect(
+            self.lineEdit_search,
+            QtCore.SIGNAL("textChanged(QString)"),
+            self.actionSearchQueryChanged.trigger,
+        )
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
 
     def retranslateUi(self, mainWindow):
-        mainWindow.setWindowTitle(QtCompat.translate("mainWindow", "OMTK - Plugin Manager", None, -1))
-        self.pushButton_reload.setText(QtCompat.translate("mainWindow", "Reload", None, -1))
+        mainWindow.setWindowTitle(
+            QtCompat.translate("mainWindow", "OMTK - Plugin Manager", None, -1)
+        )
+        self.pushButton_reload.setText(
+            QtCompat.translate("mainWindow", "Reload", None, -1)
+        )
         self.actionReload.setText(QtCompat.translate("mainWindow", "Reload", None, -1))
-        self.actionSearchQueryChanged.setText(QtCompat.translate("mainWindow", "SearchQueryChanged", None, -1))
-
+        self.actionSearchQueryChanged.setText(
+            QtCompat.translate("mainWindow", "SearchQueryChanged", None, -1)
+        )

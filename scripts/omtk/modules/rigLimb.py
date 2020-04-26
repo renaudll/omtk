@@ -48,7 +48,8 @@ class Limb(Module):
     """
     Generic IK/FK setup. Twistbones are included.
     """
-    kAttrName_State = 'fkIk'  # The name of the IK/FK attribute
+
+    kAttrName_State = "fkIk"  # The name of the IK/FK attribute
     _CLASS_SYS_IK = rigIK.IK
     _CLASS_SYS_FK = rigFK.FK
     _CLASS_CTRL_ATTR = BaseAttHolder
@@ -78,19 +79,13 @@ class Limb(Module):
 
         # Create IK system
         self.sysIK = self.init_module(
-            self._CLASS_SYS_IK,
-            self.sysIK,
-            inputs=self.chain_jnt,
-            suffix='ik',
+            self._CLASS_SYS_IK, self.sysIK, inputs=self.chain_jnt, suffix="ik",
         )
         self.sysIK.build(constraint=False, **kwargs)
 
         # Create FK system
         self.sysFK = self.init_module(
-            self._CLASS_SYS_FK,
-            self.sysFK,
-            inputs=self.chain_jnt,
-            suffix='fk',
+            self._CLASS_SYS_FK, self.sysFK, inputs=self.chain_jnt, suffix="fk",
         )
         # We want to keep the name of the input on the fk
         self.sysFK._FORCE_INPUT_NAME = True
@@ -107,14 +102,16 @@ class Limb(Module):
                 # Resolve module name
                 # todo: validate name
                 twist_nomenclature = self.get_nomenclature().copy()
-                twist_nomenclature.add_tokens('bend')
-                twist_nomenclature += self.rig.nomenclature(self.chain_jnt[i].stripNamespace().nodeName())
+                twist_nomenclature.add_tokens("bend")
+                twist_nomenclature += self.rig.nomenclature(
+                    self.chain_jnt[i].stripNamespace().nodeName()
+                )
                 # twist_nomenclature = self.get_nomenclature() + self.rig.nomenclature(self.chain_jnt[i].name())
 
                 sys_twist = self.init_module(
                     self._CLASS_SYS_TWIST,
                     sys_twist,
-                    inputs=self.chain_jnt[i:(i + 2)],
+                    inputs=self.chain_jnt[i : (i + 2)],
                     # suffix='bend'
                 )
                 self.sys_twist[i] = sys_twist
@@ -130,40 +127,67 @@ class Limb(Module):
 
         # Store the offset between the ik ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
-        self.offset_ctrl_ik = self.sysIK.ctrl_ik.getMatrix(worldSpace=True) * self.chain_jnt[self.iCtrlIndex].getMatrix(
-            worldSpace=True).inverse()
+        self.offset_ctrl_ik = (
+            self.sysIK.ctrl_ik.getMatrix(worldSpace=True)
+            * self.chain_jnt[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
+        )
 
         # Add attributes to the attribute holder.
         # Add ikFk state attribute on the grp_rig.
         # This is currently controlled by self.ctrl_attrs.
-        pymel.addAttr(self.grp_rig, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0,
-                      maxValue=1, defaultValue=1, k=True)
+        pymel.addAttr(
+            self.grp_rig,
+            longName=self.kAttrName_State,
+            hasMinValue=True,
+            hasMaxValue=True,
+            minValue=0,
+            maxValue=1,
+            defaultValue=1,
+            k=True,
+        )
         attr_ik_weight = self.grp_rig.attr(self.kAttrName_State)
-        attr_fk_weight = libRigging.create_utility_node('reverse', inputX=attr_ik_weight).outputX
+        attr_fk_weight = libRigging.create_utility_node(
+            "reverse", inputX=attr_ik_weight
+        ).outputX
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         # Note that this is production specific and should be defined in a sub-class implementation.
         jnt_hand = self.chain_jnt[self.sysIK.iCtrlIndex]
-        ctrl_attrs_name = nomenclature_anm.resolve('atts')
+        ctrl_attrs_name = nomenclature_anm.resolve("atts")
         if not isinstance(self.ctrl_attrs, self._CLASS_CTRL_ATTR):
             self.ctrl_attrs = self._CLASS_CTRL_ATTR()
         self.ctrl_attrs.build(name=ctrl_attrs_name, refs=jnt_hand)
         self.ctrl_attrs.setParent(self.grp_anm)
         pymel.parentConstraint(jnt_hand, self.ctrl_attrs.offset)
 
-        pymel.addAttr(self.ctrl_attrs, longName=self.kAttrName_State, hasMinValue=True, hasMaxValue=True, minValue=0,
-                      maxValue=1, defaultValue=1, k=True)
-        pymel.connectAttr(self.ctrl_attrs.attr(self.kAttrName_State), self.grp_rig.attr(self.kAttrName_State))
+        pymel.addAttr(
+            self.ctrl_attrs,
+            longName=self.kAttrName_State,
+            hasMinValue=True,
+            hasMaxValue=True,
+            minValue=0,
+            maxValue=1,
+            defaultValue=1,
+            k=True,
+        )
+        pymel.connectAttr(
+            self.ctrl_attrs.attr(self.kAttrName_State),
+            self.grp_rig.attr(self.kAttrName_State),
+        )
 
         # Create a chain for blending ikChain and fkChain
-        chain_blend = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
+        chain_blend = pymel.duplicate(
+            list(self.chain_jnt), renameChildren=True, parentOnly=True
+        )
         for input_, node in zip(self.chain_jnt, chain_blend):
-            blend_nomenclature = nomenclature_rig.rebuild(input_.stripNamespace().nodeName())
-            node.rename(blend_nomenclature.resolve('blend'))
+            blend_nomenclature = nomenclature_rig.rebuild(
+                input_.stripNamespace().nodeName()
+            )
+            node.rename(blend_nomenclature.resolve("blend"))
 
         # Blend ikChain with fkChain
         constraint_ik_chain = self.sysIK._chain_ik
-        if getattr(self.sysIK, '_chain_quad_ik', None):
+        if getattr(self.sysIK, "_chain_quad_ik", None):
             constraint_ik_chain = self.sysIK._chain_quad_ik
 
         # Note: We need to set the parent of the chain_blend BEFORE creating the constraint.
@@ -188,16 +212,24 @@ class Limb(Module):
 
         # Create a chain that provide the elbow controller and override the blend chain
         # (witch should only be nodes already)
-        chain_elbow = pymel.duplicate(self.chain_jnt[:self.sysIK.iCtrlIndex + 1], renameChildren=True, parentOnly=True)
+        chain_elbow = pymel.duplicate(
+            self.chain_jnt[: self.sysIK.iCtrlIndex + 1],
+            renameChildren=True,
+            parentOnly=True,
+        )
         for input_, node in zip(self.chain_jnt, chain_elbow):
-            nomenclature_elbow = nomenclature_rig.rebuild(input_.stripNamespace().nodeName())
-            node.rename(nomenclature_elbow.resolve('elbow'))  # todo: find a better name???
+            nomenclature_elbow = nomenclature_rig.rebuild(
+                input_.stripNamespace().nodeName()
+            )
+            node.rename(
+                nomenclature_elbow.resolve("elbow")
+            )  # todo: find a better name???
         chain_elbow[0].setParent(self.grp_rig)
 
         # Create elbow ctrl
         # Note that this only affect the chain until @iCtrlIndex
         for i in range(1, self.sysIK.iCtrlIndex):
-            ctrl_elbow_name = nomenclature_anm.resolve('elbow{:02}'.format(i))
+            ctrl_elbow_name = nomenclature_anm.resolve("elbow{:02}".format(i))
             ctrl_elbow_parent = chain_blend[i]
             if not isinstance(self.ctrl_elbow, self._CLASS_CTRL_ELBOW):
                 self.ctrl_elbow = self._CLASS_CTRL_ELBOW(create_offset=True)
@@ -205,15 +237,27 @@ class Limb(Module):
             self.ctrl_elbow.build(refs=ctrl_elbow_ref)
             self.ctrl_elbow.rename(ctrl_elbow_name)
             self.ctrl_elbow.setParent(self.grp_anm)
-            pymel.parentConstraint(ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False)
+            pymel.parentConstraint(
+                ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False
+            )
             pymel.pointConstraint(chain_blend[0], chain_elbow[0], maintainOffset=False)
-            pymel.aimConstraint(self.ctrl_elbow, chain_elbow[i - 1], worldUpType=2,
-                                worldUpObject=chain_blend[i - 1])  # Object Rotation Up
-            pymel.aimConstraint(chain_blend[i + 1], chain_elbow[i], worldUpType=2,
-                                worldUpObject=chain_blend[i])  # Object Rotation Up
+            pymel.aimConstraint(
+                self.ctrl_elbow,
+                chain_elbow[i - 1],
+                worldUpType=2,
+                worldUpObject=chain_blend[i - 1],
+            )  # Object Rotation Up
+            pymel.aimConstraint(
+                chain_blend[i + 1],
+                chain_elbow[i],
+                worldUpType=2,
+                worldUpObject=chain_blend[i],
+            )  # Object Rotation Up
             pymel.pointConstraint(self.ctrl_elbow, chain_elbow[i], maintainOffset=False)
         # Constraint the last elbow joint on the blend joint at the ctrl index
-        pymel.parentConstraint(chain_blend[self.sysIK.iCtrlIndex], chain_elbow[self.sysIK.iCtrlIndex])
+        pymel.parentConstraint(
+            chain_blend[self.sysIK.iCtrlIndex], chain_elbow[self.sysIK.iCtrlIndex]
+        )
 
         # Constraint input chain
         # Note that we only constraint to the elbow chain until @iCtrlIndex.
@@ -221,19 +265,27 @@ class Limb(Module):
         for i in range(self.sysIK.iCtrlIndex):
             inn = self.chain_jnt[i]
             ref = chain_elbow[i]
-            pymel.parentConstraint(ref, inn, maintainOffset=True)  # todo: set to maintainOffset=False?
+            pymel.parentConstraint(
+                ref, inn, maintainOffset=True
+            )  # todo: set to maintainOffset=False?
         for i in range(self.sysIK.iCtrlIndex, len(self.chain_jnt)):
             inn = self.chain_jnt[i]
             ref = chain_blend[i]
-            pymel.parentConstraint(ref, inn, maintainOffset=True)  # todo: set to maintainOffset=False?
+            pymel.parentConstraint(
+                ref, inn, maintainOffset=True
+            )  # todo: set to maintainOffset=False?
 
         # Connect visibility
         pymel.connectAttr(attr_ik_weight, self.sysIK.grp_anm.visibility)
         pymel.connectAttr(attr_fk_weight, self.sysFK.grp_anm.visibility)
 
         # Connect globalScale
-        pymel.connectAttr(self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True)
-        self.globalScale = self.grp_rig.globalScale  # Expose the attribute, the rig will reconise it.
+        pymel.connectAttr(
+            self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True
+        )
+        self.globalScale = (
+            self.grp_rig.globalScale
+        )  # Expose the attribute, the rig will reconise it.
 
         # Parent sub-modules so they are affected by displayLayer assignment and such.
         self.sysIK.grp_anm.setParent(self.grp_anm)
@@ -271,13 +323,17 @@ class Limb(Module):
     def snap_ik_to_fk(self):
         # Position ikCtrl
         ctrl_ik_tm = self.chain_jnt[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
-        self.sysIK.ctrl_ik.node.setMatrix(self.offset_ctrl_ik * ctrl_ik_tm, worldSpace=True)
+        self.sysIK.ctrl_ik.node.setMatrix(
+            self.offset_ctrl_ik * ctrl_ik_tm, worldSpace=True
+        )
 
         # Position swivel
         # pos_ref = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
-        pos_s = self.sysFK.ctrls[0].getTranslation(space='world')
-        pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
-        pos_e = self.sysFK.ctrls[self.sysIK.iCtrlIndex].getTranslation(space='world')
+        pos_s = self.sysFK.ctrls[0].getTranslation(space="world")
+        pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(
+            space="world"
+        )
+        pos_e = self.sysFK.ctrls[self.sysIK.iCtrlIndex].getTranslation(space="world")
 
         length_start = pos_m.distanceTo(pos_s)
         length_end = pos_m.distanceTo(pos_e)
@@ -287,7 +343,7 @@ class Limb(Module):
         dir_swivel = pos_m - pos_middle
         dir_swivel.normalize()
         pos_swivel = (dir_swivel * self.sysIK.swivelDistance) + pos_middle
-        self.sysIK.ctrl_swivel.node.setTranslation(pos_swivel, space='world')
+        self.sysIK.ctrl_swivel.node.setTranslation(pos_swivel, space="world")
 
     def snap_fk_to_ik(self):
         for ctrl, jnt in zip(self.sysFK.ctrls, self.chain_jnt):

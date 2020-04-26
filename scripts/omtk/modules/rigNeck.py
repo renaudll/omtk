@@ -20,7 +20,9 @@ class Neck(rigFK.FK):
     _CLS_CTRL = CtrlNeck
     _CLASS_SYS_TWIST = rigTwistbone.Twistbone
     _NAME_CTRL_MERGE = True  # By default we only expect one controller for the head. (Head_Ctrl > than Head_Head_Ctrl)
-    _NAME_CTRL_ENUMERATE = True  # If we find additional influences, we'll use enumeration.
+    _NAME_CTRL_ENUMERATE = (
+        True  # If we find additional influences, we'll use enumeration.
+    )
 
     def build(self, *args, **kwargs):
         super(Neck, self).build(create_grp_rig=True, *args, **kwargs)
@@ -31,9 +33,11 @@ class Neck(rigFK.FK):
             jnt_e = self.get_head_jnt()
 
             twist_nomenclature = self.get_nomenclature().copy()
-            twist_nomenclature.add_tokens('bend')
+            twist_nomenclature.add_tokens("bend")
 
-            self.sys_twist = self.init_module(self._CLASS_SYS_TWIST, self.sys_twist, inputs=[jnt_s, jnt_e])
+            self.sys_twist = self.init_module(
+                self._CLASS_SYS_TWIST, self.sys_twist, inputs=[jnt_s, jnt_e]
+            )
             self.sys_twist.name = twist_nomenclature.resolve()
             self.sys_twist.build(num_twist=3, create_bend=True)
             if self.sys_twist.grp_anm:

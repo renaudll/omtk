@@ -6,7 +6,7 @@ import functools
 import collections
 import inspect
 
-logging = logging.getLogger('libPython')
+logging = logging.getLogger("libPython")
 logging.setLevel(0)
 
 
@@ -53,9 +53,9 @@ def resize_list(val, desired_size, default=None):
 
 # forked from: https://wiki.python.org/moin/PythonDecoratorLibrary#Cached_Properties
 class cached_property(object):
-    '''
+    """
     Use this decodator to cache read-only properties value.
-    '''
+    """
 
     def __call__(self, fget, doc=None):
         self.fget = fget
@@ -65,7 +65,7 @@ class cached_property(object):
         return self
 
     def __get__(self, inst, owner):
-        if '_cache' not in inst.__dict__:
+        if "_cache" not in inst.__dict__:
             inst._cache = {}
         cache = inst._cache
 
@@ -74,8 +74,9 @@ class cached_property(object):
             cache[self.__name__] = self.fget(inst)
             et = time.time() - st
             if (et - st) > 1:  # 1 second
-                print '[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}'.format(et, inst.__class__.__name__,
-                                                                                            self.__name__)
+                print "[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}".format(
+                    et, inst.__class__.__name__, self.__name__
+                )
 
         return cache[self.__name__]
 
@@ -83,10 +84,10 @@ class cached_property(object):
 # src: https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 # modified to support kwargs
 class memoized(object):
-    '''Decorator. Caches a function's return value each time it is called.
+    """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
     (not reevaluated).
-    '''
+    """
 
     def __init__(self, func):
         self.func = func
@@ -120,10 +121,10 @@ class memoized(object):
 # src: https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 # modified to support kwargs
 class memoized_instancemethod(object):
-    '''Decorator. Caches a function's return value each time it is called.
+    """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
     (not reevaluated).
-    '''
+    """
 
     def __init__(self, func):
         self.func = func
@@ -164,17 +165,20 @@ class memoized_instancemethod(object):
             cache = inst._cache = {}
         """Support instance methods."""
         new_fn = functools.partial(self.call, inst, cache)
-        new_fn.__name__ = self.func.__name__  # Ensure proper 'del inst[fn.__name__] behavior'
+        new_fn.__name__ = (
+            self.func.__name__
+        )  # Ensure proper 'del inst[fn.__name__] behavior'
         return new_fn
 
 
 def profiler(func):
-    '''
+    """
     [debug] Inject this decorator in your function to automaticly run cProfile on them.
-    '''
+    """
 
     def runProfile(*args, **kwargs):
         import cProfile
+
         pProf = cProfile.Profile()
         try:
             pProf.enable()
@@ -182,7 +186,7 @@ def profiler(func):
             pProf.disable()
             return pResult
         finally:
-            pProf.print_stats(sort='cumulative')
+            pProf.print_stats(sort="cumulative")
 
     return runProfile
 
@@ -193,7 +197,11 @@ def log_execution_time(NAME):
             m_NAME = NAME  # make mutable
             st = time.time()
             rv = f(*args, **kwargs)
-            print('Process {0} took {1:2.3f} seconds to execute.'.format(m_NAME, time.time() - st))
+            print (
+                "Process {0} took {1:2.3f} seconds to execute.".format(
+                    m_NAME, time.time() - st
+                )
+            )
             return rv
 
         return run
@@ -212,14 +220,14 @@ def get_class_namespace(classe, relative=False):
         return None  # Todo: throw exception
     class_name = classe.__name__
     if relative:
-        tokens = class_name.split('.')
+        tokens = class_name.split(".")
         return tokens[-1] if tokens else None
     else:
         tokens = []
         while classe is not object:
             tokens.append(class_name)
             classe = classe.__bases__[0]
-        return '.'.join(reversed(tokens))
+        return ".".join(reversed(tokens))
 
 
 def get_class_def(class_name, base_class=object, relative=False):
@@ -246,12 +254,14 @@ def create_class_instance(class_name):
         return None
 
     class_def = getattr(sys.modules[cls.__module__], cls.__name__)
-    assert (class_def is not None)
+    assert class_def is not None
 
     try:
         return class_def()
     except Exception as e:
-        logging.error("Fatal error creating '{0}' instance: {1}".format(class_name, str(e)))
+        logging.error(
+            "Fatal error creating '{0}' instance: {1}".format(class_name, str(e))
+        )
         return None
 
 
@@ -346,7 +356,11 @@ def rreload(module):
                         try:
                             cls_name = getattr(cls_module, value.__name__)
                         except AttributeError as e:
-                            print("{}.{} error: {}".format(cls_module.__name__, value.__name__, e))
+                            print (
+                                "{}.{} error: {}".format(
+                                    cls_module.__name__, value.__name__, e
+                                )
+                            )
                             continue
 
                         # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, cls_module.__name__, name)
@@ -363,7 +377,11 @@ def rreload(module):
                         try:
                             cls_name = getattr(fn_module, value.__name__)
                         except AttributeError as e:
-                            print("{}.{} error: {}".format(fn_module.__name__, value.__name__, e))
+                            print (
+                                "{}.{} error: {}".format(
+                                    fn_module.__name__, value.__name__, e
+                                )
+                            )
                             continue
 
                         # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, fn_module.__name__, name)

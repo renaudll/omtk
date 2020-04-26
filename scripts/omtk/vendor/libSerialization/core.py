@@ -2,11 +2,11 @@ import logging as _logging
 import sys
 
 __all__ = (
-    'get_class_module_root',
-    'get_class_namespace',
-    'create_class_instance',
-    'export_dict',
-    'import_dict'
+    "get_class_module_root",
+    "get_class_namespace",
+    "create_class_instance",
+    "export_dict",
+    "import_dict",
 )
 
 logging = _logging.getLogger()
@@ -29,7 +29,8 @@ def get_class_module_root(cls):
     :param cls: A class definition to inspect.
     :return: A str instance representing the root module.
     """
-    return next(iter(cls.__module__.split('.')), None)
+    return next(iter(cls.__module__.split(".")), None)
+
 
 def get_class_namespace(cls):
     """
@@ -43,10 +44,12 @@ def get_class_namespace(cls):
     :param cls: A class definition to inspect.
     :return: A str instance representing the full qualified class namespace.
     """
-    if not hasattr(cls, '__mro__'):
-        raise NotImplementedError("Class {0} is a Python old-style class and is unsupported.".format(cls))
+    if not hasattr(cls, "__mro__"):
+        raise NotImplementedError(
+            "Class {0} is a Python old-style class and is unsupported.".format(cls)
+        )
 
-    return '.'.join(
+    return ".".join(
         reversed([subcls.__name__ for subcls in cls.__mro__ if subcls != object])
     )
 
@@ -60,13 +63,14 @@ def create_class_instance(cls):
     :return: A class instance.
     """
     class_def = getattr(sys.modules[cls.__module__], cls.__name__)
-    assert (class_def is not None)
+    assert class_def is not None
 
     try:
         return class_def()
     except Exception as e:
         logging.error("Fatal error creating '{0}' instance: {1}".format(cls, str(e)))
         return None
+
 
 #
 # Types definitions
@@ -89,7 +93,7 @@ def register_type_complex(*types):
 
 
 def is_data_complex(_data):
-    return isinstance(_data, types_complex) or hasattr(_data, '__dict__')
+    return isinstance(_data, types_complex) or hasattr(_data, "__dict__")
 
 
 types_basic = (int, float, bool)
@@ -102,6 +106,7 @@ def register_type_basic(*types):
     """
     global types_basic
     types_basic += types
+
 
 # Python3 support
 try:
@@ -166,7 +171,9 @@ def get_data_type(data):
     if is_data_complex(data):
         return TYPE_COMPLEX
 
-    raise NotImplementedError("Unsupported object type {0} ({1})".format(data, type(data)))
+    raise NotImplementedError(
+        "Unsupported object type {0} ({1})".format(data, type(data))
+    )
 
 
 def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
@@ -183,6 +190,7 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
     """
     if cache is None:
         from cache import Cache
+
         cache = Cache()
 
     # Check if we already exported this data.
@@ -198,23 +206,33 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
     if data_type == TYPE_COMPLEX:
         data_cls = data.__class__
         result = {
-            '_class': data_cls.__name__,
-            '_class_namespace': get_class_namespace(data_cls),
-            '_class_module': get_class_module_root(data_cls),
-            '_uid': id(data)
+            "_class": data_cls.__name__,
+            "_class_namespace": get_class_namespace(data_cls),
+            "_class_module": get_class_module_root(data_cls),
+            "_uid": id(data),
         }
 
         # Cache it as soon as possible since we might use recursivity.
         cache.set_import_value_by_id(data_id, result)
 
-        for key, val in (data.items() if isinstance(data, dict) else data.__dict__.items()):  # TODO: Clean
+        for key, val in (
+            data.items() if isinstance(data, dict) else data.__dict__.items()
+        ):  # TODO: Clean
             # Ignore private keys (starting with an underscore)
-            if key[0] == '_':
+            if key[0] == "_":
                 continue
 
             if not skip_None or val is not None:
-                if (data_type == TYPE_COMPLEX and recursive is True) or data_type == TYPE_LIST:
-                    val = export_dict(val, skip_None=skip_None, recursive=recursive, cache=cache, **args)
+                if (
+                    data_type == TYPE_COMPLEX and recursive is True
+                ) or data_type == TYPE_LIST:
+                    val = export_dict(
+                        val,
+                        skip_None=skip_None,
+                        recursive=recursive,
+                        cache=cache,
+                        **args
+                    )
                 if not skip_None or val is not None:
                     result[key] = val
     else:
@@ -225,19 +243,26 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
 
         # Handle iterable
         elif data_type == TYPE_LIST:
-            result = [export_dict(v, skip_None=skip_None, cache=cache, **args) for v in data if not skip_None or v is not None]
+            result = [
+                export_dict(v, skip_None=skip_None, cache=cache, **args)
+                for v in data
+                if not skip_None or v is not None
+            ]
 
         elif data_type == TYPE_DAGNODE:
             result = data
 
         else:
-            logging.warning("[exportToBasicData] Unsupported type {0} ({1}) for {2}".format(type(data), data_type, data))
+            logging.warning(
+                "[exportToBasicData] Unsupported type {0} ({1}) for {2}".format(
+                    type(data), data_type, data
+                )
+            )
             result = None
 
         cache.set_import_value_by_id(data_id, result)
 
     return result
-
 
 
 def import_dict(data, cache=None, **kwargs):
@@ -254,15 +279,16 @@ def import_dict(data, cache=None, **kwargs):
 
     if cache is None:
         from cache import Cache
+
         cache = Cache()
 
-    #assert (data is not None)
-    if isinstance(data, dict) and '_class' in data:
+    # assert (data is not None)
+    if isinstance(data, dict) and "_class" in data:
         # Handle Serializable object
-        cls_path = data['_class']
-        cls_name = cls_path.split('.')[-1]
-        cls_module = data.get('_class_module', None)
-        #cls_namespace = data.get('_class_namespace')
+        cls_path = data["_class"]
+        cls_name = cls_path.split(".")[-1]
+        cls_module = data.get("_class_module", None)
+        # cls_namespace = data.get('_class_namespace')
 
         # HACK: Previously we were storing the complete class namespace.
         # However this was not very flexible when we played with the class hierarchy.
@@ -275,13 +301,17 @@ def import_dict(data, cache=None, **kwargs):
             cls_def = cache.get_class_by_namespace(cls_name)
 
         if cls_def is None:
-            logging.error("Can't create class instance for {0}, did you import to module?".format(cls_path))
+            logging.error(
+                "Can't create class instance for {0}, did you import to module?".format(
+                    cls_path
+                )
+            )
             return None
 
         instance = create_class_instance(cls_def)
 
         for key, val in data.items():
-            if key != '_class':
+            if key != "_class":
                 instance.__dict__[key] = import_dict(val, cache=cache)
         return instance
 

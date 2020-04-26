@@ -17,25 +17,28 @@ class CtrlJaw(rigFaceAvar.BaseCtrlFace):
 
 
 class ModelCtrlJaw(model_ctrl_linear.ModelCtrlLinear):
-    def connect(self, avar, avar_grp, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True):
-        libRigging.connectAttr_withLinearDrivenKeys(
-            self.ctrl.translateX, avar.attr_lr
-        )
+    def connect(
+        self,
+        avar,
+        avar_grp,
+        ud=True,
+        fb=True,
+        lr=True,
+        yw=True,
+        pt=True,
+        rl=True,
+        sx=True,
+        sy=True,
+        sz=True,
+    ):
+        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.translateX, avar.attr_lr)
         libRigging.connectAttr_withLinearDrivenKeys(
             self.ctrl.translateY, avar.attr_ud,
         )
-        libRigging.connectAttr_withLinearDrivenKeys(
-            self.ctrl.translateZ, avar.attr_fb
-        )
-        libRigging.connectAttr_withLinearDrivenKeys(
-            self.ctrl.rotateX, avar.attr_pt
-        )
-        libRigging.connectAttr_withLinearDrivenKeys(
-            self.ctrl.rotateY, avar.attr_yw
-        )
-        libRigging.connectAttr_withLinearDrivenKeys(
-            self.ctrl.rotateZ, avar.attr_rl
-        )
+        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.translateZ, avar.attr_fb)
+        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.rotateX, avar.attr_pt)
+        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.rotateY, avar.attr_yw)
+        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.rotateZ, avar.attr_rl)
         # todo: connect jaw ratio
 
     def get_default_tm_ctrl(self):
@@ -44,14 +47,16 @@ class ModelCtrlJaw(model_ctrl_linear.ModelCtrlLinear):
         If raycast don't return any information, use the default behavior.
         """
         ref = self.jnt.getMatrix(worldSpace=True)
-        pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space='world'))
+        pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space="world"))
         pos_e = pymel.datatypes.Point(1, 0, 0) * ref
         dir = pos_e - pos_s
         result = self.rig.raycast_farthest(pos_s, dir)
         if not result:
             return super(ModelCtrlJaw, self).get_default_tm_ctrl()
 
-        tm = pymel.datatypes.Matrix([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, result.x, result.y, result.z, 1])
+        tm = pymel.datatypes.Matrix(
+            [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, result.x, result.y, result.z, 1]
+        )
         return tm
 
 
@@ -59,11 +64,12 @@ class AvarJaw(rigFaceAvar.AvarSimple):
     """
     This avar is not designed to use any surface.
     """
+
     SHOW_IN_UI = False
     IS_SIDE_SPECIFIC = False
 
     def get_default_name(self):
-        return 'Jaw'
+        return "Jaw"
 
 
 class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
@@ -72,6 +78,7 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
     The Jaw is a special zone since it doesn't happen in pre-deform, it happen in the main skinCluster.
     The Jaw global avars are made
     """
+
     _CLS_AVAR = AvarJaw
     _CLS_AVAR_MACRO = rigFaceAvar.AvarSimple  # todo: use AbstractAvar???
     CREATE_MACRO_AVAR_ALL = True
@@ -94,24 +101,25 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
         """
         jnt_jaw = self.jnt
         if len(self.jnts) > 1:
-            self.info('Using {} as the ctrl position reference.'.format(jnt_jaw.name()))
+            self.info("Using {} as the ctrl position reference.".format(jnt_jaw.name()))
             jnt_ref = self.jnts[-1]
-            p = jnt_ref.getTranslation(space='world')
+            p = jnt_ref.getTranslation(space="world")
         else:
             ref = jnt_jaw.getMatrix(worldSpace=True)
-            pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space='world'))
+            pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space="world"))
             pos_e = pymel.datatypes.Point(1, 0, 0) * ref
             dir = pos_e - pos_s
             p = self.rig.raycast_farthest(pos_s, dir)
             if p is None:
-                self.warning("Raycast failed. Using {} as the ctrl position reference.".format(jnt_jaw))
+                self.warning(
+                    "Raycast failed. Using {} as the ctrl position reference.".format(
+                        jnt_jaw
+                    )
+                )
                 p = pos_s
 
         result = pymel.datatypes.Matrix(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            p.x, p.y, p.z, 1
+            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, p.x, p.y, p.z, 1
         )
         return result
 

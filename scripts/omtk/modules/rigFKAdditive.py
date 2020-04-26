@@ -28,6 +28,7 @@ class AdditiveFK(rigFK.FK):
     """
     An AdditiveFK chain is a standard FK chain that have one or many additional controllers to rotate the entire chain.
     """
+
     _CLASS_CTRL_IK = CtrlFkAdd
 
     def __init__(self, *args, **kwargs):
@@ -45,9 +46,17 @@ class AdditiveFK(rigFK.FK):
 
         # Ensure to create the finger ctrl in the good orientation
         if nomenclature_anm.side == self.rig.nomenclature.SIDE_L:
-            normal_data = {constants.Axis.x: (1, 0, 0), constants.Axis.y: (0, 1, 0), constants.Axis.z: (0, 0, 1)}
+            normal_data = {
+                constants.Axis.x: (1, 0, 0),
+                constants.Axis.y: (0, 1, 0),
+                constants.Axis.z: (0, 0, 1),
+            }
         else:
-            normal_data = {constants.Axis.x: (-1, 0, 0), constants.Axis.y: (0, -1, 0), constants.Axis.z: (0, 0, -1)}
+            normal_data = {
+                constants.Axis.x: (-1, 0, 0),
+                constants.Axis.y: (0, -1, 0),
+                constants.Axis.z: (0, 0, -1),
+            }
 
         self.additive_ctrls = filter(None, self.additive_ctrls)
         if not self.additive_ctrls:
@@ -58,7 +67,9 @@ class AdditiveFK(rigFK.FK):
         ctrl_add = self.additive_ctrls[0]
         for i, ctrl in enumerate(self.additive_ctrls):
             # Resolve ctrl name
-            nomenclature = nomenclature_anm + self.rig.nomenclature(self.jnt.stripNamespace().nodeName())
+            nomenclature = nomenclature_anm + self.rig.nomenclature(
+                self.jnt.stripNamespace().nodeName()
+            )
             if not self._FORCE_INPUT_NAME:
                 if len(self.additive_ctrls) == 1 and len(self.chains) == 1:
                     ctrl_name = nomenclature_anm.resolve("addFk")
@@ -69,7 +80,11 @@ class AdditiveFK(rigFK.FK):
             else:
                 ctrl_name = nomenclature.resolve("addFk")
 
-            ctrl.build(name=ctrl_name, refs=self.chain.start, normal=normal_data[self.rig.DEFAULT_UPP_AXIS])
+            ctrl.build(
+                name=ctrl_name,
+                refs=self.chain.start,
+                normal=normal_data[self.rig.DEFAULT_UPP_AXIS],
+            )
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
             # In case we don't want to see addFk ctrl, like in a hand.
@@ -82,18 +97,21 @@ class AdditiveFK(rigFK.FK):
             # HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems
             if i == 0:
                 ctrl.offset = ctrl.append_layer("gimbal")
-            attr_rotate_x = libRigging.create_utility_node('addDoubleLinear',
-                                                           input1=ctrl.offset.rotateX.get(),
-                                                           input2=ctrl_add.rotateX
-                                                           ).output
-            attr_rotate_y = libRigging.create_utility_node('addDoubleLinear',
-                                                           input1=ctrl.offset.rotateY.get(),
-                                                           input2=ctrl_add.rotateY
-                                                           ).output
-            attr_rotate_z = libRigging.create_utility_node('addDoubleLinear',
-                                                           input1=ctrl.offset.rotateZ.get(),
-                                                           input2=ctrl_add.rotateZ
-                                                           ).output
+            attr_rotate_x = libRigging.create_utility_node(
+                "addDoubleLinear",
+                input1=ctrl.offset.rotateX.get(),
+                input2=ctrl_add.rotateX,
+            ).output
+            attr_rotate_y = libRigging.create_utility_node(
+                "addDoubleLinear",
+                input1=ctrl.offset.rotateY.get(),
+                input2=ctrl_add.rotateY,
+            ).output
+            attr_rotate_z = libRigging.create_utility_node(
+                "addDoubleLinear",
+                input1=ctrl.offset.rotateZ.get(),
+                input2=ctrl_add.rotateZ,
+            ).output
             pymel.connectAttr(attr_rotate_x, ctrl.offset.rotateX)
             pymel.connectAttr(attr_rotate_y, ctrl.offset.rotateY)
             pymel.connectAttr(attr_rotate_z, ctrl.offset.rotateZ)

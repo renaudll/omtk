@@ -7,9 +7,9 @@ import shutil
 
 from ._constants import FILE_METADATA_PREFIX
 
-_REGEX_MA_HEADER = re.compile(r"^//Maya ASCII .* scene$")
+_REGEX_MA_HEADER = re.compile(r"^//Maya ASCII .* scene")
 
-_REGEX_FILE_INFO = re.compile('^fileInfo "(.*)" "(.*)";')
+_REGEX_FILE_INFO = re.compile(r'^fileInfo "(.*)" "(.*)";')
 
 
 def remove_root_namespace(namespace, path):

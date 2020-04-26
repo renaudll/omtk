@@ -41,20 +41,14 @@ __all__ = (
 @libPython.memoized
 def get_version():
     """
-    Read the REZ package associated with the project and return the current version.
-    This is used to analyze old rigs and recommend specific scripts to correct them if needed.
-    :return:
+    Return the current omtk version.
+    This is used to analyze old rigs and
+    recommend specific scripts to correct them if needed.
+    :return: A PEP0396 compliant version string
+    :rtype: str
     """
-    if not os.path.exists(_PACKAGE_PATH):
-        raise Exception("Cannot find package file! {}".format(_PACKAGE_PATH))
-    regex_getversion = re.compile(r'^version = [\'|"]*([0-9a-z.]*)[\'|"]$')
-    with open(_PACKAGE_PATH, "r") as fp:
-        for line in fp:
-            line = line.strip()
-            match = regex_getversion.match(line)
-            if match:
-                return match.group(1)
-    # raise Exception("Cannot resolve current api version.")
+    import omtk
+    return omtk.__version__
 
 
 def create(*args, **kwargs):

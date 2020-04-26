@@ -2,6 +2,8 @@ from omtk.core import *
 import constants
 import pymel.core as pymel
 
+__version__ = "0.0.6"
+
 logging.basicConfig()
 
 # HACK: Load matrixNodes.dll

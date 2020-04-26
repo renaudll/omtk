@@ -2,7 +2,7 @@
 omtk_compound manager
 """
 import os
-from omtk_compound.core import Manager, Preferences
+from omtk.vendor.omtk_compound import Manager, Preferences
 
 # Note that the compounds directory is in the python package
 # This all the package to be contained when used as a whell.

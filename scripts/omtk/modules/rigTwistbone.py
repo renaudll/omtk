@@ -261,7 +261,9 @@ class Twistbone(Module):
         )
 
         # TODO: Should be done on the post-build of the rig
-        extractor.explode(remove_namespace=True)
+        # TODO: Exploding the compound break the twistbone (we loose the bind values)
+        # TODO: Investiguate why and fix it
+        # extractor.explode(remove_namespace=True)
 
         # If we created a ribbon, add the controllers twist to the result
         if self.create_bend:

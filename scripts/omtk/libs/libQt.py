@@ -1,3 +1,9 @@
+"""
+Qt helper methods.
+"""
+from omtk.vendor.Qt import QtWidgets
+
+
 def get_all_QTreeWidgetItem(widget, qt_item=None):
     """
     Iterate through all items of a provided QTreeWidgetItem.
@@ -14,3 +20,30 @@ def get_all_QTreeWidgetItem(widget, qt_item=None):
         yield qt_sub_item
         for x in get_all_QTreeWidgetItem(widget, qt_sub_item):
             yield x
+
+
+def get_maya_window():
+    """
+    :return : Maya main window
+    :rtype: QtWidgets.QWidget
+    """
+    for obj in QtWidgets.QApplication.instance().topLevelWidgets():
+        if obj.objectName() == "MayaWindow":
+            return obj
+    raise RuntimeError("Could not find MayaWindow instance")
+
+
+def center_window(gui):
+    """
+    Move a window to the center of the screen.
+
+    :param gui: A window
+    :type gui: QtWidgets.QMainWindow
+    """
+    frame = gui.frameGeometry()
+    screen = QtWidgets.QApplication.desktop().screenNumber(
+        QtWidgets.QApplication.desktop().cursor().pos()
+    )
+    center = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
+    frame.moveCenter(center)
+    gui.move(frame.topLeft())

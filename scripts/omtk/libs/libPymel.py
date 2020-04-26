@@ -20,12 +20,16 @@ def is_valid_PyNode(val):
         return False
     mel = fn()
     return cmds.objExists(mel)
-    # return (val and hasattr(val, 'exists') and val.exists()) if val else None
 
 
 def distance_between_nodes(x, y):
     """
-    Return the distance between two pynodes.
+    :param x: A node
+    :type x: pymel.PyNode
+    :param y: Another node
+    :type y: pymel.PyNode
+    :return: The distance between two nodes.
+    :rtype: float
     """
     ax, ay, az = x.getTranslation(space="world")
     bx, b, bz = y.getTranslation(space="world")
@@ -34,16 +38,32 @@ def distance_between_nodes(x, y):
 
 def distance_between_vectors(a, b):
     """
-    http://darkvertex.com/wp/2010/06/05/python-distance-between-2-vectors/
+    Compute the distance between two vectors.
+    src: http://darkvertex.com/wp/2010/06/05/python-distance-between-2-vectors/
+
+    :param a: A vector
+    :type a: pymel.datatypes.Vector
+    :param b: Another vector
+    :type b: pymel.datatypes.Vector
+    :return: A distance
+    :rtype: float
     """
     return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2) ** 0.5
 
 
-def is_child_of(node, potential_parent):
-    while node:
-        if node == potential_parent:
+def is_child_of(child, parent):
+    """
+    Check if a node is under another hierarchy.
+    
+    :param child: A node to check
+    :param parent: A potential parent node
+    :return: Is the node in the parent hierarchy?
+    :rtype: bool
+    """
+    while child:
+        if child == parent:
             return True
-        node = node.getParent()
+        child = child.getParent()
     return False
 
 
@@ -400,35 +420,6 @@ class SegmentCollection(object):
                 weights = [weight / total_weight for weight in weights]
             knots_weights.append(weights)
         return knots_weights
-
-    """
-    def get_weights(self, pos, dropoff=1.0, normalize=True):
-        # Compute the 'SegmentCollection' relative ratio and return the weight for each knots.
-        closest_segment, relative_ratio = self.closest_segment(pos)
-
-
-        index = self.segments.index(closest_segment)
-        absolute_ratio = relative_ratio + index
-
-        weights = []
-        total_weights = 0.0
-        for segment_ratio in range(len(self.knots)):
-            #segment_ratio += 0.5 # center of the joint
-            #print segment_ratio, absolute_ratio
-            distance = abs(segment_ratio - absolute_ratio)
-            weight = max(0, 1.0-(distance/dropoff))
-
-            # Apply cubic interpolation for greater results.
-            #weight = interp_cubic(weight)
-
-            total_weights += weight
-            weights.append(weight)
-
-        if normalize:
-            weights = [weight / total_weights for weight in weights]
-
-        return weights
-    """
 
     @classmethod
     def from_transforms(cls, objs):

@@ -317,7 +317,7 @@ def initialize():
     plugin_dirs = filter(None, plugin_dirs)
     for path in plugin_dirs:
         if path not in sys.path:
-            log.info("Adding to sys.path {0}".format(path))
+            log.info("Adding to sys.path %s", path)
             sys.path.append(path)
 
     pm = PluginManager()

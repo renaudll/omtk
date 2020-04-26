@@ -26,10 +26,13 @@ class CtrlMaster(classRig.CtrlRoot):
 
 
 class SqueezeNomenclature(className.BaseName):
+    """
+    Nomenclature used at Squeeze Studio.
+    """
+
     type_anm = "Ctrl"
     type_jnt = "Jnt"
     type_rig = None
-    # TODO: fix collision when anm_grp and rig_grp are created with the same nomenclature (they are at the same level)
     type_anm_grp = "CtrlGrp"
     type_rig_grp = "Grp"
 

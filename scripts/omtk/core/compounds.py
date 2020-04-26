@@ -1,5 +1,5 @@
 """
-omtk_compound manager
+Helpers for compound management and creation.
 """
 import os
 from omtk.vendor.omtk_compound import Manager, Preferences

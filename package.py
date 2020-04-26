@@ -4,9 +4,12 @@ version = "0.6.0"
 
 
 def commands():
-    env.PYTHONPATH.append("{root}/python")
+    env = locals()["env"]
+    system = locals()["system"]
+
+    env.PYTHONPATH.append("{root}/scripts/python")
 
     if system.platform == "windows":
-        env.XBMLANGPATH.append("{root}/images/")
+        env.XBMLANGPATH.append("{root}/icons/")
     else:
-        env.XBMLANGPATH.append("{root}/images/%B")
+        env.XBMLANGPATH.append("{root}/icons/%B")

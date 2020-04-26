@@ -77,14 +77,14 @@ class SplineIK(Module):
         # Create stretch
         # Todo: use shape instead of transform as curve input?
         if stretch:
-            stretch_attr = libRigging.create_strech_attr_from_curve(curve_shape)
+            stretch_attr = _create_strech_attr_from_curve(curve_shape)
             for jnt in self._joints:
                 pymel.connectAttr(stretch_attr, jnt.sx, force=True)
 
             # Create squash
             if squash:
                 num_joints = len(self._joints)
-                squash_attrs = libRigging.create_squash_atts(stretch_attr, num_joints)
+                squash_attrs = _create_squash_atts(stretch_attr, num_joints)
                 # Todo: Find correct axis orient
                 for jnt, squash in zip(self._joints, squash_attrs):
                     pymel.connectAttr(squash, jnt.sy, force=True)
@@ -96,6 +96,53 @@ class SplineIK(Module):
             pymel.delete(self.ikEffector)
 
         super(SplineIK, self).unbuild()
+
+
+def _create_strech_attr_from_curve(curve_shape):
+    curveLength = libRigging.create_utility_node(
+        "curveInfo", inputCurve=curve_shape.worldSpace
+    ).arcLength
+    return libRigging.create_utility_node(
+        "multiplyDivide", operation=2, input1X=curveLength, input2X=curveLength.get()
+    ).outputX
+
+
+def _create_squash_atts(attr_stretch, samples):
+    """
+    Create attributes resolving a curve using the following formula.
+    s^(e^(x^2)))
+    see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
+    :param attr_stretch: # The stretch attribute.
+    :param samples: Number of samples to resolve.
+    """
+    if not isinstance(attr_stretch, pymel.Attribute):
+        raise IOError(
+            "Expected pymel Attribute, got {0} ({1})".format(
+                attr_stretch, type(attr_stretch)
+            )
+        )
+
+    attr_stretch_inv = libRigging.create_utility_node(
+        "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch
+    ).outputX
+
+    return_vals = []
+    for i in range(samples):
+        pos = float(i) / (samples - 1) * 2.0 - 1.0
+
+        # Blend between no squash and full squash using a bell curve.
+        # 0 = Maximum Squash
+        # 1 = No Squash
+        # see see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
+        blend = libRigging.create_utility_node(
+            "multiplyDivide", operation=3, input1X=pos, input2X=2
+        ).outputX
+        attr_squash = libRigging.create_utility_node(
+            "blendTwoAttr", input=[attr_stretch_inv, 1], attributesBlender=blend
+        )
+
+        return_vals.append(attr_squash)
+    return return_vals
 
 
 def register_plugin():

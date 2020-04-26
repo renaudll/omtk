@@ -1,14 +1,8 @@
 import pymel.core as pymel
 
-from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classNode import Node
 from omtk.core import classNode
-from omtk.core import classCtrlModel
-from omtk.core import classModule
 from omtk.libs import libRigging
-from omtk.libs import libPymel
 from omtk.libs import libAttr
-from omtk.libs import libHistory
 from omtk.models import model_avar_base
 
 
@@ -29,12 +23,16 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
     _ATTR_NAME_MULT_FB = "multiplierFb"
 
     # Define how many unit is moved in uv space in relation with the avars.
-    # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
-    # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
-    # However in production, we found that defining the range of avar using the whole is not flexible.
-    # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
+    # Taking in consideration that the avar is centered in uv space,
+    # we at minimum want 0.5 of multiplier so moving the avar of 1.0 will
+    # move the follicle at the top of uv space (0.5 units).
+    # However in production, we found that defining the range of avar
+    # using the whole is not flexible.
+    # ex: We want the lips to follow the chin but we don't want to have
+    # the lips reach the chin when the UD avar is -1.
     # For this reason, we found that using a multiplier of 0.25 work best.
-    # This also help rigger visually since the surface plane have an edge at 0.25 location.
+    # This also help rigger visually since the
+    # surface plane have an edge at 0.25 location.
     # todo: Move this to AvarFollicle.
     default_multiplier_lr = 0.25
     default_multiplier_ud = 0.25
@@ -62,8 +60,10 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
 
     def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """
-        Resolve the relative parameterU and parameterV that will be sent to the follicles.
-        :return: A tuple containing two pymel.Attribute: the relative parameterU and relative parameterV.
+        Resolve the relative U and V attributes that will be sent to the follicles.
+
+        :return: he relative parameterU and relative parameterV attributes.
+        :rtype: tuple[pymel.Attribute, pymel.Attribute]
         """
         # Apply custom multiplier
         attr_u = libRigging.create_utility_node(
@@ -128,10 +128,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
             self.grp_rig, "innSurfaceMaxValueV", defaultValue=1
         )
 
-        # self.multiplier_lr = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_LR, defaultValue=self.multiplier_lr)
-        # self.multiplier_ud = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_UD, defaultValue=self.multiplier_ud)
-        # self.multiplier_fb = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_MULT_FB, defaultValue=self.multiplier_fb)
-
     def _build(self):
         """
         The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
@@ -141,7 +137,8 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Currently our utilities expect a complete surface shape.
-        # It is also more friendly for the rigger to see the surface directly in the model.
+        # It is also more friendly for the rigger to see
+        # the surface directly in the model.
         surface_shape = pymel.createNode(
             "nurbsSurface", name=nomenclature_rig.resolve("surface"),
         )
@@ -153,10 +150,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         libRigging.connect_matrix_to_node(
             self._attr_inn_surface_tm, self._surface, name="decomposeSurfaceTm"
         )
-        # pymel.connectAttr(self._attr_inn_surface_min_value_u, self._surface.minValueU)
-        # pymel.connectAttr(self._attr_inn_surface_min_value_v, self._surface.maxValueU)
-        # pymel.connectAttr(self._attr_inn_surface_max_value_u, self._surface.minValueV)
-        # pymel.connectAttr(self._attr_inn_surface_max_value_v, self._surface.maxValueV)
 
         self._stack = classNode.Node()
         self._stack.build(name=nomenclature_rig.resolve("avar"))
@@ -324,11 +317,11 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         pymel.connectAttr(self._attr_u_base, fol_offset.parameterU)
         pymel.connectAttr(self._attr_v_base, fol_offset.parameterV)
 
-        #
-        # The second layer (oobLayer for out-of-bound) that allow the follicle to go outside it's original plane.
-        # If the UD value is out the nurbsPlane UV range (0-1), ie 1.1, we'll want to still offset the follicle.
-        # For that we'll compute a delta between a small increment (0.99 and 1.0) and multiply it.
-        #
+        # The second layer (oobLayer for out-of-bound) that allow the follicle
+        # to go outside it's original plane. If the UD value is out the nurbsPlane
+        # UV range (0-1), ie 1.1, we'll want to still offset the follicle.
+        # For that we'll compute a delta between
+        # a small increment (0.99 and 1.0) and multiply it.
         nomenclature_rig = self.get_nomenclature_rig()
         oob_step_size = 0.001  # TODO: Expose a Maya attribute?
 
@@ -502,10 +495,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         layer_oob = self._stack.append_layer("oobLayer")
         pymel.connectAttr(oob_offset, layer_oob.t)
 
-        #
         # Create the third layer that apply the translation provided by the fb Avar.
-        #
-
         layer_fb = self._stack.append_layer("fbLayer")
         attr_get_fb = libRigging.create_utility_node(
             "multiplyDivide", input1X=self._attr_inn_fb, input2X=self._attr_length_u
@@ -515,16 +505,14 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         ).outputX
         pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
 
-        #
-        # Create the 4th layer (folRot) that apply the rotation provided by the follicle controlled by the ud and lr Avar.
-        # This is necessary since we don't want to rotation to affect the oobLayer and fbLayer.
-        #
+        # Create the 4th layer (folRot) that apply the rotation provided by
+        # the follicle controlled by the ud and lr Avar.
+        # This is necessary since we don't want to rotation
+        # to affect the oobLayer and fbLayer.
         layer_follicle_rot = self._stack.append_layer("folRot")
         pymel.connectAttr(util_decompose_tm.outputRotate, layer_follicle_rot.rotate)
 
-        #
-        # Create a 5th layer that apply the avar rotation and scale..
-        #
+        # Create a 5th layer that apply the avar rotation and scale.
         layer_rot = self._stack.append_layer("rotLayer")
         pymel.connectAttr(self._attr_inn_yw, layer_rot.rotateY)
         pymel.connectAttr(self._attr_inn_pt, layer_rot.rotateX)

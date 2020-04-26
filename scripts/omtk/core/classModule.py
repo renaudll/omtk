@@ -30,38 +30,39 @@ class Module(object):
     #
     # Logging implementation
     #
+    # TODO: Replace by rig child logger
 
-    def debug(self, msg):
+    def debug(self, msg, *args, **kwargs):
         """
         Redirect a debug message to the rig logger.
         """
         msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
-            self.rig.debug(msg)
+            self.rig.debug(msg, *args, **kwargs)
 
-    def info(self, msg):
+    def info(self, msg, *args, **kwargs):
         """
         Redirect an information message to the rig logger.
         """
         msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
-            self.rig.info(msg)
+            self.rig.info(msg, *args, **kwargs)
 
-    def warning(self, msg):
+    def warning(self, msg, *args, **kwargs):
         """
         Redirect an warning message to the rig logger.
         """
         msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
-            self.rig.warning(msg)
+            self.rig.warning(msg, *args, **kwargs)
 
-    def error(self, msg):
+    def error(self, msg, *args, **kwargs):
         """
         Redirect an error message to the rig logger.
         """
         msg = "[{0}] {1}".format(self.name, msg)
         if self.rig:
-            self.rig.error(msg)
+            self.rig.error(msg, *args, **kwargs)
 
     #
     # libSerialization implementation

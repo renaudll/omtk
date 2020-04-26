@@ -1,6 +1,7 @@
 """
 A ctrl model is a small module that handle the logic between a ctrl and an influence.
-This is necessary when the relationship between the ctrl and the influence is more complex than setting up a constraint.
+This is necessary when the relationship between the ctrl and the influence
+is more complex than setting up a constraint.
 """
 import pymel.core as pymel
 

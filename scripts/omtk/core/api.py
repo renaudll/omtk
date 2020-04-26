@@ -54,7 +54,7 @@ def get_version():
             match = regex_getversion.match(line)
             if match:
                 return match.group(1)
-    raise Exception("Cannot resolve current api version.")
+    # raise Exception("Cannot resolve current api version.")
 
 
 def create(*args, **kwargs):
@@ -292,22 +292,6 @@ def unbuild_selected(sel=None):
         if hasattr(rig, "_network"):
             pymel.delete(rig._network)
         libSerialization.export_network(rig)
-
-
-# def rebuild_selection():
-#     with with_preserve_selection():
-#         rig, modules = _get_modules_from_selection()
-#         if not rig or not modules:
-#             return
-#
-#         for module in modules:
-#             if module.is_built():
-#                 module.unbuild()
-#             module.build()
-#
-#         if hasattr(rig, '_network'):
-#             pymel.delete(rig._network)
-#         libSerialization.export_network(rig)
 
 
 def calibrate_selected(sel=None):

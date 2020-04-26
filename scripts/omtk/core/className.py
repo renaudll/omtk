@@ -251,17 +251,6 @@ class BaseName(object):
 
         name = self._join_tokens(tokens)
 
-        # If we have name conflicts, we WILL want to crash.
-        """
-        # Prevent maya from crashing by guarantying that the name is unique.
-        if cmds.objExists(name):
-            name_old = name
-            name = self.get_unique_name(name)
-            cmds.warning("Name {0} already exist, using {1} instead.".format(
-                name_old, name
-            ))
-        """
-
         return name
 
     def rename(self, obj, *args):

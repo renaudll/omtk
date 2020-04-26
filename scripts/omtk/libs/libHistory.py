@@ -7,8 +7,6 @@ Please learn the following used nomenclature:
 """
 import pymel.core as pymel
 
-from omtk.libs.libRigging import _filter_shape
-
 
 def _is_mesh(shape):
     return isinstance(shape, pymel.nodetypes.Mesh)

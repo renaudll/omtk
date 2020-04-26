@@ -61,7 +61,8 @@ def adapt_to_orig_shape(source, target):
     """
     :param source: source shape to transfer
     :param target: target to transfer to
-     This is based out of Renaud's code on shape to orig when building and unbuilding with omtk to preserve shape info.
+    This is based out of Renaud's code on shape to orig when
+    building and unbuilding with omtk to preserve shape info.
     """
 
     def get_transformGeometry(shape):
@@ -107,16 +108,22 @@ def adapt_to_orig_shape(source, target):
 
 
 def controller_matcher(selection=None, mirror_prefix=None, flip=True):
-    """it will try to find it's match on the other side of the rig
-    Select controls curves (ex. 'leg_front_l_ik_ctrl'), and set the mirror prefix ('_l_', '_r_')
-    flip is for flipping on the X axis the shapes of the ctrl"""
+    """
+    It will try to find it's match on the other side of the rig
+    Select controls curves (ex. 'leg_front_l_ik_ctrl'),
+    and set the mirror prefix ('_l_', '_r_')
+    flip is for flipping on the X axis the shapes of the ctrl
+    """
     if selection is None:
         selection = pymel.selected()
 
     if not mirror_prefix:
         if len(selection) != 2:
-            msg = """The only supported behavior when no mirror_prefix is given, is to have only two controlers selected.
-            It will match the first controller to the second one."""
+            msg = (
+                "The only supported behavior when no mirror_prefix is given, "
+                "is to have only two controlers selected. "
+                "It will match the first controller to the second one."
+            )
             pymel.warning(msg)
             return "Error"
         transfer_shape(*selection, flip=flip)
@@ -125,7 +132,9 @@ def controller_matcher(selection=None, mirror_prefix=None, flip=True):
 
         for selected_object in selection:
             _possible_sides = list(mirror_prefix)
-            skip_mechanism = False  # This is in place to protect from possible controller having no mirror prefix at all
+            # This is in place to protect from possible controller
+            # having no mirror prefix at all
+            skip_mechanism = False
 
             if mirror_prefix[0] in selected_object.name():
                 current_side = _possible_sides.pop(0)
@@ -150,7 +159,9 @@ def controller_matcher(selection=None, mirror_prefix=None, flip=True):
 
 
 def transfer_shape(source, target, flip=True):
-    """it will replace the shape of selected number 2 with the shapes of selected number 1"""
+    """
+    Tt will replace the shape of selected number 2 with the shapes of selected number 1
+    """
 
     target_shape = target.getShape(noIntermediate=True)
     target_shape_orig = get_orig_shape(target_shape)

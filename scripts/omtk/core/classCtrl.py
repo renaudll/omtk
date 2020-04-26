@@ -14,9 +14,11 @@ log = logging.getLogger("omtk")
 
 class BaseCtrl(Node):
     """
-    A Ctrl is the layer between the rig and the animator.
-    When unbuilt/built it's shapes and animatable attributes are automatically saved/loaded.
-    If no shapes are stored, a Ctrl have the ability to resize itself automatically.
+    A Ctrl is the interface the animator interact with.
+
+    When built for the first time, the shapes save are automatically solved.
+    When unbuilt, it's shapes are automatically saved.
+    When rebuilt it's shapes are automatically restored.
     """
 
     def __init__(self, create=False, create_offset=True, *args, **kwargs):
@@ -56,7 +58,8 @@ class BaseCtrl(Node):
 
         # Store information concerning how the ctrl should mirror.
         # For more information see the omtk.animation.mirrorPose module.
-        # The default behavior follow the result we get when mirroring joints using the 'behavior' option.
+        # The default behavior follow the result we get when
+        # mirroring joints using the 'behavior' option.
         # TODO: Find a way to automatically guess the correct values.
         self.mirror_x = False
         self.mirror_y = False
@@ -68,33 +71,24 @@ class BaseCtrl(Node):
         self.mirror_flip_pos_y = True
         self.mirror_flip_pos_z = True
 
-        self.offset = None  # An intermediate parent that store the original transform of the ctrl.
-        self.shapes = None  # The list of shape to be used by the ctrl
+        # An intermediate parent that store the original transform of the ctrl.
+        self.offset = None
+        #  The list of shape to be used by the ctrl
+        self.shapes = None
         self.node = None
         self.rotateOrder = None  # Keep the axis order information on unbuild
 
-        self.targets = (
-            []
-        )  # A list representing all the space switch target for the ctrl
-        self.targets_indexes = (
-            []
-        )  # A list representing all the space switch target indexes for the ctrl
-        # We need to keep the local index separately because self referencing break maya deletion mechanism (*%&?%*&)
+        # A list representing all the space switch target for the ctrl
+        self.targets = []
+        # A list representing all the space switch target indexes for the ctrl
+        self.targets_indexes = []
+        # We need to keep the local index separately because
+        # self referencing break maya deletion mechanism (*%&?%*&)
         self.local_index = constants.SpaceSwitchReservedIndex.local
-        self._reserved_index = (
-            []
-        )  # A list representing all the index already reserved for the space switch target
+        # A list representing all the index already reserved for the space switch target
+        self._reserved_index = []
 
         super(BaseCtrl, self).__init__(create=create, *args, **kwargs)
-
-    '''
-    def __createOffset__(self):
-        """
-        Create an intermediate parent used to store the origin offset of the ctrl.
-        """
-        self.offset = pymel.group(self.node, absolute=True, name=(self.node.name() + '_offset')) # faster
-        return self.offset
-    '''
 
     def _get_recommended_size(
         self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs
@@ -443,16 +437,6 @@ class BaseCtrl(Node):
         The fetch_attr_all should be called LAST after a Module generation.
         """
         pass
-        # # Note: we're forced to use __dict__ since we don't self.tx to be interpreted as self.node.tx
-        # libAttr.fetch_attr(self.__dict__.get('tx', None), self.node.translateX)
-        # libAttr.fetch_attr(self.__dict__.get('ty', None), self.node.translateY)
-        # libAttr.fetch_attr(self.__dict__.get('tz', None), self.node.translateZ)
-        # libAttr.fetch_attr(self.__dict__.get('rx', None), self.node.rotateX)
-        # libAttr.fetch_attr(self.__dict__.get('ry', None), self.node.rotateY)
-        # libAttr.fetch_attr(self.__dict__.get('rz', None), self.node.rotateZ)
-        # libAttr.fetch_attr(self.__dict__.get('sx', None), self.node.scaleX)
-        # libAttr.fetch_attr(self.__dict__.get('sy', None), self.node.scaleY)
-        # libAttr.fetch_attr(self.__dict__.get('sz', None), self.node.scaleZ)
 
     #
     # SPACE SWITH LOGIC

@@ -1401,9 +1401,8 @@ class AvarGrpOnSurface(AvarGrp):
             ref_upp = self.get_jnt_upp_mid()
             if not ref_upp:
                 self.info(
-                    "Cannot create macro avar '{}', found no matching influence.".format(
-                        self.rig.AVAR_NAME_UPP
-                    )
+                    "Cannot create macro avar %r', found no matching influence.",
+                    self.rig.AVAR_NAME_UPP,
                 )
             else:
                 # Resolve avar name
@@ -1423,9 +1422,8 @@ class AvarGrpOnSurface(AvarGrp):
             ref_low = self.get_jnt_low_mid()
             if not ref_low:
                 self.info(
-                    "Cannot create macro avar '{}', found no matching influence.".format(
-                        self.rig.AVAR_NAME_LOW
-                    )
+                    "Cannot create macro avar %r', found no matching influence.",
+                    self.rig.AVAR_NAME_LOW,
                 )
             else:
                 # Resolve avar name

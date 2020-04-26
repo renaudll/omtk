@@ -1,7 +1,8 @@
 """
-Warning: The mirror functionnality of OMTK is in alpha stage. Use it at your own risk!
+Pose mirroring tool.
+Warning: The mirror functionality of OMTK is in alpha stage. Use it at your own risk!
 """
-
+import itertools
 import pymel.core as pymel
 from maya import cmds, OpenMaya
 
@@ -12,26 +13,16 @@ from omtk.core import classCtrl
 from omtk.vendor import libSerialization
 
 
-def list_from_MMatrix(m):
-    # TODO: There's got to be a better way!
-    # m = OpenMaya.MTransformationMatrix().asMatrix()
+def list_from_MMatrix(matrix):
+    """
+    Convert a matrix object to a list of float.
+    :param matrix: A matrix
+    :type matrix: pymel.datatypes.Matrix
+    :return: A list of 16 floats
+    :rtype: list or float
+    """
     return [
-        m(0, 0),
-        m(0, 1),
-        m(0, 2),
-        m(0, 3),
-        m(1, 0),
-        m(1, 1),
-        m(1, 2),
-        m(1, 3),
-        m(2, 0),
-        m(2, 1),
-        m(2, 2),
-        m(2, 3),
-        m(3, 0),
-        m(3, 1),
-        m(3, 2),
-        m(3, 3),
+        matrix(row, column) for row, column in itertools.product(range(4), range(4))
     ]
 
 

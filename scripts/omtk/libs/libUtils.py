@@ -1,14 +1,18 @@
-import pymel.core as pymel
 import logging
-from omtk.libs import libSkinning
 
-"""
-This method will create a locator at the center of the selection.
-Support : Transform objects, vertices, faces and edges selection
-"""
+import pymel.core as pymel
+from omtk.libs import libSkinning
 
 
 def get_center(objs):
+    """
+    Compute the center of some components.
+
+    :param objs: A list of nodes or components
+    :type objs: list of pymel.PyNode
+    :return: A center vector
+    :rtype: pymel.datatypes.Vector
+    """
     pos = pymel.datatypes.Point()
     count = 0
     for obj in objs:
@@ -41,47 +45,50 @@ def get_center(objs):
 
 
 def createLocToCenter():
-    old_selection = pymel.selected()
-    p3Pos = get_center(pymel.selected(flatten=True))
-    pPoint = pymel.general.spaceLocator()
-    pPoint.setTranslation(p3Pos, space="world")
-    if old_selection:
-        pymel.select(old_selection)
-
-
-"""Snap two or more objects with the last selected using their world matrix"""
+    """
+    Create a locator at the center of the selected nodes/components.
+    """
+    selection = pymel.selected()
+    pos = get_center(pymel.selected(flatten=True))
+    locator = pymel.general.spaceLocator()
+    locator.setTranslation(pos, space="world")
+    if selection:
+        pymel.select(selection)
 
 
 def snapObj():
+    """
+    Snap two or more objects with the last selected using their world matrix
+    """
     aSelection = pymel.selected()
     if len(aSelection) < 2:
         pymel.error("Select at least two objects")
 
-    aSources = aSelection[:-1]
-    oTarget = aSelection[-1]
+    sources = aSelection[:-1]
+    target = aSelection[-1]
 
-    for oCurSource in aSources:
-        pMatrixToMatch = oTarget.getMatrix(worldSpace=True)
-        oCurSource.setMatrix(pMatrixToMatch, worldSpace=True)
-
-
-"""Get skin cluster attach to an objects"""
+    for source in sources:
+        pMatrixToMatch = target.getMatrix(worldSpace=True)
+        source.setMatrix(pMatrixToMatch, worldSpace=True)
 
 
 def getSkinCluster(_oObj):
-    for oCurHistory in pymel.listHistory(_oObj):
-        if isinstance(oCurHistory, pymel.nodetypes.SkinCluster):
-            return oCurHistory
+    """
+    Get skin cluster attach to an objects
+    """
+    for hist in pymel.listHistory(_oObj):
+        if isinstance(hist, pymel.nodetypes.SkinCluster):
+            return hist
     return None
 
 
-"""Get bone included in a skin"""
-
-
 def getSkinBones():
-    aInfluences = []
+    """
+    Get bone included in a skin
+    """
+    influences = []
     for oCurObj in pymel.selected():
         oSkinCluster = getSkinCluster(oCurObj)
         if oSkinCluster is not None:
-            aInfluences += libSkinning.get_skin_cluster_influence_objects(oSkinCluster)
-    pymel.select(aInfluences)
+            influences += libSkinning.get_skin_cluster_influence_objects(oSkinCluster)
+    pymel.select(influences)

@@ -806,7 +806,7 @@ class InteractiveFK(Module):
 
     def _get_default_ctrl_size(self):
         surface = self.get_surface()
-        length_u, length_v = libRigging.get_surface_length(surface)
+        length_u, length_v = _get_surface_length(surface)
         return min(length_u, length_v)
 
     def build(self, ctrl_size_max=None, ctrl_size_min=None, parent=True, **kwargs):
@@ -923,6 +923,16 @@ class InteractiveFK(Module):
                 layer.unbuild()
 
         super(InteractiveFK, self).unbuild(**kwargs)
+
+
+def _get_surface_length(surface, u=1.0, v=1.0):
+    attr_u, attr_v, util = libRigging.create_arclengthdimension_for_nurbsplane(
+        surface, u=u, v=v
+    )
+    length_u = attr_u.get()
+    length_v = attr_v.get()
+    pymel.delete(util.getParent())
+    return length_u, length_v
 
 
 def register_plugin():

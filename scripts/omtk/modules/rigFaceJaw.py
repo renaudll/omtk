@@ -101,7 +101,7 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
         """
         jnt_jaw = self.jnt
         if len(self.jnts) > 1:
-            self.info("Using {} as the ctrl position reference.".format(jnt_jaw.name()))
+            self.info("Using %s as the ctrl position reference.", jnt_jaw.name())
             jnt_ref = self.jnts[-1]
             p = jnt_ref.getTranslation(space="world")
         else:

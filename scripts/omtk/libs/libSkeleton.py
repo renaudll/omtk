@@ -77,7 +77,7 @@ def transfer_rotation_to_joint_orient(obj):
     obj.rotateZ.set(0)
 
 
-def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
+def mirror_jnt(obj_src, handle_joint_orient=True):
     from omtk.animation import mirrorPose
 
     obj_dst = mirrorPose.get_ctrl_friend(obj_src)

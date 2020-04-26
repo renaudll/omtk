@@ -78,19 +78,9 @@ class CtrlRoot(BaseCtrl):
 
 class RigGrp(Node):
     """
-    Simple Node re-implementation that throw whatever was parented to it outside before un-building and re-parent them after building.
+    Simple Node re-implementation that throw whatever was parented to it
+    outside before un-building and re-parent them after building.
     """
-
-    # def __init__(self, *args, **kwargs):
-    #     self.extra = None  # Holder for any nodes that were parented to the group when un-building.
-    #     super(RigGrp, self).__init__(*args, **kwargs)
-
-    # def build(self, *args, **kwargs):
-    #     super(RigGrp, self).build(*args, **kwargs)
-    #
-    #     if self.extra:
-    #         for child in self.extra:
-    #             child.setParent(self.node)
 
     def unbuild(self, keep_if_children=False, *args, **kwargs):
         """
@@ -127,14 +117,17 @@ class Rig(object):
     # Define what axis to use as the 'up' axis.
     # This generally mean in which Axis will the Limb elbow/knee be pointing at.
     # The default is Z since it work great with Maya default xyz axis order.
-    # However some riggers might prefer otherwise for personal or backward-compatibility reasons (omtk_cradle)
+    # However some riggers might prefer otherwise for personal or
+    # backward-compatibility reasons (omtk_cradle)
     DEFAULT_UPP_AXIS = constants.Axis.z
 
     # Define how to resolve the transform for IKCtrl on Arm and Leg.
     # Before 0.4, the ctrl was using the same transform than it's offset.
-    # However animators don't like that since it mean that the 'Y' axis is not related to the world 'Y'.
+    # However animators don't like that since it mean that
+    # the 'Y' axis is not related to the world 'Y'.
     # From 0.4 and after, there WILL be rotation values in the ik ctrl channel box.
-    # If thoses values are set to zero, this will align the hands and feet with the world.
+    # If thoses values are set to zero,
+    # this will align the hands and feet with the world.
     LEGACY_ARM_IK_CTRL_ORIENTATION = False
     LEGACY_LEG_IK_CTRL_ORIENTATION = False
 
@@ -156,6 +149,7 @@ class Rig(object):
     #
     # Logging implementation
     #
+    # TODO: Replace by child logger
 
     def debug(self, msg, *args, **kwargs):
         msg = "[{0}] {1}".format(self.name, msg)
@@ -285,20 +279,7 @@ class Rig(object):
         self._invalidate_cache_by_module(inst)
 
     def _invalidate_cache_by_module(self, inst):
-        # Some cached values might need to be invalidated depending on the module type.
-        # from omtk.modules.rigFaceJaw import FaceJaw
-        # if isinstance(inst, FaceJaw):
-        #     try:
-        #         del self._cache[self.get_jaw_jnt.__name__]
-        #     except (LookupError, AttributeError):
-        #         pass
-        #
-        # from omtk.modules.rigHead import Head
-        # if isinstance(inst, Head):
-        #     try:
-        #         del self._cache[self.get_head_jnt.__name__]
-        #     except (LookupError, AttributeError):
-        #         pass
+        # TODO: Do we need caching?
 
         # Remove Module.get_head_jnt cache
         try:

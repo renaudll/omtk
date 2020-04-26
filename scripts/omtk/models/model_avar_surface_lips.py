@@ -260,8 +260,6 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
             self.grp_rig, "innBypassSplitter"
         )
         self._attr_inn_ud_bypass = libAttr.addAttr(self.grp_rig, "innBypassUD")
-        # self._attr_inn_surface_length_u = libAttr.addAttr(self.grp_rig, 'innSurfaceLengthU', defaultValue=0)
-        # self._attr_inn_surface_length_v = libAttr.addAttr(self.grp_rig, 'innSurfaceLengthV', defaultValue=0)
 
         self._attr_out_jaw_ratio = libAttr.addAttr(self.grp_rig, "outJawRatio")
 

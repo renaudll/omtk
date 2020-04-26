@@ -507,9 +507,9 @@ def assign_twist_weights(src, dsts):
             dst.lockInfluenceWeights.set(False)
 
     for mesh in meshes:
-        log.info("{1} --> Assign skin weights on {0}.".format(mesh.name(), src.name()))
+        log.info("%s --> Assign skin weights on %s.", src.name(), mesh.name())
         # Transfer weight, note that since we use force_straight line, the influence
-        # don't necessaryy need to be in their bind pose.
+        # don't necessary need to be in their bind pose.
         transfer_weights_from_segments(mesh, src, dsts, force_straight_line=True)
 
 

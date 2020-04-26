@@ -11,7 +11,7 @@ from omtk.libs import libPymel
 
 _LOG = logging.getLogger(__name__)
 
-__aBasicTypes = [
+_BASIC_TYPES = [
     int,
     float,
     bool,
@@ -23,11 +23,6 @@ __aBasicTypes = [
 _X_AXIS = pymel.datatypes.Vector.xAxis
 _Y_AXIS = pymel.datatypes.Vector.yAxis
 _Z_Axis = pymel.datatypes.Vector.zAxis
-
-
-def is_basic_type(_val):
-    global __aBasicTypes
-    return type(_val) in __aBasicTypes
 
 
 def connect_or_set_attr(_attr, _val):
@@ -42,21 +37,19 @@ def connect_or_set_attr(_attr, _val):
                 connect_or_set_attr(child, val)
         else:
             raise Exception(
-                "Can't apply value {0} on attribute {1}, need an array or compound".format(
-                    _val, _attr
-                )
+                "Can't apply value %s on attribute %s, need an array or compound"
+                % (_val, _attr)
             )
 
     else:
         if isinstance(_val, pymel.Attribute):
             pymel.connectAttr(_val, _attr, force=True)
-        elif is_basic_type(_val):
+        elif type(_val) in _BASIC_TYPES:
             _attr.set(_val)
         else:
             raise TypeError(
-                "[ConnectOrSetAttr] Invalid value for attribute {} of type {} and value {}".format(
-                    _attr.name(), type(_val), _val
-                )
+                "Invalid value for attribute %s of type %s and value %s"
+                % (_attr.name(), type(_val), _val)
             )
 
 
@@ -65,9 +58,7 @@ def create_utility_node(_sClass, name=None, *args, **kwargs):
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
-                "[CreateUtilityNode] UtilityNode {0} doesn't have an {1} attribute.".format(
-                    _sClass, sAttrName
-                )
+                "UtilityNode %s doesn't have an %s attribute." % s(_sClass, sAttrName)
             )
         else:
             connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
@@ -75,17 +66,25 @@ def create_utility_node(_sClass, name=None, *args, **kwargs):
 
 
 def connect_matrix_to_node(attr_tm, node, name=None):
-    u = create_utility_node("decomposeMatrix", name=name, inputMatrix=attr_tm)
-    pymel.connectAttr(u.outputTranslate, node.translate, force=True)
-    pymel.connectAttr(u.outputRotate, node.rotate, force=True)
-    pymel.connectAttr(u.outputScale, node.scale, force=True)
-    return u
+    util = create_utility_node("decomposeMatrix", name=name, inputMatrix=attr_tm)
+    pymel.connectAttr(util.outputTranslate, node.translate, force=True)
+    pymel.connectAttr(util.outputRotate, node.rotate, force=True)
+    pymel.connectAttr(util.outputScale, node.scale, force=True)
+    return util
 
 
 #
 # CtrlShapes Backup
 #
-def hold_ctrl_shapes(transform, parent=None):
+def hold_ctrl_shapes(transform):
+    """
+    Backup a ctrl shapes.
+
+    :param transform: The ctrl transform
+    :type transform: pymel.nodetypes.Transform
+    :return: A new transform containing the shapes
+    :rtype: pymel.nodetypes.Transform
+    """
     # Resolve each shape in it's most left position in the history.
     # This allow us to transform with multiples shapes and deformed shape.
     # If we encounter a deformed shape, we'll simple hold/fetch the Orig shape.
@@ -115,9 +114,12 @@ def hold_ctrl_shapes(transform, parent=None):
 
     for src_shape in all_shapes:
         # We use the duplicate command to duplicate the shape.
-        # However it has to be isolated in it's own transform so the duplicate method won't duplicate the other shapes.
-        # Theorically it's possible to create a new nurbsCurve and connect/disconnect it's create attribute.
-        # However without triggering a viewport refresh using the refresh command, the connect/disconnect trick don't work.
+        # However it has to be isolated in it's own transform
+        # so the duplicate method won't duplicate the other shapes.
+        # In theory it's possible to create a new nurbsCurve
+        # and connect/disconnect it's create attribute.
+        # However without triggering a viewport refresh using the refresh command,
+        # the connect/disconnect trick don't work.
 
         tmp1 = pymel.createNode("transform")
         src_shape.setParent(tmp1, relative=True, shape=True)
@@ -130,36 +132,14 @@ def hold_ctrl_shapes(transform, parent=None):
             dst_shape.intermediateObject.set(False)
         pymel.delete(tmp2)
 
-    """
-    dst_shapes = []
-    for src_shape in all_shapes_orig:
-        #src_type = src_shape.longName.type()
-        dst_shape = pymel.createNode('nurbsCurve')
-        tmp = dst_shape.getParent()
-        pymel.nodeCast(src_shape, dst_shape)
-        pymel.delete(tmp)
-    """
-
-    """
-    snapshot = pymel.duplicate(transform, parentOnly=True, returnRootsOnly=True)[0]
-    for shape in all_shapes_orig:
-        shape.setParent(snapshot, s=True, r=True)
-        if shape.intermediateObject.get():
-            shape.intermediateObject.set(False)
-    """
-
-    if parent:
-        dst_transform.setParent(parent)
-    else:
-        dst_transform.setParent(world=True)
+    dst_transform.setParent(world=True)
 
     new_name = "_{0}".format(transform.name())
-    cmds.rename(
-        dst_transform.longName(), new_name
-    )  # For strange reasons, using .rename don't always work.
+    # For strange reasons, using .rename don't always work.
+    cmds.rename(dst_transform.longName(), new_name)
     try:
         pymel.makeIdentity(dst_transform, scale=True, apply=True)
-    except:
+    except Exception:
         pass
     dst_transform.template.set(True)
 
@@ -167,6 +147,16 @@ def hold_ctrl_shapes(transform, parent=None):
 
 
 def fetch_ctrl_shapes(source, target):
+    """
+    Restore backed shapes to a controller transform.
+
+    :param source: A transform holding the shapes to transfer
+    :type source: pymel.nodetypes.Transform
+    :param target: A ctrl transform to transfer the shapes to
+    :type target: pymel.nodetypes.Transform
+    """
+    # TODO: Support AnnotationShapes
+
     # Remove any previous shapes
     pymel.delete(
         filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), target.getShapes())
@@ -176,32 +166,7 @@ def fetch_ctrl_shapes(source, target):
         source_shape.setParent(target, r=True, s=True)
         source_shape.rename(target.name() + "Shape")
 
-    # TODO: Support AnnotationShapes
     pymel.delete(source)
-
-
-def hold_all_ctrl_shapes(**kwargs):
-    aCtrls = [o.getParent() for o in pymel.ls("anm_*", type="nurbsCurve")]
-    return [hold_ctrl_shapes(oCtrl, **kwargs) for oCtrl in aCtrls]
-
-
-def fetch_all_ctrl_shapes():
-    ctrls = [o.getParent() for o in pymel.ls("_anm_*", type="nurbsCurve")]
-
-    for ctrl in ctrls:
-        target_name = ctrl.name()[1:]
-        if pymel.objExists(target_name):
-            target = pymel.PyNode(str(target_name))
-            fetch_ctrl_shapes(ctrl, target)
-
-
-def create_strech_attr_from_curve(curve_shape):
-    curveLength = create_utility_node(
-        "curveInfo", inputCurve=curve_shape.worldSpace
-    ).arcLength
-    return create_utility_node(
-        "multiplyDivide", operation=2, input1X=curveLength, input2X=curveLength.get()
-    ).outputX
 
 
 def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
@@ -212,14 +177,6 @@ def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
     attr_length_u = arcLengthDimension_shape.arcLength
     attr_length_v = arcLengthDimension_shape.arcLengthInV
     return attr_length_u, attr_length_v, arcLengthDimension_shape
-
-
-def get_surface_length(surface, u=1.0, v=1.0):
-    attr_u, attr_v, util = create_arclengthdimension_for_nurbsplane(surface, u=u, v=v)
-    length_u = attr_u.get()
-    length_v = attr_v.get()
-    pymel.delete(util.getParent())
-    return length_u, length_v
 
 
 def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
@@ -281,62 +238,18 @@ def create_stretch_node_between_2_bones(start, end, attr_scale=None):
     return stretch_factor.outputX
 
 
-def create_squash_attr_simple(attr_stretch):
-    return create_utility_node(
-        "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch
-    ).outputX
-
-
-def create_squash_attr(attr_stretch):
-    # return next(iter(create_squash_atts(attr_stretch, 1)))
-    attr_stretch_inv = create_utility_node(
-        "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch
-    ).outputX
-    return create_utility_node(
-        "multiplyDivide", operation=3, input1X=attr_stretch_inv, input2X=2
-    ).outputX
-
-
-def create_squash_atts(attr_stretch, samples):
+def interp_linear(ratio, start, end):
     """
-    Create attributes resolving a curve using the following formula.
-    s^(e^(x^2)))
-    see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
-    :param attr_stretch: # The stretch attribute.
-    :param samples: Number of samples to resolve.
+    Interpolate two values in a linear fashion.
+
+    :param float ratio: An interpolation value between 0.0 and 1.0
+    :param object start: A scalar value to interpolate from
+    :param object end: A scalar value to interpolate to
+    :return: An interpolated value
+    :rtype: object
     """
-    if not isinstance(attr_stretch, pymel.Attribute):
-        raise IOError(
-            "Expected pymel Attribute, got {0} ({1})".format(
-                attr_stretch, type(attr_stretch)
-            )
-        )
-
-    attr_stretch_inv = create_utility_node(
-        "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch
-    ).outputX
-
-    return_vals = []
-    for i in range(samples):
-        pos = float(i) / (samples - 1) * 2.0 - 1.0
-
-        # Blend between no squash and full squash using a bell curve.
-        # 0 = Maximum Squash
-        # 1 = No Squash
-        # see see: http://www.wolframalpha.com/input/?i=%28x%5E2-1%29*-1
-        blend = create_utility_node(
-            "multiplyDivide", operation=3, input1X=pos, input2X=2
-        ).outputX
-        attr_squash = create_utility_node(
-            "blendTwoAttr", input=[attr_stretch_inv, 1], attributesBlender=blend
-        )
-
-        return_vals.append(attr_squash)
-    return return_vals
-
-
-def interp_linear(r, s, e):
-    return (e - s) * r + s
+    # TODO: Define scalar type hint
+    return (end - start) * ratio + start
 
 
 def interp_linear_multiple(ratios, s, e):
@@ -345,7 +258,12 @@ def interp_linear_multiple(ratios, s, e):
 
 def interp_football(ratio):
     """
+    Modify an interpolation ratio to make it like a "football" shape.
     https://www.wolframalpha.com/input/?i=cos(x%2B1*pi%2F2)%5E0.5
+
+    :param float ratio: In interpolation ratio
+    :return: A modified interpolation ratio
+    :rtype: float
     """
     return math.cos(ratio / 2.0 * math.pi) ** 0.5
 
@@ -498,45 +416,6 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
     return libPymel.PyNodeChain(new_objs)
 
 
-"""
-def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
-    if not isinstance(ctrl_shape, pymel.nodetypes.NurbsCurve):
-        raise Exception("Unexpected input, expected NurbsCurve, got {0}.".format(type(ctrl_shape)))
-
-    geometries = libHistory.get_affected_shapes(ref)
-    if not geometries:
-        print "Cannot resize {0}, found no affected geometries!".format(ctrl_shape)
-        return
-    pos = ctrl_shape.getParent().getTranslation(space='world')
-    pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
-
-    results = OpenMaya.MPointArray()
-
-    for i in range(ctrl_shape.numCVs()):
-        cv_pos = ctrl_shape.cv[i].getPosition(space='world')
-        length = None
-        dir = cv_pos - pos
-        dir.normalize()
-        dir = OpenMaya.MVector(dir.x, dir.y, dir.z)
-
-        # Resolve desired new length using raycast projection.
-        for geometry in geometries:
-            mfn_geometry = geometry.__apimfn__()
-            if mfn_geometry.intersect(pos, dir, results, 1.0e-10, OpenMaya.MSpace.kWorld):
-                cur_length = results[0].distanceTo(pos)
-                if length is None or cur_length > length:
-                    length = cur_length
-
-        if length is None:
-            continue
-
-        cv_new_pos = pos + (dir * length * multiplier)
-        ctrl_shape.cv[i].setPosition(cv_new_pos, space='world')
-"""
-
-
-# todo: check if memoized is really necessary?
-# @libPython.memoized
 def get_recommended_ctrl_size(
     obj,
     geometries=None,
@@ -788,40 +667,18 @@ def finalize_boxes():
         skinCluster.setWeights(vtx, [inf], [1])
 
 
-"""
-# src: http://tech-artists.org/forum/showthread.php?4384-Vector-math-and-Maya
-from pymel.core.datatypes import Vector, Matrix, Point
-def matrix_from_normal(up_vect, front_vect):
-    # normalize first!
-    up_vect.normalize()
-    front_vect.normalize()
-
-    #get the third axis with the cross vector
-    side_vect = Vector.cross(up_vect, front_vect)
-    #recross in case up and front were not originally orthoganl:
-    front_vect = Vector.cross(side_vect, up_vect )
-
-    #the new matrix is
-    return Matrix (
-        side_vect.x, side_vect.y, side_vect.z, 0,
-        up_vect.x, up_vect.y, up_vect.z, 0,
-        front_vect.x, front_vect.y, front_vect.z, 0,
-        0,0,0,1)
-"""
-
-
 # todo: move to libPymel
-def get_matrix_axis_x(tm):
+def _get_matrix_axis_x(tm):
     return pymel.datatypes.Vector(tm.a00, tm.a01, tm.a02)
 
 
 # todo: move to libPymel
-def get_matrix_axis_y(tm):
+def _get_matrix_axis_y(tm):
     return pymel.datatypes.Vector(tm.a10, tm.a11, tm.a12)
 
 
 # todo: move to libPymel
-def get_matrix_axis_z(tm):
+def _get_matrix_axis_z(tm):
     return pymel.datatypes.Vector(tm.a20, tm.a21, tm.a22)
 
 
@@ -829,11 +686,11 @@ def get_matrix_axis_z(tm):
 def get_matrix_axis(tm, axis):
     fn = None
     if axis == constants.Axis.x:
-        fn = get_matrix_axis_x
+        fn = _get_matrix_axis_x
     elif axis == constants.Axis.y:
-        fn = get_matrix_axis_y
+        fn = _get_matrix_axis_y
     elif axis == constants.Axis.z:
-        fn = get_matrix_axis_z
+        fn = _get_matrix_axis_z
     else:
         raise IOError("Unexpected axis. Got {}".format(axis))
 
@@ -946,7 +803,7 @@ def align_joints_to_view(
     cam_pos = cam.getTranslation(space="world")
     direction = cam_pos - pos_start
 
-    align_joints_to_dir(
+    align_joints_to_direction(
         joints, direction, affect_pos=affect_pos, look_axis=look_axis, upp_axis=upp_axis
     )
 

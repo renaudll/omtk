@@ -14,6 +14,5 @@ import libPymel
 import libSkeleton
 import libRigging
 import libSkinning
-import libStringMap
 import libUtils
 import libHistory

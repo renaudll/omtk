@@ -68,5 +68,25 @@
         "label": "Mirror Pose",
         "image": "omtk_anm_ctrl_mirror.png",
         "command": "from omtk.animation import mirrorPose; reload(mirrorPose)\nimport pymel.core as pymel\nmirrorPose.mirror_objs(pymel.selected())"
+    },
+    {
+        "label": "Create Locator",
+        "image": "omtk_create_loc.png",
+        "command": "import omtk\nomtk.run_macro(\"create_locator\")"
+    },
+    {
+        "label": "Align Joints to View",
+        "image": "omtk_skel_align_view.png",
+        "command": "import omtk\nomtk.run_macro(\"skel_align_to_view\")"
+    },
+    {
+        "label": "Freeze Joint Rotation",
+        "image": "omtk_skel_freeze_rotate.png",
+        "command": "import omtk\nomtk.run_macro(\"skel_reset_joint_rotation\")"
+    },
+    {
+        "label": "Reset Skin",
+        "image": "omtk_skel_reset_skin.png",
+        "command": "import omtk\nomtk.run_macro(\"skel_reset_skin\")"
     }
 ]

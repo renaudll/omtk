@@ -3,7 +3,6 @@ Use this macro to 'fix' any calibrated facial shape that have been manually adju
 """
 import pymel.core as pymel
 from omtk.libs import libRigging
-from omtk.core import api
 from omtk.core.macros import BaseMacro
 
 

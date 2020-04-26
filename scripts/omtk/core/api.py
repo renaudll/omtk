@@ -201,13 +201,16 @@ def with_preserve_selection():
         pymel.select(clear=True)
 
 
-def build_selected(sel=None):
+def build_selected():
+    """
+    Resolve modules related to the selection and build them.
+    """
     with with_preserve_selection():
         rig, modules = _get_modules_from_selection()
         if not rig or not modules:
             return
 
-        modules = [module for module in modules if module.is_built()]
+        modules = [module for module in modules if not module.is_built()]
         if not modules:
             return
 

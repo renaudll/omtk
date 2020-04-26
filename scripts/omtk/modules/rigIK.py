@@ -7,7 +7,7 @@ from omtk.core.classModule import Module
 from omtk.libs import libRigging
 from omtk.libs import libAttr
 from omtk.libs import libPymel
-from omtk.core.compounds import MANAGER
+from omtk.core.compounds import create_compound
 
 
 def _get_vector_from_axis(axis):
@@ -235,14 +235,17 @@ class IK(Module):
 
         # Create the network computing the soft ik stretch
         soft_ik_network_name = nomenclature_rig.resolve("softik")
-        compound = MANAGER.create_compound(
-            name="omtk.SoftIkStretch", namespace=soft_ik_network_name
+        compound = create_compound(
+            "omtk.SoftIkStretch",
+            soft_ik_network_name,
+            inputs={
+                "ratio": attInRatio,
+                "stretch": attInStretch,
+                "start": self._ikChainGrp.worldMatrix,
+                "end": self._ik_handle_target.worldMatrix,
+                "length": attLength,
+            },
         )
-        pymel.connectAttr(attInRatio, "%s.ratio" % compound.input)
-        pymel.connectAttr(attInStretch, "%s.stretch" % compound.input)
-        pymel.connectAttr(self._ikChainGrp.worldMatrix, "%s.start" % compound.input)
-        pymel.connectAttr(self._ik_handle_target.worldMatrix, "%s.end" % compound.input)
-        pymel.connectAttr(attLength, "%s.length" % compound.input)
         attOutStretch = pymel.Attribute("%s.stretch" % compound.output)
         attOutRatio = pymel.Attribute("%s.ratio" % compound.output)
         attOutRatioInv = libRigging.create_utility_node(

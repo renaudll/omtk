@@ -9,7 +9,7 @@ from omtk.libs import libSkinning
 from omtk.libs import libPymel
 from omtk.modules.rigRibbon import Ribbon
 from omtk.libs import libAttr
-from omtk.core.compounds import MANAGER
+from omtk.core.compounds import create_compound
 
 
 class Twistbone(Module):
@@ -382,20 +382,20 @@ def _create_twist_extractor(name, parent, start, end):
     :param end: The last joint
     :return: A compound
     """
-    extractor = MANAGER.create_compound(name="omtk.TwistExtractor", namespace=name)
-    extractor_inn = pymel.PyNode(extractor.input)
-    # TODO: Will bind pose be preserved on file save?
-    # TODO: The worldMatrix attribute will bypass global scaling, is this okay?
-    extractor_inn.bind1.set(
-        parent.getMatrix(worldSpace=True) if parent else pymel.datatypes.Matrix()
+    return create_compound(
+        "omtk.TwistExtractor",
+        name,
+        inputs={
+            "bind1": parent.getMatrix(worldSpace=True)
+            if parent
+            else pymel.datatypes.Matrix(),
+            "bind2": start.getMatrix(worldSpace=True),
+            "bind3": end.getMatrix(worldSpace=True),
+            "inn1": parent.worldMatrix if parent else None,
+            "inn2": start.worldMatrix,
+            "inn3": end.worldMatrix,
+        },
     )
-    extractor_inn.bind2.set(start.getMatrix(worldSpace=True))
-    extractor_inn.bind3.set(end.getMatrix(worldSpace=True))
-    if parent:
-        pymel.connectAttr(parent.worldMatrix, extractor_inn.inn1)
-    pymel.connectAttr(start.worldMatrix, extractor_inn.inn2)
-    pymel.connectAttr(end.worldMatrix, extractor_inn.inn3)
-    return extractor
 
 
 def _connect_twist(start, end, attrs):

@@ -943,7 +943,7 @@ class AvarSimple(AbstractAvar):
 
             else:
                 self.model_ctrl.build(
-                    self, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs
+                    self, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, parent_rot=parent_rot, **kwargs
                 )
 
             # Expose the ctrl in a backward compatible way.

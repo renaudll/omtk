@@ -1,15 +1,12 @@
+"""
+Helpers that extend pymel capabilities.
+"""
 import logging
 import pymel.core as pymel
 from maya import OpenMaya
 from maya import cmds
 
 log = logging.getLogger(__name__)
-
-
-#
-# A PyNodeChain is a special pymel-related object that act exactly like a standard array.
-# However it allow us to have more bells and whistles.
-#
 
 
 def is_valid_PyNode(val):
@@ -24,6 +21,8 @@ def is_valid_PyNode(val):
 
 def distance_between_nodes(x, y):
     """
+    Compute the distance between two nodes.
+
     :param x: A node
     :type x: pymel.PyNode
     :param y: Another node
@@ -68,14 +67,24 @@ def is_child_of(child, parent):
 
 
 class PyNodeChain(list):
-    """A container for manipulating lists of hosts"""
+    """
+    Array-like object for chain of PyNode.
+    """
 
     @property
     def start(self):
+        """
+        :return: The first node in the chain
+        :rtype: pymel.PyNode or None
+        """
         return next(iter(self), None)
 
     @property
     def end(self):
+        """
+        :return: The last node in the chain
+        :rtype: pymel.PyNode or None
+        """
         return self[-1] if len(self) > 0 else None
 
     @property

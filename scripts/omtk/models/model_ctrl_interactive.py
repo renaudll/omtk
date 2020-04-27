@@ -3,6 +3,7 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
 from omtk.core import classCtrlModel
+from omtk.core.compounds import create_compound
 from omtk.libs import libRigging
 from omtk.libs import libPymel
 from omtk.libs import libAttr
@@ -36,7 +37,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
     def __init__(self, *args, **kwargs):
         super(ModelInteractiveCtrl, self).__init__(*args, **kwargs)
-        self.follicle = None  # Used for calibration
+        self.follicle = None  # Used for calibration (legacy)
+        self.folliclePos = None # Used for calibration
         self.mesh = None  # We should be able to provide the mesh
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
@@ -192,159 +194,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             self.ctrl.scaleX.set(-1)
             libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
 
-        #
-        # Create the follicle setup
-        #
-
-        # Initialize external stack
-        # Normally this would be hidden from animators.
-        stack_name = nomenclature_rig.resolve("doritosStack")
-        self._stack = Node(self)
-        self._stack.build(name=stack_name)
-        self._stack.setTranslation(pos_ref)
-
-        # Create the layer_fol that will follow the geometry
-        layer_fol_name = nomenclature_rig.resolve("doritosFol")
-        layer_fol = self._stack.append_layer()
-        layer_fol.rename(layer_fol_name)
-        layer_fol.setParent(self.grp_rig)
-
-        #
-        # Constraint grp_rig
-        #
-
-        # Constraint position
-        # TODO: Validate that we don't need to inverse the rotation separately.
-        if parent_pos is None:
-            fol_mesh = None
-            if follow_mesh:
-                fol_name = nomenclature_rig.resolve("follicle")
-                fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
-                fol_mesh = fol_shape.getParent()
-                self.follicle = fol_mesh
-                fol_mesh.rename(fol_name)
-                fol_mesh.setParent(self.grp_rig)
-                parent_pos = fol_mesh
-            elif ref:
-                parent_pos = ref
-
-        if parent_pos:
-            pymel.parentConstraint(
-                parent_pos, layer_fol, maintainOffset=True, skipRotate=["x", "y", "z"]
-            )
-
-        # Constraint rotation
-        # The doritos setup can be hard to control when the rotation of the controller depend on the layer_fol since
-        # any deformation can affect the normal of the faces.
-        if parent_rot:
-            pymel.orientConstraint(parent_rot, layer_fol, maintainOffset=True)
-
-        #
-        # Constraint a specic controller to the avar doritos stack.
-        # Call this method after connecting the ctrl to the necessary avars.
-        # The sensibility of the doritos will be automatically computed in this step if necessary.
-        #
-
-        # Create inverted attributes for sensibility
-        util_sensitivity_inv = libRigging.create_utility_node(
-            "multiplyDivide",
-            operation=2,
-            input1X=1.0,
-            input1Y=1.0,
-            input1Z=1.0,
-            input2X=self.attr_sensitivity_tx,
-            input2Y=self.attr_sensitivity_ty,
-            input2Z=self.attr_sensitivity_tz,
-        )
-        attr_sensibility_lr_inv = util_sensitivity_inv.outputX
-        attr_sensibility_ud_inv = util_sensitivity_inv.outputY
-        attr_sensibility_fb_inv = util_sensitivity_inv.outputZ
-
-        #
-        # Inverse translation
-        #
-        if cancel_t:
-            attr_ctrl_inv_t = libRigging.create_utility_node(
-                "multiplyDivide", input1=self.ctrl.node.t, input2=[-1, -1, -1]
-            ).output
-
-            attr_ctrl_inv_t = libRigging.create_utility_node(
-                "multiplyDivide",
-                input1=attr_ctrl_inv_t,
-                input2X=self.attr_sensitivity_tx,
-                input2Y=self.attr_sensitivity_ty,
-                input2Z=self.attr_sensitivity_tz,
-            ).output
-
-            layer_inv_t = self._stack.append_layer(name="inverseT")
-
-            if flip_lr:
-                attr_doritos_tx = libRigging.create_utility_node(
-                    "multiplyDivide", input1X=attr_ctrl_inv_t.outputX, input2X=-1
-                ).outputX
-            else:
-                attr_doritos_tx = attr_ctrl_inv_t.outputX
-            attr_doritos_ty = attr_ctrl_inv_t.outputY
-            attr_doritos_tz = attr_ctrl_inv_t.outputZ
-
-            pymel.connectAttr(attr_doritos_tx, layer_inv_t.tx)
-            pymel.connectAttr(attr_doritos_ty, layer_inv_t.ty)
-            pymel.connectAttr(attr_doritos_tz, layer_inv_t.tz)
-
-        #
-        # Inverse rotation
-        # Add an inverse node that will counter animate the position of the ctrl.
-        # TODO: Rename
-        #
-        if cancel_r:
-            layer_inv_r = self._stack.append_layer(name="inverseR")
-            # layer_doritos = pymel.createNode('transform', name=layer_doritos_name)
-            # layer_doritos.setParent(self._stack.node)
-
-            # Create inverse attributes for the ctrl
-
-            attr_ctrl_inv_r = libRigging.create_utility_node(
-                "multiplyDivide", input1=self.ctrl.node.r, input2=[-1, -1, -1]
-            ).output
-
-            pymel.connectAttr(attr_ctrl_inv_r, layer_inv_r.r)
-
-        #
-        # Apply scaling on the ctrl parent.
-        # This is were the 'black magic' happen.
-        #
-        if flip_lr:
-            attr_ctrl_offset_sx_inn = libRigging.create_utility_node(
-                "multiplyDivide", input1X=self.attr_sensitivity_tx, input2X=-1
-            ).outputX
-        else:
-            attr_ctrl_offset_sx_inn = self.attr_sensitivity_tx
-        attr_ctrl_offset_sy_inn = self.attr_sensitivity_ty
-        attr_ctrl_offset_sz_inn = self.attr_sensitivity_tz
-
-        # Connect any additionel scale source.
-        if parent_scl:
-            u = libRigging.create_utility_node(
-                "multiplyDivide",
-                name=nomenclature_rig.resolve("getAbsoluteCtrlOffsetScale"),
-                input1X=attr_ctrl_offset_sx_inn,
-                input1Y=attr_ctrl_offset_sy_inn,
-                input1Z=attr_ctrl_offset_sz_inn,
-                input2X=parent_scl.scaleX,
-                input2Y=parent_scl.scaleY,
-                input2Z=parent_scl.scaleZ,
-            )
-            (
-                attr_ctrl_offset_sx_inn,
-                attr_ctrl_offset_sy_inn,
-                attr_ctrl_offset_sz_inn,
-            ) = (u.outputX, u.outputY, u.outputZ)
-
-        pymel.connectAttr(attr_ctrl_offset_sx_inn, self.ctrl.offset.scaleX)
-        pymel.connectAttr(attr_ctrl_offset_sy_inn, self.ctrl.offset.scaleY)
-        pymel.connectAttr(attr_ctrl_offset_sz_inn, self.ctrl.offset.scaleZ)
-
-        # Apply sensibility on the ctrl shape
+        # Create a "shapeOrig" for the ctrl
         ctrl_shape = self.ctrl.node.getShape()
         tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
@@ -356,91 +206,44 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         for cp in ctrl_shape.cp:
             cp.set(0, 0, 0)
 
-        # Counter-scale the shape
-        attr_adjustement_sx_inn = attr_sensibility_lr_inv
-        attr_adjustement_sy_inn = attr_sensibility_ud_inv
-        attr_adjustement_sz_inn = attr_sensibility_fb_inv
-        attr_adjustement_scale = libRigging.create_utility_node(
-            "composeMatrix",
-            inputScaleX=attr_adjustement_sx_inn,
-            inputScaleY=attr_adjustement_sy_inn,
-            inputScaleZ=attr_adjustement_sz_inn,
-        ).outputMatrix
+        if parent_rot:
+            rot_ref = pymel.createNode("transform", name=nomenclature_rig.resolve("parentRotRef"))
+            pymel.orientConstraint(parent_rot, rot_ref, maintainOffset=True)
+        else:
+            rot_ref = None
 
-        attr_adjustement_rot = libRigging.create_utility_node(
-            "composeMatrix",
-            inputRotateX=self.ctrl.node.rotateX,
-            inputRotateY=self.ctrl.node.rotateY,
-            inputRotateZ=self.ctrl.node.rotateZ,
-        ).outputMatrix
-
-        attr_adjustement_rot_inv = libRigging.create_utility_node(
-            "inverseMatrix", inputMatrix=attr_adjustement_rot
-        ).outputMatrix
-
-        attr_adjustement_tm = libRigging.create_utility_node(
-            "multMatrix",
-            matrixIn=[
-                attr_adjustement_rot,
-                attr_adjustement_scale,
-                attr_adjustement_rot_inv,
-            ],
-        ).matrixSum
-
-        attr_transform_geometry = libRigging.create_utility_node(
-            "transformGeometry",
-            transform=attr_adjustement_tm,
-            inputGeometry=ctrl_shape_orig.local,
-        ).outputGeometry
-        pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
-
-        #
-        # Constraint grp_anm
-        #
-
-        # Create an output object that will hold the world position of the ctrl offset.
-        # We'll use direct connections to the animation controller to simplify the dag tree and support
-        # non-uniform scaling (which is really hard to do using constraints).
-
-        # Since the the model's ctrl will still be influenced by the root ctrl, we'll need to extract the offset
-        # relative to the root ctrl.
-        grp_output = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("output"), parent=self.grp_rig
+        compound = create_compound(
+            "omtk.InteractiveCtrl",
+            nomenclature_rig.resolve("ctrlModelInteractive"),
+            inputs={
+                "bindTM": ctrl_tm,
+                "ctrlLocalTM": self.ctrl.matrix,
+                "ctrlShapeOrig": ctrl_shape_orig.local,
+                "mesh": obj_mesh.outMesh,
+                "parameterU": u_coord,
+                "parameterV": v_coord,
+                "sensitivityX": self.attr_sensitivity_tx,
+                "sensitivityY": self.attr_sensitivity_ty,
+                "sensitivityZ": self.attr_sensitivity_tz,
+                "parentTM": rot_ref.matrix if rot_ref else None
+            }
         )
 
-        # Position
-        stack_end = self._stack.get_stack_end()
-        pymel.parentConstraint(
-            stack_end, grp_output, maintainOffset=False, skipRotate=["x", "y", "z"]
-        )
+        compound_ctrl_shape = pymel.Attribute("%s.ctrlShapeAdjusted" % compound.output)
+        pymel.connectAttr(compound_ctrl_shape, ctrl_shape.create, force=True)
+        pymel.connectAttr("%s.ctrlOffsetTranslate" % compound.output, self.ctrl.offset.translate)
+        pymel.connectAttr("%s.ctrlOffsetRotate" % compound.output, self.ctrl.offset.rotate)
+        pymel.connectAttr("%s.ctrlOffsetScale" % compound.output, self.ctrl.offset.scale)
+        self.folliclePos = pymel.Attribute("%s.folliclePos" % compound.output)
 
-        # Rotation
-        if parent_rot is None:
-            parent_rot = stack_end
-            # parent_rot = layer_inv_r.getParent()
-        pymel.orientConstraint(parent_rot, grp_output, maintainOffset=True)
-
-        # Direct-connect the output group to the ctrl offset grp.
-        # Since the ctrl is a child of the master ctrl, we'll need to take it's parent in consideration.
-        util_get_ctrl_offset_local_trs = libRigging.create_utility_node(
-            "decomposeMatrix",
-            inputMatrix=libRigging.create_utility_node(
-                "multMatrix",
-                matrixIn=(grp_output.worldMatrix, self.rig.grp_anm.worldInverseMatrix),
-            ).matrixSum,
-        )
-        pymel.connectAttr(
-            util_get_ctrl_offset_local_trs.outputTranslate, self.ctrl.offset.translate
-        )
-        pymel.connectAttr(
-            util_get_ctrl_offset_local_trs.outputRotate, self.ctrl.offset.rotate
-        )
-
-        # Clean dag junk
-        if grp_rig:
-            self._stack.setParent(grp_rig)
-            if fol_mesh:
-                fol_mesh.setParent(grp_rig)
+        # Create a temporary follicle to find the coords
+        # Note: This is done in a particular order, need to clarify why.
+        # TODO: Cleanup
+        fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
+        fol_transform = fol_shape.getParent()
+        fol_bind_tm = fol_transform.getMatrix()
+        pymel.delete(fol_transform)
+        pymel.Attribute("%s.follicleBindTM" % compound.input).set(fol_bind_tm)
 
         if constraint and self.jnt:
             pymel.parentConstraint(self.ctrl.node, self.jnt, maintainOffset=True)
@@ -647,37 +450,32 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             self.calibrate()
 
     def calibrate(self, tx=True, ty=True, tz=True):
-        # TODO: use correct logger
-        influence = self.follicle
-        if not influence:
+        # Determine what to check during calibration
+        # Previous versions kept a reference to the follicle in "self.follicle".
+        # Newer version keep a reference to the follicle pos in "self.folliclePos".
+        if self.follicle:
+            influence = self.follicle
+            fnCalibrate = libRigging.calibrate_attr_using_translation
+        elif self.folliclePos:
+            influence = self.folliclePos
+            fnCalibrate = libRigging.calibrate_attr_using_translation_attribute
+        else:
             self.warning("Can't calibrate {0}, found no influences.".format(self))
             return
 
         self._fix_ctrl_shape()
 
-        if tx and not self.ctrl.node.tx.isLocked():
-            sensitivity_tx = libRigging.calibrate_attr_using_translation(
-                self.ctrl.node.tx, influence
-            )
+        for enabled, attr_name, attr_dst in (
+            (tx, "tx", self.attr_sensitivity_tx),
+            (ty, "ty", self.attr_sensitivity_ty),
+            (tz, "tz", self.attr_sensitivity_tz),
+        ):
+            callibration_attr = self.ctrl.node.attr(attr_name)
+            if not enabled or callibration_attr.isLocked():
+                continue
+            sensitivity = fnCalibrate(callibration_attr, influence)
             self.debug(
-                "Adjusting sensibility tx for {0} to {1}".format(self, sensitivity_tx)
+                "Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst
             )
-            self.attr_sensitivity_tx.set(sensitivity_tx)
+            attr_dst.set(sensitivity)
 
-        if ty and not self.ctrl.node.ty.isLocked():
-            sensitivity_ty = libRigging.calibrate_attr_using_translation(
-                self.ctrl.node.ty, influence
-            )
-            self.debug(
-                "Adjusting sensibility ty for {0} to {1}".format(self, sensitivity_ty)
-            )
-            self.attr_sensitivity_ty.set(sensitivity_ty)
-
-        if tz and not self.ctrl.node.tz.isLocked():
-            sensitivity_tz = libRigging.calibrate_attr_using_translation(
-                self.ctrl.node.tz, influence
-            )
-            self.debug(
-                "Adjusting sensibility tz for {0} to {1}".format(self, sensitivity_tz)
-            )
-            self.attr_sensitivity_tz.set(sensitivity_tz)

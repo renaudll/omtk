@@ -1,5 +1,6 @@
 import logging
 import math
+import functools
 
 import pymel.core as pymel
 from maya import OpenMaya
@@ -1447,18 +1448,16 @@ def connectAttr_withLinearDrivenKeys(
     return connectAttr_withBlendWeighted(animCurve.output, attr_dst)
 
 
-def calibrate_attr_using_translation(
-    attr, ref, step_size=0.1, epsilon=0.01, default=1.0
-):
+def _calibrate_attr(attr, fnGet, step_size=0.1, epsilon=0.01, default=1.0):
     """
     Return the distance that @ref move when @attr is changed.
     This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
     Note that to compensate non-linear movement, a small value (@step_size) is used.
     """
     attr.set(0)
-    pos_s = ref.getTranslation(space="world")
+    pos_s = fnGet()
     attr.set(step_size)
-    pos_e = ref.getTranslation(space="world")
+    pos_e = fnGet()
     attr.set(0)
     distance = libPymel.distance_between_vectors(pos_s, pos_e) / abs(step_size)
 
@@ -1467,6 +1466,34 @@ def calibrate_attr_using_translation(
 
     _LOG.warning("Can't detect sensibility for %s", attr)
     return default
+
+
+def calibrate_attr_using_translation_attribute(
+    attr, ref, step_size=0.1, epsilon=0.01, default=1.0
+):
+    """
+    Return the distance that @ref move when @attr is changed.
+    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
+    Note that to compensate non-linear movement, a small value (@step_size) is used.
+    """
+
+    return _calibrate_attr(
+        attr, ref.get, step_size=step_size, epsilon=epsilon, default=default
+    )
+
+
+def calibrate_attr_using_translation(
+    attr, ref, step_size=0.1, epsilon=0.01, default=1.0
+):
+    """
+    Return the distance that @ref move when @attr is changed.
+    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
+    Note that to compensate non-linear movement, a small value (@step_size) is used.
+    """
+    _fnGet = functools.partial(ref.getTranslation, space="world")
+    return _calibrate_attr(
+        attr, _fnGet, step_size=step_size, epsilon=epsilon, default=default
+    )
 
 
 def debug_matrix_attr(attr):

@@ -48,6 +48,7 @@ def get_version():
     :rtype: str
     """
     import omtk
+
     return omtk.__version__
 
 

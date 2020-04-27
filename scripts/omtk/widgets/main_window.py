@@ -435,8 +435,8 @@ class AutoRig(QtWidgets.QMainWindow):
 
         for item in selected_items:
             if item.metadata_type in (
-                    ui_shared.MetadataType.Influence,
-                    ui_shared.MetadataType.Mesh,
+                ui_shared.MetadataType.Influence,
+                ui_shared.MetadataType.Mesh,
             ):
                 module_item = self._get_parent_item_by_metadata_type(
                     item, ui_shared.MetadataType.Module

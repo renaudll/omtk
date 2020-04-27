@@ -72,42 +72,6 @@ class TestLips(omtk_test.TestCase):
         rig.unbuild(strict=True)
         rig.build(strict=True)
 
-    @omtk_test.open_scene("../resources/test_lips.ma")
-    def test_avargrp_areaonsurface_withsurface(self):
-        """
-        Ensure there's always a nurbsSurface created for an AvarGrpOnSurface and that it is correctly propageted
-        to it's child avars.        :return:
-        """
-        import omtk
-        from omtk.modules import rigHead
-        from omtk.modules import rigFaceAvarGrps
-
-        # Create a base rig
-        rig = omtk.create()
-        rig.add_module(rigHead.Head([pymel.PyNode("jnt_head")]))
-        rig.add_module(
-            rigFaceAvarGrps.AvarGrpOnSurface(
-                pymel.ls("jnt_lip*", type="joint")
-                + [pymel.PyNode("surface_lips"), pymel.PyNode("pSphereShape1")]
-            )
-        )
-
-        # Validate the state of the scene before testing.
-        self.assertEqual(_get_scene_surface_count(), 1)
-
-        rig.build(strict=True)
-        rig.unbuild(strict=True)
-
-        # Ensure there's still one nurbsSurface in the scene.
-        self.assertEqual(_get_scene_surface_count(), 1)
-
-        # Remove all surfaces
-        pymel.delete(pymel.ls(type="nurbsSurface"))
-        self.assertEqual(_get_scene_surface_count(), 0)
-
-        # Re-created the rig and ensure the new surface was correctly created.
-        rig.build(strict=True)
-
 
 def _get_scene_surface_count():
     """

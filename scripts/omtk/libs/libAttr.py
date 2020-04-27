@@ -1,13 +1,20 @@
 from contextlib import contextmanager
 import logging
 
-# src: http://download.autodesk.com/us/maya/2010help/CommandsPython/addAttr.html
 from pymel import core as pymel
 
 log = logging.getLogger("omtk")
 
 
 def disconnectAttr(attr, inputs=True, outputs=True):
+    """
+    Disconnect an attribute incoming and outgoing connections.
+
+    :param attr: The attribute to disconnect
+    :type attr: pymel.Attribute
+    :param bool inputs: Should we disconnect input connections?
+    :param bool outputs: Should we disconnect output connections?
+    """
     attr_is_locked = attr.isLocked()
     if attr_is_locked:
         attr.unlock()
@@ -25,7 +32,12 @@ def disconnectAttr(attr, inputs=True, outputs=True):
 
 def hold_attrs(attr, hold_curve=True):
     """
-    Hold a specific @attr attribute.
+    Hold an attribute value or connection source.
+
+    :param attr: An attribute to hold
+    :type attr: pymel.Attribute
+    :return: The attribute scalar value if unconnected, otherwise the connection source.
+    :rtype: object or pymel.Attribute
     """
     if isinstance(attr, pymel.Attribute):
         if not hold_curve or attr.isLocked() or not attr.isKeyable():
@@ -77,14 +89,33 @@ def transfer_connections(attr_src, attr_dst):
 
 
 def addAttr(node, longName=None, *args, **kwargs):
+    """
+    Wrapper around pymel.addAttr that return the created attribute.
+
+    :param node: The node to add the attribute to
+    :type node: pymel.nodetypes.DependNode
+    :param str longName: The attribute longName
+    :param tuple args: Positional arguments are forwarded to pymel.addAttr.
+    :param dict kwargs: Keyword arguments are forwarded to pymel.addAttr.
+    :return: The created attribute
+    :rtype: pymel.Attribute
+    """
     assert longName
     pymel.addAttr(node, longName=longName, *args, **kwargs)
     return node.attr(longName)
 
 
-def addAttr_separator(obj, attr_name, *args, **kwargs):
+def addAttr_separator(node, attr_name, *args, **kwargs):
+    """
+    Add a no-op attribute that serve as a visual separator.
+
+    :param node: The node to add the attribute to
+    :type node: pymel.nodetypes.DependNode
+    :param str attr_name: The attribute longName
+    """
+    # TODO: properly remove args and kwargs
     attr = addAttr(
-        obj,
+        node,
         longName=attr_name,
         niceName=attr_name,
         at="enum",
@@ -97,125 +128,84 @@ def addAttr_separator(obj, attr_name, *args, **kwargs):
 # Lock/unlock Function
 
 
-def lock_attrs(attr_list):
-    for attr in attr_list:
-        attr.lock()
+def lock_trs(node):
+    """
+    Lock a node translate, rotate and scale attributes.
+    :param node: The node to lock
+    """
+    lock_translation(node)
+    lock_rotation(node)
+    lock_scale(node)
 
 
-def unlock_attrs(attr_list):
-    for attr in attr_list:
-        attr.unlock()
-
-
-def lock_trs(node, *args, **kwargs):
-    lock_translation(node, *args, **kwargs)
-    lock_rotation(node, *args, **kwargs)
-    lock_scale(node, *args, **kwargs)
-
-
-def unlock_trs(node, *args, **kwargs):
-    unlock_translation(node, *args, **kwargs)
-    unlock_rotation(node, *args, **kwargs)
-    unlock_scale(node, *args, **kwargs)
+def unlock_trs(node):
+    """
+    Unlock a node translate, rotate and scale attributes.
+    :param node: The node to unlock
+    """
+    unlock_translation(node)
+    unlock_rotation(node)
+    unlock_scale(node)
 
 
 def lock_translation(node, x=True, y=True, z=True):
-    lock_list = []
     if x:
-        translate_x = node.attr("translateX")
-        lock_list.append(translate_x)
+        node.translateX.lock()
     if y:
-        translate_y = node.attr("translateY")
-        lock_list.append(translate_y)
+        node.translateY.lock()
     if z:
-        translate_z = node.attr("translateZ")
-        lock_list.append(translate_z)
-
-    lock_attrs(lock_list)
+        node.translateZ.lock()
 
 
 def unlock_translation(node, x=True, y=True, z=True, xyz=True):
-    unlock_list = []
     if x:
-        translate_x = node.attr("translateX")
-        unlock_list.append(translate_x)
+        node.translateX.unlock()
     if y:
-        translate_y = node.attr("translateY")
-        unlock_list.append(translate_y)
+        node.translateY.unlock()
     if z:
-        translate_z = node.attr("translateZ")
-        unlock_list.append(translate_z)
+        node.translateZ.unlock()
     if xyz:
-        translate = node.attr("translate")
-        unlock_list.append(translate)
-
-    unlock_attrs(unlock_list)
+        node.translate.unlock()
 
 
 def lock_rotation(node, x=True, y=True, z=True):
-    lock_list = []
     if x:
-        rotate_x = node.attr("rotateX")
-        lock_list.append(rotate_x)
+        node.rotateX.lock()
     if y:
-        rotate_y = node.attr("rotateY")
-        lock_list.append(rotate_y)
+        node.rotateY.lock()
     if z:
-        rotate_z = node.attr("rotateZ")
-        lock_list.append(rotate_z)
-
-    lock_attrs(lock_list)
+        node.rotateZ.lock()
 
 
 def unlock_rotation(node, x=True, y=True, z=True, xyz=True):
-    unlock_list = []
     if x:
-        rotate_x = node.attr("rotateX")
-        unlock_list.append(rotate_x)
+        node.rotateX.unlock()
     if y:
-        rotate_y = node.attr("rotateY")
-        unlock_list.append(rotate_y)
+        node.rotateY.unlock()
     if z:
-        rotate_z = node.attr("rotateZ")
-        unlock_list.append(rotate_z)
+        node.rotateZ.unlock()
     if xyz:
-        rotate = node.attr("rotate")
-        unlock_list.append(rotate)
-
-    unlock_attrs(unlock_list)
+        node.rotate.unlock()
 
 
 def lock_scale(node, x=True, y=True, z=True):
-    lock_list = []
     if x:
-        scale_x = node.attr("scaleX")
-        lock_list.append(scale_x)
+        node.scaleX.lock()
     if y:
-        scale_y = node.attr("scaleY")
-        lock_list.append(scale_y)
+        node.scaleY.lock()
     if z:
-        scale_z = node.attr("scaleZ")
-        lock_list.append(scale_z)
-
-    lock_attrs(lock_list)
+        node.scaleZ.lock()
 
 
 def unlock_scale(node, x=True, y=True, z=True, xyz=True):
-    unlock_list = []
     if x:
-        scale_x = node.attr("scaleX")
-        unlock_list.append(scale_x)
+        node.scaleX.unlock()
     if y:
-        scale_y = node.attr("scaleY")
-        unlock_list.append(scale_y)
+        node.scaleY.unlock()
     if z:
-        scale_z = node.attr("scaleZ")
-        unlock_list.append(scale_z)
+        node.scaleZ.unlock()
     if xyz:
-        scale = node.attr("scale")
-        unlock_list.append(scale)
-
-    unlock_attrs(unlock_list)
+        node.scale.unlock()
 
 
 def connect_transform_attrs(
@@ -270,129 +260,95 @@ def connect_transform_attrs(
 # Hide Function#
 
 
-def hide_attrs(attr_list):
-    for attr in attr_list:
-        attr.setKeyable(False)
+def hide_trs(node):
+    """
+    Hide a node translate, rotate and scale attribute.
+
+    :param node: The node to hide
+    :type node: pymel.nodetypes.DependNode
+    """
+    hide_translation(node)
+    hide_rotation(node)
+    hide_scale(node)
 
 
-def unhide_attrs(attr_list):
-    for attr in attr_list:
-        attr.setKeyable(True)
+def unhide_trs(node):
+    """
+    Unhide a node translate, rotate and scale attribute.
 
-
-def hide_trs(node, *args, **kwargs):
-    hide_translation(node, *args, **kwargs)
-    hide_rotation(node, *args, **kwargs)
-    hide_scale(node, *args, **kwargs)
-
-
-def unhide_trs(node, *args, **kwargs):
-    unhide_translation(node, *args, **kwargs)
-    unhide_rotation(node, *args, **kwargs)
-    unhide_scale(node, *args, **kwargs)
+    :param node: The node to unhide
+    :type node: pymel.nodetypes.DependNode
+    """
+    unhide_translation(node)
+    unhide_rotation(node)
+    unhide_scale(node)
 
 
 def hide_translation(node, x=True, y=True, z=True):
-    hide_list = []
     if x:
-        translate_x = node.attr("translateX")
-        hide_list.append(translate_x)
+        node.translateX.setKeyable(False)
     if y:
-        translate_y = node.attr("translateY")
-        hide_list.append(translate_y)
+        node.translateY.setKeyable(False)
     if z:
-        translate_z = node.attr("translateZ")
-        hide_list.append(translate_z)
-
-    hide_attrs(hide_list)
+        node.translateZ.setKeyable(False)
 
 
 def unhide_translation(node, x=True, y=True, z=True):
-    unhide_list = []
     if x:
-        translate_x = node.attr("translateX")
-        unhide_list.append(translate_x)
+        node.translateX.setKeyable(True)
     if y:
-        translate_y = node.attr("translateY")
-        unhide_list.append(translate_y)
+        node.translateY.setKeyable(True)
     if z:
-        translate_z = node.attr("translateZ")
-        unhide_list.append(translate_z)
-
-    unhide_attrs(unhide_list)
+        node.translateZ.setKeyable(True)
 
 
 def hide_rotation(node, x=True, y=True, z=True):
-    hide_list = []
     if x:
-        rotate_x = node.attr("rotateX")
-        hide_list.append(rotate_x)
+        node.rotateX.setKeyable(False)
     if y:
-        rotate_y = node.attr("rotateY")
-        hide_list.append(rotate_y)
+        node.rotateY.setKeyable(False)
     if z:
-        rotate_z = node.attr("rotateZ")
-        hide_list.append(rotate_z)
-
-    hide_attrs(hide_list)
+        node.rotateZ.setKeyable(False)
 
 
 def unhide_rotation(node, x=True, y=True, z=True):
-    unhide_list = []
     if x:
-        rotate_x = node.attr("rotateX")
-        unhide_list.append(rotate_x)
+        node.rotateX.setKeyable(True)
     if y:
-        rotate_y = node.attr("rotateY")
-        unhide_list.append(rotate_y)
+        node.rotateY.setKeyable(True)
     if z:
-        rotate_z = node.attr("rotateZ")
-        unhide_list.append(rotate_z)
-
-    unhide_attrs(unhide_list)
+        node.rotateZ.setKeyable(True)
 
 
 def hide_scale(node, x=True, y=True, z=True):
-    hide_list = []
     if x:
-        scale_x = node.attr("scaleX")
-        hide_list.append(scale_x)
+        node.scaleX.setKeyable(False)
     if y:
-        scale_y = node.attr("scaleY")
-        hide_list.append(scale_y)
+        node.scaleY.setKeyable(False)
     if z:
-        scale_z = node.attr("scaleZ")
-        hide_list.append(scale_z)
-
-    hide_attrs(hide_list)
+        node.scaleZ.setKeyable(False)
 
 
 def unhide_scale(node, x=True, y=True, z=True):
-    unhide_list = []
     if x:
-        scale_x = node.attr("scaleX")
-        unhide_list.append(scale_x)
+        node.scaleX.setKeyable(True)
     if y:
-        scale_y = node.attr("scaleY")
-        unhide_list.append(scale_y)
+        node.scaleY.setKeyable(True)
     if z:
-        scale_z = node.attr("scaleZ")
-        unhide_list.append(scale_z)
-
-    unhide_attrs(unhide_list)
+        node.scaleZ.setKeyable(True)
 
 
 # Lock/Hide shortcut
 
 
-def lock_hide_trs(node, *args, **kwargs):
-    lock_trs(node, *args, **kwargs)
-    hide_trs(node, *args, **kwargs)
+def lock_hide_trs(node):
+    lock_trs(node)
+    hide_trs(node)
 
 
-def unlock_unhide_trs(node, *args, **kwargs):
-    unlock_trs(node, *args, **kwargs)
-    unhide_trs(node, *args, **kwargs)
+def unlock_unhide_trs(node):
+    unlock_trs(node)
+    unhide_trs(node)
 
 
 def lock_hide_translation(node, x=True, y=True, z=True):

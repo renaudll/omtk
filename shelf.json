@@ -2,91 +2,106 @@
     {
         "label": "Show",
         "image": "omtk_rig_show.png",
-        "command": "import omtk; reload(omtk); omtk.show()"
+        "command": "import omtk; omtk.show()"
     },
     {
         "label": "Build All",
         "image": "omtk_rig_build_all.png",
-        "command": "import omtk; reload(omtk); omtk.build_all()"
+        "command": "import omtk; omtk.build_all()"
     },
     {
         "label": "Unbuild All",
         "image": "omtk_rig_unbuild_all.png",
-        "command": "import omtk; reload(omtk); omtk.unbuild_all()"
+        "command": "import omtk; omtk.unbuild_all()"
     },
     {
         "label": "Build Selected",
         "image": "omtk_rig_build_selection.png",
-        "command": "import omtk; reload(omtk); omtk.build_selected()"
+        "command": "import omtk; omtk.build_selected()"
     },
     {
         "label": "Unbuild Selected",
         "image": "omtk_rig_unbuild_selection.png",
-        "command": "import omtk; reload(omtk); omtk.unbuild_selected()"
+        "command": "import omtk; omtk.unbuild_selected()"
     },
     {
         "label": "Rebuild Selected",
         "image": "omtk_rig_rebuild_selection.png",
-        "command": "import omtk; reload(omtk); omtk.build_selected()"
+        "command": "import omtk; omtk.build_selected()"
     },
     {
         "label": "Calibrate Selected",
         "image": "omtk_rig_ctrl_calibrate.png",
-        "command": "import omtk; reload(omtk); omtk.calibrate_selected()"
+        "command": "import omtk; omtk.calibrate_selected()"
     },
     {
         "label": "Controller Bake",
         "image": "omtk_rig_ctrl_bake.png",
-        "command": "import omtk\nomtk.run_macro('ctrls_bake_selected')"
+        "command": "import omtk; omtk.run_macro('ctrls_bake_selected')"
     },
     {
         "label": "Controller Mirror",
         "image": "omtk_rig_ctrl_mirror.png",
-        "command": "import omtk\nomtk.run_macro(\"ctrls_mirror_selected\")"
+        "command": "import omtk; omtk.run_macro('ctrls_mirror_selected')"
     },
     {
         "label": "Controller Swap Mesh",
         "image": "omtk_rig_ictrl_swap_mesh.png",
-        "command": "import omtk\nomtk.run_macro('ctrls_interactive_swap_mesh')"
+        "command": "import omtk; omtk.run_macro('ctrls_interactive_swap_mesh')"
     },
     {
         "label": "Avar Selection Toogle",
         "image": "omtk_rig_select_avar.png",
-        "command": "import omtk\nomtk.run_macro(\"avar_selection_toggle\")"
+        "command": "import omtk; omtk.run_macro('avar_selection_toggle')"
     },
     {
         "label": "Switch to IK",
         "image": "omtk_anm_switch_ik.png",
-        "command": "from omtk.animation import ikfkTools\nikfkTools.switchToIk()"
+        "command": "from omtk.animation import ikfkTools; ikfkTools.switchToIk()"
     },
     {
         "label": "Switch to FK",
         "image": "omtk_anm_switch_fk.png",
-        "command": "from omtk.animation import ikfkTools\nikfkTools.switchToFk()"
+        "command": "from omtk.animation import ikfkTools; ikfkTools.switchToFk()"
     },
     {
         "label": "Mirror Pose",
         "image": "omtk_anm_ctrl_mirror.png",
-        "command": "from omtk.animation import mirrorPose; reload(mirrorPose)\nimport pymel.core as pymel\nmirrorPose.mirror_objs(pymel.selected())"
+        "command": "from omtk.animation import mirrorPose; reload(mirrorPose); import pymel.core as pymel; mirrorPose.mirror_objs(pymel.selected())"
     },
     {
         "label": "Create Locator",
         "image": "omtk_create_loc.png",
-        "command": "import omtk\nomtk.run_macro(\"create_locator\")"
+        "command": "import omtk; omtk.run_macro('create_locator')"
     },
     {
         "label": "Align Joints to View",
         "image": "omtk_skel_align_view.png",
-        "command": "import omtk\nomtk.run_macro(\"skel_align_to_view\")"
+        "command": "import omtk; omtk.run_macro('skel_align_to_view')"
     },
     {
         "label": "Freeze Joint Rotation",
         "image": "omtk_skel_freeze_rotate.png",
-        "command": "import omtk\nomtk.run_macro(\"skel_reset_joint_rotation\")"
+        "command": "import omtk; omtk.run_macro('skel_reset_joint_rotation')"
+    },
+    {
+        "label": "Mirror Left to Right",
+        "image": "omtk_skel_mirror_l2r.png",
+        "command": "import omtk; omtk.run_macro('skel_mirror_left')"
+    },
+    {
+        "label": "Mirror Right to Left",
+        "image": "omtk_skel_mirror_r2l.png",
+        "command": "import omtk; omtk.run_macro('skel_mirror_right')"
+    },
+    {
+        "label": "Mirror Selected",
+        "image": "omtk_skel_mirror_selected.png",
+        "command": "import omtk; omtk.run_macro('skel_mirror_selected')"
     },
     {
         "label": "Reset Skin",
         "image": "omtk_skel_reset_skin.png",
-        "command": "import omtk\nomtk.run_macro(\"skel_reset_skin\")"
+        "command": "import omtk; omtk.run_macro('skel_reset_skin')"
     }
 ]

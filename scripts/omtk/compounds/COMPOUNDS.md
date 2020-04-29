@@ -29,6 +29,8 @@ A surface follicle that can continue linearly out of the surface bounds
 
 Extract start and end roll for the middle object in a chain of 3.
 
+![](omtk.TwistExtractor.png)
+
 ## Inputs
 * _matrix_ bind1: The (static) original transform for the first object
 * _matrix_ bind2: The (static) original transform for the middle object

@@ -104,6 +104,17 @@ class RigGrp(Node):
                 super(RigGrp, self).unbuild(*args, **kwargs)
 
 
+class RigLoggerAdapter(logging.LoggerAdapter):
+    """
+    Logger adapter that add a rig namespace to any logger message.
+    """
+    def __init__(self, rig):
+        super(RigLoggerAdapter, self).__init__(logging.getLogger("omtk"), {"rig": rig})
+
+    def process(self, msg, kwargs):
+        return "[%s] %s" % (self.extra["rig"].name, msg), kwargs
+
+
 class Rig(object):
     DEFAULT_NAME = "untitled"
     LEFT_CTRL_COLOR = 13  # Red
@@ -132,7 +143,8 @@ class Rig(object):
     LEGACY_LEG_IK_CTRL_ORIENTATION = False
 
     def __init__(self, name=None):
-        self.name = name if name else self.DEFAULT_NAME
+        self.name = name or self.DEFAULT_NAME
+        self._log = RigLoggerAdapter(self)
         self.modules = []
         self.grp_anm = None  # Anim Grp, usually the root ctrl
         self.grp_geo = None  # Geometry grp
@@ -146,26 +158,27 @@ class Rig(object):
         self.layer_jnt = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
 
+
     #
     # Logging implementation
     #
     # TODO: Replace by child logger
 
-    def debug(self, msg, *args, **kwargs):
-        msg = "[{0}] {1}".format(self.name, msg)
-        log.debug(msg, *args, **kwargs)
+    def debug(self, *args, **kwargs):
+        self._log.debug(*args, **kwargs)
 
-    def info(self, msg, *args, **kwargs):
-        msg = "[{0}] {1}".format(self.name, msg)
-        log.info(msg, *args, **kwargs)
+    def info(self, *args, **kwargs):
+        self._log.info(*args, **kwargs)
 
-    def warning(self, msg, *args, **kwargs):
-        msg = "[{0}] {1}".format(self.name, msg)
-        log.warning(msg, *args, **kwargs)
+    def warning(self, *args, **kwargs):
+        self._log.warning(*args, **kwargs)
 
-    def error(self, msg, *args, **kwargs):
-        msg = "[{0}] {1}".format(self.name, msg)
-        log.error(msg, *args, **kwargs)
+    def error(self, *args, **kwargs):
+        self._log.error(*args, **kwargs)
+
+    @property
+    def log(self):
+        return self._log
 
     #
     # className.BaseNomenclature implementation

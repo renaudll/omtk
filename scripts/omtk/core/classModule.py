@@ -10,6 +10,18 @@ from omtk.libs import libAttr
 log = logging.getLogger("omtk")
 
 
+class ModuleLoggerAdapter(logging.LoggerAdapter):
+    """
+    Logger adapter that add a module namespace to any logger message.
+    """
+    def __init__(self, module):
+        super(ModuleLoggerAdapter, self).__init__(logging.getLogger('omtk'), {"module": module})
+
+    def process(self, msg, kwargs):
+        module = self.extra["module"]
+        return "[%s] [%s] %s" % (module.rig.name if module.rig else "MISSING RIG", module.name, msg), kwargs
+
+
 class Module(object):
     """
     A Module is built from at least one input, specific via the constructor.
@@ -32,37 +44,29 @@ class Module(object):
     #
     # TODO: Replace by rig child logger
 
-    def debug(self, msg, *args, **kwargs):
+    def debug(self, *args, **kwargs):
         """
         Redirect a debug message to the rig logger.
         """
-        msg = "[{0}] {1}".format(self.name, msg)
-        if self.rig:
-            self.rig.debug(msg, *args, **kwargs)
+        self._log.debug(*args, **kwargs)
 
-    def info(self, msg, *args, **kwargs):
+    def info(self, *args, **kwargs):
         """
         Redirect an information message to the rig logger.
         """
-        msg = "[{0}] {1}".format(self.name, msg)
-        if self.rig:
-            self.rig.info(msg, *args, **kwargs)
+        self._log.info(*args, **kwargs)
 
-    def warning(self, msg, *args, **kwargs):
+    def warning(self, *args, **kwargs):
         """
         Redirect an warning message to the rig logger.
         """
-        msg = "[{0}] {1}".format(self.name, msg)
-        if self.rig:
-            self.rig.warning(msg, *args, **kwargs)
+        self._log.warning(*args, **kwargs)
 
-    def error(self, msg, *args, **kwargs):
+    def error(self, *args, **kwargs):
         """
         Redirect an error message to the rig logger.
         """
-        msg = "[{0}] {1}".format(self.name, msg)
-        if self.rig:
-            self.rig.error(msg, *args, **kwargs)
+        self._log.error(*args, **kwargs)
 
     #
     # libSerialization implementation
@@ -433,6 +437,7 @@ class Module(object):
             )
 
         self.rig = rig  # Reference to the parent rig instance.
+        self._log = ModuleLoggerAdapter(self)
         self.iCtrlIndex = 2
         self.grp_anm = None
         self.grp_rig = None

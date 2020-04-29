@@ -86,17 +86,15 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
     def _get_calibration_reference(self):
         return self.follicle
 
-    @libPython.memoized_instancemethod
     def get_bind_tm(self):
         """
         :return: The ctrl transformation that will be used to determine the position of the follicle.
         """
-        if self.jnt is None:
+        if not self.jnt:
             self.log.warning("Cannot resolve ctrl matrix with no inputs!")
             return None
 
-        tm = self.jnt.getMatrix(worldSpace=True)
-        return tm
+        return self.jnt.getMatrix(worldSpace=True)
 
     @libPython.memoized_instancemethod
     def get_bind_pos(self):

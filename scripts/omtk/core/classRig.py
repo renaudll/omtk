@@ -64,7 +64,7 @@ class CtrlRoot(BaseCtrl):
         geometries = rig.get_meshes()
 
         if not geometries:
-            rig.warning("Can't find any geometry in the scene.")
+            rig.log.warning("Can't find any geometry in the scene.")
             return min_size
 
         geometries_mel = [geo.__melobject__() for geo in geometries]
@@ -96,7 +96,7 @@ class RigGrp(Node):
                     for child in children:
                         if not isinstance(child, pymel.nt.NurbsCurve):
                             pymel.warning(
-                                "Ejecting {0} from {1} before deletion".format(
+                                "Ejecting %s from %s before deletion" % (
                                     child, self.node
                                 )
                             )
@@ -108,10 +108,10 @@ class RigLoggerAdapter(logging.LoggerAdapter):
     """
     Logger adapter that add a rig namespace to any logger message.
     """
-    def __init__(self, rig):
+    def __init__(self, rig):  # type: (Rig,) -> None
         super(RigLoggerAdapter, self).__init__(logging.getLogger("omtk"), {"rig": rig})
 
-    def process(self, msg, kwargs):
+    def process(self, msg, kwargs):  # type: (str, dict) -> (str, dict)
         return "[%s] %s" % (self.extra["rig"].name, msg), kwargs
 
 
@@ -158,26 +158,13 @@ class Rig(object):
         self.layer_jnt = None
         self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
 
-
-    #
-    # Logging implementation
-    #
-    # TODO: Replace by child logger
-
-    def debug(self, *args, **kwargs):
-        self._log.debug(*args, **kwargs)
-
-    def info(self, *args, **kwargs):
-        self._log.info(*args, **kwargs)
-
-    def warning(self, *args, **kwargs):
-        self._log.warning(*args, **kwargs)
-
-    def error(self, *args, **kwargs):
-        self._log.error(*args, **kwargs)
-
     @property
     def log(self):
+        """
+        :return: The module logger
+        :rtype: logging.LoggerAdapter
+        """
+        # Note: The real property is hidden so it don't get handled by libSerialization
         return self._log
 
     #
@@ -229,8 +216,8 @@ class Rig(object):
     def __str__(self):
         version = getattr(self, "version", "")
         if version:
-            version = " v{}".format(version)
-        return "{} <{}{}>".format(
+            version = " v%s" % version
+        return "%s <%s%s>" % (
             self.name.encode("utf-8"), self.__class__.__name__, version
         )
 
@@ -454,9 +441,7 @@ class Rig(object):
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
         if not shapes:
-            self.warning(
-                "Found no mesh under %r, scanning the whole scene.", self.grp_geo
-            )
+            self.log.warning("Found no mesh under %r, scanning the whole scene.", self.grp_geo)
             shapes = pymel.ls(type="surfaceShape")
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
@@ -589,9 +574,7 @@ class Rig(object):
                 if cmds.objExists(self.nomenclature.root_jnt_name):
                     self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
                 else:
-                    self.warning(
-                        "Could not find any root joint, master ctrl will not drive anything"
-                    )
+                    self.log.warning("Could not find any root joint, master ctrl will not drive anything")
                     # self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
 
         # Create the master grp
@@ -724,7 +707,7 @@ class Rig(object):
         """
         # # Aboard if already built
         # if self.is_built():
-        #     self.warning("Can't build {0} because it's already built!".format(self))
+        #     self.log.warning("Can't build %s because it's already built!", self)
         #     return False
 
         # Abord if validation fail
@@ -732,12 +715,10 @@ class Rig(object):
             try:
                 self.validate()
             except Exception, e:
-                self.warning(
-                    "Can't build {0} because it failed validation: {1}".format(self, e)
-                )
+                self.log.warning("Can't build %s because it failed validation: %s", self, e)
                 return False
 
-        self.info("Building")
+        self.log.info("Building")
 
         sTime = time.time()
 
@@ -777,9 +758,7 @@ class Rig(object):
         modules = self._sort_modules_by_dependencies(modules)
 
         log.debug(
-            "Will build modules in the specified order: {0}".format(
-                ", ".join([str(m) for m in modules])
-            )
+            "Will build modules in the specified order: %s", ", ".join([str(m) for m in modules])
         )
 
         #
@@ -796,13 +775,14 @@ class Rig(object):
                     try:
                         module.validate()
                     except Exception, e:
-                        self.warning("Can't build {0}: {1}".format(module, e))
+                        self.log.warning("Can't build %s: %s", module, e)
                         if strict:
                             traceback.print_exc()
                             raise e
                         continue
 
                 if not module.locked:
+                    # TODO: The try catch should be in the UI, not in the core logic.
                     try:
                         # Switch namespace if needed
                         module_namespace = module.get_inputs_namespace()
@@ -814,11 +794,7 @@ class Rig(object):
                         module.build(**kwargs)
                         self.post_build_module(module)
                     except Exception, e:
-                        self.error(
-                            "Error building {0}. Received {1}. {2}".format(
-                                module, type(e).__name__, str(e).strip()
-                            )
-                        )
+                        self.log.error("Error building %s. Received %s. %s", module, type(e).__name__, str(e).strip())
                         traceback.print_exc()
                         if strict:
                             raise e
@@ -851,7 +827,7 @@ class Rig(object):
         # Store the version of omtk used to build the rig.
         self.version = api.get_version()
 
-        self.debug("[classRigRoot.Build] took {0} ms".format(time.time() - sTime))
+        self.log.debug("Build took %s ms", time.time() - sTime)
 
         return True
 
@@ -859,14 +835,14 @@ class Rig(object):
         # Raise warnings if a module leave junk in the scene.
         if module.grp_anm and not module.grp_anm.getChildren():
             cmds.warning(
-                "Found empty group {0}, please cleanup module {1}.".format(
+                "Found empty group %s, please cleanup module %s." % (
                     module.grp_anm.longName(), module
                 )
             )
             pymel.delete(module.grp_anm)
         if module.grp_rig and not module.grp_rig.getChildren():
             cmds.warning(
-                "Found empty group {0}, please cleanup module {1}.".format(
+                "Found empty group %s, please cleanup module %s." % (
                     module.grp_rig.longName(), module
                 )
             )
@@ -916,7 +892,7 @@ class Rig(object):
             pymel.delete(val)
             return None
         else:
-            pymel.warning("Unexpected datatype {0} for {1}".format(type(val), val))
+            pymel.warning("Unexpected datatype %s for %s" % (type(val), val))
 
     def _unbuild_modules(self, strict=False, **kwargs):
         # Unbuild all children
@@ -935,7 +911,7 @@ class Rig(object):
                     and module.grp_anm.getParent() == self.grp_anm.node
                 ):
                     pymel.warning(
-                        "Ejecting {0} from {1} before deletion".format(
+                        "Ejecting %s from %s before deletion" % (
                             module.grp_anm.name(), self.grp_anm.name()
                         )
                     )
@@ -946,7 +922,7 @@ class Rig(object):
                     and module.grp_rig.getParent() == self.grp_rig.node
                 ):
                     pymel.warning(
-                        "Ejecting {0} from {1} before deletion".format(
+                        "Ejecting %s from %s before deletion" % (
                             module.grp_rig.name(), self.grp_rig.name()
                         )
                     )
@@ -955,11 +931,7 @@ class Rig(object):
                 try:
                     module.unbuild(**kwargs)
                 except Exception, e:
-                    self.error(
-                        "Error building {0}. Received {1}. {2}".format(
-                            module, type(e).__name__, str(e).strip()
-                        )
-                    )
+                    self.log.error("Error building %s. Received %s. %s",  module, type(e).__name__, str(e).strip())
                     traceback.print_exc()
                     if strict:
                         raise (e)
@@ -976,7 +948,7 @@ class Rig(object):
         :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
         :return: True if successful.
         """
-        self.debug("Un-building")
+        self.log.debug("Un-building")
 
         self._unbuild_modules(strict=strict, **kwargs)
         self._unbuild_nodes()
@@ -1059,11 +1031,7 @@ class Rig(object):
             if isinstance(module, rigHead.Head):
                 result.append(module.jnt)
         if strict and not result:
-            self.warning(
-                "Cannot found Head in rig! Please create a {0} module!".format(
-                    rigHead.Head.__name__
-                )
-            )
+            self.log.warning("Cannot found Head in rig! Please create a %s module!", rigHead.Head.__name__)
         return result
 
     @libPython.memoized_instancemethod
@@ -1074,11 +1042,7 @@ class Rig(object):
             if isinstance(module, rigFaceJaw.FaceJaw):
                 return module.jnt
         if strict:
-            self.warning(
-                "Cannot found Jaw in rig! Please create a {0} module!".format(
-                    rigFaceJaw.FaceJaw.__name__
-                )
-            )
+            self.log.warning("Cannot found Jaw in rig! Please create a %s module!", rigFaceJaw.FaceJaw.__name__)
         return None
 
     @libPython.memoized_instancemethod
@@ -1103,11 +1067,7 @@ class Rig(object):
 
         top = libRigging.ray_cast_farthest(bot, dir, geometries)
         if not top:
-            self.warning(
-                "Can't resolve head top location using raycasts using {0} {1}!".format(
-                    bot, dir
-                )
-            )
+            self.log.warning("Can't resolve head top location using raycasts using %s %s!", bot, dir)
             return None
 
         return libPymel.distance_between_vectors(bot, top)

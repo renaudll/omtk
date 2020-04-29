@@ -315,6 +315,6 @@ def _get_macro_by_name(macro_name):
 def run_macro(macro_name):
     macro = _get_macro_by_name(macro_name)
     if not macro:
-        pymel.warning("Cannot find macro with name {0}".format(macro_name))
+        pymel.warning("Cannot find macro with name %s" % macro_name)
         return
     macro.run()

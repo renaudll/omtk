@@ -36,10 +36,8 @@ class ModuleMap(Module):
         # Use existing model if possible.
         if not isinstance(model, cls_model):
             if model:
-                self.warning(
-                    "Unexpected Model type for {0}. Expected {1}, got {2}.".format(
-                        model, cls_model.__name__, type(model).__name__
-                    )
+                self.log.warning(
+                    "Unexpected Model type for %s. Expected %s, got %s.", model, cls_model.__name__, type(model).__name__
                 )
             model = cls_model(inputs, rig=self.rig)
 
@@ -61,7 +59,7 @@ class ModuleMap(Module):
         for model in self.models:
             # Remove any unrecognized model
             if model.jnt not in influences:
-                self.warning("Unexpected Model {0} will be deleted.".format(model.name))
+                self.log.warning("Unexpected Model %s will be deleted.", model.name)
                 continue
 
             model_inputs = [model.jnt]

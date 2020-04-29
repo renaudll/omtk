@@ -62,7 +62,7 @@ def connect_to_avar(ctrl, avar_node, mapping_dict):
         )
         if len(bw_list) != 1:
             raise (
-                "Could not connect ctrl {0} translation in avar node {1}".format(
+                "Could not connect ctrl %s translation in avar node %s" % (
                     ctrl, avar_node
                 )
             )

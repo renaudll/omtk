@@ -89,7 +89,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:
             query_raw = self.ui.lineEdit_search.text()
-            query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
+            query_regex = ".*%s.*" % query_raw if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
             if (

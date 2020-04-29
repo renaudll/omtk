@@ -81,14 +81,14 @@ def adapt_to_orig_shape(source, target):
     # Resolve compensation matrix
     util_transform_geometry = get_transformGeometry(target)
     if not util_transform_geometry:
-        target.warning("Skipping {}. Cannot find transformGeometry.".format(target))
+        pymel.warning("Skipping %s. Cannot find transformGeometry." % target)
         return
     attr_compensation_tm = next(
         iter(util_transform_geometry.transform.inputs(plugs=True)), None
     )
 
     if not attr_compensation_tm:
-        target.warning("Skipping {}. Cannot find compensation matrix.".format(target))
+        pymel.warning("Skipping %s. Cannot find compensation matrix." % target)
         return
 
     tmp_transform_geometry = libRigging.create_utility_node(

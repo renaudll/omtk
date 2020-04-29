@@ -135,7 +135,7 @@ def hold_ctrl_shapes(transform):
 
     dst_transform.setParent(world=True)
 
-    new_name = "_{0}".format(transform.name())
+    new_name = "_" + transform.name()
     # For strange reasons, using .rename don't always work.
     cmds.rename(dst_transform.longName(), new_name)
     try:
@@ -302,7 +302,7 @@ def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
         num_patches_v = 4
     else:
         # TODO: Support missing degrees!
-        Exception("Unexpected value for parameter degree, got {0}.".format(degree))
+        Exception("Unexpected value for parameter degree, got %s." % degree)
 
     # Resolve ratios to compute v positions more easily.
     v_ratios = [v / float(num_patches_v - 1) for v in range(num_patches_v)]
@@ -458,7 +458,7 @@ def get_recommended_ctrl_size(
     elif isinstance(obj, pymel.datatypes.Matrix):
         ref_tm = obj
     else:
-        raise IOError("Unexpected type for reference object {0}".format(type(obj)))
+        raise IOError("Unexpected type for reference object %s" % type(obj))
 
     pos = ref_tm.translate
     pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
@@ -545,7 +545,7 @@ def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
                 )
         else:
             pymel.warning(
-                "Can't proceed with raycast, mesh is invalid: {0}".format(
+                "Can't proceed with raycast, mesh is invalid: %s" % (
                     geometry.__melobject__()
                 )
             )
@@ -693,7 +693,7 @@ def get_matrix_axis(tm, axis):
     elif axis == constants.Axis.z:
         fn = _get_matrix_axis_z
     else:
-        raise IOError("Unexpected axis. Got {}".format(axis))
+        raise IOError("Unexpected axis. Got %s" % axis)
 
     return fn(tm)
 
@@ -939,7 +939,7 @@ def align_selected_joints_to_active_view(default_cam="persp"):
     sel = pymel.selected()
     cam = get_active_camera()
     if not cam:
-        pymel.warning("Can't find active camera, will use {0}.".format(default_cam))
+        pymel.warning("Can't find active camera, will use %s." % default_cam)
         cam = pymel.PyNode(default_cam)
     align_joints_to_view(sel, cam)
 
@@ -1010,7 +1010,7 @@ def get_closest_point_on_mesh(mesh, pos):
         mesh = mesh.getShape()
 
     if not isinstance(mesh, pymel.nodetypes.Mesh):
-        raise IOError("Unexpected datatype. Expected Mesh, got {0}".format(type(mesh)))
+        raise IOError("Unexpected datatype. Expected Mesh, got %s" % type(mesh))
 
     # closestPointOnMesh ignores polymesh transforms
     util_transformGeometry = create_utility_node(
@@ -1040,9 +1040,7 @@ def get_closest_point_on_surface(nurbsSurface, pos):
 
     if not isinstance(nurbsSurface, pymel.nodetypes.NurbsSurface):
         raise IOError(
-            "Unexpected datatype. Expected NurbsSurface, got {0}".format(
-                type(nurbsSurface)
-            )
+            "Unexpected datatype. Expected NurbsSurface, got %s" % type(nurbsSurface)
         )
 
     # closestPointOnSurface don't listen to transform so we'll need to duplicate the shape.
@@ -1074,7 +1072,7 @@ def get_closest_point_on_shape(shape, pos):
     elif isinstance(shape, pymel.nodetypes.NurbsSurface):
         return get_closest_point_on_surface(shape, pos)
     raise NotImplementedError(
-        "Unexpected data type. Expected Mesh or NurbsSurface, got {0}({1})".format(
+        "Unexpected data type. Expected Mesh or NurbsSurface, got %s(%s)" % (
             shape, type(shape)
         )
     )
@@ -1117,7 +1115,7 @@ def get_point_on_surface_from_uv(shape, u, v):
         pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception(
-            "Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(
+            "Unexpected shape type. Expected nurbsSurface or mesh, got %s. %s" % (
                 type(shape), shape
             )
         )
@@ -1167,7 +1165,7 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
         pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception(
-            "Unexpected shape type. Expected nurbsSurface or mesh, got {0}. {1}".format(
+            "Unexpected shape type. Expected nurbsSurface or mesh, got %s. %s" % (
                 shape.type(), shape
             )
         )
@@ -1245,7 +1243,7 @@ def create_animCurveU(
     elif type == "animCurveUA":
         att_dst = tmp.rx
     else:
-        raise NotImplemented("Unexpected animCurve type. Got {0}.".format(type))
+        raise NotImplemented("Unexpected animCurve type. Got %s." % type)
 
     # Create keys
     for key_time, key_val in zip(kt, kv):
@@ -1425,12 +1423,11 @@ def connectAttr_withLinearDrivenKeys(
                         pymel.disconnectAttr(node.output)
                         pymel.delete(node)
                     else:
-                        print(
-                            "Can't connect. Attribute {0} is already connected to {1} via {2}".format(
-                                attr_src.longName(),
-                                attr_dst.longName(),
-                                drivenkey_outplug.node().longName(),
-                            )
+                        _LOG.warning(
+                            "Can't connect. Attribute %s is already connected to %s via %s",
+                            attr_src.longName(),
+                            attr_dst.longName(),
+                            drivenkey_outplug.node().longName(),
                         )
                         return
 
@@ -1443,7 +1440,7 @@ def connectAttr_withLinearDrivenKeys(
         pre=pre,
         pst=pst,
     )
-    animCurve.rename("{0}_{1}".format(attr_src.node().name(), attr_src.longName()))
+    animCurve.rename("%s_%s" % (attr_src.node().name(), attr_src.longName()))
     pymel.connectAttr(attr_src, animCurve.input)
     return connectAttr_withBlendWeighted(animCurve.output, attr_dst)
 
@@ -1519,7 +1516,7 @@ def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix)
     # Create a condition that force the denominator to have a non-zero value.
     attr_numerator_fake = create_utility_node(
         "condition",
-        name=nomenclature.resolve("{}SafePre".format(suffix)),
+        name=nomenclature.resolve(suffix + "SafePre"),
         firstTerm=attr_denominator,
         colorIfFalseR=attr_denominator,
         colorIfTrueR=0.01,
@@ -1533,7 +1530,7 @@ def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix)
     ).outputX
     attr_result_safe = create_utility_node(
         "condition",
-        name=nomenclature.resolve("{}SafePost".format(suffix)),
+        name=nomenclature.resolve(suffix + "SafePost"),
         firstTerm=attr_denominator,
         colorIfFalseR=attr_result,
         colorIfTrueR=0.0,

@@ -92,7 +92,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         :return: The ctrl transformation that will be used to determine the position of the follicle.
         """
         if self.jnt is None:
-            self.warning("Cannot resolve ctrl matrix with no inputs!")
+            self.log.warning("Cannot resolve ctrl matrix with no inputs!")
             return None
 
         tm = self.jnt.getMatrix(worldSpace=True)
@@ -353,10 +353,8 @@ class InteractiveFKLayer(ModuleMap):
                 continue
 
             if not isinstance(model_parent, pymel.nodetypes.Joint):
-                self.warning(
-                    "Cannot compute offset for parent. Unsupported node type {} for {}".format(
-                        type(self.parent), self.parent
-                    )
+                self.log.warning(
+                    "Cannot compute offset for parent. Unsupported node type %s for %s", type(self.parent), self.parent
                 )
                 continue
 
@@ -365,11 +363,7 @@ class InteractiveFKLayer(ModuleMap):
                 (model for model in self.models if model.jnt == model_parent), None
             )
             if not parent_model:
-                self.warning(
-                    "Cannot compute offset for parent. Found no model associated with {}".format(
-                        model_parent
-                    )
-                )
+                self.log.warning("Cannot compute offset for parent. Found no model associated with %s", model_parent)
                 continue
 
             self._constraint_model_virtual_offset(model, parent_model)
@@ -518,9 +512,7 @@ class InteractiveFK(Module):
         unassigned_surfaces = self._get_unassigned_surfaces()
         if unassigned_surfaces:
             raise Exception(
-                "Useless surface(s) found: {}".format(
-                    ", ".join((surface.name() for surface in unassigned_surfaces))
-                )
+                "Useless surface(s) found: %s" % ", ".join((surface.name() for surface in unassigned_surfaces))
             )
 
         # todo: Ensure all surface have an identity matrix
@@ -541,7 +533,7 @@ class InteractiveFK(Module):
                 attr_val = attr.get()
                 if abs(attr_val - desired_val) > epsilon:
                     raise Exception(
-                        "Surface {} have invalid transform! Expected {} for {}, got {}.".format(
+                        "Surface %s have invalid transform! Expected %s for %s, got %s." % (
                             surface, desired_val, attr_name, attr_val
                         )
                     )
@@ -596,11 +588,7 @@ class InteractiveFK(Module):
                 return -1
             # If nothing works, compare their name...
             # We might get lucky and have correctly named objects like layer0, layer1, etc.
-            self.warning(
-                "Saw no relationship between {} and {}. Will sort them by name.".format(
-                    obj_a, obj_b
-                )
-            )
+            self.log.warning("Saw no relationship between %s and %s. Will sort them by name.", obj_a, obj_b)
             return cmp(obj_a.name(), obj_b.name())
 
         surfaces = sorted(surfaces, cmp=_fn_compare)
@@ -608,7 +596,7 @@ class InteractiveFK(Module):
         for surface in surfaces:
             skincluster = _get_immediate_skincluster(surface)
             if not skincluster:
-                self.warning("Found no skinCluster for {}".format(surface))
+                self.log.warning("Found no skinCluster for %s", surface)
                 continue
 
             cur_influences = set(
@@ -683,7 +671,7 @@ class InteractiveFK(Module):
         Note that this does not add it to the layer stack.
         :param num_u: How much influences to generate in the surface U space.
         :param num_v: How much influences to generate in the surface U space.
-        :param format_str: An str instance that drive how the influence are named using python string formattingmechanismm.
+        :param format_str: An str instance that drive how the influence are named using python string formatting mechanismm.
         :param suffix: The suffix to add to the moduel name.
         :return: An instance of the module class defined in self._CLS_LAYER.
         """
@@ -743,14 +731,14 @@ class InteractiveFK(Module):
         if num_layers < num_data:
             libPython.resize_list(self.layers, num_data)
 
-        self.debug("Found {} layer groups".format(len(data)))
+        self.log.debug("Found %s layer groups", len(data))
         for i, sub_data in enumerate(data):
-            self.debug("Creating layer {} using {}".format(i + 1, sub_data))
+            self.log.debug("Creating layer %s using %s", i + 1, sub_data)
             surface, influences = sub_data
             self.layers[i] = self.init_layer(
                 self.layers[i],
                 inputs=[surface] + influences,
-                suffix="layer{}".format(i + 1),
+                suffix="layer%s" % (i + 1),
             )
 
     def _build_layers(self, ctrl_size_max=None, ctrl_size_min=None):
@@ -835,11 +823,7 @@ class InteractiveFK(Module):
             val = self._get_default_ctrl_size()
             ctrl_size_max = val * 0.25
             ctrl_size_min = ctrl_size_max / float(len(self.layers))
-            self.info(
-                "Default ctrl size is adjusted from bettwen {} at {}".format(
-                    ctrl_size_min, ctrl_size_max
-                )
-            )
+            self.log.info("Default ctrl size is adjusted from bettwen %s at %s", ctrl_size_min, ctrl_size_max)
 
         self._build_layers(ctrl_size_max=ctrl_size_max, ctrl_size_min=ctrl_size_min)
         # Create a group that represent the original parent of everything.
@@ -888,7 +872,7 @@ class InteractiveFK(Module):
                     # Use an extra object to match original influence transform.
                     grp_output = pymel.createNode(
                         "transform",
-                        name=nomenclature_jnt.resolve("output{}".format(i)),
+                        name=nomenclature_jnt.resolve("output%s" % i),
                         parent=self._grp_parent,
                     )
                     grp_output.setMatrix(

@@ -431,7 +431,7 @@ class AvarGrp(
             head_length = self.rig.get_head_length(head_jnt)
         except Exception, e:
             head_length = None
-            self.warning(str(e))
+            self.log.warning(e)
         if head_length:
             max_ctrl_size = head_length * 0.05
 
@@ -449,12 +449,10 @@ class AvarGrp(
                 result = min(distances) / 2.0
 
             if max_ctrl_size is not None and result > max_ctrl_size:
-                self.debug("Limiting ctrl size to {}".format(max_ctrl_size))
+                self.log.debug("Limiting ctrl size to %s", max_ctrl_size)
                 result = max_ctrl_size
         else:
-            self.debug(
-                "Not enough ctrls to guess size. Using default {}".format(result)
-            )
+            self.log.debug("Not enough ctrls to guess size. Using default %s", result)
 
         return result
 
@@ -502,7 +500,7 @@ class AvarGrp(
             # Any existing Avar that we don't reconize will be deleted.
             # Be aware that the .avars property only store MICRO Avars. Macro Avars need to be implemented in their own properties.
             if avar.jnt not in avar_influences:
-                self.warning("Unexpected Avar {0} will be deleted.".format(avar.name))
+                self.log.warning("Unexpected Avar %s will be deleted.", avar.name)
 
             # Any existing Avar that don't have the desired datatype will be re-created.
             # However the old value will be passed by so the factory method can handle specific tricky cases.
@@ -578,9 +576,7 @@ class AvarGrp(
         try:
             avar.validate()
         except Exception, e:
-            self.warning(
-                "Can't build avar {0}, failed validation: {1}".format(avar.name, e)
-            )
+            self.log.warning("Can't build avar %s, failed validation: %s", avar.name, e)
             return None
 
         avar.build(**kwargs)
@@ -748,7 +744,7 @@ class AvarGrp(
                 return True
 
             # Create surface if it doesn't exist.
-            self.warning("Can't find surface for {0}, creating one...".format(self))
+            self.log.warning("Can't find surface for %s, creating one.", self)
             self.surface = self.create_surface()
 
     def build(
@@ -873,7 +869,7 @@ class AvarGrp(
 
         # todo: remove this call when we know it is safe.
         if cls is None:
-            self.warning("No avar class specified for {0}, using default.".format(self))
+            self.log.warning("No avar class specified for %s, using default.", self)
             cls = rigFaceAvar.AvarSimple
 
         result = self.init_module(cls, inst, inputs=result_inputs, suffix=suffix)
@@ -1340,7 +1336,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_l if necessary
             ref_l = self.get_jnt_l_mid()
             if not ref_l:
-                self.info("Cannot create macro avar 'L', found no matching influence.")
+                self.log.info("Cannot create macro avar 'L', found no matching influence.")
             else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
@@ -1369,7 +1365,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_r if necessary
             ref_r = self.get_jnt_r_mid()
             if not ref_r:
-                self.info("Cannot create macro avar 'L', found no matching influence.")
+                self.log.info("Cannot create macro avar 'L', found no matching influence.")
             else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
@@ -1400,10 +1396,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_upp if necessary
             ref_upp = self.get_jnt_upp_mid()
             if not ref_upp:
-                self.info(
-                    "Cannot create macro avar %r', found no matching influence.",
-                    self.rig.AVAR_NAME_UPP,
-                )
+                self.log.info("Cannot create macro avar %r', found no matching influence.", self.rig.AVAR_NAME_UPP)
             else:
                 # Resolve avar name
                 avar_upp_name = self.get_nomenclature().resolve(
@@ -1421,10 +1414,7 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_low if necessary
             ref_low = self.get_jnt_low_mid()
             if not ref_low:
-                self.info(
-                    "Cannot create macro avar %r', found no matching influence.",
-                    self.rig.AVAR_NAME_LOW,
-                )
+                self.log.info("Cannot create macro avar %r', found no matching influence.", self.rig.AVAR_NAME_LOW)
             else:
                 # Resolve avar name
                 avar_low_name = self.get_nomenclature().resolve(
@@ -1461,10 +1451,9 @@ class AvarGrpOnSurface(AvarGrp):
             # The avar_all is special since it CAN drive an influence.
             old_ref_all = self.avar_all.jnt
             if old_ref_all != avar_all_ref:
-                self.warning(
-                    "Unexpected influence for avar {0}, expected {1}, got {2}. Will update the influence.".format(
-                        self.avar_all.name, avar_all_ref, old_ref_all
-                    )
+                self.log.warning(
+                    "Unexpected influence for avar %s, expected %s, got %s. Will update the influence.",
+                    self.avar_all.name, avar_all_ref, old_ref_all
                 )
                 self.avar_all.input = [
                     avar_all_ref if inf == old_ref_all else inf
@@ -1743,7 +1732,7 @@ class AvarGrpOnSurface(AvarGrp):
             head_length = self.rig.get_head_length(head_jnt)
         except Exception, e:
             head_length = None
-            self.warning(str(e))
+            self.log.warning(e)
         if head_length:
             offset_z = head_length * 0.05
 

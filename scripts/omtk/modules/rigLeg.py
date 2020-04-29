@@ -289,9 +289,7 @@ class LegIk(rigIK.IK):
             jnt_heel = None
         else:
             raise Exception(
-                "Unexpected number of joints after the limb. Expected 3 or 4, got {0}".format(
-                    num_jnts
-                )
+                "Unexpected number of joints after the limb. Expected 3 or 4, got %s" % num_jnts
             )
 
         # Create FootRoll (chain?)
@@ -760,9 +758,7 @@ class Leg(rigLimb.Limb):
 
         num_inputs = len(self.input)
         if num_inputs < 5 or num_inputs > 6:
-            raise Exception(
-                "Expected between 5 to 6 joints, got {0}".format(num_inputs)
-            )
+            raise Exception("Expected between 5 to 6 joints, got %s" % num_inputs)
 
         return True
 

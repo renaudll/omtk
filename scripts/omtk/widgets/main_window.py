@@ -38,7 +38,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         version = api.get_version()
-        self.setWindowTitle("Open Rigging Toolkit {}".format(version))
+        self.setWindowTitle("Open Rigging Toolkit %s" % version)
 
         #
         # First update

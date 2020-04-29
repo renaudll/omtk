@@ -129,7 +129,7 @@ class LegIkQuad(rigLeg.LegIk):
         :param epsilon: A float representing the minimum precision required.
         :param max_iter: An int representing the maximum number of tries to take.
         """
-        self.debug("Resolving {} twist offset with brute-force.".format(ik_handle))
+        self.log.debug("Resolving %s twist offset with brute-force.", ik_handle)
         attr = ik_handle.twist
 
         # Store the direction we are trying to match.
@@ -155,7 +155,7 @@ class LegIkQuad(rigLeg.LegIk):
         for iter_count in range(max_iter):
             iter_count += 1
             if iter_count > max_iter:
-                raise Exception("Max iteration reached: {}".format(max_iter))
+                raise Exception("Max iteration reached: %s" % max_iter)
 
             result_low = take_guess(low)
             result_high = take_guess(high)
@@ -164,11 +164,7 @@ class LegIkQuad(rigLeg.LegIk):
             )  # note: it is important to take the mid guess last since we don't update the attr on exit
 
             if abs(1.0 - result) < epsilon:
-                self.debug(
-                    "Resolved {} twist offset of {} using with {} iterations.".format(
-                        ik_handle, mid, iter_count
-                    )
-                )
+                self.log.debug("Resolved %s twist offset of %s using with %s iterations.", ik_handle, mid, iter_count)
                 return mid
 
             if result_high > result_low:
@@ -178,11 +174,7 @@ class LegIkQuad(rigLeg.LegIk):
 
             mid = (low + high) / 2.0
 
-        self.warning(
-            "Cannot resolve twist offset of {} with {} iterations.".format(
-                ik_handle, max_iter
-            )
-        )
+        self.log.warning("Cannot resolve twist offset of %s with %s iterations.", ik_handle, max_iter)
         return mid
 
     def build(
@@ -331,9 +323,7 @@ class LegQuad(rigLimb.Limb):
 
         num_inputs = len(self.input)
         if num_inputs < 6 or num_inputs > 7:
-            raise Exception(
-                "Expected between 6 to 7 joints, got {0}".format(num_inputs)
-            )
+            raise Exception("Expected between 6 to 7 joints, got %s" % num_inputs)
 
         return True
 

@@ -319,7 +319,7 @@ class RigSqueeze(classRig.Rig):
         # Connect DisplayMesh attribute
         for attr_dst in attr_display_mesh_output_attrs:
             if not libAttr.is_connected_to(attr_display_mesh, attr_dst, max_depth=3):
-                self.debug("Connecting {} to {}".format(attr_display_mesh, attr_dst))
+                self.log.debug("Connecting %s to %s", attr_display_mesh, attr_dst)
                 attr_proxy_display_inn = libRigging.create_utility_node(
                     "condition",
                     firstTerm=attr_display_mesh,
@@ -331,7 +331,7 @@ class RigSqueeze(classRig.Rig):
 
         for attr_dst in attr_display_proxy_output_attrs:
             if not libAttr.is_connected_to(attr_display_mesh, attr_dst, max_depth=3):
-                self.debug("Connecting {} to {}".format(attr_display_mesh, attr_dst))
+                self.log.debug("Connecting %s to %s", attr_display_mesh, attr_dst)
                 # attr_proxy_display_inn = libRigging.create_utility_node(
                 #     'condition',
                 #     firstTerm=attr_display_mesh,
@@ -344,7 +344,7 @@ class RigSqueeze(classRig.Rig):
                 # Connect DisplayCtrl attribute
                 # for attr_dst in attr_display_ctrl_output_attrs:
                 #     if not libAttr.is_connected_to(attr_display_ctrl, attr_dst, max_depth=3):
-                #         self.debug("Connecting {} to {}".format(attr_display_ctrl, attr_dst))
+                #         self.log.debug("Connecting %s to %s", attr_display_ctrl, attr_dst)
                 #         pymel.connectAttr(attr_display_ctrl, attr_dst, force=True)
 
     def _is_face_module(self, module):

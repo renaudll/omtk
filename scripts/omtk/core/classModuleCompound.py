@@ -34,7 +34,7 @@ class CompoundModule(Module):
         basename = os.path.splitext(filename)[0]
         path = os.path.join(dirname, basename + ".ma")
         if not os.path.exists(path):
-            raise Exception("Cannot find {0}".format(path))
+            raise Exception("Cannot find %s" % path)
         return path
 
     def _import_component(self, path, namespace):
@@ -118,27 +118,25 @@ class CompoundModule(Module):
         super(CompoundModule, self).build(**kwargs)
 
         path = self.__get_compounnd_path__()
-        namespace = "_{0}".format(
-            self.name
-        )  # we prefix with an underscore to ensure that the namespace is recognized
+        namespace = "_" + self.name  # we prefix with an underscore to ensure that the namespace is recognized
         self._import_component(path, namespace)
 
         # Resolve grp_inn (mandatory)
-        grp_inn_dagpath = "{0}:inn".format(namespace)
+        grp_inn_dagpath = namespace + ":inn"
         if not cmds.objExists(grp_inn_dagpath):
-            raise Exception("Cannot find {0}".format(grp_inn_dagpath))
+            raise Exception("Cannot find %s" % grp_inn_dagpath)
         self.grp_inn = pymel.PyNode(grp_inn_dagpath)
         self.grp_inn.setParent(self.grp_rig)
 
         # Resolve grp_out (mandatory)
-        grp_out_dagpath = "{0}:out".format(namespace)
+        grp_out_dagpath = namespace + ":out"
         if not cmds.objExists(grp_out_dagpath):
-            raise Exception("Cannot find {0}".format(grp_out_dagpath))
+            raise Exception("Cannot find %s" % grp_out_dagpath)
         self.grp_out = pymel.PyNode(grp_out_dagpath)
         self.grp_out.setParent(self.grp_rig)
 
         # Resolve grp_dag (optional)
-        grp_dag_dagpath = "{0}:dag".format(namespace)
+        grp_dag_dagpath = namespace + ":dag"
         if cmds.objExists(grp_dag_dagpath):
             self.grp_dag = pymel.PyNode(grp_dag_dagpath)
             self.grp_dag.setParent(self.grp_rig)
@@ -147,7 +145,7 @@ class CompoundModule(Module):
             self.grp_dag = None
 
         # Resolve grp_guides (optional)
-        grp_guides_dagpath = "{0}:guides".format(namespace)
+        grp_guides_dagpath = namespace + ":guides"
         if cmds.objExists(grp_guides_dagpath):
             self.grp_guides = pymel.PyNode(grp_guides_dagpath)
             self.grp_guides.setParent(self.grp_rig)

@@ -14,10 +14,10 @@ class ModuleLoggerAdapter(logging.LoggerAdapter):
     """
     Logger adapter that add a module namespace to any logger message.
     """
-    def __init__(self, module):
+    def __init__(self, module):  # type: (Module,) -> None
         super(ModuleLoggerAdapter, self).__init__(logging.getLogger('omtk'), {"module": module})
 
-    def process(self, msg, kwargs):
+    def process(self, msg, kwargs):  # type: (str, dict) -> (str, dict)
         module = self.extra["module"]
         return "[%s] [%s] %s" % (module.rig.name if module.rig else "MISSING RIG", module.name, msg), kwargs
 
@@ -39,34 +39,14 @@ class Module(object):
     # Set to true if the module default name need to use it's first input.
     DEFAULT_NAME_USE_FIRST_INPUT = False
 
-    #
-    # Logging implementation
-    #
-    # TODO: Replace by rig child logger
-
-    def debug(self, *args, **kwargs):
+    @property
+    def log(self):
         """
-        Redirect a debug message to the rig logger.
+        :return: The module logger
+        :rtype: logging.LoggerAdapter
         """
-        self._log.debug(*args, **kwargs)
-
-    def info(self, *args, **kwargs):
-        """
-        Redirect an information message to the rig logger.
-        """
-        self._log.info(*args, **kwargs)
-
-    def warning(self, *args, **kwargs):
-        """
-        Redirect an warning message to the rig logger.
-        """
-        self._log.warning(*args, **kwargs)
-
-    def error(self, *args, **kwargs):
-        """
-        Redirect an error message to the rig logger.
-        """
-        self._log.error(*args, **kwargs)
+        # Note: The real property is hidden so it don't get handled by libSerialization
+        return self._log
 
     #
     # libSerialization implementation
@@ -85,12 +65,10 @@ class Module(object):
 
         # Hack: Workaround a bug in the ui that can propagate invalid characters in the module...
         REGEX_PATTERN = "( *)<.*>( *)"
-        if re.match(".*{0}.*".format(REGEX_PATTERN), self.name):
+        if re.match(r".*%s.*" % REGEX_PATTERN, self.name):
             new_name = re.sub(REGEX_PATTERN, "", self.name)
             log.warning(
-                "Invalid characters in Module name. Replacing {0} by {1}".format(
-                    self.name, new_name
-                )
+                "Invalid characters in Module name. Replacing %s by %s", self.name, new_name
             )
             self.name = new_name
 
@@ -100,7 +78,7 @@ class Module(object):
         Override this to customize.
         Returns: The desired network name for this instance.
         """
-        return "net_{0}_{1}".format(self.__class__.__name__, self.get_module_name())
+        return "net_%s_%s" % (self.__class__.__name__, self.get_module_name())
 
     #
     # Nomenclature implementation
@@ -282,7 +260,7 @@ class Module(object):
         if num_heads == 1:
             return head_jnts[0]
         if num_heads == 0:
-            self.warning("Cannot resolve head influence!")
+            self.log.warning("Cannot resolve head influence!")
             return None
 
         # If any of the module influence are parented to an head, use this one.
@@ -306,9 +284,7 @@ class Module(object):
         # todo: check with proximity
         default_head = next(iter(head_jnts), None)
         if default_head:
-            self.warning(
-                "Cannot resolve head influence! Using default {}".format(default_head)
-            )
+            self.log.warning("Cannot resolve head influence! Using default %s", default_head)
             return default_head
 
     @libPython.memoized_instancemethod
@@ -322,7 +298,7 @@ class Module(object):
         # Resolve head
         head_jnt = self.get_head_jnt(strict=False)
         if strict and not head_jnt:
-            self.warning("Cannot resolve jaw influence. No head was found!")
+            self.log.warning("Cannot resolve jaw influence. No head was found!")
             return
 
         # Find a Jaw module that have influence under the head.
@@ -333,18 +309,10 @@ class Module(object):
                 jnt = module.jnt
                 if libPymel.is_child_of(jnt, head_jnt):
                     return jnt
-                self.warning(
-                    "Ignoring {0} as the main jaw influence. Not a child of {1}.".format(
-                        jnt, head_jnt
-                    )
-                )
+                self.log.warning("Ignoring %s as the main jaw influence. Not a child of %s.", jnt, head_jnt)
 
         if strict:
-            self.warning(
-                "Cannot found a {0} influence. Please create a {0} module!".format(
-                    rigFaceJaw.FaceJaw.__name__
-                )
-            )
+            self.log.warning("Cannot found a jaw influence. Please create a %s module!", rigFaceJaw.FaceJaw.__name__)
         return None
 
     @libPython.memoized_instancemethod
@@ -371,11 +339,7 @@ class Module(object):
             )
 
         if module_jaw is None and strict:
-            self.warning(
-                "Cannot found a {} module. Please create one!".format(
-                    rigFaceJaw.FaceJaw.__name__
-                )
-            )
+            self.log.warning("Cannot found a %s module. Please create one!", rigFaceJaw.FaceJaw.__name__)
         return module_jaw
 
     @libPython.memoized_instancemethod
@@ -431,7 +395,7 @@ class Module(object):
         # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
         if name and not isinstance(name, basestring):
             raise IOError(
-                "Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
+                "Unexpected type for parameter name, expected basestring, got %s. Value is %s." % (
                     type(name), name
                 )
             )
@@ -462,7 +426,7 @@ class Module(object):
         if input:
             if not isinstance(input, list):
                 raise IOError(
-                    "Unexpected type for argument input. Expected list, got {0}. {1}".format(
+                    "Unexpected type for argument input. Expected list, got %s. %s" % (
                         type(input), input
                     )
                 )
@@ -475,8 +439,8 @@ class Module(object):
     def __str__(self):
         version = getattr(self, "version", "")
         if version:
-            version = " v{}".format(version)
-        return "{} <{}{}>".format(
+            version = " v%s" % version
+        return "%s <%s%s>" % (
             self.name.encode("utf-8"), self.__class__.__name__, version
         )
 
@@ -484,9 +448,9 @@ class Module(object):
         if not hasattr(self, "version"):
             return None, None, None
         version_info = str(self.version)
-        regex = "^[0-9]+\.[0-9]+\.[0-9]+$"
+        regex = r"^[0-9]+\.[0-9]+\.[0-9]+$"
         if not re.match(regex, version_info):
-            self.warning("Cannot understand version format: {}".format(version_info))
+            self.log.warning("Cannot understand version format: %s", version_info)
             return None, None, None
         return tuple(int(token) for token in version_info.split("."))
 
@@ -496,18 +460,16 @@ class Module(object):
         In case of error, an exception will be raised with the necessary informations.
         """
         if self.rig is None:
-            raise Exception("Can't resolve rig for module. {0}".format(self))
+            raise Exception("Can't resolve rig for module. %s" % self)
 
         if not self.input and not support_no_inputs:
-            raise Exception("Can't build module with zero inputs. {0}".format(self))
+            raise Exception("Can't build module with zero inputs. %s" % self)
 
         # Ensure that IF we have namespaces, they are the same for all inputs.
         namespaces = set(input.namespace() for input in self.input if input)
         if len(namespaces) > 1:
             raise Exception(
-                "Found multiple namespaces for inputs: {0}".format(
-                    ", ".join('"{0}"'.format(namespace) for namespace in namespaces)
-                )
+                "Found multiple namespaces for inputs: %s" % ", ".join(repr(namespace) for namespace in namespaces)
             )
 
         return True
@@ -548,16 +510,14 @@ class Module(object):
         :param parent: If True, the parent_to method will be automatically called.
         :return:
         """
-        self.info("Building")
+        self.log.info("Building")
 
         # Enable/Disable dangerous flags.
         for inn in self.input:
             # The inheritsTransform flag is evil and will prevent the rig from correctly scaling.
             if isinstance(inn, pymel.nodetypes.Transform):
                 if not inn.inheritsTransform.get():
-                    self.warning(
-                        "Enabling inheritsTransform for the best on {0}".format(inn)
-                    )
+                    self.log.warning("Enabling inheritsTransform for the best on %s", inn)
                     inn.inheritsTransform.set(True)
 
                 # The segmentScaleCompensate is not supported since we need to support video-game rigs at the best
@@ -565,9 +525,7 @@ class Module(object):
                 # Also this will prevent the rig from correctly propagating scaling.
                 if isinstance(inn, pymel.nodetypes.Joint):
                     if inn.segmentScaleCompensate.get():
-                        self.debug(
-                            "Disabling segmentScaleCompensate on {0}".format(inn)
-                        )
+                        self.log.debug("Disabling segmentScaleCompensate on %s", inn)
                         inn.segmentScaleCompensate.set(False)
 
             # Remove any existing connections on the input joints.
@@ -604,21 +562,17 @@ class Module(object):
         """
         if self.parent is None:
             if fallback_to_anm_grp:
-                self.debug(
-                    "Found no immediate parent. Will be parented to the anm grp."
-                )
+                self.log.debug("Found no immediate parent. Will be parented to the anm grp.")
                 return self.rig.grp_anm
             else:
-                self.debug("Found no immediate parent. ")
+                self.log.debug("Found no immediate parent.")
                 return None
 
         module = self.rig.get_module_by_input(self.parent)
         if module:
             desired_parent = module.get_parent(self.parent)
             if desired_parent:
-                self.debug(
-                    "Will be parented to {0}, {1}".format(module, desired_parent)
-                )
+                self.log.debug("Will be parented to %s, %s", module, desired_parent)
                 return desired_parent
 
         return self.parent
@@ -651,7 +605,7 @@ class Module(object):
         Note that this happen first so the rig can return to it's bind pose before anything else is done.
         :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
         """
-        self.debug("Un-building")
+        self.log.debug("Un-building")
 
         # Ensure that there's no more connections in the input chain
         if disconnect_attr:
@@ -747,11 +701,7 @@ class Module(object):
         if not isinstance(inst, cls):
             old_shapes = None
             if inst is not None:
-                self.warning(
-                    "Unexpected ctrl type. Expected {0}, got {1}. Ctrl will be recreated.".format(
-                        cls, type(inst)
-                    )
-                )
+                self.log.warning("Unexpected ctrl type. Expected %s, got %s. Ctrl will be recreated.", cls, type(inst))
                 old_shapes = inst.shapes if hasattr(inst, "shapes") else None
 
             result = cls()

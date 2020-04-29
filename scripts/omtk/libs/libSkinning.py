@@ -47,25 +47,22 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
         obj, pymel.nodetypes.SkinCluster
     ):
         raise IOError(
-            "Unsupported geometry. Expected Mesh or SkinCluster, got {0}".format(
-                type(obj)
-            )
+            "Unsupported geometry. Expected Mesh or SkinCluster, got %s" % type(obj)
         )
 
     # Resolve skinCluster
     skinCluster = get_skin_cluster(obj)
     if skinCluster is None:
-        raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
+        raise Exception("Can't find skinCluster on %s" % obj.__melobject__())
 
     # Resolve influence indices
     influence_jnts = get_skin_cluster_influence_objects(skinCluster)
 
     # Add target if missing, otherwise thrown an error.
     if target not in influence_jnts:
-        print (
-            "Can't find target {0} in skinCluster {1}".format(
-                target.name(), skinCluster.name()
-            )
+        log.warning(
+            "Can't find target %s in skinCluster %s",
+            target.name(), skinCluster.name()
         )
         skinCluster.addInfluence(target, weight=0)
         influence_jnts.append(target)
@@ -74,7 +71,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
     sources = filter(lambda jnt: jnt in influence_jnts, sources)
 
     if not sources:
-        print "Abording transfering on {0}, nothing to transfer".format(obj.name())
+        log.warning("Abording transfering on %s, nothing to transfer", obj.name())
         return
 
     num_jnts = len(influence_jnts)
@@ -108,9 +105,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
         )
         if new_obj is None:
             pymel.warning(
-                "Can't transfert weights. No geometry found affected by {0}.".format(
-                    obj
-                )
+                "Can't transfert weights. No geometry found affected by %s." % obj
             )
             return
         obj = new_obj
@@ -235,7 +230,7 @@ def _get_point_weights_from_segments_weights(
             for weight_inn, weight_out in zip(point_weights_inn, point_weights_out)
         ]
     else:
-        raise Exception("Unexpected interpolation method {}".format(interp))
+        raise Exception("Unexpected interpolation method %s" % interp)
     return point_weights
 
 
@@ -254,7 +249,7 @@ def transfer_weights_from_segments(
     # Resolve skinCluster
     skinCluster = get_skin_cluster(obj)
     if skinCluster is None:
-        raise Exception("Can't find skinCluster on {0}".format(obj.__melobject__()))
+        raise Exception("Can't find skinCluster on %s" % obj.__melobject__())
 
     # Resolve source indices
     influence_objects = get_skin_cluster_influence_objects(skinCluster)
@@ -262,7 +257,7 @@ def transfer_weights_from_segments(
         jnt_src_index = influence_objects.index(source)
     except ValueError:
         pymel.warning(
-            "Can't transfer weights from segments in {0}, source {1} is missing from skinCluster.".format(
+            "Can't transfer weights from segments in %s, source %s is missing from skinCluster." % (
                 obj.__melobject__(), source.__melobject__()
             )
         )
@@ -272,9 +267,7 @@ def transfer_weights_from_segments(
     targets = [target for target in targets if target in influence_objects]
     if not targets:
         pymel.warning(
-            "Can't transfer weights from segments in {0}, no targets found in skinCluster.".format(
-                obj.__melobject__()
-            )
+            "Can't transfer weights from segments in %s, no targets found in skinCluster." % obj.__melobject__()
         )
         return False
     jnt_dst_indexes = [influence_objects.index(target) for target in targets]
@@ -284,7 +277,7 @@ def transfer_weights_from_segments(
         component = pymel.api.toComponentMObject(geometryDagPath)
     except RuntimeError, e:
         pymel.warning(
-            "Cannot access component for {0}. Is the shape empty?".format(obj)
+            "Cannot access component for %s. Is the shape empty?" % obj
         )
         return False
 
@@ -395,7 +388,7 @@ def assign_weights_from_segments(shape, jnts, dropoff=1.5, interp=INTERP_CUBIC):
     # Resolve skinCluster
     skinCluster = get_skin_cluster(shape)
     if skinCluster is None:
-        raise Exception("Can't find skinCluster on {0}".format(shape.__melobject__()))
+        raise Exception("Can't find skinCluster on %s" % shape.__melobject__())
 
     # Resolve influence indices
     influence_objects = get_skin_cluster_influence_objects(skinCluster)

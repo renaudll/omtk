@@ -130,7 +130,7 @@ class CtrlModelCalibratable(BaseCtrlModel):
         tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
         ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
-        ctrl_shape_orig.rename("{0}Orig".format(ctrl_shape.name()))
+        ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
         for cp in ctrl_shape.cp:
@@ -195,34 +195,28 @@ class CtrlModelCalibratable(BaseCtrlModel):
     def calibrate(self, tx=True, ty=True, tz=True):
         ref = self._get_calibration_reference()
         if not ref:
-            self.warning("Can't calibrate {0}, found no influences.".format(self))
+            self.log.warning("Can't calibrate %s, found no influences.", self)
             return
 
         if tx and not self.ctrl.node.tx.isLocked():
             sensitivity_tx = libRigging.calibrate_attr_using_translation(
                 self.ctrl.node.tx, ref
             )
-            self.debug(
-                "Adjusting sensibility tx for {0} to {1}".format(self, sensitivity_tx)
-            )
+            self.log.debug("Adjusting sensibility tx for %s to %s", self, sensitivity_tx)
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.ctrl.node.ty.isLocked():
             sensitivity_ty = libRigging.calibrate_attr_using_translation(
                 self.ctrl.node.ty, ref
             )
-            self.debug(
-                "Adjusting sensibility ty for {0} to {1}".format(self, sensitivity_ty)
-            )
+            self.log.debug("Adjusting sensibility ty for %s to %s", self, sensitivity_ty)
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.ctrl.node.tz.isLocked():
             sensitivity_tz = libRigging.calibrate_attr_using_translation(
                 self.ctrl.node.tz, ref
             )
-            self.debug(
-                "Adjusting sensibility tz for {0} to {1}".format(self, sensitivity_tz)
-            )
+            self.log.debug("Adjusting sensibility tz for %s to %s", self, sensitivity_tz)
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
     def unbuild(self, **kwargs):

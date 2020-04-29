@@ -59,11 +59,11 @@ class Neck(rigFK.FK):
         num_jnts = len(self.jnts)
 
         if num_jnts != 1:
-            raise Exception("Expected only one influences, got {}".format(num_jnts))
+            raise Exception("Expected only one influences, got %s" % num_jnts)
 
         head_jnt = self.get_head_jnt()
         if not head_jnt:
-            raise Exception("Cannot resolve Head influence from {}".format(self.jnt))
+            raise Exception("Cannot resolve Head influence from %s" % self.jnt)
 
         return True
 

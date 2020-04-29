@@ -212,7 +212,7 @@ class Tree(object):
         tree.parent = self
 
     def __repr__(self):
-        return "<Tree {0}>".format(self.val)
+        return "<Tree %s>" % self.val
 
 
 def get_tree_from_objs(objs, sort=False):
@@ -401,7 +401,7 @@ class SegmentCollection(object):
                 i == (num_segments - 1) and distance_normalized > bound_max
             ):  # Handle out-of-bound
                 return segment, 1.0
-        raise Exception("Can't resolve segment for {0}".format(pos))
+        raise Exception("Can't resolve segment for %s" % pos)
 
     def closest_segment_index(self, pos):
         closest_segment, ratio = self.closest_segment(pos)

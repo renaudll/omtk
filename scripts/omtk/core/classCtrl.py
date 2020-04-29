@@ -350,9 +350,7 @@ class BaseCtrl(Node):
         """
         if not libPymel.is_valid_PyNode(self.node):
             raise Exception(
-                "Can't hold ctrl attribute! Some information may be lost... {0}".format(
-                    self.node
-                )
+                "Can't hold ctrl attribute! Some information may be lost... %s" % self.node
             )
         else:
             self.rotateOrder = self.node.rotateOrder.get()
@@ -382,9 +380,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute, node will be parented instead".format(
-                self
-            )
+            log.info("[setParent] %s don't have an offset attribute, node will be parented instead", self)
             return self.node.setParent(*args, **kwargs)
         return self.offset.setParent(*args, **kwargs)
 
@@ -394,7 +390,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            log.info("[setMatrix] %s don't have an offset attribute", self)
         return self.offset.setMatrix(*args, **kwargs)
 
     def setTranslation(self, *args, **kwargs):
@@ -403,7 +399,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            log.info("[setTranslation] %s don't have an offset attribute", self)
         return self.offset.setTranslation(*args, **kwargs)
 
     def setRotation(self, *args, **kwargs):
@@ -412,7 +408,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            log.info("[setRotation] %s don't have an offset attribute", self)
         return self.offset.setRotation(*args, **kwargs)
 
     def hold_attrs_all(self):
@@ -521,10 +517,9 @@ class BaseCtrl(Node):
             module, parent, add_world=add_world, add_local=add_local
         )
         if not targets:
-            module.warning(
-                "Can't add space switch on {0}. No targets found!".format(
-                    self.node.__melobject__()
-                )
+            module.log.warning(
+                "Can't add space switch on %s. No targets found!",
+                self.node.__melobject__()
             )
             return
 
@@ -579,8 +574,8 @@ class BaseCtrl(Node):
                 self.targets.append(target)
                 if indexes[i] in self.targets_indexes:
                     log.warning(
-                        "Index ({0}) is already used for space switch on ctrl {1}. "
-                        "Strange behavior could happen".format(indexes[i], self.name())
+                        "Index (%s) is already used for space switch on ctrl %s. Strange behavior could happen",
+                        indexes[i], self.name()
                     )
                 self.targets_indexes.append(indexes[i])
 
@@ -715,10 +710,8 @@ class BaseCtrl(Node):
         for i, t in reversed(list(enumerate(targets))):
             if t is None:
                 log.warning(
-                    "Space switch index {0} target is None on {1}, "
-                    "maybe a manual connection will be needed".format(
-                        indexes[i], self.name
-                    )
+                    "Space switch index %s target is None on %s, maybe a manual connection will be needed",
+                    indexes[i], self.name
                 )
                 targets.pop(i)
                 target_names.pop(i)

@@ -134,7 +134,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def _refresh_ui_modules_visibility(self, query_regex=None):
         if query_regex is None:
             query_raw = self.ui.lineEdit_search.text()
-            query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
+            query_regex = ".*%s.*" % query_raw if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
             # Always shows non-module
@@ -168,18 +168,18 @@ class WidgetListModules(QtWidgets.QWidget):
                 data.validate()
             else:
                 raise Exception(
-                    "Unexpected datatype {0} for {1}".format(type(data), data)
+                    "Unexpected datatype %s for %s" % (type(data), data)
                 )
         except Exception, e:
             if verbose:
                 validate_message = str(e)
-                pymel.warning("{0} failed validation: {1}".format(data, str(e)))
+                pymel.warning("%s failed validation: %s" % (data, str(e)))
             return False, validate_message
         return True, validate_message
 
     def _build_module(self, module):
         if module.locked:
-            pymel.warning("Can't build locked module {0}".format(module))
+            pymel.warning("Can't build locked module %s" % module)
             return
 
         self._rig.build([module])
@@ -188,7 +188,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _unbuild_module(self, module):
         if module.locked:
-            pymel.warning("Can't unbuild locked module {0}".format(module))
+            pymel.warning("Can't unbuild locked module %s" % module)
             return
 
         module.unbuild()
@@ -197,7 +197,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _build(self, val, update=True):
         if val.is_built():
-            pymel.warning("Can't build {0}, already built.".format(val))
+            pymel.warning("Can't build %s, already built." % val)
             return
 
         try:
@@ -207,14 +207,10 @@ class WidgetListModules(QtWidgets.QWidget):
                 val.build()
             else:
                 raise Exception(
-                    "Unexpected datatype {0} for {1}".format(type(val), val)
+                    "Unexpected datatype %s for %s" % (type(val), val)
                 )
         except Exception, e:
-            log.error(
-                "Error building {0}. Received {1}. {2}".format(
-                    val, type(e).__name__, str(e).strip()
-                )
-            )
+            log.error("Error building %s. Received %s. %s", val, type(e).__name__, str(e).strip())
             traceback.print_exc()
 
         if update:
@@ -222,7 +218,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _unbuild(self, val, update=True):
         if not val.is_built():
-            pymel.warning("Can't unbuild {0}, already unbuilt.".format(val))
+            pymel.warning("Can't unbuild %s, already unbuilt." % val)
             return
 
         try:
@@ -231,15 +227,9 @@ class WidgetListModules(QtWidgets.QWidget):
             elif isinstance(val, classRig.Rig):
                 val.unbuild()
             else:
-                raise Exception(
-                    "Unexpected datatype {0} for {1}".format(type(val), val)
-                )
+                raise Exception("Unexpected datatype %s for %s" % (type(val), val))
         except Exception, e:
-            log.error(
-                "Error building {0}. Received {1}. {2}".format(
-                    val, type(e).__name__, str(e).strip()
-                )
-            )
+            log.error("Error building %s. Received %s. %s", val, type(e).__name__, str(e).strip())
             traceback.print_exc()
 
         if update:
@@ -251,7 +241,7 @@ class WidgetListModules(QtWidgets.QWidget):
         # Add inputs namespace if any for clarity.
         module_namespace = module.get_inputs_namespace()
         if module_namespace:
-            label = "{0}:{1}".format(module_namespace.strip(":"), label)
+            label = "%s:%s" % (module_namespace.strip(":"), label)
 
         if module.locked:
             qitem.setBackground(0, self._color_locked)
@@ -268,7 +258,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 try:
                     module.validate_version(version_major, version_minor, version_patch)
                 except Exception, e:
-                    warning_msg = "v{}.{}.{} is known to have issues and need to be updated: {}".format(
+                    warning_msg = "v%s.%s.%s is known to have issues and need to be updated: %s" % (
                         version_major, version_minor, version_patch, str(e)
                     )
 
@@ -283,7 +273,7 @@ class WidgetListModules(QtWidgets.QWidget):
             can_build, validation_message = self._can_build(module, verbose=True)
             if not can_build:
                 desired_color = self._color_invalid
-                msg = "Validation failed for {0}: {1}".format(
+                msg = "Validation failed for %s: %s" % (
                     module, validation_message
                 )
                 log.warning(msg)
@@ -324,7 +314,7 @@ class WidgetListModules(QtWidgets.QWidget):
         if hasattr(value, "_network"):
             widget.net = value._network
         else:
-            pymel.warning("{0} have no _network attributes".format(value))
+            pymel.warning("%s have no _network attributes" % value)
 
         if isinstance(value, classModule.Module):
             self._update_qitem_module(widget, value)
@@ -531,7 +521,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 continue
 
             # Call fn
-            log.debug("Calling {0} on {1}".format(fn_name, module))
+            log.debug("Calling %s on %s", fn_name, module)
             fn()
             if constants.UIExposeFlags.trigger_network_export in fn._flags:
                 need_export_network = True
@@ -612,11 +602,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 self.deletedRig.emit(rig)
 
             except Exception, e:
-                log.error(
-                    "Error removing {0}. Received {1}. {2}".format(
-                        rig, type(e).__name__, str(e).strip()
-                    )
-                )
+                log.error("Error removing %s. Received %s. %s", rig, type(e).__name__, str(e).strip())
                 traceback.print_exc()
 
         # Remove all selected modules
@@ -627,11 +613,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 module.rig.remove_module(module)
                 need_reexport = True
             except Exception, e:
-                log.error(
-                    "Error removing {0}. Received {1}. {2}".format(
-                        module, type(e).__name__, str(e).strip()
-                    )
-                )
+                log.error("Error removing %s. Received %s. %s", module, type(e).__name__, str(e).strip())
                 traceback.print_exc()
 
         if need_reexport:

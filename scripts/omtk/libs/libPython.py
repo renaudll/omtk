@@ -74,9 +74,9 @@ class cached_property(object):
             cache[self.__name__] = self.fget(inst)
             et = time.time() - st
             if (et - st) > 1:  # 1 second
-                print "[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}".format(
+                logging.info("[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}".format(
                     et, inst.__class__.__name__, self.__name__
-                )
+                ))
 
         return cache[self.__name__]
 

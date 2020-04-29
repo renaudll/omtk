@@ -84,9 +84,7 @@ class Hand(Module):
             chain_length = len(chain)
             if chain_length > 5:
                 raise Exception(
-                    "Unsupported chain length for {0}. Expected 4 or less, got {1}".format(
-                        chain, chain_length
-                    )
+                    "Unsupported chain length for %s. Expected 4 or less, got %s" % (chain, chain_length)
                 )
 
     def build(self, *args, **kwargs):

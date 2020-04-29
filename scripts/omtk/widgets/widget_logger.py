@@ -84,7 +84,7 @@ class UiLoggerModel(QtCore.QAbstractTableModel):
         elif col_index == self.ROW_DATE:
             return str(datetime.datetime.fromtimestamp(record.created))
         else:
-            Exception("Unexpected row. Expected 0 or 1, got {0}".format(col_index))
+            Exception("Unexpected row. Expected 0 or 1, got %s" % col_index)
 
     def headerData(self, col, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
@@ -247,7 +247,7 @@ class WidgetLogger(QtWidgets.QWidget):
             # Write content
             for record in self._logging_records:
                 fp.write(
-                    "{0},{1},{2}\n".format(
+                    "%s,%s,%s\n" % (
                         str(datetime.datetime.fromtimestamp(record.created)),
                         log_level_to_str(record.levelno),
                         record.message,
@@ -257,10 +257,10 @@ class WidgetLogger(QtWidgets.QWidget):
     def on_log_save(self):
         default_name = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm%S")
         if self.root:
-            default_name = "{0}_{1}".format(default_name, self.root.name)
+            default_name = "%s_%s" % (default_name, self.root.name)
 
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save logs", "{0}.log".format(default_name), ".log"
+            self, "Save logs", "%s.log" % default_name, ".log"
         )
         if path:
             self._save_logs(path)

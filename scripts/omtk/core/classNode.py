@@ -26,7 +26,7 @@ class Node(object):
             and not self.__dict__["node"] is None
         ):
             raise TypeError(
-                "RigNode 'node' attribute should be a PyNode, got {0} ({1})".format(
+                "RigNode 'node' attribute should be a PyNode, got %s (%s)" % (
                     type(self.__dict__["node"]), self.__dict__["node"]
                 )
             )
@@ -60,7 +60,7 @@ class Node(object):
             self._network_name = (
                 self.stripNamespace().nodeName()
             )  # .name() can return full dagpath, cause warnings
-        return "net_{0}_{1}".format(self.__class__.__name__.lower(), self._network_name)
+        return "net_%s_%s" % (self.__class__.__name__.lower(), self._network_name)
 
     def exists(self):
         if self.node is None:

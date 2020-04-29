@@ -59,7 +59,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         :return: The ctrl transformation.
         """
         if self.jnt is None:
-            self.warning("Cannot resolve ctrl matrix with no inputs!")
+            self.log.warning("Cannot resolve ctrl matrix with no inputs!")
             return None
 
         tm = self.jnt.getMatrix(worldSpace=True)
@@ -169,7 +169,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             )
 
             if obj_mesh is None and follow_mesh:
-                raise Exception("Can't find mesh affected by {0}. ".format(self.jnt))
+                raise Exception("Can't find mesh affected by %s." % self.jnt)
 
         else:
             _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
@@ -181,13 +181,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             v_coord = out_v
 
         if self.jnt:
-            self.debug(
-                "Creating doritos on {0} using {1} as reference".format(
-                    obj_mesh, self.jnt
-                )
-            )
+            self.log.debug("Creating doritos on %s using %s as reference", obj_mesh, self.jnt)
         else:
-            self.debug("Creating doritos on {0}".format(obj_mesh))
+            self.log.debug("Creating doritos on %s", obj_mesh)
 
         # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
@@ -199,7 +195,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
         ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
-        ctrl_shape_orig.rename("{0}Orig".format(ctrl_shape.name()))
+        ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
 
@@ -373,23 +369,19 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             # Resolve orig shape
             shape_orig = get_orig_shape(shape)
             if not shape_orig:
-                self.warning("Skipping {}. Cannot find orig shape.".format(shape))
+                self.log.warning("Skipping %s. Cannot find orig shape.", shape)
                 continue
 
             # Resolve compensation matrix
             util_transform_geometry = get_transformGeometry(shape)
             if not util_transform_geometry:
-                self.warning(
-                    "Skipping {}. Cannot find transformGeometry.".format(shape)
-                )
+                self.log.warning("Skipping %s. Cannot find transformGeometry.", shape)
                 continue
             attr_compensation_tm = next(
                 iter(util_transform_geometry.transform.inputs(plugs=True)), None
             )
             if not attr_compensation_tm:
-                self.warning(
-                    "Skipping {}. Cannot find compensation matrix.".format(shape)
-                )
+                self.log.warning("Skipping %s. Cannot find compensation matrix.", shape)
                 continue
 
             tmp_shape = pymel.createNode("nurbsCurve")
@@ -460,7 +452,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             influence = self.folliclePos
             fnCalibrate = libRigging.calibrate_attr_using_translation_attribute
         else:
-            self.warning("Can't calibrate {0}, found no influences.".format(self))
+            self.log.warning("Can't calibrate %s, found no influences.", self)
             return
 
         self._fix_ctrl_shape()
@@ -474,8 +466,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             if not enabled or callibration_attr.isLocked():
                 continue
             sensitivity = fnCalibrate(callibration_attr, influence)
-            self.debug(
-                "Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst
-            )
+            self.log.debug("Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst)
             attr_dst.set(sensitivity)
 

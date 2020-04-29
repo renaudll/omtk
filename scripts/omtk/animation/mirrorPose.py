@@ -41,7 +41,7 @@ def mirror_matrix_axis(m, axis):
             [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], m_flip
         )
     else:
-        raise Exception("Unsupported axis. Got {0}".format(axis))
+        raise Exception("Unsupported axis. Got  %s" % axis)
     m = m * m_flip
     return m
 
@@ -56,7 +56,7 @@ def flip_matrix_axis_pos(m, axis):
     elif axis == constants.Axis.z:
         data[14] *= -1.0
     else:
-        raise Exception("Unsupported axis. Got {0}".format(axis))
+        raise Exception("Unsupported axis. Got  %s" % axis)
 
     OpenMaya.MScriptUtil.createMatrixFromList(data, m)
     return m
@@ -84,7 +84,7 @@ def flip_matrix_axis_rot(m, axis):
         data[9] *= -1.0
         data[10] *= -1.0
     else:
-        raise Exception("Unsupported axis. Got {0}".format(axis))
+        raise Exception("Unsupported axis. Got  %s" % axis)
 
     OpenMaya.MScriptUtil.createMatrixFromList(data, m)
     return m
@@ -116,11 +116,11 @@ def get_ctrl_friend(obj_src):
     obj_dst_name = get_name_friend(obj_src_name)
 
     if obj_dst_name is None:
-        print("Can't find ctrl friend of {0}".format(obj_src_name))
+        print("Can't find ctrl friend of  %s" % obj_src_name)
         return None
 
     if not cmds.objExists(obj_dst_name):
-        print("Can't find ctrl named {0}".format(obj_dst_name))
+        print("Can't find ctrl named  %s" % obj_dst_name)
         return None
 
     return pymel.PyNode(obj_dst_name)
@@ -205,7 +205,7 @@ def get_obj_mirror_def(obj):
             print(str(e))
 
     # If we cannot resolve the ctrl data, take a guess?
-    pymel.warning("Can't resolve mirror data for {0}".format(obj))
+    pymel.warning("Can't resolve mirror data for  %s" % obj)
 
 
 # @libPython.profiler

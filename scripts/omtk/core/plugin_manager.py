@@ -43,9 +43,7 @@ class Plugin(object):
         self.description = None
 
         # Resolve full module path
-        module_path = "{0}.{1}.{2}".format(
-            self.root_package_name, self.type_name, self.module_name
-        )
+        module_path = "%s.%s.%s" % (self.root_package_name, self.type_name, self.module_name)
 
         try:
             # Load module using import_module before using pkgutil
@@ -55,9 +53,9 @@ class Plugin(object):
             self.module = sys.modules.get(module_path, None)
             if self.module is None or force:
                 if force:
-                    log.debug("Reloading module {0}".format(module_path))
+                    log.debug("Reloading module %s", module_path)
                 else:
-                    log.debug("Loading module {0}".format(module_path))
+                    log.debug("Loading module %s", module_path)
 
                 self.module = pkgutil.get_loader(module_path).load_module(module_path)
 
@@ -66,9 +64,7 @@ class Plugin(object):
                 self.module.register_plugin, "__call__"
             ):
                 raise Exception(
-                    "Cannot register plugin {0}. No register_plugin function found!".format(
-                        self.module_name
-                    )
+                    "Cannot register plugin %s. No register_plugin function found!" % self.module.name
                 )
 
             # Get module class
@@ -83,11 +79,7 @@ class Plugin(object):
         except Exception, e:
             self.status = PluginStatus.Failed
             self.description = str(e)
-            log.warning(
-                "Plugin {0} failed to load! {0}".format(
-                    self.module_name, self.description
-                )
-            )
+            log.warning("Plugin %s failed to load! %s", self.module_name, self.description)
 
     @classmethod
     def from_module(cls, name, type_name):
@@ -105,7 +97,7 @@ class Plugin(object):
             item_module = item
         else:
             raise NotImplementedError(
-                "Unexpected type {0} for value {1}.".format(type(item), item)
+                "Unexpected type %s for value %s." % (type(item), item)
             )
 
         # If there's no associated module, we deduct that it cannot be contained.
@@ -135,7 +127,7 @@ class Plugin(object):
         return cmp(self.module_name, other.name)
 
     def __repr__(self):
-        return '<Plugin "{0}">'.format(self.module_name)
+        return '<Plugin "%s">' % self.module_name
 
 
 class PluginType(object):

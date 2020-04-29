@@ -63,7 +63,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         :return: The ctrl transformation.
         """
         if self.jnt is None:
-            self.warning("Cannot resolve ctrl matrix with no inputs!")
+            self.log.warning("Cannot resolve ctrl matrix with no inputs!")
             return None
 
         tm = self.jnt.getMatrix(worldSpace=True)
@@ -337,7 +337,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
         ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
-        ctrl_shape_orig.rename("{0}Orig".format(ctrl_shape.name()))
+        ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
 
@@ -513,23 +513,19 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             # Resolve orig shape
             shape_orig = get_orig_shape(shape)
             if not shape_orig:
-                self.warning("Skipping {}. Cannot find orig shape.".format(shape))
+                self.log.warning("Skipping %s. Cannot find orig shape.". shape)
                 continue
 
             # Resolve compensation matrix
             util_transform_geometry = get_transformGeometry(shape)
             if not util_transform_geometry:
-                self.warning(
-                    "Skipping {}. Cannot find transformGeometry.".format(shape)
-                )
+                self.log.warning("Skipping %s. Cannot find transformGeometry.", shape)
                 continue
             attr_compensation_tm = next(
                 iter(util_transform_geometry.transform.inputs(plugs=True)), None
             )
             if not attr_compensation_tm:
-                self.warning(
-                    "Skipping {}. Cannot find compensation matrix.".format(shape)
-                )
+                self.log.warning("Skipping %s. Cannot find compensation matrix.", shape)
                 continue
 
             tmp_shape = pymel.createNode("nurbsCurve")
@@ -593,7 +589,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         # TODO: use correct logger
         influence = self.follicle
         if not influence:
-            self.warning("Can't calibrate {0}, found no influences.".format(self))
+            self.log.warning("Can't calibrate %s, found no influences.", self)
             return
 
         self._fix_ctrl_shape()
@@ -615,21 +611,15 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
         if tx and not self.ctrl.node.tx.isLocked():
             calib_val = _routine(self.ctrl.node.tx, influence)
-            self.debug(
-                "Adjusting sensibility tx for {0} to {1}".format(self, calib_val)
-            )
+            self.log.debug("Adjusting sensibility tx for %s to %s", self, calib_val)
             self.attr_sensitivity_tx.set(calib_val)
 
         if ty and not self.ctrl.node.ty.isLocked():
             calib_val = _routine(self.ctrl.node.ty, influence)
-            self.debug(
-                "Adjusting sensibility ty for {0} to {1}".format(self, calib_val)
-            )
+            self.log.debug("Adjusting sensibility ty for %s to %s", self, calib_val)
             self.attr_sensitivity_ty.set(calib_val)
 
         if tz and not self.ctrl.node.tz.isLocked():
             calib_val = _routine(self.ctrl.node.tz, influence)
-            self.debug(
-                "Adjusting sensibility tz for {0} to {1}".format(self, calib_val)
-            )
+            self.log.debug("Adjusting sensibility tz for %s to %s", self, calib_val)
             self.attr_sensitivity_tz.set(calib_val)

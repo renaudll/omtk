@@ -43,30 +43,6 @@ def open_scene(path_local):
         return f_open
     return deco_open
 
-
-def save_on_assert():
-    """
-    Backup the current scene if an exception is raise. Let the exception propagate afteward.
-    """
-    def deco(f):
-        try:
-            f()
-        except Exception:
-            current_path = cmds.file(q=True, sn=True)
-            if current_path:
-                dirname = os.path.dirname(current_path)
-                basename = os.path.basename(current_path)
-                filename, ext = os.path.splitext(basename)
-
-                timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
-                destination_path = os.path.join(dirname, '{}_{}{}'.format(filename, timestamp, ext))
-                print("Saving scene to {}".format(destination_path))
-                cmds.file(rename=destination_path)
-                cmds.file(save=True, type='mayaAscii')
-            raise
-
-    return deco
-
 def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0):
     """
     Compare two pymel.datatypes.Matrix and assert if they are too far away.
@@ -91,11 +67,11 @@ def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0)
         b_axis.normalize()
         diff = abs(1.0 - a_axis.dot(b_axis))
         if diff > r_epsilon:
-            raise Exception("{} != {} (dot product {} > epsilon {})".format(a_axis, b_axis, diff, r_epsilon))
+            raise Exception("%s != %s (dot product %s > epsilon %s)" % (a_axis, b_axis, diff, r_epsilon))
     # Compare position
     distance = a_pos.distanceTo(b_pos)
     if distance > t_epsilon:
-       raise Exception("{} != {} (distance {} > epsilon {})".format(a_pos, b_pos, distance, t_epsilon))
+       raise Exception("%s != %s (distance %s > epsilon %s)" % (a_pos, b_pos, distance, t_epsilon))
 
 
 @contextmanager
@@ -119,7 +95,7 @@ def verified_offset(objs, offset_tm, **kwargs):
         try:
             assertMatrixAlmostEqual(new_tm, desired_tm, **kwargs)
         except Exception, e:
-            raise Exception("Invalid transform for {}. {}".format(obj, e))
+            raise Exception("Invalid transform for %s. %s" % (obj, e))
 
 
 def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.datatypes.Vector(1, 0, 0), test_rotate=True, test_scale=True, test_scale_value=2.0):

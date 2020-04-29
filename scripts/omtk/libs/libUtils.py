@@ -37,7 +37,7 @@ def get_center(objs):
             count += 1
         else:
             logging.warning(
-                "Unsupported data type ({0}), will be skipped".format(type(obj))
+                "Unsupported data type (%s), will be skipped", type(obj)
             )
     if count != 0:
         pos /= count

@@ -49,9 +49,7 @@ class Twistbone(Module):
         """
         if len(self.chain_jnt) < 2:
             raise Exception(
-                "Invalid input count. Expected 2, got {0}. {1}".format(
-                    len(self.chain_jnt), self.chain_jnt
-                )
+                "Invalid input count. Expected 2, got %s. %s" % (len(self.chain_jnt), self.chain_jnt)
             )
 
         # Support some properties that could be redefined at build time

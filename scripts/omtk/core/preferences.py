@@ -65,7 +65,7 @@ class Preferences(object):
             ):
                 if plugin.cls.__name__ == default_rig:
                     return plugin.cls
-            log.warning("Can't find default rig type {0}.".format(default_rig))
+            log.warning("Can't find default rig type %s.", default_rig)
 
         # If no match is found, return the base implementation
         from omtk.core import classRig

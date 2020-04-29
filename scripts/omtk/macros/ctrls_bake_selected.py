@@ -44,19 +44,19 @@ def _fix_ctrl_shape(ctrl):
         # Resolve orig shape
         shape_orig = get_orig_shape(shape)
         if not shape_orig:
-            pymel.warning("Skipping {}. Cannot find orig shape.".format(shape))
+            pymel.warning("Skipping %s. Cannot find orig shape." % shape)
             continue
 
         # Resolve compensation matrix
         util_transform_geometry = get_transformGeometry(shape)
         if not util_transform_geometry:
-            pymel.warning("Skipping {}. Cannot find transformGeometry.".format(shape))
+            pymel.warning("Skipping %s. Cannot find transformGeometry." % shape)
             continue
         attr_compensation_tm = next(
             iter(util_transform_geometry.transform.inputs(plugs=True)), None
         )
         if not attr_compensation_tm:
-            pymel.warning("Skipping {}. Cannot find compensation matrix.".format(shape))
+            pymel.warning("Skipping %s. Cannot find compensation matrix." % shape)
             continue
 
         tmp_shape = pymel.createNode("nurbsCurve")

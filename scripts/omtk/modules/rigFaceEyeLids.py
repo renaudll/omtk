@@ -62,11 +62,11 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
 
         # Create surfaces if they were not provided
         if self.surface_upp is None:
-            pymel.warning("Can't find surface for {0}, creating one.".format(self))
+            pymel.warning("Can't find surface for %s, creating one." % self)
             self.surface_upp = self.create_surface(name="SurfaceUpp")
 
         if self.surface_low is None:
-            pymel.warning("Can't find surface for {0}, creating one.".format(self))
+            pymel.warning("Can't find surface for %s, creating one." % self)
             self.surface_low = self.create_surface(name="SurfaceLow")
 
         # We still provide the surface property in case we need a controller to be connected directly to it.

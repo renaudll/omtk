@@ -153,7 +153,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 version_major, version_minor, version_patch = jaw_module.get_version()
                 if version_major == 0 and version_minor == 4 and version_patch < 18:
                     raise Exception(
-                        "Associated Jaw module version is too low. Expected 0.4.18+, got {}.{}.{}".format(
+                        "Associated Jaw module version is too low. Expected 0.4.18+, got %s.%s.%s" % (
                             version_major, version_minor, version_patch
                         )
                     )
@@ -328,12 +328,12 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             # Resolve the head influence
             jnt_head = self.get_head_jnt()
             if not jnt_head:
-                self.error("Failed parenting avars, no head influence found!")
+                self.log.error("Failed parenting avars, no head influence found!")
                 return
 
             jnt_jaw = self.get_jaw_jnt()
             if not jnt_jaw:
-                self.error("Failed parenting avars, no jaw influence found!")
+                self.log.error("Failed parenting avars, no jaw influence found!")
                 return
 
             min_x, max_x = self._get_mouth_width()

@@ -294,7 +294,7 @@ class AbstractAvar(classModule.Module):
         This prevent Maya from deleting our connection when unbuilding.
         """
         if self.grp_rig is None or not self.grp_rig.exists():
-            self.warning("Can't hold avars, invalid grp_rig in {0}!".format(self))
+            self.log.warning("Can't hold avars, invalid grp_rig in %s!", self)
             return
 
         self.avar_network = pymel.createNode(
@@ -325,11 +325,7 @@ class AbstractAvar(classModule.Module):
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                self.debug(
-                    "Cannot hold missing attribute {0} in {1}".format(
-                        attr_name, self.grp_rig
-                    )
-                )
+                self.log.debug("Cannot hold missing attribute %s in %s", attr_name, self.grp_rig)
                 continue
 
             # attr_name = attr.longName()
@@ -358,7 +354,7 @@ class AbstractAvar(classModule.Module):
             for attr_name in pymel.listAttr(self.avar_network, userDefined=True):
                 attr_src = self.avar_network.attr(attr_name)
                 if not self.grp_rig.hasAttr(attr_name):
-                    self.warning("Can't fetch stored avar named {0}!".format(attr_name))
+                    self.log.warning("Can't fetch stored avar named %s!", attr_name)
                     continue
                 attr_dst = self.grp_rig.attr(attr_name)
                 libAttr.transfer_connections(attr_src, attr_dst)
@@ -481,9 +477,7 @@ class AbstractAvar(classModule.Module):
         length_x = max_x - min_x
         if len(self.jnts) <= 1 or length_x < epsilon:
             log.debug(
-                "Cannot automatically resolve scale for surface. Using default value {0}".format(
-                    default_scale
-                )
+                "Cannot automatically resolve scale for surface. Using default value %s", default_scale
             )
             length_x = default_scale
 
@@ -824,14 +818,14 @@ class AvarSimple(AbstractAvar):
                 attr = self.jnt.attr(attr_name)
                 if attr.isDestination():
                     log.warning(
-                        "{0}.{1} need to be connected but already have connections. Connection broken.".format(
-                            self.jnt.nodeName(), attr_name
-                        )
+                        "%s.%s need to be connected but already have connections. Connection broken.",
+                        self.jnt.nodeName(), attr_name
                     )
                     pymel.disconnectAttr(attr.inputs(plugs=True)[0], attr)
                 if attr.isLocked():
                     log.warning(
-                        "{0}.{1} need to be connected but was locked. Lock removed."
+                        "%s.%s need to be connected but was locked. Lock removed.",
+                        self.jnt.nodeName(), attr_name
                     )
                     attr.unlock()
 
@@ -964,7 +958,7 @@ class AvarSimple(AbstractAvar):
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
         if not self.ctrl:
-            self.warning("Can't calibrate, found no ctrl for {0}".format(self))
+            self.log.warning("Can't calibrate, found no ctrl for %s", self)
             return False
 
         if self.model_ctrl and hasattr(self.model_ctrl, "calibrate"):

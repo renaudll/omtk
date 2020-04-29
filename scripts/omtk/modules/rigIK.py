@@ -17,7 +17,7 @@ def _get_vector_from_axis(axis):
         return pymel.datatypes.Vector.yAxis
     if axis == constants.Axis.z:
         return pymel.datatypes.Vector.zAxis
-    raise IOError("Unexpected constant. Expected X, Y, or Z. Got {}".format(axis))
+    raise IOError("Unexpected constant. Expected X, Y, or Z. Got %s" % axis)
 
 
 class CtrlIk(BaseCtrl):

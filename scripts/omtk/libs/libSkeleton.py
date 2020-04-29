@@ -51,9 +51,7 @@ def transfer_rotation_to_joint_orient(obj):
         or is_attr_accessible(obj.rotateZ)
     ):
         pymel.warning(
-            "Can't transfer rotation to joint orient. {0} rotation is locked.".format(
-                obj.name()
-            )
+            "Can't transfer rotation to joint orient. %s rotation is locked." % obj.name()
         )
         return
 
@@ -63,9 +61,7 @@ def transfer_rotation_to_joint_orient(obj):
         or is_attr_accessible(obj.jointOrientZ)
     ):
         pymel.warning(
-            "Can't transfer rotation to joint orient. {0} jointOrient is locked.".format(
-                obj.name()
-            )
+            "Can't transfer rotation to joint orient. %r jointOrient is locked." % obj.name()
         )
         return
 
@@ -119,7 +115,7 @@ def freeze_selected_joints_rotation():
     jnts = [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
     for jnt in jnts:
         if not isinstance(jnt, pymel.nodetypes.Joint):
-            pymel.warning("Skipping non-joint {0}".format(jnt))
+            pymel.warning("Skipping non-joint %s" % jnt)
             continue
 
         transfer_rotation_to_joint_orient(jnt)

@@ -106,7 +106,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:
             query_raw = self.ui.lineEdit_search.text()
-            query_regex = ".*{0}.*".format(query_raw) if query_raw else ".*"
+            query_regex = ".*%s.*" % query_raw if query_raw else ".*"
 
         unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
         selectableBrush = QtGui.QBrush(QtCore.Qt.white)

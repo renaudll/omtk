@@ -90,10 +90,7 @@ class Ribbon(Module):
         nomenclature_rig = self.get_nomenclature_rig()
         fol_v = 0.5  # Always in the center
 
-        # split_value = 1.0 / (len(self.chain_jnt) - 1)
-
         for i, jnt in enumerate(self.chain_jnt):
-            # fol_u = split_value * i
             # TODO: Validate that we don't need to inverse the rotation separately.
             jnt_pos = jnt.getMatrix(worldSpace=True).translate
             pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(

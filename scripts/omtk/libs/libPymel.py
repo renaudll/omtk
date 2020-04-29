@@ -113,7 +113,7 @@ class PyNodeChain(list):
     # get the first pynode that have the attr
     def __getattr__(self, key):
         logging.warning(
-            "Searching unknow attribute {key} in {self}", key=key, self=self
+            "Searching unknown attribute {key} in {self}", key=key, self=self
         )
         first_node = next(
             (node for node in self.__dict__["_list"] if hasattr(node, key)), None
@@ -335,9 +335,6 @@ class Segment(object):
         self.pos_s = pos_s
         self.pos_e = pos_e
 
-        # self.pos_s = numpy.array(pos_s.x, pos_s.y, pos_s.z)
-        # self.pos_e = numpy.array(pos_e.x, pos_e.y, pos_e.z)
-
     def closest_point(self, p):
         """
         http://stackoverflow.com/questions/3120357/get-closest-point-to-a-line
@@ -493,7 +490,7 @@ def makeIdentity_safe(
             libAttr.unlock_scale(obj)
             affected_attrs.extend([obj.scale, obj.scaleX, obj.scaleY, obj.scaleZ])
 
-    # Make identify will faile if attributes are connected...
+    # Make identify will fail if attributes are connected...
     with libAttr.context_disconnected_attrs(
         affected_attrs, hold_inputs=True, hold_outputs=False
     ):

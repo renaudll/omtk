@@ -188,7 +188,6 @@ class ModelCtrlMacroAll(ModelCtrlLinear):
 
     def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
         parent_pos = avar._grp_output
-        # parent_rot = avar._grp_output
         super(ModelCtrlMacroAll, self).build(
             avar, parent_pos=parent_pos, parent_rot=parent_rot, **kwargs
         )
@@ -1336,7 +1335,9 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_l if necessary
             ref_l = self.get_jnt_l_mid()
             if not ref_l:
-                self.log.info("Cannot create macro avar 'L', found no matching influence.")
+                self.log.info(
+                    "Cannot create macro avar 'L', found no matching influence."
+                )
             else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
@@ -1353,7 +1354,6 @@ class AvarGrpOnSurface(AvarGrp):
                     nomenclature.side = nomenclature.SIDE_L
                 avar_macro_l_name = nomenclature.resolve()
 
-                # avar_macro_l_name = 'L_{0}'.format(self.get_module_name())
                 self.avar_l = self._init_avar(
                     self._CLS_AVAR_MACRO,
                     self.avar_l,
@@ -1365,7 +1365,9 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_r if necessary
             ref_r = self.get_jnt_r_mid()
             if not ref_r:
-                self.log.info("Cannot create macro avar 'L', found no matching influence.")
+                self.log.info(
+                    "Cannot create macro avar 'L', found no matching influence."
+                )
             else:
                 # Resolve name
                 nomenclature = self.rig.nomenclature(self.get_module_name())
@@ -1382,7 +1384,6 @@ class AvarGrpOnSurface(AvarGrp):
                     nomenclature.side = nomenclature.SIDE_R
                 avar_macro_r_name = nomenclature.resolve()
 
-                # avar_macro_r_name = 'R_{0}'.format(self.get_module_name())
                 self.avar_r = self._init_avar(
                     self._CLS_AVAR_MACRO,
                     self.avar_r,
@@ -1396,7 +1397,10 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_upp if necessary
             ref_upp = self.get_jnt_upp_mid()
             if not ref_upp:
-                self.log.info("Cannot create macro avar %r', found no matching influence.", self.rig.AVAR_NAME_UPP)
+                self.log.info(
+                    "Cannot create macro avar %r', found no matching influence.",
+                    self.rig.AVAR_NAME_UPP,
+                )
             else:
                 # Resolve avar name
                 avar_upp_name = self.get_nomenclature().resolve(
@@ -1414,7 +1418,10 @@ class AvarGrpOnSurface(AvarGrp):
             # Create avar_low if necessary
             ref_low = self.get_jnt_low_mid()
             if not ref_low:
-                self.log.info("Cannot create macro avar %r', found no matching influence.", self.rig.AVAR_NAME_LOW)
+                self.log.info(
+                    "Cannot create macro avar %r', found no matching influence.",
+                    self.rig.AVAR_NAME_LOW,
+                )
             else:
                 # Resolve avar name
                 avar_low_name = self.get_nomenclature().resolve(
@@ -1453,7 +1460,9 @@ class AvarGrpOnSurface(AvarGrp):
             if old_ref_all != avar_all_ref:
                 self.log.warning(
                     "Unexpected influence for avar %s, expected %s, got %s. Will update the influence.",
-                    self.avar_all.name, avar_all_ref, old_ref_all
+                    self.avar_all.name,
+                    avar_all_ref,
+                    old_ref_all,
                 )
                 self.avar_all.input = [
                     avar_all_ref if inf == old_ref_all else inf
@@ -1616,54 +1625,6 @@ class AvarGrpOnSurface(AvarGrp):
             if self._is_tweak_avar(avar_child):
                 continue
 
-            # # Connect macro_all ctrl to each avar_child.
-            # # Since the movement is 'absolute', we'll only do a simple transform at the beginning of the stack.
-            # # Using the rotate/scalePivot functionality, we are able to save some nodes.
-            # attr_get_pivot_tm = libRigging.create_utility_node(
-            #     'multMatrix',
-            #     matrixIn=(
-            #         self.avar_all._stack.node.worldMatrix,
-            #         avar_child._grp_offset.worldInverseMatrix
-            #     )
-            # ).matrixSum
-            #
-            # layer_parent = avar_child._stack.prepend_layer(name='globalInfluence')
-            # layer_parent.t.set(0, 0, 0)  # Hack: why?
-            #
-            # attr_get_all_stack_tm = libRigging.create_utility_node(
-            #     'multMatrix',
-            #     matrixIn=(
-            #         self.avar_all._stack.node.worldMatrix,
-            #         self.avar_all._grp_offset.inverseMatrix
-            #     )
-            # ).matrixSum
-            #
-            # attr_global_tm = libRigging.create_utility_node(
-            #     'multMatrix',
-            #     matrixIn=(
-            #         avar_child._grp_offset.matrix,
-            #         self.avar_all._grp_offset.inverseMatrix,
-            #         attr_get_all_stack_tm,
-            #         self.avar_all._grp_offset.matrix,
-            #         avar_child._grp_offset.inverseMatrix
-            #     )
-            # ).matrixSum
-            #
-            # util_decompose_global_tm = libRigging.create_utility_node(
-            #     'decomposeMatrix',
-            #     inputMatrix=attr_global_tm
-            # )
-            #
-            # pymel.connectAttr(util_decompose_global_tm.outputTranslateX, layer_parent.tx)
-            # pymel.connectAttr(util_decompose_global_tm.outputTranslateY, layer_parent.ty)
-            # pymel.connectAttr(util_decompose_global_tm.outputTranslateZ, layer_parent.tz)
-            # pymel.connectAttr(util_decompose_global_tm.outputRotateX, layer_parent.rx)
-            # pymel.connectAttr(util_decompose_global_tm.outputRotateY, layer_parent.ry)
-            # pymel.connectAttr(util_decompose_global_tm.outputRotateZ, layer_parent.rz)
-            # pymel.connectAttr(util_decompose_global_tm.outputScaleX, layer_parent.sx)
-            # pymel.connectAttr(util_decompose_global_tm.outputScaleY, layer_parent.sy)
-            # pymel.connectAttr(util_decompose_global_tm.outputScaleZ, layer_parent.sz)
-
     @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):
         """
@@ -1821,8 +1782,6 @@ class AvarGrpOnSurface(AvarGrp):
 
     def _add_macro_all_avar_contribution(self, avar):
         attr_avar_all_stack_result_tm = self.avar_all.model_infl._attr_out_tm
-        # attr_avar_all_offset_tm = self.avar_all._grp_offset.matrix
-        # attr_avar_all_offset_tm_inv = self.avar_all._grp_offset.inverseMatrix
         attr_avar_all_offset_tm = self.avar_all._stack_post.worldMatrix
         attr_avar_all_offset_tm_inv = self.avar_all._stack_post.worldInverseMatrix
         new_layer = avar._stack_post.append_layer(name="macroAvarAll")
@@ -1843,20 +1802,6 @@ class AvarGrpOnSurface(AvarGrp):
         pymel.connectAttr(util_decompose_tm.outputTranslate, new_layer.translate)
         pymel.connectAttr(util_decompose_tm.outputRotate, new_layer.rotate)
         pymel.connectAttr(util_decompose_tm.outputScale, new_layer.scale)
-
-        # u = libRigging.create_utility_node(
-        #     'multMatrix',
-        #     matrixIn=(
-        #         attr_avar_all_offset_tm,
-        #         avar._grp_offset.inverseMatrix
-        #     )
-        # ).matrixSum
-        # u2 = libRigging.create_utility_node(
-        #     'decomposeMatrix',
-        #     inputMatrix=u
-        # )
-        # pymel.connectAttr(u2.outputTranslate, new_layer.rotatePivot)
-        # pymel.connectAttr(u2.outputTranslate, new_layer.scalePivot)
 
     def _create_avar_macro_all_ctrls(
         self, parent_pos=None, parent_rot=None, ctrl_tm=None, **kwargs
@@ -1901,7 +1846,7 @@ class AvarGrpOnSurface(AvarGrp):
             )
 
             self._connect_avar_macro_all()
-            # parent_rot = self.avar_all.model_ctrl._stack.get_stack_end()
+
             parent_rot = self.avar_all._grp_output
             parent_scl = self.avar_all.ctrl
 

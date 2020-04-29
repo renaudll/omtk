@@ -545,9 +545,8 @@ def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
                 )
         else:
             pymel.warning(
-                "Can't proceed with raycast, mesh is invalid: %s" % (
-                    geometry.__melobject__()
-                )
+                "Can't proceed with raycast, mesh is invalid: %s"
+                % (geometry.__melobject__())
             )
             continue
 
@@ -851,7 +850,6 @@ def align_joints_to_direction(
 
                 # Remove any translate out of the 2D plane
                 multiplier = look_axis + upp_axis
-                # joint_local_pos.z = 0
                 joint_local_pos.x *= multiplier.x
                 joint_local_pos.y *= multiplier.y
                 joint_local_pos.z *= multiplier.z
@@ -1072,9 +1070,8 @@ def get_closest_point_on_shape(shape, pos):
     elif isinstance(shape, pymel.nodetypes.NurbsSurface):
         return get_closest_point_on_surface(shape, pos)
     raise NotImplementedError(
-        "Unexpected data type. Expected Mesh or NurbsSurface, got %s(%s)" % (
-            shape, type(shape)
-        )
+        "Unexpected data type. Expected Mesh or NurbsSurface, got %s(%s)"
+        % (shape, type(shape))
     )
 
 
@@ -1115,9 +1112,8 @@ def get_point_on_surface_from_uv(shape, u, v):
         pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception(
-            "Unexpected shape type. Expected nurbsSurface or mesh, got %s. %s" % (
-                type(shape), shape
-            )
+            "Unexpected shape type. Expected nurbsSurface or mesh, got %s. %s"
+            % (type(shape), shape)
         )
 
     pos = follicle_shape.outTranslate.get()
@@ -1165,9 +1161,8 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
         pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception(
-            "Unexpected shape type. Expected nurbsSurface or mesh, got %s. %s" % (
-                shape.type(), shape
-            )
+            "Unexpected shape type. Expected nurbsSurface or mesh, got %s. %s"
+            % (shape.type(), shape)
         )
 
     if connect_transform:
@@ -1198,7 +1193,6 @@ def get_average_pos_between_nodes(jnts):
         jnt_pos.y = 0
         jnt_pos.z = 0
         distance = libPymel.distance_between_vectors(jnt_pos, middle)
-        # distance = abs(.x)
         if nearest_jnt is None or distance < nearest_distance:
             nearest_jnt = jnt
             nearest_distance = distance

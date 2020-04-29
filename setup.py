@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+Python distutils definition
+"""
 
 from setuptools import setup, find_packages
 

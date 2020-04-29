@@ -49,7 +49,8 @@ class Twistbone(Module):
         """
         if len(self.chain_jnt) < 2:
             raise Exception(
-                "Invalid input count. Expected 2, got %s. %s" % (len(self.chain_jnt), self.chain_jnt)
+                "Invalid input count. Expected 2, got %s. %s"
+                % (len(self.chain_jnt), self.chain_jnt)
             )
 
         # Support some properties that could be redefined at build time
@@ -124,10 +125,6 @@ class Twistbone(Module):
             sub_jnt.segmentScaleCompensate.set(0)  # Remove segment scale compensate
 
             # Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
-            # nomenclature_inf = nomenclature_jnt.copy()
-            # nomenclature_inf.add_tokens('twist', '{0:02d}'.format(i))
-            # jnt_name = nomenclature_inf.resolve()
-            # jnt_name = nomenclature_jnt.resolve("twist{0:02d}".format(i))
             jnt_name = nomenclature_jnt.resolve("{0:02d}".format(i))
             sub_jnt.rename(jnt_name)
 

@@ -36,9 +36,7 @@ def get_center(objs):
             pos += obj.getPosition(space="world")
             count += 1
         else:
-            logging.warning(
-                "Unsupported data type (%s), will be skipped", type(obj)
-            )
+            logging.warning("Unsupported data type (%s), will be skipped", type(obj))
     if count != 0:
         pos /= count
     return pos

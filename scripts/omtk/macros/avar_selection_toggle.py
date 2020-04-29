@@ -26,8 +26,6 @@ def get_avars_networks_from_selection(objs):
         objs, key=fn_filter, key_skip=fn_skip
     )
 
-    # avars = filter(None, [libSerialization.import_network(network) for network in networks])
-
     return networks
 
 

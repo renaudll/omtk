@@ -111,7 +111,9 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
             dir = pos_e - pos_s
             p = self.rig.raycast_farthest(pos_s, dir)
             if p is None:
-                self.log.warning("Raycast failed. Using %s as the ctrl position reference.", jnt_jaw)
+                self.log.warning(
+                    "Raycast failed. Using %s as the ctrl position reference.", jnt_jaw
+                )
                 p = pos_s
 
         result = pymel.datatypes.Matrix(

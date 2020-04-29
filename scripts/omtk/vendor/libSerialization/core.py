@@ -288,7 +288,6 @@ def import_dict(data, cache=None, **kwargs):
         cls_path = data["_class"]
         cls_name = cls_path.split(".")[-1]
         cls_module = data.get("_class_module", None)
-        # cls_namespace = data.get('_class_namespace')
 
         # HACK: Previously we were storing the complete class namespace.
         # However this was not very flexible when we played with the class hierarchy.

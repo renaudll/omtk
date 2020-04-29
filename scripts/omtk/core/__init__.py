@@ -8,7 +8,6 @@ import classCtrl
 import classCtrlModel
 import classModule
 import classModuleMap
-import classModuleCompound
 import className
 import classNode
 import classRig

@@ -37,7 +37,10 @@ class ModuleMap(Module):
         if not isinstance(model, cls_model):
             if model:
                 self.log.warning(
-                    "Unexpected Model type for %s. Expected %s, got %s.", model, cls_model.__name__, type(model).__name__
+                    "Unexpected Model type for %s. Expected %s, got %s.",
+                    model,
+                    cls_model.__name__,
+                    type(model).__name__,
                 )
             model = cls_model(inputs, rig=self.rig)
 

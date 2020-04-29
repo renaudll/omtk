@@ -237,7 +237,6 @@ def _set_attr(_plug, data, cache=None):
 
         if plug is not None:
             dagM = OpenMaya.MDagModifier()
-            # if pymel.attributeQuery(pymel.Attribute(_val), writable=True):
             dagM.connect(plug, _plug)
             dagM.connect(plug, _plug)  # is connecting two times necessary?
             dagM.doIt()
@@ -325,11 +324,7 @@ def export_network(data, cache=None, **kwargs):
     if result is not None:
         return result
 
-    # Create network
-    # Optimisation: Use existing network if already present in scene
-    # if hasattr(data, '_network') and is_valid_PyNode(data._network):
-    #    network = data._network
-    # else:
+    # Create network, re-use existing network if already present in scene
     # Automaticly name network whenever possible
     try:
         network_name = data.__getNetworkName__()

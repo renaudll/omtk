@@ -62,9 +62,8 @@ def connect_to_avar(ctrl, avar_node, mapping_dict):
         )
         if len(bw_list) != 1:
             raise (
-                "Could not connect ctrl %s translation in avar node %s" % (
-                    ctrl, avar_node
-                )
+                "Could not connect ctrl %s translation in avar node %s"
+                % (ctrl, avar_node)
             )
         match = re.search(regex_input_idx, bw_list[0].input.elements()[-1])
         input_idx = int(match.group(1)) + 1

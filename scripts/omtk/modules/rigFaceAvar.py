@@ -173,8 +173,6 @@ class BaseCtrlFace(classCtrl.BaseCtrl):
         libPymel.makeIdentity_safe(self.shapes, rotate=True, scale=True, apply=True)
 
         super(BaseCtrlFace, self).fetch_shapes()
-        # libRigging.fetch_ctrl_shapes(self.shapes, self.node)
-        # self.shapes = None
 
 
 class CtrlFaceMicro(BaseCtrlFace):
@@ -325,15 +323,14 @@ class AbstractAvar(classModule.Module):
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                self.log.debug("Cannot hold missing attribute %s in %s", attr_name, self.grp_rig)
+                self.log.debug(
+                    "Cannot hold missing attribute %s in %s", attr_name, self.grp_rig
+                )
                 continue
 
-            # attr_name = attr.longName()
             attr_src = self.grp_rig.attr(attr_name)
             attr_dst = self.avar_network.attr(attr_name)
-            # libAttr.transfer_connections(attr_src, attr_dst)
 
-            # if attr_have_animcurve_input(attr_src):
             attr_src_inn = next(iter(attr_src.inputs(plugs=True)), None)
             if attr_src_inn:
                 pymel.disconnectAttr(attr_src_inn, attr_src)
@@ -376,7 +373,6 @@ class AbstractAvar(classModule.Module):
     # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
     #
 
-    @libPython.memoized_instancemethod
     def get_base_uv(self):
         pos = self.get_jnt_tm().translate
 
@@ -390,12 +386,7 @@ class AbstractAvar(classModule.Module):
         :return: The deformer pivot transformation.
         """
         # TODO: What do we do with the rotation?
-        tm = self.jnt.getMatrix(worldSpace=True)
-        # pos = self.jnt.getTranslation(space='world')
-        # return pymel.datatypes.Matrix(
-        #     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
-        # )
-        return tm
+        return self.jnt.getMatrix(worldSpace=True)
 
     def validate(self):
         """
@@ -477,7 +468,8 @@ class AbstractAvar(classModule.Module):
         length_x = max_x - min_x
         if len(self.jnts) <= 1 or length_x < epsilon:
             log.debug(
-                "Cannot automatically resolve scale for surface. Using default value %s", default_scale
+                "Cannot automatically resolve scale for surface. Using default value %s",
+                default_scale,
             )
             length_x = default_scale
 
@@ -563,13 +555,6 @@ class AvarSimple(AbstractAvar):
         self.affect_sx = True
         self.affect_sy = True
         self.affect_sz = True
-
-    def validate(self):
-        super(AvarSimple, self).validate()
-
-        # Ensure our ctrl model validate
-        # if self._CLS_MODEL_CTRL:
-        #     self._CLS_MODEL_CTRL.validate(self)
 
     def create_stacks(self):
         """
@@ -819,13 +804,15 @@ class AvarSimple(AbstractAvar):
                 if attr.isDestination():
                     log.warning(
                         "%s.%s need to be connected but already have connections. Connection broken.",
-                        self.jnt.nodeName(), attr_name
+                        self.jnt.nodeName(),
+                        attr_name,
                     )
                     pymel.disconnectAttr(attr.inputs(plugs=True)[0], attr)
                 if attr.isLocked():
                     log.warning(
                         "%s.%s need to be connected but was locked. Lock removed.",
-                        self.jnt.nodeName(), attr_name
+                        self.jnt.nodeName(),
+                        attr_name,
                     )
                     attr.unlock()
 
@@ -917,9 +904,6 @@ class AvarSimple(AbstractAvar):
                 if parent_rot is None:
                     parent_rot = self.get_head_jnt()
 
-                # if parent_scl is None:
-                #     parent_scl = self.get_head_jnt()
-
                 self.model_ctrl.build(
                     self,
                     ctrl_tm=ctrl_tm,
@@ -937,7 +921,11 @@ class AvarSimple(AbstractAvar):
 
             else:
                 self.model_ctrl.build(
-                    self, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, parent_rot=parent_rot, **kwargs
+                    self,
+                    ctrl_tm=ctrl_tm,
+                    ctrl_size=ctrl_size,
+                    parent_rot=parent_rot,
+                    **kwargs
                 )
 
             # Expose the ctrl in a backward compatible way.

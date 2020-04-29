@@ -178,8 +178,6 @@ class BaseName(object):
     def build_from_string(self, name):
         raw_tokens = self._get_tokens(name)
         self.tokens = []
-        # self.prefix = None
-        # self.suffix = None
         self.side = None
 
         self.add_tokens(*raw_tokens)

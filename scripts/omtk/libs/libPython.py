@@ -74,9 +74,11 @@ class cached_property(object):
             cache[self.__name__] = self.fget(inst)
             et = time.time() - st
             if (et - st) > 1:  # 1 second
-                logging.info("[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}".format(
-                    et, inst.__class__.__name__, self.__name__
-                ))
+                logging.info(
+                    "[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}".format(
+                        et, inst.__class__.__name__, self.__name__
+                    )
+                )
 
         return cache[self.__name__]
 
@@ -138,7 +140,7 @@ class memoized_instancemethod(object):
 
         # Include kwargs
         # src: http://stackoverflow.com/questions/6407993/how-to-memoize-kwargs
-        key = self.func.__name__
+        key = (id, self.func.__name__)
         subkey = (args, frozenset(kwargs.items()))
 
         try:
@@ -197,7 +199,7 @@ def log_execution_time(NAME):
             m_NAME = NAME  # make mutable
             st = time.time()
             rv = f(*args, **kwargs)
-            print (
+            print(
                 "Process {0} took {1:2.3f} seconds to execute.".format(
                     m_NAME, time.time() - st
                 )
@@ -271,7 +273,7 @@ def get_sub_classes(_cls):
 
 
 class LazySingleton(object):
-    """A threadsafe singleton that initialises when first referenced."""
+    """A thread safe singleton that initialises when first referenced."""
 
     def __init__(self, instance_class, *nargs, **kwargs):
         self.instance_class = instance_class

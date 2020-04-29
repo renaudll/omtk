@@ -513,7 +513,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             # Resolve orig shape
             shape_orig = get_orig_shape(shape)
             if not shape_orig:
-                self.log.warning("Skipping %s. Cannot find orig shape.". shape)
+                self.log.warning("Skipping %s. Cannot find orig shape.".shape)
                 continue
 
             # Resolve compensation matrix

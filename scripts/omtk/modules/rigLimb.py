@@ -106,7 +106,6 @@ class Limb(Module):
                 twist_nomenclature += self.rig.nomenclature(
                     self.chain_jnt[i].stripNamespace().nodeName()
                 )
-                # twist_nomenclature = self.get_nomenclature() + self.rig.nomenclature(self.chain_jnt[i].name())
 
                 sys_twist = self.init_module(
                     self._CLASS_SYS_TWIST,
@@ -328,7 +327,6 @@ class Limb(Module):
         )
 
         # Position swivel
-        # pos_ref = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space='world')
         pos_s = self.sysFK.ctrls[0].getTranslation(space="world")
         pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(
             space="world"

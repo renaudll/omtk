@@ -2,10 +2,8 @@ import collections
 import pymel.core as pymel
 from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classModule import Module
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
-from omtk.libs import libPython
 from omtk.libs import libAttr
 from omtk.modules import rigFK
 

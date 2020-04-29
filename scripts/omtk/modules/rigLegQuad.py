@@ -47,7 +47,6 @@ class LegIkQuad(rigLeg.LegIk):
         self.ctrl_swivel_quad = None
         self._chain_quad_ik = None
         self._ik_handle_quad = None
-        # self.quad_swivel_distance = None
         self.quad_swivel_sw = (
             None  # Object use as space switch pin location that will be kept on unbuild
         )
@@ -164,7 +163,12 @@ class LegIkQuad(rigLeg.LegIk):
             )  # note: it is important to take the mid guess last since we don't update the attr on exit
 
             if abs(1.0 - result) < epsilon:
-                self.log.debug("Resolved %s twist offset of %s using with %s iterations.", ik_handle, mid, iter_count)
+                self.log.debug(
+                    "Resolved %s twist offset of %s using with %s iterations.",
+                    ik_handle,
+                    mid,
+                    iter_count,
+                )
                 return mid
 
             if result_high > result_low:
@@ -174,7 +178,9 @@ class LegIkQuad(rigLeg.LegIk):
 
             mid = (low + high) / 2.0
 
-        self.log.warning("Cannot resolve twist offset of %s with %s iterations.", ik_handle, max_iter)
+        self.log.warning(
+            "Cannot resolve twist offset of %s with %s iterations.", ik_handle, max_iter
+        )
         return mid
 
     def build(
@@ -259,7 +265,6 @@ class LegIkQuad(rigLeg.LegIk):
             adjust_ik_handle_twist=False,
         )
 
-        # self.quad_swivel_distance = self.chain_length  # Used in ik/fk switch
         # Set by default the space to calf
         if self.ctrl_swivel_quad.space:
             enum = self.ctrl_swivel_quad.space.getEnums()
@@ -300,7 +305,6 @@ class LegIkQuad(rigLeg.LegIk):
     def unbuild(self):
         self._chain_quad_ik = None
         self._ik_handle_quad = None
-        # self.quad_swivel_distance = None
         if self.quad_swivel_sw:
             self.quad_swivel_sw.setParent(None)
 

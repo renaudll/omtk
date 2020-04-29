@@ -1,9 +1,15 @@
+"""
+Rez package definition
+"""
+# pylint: disable=invalid-name
+
 name = "omtk"
 
 version = "0.6.0"
 
 
 def commands():
+    """Configure the environment"""
     env = locals()["env"]
     system = locals()["system"]
 

@@ -113,7 +113,7 @@ def create_shape_double_needle(normal=(0, 1, 0), *args, **kwargs):
         normal[0] * -1,
         normal[1] * -1,
         normal[2] * -1,
-    )  # TODO: find an eleguant way
+    )  # TODO: find an elegant way
     shape1 = create_shape_needle(normal=normal, *args, **kwargs)
     shape2 = create_shape_needle(normal=normal_inv, *args, **kwargs)
     for shape in shape2.getShapes():
@@ -344,7 +344,7 @@ def create_shape_box_arm(
         min_z = -default_size * 0.5
         max_z = default_size * 0.5
 
-    # Convert our bouding box
+    # Convert our bounding box
 
     pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
     pos2 = pymel.datatypes.Point(min_x, min_y, max_z)

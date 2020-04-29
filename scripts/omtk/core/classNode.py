@@ -26,9 +26,8 @@ class Node(object):
             and not self.__dict__["node"] is None
         ):
             raise TypeError(
-                "RigNode 'node' attribute should be a PyNode, got %s (%s)" % (
-                    type(self.__dict__["node"]), self.__dict__["node"]
-                )
+                "RigNode 'node' attribute should be a PyNode, got %s (%s)"
+                % (type(self.__dict__["node"]), self.__dict__["node"])
             )
         elif hasattr(self.__dict__["node"], attr_name):
             return getattr(self.__dict__["node"], attr_name)

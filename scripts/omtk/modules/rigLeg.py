@@ -289,7 +289,8 @@ class LegIk(rigIK.IK):
             jnt_heel = None
         else:
             raise Exception(
-                "Unexpected number of joints after the limb. Expected 3 or 4, got %s" % num_jnts
+                "Unexpected number of joints after the limb. Expected 3 or 4, got %s"
+                % num_jnts
             )
 
         # Create FootRoll (chain?)

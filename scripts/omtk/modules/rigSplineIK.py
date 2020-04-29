@@ -32,11 +32,13 @@ class SplineIK(Module):
 
         if len(self._joints) < 2:
             raise Exception(
-                "Can't build SplineIK. Expected at least two joints, got %s" % self._joints
+                "Can't build SplineIK. Expected at least two joints, got %s"
+                % self._joints
             )
         if len(self._curves) < 1:
             raise Exception(
-                "Can't build SplineIK. Expected at least one nurbsCurve, got %s" % self._curves
+                "Can't build SplineIK. Expected at least one nurbsCurve, got %s"
+                % self._curves
             )
 
         super(SplineIK, self).build(*args, **kwargs)
@@ -113,9 +115,7 @@ def _create_squash_atts(attr_stretch, samples):
     """
     if not isinstance(attr_stretch, pymel.Attribute):
         raise IOError(
-            "Expected pymel Attribute, got %s (%s)" % (
-                attr_stretch, type(attr_stretch)
-            )
+            "Expected pymel Attribute, got %s (%s)" % (attr_stretch, type(attr_stretch))
         )
 
     attr_stretch_inv = libRigging.create_utility_node(

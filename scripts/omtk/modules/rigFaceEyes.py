@@ -137,7 +137,6 @@ class ModelLookAt(BaseAvarCtrlModel):
         aim_node.setParent(aim_grp)
 
         aim_grp.setTranslation(self.jnt.getTranslation(space="world"))
-        # aim_grp.setMatrix(self.jnt.getMatrix(worldSpace=True))
         if self.parent:
             pymel.parentConstraint(self.parent, aim_grp, maintainOffset=True)
 
@@ -177,8 +176,6 @@ class ModelLookAt(BaseAvarCtrlModel):
         aim_upnode.setTranslation(aim_upnode_pos, space="world")
         aim_target_pos = pymel.datatypes.Point(0, 0, 1) + jnt_pos
         aim_target.setTranslation(aim_target_pos, space="world")
-
-        # pymel.parentConstraint(aim_node, stack, maintainOffset=True)
 
         # Convert the rotation to avars to additional values can be added.
         util_decomposeMatrix = libRigging.create_utility_node(

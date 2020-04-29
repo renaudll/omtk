@@ -61,8 +61,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
     # Add target if missing, otherwise thrown an error.
     if target not in influence_jnts:
         log.warning(
-            "Can't find target %s in skinCluster %s",
-            target.name(), skinCluster.name()
+            "Can't find target %s in skinCluster %s", target.name(), skinCluster.name()
         )
         skinCluster.addInfluence(target, weight=0)
         influence_jnts.append(target)
@@ -257,9 +256,8 @@ def transfer_weights_from_segments(
         jnt_src_index = influence_objects.index(source)
     except ValueError:
         pymel.warning(
-            "Can't transfer weights from segments in %s, source %s is missing from skinCluster." % (
-                obj.__melobject__(), source.__melobject__()
-            )
+            "Can't transfer weights from segments in %s, source %s is missing from skinCluster."
+            % (obj.__melobject__(), source.__melobject__())
         )
         return False
 
@@ -267,7 +265,8 @@ def transfer_weights_from_segments(
     targets = [target for target in targets if target in influence_objects]
     if not targets:
         pymel.warning(
-            "Can't transfer weights from segments in %s, no targets found in skinCluster." % obj.__melobject__()
+            "Can't transfer weights from segments in %s, no targets found in skinCluster."
+            % obj.__melobject__()
         )
         return False
     jnt_dst_indexes = [influence_objects.index(target) for target in targets]
@@ -276,9 +275,7 @@ def transfer_weights_from_segments(
     try:
         component = pymel.api.toComponentMObject(geometryDagPath)
     except RuntimeError, e:
-        pymel.warning(
-            "Cannot access component for %s. Is the shape empty?" % obj
-        )
+        pymel.warning("Cannot access component for %s. Is the shape empty?" % obj)
         return False
 
     # Store the affected joints only

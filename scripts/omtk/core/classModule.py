@@ -14,12 +14,19 @@ class ModuleLoggerAdapter(logging.LoggerAdapter):
     """
     Logger adapter that add a module namespace to any logger message.
     """
+
     def __init__(self, module):  # type: (Module,) -> None
-        super(ModuleLoggerAdapter, self).__init__(logging.getLogger('omtk'), {"module": module})
+        super(ModuleLoggerAdapter, self).__init__(
+            logging.getLogger("omtk"), {"module": module}
+        )
 
     def process(self, msg, kwargs):  # type: (str, dict) -> (str, dict)
         module = self.extra["module"]
-        return "[%s] [%s] %s" % (module.rig.name if module.rig else "MISSING RIG", module.name, msg), kwargs
+        return (
+            "[%s] [%s] %s"
+            % (module.rig.name if module.rig else "MISSING RIG", module.name, msg),
+            kwargs,
+        )
 
 
 class Module(object):
@@ -68,7 +75,9 @@ class Module(object):
         if re.match(r".*%s.*" % REGEX_PATTERN, self.name):
             new_name = re.sub(REGEX_PATTERN, "", self.name)
             log.warning(
-                "Invalid characters in Module name. Replacing %s by %s", self.name, new_name
+                "Invalid characters in Module name. Replacing %s by %s",
+                self.name,
+                new_name,
             )
             self.name = new_name
 
@@ -284,7 +293,9 @@ class Module(object):
         # todo: check with proximity
         default_head = next(iter(head_jnts), None)
         if default_head:
-            self.log.warning("Cannot resolve head influence! Using default %s", default_head)
+            self.log.warning(
+                "Cannot resolve head influence! Using default %s", default_head
+            )
             return default_head
 
     @libPython.memoized_instancemethod
@@ -309,10 +320,17 @@ class Module(object):
                 jnt = module.jnt
                 if libPymel.is_child_of(jnt, head_jnt):
                     return jnt
-                self.log.warning("Ignoring %s as the main jaw influence. Not a child of %s.", jnt, head_jnt)
+                self.log.warning(
+                    "Ignoring %s as the main jaw influence. Not a child of %s.",
+                    jnt,
+                    head_jnt,
+                )
 
         if strict:
-            self.log.warning("Cannot found a jaw influence. Please create a %s module!", rigFaceJaw.FaceJaw.__name__)
+            self.log.warning(
+                "Cannot found a jaw influence. Please create a %s module!",
+                rigFaceJaw.FaceJaw.__name__,
+            )
         return None
 
     @libPython.memoized_instancemethod
@@ -339,7 +357,10 @@ class Module(object):
             )
 
         if module_jaw is None and strict:
-            self.log.warning("Cannot found a %s module. Please create one!", rigFaceJaw.FaceJaw.__name__)
+            self.log.warning(
+                "Cannot found a %s module. Please create one!",
+                rigFaceJaw.FaceJaw.__name__,
+            )
         return module_jaw
 
     @libPython.memoized_instancemethod
@@ -395,9 +416,8 @@ class Module(object):
         # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
         if name and not isinstance(name, basestring):
             raise IOError(
-                "Unexpected type for parameter name, expected basestring, got %s. Value is %s." % (
-                    type(name), name
-                )
+                "Unexpected type for parameter name, expected basestring, got %s. Value is %s."
+                % (type(name), name)
             )
 
         self.rig = rig  # Reference to the parent rig instance.
@@ -414,11 +434,6 @@ class Module(object):
         # Use this flag to notify omtk that the module should not be un-built under any circumstances.
         self.locked = False
 
-        # Use this flag to leave any note concerning the module.
-        # ie: Why this module might be locked.
-        # TODO: Support maya notes? (see attribute editor)
-        # self.note = ''
-
         # By default, this array is used to store the ctrls the module use.
         # If you define additional properties, don't forget to implement them in the iter_ctrls method.
         self.ctrls = []
@@ -426,9 +441,8 @@ class Module(object):
         if input:
             if not isinstance(input, list):
                 raise IOError(
-                    "Unexpected type for argument input. Expected list, got %s. %s" % (
-                        type(input), input
-                    )
+                    "Unexpected type for argument input. Expected list, got %s. %s"
+                    % (type(input), input)
                 )
             self.input = input
         else:
@@ -441,7 +455,9 @@ class Module(object):
         if version:
             version = " v%s" % version
         return "%s <%s%s>" % (
-            self.name.encode("utf-8"), self.__class__.__name__, version
+            self.name.encode("utf-8"),
+            self.__class__.__name__,
+            version,
         )
 
     def get_version(self):
@@ -469,7 +485,8 @@ class Module(object):
         namespaces = set(input.namespace() for input in self.input if input)
         if len(namespaces) > 1:
             raise Exception(
-                "Found multiple namespaces for inputs: %s" % ", ".join(repr(namespace) for namespace in namespaces)
+                "Found multiple namespaces for inputs: %s"
+                % ", ".join(repr(namespace) for namespace in namespaces)
             )
 
         return True
@@ -517,7 +534,9 @@ class Module(object):
             # The inheritsTransform flag is evil and will prevent the rig from correctly scaling.
             if isinstance(inn, pymel.nodetypes.Transform):
                 if not inn.inheritsTransform.get():
-                    self.log.warning("Enabling inheritsTransform for the best on %s", inn)
+                    self.log.warning(
+                        "Enabling inheritsTransform for the best on %s", inn
+                    )
                     inn.inheritsTransform.set(True)
 
                 # The segmentScaleCompensate is not supported since we need to support video-game rigs at the best
@@ -562,7 +581,9 @@ class Module(object):
         """
         if self.parent is None:
             if fallback_to_anm_grp:
-                self.log.debug("Found no immediate parent. Will be parented to the anm grp.")
+                self.log.debug(
+                    "Found no immediate parent. Will be parented to the anm grp."
+                )
                 return self.rig.grp_anm
             else:
                 self.log.debug("Found no immediate parent.")
@@ -701,7 +722,11 @@ class Module(object):
         if not isinstance(inst, cls):
             old_shapes = None
             if inst is not None:
-                self.log.warning("Unexpected ctrl type. Expected %s, got %s. Ctrl will be recreated.", cls, type(inst))
+                self.log.warning(
+                    "Unexpected ctrl type. Expected %s, got %s. Ctrl will be recreated.",
+                    cls,
+                    type(inst),
+                )
                 old_shapes = inst.shapes if hasattr(inst, "shapes") else None
 
             result = cls()

@@ -79,12 +79,6 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.create_callbacks()
 
-        # from omtk.core import plugin_manager
-        # pm = plugin_manager.plugin_manager
-        # failed_plugins = pm.get_failed_plugins()
-        # if failed_plugins:
-        #     log.warning("The following plugins failed to load: {0}".format(', '.join(str(p) for p in failed_plugins)))
-
         # Build the template menu
         available_templates = self._get_available_templates()
         if available_templates:
@@ -209,8 +203,6 @@ class AutoRig(QtWidgets.QMainWindow):
                 fn = getattr(val, "__can_show__")
                 if fn is None:
                     return False
-                # if not inspect.ismethod(fn):
-                #    return False
                 return val.__can_show__()
 
             functions = inspect.getmembers(module, is_exposed)

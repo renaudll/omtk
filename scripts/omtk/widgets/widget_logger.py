@@ -247,7 +247,8 @@ class WidgetLogger(QtWidgets.QWidget):
             # Write content
             for record in self._logging_records:
                 fp.write(
-                    "%s,%s,%s\n" % (
+                    "%s,%s,%s\n"
+                    % (
                         str(datetime.datetime.fromtimestamp(record.created)),
                         log_level_to_str(record.levelno),
                         record.message,

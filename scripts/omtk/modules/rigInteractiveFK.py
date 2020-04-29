@@ -156,10 +156,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         self._grp_bind = pymel.createNode(
             "transform", name=nomenclature_rig.resolve("follicle"), parent=self.grp_rig
         )
-        # self._layer_bind = self._stack.append_layer()
-        # self._layer_bind.rename(layer_fol_name)
         self._grp_bind.setMatrix(self.get_bind_tm())
-        # self._layer_bind.setParent(self.grp_rig)
         attr_bind_tm = self._grp_bind.matrix
         attr_bind_tm_inv = self._grp_bind.inverseMatrix
 
@@ -352,7 +349,9 @@ class InteractiveFKLayer(ModuleMap):
 
             if not isinstance(model_parent, pymel.nodetypes.Joint):
                 self.log.warning(
-                    "Cannot compute offset for parent. Unsupported node type %s for %s", type(self.parent), self.parent
+                    "Cannot compute offset for parent. Unsupported node type %s for %s",
+                    type(self.parent),
+                    self.parent,
                 )
                 continue
 
@@ -361,7 +360,10 @@ class InteractiveFKLayer(ModuleMap):
                 (model for model in self.models if model.jnt == model_parent), None
             )
             if not parent_model:
-                self.log.warning("Cannot compute offset for parent. Found no model associated with %s", model_parent)
+                self.log.warning(
+                    "Cannot compute offset for parent. Found no model associated with %s",
+                    model_parent,
+                )
                 continue
 
             self._constraint_model_virtual_offset(model, parent_model)
@@ -497,10 +499,6 @@ class InteractiveFK(Module):
     def validate(self, epsilon=0.001):
         super(InteractiveFK, self).validate()
 
-        # Ensure that all influences have a common parent for proprer scale handling.
-        # if not self._get_parent():
-        #     raise Exception("Found no common parents for inputs.")
-
         surfaces = self.get_surfaces()
         if self._VALIDATE_NEED_SURFACE:
             if not surfaces:
@@ -510,7 +508,8 @@ class InteractiveFK(Module):
         unassigned_surfaces = self._get_unassigned_surfaces()
         if unassigned_surfaces:
             raise Exception(
-                "Useless surface(s) found: %s" % ", ".join((surface.name() for surface in unassigned_surfaces))
+                "Useless surface(s) found: %s"
+                % ", ".join((surface.name() for surface in unassigned_surfaces))
             )
 
         # todo: Ensure all surface have an identity matrix
@@ -531,19 +530,9 @@ class InteractiveFK(Module):
                 attr_val = attr.get()
                 if abs(attr_val - desired_val) > epsilon:
                     raise Exception(
-                        "Surface %s have invalid transform! Expected %s for %s, got %s." % (
-                            surface, desired_val, attr_name, attr_val
-                        )
+                        "Surface %s have invalid transform! Expected %s for %s, got %s."
+                        % (surface, desired_val, attr_name, attr_val)
                     )
-
-                    # Ensure all provided surfaces have the same cv count.
-                    # num_cvs = None
-                    # for surface in surfaces:
-                    #     cur_num_cvs = len(surface.cv)
-                    #     if num_cvs is None:
-                    #         num_cvs = cur_num_cvs
-                    #     elif cur_num_cvs != num_cvs:
-                    #         raise Exception("Not all input NurbsSurface have the same cv count!")
 
     @libPython.memoized_instancemethod
     def get_influences_by_surfaces(self):
@@ -586,7 +575,11 @@ class InteractiveFK(Module):
                 return -1
             # If nothing works, compare their name...
             # We might get lucky and have correctly named objects like layer0, layer1, etc.
-            self.log.warning("Saw no relationship between %s and %s. Will sort them by name.", obj_a, obj_b)
+            self.log.warning(
+                "Saw no relationship between %s and %s. Will sort them by name.",
+                obj_a,
+                obj_b,
+            )
             return cmp(obj_a.name(), obj_b.name())
 
         surfaces = sorted(surfaces, cmp=_fn_compare)
@@ -821,7 +814,11 @@ class InteractiveFK(Module):
             val = self._get_default_ctrl_size()
             ctrl_size_max = val * 0.25
             ctrl_size_min = ctrl_size_max / float(len(self.layers))
-            self.log.info("Default ctrl size is adjusted from bettwen %s at %s", ctrl_size_min, ctrl_size_max)
+            self.log.info(
+                "Default ctrl size is adjusted from bettwen %s at %s",
+                ctrl_size_min,
+                ctrl_size_max,
+            )
 
         self._build_layers(ctrl_size_max=ctrl_size_max, ctrl_size_min=ctrl_size_min)
         # Create a group that represent the original parent of everything.

@@ -201,9 +201,6 @@ class BaseCtrl(Node):
         self.shapes = libRigging.hold_ctrl_shapes(self.node)
 
     def fetch_shapes(self):
-        # libAttr.unlock_rotation(self.shapes)
-        # libAttr.unlock_scale(self.shapes)
-        # pymel.makeIdentity(self.shapes, rotate=False, scale=True, apply=True)  # Ensure the shape don't have any extra transformation.
         libRigging.fetch_ctrl_shapes(self.shapes, self.node)
         self.shapes = None
 
@@ -350,7 +347,8 @@ class BaseCtrl(Node):
         """
         if not libPymel.is_valid_PyNode(self.node):
             raise Exception(
-                "Can't hold ctrl attribute! Some information may be lost... %s" % self.node
+                "Can't hold ctrl attribute! Some information may be lost... %s"
+                % self.node
             )
         else:
             self.rotateOrder = self.node.rotateOrder.get()
@@ -380,7 +378,10 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            log.info("[setParent] %s don't have an offset attribute, node will be parented instead", self)
+            log.info(
+                "[setParent] %s don't have an offset attribute, node will be parented instead",
+                self,
+            )
             return self.node.setParent(*args, **kwargs)
         return self.offset.setParent(*args, **kwargs)
 
@@ -435,7 +436,7 @@ class BaseCtrl(Node):
         pass
 
     #
-    # SPACE SWITH LOGIC
+    # SPACE SWITCHING LOGIC
     #
 
     def get_bestmatch_index(self, target, reserved_idx=None):
@@ -519,7 +520,7 @@ class BaseCtrl(Node):
         if not targets:
             module.log.warning(
                 "Can't add space switch on %s. No targets found!",
-                self.node.__melobject__()
+                self.node.__melobject__(),
             )
             return
 
@@ -546,7 +547,7 @@ class BaseCtrl(Node):
             # labels.append(default_name)
 
             # In some case the user might have provided what we should use as the local target.
-            # This is used to cheat, for exemple the FaceEye module ctrl are parented to the world,
+            # This is used to cheat, for example the FaceEye module ctrl are parented to the world,
             # however it make sense that their 'local' space is still the head.
             if local_target:
                 # If the local_target exist in the list, we'll want to remove it.
@@ -575,7 +576,8 @@ class BaseCtrl(Node):
                 if indexes[i] in self.targets_indexes:
                     log.warning(
                         "Index (%s) is already used for space switch on ctrl %s. Strange behavior could happen",
-                        indexes[i], self.name()
+                        indexes[i],
+                        self.name(),
                     )
                 self.targets_indexes.append(indexes[i])
 
@@ -711,7 +713,8 @@ class BaseCtrl(Node):
             if t is None:
                 log.warning(
                     "Space switch index %s target is None on %s, maybe a manual connection will be needed",
-                    indexes[i], self.name
+                    indexes[i],
+                    self.name,
                 )
                 targets.pop(i)
                 target_names.pop(i)
@@ -726,8 +729,6 @@ class BaseCtrl(Node):
         """
         space_attr = getattr(self.node, "space", None)
         dict_sw_data = {}
-
-        # log.info("Processing {0}".format(self.node))
 
         if space_attr:
             enum_items = space_attr.getEnums().items()

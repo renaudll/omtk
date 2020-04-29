@@ -7,44 +7,6 @@ from omtk.libs import libRigging
 from omtk.modules import rigFK
 from omtk.modules import rigFKAdditive
 
-'''
-class Finger(Module):
-    """
-    Finger rig are similare to the AdditiveFK setup but can have an additional joint for the metacarpal.
-    """
-
-    @libPython.cached_property()
-    def phalanges(self):
-        if len(self.input) == 5:
-            return self.input[1:-1]
-        else:
-            return self.input[:-1]
-
-    @libPython.cached_property()
-    def metacarpal(self):
-        if len(self.input) == 5:
-            return self.input[0]
-
-    def build(self, *args, **kwargs):
-        # Ensure we got a valid number of inputs.
-        num_inputs = len(self.input)
-        if num_inputs > 5:
-            raise Exception("Unsupported chain length. Expected 4 or less, got {1}".format(num_inputs))
-
-        super(Finger, self).build(create_grp_rig=False, *args, **kwargs)
-
-        # Rig phalanges
-        self.sysPhalanges = rigFK.AdditiveFK(self.phalanges)
-        self.sysPhalanges.build(parent=False)
-        self.sysPhalanges.grp_anm.setParent(self.grp_anm)
-
-        # Rig metacarpal if necessary
-        if self.metacarpal:
-            pymel.aimConstraint(self.sysPhalanges.additive_ctrls[0], self.metacarpal, worldUpType=2, worldUpObject=self.parent)
-
-        pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
-'''
-
 
 class Hand(Module):
     """
@@ -84,15 +46,12 @@ class Hand(Module):
             chain_length = len(chain)
             if chain_length > 5:
                 raise Exception(
-                    "Unsupported chain length for %s. Expected 4 or less, got %s" % (chain, chain_length)
+                    "Unsupported chain length for %s. Expected 4 or less, got %s"
+                    % (chain, chain_length)
                 )
 
     def build(self, *args, **kwargs):
         super(Hand, self).build(parent=False, *args, **kwargs)
-
-        # Resolve fingers and metacarpals
-        # jnts_metacarpals = []
-        # metacarpals_sys = []
 
         nomenclature_anm = self.get_nomenclature_anm()
         nomenclature_rig = self.get_nomenclature_rig()
@@ -226,26 +185,12 @@ class Hand(Module):
                 ).outputX
                 pymel.connectAttr(attr_rotate_x, grp_pivot.rotateY)
 
-                # jnt_phalange_inn = next(iter(jnt_metacarpal.getChildren()))
-                # grp_pos = pymel.createNode('transform')
-                # grp_pos.rename(nomenclature_rig.resolve(jnt_phalange_inn.name() + "_parentPos"))
-                # grp_pos.setMatrix(jnt_phalange_inn.getMatrix(worldSpace=True))
-                # grp_pos.setParent(grp_pivot)
-
                 # Note that the cup system worked with a partial parentConstraint.
                 # I've remove it since it was breaking things.
                 # TODO: Make it work again.
                 pymel.parentConstraint(
                     grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True
                 )
-
-                # HACK: Override the phalanges rig parent
-                # sysFinger = metacarpals_sys[i]
-                # pymel.disconnectAttr(sysFinger.grp_anm.translateX)
-                # pymel.disconnectAttr(sysFinger.grp_anm.translateY)
-                # pymel.disconnectAttr(sysFinger.grp_anm.translateZ)
-                # pymel.parentConstraint(grp_pivot, sysFinger.grp_anm, maintainOffset=True, skipRotate=['x', 'y', 'z'])
-                # pymel.pointConstraint(grp_pos, sysFinger.grp_anm, maintainOffset=True)
 
             # Connect Global scale
             pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)

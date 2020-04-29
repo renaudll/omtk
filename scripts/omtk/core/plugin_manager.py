@@ -43,7 +43,11 @@ class Plugin(object):
         self.description = None
 
         # Resolve full module path
-        module_path = "%s.%s.%s" % (self.root_package_name, self.type_name, self.module_name)
+        module_path = "%s.%s.%s" % (
+            self.root_package_name,
+            self.type_name,
+            self.module_name,
+        )
 
         try:
             # Load module using import_module before using pkgutil
@@ -64,7 +68,8 @@ class Plugin(object):
                 self.module.register_plugin, "__call__"
             ):
                 raise Exception(
-                    "Cannot register plugin %s. No register_plugin function found!" % self.module.name
+                    "Cannot register plugin %s. No register_plugin function found!"
+                    % self.module.name
                 )
 
             # Get module class
@@ -79,7 +84,9 @@ class Plugin(object):
         except Exception, e:
             self.status = PluginStatus.Failed
             self.description = str(e)
-            log.warning("Plugin %s failed to load! %s", self.module_name, self.description)
+            log.warning(
+                "Plugin %s failed to load! %s", self.module_name, self.description
+            )
 
     @classmethod
     def from_module(cls, name, type_name):
@@ -249,16 +256,6 @@ class PluginManager(object):
                     result.append(dirty_plugins.pop(i))
 
         return list(reversed(result))
-
-    # def _extend_dependent_plugins(self, src_plugins):
-    #     other_plugins = [plugin for plugin in self.iter_plugins() if not plugin in src_plugins]
-    #
-    #     result = copy.copy(src_plugins)
-    #     for plugin in src_plugins:
-    #         for other_plugin in other_plugins:
-    #             if plugin in other_plugin:
-    #                 result.append(other_plugin)
-    #     return sorted(result)
 
     def get_summary(self):
         header_row = ("TYPE", "NAME", "DESC", "STATUS")

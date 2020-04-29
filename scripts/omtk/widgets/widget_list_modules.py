@@ -146,8 +146,6 @@ class WidgetListModules(QtWidgets.QWidget):
 
             return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
 
-        # unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
-        # selectableBrush = QtGui.QBrush(QtCore.Qt.white)
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             can_show = fn_can_show(qt_item, query_regex)
             qt_item.setHidden(not can_show)
@@ -167,9 +165,7 @@ class WidgetListModules(QtWidgets.QWidget):
             elif isinstance(data, classModule.Module):
                 data.validate()
             else:
-                raise Exception(
-                    "Unexpected datatype %s for %s" % (type(data), data)
-                )
+                raise Exception("Unexpected datatype %s for %s" % (type(data), data))
         except Exception, e:
             if verbose:
                 validate_message = str(e)
@@ -206,11 +202,14 @@ class WidgetListModules(QtWidgets.QWidget):
             elif isinstance(val, classRig.Rig):
                 val.build()
             else:
-                raise Exception(
-                    "Unexpected datatype %s for %s" % (type(val), val)
-                )
+                raise Exception("Unexpected datatype %s for %s" % (type(val), val))
         except Exception, e:
-            log.error("Error building %s. Received %s. %s", val, type(e).__name__, str(e).strip())
+            log.error(
+                "Error building %s. Received %s. %s",
+                val,
+                type(e).__name__,
+                str(e).strip(),
+            )
             traceback.print_exc()
 
         if update:
@@ -229,7 +228,12 @@ class WidgetListModules(QtWidgets.QWidget):
             else:
                 raise Exception("Unexpected datatype %s for %s" % (type(val), val))
         except Exception, e:
-            log.error("Error building %s. Received %s. %s", val, type(e).__name__, str(e).strip())
+            log.error(
+                "Error building %s. Received %s. %s",
+                val,
+                type(e).__name__,
+                str(e).strip(),
+            )
             traceback.print_exc()
 
         if update:
@@ -258,8 +262,9 @@ class WidgetListModules(QtWidgets.QWidget):
                 try:
                     module.validate_version(version_major, version_minor, version_patch)
                 except Exception, e:
-                    warning_msg = "v%s.%s.%s is known to have issues and need to be updated: %s" % (
-                        version_major, version_minor, version_patch, str(e)
+                    warning_msg = (
+                        "v%s.%s.%s is known to have issues and need to be updated: %s"
+                        % (version_major, version_minor, version_patch, str(e))
                     )
 
                 if warning_msg:
@@ -273,9 +278,7 @@ class WidgetListModules(QtWidgets.QWidget):
             can_build, validation_message = self._can_build(module, verbose=True)
             if not can_build:
                 desired_color = self._color_invalid
-                msg = "Validation failed for %s: %s" % (
-                    module, validation_message
-                )
+                msg = "Validation failed for %s: %s" % (module, validation_message)
                 log.warning(msg)
                 qitem.setToolTip(0, msg)
                 qitem.setBackground(0, desired_color)
@@ -430,7 +433,6 @@ class WidgetListModules(QtWidgets.QWidget):
                 self._unbuild(
                     module, update=False
                 )  # note: setting update=True on maya-2017 can cause Qt to crash...
-            # need_update = True
             ui_shared._update_network(self._rig, item=item)
 
         # Check if the name have changed
@@ -442,10 +444,6 @@ class WidgetListModules(QtWidgets.QWidget):
             if hasattr(item, "net"):
                 name_attr = item.net.attr("name")
                 name_attr.set(new_text)
-
-                # Ensure to only refresh the UI and not recreate all
-                # if need_update:
-                #     self.refresh_ui()
 
     def on_module_query_changed(self, *args, **kwargs):
         self._refresh_ui_modules_visibility()
@@ -602,7 +600,12 @@ class WidgetListModules(QtWidgets.QWidget):
                 self.deletedRig.emit(rig)
 
             except Exception, e:
-                log.error("Error removing %s. Received %s. %s", rig, type(e).__name__, str(e).strip())
+                log.error(
+                    "Error removing %s. Received %s. %s",
+                    rig,
+                    type(e).__name__,
+                    str(e).strip(),
+                )
                 traceback.print_exc()
 
         # Remove all selected modules
@@ -613,7 +616,12 @@ class WidgetListModules(QtWidgets.QWidget):
                 module.rig.remove_module(module)
                 need_reexport = True
             except Exception, e:
-                log.error("Error removing %s. Received %s. %s", module, type(e).__name__, str(e).strip())
+                log.error(
+                    "Error removing %s. Received %s. %s",
+                    module,
+                    type(e).__name__,
+                    str(e).strip(),
+                )
                 traceback.print_exc()
 
         if need_reexport:

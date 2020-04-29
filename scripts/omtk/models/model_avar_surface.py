@@ -12,7 +12,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
     """
 
     SHOW_IN_UI = False
-    # _CLS_CTRL_MICRO = CtrlFaceMicro
 
     _ATTR_NAME_U_BASE = "baseU"
     _ATTR_NAME_V_BASE = "baseV"
@@ -217,8 +216,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         #
 
         # Determine the follicle U and V on the reference nurbsSurface.
-        # jnt_pos = self.jnt.getTranslation(space='world')
-        # fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self._surface, jnt_pos)
         base_u_val = self._attr_u_base.get()
         base_v_val = self._attr_v_base.get()
 
@@ -268,7 +265,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
                 "surface": self._surface.worldSpace,
                 "surfaceU": attr_u_inn,
                 "surfaceV": attr_v_inn,
-            }
+            },
         )
         infinity_follicle_tm = pymel.Attribute("%s.outputTM" % infinity_follicle.output)
 

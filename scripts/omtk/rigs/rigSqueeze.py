@@ -71,7 +71,6 @@ class SqueezeNomenclature(className.BaseName):
                 new_token = token.upper()
             new_tokens.append(new_token)
 
-        # tokens = [token.title() for token in tokens]
         return super(SqueezeNomenclature, self)._join_tokens(new_tokens)
 
 
@@ -290,9 +289,6 @@ class RigSqueeze(classRig.Rig):
 
         attr_display_mesh_output_attrs = {self.grp_geo.visibility}
         attr_display_proxy_output_attrs = {self.grp_proxy.visibility}
-        # attr_display_ctrl_output_attrs = set(
-        #     [children.visibility for children in self.grp_anm.getChildren(type='transform')]
-        # )
 
         # In the past, the displayMesh attribute was a boolean and the displayProxy was also a boolean.
         # Now we use an enum. This mean that we need to remap.
@@ -332,20 +328,7 @@ class RigSqueeze(classRig.Rig):
         for attr_dst in attr_display_proxy_output_attrs:
             if not libAttr.is_connected_to(attr_display_mesh, attr_dst, max_depth=3):
                 self.log.debug("Connecting %s to %s", attr_display_mesh, attr_dst)
-                # attr_proxy_display_inn = libRigging.create_utility_node(
-                #     'condition',
-                #     firstTerm=attr_display_mesh,
-                #     secondTerm=0,
-                #     colorIfTrueR=True,
-                #     colorIfFalseR=False
-                # ).outColorR
                 pymel.connectAttr(attr_display_mesh, attr_dst, force=True)
-
-                # Connect DisplayCtrl attribute
-                # for attr_dst in attr_display_ctrl_output_attrs:
-                #     if not libAttr.is_connected_to(attr_display_ctrl, attr_dst, max_depth=3):
-                #         self.log.debug("Connecting %s to %s", attr_display_ctrl, attr_dst)
-                #         pymel.connectAttr(attr_display_ctrl, attr_dst, force=True)
 
     def _is_face_module(self, module):
         """Check if a module is a face module. """

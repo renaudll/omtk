@@ -38,7 +38,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     def __init__(self, *args, **kwargs):
         super(ModelInteractiveCtrl, self).__init__(*args, **kwargs)
         self.follicle = None  # Used for calibration (legacy)
-        self.folliclePos = None # Used for calibration
+        self.folliclePos = None  # Used for calibration
         self.mesh = None  # We should be able to provide the mesh
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
@@ -181,7 +181,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             v_coord = out_v
 
         if self.jnt:
-            self.log.debug("Creating doritos on %s using %s as reference", obj_mesh, self.jnt)
+            self.log.debug(
+                "Creating doritos on %s using %s as reference", obj_mesh, self.jnt
+            )
         else:
             self.log.debug("Creating doritos on %s", obj_mesh)
 
@@ -203,7 +205,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             cp.set(0, 0, 0)
 
         if parent_rot:
-            rot_ref = pymel.createNode("transform", name=nomenclature_rig.resolve("parentRotRef"))
+            rot_ref = pymel.createNode(
+                "transform", name=nomenclature_rig.resolve("parentRotRef")
+            )
             pymel.orientConstraint(parent_rot, rot_ref, maintainOffset=True)
         else:
             rot_ref = None
@@ -221,15 +225,21 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                 "sensitivityX": self.attr_sensitivity_tx,
                 "sensitivityY": self.attr_sensitivity_ty,
                 "sensitivityZ": self.attr_sensitivity_tz,
-                "parentTM": rot_ref.matrix if rot_ref else None
-            }
+                "parentTM": rot_ref.matrix if rot_ref else None,
+            },
         )
 
         compound_ctrl_shape = pymel.Attribute("%s.ctrlShapeAdjusted" % compound.output)
         pymel.connectAttr(compound_ctrl_shape, ctrl_shape.create, force=True)
-        pymel.connectAttr("%s.ctrlOffsetTranslate" % compound.output, self.ctrl.offset.translate)
-        pymel.connectAttr("%s.ctrlOffsetRotate" % compound.output, self.ctrl.offset.rotate)
-        pymel.connectAttr("%s.ctrlOffsetScale" % compound.output, self.ctrl.offset.scale)
+        pymel.connectAttr(
+            "%s.ctrlOffsetTranslate" % compound.output, self.ctrl.offset.translate
+        )
+        pymel.connectAttr(
+            "%s.ctrlOffsetRotate" % compound.output, self.ctrl.offset.rotate
+        )
+        pymel.connectAttr(
+            "%s.ctrlOffsetScale" % compound.output, self.ctrl.offset.scale
+        )
         self.folliclePos = pymel.Attribute("%s.folliclePos" % compound.output)
 
         # Create a temporary follicle to find the coords
@@ -466,6 +476,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             if not enabled or callibration_attr.isLocked():
                 continue
             sensitivity = fnCalibrate(callibration_attr, influence)
-            self.log.debug("Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst)
+            self.log.debug(
+                "Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst
+            )
             attr_dst.set(sensitivity)
-

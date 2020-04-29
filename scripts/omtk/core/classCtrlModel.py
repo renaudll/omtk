@@ -202,21 +202,27 @@ class CtrlModelCalibratable(BaseCtrlModel):
             sensitivity_tx = libRigging.calibrate_attr_using_translation(
                 self.ctrl.node.tx, ref
             )
-            self.log.debug("Adjusting sensibility tx for %s to %s", self, sensitivity_tx)
+            self.log.debug(
+                "Adjusting sensibility tx for %s to %s", self, sensitivity_tx
+            )
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
         if ty and not self.ctrl.node.ty.isLocked():
             sensitivity_ty = libRigging.calibrate_attr_using_translation(
                 self.ctrl.node.ty, ref
             )
-            self.log.debug("Adjusting sensibility ty for %s to %s", self, sensitivity_ty)
+            self.log.debug(
+                "Adjusting sensibility ty for %s to %s", self, sensitivity_ty
+            )
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
         if tz and not self.ctrl.node.tz.isLocked():
             sensitivity_tz = libRigging.calibrate_attr_using_translation(
                 self.ctrl.node.tz, ref
             )
-            self.log.debug("Adjusting sensibility tz for %s to %s", self, sensitivity_tz)
+            self.log.debug(
+                "Adjusting sensibility tz for %s to %s", self, sensitivity_tz
+            )
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
     def unbuild(self, **kwargs):

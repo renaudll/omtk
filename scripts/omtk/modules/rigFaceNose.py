@@ -75,8 +75,6 @@ class FaceNose(rigFaceAvarGrps.AvarGrpOnSurface):
     Note that this was done reallllly quickly and cleanup may be needed in the future.
     """
 
-    # _DEFORMATION_ORDER = 'post'
-    # _CLS_AVAR = AvarJaw
     SHOW_IN_UI = True
     IS_SIDE_SPECIFIC = False
     _CLS_CTRL = CtrlNose

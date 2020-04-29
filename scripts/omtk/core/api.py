@@ -38,7 +38,6 @@ __all__ = (
 )
 
 
-@libPython.memoized
 def get_version():
     """
     Return the current omtk version.

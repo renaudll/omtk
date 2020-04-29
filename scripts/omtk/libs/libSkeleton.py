@@ -51,7 +51,8 @@ def transfer_rotation_to_joint_orient(obj):
         or is_attr_accessible(obj.rotateZ)
     ):
         pymel.warning(
-            "Can't transfer rotation to joint orient. %s rotation is locked." % obj.name()
+            "Can't transfer rotation to joint orient. %s rotation is locked."
+            % obj.name()
         )
         return
 
@@ -61,7 +62,8 @@ def transfer_rotation_to_joint_orient(obj):
         or is_attr_accessible(obj.jointOrientZ)
     ):
         pymel.warning(
-            "Can't transfer rotation to joint orient. %r jointOrient is locked." % obj.name()
+            "Can't transfer rotation to joint orient. %r jointOrient is locked."
+            % obj.name()
         )
         return
 

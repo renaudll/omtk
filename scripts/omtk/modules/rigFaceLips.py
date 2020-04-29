@@ -42,8 +42,6 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
 
         self._attr_inn_jaw_pt = None
 
-        # self._jaw_ref = None
-
         # Allow the rigger to completely bypass the splitter node influence.
         self._attr_bypass_splitter = None
 
@@ -153,9 +151,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 version_major, version_minor, version_patch = jaw_module.get_version()
                 if version_major == 0 and version_minor == 4 and version_patch < 18:
                     raise Exception(
-                        "Associated Jaw module version is too low. Expected 0.4.18+, got %s.%s.%s" % (
-                            version_major, version_minor, version_patch
-                        )
+                        "Associated Jaw module version is too low. Expected 0.4.18+, got %s.%s.%s"
+                        % (version_major, version_minor, version_patch)
                     )
 
     def validate_version(self, major_version, minor_version, patch_version):
@@ -294,7 +291,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         :param parent_pos:
         :param parent_rot:
         """
-        # parent_pos = self.avar_all._grp_output
         parent_rot = self.avar_all._grp_output
         super(FaceLips, self)._create_avar_macro_all_ctrls(
             parent_pos=parent_pos, parent_rot=parent_rot, **kwargs

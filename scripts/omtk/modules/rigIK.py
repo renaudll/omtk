@@ -401,7 +401,6 @@ class IK(Module):
         self._ikChainGrp.setParent(self.grp_rig)
 
         # Duplicate input chain (we don't want to move the hierarchy)
-        # self._chain_ik = pymel.duplicate(list(self.chain_jnt), renameChildren=True, parentOnly=True)
         self._chain_ik = self.chain.duplicate()
         i = 1
         for oIk in self._chain_ik:
@@ -467,12 +466,6 @@ class IK(Module):
 
         if ctrl_ik_rot:
             self.ctrl_ik.node.setRotation(ctrl_ik_rot, space="world")
-
-        # We may want to find a better way to handle node stack.
-        # if ctrl_ik_zeroed:
-        #     self.ctrl_ik.offset.setRotation(ctrl_ik_r, space='world')
-        # else:
-        #     self.ctrl_ik.node.setRotation(ctrl_ik_r, space='world')
 
         # Create the ik_handle_target that will control the ik_handle
         # This is allow us to override what control the main ik_handle

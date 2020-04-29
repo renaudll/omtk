@@ -92,13 +92,11 @@ class RigGrp(Node):
             if not keep_if_children:
                 children = self.node.getChildren()
                 if children:
-                    # self.extra = children
                     for child in children:
                         if not isinstance(child, pymel.nt.NurbsCurve):
                             pymel.warning(
-                                "Ejecting %s from %s before deletion" % (
-                                    child, self.node
-                                )
+                                "Ejecting %s from %s before deletion"
+                                % (child, self.node)
                             )
                             child.setParent(world=True)
                 super(RigGrp, self).unbuild(*args, **kwargs)
@@ -108,6 +106,7 @@ class RigLoggerAdapter(logging.LoggerAdapter):
     """
     Logger adapter that add a rig namespace to any logger message.
     """
+
     def __init__(self, rig):  # type: (Rig,) -> None
         super(RigLoggerAdapter, self).__init__(logging.getLogger("omtk"), {"rig": rig})
 
@@ -218,7 +217,9 @@ class Rig(object):
         if version:
             version = " v%s" % version
         return "%s <%s%s>" % (
-            self.name.encode("utf-8"), self.__class__.__name__, version
+            self.name.encode("utf-8"),
+            self.__class__.__name__,
+            version,
         )
 
     #
@@ -387,10 +388,6 @@ class Rig(object):
             if libPymel.is_child_of(mesh, self.grp_rig.node):
                 return False
 
-        # Any mesh that is used as an input in a module is used for rigging.
-        # if mesh in self._get_all_input_shapes():
-        #     return False
-
         return True
 
     def get_potential_influences(self):
@@ -441,7 +438,9 @@ class Rig(object):
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
         if not shapes:
-            self.log.warning("Found no mesh under %r, scanning the whole scene.", self.grp_geo)
+            self.log.warning(
+                "Found no mesh under %r, scanning the whole scene.", self.grp_geo
+            )
             shapes = pymel.ls(type="surfaceShape")
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
@@ -570,12 +569,12 @@ class Rig(object):
             # For now, we will determine the root jnt by it's name used in each rig. Not the best solution,
             # but currently the safer since we want to support multiple deformation layer
             if not libPymel.is_valid_PyNode(self.grp_jnt):
-                # self.grp_jnt = next(iter(libPymel.ls_root(type='joint')), None)
                 if cmds.objExists(self.nomenclature.root_jnt_name):
                     self.grp_jnt = pymel.PyNode(self.nomenclature.root_jnt_name)
                 else:
-                    self.log.warning("Could not find any root joint, master ctrl will not drive anything")
-                    # self.grp_jnt = pymel.createNode('joint', name=self.nomenclature.root_jnt_name)
+                    self.log.warning(
+                        "Could not find any root joint, master ctrl will not drive anything"
+                    )
 
         # Create the master grp
         if create_master_grp:
@@ -601,12 +600,9 @@ class Rig(object):
 
         # Create grp_geo
         if create_grp_geo:
-            # all_geos = libPymel.ls_root_geos()
             self.grp_geo = self.build_grp(
                 RigGrp, self.grp_geo, self.nomenclature.root_geo_name
             )
-            # if all_geos:
-            #    all_geos.setParent(self.grp_geo)
 
         if create_grp_backup:
             self.grp_backup = self.build_grp(
@@ -715,7 +711,9 @@ class Rig(object):
             try:
                 self.validate()
             except Exception, e:
-                self.log.warning("Can't build %s because it failed validation: %s", self, e)
+                self.log.warning(
+                    "Can't build %s because it failed validation: %s", self, e
+                )
                 return False
 
         self.log.info("Building")
@@ -758,7 +756,8 @@ class Rig(object):
         modules = self._sort_modules_by_dependencies(modules)
 
         log.debug(
-            "Will build modules in the specified order: %s", ", ".join([str(m) for m in modules])
+            "Will build modules in the specified order: %s",
+            ", ".join([str(m) for m in modules]),
         )
 
         #
@@ -794,7 +793,12 @@ class Rig(object):
                         module.build(**kwargs)
                         self.post_build_module(module)
                     except Exception, e:
-                        self.log.error("Error building %s. Received %s. %s", module, type(e).__name__, str(e).strip())
+                        self.log.error(
+                            "Error building %s. Received %s. %s",
+                            module,
+                            type(e).__name__,
+                            str(e).strip(),
+                        )
                         traceback.print_exc()
                         if strict:
                             raise e
@@ -835,16 +839,14 @@ class Rig(object):
         # Raise warnings if a module leave junk in the scene.
         if module.grp_anm and not module.grp_anm.getChildren():
             cmds.warning(
-                "Found empty group %s, please cleanup module %s." % (
-                    module.grp_anm.longName(), module
-                )
+                "Found empty group %s, please cleanup module %s."
+                % (module.grp_anm.longName(), module)
             )
             pymel.delete(module.grp_anm)
         if module.grp_rig and not module.grp_rig.getChildren():
             cmds.warning(
-                "Found empty group %s, please cleanup module %s." % (
-                    module.grp_rig.longName(), module
-                )
+                "Found empty group %s, please cleanup module %s."
+                % (module.grp_rig.longName(), module)
             )
             pymel.delete(module.grp_rig)
 
@@ -911,9 +913,8 @@ class Rig(object):
                     and module.grp_anm.getParent() == self.grp_anm.node
                 ):
                     pymel.warning(
-                        "Ejecting %s from %s before deletion" % (
-                            module.grp_anm.name(), self.grp_anm.name()
-                        )
+                        "Ejecting %s from %s before deletion"
+                        % (module.grp_anm.name(), self.grp_anm.name())
                     )
                     module.grp_anm.setParent(world=True)
                 if (
@@ -922,16 +923,20 @@ class Rig(object):
                     and module.grp_rig.getParent() == self.grp_rig.node
                 ):
                     pymel.warning(
-                        "Ejecting %s from %s before deletion" % (
-                            module.grp_rig.name(), self.grp_rig.name()
-                        )
+                        "Ejecting %s from %s before deletion"
+                        % (module.grp_rig.name(), self.grp_rig.name())
                     )
                     module.grp_rig.setParent(world=True)
             else:
                 try:
                     module.unbuild(**kwargs)
                 except Exception, e:
-                    self.log.error("Error building %s. Received %s. %s",  module, type(e).__name__, str(e).strip())
+                    self.log.error(
+                        "Error building %s. Received %s. %s",
+                        module,
+                        type(e).__name__,
+                        str(e).strip(),
+                    )
                     traceback.print_exc()
                     if strict:
                         raise (e)
@@ -1013,10 +1018,6 @@ class Rig(object):
                     if pattern in token:
                         return jnt
 
-    # @libPython.memoized_instancemethod
-    # def get_head_jnt(self, strict=True):
-    #     return next(iter(self.get_head_jnts(strict=strict)), None)
-
     @libPython.memoized_instancemethod
     def get_head_jnts(self, strict=True):
         """
@@ -1031,7 +1032,10 @@ class Rig(object):
             if isinstance(module, rigHead.Head):
                 result.append(module.jnt)
         if strict and not result:
-            self.log.warning("Cannot found Head in rig! Please create a %s module!", rigHead.Head.__name__)
+            self.log.warning(
+                "Cannot found Head in rig! Please create a %s module!",
+                rigHead.Head.__name__,
+            )
         return result
 
     @libPython.memoized_instancemethod
@@ -1042,7 +1046,10 @@ class Rig(object):
             if isinstance(module, rigFaceJaw.FaceJaw):
                 return module.jnt
         if strict:
-            self.log.warning("Cannot found Jaw in rig! Please create a %s module!", rigFaceJaw.FaceJaw.__name__)
+            self.log.warning(
+                "Cannot found Jaw in rig! Please create a %s module!",
+                rigFaceJaw.FaceJaw.__name__,
+            )
         return None
 
     @libPython.memoized_instancemethod
@@ -1059,15 +1066,13 @@ class Rig(object):
 
         # Resolve the top of the head location
         bot = pymel.datatypes.Point(ref_tm.translate)
-        # dir = pymel.datatypes.Point(1,0,0) * ref_tm
-        # dir = dir.normal()
-        # This is strange but not pointing to the world sometime don't work...
-        # TODO: FIX ME
-        dir = pymel.datatypes.Point(0, 1, 0)
+        dir_ = pymel.datatypes.Point(0, 1, 0)
 
-        top = libRigging.ray_cast_farthest(bot, dir, geometries)
+        top = libRigging.ray_cast_farthest(bot, dir_, geometries)
         if not top:
-            self.log.warning("Can't resolve head top location using raycasts using %s %s!", bot, dir)
+            self.log.warning(
+                "Can't resolve head top location using raycasts using %s %s!", bot, dir_
+            )
             return None
 
         return libPymel.distance_between_vectors(bot, top)

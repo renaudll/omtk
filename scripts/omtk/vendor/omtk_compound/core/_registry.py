@@ -1,6 +1,7 @@
 """
 Registry hold all known compound definitions.
 """
+import logging
 import os
 from collections import defaultdict
 
@@ -9,6 +10,7 @@ import six
 
 from ._definition import CompoundDefinition
 
+_LOG = logging.getLogger(__name__)
 
 class RegistryError(Exception):
     """Base class for registry errors"""
@@ -116,6 +118,7 @@ class Registry(object):
     def parse_directory(self, startdir):
         """ Scan a directory and register any found definitions.
         """
+        _LOG.warning("Parsing %s", startdir)
         for rootdir, _, filenames in os.walk(startdir):
             for filename in filenames:
                 if filename.endswith(".ma"):
@@ -125,4 +128,7 @@ class Registry(object):
                     except ValueError:  # TODO: Use custom exception
                         pass
                     else:
-                        self.register(inst)
+                        try:
+                            self.register(inst)
+                        except AlreadyRegisteredError as error:
+                            _LOG.warning(error)

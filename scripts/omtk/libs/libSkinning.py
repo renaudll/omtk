@@ -4,10 +4,19 @@ from omtk.libs import libPymel
 import logging
 
 
-log = logging.getLogger("omtk")
+_LOG = logging.getLogger(__name__)
 
 
 def get_skin_cluster(obj):
+    """
+    Find the skinCluster related to a node.
+
+    :param obj: A node
+    :type obj: pymel.nodetypes.DependNode
+    :return: A skinCluster if found
+    :rtype: pymel.nodetypes.SkinCluster or None
+    """
+    # TODO: Use exceptions
     if isinstance(obj, pymel.nodetypes.SkinCluster):
         return obj
     for hist in pymel.listHistory(obj):
@@ -18,10 +27,16 @@ def get_skin_cluster(obj):
 
 def get_skin_cluster_influence_objects(skincluster):
     """
-    Wrapper around pymel that wrap OpenMaya.MFnSkinCluster.influenceObjects() which crash when 
-    a skinCluster have zero influences.
-    :param skincluster: A pymel.nodetypes.SkinCluster instance. 
-    :return: A list in pymel.PyNode instances.
+    Return a skinCluster influences.
+
+    This workaround pymel.nodetypes.SkinCluster.influenceObjects
+    which wrap OpenMaya.MFnSkinCluster.influenceObjects()
+    which crash when a skinCluster have zero influences.
+
+    :param skincluster: A skinCluster
+    :type skincluster: pymel.nodetypes.SkinCluster
+    :return: The skinCluster influences
+    :rtype: list of pymel.nodetypes.DependNode
     """
     try:
         return skincluster.influenceObjects()
@@ -29,8 +44,7 @@ def get_skin_cluster_influence_objects(skincluster):
         return []
 
 
-# @decorators.profiler
-def transfer_weights(obj, sources, target, add_missing_influences=False):
+def transfer_weights(obj, sources, target):
     """
     Transfer skin weights from multiples joints to a specific joint.
     Took 0.193 in Makino.
@@ -60,7 +74,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
 
     # Add target if missing, otherwise thrown an error.
     if target not in influence_jnts:
-        log.warning(
+        _LOG.warning(
             "Can't find target %s in skinCluster %s", target.name(), skinCluster.name()
         )
         skinCluster.addInfluence(target, weight=0)
@@ -70,7 +84,7 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
     sources = filter(lambda jnt: jnt in influence_jnts, sources)
 
     if not sources:
-        log.warning("Abording transfering on %s, nothing to transfer", obj.name())
+        _LOG.warning("Abording transfering on %s, nothing to transfer", obj.name())
         return
 
     num_jnts = len(influence_jnts)
@@ -176,25 +190,6 @@ def transfer_weights_replace(source, target):
 
     # HACK : Evaluate back all skinCluster in which we changed connections
     pymel.dgdirty(skinToReset)
-
-    """
-    skinClusters = set()
-    for source in sources:
-        for hist in source.listHistory(future=True):
-            if isinstance(hist, pymel.nodetypes.SkinCluster):
-                skinClusters.add(hist)
-
-    for skinCluster in skinClusters:
-        for geo in skinCluster.getGeometry():
-            # Only mesh are supported for now
-            if not isinstance(geo, pymel.nodetypes.Mesh):
-                continue
-
-            try:
-                transfer_weights(geo, sources, target, **kwargs)
-            except ValueError:  # jnt_dwn not in skinCluster
-                pass
-    """
 
 
 def interp_linear(r, s, e):
@@ -472,8 +467,11 @@ def assign_twist_weights(src, dsts):
     """
     Automatically find any skinCluster associated with provided arguments and weights from a single influences
     to multiple influences on a line.
-    :param src: A pymel.PyNode, generally of type pymel.nodetypes.Joint.
-    :param dsts: A list of pymel.PyNode, generally of type pymel.nodetypes.Join.
+
+    :param src: A joint
+    :type src: pymel.nodetypes.Joint
+    :param dsts: A list of joints to transfer the weights to
+    :type dsts: list of pymel.nodetypes.Joint
     """
     skin_deformers = _get_skinClusters_from_inputs([src])
     meshes = set()
@@ -497,7 +495,7 @@ def assign_twist_weights(src, dsts):
             dst.lockInfluenceWeights.set(False)
 
     for mesh in meshes:
-        log.info("%s --> Assign skin weights on %s.", src.name(), mesh.name())
+        _LOG.info("%s --> Assign skin weights on %s.", src.name(), mesh.name())
         # Transfer weight, note that since we use force_straight line, the influence
         # don't necessary need to be in their bind pose.
         transfer_weights_from_segments(mesh, src, dsts, force_straight_line=True)
@@ -522,4 +520,4 @@ def unassign_twist_weights(dsts, src):
         for dst in dsts:
             if dst in influenceObjects:
                 to_transfer.append(dst)
-        transfer_weights(skin_deformer, to_transfer, src, add_missing_influences=True)
+        transfer_weights(skin_deformer, to_transfer, src)

@@ -102,18 +102,16 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         # Implement the 'bypass' avars.
         # Thoses avars bypass the splitter, used in corner cases only.
         #
-        # TODO: Include in the compound directly
-        attr_attr_ud_bypass_adjusted = libRigging.create_utility_node(
-            "multiplyDivide",
-            name=nomenclature_rig.resolve("getAdjustedUdBypass"),
-            input1X=self._attr_inn_ud_bypass,
-            input2X=self.multiplier_ud,
-        ).outputX
         attr_out_v = libRigging.create_utility_node(
             "addDoubleLinear",
             name=nomenclature_rig.resolve("addBypassAvar"),
             input1=attr_out_v,
-            input2=attr_attr_ud_bypass_adjusted,
+            input2=libRigging.create_utility_node(
+                "multiplyDivide",
+                name=nomenclature_rig.resolve("getAdjustedUdBypass"),
+                input1X=self._attr_inn_ud_bypass,
+                input2X=self.multiplier_ud,
+            ).outputX,
         ).output
 
         return attr_out_u, attr_out_v

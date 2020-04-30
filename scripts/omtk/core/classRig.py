@@ -1002,22 +1002,6 @@ class Rig(object):
     # Facial and avars utility methods
     #
 
-    def _get_influence_by_pattern(self, whitelist, key=None):
-        nomenclature = self._get_nomenclature_cls()
-
-        for jnt in self.get_potential_influences():
-            # Ignore non-joints
-            if not isinstance(jnt, pymel.nodetypes.Joint):
-                continue
-
-            name = nomenclature(jnt.name())
-            tokens = [token.lower() for token in name.tokens]
-
-            for pattern in whitelist:
-                for token in tokens:
-                    if pattern in token:
-                        return jnt
-
     @libPython.memoized_instancemethod
     def get_head_jnts(self, strict=True):
         """

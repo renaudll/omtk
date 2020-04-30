@@ -28,8 +28,13 @@ def mirror_obj(obj_src, obj_dst=None):
 
 def transfer_rotation_to_joint_orient(obj):
     """
-    In Maya it is not possible to do a "makeIdentity" command on a joint that is bound to a skinCluster.
-    This method bypass this limitation.
+    Convert any rotation value to jointOrient rotation.
+
+    In Maya it is not possible to do a "makeIdentity" command on a joint
+    that is bound to a skinCluster. This method bypass this limitation.
+
+    :param obj: The joints to act on
+    :rtype obj: pymel.nodetypes.Joint
     """
     mfn = obj.__apimfn__()
 
@@ -45,27 +50,15 @@ def transfer_rotation_to_joint_orient(obj):
     def is_attr_accessible(attr):
         return not attr.isFreeToChange() == OpenMaya.MPlug.kFreeToChange
 
-    if (
-        is_attr_accessible(obj.rotateX)
-        or is_attr_accessible(obj.rotateY)
-        or is_attr_accessible(obj.rotateZ)
+    for attr in (
+            obj.rotateX, obj.rotateY, obj.rotateZ,
+            obj.jointOrientX, obj.jointOrientY, obj.jointOrientZ
     ):
-        pymel.warning(
-            "Can't transfer rotation to joint orient. %s rotation is locked."
-            % obj.name()
-        )
-        return
-
-    if (
-        is_attr_accessible(obj.jointOrientX)
-        or is_attr_accessible(obj.jointOrientY)
-        or is_attr_accessible(obj.jointOrientZ)
-    ):
-        pymel.warning(
-            "Can't transfer rotation to joint orient. %r jointOrient is locked."
-            % obj.name()
-        )
-        return
+        if not is_attr_accessible(attr):
+            pymel.warning(
+                "Can't transfer rotation to joint orient. %r is locked." % (obj, attr)
+            )
+            return
 
     obj.jointOrientX.set(math.degrees(rotation_xyz.x))
     obj.jointOrientY.set(math.degrees(rotation_xyz.y))
@@ -75,7 +68,17 @@ def transfer_rotation_to_joint_orient(obj):
     obj.rotateZ.set(0)
 
 
-def mirror_jnt(obj_src, handle_joint_orient=True):
+def mirror_jnt(obj_src):
+    """
+    Mirror a a joint transform from one side to another.
+    For example, mirroring a jnt_arm_l to a jnt_arm_r.
+    This will create the other joint if needed, otherwise it will re-use it.
+
+    :param obj_src: The joint to mirror
+    :type obj_src: pymel.nodetypes.Joint
+    :return: The mirrored joint
+    :rtype: pymel.nodetypes.Joint
+    """
     from omtk.animation import mirrorPose
 
     obj_dst = mirrorPose.get_ctrl_friend(obj_src)
@@ -96,28 +99,26 @@ def mirror_jnt(obj_src, handle_joint_orient=True):
 
     mirror_obj(obj_src, obj_dst)
     if (
-        handle_joint_orient
-        and isinstance(obj_src, pymel.nodetypes.Joint)
-        and isinstance(obj_dst, pymel.nodetypes.Joint)
+        isinstance(obj_src, pymel.nodetypes.Joint) and
+        isinstance(obj_dst, pymel.nodetypes.Joint)
     ):
         transfer_rotation_to_joint_orient(obj_dst)
         obj_dst.radius.set(obj_src.radius.get())
+
     return obj_dst
 
 
-def mirror_jnts(objs, **kwargs):
+def mirror_jnts(objs):
+    """
+    Mirror a a joint transform from one side to another.
+    For example, mirroring a jnt_arm_l to a jnt_arm_r.
+    This will create the other joint if needed, otherwise it will re-use it.
+
+    :param objs: The joints to mirror
+    :type: objs: list or pymel.nodetypes.Joint
+    """
     # Sort objects by hyerarchy so we mirror parents before their children.
     objs = sorted(objs, key=libPymel.get_num_parents)
     with pymel.UndoChunk():
         for obj in objs:
-            mirror_jnt(obj, **kwargs)
-
-
-def freeze_selected_joints_rotation():
-    jnts = [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
-    for jnt in jnts:
-        if not isinstance(jnt, pymel.nodetypes.Joint):
-            pymel.warning("Skipping non-joint %s" % jnt)
-            continue
-
-        transfer_rotation_to_joint_orient(jnt)
+            mirror_jnt(obj)

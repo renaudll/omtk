@@ -23,15 +23,15 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
 
     # Define how many unit is moved in uv space in relation with the avars.
     # Taking in consideration that the avar is centered in uv space,
-    # we at minimum want 0.5 of multiplier so moving the avar of 1.0 will
+    # we want at minimum 0.5 of multiplier so moving the avar to 1.0 will
     # move the follicle at the top of uv space (0.5 units).
-    # However in production, we found that defining the range of avar
-    # using the whole is not flexible.
-    # ex: We want the lips to follow the chin but we don't want to have
-    # the lips reach the chin when the UD avar is -1.
+    # However in production, we found that limiting
+    # the range of avars  from -1.0 to 1.0 is not very flexible.
+    # ex: We want the lips to follow the chin but we don't necessarily
+    # want the lips reach the chin when the UD avar is -1.
     # For this reason, we found that using a multiplier of 0.25 work best.
-    # This also help rigger visually since the
-    # surface plane have an edge at 0.25 location.
+    # This also help rigger visually since the surface plane have
+    # a visual edge at at each 25% of it's length.
     # todo: Move this to AvarFollicle.
     default_multiplier_lr = 0.25
     default_multiplier_ud = 0.25

@@ -1,5 +1,5 @@
 """
-Qt helper methods.
+Qt related helper methods
 """
 from omtk.vendor.Qt import QtWidgets
 
@@ -9,7 +9,8 @@ def get_all_QTreeWidgetItem(widget, qt_item=None):
     Iterate through all items of a provided QTreeWidgetItem.
     :param widget: The QTreeWidgetItem to iterate through.
     :param qt_item: The starting point of the iteration. If nothing is provided the invisibleRootItem will be used.
-    :return:
+    :return: A generator that yield QTreeWidgetItem
+    :rtype Generator of QtWidgets.QTreeWidgetItem
     """
     if qt_item is None:
         qt_item = widget.invisibleRootItem()

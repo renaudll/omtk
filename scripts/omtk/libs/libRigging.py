@@ -1487,15 +1487,6 @@ def calibrate_attr_using_translation(
     )
 
 
-def debug_matrix_attr(attr):
-    util_decompose = create_utility_node("decomposeMatrix", inputMatrix=attr)
-    loc = pymel.spaceLocator()
-    pymel.connectAttr(util_decompose.outputTranslate, loc.translate)
-    pymel.connectAttr(util_decompose.outputRotate, loc.rotate)
-    pymel.connectAttr(util_decompose.outputScale, loc.scale)
-    return loc
-
-
 def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix):
     """
     Create a utility node setup that prevent Maya from throwing a warning in case of division by zero.

@@ -376,15 +376,27 @@ class Segment(object):
 
 
 class SegmentCollection(object):
+    """
+    A collection of single segments. Used for math computations.
+    """
     def __init__(self, segments=None):
-        if segments is None:
-            segments = []
-        self.segments = segments
-
+        """
+        :param segments: A list of segments
+        :type segments: list of Segment
+        """
+        self.segments = segments or []
         self.knots = [segment.pos_s for segment in self.segments]
         self.knots.append(self.segments[-1].pos_e)
 
     def closest_segment(self, pos):
+        """
+        Return the closest segment to a provided point.
+
+        :param pos: A point vector
+        :type pos: pymel.datatypes.Vector
+        :return: The segment closest to the point
+        :rtype: Segment
+        """
         bound_min = -0.000000000001  # Damn float imprecision
         bound_max = 1.0000000000001  # Damn float imprecision
         num_segments = len(self.segments)

@@ -97,9 +97,7 @@ class Ribbon(Module):
                 self._ribbon_shape, jnt_pos
             )
             fol_name = nomenclature_rig.resolve("ribbonFollicle{0:02d}".format(i))
-            fol_shape = libRigging.create_follicle2(
-                self._ribbon_shape, u=fol_u, v=fol_v
-            )
+            fol_shape = libRigging.create_follicle(self._ribbon_shape, u=fol_u, v=fol_v)
             fol = fol_shape.getParent()
             fol.rename(fol_name)
             if constraint_rot:

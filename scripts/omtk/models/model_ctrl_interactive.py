@@ -1,7 +1,6 @@
 import pymel.core as pymel
 
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classNode import Node
 from omtk.core import classCtrlModel
 from omtk.core.compounds import create_compound
 from omtk.libs import libRigging
@@ -13,11 +12,14 @@ from omtk.libs import libHistory
 class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     """
     An InteractiveCtrl ctrl is directly constrained on a mesh via a layer_fol.
-    To prevent double deformation, the trick is an additional layer before the final ctrl that invert the movement.
-    For clarity purposes, this is built in the rig so the animator don't need to see the whole setup.
+    To prevent double deformation, the trick is an additional
+    layer before the final ctrl that invert the movement.
+    For clarity purposes, this is built in the rig so
+    the animator don't need to see the whole setup.
 
-    However an InteractiveCtrl might still have to be ccalibrated
-    This is necessary to keep the InteractiveCtrl values in a specific range (ex: -1 to 1) in any scale.
+    However an InteractiveCtrl might still have to be calibrated
+    This is necessary to keep the InteractiveCtrl values
+    in a specific range (ex: -1 to 1) in any scale.
     The calibration apply non-uniform scaling on the ctrl parent to cheat the difference.
 
     For this reason an InteractiveCtrl is created using the following steps:
@@ -25,7 +27,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     2) Connecting the doritos ctrl to something
     3) Optionally call .calibrate()
 
-    WARNING: This ctrl model is deprecated and is NOT integrated into the system at the moment for time reasons.
+    WARNING: This ctrl model is deprecated and is NOT integrated
+    into the system at the moment for time reasons.
     The default ctrl model for a face is model_ctrl_interactive.
     In an ideal scenario, the rigger would be able to choose which ctrl model he desire.
     """
@@ -123,62 +126,43 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     ):
         super(ModelInteractiveCtrl, self).build(avar, ctrl_size=ctrl_size, **kwargs)
 
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        #
-        # Resolve necessary informations
-        #
+        naming = self.get_nomenclature_rig()
 
         # Resolve which object will the InteractiveCtrl track.
-        # If we don't want to follow a particular geometry, we'll use the end of the stack.
+        # If we don't want to follow a particular geometry, we'll use the stack end.
         # Otherwise the influence will be used (to also resolve the geometry).
         # todo: it could be better to resolve the geometry ourself
-        if ref is None:
-            ref = self.jnt
+        ref = ref or self.jnt
 
         # Resolve ctrl matrix
-        # It can differ from the influence to prevent the controller to appear in the geometry.
-        if ctrl_tm is None:
-            ctrl_tm = self.get_default_tm_ctrl()
-
-        if ctrl_tm is None and ref_tm:
-            ctrl_tm = ref_tm
-
-        if ctrl_tm is None and self.jnt:
-            ctrl_tm = self.jnt.getMatrix(worldSpace=True)
-
+        # It can differ from the influence to prevent to prevent issues where the
+        # controller dissapear under the geometry.
+        ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
+        ctrl_tm = ctrl_tm or ref_tm
+        ctrl_tm = ctrl_tm or self.jnt.getMatrix(worldSpace=True) if self.jnt else None
         if ctrl_tm is None:
             raise Exception("Cannot resolve ctrl transformation matrix!")
 
         pos_ref = self.project_pos_on_face(ctrl_tm.translate, geos=self.get_meshes())
 
         # Resolve u and v coordinates
-        # todo: check if we really want to resolve the u and v ourself since it's now connected.
-
-        # If a mesh was provided explicitly as input, use it.
         obj_mesh = obj_mesh or self.get_mesh()
-
         if obj_mesh is None:
-            # We'll scan all available geometries and use the one with the shortest distance.
+            # Scan all available geometries and use the one with the shortest distance.
             meshes = libHistory.get_affected_shapes(ref)
             meshes = list(set(meshes) & set(self.rig.get_shapes()))
-            if not meshes:
-                meshes = set(self.rig.get_shapes())
+            meshes = meshes or set(self.rig.get_shapes())
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(
                 meshes, pos_ref
             )
-
-            if obj_mesh is None and follow_mesh:
+            if not obj_mesh and follow_mesh:
                 raise Exception("Can't find mesh affected by %s." % self.jnt)
-
         else:
             _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
 
-        # Resolve u and v coordinates if necesary.
-        if u_coord is None:
-            u_coord = out_u
-        if v_coord is None:
-            v_coord = out_v
+        # Fallback on automatically resolved UVs
+        u_coord = u_coord or out_u
+        v_coord = v_coord or out_v
 
         if self.jnt:
             self.log.debug(
@@ -187,7 +171,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         else:
             self.log.debug("Creating doritos on %s", obj_mesh)
 
-        # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
+        # Hack: Since there's scaling on the ctrl so the left and right side
+        # ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
             self.ctrl.scaleX.set(-1)
             libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
@@ -205,16 +190,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             cp.set(0, 0, 0)
 
         if parent_rot:
-            rot_ref = pymel.createNode(
-                "transform", name=nomenclature_rig.resolve("parentRotRef")
-            )
+            rot_ref = pymel.createNode("transform", name=naming.resolve("parentRotRef"))
             pymel.orientConstraint(parent_rot, rot_ref, maintainOffset=True)
         else:
             rot_ref = None
 
         compound = create_compound(
             "omtk.InteractiveCtrl",
-            nomenclature_rig.resolve("ctrlModelInteractive"),
+            naming.resolve("ctrlModelInteractive"),
             inputs={
                 "bindTM": ctrl_tm,
                 "ctrlLocalTM": self.ctrl.matrix,
@@ -227,25 +210,19 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                 "sensitivityZ": self.attr_sensitivity_tz,
                 "parentTM": rot_ref.matrix if rot_ref else None,
             },
-        )
-
-        compound_ctrl_shape = pymel.Attribute("%s.ctrlShapeAdjusted" % compound.output)
-        pymel.connectAttr(compound_ctrl_shape, ctrl_shape.create, force=True)
-        pymel.connectAttr(
-            "%s.ctrlOffsetTranslate" % compound.output, self.ctrl.offset.translate
-        )
-        pymel.connectAttr(
-            "%s.ctrlOffsetRotate" % compound.output, self.ctrl.offset.rotate
-        )
-        pymel.connectAttr(
-            "%s.ctrlOffsetScale" % compound.output, self.ctrl.offset.scale
+            outputs={
+                "ctrlOffsetTranslate": self.ctrl.offset.translate,
+                "ctrlOffsetRotate": self.ctrl.offset.rotate,
+                "ctrlOffsetScale": self.ctrl.offset.scale,
+                "ctrlShapeAdjusted": ctrl_shape.create,
+            },
         )
         self.folliclePos = pymel.Attribute("%s.folliclePos" % compound.output)
 
         # Create a temporary follicle to find the coords
         # Note: This is done in a particular order, need to clarify why.
         # TODO: Cleanup
-        fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
+        fol_shape = libRigging.create_follicle(obj_mesh, u=u_coord, v=v_coord)
         fol_transform = fol_shape.getParent()
         fol_bind_tm = fol_transform.getMatrix()
         pymel.delete(fol_transform)
@@ -253,8 +230,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         if constraint and self.jnt:
             pymel.parentConstraint(self.ctrl.node, self.jnt, maintainOffset=True)
-
-            # todo: merge with .connect_ctrl
 
     def connect(
         self,
@@ -274,58 +249,37 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         # Position
         if ud:
-            attr_inn_ud = self.ctrl.translateY
-            libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateY, avar.attr_ud)
 
         if lr:
-            attr_inn_lr = self.ctrl.translateX
-
-            if need_flip:
-                attr_inn_lr = libRigging.create_utility_node(
-                    "multiplyDivide", input1X=attr_inn_lr, input2X=-1
-                ).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)
+            attr = self.ctrl.translateX
+            attr = _flip_attr(attr) if need_flip else attr
+            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_lr)
 
         if fb:
-            attr_inn_fb = self.ctrl.translateZ
-            libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateZ, avar.attr_fb)
 
         # Rotation
         if yw:
-            attr_inn_yw = self.ctrl.rotateY
-
-            if need_flip:
-                attr_inn_yw = libRigging.create_utility_node(
-                    "multiplyDivide", input1X=attr_inn_yw, input2X=-1
-                ).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_yw)
+            attr = self.ctrl.rotateY
+            attr = _flip_attr(attr) if need_flip else attr
+            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_yw)
 
         if pt:
-            attr_inn_pt = self.ctrl.rotateX
-            libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_pt)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.rotateX, avar.attr_pt)
 
         if rl:
-            attr_inn_rl = self.ctrl.rotateZ
-
-            if need_flip:
-                attr_inn_rl = libRigging.create_utility_node(
-                    "multiplyDivide", input1X=attr_inn_rl, input2X=-1
-                ).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
+            attr = self.ctrl.rotateZ
+            attr = _flip_attr(attr) if need_flip else attr
+            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_rl)
 
         # Scale
         if sx:
-            attr_inn = self.ctrl.scaleX
-            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sx)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleX, avar.attr_sx)
         if sy:
-            attr_inn = self.ctrl.scaleY
-            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sy)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleY, avar.attr_sy)
         if sz:
-            attr_inn = self.ctrl.scaleZ
-            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sz)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleZ, avar.attr_sz)
 
     def unbuild(self):
         # Ensure the shape stay consistent between rebuild.
@@ -341,19 +295,23 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
     def _fix_ctrl_shape(self):
         """
-        When the rigger want to resize an InteractiveCtrl, he will modify the ctrl shape 'controlPoints' attributes.
-        This can be problematic since the shape 'create' attribute is feed from a transformGeometry node
-        to compensate the non-uniform scaling caused by the calibration. This will 'skew' the shape which we don't want.
-        We always want to make sure that there's only data in the orig shape 'controlPoints' attributes.
-        This method will create a temporary shape that will receive the 'local' attribute from the ctrl shape (which
-        contain the deformation from the 'controlPoints' attribute). The 'local' attribute of that shape will then be
-        fed back to the orig shape. Finally, all the original 'controlPoints' will be set to zero.
+        When the rigger want to resize an InteractiveCtrl, he will modify
+        the ctrl shape 'controlPoints' attributes. This can be problematic since
+        the shape 'create' attribute is feed from a transformGeometry node
+        to compensate the non-uniform scaling caused by the calibration.
+        This will 'skew' the shape which we don't want.
+        We always want to make sure that there's only data in the
+        orig shape 'controlPoints' attributes. This method will create a
+        temporary shape that will receive the 'local' attribute from the
+        ctrl shape (which contain the deformation from the 'controlPoints' attribute).
+        The 'local' attribute of that shape will then be fed back to the orig shape.
+        Finally, all the original 'controlPoints' will be set to zero.
         """
         if self.ctrl is None:
             return
         grp_offset = self.ctrl.offset
 
-        def get_orig_shape(shape):
+        def _get_orig_shape(shape):
             return next(
                 (
                     hist
@@ -365,7 +323,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                 None,
             )
 
-        def get_transformGeometry(shape):
+        def _get_transformGeometry(shape):
             return next(
                 (
                     hist
@@ -377,13 +335,13 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         for shape in self.ctrl.node.getShapes(noIntermediate=True):
             # Resolve orig shape
-            shape_orig = get_orig_shape(shape)
+            shape_orig = _get_orig_shape(shape)
             if not shape_orig:
                 self.log.warning("Skipping %s. Cannot find orig shape.", shape)
                 continue
 
             # Resolve compensation matrix
-            util_transform_geometry = get_transformGeometry(shape)
+            util_transform_geometry = _get_transformGeometry(shape)
             if not util_transform_geometry:
                 self.log.warning("Skipping %s. Cannot find transformGeometry.", shape)
                 continue
@@ -457,10 +415,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # Newer version keep a reference to the follicle pos in "self.folliclePos".
         if self.follicle:
             influence = self.follicle
-            fnCalibrate = libRigging.calibrate_attr_using_translation
+            fn = libRigging.calibrate_attr_using_translation
         elif self.folliclePos:
             influence = self.folliclePos
-            fnCalibrate = libRigging.calibrate_attr_using_translation_attribute
+            fn = libRigging.calibrate_attr_using_translation_attribute
         else:
             self.log.warning("Can't calibrate %s, found no influences.", self)
             return
@@ -475,8 +433,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             callibration_attr = self.ctrl.node.attr(attr_name)
             if not enabled or callibration_attr.isLocked():
                 continue
-            sensitivity = fnCalibrate(callibration_attr, influence)
+            sensitivity = fn(callibration_attr, influence)
             self.log.debug(
                 "Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst
             )
             attr_dst.set(sensitivity)
+
+
+def _flip_attr(attr):
+    return libRigging.create_utility_node(
+        "multiplyDivide", input1X=attr, input2X=-1
+    ).outputX

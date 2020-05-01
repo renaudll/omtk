@@ -51,8 +51,12 @@ def transfer_rotation_to_joint_orient(obj):
         return not attr.isFreeToChange() == OpenMaya.MPlug.kFreeToChange
 
     for attr in (
-            obj.rotateX, obj.rotateY, obj.rotateZ,
-            obj.jointOrientX, obj.jointOrientY, obj.jointOrientZ
+        obj.rotateX,
+        obj.rotateY,
+        obj.rotateZ,
+        obj.jointOrientX,
+        obj.jointOrientY,
+        obj.jointOrientZ,
     ):
         if not is_attr_accessible(attr):
             pymel.warning(
@@ -98,9 +102,8 @@ def mirror_jnt(obj_src):
                 obj_dst.setParent(obj_dst_parent)
 
     mirror_obj(obj_src, obj_dst)
-    if (
-        isinstance(obj_src, pymel.nodetypes.Joint) and
-        isinstance(obj_dst, pymel.nodetypes.Joint)
+    if isinstance(obj_src, pymel.nodetypes.Joint) and isinstance(
+        obj_dst, pymel.nodetypes.Joint
     ):
         transfer_rotation_to_joint_orient(obj_dst)
         obj_dst.radius.set(obj_src.radius.get())

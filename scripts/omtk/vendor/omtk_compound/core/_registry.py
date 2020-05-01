@@ -12,6 +12,7 @@ from ._definition import CompoundDefinition
 
 _LOG = logging.getLogger(__name__)
 
+
 class RegistryError(Exception):
     """Base class for registry errors"""
 

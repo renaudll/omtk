@@ -52,7 +52,8 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
 
         surfaces = filter(None, map(get_surface, self.input))
 
-        # If the user provided surface, pop them out of the input property and store them in the surface_[upp/low] property.
+        # If the user provided surface, pop them out of the input property
+        # and store them in the surface_[upp/low] property.
         if surfaces:
             surface = next(iter(surfaces), None)
             for surface in surfaces:
@@ -69,7 +70,8 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
             pymel.warning("Can't find surface for %s, creating one." % self)
             self.surface_low = self.create_surface(name="SurfaceLow")
 
-        # We still provide the surface property in case we need a controller to be connected directly to it.
+        # We still provide the surface property in case we need a controller
+        # to be connected directly to it.
         self.surface = self.surface_upp
 
     def configure_avar(self, avar):

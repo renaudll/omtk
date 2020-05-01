@@ -59,7 +59,6 @@ class BaseName(object):
     >>> name.suffix = 'ctrl'
     >>> name.resolve()
     'head_ctrl'
-
     """
 
     separator = "_"

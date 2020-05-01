@@ -41,11 +41,10 @@ def create_compound(name, namespace, inputs=None, outputs=None):
         attr = pymel.Attribute("%s.%s" % (compound.input, attr_name))
         libRigging.connect_or_set_attr(attr, value)
 
-    # TODO: Do we need outputs? Unused for now.
     for attr_name, value in outputs.items():
         if value is None:
             continue
         attr = pymel.Attribute("%s.%s" % (compound.output, attr_name))
-        pymel.connectAttr(attr, value)
+        pymel.connectAttr(attr, value, force=True)
 
     return compound

@@ -1,7 +1,5 @@
 import pymel.core as pymel
 
-from omtk.core import classNode
-from omtk.libs import libAttr
 from omtk.libs import libRigging
 
 from .model_avar_base import AvarInflBaseModel
@@ -25,10 +23,10 @@ class AvarLinearModel(AvarInflBaseModel):
         self._obj_offset = None
 
     def _build(self):
-        nomenclature_rig = self.get_nomenclature_rig()
+        naming = self.get_nomenclature_rig()
 
         grp_output = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("output"), parent=self.grp_rig,
+            "transform", name=naming.resolve("output"), parent=self.grp_rig,
         )
 
         attr_get_t = libRigging.create_utility_node(

@@ -181,7 +181,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
             if u_coord is None or v_coord is None:
                 raise Exception("Can't resolve uv coordinates to use!")
 
-            fol_shape = libRigging.create_follicle2(shape, u=u_coord, v=v_coord)
+            fol_shape = libRigging.create_follicle(shape, u=u_coord, v=v_coord)
             ref_before = fol_shape.getParent()
             ref_before.rename(nomenclature_rig.resolve("preCtrl"))
             ref_before.setParent(self.grp_rig)
@@ -203,7 +203,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
             if u_coord is None or v_coord is None:
                 raise Exception("Can't resolve uv coordinates to use!")
 
-            fol_shape = libRigging.create_follicle2(shape_next, u=u_coord, v=v_coord)
+            fol_shape = libRigging.create_follicle(shape_next, u=u_coord, v=v_coord)
             ref_after = fol_shape.getParent()
             ref_after.rename(nomenclature_rig.resolve("postCtrl"))
             ref_after.setParent(self.grp_rig)
@@ -853,7 +853,7 @@ class InteractiveFK(Module):
                 # If we have a parent, we'll want to convert it to WORLD transformation.
                 pos = jnt.getTranslation(space="world")
                 _, u, v = libRigging.get_closest_point_on_surface(last_surface, pos)
-                fol_shape = libRigging.create_follicle2(
+                fol_shape = libRigging.create_follicle(
                     last_surface, u, v, connect_transform=True
                 )
                 fol_transform = fol_shape.getParent()

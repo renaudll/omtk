@@ -1,16 +1,9 @@
+import functools
+
 import pymel.core as pymel
 
 from omtk.core import classModule
 from omtk.libs import libAttr
-from omtk.libs import libRigging
-
-
-def _connect_with_blend(attrs, attr_dst, attr_amount):
-    """Quick function that create two attributes with a blend factor."""
-    attr_blended = libRigging.create_utility_node(
-        "blendTwoAttr", attributesBlender=attr_amount, input=attrs,
-    ).output
-    pymel.connectAttr(attr_blended, attr_dst)
 
 
 class AvarInflBaseModel(classModule.Module):
@@ -59,40 +52,24 @@ class AvarInflBaseModel(classModule.Module):
         self.multiplier_fb = self.default_multiplier_fb
 
     def _create_interface(self):
+        fn = functools.partial(libAttr.addAttr, self.grp_rig)
         # Create avar inputs
-        self._attr_inn_lr = libAttr.addAttr(self.grp_rig, "innAvarLr")
-        self._attr_inn_ud = libAttr.addAttr(self.grp_rig, "innAvarUd")
-        self._attr_inn_fb = libAttr.addAttr(self.grp_rig, "innAvarFb")
-        self._attr_inn_yw = libAttr.addAttr(self.grp_rig, "innAvarYw")
-        self._attr_inn_pt = libAttr.addAttr(self.grp_rig, "innAvarPt")
-        self._attr_inn_rl = libAttr.addAttr(self.grp_rig, "innAvarRl")
-        self._attr_inn_sx = libAttr.addAttr(self.grp_rig, "innAvarSx")
-        self._attr_inn_sy = libAttr.addAttr(self.grp_rig, "innAvarSy")
-        self._attr_inn_sz = libAttr.addAttr(self.grp_rig, "innAvarSz")
+        self._attr_inn_lr = fn("innAvarLr")
+        self._attr_inn_ud = fn("innAvarUd")
+        self._attr_inn_fb = fn("innAvarFb")
+        self._attr_inn_yw = fn("innAvarYw")
+        self._attr_inn_pt = fn("innAvarPt")
+        self._attr_inn_rl = fn("innAvarRl")
+        self._attr_inn_sx = fn("innAvarSx")
+        self._attr_inn_sy = fn("innAvarSy")
+        self._attr_inn_sz = fn("innAvarSz")
 
-        self.multiplier_lr = libAttr.addAttr(
-            self.grp_rig, "innMultiplierLr", defaultValue=self.multiplier_lr
-        )
-        self.multiplier_ud = libAttr.addAttr(
-            self.grp_rig, "innMultiplierUd", defaultValue=self.multiplier_ud
-        )
-        self.multiplier_fb = libAttr.addAttr(
-            self.grp_rig, "innMultiplierFb", defaultValue=self.multiplier_fb
-        )
+        self.multiplier_lr = fn("innMultiplierLr", defaultValue=self.multiplier_lr)
+        self.multiplier_ud = fn("innMultiplierUd", defaultValue=self.multiplier_ud)
+        self.multiplier_fb = fn("innMultiplierFb", defaultValue=self.multiplier_fb)
 
-        # Create influences
-        _avar_filter_kwargs = {
-            "hasMinValue": True,
-            "hasMaxValue": True,
-            "minValue": 0.0,
-            "maxValue": 1.0,
-            "keyable": True,
-        }
-
-        self._attr_inn_offset_tm = libAttr.addAttr(
-            self.grp_rig, "innOffset", dt="matrix"
-        )
-        self._attr_out_tm = libAttr.addAttr(self.grp_rig, "outTm", dataType="matrix")
+        self._attr_inn_offset_tm = fn("innOffset", dt="matrix")
+        self._attr_out_tm = fn("outTm", dataType="matrix")
 
     def build(self, **kwargs):
         """

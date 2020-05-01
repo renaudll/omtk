@@ -155,10 +155,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                         % (version_major, version_minor, version_patch)
                     )
 
-    def validate_version(self, major_version, minor_version, patch_version):
-        if major_version == 0 and minor_version == 4 and patch_version < 23:
-            raise Exception("See Task #67153")
-
     def get_avars_corners(self, macro=True):
         # todo: move upper?
         fnFilter = lambda avar: "corner" in avar.name.lower()

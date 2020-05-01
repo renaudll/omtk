@@ -6,18 +6,15 @@ from omtk.libs import libRigging
 
 
 class CtrlFk(BaseCtrl):
+    """
+    An FK controller
+    """
+
     def __createNode__(self, *args, **kwargs):
-        """
-        if 'shoulder' in name.lower():
-            node = libCtrlShapes.create_shape_double_needle(size=size*0.04, normal=(0, 0, 1), *args, **kwargs)
-        else:
-        """
         node = super(CtrlFk, self).__createNode__(multiplier=1.1, *args, **kwargs)
 
         make = next(iter(node.inputs()), None)
         if make:
-            # TODO: Multiply radius???
-            # make.radius.set(size)
             make.degree.set(1)
             make.sections.set(8)
 
@@ -27,17 +24,6 @@ class CtrlFk(BaseCtrl):
 class FK(Module):
     """
     A Simple FK with support for multiple hyerarchy.
-
-    Note that there's multiple way to name the ctrls.
-    1) Use the inputs as reference ( _NAME_CTRL_ENUMERATE = False )
-    ex: (module name is arm_l)
-    jnt_upperarm_l -> ctrl_arm_upperarm_l
-    jnt_forearm_l  -> ctrl_arm_forearm_l
-    2) Use enumeration ( _NAME_CTRL_ENUMERATE = True )
-    ex: (module name is arm_l)
-    jnt_upperarm_l -> ctrl_arm_01_l
-    jnt_forearm_l  -> ctrl_arm_02_l
-    ex:
     """
 
     DEFAULT_NAME_USE_FIRST_INPUT = True
@@ -54,9 +40,6 @@ class FK(Module):
         self.sw_translate = False
         self.create_spaceswitch = True
 
-    #
-    # libSerialization implementation
-    #
     def __callbackNetworkPostBuild__(self):
         """
         Cleaning routine automatically called by libSerialization after a network import.
@@ -70,75 +53,104 @@ class FK(Module):
         super(FK, self).__callbackNetworkPostBuild__()
 
     def build(
-        self,
-        constraint=True,
-        parent=True,
-        create_grp_anm=True,
-        create_grp_rig=False,
-        *args,
-        **kwargs
+        self, constraint=True, parent=True, create_grp_rig=False, *args, **kwargs
     ):
+        """
+        :param bool constraint: Should we constraint the inputs to the controller?
+        :param bool parent: Unused
+        :param bool create_grp_rig: Should we create a rig group? Default is False.
+        """
+        kwargs["create_grp_anm"] = True
         super(FK, self).build(create_grp_rig=create_grp_rig, *args, **kwargs)
-        nomenclature_anm = self.get_nomenclature_anm()
-        nomenclature_rig = self.get_nomenclature_rig()
 
         # Initialize ctrls
         libPython.resize_list(self.ctrls, len(self.jnts))
-        for i, ctrl in enumerate(self.ctrls):
-            self.ctrls[i] = self.init_ctrl(self._CLS_CTRL, ctrl)
+        for idx, ctrl in enumerate(self.ctrls):
+            self.ctrls[idx] = self.init_ctrl(self._CLS_CTRL, ctrl)
 
-        for i, chain in enumerate(self.chains):
-            # Build chain ctrls
-            chain_ctrls = []
-            for j, jnt in enumerate(chain):
-                jnt_index = self.jnts.index(
-                    jnt
-                )  # todo: optimize performance by created a map?
-                ctrl = self.ctrls[jnt_index]
-                chain_ctrls.append(ctrl)
+        for chain in self.chains:
+            chain_ctrls = self._build_chain(chain)
+            chain_ctrls[0].setParent(self.grp_anm)
+            libRigging.create_hyerarchy(chain_ctrls)
 
-                # Resolve ctrl name.
-                # TODO: Validate with multiple chains
-                nomenclature = nomenclature_anm + self.rig.nomenclature(
-                    jnt.stripNamespace().nodeName()
-                )
-                if not self._FORCE_INPUT_NAME:
-                    if len(self.jnts) == 1 and len(self.chains) == 1:
-                        ctrl_name = nomenclature_anm.resolve()
-                    elif len(self.chains) == 1 or self._NAME_CTRL_ENUMERATE:
-                        ctrl_name = nomenclature_anm.resolve("{0:02d}".format(j))
-                    else:
-                        ctrl_name = nomenclature.resolve()
-                else:
-                    ctrl_name = nomenclature.resolve()
-
-                ctrl.build(name=ctrl_name, refs=jnt, geometries=self.rig.get_meshes())
-                ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
-
-                # Build space-switch for first chain ctrl
-                if j == 0:
-                    if self.create_spaceswitch:
-                        if self.sw_translate:
-                            ctrl.create_spaceswitch(self, self.parent, add_world=True)
-                        else:
-                            ctrl.create_spaceswitch(
-                                self,
-                                self.parent,
-                                skipTranslate=["x", "y", "z"],
-                                add_world=True,
-                            )
-
-            if chain_ctrls:
-                chain_ctrls[0].setParent(self.grp_anm)
-                libRigging.create_hyerarchy(chain_ctrls)
-
-        # Constraint jnts to ctrls if necessary
         if constraint is True:
             for jnt, ctrl in zip(self.jnts, self.ctrls):
                 pymel.parentConstraint(ctrl, jnt, maintainOffset=True)
                 pymel.connectAttr(ctrl.scaleX, jnt.scaleX)
                 pymel.connectAttr(ctrl.scaleY, jnt.scaleY)
                 pymel.connectAttr(ctrl.scaleZ, jnt.scaleZ)
+
+    def _build_chain(self, chain):
+        """
+        Build the setup for a chain oj joints.
+
+        :param chain: A chain of joints
+        :type chain: omtk.libs.libPymel.PyNodeChain
+        :return: The chain controllers
+        :rtype: list of CtrlFk
+        """
+        # Build chain ctrls
+        ctrls = []
+        for j, jnt in enumerate(chain):
+            ctrl = self.ctrls[self.jnts.index(jnt)]
+            ctrl_name = self._get_ctrl_name(jnt, j)
+            ctrl.build(name=ctrl_name, refs=jnt, geometries=self.rig.get_meshes())
+            ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
+            ctrls.append(ctrl)
+
+        # Build space-switch for first chain ctrl
+        if self.create_spaceswitch:
+            kwargs = {"add_world": True}
+            if not self.sw_translate:
+                kwargs["skipTranslate"] = ["x", "y", "z"]
+            ctrls[0].create_spaceswitch(self, self.parent, **kwargs)
+
+        return ctrls
+
+    def _get_ctrl_name(self, obj, index):
+        """
+        Helper method to resolve the name of a controller.
+
+        Note that there's multiple way to name the ctrls.
+
+        1) If there are multiple inputs, each ctrl will use the input as it's base.
+            ex: (considering a module named "arm")
+            jnt_upperarm_l -> ctrl_arm_upperarm_l
+            jnt_forearm_l  -> ctrl_arm_forearm_l
+
+        2) If there is only one input, the single ctrl will use the module name.
+            ex: (considering a module named "arm")
+            jnt_upperarm_l -> ctrl_arm_l
+
+        3) If `_NAME_CTRL_ENUMERATE` is True, the first object of each chain
+           will act as the base name
+           ex (considering a module named "arm")
+           jnt_upperarm_l -> ctrl_arm_01_l
+           jnt_forearm_l  -> ctrl_arm_02_l
+
+        :param int index: The influence index in the chain
+        :param obj: The influence to extract base name from
+        :type obj: pymel.nodetypes.Joint
+        :return: The controller name
+        :rtype: str
+        """
+        # TODO: Write unit-tests for this
+        basename = obj.stripNamespace().nodeName()
+        naming_anm = self.get_nomenclature_anm()
+
+        # Resolve ctrl name.
+        naming = naming_anm + self.rig.nomenclature(basename)
+
+        if self._FORCE_INPUT_NAME:
+            return naming.resolve()
+
+        if len(self.jnts) == 1 and len(self.chains) == 1:
+            return naming_anm.resolve()
+
+        if len(self.chains) == 1 or self._NAME_CTRL_ENUMERATE:
+            return naming_anm.resolve("{0:02d}".format(index))
+
+        return naming.resolve()
 
 
 def register_plugin():

@@ -59,7 +59,7 @@ def create_utility_node(_sClass, name=None, *args, **kwargs):
     for sAttrName, pAttrValue in kwargs.items():
         if not uNode.hasAttr(sAttrName):
             raise Exception(
-                "UtilityNode %s doesn't have an %s attribute." % s(_sClass, sAttrName)
+                "UtilityNode %s doesn't have an %s attribute." % (_sClass, sAttrName)
             )
         else:
             connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
@@ -1124,13 +1124,15 @@ def get_point_on_surface_from_uv(shape, u, v):
 
 
 # TODO: write an alternative method that work when the mesh have no UVs using pointOnMesh constraint.
-def create_follicle2(shape, u=0, v=0, connect_transform=True):
+def create_follicle(shape, u=0, v=0, connect_transform=True):
     """
     Alternative to djRivet when you already know the u and v values.
     :param shape: The nurbsSurface to attach the follicle.
     :param u: The value of the follicle parameterU. Default to 0.
     :param v: The value of the follicle parameterV. Default to 0.
-    :param connect_transform: If True, the output position and rotation will affect the follicle transform. Set the False if you wish to delete the transform afterward.
+    :param connect_transform: If True, the output position and rotation will affect
+                              the follicle transform. Set the False if you wish to
+                              delete the transform afterward.
     :return: The created follicle shape.
     """
     follicle_shape = pymel.createNode("follicle")
@@ -1150,14 +1152,6 @@ def create_follicle2(shape, u=0, v=0, connect_transform=True):
     if isinstance(shape, pymel.nodetypes.NurbsSurface):
         pymel.connectAttr(shape.worldSpace, follicle_shape.inputSurface)
     elif isinstance(shape, pymel.nodetypes.Mesh):
-        """
-        # closestPointOnMesh ignores polymesh transforms
-        util_transformGeometry = create_utility_node('transformGeometry',
-                                                     inputGeometry=shape.outMesh,
-                                                     transform=shape.worldMatrix
-                                                     )
-        """
-
         pymel.connectAttr(shape.outMesh, follicle_shape.inputMesh)
     else:
         raise Exception(
@@ -1229,7 +1223,6 @@ def create_animCurveU(
 
     # Resolve the attributes we'll want to "connect"
     att_src = tmp.sx
-    att_dst = None
     if type == "animCurveUU":
         att_dst = tmp.sy
     elif type == "animCurveUL":
@@ -1254,19 +1247,18 @@ def create_animCurveU(
     curve.setPreInfinityType(pre)
     curve.setPostInfinityType(pst)
 
-    num_keys = len(kt)
     if kit:
-        for i, ti in zip(range(num_keys), kit):
-            curve.setInTangentType(i, ti)
+        for index, tangent_type in enumerate(kit):
+            curve.setInTangentType(index, tangent_type)
     if kot:
-        for i, to in zip(range(num_keys), kot):
-            curve.setOutTangentType(i, to)
+        for index, tangent_type in enumerate(kot):
+            curve.setOutTangentType(index, tangent_type)
     if kix and kiy:
-        for i, tix, tiy in zip(range(num_keys), kix, kiy):
-            curve.setTangent(i, tix, tiy, True)
+        for index, (tangent_x, tangent_y) in enumerate(zip(kix, kiy)):
+            curve.setTangent(index, tangent_x, tangent_y, True)
     if kox and koy:
-        for i, tox, toy in zip(range(num_keys), kox, koy):
-            curve.setTangent(i, tox, toy, False)
+        for index, (tangent_x, tangent_y) in enumerate(zip(kox, koy)):
+            curve.setTangent(index, tangent_x, tangent_y, False)
 
     return curve
 
@@ -1395,12 +1387,11 @@ def getAttrOutput(attr, plugs=True, skipBlendWeighted=False, **kwargs):
 def connectAttr_withLinearDrivenKeys(
     attr_src,
     attr_dst,
-    type="animCurveUU",
     force=True,
     kt=(-1.0, 0.0, 1.0),
     kv=(-1.0, 0.0, 1.0),
-    kit=(4, 2, 4),
-    kot=(4, 2, 4),
+    kit=(4, 2, 4),  # Spline/Linear/Spline
+    kot=(4, 2, 4),  # Spline/Linear/Spline
     pre="linear",
     pst="linear",
 ):
@@ -1418,7 +1409,7 @@ def connectAttr_withLinearDrivenKeys(
                         pymel.delete(node)
                     else:
                         _LOG.warning(
-                            "Can't connect. Attribute %s is already connected to %s via %s",
+                            "Attribute %s is already connected to %s via %s",
                             attr_src.longName(),
                             attr_dst.longName(),
                             drivenkey_outplug.node().longName(),
@@ -1426,13 +1417,7 @@ def connectAttr_withLinearDrivenKeys(
                         return
 
     animCurve = create_animCurveU(
-        "animCurveUU",
-        kt=kt,
-        kv=kv,
-        kit=kit,  # Spline/Linear/Spline
-        kot=kot,  # Spline/Linear/Spline
-        pre=pre,
-        pst=pst,
+        "animCurveUU", kt=kt, kv=kv, kit=kit, kot=kot, pre=pre, pst=pst
     )
     animCurve.rename("%s_%s" % (attr_src.node().name(), attr_src.longName()))
     pymel.connectAttr(attr_src, animCurve.input)
@@ -1459,65 +1444,21 @@ def _calibrate_attr(attr, fnGet, step_size=0.1, epsilon=0.01, default=1.0):
     return default
 
 
-def calibrate_attr_using_translation_attribute(
-    attr, ref, step_size=0.1, epsilon=0.01, default=1.0
-):
+def calibrate_attr_using_translation_attribute(attr, ref, **kwargs):
     """
     Return the distance that @ref move when @attr is changed.
     This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
     Note that to compensate non-linear movement, a small value (@step_size) is used.
     """
 
-    return _calibrate_attr(
-        attr, ref.get, step_size=step_size, epsilon=epsilon, default=default
-    )
+    return _calibrate_attr(attr, ref.get, **kwargs)
 
 
-def calibrate_attr_using_translation(
-    attr, ref, step_size=0.1, epsilon=0.01, default=1.0
-):
+def calibrate_attr_using_translation(attr, ref, **kwargs):
     """
     Return the distance that @ref move when @attr is changed.
     This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
     Note that to compensate non-linear movement, a small value (@step_size) is used.
     """
     _fnGet = functools.partial(ref.getTranslation, space="world")
-    return _calibrate_attr(
-        attr, _fnGet, step_size=step_size, epsilon=epsilon, default=default
-    )
-
-
-def create_safe_division(attr_numerator, attr_denominator, nomenclature, suffix):
-    """
-    Create a utility node setup that prevent Maya from throwing a warning in case of division by zero.
-    Maya is stupid when trying to handle division by zero in nodes.
-    We can't use a condition after the multiplyDivide to deactivate it if the denominator is zero since
-    the multiplyDivide will still get evaluated and throw a warning.
-    For this reason we'll create TWO conditions, the second one will change the denominator to a non-zero value.
-    :param attr_inn: A numerical value or pymel.Attribute instance representing the numerator.
-    :param attr_out: A numerical value or pymel.Attribute instance representing the denominator.
-    :return: A pymel.Attribute containing the result of the operation.
-    """
-    # Create a condition that force the denominator to have a non-zero value.
-    attr_numerator_fake = create_utility_node(
-        "condition",
-        name=nomenclature.resolve(suffix + "SafePre"),
-        firstTerm=attr_denominator,
-        colorIfFalseR=attr_denominator,
-        colorIfTrueR=0.01,
-    ).outColorR
-    attr_result = create_utility_node(
-        "multiplyDivide",
-        name=nomenclature.resolve(suffix),
-        operation=2,  # division,
-        input1X=attr_numerator,
-        input2X=attr_numerator_fake,
-    ).outputX
-    attr_result_safe = create_utility_node(
-        "condition",
-        name=nomenclature.resolve(suffix + "SafePost"),
-        firstTerm=attr_denominator,
-        colorIfFalseR=attr_result,
-        colorIfTrueR=0.0,
-    ).outColorR
-    return attr_result_safe
+    return _calibrate_attr(attr, _fnGet, **kwargs)

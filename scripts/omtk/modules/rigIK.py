@@ -1,23 +1,12 @@
 import functools
 import collections
 import pymel.core as pymel
-from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
 from omtk.libs import libRigging
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 from omtk.core.compounds import create_compound
-
-
-def _get_vector_from_axis(axis):
-    if axis == constants.Axis.x:
-        return pymel.datatypes.Vector.xAxis
-    if axis == constants.Axis.y:
-        return pymel.datatypes.Vector.yAxis
-    if axis == constants.Axis.z:
-        return pymel.datatypes.Vector.zAxis
-    raise IOError("Unexpected constant. Expected X, Y, or Z. Got %s" % axis)
 
 
 class CtrlIk(BaseCtrl):
@@ -29,7 +18,8 @@ class CtrlIk(BaseCtrl):
 
     def __createNode__(self, *args, **kwargs):
         """
-        Create the ctrl node itself
+        Create the ctrl node
+
         :param args: More args passed to the superclass
         :param kwargs: More kwargs passed to the superclass
         :return: The created ctrl node
@@ -198,30 +188,26 @@ class IK(Module):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Create public attributes
-        oAttHolder = self.ctrl_ik
+        holder = self.ctrl_ik
         fnAddAttr = functools.partial(
-            libAttr.addAttr, hasMinValue=True, hasMaxValue=True
+            libAttr.addAttr, holder, hasMinValue=True, hasMaxValue=True, keyable=True
         )
         attInRatio = fnAddAttr(
-            oAttHolder,
             longName="softIkRatio",
             niceName="SoftIK",
             defaultValue=0,
             minValue=0,
             maxValue=50,
-            k=True,
         )
         attInStretch = fnAddAttr(
-            oAttHolder,
             longName="stretch",
             niceName="Stretch",
             defaultValue=0,
             minValue=0,
             maxValue=1.0,
-            k=True,
         )
 
-        # Adjust the ratio in percentage so animators understand that 0.03 is 3%
+        # Convert ratio from percent (user-friendly) to decimal.
         attInRatio = libRigging.create_utility_node(
             "multiplyDivide", input1X=attInRatio, input2X=0.01
         ).outputX
@@ -252,7 +238,8 @@ class IK(Module):
             "reverse", inputX=attOutRatio
         ).outputX
 
-        # TODO: Improve softik ratio when using multiple ik handle. Not the same ratio will be used depending of the angle
+        # TODO: Improve softik ratio when using multiple ik handle.
+        # TODO: Not the same ratio will be used depending of the angle
         for handle in ik_handle_to_constraint:
             pointConstraint = pymel.pointConstraint(
                 self._ik_handle_target, self._ikChainGrp, handle
@@ -292,7 +279,8 @@ class IK(Module):
         Create a ik handle for a specific ik setup. Need to be overrided by children class to implement the good behavior
         :return: Return the created ik handle and effector
         """
-        # Since the base Ik will always be two bone, we can use the fact that the effector is after the elbow
+        # Since the base Ik will always be two bone,
+        # we can use the fact that the effector is after the elbow
         start = self._chain_ik[0]
         end = self._chain_ik[self.iCtrlIndex]
         ik_handle, ik_effector = pymel.ikHandle(
@@ -493,8 +481,6 @@ class IK(Module):
         )
         self.swivelDistance = self.chain_length  # Used in ik/fk switch
 
-        # pymel.poleVectorConstraint(flip_swivel_ref, self._ik_handle)
-
         # Connect rig -> anm
         if constraint_handle:
             pymel.pointConstraint(self.ctrl_ik, self._ik_handle, maintainOffset=True)
@@ -524,8 +510,8 @@ class IK(Module):
         pymel.parentConstraint(parent, self._ikChainGrp, maintainOffset=True)
 
     def iter_ctrls(self):
-        for ctrl in super(IK, self).iter_ctrls():
-            yield ctrl
+        for yielded in super(IK, self).iter_ctrls():
+            yield yielded
         yield self.ctrl_ik
         yield self.ctrl_swivel
         yield self.ctrl_swivel_quad

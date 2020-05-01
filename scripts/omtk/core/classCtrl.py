@@ -500,9 +500,11 @@ class BaseCtrl(Node):
         Create the space switch attribute on the controller using a list of target found from it's module hierarchy.
         :param module: The module on which we want to process space switch targets
         :param parent: The parent used as the default (local) target
-        :param add_local: If True, a 'local' target will be used. Local is generally the absence of any constraint and always have the same index.
+        :param add_local: If True, a 'local' target will be used. Local is generally the absence of any constraint
+                          and always have the same index.
         :param local_label: The name of the 'local' target
-        :param local_target: The objects to use as the local target. This is only used to cheat (see the FaceEyes module).
+        :param local_target: The objects to use as the local target.
+                             This is only used to cheat (see the FaceEyes module).
         :param add_world: Is the world will be added as a target
         :param kwargs: Additional parameters
         :return: None
@@ -541,11 +543,6 @@ class BaseCtrl(Node):
         enum_string = ""
         # Add the local option if needed
         if add_local:
-            # We cannot self referencing since it will break maya deletion mechanism
-            # targets.append(self)
-            # indexes.append(default_index)
-            # labels.append(default_name)
-
             # In some case the user might have provided what we should use as the local target.
             # This is used to cheat, for example the FaceEye module ctrl are parented to the world,
             # however it make sense that their 'local' space is still the head.

@@ -379,6 +379,7 @@ class SegmentCollection(object):
     """
     A collection of single segments. Used for math computations.
     """
+
     def __init__(self, segments=None):
         """
         :param segments: A list of segments

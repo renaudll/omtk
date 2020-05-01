@@ -1,3 +1,5 @@
+import functools
+
 import pymel.core as pymel
 
 from omtk.core import classNode
@@ -108,24 +110,13 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
     def _create_interface(self):
         super(AvarSurfaceModel, self)._create_interface()
 
-        self._attr_inn_surface = libAttr.addAttr(
-            self.grp_rig, "innSurface", dt="nurbsSurface"
-        )
-        self._attr_inn_surface_tm = libAttr.addAttr(
-            self.grp_rig, "innSurfaceTm", dataType="matrix"
-        )
-        self._attr_inn_surface_min_value_u = libAttr.addAttr(
-            self.grp_rig, "innSurfaceMinValueU", defaultValue=0
-        )
-        self._attr_inn_surface_min_value_v = libAttr.addAttr(
-            self.grp_rig, "innSurfaceMinValueV", defaultValue=0
-        )
-        self._attr_inn_surface_max_value_u = libAttr.addAttr(
-            self.grp_rig, "innSurfaceMaxValueU", defaultValue=1
-        )
-        self._attr_inn_surface_max_value_v = libAttr.addAttr(
-            self.grp_rig, "innSurfaceMaxValueV", defaultValue=1
-        )
+        fn = functools.partial(libAttr.addAttr, self.grp_rig)
+        self._attr_inn_surface = fn("innSurface", dt="nurbsSurface")
+        self._attr_inn_surface_tm = fn("innSurfaceTm", dataType="matrix")
+        self._attr_inn_surface_min_value_u = fn("innSurfaceMinValueU", defaultValue=0)
+        self._attr_inn_surface_min_value_v = fn("innSurfaceMinValueV", defaultValue=0)
+        self._attr_inn_surface_max_value_u = fn("innSurfaceMaxValueU", defaultValue=1)
+        self._attr_inn_surface_max_value_v = fn("innSurfaceMaxValueV", defaultValue=1)
 
     def _build(self):
         """
@@ -133,35 +124,35 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         The decision of using transforms instead of multMatrix nodes is for clarity.
         Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
         """
-        nomenclature_rig = self.get_nomenclature_rig()
+        naming = self.get_nomenclature_rig()
 
         # Currently our utilities expect a complete surface shape.
         # It is also more friendly for the rigger to see
         # the surface directly in the model.
         surface_shape = pymel.createNode(
-            "nurbsSurface", name=nomenclature_rig.resolve("surface"),
+            "nurbsSurface", name=naming.resolve("surface"),
         )
         self._surface = surface_shape.getParent()
         self._surface.visibility.set(False)
         self._surface.setParent(self.grp_rig)
-        self._surface.rename(nomenclature_rig.resolve("surface"))
+        self._surface.rename(naming.resolve("surface"))
         pymel.connectAttr(self._attr_inn_surface, surface_shape.create)
         libRigging.connect_matrix_to_node(
             self._attr_inn_surface_tm, self._surface, name="decomposeSurfaceTm"
         )
 
         self._stack = classNode.Node()
-        self._stack.build(name=nomenclature_rig.resolve("avar"))
+        self._stack.build(name=naming.resolve("avar"))
         self._stack.setParent(self.grp_rig)
         # self.build_stack(self._stack)
 
         self.grp_offset = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("offset"), parent=self.grp_rig,
+            "transform", name=naming.resolve("offset"), parent=self.grp_rig,
         )
         libRigging.connect_matrix_to_node(
             self._attr_inn_offset_tm,
             self.grp_offset,
-            name=nomenclature_rig.resolve("decomposeOffset"),
+            name=naming.resolve("decomposeOffset"),
         )
 
         #
@@ -226,7 +217,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
             arcdimension_shape,
         ) = libRigging.create_arclengthdimension_for_nurbsplane(self._surface)
         arcdimension_transform = arcdimension_shape.getParent()
-        arcdimension_transform.rename(nomenclature_rig.resolve("arcdimension"))
+        arcdimension_transform.rename(naming.resolve("arcdimension"))
         arcdimension_transform.setParent(self.grp_rig)
 
         #
@@ -241,12 +232,12 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         # We'll then compute the delta of the position of the two follicles.
         # This allow us to move or resize the plane without affecting the built rig. (if the rig is in neutral pose)
         #
-        offset_name = nomenclature_rig.resolve("bindPoseRef")
+        offset_name = naming.resolve("bindPoseRef")
         self._obj_offset = pymel.createNode("transform", name=offset_name)
         self._obj_offset.setParent(self.grp_offset)
 
-        fol_offset_name = nomenclature_rig.resolve("bindPoseFollicle")
-        fol_offset_shape = libRigging.create_follicle2(
+        fol_offset_name = naming.resolve("bindPoseFollicle")
+        fol_offset_shape = libRigging.create_follicle(
             self._surface, u=base_u_val, v=base_v_val
         )
         fol_offset = fol_offset_shape.getParent()
@@ -260,7 +251,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         # This follicle setup can continue out of the bound of it's surface.
         infinity_follicle = create_compound(
             "omtk.InfinityFollicle",
-            nomenclature_rig.resolve("infinityFollicle"),
+            naming.resolve("infinityFollicle"),
             inputs={
                 "surface": self._surface.worldSpace,
                 "surfaceU": attr_u_inn,

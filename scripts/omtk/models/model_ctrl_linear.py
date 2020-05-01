@@ -1,14 +1,11 @@
 import pymel.core as pymel
 
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.classNode import Node
 from omtk.core import classCtrlModel
 from omtk.libs import libRigging
 from omtk.libs import libPymel
 from omtk.libs import libAttr
 from omtk.libs import libHistory
-
-from omtk.core import classNode
 
 
 class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
@@ -40,12 +37,14 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
 
-        # The object containing the bind pose of the influence controller by the controller.
+        # The object containing the bind pose of the
+        # influence controller by the controller.
         self._grp_bind_infl = None
 
         # The object containing the desired default position of the ctrl.
         # This can differ from the bind pose of the ctrl mode.
-        # For example, the jaw ctrl model will influence a joint inside the head but the controller will be outside.
+        # For example, the jaw ctrl model will influence a joint
+        # inside the head but the controller will be outside.
         self._grp_bind_ctrl = None
 
         self._attr_inn_parent_tm = None
@@ -84,7 +83,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
     def _create_follicle(
         self, ctrl_tm, influence, obj_mesh=None, u_coord=None, v_coord=None
     ):
-        nomenclature_rig = self.get_nomenclature_rig()
+        naming = self.get_nomenclature_rig()
         # Create a follicle, this will be used for callibration purpose.
         # If this affect performance we can create it only when necessary, however being able to
         # see it help with debugging.
@@ -94,8 +93,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             # We'll scan all available geometries and use the one with the shortest distance.
             meshes = libHistory.get_affected_shapes(influence)
             meshes = list(set(meshes) & set(self.rig.get_shapes()))
-            if not meshes:
-                meshes = set(self.rig.get_shapes())
+            meshes = meshes or set(self.rig.get_shapes())
             obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(
                 meshes, ctrl_tm.translate
             )
@@ -106,13 +104,11 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             )
 
         # Resolve u and v coordinates if necesary.
-        if u_coord is None:
-            u_coord = out_u
-        if v_coord is None:
-            v_coord = out_v
+        u_coord = u_coord or out_u
+        v_coord = v_coord or out_v
 
-        fol_name = nomenclature_rig.resolve("follicle")
-        fol_shape = libRigging.create_follicle2(obj_mesh, u=u_coord, v=v_coord)
+        fol_name = naming.resolve("follicle")
+        fol_shape = libRigging.create_follicle(obj_mesh, u=u_coord, v=v_coord)
         fol_transform = fol_shape.getParent()
         fol_transform.rename(fol_name)
         fol_transform.setParent(self.grp_rig)
@@ -144,7 +140,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         # todo: get rid of the u_coods, v_coods etc, we should rely on the bind
         super(ModelCtrlLinear, self).build(avar, ctrl_size=ctrl_size, **kwargs)
 
-        nomenclature_rig = self.get_nomenclature_rig()
+        naming = self.get_nomenclature_rig()
 
         #
         # Resolve necessary informations
@@ -188,16 +184,14 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             )
 
         self._grp_bind_ctrl = pymel.createNode(
-            "transform",
-            name=nomenclature_rig.resolve("ctrlBindTm"),
-            parent=self.grp_rig,
+            "transform", name=naming.resolve("ctrlBindTm"), parent=self.grp_rig,
         )
         self._grp_bind_ctrl.setMatrix(ctrl_tm)
 
         # Resolve the influence bind tm
         # Create an offset node to easily change it.
         self._grp_bind_infl = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("bind"), parent=self.grp_rig
+            "transform", name=naming.resolve("bind"), parent=self.grp_rig
         )
         if attr_bind_tm:
             util_decompose_bind = libRigging.create_utility_node(
@@ -248,7 +242,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
 
         grp_output = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("output"), parent=self.grp_rig
+            "transform", name=naming.resolve("output"), parent=self.grp_rig
         )
 
         attr_output_tm = libRigging.create_utility_node(
@@ -284,7 +278,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         if parent_scl:
             u = libRigging.create_utility_node(
                 "multiplyDivide",
-                name=nomenclature_rig.resolve("getAbsoluteCtrlOffsetScale"),
+                name=naming.resolve("getAbsoluteCtrlOffsetScale"),
                 input1X=attr_ctrl_offset_sx_inn,
                 input1Y=attr_ctrl_offset_sy_inn,
                 input1Z=attr_ctrl_offset_sz_inn,
@@ -301,14 +295,14 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         # Ensure the scaling of the parent is taken in account.
         attr_calibration_scale_tm = libRigging.create_utility_node(
             "composeMatrix",
-            name=nomenclature_rig.resolve("composeCalibrationScaleTm"),
+            name=naming.resolve("composeCalibrationScaleTm"),
             inputScaleX=attr_ctrl_offset_sx_inn,
             inputScaleY=attr_ctrl_offset_sy_inn,
             inputScaleZ=attr_ctrl_offset_sz_inn,
         ).outputMatrix
         attr_ctrl_offset_scale_tm = libRigging.create_utility_node(
             "multMatrix",
-            name=nomenclature_rig.resolve("getCtrlOffsetScaleTm"),
+            name=naming.resolve("getCtrlOffsetScaleTm"),
             matrixIn=(
                 attr_calibration_scale_tm,
                 self._attr_inn_parent_tm,

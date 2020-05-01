@@ -6,7 +6,7 @@ from omtk.libs import libRigging
 
 class Node(object):
     """
-    This class is a pymel.PyNode wrapper that extent it's functionnality.
+    Extend pymel.PyNode
     Note: We can't directly inherit from pymel.PyNode.
     """
 
@@ -62,9 +62,7 @@ class Node(object):
         return "net_%s_%s" % (self.__class__.__name__.lower(), self._network_name)
 
     def exists(self):
-        if self.node is None:
-            return False
-        return self.node.exists()
+        return self.node and self.node.exists()
 
     def is_built(self):
         return libPymel.is_valid_PyNode(self.node)

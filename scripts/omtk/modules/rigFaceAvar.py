@@ -2,7 +2,7 @@
 An avar is a facial control unit inspired from The Art of Moving Points.
 This is the foundation for the facial animation modules.
 """
-import logging
+import functools
 
 import pymel.core as pymel
 
@@ -12,163 +12,20 @@ from omtk.core import classNode
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
-from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.models import model_avar_linear
 from omtk.models import model_avar_surface
 from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
 from omtk.models.model_ctrl_linear import ModelCtrlLinear
 
-log = logging.getLogger("omtk")
-
-
-def _connect_with_blend(attr_src, attr_dst, attr_amount):
-    """Quick function that create two attributes with a blend factor."""
-    attr_blended = libRigging.create_utility_node(
-        "multiplyDivide", input1X=attr_src, input2X=attr_amount,
-    ).outputX
-    pymel.connectAttr(attr_blended, attr_dst)
-
-
-def _blend_matrix_attribute(
-    attr_tm_a,
-    attr_tm_b,
-    attr_blend_tx,
-    attr_blend_ty,
-    attr_blend_tz,
-    attr_blend_rx,
-    attr_blend_ry,
-    attr_blend_rz,
-    attr_blend_sx,
-    attr_blend_sy,
-    attr_blend_sz,
-):
-    # todo: replace with a matrixBlend node?
-    u_decompose_a = libRigging.create_utility_node(
-        "decomposeMatrix", inputMatrix=attr_tm_a
-    )
-    u_decompose_b = libRigging.create_utility_node(
-        "decomposeMatrix", inputMatrix=attr_tm_b
-    )
-    u_compose_tm = libRigging.create_utility_node("composeMatrix")
-
-    attr_blend_tx = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputTranslateX, u_decompose_b.outputTranslateX],
-        attributesBlender=attr_blend_tx,
-    ).output
-    attr_blend_ty = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputTranslateY, u_decompose_b.outputTranslateY],
-        attributesBlender=attr_blend_ty,
-    ).output
-    attr_blend_tz = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputTranslateZ, u_decompose_b.outputTranslateZ],
-        attributesBlender=attr_blend_tz,
-    ).output
-    attr_blend_rx = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputRotateX, u_decompose_b.outputRotateX],
-        attributesBlender=attr_blend_rx,
-    ).output
-    attr_blend_ry = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputRotateY, u_decompose_b.outputRotateY],
-        attributesBlender=attr_blend_ry,
-    ).output
-    attr_blend_rz = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputRotateZ, u_decompose_b.outputRotateZ],
-        attributesBlender=attr_blend_rz,
-    ).output
-    attr_blend_sx = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputScaleX, u_decompose_b.outputScaleX],
-        attributesBlender=attr_blend_sx,
-    ).output
-    attr_blend_sy = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputScaleY, u_decompose_b.outputScaleY],
-        attributesBlender=attr_blend_sy,
-    ).output
-    attr_blend_sz = libRigging.create_utility_node(
-        "blendTwoAttr",
-        input=[u_decompose_a.outputScaleZ, u_decompose_b.outputScaleZ],
-        attributesBlender=attr_blend_sz,
-    ).output
-
-    pymel.connectAttr(attr_blend_tx, u_compose_tm.inputTranslateX)
-    pymel.connectAttr(attr_blend_ty, u_compose_tm.inputTranslateY)
-    pymel.connectAttr(attr_blend_tz, u_compose_tm.inputTranslateZ)
-    pymel.connectAttr(attr_blend_rx, u_compose_tm.inputRotateX)
-    pymel.connectAttr(attr_blend_ry, u_compose_tm.inputRotateY)
-    pymel.connectAttr(attr_blend_rz, u_compose_tm.inputRotateZ)
-    pymel.connectAttr(attr_blend_sx, u_compose_tm.inputScaleX)
-    pymel.connectAttr(attr_blend_sy, u_compose_tm.inputScaleY)
-    pymel.connectAttr(attr_blend_sz, u_compose_tm.inputScaleZ)
-
-    return u_compose_tm.outputMatrix
-
-
-def _blend_inn_matrix_attribute(
-    attr_tm,
-    attr_blend_tx,
-    attr_blend_ty,
-    attr_blend_tz,
-    attr_blend_rx,
-    attr_blend_ry,
-    attr_blend_rz,
-    attr_blend_sx,
-    attr_blend_sy,
-    attr_blend_sz,
-):
-    # todo: replace with a matrixBlend node?
-    u_decompose_a = libRigging.create_utility_node(
-        "decomposeMatrix", inputMatrix=attr_tm
-    )
-
-    attr_blend_t = libRigging.create_utility_node(
-        "multiplyDivide",
-        input1X=u_decompose_a.outputTranslateX,
-        input1Y=u_decompose_a.outputTranslateY,
-        input1Z=u_decompose_a.outputTranslateZ,
-        input2X=attr_blend_tx,
-        input2Y=attr_blend_ty,
-        input2Z=attr_blend_tz,
-    ).output
-    attr_blend_r = libRigging.create_utility_node(
-        "multiplyDivide",
-        input1X=u_decompose_a.outputRotateX,
-        input1Y=u_decompose_a.outputRotateY,
-        input1Z=u_decompose_a.outputRotateZ,
-        input2X=attr_blend_rx,
-        input2Y=attr_blend_ry,
-        input2Z=attr_blend_rz,
-    ).output
-    attr_blend_s = libRigging.create_utility_node(
-        "multiplyDivide",
-        input1X=u_decompose_a.outputScaleX,
-        input1Y=u_decompose_a.outputScaleY,
-        input1Z=u_decompose_a.outputScaleZ,
-        input2X=attr_blend_sx,
-        input2Y=attr_blend_sy,
-        input2Z=attr_blend_sz,
-    ).output
-
-    return libRigging.create_utility_node(
-        "composeMatrix",
-        inputTranslate=attr_blend_t,
-        inputRotate=attr_blend_r,
-        inputScale=attr_blend_s,
-    ).outputMatrix
-
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
     def fetch_shapes(self):
         """
-        Face ctrls CAN have non-uniform scaling. To circumvent this we'll remove the ctrl rotation when attaching.
-        This is because the shape is fetch in local space (this allow an arm ctrl to snap to the right location if the arm length change).
+        Face ctrls CAN have non-uniform scaling. 
+        To circumvent this we'll remove the ctrl rotation when attaching.
+        This is because the shape is fetch in local space.
+        This allow an arm ctrl to snap to the right location if the arm length change.
         """
         libPymel.makeIdentity_safe(self.shapes, rotate=True, scale=True, apply=True)
 
@@ -177,39 +34,52 @@ class BaseCtrlFace(classCtrl.BaseCtrl):
 
 class CtrlFaceMicro(BaseCtrlFace):
     """
-    If you need specific ctrls for you module, you can inherit from BaseCtrl directly.
+    A controller that control a "micro" avar.
+    Micro avars don't trigger any secondary movement.
     """
 
     def __createNode__(self, normal=(0, 0, 1), **kwargs):
-        node = super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
+        """
+        Create the ctrl node
 
-        # Lock the Z axis to prevent the animator to affect it accidentaly using the transform gizmo.
-        # node.translateZ.lock()
-
-        return node
-
-        # TODO: Disable hold shapes for now
+        :param normal: Lock the Z axis by default.
+        The X and Y and primary here as we might be sliding on a surface.
+        :type normal: tuple[int, int, int]
+        :param dict kwargs: Keyword argument are fowarded to the superclass.
+        :return: A ctrl transform node
+        :rtype: pymel.nodetypes.Transform
+        """
+        return super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
 
 
 class CtrlFaceMacro(BaseCtrlFace):
-    ATTR_NAME_SENSIBILITY = "sensibility"
+    """
+    A controller that controller a "macro" avar.
+    Macro avars create secondary movement in the face by orchestrating micro avars.
+    """
 
     def __createNode__(self, normal=(0, 0, 1), **kwargs):
         return libCtrlShapes.create_square(normal=normal, **kwargs)
 
 
+class CtrlFaceMacroAll(CtrlFaceMacro):
+    def __createNode__(self, width=4.5, height=1.2, **kwargs):
+        return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
+
+
 class AbstractAvar(classModule.Module):
     """
-    This low-level module is a direct interpretation of "The Art of Moving Points" of "Brian Tindal".
-    A can be moved in space using it's UD (Up/Down), IO (Inn/Out) and FB (FrontBack) attributes.
-    In an ideal facial setup, any movement in the face is driven by avars.
-    Using driven-keys we can orchestrate all the s-econdary movements in the face.
-    Any driven-key set between Avar attributes will be preserved if the rig is unbuilt.
+    Attribute holder for facial animation variables.
+    This is a direct interpretation of "The Art of Moving Points" of "Brian Tindal".
 
-    Note that in the current implement, Avars implement their ctrl (generally an InteractiveCtrl).
-    HOWEVER this is not their responsibility since different controller setup can control avars.
-    ex: InteractiveCtrl, FK, Faceboards, Sliders, etc.
-    # todo: Separate the ctrl creation, build and connection from the Avar base-classes.
+    An avar  can be moved in space using it's :
+    - UD avar (Up/Down)
+    - IO avar (Inn/Out)
+    - FB avar (FrontBack) attributes.
+
+    In an ideal facial setup, any movement in the face is driven by avars.
+    Using driven-keys we can orchestrate all the secondary movements in the face.
+    Any driven-key set between avars modules will be preserved between builds.
     """
 
     AVAR_NAME_UD = "avar_ud"
@@ -234,12 +104,16 @@ class AbstractAvar(classModule.Module):
         self.ctrl = None
 
         # Define how many unit is moved in uv space in relation with the avars.
-        # Taking in consideration that the avar is centered in uv space, we at minimum want 0.5 of multiplier
-        # so moving the avar of 1.0 will move the follicle at the top of uv space (0.5 units).
-        # However in production, we found that defining the range of avar using the whole is not flexible.
-        # ex: We want the lips to follow the chin but we don't want to have the lips reach the chin when the UD avar is -1.
+        # Taking in consideration that the avar is centered in uv space,
+        # we at minimum want 0.5 of multiplier so moving the avar of 1.0 will move
+        # the follicle at the top of uv space (0.5 units).
+        # However in production, we found that defining
+        # the range of avar using the whole is not flexible.
+        # ex: We want the lips to follow the chin but we don't want to have
+        # the lips reach the chin when the UD avar is -1.
         # For this reason, we found that using a multiplier of 0.25 work best.
-        # This also help rigger visually since the surface plane have an edge at 0.25 location.
+        # This also help rigger visually since the surface plane
+        # have an edge at 0.25 location.
         # todo: Move this to AvarFollicle.
         self.multiplier_lr = 0.25
         self.multiplier_ud = 0.25
@@ -261,17 +135,14 @@ class AbstractAvar(classModule.Module):
         Add an avar in the internal avars network.
         An attribute will also be created on the grp_rig node.
         """
-        attr_rig = libAttr.addAttr(
-            attr_holder, longName=name, k=True, defaultValue=defaultValue
-        )
-
-        return attr_rig
+        return libAttr.addAttr(attr_holder, longName=name, keyable=True, defaultValue=defaultValue)
 
     def add_avars(self, attr_holder):
         """
         Create the network that contain all our avars.
-        For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
-        when unbuilding they are really existing in an external network node.
+        For ease of use, the avars are exposed on the grp_rig,
+        however to protect the connection from Maya when unbuilding they
+        are really existing in an external network node.
         :return: The avar attribute holder.
         """
         # Define macro avars
@@ -291,20 +162,17 @@ class AbstractAvar(classModule.Module):
         Create a network to hold all the avars complex connection.
         This prevent Maya from deleting our connection when unbuilding.
         """
+        naming = self.get_nomenclature_rig()
         if self.grp_rig is None or not self.grp_rig.exists():
             self.log.warning("Can't hold avars, invalid grp_rig in %s!", self)
             return
 
-        self.avar_network = pymel.createNode(
-            "transform", name=self.get_nomenclature_rig().resolve("avarBackup")
-        )
+        self.avar_network = pymel.createNode("transform", name=naming.resolve("avarBackup"))
         self.rig.hold_node(self.avar_network)
         self.add_avars(self.avar_network)
 
         def attr_have_animcurve_input(attr):
-            attr_input = next(
-                iter(attr.inputs(plugs=True, skipConversionNodes=True)), None
-            )
+            attr_input = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
             if attr_input is None:
                 return False
 
@@ -323,9 +191,7 @@ class AbstractAvar(classModule.Module):
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                self.log.debug(
-                    "Cannot hold missing attribute %s in %s", attr_name, self.grp_rig
-                )
+                self.log.debug("Cannot hold missing attribute %s in %s", attr_name, self.grp_rig)
                 continue
 
             attr_src = self.grp_rig.attr(attr_name)
@@ -367,18 +233,10 @@ class AbstractAvar(classModule.Module):
 
         super(AbstractAvar, self).unbuild(**kwargs)
 
-        # TODO: cleanup junk connections that Maya didn't delete by itself?
-
-    #
-    # HACK: The following methods may not belong here and may need to be moved downward in the next refactoring.
-    #
-
     def get_base_uv(self):
         pos = self.get_jnt_tm().translate
 
-        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(
-            self.surface, pos
-        )
+        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, pos)
         return fol_u, fol_v
 
     def get_jnt_tm(self):
@@ -391,15 +249,16 @@ class AbstractAvar(classModule.Module):
     def validate(self):
         """
         Check if the module can be built with it's current configuration.
-        Since AbstractAvar support having no influence at all (macro avars), we support having no inputs.
+        Since AbstractAvar support having no influence at all (macro avars),
+        we support having no inputs.
         """
         super(AbstractAvar, self).validate(support_no_inputs=True)
         return True
 
     def create_surface(self, name="Surface", epsilon=0.001, default_scale=1.0):
         """
-        Create a simple rig to deform a nurbsSurface, allowing the rigger to easily provide
-        a surface for the influence to slide on.
+        Create a simple rig to deform a nurbsSurface, allowing the rigger to
+        easily provide a surface for the influence to slide on.
         :param name: The suffix of the surface name to create.
         :return: A pymel.nodetypes.Transform instance of the created surface.
         """
@@ -415,15 +274,9 @@ class AbstractAvar(classModule.Module):
         plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
 
         # Create Bends
-        bend_side_deformer, bend_side_handle = pymel.nonLinear(
-            plane_transform, type="bend"
-        )
-        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(
-            plane_transform, type="bend"
-        )
-        bend_low_deformer, bend_low_handle = pymel.nonLinear(
-            plane_transform, type="bend"
-        )
+        bend_side_deformer, bend_side_handle = pymel.nonLinear(plane_transform, type="bend")
+        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type="bend")
+        bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type="bend")
 
         plane_transform.r.set(0, -90, 0)
         bend_side_handle.r.set(90, 90, 0)
@@ -467,7 +320,7 @@ class AbstractAvar(classModule.Module):
         # Try to guess the scale
         length_x = max_x - min_x
         if len(self.jnts) <= 1 or length_x < epsilon:
-            log.debug(
+            self.log.debug(
                 "Cannot automatically resolve scale for surface. Using default value %s",
                 default_scale,
             )
@@ -478,8 +331,6 @@ class AbstractAvar(classModule.Module):
         root.scaleZ.set(length_x)
 
         pymel.select(root)
-
-        # self.input.append(plane_transform)
 
         return plane_transform
 
@@ -492,37 +343,36 @@ class AbstractAvar(classModule.Module):
         self.add_avars(self.grp_rig)
         self.fetch_avars()
 
-    #
-    # Ctrl connection
-    #
-
     def need_flip_lr(self):
         """
         We might want to flip the lr Avar if they are on the right side.
-        This ensure that if we move Avars from two sides in local, they correctly mirror each others.
+        This ensure that if we move Avars from two sides in local,
+        they correctly mirror each others.
         Note that we use the nomenclature to detect side to prevent precision errors.
-        :return: True if the avar is at the right side. False if it is on the left or center.
+        :return: True if the avar is at the right side. False for left or center.
         """
-        nomenclature = self.get_nomenclature_anm()
-        return nomenclature.side == self.rig.nomenclature.SIDE_R
+        return self.get_nomenclature_anm().side == self.rig.nomenclature.SIDE_R
 
     def iter_ctrls(self):
-        for ctrl in super(AbstractAvar, self).iter_ctrls():
-            yield ctrl
+        for yielded in super(AbstractAvar, self).iter_ctrls():
+            yield yielded
         yield self.ctrl
 
     def parent_to(self, parent):
         """
-        Do nothing when parenting since it's the ctrl model that handle how the parenting is done.
+        Do nothing when parenting since it's the ctrl model that handle parenting.
         """
         pass
 
 
 class AvarSimple(AbstractAvar):
     """
-    This represent a single deformer influence that is moved in space using avars.
-    By default it come with a Deformer driven by a doritos setup.
-    A doritos setup allow the controller to always be on the surface of the face.
+    A simple avar that can be connected to a deformer and have a single controller.
+
+    The kind of controller depend on rigger preferences.
+    Theses are driven by a "controller model" class. iex:
+    - Controller following the deforming geometry (ModelInteractiveCtrl)
+    - Controller moving linearly in space / faceboard (ModelLinearCtrl)
     """
 
     _CLS_CTRL = None  # By default, an avar don't have an ctrl.
@@ -536,16 +386,16 @@ class AvarSimple(AbstractAvar):
         self.grp_offset = None
         self._grp_parent = None
 
-        # Bind input for the ctrl model, can be modified by subclasses for custom behavior.
+        # Bind input for the ctrl model, can be modified by subclasses.
         self._grp_default_ctrl_model = None
 
         self.model_ctrl = None
         self.model_infl = None
 
         # In normal cases, an avar influence a joint.
-        # However it is possible that the rigger might want to use other means (like blendshapes)
-        # for translation/rotation/scale, even per axis!
-        # For this reason we'll expose filters that enable/disable an avar influence.
+        # However there are other cases.
+        # ex: blendshape per translation/rotateion/scale axis!
+        # For this reason we'll allow each avar influence to be individually disabled.
         self.affect_tx = True
         self.affect_ty = True
         self.affect_tz = True
@@ -595,17 +445,13 @@ class AvarSimple(AbstractAvar):
         self._stack_post = classNode.Node()
         self._stack_post.build(name=nomenclature_rig.resolve("postAvar"))
         post_stack_root = pymel.createNode(
-            "transform",
-            name=nomenclature_rig.resolve("postAvarRoot"),
-            parent=self.grp_rig,
+            "transform", name=nomenclature_rig.resolve("postAvarRoot"), parent=self.grp_rig,
         )
         # layer_stack_input = self._stack_post.prepend_layer(name='input')
         self._stack_post.setParent(post_stack_root)
 
         libRigging.connect_matrix_to_node(
-            self.grp_offset.matrix,
-            post_stack_root,
-            name=nomenclature_rig.resolve("something"),
+            self.grp_offset.matrix, post_stack_root, name=nomenclature_rig.resolve("something"),
         )
 
         attr_avar_model_tm = _blend_inn_matrix_attribute(
@@ -624,36 +470,14 @@ class AvarSimple(AbstractAvar):
         # Take the result of the stack and add it on top of the bind-pose and parent group.
         self._attr_get_stack_local_tm = libRigging.create_utility_node(
             "multMatrix",
-            matrixIn=(
-                # self._stack_pre.worldMatrix,
-                # self._stack.worldMatrix,
-                # self.model_infl._attr_out_tm,
-                attr_avar_model_tm,
-                self._stack_post.worldMatrix,
-                # self._grp_offset.matrix,
-                self._grp_parent.matrix,
-            ),
+            matrixIn=(attr_avar_model_tm, self._stack_post.worldMatrix, self._grp_parent.matrix,),
         ).matrixSum
         util_get_stack_local_tm = libRigging.create_utility_node(
             "decomposeMatrix", inputMatrix=self._attr_get_stack_local_tm
         )
-        pymel.connectAttr(
-            util_get_stack_local_tm.outputTranslate, self._grp_output.translate
-        )
+        pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.translate)
         pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.rotate)
         pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.scale)
-
-        # We want the rigger to easily de-activate the avar logic for each channel.
-        # This is mainly because they might want to to certain deformations with blendshapes instead.
-        # _connect_with_blend(util_get_stack_local_tm.outputTranslateX, self._grp_output.translateX, self.affect_tx)
-        # _connect_with_blend(util_get_stack_local_tm.outputTranslateY, self._grp_output.translateY, self.affect_ty)
-        # _connect_with_blend(util_get_stack_local_tm.outputTranslateZ, self._grp_output.translateZ, self.affect_tz)
-        # _connect_with_blend(util_get_stack_local_tm.outputRotateX, self._grp_output.rotateX, self.affect_rx)
-        # _connect_with_blend(util_get_stack_local_tm.outputRotateY, self._grp_output.rotateY, self.affect_ry)
-        # _connect_with_blend(util_get_stack_local_tm.outputRotateZ, self._grp_output.rotateZ, self.affect_rz)
-        # _connect_with_blend(util_get_stack_local_tm.outputScaleX, self._grp_output.scaleX, self.affect_sx)
-        # _connect_with_blend(util_get_stack_local_tm.outputScaleY, self._grp_output.scaleY, self.affect_sy)
-        # _connect_with_blend(util_get_stack_local_tm.outputScaleZ, self._grp_output.scaleZ, self.affect_sz)
 
     def build(
         self,
@@ -677,54 +501,36 @@ class AvarSimple(AbstractAvar):
         """
         super(AvarSimple, self).build(parent=False)
 
-        _avar_filter_kwargs = {
-            "defaultValue": 1.0,
-            "hasMinValue": True,
-            "hasMaxValue": True,
-            "minValue": 0.0,
-            "maxValue": 1.0,
-            "keyable": True,
-        }
-        self.affect_tx = libAttr.addAttr(
-            self.grp_rig, longName="affectTx", **_avar_filter_kwargs
+        fn = functools.partial(
+            libAttr.addAttr,
+            self.grp_rig,
+            defaultValue=1.0,
+            hasMinValue=True,
+            hasMaxValue=True,
+            minValue=0.0,
+            maxValue=1.0,
+            keyable=True,
         )
-        self.affect_ty = libAttr.addAttr(
-            self.grp_rig, longName="affectTy", **_avar_filter_kwargs
-        )
-        self.affect_tz = libAttr.addAttr(
-            self.grp_rig, longName="affectTz", **_avar_filter_kwargs
-        )
-        self.affect_rx = libAttr.addAttr(
-            self.grp_rig, longName="affectRx", **_avar_filter_kwargs
-        )
-        self.affect_ry = libAttr.addAttr(
-            self.grp_rig, longName="affectRy", **_avar_filter_kwargs
-        )
-        self.affect_rz = libAttr.addAttr(
-            self.grp_rig, longName="affectRz", **_avar_filter_kwargs
-        )
-        self.affect_sx = libAttr.addAttr(
-            self.grp_rig, longName="affectSx", **_avar_filter_kwargs
-        )
-        self.affect_sy = libAttr.addAttr(
-            self.grp_rig, longName="affectSy", **_avar_filter_kwargs
-        )
-        self.affect_sz = libAttr.addAttr(
-            self.grp_rig, longName="affectSz", **_avar_filter_kwargs
-        )
+        self.affect_tx = fn(longName="affectTx")
+        self.affect_ty = fn(longName="affectTy")
+        self.affect_tz = fn(longName="affectTz")
+        self.affect_rx = fn(longName="affectRx")
+        self.affect_ry = fn(longName="affectRy")
+        self.affect_rz = fn(longName="affectRz")
+        self.affect_sx = fn(longName="affectSx")
+        self.affect_sy = fn(longName="affectSy")
+        self.affect_sz = fn(longName="affectSz")
 
-        nomenclature_rig = self.get_nomenclature_rig()
+        naming = self.get_nomenclature_rig()
 
         # Resolve influence matrix
-        if jnt_tm is None:
-            jnt_tm = self.get_jnt_tm()
-        jnt_pos = jnt_tm.translate
+        jnt_tm = jnt_tm or self.get_jnt_tm()
 
         # Create an offset layer that define the starting point of the Avar.
-        # It is important that the offset is in this specific node since it will serve as
-        # a reference to re-computer the base u and v parameter if the rigger change the
-        # size of the surface when the system is build.
-        grp_offset_name = nomenclature_rig.resolve("offset")
+        # It is important that the offset is in this specific node since it will serve
+        # as a reference to re-computer the base u and v parameter if
+        # the rigger change the size of the surface when the system is build.
+        grp_offset_name = naming.resolve("offset")
         self.grp_offset = pymel.createNode("transform", name=grp_offset_name)
         self.grp_offset.rename(grp_offset_name)
         self.grp_offset.setParent(self.grp_rig)
@@ -732,15 +538,16 @@ class AvarSimple(AbstractAvar):
         # Create a parent layer for constraining.
         # Do not use dual constraint here since it can result in flipping issues.
         self._grp_parent = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("parent"), parent=self.grp_rig,
+            "transform", name=naming.resolve("parent"), parent=self.grp_rig,
         )
 
         self._grp_output = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("output"), parent=self.grp_rig
+            "transform", name=naming.resolve("output"), parent=self.grp_rig
         )
 
         # We expect the right-side influence to be mirrored in behavior.
-        # However we still need consistency when moving left and right side controller together.
+        # However we still need consistency when moving
+        # left and right side controller together.
         # So under the hood, add an offset matrix so they are aligned together.
         if self.need_flip_lr() and self.jnt:
             jnt_tm = (
@@ -777,44 +584,14 @@ class AvarSimple(AbstractAvar):
 
         self.model_infl.connect_avar(self)
 
-        # ---------------------------------------------
-
         # We connect the joint before creating the controllers.
-        # This allow our doritos to work out of the box and allow us to compute their sensibility automatically.
+        # This allow our doritos to work out of the box and
+        # allow us to compute their sensibility automatically.
         if self.jnt and constraint:
-            # Ensure that Maya will be able to add the constraint.
-            # This could fail if the object is already connected to something else (ex: an animCurve).
-            # For this reason we'll force a disconnection if necessary.
-            attrs_to_disconnect = [
-                "t",
-                "tx",
-                "ty",
-                "tz",
-                "r",
-                "rx",
-                "ry",
-                "rz",
-                "s",
-                "sx",
-                "sy",
-                "sz",
-            ]
-            for attr_name in attrs_to_disconnect:
-                attr = self.jnt.attr(attr_name)
-                if attr.isDestination():
-                    log.warning(
-                        "%s.%s need to be connected but already have connections. Connection broken.",
-                        self.jnt.nodeName(),
-                        attr_name,
-                    )
-                    pymel.disconnectAttr(attr.inputs(plugs=True)[0], attr)
-                if attr.isLocked():
-                    log.warning(
-                        "%s.%s need to be connected but was locked. Lock removed.",
-                        self.jnt.nodeName(),
-                        attr_name,
-                    )
-                    attr.unlock()
+            # Creating the constraint will fail if the joint is already connected
+            # to something else like an animCurve.
+            libAttr.disconnect_trs(self.jnt)
+            libAttr.unlock_trs(self.jnt)
 
             pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
             pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
@@ -824,22 +601,22 @@ class AvarSimple(AbstractAvar):
         Connect the bind pose of the avar to the bind pose of the ctrl model.
         This can be overriden for more complex behavior.
         """
-        # pymel.parentConstraint(self._grp_offset, grp_ctrl_model)
         pymel.parentConstraint(self._grp_parent, grp_ctrl_model)
 
     def init_ctrl_model(self, cls, inst, inputs=None, cls_ctrl=None):
         """
         Factory method that initialize a child module instance only if necessary.
-        If the instance already had been initialized in a previous build, it's correct value will be preserved,
-        :param cls: The desired class.
-        :param inst: The current value. This should always exist since defined in the module constructor.
-        :param inputs: The inputs to use for the module.
-        :param suffix: The token to use for the module name. This help prevent collision between
-        module objects and the child module objects. If nothing is provided, the same name will be used
-        which can result in collisions.
-        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        If the instance already had been initialized in a previous build,
+        it's correct value will be preserved,
+        :param type cls: The desired class.
+        :param inst: The current value.
+        :type inst: omtk.core.classCtrlModel.BaseCtrlModel
+        :param inputs: The inputs to use for the model
+        :return: The initialized instance.
+        :rtype: omtk.core.classCtrlModel.BaseCtrlModel
         """
-        # todo: Validate inputs, we may need to modify the module if the inputs don't match!
+        # TOOD: Validate inputs, we may need to modify the module
+        # TODO: if the inputs don't match!
 
         result = self.init_module(cls, inst, inputs=inputs, suffix="ctrlModel")
 
@@ -847,14 +624,10 @@ class AvarSimple(AbstractAvar):
         result.name = self.name
 
         # Apply ctrl class override, otherwise use what was defined in the module.
-        if cls_ctrl:
-            result._CLS_CTRL = cls_ctrl
-        else:
-            result._CLS_CTRL = self._CLS_CTRL
+        result._CLS_CTRL = cls_ctrl or self._CLS_CTRL
 
         # Backward compatibility with old rigs that didn't use the model approach.
-        if result.ctrl is None and self.ctrl is not None:
-            result.ctrl = self.ctrl
+        result.ctrl = result.ctrl or self.ctrl
 
         return result
 
@@ -915,17 +688,12 @@ class AvarSimple(AbstractAvar):
                     grp_rig_name=self.get_nomenclature_anm_grp().resolve("ctrlModel"),
                     obj_mesh=next(iter(self.get_meshes()), None),
                     attr_bind_tm=self._grp_output.worldMatrix,
-                    # prevent name collision on rig grp
                     **kwargs
                 )
 
             else:
                 self.model_ctrl.build(
-                    self,
-                    ctrl_tm=ctrl_tm,
-                    ctrl_size=ctrl_size,
-                    parent_rot=parent_rot,
-                    **kwargs
+                    self, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, parent_rot=parent_rot, **kwargs
                 )
 
             # Expose the ctrl in a backward compatible way.
@@ -941,7 +709,7 @@ class AvarSimple(AbstractAvar):
             if connect:
                 self.model_ctrl.connect(self, parent)
 
-    def calibrate(self, **kwargs):
+    def calibrate(self):
         """
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
@@ -959,24 +727,20 @@ class AvarSimple(AbstractAvar):
         self.attr_multiplier_fb = None
 
         # Hold avars filter
-        if isinstance(self.affect_tx, pymel.Attribute):
-            self.affect_tx = self.affect_tx.get()
-        if isinstance(self.affect_ty, pymel.Attribute):
-            self.affect_ty = self.affect_ty.get()
-        if isinstance(self.affect_tz, pymel.Attribute):
-            self.affect_tz = self.affect_tz.get()
-        if isinstance(self.affect_rx, pymel.Attribute):
-            self.affect_rx = self.affect_rx.get()
-        if isinstance(self.affect_ry, pymel.Attribute):
-            self.affect_ry = self.affect_ry.get()
-        if isinstance(self.affect_rz, pymel.Attribute):
-            self.affect_rz = self.affect_rz.get()
-        if isinstance(self.affect_sx, pymel.Attribute):
-            self.affect_sx = self.affect_sx.get()
-        if isinstance(self.affect_sy, pymel.Attribute):
-            self.affect_sy = self.affect_sy.get()
-        if isinstance(self.affect_sz, pymel.Attribute):
-            self.affect_sz = self.affect_sz.get()
+        for attr_name in (
+            "affect_tx",
+            "affect_ty",
+            "affect_tz",
+            "affect_rx",
+            "affect_ry",
+            "affect_rz",
+            "affect_sx",
+            "affect_sy",
+            "affect_sz",
+        ):
+            attr = getattr(self, attr_name)
+            if isinstance(attr, pymel.Attribute):
+                setattr(self, attr_name, attr.get())
 
         if self.model_ctrl:
             self.model_ctrl.unbuild()
@@ -1003,11 +767,55 @@ class AvarFollicle(AvarSimple):
     _CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
 
 
-class CtrlFaceMacroAll(CtrlFaceMacro):
-    def __createNode__(self, width=4.5, height=1.2, **kwargs):
-        return super(CtrlFaceMacroAll, self).__createNode__(
-            width=width, height=height, **kwargs
-        )
+def _blend_inn_matrix_attribute(
+    attr_tm,
+    attr_blend_tx,
+    attr_blend_ty,
+    attr_blend_tz,
+    attr_blend_rx,
+    attr_blend_ry,
+    attr_blend_rz,
+    attr_blend_sx,
+    attr_blend_sy,
+    attr_blend_sz,
+):
+    # todo: replace with a matrixBlend node?
+    u_decompose_a = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_tm)
+
+    attr_blend_t = libRigging.create_utility_node(
+        "multiplyDivide",
+        input1X=u_decompose_a.outputTranslateX,
+        input1Y=u_decompose_a.outputTranslateY,
+        input1Z=u_decompose_a.outputTranslateZ,
+        input2X=attr_blend_tx,
+        input2Y=attr_blend_ty,
+        input2Z=attr_blend_tz,
+    ).output
+    attr_blend_r = libRigging.create_utility_node(
+        "multiplyDivide",
+        input1X=u_decompose_a.outputRotateX,
+        input1Y=u_decompose_a.outputRotateY,
+        input1Z=u_decompose_a.outputRotateZ,
+        input2X=attr_blend_rx,
+        input2Y=attr_blend_ry,
+        input2Z=attr_blend_rz,
+    ).output
+    attr_blend_s = libRigging.create_utility_node(
+        "multiplyDivide",
+        input1X=u_decompose_a.outputScaleX,
+        input1Y=u_decompose_a.outputScaleY,
+        input1Z=u_decompose_a.outputScaleZ,
+        input2X=attr_blend_sx,
+        input2Y=attr_blend_sy,
+        input2Z=attr_blend_sz,
+    ).output
+
+    return libRigging.create_utility_node(
+        "composeMatrix",
+        inputTranslate=attr_blend_t,
+        inputRotate=attr_blend_r,
+        inputScale=attr_blend_s,
+    ).outputMatrix
 
 
 def register_plugin():

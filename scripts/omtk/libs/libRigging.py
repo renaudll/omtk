@@ -3,6 +3,7 @@ import math
 import functools
 
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix, Vector, Point
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
@@ -12,23 +13,12 @@ from omtk.libs import libPymel
 
 _LOG = logging.getLogger(__name__)
 
-_BASIC_TYPES = [
-    int,
-    float,
-    bool,
-    pymel.datatypes.Matrix,
-    pymel.datatypes.Vector,
-    pymel.datatypes.Point,
-]
-
-_X_AXIS = pymel.datatypes.Vector.xAxis
-_Y_AXIS = pymel.datatypes.Vector.yAxis
-_Z_Axis = pymel.datatypes.Vector.zAxis
+_BASIC_TYPES = [int, float, bool, Matrix, Vector, Point]
 
 
 def connect_or_set_attr(_attr, _val):
     if isinstance(_val, (list, tuple)):
-        # Note: List attribute and compound attribute don't have the same way of iterating.
+        # List attribute and compound attribute don't have the same way of iterating.
         if _attr.isArray():
             for i, val in enumerate(_val):
                 connect_or_set_attr(_attr.elementByLogicalIndex(i), val)
@@ -171,42 +161,14 @@ def fetch_ctrl_shapes(source, target):
 
 
 def create_arclengthdimension_for_nurbsplane(nurbs_shape, u=1.0, v=1.0):
-    arcLengthDimension_shape = pymel.createNode("arcLengthDimension")
-    arcLengthDimension_shape.uParamValue.set(u)
-    arcLengthDimension_shape.vParamValue.set(v)
-    pymel.connectAttr(nurbs_shape.worldSpace, arcLengthDimension_shape.nurbsGeometry)
-    attr_length_u = arcLengthDimension_shape.arcLength
-    attr_length_v = arcLengthDimension_shape.arcLengthInV
-    return attr_length_u, attr_length_v, arcLengthDimension_shape
-
-
-def create_stretch_attr_from_nurbs_plane(nurbs_shape, u=1.0, v=1.0):
-    """
-    Compute the stretch applied on a pymel.nodetypes.NurbsSurface.
-    :param nurbs_shape: The pymel.nodetypes.NurbsSurface node.
-    :return: The stretch attribute and an arcLengthDimension that will need to be parented somewhere.
-    """
-    (
-        attr_length_u,
-        attr_length_v,
-        arcLengthDimension_shape,
-    ) = create_arclengthdimension_for_nurbsplane(nurbs_shape, u=u, v=v)
-    attr_length_v = arcLengthDimension_shape.arcLengthInV
-    multiply_node = create_utility_node(
-        "multiplyDivide",
-        operation=2,
-        input1X=attr_length_u,
-        input2X=attr_length_u.get(),
-        input1Y=attr_length_v,
-        input2Y=attr_length_v.get(),
-    )
-    attr_stretch_u = multiply_node.outputX
-    attr_stretch_v = multiply_node.outputY
-    return attr_stretch_u, attr_stretch_v, arcLengthDimension_shape
+    util = pymel.createNode("arcLengthDimension")
+    util.uParamValue.set(u)
+    util.vParamValue.set(v)
+    pymel.connectAttr(nurbs_shape.worldSpace, util.nurbsGeometry)
+    return util.arcLength, util.arcLengthInV, util
 
 
 def create_stretch_node_between_2_bones(start, end, attr_scale=None):
-    # Compute the Stretch
     start_world_trans_attr = create_utility_node(
         "decomposeMatrix", inputMatrix=start.worldMatrix
     ).outputTranslate
@@ -335,9 +297,8 @@ def create_nurbs_plane_from_joints(jnts, degree=1, width=1):
             )
 
         # Add in-betweens
-        if (
-            is_last
-        ):  # For obvious reasons, we don't want to add any points after the last edge.
+        # For obvious reasons, we don't want to add any points after the last edge.
+        if is_last:
             continue
 
         num_inbetweens = (
@@ -380,9 +341,7 @@ def create_nurbsCurve_from_joints(obj_s, obj_e, samples=2, num_cvs=3):
         oord = pos_s + (ratio * (pos_e - pos_s))
         coords.append(oord)
 
-    nurbsCurve = pymel.curve(d=samples, p=coords)
-
-    return nurbsCurve
+    return pymel.curve(d=samples, p=coords)
 
 
 def create_hyerarchy(_oObjs):
@@ -420,7 +379,6 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
 def get_recommended_ctrl_size(
     obj,
     geometries=None,
-    default_value=1.0,
     weight_x=0.0,
     weight_neg_x=0.0,
     weight_y=1.0,
@@ -434,16 +392,14 @@ def get_recommended_ctrl_size(
     :param obj: The object to analyze.
     """
     if geometries is None and isinstance(obj, pymel.nodetypes.Joint):
-        skinClusters = set()
+        skin_clusters = set()
         for hist in obj.listHistory(future=True):
             if isinstance(hist, pymel.nodetypes.SkinCluster):
-                skinClusters.add(hist)
+                skin_clusters.add(hist)
         geometries = set()
-        for skinCluster in skinClusters:
-            geometries.update(skinCluster.getOutputGeometry())
-        geometries = filter(
-            lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries
-        )  # Ensure we only deal with meshes
+        for skin_cluster in skin_clusters:
+            geometries.update(skin_cluster.getOutputGeometry())
+        geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries)
 
     if geometries is None:
         _LOG.warning(
@@ -452,10 +408,11 @@ def get_recommended_ctrl_size(
         return default_size
 
     # Create a number of raycast for each geometry. Use the longuest distance.
-    # Note that we are not using the negative Y axis, this give bettern result for example on shoulders.
+    # Note that we are not using the negative Y axis,
+    # this give bettern result for example on shoulders.
     if isinstance(obj, pymel.nodetypes.Transform):
         ref_tm = obj.getMatrix(worldSpace=True)
-    elif isinstance(obj, pymel.datatypes.Matrix):
+    elif isinstance(obj, Matrix):
         ref_tm = obj
     else:
         raise IOError("Unexpected type for reference object %s" % type(obj))
@@ -492,13 +449,13 @@ def get_recommended_ctrl_size(
     return length
 
 
-def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
+def ray_cast(pos, dirs, geometries, tolerance=1.0e-5):
     """
     Simple pymel wrapper for the MFnGeometry intersect method.
     Note: Default tolerance is 1.0e-5. With the default MFnMesh.intersect valut of 1.0e10, sometime
     the raycase might misfire. Still doesn't know why.
     :param pos: Any OpenMaya.MPoint compatible type (ex: pymel.datatypes.Point)
-    :param dirs: Any OpenMaya.MVector compatible type (ex: pymel.datatypes.Vector) or list.
+    :param dirs: Any OpenMaya.MVector compatible type (ex: Vector) or list.
     :param geometries: The geometries to intersect.
     :param debug: If True, spaceLocators will be created at intersection points.
     :return: pymel.datatypes.Point list containing the intersection points.
@@ -520,8 +477,8 @@ def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
 
     buffer_results = OpenMaya.MPointArray()
     for geometry in geometries:
-        # Resolve the MFnMesh, note that in some case (ex: a mesh with zero vertices), pymel will return a MFnDagNode.
-        # If this happen we'll want to ignore the mesh.
+        # Resolve the MFnMesh, note that in some case (ex: a mesh with zero vertices),
+        # pymel will return a MFnDagNode. If this happen we'll want to ignore the mesh.
         # todo: use a generic function?
         mfn_geo = geometry.__apimfn__()
 
@@ -553,11 +510,6 @@ def ray_cast(pos, dirs, geometries, debug=False, tolerance=1.0e-5):
         for i in range(buffer_results.length()):
             results.append(pymel.datatypes.Point(buffer_results[i]))
 
-    if debug:
-        for result in results:
-            loc = pymel.spaceLocator()
-            loc.setTranslation(result)
-
     return results
 
 
@@ -571,11 +523,6 @@ def ray_cast_farthest(pos, *args, **kwargs):
     results = ray_cast(pos, *args, **kwargs)
     results = sorted(results, key=lambda x: libPymel.distance_between_vectors(pos, x))
     return next(iter(reversed(results)), None)
-
-
-# TODO: Benchmark performances
-def snap(obj_dst, obj_src):
-    obj_dst.setMatrix(obj_src.getMatrix(worldSpace=True), worldSpace=True)
 
 
 #
@@ -593,7 +540,7 @@ def create_boxes():
             transform, make = pymel.polyCube(
                 height=length, width=length * 0.33, depth=length * 0.33
             )
-            r_offset = pymel.datatypes.Matrix(
+            r_offset = Matrix(
                 0,
                 -1.0,
                 -0.0,
@@ -668,41 +615,19 @@ def finalize_boxes():
 
 
 # todo: move to libPymel
-def _get_matrix_axis_x(tm):
-    return pymel.datatypes.Vector(tm.a00, tm.a01, tm.a02)
-
-
-# todo: move to libPymel
-def _get_matrix_axis_y(tm):
-    return pymel.datatypes.Vector(tm.a10, tm.a11, tm.a12)
-
-
-# todo: move to libPymel
-def _get_matrix_axis_z(tm):
-    return pymel.datatypes.Vector(tm.a20, tm.a21, tm.a22)
-
-
-# todo: move to libPymel
 def get_matrix_axis(tm, axis):
-    fn = None
     if axis == constants.Axis.x:
-        fn = _get_matrix_axis_x
-    elif axis == constants.Axis.y:
-        fn = _get_matrix_axis_y
-    elif axis == constants.Axis.z:
-        fn = _get_matrix_axis_z
-    else:
-        raise IOError("Unexpected axis. Got %s" % axis)
-
-    return fn(tm)
+        return Vector(tm.a00, tm.a01, tm.a02)
+    if axis == constants.Axis.y:
+        return Vector(tm.a10, tm.a11, tm.a12)
+    if axis == constants.Axis.z:
+        return Vector(tm.a20, tm.a21, tm.a22)
+    raise IOError("Unexpected axis. Got %s" % axis)
 
 
 # todo: move to libPymel
 def get_matrix_from_direction(
-    look_vec,
-    upp_vec,
-    look_axis=pymel.datatypes.Vector.xAxis,
-    upp_axis=pymel.datatypes.Vector.zAxis,
+    look_vec, upp_vec, look_axis=Vector.xAxis, upp_axis=Vector.zAxis,
 ):
     # print look_axis, look_vec
     # print upp_axis, upp_vec
@@ -710,22 +635,22 @@ def get_matrix_from_direction(
     look_vec.normalize()
     upp_vec.normalize()
 
-    side_vec = pymel.datatypes.Vector.cross(look_vec, upp_vec)
+    side_vec = Vector.cross(look_vec, upp_vec)
     side_vec.normalize()
 
     # recross in case up and front were not originally orthogonal:
-    upp_vec = pymel.datatypes.Vector.cross(side_vec, look_vec)
+    upp_vec = Vector.cross(side_vec, look_vec)
 
     #
     # Build resulting matrix
     #
 
-    tm = pymel.datatypes.Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
+    tm = Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
 
     # Add look component
     axis = look_axis
     vec = look_vec
-    tm += pymel.datatypes.Matrix(
+    tm += Matrix(
         axis.x * vec.x,
         axis.x * vec.y,
         axis.x * vec.z,
@@ -747,7 +672,7 @@ def get_matrix_from_direction(
     # Add upp component
     axis = upp_axis
     vec = upp_vec
-    tm += pymel.datatypes.Matrix(
+    tm += Matrix(
         axis.x * vec.x,
         axis.x * vec.y,
         axis.x * vec.z,
@@ -769,7 +694,7 @@ def get_matrix_from_direction(
     # Add side component
     axis = look_axis.cross(upp_axis)
     vec = side_vec
-    tm += pymel.datatypes.Matrix(
+    tm += Matrix(
         axis.x * vec.x,
         axis.x * vec.y,
         axis.x * vec.z,
@@ -792,7 +717,7 @@ def get_matrix_from_direction(
 
 
 def align_joints_to_view(
-    joints, cam, affect_pos=True, look_axis=_X_AXIS, upp_axis=_Z_Axis
+    joints, cam, affect_pos=True, look_axis=Vector.xAxis, upp_axis=Vector.zAxis
 ):
     """
     Align the up axis of selected joints to the look axis of a camera.
@@ -809,7 +734,7 @@ def align_joints_to_view(
 
 
 def align_joints_to_direction(
-    joints, direction, affect_pos=True, look_axis=_X_AXIS, upp_axis=_Z_Axis
+    joints, direction, affect_pos=True, look_axis=Vector.xAxis, upp_axis=Vector.zAxis
 ):
     """
     Align the up axis of selected joints to a direction vector.
@@ -824,7 +749,7 @@ def align_joints_to_direction(
     pos_start = joints[0].getTranslation(space="world")
 
     # Conform direction to Vector
-    direction = pymel.datatypes.Vector(direction)
+    direction = Vector(direction)
     direction.normalize()  # TODO: Do no modify by reference
 
     # Store original positions
@@ -874,7 +799,7 @@ def align_joints_to_direction(
             x_axis.normalize()
 
             # Compute side axis
-            z_axis = pymel.datatypes.Vector(x_axis).cross(direction)
+            z_axis = Vector(x_axis).cross(direction)
 
             # Compute up axis (corrected)
             y_axis = z_axis.cross(x_axis)
@@ -976,7 +901,7 @@ def get_nearest_affected_mesh(jnt, key=None):
 def get_farest_affected_mesh(jnt, key=None):
     """
     Return the last mesh affected by provided object in the geometry stack.
-    Usefull to identify which mesh to use in the 'doritos' setup.
+    Usefull to identify which mesh to use in the interactive ctrl setup.
     """
     affected_meshes = [
         hist for hist in jnt.listHistory(future=True) if _filter_shape(hist, key)
@@ -997,9 +922,9 @@ def get_closest_point_on_mesh(mesh, pos):
     """
     Return informations about the closest intersection between a point and a mesh polygons.
     :param mesh: A pymel.nodetypes.Mesh to analyze.
-    :param pos: A pymel.datatypes.Vector world-space position.
+    :param pos: A Vector world-space position.
     :return: A 3-sized tuple containing:
-    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
+    - A Vector representing the closest intersection between the mesh and the provided position.
     - The u coordinate of the resulting position.
     - The v coordinate of the resulting position.
     If nothing is found, a 3-sized tuple containing all None values are returned.
@@ -1077,15 +1002,18 @@ def get_closest_point_on_shape(shape, pos):
 
 def get_closest_point_on_shapes(meshes, pos):
     """
-    Return informations about the closest intersection between a point and multiple mesh polygons.
-    :param mesh: A pymel.nodetypes.Mesh to analyze.
-    :param pos: A pymel.datatypes.Vector world-space position.
+    Return information about the closest intersection
+    between a point and multiple mesh polygons.
+    :param mesh: A mesh to analyze.
+    :type mesh: pymel.nodetypes.Mesh
+    :param Vector pos: A world-space position.
     :return: A 4-sized tuple containing:
     - A pymel.nodetypes.Mesh instance representing the closest mesh.
-    - A pymel.datatypes.Vector representing the closest intersection between the mesh and the provided position.
+    - A Vector representing the closest intersection between the mesh and the provided position.
     - The u coordinate of the resulting position.
     - The v coordinate of the resulting position.
     If nothing is found, a 4-sized tuple containing all None values are returned.
+    :rtype: tuple[pymel.nodetypes.Mesh, Vector, float, float]
     """
     shortest_delta = None
     return_val = (None, None, None, None)
@@ -1123,7 +1051,7 @@ def get_point_on_surface_from_uv(shape, u, v):
     return pos
 
 
-# TODO: write an alternative method that work when the mesh have no UVs using pointOnMesh constraint.
+# TODO: write an alternative for when mesh have no UVs using pointOnMesh constraint.
 def create_follicle(shape, u=0, v=0, connect_transform=True):
     """
     Alternative to djRivet when you already know the u and v values.
@@ -1168,7 +1096,7 @@ def create_follicle(shape, u=0, v=0, connect_transform=True):
 
 
 def get_average_pos_between_vectors(jnts):
-    pos = pymel.datatypes.Vector()
+    pos = Vector()
     for jnt in jnts:
         pos += jnt.getTranslation(space="world")
     return pos / len(jnts)
@@ -1269,7 +1197,7 @@ def connectAttr_withBlendWeighted(attr_src, attr_dst, multiplier=None, **kwargs)
         iter(attr_dst.inputs(plugs=True, skipConversionNodes=True)), None
     )
 
-    # If the animCurve is not connected to a BlendWeighted node, we'll need to create one.
+    # If the animCurve is not connected to a BlendWeighted node, create one.
     if attr_dst_input is None or not isinstance(
         attr_dst_input.node(), pymel.nodetypes.BlendWeighted
     ):
@@ -1416,19 +1344,25 @@ def connectAttr_withLinearDrivenKeys(
                         )
                         return
 
-    animCurve = create_animCurveU(
+    curve = create_animCurveU(
         "animCurveUU", kt=kt, kv=kv, kit=kit, kot=kot, pre=pre, pst=pst
     )
-    animCurve.rename("%s_%s" % (attr_src.node().name(), attr_src.longName()))
-    pymel.connectAttr(attr_src, animCurve.input)
-    return connectAttr_withBlendWeighted(animCurve.output, attr_dst)
+    curve.rename("%s_%s" % (attr_src.node().name(), attr_src.longName()))
+    pymel.connectAttr(attr_src, curve.input)
+    return connectAttr_withBlendWeighted(curve.output, attr_dst)
 
 
 def _calibrate_attr(attr, fnGet, step_size=0.1, epsilon=0.01, default=1.0):
     """
-    Return the distance that @ref move when @attr is changed.
-    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
-    Note that to compensate non-linear movement, a small value (@step_size) is used.
+    Compute a multiple so that moving X amount an attribute move X amount an object.
+    :param attr: The attribute to calibrate with
+    :type attr: pymel.Attribute
+    :param callable fnGet: A function to fetch the resulting position
+    :param float step_size: A non-zero value to use during calibration
+    :param float epsilon: A tolerance for change
+    :param float default: Default value without calibration
+    :return: A calibration multiplier value
+    :rtype: float
     """
     attr.set(0)
     pos_s = fnGet()
@@ -1447,7 +1381,8 @@ def _calibrate_attr(attr, fnGet, step_size=0.1, epsilon=0.01, default=1.0):
 def calibrate_attr_using_translation_attribute(attr, ref, **kwargs):
     """
     Return the distance that @ref move when @attr is changed.
-    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
+    This is used to automatically tweak the ctrl sensibility
+    so the interactive ctrl have a more pleasant feel.
     Note that to compensate non-linear movement, a small value (@step_size) is used.
     """
 
@@ -1457,7 +1392,8 @@ def calibrate_attr_using_translation_attribute(attr, ref, **kwargs):
 def calibrate_attr_using_translation(attr, ref, **kwargs):
     """
     Return the distance that @ref move when @attr is changed.
-    This is used to automatically tweak the ctrl sensibility so the doritos have a more pleasant feel.
+    This is used to automatically tweak the ctrl sensibility
+    so the interactive ctrl have a more pleasant feel.
     Note that to compensate non-linear movement, a small value (@step_size) is used.
     """
     _fnGet = functools.partial(ref.getTranslation, space="world")

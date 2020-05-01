@@ -1,4 +1,5 @@
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix, Vector, Point
 
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core import classCtrlModel
@@ -75,8 +76,8 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         return tm
 
     def project_pos_on_face(self, pos, geos=None):
-        pos = pymel.datatypes.Vector(pos.x, pos.y, 99999)
-        dir = pymel.datatypes.Point(0, 0, -1)
+        pos = Vector(pos.x, pos.y, 99999)
+        dir = Point(0, 0, -1)
         result = self.rig.raycast_nearest(pos, dir, geos=geos)
         return result if result else pos
 
@@ -85,12 +86,13 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
     ):
         naming = self.get_nomenclature_rig()
         # Create a follicle, this will be used for callibration purpose.
-        # If this affect performance we can create it only when necessary, however being able to
-        # see it help with debugging.
+        # If this affect performance we can create it only when necessary,
+        # however being able to see it help with debugging.
 
         # Resolve u and v coordinates
         if obj_mesh is None:
-            # We'll scan all available geometries and use the one with the shortest distance.
+            # We'll scan all available geometries and use
+            # the one with the shortest distance.
             meshes = libHistory.get_affected_shapes(influence)
             meshes = list(set(meshes) & set(self.rig.get_shapes()))
             meshes = meshes or set(self.rig.get_shapes())
@@ -147,38 +149,25 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         #
 
         # Resolve which object will the InteractiveCtrl track.
-        # If we don't want to follow a particular geometry, we'll use the end of the stack.
+        # If we don't want to follow a particular geometry,
+        # we'll use the end of the stack.
         # Otherwise the influence will be used (to also resolve the geometry).
         # todo: it could be better to resolve the geometry ourself
-        if ref is None:
-            ref = self.jnt
+        ref = ref or self.jnt
 
         # Resolve the ctrl default tm
-        if ctrl_tm is None:
-            ctrl_tm = self.get_default_tm_ctrl()
+        ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
         if ctrl_tm is None:
             raise Exception("Cannot resolve ctrl transformation matrix!")
 
         # By default, we expect the rigger to mirror the face joints using the 'behavior' mode.
         if flip_lr:
             ctrl_tm = (
-                pymel.datatypes.Matrix(
-                    1.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    -1.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    -1.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    1.0,
+                Matrix(
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, -1.0, 0.0, 0.0],
+                    [0.0, 0.0, -1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
                 )
                 * ctrl_tm
             )
@@ -221,22 +210,19 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         # Add calibration-related attribute
         #
 
+        def _add_attr(name):
+            attr = libAttr.addAttr(self.grp_rig, longName=name, defaultValue=1.0)
+            attr.set(channelBox=True)
+            return attr
+
         # The values will be computed when attach_ctrl will be called
         libAttr.addAttr_separator(self.grp_rig, "ctrlCalibration")
-        self.attr_sensitivity_tx = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TX, defaultValue=1.0
-        )
-        self.attr_sensitivity_ty = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TY, defaultValue=1.0
-        )
-        self.attr_sensitivity_tz = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TZ, defaultValue=1.0
-        )
-        self.attr_sensitivity_tx.set(channelBox=True)
-        self.attr_sensitivity_ty.set(channelBox=True)
-        self.attr_sensitivity_tz.set(channelBox=True)
+        self.attr_sensitivity_tx = _add_attr(self._ATTR_NAME_SENSITIVITY_TX)
+        self.attr_sensitivity_ty = _add_attr(self._ATTR_NAME_SENSITIVITY_TY)
+        self.attr_sensitivity_tz = _add_attr(self._ATTR_NAME_SENSITIVITY_TZ)
 
-        # Hack: Since there's scaling on the ctrl so the left and right side ctrl channels matches, we need to flip the ctrl shapes.
+        # Hack: Since there's scaling on the ctrl so the left and right side ctrl
+        # channels matches, we need to flip the ctrl shapes.
         if flip_lr:
             self.ctrl.scaleX.set(-1)
             libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
@@ -314,8 +300,9 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         ).outputScale
 
         # Flip the x axis if we are on the right side of the face.
-        # We need to do it as the last step since this will result in a right-handed matrix
-        # which will be canceled out if we feed it into multMatrix or other maya nodes.
+        # We need to do it as the last step since this will result
+        # in a right-handed matrix which will be canceled out if we feed it
+        # into multMatrix or other maya nodes.
         if flip_lr:
             attr_ctrl_offset_scale = libRigging.create_utility_node(
                 "multiplyDivide",
@@ -402,58 +389,37 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
         # Position
         if ud:
-            attr_inn_ud = self.ctrl.translateY
-            libRigging.connectAttr_withBlendWeighted(attr_inn_ud, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateY, avar.attr_ud)
 
         if lr:
-            attr_inn_lr = self.ctrl.translateX
-
-            if need_flip:
-                attr_inn_lr = libRigging.create_utility_node(
-                    "multiplyDivide", input1X=attr_inn_lr, input2X=-1
-                ).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_lr, avar.attr_lr)
+            attr = self.ctrl.translateX
+            attr = _flip_attr(attr) if need_flip else attr
+            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_lr)
 
         if fb:
-            attr_inn_fb = self.ctrl.translateZ
-            libRigging.connectAttr_withBlendWeighted(attr_inn_fb, avar.attr_fb)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateZ, avar.attr_fb)
 
         # Rotation
         if yw:
-            attr_inn_yw = self.ctrl.rotateY
-
-            if need_flip:
-                attr_inn_yw = libRigging.create_utility_node(
-                    "multiplyDivide", input1X=attr_inn_yw, input2X=-1
-                ).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_yw, avar.attr_yw)
+            attr = self.ctrl.rotateY
+            attr = _flip_attr(attr) if need_flip else attr
+            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_yw)
 
         if pt:
-            attr_inn_pt = self.ctrl.rotateX
-            libRigging.connectAttr_withBlendWeighted(attr_inn_pt, avar.attr_pt)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.rotateX, avar.attr_pt)
 
         if rl:
-            attr_inn_rl = self.ctrl.rotateZ
-
-            if need_flip:
-                attr_inn_rl = libRigging.create_utility_node(
-                    "multiplyDivide", input1X=attr_inn_rl, input2X=-1
-                ).outputX
-
-            libRigging.connectAttr_withBlendWeighted(attr_inn_rl, avar.attr_rl)
+            attr = self.ctrl.rotateZ
+            attr = _flip_attr(attr) if need_flip else attr
+            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_rl)
 
         # Scale
         if sx:
-            attr_inn = self.ctrl.scaleX
-            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sx)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleX, avar.attr_sx)
         if sy:
-            attr_inn = self.ctrl.scaleY
-            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sy)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleY, avar.attr_sy)
         if sz:
-            attr_inn = self.ctrl.scaleZ
-            libRigging.connectAttr_withBlendWeighted(attr_inn, avar.attr_sz)
+            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleZ, avar.attr_sz)
 
     def unbuild(self):
         # Ensure the shape stay consistent between rebuild.
@@ -617,3 +583,9 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             calib_val = _routine(self.ctrl.node.tz, influence)
             self.log.debug("Adjusting sensibility tz for %s to %s", self, calib_val)
             self.attr_sensitivity_tz.set(calib_val)
+
+
+def _flip_attr(attr):  # TODO: Remove duplication
+    return libRigging.create_utility_node(
+        "multiplyDivide", input1X=attr, input2X=-1
+    ).outputX

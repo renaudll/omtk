@@ -6,11 +6,8 @@ is more complex than setting up a constraint.
 import pymel.core as pymel
 
 from . import classModule
-from . import classNode
 from omtk.libs import libAttr
 from omtk.libs import libRigging
-from omtk.libs import libHistory
-from omtk.libs import libPython
 
 
 class BaseCtrlModel(classModule.Module):

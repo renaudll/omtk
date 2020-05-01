@@ -57,7 +57,17 @@ class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
             self.ctrl.setMatrix(ctrl_tm)
 
     def connect(
-        self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True,
+        self,
+        avar,
+        ud=True,
+        fb=True,
+        lr=True,
+        yw=True,
+        pt=True,
+        rl=True,
+        sx=True,
+        sy=True,
+        sz=True,
     ):
         raise NotImplementedError
 
@@ -87,14 +97,32 @@ class ModelLookAt(BaseAvarCtrlModel):
         head_jnt = self.get_head_jnt()
         head_length = self.rig.get_head_length(head_jnt)
         if not head_length:
-            pymel.warning("Can't resolve head length! The eyes ctrl location might be erroned.")
+            pymel.warning(
+                "Can't resolve head length! The eyes ctrl location might be erroned."
+            )
         offset_z = head_length * 2 if head_length else 0
         return pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, jnt_pos.x, jnt_pos.y, jnt_pos.z + offset_z,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            jnt_pos.x,
+            jnt_pos.y,
+            jnt_pos.z + offset_z,
         )
 
     def build(self, avar, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(ModelLookAt, self).build(avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
+        super(ModelLookAt, self).build(
+            avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs
+        )
 
         naming = self.get_nomenclature_rig()
 
@@ -158,7 +186,17 @@ class ModelLookAt(BaseAvarCtrlModel):
         self._attr_out_rl = util_decomposeMatrix.outputRotateZ
 
     def connect(
-        self, avar, ud=True, fb=True, lr=True, yw=True, pt=True, rl=True, sx=True, sy=True, sz=True,
+        self,
+        avar,
+        ud=True,
+        fb=True,
+        lr=True,
+        yw=True,
+        pt=True,
+        rl=True,
+        sx=True,
+        sy=True,
+        sz=True,
     ):
         libRigging.connectAttr_withBlendWeighted(self._attr_out_lr, avar.attr_lr)
         libRigging.connectAttr_withBlendWeighted(self._attr_out_ud, avar.attr_ud)

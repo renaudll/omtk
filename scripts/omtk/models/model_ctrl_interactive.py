@@ -147,7 +147,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         # Resolve u and v coordinates
         obj_mesh = obj_mesh or self.get_mesh()
-        if obj_mesh is None:
+        if not obj_mesh:
             # Scan all available geometries and use the one with the shortest distance.
             meshes = libHistory.get_affected_shapes(ref)
             meshes = list(set(meshes) & set(self.rig.get_shapes()))
@@ -286,11 +286,10 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         self._fix_ctrl_shape()
 
         super(ModelInteractiveCtrl, self).unbuild()
-        # TODO: Maybe hold and fetch the senstivity? Will a doritos will ever be serialzied?
+
         self.attr_sensitivity_tx = None
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
-
         self.follicle = None
 
     def _fix_ctrl_shape(self):
@@ -355,7 +354,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             tmp_shape = pymel.createNode("nurbsCurve")
             tmp_shape.getParent().setParent(grp_offset)
 
-            # Apply the inverted compensation matrix to access the desired orig_shape 'create' attr.
+            # Apply the inverted compensation matrix to
+            # access the desired orig_shape 'create' attr.
             tmp_transform_geometry = libRigging.create_utility_node(
                 "transformGeometry",
                 inputGeometry=shape.local,
@@ -383,10 +383,12 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         """
         Change the mesh that the follicle is attached to.
         This is made to be used on a build InteractiveCtrlModel.
-        :param new_mesh: A pymel.nodetypes.Mesh or pymel.nodetypes.Transform containing a mesh.
+        :param new_mesh: A mesh of transform containing a mesh.
+        :type new_mesh: pymel.nodetypes.Mesh or pymel.nodetypes.Transform
         """
         # Resolve the node driven by the follicle.
-        # This node contain the bindPose of the ctrl and is linked via a parentConstraint which we'll want to re-create.
+        # This node contain the bindPose of the ctrl and is linked
+        # via a parentConstraint which we'll want to re-create.
         # todo: how do we update the constraint again?
         constraint = next(
             obj
@@ -440,7 +442,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             attr_dst.set(sensitivity)
 
 
-def _flip_attr(attr):
+def _flip_attr(attr):  # TODO: Remove duplication
     return libRigging.create_utility_node(
         "multiplyDivide", input1X=attr, input2X=-1
     ).outputX

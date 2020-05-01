@@ -1,7 +1,6 @@
 import logging
 
 import pymel.core as pymel
-from omtk.libs import libSkinning
 
 
 def get_center(objs):
@@ -68,25 +67,3 @@ def snapObj():
     for source in sources:
         pMatrixToMatch = target.getMatrix(worldSpace=True)
         source.setMatrix(pMatrixToMatch, worldSpace=True)
-
-
-def getSkinCluster(_oObj):
-    """
-    Get skin cluster attach to an objects
-    """
-    for hist in pymel.listHistory(_oObj):
-        if isinstance(hist, pymel.nodetypes.SkinCluster):
-            return hist
-    return None
-
-
-def getSkinBones():
-    """
-    Get bone included in a skin
-    """
-    influences = []
-    for oCurObj in pymel.selected():
-        oSkinCluster = getSkinCluster(oCurObj)
-        if oSkinCluster is not None:
-            influences += libSkinning.get_skin_cluster_influence_objects(oSkinCluster)
-    pymel.select(influences)

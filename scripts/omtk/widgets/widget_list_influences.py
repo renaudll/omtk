@@ -52,7 +52,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         all_potential_influences = self._rig.get_potential_influences()
 
         if all_potential_influences:
-            data = libPymel.get_tree_from_objs(all_potential_influences, sort=True)
+            data = libPymel.get_tree_from_objs(all_potential_influences)
 
             self._fill_widget_influences(self.ui.treeWidget.invisibleRootItem(), data)
             self.ui.treeWidget.sortItems(0, QtCore.Qt.AscendingOrder)

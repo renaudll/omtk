@@ -191,13 +191,14 @@ class Node(object):
 
     def get_stack_end(self):
         """
-        :return: The last node in the transform stack. Note that this does NOT return self.node.
+        :return: The last node in the transform stack. This will NOT return self.node.
         """
         return next(reversed(self._layers), None)
 
     def extract_stack_tm(self):
         """
-        :return: A matrix attribute containing the delta from the stack start (it's parent) and the stack end.
+        :return: A matrix attribute containing the delta
+                 from the stack start (it's parent) and the stack end.
         """
         # todo: remove dependency on self.getParent()
         stack_parent = self.getParent()

@@ -10,7 +10,8 @@ import math
 def mirror_obj(obj_src, obj_dst=None):
     """
     Method to mirror joints in behavior.
-    This use existing joint and doesn't break the skin or the network associated with the joints.
+    This use existing joint and doesn't break the skin or
+    the network associated with the joints.
     """
     from omtk.animation import mirrorPose
 
@@ -60,7 +61,7 @@ def transfer_rotation_to_joint_orient(obj):
     ):
         if not is_attr_accessible(attr):
             pymel.warning(
-                "Can't transfer rotation to joint orient. %r is locked." % (obj, attr)
+                "Can't transfer rotation to joint orient. %r is locked." % attr
             )
             return
 
@@ -118,9 +119,9 @@ def mirror_jnts(objs):
     This will create the other joint if needed, otherwise it will re-use it.
 
     :param objs: The joints to mirror
-    :type: objs: list or pymel.nodetypes.Joint
+    :type: objs: list of pymel.nodetypes.Joint
     """
-    # Sort objects by hyerarchy so we mirror parents before their children.
+    # Sort objects by hierarchy so we mirror parents before their children.
     objs = sorted(objs, key=libPymel.get_num_parents)
     with pymel.UndoChunk():
         for obj in objs:

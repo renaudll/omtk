@@ -64,7 +64,9 @@ class CtrlFaceMacro(BaseCtrlFace):
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def __createNode__(self, width=4.5, height=1.2, **kwargs):
-        return super(CtrlFaceMacroAll, self).__createNode__(width=width, height=height, **kwargs)
+        return super(CtrlFaceMacroAll, self).__createNode__(
+            width=width, height=height, **kwargs
+        )
 
 
 class AbstractAvar(classModule.Module):
@@ -100,7 +102,7 @@ class AbstractAvar(classModule.Module):
         self.avar_network = None
         self.init_avars()
 
-        self._sys_doritos = None
+        self._sys_ctrl = None
         self.ctrl = None
 
         # Define how many unit is moved in uv space in relation with the avars.
@@ -135,7 +137,9 @@ class AbstractAvar(classModule.Module):
         Add an avar in the internal avars network.
         An attribute will also be created on the grp_rig node.
         """
-        return libAttr.addAttr(attr_holder, longName=name, keyable=True, defaultValue=defaultValue)
+        return libAttr.addAttr(
+            attr_holder, longName=name, keyable=True, defaultValue=defaultValue
+        )
 
     def add_avars(self, attr_holder):
         """
@@ -167,12 +171,16 @@ class AbstractAvar(classModule.Module):
             self.log.warning("Can't hold avars, invalid grp_rig in %s!", self)
             return
 
-        self.avar_network = pymel.createNode("transform", name=naming.resolve("avarBackup"))
+        self.avar_network = pymel.createNode(
+            "transform", name=naming.resolve("avarBackup")
+        )
         self.rig.hold_node(self.avar_network)
         self.add_avars(self.avar_network)
 
         def attr_have_animcurve_input(attr):
-            attr_input = next(iter(attr.inputs(plugs=True, skipConversionNodes=True)), None)
+            attr_input = next(
+                iter(attr.inputs(plugs=True, skipConversionNodes=True)), None
+            )
             if attr_input is None:
                 return False
 
@@ -191,7 +199,9 @@ class AbstractAvar(classModule.Module):
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                self.log.debug("Cannot hold missing attribute %s in %s", attr_name, self.grp_rig)
+                self.log.debug(
+                    "Cannot hold missing attribute %s in %s", attr_name, self.grp_rig
+                )
                 continue
 
             attr_src = self.grp_rig.attr(attr_name)
@@ -236,7 +246,9 @@ class AbstractAvar(classModule.Module):
     def get_base_uv(self):
         pos = self.get_jnt_tm().translate
 
-        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, pos)
+        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(
+            self.surface, pos
+        )
         return fol_u, fol_v
 
     def get_jnt_tm(self):
@@ -274,9 +286,15 @@ class AbstractAvar(classModule.Module):
         plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
 
         # Create Bends
-        bend_side_deformer, bend_side_handle = pymel.nonLinear(plane_transform, type="bend")
-        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(plane_transform, type="bend")
-        bend_low_deformer, bend_low_handle = pymel.nonLinear(plane_transform, type="bend")
+        bend_side_deformer, bend_side_handle = pymel.nonLinear(
+            plane_transform, type="bend"
+        )
+        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(
+            plane_transform, type="bend"
+        )
+        bend_low_deformer, bend_low_handle = pymel.nonLinear(
+            plane_transform, type="bend"
+        )
 
         plane_transform.r.set(0, -90, 0)
         bend_side_handle.r.set(90, 90, 0)
@@ -445,13 +463,17 @@ class AvarSimple(AbstractAvar):
         self._stack_post = classNode.Node()
         self._stack_post.build(name=nomenclature_rig.resolve("postAvar"))
         post_stack_root = pymel.createNode(
-            "transform", name=nomenclature_rig.resolve("postAvarRoot"), parent=self.grp_rig,
+            "transform",
+            name=nomenclature_rig.resolve("postAvarRoot"),
+            parent=self.grp_rig,
         )
         # layer_stack_input = self._stack_post.prepend_layer(name='input')
         self._stack_post.setParent(post_stack_root)
 
         libRigging.connect_matrix_to_node(
-            self.grp_offset.matrix, post_stack_root, name=nomenclature_rig.resolve("something"),
+            self.grp_offset.matrix,
+            post_stack_root,
+            name=nomenclature_rig.resolve("something"),
         )
 
         attr_avar_model_tm = _blend_inn_matrix_attribute(
@@ -470,12 +492,18 @@ class AvarSimple(AbstractAvar):
         # Take the result of the stack and add it on top of the bind-pose and parent group.
         self._attr_get_stack_local_tm = libRigging.create_utility_node(
             "multMatrix",
-            matrixIn=(attr_avar_model_tm, self._stack_post.worldMatrix, self._grp_parent.matrix,),
+            matrixIn=(
+                attr_avar_model_tm,
+                self._stack_post.worldMatrix,
+                self._grp_parent.matrix,
+            ),
         ).matrixSum
         util_get_stack_local_tm = libRigging.create_utility_node(
             "decomposeMatrix", inputMatrix=self._attr_get_stack_local_tm
         )
-        pymel.connectAttr(util_get_stack_local_tm.outputTranslate, self._grp_output.translate)
+        pymel.connectAttr(
+            util_get_stack_local_tm.outputTranslate, self._grp_output.translate
+        )
         pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.rotate)
         pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.scale)
 
@@ -693,7 +721,11 @@ class AvarSimple(AbstractAvar):
 
             else:
                 self.model_ctrl.build(
-                    self, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, parent_rot=parent_rot, **kwargs
+                    self,
+                    ctrl_tm=ctrl_tm,
+                    ctrl_size=ctrl_size,
+                    parent_rot=parent_rot,
+                    **kwargs
                 )
 
             # Expose the ctrl in a backward compatible way.
@@ -780,7 +812,9 @@ def _blend_inn_matrix_attribute(
     attr_blend_sz,
 ):
     # todo: replace with a matrixBlend node?
-    u_decompose_a = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_tm)
+    u_decompose_a = libRigging.create_utility_node(
+        "decomposeMatrix", inputMatrix=attr_tm
+    )
 
     attr_blend_t = libRigging.create_utility_node(
         "multiplyDivide",

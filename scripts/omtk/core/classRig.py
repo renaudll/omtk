@@ -479,14 +479,15 @@ class Rig(object):
     def get_farest_affected_mesh(self, jnt):
         """
         Return the last mesh affected by provided object in the geometry stack.
-        Usefull to identify which mesh to use in the 'doritos' setup.
+        Usefull to identify which mesh to use in the interactive ctrl setup.
         """
         key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
     def raycast_nearest(self, pos, dir, geos=None):
         """
-        Return the nearest point on any of the rig registered geometries using provided position and direction.
+        Return the nearest point on any of the rig registered geometries using
+        provided position and direction.
         """
         if not geos:
             geos = self.get_shapes()

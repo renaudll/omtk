@@ -92,7 +92,6 @@ class PyNodeChain(list):
         return self
 
     def duplicate(self):
-        # Hack - Convert self into list even if self is a list to prevent duplicate self parameter in pymel.duplicate
         new_chain = pymel.duplicate(list(self), renameChildren=True, parentOnly=True)
         return PyNodeChain(new_chain)
 
@@ -146,7 +145,7 @@ def get_num_parents(obj):
 
 def get_chains_from_objs(objs):
     """
-    Take an arbitraty collection of joints and sort them in hyerarchies represented by lists.
+    Take an arbitraty collection of joints and sort them in hyerarchies.
     """
     chains = []
     objs = sorted(objs, key=get_num_parents)
@@ -169,14 +168,6 @@ def iter_parents(obj):
 
 def get_parents(obj):
     return list(iter_parents(obj))
-    """
-    parents = []
-    while obj.getParent() is not None:
-        parent = obj.getParent()
-        parents.append(parent)
-        obj = parent
-    return parents
-    """
 
 
 def get_common_parents(objs):
@@ -215,7 +206,7 @@ class Tree(object):
         return "<Tree %s>" % self.val
 
 
-def get_tree_from_objs(objs, sort=False):
+def get_tree_from_objs(objs):
     """
     Sort all provided objects in a tree fashion.
     Support missing objects between hierarchy.
@@ -243,11 +234,6 @@ def get_tree_from_objs(objs, sort=False):
         last_knot = knot
 
     return root
-
-
-#
-# ls() reimplementations
-#
 
 
 def ls(*args, **kwargs):
@@ -280,10 +266,6 @@ def ls_root_rigs(pattern="rig*", **kwargs):
 def ls_root_jnts(pattern="jnt*", **kwargs):
     return ls_root(pattern, type="transform", **kwargs)
 
-
-#
-# isinstance() reimplementation
-#
 
 # Class check for transform PyNodes
 def isinstance_of_transform(obj, cls=pymel.nodetypes.Transform):
@@ -318,11 +300,6 @@ def create_zero_grp(obj):
 def zero_out_objs(objs):
     for o in objs:
         create_zero_grp(o)
-
-
-#
-# pymel.datatypes extensions.
-#
 
 
 class Segment(object):
@@ -418,7 +395,7 @@ class SegmentCollection(object):
         index = self.segments.index(closest_segment)
         return index, ratio
 
-    def get_knot_weights(self, dropoff=1.0, normalize=True):
+    def get_knot_weights(self, dropoff=1.0):
         num_knots = len(self.knots)
         knots_weights = []
         for i, knot in enumerate(self.knots):

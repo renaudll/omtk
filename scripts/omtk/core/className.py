@@ -2,10 +2,6 @@ from maya import cmds
 import copy
 
 
-# todo: make tokens, suffix, prefix and side private. Use getter and setter functions were necessary.
-# todo: in add_tokens, reconize what is a suffix and what is a prefix
-
-
 class BaseName(object):
     """
     This class handle the naming of object.
@@ -44,8 +40,8 @@ class BaseName(object):
     >>> name.resolve()
     'l_eye_jnt'
 
-    You can re-define the 'known_prefix' and 'known_suffix' static properties to ensure that studio-specific
-    suffix/prefix are always respected.
+    You can re-define the 'known_prefix' and 'known_suffix' static properties
+    to ensure that studio-specific suffix/prefix are always respected.
     It is re
     >>> class PrefixBasedNomenclature(BaseName):
     ...     KNOWN_PREFIXES = ['jnt', 'ctrl']

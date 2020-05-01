@@ -79,10 +79,12 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
 
     def _get_follicle_absolute_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """
-        Resolve the absolute parameterU and parameterV that will be sent to the follicles.
+        Resolve the absolute parameterU and parameterV to use for the follicles.
+
         :param mult_u: Custom multiplier
         :param mult_v:
-        :return: A tuple containing two pymel.Attribute: the absolute parameterU and relative parameterV.
+        :return: A tuple containing a U and a V attribute
+        :rtype: tuple[pymel.Attribute, pymel.Attribute]
         """
         # TODO: Move attribute definition outside this function.
         attr_u_inn = libAttr.addAttr(self.grp_rig, longName=self._ATTR_NAME_U)
@@ -120,9 +122,11 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
 
     def _build(self):
         """
-        The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
+        The dag stack is a chain of transform nodes daisy chained together
+        that computer the final transformation of the influence.
         The decision of using transforms instead of multMatrix nodes is for clarity.
-        Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
+        Note also that because of it's parent (the offset node)
+        the stack relative to the influence original translation.
         """
         naming = self.get_nomenclature_rig()
 
@@ -155,9 +159,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
             name=naming.resolve("decomposeOffset"),
         )
 
-        #
-        # Extract the base U and V of the base influence using the stack parent. (the 'offset' node)
-        #
+        # Extract the base U and V of the base influence using the stack parent
 
         util_get_base_uv_absolute = libRigging.create_utility_node(
             "closestPointOnSurface",
@@ -199,12 +201,11 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
             attr_base_v_normalized, self.grp_rig.attr(self._ATTR_NAME_V_BASE)
         )
 
-        #
         # Create follicle setup
         # The setup is composed of two follicles.
         # One for the "bind pose" and one "driven" by the avars..
-        # The delta between the "bind pose" and the "driven" follicles is then applied to the influence.
-        #
+        # The delta between the "bind pose" and the "driven" follicles
+        # is then applied to the influence.
 
         # Determine the follicle U and V on the reference nurbsSurface.
         base_u_val = self._attr_u_base.get()
@@ -220,18 +221,14 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         arcdimension_transform.rename(naming.resolve("arcdimension"))
         arcdimension_transform.setParent(self.grp_rig)
 
-        #
         # Resolve the parameterU and parameterV
-        #
 
         attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr()
 
-        #
-        # Create two follicle.
-        # - bindPoseFollicle: A follicle that stay in place and keep track of the original position.
-        # We'll then compute the delta of the position of the two follicles.
-        # This allow us to move or resize the plane without affecting the built rig. (if the rig is in neutral pose)
-        #
+        # Create a follicle holding the bind position.
+        # This allow us to move or resize the plane without affecting the built rig.
+        # (if the rig is in neutral pose)
+
         offset_name = naming.resolve("bindPoseRef")
         self._obj_offset = pymel.createNode("transform", name=offset_name)
         self._obj_offset.setParent(self.grp_offset)
@@ -260,9 +257,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         )
         infinity_follicle_tm = pymel.Attribute("%s.outputTM" % infinity_follicle.output)
 
-        #
         # Extract the delta of the influence follicle and it's initial pose follicle
-        #
         attr_localTM = libRigging.create_utility_node(
             "multMatrix",
             matrixIn=[infinity_follicle_tm, self._obj_offset.worldInverseMatrix],
@@ -295,16 +290,13 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
             "decomposeMatrix", inputMatrix=attr_final_tm
         )
 
-        #
-        # Create the 1st (follicleLayer) that will contain the extracted position from the ud and lr Avar.
-        #
+        # 1st layer will hold the follicle translation.
         layer_follicle = self._stack.append_layer("follicleLayer")
         pymel.connectAttr(util_decompose_tm.outputTranslate, layer_follicle.translate)
-
         pymel.connectAttr(self._attr_u_base, fol_offset.parameterU)
         pymel.connectAttr(self._attr_v_base, fol_offset.parameterV)
 
-        # Create the third layer that apply the translation provided by the fb Avar.
+        # 2nd layer hold the fb avar translation.
         layer_fb = self._stack.append_layer("fbLayer")
         attr_get_fb = libRigging.create_utility_node(
             "multiplyDivide", input1X=self._attr_inn_fb, input2X=self._attr_length_u
@@ -314,14 +306,11 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         ).outputX
         pymel.connectAttr(attr_get_fb_adjusted, layer_fb.translateZ)
 
-        # Create the 4th layer (folRot) that apply the rotation provided by
-        # the follicle controlled by the ud and lr Avar.
-        # This is necessary since we don't want to rotation
-        # to affect the oobLayer and fbLayer.
+        # 3rd layer apply the follicle rotation.
         layer_follicle_rot = self._stack.append_layer("folRot")
         pymel.connectAttr(util_decompose_tm.outputRotate, layer_follicle_rot.rotate)
 
-        # Create a 5th layer that apply the avar rotation and scale.
+        # 4th layer apply the avar rotation and scale.
         layer_rot = self._stack.append_layer("rotLayer")
         pymel.connectAttr(self._attr_inn_yw, layer_rot.rotateY)
         pymel.connectAttr(self._attr_inn_pt, layer_rot.rotateX)
@@ -333,12 +322,15 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         return self._stack.worldMatrix
 
     def connect_surface(self, surface):
-        pymel.connectAttr(surface.worldSpace, self._attr_inn_surface)
-        pymel.connectAttr(surface.worldMatrix, self._attr_inn_surface_tm)
-        pymel.connectAttr(surface.minValueU, self._attr_inn_surface_min_value_u)
-        pymel.connectAttr(surface.maxValueU, self._attr_inn_surface_max_value_u)
-        pymel.connectAttr(surface.minValueV, self._attr_inn_surface_min_value_v)
-        pymel.connectAttr(surface.maxValueV, self._attr_inn_surface_max_value_v)
+        for src, dst in (
+            (surface.worldSpace, self._attr_inn_surface),
+            (surface.worldMatrix, self._attr_inn_surface_tm),
+            (surface.minValueU, self._attr_inn_surface_min_value_u),
+            (surface.maxValueU, self._attr_inn_surface_max_value_u),
+            (surface.minValueV, self._attr_inn_surface_min_value_v),
+            (surface.maxValueV, self._attr_inn_surface_max_value_v),
+        ):
+            pymel.connectAttr(src, dst)
 
     def connect_avar(self, avar):
         super(AvarSurfaceModel, self).connect_avar(avar)

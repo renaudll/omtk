@@ -270,9 +270,9 @@ class IK(Module):
                 pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
                 pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
 
-        compound.explode(
-            remove_namespace=True
-        )  # TODO: Should be done on the post-build of the rig
+        # compound.explode(
+        #     remove_namespace=True
+        # )  # TODO: Should be done on the post-build of the rig
 
     def create_ik_handle(self, solver="ikRPsolver"):
         """

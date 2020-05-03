@@ -71,7 +71,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # The face is always looking at the positive Z axis.
         pos = tm.translate
         dir_ = pymel.datatypes.Point(0, 0, 1)
-        result = self.rig.raycast_farthest(pos, dir_)
+        geos = self.rig.get_shapes()
+        result = libRigging.ray_cast_farthest(pos, dir_, geos)
         if result:
             tm.a30 = result.x
             tm.a31 = result.y
@@ -82,30 +83,25 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     def project_pos_on_face(self, pos, geos=None):
         pos = pymel.datatypes.Vector(pos.x, pos.y, 99999)
         dir = pymel.datatypes.Point(0, 0, -1)
-        result = self.rig.raycast_nearest(pos, dir, geos=geos)
-        return result if result else pos
+        geos = geos or self.rig.get_shapes()
+        return libRigging.ray_cast_nearest(pos, dir, geos) or pos
 
     def create_interface(self):
         super(ModelInteractiveCtrl, self).create_interface()
 
+        def _fn(name):
+            attr = libAttr.addAttr(self.grp_rig, longName=name, defaultValue=1.0)
+            attr.set(channelBox=True)
+            return attr
+
         # The values will be computed when attach_ctrl will be called
         libAttr.addAttr_separator(self.grp_rig, "ctrlCalibration")
-        self.attr_sensitivity_tx = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TX, defaultValue=1.0
-        )
-        self.attr_sensitivity_ty = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TY, defaultValue=1.0
-        )
-        self.attr_sensitivity_tz = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TZ, defaultValue=1.0
-        )
-        self.attr_sensitivity_tx.set(channelBox=True)
-        self.attr_sensitivity_ty.set(channelBox=True)
-        self.attr_sensitivity_tz.set(channelBox=True)
+        self.attr_sensitivity_tx = _fn(self._ATTR_NAME_SENSITIVITY_TX)
+        self.attr_sensitivity_ty = _fn(self._ATTR_NAME_SENSITIVITY_TY)
+        self.attr_sensitivity_tz = _fn(self._ATTR_NAME_SENSITIVITY_TZ)
 
     def build(
         self,
-        avar,
         ref=None,
         ref_tm=None,
         grp_rig=None,
@@ -124,7 +120,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         cancel_r=True,
         **kwargs
     ):
-        super(ModelInteractiveCtrl, self).build(avar, ctrl_size=ctrl_size, **kwargs)
+        super(ModelInteractiveCtrl, self).build(ctrl_size=ctrl_size, **kwargs)
 
         naming = self.get_nomenclature_rig()
 
@@ -169,7 +165,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                 "Creating doritos on %s using %s as reference", obj_mesh, self.jnt
             )
         else:
-            self.log.debug("Creating doritos on %s", obj_mesh)
+            self.log.debug("Creating interactive ctrl on %s", obj_mesh)
 
         # Hack: Since there's scaling on the ctrl so the left and right side
         # ctrl channels matches, we need to flip the ctrl shapes.

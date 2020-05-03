@@ -2,6 +2,7 @@ import math
 
 import pymel.core as pymel
 from omtk.core.classNode import Node
+from omtk.core.exceptions import ValidationError
 from omtk.libs import libAttr
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -132,28 +133,20 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def validate(self):
         """
-        If we are using the preDeform flag, we will need to validate that we can find the Jaw influence!
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
         """
         super(FaceLips, self).validate()
 
         if not self.preDeform:
-            if self.get_jaw_jnt(strict=False) is None:
-                raise Exception("Can't resolve jaw. Please create a Jaw module.")
+            if not self.get_jaw_jnt(strict=False):
+                raise ValidationError("Can't resolve jaw. Please create a Jaw module.")
 
             # Ensure we are able to access the jaw module.
             jaw_module = self.get_jaw_module()
             if not jaw_module:
-                raise Exception("Can't resolve jaw module.")
-
-            # If the jaw module is already built, ensure it respect the minimum version requirement.
-            # Jaw-0.4.18 introducing support for the 'all' avar macro which we need.
-            if jaw_module.is_built():
-                version_major, version_minor, version_patch = jaw_module.get_version()
-                if version_major == 0 and version_minor == 4 and version_patch < 18:
-                    raise Exception(
-                        "Associated Jaw module version is too low. Expected 0.4.18+, got %s.%s.%s"
-                        % (version_major, version_minor, version_patch)
-                    )
+                raise ValidationError("Can't resolve jaw module.")
 
     def get_avars_corners(self, macro=True):
         # todo: move upper?
@@ -293,7 +286,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
         )
 
     def get_dependencies_modules(self):
-        return [self.get_jaw_module()]
+        return {self.get_jaw_module()}
 
     def __init__(self, *args, **kwargs):
         super(FaceLips, self).__init__(*args, **kwargs)

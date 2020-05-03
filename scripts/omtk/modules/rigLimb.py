@@ -3,7 +3,7 @@ import collections
 from omtk import constants
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
-from omtk.core.utils import decorator_uiexpose
+from omtk.core.utils import ui_expose
 from omtk.modules import rigIK
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
@@ -78,14 +78,20 @@ class Limb(Module):
         # Resolve IK system name
 
         # Create IK system
-        self.sysIK = self.init_module(
-            self._CLASS_SYS_IK, self.sysIK, inputs=self.chain_jnt, suffix="ik",
+        self.sysIK = self._CLASS_SYS_IK.from_instance(
+            self.rig,
+            self.sysIK,
+            (self.get_nomenclature() + "ik").resolve(),
+            inputs=self.chain_jnt,
         )
         self.sysIK.build(constraint=False, **kwargs)
 
         # Create FK system
-        self.sysFK = self.init_module(
-            self._CLASS_SYS_FK, self.sysFK, inputs=self.chain_jnt, suffix="fk",
+        self.sysFK = self._CLASS_SYS_FK.from_instance(
+            self.rig,
+            self.sysFK,
+            (self.get_nomenclature() + "fk").resolve(),
+            inputs=self.chain_jnt,
         )
         # We want to keep the name of the input on the fk
         self.sysFK._FORCE_INPUT_NAME = True
@@ -107,11 +113,8 @@ class Limb(Module):
                     self.chain_jnt[i].stripNamespace().nodeName()
                 )
 
-                sys_twist = self.init_module(
-                    self._CLASS_SYS_TWIST,
-                    sys_twist,
-                    inputs=self.chain_jnt[i : (i + 2)],
-                    # suffix='bend'
+                sys_twist = self._CLASS_SYS_TWIST.from_instance(
+                    self.rig, sys_twist, self.name, inputs=self.chain_jnt[i : (i + 2)],
                 )
                 self.sys_twist[i] = sys_twist
                 sys_twist.name = twist_nomenclature.resolve()
@@ -371,13 +374,13 @@ class Limb(Module):
         yield self.ctrl_attrs
         yield self.ctrl_elbow
 
-    @decorator_uiexpose()
+    @ui_expose()
     def assign_twist_weights(self):
         for module in self.sys_twist:
             if module.__class__.__name__ == self._CLASS_SYS_TWIST.__name__:
                 module.assign_twist_weights()
 
-    @decorator_uiexpose()
+    @ui_expose()
     def unassign_twist_weights(self):
         for module in self.sys_twist:
             if module.__class__.__name__ == self._CLASS_SYS_TWIST.__name__:

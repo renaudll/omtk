@@ -50,7 +50,8 @@ class ModelCtrlJaw(model_ctrl_linear.ModelCtrlLinear):
         pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space="world"))
         pos_e = pymel.datatypes.Point(1, 0, 0) * ref
         dir = pos_e - pos_s
-        result = self.rig.raycast_farthest(pos_s, dir)
+        geos = self.rig.get_shapes()
+        result = libRigging.ray_cast_farthest(pos_s, dir, geos)
         if not result:
             return super(ModelCtrlJaw, self).get_default_tm_ctrl()
 
@@ -109,7 +110,8 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
             pos_s = pymel.datatypes.Point(self.jnt.getTranslation(space="world"))
             pos_e = pymel.datatypes.Point(1, 0, 0) * ref
             dir = pos_e - pos_s
-            p = self.rig.raycast_farthest(pos_s, dir)
+            geos = self.rig.get_shapes()
+            p = libRigging.ray_cast_farthest(pos_s, dir, geos)
             if p is None:
                 self.log.warning(
                     "Raycast failed. Using %s as the ctrl position reference.", jnt_jaw

@@ -2,10 +2,9 @@ import logging
 
 import pymel.core as pymel
 from maya import mel
-from maya import cmds
 
-from omtk import constants
-from omtk.libs import libAttr
+from omtk.core.exceptions import ValidationError
+from omtk.libs import libAttr, libPython
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
 from omtk.modules import rigLeg
@@ -65,41 +64,42 @@ class LegIkQuad(rigLeg.LegIk):
 
     def setup_swivel_ctrl(
         self,
-        base_ctrl,
+        ctrl_swivel,
         ref,
         pos,
         ik_handle,
         constraint=True,
-        mirror_setup=True,
         adjust_ik_handle_twist=True,
         **kwargs
     ):
         """
-        Create the swivel ctrl for the ik system. Redefined to add the possibility to create a mirror swivel setup
+        Create the swivel ctrl for the ik system.
+        Redefined to add the possibility to create a mirror swivel setup
         to prevent flipping problem with pole vector when using ikSpringSolver
 
-        :param base_ctrl: The ctrl used to setup the swivel, create one if needed
+        :param ctrl_swivel: The ctrl used to setup the swivel, create one if needed
         :param ref: Reference object to position the swivel
         :param pos: The computed position of the swivel
         :param ik_handle: The handle to pole vector contraint
         :param constraint: Do we contraint the ik handle to the swivel ctrl
-        :param mirror_setup: Is the swivel need a mirror setup (Hack to bypass ikSpringSolver flipping problem
-        :param adjust_ik_handle_twist: In some cases, the ikSpringSolver will flip when the poleVector is applied. If True, this will use brute-force to adjust it.
+        :param adjust_ik_handle_twist: In some cases, the ikSpringSolver will flip when
+        the poleVector is applied. If True, this will use brute-force to adjust it.
         :param kwargs: Additionnal parameters
         :return: The created ctrl swivel
         """
-        # Do not contraint the ik handle now since we could maybe need the flipping setup
+        # Do not contraint the ik handle now as we could need the flipping setup
         ctrl_swivel = super(LegIkQuad, self).setup_swivel_ctrl(
-            base_ctrl, ref, pos, ik_handle, constraint=False, **kwargs
+            ctrl_swivel, ref, pos, ik_handle, constraint=False, **kwargs
         )
 
         if constraint:
             pymel.poleVectorConstraint(ctrl_swivel, ik_handle)
 
         if adjust_ik_handle_twist:
-            # Hack: For strange reasons, creating the ikSpringSolver can make the leg flip.
+            # Hack: For strange reasons, creating the ikSpringSolver can flip the leg.
             # This is applicable after assigning the pole vectors.
-            # To bypass this, we'll look for flipping and compensate with the ikHandle 'twist' attribute.
+            # To bypass this, we'll look for flipping and compensate
+            # with the ikHandle 'twist' attribute.
             self.adjust_spring_solver_twist(
                 self.jnts[0],
                 self.jnts[1],
@@ -110,85 +110,49 @@ class LegIkQuad(rigLeg.LegIk):
 
         return ctrl_swivel
 
-    def adjust_spring_solver_twist(
-        self,
-        obj_ref_s,
-        obj_ref_e,
-        obj_s,
-        obj_e,
-        ik_handle,
-        epsilon=0.00000000001,
-        max_iter=100,
-        default_low=-180.0,
-        default_high=180,
-    ):
+    def adjust_spring_solver_twist(self, start_ref, end_ref, start, end, attr):
         """
         For strange reasons, creating the ikSpringSolver can generate a twist offset.
-        We are still not sure what is causing that so currently we are using a brute-force approach to resolve the offset.
-        :param epsilon: A float representing the minimum precision required.
-        :param max_iter: An int representing the maximum number of tries to take.
+        We are still not sure what is causing this so rely on a very ugly alternative
+        where we manually find the preferred value by trial and error.
+
+        :param start_ref: The reference start node.
+        :type start_ref: pymel.nodetypes.DagNode
+        :param end_ref: The reference end node.
+        :type end_ref: pymel.nodetypes.DagNode
+        :param start: The start node to analyze.
+        :type start: pymel.nodetypes.DagNode
+        :param end: The end node to analyze.
+        :type end: pymel.nodetypes.DagNode
+        :param attr: The attribute to calibrate.
+        :type attr: pymel.Attribute
         """
-        self.log.debug("Resolving %s twist offset with brute-force.", ik_handle)
-        attr = ik_handle.twist
+        self.log.debug("Resolving %s twist offset with brute-force.", attr)
 
-        # Store the direction we are trying to match.
-        dir_ref = obj_ref_e.getTranslation(space="world") - obj_ref_s.getTranslation(
-            space="world"
-        )
-        dir_ref.normalize()
-
-        def take_guess(val):
-            attr.set(val)
-            dir = obj_e.getTranslation(space="world") - obj_s.getTranslation(
+        def _get_dir(start_, end_):
+            """
+            :return: The normalize direction between the start and end object.
+            """
+            result = end_.getTranslation(space="world") - start_.getTranslation(
                 space="world"
             )
-            dir.normalize()
-            result = dir * dir_ref
+            result.normalize()
             return result
 
-        low = default_low
-        high = default_high
-        mid = (low + high) / 2.0
-        iter_count = 0
-        last_guess = None
-        for iter_count in range(max_iter):
-            iter_count += 1
-            if iter_count > max_iter:
-                raise Exception("Max iteration reached: %s" % max_iter)
+        dir_ref = _get_dir(start_ref, end_ref)
 
-            result_low = take_guess(low)
-            result_high = take_guess(high)
-            result = take_guess(
-                mid
-            )  # note: it is important to take the mid guess last since we don't update the attr on exit
+        def _guess(val):
+            attr.set(val)
+            return _get_dir(start, end) * dir_ref  # dot product
 
-            if abs(1.0 - result) < epsilon:
-                self.log.debug(
-                    "Resolved %s twist offset of %s using with %s iterations.",
-                    ik_handle,
-                    mid,
-                    iter_count,
-                )
-                return mid
-
-            if result_high > result_low:
-                low = mid
-            else:
-                high = mid
-
-            mid = (low + high) / 2.0
-
-        self.log.warning(
-            "Cannot resolve twist offset of %s with %s iterations.", ik_handle, max_iter
-        )
-        return mid
+        return libPython.guess_value(-180.0, 180.0, _guess)
 
     def build(
         self, constraint=True, constraint_handle=True, setup_softik=True, **kwargs
     ):
         """
-        :param constraint: Bool to tell if we will constraint the chain bone on the ikchain
-        :param constraint_handle: Bool to tell if we will contraint the handle on the ik ctrl
+        :param constraint: Should we constraint the influences?
+        :param constraint_handle: Should we constraint the handle on the ik ctrl?
         :param setup_softik: Bool to tell if we setup the soft ik system
         :param kwargs: More kwargs passed to the superclass
         :return: Nothing
@@ -203,8 +167,8 @@ class LegIkQuad(rigLeg.LegIk):
         heel_idx = self.iCtrlIndex - 1
 
         # Hack: Re-parent ehe ik chain as a workaround for the spring ik solver bug.
-        # Otherwise the current parent (which is constrained) will trigger and old sprint ik solver bug
-        # that will result in double rotation.
+        # Otherwise the current parent (which is constrained)
+        # will trigger and old sprint ik solver bug that will result in double rotation.
         # src: http://forums.cgsociety.org/showthread.php?t=936724
         ik_chain_start = self._chain_ik[0]
         ik_chain_start.setParent(self.grp_rig)
@@ -220,13 +184,15 @@ class LegIkQuad(rigLeg.LegIk):
         for i, oIk in enumerate(self._chain_quad_ik):
             oIk.rename(nomenclature_rig.resolve("QuadChain{0:02}".format(i)))
 
-            # Constraint the bones after the iCtrlIdx to the first ik chain to make the foot roll work correctly
+            # Constraint the bones after the iCtrlIdx to
+            # the first ik chain to make the foot roll work correctly
             if i > self.iCtrlIndex:
                 pymel.parentConstraint(self._chain_ik[i], self._chain_quad_ik[i])
         self._chain_quad_ik[0].setParent(self._chain_ik[0])
 
-        # Hack: Since we are using direct connection on the first joint of the quad_ik chain,
-        # there might be situation where Maya will give an initial rotation of (180, 180, 180) instead of (0, 0, 0).
+        # Hack: Since we are using direct connection on the first joint of the ik chain,
+        # there might be situation where Maya will give
+        # an initial rotation of (180, 180, 180) instead of (0, 0, 0).
         # To prevent this we'll manually make sure that the rotation is zeroed out.
         self._chain_quad_ik[0].r.set(0, 0, 0)
 
@@ -245,9 +211,7 @@ class LegIkQuad(rigLeg.LegIk):
         _ik_effector.rename(ik_effector_quad_name)
         self._ik_handle_quad.setParent(self._ik_handle)
 
-        #
         # Create softIk node and connect user accessible attributes to it.
-        #
         if setup_softik:
             self.setup_softik(
                 [self._ik_handle, self._ik_handle_quad],
@@ -261,7 +225,6 @@ class LegIkQuad(rigLeg.LegIk):
             quad_swivel_pos,
             self._ik_handle_quad,
             name="swivelQuad",
-            mirror_setup=False,
             adjust_ik_handle_twist=False,
         )
 
@@ -275,32 +238,19 @@ class LegIkQuad(rigLeg.LegIk):
         # Expose 'pitch' Quadruped-specific attribute.
         attr_holder = self.ctrl_ik
         libAttr.addAttr_separator(attr_holder, "Quadruped", niceName="Quadruped")
-        attr_pitch = libAttr.addAttr(attr_holder, longName="pitch", k=True)
+        attr_pitch = libAttr.addAttr(attr_holder, longName="pitch", keyable=True)
         pymel.connectAttr(attr_pitch, self._chain_quad_ik[0].rotateZ)
 
         pymel.orientConstraint(obj_e_ik, obj_e_quadik, maintainOffset=True)
 
         if constraint:
             for source, target in zip(self._chain_quad_ik, self.chain):
-                # Note that maintainOffset should not be necessary, however in some rare case even after all the
-                # adjustments we do, the rotation of the influence might be flipped for no particular reasons.
+                # Note that maintainOffset should not be necessary,
+                # however in some rare case even after all the adjustments we do,
+                # the rotation of the influence might be flipped
+                # for no particular reasons.
                 # (see Task #70938).
                 pymel.parentConstraint(source, target, maintainOffset=True)
-
-    """
-    TODO - Remove this after confirmation that ctrl space switch target is fine on self.chain[1] instead of an object
-    constrained on self._chain_quad_ik[1]
-    def setup_spaceswitch_objects(self):
-        super(LegIkQuad, self).setup_spaceswitch_objects()
-
-        # Create Space switch targets objects
-        if self.quad_swivel_sw is None or not libPymel.is_valid_PyNode(self.quad_swivel_sw):
-            self.quad_swivel_sw = pymel.createNode("transform")
-        self.quad_swivel_sw.rename(self.get_nomenclature_rig().resolve("quadCalfSpaceObject"))
-        self.quad_swivel_sw.setMatrix(self._chain_quad_ik[1].getMatrix(ws=True), ws=True)
-        self.quad_swivel_sw.setParent(self.grp_rig)
-        pymel.parentConstraint(self._chain_quad_ik[1], self.quad_swivel_sw)
-    """
 
     def unbuild(self):
         self._chain_quad_ik = None
@@ -320,16 +270,15 @@ class LegQuad(rigLimb.Limb):
 
     def validate(self):
         """
-        Allow the ui to know if the module is valid to be builded or not
-        :return: True or False depending if it pass the building validation
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
         """
         super(LegQuad, self).validate()
 
         num_inputs = len(self.input)
-        if num_inputs < 6 or num_inputs > 7:
-            raise Exception("Expected between 6 to 7 joints, got %s" % num_inputs)
-
-        return True
+        if num_inputs not in (6, 7):
+            raise ValidationError("Expected between 6 to 7 joints, got %s" % num_inputs)
 
 
 def register_plugin():

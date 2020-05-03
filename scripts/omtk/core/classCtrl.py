@@ -691,15 +691,15 @@ class BaseCtrl(Node):
             # The local space is an equivalent to not having any space activated so as if it follow it's parent which
             # would be the first module found
             if m and ((add_local and not first_module) or not add_local):
-                target, target_name = m.get_pin_locations(jnt)
+                target = m.get_pin_locations(jnt)
                 if target:
                     if target not in targets:
                         targets.append(target)
-                        target_names.append(target_name)
+                        target_names.append(None)  # TODO: Why is this None?
                         indexes.append(self.get_bestmatch_index(target))
                     else:
                         idx = targets.index(target)
-                        target_names[idx] = target_name
+                        target_names[idx] = None
             else:
                 first_module = False
             jnt = jnt.getParent()
@@ -764,3 +764,33 @@ class BaseCtrl(Node):
             # log.warning("No space attribute found on {0}".format(self.node))
 
         return dict_sw_data
+
+    @classmethod
+    def from_instance(cls, inst):
+        """
+        Helper method that handle initializing a ctrl from a previous build.
+
+        :param type cls: The desired class.
+        :param inst: The current value.
+        :type inst: BaseCtrl or None
+        :return: A controller instance of the proper class.
+        :rtype: BaseCtrl
+        """
+        # Do nothing if the instance already exist and is valid.
+        if isinstance(inst, cls):
+            return inst
+
+        # If the saved instance is of the wrong type, rebuild it.
+        if inst:
+            log.warning(
+                "Unexpected ctrl type, expected %s, got %s. Converting.",
+                cls,
+                type(inst),
+            )
+
+            new_inst = cls()
+            if inst.shapes:  # Transfer any holder shapes
+                new_inst.shapes = inst.shapes
+            return new_inst
+
+        return cls()

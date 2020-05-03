@@ -12,9 +12,15 @@ from omtk.libs import libRigging
 
 class BaseCtrlModel(classModule.Module):
     """
-    Define a minimal implementation that only build the ctrl itself.
+    Small rig for a ctrl offset node.
+    This allow controllers position to be driven by the rig.
+    ex: Facial controller that follow the deformation
+    WARNING: To prevent loop, make sure that you only access local transform
+             attributes from the ctrl (matrix, translate, rotate, scale).
+             Do NOT use constraint as it will create a cyclic evaluation loop.
     """
 
+    # TODO: BaseCtrlModel should receive an already built ctrl.
     _CLS_CTRL = None
 
     def __init__(self, *args, **kwargs):
@@ -35,12 +41,12 @@ class BaseCtrlModel(classModule.Module):
             self.grp_rig, longName="innParentTm", dt="matrix"
         )
 
-    def build(self, module, ctrl_size=1.0, ctrl_name=None, **kwargs):
+    def build(self, ctrl_size=1.0, ctrl_name=None, **kwargs):
         """
         Build the the ctrl and the necessary logic.
         :param ctrl_size: The desired ctrl size if supported.
-        :param ctrl_name: The desired ctrl name. If nothing is provided, the ctrl name will be automatically resolved.
-        :param kwargs: Any additional keyword argument will be provided to the parent method.
+        :param ctrl_name: The desired ctrl name. If nothing is provided,
+        the ctrl name will be automatically resolved.
         """
         super(BaseCtrlModel, self).build(disconnect_inputs=False, **kwargs)
         self.create_interface()
@@ -49,9 +55,33 @@ class BaseCtrlModel(classModule.Module):
             ctrl_name = self.get_nomenclature_anm().resolve()
 
         # Create ctrl
-        self.ctrl = self.init_ctrl(self._CLS_CTRL, self.ctrl)
+        self.ctrl = self._CLS_CTRL.from_instance(self.ctrl)
         self.ctrl.build(name=ctrl_name, size=ctrl_size)
         self.ctrl.setParent(self.grp_anm)
+
+    @classmethod
+    def from_instance(self, rig, inst, name, cls_ctrl, inputs=None):
+        """
+        Factory method that initialize a child module instance only if necessary.
+        If the instance already had been initialized in a previous build,
+        it's correct value will be preserved,
+
+        :param rig: The module rig.
+        :type rig: omtk.core.classRig.Rig
+        :param Module inst: An optional module instance
+        :param str name: The module name
+        :param inputs: The module inputs
+        :type inputs: list of str
+        :return: A ctrl model instance
+        :rtype: BaseCtrlModel
+        """
+        inst = super(BaseCtrlModel, self).from_instance(rig, inst, name, inputs)
+
+        # TODO: Is it the responsability of the ctrl model to build the ctrl?
+        # TODO: I don't think so...
+        inst._CLS_CTRL = cls_ctrl
+
+        return inst
 
 
 class CtrlModelCalibratable(BaseCtrlModel):
@@ -97,21 +127,18 @@ class CtrlModelCalibratable(BaseCtrlModel):
         # Add sensitivity attributes on the ctrl.
         # The values will be adjusted on calibration.
         libAttr.addAttr_separator(self.grp_rig, "ctrlCalibration")
-        self.attr_sensitivity_tx = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TX, defaultValue=1.0
-        )
-        self.attr_sensitivity_ty = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TY, defaultValue=1.0
-        )
-        self.attr_sensitivity_tz = libAttr.addAttr(
-            self.grp_rig, longName=self._ATTR_NAME_SENSITIVITY_TZ, defaultValue=1.0
-        )
-        self.attr_sensitivity_tx.set(channelBox=True)
-        self.attr_sensitivity_ty.set(channelBox=True)
-        self.attr_sensitivity_tz.set(channelBox=True)
 
-    def build(self, module, **kwargs):
-        super(CtrlModelCalibratable, self).build(module, **kwargs)
+        def _fn(name):
+            attr = libAttr.addAttr(self.grp_rig, longName=name, defaultValue=1.0)
+            attr.set(channelBox=True)
+            return attr
+
+        self.attr_sensitivity_tx = _fn(self._ATTR_NAME_SENSITIVITY_TX)
+        self.attr_sensitivity_ty = _fn(self._ATTR_NAME_SENSITIVITY_TY)
+        self.attr_sensitivity_tz = _fn(self._ATTR_NAME_SENSITIVITY_TZ)
+
+    def build(self, **kwargs):
+        super(CtrlModelCalibratable, self).build(**kwargs)
 
         pymel.connectAttr(self.attr_sensitivity_tx, self.ctrl.offset.scaleX)
         pymel.connectAttr(self.attr_sensitivity_ty, self.ctrl.offset.scaleY)
@@ -222,8 +249,8 @@ class CtrlModelCalibratable(BaseCtrlModel):
             )
             self.attr_sensitivity_tz.set(sensitivity_tz)
 
-    def unbuild(self, **kwargs):
-        super(CtrlModelCalibratable, self).unbuild(**kwargs)
+    def unbuild(self):
+        super(CtrlModelCalibratable, self).unbuild()
 
         # todo: maybe hold sensitivity for faster rebuild?
         self.attr_sensitivity_tx = None

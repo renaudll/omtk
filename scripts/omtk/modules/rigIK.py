@@ -289,11 +289,11 @@ class IK(Module):
         return ik_handle, ik_effector
 
     def setup_swivel_ctrl(
-        self, base_ctrl, ref, pos, ik_handle, name="swivel", constraint=True, **kwargs
+        self, ctrl_swivel, ref, pos, ik_handle, name="swivel", constraint=True, **kwargs
     ):
         """
         Create the swivel ctrl for the ik system
-        :param base_ctrl: The ctrl used to setup the swivel, create one if needed
+        :param ctrl_swivel: The ctrl used to setup the swivel, create one if needed
         :param ref: Reference object to position the swivel
         :param pos: The computed position of the swivel
         :param ik_handle: The handle to pole vector constraint
@@ -304,7 +304,7 @@ class IK(Module):
         """
         nomenclature_anm = self.get_nomenclature_anm()
 
-        ctrl_swivel = self.init_ctrl(self._CLASS_CTRL_SWIVEL, base_ctrl)
+        ctrl_swivel = self._CLASS_CTRL_SWIVEL.from_instance(ctrl_swivel)
         ctrl_swivel.build(refs=ref)
         ctrl_swivel.setParent(self.grp_anm)
         ctrl_swivel.rename(nomenclature_anm.resolve(name))
@@ -321,8 +321,10 @@ class IK(Module):
 
     def _get_ik_ctrl_tms(self):
         """
-        Compute the desired rotation for the ik ctrl.
-        :return: A two-size tuple containing the transformation matrix for the ctrl offset and the ctrl itself.
+        Compute the transforms for the ik ctrl.
+
+        :return: The transform for the ctrl offset and the ctrl itself.
+        :rtype: tuple[pymel.nodetypes.Matrix, pymel.nodetypes.Matrix]
         """
         inf_tm = self.input[self.iCtrlIndex].getMatrix(worldSpace=True)
         return inf_tm, inf_tm
@@ -428,7 +430,7 @@ class IK(Module):
         )
 
         # Create CtrlIK
-        self.ctrl_ik = self.init_ctrl(self._CLASS_CTRL_IK, self.ctrl_ik)
+        self.ctrl_ik = self._CLASS_CTRL_IK.from_instance(self.ctrl_ik)
 
         refs_bound_raycast = self._get_ik_ctrl_bound_refs_raycast()
         refs_bound_extra = self._get_ik_ctrl_bound_refs_extra()

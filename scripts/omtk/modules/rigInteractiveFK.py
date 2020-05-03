@@ -20,6 +20,7 @@ import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModuleMap import ModuleMap
 from omtk.core.classModule import Module
+from omtk.core.exceptions import ValidationError
 from omtk.core import classCtrlModel
 from omtk.libs import libRigging
 from omtk.libs import libAttr
@@ -114,7 +115,6 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
 
     def build(
         self,
-        module,
         create_follicle=True,
         pos=None,
         shape=None,
@@ -133,7 +133,7 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
         :param kwargs: Any additional keyword argument will be passed to the parent method.
         """
         super(InteractiveFKCtrlModel, self).build(
-            module, parent=None, **kwargs  # We handle the parenting ourself!
+            parent=None, **kwargs  # We handle the parenting ourself!
         )
 
         nomenclature_rig = self.get_nomenclature_rig()
@@ -263,8 +263,8 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
             attr_bind_tm_inv, skincluster.bindPreMatrix[index], force=True
         )
 
-    def unbuild(self, **kwargs):
-        super(InteractiveFKCtrlModel, self).unbuild(**kwargs)
+    def unbuild(self):
+        super(InteractiveFKCtrlModel, self).unbuild()
 
         self.follicle = None
 
@@ -446,7 +446,7 @@ class InteractiveFKLayer(ModuleMap):
         )
         pymel.connectAttr(util_decompose_offset_tm.outputScale, model._grp_offset.scale)
 
-    def unbuild(self, **kwargs):
+    def unbuild(self):
         # Ensure surface is not destroyed by the unbuild process.
         surface = self.get_surface()
         if libPymel.is_child_of(surface, self.grp_rig):
@@ -459,7 +459,7 @@ class InteractiveFKLayer(ModuleMap):
             if influence.getParent() == common_parent:
                 influence.setParent(world=True)
 
-        super(InteractiveFKLayer, self).unbuild(**kwargs)
+        super(InteractiveFKLayer, self).unbuild()
 
         # We have connection from rig parts in the skinCluster bindPreMatrix,
         # if we remove the rig, this would reset the bindPreMatrix and result in double transformation.
@@ -497,17 +497,21 @@ class InteractiveFK(Module):
         return libPymel.get_common_parents(self._get_unassigned_influences())
 
     def validate(self, epsilon=0.001):
+        """
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
+        """
         super(InteractiveFK, self).validate()
 
         surfaces = self.get_surfaces()
-        if self._VALIDATE_NEED_SURFACE:
-            if not surfaces:
-                raise Exception("Missing required input of type NurbsSurface")
+        if self._VALIDATE_NEED_SURFACE and not surfaces:
+            raise ValidationError("Missing required input of type NurbsSurface")
 
         # Ensure there's no useless surface in the inputs.
         unassigned_surfaces = self._get_unassigned_surfaces()
         if unassigned_surfaces:
-            raise Exception(
+            raise ValidationError(
                 "Useless surface(s) found: %s"
                 % ", ".join((surface.name() for surface in unassigned_surfaces))
             )
@@ -529,7 +533,7 @@ class InteractiveFK(Module):
                 attr = surface.attr(attr_name)
                 attr_val = attr.get()
                 if abs(attr_val - desired_val) > epsilon:
-                    raise Exception(
+                    raise ValidationError(
                         "Surface %s have invalid transform! Expected %s for %s, got %s."
                         % (surface, desired_val, attr_name, attr_val)
                     )
@@ -666,10 +670,6 @@ class InteractiveFK(Module):
         :param suffix: The suffix to add to the moduel name.
         :return: An instance of the module class defined in self._CLS_LAYER.
         """
-        # Create the module first so we can access it's nomenclature.
-        # We'll add the inputs afterward.
-        # module = self.init_module(self._CLS_LAYER, None, suffix=suffix)
-
         nomenclature_jnt = self.get_nomenclature_jnt()
         nomenclature_rig = self.get_nomenclature_rig()
 
@@ -702,7 +702,9 @@ class InteractiveFK(Module):
 
     def init_layer(self, inst, inputs=None, suffix=None, cls_layer=None, cls_ctrl=None):
         cls_layer = cls_layer or self._CLS_LAYER
-        module = self.init_module(cls_layer, inst, inputs=inputs, suffix=suffix)
+        # TODO: Simplify name logic?
+        name = (self.get_nomenclature() + suffix).resolve() if suffix else self.name
+        module = cls_layer.from_instance(self.rig, inst, name, inputs=inputs)
         if cls_ctrl:
             module._CLS_CTRL = cls_ctrl
 
@@ -896,12 +898,12 @@ class InteractiveFK(Module):
             pymel.parentConstraint(parent_obj, self.grp_anm, maintainOffset=True)
             pymel.scaleConstraint(parent_obj, self.grp_anm, maintainOffset=True)
 
-    def unbuild(self, **kwargs):
+    def unbuild(self):
         for layer in self.layers:
             if layer.is_built():
                 layer.unbuild()
 
-        super(InteractiveFK, self).unbuild(**kwargs)
+        super(InteractiveFK, self).unbuild()
 
 
 def _get_surface_length(surface, u=1.0, v=1.0):

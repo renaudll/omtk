@@ -12,27 +12,16 @@ class CtrlIkArm(rigIK.CtrlIk):
         return libCtrlShapes.create_shape_box_arm(*args, **kwargs)
 
 
-def get_spaceswitch_targets(self, module, *args, **kwargs):
-    targets, labels, indexes = super(CtrlIkArm, self).get_spaceswitch_targets(
-        module, *args, **kwargs
-    )
-    jnt_head = module.get_head_jnt()
-    if jnt_head:
-        targets.append(jnt_head)
-        labels.append(None)
-        indexes.append(self.get_bestmatch_index(jnt_head))
-    return targets, labels, indexes
-
-
 class ArmIk(rigIK.IK):
     _CLASS_CTRL_IK = CtrlIkArm
     SHOW_IN_UI = False
 
     def _get_ik_ctrl_bound_refs_raycast(self):
         """
-        Resolve what objects to use for computing the bound of the ik ctrl using raycasts.
-        This also use the first phalanges to have a more precise bound height.
-        :return: An array of pymel.general.PyNode instances.
+        Resolve what objects to use for computing the bound of the ik ctrl.
+        This use the first phalanges to have a more precise bound height.
+        :return: An array of influences
+        :rtype: pymel.nodetypes.Joint
         """
         jnt_hand = self.input[self.iCtrlIndex]
         return [jnt_hand] + jnt_hand.getChildren()
@@ -46,6 +35,8 @@ class ArmIk(rigIK.IK):
         if self.rig.LEGACY_ARM_IK_CTRL_ORIENTATION:
             return super(ArmIk, self)._get_ik_ctrl_tms()
 
+        naming = self.rig.nomenclature
+
         inf_tm = self.input[self.iCtrlIndex].getMatrix(worldSpace=True)
         side = self.get_side()
 
@@ -58,13 +49,13 @@ class ArmIk(rigIK.IK):
         inn_tm_dir = libRigging.get_matrix_axis(inf_tm, axis_dir)
         inn_tm_upp = libRigging.get_matrix_axis(inf_tm, axis_upp)
 
+        upp_axis = pymel.datatypes.Vector(0, -1 if side == naming.SIDE_R else 1, 0)
+
         ctrl_tm = libRigging.get_matrix_from_direction(
             inn_tm_dir,
             inn_tm_upp,
             look_axis=pymel.datatypes.Vector(1, 0, 0),
-            upp_axis=pymel.datatypes.Vector(0, -1, 0)
-            if side == self.rig.nomenclature.SIDE_R
-            else pymel.datatypes.Vector(0, 1, 0),
+            upp_axis=upp_axis,
         )
         ctrl_tm.translate = inf_tm.translate
 

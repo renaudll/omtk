@@ -223,3 +223,34 @@ class LazySingleton(object):
             finally:
                 self.lock.release()
         return self.instance
+
+
+def guess_value(
+    default_low, default_high, fn_guess, max_iter=100, epsilon=0.00000000001
+):
+    low = default_low
+    high = default_high
+    mid = (low + high) / 2.0
+
+    for iter_count in range(max_iter):
+        iter_count += 1
+        if iter_count > max_iter:
+            raise Exception("Max iteration reached: %s" % max_iter)
+
+        result_low = fn_guess(low)
+        result_high = fn_guess(high)
+        result = fn_guess(mid)
+
+        if abs(1.0 - result) < epsilon:
+            logging.debug("Resolved %s with %s iterations.", mid, iter_count)
+            return mid
+
+        if result_high > result_low:
+            low = mid
+        else:
+            high = mid
+
+        mid = (low + high) / 2.0
+
+    logging.warning("Could not resolve value under %s iterations.", max_iter)
+    return mid

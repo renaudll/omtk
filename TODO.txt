@@ -1,0 +1,4 @@
+# High priority
+
+[ ] Build BaseCtrl outside of CtrlModel
+[ ] Remove ALL cache and benchmark performances

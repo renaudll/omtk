@@ -1,5 +1,4 @@
-import copy
-import traceback
+import itertools
 import time
 import logging
 from maya import cmds
@@ -7,9 +6,10 @@ import pymel.core as pymel
 from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
+from omtk.core.exceptions import ValidationError
 from omtk.core import className
 from omtk.core import api
-from omtk.core.utils import decorator_uiexpose
+from omtk.core.utils import ui_expose
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libRigging
@@ -155,7 +155,6 @@ class Rig(object):
         self.layer_geo = None
         self.layer_rig = None
         self.layer_jnt = None
-        self._color_ctrl = False  # Bool to know if we want to colorize the ctrl
 
     @property
     def log(self):
@@ -200,8 +199,9 @@ class Rig(object):
 
     def __nonzero__(self):
         """
-        Prevent an empty rig to be considered as False since it can still contain usefull informations.
+        Prevent a rig with no modules to be considered as False.
         :return: True, always.
+        :rtype: bool
         """
         return True
 
@@ -240,19 +240,22 @@ class Rig(object):
     # Main implementation
     #
 
-    def _is_name_unique(self, name):
-        return not any((True for module in self.modules if module.name == name))
-
     def _get_unique_name(self, name):
-        if self._is_name_unique(name):
-            return name
+        """
+        Return a name not used by any modules.
 
+        :param str name: A name
+        :return: A unique name
+        :rtype: str
+        """
+        module_names = {module.name for module in self.modules}
         str_format = "{0}{1}"
+        counter = itertools.count(start=1)
+        while True:
+            if name not in module_names:
+                return name
 
-        i = 1
-        while not self._is_name_unique(str_format.format(name, i)):
-            i += 1
-        return str_format.format(name, i)
+            name = str_format.format(name, next(counter))
 
     def add_module(self, inst, *args, **kwargs):
         inst.rig = self
@@ -330,11 +333,10 @@ class Rig(object):
 
     def validate(self):
         """
-        Check if we are able to build the rig.
-        In case of errors an exception is raise with more informations.
-        Note that we don't check if each modules validates, this is up to them to determine if they want to build or not.
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
         """
-        return True
 
     @libPython.memoized_instancemethod
     def _get_all_input_shapes(self):
@@ -484,38 +486,7 @@ class Rig(object):
         key = lambda mesh: mesh in self.get_shapes()
         return libRigging.get_farest_affected_mesh(jnt, key=key)
 
-    def raycast_nearest(self, pos, dir, geos=None):
-        """
-        Return the nearest point on any of the rig registered geometries using
-        provided position and direction.
-        """
-        if not geos:
-            geos = self.get_shapes()
-        if not geos:
-            return None
-
-        result = libRigging.ray_cast_nearest(pos, dir, geos)
-        if not result:
-            return None
-
-        return result
-
-    def raycast_farthest(self, pos, dir, geos=None):
-        """
-        Return the farthest point on any of the rig registered geometries using provided position and direction.
-        """
-        if not geos:
-            geos = self.get_shapes()
-        if not geos:
-            return None
-
-        result = libRigging.ray_cast_farthest(pos, dir, geos)
-        if not result:
-            return None
-
-        return result
-
-    @decorator_uiexpose(flags=[constants.UIExposeFlags.trigger_network_export])
+    @ui_expose(flags=[constants.UIExposeFlags.trigger_network_export])
     def create_hierarchy(self):
         """
         Alias to pre_build that is exposed in the gui and hidden from subclassing.
@@ -670,164 +641,72 @@ class Rig(object):
                     self.layer_jnt, self.grp_jnt, noRecurse=True
                 )
 
-    def _sort_modules_by_dependencies(self, modules):
-        """
-        Sort modules in a way that module that depend on other modules are after them in the list.
-        :param modules: A list of unsorted Module instances.
-        :return: A list of sorted Module instances.
-        """
-        unsorted_modules = set(copy.copy(modules))
-        sorted_modules = []
-        while unsorted_modules:
-            modules_without_dependencies = set()
-            for module in unsorted_modules:
-                dependencies = set(module.get_dependencies_modules() or []) & set(
-                    unsorted_modules
-                )
-                if not dependencies:
-                    modules_without_dependencies.add(module)
-            unsorted_modules -= modules_without_dependencies
-
-            for module in modules_without_dependencies:
-                sorted_modules.append(module)
-
-        return sorted_modules
-
-    def build(self, modules=None, skip_validation=False, strict=False, **kwargs):
+    def build(self, modules=None, validate=True, strict=False, **kwargs):
         """
         Build the whole rig or part of the rig.
         :param modules: The modules to build. If nothing is provided everything will be built.
-        :param skip_validation: If True, no final validation will be done. Don't use it.
+        :param validate: If True, no final validation will be done. Don't use it.
         :param strict: If True, an exception will immediately be raised if anything fail in the build process.
         :param kwargs: Any additional keyword arguments will be passed on each modules build method.
         :return: True if sucessfull, False otherwise.
         """
-        # # Aboard if already built
-        # if self.is_built():
-        #     self.log.warning("Can't build %s because it's already built!", self)
-        #     return False
+        # Resolve modules to build
+        modules = modules or self.modules
+        modules = _expand_modules_dependencies(modules)
+        modules = (module for module in modules if not module.locked)
+        modules = (module for module in modules if not module.is_built())
+        modules = _sort_modules(modules)
 
-        # Abord if validation fail
-        if not skip_validation:
+        if validate:
             try:
                 self.validate()
-            except Exception, e:
-                self.log.warning(
-                    "Can't build %s because it failed validation: %s", self, e
-                )
+            except ValidationError as error:
+                self.log.warning("Validation failed: %s", error)
                 return False
 
-        self.log.info("Building")
-
-        sTime = time.time()
-
-        #
-        # Prebuild
-        #
-        self.pre_build()
-
-        #
-        # Resolve modules to build
-        #
-
-        # If no modules are provided, build everything.
-        if modules is None:
-            modules = self.modules
-
-        # Filter any module that don't have an input.
-        modules = filter(lambda module: module.jnt, modules)
-
-        # Sort modules by ascending hierarchical order.
-        # This ensure modules are built in the proper order.
-        # This should not be necessary, however it can happen (ex: dpSpine provided space switch target only available after building it).
-        modules = sorted(
-            modules, key=(lambda x: libPymel.get_num_parents(x.chain_jnt.start))
-        )
-
-        # Add modules dependencies
-        for i in reversed(xrange(len(modules))):
-            module = modules[i]
-            dependencies = module.get_dependencies_modules()
-            if dependencies:
-                for dependency in dependencies:
-                    if not dependency in modules:
-                        modules.insert(i, dependency)
-
-        # Sort modules by their dependencies
-        modules = self._sort_modules_by_dependencies(modules)
-
-        log.debug(
-            "Will build modules in the specified order: %s",
-            ", ".join([str(m) for m in modules]),
-        )
-
-        #
-        # Build modules
-        #
-        current_namespace = cmds.namespaceInfo(currentNamespace=True)
-
-        try:
             for module in modules:
-                if module.is_built():
+                try:
+                    module.validate()
+                except ValidationError as error:
+                    self.module.log.warning("Validation failed: %s", error)
+                    if strict:
+                        raise error
                     continue
 
-                if not skip_validation:
-                    try:
-                        module.validate()
-                    except Exception, e:
-                        self.log.warning("Can't build %s: %s", module, e)
-                        if strict:
-                            traceback.print_exc()
-                            raise e
-                        continue
+        self.log.info("Building")
+        sTime = time.time()
 
-                if not module.locked:
-                    # TODO: The try catch should be in the UI, not in the core logic.
-                    try:
-                        # Switch namespace if needed
-                        module_namespace = module.get_inputs_namespace()
-                        module_namespace = module_namespace or ":"
-                        if module_namespace != current_namespace:
-                            cmds.namespace(setNamespace=":" + module_namespace)
-                            current_namespace = module_namespace
+        self.pre_build()
 
-                        module.build(**kwargs)
-                        self.post_build_module(module)
-                    except Exception, e:
-                        self.log.error(
-                            "Error building %s. Received %s. %s",
-                            module,
-                            type(e).__name__,
-                            str(e).strip(),
-                        )
-                        traceback.print_exc()
-                        if strict:
-                            raise e
+        current_namespace = cmds.namespaceInfo(currentNamespace=True)
+        try:
+            for module in modules:
+                # Switch namespace if needed
+                namespace = module.get_inputs_namespace()
+                namespace = namespace or ":"
+                if namespace != current_namespace:
+                    cmds.namespace(setNamespace=":" + namespace)
+                    current_namespace = namespace
+
+                module.build(**kwargs)
+                self.post_build_module(module)
         finally:
-            # Ensure we always return to the default namespace.
-            cmds.namespace(setNamespace=":")
+            cmds.namespace(setNamespace=current_namespace)
 
         # Connect global scale to jnt root
-        if self.grp_anm:
-            if self.grp_jnt:
-                pymel.delete(
-                    [
-                        module
-                        for module in self.grp_jnt.getChildren()
-                        if isinstance(module, pymel.nodetypes.Constraint)
-                    ]
-                )
-                libAttr.unlock_trs(self.grp_jnt)
-                pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
-                pymel.connectAttr(
-                    self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True
-                )
-                pymel.connectAttr(
-                    self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True
-                )
-                pymel.connectAttr(
-                    self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True
-                )
+        if self.grp_anm and self.grp_jnt:
+            pymel.delete(
+                [
+                    module
+                    for module in self.grp_jnt.getChildren()
+                    if isinstance(module, pymel.nodetypes.Constraint)
+                ]
+            )
+            libAttr.unlock_trs(self.grp_jnt)
+            pymel.parentConstraint(self.grp_anm, self.grp_jnt, maintainOffset=True)
+            pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleX, force=True)
+            pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleY, force=True)
+            pymel.connectAttr(self.grp_anm.globalScale, self.grp_jnt.scaleZ, force=True)
 
         # Store the version of omtk used to build the rig.
         self.version = api.get_version()
@@ -837,22 +716,17 @@ class Rig(object):
         return True
 
     def post_build_module(self, module):
-        # Raise warnings if a module leave junk in the scene.
-        if module.grp_anm and not module.grp_anm.getChildren():
-            cmds.warning(
-                "Found empty group %s, please cleanup module %s."
-                % (module.grp_anm.longName(), module)
-            )
-            pymel.delete(module.grp_anm)
-        if module.grp_rig and not module.grp_rig.getChildren():
-            cmds.warning(
-                "Found empty group %s, please cleanup module %s."
-                % (module.grp_rig.longName(), module)
-            )
-            pymel.delete(module.grp_rig)
+        # Remove any empty group
+        # TODO: Is this safe? node could have connections.
+        for grp in (module.grp_anm, module.grp_rig):
+            if grp and not grp.getChildren():
+                self.module.log.warning(
+                    "Found empty group %s. Deleting.", grp.longName()
+                )
+                pymel.delete(grp)
+                continue
 
-        # Prevent animators from accidentaly moving offset nodes
-        # TODO: Lock more?
+        # Prevent animators from accidentally moving offset nodes
         for ctrl in module.get_ctrls():
             if (
                 libPymel.is_valid_PyNode(ctrl)
@@ -880,8 +754,7 @@ class Rig(object):
             pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
         # Apply ctrl color if needed
-        if self._color_ctrl:
-            self.color_module_ctrl(module)
+        self.color_module_ctrl(module)
 
         # Store the version of omtk used to generate the rig.
         module.version = api.get_version()
@@ -891,11 +764,12 @@ class Rig(object):
             if val.is_built():
                 val.unbuild(keep_if_children=keep_if_children)
             return val
-        elif isinstance(val, pymel.PyNode):
+
+        if isinstance(val, pymel.PyNode):
             pymel.delete(val)
             return None
-        else:
-            pymel.warning("Unexpected datatype %s for %s" % (type(val), val))
+
+        pymel.warning("Unexpected datatype %s for %s" % (type(val), val))
 
     def _unbuild_modules(self, strict=False, **kwargs):
         # Unbuild all children
@@ -903,44 +777,24 @@ class Rig(object):
             if not module.is_built():
                 continue
 
-            # If we are unbuilding a rig and encounter 'locked' modules, this is a problem
-            # because we cannot touch it, however we need to free the grp_anm and grp_rig to
-            # delete them properly.
-            # In that situation we'll unparent the module grp_anm and grp_rig node.
+            # Locked modules are a problem when unbuilding a whole rig as we don't
+            # want to accidentally break them. Instead of un-building them we'll
+            # eject them from the hierarchy.
             if module.locked:
-                if (
-                    module.grp_anm
-                    and module.grp_anm.exists()
-                    and module.grp_anm.getParent() == self.grp_anm.node
+                for grp, parent in (
+                    (module.grp_anm, self.grp_anm),
+                    (module.grp_rig, self.grp_rig),
                 ):
-                    pymel.warning(
-                        "Ejecting %s from %s before deletion"
-                        % (module.grp_anm.name(), self.grp_anm.name())
-                    )
-                    module.grp_anm.setParent(world=True)
-                if (
-                    module.grp_rig
-                    and module.grp_rig.exists()
-                    and module.grp_rig.getParent() == self.grp_rig.node
-                ):
-                    pymel.warning(
-                        "Ejecting %s from %s before deletion"
-                        % (module.grp_rig.name(), self.grp_rig.name())
-                    )
-                    module.grp_rig.setParent(world=True)
-            else:
-                try:
-                    module.unbuild(**kwargs)
-                except Exception, e:
-                    self.log.error(
-                        "Error building %s. Received %s. %s",
-                        module,
-                        type(e).__name__,
-                        str(e).strip(),
-                    )
-                    traceback.print_exc()
-                    if strict:
-                        raise (e)
+                    if grp and grp.exists() and grp.getParent() == parent:
+                        self.log.warning(
+                            "Ejecting %s from %s before deletion",
+                            grp.name(),
+                            parent.name(),
+                        )
+                        grp.setParent(world=True)
+                continue
+
+            module.unbuild(**kwargs)
 
     def _unbuild_nodes(self):
         # Delete anm_grp
@@ -985,7 +839,6 @@ class Rig(object):
             self.nomenclature.SIDE_R: self.RIGHT_CTRL_COLOR,  # Blue
         }
 
-        epsilon = 0.1
         if module.grp_anm:
             nomenclature_anm = module.get_nomenclature_anm()
             for ctrl in module.get_ctrls():
@@ -1071,3 +924,59 @@ class Rig(object):
                 self.grp_backup.setParent(self.grp_master)
 
         node.setParent(self.grp_backup)
+
+
+def _expand_modules_dependencies(modules):
+    """
+    Expand a set to module to recursively include their dependencies..
+
+    :param modules: A sequence of modules
+    :type modules: sequence of omtk.core.classModule.Module
+    :return: A set of modules
+    :rtype: set of omtk.core.classModule.Module
+    """
+    pool = set(modules)
+    known = set()
+    while pool:
+        module = pool.pop()
+        if module in known:
+            continue
+        pool.update(module.get_dependencies_modules())
+        known.add(module)
+    return known
+
+
+def _sort_modules(modules):
+    """
+    Sort modules in ascending order by hierarchy and dependency.
+
+    Hierarchy sorting is not necessary but is safer in case a module is badly
+    written and failed to state it's dependencies.
+
+    :param modules: A sequence of modules
+    :type modules: sequence of omtk.core.classModule.Module
+    :return: A list list of modules
+    :rtype: list of omtk.core.classModule.Module
+    """
+
+    def _get_module_parent_level(module):
+        """
+        :param Module module: A module
+        :return: The module hierarchy index
+        :rtype: int
+        """
+        return libPymel.get_num_parents(module.chain_jnt.start)
+
+    modules = set(modules)
+    result = []
+    while modules:
+        candidates = set()
+        for module in modules:
+            dependencies = module.get_dependencies_modules() & modules
+            if not dependencies:
+                candidates.add(module)
+        modules -= candidates
+
+        # Sort candidates by hierarchy order.
+        result.extend(sorted(candidates, key=_get_module_parent_level))
+    return result

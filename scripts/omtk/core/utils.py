@@ -1,7 +1,7 @@
 import functools
 
 
-class decorator_uiexpose(object):
+class ui_expose(object):
     """
     Use this decorator to expose instance method to the GUI.
     """

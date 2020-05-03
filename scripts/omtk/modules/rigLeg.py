@@ -3,6 +3,7 @@ import logging
 import pymel.core as pymel
 from maya import cmds
 from omtk import constants
+from omtk.core.exceptions import ValidationError
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
@@ -226,9 +227,10 @@ class LegIk(rigIK.IK):
 
     def _get_ik_ctrl_tms(self):
         """
-        Compute the desired rotation for the ik ctrl.
-        If the LEGACY_LEG_IK_CTRL_ORIENTATION is set, we'll simply align to the influence.
-        :return: A two-size tuple containing the transformation matrix for the ctrl offset and the ctrl itself.
+        Compute the transforms for the ik ctrl.
+
+        :return: The transform for the ctrl offset and the ctrl itself.
+        :rtype: tuple[pymel.nodetypes.Matrix, pymel.nodetypes.Matrix]
         """
         if self.rig.LEGACY_LEG_IK_CTRL_ORIENTATION:
             return super(LegIk, self)._get_ik_ctrl_tms()
@@ -306,22 +308,10 @@ class LegIk(rigIK.IK):
         # Resolve pivot locations
         tm_ref = self._get_reference_plane()
         tm_ref_dir = pymel.datatypes.Matrix(  # Used to compute raycast directions
-            tm_ref.a00,
-            tm_ref.a01,
-            tm_ref.a02,
-            tm_ref.a03,
-            tm_ref.a10,
-            tm_ref.a11,
-            tm_ref.a12,
-            tm_ref.a13,
-            tm_ref.a20,
-            tm_ref.a21,
-            tm_ref.a22,
-            tm_ref.a23,
-            0,
-            0,
-            0,
-            1,
+            [tm_ref.a00, tm_ref.a01, tm_ref.a02, tm_ref.a03],
+            [tm_ref.a10, tm_ref.a11, tm_ref.a12, tm_ref.a13],
+            [tm_ref.a20, tm_ref.a21, tm_ref.a22, tm_ref.a23],
+            [0, 0, 0, 1],
         )
 
         #
@@ -752,16 +742,15 @@ class Leg(rigLimb.Limb):
 
     def validate(self):
         """
-        Allow the ui to know if the module is valid to be builded or not
-        :return: True or False depending if it pass the building validation
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
         """
         super(Leg, self).validate()
 
         num_inputs = len(self.input)
         if num_inputs < 5 or num_inputs > 6:
-            raise Exception("Expected between 5 to 6 joints, got %s" % num_inputs)
-
-        return True
+            raise ValidationError("Expected between 5 to 6 joints, got %s" % num_inputs)
 
 
 def register_plugin():

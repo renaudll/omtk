@@ -1,6 +1,7 @@
 import logging
 import pymel.core as pymel
 from omtk.core.classModule import Module
+from omtk.core.exceptions import ValidationError
 from omtk.libs import libPython
 from omtk.libs import libPymel
 from omtk.libs import libRigging
@@ -39,13 +40,18 @@ class Hand(Module):
         return sorted_chain
 
     def validate(self):
+        """
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
+        """
         super(Hand, self).validate()
 
         # Skip unsupported chain length
         for chain in self.chains:
             chain_length = len(chain)
             if chain_length > 5:
-                raise Exception(
+                raise ValidationError(
                     "Unsupported chain length for %s. Expected 4 or less, got %s"
                     % (chain, chain_length)
                 )
@@ -89,15 +95,15 @@ class Hand(Module):
                 self.fk_sys_metacarpals[i] = None
             else:
                 sys_metacarpal = self.fk_sys_metacarpals[i]
-                sys_metacarpal = self.init_module(
-                    rigFK.FK, sys_metacarpal, inputs=jnts_metacarpal
+                sys_metacarpal = rigFK.FK.from_instance(
+                    self.rig, sys_metacarpal, self.name, inputs=jnts_metacarpal
                 )
                 sys_metacarpal._FORCE_INPUT_NAME = True
                 self.fk_sys_metacarpals[i] = sys_metacarpal
 
             # Init finger module
-            self.sysFingers[i] = self.init_module(
-                rigFKAdditive.AdditiveFK, self.sysFingers[i], inputs=jnts_phalanges
+            self.sysFingers[i] = rigFKAdditive.AdditiveFK.from_instance(
+                self.rig, self.sysFingers[i], self.name, inputs=jnts_phalanges,
             )
 
         # Build modules

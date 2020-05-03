@@ -6,6 +6,7 @@ import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
+from omtk.core.exceptions import ValidationError
 
 log = logging.getLogger("omtk")
 
@@ -45,6 +46,12 @@ class Module(object):
 
     # Set to true if the module default name need to use it's first input.
     DEFAULT_NAME_USE_FIRST_INPUT = False
+
+    # Determine if the module should validate if it have no inputs.
+    SUPPORT_NO_INPUTS = False
+
+    # Is the module controlling the inputs or use them as reference?
+    AFFECT_INPUTS = True
 
     @property
     def log(self):
@@ -224,21 +231,19 @@ class Module(object):
         """
         :return: A list of all inputs of type pymel.nodetypes.Joint.
         """
-        jnts = [
+        return [
             obj
             for obj in self.input
             if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         ]
-        return jnts
 
     @libPython.cached_property()
     def jnt(self):
         """
         :return: The first input of type pymel.nodetypes.Joint.
         """
-        return next(
-            iter(filter(None, self.jnts)), None
-        )  # Hack: remove filter, find why it happen
+        # TODO: Why could jnt be None? This need to be investigated.
+        return next((jnt for jnt in self.jnts if jnt), None)
 
     @libPython.cached_property()
     def chains(self):
@@ -278,12 +283,12 @@ class Module(object):
 
         # If we didn't find any head influence in the current hierarchy
         # but there's only one head, we are lucky. This might be a one-headed rig.
-        num_heads = len(head_jnts)
-        if num_heads == 1:
-            return head_jnts[0]
-        if num_heads == 0:
+        if not head_jnts:
             self.log.warning("Cannot resolve head influence!")
             return None
+
+        if len(head_jnts) == 1:
+            return head_jnts[0]
 
         # If any of the module influence are parented to an head, use this one.
         for jnt in self.jnts:
@@ -380,7 +385,6 @@ class Module(object):
             )
         return module_jaw
 
-    @libPython.memoized_instancemethod
     def get_surfaces(self):
         """
         :return: A list of input surfaces
@@ -392,7 +396,6 @@ class Module(object):
             if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
         ]
 
-    @libPython.memoized_instancemethod
     def get_surface(self):
         """
         :return: The first surface
@@ -489,26 +492,25 @@ class Module(object):
             return None, None, None
         return tuple(int(token) for token in version_info.split("."))
 
-    def validate(self, support_no_inputs=False):
+    def validate(self):
         """
-        Check if the module can be built with it's current configuration.
-        In case of error, an exception will be raised with the necessary informations.
-        """
-        if self.rig is None:
-            raise Exception("Can't resolve rig for module. %s" % self)
+        Check if the module can be built in it's current state.
 
-        if not self.input and not support_no_inputs:
-            raise Exception("Can't build module with zero inputs. %s" % self)
+        :raises ValidationError: If the module fail to validate.
+        """
+        if not self.rig:
+            raise ValidationError("Can't resolve rig for module. %s" % self)
+
+        if not self.input and not self.SUPPORT_NO_INPUTS:
+            raise ValidationError("Can't build module with zero inputs. %s" % self)
 
         # Ensure that IF we have namespaces, they are the same for all inputs.
         namespaces = set(input.namespace() for input in self.input if input)
         if len(namespaces) > 1:
-            raise Exception(
+            raise ValidationError(
                 "Found multiple namespaces for inputs: %s"
                 % ", ".join(repr(namespace) for namespace in namespaces)
             )
-
-        return True
 
     def validate_version(self, major_version, minor_version, patch_version):
         """
@@ -621,39 +623,38 @@ class Module(object):
         """
         In some cases a module might need another one to be build first.
         By implementing this method omtk will make sure it's dependent modules will be built.
-        :return: A list of Module instances to build before this module.
+        :return: A set of dependent modules to build before this module.
         """
-        return None
+        return set()
 
     def _disconnect_inputs(self):
         for obj in self.input:
             if isinstance(obj, pymel.nodetypes.Transform):
                 libAttr.disconnect_trs(obj)
 
-    def unbuild(self, disconnect_attr=True):
+    def unbuild(self):
         """
-        Call unbuild on each individual ctrls
-        This allow the rig to save his ctrls appearance (shapes) and animation (animCurves).
-        Note that this happen first so the rig can return to it's bind pose before anything else is done.
-        :param disconnect_attr: Tell the unbuild if we want to disconnect the input translate, rotate, scale
+        Un-build the module.
+
+        This is a hook that modules can use to hold information between builds.:
         """
         self.log.debug("Un-building")
 
         # Ensure that there's no more connections in the input chain
-        if disconnect_attr:
+        if self.AFFECT_INPUTS:
             self._disconnect_inputs()
 
-        # Delete the ctrls in reverse hyerarchy order.
+        # Delete the ctrls in reverse hierarchy order.
         ctrls = self.get_ctrls()
         ctrls = filter(libPymel.is_valid_PyNode, ctrls)
         ctrls = reversed(sorted(ctrls, key=libPymel.get_num_parents))
         for ctrl in ctrls:
             ctrl.unbuild()
 
-        if self.grp_anm is not None and libPymel.is_valid_PyNode(self.grp_anm):
+        if libPymel.is_valid_PyNode(self.grp_anm):
             pymel.delete(self.grp_anm)
             self.grp_anm = None
-        if self.grp_rig is not None and libPymel.is_valid_PyNode(self.grp_rig):
+        if libPymel.is_valid_PyNode(self.grp_rig):
             pymel.delete(self.grp_rig)
             self.grp_rig = None
 
@@ -675,8 +676,8 @@ class Module(object):
     def parent_to(self, parent):
         """
         Parent the system to a specific object.
-        # TODO: Implement!
         """
+        # TODO: Re-implement via matrix connections
         if self.grp_anm:
             pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
             pymel.scaleConstraint(parent, self.grp_anm, maintainOffset=True)
@@ -695,7 +696,7 @@ class Module(object):
         """
         return list(self.iter_ctrls())
 
-    def get_pin_locations(self, jnt=None):
+    def get_pin_locations(self, jnt):
         """
         Define which objs of the module a ctrl can hook itself too (space-switching).
         In the vast majority of cases, the desired behavior is to return the first
@@ -705,88 +706,36 @@ class Module(object):
         If the name is None, it will be reserved automatically.
         :param jnt: The joint we want as a target. If None, will return the first input
         """
-        first_joint = next(
-            (input for input in self.input if isinstance(input, pymel.nodetypes.Joint)),
-            None,
-        )
-        if first_joint:
-            to_return = None
-            if jnt and jnt == first_joint:
-                to_return = first_joint
-            return to_return, None
-        else:
-            return None, None
+        return jnt if jnt == self.jnt else None
 
     #
     # Initialization helper methods
     #
 
-    def init_ctrl(self, cls, inst):
-        """
-        Factory method that initialize a class instance only if necessary.
-        If the instance already had been initialized in a previous build,
-        it's correct value will be preserved,
-        :param cls: The desired class.
-        :param inst: The current value. This should always exist since defined
-        in the module constructor.
-        :return: The initialized instance. If the instance was already fine,
-        it is returned as is.
-        """
-        # todo: validate cls
-        result = inst
-
-        if not isinstance(inst, cls):
-            old_shapes = None
-            if inst is not None:
-                self.log.warning(
-                    "Unexpected ctrl type. Expected %s, got %s. Ctrl will be recreated.",
-                    cls,
-                    type(inst),
-                )
-                old_shapes = inst.shapes if hasattr(inst, "shapes") else None
-
-            result = cls()
-
-            if old_shapes:
-                result.shapes = old_shapes
-
-        return result
-
-    def init_module(self, cls, inst, inputs=None, suffix=None):
+    @classmethod
+    def from_instance(cls, rig, inst, name, inputs=None):
         """
         Factory method that initialize a child module instance only if necessary.
-        If the instance already had been initialized in a previous build, it's correct value will be preserved,
-        :param cls: The desired class.
-        :param inst: The current value. This should always exist since defined in the module constructor.
-        :param inputs: The inputs to use for the module.
-        :param suffix: The token to use for the module name. This help prevent collision between
-        module objects and the child module objects. If nothing is provided, the same name will be used
-        which can result in collisions.
-        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        If the instance already had been initialized in a previous build,
+        it's correct value will be preserved,
+
+        :param rig: The module rig.
+        :type rig: omtk.core.classRig.Rig
+        :param Module inst: An optional module instance
+        :param str name: The module name
+        :param inputs: The module inputs
+        :type inputs: list of str
+        :return: A module instance
+        :rtype: Module
         """
-        # todo: Validate inputs, we may need to modify the module if the inputs don't match!
-
-        result = inst
-
-        if inputs is None:
-            inputs = []
+        inputs = inputs or []
 
         if type(inst) != cls:
-            result = cls(inputs, rig=self.rig)
-        elif result.input != inputs:
-            result.input = inputs  # ensure we have the correct inputs
-            # Hack: Ensure there's no issues related to cached properties (see task #70489)
-            try:
-                del self._cache
-            except AttributeError:
-                pass
+            inst = cls(inputs, rig=rig)
 
-        # Set the child module name.
-        if suffix is None:
-            result.name = self.name
-        else:
-            nomenclature = self.get_nomenclature().copy()
-            nomenclature.tokens.append(suffix)
-            result.name = nomenclature.resolve()
+        if inst.input != inputs:
+            inst.input = inputs
 
-        return result
+        inst.name = name
+
+        return inst

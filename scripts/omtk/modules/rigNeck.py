@@ -1,6 +1,7 @@
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
-from omtk.core.utils import decorator_uiexpose
+from omtk.core.utils import ui_expose
+from omtk.core.exceptions import ValidationError
 
 
 class CtrlNeck(rigFK.CtrlFk):
@@ -35,8 +36,8 @@ class Neck(rigFK.FK):
             twist_nomenclature = self.get_nomenclature().copy()
             twist_nomenclature.add_tokens("bend")
 
-            self.sys_twist = self.init_module(
-                self._CLASS_SYS_TWIST, self.sys_twist, inputs=[jnt_s, jnt_e]
+            self.sys_twist = self._CLASS_SYS_TWIST.from_instance(
+                self.rig, self.sys_twist, self.name, inputs=[jnt_s, jnt_e],
             )
             self.sys_twist.name = twist_nomenclature.resolve()
             self.sys_twist.build(num_twist=3, create_bend=True)
@@ -52,28 +53,27 @@ class Neck(rigFK.FK):
 
     def validate(self):
         """
-        Allow the ui to know if the module is valid to be builded or not
-        :return: True or False depending if it pass the building validation
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
         """
         super(Neck, self).validate()
-        num_jnts = len(self.jnts)
 
+        num_jnts = len(self.jnts)
         if num_jnts != 1:
-            raise Exception("Expected only one influences, got %s" % num_jnts)
+            raise ValidationError("Expected only one influences, got %s" % num_jnts)
 
         head_jnt = self.get_head_jnt()
         if not head_jnt:
-            raise Exception("Cannot resolve Head influence from %s" % self.jnt)
+            raise ValidationError("Cannot resolve Head influence from %s" % self.jnt)
 
-        return True
-
-    @decorator_uiexpose()
+    @ui_expose()
     def assign_twist_weights(self):
         for module in self.sys_twist:
             if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
                 module.assign_twist_weights()
 
-    @decorator_uiexpose()
+    @ui_expose()
     def unassign_twist_weights(self):
         for module in self.sys_twist:
             if isinstance(module, rigTwistbone.Twistbone) and module.is_built():

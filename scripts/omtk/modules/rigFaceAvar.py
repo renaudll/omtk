@@ -96,6 +96,9 @@ class AbstractAvar(classModule.Module):
 
     SHOW_IN_UI = False
 
+    # An avar could have no influences (ex: macro avars)
+    SUPPORT_NO_INPUTS = True
+
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
         self.surface = None  # todo: Move to AvarFollicle
@@ -237,35 +240,19 @@ class AbstractAvar(classModule.Module):
             pymel.delete(self.avar_network)
             self.avar_network = None
 
-    def unbuild(self, **kwargs):
+    def unbuild(self):
         self.hold_avars()
         self.init_avars()
 
-        super(AbstractAvar, self).unbuild(**kwargs)
+        super(AbstractAvar, self).unbuild()
 
     def get_base_uv(self):
-        pos = self.get_jnt_tm().translate
+        pos = self.jnt.getMatrix(worldSpace=True).translate
 
         fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(
             self.surface, pos
         )
         return fol_u, fol_v
-
-    def get_jnt_tm(self):
-        """
-        :return: The deformer pivot transformation.
-        """
-        # TODO: What do we do with the rotation?
-        return self.jnt.getMatrix(worldSpace=True)
-
-    def validate(self):
-        """
-        Check if the module can be built with it's current configuration.
-        Since AbstractAvar support having no influence at all (macro avars),
-        we support having no inputs.
-        """
-        super(AbstractAvar, self).validate(support_no_inputs=True)
-        return True
 
     def create_surface(self, name="Surface", epsilon=0.001, default_scale=1.0):
         """
@@ -274,8 +261,8 @@ class AbstractAvar(classModule.Module):
         :param name: The suffix of the surface name to create.
         :return: A pymel.nodetypes.Transform instance of the created surface.
         """
-        nomenclature = self.get_nomenclature_rig().copy()
-        nomenclature.add_tokens(name)
+        naming = self.get_nomenclature_rig().copy()
+        naming.add_tokens(name)
 
         root = pymel.createNode("transform")
         pymel.addAttr(root, longName="bendUpp", k=True)
@@ -313,14 +300,14 @@ class AbstractAvar(classModule.Module):
         pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
 
         # Rename all the things!
-        root.rename(nomenclature.resolve("SurfaceGrp"))
-        plane_transform.rename(nomenclature.resolve("Surface"))
-        bend_upp_deformer.rename(nomenclature.resolve("UppBend"))
-        bend_low_deformer.rename(nomenclature.resolve("LowBend"))
-        bend_side_deformer.rename(nomenclature.resolve("SideBend"))
-        bend_upp_handle.rename(nomenclature.resolve("UppBendHandle"))
-        bend_low_handle.rename(nomenclature.resolve("LowBendHandle"))
-        bend_side_handle.rename(nomenclature.resolve("SideBendHandle"))
+        root.rename(naming.resolve("SurfaceGrp"))
+        plane_transform.rename(naming.resolve("Surface"))
+        bend_upp_deformer.rename(naming.resolve("UppBend"))
+        bend_low_deformer.rename(naming.resolve("LowBend"))
+        bend_side_deformer.rename(naming.resolve("SideBend"))
+        bend_upp_handle.rename(naming.resolve("UppBendHandle"))
+        bend_low_handle.rename(naming.resolve("LowBendHandle"))
+        bend_side_handle.rename(naming.resolve("SideBendHandle"))
 
         # Try to guess the desired position
         min_x = None
@@ -339,7 +326,8 @@ class AbstractAvar(classModule.Module):
         length_x = max_x - min_x
         if len(self.jnts) <= 1 or length_x < epsilon:
             self.log.debug(
-                "Cannot automatically resolve scale for surface. Using default value %s",
+                "Cannot automatically resolve scale for surface. "
+                "Using default value %s",
                 default_scale,
             )
             length_x = default_scale
@@ -427,29 +415,29 @@ class AvarSimple(AbstractAvar):
     def create_stacks(self):
         """
         Create the route to compute the output transform for the avar.
-        This is done using node 'stacks' which allow multiple contribution from being added while still
-        be 'clear' for the rigger which layer is providing which input.
-        By keeping stack seperated, we are able to keep them in isolation and use the 'worldMatrix' of their 
-        leaf to easily compute the total contribution.
+        This is done using node 'stacks' which allow multiple contribution f
+        rom being added while still be 'clear' for the rigger which layer
+        is providing which input.
+        By keeping stack separated, we are able to keep them in isolation and use
+        the 'worldMatrix' of their  leaf to easily compute the total contribution.
 
         This would result in the following matrix multiplications:
         1) 'offset group'
            We start with the bind transform.
            The resulting matrix is in local (also known as pre-deform) space.
-        3) 'avar stack'
+        2) 'avar stack'
            This compute the desired movement from the avar values.
-           Being a stack, it can be modified after creation if needed by adding layers to it.
            The resulting matrix is still in local space.
-        4) 'post avar' stack'
+        3) 'post avar' stack'
            This add any contribution needed after the avar.
-           Being a stack, it can be modified after creation if needed by adding layers to it.
            Ex: Used for having the 'all' macro avar influence other avars.
            The resulting matrix is still in local space.
-        5) 'parent' group
-           This matrix is identity at bind pose and will add the movement from the parent of the avar.
+        4) 'parent' group
+           This matrix is identity at bind pose and will add the movement
+           from the parent of the avar.
            The resulting matrix is in world space.
 
-        The final transform is computed by multiplying all these stacks togheter:
+        The final transform is computed by multiplying all these stacks together:
         - offset.matrix
         - pre-avar.worldMatrix
         - avar.worldMatrix.
@@ -459,7 +447,8 @@ class AvarSimple(AbstractAvar):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Build post-avar stack
-        # This is a list of matrix multiplication that will be executed AFTER feeding the avar.
+        # This is a list of matrix multiplication
+        # that will be executed AFTER feeding the avar.
         self._stack_post = classNode.Node()
         self._stack_post.build(name=nomenclature_rig.resolve("postAvar"))
         post_stack_root = pymel.createNode(
@@ -467,7 +456,6 @@ class AvarSimple(AbstractAvar):
             name=nomenclature_rig.resolve("postAvarRoot"),
             parent=self.grp_rig,
         )
-        # layer_stack_input = self._stack_post.prepend_layer(name='input')
         self._stack_post.setParent(post_stack_root)
 
         libRigging.connect_matrix_to_node(
@@ -489,7 +477,8 @@ class AvarSimple(AbstractAvar):
             self.affect_sz,
         )
 
-        # Take the result of the stack and add it on top of the bind-pose and parent group.
+        # Take the result of the stack and add it on top
+        # of the bind-pose and parent group.
         self._attr_get_stack_local_tm = libRigging.create_utility_node(
             "multMatrix",
             matrixIn=(
@@ -552,7 +541,7 @@ class AvarSimple(AbstractAvar):
         naming = self.get_nomenclature_rig()
 
         # Resolve influence matrix
-        jnt_tm = jnt_tm or self.get_jnt_tm()
+        jnt_tm = jnt_tm or self.jnt.getMatrix(worldSpace=True)
 
         # Create an offset layer that define the starting point of the Avar.
         # It is important that the offset is in this specific node since it will serve
@@ -580,30 +569,20 @@ class AvarSimple(AbstractAvar):
         if self.need_flip_lr() and self.jnt:
             jnt_tm = (
                 pymel.datatypes.Matrix(
-                    1.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    -1.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    -1.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    1.0,
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, -1.0, 0.0, 0.0],
+                    [0.0, 0.0, -1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
                 )
                 * jnt_tm
             )
 
         self.grp_offset.setMatrix(jnt_tm)
 
-        self.model_infl = self.init_module(
-            self._CLS_MODEL_INFL, self.model_infl, suffix="avarModel"
+        self.model_infl = self._CLS_MODEL_INFL.from_instance(
+            self.rig,
+            self.model_infl,
+            (self.get_nomenclature() + "avarModel").resolve(),
         )
         self.model_infl.build()
         self.model_infl.grp_rig.setParent(self.grp_rig)
@@ -631,34 +610,6 @@ class AvarSimple(AbstractAvar):
         """
         pymel.parentConstraint(self._grp_parent, grp_ctrl_model)
 
-    def init_ctrl_model(self, cls, inst, inputs=None, cls_ctrl=None):
-        """
-        Factory method that initialize a child module instance only if necessary.
-        If the instance already had been initialized in a previous build,
-        it's correct value will be preserved,
-        :param type cls: The desired class.
-        :param inst: The current value.
-        :type inst: omtk.core.classCtrlModel.BaseCtrlModel
-        :param inputs: The inputs to use for the model
-        :return: The initialized instance.
-        :rtype: omtk.core.classCtrlModel.BaseCtrlModel
-        """
-        # TOOD: Validate inputs, we may need to modify the module
-        # TODO: if the inputs don't match!
-
-        result = self.init_module(cls, inst, inputs=inputs, suffix="ctrlModel")
-
-        # Ensure the model have the same name as it's parent module.
-        result.name = self.name
-
-        # Apply ctrl class override, otherwise use what was defined in the module.
-        result._CLS_CTRL = cls_ctrl or self._CLS_CTRL
-
-        # Backward compatibility with old rigs that didn't use the model approach.
-        result.ctrl = result.ctrl or self.ctrl
-
-        return result
-
     def create_ctrl(
         self,
         parent,
@@ -680,8 +631,16 @@ class AvarSimple(AbstractAvar):
 
         # Init model ctrl
         if self._CLS_MODEL_CTRL:
-            self.model_ctrl = self.init_ctrl_model(
-                self._CLS_MODEL_CTRL, self.model_ctrl, inputs=self.input
+            self.model_ctrl = (
+                self._CLS_MODEL_CTRL.from_instance(
+                    self.rig,
+                    self.model_ctrl,
+                    (self.get_nomenclature() + "ctrlModel").resolve(),
+                    self._CLS_CTRL,
+                    inputs=self.input,
+                )
+                if self._CLS_MODEL_CTRL
+                else None
             )
         else:
             self.model_ctrl = None
@@ -702,8 +661,7 @@ class AvarSimple(AbstractAvar):
         else:
             if issubclass(self._CLS_MODEL_CTRL, ModelCtrlLinear):
                 # By default, an InteractiveCtrl follow the rotation of the head.
-                if parent_rot is None:
-                    parent_rot = self.get_head_jnt()
+                parent_rot = parent_rot or self.get_head_jnt()
 
                 self.model_ctrl.build(
                     self,

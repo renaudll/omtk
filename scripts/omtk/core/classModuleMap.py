@@ -110,8 +110,8 @@ class ModuleMap(Module):
 
         self.build_models(**model_kwargs)
 
-    def unbuild(self, **kwargs):
+    def unbuild(self):
         for model in self.models:
             model.unbuild()
 
-        super(ModuleMap, self).unbuild(**kwargs)
+        super(ModuleMap, self).unbuild()

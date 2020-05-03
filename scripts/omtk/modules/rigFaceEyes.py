@@ -48,8 +48,8 @@ class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
         raise Exception("Cannot resolve ctrl transformation matrix!")
 
     # todo: implement correct build method that also create the ctrl.
-    def build(self, avar, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(BaseAvarCtrlModel, self).build(avar, **kwargs)
+    def build(self, ctrl_tm=None, ctrl_size=1.0, **kwargs):
+        super(BaseAvarCtrlModel, self).build(**kwargs)
 
         # Resolve ctrl matrix
         ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
@@ -102,27 +102,14 @@ class ModelLookAt(BaseAvarCtrlModel):
             )
         offset_z = head_length * 2 if head_length else 0
         return pymel.datatypes.Matrix(
-            1,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-            jnt_pos.x,
-            jnt_pos.y,
-            jnt_pos.z + offset_z,
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [jnt_pos.x, jnt_pos.y, jnt_pos.z + offset_z],
         )
 
-    def build(self, avar, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(ModelLookAt, self).build(
-            avar, ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs
-        )
+    def build(self, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
+        super(ModelLookAt, self).build(ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
 
         naming = self.get_nomenclature_rig()
 
@@ -268,7 +255,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         height = max(ctrl_default_size, abs(y_max - y_min)) + ctrl_default_size
 
         # Define main ctrl
-        self.ctrl_all = self.init_ctrl(CtrlEyes, self.ctrl_all)
+        self.ctrl_all = CtrlEyes.from_instance(self.ctrl_all)
         ctrl_all_name = nomenclature_anm.resolve()
         self.ctrl_all.build(width=width, height=height)
         self.ctrl_all.setTranslation(ctrl_pos_average)

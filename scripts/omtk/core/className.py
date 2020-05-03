@@ -111,8 +111,17 @@ class BaseName(object):
         >>> other_name = BaseName(tokens=['armupper'], side=BaseName.SIDE_L)
         >>> (name + other_name).resolve()
         'l_arm_armupper_ctrl'
+
+        >>> name = BaseName(tokens=['arm'], suffix='ctrl')
+        >>> (name + "armupper").resolve()
+        'l_arm_armupper_ctrl'
         """
         result = self.copy()
+
+        # Handle addition to a simple string
+        if isinstance(other, basestring):
+            result.tokens.append(other)
+            return result
 
         # Merge tokens
         for token in other.tokens:

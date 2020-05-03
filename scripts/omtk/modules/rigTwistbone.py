@@ -3,7 +3,7 @@ import math
 import pymel.core as pymel
 
 from omtk.core.classModule import Module
-from omtk.core.utils import decorator_uiexpose
+from omtk.core.utils import ui_expose
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.libs import libPymel
@@ -18,6 +18,7 @@ class Twistbone(Module):
     """
 
     DEFAULT_NAME_USE_FIRST_INPUT = True
+    AFFECT_INPUTS = False
 
     def __init__(self, *args, **kwargs):
         self.ikCurve = None
@@ -38,15 +39,6 @@ class Twistbone(Module):
         *args,
         **kwargs
     ):
-        """
-        :param orient_ik_ctrl: 
-        :param num_twist: 
-        :param create_bend: 
-        :param realign:
-        :param args: 
-        :param kwargs: 
-        :return: 
-        """
         if len(self.chain_jnt) < 2:
             raise Exception(
                 "Invalid input count. Expected 2, got %s. %s"
@@ -169,7 +161,9 @@ class Twistbone(Module):
         before_mid_idx = math.floor((self.num_twist / 2.0))
         if self.create_bend:
             # Create Ribbon
-            sys_ribbon = self.init_module(Ribbon, None, inputs=self.subjnts)
+            sys_ribbon = Ribbon.from_instance(
+                self.rig, None, self.name, inputs=self.subjnts
+            )
             sys_ribbon.build(
                 create_ctrl=False,
                 degree=3,
@@ -186,7 +180,8 @@ class Twistbone(Module):
             # Point constraint the driver jnt on the ribbon jnt to drive the bending
             for i, driver in enumerate(driverjnts):
                 pymel.pointConstraint(sys_ribbon._ribbon_jnts[i], driver, mo=True)
-                # Aim constraint the driver to create the bend effect. Skip the middle one if it as one
+                # Aim constraint the driver to create the bend effect.
+                # Skip the middle one if it as one
                 # TODO - Find a best way to determine the side
                 aim_vec = (
                     [1.0, 0.0, 0.0]
@@ -226,7 +221,8 @@ class Twistbone(Module):
                 libAttr.lock_hide_scale(ctrl)
                 ctrl.setParent(self.grp_anm)
                 pymel.parentConstraint(ref, ctrl.offset, mo=True)
-            # We don't want the ribbon to scale with the system since it will follow with it's bone
+            # We don't want the ribbon to scale with the system
+            # since it will follow with it's bone
             sys_ribbon.grp_rig.setParent(self.grp_rig)
             # Ensure that the ribbon jnts are following the start jnt correctly
             pymel.parentConstraint(jnt_s, sys_ribbon.ribbon_chain_grp, mo=True)
@@ -279,7 +275,8 @@ class Twistbone(Module):
         pymel.connectAttr(self.grp_rig.globalScale, scalable_grp.scaleZ)
 
         for driver_ref, jnt in zip(driver_refs, self.subjnts):
-            # If we have the bend, just orient constraint cause the subjnt are constrained to the follicle of the ribbon
+            # If we have the bend, just orient constraint cause
+            # the subjnt are constrained to the follicle of the ribbon
             if self.create_bend:
                 pymel.orientConstraint(driver_ref, jnt, mo=False)
             else:
@@ -288,50 +285,7 @@ class Twistbone(Module):
         if self.auto_skin:
             self.assign_twist_weights()
 
-    @decorator_uiexpose()
-    def assign_twist_weights(self):
-        libSkinning.assign_twist_weights(self.chain_jnt.start, self.subjnts)
-
-    @decorator_uiexpose()
-    def unassign_twist_weights(self):
-        """
-        Handle the skin transfert from the subjnts (twists) to the first input. 
-        Will be used if the number of twists change between builds
-        :return: Nothing
-        """
-        libSkinning.unassign_twist_weights(self.subjnts, self.chain_jnt.start)
-
-    def get_skinClusters_from_inputs(self):
-        skinClusters = set()
-        jnts = [
-            jnt for jnt in self.chain_jnt if jnt and jnt.exists()
-        ]  # Only handle existing objects
-        for jnt in jnts:
-            for hist in jnt.listHistory(future=True):
-                if isinstance(hist, pymel.nodetypes.SkinCluster):
-                    skinClusters.add(hist)
-        return skinClusters
-
-    def get_skinClusters_from_subjnts(self):
-        skinClusters = set()
-        jnts = [
-            jnt for jnt in self.subjnts if jnt and jnt.exists()
-        ]  # Only handle existing objects
-        for jnt in jnts:
-            for hist in jnt.listHistory(future=True, levels=1):
-                if isinstance(hist, pymel.nodetypes.SkinCluster):
-                    skinClusters.add(hist)
-        return skinClusters
-
-    def get_farest_affected_meshes(self):
-        results = set()
-        for jnt in self.jnts:
-            mesh = self.rig.get_farest_affected_mesh(jnt)
-            if mesh:
-                results.add(mesh)
-        return results
-
-    def unbuild(self, delete=True):
+    def unbuild(self, delete=False):
         """
         Unbuild the twist bone
         """
@@ -342,7 +296,8 @@ class Twistbone(Module):
         # React if the user deleted some twist influences.
         self.subjnts = filter(libPymel.is_valid_PyNode, self.subjnts)
 
-        # Remove scaling from the subjnts before unbuilding, otherwise scale issue will occur.
+        # Remove scaling from the subjnts before unbuilding,
+        # otherwise scale issue will occur.
         for jnt in self.subjnts:
             pymel.disconnectAttr(jnt.tx)
             pymel.disconnectAttr(jnt.ty)
@@ -355,17 +310,27 @@ class Twistbone(Module):
             pymel.disconnectAttr(jnt.sz)
 
         # Don't disconnect input attribute when unbuilding twist bones
-        super(Twistbone, self).unbuild(disconnect_attr=False)
+        super(Twistbone, self).unbuild()
 
         self.start = None
         self.end = None
 
-        """
-        # Remove twistbones
         if delete:
             pymel.delete(list(self.subjnts))  # TODO: fix PyNodeChain
             self.subjnts = None
+
+    @ui_expose()
+    def assign_twist_weights(self):
+        libSkinning.assign_twist_weights(self.chain_jnt.start, self.subjnts)
+
+    @ui_expose()
+    def unassign_twist_weights(self):
         """
+        Handle the skin transfert from the subjnts (twists) to the first input.
+        Will be used if the number of twists change between builds
+        :return: Nothing
+        """
+        libSkinning.unassign_twist_weights(self.subjnts, self.chain_jnt.start)
 
 
 def _create_twist_extractor(name, parent, start, end):

@@ -66,7 +66,7 @@ class FK(Module):
         # Initialize ctrls
         libPython.resize_list(self.ctrls, len(self.jnts))
         for idx, ctrl in enumerate(self.ctrls):
-            self.ctrls[idx] = self.init_ctrl(self._CLS_CTRL, ctrl)
+            self.ctrls[idx] = self._CLS_CTRL.from_instance(ctrl)
 
         for chain in self.chains:
             chain_ctrls = self._build_chain(chain)

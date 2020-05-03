@@ -78,8 +78,8 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
     def project_pos_on_face(self, pos, geos=None):
         pos = Vector(pos.x, pos.y, 99999)
         dir = Point(0, 0, -1)
-        result = self.rig.raycast_nearest(pos, dir, geos=geos)
-        return result if result else pos
+        geos = geos or self.rig.get_shapes()
+        return libRigging.ray_cast_nearest(pos, dir, geos) or pos
 
     def _create_follicle(
         self, ctrl_tm, influence, obj_mesh=None, u_coord=None, v_coord=None
@@ -119,7 +119,6 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
     def build(
         self,
-        avar,
         ref=None,
         ref_tm=None,
         grp_rig=None,
@@ -140,7 +139,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         **kwargs
     ):
         # todo: get rid of the u_coods, v_coods etc, we should rely on the bind
-        super(ModelCtrlLinear, self).build(avar, ctrl_size=ctrl_size, **kwargs)
+        super(ModelCtrlLinear, self).build(ctrl_size=ctrl_size, **kwargs)
 
         naming = self.get_nomenclature_rig()
 

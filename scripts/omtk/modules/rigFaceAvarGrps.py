@@ -6,7 +6,8 @@ from collections import defaultdict
 import pymel.core as pymel
 from pymel.core.datatypes import Matrix
 
-from omtk.core.utils import decorator_uiexpose
+from omtk.core.utils import ui_expose
+from omtk.core.exceptions import ValidationError
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libPython
@@ -183,12 +184,6 @@ class ModelCtrlMacroAll(ModelCtrlLinear):
             sx=True,
             sy=True,
             sz=True,
-        )
-
-    def build(self, avar, parent_pos=None, parent_rot=None, **kwargs):
-        parent_pos = avar._grp_output
-        super(ModelCtrlMacroAll, self).build(
-            avar, parent_pos=parent_pos, parent_rot=parent_rot, **kwargs
         )
 
     def calibrate(self, **kwargs):
@@ -464,15 +459,14 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
     def validate(self):
         """
-        Ensure all influences are influencing a geometry.
-        This allow us to prevent the user to find out when building.
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
         """
         super(AvarGrp, self).validate()
 
-        # Try to resolve the head joint.
-        # With strict=True, an exception will be raised if nothing is found.
-        if self.get_head_jnt(strict=False) is None:
-            raise Exception("Can't resolve the head. Please create a Head module.")
+        if not self.get_head_jnt(strict=False):
+            raise ValidationError("Found no head module.")
 
     def _create_micro_avars(self):
         """
@@ -605,7 +599,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         """
         if cls_ctrl:
             avar._CLS_CTRL = cls_ctrl  # Hack, find a more elegant way.
-        self._build_avar(avar, constraint=constraint, **kwargs)
+
+        kwargs.pop("parent_pos")  # TODO: Is needed?
+        self._build_avar(
+            avar, constraint=constraint, parent_pos=avar._grp_output, **kwargs
+        )
 
         if libPymel.is_valid_PyNode(avar.grp_anm):
             if self._grp_anm_avars_macro:
@@ -824,7 +822,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             for ctrl in avar.iter_ctrls():
                 yield ctrl
 
-    @decorator_uiexpose()
+    @ui_expose()
     def calibrate(self):
         for avar in self.avars:
             if not self._is_tweak_avar(
@@ -863,7 +861,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         # Hack: Ensure ref is a list.
         # todo: fix upstream
         result_inputs = [ref] if ref else []
-        # ensure avars propage the mesh to their AvarCtrlModel
+        # ensure avars propagate the mesh to their AvarCtrlModel
         result_inputs.extend(self.get_meshes())
 
         # todo: remove this call when we know it is safe.
@@ -871,7 +869,12 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             self.log.warning("No avar class specified for %s, using default.", self)
             cls = rigFaceAvar.AvarSimple
 
-        result = self.init_module(cls, inst, inputs=result_inputs, suffix=suffix)
+        result = cls.from_instance(
+            self.rig,
+            inst,
+            (self.get_nomenclature() + suffix).resolve(),
+            inputs=result_inputs,
+        )
 
         # It is possible that the old avar type don't match the desired one.
         # When this happen, we'll try at least to
@@ -956,32 +959,33 @@ class AvarGrpOnSurface(AvarGrp):
     - Vertical macro avars (avar_upp, avar_low)
     - Global macro avar (avar_all)
     - Ability to have 'tweak' avars that follow their parent only in translation.
-      Especially useful to have different falloff on translation than on rotation.
+      This allow an avar to have different weights for translation or rotation.
 
     Here's examples of the type of hierarchy that the rigger can provide:
-    --------------------------------------------------------------------------------------------------------------------
-    | NAME                   | AVAR_ALL | AVAR_L   | AVAR_R   | AVAR_UPP | AVAR_LOW | NOTES
-    --------------------------------------------------------------------------------------------------------------------
+    ---------------------------------------------------------------------------------
+    | NAME                   | AVAR_ALL | AVAR_L   | AVAR_R   | AVAR_UPP | AVAR_LOW |
+    ---------------------------------------------------------------------------------
     ex #1:
-    | jnt_avar_01            | YES      | NO       | NO       | NO       | NO       |
-    | jnt_avar_02            | YES      | NO       | NO       | NO       | NO       |
-    | jnt_avar_03            | YES      | NO       | NO       | NO       | NO       |
+    | jnt_avar_01            | YES      | NO       | NO       | NO       | NO
+    | jnt_avar_02            | YES      | NO       | NO       | NO       | NO
+    | jnt_avar_03            | YES      | NO       | NO       | NO       | NO
     ex #2:
-    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
-    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
-    |   jnt_avar_02          | YES      | NO       | NO       | NO       | NO       |
-    |   jnt_avar_upp         | YES      | NO       | NO       | YES      | NO       | Affected by avar_upp because of the 'upp' token.
-    |   jnt_avar_low         | YES      | NO       | NO       | NO       | YES      | Affected by avar_low because of the 'low' token.
-    |   l_jnt_avar           | YES      | YES      | NO       | NO       | NO       | Affected by avar_l because of the 'l' token.
-    |   r_jnt_avar           | YES      | NO       | YES      | NO       | NO       | Affected by avar_r because of the 'r' token.
+    | jnt_root               | YES      | NO       | NO       | NO       | NO
+    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO
+    |   jnt_avar_02          | YES      | NO       | NO       | NO       | NO
+    |   jnt_avar_upp         | YES      | NO       | NO       | YES      | NO
+    |   jnt_avar_low         | YES      | NO       | NO       | NO       | YES
+    |   l_jnt_avar           | YES      | YES      | NO       | NO       | NO
+    |   r_jnt_avar           | YES      | NO       | YES      | NO       | NO
     ex #3:
-    | jnt_root               | YES      | NO       | NO       | NO       | NO       | Affected by avar_all only.
-    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO       |
-    |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO       | Affected by jnt_avar_01 in translation only.
+    | jnt_root               | YES      | NO       | NO       | NO       | NO
+    |   jnt_avar_01          | YES      | NO       | NO       | NO       | NO
+    |     jnt_avar_01_tweak  | NO       | NO       | NO       | NO       | NO
     """
 
     _CLS_AVAR = rigFaceAvar.AvarFollicle
-    # Macro avars are always abstract (except the all macro which can potentially drive something)
+    # Macro avars are always abstract
+    # (except the all macro which can potentially drive something)
     _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle
 
     def __init__(self, *args, **kwargs):
@@ -996,7 +1000,7 @@ class AvarGrpOnSurface(AvarGrp):
         self.avar_upp = None
         self.avar_low = None
 
-    @decorator_uiexpose()
+    @ui_expose()
     def create_surface(self, *args, **kwargs):
         """
         Expose the function in the ui, using the decorator.
@@ -1024,41 +1028,50 @@ class AvarGrpOnSurface(AvarGrp):
     CREATE_MACRO_AVAR_ALL = True
 
     def validate(self):
+        """
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
+        """
         super(AvarGrpOnSurface, self).validate()
 
         if not self.jnts:
-            raise Exception("Can't build module with zero joints.")
+            raise ValidationError("Can't build module with zero joints.")
 
         # Ensure that we support the hierarchy of the influences.
         influence_hyearchy_deepness = max(
             self._get_relative_parent_level_by_influences().keys()
         )
         if influence_hyearchy_deepness > 2:
-            raise Exception(
+            raise ValidationError(
                 "Unsupported hierarchy depth! Please revise your inputs hierarchy."
             )
 
         # Ensure that we have a mesh to follow.
         if not self.get_meshes():
-            raise Exception("Please provide one reference mesh to follow.")
+            raise ValidationError("Please provide one reference mesh to follow.")
 
         # Ensure that if we are building macro avars, we have reference for all of them.
         # If some are missing we won't be able to build.
         if self.create_macro_horizontal:
             if not self.get_jnt_l_mid():
-                raise Exception(
+                raise ValidationError(
                     "Cannot find a reference input for the lft horizontal macro avar."
                 )
             if not self.get_jnt_r_mid():
-                raise Exception(
+                raise ValidationError(
                     "Cannot find a reference input for the rgt horizontal macro avar."
                 )
 
         if self.create_macro_vertical:
             if not self.get_jnt_upp_mid():
-                raise Exception("Cannot find a reference input for the upp macro avar.")
+                raise ValidationError(
+                    "Cannot find a reference input for the upp macro avar."
+                )
             if not self.get_jnt_low_mid():
-                raise Exception("Cannot find a reference input for the dwn macro avar.")
+                raise ValidationError(
+                    "Cannot find a reference input for the dwn macro avar."
+                )
 
     #
     # Influence getter functions.
@@ -1677,7 +1690,8 @@ class AvarGrpOnSurface(AvarGrp):
 
         pos = tm.translate
         dir = pymel.datatypes.Point(0, 0, 1)
-        raycast_result = self.rig.raycast_farthest(pos, dir)
+        geos = self.rig.get_shapes()
+        raycast_result = libRigging.ray_cast_farthest(pos, dir, geos)
         if raycast_result:
             pos = raycast_result
 
@@ -1887,7 +1901,7 @@ class AvarGrpOnSurface(AvarGrp):
             self.avar_all.unbuild()
         super(AvarGrpOnSurface, self).unbuild()
 
-    @decorator_uiexpose()
+    @ui_expose()
     def calibrate(self):
         """
         Ensure macro avars are correctly calibrated.

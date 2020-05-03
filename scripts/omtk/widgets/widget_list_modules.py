@@ -13,6 +13,7 @@ from omtk.widgets import ui_shared
 from omtk.libs import libQt
 from omtk.core import classModule
 from omtk.core import classRig
+from omtk.core.exceptions import ValidationError
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
@@ -157,22 +158,6 @@ class WidgetListModules(QtWidgets.QWidget):
             item.setText(0, str)
         self.ui.treeWidget.blockSignals(False)
 
-    def _can_build(self, data, verbose=True):
-        validate_message = None
-        try:
-            if isinstance(data, classRig.Rig):
-                data.validate()
-            elif isinstance(data, classModule.Module):
-                data.validate()
-            else:
-                raise Exception("Unexpected datatype %s for %s" % (type(data), data))
-        except Exception, e:
-            if verbose:
-                validate_message = str(e)
-                pymel.warning("%s failed validation: %s" % (data, str(e)))
-            return False, validate_message
-        return True, validate_message
-
     def _build_module(self, module):
         if module.locked:
             pymel.warning("Can't build locked module %s" % module)
@@ -275,10 +260,11 @@ class WidgetListModules(QtWidgets.QWidget):
                     module.warning(warning_msg)
         else:
             # Set QTreeWidgetItem red if the module fail validation
-            can_build, validation_message = self._can_build(module, verbose=True)
-            if not can_build:
+            try:
+                module.validate()
+            except ValidationError as error:
                 desired_color = self._color_invalid
-                msg = "Validation failed for %s: %s" % (module, validation_message)
+                msg = "Validation failed for %s: %s" % (module, error)
                 log.warning(msg)
                 qitem.setToolTip(0, msg)
                 qitem.setBackground(0, desired_color)

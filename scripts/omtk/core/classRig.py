@@ -668,7 +668,7 @@ class Rig(object):
                 try:
                     module.validate()
                 except ValidationError as error:
-                    self.module.log.warning("Validation failed: %s", error)
+                    module.log.warning("Validation failed: %s", error)
                     if strict:
                         raise error
                     continue
@@ -720,7 +720,7 @@ class Rig(object):
         # TODO: Is this safe? node could have connections.
         for grp in (module.grp_anm, module.grp_rig):
             if grp and not grp.getChildren():
-                self.module.log.warning(
+                module.log.warning(
                     "Found empty group %s. Deleting.", grp.longName()
                 )
                 pymel.delete(grp)

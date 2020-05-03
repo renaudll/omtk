@@ -293,7 +293,7 @@ class Limb(Module):
         )
         self.globalScale = (
             self.grp_rig.globalScale
-        )  # Expose the attribute, the rig will reconise it.
+        )  # Expose the attribute, the rig will recognise it.
 
         # Parent sub-modules so they are affected by displayLayer assignment and such.
         self.sysIK.grp_anm.setParent(self.grp_anm)

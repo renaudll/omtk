@@ -36,50 +36,59 @@ core.types_dag.append(pymel.datatypes.Vector)
 
 def _create_attr(name, data):
     """
-    Factory method that create an OpenMaya.MFnAttribute object from an arbitrary instance.
-    :param name: The name of the OpenMaya.MFnAttribute to create.
-    :param data: The value used to determine the type of OpenMaya.MFnAttribute to create.
+    Factory method that create the appropriate OpenMaya.MFnAttribute instance
+    for a provided object.
+
+    :param str name: The name of the OpenMaya.MFnAttribute to create.
+    :param object data: The value to represent as an attribute.
     :return: An OpenMaya.MFnAttribute subclass instance.
+    :rtype: OpenMaya.MFnAttribute
+    :raises ValueError: If we don't support the provided data type.
     """
     # (str, unicode) -> MFnTypedAttribute(kString)
     if isinstance(data, basestring):
         fn = OpenMaya.MFnTypedAttribute()
         fn.create(name, name, OpenMaya.MFnData.kString)
         return fn
+
     data_type = type(data)
     # (bool,) -> MFnNumericAttribute(kBoolean)
     if issubclass(data_type, bool):
         fn = OpenMaya.MFnNumericAttribute()
         fn.create(name, name, OpenMaya.MFnNumericData.kBoolean)
         return fn
+
     # (int,) -> MFnNumericData(kInt)
     if issubclass(data_type, int):
         fn = OpenMaya.MFnNumericAttribute()
         fn.create(name, name, OpenMaya.MFnNumericData.kInt)
         return fn
+
     # (float,) -> MFnNumericData(kFloat)
     if issubclass(data_type, float):
         fn = OpenMaya.MFnNumericAttribute()
         fn.create(name, name, OpenMaya.MFnNumericData.kFloat)
         return fn
+
     # (dict,) -> MFnMessageAttribute
     if isinstance(data, dict):
         fn = OpenMaya.MFnMessageAttribute()
         fn.create(name, name)
         return fn
+
     # (list, tuple,) -> arbitrary type depending on the list content.
     # Note contrary to python list, Maya lists are typed.
     # This will crash if the list contain multiple types at the same time.
     # However, the None value is supported.
+    # TODO: Raise an exception if multiples types are in the same list.
     if isinstance(data, (list, tuple)):
         if len(data) < 1:
-            pymel.warning(
-                "Can't create attribute {0}, empty array are unsuported".format(name)
+            log.warning(
+                "Can't create attribute %s, empty array are unsupported", name
             )
             return None
 
         # Resolve the type
-        # todo:raise an Exception if we find multiple types.
         iter_valid_values = (d for d in data if d is not None)
         ref_val = next(iter(iter_valid_values), None)
 
@@ -87,16 +96,16 @@ def _create_attr(name, data):
         if ref_val is None:
             return
 
-        # todo: raise an exception if multiples types are in the same list. check performance impact.
-
         fn = _create_attr(name, ref_val)
         fn.setArray(True)
         return fn
+
     # (pymel.datatypes.Matrix,) -> MFnMatrixAttribute
     if issubclass(data_type, pymel.datatypes.Matrix):  # HACK
         fn = OpenMaya.MFnMatrixAttribute()
         fn.create(name, name)
         return fn
+
     # (pymel.datatypes.Vector,) -> MFnNumericAttribute(kDouble)
     if issubclass(data_type, pymel.datatypes.Vector):
         name_x = "{0}X".format(name)
@@ -108,43 +117,45 @@ def _create_attr(name, data):
         mo_z = fn.create(name_z, name_z, OpenMaya.MFnNumericData.kDouble)
         fn.create(name, name, mo_x, mo_y, mo_z)
         return fn
-    # (pymel.general.Attribute,) -> arbitrary type depending on the attribute type itself.
+
+    # (pymel.general.Attribute,) -> type depending on the attribute type itself.
     if issubclass(data_type, pymel.Attribute):
         if not is_valid_PyNode(data):
             log.warning(
-                "Can't serialize {0} attribute because of non-existent pymel Attribute!".format(
-                    name
-                )
+                "Can't serialize %s attribute because of non-existent pymel Attribute!",
+                name
             )
             return None
-        elif data.type() == "doubleAngle":
+
+        if data.type() == "doubleAngle":
             fn = OpenMaya.MFnUnitAttribute()
             fn.create(name, name, OpenMaya.MFnUnitAttribute.kAngle)
             return fn
-        elif data.type() == "time":
+
+        if data.type() == "time":
             fn = OpenMaya.MFnUnitAttribute()
             fn.create(name, name, OpenMaya.MFnUnitAttribute.kTime)
             return fn
         # If the attribute doesn't represent anything special,
         # we'll check it's value to know what attribute type to create.
-        else:
-            return _create_attr(name, data.get())
+        return _create_attr(name, data.get())
+
     # (pymel.general.PyNode,) -> MFnMessageAttribute
-    # The order is important here as if we hit this, we don't deal with a pymel.general.Attribute.
-    # Note that by using duct-typing we support any 'pymel-like' behavior.
-    if hasattr(data, "__melobject__"):  # TODO: Really usefull?
+    # The order is important here as if we hit this,
+    # we don't deal with a pymel.general.Attribute.
+    # Using duct-typing we support any 'pymel-like' objects.
+    if hasattr(data, "__melobject__"):
         fn = OpenMaya.MFnMessageAttribute()
         fn.create(name, name)
         return fn
+
     # (object,) -> MFnMessageAttribute
     if hasattr(data, "__dict__"):
         fn = OpenMaya.MFnMessageAttribute()
         fn.create(name, name)
         return fn
 
-    pymel.error(
-        "Can't create MFnAttribute for {0} {1} {2}".format(name, data, data_type)
-    )
+    raise ValueError("Can't create MFnAttribute for %s %s %s" % (name, data, data_type))
 
 
 def _add_attr(fnDependNode, name, data, cache=None):
@@ -205,7 +216,8 @@ def _set_attr(_plug, data, cache=None):
         network = export_network(data, cache=cache)
         plug = network.__apimfn__().findPlug("message")
 
-        # Use a dag modifier to connect the attribute. TODO: Is this really the best way?
+        # Use a dag modifier to connect the attribute.
+        # TODO: Is this really the best way?
         dagM = OpenMaya.MDagModifier()
         dagM.connect(plug, _plug)
         dagM.doIt()
@@ -267,15 +279,15 @@ def _get_network_attr(attr, fn_skip=None, cache=None):
 
     if attr.type() == "message":
         if not attr.isConnected():
-            # log.warning('[_getNetworkAttr] Un-connected message attribute, skipping {0}'.format(attr))
             return None
         attr_input = attr.inputs()[0]
+
         # Network
         if hasattr(attr_input, "_class"):
             return import_network(attr_input, fn_skip=fn_skip, cache=cache)
+
         # Node
-        else:
-            return attr_input
+        return attr_input
 
     # pymel.Attribute
     if attr.isConnected():
@@ -314,18 +326,17 @@ def export_network(data, cache=None, **kwargs):
     # Thoses two attributes allow us to find the network from the value and vice-versa.
     # Note that since the '_uid' refer to the current python context,
     # it's value could be erroned when calling import_network.
-    # However the change of collisions are extremely improbable so checking the type of the python variable
-    # is sufficient.
+    # However the change of collisions are extremely improbable so
+    # checking the type of the python variable is sufficient.
     # Please feel free to provide a better design if any if possible.
 
-    # todo: after refactoring, the network cache will be merged with the import cache
     data_id = id(data)
     result = cache.get_network_by_id(data_id)
     if result is not None:
         return result
 
     # Create network, re-use existing network if already present in scene
-    # Automaticly name network whenever possible
+    # Automatically name network whenever possible
     try:
         network_name = data.__getNetworkName__()
     except (AttributeError, TypeError):
@@ -342,7 +353,6 @@ def export_network(data, cache=None, **kwargs):
         pymel.addAttr(
             network, longName="_uid", niceName="_uid", at="long"
         )  # todo: validate attributeType
-    # network._uid.set(id(_data))
 
     # Cache as soon as possible since we'll use recursivity soon.
     cache.set_network_by_id(data_id, network)
@@ -363,7 +373,8 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     """
     Recursively create class instances from provided network.
     :param network: The network to read from.
-    :param fn_skip: A function taken a pymel.nodetypes.Network as argument that return True if we need to ignore a specific network.
+    :param fn_skip: A function taken a pymel.nodetypes.Network as argument
+                    that return True if we need to ignore a specific network.
     :param cache: Used internally.
     :return: An object instance corresponding to the provided network.
     """
@@ -372,19 +383,22 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
 
         cache = Cache()
 
-    # Duck-type the network, if the '_class' attribute exist, it is a class instance representation.
+    # Duck-type the network, if the '_class' attribute exist,
+    # it is a class instance representation.
     # Otherwise it is a simple pymel.PyNode datatypes.
     if not network.hasAttr("_class"):
         return network
 
     network_id = hash(network)
 
-    # Check if the object related to the network already exist in the cache and return it if found
+    # Check if the object related to the network already exist
+    # in the cache and return it if found
     cached_obj = cache.get_import_value_by_id(network_id)
     if cached_obj is not None:
         return cached_obj
 
-    # Check if the object is blacklisted. If it is, we'll still add it to the cache in case we encounter it again.
+    # Check if the object is blacklisted. If it is,
+    # we'll still add it to the cache in case we encounter it again.
     if fn_skip and fn_skip(network):
         cache.set_import_value_by_id(network_id, None)
         return None
@@ -417,7 +431,8 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     if isinstance(obj, object) and not isinstance(obj, dict):
         obj._network = network
 
-    # Fill the import cache to make sure that self reference doesn't try to infinitly loop in it's import
+    # Fill the import cache to make sure that self reference
+    # doesn't try to infinitly loop in it's import
     cache.set_import_value_by_id(network_id, obj)
 
     # Resolve wich attribute we'll want to import
@@ -447,15 +462,9 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
             obj[attr_name.longName()] = val
         else:
             setattr(obj, attr_name, val)
-        # else:
-        #    #logging.debug("Can't set attribute {0} to {1}, attribute does not exists".format(key, obj))
 
-        # Update network _uid to the current python variable context
-        #    if _network.hasAttr('_uid'):
-        #        _network._uid.set(id(obj))
-
-    # Hack: Find implemented class via duck-typing
-    # Implement a __callbackNetworkPostBuild__ method in your class instances as a callback.
+    # Execute the __callbackNetworkPostBuild__ hook.
+    # This can be used to act immediately after import.
     try:
         obj.__callbackNetworkPostBuild__()
     except (AttributeError, TypeError):
@@ -498,30 +507,36 @@ def get_networks_from_class(cls_name):
     Return all networks serialized from a specified base class.
     Note that this don't check if the network itself is deserializable.
 
-    For example, if we are looking for the Rig class and the network class is RigElement.Rig
-    but RigElement is not defined, this will still return the network, however
-    calling libSerialization.import_network will return None.
+    For example, if we are looking for the Rig class and
+    the network class is RigElement.Rig but RigElement is not defined,
+    this will still return the network.
+    However calling libSerialization.import_network will return None.
     # todo: add an option to pre-validate
 
     :param cls_name: A string representing the name of a class.
-    :return: A list of pymel.nodetypes.Network.
+    :return: A list of networks
+    :rtype: A list of pymel.nodetypes.Network.
     """
     return list(iter_networks_from_class(cls_name))
 
 
 def iter_connected_networks(objs, key=None, key_skip=None, recursive=True, cache=None):
     """
-    Inspect provided pymel.nodetypes.DagNode connections in search of serialized networks.
+    Inspect provided dagnode connections in search of serialized networks.
+
     By providing a function pointer, specific networks can be targeted.
-    :param objs: A list of pymel.nodetypes.DagNode to inspect.
-    :param key: A function to filter specific networks.
-    :param key_skip: A function that receive a pymel.nodetypes.Network as input and return True if
-    the network is blacklisted. If the network is blacklisted, it will not be iterated through.
-    :param recursive: If true, will inspect recursively.
+    :param objs: A list of dag nodes to inspect.
+    :type objs: list of pymel.nodetypes.DagNode
+    :param callable key: A function to filter specific networks.
+    :param callable key_skip: A function that receive a network as input and return True
+    if the network is blacklisted. If the network is blacklisted,
+    it will not be iterated through.
+    :param bool recursive: If true, will inspect recursively.
     :param cache: Used internally, do not overwrite.
-    :yield: pymel.nodetypes.Networks
+    :yield: generator of pymel.nodetypes.Networks
     """
-    # Initialise the array the first time, we don't want to do it in the function argument as it will keep old values...
+    # Initialise the array the first time,
+    # we don't want to do it in the function argument as it will keep old values...
     if cache is None:
         cache = []
 
@@ -576,14 +591,18 @@ def iter_connected_networks(objs, key=None, key_skip=None, recursive=True, cache
 
 def get_connected_networks(objs, key=None, key_skip=None, recursive=True):
     """
-    Inspect provided pymel.nodetypes.DagNode connections in search of serialized networks.
+    Inspect provided dag node connections in search of serialized networks.
     By providing a function pointer, specific networks can be targeted.
+
     :param objs: A list of pymel.nodetypes.DagNode to inspect.
-    :param key: A function to filter specific networks
-    :param key_skip: A function that receive a pymel.nodetypes.Network as input and return True if
-    the network is blacklisted. If the network is blacklisted, it will not be iterated through.
+    :type objs: list of pymel.nodetypes.DagNode
+    :param callable key: A function to filter specific networks
+    :param callable key_skip: A function that receive a network as input and return True
+    if the network is blacklisted. If the network is blacklisted,
+    it will not be iterated through.
     :param recursive: If true, will inspect recursively.
-    :return: A list of pymel.nodetypes.Network
+    :return: A list of networks
+    :rtype: list of pymel.nodetypes.Network
     """
     return list(
         iter_connected_networks(objs, key=key, key_skip=key_skip, recursive=recursive)

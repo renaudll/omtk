@@ -600,9 +600,8 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         if cls_ctrl:
             avar._CLS_CTRL = cls_ctrl  # Hack, find a more elegant way.
 
-        kwargs.pop("parent_pos")  # TODO: Is needed?
         self._build_avar(
-            avar, constraint=constraint, parent_pos=avar._grp_output, **kwargs
+            avar, constraint=constraint, **kwargs
         )
 
         if libPymel.is_valid_PyNode(avar.grp_anm):
@@ -872,7 +871,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         result = cls.from_instance(
             self.rig,
             inst,
-            (self.get_nomenclature() + suffix).resolve(),
+            (self.get_nomenclature() + suffix).resolve() if suffix else self.name,
             inputs=result_inputs,
         )
 

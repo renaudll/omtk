@@ -10,7 +10,7 @@ def export_yaml(data, **kwargs):
     return yaml.dump(dicData, **kwargs)
 
 
-def export_yaml_file(data, path, mkdir=True, **kwargs):
+def export_yaml_file(data, path, mkdir=True):
     if mkdir:
         dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
@@ -24,12 +24,12 @@ def export_yaml_file(data, path, mkdir=True, **kwargs):
     return True
 
 
-def import_yaml(str_, **kwargs):
+def import_yaml(str_):
     data = yaml.load(str_)
     return core.import_dict(data)
 
 
-def import_yaml_file(path, **kwargs):
+def import_yaml_file(path):
     if not os.path.exists(path):
         raise Exception(
             "Can't importFromYamlFile, file does not exist! {0}".format(path)

@@ -77,7 +77,8 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def get_selected_entries(self):
         """
-        Return the metadata stored in each selected row. Whatever the metadata type (can be Rig or Module).
+        Return the metadata stored in each selected row.
+        Whatever the metadata type (can be Rig or Module).
         :return: A list of object instances.
         """
         return [item.metadata_data for item in self.get_selected_items()]
@@ -120,7 +121,8 @@ class WidgetListModules(QtWidgets.QWidget):
         self._refresh_ui_modules_visibility()
 
     def _refresh_ui_modules_checked(self):
-        # Block the signal to make sure that the itemChanged event is not called when adjusting the check state
+        # Block the signal to make sure that the itemChanged event
+        # is not called when adjusting the check state
         self.ui.treeWidget.blockSignals(True)
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             if hasattr(qt_item, "rig"):
@@ -151,7 +153,8 @@ class WidgetListModules(QtWidgets.QWidget):
             can_show = fn_can_show(qt_item, query_regex)
             qt_item.setHidden(not can_show)
 
-    # Block signals need to be called in a function because if called in a signal, it will block it
+    # Block signals need to be called in a function because
+    # if called in a signal, it will block it
     def _set_text_block(self, item, str):
         self.ui.treeWidget.blockSignals(True)
         if hasattr(item, "rig"):
@@ -457,7 +460,6 @@ class WidgetListModules(QtWidgets.QWidget):
             menu.addSeparator()
             if len(sel) == 1:
                 actionRemove = menu.addAction("Rename")
-                # actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.editItem, sel[0], 0))
                 actionRemove.triggered.connect(
                     functools.partial(
                         self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0

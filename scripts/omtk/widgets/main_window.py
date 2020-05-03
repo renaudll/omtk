@@ -141,7 +141,7 @@ class AutoRig(QtWidgets.QMainWindow):
         ]
 
         # self.callbacks_nodes = OpenMaya.MDGMessage.addNodeRemovedCallback(
-        #     self.callback_network_deleted, 'network'  # TODO: Restrict to network nodes
+        #     self.callback_network_deleted, 'network'
         # )
 
     def remove_callbacks(self):
@@ -185,7 +185,6 @@ class AutoRig(QtWidgets.QMainWindow):
             sel = self.ui.treeWidget.selectedItems()
             if len(sel) == 1:
                 actionRemove = menu.addAction("Rename")
-                # actionRemove.triggered.connect(functools.partial(self.ui.treeWidget.editItem, sel[0], 0))
                 actionRemove.triggered.connect(
                     functools.partial(
                         self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0
@@ -211,7 +210,8 @@ class AutoRig(QtWidgets.QMainWindow):
                 menu.addSeparator()
                 for fn_name, fn in functions:
 
-                    # Always pass the rig as the first argument in an exposed module function.
+                    # Always pass the rig as the first argument
+                    # in an exposed module function.
                     if isinstance(module, classModule.Module):
                         fn = functools.partial(fn, self._rig)
 
@@ -361,7 +361,8 @@ class AutoRig(QtWidgets.QMainWindow):
     def on_rig_deleted(self, rig):
         """
         Called from an internal widget to delete a rig.
-        We take in consideration that the rig is already unbuilt and we only need to cleanup.
+        We take in consideration that the rig is already un-built
+        and that we only need to cleanup.
         """
         need_update = False
         if rig in self.roots:

@@ -178,7 +178,7 @@ def get_data_type(data):
 
 def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
     """
-    Export an object instance (data) into a dictionary of basic data types (including pymel.Pynode and pymel.Attribute).
+    Export an object instance into a dictionary of basic data types.
 
     Args:
         data: An instance of the build-in python class object.

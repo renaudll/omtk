@@ -7,8 +7,8 @@ def iter_subclasses_recursive(cls):
 
     try:
         for sub_cls in cls.__subclasses__():
-            for x in iter_subclasses_recursive(sub_cls):
-                yield x
+            for yielded in iter_subclasses_recursive(sub_cls):
+                yield yielded
     except TypeError:  # This will fail when encountering the 'type' datatype.
         pass
 

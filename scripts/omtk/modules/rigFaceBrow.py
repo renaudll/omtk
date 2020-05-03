@@ -9,6 +9,7 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
     """
     Ctrl for brow avars
     """
+
     def __createNode__(self, **kwargs):
         """
         Build the

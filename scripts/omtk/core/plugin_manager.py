@@ -318,3 +318,4 @@ def initialize():
 
 
 plugin_manager = initialize()
+plugin_manager.get_plugins()  # force evaluating lazy singleton (todo: remove it?)

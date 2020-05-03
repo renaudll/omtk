@@ -88,24 +88,23 @@ def transfer_connections(attr_src, attr_dst):
         pymel.connectAttr(attr_dst, attr_src_out)
 
 
-def addAttr(node, longName=None, *args, **kwargs):
+def addAttr(node, longName=None, **kwargs):
     """
     Wrapper around pymel.addAttr that return the created attribute.
 
     :param node: The node to add the attribute to
     :type node: pymel.nodetypes.DependNode
     :param str longName: The attribute longName
-    :param tuple args: Positional arguments are forwarded to pymel.addAttr.
     :param dict kwargs: Keyword arguments are forwarded to pymel.addAttr.
     :return: The created attribute
     :rtype: pymel.Attribute
     """
     assert longName
-    pymel.addAttr(node, longName=longName, *args, **kwargs)
+    pymel.addAttr(node, longName=longName, **kwargs)
     return node.attr(longName)
 
 
-def addAttr_separator(node, attr_name, *args, **kwargs):
+def addAttr_separator(node, longName, **kwargs):
     """
     Add a no-op attribute that serve as a visual separator.
 
@@ -113,16 +112,9 @@ def addAttr_separator(node, attr_name, *args, **kwargs):
     :type node: pymel.nodetypes.DependNode
     :param str attr_name: The attribute longName
     """
-    # TODO: properly remove args and kwargs
-    attr = addAttr(
-        node,
-        longName=attr_name,
-        niceName=attr_name,
-        at="enum",
-        en="------------",
-        k=True,
-    )
+    attr = addAttr(node, longName=longName, **kwargs)
     attr.lock()
+    return attr
 
 
 # Lock/unlock Function

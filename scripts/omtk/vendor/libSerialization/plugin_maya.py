@@ -474,10 +474,16 @@ def is_network_from_class(net, cls_name):
     """
     # HACK: Backward compatibility with the old system.
     # Previously the full namespace was stored in the '_class' attribute.
-    if hasattr(net, "_class_namespace"):
-        return cls_name in net._class_namespace.get().split(".")
-    elif hasattr(net, "_class"):
-        return cls_name in net._class.get().split(".")
+    try:
+        return cls_name in getattr(net, "_class_namespace").split(".")
+    except AttributeError:
+        pass
+
+    try:
+        return cls_name in getattr(net, "_class").get().split(".")
+    except AttributeError:
+        pass
+
     return None
 
 

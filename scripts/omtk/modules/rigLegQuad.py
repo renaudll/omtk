@@ -233,7 +233,7 @@ class LegIkQuad(rigLeg.LegIk):
 
         # Expose 'pitch' Quadruped-specific attribute.
         attr_holder = self.ctrl_ik
-        libAttr.addAttr_separator(attr_holder, "Quadruped", niceName="Quadruped")
+        libAttr.addAttr_separator(attr_holder, "Quadruped")
         attr_pitch = libAttr.addAttr(attr_holder, longName="pitch", keyable=True)
         pymel.connectAttr(attr_pitch, self._chain_quad_ik[0].rotateZ)
 

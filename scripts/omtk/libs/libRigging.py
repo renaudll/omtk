@@ -457,7 +457,6 @@ def ray_cast(pos, dirs, geometries, tolerance=1.0e-5):
     :param pos: Any OpenMaya.MPoint compatible type (ex: pymel.datatypes.Point)
     :param dirs: Any OpenMaya.MVector compatible type (ex: Vector) or list.
     :param geometries: The geometries to intersect.
-    :param debug: If True, spaceLocators will be created at intersection points.
     :return: pymel.datatypes.Point list containing the intersection points.
     """
     # Cast pos to OpenMaya.MPoint if necessary.

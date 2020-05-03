@@ -1,3 +1,16 @@
+"""
+Configuration for Squeeze Studio Animation rigs.
+
+The separator is an underscore ("_").
+Side are marked with "L" for left and "R" for right.
+Animation controllers are suffixed by "Ctrl".
+Geometries are suffixed by "Mesh".
+Influences are suffixed by "Jnt".
+Influences without any weights are suffixed with "Jne" or "JEnd".
+Rig elements are suffixed with "Rig_".
+The rig root is named "All_Grp".
+The geometry groups is named "Model_Grp".
+"""
 import re
 
 import pymel.core as pymel

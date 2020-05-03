@@ -274,28 +274,10 @@ class Rig(object):
 
         self.modules.append(inst)
 
-        self._invalidate_cache_by_module(inst)
-
         return inst
 
     def remove_module(self, inst):
         self.modules.remove(inst)
-        self._invalidate_cache_by_module(inst)
-
-    def _invalidate_cache_by_module(self, inst):
-        # TODO: Do we need caching?
-
-        # Remove Module.get_head_jnt cache
-        try:
-            del inst._cache[inst.get_head_jnt.__name__]
-        except (LookupError, AttributeError):
-            pass
-
-        # Remove Module.get_jaw_jnt cache
-        try:
-            del inst._cache[inst.get_jaw_jnt.__name__]
-        except (LookupError, AttributeError):
-            pass
 
     def is_built(self):
         """
@@ -338,7 +320,6 @@ class Rig(object):
         :raises ValidationError: If the module fail to validate.
         """
 
-    @libPython.memoized_instancemethod
     def _get_all_input_shapes(self):
         """
         Used for quick lookup (see self._is_potential_deformable).
@@ -424,11 +405,9 @@ class Rig(object):
     def get_ctrls(self, **kwargs):
         return list(self.iter_ctrls(**kwargs))
 
-    @libPython.memoized_instancemethod
     def get_influences_jnts(self):
         return self.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
 
-    @libPython.memoized_instancemethod
     def get_shapes(self):
         """
         :return: All meshes under the mesh group. If found nothing, scan the whole scene.
@@ -451,7 +430,6 @@ class Rig(object):
 
         return shapes
 
-    @libPython.memoized_instancemethod
     def get_meshes(self):
         """
         :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
@@ -461,7 +439,6 @@ class Rig(object):
             self.get_shapes(),
         )
 
-    @libPython.memoized_instancemethod
     def get_surfaces(self):
         """
         :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
@@ -504,23 +481,6 @@ class Rig(object):
             val.rename(name)
         return val
 
-    def _clear_cache(self):
-        """
-        Some attributes in the a rig are cached.
-        This call remove any cache to ensure we only work with up-to-date values.
-        """
-        try:
-            del self._cache
-        except AttributeError:
-            pass
-        for module in self.modules:
-            # todo: implement _clear_cache on modules?
-            if module:
-                try:
-                    del module._cache
-                except AttributeError:
-                    pass
-
     def pre_build(
         self,
         create_master_grp=False,
@@ -532,10 +492,6 @@ class Rig(object):
         create_grp_backup=False,
         create_layer_jnt=False,
     ):
-        # Hack: Invalidate any cache before building anything.
-        # This ensure we always have fresh data.
-        self._clear_cache()
-
         # Look for a root joint
         if create_grp_jnt:
             # For now, we will determine the root jnt by it's name used in each rig. Not the best solution,
@@ -856,7 +812,6 @@ class Rig(object):
     # Facial and avars utility methods
     #
 
-    @libPython.memoized_instancemethod
     def get_head_jnts(self, strict=True):
         """
         Necessary to support multiple heads on a character.
@@ -876,7 +831,6 @@ class Rig(object):
             )
         return result
 
-    @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
         from omtk.modules import rigFaceJaw
 
@@ -890,7 +844,6 @@ class Rig(object):
             )
         return None
 
-    @libPython.memoized_instancemethod
     def get_head_length(self, jnt_head):
         """
         Resolve a head influence height using raycasts.

@@ -100,7 +100,6 @@ class Module(object):
     # Nomenclature implementation
     #
 
-    @libPython.memoized_instancemethod
     def get_side(self):
         """
         Analyze the inputs of the module and try to return it's side.
@@ -131,7 +130,6 @@ class Module(object):
 
             return new_nomenclature.resolve()
 
-    @libPython.memoized_instancemethod
     def get_module_name(self):
         """
         :return: The module namespace.
@@ -139,7 +137,6 @@ class Module(object):
         """
         return self.name or self.__class__.__name__.lower()
 
-    @libPython.memoized_instancemethod
     def get_nomenclature(self):
         """
         :return: The nomenclature to use for animation controllers.
@@ -147,7 +144,6 @@ class Module(object):
         """
         return self.rig.nomenclature(name=self.get_module_name())
 
-    @libPython.memoized_instancemethod
     def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.
@@ -157,7 +153,6 @@ class Module(object):
             name=self.get_module_name(), suffix=self.rig.nomenclature.type_anm
         )
 
-    @libPython.memoized_instancemethod
     def get_nomenclature_anm_grp(self):
         """
         :return: The nomenclature for the group that hold animation controllers.
@@ -167,7 +162,6 @@ class Module(object):
             name=self.get_module_name(), suffix=self.rig.nomenclature.type_anm_grp
         )
 
-    @libPython.memoized_instancemethod
     def get_nomenclature_rig(self):
         """
         :return: The nomenclature to use for rig objects.
@@ -177,7 +171,6 @@ class Module(object):
             name=self.get_module_name(), suffix=self.rig.nomenclature.type_rig
         )
 
-    @libPython.memoized_instancemethod
     def get_nomenclature_rig_grp(self):
         """
         :return: The nomenclature for the group that hold rig objects.
@@ -187,7 +180,6 @@ class Module(object):
             name=self.get_module_name(), suffix=self.rig.nomenclature.type_rig_grp
         )
 
-    @libPython.memoized_instancemethod
     def get_nomenclature_jnt(self):
         """
         :return: The nomenclature to use for new influences. (ex: twistbones)
@@ -226,7 +218,7 @@ class Module(object):
             if namespace:
                 return namespace
 
-    @libPython.cached_property()
+    @property
     def jnts(self):
         """
         :return: A list of all inputs of type pymel.nodetypes.Joint.
@@ -237,7 +229,7 @@ class Module(object):
             if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         ]
 
-    @libPython.cached_property()
+    @property
     def jnt(self):
         """
         :return: The first input of type pymel.nodetypes.Joint.
@@ -245,7 +237,7 @@ class Module(object):
         # TODO: Why could jnt be None? This need to be investigated.
         return next((jnt for jnt in self.jnts if jnt), None)
 
-    @libPython.cached_property()
+    @property
     def chains(self):
         """
         Solve one or multiple chains from inputs.
@@ -255,7 +247,7 @@ class Module(object):
         """
         return libPymel.get_chains_from_objs(self.input)
 
-    @libPython.cached_property()
+    @property
     def chain(self):
         """
         :return: The first chain. Usefull when assuming a module only have one chain.
@@ -263,16 +255,15 @@ class Module(object):
         """
         return next(iter(self.chains), None)
 
-    @libPython.cached_property()
+    @property
     def chains_jnt(self):
         # TODO: Do we need both chains and chains_jnt? Should only jnts by in chains?
         return libPymel.get_chains_from_objs(self.jnts)
 
-    @libPython.cached_property()
+    @property
     def chain_jnt(self):
         return next(iter(self.chains_jnt), None)
 
-    @libPython.memoized_instancemethod
     def get_head_jnt(self, strict=False):
         """
         Resolve the head influence related to the current module.
@@ -317,7 +308,6 @@ class Module(object):
             )
             return default_head
 
-    @libPython.memoized_instancemethod
     def get_jaw_jnt(self, strict=True):
         """
         Resolve the jaw influence related to the current module.
@@ -354,7 +344,6 @@ class Module(object):
             )
         return None
 
-    @libPython.memoized_instancemethod
     def get_jaw_module(self, strict=True):
         """
         Resolve the jaw module related to the current module
@@ -403,7 +392,6 @@ class Module(object):
         """
         return next(iter(self.get_surfaces()), None)
 
-    @libPython.memoized_instancemethod
     def get_meshes(self):
         """
         :return: A list of input meshes
@@ -419,7 +407,6 @@ class Module(object):
                 result.append(input_)
         return result
 
-    @libPython.memoized_instancemethod
     def get_mesh(self):
         """
         :return: The first input mesh
@@ -659,10 +646,6 @@ class Module(object):
             self.grp_rig = None
 
         self.globalScale = None
-
-        # TODO: Get rid of caching completely
-        if "_cache" in self.__dict__:
-            self.__dict__.pop("_cache")
 
     def get_parent(self, parent):
         """

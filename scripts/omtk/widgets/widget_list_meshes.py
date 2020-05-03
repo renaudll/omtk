@@ -36,11 +36,6 @@ class WidgetListMeshes(QtWidgets.QWidget):
         if self._rig is None:
             return
 
-        # Hack: force cache to invalidate
-        # try:
-        #     self._rig.get_meshes.func.im_self.cache.clear()
-        # except Exception, e:
-        #     pass
         all_meshes = self._rig.get_shapes()
 
         if all_meshes:

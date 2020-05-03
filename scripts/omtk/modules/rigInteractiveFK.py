@@ -97,11 +97,9 @@ class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
 
         return self.jnt.getMatrix(worldSpace=True)
 
-    @libPython.memoized_instancemethod
     def get_bind_pos(self):
         return self.get_bind_tm().translate
 
-    @libPython.memoized_instancemethod
     def get_default_shape(self):
         # If a surface we provided in the inputs, use it.
         surface = self.get_surface()
@@ -538,7 +536,6 @@ class InteractiveFK(Module):
                         % (surface, desired_val, attr_name, attr_val)
                     )
 
-    @libPython.memoized_instancemethod
     def get_influences_by_surfaces(self):
         """
         Analyze the inputs to resolve what influence are skinned to which surface.

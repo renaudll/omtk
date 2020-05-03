@@ -262,7 +262,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         """
         return self.get_avars_micro_upp()
 
-    @libPython.memoized_instancemethod
     def get_avars_micro_upp(self):
         """
         Return all the avars controlling the AvarGrp upper area.
@@ -279,7 +278,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         """
         return self.get_avars_micro_low()
 
-    @libPython.memoized_instancemethod
     def get_avars_micro_low(self):
         """
         Return all the avars controlling the AvarGrp lower area.
@@ -294,14 +292,13 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     # Influence properties
     #
 
-    @libPython.cached_property()
+    @property
     def jnts(self):
         fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(
             obj, pymel.nodetypes.Joint
         )
         return filter(fn_is_nurbsSurface, self.input)
 
-    @libPython.memoized_instancemethod
     def _get_absolute_parent_level_by_influences(self):
         """
         :return: A map of all module joints by their parent level.
@@ -331,7 +328,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             return False
         return True
 
-    @libPython.memoized_instancemethod
     def _get_relative_parent_level_by_influences(self):
         result = defaultdict(list)
         objs_by_absolute_parent_level = self._get_absolute_parent_level_by_influences()
@@ -340,7 +336,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             result[parent_level - top_level] = objs
         return dict(result)
 
-    @libPython.memoized_instancemethod
     def get_influence_all(self):
         """
         If the rigger provided a global parent for the influences in the module,
@@ -358,7 +353,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
         return None
 
-    @libPython.memoized_instancemethod
     def get_influence_micros(self):
         """
         :return: Only the influence used in micro avars.
@@ -370,13 +364,11 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             result.update(avar.jnts)
         return list(result)
 
-    @libPython.memoized_instancemethod
     def _get_micro_avar_by_influence(self, influence):
         for avar in self.avars:
             if influence in avar.input:
                 return avar
 
-    @libPython.memoized_instancemethod
     def _get_micro_tweak_avars_dict(self):
         result = {}
         influences_by_parent_level = self._get_relative_parent_level_by_influences()
@@ -453,9 +445,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         if self.SINGLE_INFLUENCE:
             return [self.jnt]
         else:
-            return copy.copy(
-                self.jnts
-            )  # copy to prevent modifying the cache accidentaly by reference.
+            return copy.copy(self.jnts)
 
     def validate(self):
         """
@@ -1076,7 +1066,6 @@ class AvarGrpOnSurface(AvarGrp):
     # Influence getter functions.
     #
 
-    @libPython.memoized_instancemethod
     def get_jnts_upp(self):
         """
         :return: The upper section influences.
@@ -1085,14 +1074,12 @@ class AvarGrpOnSurface(AvarGrp):
         fnFilter = lambda jnt: "upp" in jnt.stripNamespace().nodeName().lower()
         return filter(fnFilter, self.jnts)
 
-    @libPython.memoized_instancemethod
     def get_jnt_upp_mid(self):
         """
         :return: The middle influence of the upper section.
         """
         return get_average_pos_between_nodes(self.get_jnts_upp())
 
-    @libPython.memoized_instancemethod
     def get_jnts_low(self):
         """
         :return: The upper side influences.
@@ -1101,14 +1088,12 @@ class AvarGrpOnSurface(AvarGrp):
         fnFilter = lambda jnt: "low" in jnt.stripNamespace().nodeName().lower()
         return filter(fnFilter, self.jnts)
 
-    @libPython.memoized_instancemethod
     def get_jnt_low_mid(self):
         """
         :return: The middle influence of the lower section.
         """
         return get_average_pos_between_nodes(self.get_jnts_low())
 
-    @libPython.memoized_instancemethod
     def get_jnts_l(self):
         """
         :return: All the left side influences.
@@ -1124,7 +1109,6 @@ class AvarGrpOnSurface(AvarGrp):
 
         return filter(_filter, self.jnts)
 
-    @libPython.memoized_instancemethod
     def get_jnts_r(self):
         """
         :return: All the right side influences.
@@ -1140,7 +1124,6 @@ class AvarGrpOnSurface(AvarGrp):
 
         return filter(_filter, self.jnts)
 
-    @libPython.memoized_instancemethod
     def get_jnt_l_mid(self):
         """
         :return: The left most influence (highest positive distance in x)
@@ -1148,7 +1131,6 @@ class AvarGrpOnSurface(AvarGrp):
         fn_get_pos_x = lambda x: x.getTranslation(space="world").x
         return next(iter(reversed(sorted(self.get_jnts_l(), key=fn_get_pos_x))), None)
 
-    @libPython.memoized_instancemethod
     def get_jnt_r_mid(self):
         """
         :return: The right most influence (highest negative distance in x)
@@ -1160,11 +1142,9 @@ class AvarGrpOnSurface(AvarGrp):
     # Avars getter functions
     #
 
-    @libPython.memoized_instancemethod
     def get_avar_mid(self):
         return _find_mid_avar(self.avars)
 
-    @libPython.memoized_instancemethod
     def get_avars_micro_l(self):
         """
         Resolve all micro avars on the left side of the face
@@ -1193,7 +1173,6 @@ class AvarGrpOnSurface(AvarGrp):
 
         return [avar for avar in self.avars if avar and fn_filter(avar)]
 
-    @libPython.memoized_instancemethod
     def get_avars_micro_r(self):
         """
         Resolve all micro avars on the right side of the face
@@ -1222,7 +1201,6 @@ class AvarGrpOnSurface(AvarGrp):
 
         return [avar for avar in self.avars if avar and fn_filter(avar)]
 
-    @libPython.memoized_instancemethod
     def get_avar_l_corner(self):
         """
         :return: The farthest avar in the positive X axis.
@@ -1233,7 +1211,6 @@ class AvarGrpOnSurface(AvarGrp):
             None,
         )
 
-    @libPython.memoized_instancemethod
     def get_avar_r_corner(self):
         """
         :return: The farthest avar in the negative X axis.
@@ -1241,7 +1218,6 @@ class AvarGrpOnSurface(AvarGrp):
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space="world").x
         return next(iter(sorted(self.get_avars_micro_r(), key=fn_get_avar_pos_x)), None)
 
-    @libPython.memoized_instancemethod
     def get_avar_upp_corner(self):
         """
         :return: The middle upp micro avar.
@@ -1255,7 +1231,6 @@ class AvarGrpOnSurface(AvarGrp):
         avars = sorted(avars, key=get_distance)
         return next(iter(avars), None)
 
-    @libPython.memoized_instancemethod
     def get_avar_low_corner(self):
         """
         :return: The middle low micro avar.
@@ -1269,7 +1244,6 @@ class AvarGrpOnSurface(AvarGrp):
         avars = sorted(avars, key=get_distance)
         return next(iter(avars), None)
 
-    @libPython.memoized_instancemethod
     def get_pos_all_middle(self):
         # type () -> pymel.datatypes.Vector
         """
@@ -1277,7 +1251,6 @@ class AvarGrpOnSurface(AvarGrp):
         """
         return libRigging.get_average_pos_between_vectors(self.jnts)
 
-    @libPython.memoized_instancemethod
     def get_pos_upp_middle(self):
         # type () -> pymel.datatypes.Vector
         """
@@ -1287,7 +1260,6 @@ class AvarGrpOnSurface(AvarGrp):
             [avar.jnt for avar in self.get_avars_micro_upp()]
         )
 
-    @libPython.memoized_instancemethod
     def get_pos_low_middle(self):
         # type () -> pymel.datatypes.Vector
         """
@@ -1343,7 +1315,6 @@ class AvarGrpOnSurface(AvarGrp):
             influences.remove(influence_all)
         return influences
 
-    @libPython.memoized_instancemethod
     def get_influences_tweak(self):
         return self._get_relative_parent_level_by_influences().get(2, [])
 
@@ -1494,12 +1465,6 @@ class AvarGrpOnSurface(AvarGrp):
                     for inf in self.avar_all.input
                 ]
 
-                # Hack: Delete all cache since it may have used the old inputs.
-                try:
-                    del self.avar_all._cache
-                except AttributeError:
-                    pass
-
     def _build_avar_macro_horizontal(
         self,
         avar_parent,
@@ -1642,7 +1607,6 @@ class AvarGrpOnSurface(AvarGrp):
             if self._is_tweak_avar(avar_child):
                 continue
 
-    @libPython.memoized_instancemethod
     def _get_avar_macro_all_influence_tm(self):
         """
         Return the pivot matrix of the influence controller by the 'all' macro avar.

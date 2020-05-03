@@ -263,7 +263,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 avar.attr_lr, avar_r_corner.attr_lr
             )
 
-    @libPython.memoized_instancemethod
     def _get_mouth_width(self):
         min_x = max_x = 0
         for avar in self.get_avars_corners():

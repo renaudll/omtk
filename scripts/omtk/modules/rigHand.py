@@ -19,7 +19,7 @@ class Hand(Module):
         self.metacarpals = []
         self.fk_sys_metacarpals = []
 
-    @libPython.cached_property()
+    @property
     def chains(self):
         """
         Sort the finger chains by their relative position to the hand.

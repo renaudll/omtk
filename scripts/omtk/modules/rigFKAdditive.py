@@ -24,7 +24,8 @@ class CtrlFkAdd(BaseCtrl):
 
 class AdditiveFK(rigFK.FK):
     """
-    An AdditiveFK chain is a standard FK chain that have one or many additional controllers to rotate the entire chain.
+    An AdditiveFK chain is a standard FK chain that have one or many
+    additional controllers to rotate the entire chain.
     """
 
     _CLASS_CTRL_IK = CtrlFkAdd
@@ -86,13 +87,15 @@ class AdditiveFK(rigFK.FK):
             ctrl.offset.setMatrix(self.chain.start.getMatrix(worldSpace=True))
             ctrl.setParent(self.grp_anm)
             # In case we don't want to see addFk ctrl, like in a hand.
-            # TODO - In this case, maybe the hand would be best to switch it's finger to fk
+            # TODO - Maybe the hand would be best to switch it's finger to fk?
             if not self.enable_addfk_ctrl:
                 ctrl.visibility.set(False)
                 libAttr.lock_hide_trs(ctrl)
 
         for i, ctrl in enumerate(self.ctrls):
-            # HACK Add a new layer if this is the first ctrl to prevent Gimbal lock problems
+            # HACK Add a new layer if this is the first ctrl
+            # to prevent Gimbal lock problems
+            # TODO: Remove this? gotta ask around first
             if i == 0:
                 ctrl.offset = ctrl.append_layer("gimbal")
             attr_rotate_x = libRigging.create_utility_node(

@@ -4,6 +4,9 @@ from maya import cmds
 from omtk.libs import libRigging
 
 
+# TODO: There are a lot of shapes here, maybe cleanup a little bit?
+
+
 def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):
     transform, make = pymel.circle(*args, **kwargs)
     make.radius.set(size)
@@ -18,9 +21,7 @@ def create_shape_circle(size=1.0, normal=(1, 0, 0), *args, **kwargs):
     return transform, make
 
 
-def create_shape_needle(
-    size=1, length=None, radius=None, name=None, normal=(0, 1, 0), *args, **kwargs
-):
+def create_shape_needle(size=1, length=None, radius=None, name=None, normal=(0, 1, 0)):
     # TODO: docstring
     # Resolve length
     # Default length is 4x the provided size
@@ -292,22 +293,10 @@ def create_shape_box_arm(
     raycast_positions = [r.getTranslation(space="world") for r in refs_raycast]
 
     dir_offset_tm = pymel.datatypes.Matrix(  # Remove translation from ref_tm to keep direction normalized.
-        ref_tm.a00,
-        ref_tm.a01,
-        ref_tm.a02,
-        ref_tm.a03,
-        ref_tm.a10,
-        ref_tm.a11,
-        ref_tm.a12,
-        ref_tm.a13,
-        ref_tm.a20,
-        ref_tm.a21,
-        ref_tm.a22,
-        ref_tm.a23,
-        0,
-        0,
-        0,
-        1,
+        [ref_tm.a00, ref_tm.a01, ref_tm.a02, ref_tm.a03],
+        [ref_tm.a10, ref_tm.a11, ref_tm.a12, ref_tm.a13],
+        [ref_tm.a20, ref_tm.a21, ref_tm.a22, ref_tm.a23],
+        [0, 0, 0, 1],
     )
     x_pos = ref.getTranslation(space="world").x
     dirs = [
@@ -346,14 +335,14 @@ def create_shape_box_arm(
 
     # Convert our bounding box
 
-    pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
-    pos2 = pymel.datatypes.Point(min_x, min_y, max_z)
-    pos3 = pymel.datatypes.Point(min_x, max_y, min_z)
-    pos4 = pymel.datatypes.Point(min_x, max_y, max_z)
-    pos5 = pymel.datatypes.Point(max_x, min_y, min_z)
-    pos6 = pymel.datatypes.Point(max_x, min_y, max_z)
-    pos7 = pymel.datatypes.Point(max_x, max_y, min_z)
-    pos8 = pymel.datatypes.Point(max_x, max_y, max_z)
+    pos1 = [min_x, min_y, min_z]
+    pos2 = [min_x, min_y, max_z]
+    pos3 = [min_x, max_y, min_z]
+    pos4 = [min_x, max_y, max_z]
+    pos5 = [max_x, min_y, min_z]
+    pos6 = [max_x, min_y, max_z]
+    pos7 = [max_x, max_y, min_z]
+    pos8 = [max_x, max_y, max_z]
 
     node = pymel.curve(
         d=1,
@@ -383,14 +372,9 @@ def create_shape_box_arm(
     return node
 
 
-def create_shape_box_feet(
-    refs, geometries, refs_raycast=None, parent_tm=None, *args, **kwargs
-):
+def create_shape_box_feet(refs, geometries, refs_raycast=None, parent_tm=None):
     ref = next(iter(refs))
     ref_pos = ref.getTranslation(space="world")
-    ref_tm = pymel.datatypes.Matrix(
-        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ref_pos.x, ref_pos.y, ref_pos.z, 1
-    )
     bounds = (None, None, None, None, None, None)
 
     #
@@ -440,14 +424,14 @@ def create_shape_box_feet(
         min_x = -desired_width
         max_x = desired_width
 
-    pos1 = pymel.datatypes.Point(min_x, min_y, min_z)
-    pos2 = pymel.datatypes.Point(min_x, min_y, max_z)
-    pos3 = pymel.datatypes.Point(min_x, max_y, min_z)
-    pos4 = pymel.datatypes.Point(min_x, max_y, max_z)
-    pos5 = pymel.datatypes.Point(max_x, min_y, min_z)
-    pos6 = pymel.datatypes.Point(max_x, min_y, max_z)
-    pos7 = pymel.datatypes.Point(max_x, max_y, min_z)
-    pos8 = pymel.datatypes.Point(max_x, max_y, max_z)
+    pos1 = [min_x, min_y, min_z]
+    pos2 = [min_x, min_y, max_z]
+    pos3 = [min_x, max_y, min_z]
+    pos4 = [min_x, max_y, max_z]
+    pos5 = [max_x, min_y, min_z]
+    pos6 = [max_x, min_y, max_z]
+    pos7 = [max_x, max_y, min_z]
+    pos8 = [max_x, max_y, max_z]
 
     node = pymel.curve(
         d=1,
@@ -477,21 +461,22 @@ def create_shape_box_feet(
     return node
 
 
-def create_square(size=1.0, width=None, height=None, **kwargs):
-    if width is None:
-        width = 1.0
-    if height is None:
-        height = 1.0
+def create_square(size=1.0, width=None, height=None):
+    width = width or 1.0
+    height = height or 1.0
     width *= size
     height *= size
 
-    pos1 = pymel.datatypes.Point(-height, -width, 0)
-    pos2 = pymel.datatypes.Point(-height, width, 0)
-    pos3 = pymel.datatypes.Point(height, width, 0)
-    pos4 = pymel.datatypes.Point(height, -width, 0)
-    pos5 = pymel.datatypes.Point(-height, -width, 0)
-
-    node = pymel.curve(d=1, p=[pos1, pos2, pos3, pos4, pos5])
+    node = pymel.curve(
+        d=1,
+        p=[
+            [-height, -width, 0],
+            [-height, width, 0],
+            [height, width, 0],
+            [height, -width, 0],
+            [-height, -width, 0],
+        ],
+    )
 
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
@@ -500,10 +485,20 @@ def create_square(size=1.0, width=None, height=None, **kwargs):
 
 
 def create_triangle_upp(size=1.0):
-    p1 = [0, 0.577 * size, 0]
-    p2 = [-0.5 * size, -0.288 * size, 0]
-    p3 = [0.5 * size, -0.288 * size, 0]
-    node = pymel.curve(d=1, p=[p1, p2, p3, p1])
+    """
+    :param float size: Radius of the triangle
+    :return: A ctrl transform
+    :rtype: pymel.nodetypes.Transform
+    """
+    node = pymel.curve(
+        d=1,
+        p=[
+            [0, 0.577 * size, 0],
+            [-0.5 * size, -0.288 * size, 0],
+            [0.5 * size, -0.288 * size, 0],
+            [0, 0.577 * size, 0],
+        ],
+    )
 
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
@@ -512,10 +507,20 @@ def create_triangle_upp(size=1.0):
 
 
 def create_triangle_low(size=1.0):
-    p1 = [0, -0.577 * size, 0]
-    p2 = [-0.5 * size, 0.288 * size, 0]
-    p3 = [0.5 * size, 0.288 * size, 0]
-    node = pymel.curve(d=1, p=[p1, p2, p3, p1])
+    """
+    :param float size: Radius of the triangle
+    :return: A ctrl transform
+    :rtype: pymel.nodetypes.Transform
+    """
+    node = pymel.curve(
+        d=1,
+        p=[
+            [0, -0.577 * size, 0],
+            [-0.5 * size, 0.288 * size, 0],
+            [0.5 * size, 0.288 * size, 0],
+            [0, -0.577 * size, 0],
+        ],
+    )
 
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
@@ -524,10 +529,20 @@ def create_triangle_low(size=1.0):
 
 
 def create_triangle_left(size=1.0):
-    p1 = [0.577 * size, 0, 0]
-    p2 = [-0.288 * size, -0.5 * size, 0]
-    p3 = [-0.288 * size, 0.5 * size, 0]
-    node = pymel.curve(d=1, p=[p1, p2, p3, p1])
+    """
+    :param float size: Radius of the triangle
+    :return: A ctrl transform
+    :rtype: pymel.nodetypes.Transform
+    """
+    node = pymel.curve(
+        d=1,
+        p=[
+            [0.577 * size, 0, 0],
+            [-0.288 * size, -0.5 * size, 0],
+            [-0.288 * size, 0.5 * size, 0],
+            [0.577 * size, 0, 0],
+        ],
+    )
 
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
@@ -536,10 +551,20 @@ def create_triangle_left(size=1.0):
 
 
 def create_triangle_right(size=1.0):
-    p1 = [-0.577 * size, 0, 0]
-    p2 = [0.288 * size, -0.5 * size, 0]
-    p3 = [0.288 * size, 0.5 * size, 0]
-    node = pymel.curve(d=1, p=[p1, p2, p3, p1])
+    """
+    :param float size: Radius of the triangle
+    :return: A ctrl transform
+    :rtype: pymel.nodetypes.Transform
+    """
+    node = pymel.curve(
+        d=1,
+        p=[
+            [-0.577 * size, 0, 0],
+            [0.288 * size, -0.5 * size, 0],
+            [0.288 * size, 0.5 * size, 0],
+            [0.288 * size, 0.5 * size, 0],
+        ],
+    )
 
     # Expose the rotateOrder
     node.rotateOrder.setKeyable(True)
@@ -547,35 +572,7 @@ def create_triangle_right(size=1.0):
     return node
 
 
-#
-# JG implement from fSanges controler shape bank
-#
-"""def create_shape_cross(size=1.0, **kwargs):
-    s1 = size * 0.5
-    s2 = size
-    node = pymel.curve(d=1, p=[
-        (0, -s1, s1),
-        (0, -s1, s2),
-        (0, s1, s2),
-        (0, s1, s1),
-        (0, s2, s1),
-        (0, s2, -s1),
-        (0, s1, -s1),
-        (0, s1, -s2),
-        (0, -s1, -s2),
-        (0, -s1, -s1),
-        (0, -s2, -s1),
-        (0, -s2, s1),
-        (0, -s1, s1)
-    ], **kwargs)
-
-    # Expose the rotateOrder
-    node.rotateOrder.setKeyable(True)
-
-    return node"""
-
-
-def pin(scale=(1, 1, 1), **kwargs):
+def pin(scale=(1, 1, 1)):
     points = [
         [0.0, 0.0, 0.0],
         [0.0, 3.0, 0.0],
@@ -603,102 +600,7 @@ def pin(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def sphere(
-    scale=(1, 1, 1), **kwargs
-):  # TODO replace older version? sphere is like the create_shape_attrholder with a better quality to it.
-    node = pymel.curve(
-        d=1,
-        p=[
-            (-1.402861684596246e-07, 1.0049703078450785, -1.8704823168125294e-07),
-            (0.26010531965842887, 0.9707267333923264, -1.8704823168125294e-07),
-            (0.5024850136363739, 0.8703298108214441, -1.8704823168125294e-07),
-            (0.7106211565425937, 0.71062129682876, -1.8704823168125294e-07),
-            (0.8703297640593917, 0.5024851071604814, -1.8704823168125294e-07),
-            (0.970726593106157, 0.2601054833256242, -1.8704823168125294e-07),
-            (1.004970167558909, 0.0, -1.8704823168125294e-07),
-            (0.970726593106157, -0.2601054833256242, -1.8704823168125294e-07),
-            (0.8703297640593917, -0.5024851071604814, -1.8704823168125294e-07),
-            (0.7106211565425937, -0.71062129682876, -1.8704823168125294e-07),
-            (0.5024850136363739, -0.8703298108214441, -1.8704823168125294e-07),
-            (0.26010531965842887, -0.9707267333923264, -1.8704823168125294e-07),
-            (-1.402861684596246e-07, -1.0049703078450785, -1.8704823168125294e-07),
-            (-0.260105530087678, -0.9707267333923264, -2.0255172522539015e-07),
-            (-0.5024851539225352, -0.8703298108214441, -2.1699868078571335e-07),
-            (-0.7106212033046404, -0.71062129682876, -2.2940456164855868e-07),
-            (-0.8703297640593775, -0.5024851071604814, -2.3892393646716975e-07),
-            (-0.97072659310615, -0.2601054833256242, -2.449080537990779e-07),
-            (-1.004970167558902, 0.0, -2.469491298901738e-07),
-            (-0.97072659310615, 0.2601054833256242, -2.449080537990779e-07),
-            (-0.8703297640593775, 0.5024851071604814, -2.3892393646716975e-07),
-            (-0.7106212033046404, 0.71062129682876, -2.2940456164855868e-07),
-            (-0.5024851539225352, 0.8703298108214441, -2.1699868078571335e-07),
-            (-0.260105530087678, 0.9707267333923264, -2.0255172522539015e-07),
-            (-1.402861684596246e-07, 1.0049703078450785, -1.8704823168125294e-07),
-            (-1.0927918481229426e-07, 0.9707267333923264, -0.2601055067066534),
-            (-8.038526999598616e-08, 0.8703298108214441, -0.5024850603984232),
-            (-5.5573508461748133e-08, 0.71062129682876, -0.7106211097805283),
-            (-3.653475744158641e-08, 0.5024851071604814, -0.8703296237732122),
-            (-2.456652481441779e-08, 0.2601054833256242, -0.970726359295863),
-            (-2.0484371532347723e-08, 0.0, -1.0049699337486149),
-            (-2.456652481441779e-08, -0.2601054833256242, -0.970726359295863),
-            (-3.653475744158641e-08, -0.5024851071604814, -0.8703296237732122),
-            (-5.5573508461748133e-08, -0.71062129682876, -0.7106211097805283),
-            (-8.038526999598616e-08, -0.8703298108214441, -0.5024850603984232),
-            (-1.0927918481229426e-07, -0.9707267333923264, -0.2601055067066534),
-            (-1.402861684596246e-07, -1.0049703078450785, -1.8704823168125294e-07),
-            (-1.4803791259510035e-07, -0.9707267333923264, 0.26010522613430587),
-            (-1.5526138952282054e-07, -0.8703298108214441, 0.5024848733501915),
-            (-1.6146433523545056e-07, -0.71062129682876, 0.7106209694943546),
-            (-1.6622401943777732e-07, -0.5024851071604814, 0.8703295302490964),
-            (-1.692160793709263e-07, -0.2601054833256242, 0.9707263592958632),
-            (-1.7023661769144383e-07, 0.0, 1.0049699337486149),
-            (-1.692160793709263e-07, 0.2601054833256242, 0.9707263592958632),
-            (-1.6622401943777732e-07, 0.5024851071604814, 0.8703295302490964),
-            (-1.6146433523545056e-07, 0.71062129682876, 0.7106209694943546),
-            (-1.5526138952282054e-07, 0.8703298108214441, 0.5024848733501915),
-            (-1.4803791259510035e-07, 0.9707267333923264, 0.26010522613430587),
-            (-1.402861684596246e-07, 1.0049703078450785, -1.8704823168125294e-07),
-            (-1.0927918481229426e-07, 0.9707267333923264, -0.2601055067066534),
-            (-8.038526999598616e-08, 0.8703298108214441, -0.5024850603984232),
-            (-5.5573508461748133e-08, 0.71062129682876, -0.7106211097805283),
-            (-3.653475744158641e-08, 0.5024851071604814, -0.8703296237732122),
-            (-2.456652481441779e-08, 0.2601054833256242, -0.970726359295863),
-            (-2.0484371532347723e-08, 0.0, -1.0049699337486149),
-            (-0.26010534303944866, 0.0, -0.9707265463440948),
-            (-0.5024850136363597, 0.0, -0.8703297172973281),
-            (-0.7106211565425795, 0.0, -0.7106212968287601),
-            (-0.8703296705352628, 0.0, -0.502485200684597),
-            (-0.97072659310615, 0.0, -0.26010560023076923),
-            (-1.004970167558902, 0.0, -2.469491298901738e-07),
-            (-0.9707266866302646, 0.0, 0.260105155991219),
-            (-0.8703297640593775, 0.0, 0.5024847798260756),
-            (-0.710621343590816, 0.0, 0.7106209227322967),
-            (-0.5024852474466499, 0.0, 0.8703294367249805),
-            (-0.2601055534687049, 0.0, 0.9707263592958632),
-            (-1.7023661769144383e-07, 0.0, 1.0049699337486149),
-            (0.2601052495153411, 0.0, 0.970726452819979),
-            (0.5024849201122521, 0.0, 0.8703295302490964),
-            (0.7106211097805328, 0.0, 0.7106211097805284),
-            (0.870329670535277, 0.0, 0.5024849668743074),
-            (0.970726593106157, 0.0, 0.2601052728963638),
-            (1.004970167558909, 0.0, -1.8704823168125294e-07),
-            (0.9707261254855766, 0.0, -0.26010538980150855),
-            (0.8703292029146965, 0.0, -0.5024849668743073),
-            (0.7106208759702426, 0.0, -0.7106210162564124),
-            (0.5024848265881374, 0.0, -0.8703294367249804),
-            (0.260105272896368, 0.0, -0.970726359295863),
-            (-2.0484371532347723e-08, 0.0, -1.0049699337486149),
-        ],
-    )
-
-    node.scale.set(scale)
-    pymel.makeIdentity(node, a=True, s=True)
-    node.rotateOrder.setKeyable(True)
-
-    return node
-
-
-def squareCrossDouble(scale=(1, 1, 1), **kwargs):
+def square_cross_double(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -748,7 +650,7 @@ def squareCrossDouble(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def squareCross(scale=(1, 1, 1), **kwargs):
+def square_cross(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -774,7 +676,7 @@ def squareCross(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def doubleNail(scale=(1, 1, 1), **kwargs):
+def double_nail(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -841,7 +743,7 @@ def doubleNail(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def belt(scale=(1, 1, 1), **kwargs):
+def belt(scale=(1, 1, 1)):
     node = pymel.curve(
         d=3,
         p=[
@@ -885,7 +787,7 @@ def belt(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def circle3D(scale=(1, 1, 1), **kwargs):
+def circle3D(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1036,7 +938,7 @@ def circle3D(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def circleCompass(scale=(1, 1, 1), **kwargs):
+def circle_compass(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1113,7 +1015,7 @@ def circleCompass(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def circleX(scale=(1, 1, 1), **kwargs):
+def circle_x(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1158,7 +1060,7 @@ def circleX(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def circleXPins(scale=(1, 1, 1), **kwargs):
+def circle_x_pins(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1220,7 +1122,7 @@ def circleXPins(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def locator(scale=(1, 1, 1), **kwargs):
+def locator(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1302,7 +1204,7 @@ def locator(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def cross(scale=(1, 1, 1), **kwargs):
+def cross(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1327,7 +1229,7 @@ def cross(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def arrow180(scale=(1, 1, 1), **kwargs):
+def arrow180(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1368,7 +1270,7 @@ def arrow180(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def angle(scale=(1, 1, 1), **kwargs):
+def angle(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1388,7 +1290,7 @@ def angle(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def crossArrow(scale=(1, 1, 1), **kwargs):
+def cross_arrow(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1425,7 +1327,7 @@ def crossArrow(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def dir1Arrow(scale=(1, 1, 1), **kwargs):
+def dir_1_arrow(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1445,7 +1347,7 @@ def dir1Arrow(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def dir2Arrow(scale=(1, 1, 1), **kwargs):
+def dir_2_arrow(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1468,7 +1370,7 @@ def dir2Arrow(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def trident(scale=(1, 1, 1), **kwargs):
+def trident(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1515,7 +1417,7 @@ def trident(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def pyramid(scale=(1, 1, 1), **kwargs):
+def pyramid(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1535,7 +1437,7 @@ def pyramid(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def prism(scale=(1, 1, 1), **kwargs):
+def prism(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1560,7 +1462,7 @@ def prism(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def openCube(scale=(1, 1, 1), **kwargs):
+def open_cube(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1585,7 +1487,7 @@ def openCube(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def arrowSphere(scale=(1, 1, 1), **kwargs):
+def arrow_sphere(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1630,7 +1532,7 @@ def arrowSphere(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def cubeBevel(scale=(1, 1, 1), **kwargs):
+def cube_bevel(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[
@@ -1713,7 +1615,7 @@ def cubeBevel(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def square3D(scale=(1, 1, 1), **kwargs):
+def square_3d(scale=(1, 1, 1)):
     points = [
         (-3.216419737012196e-14, -0.9264947566117914, -0.9264947566117914),
         (-2.118130070715349e-14, -0.895193770803716, -0.9890939112378139),
@@ -1795,7 +1697,7 @@ def square3D(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def locatorCross(scale=(1, 1, 1), **kwargs):
+def locator_cross(scale=(1, 1, 1)):
     points = [
         (1.3691100802194696e-09, 1.0088945440442032, -0.0024406720551346287),
         (0.017489007842741898, 0.9685053927462611, -0.012537959879620066),
@@ -1875,7 +1777,7 @@ def locatorCross(scale=(1, 1, 1), **kwargs):
     return node
 
 
-def sphere_volume(scale=(1, 1, 1), **kwargs):
+def sphere_volume(scale=(1, 1, 1)):
     node = pymel.curve(
         d=1,
         p=[

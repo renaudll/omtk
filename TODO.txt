@@ -2,3 +2,4 @@
 
 [ ] Build BaseCtrl outside of CtrlModel
 [ ] Remove ALL cache and benchmark performances
+[ ] Convert footroll to a compound with exposed bind matrices

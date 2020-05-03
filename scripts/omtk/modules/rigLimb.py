@@ -153,7 +153,8 @@ class Limb(Module):
         ).outputX
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
-        # Note that this is production specific and should be defined in a sub-class implementation.
+        # Note that this is production specific and
+        # should be defined in a sub-class implementation.
         jnt_hand = self.chain_jnt[self.sysIK.iCtrlIndex]
         ctrl_attrs_name = nomenclature_anm.resolve("atts")
         if not isinstance(self.ctrl_attrs, self._CLASS_CTRL_ATTR):
@@ -192,25 +193,30 @@ class Limb(Module):
         if getattr(self.sysIK, "_chain_quad_ik", None):
             constraint_ik_chain = self.sysIK._chain_quad_ik
 
-        # Note: We need to set the parent of the chain_blend BEFORE creating the constraint.
-        # Otherwise we might expose oneself to evaluation issues (happened on maya 2018.2).
-        # The symptom is the chain_blend rotation being aligned to the world and the rig being build on top.
-        # At first the scene would seem ok, however doing a dgdirty or reloading the scene would introduce flipping.
+        # Note: We need to set the parent of the chain_blend
+        # BEFORE creating the constraint.
+        # Otherwise we might expose oneself to evaluation issues
+        # (happened on maya 2018.2).
+        # The symptom is the chain_blend rotation being aligned to the world and
+        # the rig being build on top. At first the scene would seem ok, however
+        # doing a dgdirty or reloading the scene would introduce flipping.
         chain_blend[0].setParent(self.grp_rig)
 
         for blend, oIk, oFk in zip(chain_blend, constraint_ik_chain, self.sysFK.ctrls):
-            # Note that maintainOffset should not be necessary, however the rigLegQuad IK can be flipped in some
-            # rare cases. For now since prod need it we'll activate the flag (see Task #70938), however it would
-            # be appreciated if the ugliness of the rigLegQuad module don't bleed into the rigLimb module.
+            # Note that maintainOffset should not be necessary, however the
+            # rigLegQuad IK can be flipped in some rare cases.
+            # For now since prod need it so we'll activate the flag, however it would
+            # be appreciated if the ugliness of the rigLegQuad module
+            # don't bleed into the rigLimb module.
+            # TODO: Remove maintainOffset
             constraint = pymel.parentConstraint(oIk, oFk, blend, maintainOffset=True)
             attr_weight_ik, attr_weight_fk = constraint.getWeightAliasList()
             pymel.connectAttr(attr_ik_weight, attr_weight_ik)
             pymel.connectAttr(attr_fk_weight, attr_weight_fk)
 
-        #
         # Create elbow chain
-        # This provide the elbow ctrl, an animator friendly way of cheating the elbow on top of the blend chain.
-        #
+        # This provide the elbow ctrl, an animator friendly way of
+        # cheating the elbow on top of the blend chain.
 
         # Create a chain that provide the elbow controller and override the blend chain
         # (witch should only be nodes already)

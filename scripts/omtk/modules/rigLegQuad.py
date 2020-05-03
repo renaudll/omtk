@@ -1,5 +1,3 @@
-import logging
-
 import pymel.core as pymel
 from maya import mel
 
@@ -8,8 +6,6 @@ from omtk.libs import libAttr, libPython
 from omtk.modules import rigIK
 from omtk.modules import rigLimb
 from omtk.modules import rigLeg
-
-log = logging.getLogger("omtk")
 
 
 class CtrlIkQuadSwivel(rigIK.CtrlIkSwivel):
@@ -181,13 +177,13 @@ class LegIkQuad(rigLeg.LegIk):
 
         # Create a second ik chain for the quadruped setup
         self._chain_quad_ik = self.chain.duplicate()
-        for i, oIk in enumerate(self._chain_quad_ik):
-            oIk.rename(nomenclature_rig.resolve("QuadChain{0:02}".format(i)))
+        for idx, obj in enumerate(self._chain_quad_ik):
+            obj.rename(nomenclature_rig.resolve("QuadChain{0:02}".format(idx)))
 
             # Constraint the bones after the iCtrlIdx to
             # the first ik chain to make the foot roll work correctly
-            if i > self.iCtrlIndex:
-                pymel.parentConstraint(self._chain_ik[i], self._chain_quad_ik[i])
+            if idx > self.iCtrlIndex:
+                pymel.parentConstraint(self._chain_ik[idx], self._chain_quad_ik[idx])
         self._chain_quad_ik[0].setParent(self._chain_ik[0])
 
         # Hack: Since we are using direct connection on the first joint of the ik chain,

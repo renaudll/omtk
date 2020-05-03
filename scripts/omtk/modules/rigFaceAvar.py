@@ -22,7 +22,7 @@ from omtk.models.model_ctrl_linear import ModelCtrlLinear
 class BaseCtrlFace(classCtrl.BaseCtrl):
     def fetch_shapes(self):
         """
-        Face ctrls CAN have non-uniform scaling. 
+        Face ctrls CAN have non-uniform scaling.
         To circumvent this we'll remove the ctrl rotation when attaching.
         This is because the shape is fetch in local space.
         This allow an arm ctrl to snap to the right location if the arm length change.
@@ -58,8 +58,8 @@ class CtrlFaceMacro(BaseCtrlFace):
     Macro avars create secondary movement in the face by orchestrating micro avars.
     """
 
-    def __createNode__(self, normal=(0, 0, 1), **kwargs):
-        return libCtrlShapes.create_square(normal=normal, **kwargs)
+    def __createNode__(self, **kwargs):
+        return libCtrlShapes.create_square(**kwargs)
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
@@ -103,7 +103,16 @@ class AbstractAvar(classModule.Module):
         super(AbstractAvar, self).__init__(*args, **kwargs)
         self.surface = None  # todo: Move to AvarFollicle
         self.avar_network = None
-        self.init_avars()
+
+        self.attr_ud = None
+        self.attr_lr = None
+        self.attr_fb = None
+        self.attr_yw = None
+        self.attr_pt = None
+        self.attr_rl = None
+        self.attr_sx = None
+        self.attr_sy = None
+        self.attr_sz = None
 
         self._sys_ctrl = None
         self.ctrl = None
@@ -123,17 +132,6 @@ class AbstractAvar(classModule.Module):
         self.multiplier_lr = 0.25
         self.multiplier_ud = 0.25
         self.multiplier_fb = 0.10
-
-    def init_avars(self):
-        self.attr_ud = None  # Up/Down
-        self.attr_lr = None  # Left/Right
-        self.attr_fb = None  # Front/Back
-        self.attr_yw = None  # Yaw
-        self.attr_pt = None  # Pitch
-        self.attr_rl = None  # Roll
-        self.attr_sx = None  # Up/Down scale
-        self.attr_sy = None  # Left/Right scale
-        self.attr_sz = None  # Front/Back scale
 
     def add_avar(self, attr_holder, name, defaultValue=0.0):
         """
@@ -242,7 +240,16 @@ class AbstractAvar(classModule.Module):
 
     def unbuild(self):
         self.hold_avars()
-        self.init_avars()
+
+        self.attr_ud = None
+        self.attr_lr = None
+        self.attr_fb = None
+        self.attr_yw = None
+        self.attr_pt = None
+        self.attr_rl = None
+        self.attr_sx = None
+        self.attr_sy = None
+        self.attr_sz = None
 
         super(AbstractAvar, self).unbuild()
 
@@ -342,7 +349,8 @@ class AbstractAvar(classModule.Module):
 
     def build(self, mult_u=1.0, mult_v=1.0, **kwargs):
         """
-        Any FacePnt is controlled via "avars" (animation variables) in reference to "The Art of Moving Points".
+        Any FacePnt is controlled via "avars" (animation variables),
+        in reference to "The Art of Moving Points".
         """
         super(AbstractAvar, self).build(disconnect_inputs=False, **kwargs)
 

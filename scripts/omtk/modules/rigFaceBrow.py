@@ -6,7 +6,15 @@ from omtk.modules import rigFaceAvar
 
 
 class CtrlBrow(rigFaceAvar.BaseCtrlFace):
+    """
+    Ctrl for brow avars
+    """
     def __createNode__(self, **kwargs):
+        """
+        Build the
+        :param dict kwargs: Keyword arguments, unused
+        :return:
+        """
         return libCtrlShapes.create_triangle_low()
 
 
@@ -35,10 +43,11 @@ class FaceBrow(rigFaceAvarGrps.AvarGrpOnSurface):
     def _create_avar_macro_r_ctrls(self, ctrl_tm=None, **kwargs):
         # Find the middle of l eyebrow.
         # We expect the right-side influence to be mirrored in behavior.
-        # However this should be applied to to influence tm, not the ctrl tm. Clean this please.
+        # However this should be applied to to influence tm, not the ctrl tm.
+        # Clean this please.
         pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
         ctrl_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, -1.0, 0, 0, 0, 0, -1.0, 0, pos.x, pos.y, pos.z, 1
+            [1, 0, 0, 0], [0, -1.0, 0, 0], [0, 0, -1.0, 0], [pos.x, pos.y, pos.z, 1]
         )
 
         super(FaceBrow, self)._create_avar_macro_r_ctrls(ctrl_tm=ctrl_tm)

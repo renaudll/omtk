@@ -1,4 +1,3 @@
-import logging
 import pymel.core as pymel
 from omtk.core.classModule import Module
 from omtk.core.exceptions import ValidationError
@@ -23,13 +22,14 @@ class Hand(Module):
     @libPython.cached_property()
     def chains(self):
         """
-        Sort the finger chains by their relative position to the hand. This give consistent order.
+        Sort the finger chains by their relative position to the hand.
+        This give consistent order.
         :return: The chains sorted by their position relative to the hand.
         """
         # TODO: Implement 'super' behavior in property
         chains = libPymel.get_chains_from_objs(self.input)
 
-        # TODO : Do we want to check the distance in the world or related to the parent ?
+        # TODO : Do we want to check the distance in the world or related to the parent?
         def sort_chain(chain):
             local_tm = chain.end.getMatrix(worldSpace=True)
             return local_tm.translate.z
@@ -59,19 +59,20 @@ class Hand(Module):
     def build(self, *args, **kwargs):
         super(Hand, self).build(parent=False, *args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm()
-        nomenclature_rig = self.get_nomenclature_rig()
+        naming = self.get_nomenclature_rig()
 
         # Resolve how many fingers we want.
         # Note that a finger don't necessarily have a metacarpal.
         # To properly preserve the mapping between the finger and the metacarpal, we
-        # ensure that self.fk_sys_metacarpals have the same numbers of elements than self.sysFingers.
+        # ensure that self.fk_sys_metacarpals have the same numbers of elements
+        # than self.sysFingers.
         num_fingers = len(self.chains)
         libPython.resize_list(self.sysFingers, num_fingers)
         libPython.resize_list(self.fk_sys_metacarpals, num_fingers)
 
         # Resolve the influences for each fingers.
-        # This compute a two-sized tuple that contain the influences for the metacarpal and the phalanges influences.
+        # This compute a two-sized tuple that contain the influences for the metacarpal
+        # and the phalanges influences.
         finger_entries = []
         for chain in self.chains:
             chain_length = len(chain)
@@ -114,7 +115,8 @@ class Hand(Module):
                 sys_metacarpal.grp_anm.setParent(self.grp_anm)
 
             sys_finger.create_spaceswitch = False
-            # Force input name to prevent any ctrl duplication name when the chain only have 1 input
+            # Force input name to prevent any ctrl duplication name
+            # when the chain only have 1 input
             sys_finger._FORCE_INPUT_NAME = True
             # Lock and hide addFk ctrl for the hand
             # TODO - Switch to fi the fingers ?
@@ -134,33 +136,21 @@ class Hand(Module):
 
             # Resolve the metacarpal plane orientation
             parent_tm = self.parent.getMatrix(worldSpace=True)
-            x = pos_out - pos_inn
-            x.normalize()
-            y = pymel.datatypes.Vector(parent_tm.a10, parent_tm.a11, parent_tm.a12)
-            z = x.cross(y)  # Get the front vector
-            z.normalize()
-            y = x.cross(z)  # Ensure the up vector is orthogonal
-            y.normalize()
+            z_axis = pos_out - pos_inn
+            z_axis.normalize()
+            y_axis = pymel.datatypes.Vector(parent_tm.a10, parent_tm.a11, parent_tm.a12)
+            x_axis = z_axis.cross(y_axis)  # Get the front vector
+            x_axis.normalize()
+            y_axis = z_axis.cross(x_axis)  # Ensure the up vector is orthogonal
+            y_axis.normalize()
             ref_tm = pymel.datatypes.Matrix(
-                z.x,
-                z.y,
-                z.z,
-                0.0,
-                y.x,
-                y.y,
-                y.z,
-                0.0,
-                x.x,
-                x.y,
-                x.z,
-                0.0,
-                pos_mid.x,
-                pos_mid.y,
-                pos_mid.z,
-                1.0,
+                [x_axis.x, x_axis.y, x_axis.z, 0.0],
+                [y_axis.x, y_axis.y, y_axis.z, 0.0],
+                [z_axis.x, z_axis.y, z_axis.z, 0.0],
+                [pos_mid.x, pos_mid.y, pos_mid.z, 1.0],
             )
             rig_metacarpal_center = pymel.spaceLocator(
-                name=nomenclature_rig.resolve("metacarpCenter")
+                name=naming.resolve("metacarpCenter")
             )
             rig_metacarpal_center.setMatrix(ref_tm)
             rig_metacarpal_center.setParent(self.grp_rig)
@@ -178,7 +168,7 @@ class Hand(Module):
                 pos = ctrl_metacarpal.ctrls[0].getTranslation(space="world")
                 ratio = (pos - pos_inn).length() / width
 
-                grp_pivot_name = nomenclature_rig.resolve(
+                grp_pivot_name = naming.resolve(
                     ctrl_metacarpal.input[0].stripNamespace().nodeName() + "_pivot"
                 )
                 grp_pivot = pymel.createNode("transform", name=grp_pivot_name)

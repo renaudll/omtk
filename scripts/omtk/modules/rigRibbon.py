@@ -1,7 +1,6 @@
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
-from omtk.libs import libPymel
 from omtk.libs import libRigging
 from omtk.libs import libSkinning
 from omtk.libs import libPython
@@ -12,7 +11,7 @@ class CtrlRibbon(BaseCtrl):
     Inherit of base Ctrl to create a specific square shaped controller
     """
 
-    def __createNode__(self, *args, **kwargs):
+    def __createNode__(self, *args, **kwargs):  # pylint: disable=arguments-differ
         node = super(CtrlRibbon, self).__createNode__(*args, **kwargs)
         make = next(iter(node.getShape().create.inputs()), None)
         if make:

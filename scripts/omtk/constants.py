@@ -1,6 +1,12 @@
-class Axis:
+"""
+Public constants
+"""
+# TODO: Use real enum or convert to scalar
+
+
+class Axis:  # pylint: disable=old-style-class, no-init
     """
-    Fake enum as class with constant variable to represent the axis value that could change
+    Available axis for a 3 dimensional vector.
     """
 
     x = "X"
@@ -8,9 +14,9 @@ class Axis:
     z = "Z"
 
 
-class SpaceSwitchReservedIndex:
+class SpaceSwitchReservedIndex:  # pylint: disable=old-style-class, no-init
     """
-    Fake enum as class with constant variable to represent the reserved index in controller space switch
+    Reserved index for space swiching.
     """
 
     world = -3
@@ -18,7 +24,7 @@ class SpaceSwitchReservedIndex:
     root = -1
 
 
-class UIExposeFlags:
+class UIExposeFlags:  # pylint: disable=old-style-class, no-init
     """
     Flags used when exposing Rig or Module functionality in the ui.
     """
@@ -28,7 +34,7 @@ class UIExposeFlags:
 
 class EnvironmentVariables:
     """
-    Customize the behavior of OMTK by defining thoses environment variables.
+    Customize the behavior of OMTK by defining environment variables.
     """
 
     # Force a specific rig type as default.

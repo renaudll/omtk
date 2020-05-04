@@ -198,7 +198,7 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
     data_id = id(data)
     result = cache.get_import_value_by_id(data_id)
     if result is not None:
-        print("Using cache for {0}".format(data))
+        logging.debug("Using cache for %s", data)
         return result
 
     data_type = get_data_type(data)

@@ -1,3 +1,6 @@
+"""
+Widget that display a logger records.
+"""
 import logging
 import datetime
 from omtk.widgets.ui import widget_logger
@@ -8,6 +11,13 @@ log = logging.getLogger("omtk")
 
 
 def log_level_to_str(level):
+    """
+    Convert a log level to it's human readable representation.
+
+    :param int level: A log level
+    :return: A human readable string
+    :rtype: str
+    """
     if level >= logging.CRITICAL:
         return "Critical"
     if level >= logging.ERROR:
@@ -18,6 +28,9 @@ def log_level_to_str(level):
 
 
 class UiLoggerModel(QtCore.QAbstractTableModel):
+    """
+    Qt Model to display log records in a table.
+    """
     HEADER = ("Date", "Type", "Message")
 
     ROW_LEVEL = 1
@@ -39,10 +52,10 @@ class UiLoggerModel(QtCore.QAbstractTableModel):
         self.items = data
         self.header = self.HEADER
 
-    def rowCount(self, parent):
+    def rowCount(self, _):
         return len(self.items)
 
-    def columnCount(self, parent):
+    def columnCount(self, _):
         return len(self.header)
 
     def data(self, index, role):
@@ -79,12 +92,14 @@ class UiLoggerModel(QtCore.QAbstractTableModel):
         if col_index == self.ROW_LEVEL:
             level = record.levelno
             return log_level_to_str(level)
-        elif col_index == self.ROW_MESSAGE:
+
+        if col_index == self.ROW_MESSAGE:
             return record.message
-        elif col_index == self.ROW_DATE:
+
+        if col_index == self.ROW_DATE:
             return str(datetime.datetime.fromtimestamp(record.created))
-        else:
-            Exception("Unexpected row. Expected 0 or 1, got %s" % col_index)
+
+        Exception("Unexpected row. Expected 0 or 1, got %s" % col_index)
 
     def headerData(self, col, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
@@ -104,6 +119,9 @@ class UiLoggerModel(QtCore.QAbstractTableModel):
 
 
 class UiLoggerProxyModel(QtCore.QSortFilterProxyModel):
+    """
+    Qt proxy model that filter log records by their level of content.
+    """
     def __init__(self, *args, **kwargs):
         super(UiLoggerProxyModel, self).__init__(*args, **kwargs)
         self._log_level_interest = logging.WARNING
@@ -158,7 +176,8 @@ class WidgetLogger(QtWidgets.QWidget):
         # Used to store the records so our TableView can filter them
         self._logging_records = []
         # Used to store what log level we are interested.
-        # We use a separated value here since we might want to keep other log handlers active (external files, script editor, etc)
+        # We use a separated value here since we might want to keep other
+        # log handlers active (external files, script editor, etc)
         self._logging_level = logging.WARNING
 
         table_model = UiLoggerModel(self, self._logging_records)
@@ -201,8 +220,8 @@ class WidgetLogger(QtWidgets.QWidget):
                 :param record: The record that been emitted
                 :return:
                 """
-                # TODO - Find a solution for the problem where if the UI is not closed correctly,
-                # tableView_log is not valid
+                # TODO - Find a solution for the problem where
+                #  if the UI is not closed correctly, tableView_log is not valid.
                 self._main_class._logging_records.append(record)
                 try:
                     self._main_class.ui.tableView_logs.model().reset()
@@ -212,7 +231,6 @@ class WidgetLogger(QtWidgets.QWidget):
 
         handler = QtHandler(self)
 
-        # handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         log.addHandler(handler)
         log.setLevel(logging.DEBUG)
         self._logging_handlers.append(handler)

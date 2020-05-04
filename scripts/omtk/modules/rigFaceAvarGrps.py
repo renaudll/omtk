@@ -62,18 +62,6 @@ class CtrlFaceLow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low(size=size)
 
 
-class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
-    ATTR_NAME_GLOBAL_SCALE = "globalScale"
-    """
-    Base controller class for an avar controlling all the avars of an AvarGrp.
-    """
-
-    def __createNode__(self, size=1.0, **kwargs):
-        # todo: find the best shape
-        transform, _ = libCtrlShapes.create_shape_circle(size=size, normal=(0, 0, 1))
-        return transform
-
-
 class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
     """
     Base controller class for an avar controlling the left or right part of an AvarGrp.
@@ -103,6 +91,7 @@ class ModelMicroAvarCtrl(ModelInteractiveCtrl):
         self,
         avar,
         avar_grp,
+        ctrl,
         ud=True,
         fb=True,
         lr=True,
@@ -113,11 +102,12 @@ class ModelMicroAvarCtrl(ModelInteractiveCtrl):
         sy=True,
         sz=True,
     ):
-        avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
+        avar_tweak = avar_grp.get_micro_tweak_avars_dict().get(avar, None)
         if avar_tweak:
             super(ModelMicroAvarCtrl, self).connect(
                 avar,
                 avar_grp,
+                ctrl,
                 ud=ud,
                 fb=fb,
                 lr=lr,
@@ -131,6 +121,7 @@ class ModelMicroAvarCtrl(ModelInteractiveCtrl):
             super(ModelMicroAvarCtrl, self).connect(
                 avar_tweak,
                 avar_grp,
+                ctrl,
                 ud=False,
                 fb=False,
                 lr=False,
@@ -145,6 +136,7 @@ class ModelMicroAvarCtrl(ModelInteractiveCtrl):
             super(ModelMicroAvarCtrl, self).connect(
                 avar,
                 avar_grp,
+                ctrl,
                 ud=ud,
                 fb=fb,
                 lr=lr,
@@ -369,7 +361,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             if influence in avar.input:
                 return avar
 
-    def _get_micro_tweak_avars_dict(self):
+    def get_micro_tweak_avars_dict(self):
         result = {}
         influences_by_parent_level = self._get_relative_parent_level_by_influences()
         top_level = self._get_hierarchy_depth()
@@ -382,7 +374,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         return result
 
     def _is_tweak_avar(self, avar):
-        return avar in self._get_micro_tweak_avars_dict().values()
+        return avar in self.get_micro_tweak_avars_dict().values()
 
     #
     # Avar methods
@@ -538,7 +530,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             )
 
         # Connect 'tweak' avars to their equivalent.
-        for avar_micro, avar_tweak in self._get_micro_tweak_avars_dict().iteritems():
+        for avar_micro, avar_tweak in self.get_micro_tweak_avars_dict().iteritems():
             libRigging.connectAttr_withBlendWeighted(
                 avar_micro.attr_lr, avar_tweak.attr_lr
             )
@@ -587,6 +579,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         :param kwargs: Keyword arguments are forwarded to the super class.
         :return:
         """
+        # TODO: Deprecate!
         if cls_ctrl:
             avar._CLS_CTRL = cls_ctrl  # Hack, find a more elegant way.
 
@@ -829,7 +822,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         cls_infl_model=None,
         name=None,
         suffix=None,
-    ):
+    ):  # TODO: Remove to from_instance
         """
         Factory method that initialize an avar instance only if necessary.
         If the instance already had been initialized in a previous build,
@@ -858,7 +851,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             self.log.warning("No avar class specified for %s, using default.", self)
             cls = rigFaceAvar.AvarSimple
 
-        result = cls.from_instance(
+        inst = cls.from_instance(
             self.rig,
             inst,
             (self.get_nomenclature() + suffix).resolve() if suffix else self.name,
@@ -868,41 +861,44 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         # It is possible that the old avar type don't match the desired one.
         # When this happen, we'll try at least to
         # save the ctrl instance so the shapes match.
-        if inst and result != inst:
-            result.ctrl = inst.ctrl
-            result.avar_network = inst.avar_network
+        if inst and inst != inst:
+            inst.ctrl = inst.ctrl
+            inst.avar_network = inst.avar_network
 
         # Ensure the result instance always have the same surface as it's parent.
-        result.surface = self.surface
+        inst.surface = self.surface
 
         # Apply cls_ctrl override if specified
+        # TODO: Deprecate
         if cls_ctrl:
-            result._CLS_CTRL = cls_ctrl
+            inst._CLS_CTRL = cls_ctrl
 
         # Apply cls_ctrl_model override if specified
+        # TODO: Deprecate
         if cls_ctrl_model:
-            result._CLS_MODEL_CTRL = cls_ctrl_model
+            inst._CLS_MODEL_CTRL = cls_ctrl_model
 
         # Apply cls_infl_model override if specified
+        # TODO: Deprecate
         if cls_infl_model:
-            result._CLS_MODEL_INFL = cls_infl_model
+            inst._CLS_MODEL_INFL = cls_infl_model
 
         # Apply name override if specified
         if name:
-            result.name = name
+            inst.name = name
         else:
-            ref = result.jnt
+            ref = inst.jnt
             if ref:
-                result.name = (
+                inst.name = (
                     self.get_nomenclature()
                     + self.rig.nomenclature(ref.stripNamespace().nodeName())
                 ).resolve()
 
         # Keep a reference to the module parent.
         # todo: implement a generic mechanism for all modules?
-        result._parent_module = self
+        inst._parent_module = self
 
-        return result
+        return inst
 
     def configure_avar(self, avar):
         """
@@ -976,6 +972,15 @@ class AvarGrpOnSurface(AvarGrp):
     # Macro avars are always abstract
     # (except the all macro which can potentially drive something)
     _CLS_AVAR_MACRO = rigFaceAvar.AvarFollicle
+    _CLS_AVAR_MACRO_ALL = rigFaceAvar.AvarMacroAll
+
+    # TODO: move to macro avar
+    _CLS_CTRL_LFT = CtrlFaceMacroL
+    _CLS_CTRL_RGT = CtrlFaceMacroR
+    _CLS_CTRL_UPP = CtrlFaceUpp
+    _CLS_CTRL_LOW = CtrlFaceLow
+
+    _CLS_MODEL_CTRL_ALL = ModelCtrlMacroAll
 
     def __init__(self, *args, **kwargs):
         super(AvarGrpOnSurface, self).__init__(*args, **kwargs)
@@ -995,19 +1000,6 @@ class AvarGrpOnSurface(AvarGrp):
         Expose the function in the ui, using the decorator.
         """
         return super(AvarGrpOnSurface, self).create_surface(*args, **kwargs)
-
-    _CLS_CTRL_LFT = CtrlFaceMacroL
-    _CLS_CTRL_RGT = CtrlFaceMacroR
-    _CLS_CTRL_UPP = CtrlFaceUpp
-    _CLS_CTRL_LOW = CtrlFaceLow
-    _CLS_CTRL_ALL = CtrlFaceAll
-    _CLS_MODEL_CTRL_ALL = ModelCtrlMacroAll
-
-    # We always want a linear avar-influence model for the 'all' macro avar.
-    # For example if eyelids are following a round surface,
-    # we still want the 'all' macro avar to be linear.
-    # However we might want to define the range from the shared surface.
-    _CLS_MODEL_INFL_ALL = model_avar_linear.AvarLinearModel
 
     SHOW_IN_UI = True
     UI_DISPLAY_NAME = "AvarGrp"
@@ -1440,12 +1432,9 @@ class AvarGrpOnSurface(AvarGrp):
             nomenclature.add_tokens("macro", self.rig.AVAR_NAME_ALL)
             avar_all_name = nomenclature.resolve()
             self.avar_all = self._init_avar(
-                self._CLS_AVAR_MACRO,
+                self._CLS_AVAR_MACRO_ALL,
                 self.avar_all,
                 ref=avar_all_ref,
-                cls_ctrl=self._CLS_CTRL_UPP,
-                cls_ctrl_model=self._CLS_MODEL_CTRL_ALL,
-                cls_infl_model=self._CLS_MODEL_INFL_ALL,
                 name=avar_all_name,
             )
             self.avar_all.name = avar_all_name
@@ -1690,12 +1679,11 @@ class AvarGrpOnSurface(AvarGrp):
             [pos.x, pos.y, pos.z + offset_z, 1],
         )
 
-    def _build_avar_macro_all(
-        self, connect_ud=True, connect_lr=True, connect_fb=True, constraint=False
-    ):
+    def _build_avar_macro_all(self):
         # Create all avar if necessary
         # Note that the use can provide an influence.
-        # If no influence was found, we'll create an 'abstract' avar that doesn't move anything.
+        # If no influence was found,
+        # we'll create an 'abstract' avar that doesn't move anything.
         if self.create_macro_all:
             # We'll always want to macro avar to be at the center of the plane.
             jnt_tm = self._get_avar_macro_all_influence_tm()
@@ -1703,7 +1691,7 @@ class AvarGrpOnSurface(AvarGrp):
             constraint = True if self.get_influence_all() else False
 
             self._build_avar_macro(
-                self._CLS_CTRL_ALL, self.avar_all, jnt_tm=jnt_tm, constraint=constraint
+                None, self.avar_all, jnt_tm=jnt_tm, constraint=constraint
             )
 
     def _build_avars(self, **kwargs):

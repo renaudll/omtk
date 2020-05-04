@@ -36,11 +36,9 @@ class CtrlEye(BaseCtrl):
 
 
 class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
-    _CLS_CTRL = BaseCtrl
 
     def __init__(self, *args, **kwargs):
         super(BaseAvarCtrlModel, self).__init__(*args, **kwargs)
-        self.ctrl = None
 
     def get_default_tm_ctrl(self):
         if self.jnt:
@@ -48,13 +46,13 @@ class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
         raise Exception("Cannot resolve ctrl transformation matrix!")
 
     # todo: implement correct build method that also create the ctrl.
-    def build(self, ctrl_tm=None, ctrl_size=1.0, **kwargs):
+    def build(self, ctrl, ctrl_tm=None, ctrl_size=1.0, **kwargs):
         super(BaseAvarCtrlModel, self).build(**kwargs)
 
         # Resolve ctrl matrix
         ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
         if ctrl_tm:
-            self.ctrl.setMatrix(ctrl_tm)
+            ctrl.setMatrix(ctrl_tm)
 
     def connect(
         self,
@@ -76,8 +74,6 @@ class ModelLookAt(BaseAvarCtrlModel):
     """
     This controller avars from an object aimConstrained to a ctrl.
     """
-
-    _CLS_CTRL = BaseCtrl
 
     def __init__(self, *args, **kwargs):
         super(ModelLookAt, self).__init__(*args, **kwargs)
@@ -108,7 +104,7 @@ class ModelLookAt(BaseAvarCtrlModel):
             [jnt_pos.x, jnt_pos.y, jnt_pos.z + offset_z],
         )
 
-    def build(self, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
+    def build(self, ctrl, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
         super(ModelLookAt, self).build(ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
 
         naming = self.get_nomenclature_rig()
@@ -131,7 +127,7 @@ class ModelLookAt(BaseAvarCtrlModel):
         aim_target = pymel.createNode("transform", name=aim_target_name)
         aim_target.setParent(aim_grp)
         self.target = aim_target  # todo: remove?
-        pymel.pointConstraint(self.ctrl, aim_target, maintainOffset=False)
+        pymel.pointConstraint(ctrl, aim_target, maintainOffset=False)
 
         # Build an upnode for the eyes.
         # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.

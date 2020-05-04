@@ -73,6 +73,11 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         return "Jaw"
 
 
+class FaceAvarMacroAll(rigFaceAvar.AvarMacroAll):
+    _CLS_CTRL = CtrlJaw
+    _CLS_MODEL_CTRL = ModelCtrlJaw
+
+
 class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
     """
     AvarGrp customized for jaw rigging. Necessary for some facial modules.
@@ -82,12 +87,11 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
 
     _CLS_AVAR = AvarJaw
     _CLS_AVAR_MACRO = rigFaceAvar.AvarSimple  # todo: use AbstractAvar???
+    _CLS_AVAR_MACRO_ALL = FaceAvarMacroAll
     CREATE_MACRO_AVAR_ALL = True
     CREATE_MACRO_AVAR_HORIZONTAL = False
     CREATE_MACRO_AVAR_VERTICAL = False
-    _CLS_CTRL_ALL = CtrlJaw
     _CLS_CTRL_MICRO = None
-    _CLS_MODEL_CTRL_ALL = ModelCtrlJaw
     _CLS_MODEL_CTRL_MICRO = None
     SHOW_IN_UI = True
     SINGLE_INFLUENCE = True
@@ -118,7 +122,7 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
                 p = pos_s
 
         result = pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, p.x, p.y, p.z, 1
+            [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [p.x, p.y, p.z, 1]
         )
         return result
 

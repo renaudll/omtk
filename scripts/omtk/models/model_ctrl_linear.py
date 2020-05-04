@@ -25,7 +25,6 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
     3) Optionally call .calibrate()
     """
 
-    _CLS_CTRL = BaseCtrl
     _ATTR_NAME_SENSITIVITY_TX = "sensitivityX"
     _ATTR_NAME_SENSITIVITY_TY = "sensitivityY"
     _ATTR_NAME_SENSITIVITY_TZ = "sensitivityZ"
@@ -119,6 +118,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
     def build(
         self,
+        ctrl,
         ref=None,
         ref_tm=None,
         grp_rig=None,
@@ -127,8 +127,6 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         v_coord=None,
         flip_lr=False,
         follow_mesh=True,
-        ctrl_tm=None,
-        ctrl_size=1.0,
         parent_pos=None,
         parent_rot=None,
         parent_scl=None,
@@ -139,7 +137,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         **kwargs
     ):
         # todo: get rid of the u_coods, v_coods etc, we should rely on the bind
-        super(ModelCtrlLinear, self).build(ctrl_size=ctrl_size, **kwargs)
+        super(ModelCtrlLinear, self).build(ctrl, **kwargs)
 
         naming = self.get_nomenclature_rig()
 
@@ -155,9 +153,12 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         ref = ref or self.jnt
 
         # Resolve the ctrl default tm
-        ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
-        if ctrl_tm is None:
-            raise Exception("Cannot resolve ctrl transformation matrix!")
+        ctrl_tm = ctrl.getMatrix(worldSpace=True)
+        # ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
+        # if ctrl_tm is None:
+        #     raise Exception("Cannot resolve ctrl transformation matrix!")
+
+        flip_lr = self.get_nomenclature().side == self.rig.nomenclature.SIDE_R
 
         # By default, we expect the rigger to mirror the face joints using the 'behavior' mode.
         if flip_lr:
@@ -223,8 +224,8 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         # Hack: Since there's scaling on the ctrl so the left and right side ctrl
         # channels matches, we need to flip the ctrl shapes.
         if flip_lr:
-            self.ctrl.scaleX.set(-1)
-            libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
+            ctrl.scaleX.set(-1)
+            libPymel.makeIdentity_safe(ctrl, rotate=True, scale=True, apply=True)
 
         grp_output = pymel.createNode(
             "transform", name=naming.resolve("output"), parent=self.grp_rig
@@ -310,13 +311,13 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
                 input2Y=1.0,
                 input2Z=1.0,
             ).output
-        pymel.connectAttr(attr_ctrl_offset_scale, self.ctrl.offset.scale)
+        pymel.connectAttr(attr_ctrl_offset_scale, ctrl.offset.scale)
 
         # Apply sensibility on the ctrl shape
-        ctrl_shape = self.ctrl.node.getShape()
-        tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
+        ctrl_shape = ctrl.node.getShape()
+        tmp = pymel.duplicate(ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
-        ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
+        ctrl_shape_orig.setParent(ctrl.node, relative=True, shape=True)
         ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
@@ -337,9 +338,9 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
         attr_adjustement_rot = libRigging.create_utility_node(
             "composeMatrix",
-            inputRotateX=self.ctrl.node.rotateX,
-            inputRotateY=self.ctrl.node.rotateY,
-            inputRotateZ=self.ctrl.node.rotateZ,
+            inputRotateX=ctrl.node.rotateX,
+            inputRotateY=ctrl.node.rotateY,
+            inputRotateZ=ctrl.node.rotateZ,
         ).outputMatrix
 
         attr_adjustement_rot_inv = libRigging.create_utility_node(
@@ -362,11 +363,11 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         ).outputGeometry
         pymel.connectAttr(attr_transform_geometry, ctrl_shape.create, force=True)
 
-        pymel.connectAttr(grp_output.translate, self.ctrl.offset.translate)
-        pymel.connectAttr(grp_output.rotate, self.ctrl.offset.rotate)
+        pymel.connectAttr(grp_output.translate, ctrl.offset.translate)
+        pymel.connectAttr(grp_output.rotate, ctrl.offset.rotate)
 
         if constraint and self.jnt:
-            pymel.parentConstraint(self.ctrl.node, self.jnt, maintainOffset=True)
+            pymel.parentConstraint(ctrl.node, self.jnt, maintainOffset=True)
 
             # todo: merge with .connect_ctrl
 
@@ -374,6 +375,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         self,
         avar,
         avar_grp,
+        ctrl,
         ud=True,
         fb=True,
         lr=True,
@@ -388,37 +390,37 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
         # Position
         if ud:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateY, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(ctrl.translateY, avar.attr_ud)
 
         if lr:
-            attr = self.ctrl.translateX
+            attr = ctrl.translateX
             attr = _flip_attr(attr) if need_flip else attr
             libRigging.connectAttr_withBlendWeighted(attr, avar.attr_lr)
 
         if fb:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateZ, avar.attr_fb)
+            libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, avar.attr_fb)
 
         # Rotation
         if yw:
-            attr = self.ctrl.rotateY
+            attr = ctrl.rotateY
             attr = _flip_attr(attr) if need_flip else attr
             libRigging.connectAttr_withBlendWeighted(attr, avar.attr_yw)
 
         if pt:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.rotateX, avar.attr_pt)
+            libRigging.connectAttr_withBlendWeighted(ctrl.rotateX, avar.attr_pt)
 
         if rl:
-            attr = self.ctrl.rotateZ
+            attr = ctrl.rotateZ
             attr = _flip_attr(attr) if need_flip else attr
             libRigging.connectAttr_withBlendWeighted(attr, avar.attr_rl)
 
         # Scale
         if sx:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleX, avar.attr_sx)
+            libRigging.connectAttr_withBlendWeighted(ctrl.scaleX, avar.attr_sx)
         if sy:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleY, avar.attr_sy)
+            libRigging.connectAttr_withBlendWeighted(ctrl.scaleY, avar.attr_sy)
         if sz:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleZ, avar.attr_sz)
+            libRigging.connectAttr_withBlendWeighted(ctrl.scaleZ, avar.attr_sz)
 
     def unbuild(self):
         # Ensure the shape stay consistent between rebuild.
@@ -432,7 +434,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
 
         self.follicle = None
 
-    def _fix_ctrl_shape(self):
+    def _fix_ctrl_shape(self, ctrl):
         """
         When the rigger want to resize an InteractiveCtrl, he will modify the ctrl shape 'controlPoints' attributes.
         This can be problematic since the shape 'create' attribute is feed from a transformGeometry node
@@ -442,9 +444,9 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         contain the deformation from the 'controlPoints' attribute). The 'local' attribute of that shape will then be
         fed back to the orig shape. Finally, all the original 'controlPoints' will be set to zero.
         """
-        if self.ctrl is None:
+        if ctrl is None:
             return
-        grp_offset = self.ctrl.offset
+        grp_offset = ctrl.offset
 
         def get_orig_shape(shape):
             return next(
@@ -468,7 +470,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
                 None,
             )
 
-        for shape in self.ctrl.node.getShapes(noIntermediate=True):
+        for shape in ctrl.node.getShapes(noIntermediate=True):
             # Resolve orig shape
             shape_orig = get_orig_shape(shape)
             if not shape_orig:
@@ -544,7 +546,7 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         if calibrate:
             self.calibrate()
 
-    def calibrate(self, tx=True, ty=True, tz=True):
+    def calibrate(self, ctrl, tx=True, ty=True, tz=True):
         # TODO: use correct logger
         influence = self.follicle
         if not influence:
@@ -568,18 +570,18 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
             # maya react badly when the parent scale of the ctrl parent we are dragging change suddenly.
             return calib_pos if calib_pos > calib_neg else calib_neg
 
-        if tx and not self.ctrl.node.tx.isLocked():
-            calib_val = _routine(self.ctrl.node.tx, influence)
+        if tx and not ctrl.node.tx.isLocked():
+            calib_val = _routine(ctrl.node.tx, influence)
             self.log.debug("Adjusting sensibility tx for %s to %s", self, calib_val)
             self.attr_sensitivity_tx.set(calib_val)
 
-        if ty and not self.ctrl.node.ty.isLocked():
-            calib_val = _routine(self.ctrl.node.ty, influence)
+        if ty and not ctrl.node.ty.isLocked():
+            calib_val = _routine(ctrl.node.ty, influence)
             self.log.debug("Adjusting sensibility ty for %s to %s", self, calib_val)
             self.attr_sensitivity_ty.set(calib_val)
 
-        if tz and not self.ctrl.node.tz.isLocked():
-            calib_val = _routine(self.ctrl.node.tz, influence)
+        if tz and not ctrl.node.tz.isLocked():
+            calib_val = _routine(ctrl.node.tz, influence)
             self.log.debug("Adjusting sensibility tz for %s to %s", self, calib_val)
             self.attr_sensitivity_tz.set(calib_val)
 

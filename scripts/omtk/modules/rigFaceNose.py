@@ -22,7 +22,7 @@ class ModelMicroAvarNose(model_ctrl_linear.ModelCtrlLinear):
         sy=True,
         sz=True,
     ):
-        avar_tweak = avar_grp._get_micro_tweak_avars_dict().get(avar, None)
+        avar_tweak = avar_grp.get_micro_tweak_avars_dict().get(avar, None)
         if avar_tweak:
             super(ModelMicroAvarNose, self).connect(
                 avar,

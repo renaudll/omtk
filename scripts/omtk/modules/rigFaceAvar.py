@@ -357,15 +357,15 @@ class AbstractAvar(classModule.Module):
         self.add_avars(self.grp_rig)
         self.fetch_avars()
 
-    def need_flip_lr(self):
-        """
-        We might want to flip the lr Avar if they are on the right side.
-        This ensure that if we move Avars from two sides in local,
-        they correctly mirror each others.
-        Note that we use the nomenclature to detect side to prevent precision errors.
-        :return: True if the avar is at the right side. False for left or center.
-        """
-        return self.get_nomenclature_anm().side == self.rig.nomenclature.SIDE_R
+    # def need_flip_lr(self):
+    #     """
+    #     We might want to flip the lr Avar if they are on the right side.
+    #     This ensure that if we move Avars from two sides in local,
+    #     they correctly mirror each others.
+    #     Note that we use the nomenclature to detect side to prevent precision errors.
+    #     :return: True if the avar is at the right side. False for left or center.
+    #     """
+    #     return self.get_nomenclature_anm().side == self.rig.nomenclature.SIDE_R
 
     def iter_ctrls(self):
         for yielded in super(AbstractAvar, self).iter_ctrls():
@@ -383,13 +383,18 @@ class AvarSimple(AbstractAvar):
     """
     A simple avar that can be connected to a deformer and have a single controller.
 
-    The kind of controller depend on rigger preferences.
-    Theses are driven by a "controller model" class. iex:
+    :cvar _CLS_CTRL: The controller class to use.
+    :cvar _CLS_MODEL_CTRL: The controller model class to use.
+    A controller model defined how the ctrl "offset" behave. ex:
     - Controller following the deforming geometry (ModelInteractiveCtrl)
     - Controller moving linearly in space / faceboard (ModelLinearCtrl)
+    :cvar _CLS_MODEL_INFL: The influence model class to use.
+    An influence model defined how the influence is affected by the avar. ex:
+    - Moving linearly in space (AvarLinearModel)
+    - Slidiing on a surface (AvarSurfaceModel)
     """
 
-    _CLS_CTRL = None  # By default, an avar don't have an ctrl.
+    _CLS_CTRL = None
     _CLS_MODEL_CTRL = ModelInteractiveCtrl
     _CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
 
@@ -574,7 +579,8 @@ class AvarSimple(AbstractAvar):
         # However we still need consistency when moving
         # left and right side controller together.
         # So under the hood, add an offset matrix so they are aligned together.
-        if self.need_flip_lr() and self.jnt:
+        flip_lr = self.get_nomenclature().side == self.rig.nomenclature.SIDE_R
+        if flip_lr and self.jnt:
             jnt_tm = (
                 pymel.datatypes.Matrix(
                     [1.0, 0.0, 0.0, 0.0],
@@ -591,6 +597,7 @@ class AvarSimple(AbstractAvar):
             self.rig,
             self.model_infl,
             (self.get_nomenclature() + "avarModel").resolve(),
+            inputs=self.input
         )
         self.model_infl.build()
         self.model_infl.grp_rig.setParent(self.grp_rig)
@@ -637,75 +644,45 @@ class AvarSimple(AbstractAvar):
         if self._CLS_CTRL is None:
             return
 
-        # Init model ctrl
-        if self._CLS_MODEL_CTRL:
-            self.model_ctrl = (
-                self._CLS_MODEL_CTRL.from_instance(
-                    self.rig,
-                    self.model_ctrl,
-                    (self.get_nomenclature() + "ctrlModel").resolve(),
-                    self._CLS_CTRL,
-                    inputs=self.input,
-                )
-                if self._CLS_MODEL_CTRL
-                else None
+        # Create ctrl
+        ctrl_name = self.get_nomenclature_anm().resolve()
+        self.ctrl = self._CLS_CTRL.from_instance(self.ctrl)
+        self.ctrl.build(name=ctrl_name, size=ctrl_size)
+        self.ctrl.setParent(self.grp_anm)
+        if ctrl_tm:
+            self.ctrl.setMatrix(ctrl_tm)
+
+        # Create ctrl model
+        self.model_ctrl = self._CLS_MODEL_CTRL.from_instance(
+            self.rig,
+            self.model_ctrl,
+            (self.get_nomenclature() + "ctrlModel").resolve(),
+            inputs=self.input,
+        ) if self._CLS_MODEL_CTRL else None
+
+        # TODO: Remove that hack!
+        if issubclass(self._CLS_MODEL_CTRL, ModelCtrlLinear):
+            # By default, an InteractiveCtrl follow the rotation of the head.
+            parent_rot = parent_rot or self.get_head_jnt()
+
+            self.model_ctrl.build(
+                self.ctrl,
+                parent_pos=parent_pos,
+                parent_rot=parent_rot,
+                parent_scl=parent_scl,
+                grp_rig_name=self.get_nomenclature_anm_grp().resolve("ctrlModel"),
+                obj_mesh=next(iter(self.get_meshes()), None),
+                attr_bind_tm=self._grp_output.worldMatrix,
+                **kwargs
             )
         else:
-            self.model_ctrl = None
+            self.model_ctrl.build(self.ctrl, parent_rot=parent_rot, **kwargs)
 
-        if self.model_ctrl is None:
-            if not isinstance(self.ctrl, self._CLS_CTRL):
-                self.ctrl = self._CLS_CTRL()
-            self.ctrl.build(size=ctrl_size)
+        if self.model_ctrl.grp_rig and self.grp_rig:
+            self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
-            ctrl_name = self.get_nomenclature_anm().resolve()
-            self.ctrl.rename(ctrl_name)
-
-            if ctrl_tm:
-                self.ctrl.setMatrix(ctrl_tm)
-
-            self.ctrl.setParent(self.grp_anm)
-
-        else:
-            if issubclass(self._CLS_MODEL_CTRL, ModelCtrlLinear):
-                # By default, an InteractiveCtrl follow the rotation of the head.
-                parent_rot = parent_rot or self.get_head_jnt()
-
-                self.model_ctrl.build(
-                    self,
-                    ctrl_tm=ctrl_tm,
-                    ctrl_size=ctrl_size,
-                    flip_lr=self.need_flip_lr(),
-                    parent_pos=parent_pos,
-                    parent_rot=parent_rot,
-                    parent_scl=parent_scl,
-                    grp_rig_name=self.get_nomenclature_anm_grp().resolve("ctrlModel"),
-                    obj_mesh=next(iter(self.get_meshes()), None),
-                    attr_bind_tm=self._grp_output.worldMatrix,
-                    **kwargs
-                )
-
-            else:
-                self.model_ctrl.build(
-                    self,
-                    ctrl_tm=ctrl_tm,
-                    ctrl_size=ctrl_size,
-                    parent_rot=parent_rot,
-                    **kwargs
-                )
-
-            # Expose the ctrl in a backward compatible way.
-            self.ctrl = self.model_ctrl.ctrl
-
-            if self.model_ctrl.grp_anm and self.grp_anm:
-                self.model_ctrl.grp_anm.setParent(self.grp_anm)
-
-            if self.model_ctrl.grp_rig and self.grp_rig:
-                self.model_ctrl.grp_rig.setParent(self.grp_rig)
-
-            # self.connect_ctrl(self.ctrl)
-            if connect:
-                self.model_ctrl.connect(self, parent)
+        if connect:
+            self.model_ctrl.connect(self, parent, self.ctrl)
 
     def calibrate(self):
         """
@@ -763,6 +740,38 @@ class AvarFollicle(AvarSimple):
 
     SHOW_IN_UI = False
     _CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
+
+
+class CtrlFaceAll(BaseCtrlFace):
+    """
+    Base controller class for an avar controlling all the avars of an AvarGrp.
+    """
+    ATTR_NAME_GLOBAL_SCALE = "globalScale"
+
+    def __createNode__(self, size=1.0, **kwargs):
+        # todo: find the best shape
+        return libCtrlShapes.create_shape_circle(size=size, normal=(0, 0, 1))[0]
+
+
+class AvarMacro(AvarSimple):
+    """
+    A macro avar does not necessarily have an influence.
+    In the majority of cases it don't have one and only use it do resolve it's position.
+    """
+    # TODO: Method to get the ctrl class per side?
+    _CLS_MODEL_INFL = None
+
+
+class AvarMacroAll(AvarSimple):
+    """
+    This avar can either drive a facial section "root" influence
+    (ex: A global parent for all lips influence)
+    or serve as an abstract avar if such influence does not exist.
+    In all case we always wait it to move in linear space.
+    """
+    SHOW_IN_UI = False
+    _CLS_CTRL = CtrlFaceAll
+    _CLS_MODEL_CTRL = model_avar_linear.AvarLinearModel
 
 
 def _blend_inn_matrix_attribute(

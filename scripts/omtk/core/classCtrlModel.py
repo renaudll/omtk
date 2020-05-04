@@ -20,17 +20,10 @@ class BaseCtrlModel(classModule.Module):
              Do NOT use constraint as it will create a cyclic evaluation loop.
     """
 
-    # TODO: BaseCtrlModel should receive an already built ctrl.
-    _CLS_CTRL = None
-
     def __init__(self, *args, **kwargs):
         super(BaseCtrlModel, self).__init__(*args, **kwargs)
-        self.ctrl = None
 
         self._attr_inn_parent_tm = None
-
-    def iter_ctrls(self):
-        yield self.ctrl
 
     def create_interface(self):
         """
@@ -41,47 +34,17 @@ class BaseCtrlModel(classModule.Module):
             self.grp_rig, longName="innParentTm", dt="matrix"
         )
 
-    def build(self, ctrl_size=1.0, ctrl_name=None, **kwargs):
+    def build(self, ctrl, **kwargs):
         """
         Build the the ctrl and the necessary logic.
-        :param ctrl_size: The desired ctrl size if supported.
-        :param ctrl_name: The desired ctrl name. If nothing is provided,
-        the ctrl name will be automatically resolved.
+
+        :param ctrl: The controller to affect
+        :type ctrl: omtk.core.classCtrl.BaseCtrl
         """
-        super(BaseCtrlModel, self).build(disconnect_inputs=False, **kwargs)
+        super(BaseCtrlModel, self).build(
+            disconnect_inputs=False, create_grp_anm=False, **kwargs
+        )
         self.create_interface()
-
-        if not ctrl_name:
-            ctrl_name = self.get_nomenclature_anm().resolve()
-
-        # Create ctrl
-        self.ctrl = self._CLS_CTRL.from_instance(self.ctrl)
-        self.ctrl.build(name=ctrl_name, size=ctrl_size)
-        self.ctrl.setParent(self.grp_anm)
-
-    @classmethod
-    def from_instance(self, rig, inst, name, cls_ctrl, inputs=None):
-        """
-        Factory method that initialize a child module instance only if necessary.
-        If the instance already had been initialized in a previous build,
-        it's correct value will be preserved,
-
-        :param rig: The module rig.
-        :type rig: omtk.core.classRig.Rig
-        :param Module inst: An optional module instance
-        :param str name: The module name
-        :param inputs: The module inputs
-        :type inputs: list of str
-        :return: A ctrl model instance
-        :rtype: BaseCtrlModel
-        """
-        inst = super(BaseCtrlModel, self).from_instance(rig, inst, name, inputs)
-
-        # TODO: Is it the responsability of the ctrl model to build the ctrl?
-        # TODO: I don't think so...
-        inst._CLS_CTRL = cls_ctrl
-
-        return inst
 
 
 class CtrlModelCalibratable(BaseCtrlModel):
@@ -137,12 +100,12 @@ class CtrlModelCalibratable(BaseCtrlModel):
         self.attr_sensitivity_ty = _fn(self._ATTR_NAME_SENSITIVITY_TY)
         self.attr_sensitivity_tz = _fn(self._ATTR_NAME_SENSITIVITY_TZ)
 
-    def build(self, **kwargs):
+    def build(self, ctrl, **kwargs):
         super(CtrlModelCalibratable, self).build(**kwargs)
 
-        pymel.connectAttr(self.attr_sensitivity_tx, self.ctrl.offset.scaleX)
-        pymel.connectAttr(self.attr_sensitivity_ty, self.ctrl.offset.scaleY)
-        pymel.connectAttr(self.attr_sensitivity_tz, self.ctrl.offset.scaleZ)
+        pymel.connectAttr(self.attr_sensitivity_tx, ctrl.offset.scaleX)
+        pymel.connectAttr(self.attr_sensitivity_ty, ctrl.offset.scaleY)
+        pymel.connectAttr(self.attr_sensitivity_tz, ctrl.offset.scaleZ)
 
         #
         # Counter-scale the shape
@@ -150,10 +113,10 @@ class CtrlModelCalibratable(BaseCtrlModel):
 
         # Create an 'orig' shape that will store the ctrl appearance before
         # applying any non-uniform scaling.
-        ctrl_shape = self.ctrl.node.getShape()
-        tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
+        ctrl_shape = ctrl.node.getShape()
+        tmp = pymel.duplicate(ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
-        ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
+        ctrl_shape_orig.setParent(ctrl.node, relative=True, shape=True)
         ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
@@ -188,9 +151,9 @@ class CtrlModelCalibratable(BaseCtrlModel):
 
         attr_adjustement_rot = libRigging.create_utility_node(
             "composeMatrix",
-            inputRotateX=self.ctrl.node.rotateX,
-            inputRotateY=self.ctrl.node.rotateY,
-            inputRotateZ=self.ctrl.node.rotateZ,
+            inputRotateX=ctrl.node.rotateX,
+            inputRotateY=ctrl.node.rotateY,
+            inputRotateZ=ctrl.node.rotateZ,
         ).outputMatrix
 
         attr_adjustement_rot_inv = libRigging.create_utility_node(
@@ -216,33 +179,33 @@ class CtrlModelCalibratable(BaseCtrlModel):
     def _get_calibration_reference(self):
         return self.jnt
 
-    def calibrate(self, tx=True, ty=True, tz=True):
+    def calibrate(self, ctrl, tx=True, ty=True, tz=True):
         ref = self._get_calibration_reference()
         if not ref:
             self.log.warning("Can't calibrate %s, found no influences.", self)
             return
 
-        if tx and not self.ctrl.node.tx.isLocked():
+        if tx and not ctrl.node.tx.isLocked():
             sensitivity_tx = libRigging.calibrate_attr_using_translation(
-                self.ctrl.node.tx, ref
+                ctrl.node.tx, ref
             )
             self.log.debug(
                 "Adjusting sensibility tx for %s to %s", self, sensitivity_tx
             )
             self.attr_sensitivity_tx.set(sensitivity_tx)
 
-        if ty and not self.ctrl.node.ty.isLocked():
+        if ty and not ctrl.node.ty.isLocked():
             sensitivity_ty = libRigging.calibrate_attr_using_translation(
-                self.ctrl.node.ty, ref
+                ctrl.node.ty, ref
             )
             self.log.debug(
                 "Adjusting sensibility ty for %s to %s", self, sensitivity_ty
             )
             self.attr_sensitivity_ty.set(sensitivity_ty)
 
-        if tz and not self.ctrl.node.tz.isLocked():
+        if tz and not ctrl.node.tz.isLocked():
             sensitivity_tz = libRigging.calibrate_attr_using_translation(
-                self.ctrl.node.tz, ref
+                ctrl.node.tz, ref
             )
             self.log.debug(
                 "Adjusting sensibility tz for %s to %s", self, sensitivity_tz

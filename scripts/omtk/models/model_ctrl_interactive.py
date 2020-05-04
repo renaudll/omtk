@@ -1,6 +1,5 @@
 import pymel.core as pymel
 
-from omtk.core.classCtrl import BaseCtrl
 from omtk.core import classCtrlModel
 from omtk.core.compounds import create_compound
 from omtk.libs import libRigging
@@ -33,7 +32,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     In an ideal scenario, the rigger would be able to choose which ctrl model he desire.
     """
 
-    _CLS_CTRL = BaseCtrl
     _ATTR_NAME_SENSITIVITY_TX = "sensitivityX"
     _ATTR_NAME_SENSITIVITY_TY = "sensitivityY"
     _ATTR_NAME_SENSITIVITY_TZ = "sensitivityZ"
@@ -102,6 +100,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
     def build(
         self,
+        ctrl,
         ref=None,
         ref_tm=None,
         grp_rig=None,
@@ -110,8 +109,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         v_coord=None,
         flip_lr=False,
         follow_mesh=True,
-        ctrl_tm=None,
-        ctrl_size=1.0,
         parent_pos=None,
         parent_rot=None,
         parent_scl=None,
@@ -120,7 +117,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         cancel_r=True,
         **kwargs
     ):
-        super(ModelInteractiveCtrl, self).build(ctrl_size=ctrl_size, **kwargs)
+        super(ModelInteractiveCtrl, self).build(ctrl, **kwargs)
 
         naming = self.get_nomenclature_rig()
 
@@ -133,11 +130,12 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # Resolve ctrl matrix
         # It can differ from the influence to prevent to prevent issues where the
         # controller dissapear under the geometry.
-        ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
-        ctrl_tm = ctrl_tm or ref_tm
-        ctrl_tm = ctrl_tm or self.jnt.getMatrix(worldSpace=True) if self.jnt else None
-        if ctrl_tm is None:
-            raise Exception("Cannot resolve ctrl transformation matrix!")
+        ctrl_tm = ctrl.getMatrix(worldSpace=True)
+        # ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
+        # ctrl_tm = ctrl_tm or ref_tm
+        # ctrl_tm = ctrl_tm or self.jnt.getMatrix(worldSpace=True) if self.jnt else None
+        # if ctrl_tm is None:
+        #     raise Exception("Cannot resolve ctrl transformation matrix!")
 
         pos_ref = self.project_pos_on_face(ctrl_tm.translate, geos=self.get_meshes())
 
@@ -170,14 +168,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # Hack: Since there's scaling on the ctrl so the left and right side
         # ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
-            self.ctrl.scaleX.set(-1)
-            libPymel.makeIdentity_safe(self.ctrl, rotate=True, scale=True, apply=True)
+            ctrl.scaleX.set(-1)
+            libPymel.makeIdentity_safe(ctrl, rotate=True, scale=True, apply=True)
 
         # Create a "shapeOrig" for the ctrl
-        ctrl_shape = self.ctrl.node.getShape()
-        tmp = pymel.duplicate(self.ctrl.node.getShape())[0]
+        ctrl_shape = ctrl.node.getShape()
+        tmp = pymel.duplicate(ctrl.node.getShape())[0]
         ctrl_shape_orig = tmp.getShape()
-        ctrl_shape_orig.setParent(self.ctrl.node, relative=True, shape=True)
+        ctrl_shape_orig.setParent(ctrl.node, relative=True, shape=True)
         ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
@@ -196,7 +194,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             naming.resolve("ctrlModelInteractive"),
             inputs={
                 "bindTM": ctrl_tm,
-                "ctrlLocalTM": self.ctrl.matrix,
+                "ctrlLocalTM": ctrl.matrix,
                 "ctrlShapeOrig": ctrl_shape_orig.local,
                 "mesh": obj_mesh.outMesh,
                 "parameterU": u_coord,
@@ -207,9 +205,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                 "parentTM": rot_ref.matrix if rot_ref else None,
             },
             outputs={
-                "ctrlOffsetTranslate": self.ctrl.offset.translate,
-                "ctrlOffsetRotate": self.ctrl.offset.rotate,
-                "ctrlOffsetScale": self.ctrl.offset.scale,
+                "ctrlOffsetTranslate": ctrl.offset.translate,
+                "ctrlOffsetRotate": ctrl.offset.rotate,
+                "ctrlOffsetScale": ctrl.offset.scale,
                 "ctrlShapeAdjusted": ctrl_shape.create,
             },
         )
@@ -225,12 +223,13 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         pymel.Attribute("%s.follicleBindTM" % compound.input).set(fol_bind_tm)
 
         if constraint and self.jnt:
-            pymel.parentConstraint(self.ctrl.node, self.jnt, maintainOffset=True)
+            pymel.parentConstraint(ctrl.node, self.jnt, maintainOffset=True)
 
     def connect(
         self,
         avar,
         avar_grp,
+        ctrl,
         ud=True,
         fb=True,
         lr=True,
@@ -245,37 +244,37 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         # Position
         if ud:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateY, avar.attr_ud)
+            libRigging.connectAttr_withBlendWeighted(ctrl.translateY, avar.attr_ud)
 
         if lr:
-            attr = self.ctrl.translateX
+            attr = ctrl.translateX
             attr = _flip_attr(attr) if need_flip else attr
             libRigging.connectAttr_withBlendWeighted(attr, avar.attr_lr)
 
         if fb:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.translateZ, avar.attr_fb)
+            libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, avar.attr_fb)
 
         # Rotation
         if yw:
-            attr = self.ctrl.rotateY
+            attr = ctrl.rotateY
             attr = _flip_attr(attr) if need_flip else attr
             libRigging.connectAttr_withBlendWeighted(attr, avar.attr_yw)
 
         if pt:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.rotateX, avar.attr_pt)
+            libRigging.connectAttr_withBlendWeighted(ctrl.rotateX, avar.attr_pt)
 
         if rl:
-            attr = self.ctrl.rotateZ
+            attr = ctrl.rotateZ
             attr = _flip_attr(attr) if need_flip else attr
             libRigging.connectAttr_withBlendWeighted(attr, avar.attr_rl)
 
         # Scale
         if sx:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleX, avar.attr_sx)
+            libRigging.connectAttr_withBlendWeighted(ctrl.scaleX, avar.attr_sx)
         if sy:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleY, avar.attr_sy)
+            libRigging.connectAttr_withBlendWeighted(ctrl.scaleY, avar.attr_sy)
         if sz:
-            libRigging.connectAttr_withBlendWeighted(self.ctrl.scaleZ, avar.attr_sz)
+            libRigging.connectAttr_withBlendWeighted(ctrl.scaleZ, avar.attr_sz)
 
     def unbuild(self):
         # Ensure the shape stay consistent between rebuild.
@@ -288,7 +287,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         self.attr_sensitivity_tz = None
         self.follicle = None
 
-    def _fix_ctrl_shape(self):
+    def _fix_ctrl_shape(self, ctrl):
         """
         When the rigger want to resize an InteractiveCtrl, he will modify
         the ctrl shape 'controlPoints' attributes. This can be problematic since
@@ -302,9 +301,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         The 'local' attribute of that shape will then be fed back to the orig shape.
         Finally, all the original 'controlPoints' will be set to zero.
         """
-        if self.ctrl is None:
+        if ctrl is None:
             return
-        grp_offset = self.ctrl.offset
+        grp_offset = ctrl.offset
 
         def _get_orig_shape(shape):
             return next(
@@ -328,7 +327,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                 None,
             )
 
-        for shape in self.ctrl.node.getShapes(noIntermediate=True):
+        for shape in ctrl.node.getShapes(noIntermediate=True):
             # Resolve orig shape
             shape_orig = _get_orig_shape(shape)
             if not shape_orig:
@@ -375,13 +374,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             pymel.delete(tmp_shape.getParent())
             pymel.delete(tmp_transform_geometry)
 
-    def swap_mesh(self, new_mesh, calibrate=True):
+    def swap_mesh(self, new_mesh, ctrl, calibrate=True):
         """
         Change the mesh that the follicle is attached to.
         This is made to be used on a build InteractiveCtrlModel.
         :param new_mesh: A mesh of transform containing a mesh.
         :type new_mesh: pymel.nodetypes.Mesh or pymel.nodetypes.Transform
         """
+        # TODO: TEST
         # Resolve the node driven by the follicle.
         # This node contain the bindPose of the ctrl and is linked
         # via a parentConstraint which we'll want to re-create.
@@ -405,9 +405,9 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         pymel.parentConstraint(self.follicle, target, maintainOffset=True)
 
         if calibrate:
-            self.calibrate()
+            self.calibrate(ctrl)
 
-    def calibrate(self, tx=True, ty=True, tz=True):
+    def calibrate(self, ctrl, tx=True, ty=True, tz=True):
         # Determine what to check during calibration
         # Previous versions kept a reference to the follicle in "self.follicle".
         # Newer version keep a reference to the follicle pos in "self.folliclePos".
@@ -421,14 +421,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             self.log.warning("Can't calibrate %s, found no influences.", self)
             return
 
-        self._fix_ctrl_shape()
+        self._fix_ctrl_shape(ctrl)
 
         for enabled, attr_name, attr_dst in (
             (tx, "tx", self.attr_sensitivity_tx),
             (ty, "ty", self.attr_sensitivity_ty),
             (tz, "tz", self.attr_sensitivity_tz),
         ):
-            callibration_attr = self.ctrl.node.attr(attr_name)
+            callibration_attr = ctrl.node.attr(attr_name)
             if not enabled or callibration_attr.isLocked():
                 continue
             sensitivity = fn(callibration_attr, influence)

@@ -3,7 +3,6 @@ import pymel.core as pymel
 from omtk.widgets.ui import widget_list_influences
 
 from omtk.libs import libQt
-from omtk.libs import libPython
 from omtk.libs import libPymel
 
 from omtk.vendor import libSerialization
@@ -42,8 +41,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         if update:
             self.update()
 
-    @libPython.log_execution_time("update_ui_jnts")
-    def update(self, *args, **kwargs):
+    def update(self):
         self.ui.treeWidget.clear()
 
         if self._rig is None:
@@ -64,32 +62,34 @@ class WidgetListInfluences(QtWidgets.QWidget):
         if obj:
             obj_name = obj.name()
 
-            fnFilter = lambda x: libSerialization.is_network_from_class(x, "Module")
+            def _is_module(network):
+                return libSerialization.is_network_from_class(network, "Module")
+
             networks = libSerialization.get_connected_networks(
-                obj, key=fnFilter, recursive=False
+                obj, key=_is_module(), recursive=False
             )
 
-            textBrush = QtGui.QBrush(QtCore.Qt.white)
+            brush = QtGui.QBrush(QtCore.Qt.white)
 
             if self._is_influence(obj):  # todo: listen to the Rig class
-                qItem = QtWidgets.QTreeWidgetItem(0)
-                qItem.obj = obj
+                item = QtWidgets.QTreeWidgetItem(0)
+                item.obj = obj
 
                 # Monkey-patch mesh QWidget
-                qItem.metadata_type = ui_shared.MetadataType.Influence
-                qItem.metadata_data = obj
+                item.metadata_type = ui_shared.MetadataType.Influence
+                item.metadata_data = obj
 
-                qItem.networks = networks
-                qItem.setText(0, obj_name)
-                qItem.setForeground(0, textBrush)
-                ui_shared.set_icon_from_type(obj, qItem)
-                qItem.setCheckState(
+                item.networks = networks
+                item.setText(0, obj_name)
+                item.setForeground(0, brush)
+                ui_shared.set_icon_from_type(obj, item)
+                item.setCheckState(
                     0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked
                 )
-                if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
-                    qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
-                qt_parent.addChild(qItem)
-                qt_parent = qItem
+                if item.flags() & QtCore.Qt.ItemIsUserCheckable:
+                    item.setFlags(item.flags() ^ QtCore.Qt.ItemIsUserCheckable)
+                qt_parent.addChild(item)
+                qt_parent = item
 
         for child_data in data.children:
             self._fill_widget_influences(qt_parent, child_data)
@@ -97,35 +97,40 @@ class WidgetListInfluences(QtWidgets.QWidget):
     def _is_influence(self, obj):
         """
         Supported influences are joints and nurbsSurface.
-        :return:
+
+        :param obj: An object to check
+        :type obj: pymel.PyNode
+        :return: Is the object an influence?
+        :rtype: bool
         """
-        return libPymel.isinstance_of_transform(
-            obj, pymel.nodetypes.Joint
-        ) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        return (
+            libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or
+            libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+        )
 
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:
             query_raw = self.ui.lineEdit_search.text()
             query_regex = ".*%s.*" % query_raw if query_raw else ".*"
 
-        unselectableBrush = QtGui.QBrush(QtCore.Qt.darkGray)
-        selectableBrush = QtGui.QBrush(QtCore.Qt.white)
-        for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
-            can_show = self._can_show_QTreeWidgetItem(qt_item, query_regex)
-            qt_item.setHidden(not can_show)
+        brush_selectable = QtGui.QBrush(QtCore.Qt.white)
+        brush_unselectable = QtGui.QBrush(QtCore.Qt.darkGray)
+        for item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
+            can_show = self._can_show_QTreeWidgetItem(item, query_regex)
+            item.setHidden(not can_show)
             if can_show:
-                qt_item.setForeground(0, selectableBrush)
-                flags = qt_item.flags()
+                item.setForeground(0, brush_selectable)
+                flags = item.flags()
                 if not flags & QtCore.Qt.ItemIsSelectable:  # Make selectable
                     flags ^= QtCore.Qt.ItemIsSelectable
-                    qt_item.setFlags(flags)
-                self._show_parent_recursive(qt_item.parent())
+                    item.setFlags(flags)
+                self._show_parent_recursive(item.parent())
             else:
-                qt_item.setForeground(0, unselectableBrush)
-                flags = qt_item.flags()
+                item.setForeground(0, brush_unselectable)
+                flags = item.flags()
                 if flags & QtCore.Qt.ItemIsSelectable:  # Make selectable
                     flags ^= QtCore.Qt.ItemIsSelectable
-                    qt_item.setFlags(flags)
+                    item.setFlags(flags)
 
         self.ui.treeWidget.expandAll()
 

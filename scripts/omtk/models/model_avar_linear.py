@@ -1,6 +1,6 @@
 import pymel.core as pymel
 
-from omtk.libs import libRigging
+from omtk.core.compounds import create_compound
 
 from .model_avar_base import AvarInflBaseModel
 
@@ -16,35 +16,31 @@ class AvarLinearModel(AvarInflBaseModel):
     _ATTR_NAME_MULT_UD = "multiplierUd"
     _ATTR_NAME_MULT_FB = "multiplierFb"
 
-    def __init__(self, *args, **kwargs):
-        super(AvarLinearModel, self).__init__(*args, **kwargs)
-
-        # Reference to the object containing the bind pose of the avar.
-        self._obj_offset = None
-
-    def _build(self):
-        naming = self.get_nomenclature_rig()
-
-        grp_output = pymel.createNode(
-            "transform", name=naming.resolve("output"), parent=self.grp_rig,
+    def _build(self, avar):
+        """
+        :param avar: Avar that provide our input values
+        :type avar: omtk.modules.rigFaceAvar.AbstractAvar
+        :return: A matrix attribute that give us our influence final world pos
+        :rtype: pymel.Attribute
+        """
+        compound = create_compound(
+            "omtk.AvarInflLinear",
+            namespace=self.get_nomenclature().resolve(),
+            inputs={
+                "innAvarFb": avar.attr_fb,
+                "innAvarLr": avar.attr_lr,
+                "innAvarPt": avar.attr_pt,
+                "innAvarRl": avar.attr_rl,
+                "innAvarSx": avar.attr_sx,
+                "innAvarSy": avar.attr_sy,
+                "innAvarSz": avar.attr_sz,
+                "innAvarUd": avar.attr_ud,
+                "innAvarYw": avar.attr_yw,
+                "multLr": self.multiplier_lr,
+                "multFb": self.multiplier_fb,
+                "multUd": self.multiplier_ud,
+                "innOffset": self._obj_offset.matrix,
+            }
         )
 
-        attr_get_t = libRigging.create_utility_node(
-            "multiplyDivide",
-            input1X=self._attr_inn_lr,
-            input1Y=self._attr_inn_ud,
-            input1Z=self._attr_inn_fb,
-            input2X=self.multiplier_lr,
-            input2Y=self.multiplier_ud,
-            input2Z=self.multiplier_fb,
-        ).output
-
-        pymel.connectAttr(attr_get_t, grp_output.translate)
-        pymel.connectAttr(self._attr_inn_pt, grp_output.rotateX)
-        pymel.connectAttr(self._attr_inn_yw, grp_output.rotateY)
-        pymel.connectAttr(self._attr_inn_rl, grp_output.rotateZ)
-        pymel.connectAttr(self._attr_inn_sx, grp_output.scaleX)
-        pymel.connectAttr(self._attr_inn_sy, grp_output.scaleY)
-        pymel.connectAttr(self._attr_inn_sz, grp_output.scaleZ)
-
-        return grp_output.matrix
+        return pymel.Attribute("%s.outputMatrix" % compound.output)

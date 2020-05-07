@@ -211,70 +211,21 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
                 "ctrlShapeAdjusted": ctrl_shape.create,
             },
         )
+        pymel.PyNode("%s:dag" % compound.namespace).setParent(self.grp_rig)
+
         self.folliclePos = pymel.Attribute("%s.folliclePos" % compound.output)
 
-        # Create a temporary follicle to find the coords
-        # Note: This is done in a particular order, need to clarify why.
-        # TODO: Cleanup
-        fol_shape = libRigging.create_follicle(obj_mesh, u=u_coord, v=v_coord)
-        fol_transform = fol_shape.getParent()
-        fol_bind_tm = fol_transform.getMatrix()
-        pymel.delete(fol_transform)
-        pymel.Attribute("%s.follicleBindTM" % compound.input).set(fol_bind_tm)
+        # # Create a temporary follicle to find the coords
+        # # Note: This is done in a particular order, need to clarify why.
+        # # TODO: Cleanup
+        # fol_shape = libRigging.create_follicle(obj_mesh, u=u_coord, v=v_coord)
+        # fol_transform = fol_shape.getParent()
+        # fol_bind_tm = fol_transform.getMatrix()
+        # pymel.delete(fol_transform)
+        # pymel.Attribute("%s.follicleBindTM" % compound.input).set(fol_bind_tm)
 
         if constraint and self.jnt:
             pymel.parentConstraint(ctrl.node, self.jnt, maintainOffset=True)
-
-    def connect(
-        self,
-        avar,
-        avar_grp,
-        ctrl,
-        ud=True,
-        fb=True,
-        lr=True,
-        yw=True,
-        pt=True,
-        rl=True,
-        sx=True,
-        sy=True,
-        sz=True,
-    ):
-        need_flip = avar.need_flip_lr()
-
-        # Position
-        if ud:
-            libRigging.connectAttr_withBlendWeighted(ctrl.translateY, avar.attr_ud)
-
-        if lr:
-            attr = ctrl.translateX
-            attr = _flip_attr(attr) if need_flip else attr
-            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_lr)
-
-        if fb:
-            libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, avar.attr_fb)
-
-        # Rotation
-        if yw:
-            attr = ctrl.rotateY
-            attr = _flip_attr(attr) if need_flip else attr
-            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_yw)
-
-        if pt:
-            libRigging.connectAttr_withBlendWeighted(ctrl.rotateX, avar.attr_pt)
-
-        if rl:
-            attr = ctrl.rotateZ
-            attr = _flip_attr(attr) if need_flip else attr
-            libRigging.connectAttr_withBlendWeighted(attr, avar.attr_rl)
-
-        # Scale
-        if sx:
-            libRigging.connectAttr_withBlendWeighted(ctrl.scaleX, avar.attr_sx)
-        if sy:
-            libRigging.connectAttr_withBlendWeighted(ctrl.scaleY, avar.attr_sy)
-        if sz:
-            libRigging.connectAttr_withBlendWeighted(ctrl.scaleZ, avar.attr_sz)
 
     def unbuild(self):
         # Ensure the shape stay consistent between rebuild.
@@ -407,7 +358,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         if calibrate:
             self.calibrate(ctrl)
 
-    def calibrate(self, ctrl, tx=True, ty=True, tz=True):
+    def calibrate(self, ctrl):
         # Determine what to check during calibration
         # Previous versions kept a reference to the follicle in "self.follicle".
         # Newer version keep a reference to the follicle pos in "self.folliclePos".
@@ -423,13 +374,13 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         self._fix_ctrl_shape(ctrl)
 
-        for enabled, attr_name, attr_dst in (
-            (tx, "tx", self.attr_sensitivity_tx),
-            (ty, "ty", self.attr_sensitivity_ty),
-            (tz, "tz", self.attr_sensitivity_tz),
+        for attr_name, attr_dst in (
+            ("tx", self.attr_sensitivity_tx),
+            ("ty", self.attr_sensitivity_ty),
+            ("tz", self.attr_sensitivity_tz),
         ):
             callibration_attr = ctrl.node.attr(attr_name)
-            if not enabled or callibration_attr.isLocked():
+            if callibration_attr.isLocked():
                 continue
             sensitivity = fn(callibration_attr, influence)
             self.log.debug(

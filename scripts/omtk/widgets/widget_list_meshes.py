@@ -11,6 +11,8 @@ import ui_shared
 
 
 class WidgetListMeshes(QtWidgets.QWidget):
+    _TEXT_BRUSH = QtGui.QBrush(QtCore.Qt.white)
+
     def __init__(self, parent=None):
         super(WidgetListMeshes, self).__init__(parent=parent)
 
@@ -39,10 +41,10 @@ class WidgetListMeshes(QtWidgets.QWidget):
         all_meshes = self._rig.get_shapes()
 
         if all_meshes:
-            widget_root = self.ui.treeWidget.invisibleRootItem()
+            root = self.ui.treeWidget.invisibleRootItem()
 
             for mesh in all_meshes:
-                influences = None
+                influences = []
 
                 skincluster = libSkinning.get_skin_cluster(mesh)
                 if skincluster:
@@ -50,36 +52,59 @@ class WidgetListMeshes(QtWidgets.QWidget):
                         libSkinning.get_skin_cluster_influence_objects(skincluster)
                     )
 
-                self._fill_widget_meshes(widget_root, mesh, influences)
+                self._fill_widget_meshes(root, mesh, influences)
 
         self.update_list_visibility()
 
     def _fill_widget_meshes(self, qt_parent, mesh, influences):
-        textBrush = QtGui.QBrush(QtCore.Qt.white)
-
         # Add mesh
-        item_mesh = QtWidgets.QTreeWidgetItem(0)
-        item_mesh.setText(0, str(mesh))
-        item_mesh.setForeground(0, textBrush)
-        ui_shared.set_icon_from_type(mesh.getParent(), item_mesh)
+        item_mesh = self._create_item_mesh(mesh)
         qt_parent.addChild(item_mesh)
 
-        # Monkey-patch mesh QWidget
-        item_mesh.metadata_type = ui_shared.MetadataType.Mesh
-        item_mesh.metadata_data = mesh
-
         # Add influences
-        if influences:
-            for influence in influences:
-                item = QtWidgets.QTreeWidgetItem(0)
-                item.setText(0, str(influence))
-                item.setForeground(0, textBrush)
-                ui_shared.set_icon_from_type(influence, item)
-                item_mesh.addChild(item)
+        for influence in influences:
+            item = self._create_item_influence(influence)
+            item_mesh.addChild(item)
 
-                # Monkey-patch influence QWidget
-                item.metadata_type = ui_shared.MetadataType.Influence
-                item.metadata_data = influence
+    def _create_item_mesh(self, mesh):
+        """
+        Create a QTreeWidgetItem for an influence.
+
+        :param influence: An influence object.
+        :type influence: pymel.nodetypes.Transform
+        :return: A Qt tree item
+        :rtype: QtWidgets.QTreeWidgetItem
+        """
+        item = QtWidgets.QTreeWidgetItem(0)
+        item.setText(0, str(mesh))
+        item.setForeground(0, self._TEXT_BRUSH)
+        ui_shared.set_icon_from_type(mesh.getParent(), item)
+
+        # Monkey-patch mesh QWidget
+        item.metadata_type = ui_shared.MetadataType.Mesh
+        item.metadata_data = mesh
+
+        return item
+
+    def _create_item_influence(self, influence):
+        """
+        Create a QTreeWidgetItem for an influence.
+
+        :param influence: An influence object.
+        :type influence: pymel.nodetypes.Transform
+        :return: A Qt tree item
+        :rtype: QtWidgets.QTreeWidgetItem
+        """
+        item = QtWidgets.QTreeWidgetItem(0)
+        item.setText(0, str(influence))
+        item.setForeground(0, self._TEXT_BRUSH)
+        ui_shared.set_icon_from_type(influence, item)
+
+        # Monkey-patch influence QWidget
+        item.metadata_type = ui_shared.MetadataType.Influence
+        item.metadata_data = influence
+
+        return item
 
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:

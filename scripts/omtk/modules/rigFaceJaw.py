@@ -21,6 +21,7 @@ class ModelCtrlJaw(model_ctrl_linear.ModelCtrlLinear):
         self,
         avar,
         avar_grp,
+        ctrl,
         ud=True,
         fb=True,
         lr=True,
@@ -31,14 +32,12 @@ class ModelCtrlJaw(model_ctrl_linear.ModelCtrlLinear):
         sy=True,
         sz=True,
     ):
-        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.translateX, avar.attr_lr)
-        libRigging.connectAttr_withLinearDrivenKeys(
-            self.ctrl.translateY, avar.attr_ud,
-        )
-        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.translateZ, avar.attr_fb)
-        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.rotateX, avar.attr_pt)
-        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.rotateY, avar.attr_yw)
-        libRigging.connectAttr_withLinearDrivenKeys(self.ctrl.rotateZ, avar.attr_rl)
+        libRigging.connectAttr_withLinearDrivenKeys(ctrl.translateX, avar.attr_lr)
+        libRigging.connectAttr_withLinearDrivenKeys(ctrl.translateY, avar.attr_ud)
+        libRigging.connectAttr_withLinearDrivenKeys(ctrl.translateZ, avar.attr_fb)
+        libRigging.connectAttr_withLinearDrivenKeys(ctrl.rotateX, avar.attr_pt)
+        libRigging.connectAttr_withLinearDrivenKeys(ctrl.rotateY, avar.attr_yw)
+        libRigging.connectAttr_withLinearDrivenKeys(ctrl.rotateZ, avar.attr_rl)
         # todo: connect jaw ratio
 
     def get_default_tm_ctrl(self):
@@ -74,8 +73,8 @@ class AvarJaw(rigFaceAvar.AvarSimple):
 
 
 class FaceAvarMacroAll(rigFaceAvar.AvarMacroAll):
-    _CLS_CTRL = CtrlJaw
-    _CLS_MODEL_CTRL = ModelCtrlJaw
+    CLS_CTRL = CtrlJaw
+    CLS_MODEL_CTRL = ModelCtrlJaw
 
 
 class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):

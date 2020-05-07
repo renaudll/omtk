@@ -1,5 +1,8 @@
 # High priority
 
-[ ] Build BaseCtrl outside of CtrlModel
-[ ] Remove ALL cache and benchmark performances
-[ ] Convert footroll to a compound with exposed bind matrices
+[ ] Replace plugin system by pluggy?
+
+Regressions to fix:
+[ ] Tweak avar
+[ ] Affect attributes should be outside of models (blend with offset x parent tm)
+[ ] Being able to move the surface without affecting the result

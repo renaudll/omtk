@@ -5,6 +5,7 @@ This is the foundation for the facial animation modules.
 import functools
 
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix
 
 from omtk.core import classCtrl
 from omtk.core import classModule
@@ -20,6 +21,9 @@ from omtk.models.model_ctrl_linear import ModelCtrlLinear
 
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
+    def __createNode__(self, normal=(0, 0, 1), **kwargs):
+        return super(BaseCtrlFace, self).__createNode__(normal=normal, **kwargs)
+
     def fetch_shapes(self):
         """
         Face ctrls CAN have non-uniform scaling.
@@ -98,6 +102,7 @@ class AbstractAvar(classModule.Module):
 
     # An avar could have no influences (ex: macro avars)
     SUPPORT_NO_INPUTS = True
+
 
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
@@ -383,20 +388,22 @@ class AvarSimple(AbstractAvar):
     """
     A simple avar that can be connected to a deformer and have a single controller.
 
-    :cvar _CLS_CTRL: The controller class to use.
-    :cvar _CLS_MODEL_CTRL: The controller model class to use.
+    :cvar CLS_CTRL: The controller class to use.
+    :cvar CLS_MODEL_CTRL: The controller model class to use.
     A controller model defined how the ctrl "offset" behave. ex:
     - Controller following the deforming geometry (ModelInteractiveCtrl)
-    - Controller moving linearly in space / faceboard (ModelLinearCtrl)
-    :cvar _CLS_MODEL_INFL: The influence model class to use.
+    - Controller moving linearly in space / face board (ModelLinearCtrl)
+    :cvar CLS_MODEL_INFL: The influence model class to use.
     An influence model defined how the influence is affected by the avar. ex:
     - Moving linearly in space (AvarLinearModel)
-    - Slidiing on a surface (AvarSurfaceModel)
+    - Sliding on a surface (AvarSurfaceModel)
     """
 
-    _CLS_CTRL = None
-    _CLS_MODEL_CTRL = ModelInteractiveCtrl
-    _CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
+    CLS_CTRL = BaseCtrlFace  # TODO: Change to None
+    CLS_MODEL_CTRL = ModelInteractiveCtrl
+    # CLS_MODEL_CTRL = None
+    CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
+    # CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
 
     def __init__(self, *args, **kwargs):
         super(AvarSimple, self).__init__(*args, **kwargs)
@@ -424,90 +431,6 @@ class AvarSimple(AbstractAvar):
         self.affect_sx = True
         self.affect_sy = True
         self.affect_sz = True
-
-    def create_stacks(self):
-        """
-        Create the route to compute the output transform for the avar.
-        This is done using node 'stacks' which allow multiple contribution f
-        rom being added while still be 'clear' for the rigger which layer
-        is providing which input.
-        By keeping stack separated, we are able to keep them in isolation and use
-        the 'worldMatrix' of their  leaf to easily compute the total contribution.
-
-        This would result in the following matrix multiplications:
-        1) 'offset group'
-           We start with the bind transform.
-           The resulting matrix is in local (also known as pre-deform) space.
-        2) 'avar stack'
-           This compute the desired movement from the avar values.
-           The resulting matrix is still in local space.
-        3) 'post avar' stack'
-           This add any contribution needed after the avar.
-           Ex: Used for having the 'all' macro avar influence other avars.
-           The resulting matrix is still in local space.
-        4) 'parent' group
-           This matrix is identity at bind pose and will add the movement
-           from the parent of the avar.
-           The resulting matrix is in world space.
-
-        The final transform is computed by multiplying all these stacks together:
-        - offset.matrix
-        - pre-avar.worldMatrix
-        - avar.worldMatrix.
-        - post-avar.worldMatrix
-        - parent.matrix
-        """
-        nomenclature_rig = self.get_nomenclature_rig()
-
-        # Build post-avar stack
-        # This is a list of matrix multiplication
-        # that will be executed AFTER feeding the avar.
-        self._stack_post = classNode.Node()
-        self._stack_post.build(name=nomenclature_rig.resolve("postAvar"))
-        post_stack_root = pymel.createNode(
-            "transform",
-            name=nomenclature_rig.resolve("postAvarRoot"),
-            parent=self.grp_rig,
-        )
-        self._stack_post.setParent(post_stack_root)
-
-        libRigging.connect_matrix_to_node(
-            self.grp_offset.matrix,
-            post_stack_root,
-            name=nomenclature_rig.resolve("something"),
-        )
-
-        attr_avar_model_tm = _blend_inn_matrix_attribute(
-            self.model_infl._attr_out_tm,
-            self.affect_tx,
-            self.affect_ty,
-            self.affect_tz,
-            self.affect_rx,
-            self.affect_ry,
-            self.affect_rz,
-            self.affect_sx,
-            self.affect_sy,
-            self.affect_sz,
-        )
-
-        # Take the result of the stack and add it on top
-        # of the bind-pose and parent group.
-        self._attr_get_stack_local_tm = libRigging.create_utility_node(
-            "multMatrix",
-            matrixIn=(
-                attr_avar_model_tm,
-                self._stack_post.worldMatrix,
-                self._grp_parent.matrix,
-            ),
-        ).matrixSum
-        util_get_stack_local_tm = libRigging.create_utility_node(
-            "decomposeMatrix", inputMatrix=self._attr_get_stack_local_tm
-        )
-        pymel.connectAttr(
-            util_get_stack_local_tm.outputTranslate, self._grp_output.translate
-        )
-        pymel.connectAttr(util_get_stack_local_tm.outputRotate, self._grp_output.rotate)
-        pymel.connectAttr(util_get_stack_local_tm.outputScale, self._grp_output.scale)
 
     def build(
         self,
@@ -593,30 +516,113 @@ class AvarSimple(AbstractAvar):
 
         self.grp_offset.setMatrix(jnt_tm)
 
-        self.model_infl = self._CLS_MODEL_INFL.from_instance(
-            self.rig,
-            self.model_infl,
-            (self.get_nomenclature() + "avarModel").resolve(),
-            inputs=self.input
+        if self.CLS_MODEL_INFL:
+            self.model_infl = self.CLS_MODEL_INFL.from_instance(
+                self.rig,
+                self.model_infl,
+                (self.get_nomenclature() + "modelInfl").resolve(),
+                inputs=self.input
+            )
+            self.model_infl.build(self)
+            if self.model_infl.grp_rig:
+                self.model_infl.grp_rig.setParent(self.grp_rig)
+
+            # # We connect the joint before creating the controllers.
+            # # This allow our doritos to work out of the box and
+            # # allow us to compute their sensibility automatically.
+            # # Creating the constraint will fail if the joint is already connected
+            # # to something else like an animCurve.
+            # libAttr.disconnect_trs(self.jnt)
+            # libAttr.unlock_trs(self.jnt)
+            #
+            # # TODO: Constraints are bad
+            # infl, tweak = self._get_influences()
+            # if tweak:
+            #     pymel.parentConstraint(
+            #         self._grp_output,
+            #         infl,
+            #         skipRotate=["x", "y", "z"],
+            #         maintainOffset=True
+            #     )
+            #     pymel.parentConstraint(self._grp_output, tweak, maintainOffset=True)
+            #     pymel.scaleConstraint(self._grp_output, infl, maintainOffset=True)
+            # else:
+            #     pymel.parentConstraint(self._grp_output, infl, maintainOffset=True)
+            #     pymel.scaleConstraint(self._grp_output, infl, maintainOffset=True)
+
+        # Build ctrl model
+        if self.CLS_CTRL:
+            self.ctrl = self._build_ctrl()
+            self._connect_ctrl_to_avar(self.ctrl)
+
+            if self.CLS_MODEL_CTRL:
+                self._build_ctrl_model()
+
+    def _get_influences(self):
+        """
+        An avar can have one or two influences.
+        If it have two, one is marked as the "main" and the other as a "tweak".
+        When the "tweak" is present, "main" won't be affected in rotation.
+        This allow two different falloff depending on the transformation.
+
+        :return: The main influence and the tweak influence if it exist.
+        :rtype: tuple[pymel.nodetypes.Joint, pymel.nodetypes.Joint or None]
+        """
+        if len(self.jnts) == 2:
+            # TODO: Don't assume the tweak is the second, check the hierarchy.
+            return self.jnts
+
+        if len(self.jnts) == 1:
+            return self.jnt, None
+
+        raise ValueError(
+            "Invalid number of influences. Expected 1 or 2, got %s" % len(self.jnts)
         )
-        self.model_infl.build()
-        self.model_infl.grp_rig.setParent(self.grp_rig)
 
-        self.create_stacks()
+    def _get_ctrl_tm(self):
+        """
+        Get the transform for the ctrl.
+        :return: A matrix
+        :rtype: pymel.datatypes.Matrix
+        """
+        transform = self.jnt.getMatrix(worldSpace=True)
+        pos = transform.translate
+        pos = pymel.datatypes.Vector(pos.x, pos.y, 99999)
+        dir_ = pymel.datatypes.Point(0, 0, -1)
+        geos = self.get_meshes() or self.rig.get_shapes()
+        new_pos = libRigging.ray_cast_nearest(pos, dir_, geos)
+        if new_pos:
+            transform = Matrix(  # TODO: Is there a simpler way?
+                [transform.a00, transform.a01, transform.a02, transform.a03],
+                [transform.a10, transform.a11, transform.a12, transform.a13],
+                [transform.a20, transform.a21, transform.a22, transform.a23],
+                [new_pos.x, new_pos.y, new_pos.z, 1.0],
+            )
+        return transform
 
-        self.model_infl.connect_avar(self)
+    def _build_ctrl(self):
+        # Create ctrl
+        ctrl_name = self.get_nomenclature_anm().resolve()
+        ctrl_tm = self._get_ctrl_tm()
+        ctrl = self.CLS_CTRL.from_instance(self.ctrl)
+        ctrl.build(name=ctrl_name)
+        ctrl.setParent(self.grp_anm)
+        ctrl.setMatrix(ctrl_tm)
 
-        # We connect the joint before creating the controllers.
-        # This allow our doritos to work out of the box and
-        # allow us to compute their sensibility automatically.
-        if self.jnt and constraint:
-            # Creating the constraint will fail if the joint is already connected
-            # to something else like an animCurve.
-            libAttr.disconnect_trs(self.jnt)
-            libAttr.unlock_trs(self.jnt)
+        return ctrl
 
-            pymel.parentConstraint(self._grp_output, self.jnt, maintainOffset=True)
-            pymel.scaleConstraint(self._grp_output, self.jnt, maintainOffset=True)
+    def _build_ctrl_model(self):
+        self.model_ctrl = self.CLS_MODEL_CTRL.from_instance(
+            self.rig,
+            self.model_ctrl,
+            (self.get_nomenclature() + "ctrlModel").resolve(),
+            inputs=self.input,
+        ) if self.CLS_MODEL_CTRL else None
+
+        self.model_ctrl.build(self.ctrl)
+
+        if self.model_ctrl.grp_rig and self.grp_rig:
+            self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
     def _connect_default_ctrl_model(self, grp_ctrl_model):
         """
@@ -625,64 +631,37 @@ class AvarSimple(AbstractAvar):
         """
         pymel.parentConstraint(self._grp_parent, grp_ctrl_model)
 
-    def create_ctrl(
-        self,
-        parent,
-        ctrl_size=1.0,
-        parent_pos=None,
-        parent_rot=None,
-        parent_scl=None,
-        connect=True,
-        ctrl_tm=None,
-        **kwargs
-    ):
+    def _connect_ctrl_to_avar(self, ctrl):
         """
-        An Avar is not made to contain a ctrl necessary.
-        However you can run this function to create a ctrl using a provided model.
+        Connect a controller to the avar attributes.
+        :param ctrl:
         """
-        # Don't create anything if we don't have a _CLS_CTRL.
-        if self._CLS_CTRL is None:
-            return
+        need_flip = self.get_nomenclature().side == self.rig.nomenclature.SIDE_R
 
-        # Create ctrl
-        ctrl_name = self.get_nomenclature_anm().resolve()
-        self.ctrl = self._CLS_CTRL.from_instance(self.ctrl)
-        self.ctrl.build(name=ctrl_name, size=ctrl_size)
-        self.ctrl.setParent(self.grp_anm)
-        if ctrl_tm:
-            self.ctrl.setMatrix(ctrl_tm)
+        # Position
+        libRigging.connectAttr_withBlendWeighted(ctrl.translateY, self.attr_ud)
 
-        # Create ctrl model
-        self.model_ctrl = self._CLS_MODEL_CTRL.from_instance(
-            self.rig,
-            self.model_ctrl,
-            (self.get_nomenclature() + "ctrlModel").resolve(),
-            inputs=self.input,
-        ) if self._CLS_MODEL_CTRL else None
+        attr = ctrl.translateX
+        attr = _flip_attr(attr) if need_flip else attr
+        libRigging.connectAttr_withBlendWeighted(attr, self.attr_lr)
 
-        # TODO: Remove that hack!
-        if issubclass(self._CLS_MODEL_CTRL, ModelCtrlLinear):
-            # By default, an InteractiveCtrl follow the rotation of the head.
-            parent_rot = parent_rot or self.get_head_jnt()
+        libRigging.connectAttr_withBlendWeighted(ctrl.translateZ, self.attr_fb)
 
-            self.model_ctrl.build(
-                self.ctrl,
-                parent_pos=parent_pos,
-                parent_rot=parent_rot,
-                parent_scl=parent_scl,
-                grp_rig_name=self.get_nomenclature_anm_grp().resolve("ctrlModel"),
-                obj_mesh=next(iter(self.get_meshes()), None),
-                attr_bind_tm=self._grp_output.worldMatrix,
-                **kwargs
-            )
-        else:
-            self.model_ctrl.build(self.ctrl, parent_rot=parent_rot, **kwargs)
+        # Rotation
+        attr = ctrl.rotateY
+        attr = _flip_attr(attr) if need_flip else attr
+        libRigging.connectAttr_withBlendWeighted(attr, self.attr_yw)
 
-        if self.model_ctrl.grp_rig and self.grp_rig:
-            self.model_ctrl.grp_rig.setParent(self.grp_rig)
+        libRigging.connectAttr_withBlendWeighted(ctrl.rotateX, self.attr_pt)
 
-        if connect:
-            self.model_ctrl.connect(self, parent, self.ctrl)
+        attr = ctrl.rotateZ
+        attr = _flip_attr(attr) if need_flip else attr
+        libRigging.connectAttr_withBlendWeighted(attr, self.attr_rl)
+
+        # Scale
+        libRigging.connectAttr_withBlendWeighted(ctrl.scaleX, self.attr_sx)
+        libRigging.connectAttr_withBlendWeighted(ctrl.scaleY, self.attr_sy)
+        libRigging.connectAttr_withBlendWeighted(ctrl.scaleZ, self.attr_sz)
 
     def calibrate(self):
         """
@@ -693,7 +672,7 @@ class AvarSimple(AbstractAvar):
             return False
 
         if self.model_ctrl and hasattr(self.model_ctrl, "calibrate"):
-            self.model_ctrl.calibrate()
+            self.model_ctrl.calibrate(self.ctrl)
 
     def unbuild(self):
         # Unassign deprecated values to prevent warning when reserialiazing old avars
@@ -759,7 +738,15 @@ class AvarMacro(AvarSimple):
     In the majority of cases it don't have one and only use it do resolve it's position.
     """
     # TODO: Method to get the ctrl class per side?
-    _CLS_MODEL_INFL = None
+    CLS_MODEL_CTRL = ModelInteractiveCtrl
+    CLS_MODEL_INFL = None
+
+
+class AvarMicro(AvarSimple):
+    """
+    AvarMicro are special as they can contain two influence.
+    """
+    CLS_MODEL_CTRL = ModelInteractiveCtrl
 
 
 class AvarMacroAll(AvarSimple):
@@ -770,8 +757,8 @@ class AvarMacroAll(AvarSimple):
     In all case we always wait it to move in linear space.
     """
     SHOW_IN_UI = False
-    _CLS_CTRL = CtrlFaceAll
-    _CLS_MODEL_CTRL = model_avar_linear.AvarLinearModel
+    CLS_CTRL = CtrlFaceAll
+    CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
 
 
 def _blend_inn_matrix_attribute(
@@ -829,3 +816,9 @@ def _blend_inn_matrix_attribute(
 
 def register_plugin():
     return AvarFollicle
+
+
+def _flip_attr(attr):  # TODO: Remove duplication
+    return libRigging.create_utility_node(
+        "multiplyDivide", input1X=attr, input2X=-1
+    ).outputX

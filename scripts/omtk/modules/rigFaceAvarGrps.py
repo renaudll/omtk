@@ -86,101 +86,12 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
 #
 
 
-class ModelMicroAvarCtrl(ModelInteractiveCtrl):
-    def connect(
-        self,
-        avar,
-        avar_grp,
-        ctrl,
-        ud=True,
-        fb=True,
-        lr=True,
-        yw=True,
-        pt=True,
-        rl=True,
-        sx=True,
-        sy=True,
-        sz=True,
-    ):
-        avar_tweak = avar_grp.get_micro_tweak_avars_dict().get(avar, None)
-        if avar_tweak:
-            super(ModelMicroAvarCtrl, self).connect(
-                avar,
-                avar_grp,
-                ctrl,
-                ud=ud,
-                fb=fb,
-                lr=lr,
-                yw=False,
-                pt=False,
-                rl=False,
-                sx=False,
-                sy=False,
-                sz=False,
-            )
-            super(ModelMicroAvarCtrl, self).connect(
-                avar_tweak,
-                avar_grp,
-                ctrl,
-                ud=False,
-                fb=False,
-                lr=False,
-                yw=yw,
-                pt=pt,
-                rl=rl,
-                sx=sx,
-                sy=sy,
-                sz=sz,
-            )
-        else:
-            super(ModelMicroAvarCtrl, self).connect(
-                avar,
-                avar_grp,
-                ctrl,
-                ud=ud,
-                fb=fb,
-                lr=lr,
-                yw=yw,
-                pt=pt,
-                rl=rl,
-                sx=sx,
-                sy=sy,
-                sz=sz,
-            )
-
 
 class ModelCtrlMacroAll(ModelCtrlLinear):
-    def connect(
-        self,
-        avar,
-        avar_grp,
-        ud=True,
-        fb=True,
-        lr=True,
-        yw=True,
-        pt=True,
-        rl=True,
-        sx=True,
-        sy=True,
-        sz=True,
-    ):
-        super(ModelCtrlMacroAll, self).connect(
-            avar,
-            avar_grp,
-            ud=True,
-            fb=True,
-            lr=True,
-            yw=True,
-            pt=True,
-            rl=True,
-            sx=True,
-            sy=True,
-            sz=True,
-        )
-
     def calibrate(self, **kwargs):
         """
-        Since the avar_all macro follow directly the surface, we don't need to calibrate it.
+        Since the avar_all macro follow directly the surface,
+        we don't need to calibrate it.
         """
         pass
 
@@ -194,10 +105,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
     # Define the class to use for all avars.
     _CLS_AVAR = rigFaceAvar.AvarSimple
-    _CLS_CTRL_MICRO = rigFaceAvar.CtrlFaceMicro
-    _CLS_CTRL_TWEAK = None
-    _CLS_MODEL_CTRL_MICRO = ModelMicroAvarCtrl
-    _CLS_MODEL_CTRL_TWEAK = None
+    CLS_AVAR_MICRO = rigFaceAvar.AvarMicro
 
     SHOW_IN_UI = True
 
@@ -467,7 +375,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         new_avars = []
 
         for avar in self.avars:
-            # Any existing Avar that we don't reconize will be deleted.
+            # Any existing Avar that we don't recognize will be deleted.
             # Be aware that the .avars property only store MICRO Avars.
             # Macro Avars need to be implemented in their own properties.
             if avar.jnt not in avar_influences:
@@ -477,13 +385,13 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             # However the old value will be passed by so
             # the factory method can handle specific tricky cases.
             else:
-                new_avar = self._init_avar(self._CLS_AVAR, avar, ref=avar.jnt)
+                new_avar = self._init_avar(self.CLS_AVAR_MICRO, avar, ref=avar.jnt)
                 new_avars.append(new_avar)
 
         for influence in avar_influences:
             if not any(True for avar in new_avars if influence == avar.jnt):
                 new_avar = self._init_avar(
-                    self._CLS_AVAR, None, ref=influence  # no previous value
+                    self.CLS_AVAR_MICRO, None, ref=influence  # no previous value
                 )
                 new_avars.append(new_avar)
 
@@ -690,19 +598,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
                 self._parent_avar(avar, attr_parent_tm)
 
-    def _create_avars_ctrls(self, connect=False, **kwargs):
-        for avar in self.avars:
-            if self._is_tweak_avar(avar):
-                if self._CLS_CTRL_TWEAK:
-                    avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_TWEAK
-                    avar._CLS_CTRL = self._CLS_CTRL_TWEAK
-                    avar.create_ctrl(self, **kwargs)
-            else:
-                if self._CLS_CTRL_MICRO:
-                    avar._CLS_MODEL_CTRL = self._CLS_MODEL_CTRL_MICRO
-                    avar._CLS_CTRL = self._CLS_CTRL_MICRO
-                    avar.create_ctrl(self, **kwargs)
-
     def handle_surface(self):
         """
         Create the surface that the follicle will slide on if necessary.
@@ -782,9 +677,9 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             constraint=constraint,
         )
 
-        if create_ctrls:
-            ctrl_size = self._get_default_ctrl_size()
-            self._create_avars_ctrls(ctrl_size=ctrl_size)
+        # if create_ctrls:
+        #     ctrl_size = self._get_default_ctrl_size()
+        #     self._create_avars_ctrls(ctrl_size=ctrl_size)
 
         if parent:
             self._parent_avars()

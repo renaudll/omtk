@@ -1,3 +1,6 @@
+"""
+Logic for the "FaceSquint" module.
+"""
 import pymel.core as pymel
 
 from omtk.libs import libCtrlShapes

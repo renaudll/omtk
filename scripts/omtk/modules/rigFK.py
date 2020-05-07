@@ -1,3 +1,6 @@
+"""
+Logic for the "FK" module
+"""
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module

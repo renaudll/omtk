@@ -1,6 +1,5 @@
 """
-An avar is a facial control unit inspired from The Art of Moving Points.
-This is the foundation for the facial animation modules.
+Logic for the "FaceAvar" module
 """
 import functools
 
@@ -9,7 +8,6 @@ from pymel.core.datatypes import Matrix
 
 from omtk.core import classCtrl
 from omtk.core import classModule
-from omtk.core import classNode
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -17,7 +15,6 @@ from omtk.libs import libRigging
 from omtk.models import model_avar_linear
 from omtk.models import model_avar_surface
 from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
-from omtk.models.model_ctrl_linear import ModelCtrlLinear
 
 
 class BaseCtrlFace(classCtrl.BaseCtrl):

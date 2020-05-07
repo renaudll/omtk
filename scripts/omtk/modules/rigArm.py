@@ -1,3 +1,6 @@
+"""
+Logic for the "Arm" module
+"""
 import pymel.core as pymel
 
 from omtk import constants

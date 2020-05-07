@@ -1,3 +1,6 @@
+"""
+Logic for the "AvarGrp" module
+"""
 import copy
 import itertools
 import logging
@@ -10,12 +13,9 @@ from omtk.core.utils import ui_expose
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
-from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
-from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
 from omtk.models.model_ctrl_linear import ModelCtrlLinear
-from omtk.models import model_avar_linear
 from omtk.modules import rigFaceAvar
 
 log = logging.getLogger("omtk")
@@ -831,7 +831,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 # todo: deprecate this class in favor of composition
 
 
-class AvarGrpOnSurface(AvarGrp):
+class AvarGrpOnSurface(AvarGrp):  # TODO: Deprecate and move to AvarGrp
     """
     Highest-level surface-based AvarGrp module.
     With additional features like:

@@ -148,8 +148,8 @@ class IK(Module):
         self.ctrl_swivel = None
         self.ctrl_swivel_quad = None
         self.chain_length = None
-        self._chain_ik = None
         self.swivelDistance = None
+        self._chain_ik = None
 
     def _create_ctrl_ik(self, *args, **kwargs):
         """
@@ -250,15 +250,15 @@ class IK(Module):
         # TODO: Improve softik ratio when using multiple ik handle.
         # TODO: Not the same ratio will be used depending of the angle
         for handle in ik_handle_to_constraint:
-            pointConstraint = pymel.pointConstraint(
+            constraint = pymel.pointConstraint(
                 self._ik_handle_target, self._ikChainGrp, handle
             )
-            pointConstraint.rename(
-                pointConstraint.stripNamespace().replace(
+            constraint.rename(
+                constraint.stripNamespace().replace(
                     "pointConstraint", "softIkConstraint"
                 )
             )
-            weight_inn, weight_out = pointConstraint.getWeightAliasList()[
+            weight_inn, weight_out = constraint.getWeightAliasList()[
                 -2:
             ]  # Ensure to get the latest target added
             pymel.connectAttr(attr_out_ratio, weight_inn)
@@ -339,7 +339,7 @@ class IK(Module):
 
     def _get_ik_ctrl_bound_refs_raycast(self):
         """
-        Resolve what objects to use for computing the bound of the ik ctrl using raycasts.
+        Resolve what objects to use for computing the bound of the ik ctrl.
         Default behavior is to use the hand and any inputs after. (ex: toes)
         :return: An array of pymel.general.PyNode instances.
         """
@@ -347,7 +347,7 @@ class IK(Module):
 
     def _get_ik_ctrl_bound_refs_extra(self):
         """
-        Resolve what objects to use to expand the bound of the ik ctrl using world-space positions.
+        Resolve what objects to use for computing the bound of the ik ctrl.
         Default behavior is to use the hand and all it's children. (ex: fingers)
         :return: An array of pymel.general.PyNode instances.
         """
@@ -365,9 +365,9 @@ class IK(Module):
         """
         Build the ik system when needed
         :param ctrl_ik_orientation: A boolean to define if the ctrl should be zeroed.
-        :param constraint: Bool to tell if we constraint the chain_jnt to the system
-        :param constraint_handle: Bool to tell if we constraint the ik handle to the ik ctrl
-        :param setup_softik: Bool to tell if we setup the soft ik on this system
+        :param bool constraint: Should we constraint the chain_jnt to the system?
+        :param bool constraint_handle: Should we constraint the ik handle to the ik ctrl?
+        :param bool setup_softik: Bool to tell if we setup the soft ik on this system
         :param args: More args passed to the superclass
         :param kwargs: More kwargs passed to the superclass
         :return:

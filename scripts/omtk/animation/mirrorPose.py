@@ -3,13 +3,13 @@ Pose mirroring tool.
 Warning: The mirror functionality of OMTK is in alpha stage. Use it at your own risk!
 """
 import itertools
+
 import pymel.core as pymel
 from maya import cmds, OpenMaya
 
 from omtk import constants
 from omtk.libs import libPython
 from omtk.core import classCtrl
-
 from omtk.vendor import libSerialization
 
 
@@ -21,29 +21,24 @@ def list_from_MMatrix(matrix):
     :return: A list of 16 floats
     :rtype: list or float
     """
-    return [
-        matrix(row, column) for row, column in itertools.product(range(4), range(4))
-    ]
+    return [matrix(row, column) for row, column in itertools.product(range(4), range(4))]
 
 
-def mirror_matrix_axis(m, axis):
-    m_flip = OpenMaya.MMatrix()
+def mirror_matrix_axis(matrix, axis):
+    """
+    :param matrix: A matrix to mirror
+    :type matrix: pymel.datatypes.Matrix
+    """
+    flip_tm = OpenMaya.MMatrix()
     if axis == constants.Axis.x:
-        OpenMaya.MScriptUtil.createMatrixFromList(
-            [-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip
-        )
+        OpenMaya.MScriptUtil.createMatrixFromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], flip_tm)
     elif axis == constants.Axis.y:
-        OpenMaya.MScriptUtil.createMatrixFromList(
-            [1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], m_flip
-        )
+        OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], flip_tm)
     elif axis == constants.Axis.z:
-        OpenMaya.MScriptUtil.createMatrixFromList(
-            [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], m_flip
-        )
+        OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], flip_tm)
     else:
         raise Exception("Unsupported axis. Got  %s" % axis)
-    m = m * m_flip
-    return m
+    return matrix * flip_tm
 
 
 def flip_matrix_axis_pos(m, axis):
@@ -127,7 +122,7 @@ def get_ctrl_friend(obj_src):
 
 
 def mirror_matrix(
-    m,
+    matrix,
     mirror_x=False,
     mirror_y=False,
     mirror_z=False,
@@ -137,7 +132,6 @@ def mirror_matrix(
     flip_rot_x=False,
     flip_rot_y=False,
     flip_rot_z=False,
-    parent_ref=None,
 ):
     """
     Mirror a pose using the local matrix and a flip vector.
@@ -146,45 +140,42 @@ def mirror_matrix(
 
     # Mirror axis if necessary
     # Note that in 99.9% of case we only want to mirror one axis.
-    if (mirror_x or mirror_y or mirror_z) and not (
-        flip_rot_x or flip_rot_y or flip_rot_z
-    ):
+    if (mirror_x or mirror_y or mirror_z) and not (flip_rot_x or flip_rot_y or flip_rot_z):
         raise Exception(
-            "When mirroring, please at least flip one axis, otherwise you might end of with a right handed matrix!"
+            "When mirroring, please at least flip one axis, "
+            "otherwise you might end of with a right handed matrix!"
         )
     if mirror_x:
-        m = mirror_matrix_axis(m, constants.Axis.x)
+        matrix = mirror_matrix_axis(matrix, constants.Axis.x)
     if mirror_y:
-        m = mirror_matrix_axis(m, constants.Axis.y)
+        matrix = mirror_matrix_axis(matrix, constants.Axis.y)
     if mirror_z:
-        m = mirror_matrix_axis(m, constants.Axis.z)
+        matrix = mirror_matrix_axis(matrix, constants.Axis.z)
 
     # Flip rotation axises if necessary
     if flip_rot_x:
-        flip_matrix_axis_rot(m, constants.Axis.x)
+        matrix = flip_matrix_axis_rot(matrix, constants.Axis.x)
     if flip_rot_y:
-        flip_matrix_axis_rot(m, constants.Axis.y)
+        matrix = flip_matrix_axis_rot(matrix, constants.Axis.y)
     if flip_rot_z:
-        flip_matrix_axis_rot(m, constants.Axis.z)
+        matrix = flip_matrix_axis_rot(matrix, constants.Axis.z)
 
     # Flip position if necessary
     if flip_pos_x:
-        m = flip_matrix_axis_pos(m, constants.Axis.x)
+        matrix = flip_matrix_axis_pos(matrix, constants.Axis.x)
     if flip_pos_y:
-        m = flip_matrix_axis_pos(m, constants.Axis.y)
+        matrix = flip_matrix_axis_pos(matrix, constants.Axis.y)
     if flip_pos_z:
-        m = flip_matrix_axis_pos(m, constants.Axis.z)
+        matrix = flip_matrix_axis_pos(matrix, constants.Axis.z)
 
-    return m
+    return matrix
 
 
 def get_obj_mirror_def(obj):
     network_is_ctrl = lambda x: libSerialization.is_network_from_class(
         x, classCtrl.BaseCtrl.__name__.split(".")[-1]
     )
-    networks = libSerialization.get_connected_networks(
-        [obj], key=network_is_ctrl, recursive=False
-    )
+    networks = libSerialization.get_connected_networks([obj], key=network_is_ctrl, recursive=False)
     network = next(iter(networks), None)
 
     if network:
@@ -208,8 +199,6 @@ def get_obj_mirror_def(obj):
     pymel.warning("Can't resolve mirror data for  %s" % obj)
 
 
-# @libPython.profiler
-@libPython.log_execution_time(__name__)
 def mirror_objs(objs):
     # Only work on transforms
     objs = filter(
@@ -222,9 +211,7 @@ def mirror_objs(objs):
     tms_by_objs = {}
     for obj_dst in objs:
         # Resolve source object
-        obj_src = get_ctrl_friend(obj_dst)
-        if obj_src is None:
-            obj_src = obj_dst
+        obj_src = get_ctrl_friend(obj_dst) or obj_dst
 
         # Resolve mirror definition
         # If we didn't find any friend, we'll use a default mirror definition.
@@ -232,19 +219,14 @@ def mirror_objs(objs):
         if data is None:
             continue
 
-        m = obj_dst.__apimfn__().transformation().asMatrix()
-
-        m = mirror_matrix(m, *data)
-
-        tms_by_objs[obj_src] = OpenMaya.MTransformationMatrix(m)
+        matrix = obj_dst.__apimfn__().transformation().asMatrix()
+        matrix = mirror_matrix(matrix, *data)
+        tms_by_objs[obj_src] = OpenMaya.MTransformationMatrix(matrix)
 
     # Apply desired poses
     cmds.undoInfo(openChunk=True)
-    for mfn_transform_src in tms_by_objs.keys():
-        tm = tms_by_objs[mfn_transform_src]
+    for mfn_transform_src, tm in tms_by_objs.items():
         # HACK: Use cmds so undoes are working
         # mfn_transform_src.set(tm)
-        cmds.xform(
-            mfn_transform_src.__melobject__(), matrix=list_from_MMatrix(tm.asMatrix())
-        )
+        cmds.xform(mfn_transform_src.__melobject__(), matrix=list_from_MMatrix(tm.asMatrix()))
     cmds.undoInfo(closeChunk=True)

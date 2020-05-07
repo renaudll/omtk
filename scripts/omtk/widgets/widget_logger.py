@@ -1,16 +1,224 @@
 """
 Widget that display a logger records.
 """
-import logging
 import datetime
-from omtk.widgets.ui import widget_logger
+import logging
 
+from omtk.widgets.ui import widget_logger
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 
-log = logging.getLogger("omtk")
+
+_COLOR_FOREGROUND_ERROR = QtGui.QColor(0, 0, 0)
+_COLOR_FOREGROUND_WARNING = QtGui.QColor(255, 255, 0)
+_COLOR_FOREGROUND_INFO = None
+_COLOR_FOREGROUND_DEBUG = QtGui.QColor(128, 128, 128)
+
+_COLOR_BACKGROUND_ERROR = QtGui.QColor(255, 0, 0)
+_COLOR_BACKGROUND_WARNING = None
+_COLOR_BACKGROUND_INFO = None
+_COLOR_BACKGROUND_DEBUG = None
+
+_AVAILABLE_LEVELS = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+
+_ROLE_FILTER = QtCore.Qt.UserRole + 1
 
 
-def log_level_to_str(level):
+class CustomLoggingHandler(logging.Handler):
+    """
+    Custom Qt Handler for our logger
+    """
+
+    def __init__(self, model):
+        """
+        :param model: The model to add new log records to
+        :type model: LogRecordModel
+        """
+        logging.Handler.__init__(self)
+        self._model = model
+
+    def emit(self, record):
+        """
+        :param record: The record that been emitted
+        :type record: logging.LogRecord
+        """
+        self._model.add_record(record)
+
+
+class LogRecordModel(QtGui.QStandardItemModel):
+    """
+    Qt model for displaying log records.
+    """
+
+    def __init__(self, parent=None):
+        """
+        :param parent: Optional parent
+        :type parent: QtCore.QObject
+        """
+        super(LogRecordModel, self).__init__(parent)
+
+        self.setHorizontalHeaderLabels(["Date", "Type", "Message"])
+
+    def add_record(self, record):
+        """
+        :param record: The record to add
+        :type record: logging.LogRecord
+        """
+        color_fb, color_bg = _get_text_color_from_level(record.levelno)
+        timestamp, level, message = _get_record_info(record)
+
+        items = [QtGui.QStandardItem(label) for label in (timestamp, level, message)]
+        for item in items:
+            item.setData(record, QtCore.Qt.UserRole)
+            item.setData(message, _ROLE_FILTER)
+            if color_fb:
+                item.setForeground(color_fb)
+            if color_bg:
+                item.setBackground(color_bg)
+
+        self.appendRow(items)
+
+    def get_records(self):
+        """
+        Fetch the stored records
+        """
+        return [
+            self.data(self.index(row, 0), QtCore.Qt.UserRole)
+            for row in range(self.rowCount())
+        ]
+
+    def clear_records(self):
+        """
+        Clear the model from existing records.
+        """
+        self.removeRows(0, self.rowCount())
+
+
+class LogRecordProxyModel(QtCore.QSortFilterProxyModel):
+    """
+    Qt proxy model that filter log records by their level of content.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(LogRecordProxyModel, self).__init__(*args, **kwargs)
+        self._filter_level = logging.WARNING
+        self.setFilterRole(_ROLE_FILTER)
+        self.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.setDynamicSortFilter(False)
+
+    def set_filter_level(self, level):
+        """
+        :param int level: The minimum log record level to display
+        """
+        self._filter_level = level
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, row, parent):  # pylint: disable=invalid-name
+        """
+        Determine if a row should be visible.
+        Re-implement QtCore.QSortFilterProxyModel.filterAcceptsRow.
+
+        :param int row: The row to check
+        :param parent: The parent index
+        :type parent: QtCore.QModelIndex
+        :return: Should the row be visible?
+        :rtype: bool
+        """
+        model = self.sourceModel()
+        index = model.index(row, 0)
+        record = model.data(index, QtCore.Qt.UserRole)
+
+        # Filter using log level
+        level = record.levelno
+        if level < self._filter_level:
+            return False
+
+        return super(LogRecordProxyModel, self).filterAcceptsRow(row, parent)
+
+
+class WidgetLogger(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        """
+        :param parent: An optional parent widget
+        :type parent: QtWidgets.QWidget
+        """
+        super(WidgetLogger, self).__init__(parent=parent)
+
+        self.ui = widget_logger.Ui_Form()
+        self.ui.setupUi(self)
+
+        # Configure view model
+        self.model = LogRecordModel()
+        self.proxy_model = LogRecordProxyModel(self)
+        self.proxy_model.setSourceModel(self.model)
+        self.ui.tableView_logs.setModel(self.proxy_model)
+
+        # Configure view header
+        header = self.ui.tableView_logs.horizontalHeader()
+        header.setStretchLastSection(True)
+        QtCompat.setSectionResizeMode(header, QtWidgets.QHeaderView.ResizeToContents)
+        self.ui.tableView_logs.verticalHeader().hide()
+
+        # Connect events
+        self.ui.lineEdit_log_search.textChanged.connect(self._on_search_text_changed)
+        self.ui.comboBox_log_level.currentIndexChanged.connect(
+            self._on_search_level_changed
+        )
+        self.ui.pushButton_logs_clear.pressed.connect(self._on_clear_records)
+        self.ui.pushButton_logs_save.pressed.connect(self._on_save_records)
+        self.model.rowsInserted.connect(self._on_record_added)
+
+    def register_logger(self, logger):
+        """
+        :param logger: The logger to listen to
+        :type logger: logging.Logger
+        """
+        handler = CustomLoggingHandler(self.model)
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+
+    def _on_search_text_changed(self):
+        """
+        Called when the user change the search text.
+        """
+        query = self.ui.lineEdit_log_search.text()
+        self.proxy_model.setFilterWildcard(query)
+
+    def _on_search_level_changed(self):
+        """
+        Called when the user change the search level drop down menu.
+        """
+        index = self.ui.comboBox_log_level.currentIndex()
+        model = self.ui.tableView_logs.model()
+        model.set_filter_level(_AVAILABLE_LEVELS[index])
+
+    def _on_save_records(self):
+        """
+        Called when the user click on the save logs button.
+        """
+        default_name = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm%S")
+
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save logs", "%s.log" % default_name, ".log"
+        )
+        if path:
+            records = self.model.get_records()
+            _export_records_to_csv(records, path)
+
+    def _on_clear_records(self):
+        """
+        Called when the user click on the clear logs button.
+        """
+        self.model.clear_records()
+
+    def _on_record_added(self, *_):
+        """
+        Called when a new log record is added.
+        This will ensure the scrollbar is always at the bottom.
+        """
+        self.ui.tableView_logs.scrollToBottom()
+
+
+def _log_level_to_str(level):
     """
     Convert a log level to it's human readable representation.
 
@@ -27,263 +235,46 @@ def log_level_to_str(level):
     return "Info"
 
 
-class UiLoggerModel(QtCore.QAbstractTableModel):
+def _get_record_info(record):
     """
-    Qt Model to display log records in a table.
+    :param record: A log record
+    :type record: logging.LogRecord
+    :return: The record timestamp, type and message
+    :rtype: tuple[str, str, str]
     """
-    HEADER = ("Date", "Type", "Message")
-
-    ROW_LEVEL = 1
-    ROW_MESSAGE = 2
-    ROW_DATE = 0
-
-    COLOR_FOREGROUND_ERROR = QtGui.QColor(0, 0, 0)
-    COLOR_FOREGROUND_WARNING = QtGui.QColor(255, 255, 0)
-    COLOR_FOREGROUND_INFO = None
-    COLOR_FOREGROUND_DEBUG = QtGui.QColor(128, 128, 128)
-
-    COLOR_BACKGROUND_ERROR = QtGui.QColor(255, 0, 0)
-    COLOR_BACKGROUND_WARNING = None
-    COLOR_BACKGROUND_INFO = None
-    COLOR_BACKGROUND_DEBUG = None
-
-    def __init__(self, parent, data, *args):
-        super(UiLoggerModel, self).__init__(parent, *args)
-        self.items = data
-        self.header = self.HEADER
-
-    def rowCount(self, _):
-        return len(self.items)
-
-    def columnCount(self, _):
-        return len(self.header)
-
-    def data(self, index, role):
-        if not index.isValid():
-            return None
-
-        if role == QtCore.Qt.ForegroundRole:
-            record = self.items[index.row()]
-            level = record.levelno
-            if level >= logging.ERROR:
-                return self.COLOR_FOREGROUND_ERROR
-            if level >= logging.WARNING:
-                return self.COLOR_FOREGROUND_WARNING
-            if level <= logging.DEBUG:
-                return self.COLOR_FOREGROUND_DEBUG
-            return self.COLOR_FOREGROUND_INFO
-
-        if role == QtCore.Qt.BackgroundColorRole:
-            record = self.items[index.row()]
-            level = record.levelno
-            if level >= logging.ERROR:
-                return self.COLOR_BACKGROUND_ERROR
-            if level >= logging.WARNING:
-                return self.COLOR_BACKGROUND_WARNING
-            if level <= logging.DEBUG:
-                return self.COLOR_BACKGROUND_DEBUG
-            return self.COLOR_BACKGROUND_INFO
-
-        if role != QtCore.Qt.DisplayRole:
-            return None
-
-        record = self.items[index.row()]
-        col_index = index.column()
-        if col_index == self.ROW_LEVEL:
-            level = record.levelno
-            return log_level_to_str(level)
-
-        if col_index == self.ROW_MESSAGE:
-            return record.message
-
-        if col_index == self.ROW_DATE:
-            return str(datetime.datetime.fromtimestamp(record.created))
-
-        Exception("Unexpected row. Expected 0 or 1, got %s" % col_index)
-
-    def headerData(self, col, orientation, role):
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return self.header[col]
-        return None
-
-    def add(self, item):
-        num_items = len(self.items)
-        self.beginInsertRows(QtCore.QModelIndex(), num_items, num_items)
-        self.items.append(item)
-        self.endInsertRows()
-
-    def reset(self):
-        """Backport of Qt4 .reset method()"""
-        self.beginResetModel()
-        self.endResetModel()
+    return (
+        str(datetime.datetime.fromtimestamp(record.created)),
+        _log_level_to_str(record.levelno),
+        record.msg,
+    )
 
 
-class UiLoggerProxyModel(QtCore.QSortFilterProxyModel):
+def _get_text_color_from_level(level):
     """
-    Qt proxy model that filter log records by their level of content.
+    Return the text foreground and background color to use for a provided record level.
+
+    :param int level: A log record level
+    :return: A foreground and background color
+    :rtype: tuple[QtGui.QColor or None, QtGui.QColor or None]
     """
-    def __init__(self, *args, **kwargs):
-        super(UiLoggerProxyModel, self).__init__(*args, **kwargs)
-        self._log_level_interest = logging.WARNING
-        self._log_search_query = None
+    if level >= logging.ERROR:
+        return _COLOR_FOREGROUND_ERROR, _COLOR_BACKGROUND_ERROR
+    if level >= logging.WARNING:
+        return _COLOR_FOREGROUND_WARNING, _COLOR_BACKGROUND_WARNING
+    if level <= logging.DEBUG:
+        return _COLOR_FOREGROUND_DEBUG, _COLOR_BACKGROUND_DEBUG
 
-    def set_loglevel_filter(self, loglevel, update=True):
-        self._log_level_interest = loglevel
-        if update:
-            self.reset()
-
-    def set_log_query(self, query, update=True):
-        self._log_search_query = query if query else None
-        if update:
-            self.reset()
-
-    def filterAcceptsRow(self, source_row, index):
-        model = self.sourceModel()
-        record = model.items[source_row]
-
-        # Filter using query
-        if self._log_search_query:
-            query = self._log_search_query.lower()
-            if not query in record.message.lower():
-                return False
-
-        # Filter using log level
-        level = record.levelno
-        if level < self._log_level_interest:
-            return False
-
-        return True
-
-    def reset(self):
-        """Backport of Qt4 .reset method()"""
-        self.beginResetModel()
-        self.endResetModel()
+    return _COLOR_FOREGROUND_INFO, _COLOR_BACKGROUND_INFO
 
 
-class WidgetLogger(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(WidgetLogger, self).__init__(parent=parent)
+def _export_records_to_csv(records, path):
+    """
+    :param records: A list of log records
+    :type records: list of logging.LogRecord
+    :param str path: A file path to write to
+    """
+    with open(path, "w") as steam:
+        steam.write("Date,Level,Message\n")
 
-        self.ui = widget_logger.Ui_Form()
-        self.ui.setupUi(self)
-
-        #
-        # Configure logging view
-        #
-
-        # Used to store the logging handlers
-        self._logging_handlers = []
-        # Used to store the records so our TableView can filter them
-        self._logging_records = []
-        # Used to store what log level we are interested.
-        # We use a separated value here since we might want to keep other
-        # log handlers active (external files, script editor, etc)
-        self._logging_level = logging.WARNING
-
-        table_model = UiLoggerModel(self, self._logging_records)
-        table_proxy_model = UiLoggerProxyModel(self)
-        table_proxy_model.setSourceModel(table_model)
-        table_proxy_model.setDynamicSortFilter(False)
-        self.ui.tableView_logs.setModel(table_proxy_model)
-        # self.ui.tableView_logs.setModel(self._table_log_model)
-
-        header = self.ui.tableView_logs.horizontalHeader()
-        header.setStretchLastSection(True)
-        QtCompat.setSectionResizeMode(header, QtWidgets.QHeaderView.ResizeToContents)
-
-        self.create_logger_handler()
-
-        # Connect events
-        self.ui.comboBox_log_level.currentIndexChanged.connect(
-            self.update_log_search_level
-        )
-        self.ui.lineEdit_log_search.textChanged.connect(self.update_log_search_query)
-        self.ui.pushButton_logs_clear.pressed.connect(self.on_log_clear)
-        self.ui.pushButton_logs_save.pressed.connect(self.on_log_save)
-
-        log.info("Opened OMTK GUI")
-
-    def create_logger_handler(self):
-        class QtHandler(logging.Handler):
-            """Custom Qt Handler for our logger"""
-
-            def __init__(self, main_class):
-                """
-                Initialize the handler
-                """
-                logging.Handler.__init__(self)
-                self._main_class = main_class
-
-            def emit(self, record):
-                """
-                When the handler emit something, update the table view messages
-                :param record: The record that been emitted
-                :return:
-                """
-                # TODO - Find a solution for the problem where
-                #  if the UI is not closed correctly, tableView_log is not valid.
-                self._main_class._logging_records.append(record)
-                try:
-                    self._main_class.ui.tableView_logs.model().reset()
-                    self._main_class.ui.tableView_logs.scrollToBottom()
-                except:
-                    self._main_class.remove_logger_handler()
-
-        handler = QtHandler(self)
-
-        log.addHandler(handler)
-        log.setLevel(logging.DEBUG)
-        self._logging_handlers.append(handler)
-
-    def remove_logger_handler(self):
-        if self._logging_handlers:
-            for handler in self._logging_handlers:
-                log.removeHandler(handler)
-            self._logging_handlers = []
-
-    def update_log_search_query(self):
-        query = self.ui.lineEdit_log_search.text()
-        self.ui.tableView_logs.model().set_log_query(query)
-
-    def update_log_search_level(self):
-        index = self.ui.comboBox_log_level.currentIndex()
-        model = self.ui.tableView_logs.model()
-        if index == 0:
-            model.set_loglevel_filter(logging.ERROR)
-        elif index == 1:
-            model.set_loglevel_filter(logging.WARNING)
-        elif index == 2:
-            model.set_loglevel_filter(logging.INFO)
-        elif index == 3:
-            model.set_loglevel_filter(logging.DEBUG)
-
-    def _save_logs(self, path):
-        with open(path, "w") as fp:
-            # Write header
-            fp.write("Date,Level,Message\n")
-
-            # Write content
-            for record in self._logging_records:
-                fp.write(
-                    "%s,%s,%s\n"
-                    % (
-                        str(datetime.datetime.fromtimestamp(record.created)),
-                        log_level_to_str(record.levelno),
-                        record.message,
-                    )
-                )
-
-    def on_log_save(self):
-        default_name = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm%S")
-        if self.root:
-            default_name = "%s_%s" % (default_name, self.root.name)
-
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save logs", "%s.log" % default_name, ".log"
-        )
-        if path:
-            self._save_logs(path)
-
-    def on_log_clear(self):
-        del self._logging_records[:]
-        self.ui.tableView_logs.model().reset()
+        for record in records:
+            steam.write("%s,%s,%s\n" % _get_record_info(record))

@@ -37,6 +37,8 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
 
+        self.ui.widget_logger.register_logger(log)
+
         version = api.get_version()
         self.setWindowTitle("Open Rigging Toolkit %s" % version)
 

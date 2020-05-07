@@ -17,6 +17,8 @@ Please note that to correctly support scaling, all the computation are done in L
 This mean that you CANNOT use the skinned surface influences to drive the final mesh.
 """
 import pymel.core as pymel
+
+import omtk.models.model_ctrl_calibratable
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModuleMap import ModuleMap
 from omtk.core.classModule import Module
@@ -59,7 +61,7 @@ class InteractiveFKCtrl(BaseCtrl):
     pass
 
 
-class InteractiveFKCtrlModel(classCtrlModel.CtrlModelCalibratable):
+class InteractiveFKCtrlModel(omtk.models.model_ctrl_calibratable.CtrlModelCalibratable):
     """
     This module allow the controller to follow a follicle and
     hijack the influence skinCluster to only consider the local space.

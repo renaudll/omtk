@@ -2,7 +2,6 @@ import pymel.core as pymel
 
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
-from omtk.libs import libPython
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
 from omtk.models import model_ctrl_linear
@@ -17,29 +16,6 @@ class CtrlJaw(rigFaceAvar.BaseCtrlFace):
 
 
 class ModelCtrlJaw(model_ctrl_linear.ModelCtrlLinear):
-    def connect(
-        self,
-        avar,
-        avar_grp,
-        ctrl,
-        ud=True,
-        fb=True,
-        lr=True,
-        yw=True,
-        pt=True,
-        rl=True,
-        sx=True,
-        sy=True,
-        sz=True,
-    ):
-        libRigging.connectAttr_withLinearDrivenKeys(ctrl.translateX, avar.attr_lr)
-        libRigging.connectAttr_withLinearDrivenKeys(ctrl.translateY, avar.attr_ud)
-        libRigging.connectAttr_withLinearDrivenKeys(ctrl.translateZ, avar.attr_fb)
-        libRigging.connectAttr_withLinearDrivenKeys(ctrl.rotateX, avar.attr_pt)
-        libRigging.connectAttr_withLinearDrivenKeys(ctrl.rotateY, avar.attr_yw)
-        libRigging.connectAttr_withLinearDrivenKeys(ctrl.rotateZ, avar.attr_rl)
-        # todo: connect jaw ratio
-
     def get_default_tm_ctrl(self):
         """
         Find the chin location using raycast. This is the prefered location for the jaw doritos.
@@ -100,7 +76,8 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def _get_avar_macro_all_ctrl_tm(self):
         """
-        If the rigger provided an extra influence (jaw_end), we'll use it to define the ctrl and influence position.
+        If the rigger provided an extra influence (jaw_end),
+        we'll use it to define the ctrl and influence position.
         """
         jnt_jaw = self.jnt
         if len(self.jnts) > 1:

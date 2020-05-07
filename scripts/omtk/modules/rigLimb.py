@@ -202,14 +202,18 @@ class Limb(Module):
         # doing a dgdirty or reloading the scene would introduce flipping.
         chain_blend[0].setParent(self.grp_rig)
 
-        for blend, oIk, oFk in zip(chain_blend, constraint_ik_chain, self.sysFK.ctrls):
+        for blend, obj_ik, obj_fk in zip(
+            chain_blend, constraint_ik_chain, self.sysFK.ctrls
+        ):
             # Note that maintainOffset should not be necessary, however the
             # rigLegQuad IK can be flipped in some rare cases.
             # For now since prod need it so we'll activate the flag, however it would
             # be appreciated if the ugliness of the rigLegQuad module
             # don't bleed into the rigLimb module.
             # TODO: Remove maintainOffset
-            constraint = pymel.parentConstraint(oIk, oFk, blend, maintainOffset=True)
+            constraint = pymel.parentConstraint(
+                obj_ik, obj_fk, blend, maintainOffset=True
+            )
             attr_weight_ik, attr_weight_fk = constraint.getWeightAliasList()
             pymel.connectAttr(attr_ik_weight, attr_weight_ik)
             pymel.connectAttr(attr_fk_weight, attr_weight_fk)
@@ -329,6 +333,9 @@ class Limb(Module):
     #
 
     def snap_ik_to_fk(self):
+        """
+        Match the IK chain from the FK chain.
+        """
         # Position ikCtrl
         ctrl_ik_tm = self.chain_jnt[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
         self.sysIK.ctrl_ik.node.setMatrix(
@@ -353,16 +360,25 @@ class Limb(Module):
         self.sysIK.ctrl_swivel.node.setTranslation(pos_swivel, space="world")
 
     def snap_fk_to_ik(self):
+        """
+        Match the FK chain from the IK chain.
+        """
         for ctrl, jnt in zip(self.sysFK.ctrls, self.chain_jnt):
             ctrl.node.setMatrix(jnt.getMatrix(worldSpace=True), worldSpace=True)
 
     def switch_to_ik(self):
+        """
+        Snap the IK chain to the FK chain and switch mode to IK.
+        """
         self.snap_ik_to_fk()
         attr_state = libAttr.get_settable_attr(self.attState)
         if attr_state:
             attr_state.set(self.STATE_IK)
 
     def switch_to_fk(self):
+        """
+        Snap the FK chain to the IK chain and switch mode to FK.
+        """
         self.snap_fk_to_ik()
         attr_state = libAttr.get_settable_attr(self.attState)
         if attr_state:

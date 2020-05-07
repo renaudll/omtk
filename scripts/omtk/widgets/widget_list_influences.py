@@ -23,7 +23,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Tweak gui
-        self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
+        self.ui.treeWidget.setStyleSheet(ui_shared.STYLE_SHEET)
 
         # Connect signals
         self.ui.treeWidget.customContextMenuRequested.connect(self.onRightClick)

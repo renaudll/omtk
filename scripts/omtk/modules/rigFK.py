@@ -135,6 +135,7 @@ class FK(Module):
         :rtype: str
         """
         # TODO: Write unit-tests for this
+        # TODO: Simplify rules
         basename = obj.stripNamespace().nodeName()
         naming_anm = self.get_nomenclature_anm()
 

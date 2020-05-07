@@ -17,8 +17,8 @@ class MetadataType:
 
 
 # http://forums.cgsociety.org/archive/index.php?t-1096914.html
-# Use the intern maya ressources icon
-_STYLE_SHEET = """
+# Use the internal maya resources icon
+STYLE_SHEET = """
 
       QTreeView::item::selected
       {
@@ -73,7 +73,7 @@ def set_icon_from_type(obj, qItem):
         qItem.setIcon(0, QtGui.QIcon(":/question.png"))
 
 
-def _update_network(module, item=None):
+def update_network(module, item=None):
     if hasattr(module, "_network"):
         pymel.delete(module._network)
     new_network = libSerialization.export_network(module)  # TODO : Automatic update

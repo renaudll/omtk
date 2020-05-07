@@ -36,10 +36,6 @@ class CtrlEye(BaseCtrl):
 
 
 class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
-
-    def __init__(self, *args, **kwargs):
-        super(BaseAvarCtrlModel, self).__init__(*args, **kwargs)
-
     def get_default_tm_ctrl(self):
         if self.jnt:
             return self.jnt.getMatrix(worldSpace=True)
@@ -130,7 +126,7 @@ class ModelLookAt(BaseAvarCtrlModel):
         pymel.pointConstraint(ctrl, aim_target, maintainOffset=False)
 
         # Build an upnode for the eyes.
-        # I'm not a fan of upnodes but in this case it's better to guessing the joint orient.
+        # Not a fan of upnodes but in this case it's better than guessing joint orient.
         aim_upnode_name = naming.resolve("upnode")
 
         aim_upnode = pymel.createNode("transform", name=aim_upnode_name)

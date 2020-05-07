@@ -46,7 +46,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Tweak gui
-        self.ui.treeWidget.setStyleSheet(ui_shared._STYLE_SHEET)
+        self.ui.treeWidget.setStyleSheet(ui_shared.STYLE_SHEET)
 
         # Connect signal
 
@@ -111,9 +111,9 @@ class WidgetListModules(QtWidgets.QWidget):
             return
 
         for root in self._rigs:
-            qItem = self._get_qtreewidgetitem(root)
-            self.ui.treeWidget.addTopLevelItem(qItem)
-            self.ui.treeWidget.expandItem(qItem)
+            item = self._get_qtreewidgetitem(root)
+            self.ui.treeWidget.addTopLevelItem(item)
+            self.ui.treeWidget.expandItem(item)
         self.refresh_ui()
 
     def refresh_ui(self):
@@ -135,6 +135,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.treeWidget.blockSignals(False)
 
     def _refresh_ui_modules_visibility(self, query_regex=None):
+        # TODO: Replace with QSortFilterProxyModel
         if query_regex is None:
             query_raw = self.ui.lineEdit_search.text()
             query_regex = ".*%s.*" % query_raw if query_raw else ".*"
@@ -155,10 +156,10 @@ class WidgetListModules(QtWidgets.QWidget):
 
     # Block signals need to be called in a function because
     # if called in a signal, it will block it
-    def _set_text_block(self, item, str):
+    def _set_text_block(self, item, value):
         self.ui.treeWidget.blockSignals(True)
         if hasattr(item, "rig"):
-            item.setText(0, str)
+            item.setText(0, value)
         self.ui.treeWidget.blockSignals(False)
 
     def _build_module(self, module):
@@ -379,14 +380,14 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_build_selected(self):
         for val in self.get_selected_modules():
             self._build(val)
-        ui_shared._update_network(self._rig)
+        ui_shared.update_network(self._rig)
         self.update()
 
     def on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.metadata_data
             self._unbuild(val)
-            ui_shared._update_network(self._rig)
+            ui_shared.update_network(self._rig)
         self.update()
 
     def on_rebuild_selected(self):
@@ -394,7 +395,7 @@ class WidgetListModules(QtWidgets.QWidget):
             val = qItem.metadata_data
             self._unbuild(val)
             self._build(val)
-            ui_shared._update_network(self._rig)
+            ui_shared.update_network(self._rig)
 
     def on_module_selection_changed(self):
         # Filter deleted networks
@@ -422,7 +423,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 self._unbuild(
                     module, update=False
                 )  # note: setting update=True on maya-2017 can cause Qt to crash...
-            ui_shared._update_network(self._rig, item=item)
+            ui_shared.update_network(self._rig, item=item)
 
         # Check if the name have changed
         if item._name != new_text:
@@ -446,27 +447,27 @@ class WidgetListModules(QtWidgets.QWidget):
                 return
 
             menu = QtWidgets.QMenu()
-            actionBuild = menu.addAction("Build")
-            actionBuild.triggered.connect(self.on_build_selected)
-            actionUnbuild = menu.addAction("Unbuild")
-            actionUnbuild.triggered.connect(self.on_unbuild_selected)
-            actionRebuild = menu.addAction("Rebuild")
-            actionRebuild.triggered.connect(self.on_rebuild_selected)
+            action_build = menu.addAction("Build")
+            action_build.triggered.connect(self.on_build_selected)
+            action_unbuild = menu.addAction("Unbuild")
+            action_unbuild.triggered.connect(self.on_unbuild_selected)
+            action_rebuild = menu.addAction("Rebuild")
+            action_rebuild.triggered.connect(self.on_rebuild_selected)
             menu.addSeparator()
-            actionLock = menu.addAction("Lock")
-            actionLock.triggered.connect(self.on_lock_selected)
+            action_lock = menu.addAction("Lock")
+            action_lock.triggered.connect(self.on_lock_selected)
             action_unlock = menu.addAction("Unlock")
             action_unlock.triggered.connect(self.on_unlock_selected)
             menu.addSeparator()
             if len(sel) == 1:
-                actionRemove = menu.addAction("Rename")
-                actionRemove.triggered.connect(
+                action_rename = menu.addAction("Rename")
+                action_rename.triggered.connect(
                     functools.partial(
                         self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0
                     )
                 )
-            actionRemove = menu.addAction("Remove")
-            actionRemove.triggered.connect(functools.partial(self.on_remove))
+            action_remove = menu.addAction("Remove")
+            action_remove.triggered.connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
 
@@ -476,8 +477,6 @@ class WidgetListModules(QtWidgets.QWidget):
                 fn = getattr(val, "__can_show__")
                 if fn is None:
                     return False
-                # if not inspect.ismethod(fn):
-                #    return False
                 return val.__can_show__()
 
             functions = inspect.getmembers(inst, is_exposed)
@@ -518,9 +517,8 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_module_double_clicked(self, item):
         if hasattr(item, "rig"):
             self._set_text_block(item, item.metadata_data.name)
-            self._is_modifying = (
-                True  # Flag to know that we are currently modifying the name
-            )
+            # Flag to know that we are currently modifying the name
+            self._is_modifying = True
             self.ui.treeWidget.editItem(item, 0)
 
     def focus_in_module(self, event):
@@ -546,7 +544,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 need_update = True
                 val.locked = True
         if need_update:
-            ui_shared._update_network(self._rig)
+            ui_shared.update_network(self._rig)
             self.update()
 
     def on_unlock_selected(self):
@@ -557,7 +555,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 need_update = True
                 val.locked = False
         if need_update:
-            ui_shared._update_network(self._rig)
+            ui_shared.update_network(self._rig)
             self.update()
 
     def on_remove(self):
@@ -587,12 +585,12 @@ class WidgetListModules(QtWidgets.QWidget):
 
                 self.deletedRig.emit(rig)
 
-            except Exception, e:
+            except Exception, error:
                 log.error(
                     "Error removing %s. Received %s. %s",
                     rig,
-                    type(e).__name__,
-                    str(e).strip(),
+                    type(error).__name__,
+                    str(error).strip(),
                 )
                 traceback.print_exc()
 
@@ -603,12 +601,12 @@ class WidgetListModules(QtWidgets.QWidget):
                     module.unbuild()
                 module.rig.remove_module(module)
                 need_reexport = True
-            except Exception, e:
+            except Exception, error:
                 log.error(
                     "Error removing %s. Received %s. %s",
                     module,
-                    type(e).__name__,
-                    str(e).strip(),
+                    type(error).__name__,
+                    str(error).strip(),
                 )
                 traceback.print_exc()
 

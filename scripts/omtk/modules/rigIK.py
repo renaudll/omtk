@@ -11,7 +11,7 @@ from omtk.core.compounds import create_compound
 
 class CtrlIk(BaseCtrl):
     """
-    Base ik ctrl for the IK class. Used to drive ik handle. Inherit of the base ctrl class
+    Base ik ctrl for the IK class. Used to drive ik handle.
     """
 
     kAttrName_State = "ikFk"  # Attribute string shown in maya
@@ -29,8 +29,9 @@ class CtrlIk(BaseCtrl):
 
 class CtrlIkSwivel(BaseCtrl):
     """
-    Base Ctrl ik swivel class implementation. Mostly used to do pole vector on an ik. Will create a ctrl with a line
-    to facilitate pole vector visualization. Inherit of the base ctrl class
+    Base Ctrl ik swivel class implementation.
+    Mostly used to do pole vector on an ik.
+    Will create a ctrl with a line to facilitate pole vector visualization.
     """
 
     def __init__(self):
@@ -130,8 +131,10 @@ class CtrlIkSwivel(BaseCtrl):
 class IK(Module):
     """
     Classical IK rig that support stretching and soft-ik.
-    This is the base Ik module of the autorig. Support a basic 3 bones ik rotate-plane solver
-    with the creation of a controller. Also used the softik implementation. Inherit of the module class
+    This is the base Ik module of the autorig.
+    Support a basic 3 bones ik rotate-plane solver
+    with the creation of a controller.
+    Also used the softik implementation. Inherit of the module class
     to be able to used it in the autorig UI
     """
 
@@ -159,10 +162,15 @@ class IK(Module):
 
     def calc_swivel_pos(self, start_index=0, end_index=2):
         """
-        This function is used to compute a swivel position. Can be used for multiple knee setup
-        :param start_index: The start index of the _ik_chain that will be used to compute the swivel pos
-        :param end_index: The end index of the _ik_chain that will be used to compute the swivel pos
+        This function is used to compute a swivel position.
+        Can be used for multiple knee setup
+
+        :param start_index: The start index of the _ik_chain.
+                            Used to compute the swivel pos.
+        :param end_index: The end index of the _ik_chain.
+                          Used to compute the swivel pos.
         :return: The swivel position computed between the start and end
+        :rtype: pymel.datatypes.Vector
         """
         pos_start = self.chain_jnt[start_index].getTranslation(space="world")
         pos_end = self.chain_jnt[end_index].getTranslation(space="world")
@@ -182,24 +190,25 @@ class IK(Module):
     def setup_softik(self, ik_handle_to_constraint, stretch_chains):
         """
         Setup the softik system a ik system
-        :param ik_handle_to_constraint: A list of ik handles to constraint on the soft-ik network.
+
+        :param ik_handle_to_constraint: A list of ik handles to constraint.
         :param stretch_chains: A list of chains to connect the stretch to.
         """
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Create public attributes
         holder = self.ctrl_ik
-        fnAddAttr = functools.partial(
+        _fn = functools.partial(
             libAttr.addAttr, holder, hasMinValue=True, hasMaxValue=True, keyable=True
         )
-        attInRatio = fnAddAttr(
+        attr_ratio = _fn(
             longName="softIkRatio",
             niceName="SoftIK",
             defaultValue=0,
             minValue=0,
             maxValue=50,
         )
-        attInStretch = fnAddAttr(
+        attr_stretch = _fn(
             longName="stretch",
             niceName="Stretch",
             defaultValue=0,
@@ -208,12 +217,12 @@ class IK(Module):
         )
 
         # Convert ratio from percent (user-friendly) to decimal.
-        attInRatio = libRigging.create_utility_node(
-            "multiplyDivide", input1X=attInRatio, input2X=0.01
+        attr_ratio = libRigging.create_utility_node(
+            "multiplyDivide", input1X=attr_ratio, input2X=0.01
         ).outputX
 
         # Adjust the original chain length with the global scale modifier
-        attLength = libRigging.create_utility_node(
+        attr_length = libRigging.create_utility_node(
             "multiplyDivide",
             input1X=self.chain_length,
             input2X=self.grp_rig.globalScale,
@@ -225,17 +234,17 @@ class IK(Module):
             "omtk.SoftIkStretch",
             soft_ik_network_name,
             inputs={
-                "ratio": attInRatio,
-                "stretch": attInStretch,
+                "ratio": attr_ratio,
+                "stretch": attr_stretch,
                 "start": self._ikChainGrp.worldMatrix,
                 "end": self._ik_handle_target.worldMatrix,
-                "length": attLength,
+                "length": attr_length,
             },
         )
-        attOutStretch = pymel.Attribute("%s.stretch" % compound.output)
-        attOutRatio = pymel.Attribute("%s.ratio" % compound.output)
-        attOutRatioInv = libRigging.create_utility_node(
-            "reverse", inputX=attOutRatio
+        attr_out_stretch = pymel.Attribute("%s.stretch" % compound.output)
+        attr_out_ratio = pymel.Attribute("%s.ratio" % compound.output)
+        attr_out_ratio_inv = libRigging.create_utility_node(
+            "reverse", inputX=attr_out_ratio
         ).outputX
 
         # TODO: Improve softik ratio when using multiple ik handle.
@@ -252,8 +261,8 @@ class IK(Module):
             weight_inn, weight_out = pointConstraint.getWeightAliasList()[
                 -2:
             ]  # Ensure to get the latest target added
-            pymel.connectAttr(attOutRatio, weight_inn)
-            pymel.connectAttr(attOutRatioInv, weight_out)
+            pymel.connectAttr(attr_out_ratio, weight_inn)
+            pymel.connectAttr(attr_out_ratio_inv, weight_out)
 
         # Connect stretch
         for stretch_chain in stretch_chains:
@@ -261,22 +270,20 @@ class IK(Module):
                 obj = stretch_chain[i]
                 util_get_t = libRigging.create_utility_node(
                     "multiplyDivide",
-                    input1X=attOutStretch,
-                    input1Y=attOutStretch,
-                    input1Z=attOutStretch,
+                    input1X=attr_out_stretch,
+                    input1Y=attr_out_stretch,
+                    input1Z=attr_out_stretch,
                     input2=obj.t.get(),
                 )
                 pymel.connectAttr(util_get_t.outputX, obj.tx, force=True)
                 pymel.connectAttr(util_get_t.outputY, obj.ty, force=True)
                 pymel.connectAttr(util_get_t.outputZ, obj.tz, force=True)
 
-        # compound.explode(
-        #     remove_namespace=True
-        # )  # TODO: Should be done on the post-build of the rig
-
     def create_ik_handle(self, solver="ikRPsolver"):
         """
-        Create a ik handle for a specific ik setup. Need to be overrided by children class to implement the good behavior
+        Create a ik handle for a specific ik setup.
+        Need to be overriden by child class to implement the good behavior.
+
         :return: Return the created ik handle and effector
         """
         # Since the base Ik will always be two bone,
@@ -293,6 +300,7 @@ class IK(Module):
     ):
         """
         Create the swivel ctrl for the ik system
+
         :param ctrl_swivel: The ctrl used to setup the swivel, create one if needed
         :param ref: Reference object to position the swivel
         :param pos: The computed position of the swivel

@@ -4,9 +4,9 @@
 # - Added "useless-object-inheritance" to "disable" for python-2 compatibility
 # - Added "keyword-arg-before-vararg" to "disable" for python-2 compatibility
 # - Added maya and Qt.py related modules to to "ignored-modules"
-# - Added "ui,fp" to "good-names"
+# - Added "tx,ty,tz,rx,ry,rz,sx,sy,sz,lr,ud,fb,ui,fp" to "good-names"
 # - Set "max-line-length" to 88 for compatibility with black
-# - Increase "min-similarity-lines" from 4 to 8
+# - Increase "min-similarity-lines" from 4 to 8"
 [MASTER]
 
 # A comma-separated list of package or module names from where C extensions may
@@ -262,6 +262,18 @@ good-names=i,
            Run,
            ui,
            fp,
+           tx,
+           ty,
+           tz,
+           rx,
+           ry,
+           rz,
+           sx,
+           sy,
+           sz,
+           lr,
+           ud,
+           fb,
            _
 
 # Include a hint for the correct naming format with invalid-name.

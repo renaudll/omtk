@@ -1,12 +1,4 @@
-import pymel.core as pymel
-from pymel.core.datatypes import Matrix, Vector, Point
-
-from omtk.core.classCtrl import BaseCtrl
 from omtk.core import classCtrlModel
-from omtk.libs import libRigging
-from omtk.libs import libPymel
-from omtk.libs import libAttr
-from omtk.libs import libHistory
 
 
 class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):

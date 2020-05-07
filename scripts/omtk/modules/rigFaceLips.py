@@ -21,8 +21,10 @@ class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
 
 class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     """
-    The Lips avar are special as they implement a Splitter mechanism that ensure the avars move in jaw space before moving in surface space.
-    For this reason, we implement a new avar, 'avar_ud_bypass' to skip the splitter mechanism if necessary. (ex: avar_all)
+    The Lips avar are special as they implement a Splitter mechanism that
+    ensure the avars move in jaw space before moving in surface space.
+    For this reason, we implement a new avar, 'avar_ud_bypass'
+    to skip the splitter mechanism if necessary. (ex: avar_all)
     """
 
     AVAR_NAME_UD_BYPASS = "_attr_inn_ud_bypass"
@@ -68,8 +70,9 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     def add_avars(self, attr_holder):
         """
         Create the network that contain all our avars.
-        For ease of use, the avars are exposed on the grp_rig, however to protect the connection from Maya
-        when unbuilding they are really existing in an external network node.
+        For ease of use, the avars are exposed on the grp_rig,
+        however to protect the connection from Maya when unbuilding
+        they are really existing in an external network node.
         """
         super(FaceLipsAvar, self).add_avars(attr_holder)
         self.attr_ud_bypass = self.add_avar(attr_holder, self.AVAR_NAME_UD_BYPASS)
@@ -177,8 +180,12 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     ):
         """
         Connect micro avars to horizontal macro avar. (avar_l and avar_r)
-        This configure the avar_lr connection differently depending on the position of each micro avars.
-        The result is that the micro avars react like an 'accordion' when their macro avar_lr change.
+
+        This configure the avar_lr connection differently
+        depending on the position of each micro avars.
+        The result is that the micro avars react like
+        an 'accordion' when their macro avar_lr change.
+
         :param avar_parent: The macro avar, source of the connections.
         :param avar_children: The micro avars, destination of the connections.
         :param connect_ud: True if we want to connect the avar_ud.
@@ -198,7 +205,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 pos = avar_child.jnt.getTranslation(space="world")
 
                 # Compute the ratio between the middle and the corner.
-                # ex: In the lips, we want the lips to stretch when the corner are taken appart.
+                # ex: In the lips, we want the lips to stretch
+                # when the corner are taken appart.
                 try:
                     ratio = (pos.x - pos_s.x) / (pos_e.x - pos_s.x)
                 except ZeroDivisionError:
@@ -273,12 +281,14 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, **kwargs):
         """
-        Since the avar_all ctrl don't follow the geometry, we'll want it to follow the avar influence.
-        This however create double transformation when rotating, it's not that much visible so it will do for now.
-        # todo: fix double transformation when rotating
+        Since the avar_all ctrl don't follow the geometry,
+        we'll want it to follow the avar influence.
+        This however create double transformation when rotating,
+        it's not that much visible so it will do for now.
         :param parent_pos:
         :param parent_rot:
         """
+        # TODO: fix double transformation when rotating
         parent_rot = self.avar_all._grp_output
         super(FaceLips, self)._create_avar_macro_all_ctrls(
             parent_pos=parent_pos, parent_rot=parent_rot, **kwargs

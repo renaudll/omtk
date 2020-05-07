@@ -39,18 +39,14 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
     def handle_surface(self):
         """
         Create a separated surface for the upper and lower lids.
-        This allow the rigger to easily tweak how each lids react which may be necessary with hyper-realistic characters.
+        This allow the rigger to easily tweak how each lids react which
+        may be necessary with hyper-realistic characters.
 
-        If the user provided it's own surface (via the input property), we'll use it for the upper AND lower lids.
-        This is mainly to support custom surface like spheres for very cartoony characters.
+        If the user provided it's own surface (via the input property),
+        we'll use it for the upper AND lower lids.
+        This is allow spheres to be used for very cartoony characters.
         """
-
-        # Get all surfaces provided by the input property.
-        def get_surface(obj):
-            if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface):
-                return obj
-
-        surfaces = filter(None, map(get_surface, self.input))
+        surfaces = self.get_surfaces()
 
         # If the user provided surface, pop them out of the input property
         # and store them in the surface_[upp/low] property.

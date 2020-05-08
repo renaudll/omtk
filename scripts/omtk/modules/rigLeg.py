@@ -100,7 +100,7 @@ class LegIk(rigIK.IK):
 
         naming = self.get_nomenclature_rig()
 
-        jnt_foot, jnt_toes, jnt_tip = self._chain_ik[self.iCtrlIndex:]
+        jnt_foot, jnt_toes, jnt_tip = self._chain_ik[self.iCtrlIndex :]
 
         # Create FootRoll
         foot_tm = jnt_foot.getMatrix(worldSpace=True)
@@ -263,7 +263,6 @@ class LegIk(rigIK.IK):
             pymel.connectAttr(util.outputRotate, transform.rotate)
             return transform
 
-
         parent_hook = pymel.createNode(
             "transform", name=naming.resolve("parentHook"), parent=self.grp_rig,
         )
@@ -275,14 +274,13 @@ class LegIk(rigIK.IK):
             "outFoot",
         )
 
-
         def _delete_constraints(obj):
             pymel.delete(
                 [
                     child
                     for child in obj.getChildren()
                     if isinstance(child, pymel.nodetypes.Constraint)
-                       and not isinstance(child, pymel.nodetypes.PoleVectorConstraint)
+                    and not isinstance(child, pymel.nodetypes.PoleVectorConstraint)
                 ]
             )
 
@@ -293,10 +291,11 @@ class LegIk(rigIK.IK):
         pymel.orientConstraint(out_foot, jnt_foot)
 
         out_toes_world = libRigging.create_utility_node(
-            "multMatrix", matrixIn=[
+            "multMatrix",
+            matrixIn=[
                 pymel.Attribute("%s.outToes" % compound.output),
-                parent_hook.matrix
-            ]
+                parent_hook.matrix,
+            ],
         ).matrixSum
         out_foot_inv_tm = libRigging.create_utility_node(
             "inverseMatrix", inputMatrix=out_foot.matrix

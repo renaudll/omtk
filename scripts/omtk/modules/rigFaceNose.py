@@ -1,3 +1,6 @@
+"""
+Logic for the "FaceNose" module
+"""
 from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
 from omtk.models import model_ctrl_linear

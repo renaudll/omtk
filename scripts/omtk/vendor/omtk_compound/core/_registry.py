@@ -126,7 +126,8 @@ class Registry(object):
                     path = os.path.join(rootdir, filename)
                     try:
                         inst = CompoundDefinition.from_file(path)
-                    except ValueError:  # TODO: Use custom exception
+                    except ValueError as error:  # TODO: Use custom exception
+                        _LOG.warning(error)
                         pass
                     else:
                         try:

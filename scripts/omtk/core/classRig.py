@@ -11,7 +11,6 @@ from omtk.core import className
 from omtk.core import api
 from omtk.core.utils import ui_expose
 from omtk.libs import libPymel
-from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.libs import libHistory
 from omtk.libs import libAttr
@@ -676,9 +675,7 @@ class Rig(object):
         # TODO: Is this safe? node could have connections.
         for grp in (module.grp_anm, module.grp_rig):
             if grp and not grp.getChildren():
-                module.log.warning(
-                    "Found empty group %s. Deleting.", grp.longName()
-                )
+                module.log.warning("Found empty group %s. Deleting.", grp.longName())
                 pymel.delete(grp)
                 continue
 
@@ -727,7 +724,7 @@ class Rig(object):
 
         pymel.warning("Unexpected datatype %s for %s" % (type(val), val))
 
-    def _unbuild_modules(self, strict=False, **kwargs):
+    def _unbuild_modules(self):
         # Unbuild all children
         for module in self.modules:
             if not module.is_built():
@@ -750,7 +747,7 @@ class Rig(object):
                         grp.setParent(world=True)
                 continue
 
-            module.unbuild(**kwargs)
+            module.unbuild()
 
     def _unbuild_nodes(self):
         # Delete anm_grp
@@ -759,14 +756,13 @@ class Rig(object):
         self.grp_geo = self._unbuild_node(self.grp_geo, keep_if_children=True)
         self.grp_master = self._unbuild_node(self.grp_master, keep_if_children=True)
 
-    def unbuild(self, strict=False, **kwargs):
+    def unbuild(self, **kwargs):
         """
-        :param kwargs: Potential parameters to pass recursively to the unbuild method of each module.
-        :return: True if successful.
+        Unbuild the whole rig
         """
         self.log.debug("Un-building")
 
-        self._unbuild_modules(strict=strict, **kwargs)
+        self._unbuild_modules()
         self._unbuild_nodes()
 
         # Remove any references to missing pynodes
@@ -774,8 +770,6 @@ class Rig(object):
         self._clean_invalid_pynodes()
         if self.modules is None:
             self.modules = []
-
-        return True
 
     #
     # Utility methods
@@ -848,6 +842,7 @@ class Rig(object):
         """
         Resolve a head influence height using raycasts.
         This is in the Rig class to increase performance using the caching mechanism.
+
         :param jnt_head: The head influence to mesure.
         :return: A float representing the head length. None if unsuccessful.
         """

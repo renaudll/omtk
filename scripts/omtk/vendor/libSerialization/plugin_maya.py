@@ -83,9 +83,7 @@ def _create_attr(name, data):
     # TODO: Raise an exception if multiples types are in the same list.
     if isinstance(data, (list, tuple)):
         if len(data) < 1:
-            log.warning(
-                "Can't create attribute %s, empty array are unsupported", name
-            )
+            log.warning("Can't create attribute %s, empty array are unsupported", name)
             return None
 
         # Resolve the type
@@ -123,7 +121,7 @@ def _create_attr(name, data):
         if not is_valid_PyNode(data):
             log.warning(
                 "Can't serialize %s attribute because of non-existent pymel Attribute!",
-                name
+                name,
             )
             return None
 

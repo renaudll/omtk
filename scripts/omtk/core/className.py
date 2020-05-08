@@ -89,7 +89,7 @@ class BaseName(object):
         self.side = None
 
         if name:
-            tokens = self.build_from_string(name)
+            self.build_from_string(name)
 
         # Apply manual overrides
         if tokens:

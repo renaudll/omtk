@@ -1,3 +1,6 @@
+"""
+Logic for the "Twistbone" module
+"""
 import math
 
 import pymel.core as pymel
@@ -116,7 +119,8 @@ class Twistbone(Module):
         for i, sub_jnt in enumerate(self.subjnts):
             sub_jnt.segmentScaleCompensate.set(0)  # Remove segment scale compensate
 
-            # Right now, we take into consideration that the system will be named Side_SysName(Ex:Upperarm_Twist)
+            # Right now, we take into consideration that the system
+            # will be named Side_SysName(Ex:Upperarm_Twist)
             jnt_name = nomenclature_jnt.resolve("{0:02d}".format(i))
             sub_jnt.rename(jnt_name)
 

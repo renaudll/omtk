@@ -1,4 +1,8 @@
+"""
+Logic for the "Hand" module
+"""
 import pymel.core as pymel
+
 from omtk.core.classModule import Module
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libPython

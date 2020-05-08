@@ -82,7 +82,6 @@ def find_one():
     return next(iter(find()), None)
 
 
-# @libPython.profiler
 @libPython.log_execution_time("build_all")
 def build_all(strict=False):
     """
@@ -98,7 +97,6 @@ def build_all(strict=False):
             libSerialization.export_network(rig)
 
 
-# @libPython.profiler
 @libPython.log_execution_time("unbuild_all")
 def unbuild_all(strict=False):
     from omtk.vendor import libSerialization

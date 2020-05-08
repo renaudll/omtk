@@ -1,3 +1,6 @@
+"""
+Logic for the "IK" module
+"""
 import functools
 import collections
 import pymel.core as pymel

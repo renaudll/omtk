@@ -34,7 +34,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
     # For this reason, we found that using a multiplier of 0.25 work best.
     # This also help rigger visually since the surface plane have
     # a visual edge at at each 25% of it's length.
-    # todo: Move this to AvarFollicle.
     DEFAULT_MULTIPLIER_LR = 0.25
     DEFAULT_MULTIPLIER_UD = 0.25
     DEFAULT_MULTIPLIER_FB = 0.10
@@ -124,12 +123,12 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
 
         surface = self.get_surface()
         for src, dst in (
-                (surface.worldSpace, self._attr_inn_surface),
-                (surface.worldMatrix, self._attr_inn_surface_tm),
-                (surface.minValueU, self._attr_inn_surface_min_value_u),
-                (surface.maxValueU, self._attr_inn_surface_max_value_u),
-                (surface.minValueV, self._attr_inn_surface_min_value_v),
-                (surface.maxValueV, self._attr_inn_surface_max_value_v),
+            (surface.worldSpace, self._attr_inn_surface),
+            (surface.worldMatrix, self._attr_inn_surface_tm),
+            (surface.minValueU, self._attr_inn_surface_min_value_u),
+            (surface.maxValueU, self._attr_inn_surface_max_value_u),
+            (surface.minValueV, self._attr_inn_surface_min_value_v),
+            (surface.maxValueV, self._attr_inn_surface_max_value_v),
         ):
             pymel.connectAttr(src, dst)
 
@@ -184,7 +183,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
                 "baseU": util_get_base_uv_absolute.parameterU,
                 "baseV": util_get_base_uv_absolute.parameterV,
                 "innOffset": self._obj_offset.matrix,
-            }
+            },
         )
         pymel.PyNode("%s:dag" % compound.namespace).setParent(self.grp_rig)
 

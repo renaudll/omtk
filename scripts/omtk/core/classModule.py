@@ -447,15 +447,7 @@ class Module(object):
         # If you define additional properties, don't forget to implement iter_ctrls.
         self.ctrls = []
 
-        if input:
-            if not isinstance(input, list):
-                raise IOError(
-                    "Unexpected type for argument input. Expected list, got %s. %s"
-                    % (type(input), input)
-                )
-            self.input = input
-        else:
-            self.input = []
+        self.input = _conform_to_pynode_list(locals()["input"])
 
         self.name = name
 
@@ -722,3 +714,28 @@ class Module(object):
         inst.name = name
 
         return inst
+
+
+def _conform_to_pynode(value):
+    """
+    :param value: A value to conform
+    :type value: str or pymel.PyNode
+    :return:
+    :rtype: pymel.PyNode
+    """
+    return value if isinstance(value, pymel.PyNode) else pymel.PyNode(value)
+
+
+def _conform_to_pynode_list(value):
+    """
+    :param value:
+    :type value: None or list[str] or list[pymel.PyNode]
+    :return:
+    :rtype: list[pymel.PyNode]
+    """
+    if value and not isinstance(value, list):
+        raise IOError(
+            "Unexpected type for argument input. Expected list, got %s. %s"
+            % (type(value), value)
+        )
+    return [_conform_to_pynode(entry) for entry in value] if value else []

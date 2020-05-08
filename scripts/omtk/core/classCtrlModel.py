@@ -43,5 +43,3 @@ class BaseCtrlModel(classModule.Module):
             disconnect_inputs=False, create_grp_anm=False, **kwargs
         )
         self.create_interface()
-
-

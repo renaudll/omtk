@@ -1,3 +1,6 @@
+"""
+Logic for the "FaceJaw" module
+"""
 import pymel.core as pymel
 
 from omtk.libs import libCtrlShapes

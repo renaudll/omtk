@@ -1,3 +1,6 @@
+"""
+Logic for the "FaceEyes" module
+"""
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core import classCtrlModel

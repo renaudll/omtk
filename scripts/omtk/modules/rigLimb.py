@@ -1,5 +1,11 @@
-import pymel.core as pymel
+"""
+Logic for the "Limb" module
+"""
+
 import collections
+
+import pymel.core as pymel
+
 from omtk import constants
 from omtk.core.classModule import Module
 from omtk.core.classCtrl import BaseCtrl
@@ -73,7 +79,7 @@ class Limb(Module):
         super(Limb, self).build(*args, **kwargs)
 
         nomenclature_anm = self.get_nomenclature_anm()
-        nomenclature_rig = self.get_nomenclature_rig()
+        naming = self.get_nomenclature_rig()
 
         # Resolve IK system name
 
@@ -183,7 +189,7 @@ class Limb(Module):
             list(self.chain_jnt), renameChildren=True, parentOnly=True
         )
         for input_, node in zip(self.chain_jnt, chain_blend):
-            blend_nomenclature = nomenclature_rig.rebuild(
+            blend_nomenclature = naming.rebuild(
                 input_.stripNamespace().nodeName()
             )
             node.rename(blend_nomenclature.resolve("blend"))
@@ -230,7 +236,7 @@ class Limb(Module):
             parentOnly=True,
         )
         for input_, node in zip(self.chain_jnt, chain_elbow):
-            nomenclature_elbow = nomenclature_rig.rebuild(
+            nomenclature_elbow = naming.rebuild(
                 input_.stripNamespace().nodeName()
             )
             node.rename(

@@ -1,3 +1,6 @@
+"""
+Logic for the "Head" module
+"""
 from omtk.modules import rigFK
 
 

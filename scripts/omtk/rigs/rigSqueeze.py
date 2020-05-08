@@ -158,9 +158,11 @@ class RigSqueeze(classRig.Rig):
 
     def _init_attr_display_ctrl(self):
         """
-        Initialize an attribute that allow animators to control if the controllers are visibles.
+        Initialize an attribute that allow animators to control controllers visibility.
         Note that this exclude the root ctrls.
-        :return: A pymel.Attribute instance.
+
+        :return: An attribute for controllers visibility.
+        :rtype: pymel.Attribute
         """
         return self._init_attr(
             self.grp_anm,

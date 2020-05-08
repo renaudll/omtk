@@ -1,3 +1,6 @@
+"""
+Logic for the "Ribbon" module
+"""
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModule import Module
@@ -153,8 +156,10 @@ class Ribbon(Module):
     def _create_follicles(self, parent, constraint_rot=True):
         """
         Create follicle attached to the place for each input joint
-        :param constraint_rot: Are the joints will be constraint in rotation on the follicle
-        :return: Nothing
+
+        :param bool constraint_rot: Should we constraint joint rotation?
+        :return: A list of follicles
+        :rtype: list of pymel.nodetypes.Transform
         """
         result = []
         for idx, jnt in enumerate(self.chain_jnt):
@@ -173,6 +178,7 @@ class Ribbon(Module):
     def _create_follicle(self, surface_shape, index, pos):
         """
         Create a follicle on a surface.
+
         :param surface_shape: The follicle surface
         :type surface_shape: pymel.nodetypes.NurbsSurface
         :param str index: The follicle index, for naming.

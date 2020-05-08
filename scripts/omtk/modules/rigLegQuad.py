@@ -1,3 +1,6 @@
+"""
+Logic for the "LegQuad" module
+"""
 import pymel.core as pymel
 from maya import mel
 

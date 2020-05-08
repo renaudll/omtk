@@ -1,3 +1,6 @@
+"""
+Logic for the "Neck" module
+"""
 from omtk.modules import rigFK
 from omtk.modules import rigTwistbone
 from omtk.core.utils import ui_expose

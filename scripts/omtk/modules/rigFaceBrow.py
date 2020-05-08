@@ -1,3 +1,6 @@
+"""
+Logic for the "FaceBrow" module
+"""
 import pymel.core as pymel
 from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libCtrlShapes

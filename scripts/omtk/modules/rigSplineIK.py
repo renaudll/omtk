@@ -1,3 +1,6 @@
+"""
+Logic for the "SplineIK" module
+"""
 import pymel.core as pymel
 
 from omtk.core.classModule import Module

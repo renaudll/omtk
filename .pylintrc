@@ -4,7 +4,7 @@
 # - Added "useless-object-inheritance" to "disable" for python-2 compatibility
 # - Added "keyword-arg-before-vararg" to "disable" for python-2 compatibility
 # - Added maya and Qt.py related modules to to "ignored-modules"
-# - Added "tx,ty,tz,rx,ry,rz,sx,sy,sz,lr,ud,fb,ui,fp" to "good-names"
+# - Added "x,y,z,u,v,tx,ty,tz,rx,ry,rz,sx,sy,sz,lr,ud,fb,ui,fp" to "good-names"
 # - Set "max-line-length" to 88 for compatibility with black
 # - Increase "min-similarity-lines" from 4 to 8"
 [MASTER]
@@ -274,6 +274,11 @@ good-names=i,
            lr,
            ud,
            fb,
+           x,
+           y,
+           z,
+           u,
+           v,
            _
 
 # Include a hint for the correct naming format with invalid-name.

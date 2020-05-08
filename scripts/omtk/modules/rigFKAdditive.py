@@ -1,4 +1,8 @@
+"""
+Logic for the "AdditiveFK" module
+"""
 import collections
+
 import pymel.core as pymel
 from omtk import constants
 from omtk.core.classCtrl import BaseCtrl

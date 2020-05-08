@@ -23,7 +23,7 @@ from omtk.widgets import ui_shared, pluginmanager_window, preferences_window
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui, QtWidgets
 
-log = logging.getLogger("omtk")
+_LOG = logging.getLogger("omtk")
 
 
 class AutoRig(QtWidgets.QMainWindow):
@@ -37,7 +37,7 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
 
-        self.ui.widget_logger.register_logger(log)
+        self.ui.widget_logger.register_logger(_LOG)
 
         version = api.get_version()
         self.setWindowTitle("Open Rigging Toolkit %s" % version)
@@ -101,7 +101,7 @@ class AutoRig(QtWidgets.QMainWindow):
         for root in self.roots:
             pymel.delete(root._network)
             self.on_rig_deleted(root)
-        log.info("Importing template %s" % path)
+        _LOG.info("Importing template %s" % path)
 
         cmds.file(path, i=True)
         self.on_update()
@@ -223,7 +223,6 @@ class AutoRig(QtWidgets.QMainWindow):
             menu.exec_(QtGui.QCursor.pos())
 
     def _add_part(self, cls):
-        # part = _cls(pymel.selected())
         inst = cls(pymel.selected())
         self.root.add_module(inst)
         net = self.export_networks()
@@ -523,15 +522,15 @@ class AutoRig(QtWidgets.QMainWindow):
         super(AutoRig, self).showEvent(*args, **kwargs)
 
     def closeEvent(self, *args, **kwargs):
-        log.info("Closed OMTK GUI")
+        _LOG.info("Closed OMTK GUI")
         try:
             self.ui.widget_logger.remove_logger_handler()
         except Exception, e:
-            log.warning("Error removing logging handler: %s", e)
+            _LOG.warning("Error removing logging handler: %s", e)
         try:
             self.remove_callbacks()
         except Exception, e:
-            log.warning("Error removing callbacks: %s", e)
+            _LOG.warning("Error removing callbacks: %s", e)
         QtWidgets.QMainWindow.closeEvent(self, *args)
 
 
@@ -543,7 +542,7 @@ def show():
     # Try to kill latest Autorig ui window
     try:
         pymel.deleteUI("OpenRiggingToolkit")
-    except Exception:
+    except RuntimeError:
         pass
 
     gui = AutoRig(parent=libQt.get_maya_window())

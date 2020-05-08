@@ -40,7 +40,7 @@ class AvarLinearModel(AvarInflBaseModel):
                 "multFb": self.multiplier_fb,
                 "multUd": self.multiplier_ud,
                 "innOffset": self._obj_offset.matrix,
-            }
+            },
         )
 
         return pymel.Attribute("%s.outputMatrix" % compound.output)

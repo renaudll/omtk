@@ -66,7 +66,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
                 return libSerialization.is_network_from_class(network, "Module")
 
             networks = libSerialization.get_connected_networks(
-                obj, key=_is_module(), recursive=False
+                obj, key=_is_module, recursive=False
             )
 
             brush = QtGui.QBrush(QtCore.Qt.white)
@@ -103,10 +103,9 @@ class WidgetListInfluences(QtWidgets.QWidget):
         :return: Is the object an influence?
         :rtype: bool
         """
-        return (
-            libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or
-            libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-        )
+        return libPymel.isinstance_of_transform(
+            obj, pymel.nodetypes.Joint
+        ) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
 
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:

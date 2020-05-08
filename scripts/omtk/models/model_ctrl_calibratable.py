@@ -21,6 +21,7 @@ class CtrlModelCalibratable(BaseCtrlModel):
     the ctrl shape construction history, otherwise re-calibrating would result
     in a skewed shape.
     """
+
     # TODO: This should inherit from ModelInteractiveCtrl
 
     _ATTR_NAME_SENSITIVITY_TX = "sensitivityX"

@@ -1,7 +1,9 @@
+"""
+Logic for the "FaceEyeLids" module
+"""
 from omtk.modules import rigFaceAvarGrps
 from omtk.modules import rigFaceAvar
 from omtk.libs import libCtrlShapes
-from omtk.libs import libPymel
 import pymel.core as pymel
 
 

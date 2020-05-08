@@ -1,10 +1,9 @@
-import math
-
+"""
+Logic for the "FaceLips" module
+"""
 import pymel.core as pymel
-from omtk.core.classNode import Node
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libAttr
-from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps

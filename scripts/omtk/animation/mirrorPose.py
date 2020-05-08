@@ -21,7 +21,9 @@ def list_from_MMatrix(matrix):
     :return: A list of 16 floats
     :rtype: list or float
     """
-    return [matrix(row, column) for row, column in itertools.product(range(4), range(4))]
+    return [
+        matrix(row, column) for row, column in itertools.product(range(4), range(4))
+    ]
 
 
 def mirror_matrix_axis(matrix, axis):
@@ -31,11 +33,17 @@ def mirror_matrix_axis(matrix, axis):
     """
     flip_tm = OpenMaya.MMatrix()
     if axis == constants.Axis.x:
-        OpenMaya.MScriptUtil.createMatrixFromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], flip_tm)
+        OpenMaya.MScriptUtil.createMatrixFromList(
+            [-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], flip_tm
+        )
     elif axis == constants.Axis.y:
-        OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], flip_tm)
+        OpenMaya.MScriptUtil.createMatrixFromList(
+            [1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], flip_tm
+        )
     elif axis == constants.Axis.z:
-        OpenMaya.MScriptUtil.createMatrixFromList([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], flip_tm)
+        OpenMaya.MScriptUtil.createMatrixFromList(
+            [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1], flip_tm
+        )
     else:
         raise Exception("Unsupported axis. Got  %s" % axis)
     return matrix * flip_tm
@@ -140,7 +148,9 @@ def mirror_matrix(
 
     # Mirror axis if necessary
     # Note that in 99.9% of case we only want to mirror one axis.
-    if (mirror_x or mirror_y or mirror_z) and not (flip_rot_x or flip_rot_y or flip_rot_z):
+    if (mirror_x or mirror_y or mirror_z) and not (
+        flip_rot_x or flip_rot_y or flip_rot_z
+    ):
         raise Exception(
             "When mirroring, please at least flip one axis, "
             "otherwise you might end of with a right handed matrix!"
@@ -175,7 +185,9 @@ def get_obj_mirror_def(obj):
     network_is_ctrl = lambda x: libSerialization.is_network_from_class(
         x, classCtrl.BaseCtrl.__name__.split(".")[-1]
     )
-    networks = libSerialization.get_connected_networks([obj], key=network_is_ctrl, recursive=False)
+    networks = libSerialization.get_connected_networks(
+        [obj], key=network_is_ctrl, recursive=False
+    )
     network = next(iter(networks), None)
 
     if network:
@@ -228,5 +240,7 @@ def mirror_objs(objs):
     for mfn_transform_src, tm in tms_by_objs.items():
         # HACK: Use cmds so undoes are working
         # mfn_transform_src.set(tm)
-        cmds.xform(mfn_transform_src.__melobject__(), matrix=list_from_MMatrix(tm.asMatrix()))
+        cmds.xform(
+            mfn_transform_src.__melobject__(), matrix=list_from_MMatrix(tm.asMatrix())
+        )
     cmds.undoInfo(closeChunk=True)

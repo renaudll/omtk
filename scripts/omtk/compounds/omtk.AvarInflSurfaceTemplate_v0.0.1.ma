@@ -13,7 +13,7 @@ fileInfo "osv" "Microsoft Windows 10 Technical Preview  (Build 17763)\n";
 fileInfo "UUID" "E8A5DE2C-48AA-35F2-3836-90A852FD05B6";
 fileInfo "omtk.compound.author" "Renaud Lessard Larouche";
 fileInfo "omtk.compound.version" "0.0.1";
-fileInfo "omtk.compound.uid" 3DD954C8-48D6-2B7E-260F-4B9B65364DAF";
+fileInfo "omtk.compound.uid" "E8A5DE2C-48AA-35F2-3836-90A852FD05B6";
 fileInfo "omtk.compound.name" "omtk.AvarInflSurfaceTemplate";
 createNode transform -n "root";
 	rename -uid "3DD954C8-48D6-2B7E-260F-4B9B65364DAF";

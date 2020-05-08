@@ -3,12 +3,10 @@ from maya import cmds
 import pymel.core as pymel
 
 from omtk.core.classRig import Rig
-from omtk.models import (
-    AvarLinearModel,
-    AvarSurfaceModel,
-    ModelCtrlLinear,
-    ModelInteractiveCtrl,
-)
+from omtk.models.model_avar_linear import AvarLinearModel
+from omtk.models.model_avar_surface import AvarSurfaceModel
+from omtk.models.model_ctrl_linear import ModelCtrlLinear
+from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
 from omtk.modules.rigFaceAvar import AvarSimple
 
 

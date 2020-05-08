@@ -86,7 +86,6 @@ class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
 #
 
 
-
 class ModelCtrlMacroAll(ModelCtrlLinear):
     def calibrate(self, **kwargs):
         """
@@ -491,9 +490,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
         if cls_ctrl:
             avar._CLS_CTRL = cls_ctrl  # Hack, find a more elegant way.
 
-        self._build_avar(
-            avar, constraint=constraint, **kwargs
-        )
+        self._build_avar(avar, constraint=constraint, **kwargs)
 
         if libPymel.is_valid_PyNode(avar.grp_anm):
             if self._grp_anm_avars_macro:

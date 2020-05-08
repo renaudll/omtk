@@ -24,6 +24,19 @@ class AvarInflBaseModel(classModule.Module):
     def __init__(self, *args, **kwargs):
         super(AvarInflBaseModel, self).__init__(*args, **kwargs)
 
+        # Individual blend attributes for each TRS attributes.
+        # Allow a rigger to redirect an avar to another model.
+        # ex: Having a blendshape for a specific translation/rotation/scale axis.
+        self.affect_tx = True
+        self.affect_ty = True
+        self.affect_tz = True
+        self.affect_rx = True
+        self.affect_ry = True
+        self.affect_rz = True
+        self.affect_sx = True
+        self.affect_sy = True
+        self.affect_sz = True
+
         # How much are we moving around the surface for a specific avar.
         self.multiplier_lr = self.DEFAULT_MULTIPLIER_LR
         self.multiplier_ud = self.DEFAULT_MULTIPLIER_UD
@@ -34,11 +47,33 @@ class AvarInflBaseModel(classModule.Module):
         self._obj_output = None
 
     def _create_interface(self):
+
         fn = functools.partial(libAttr.addAttr, self.grp_rig)
 
         self.multiplier_lr = fn("innMultiplierLr", defaultValue=self.multiplier_lr)
         self.multiplier_ud = fn("innMultiplierUd", defaultValue=self.multiplier_ud)
         self.multiplier_fb = fn("innMultiplierFb", defaultValue=self.multiplier_fb)
+
+        # TODO: Should this be optional?
+        fn = functools.partial(
+            libAttr.addAttr,
+            self.grp_rig,
+            defaultValue=1.0,
+            hasMinValue=True,
+            hasMaxValue=True,
+            minValue=0.0,
+            maxValue=1.0,
+            keyable=True,
+        )
+        self.affect_tx = fn(longName="affectTx")
+        self.affect_ty = fn(longName="affectTy")
+        self.affect_tz = fn(longName="affectTz")
+        self.affect_rx = fn(longName="affectRx")
+        self.affect_ry = fn(longName="affectRy")
+        self.affect_rz = fn(longName="affectRz")
+        self.affect_sx = fn(longName="affectSx")
+        self.affect_sy = fn(longName="affectSy")
+        self.affect_sz = fn(longName="affectSz")
 
     def build(self, avar):
         """
@@ -49,33 +84,80 @@ class AvarInflBaseModel(classModule.Module):
         super(AvarInflBaseModel, self).build(create_grp_anm=False, create_grp_rig=True)
 
         naming = self.get_nomenclature_rig()
-
-        # Hold the bind pose in a transform
-        # TODO: Do now use a property?
         tm = self.jnt.getMatrix(worldSpace=True)
-        self._obj_offset = pymel.createNode(
-            "transform", name=naming.resolve("offset"), parent=self.grp_rig
-        )
-        self._obj_offset.setMatrix(tm)
+
+        def _create_grp(suffix, tm=None):
+            grp = pymel.createNode(
+                "transform", name=naming.resolve(suffix), parent=self.grp_rig
+            )
+            if tm:
+                grp.setMatrix(tm)
+            return grp
+
+        self._obj_output = _create_grp("output", tm=tm)
+        self._obj_offset = _create_grp("offset", tm=tm)
+        self._obj_parent = _create_grp("parent")
 
         self._create_interface()
         attr_tm = self._build(avar)
 
+        # Hold the parent transform in a transform
         # Hold the output in a transform
         # This allow us to "bypass" hierarchy for now.
         # TODO: Remove constraint!
-        self._obj_output = pymel.createNode(
-            "transform", name=naming.resolve("output"), parent=self.grp_rig
-        )
-        self._obj_output.setMatrix(tm)
+        attr_apply_parent_tm = libRigging.create_utility_node(
+            "multMatrix", matrixIn=[attr_tm, self._obj_parent.matrix]
+        ).matrixSum
         util = libRigging.create_utility_node(
-            "decomposeMatrix",
-            inputMatrix=attr_tm
+            "decomposeMatrix", inputMatrix=attr_apply_parent_tm
         )
         pymel.connectAttr(util.outputTranslate, self._obj_output.translate)
         pymel.connectAttr(util.outputRotate, self._obj_output.rotate)
         pymel.connectAttr(util.outputScale, self._obj_output.scale)
-        pymel.parentConstraint(self._obj_output, self.jnt)
+        if self.parent:
+            self.log.info("Parenting %s to %s", self.parent, self._obj_parent)
+            pymel.parentConstraint(self.parent, self._obj_parent)
+
+        # We connect the joint before creating the controllers.
+        # This allow our doritos to work out of the box and
+        # allow us to compute their sensibility automatically.
+        # Creating the constraint will fail if the joint is already connected
+        # to something else like an animCurve.
+        libAttr.disconnect_trs(self.jnt)
+        libAttr.unlock_trs(self.jnt)
+
+        # TODO: Remove usage of constraints
+        infl, tweak = self._get_influences()
+        if tweak:
+            pymel.parentConstraint(
+                self._obj_output, infl, skipRotate=["x", "y", "z"], maintainOffset=True
+            )
+            pymel.parentConstraint(self._obj_output, tweak, maintainOffset=True)
+            pymel.scaleConstraint(self._obj_output, infl, maintainOffset=True)
+        else:
+            pymel.parentConstraint(self._obj_output, infl, maintainOffset=True)
+            pymel.scaleConstraint(self._obj_output, infl, maintainOffset=True)
+
+    def _get_influences(self):
+        """
+        An avar can have one or two influences.
+        If it have two, one is marked as the "main" and the other as a "tweak".
+        When the "tweak" is present, "main" won't be affected in rotation.
+        This allow two different falloff depending on the transformation.
+
+        :return: The main influence and the tweak influence if it exist.
+        :rtype: tuple[pymel.nodetypes.Joint, pymel.nodetypes.Joint or None]
+        """
+        if len(self.jnts) == 2:
+            # TODO: Don't assume the tweak is the second, check the hierarchy.
+            return self.jnts
+
+        if len(self.jnts) == 1:
+            return self.jnt, None
+
+        raise ValueError(
+            "Invalid number of influences. Expected 1 or 2, got %s" % len(self.jnts)
+        )
 
     def unbuild(self):
         # Save the current uv multipliers.
@@ -86,9 +168,22 @@ class AvarInflBaseModel(classModule.Module):
                 return attr.get()
             return None
 
-        self.multiplier_lr = _fn(self.multiplier_lr)
-        self.multiplier_ud = _fn(self.multiplier_ud)
-        self.multiplier_fb = _fn(self.multiplier_fb)
+        for attr_name in (
+            "multiplier_lr",
+            "multiplier_ud",
+            "multiplier_fb",
+            "affect_tx",
+            "affect_ty",
+            "affect_tz",
+            "affect_rx",
+            "affect_ry",
+            "affect_rz",
+            "affect_sx",
+            "affect_sy",
+            "affect_sz",
+        ):
+            attr = getattr(self, attr_name)
+            setattr(self, attr_name, _fn(attr))
 
         super(AvarInflBaseModel, self).unbuild()
 

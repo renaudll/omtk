@@ -98,6 +98,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         self.attr_sensitivity_ty = _fn(self._ATTR_NAME_SENSITIVITY_TY)
         self.attr_sensitivity_tz = _fn(self._ATTR_NAME_SENSITIVITY_TZ)
 
+    # TODO: Too many kwargs, simplify!
     def build(
         self,
         ctrl,
@@ -109,9 +110,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         v_coord=None,
         flip_lr=False,
         follow_mesh=True,
-        parent_pos=None,
-        parent_rot=None,
-        parent_scl=None,
         constraint=False,
         cancel_t=True,
         cancel_r=True,
@@ -131,11 +129,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         # It can differ from the influence to prevent to prevent issues where the
         # controller dissapear under the geometry.
         ctrl_tm = ctrl.getMatrix(worldSpace=True)
-        # ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
-        # ctrl_tm = ctrl_tm or ref_tm
-        # ctrl_tm = ctrl_tm or self.jnt.getMatrix(worldSpace=True) if self.jnt else None
-        # if ctrl_tm is None:
-        #     raise Exception("Cannot resolve ctrl transformation matrix!")
 
         pos_ref = self.project_pos_on_face(ctrl_tm.translate, geos=self.get_meshes())
 
@@ -158,13 +151,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         u_coord = u_coord or out_u
         v_coord = v_coord or out_v
 
-        if self.jnt:
-            self.log.debug(
-                "Creating doritos on %s using %s as reference", obj_mesh, self.jnt
-            )
-        else:
-            self.log.debug("Creating interactive ctrl on %s", obj_mesh)
-
         # Hack: Since there's scaling on the ctrl so the left and right side
         # ctrl channels matches, we need to flip the ctrl shapes.
         if flip_lr:
@@ -183,11 +169,16 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         for cp in ctrl_shape.cp:
             cp.set(0, 0, 0)
 
-        if parent_rot:
-            rot_ref = pymel.createNode("transform", name=naming.resolve("parentRotRef"))
-            pymel.orientConstraint(parent_rot, rot_ref, maintainOffset=True)
-        else:
-            rot_ref = None
+        def _create_grp(suffix, tm=None):
+            grp = pymel.createNode(
+                "transform", name=naming.resolve(suffix), parent=self.grp_rig
+            )
+            if tm:
+                grp.setMatrix(tm)
+            return grp
+
+        rot_ref = _create_grp("parent")
+        pymel.parentConstraint(self.parent, rot_ref)
 
         compound = create_compound(
             "omtk.InteractiveCtrl",
@@ -215,21 +206,14 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         self.folliclePos = pymel.Attribute("%s.folliclePos" % compound.output)
 
-        # # Create a temporary follicle to find the coords
-        # # Note: This is done in a particular order, need to clarify why.
-        # # TODO: Cleanup
-        # fol_shape = libRigging.create_follicle(obj_mesh, u=u_coord, v=v_coord)
-        # fol_transform = fol_shape.getParent()
-        # fol_bind_tm = fol_transform.getMatrix()
-        # pymel.delete(fol_transform)
-        # pymel.Attribute("%s.follicleBindTM" % compound.input).set(fol_bind_tm)
-
         if constraint and self.jnt:
             pymel.parentConstraint(ctrl.node, self.jnt, maintainOffset=True)
 
+        self.calibrate(ctrl)
+
     def unbuild(self):
         # Ensure the shape stay consistent between rebuild.
-        self._fix_ctrl_shape()
+        self._fix_ctrl_shape()  # TODO: Find ctrl
 
         super(ModelInteractiveCtrl, self).unbuild()
 

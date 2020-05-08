@@ -8,6 +8,7 @@ from pymel.core.datatypes import Matrix
 
 from omtk.core import classCtrl
 from omtk.core import classModule
+from omtk.core.compounds import create_compound
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -100,6 +101,7 @@ class AbstractAvar(classModule.Module):
     # An avar could have no influences (ex: macro avars)
     SUPPORT_NO_INPUTS = True
 
+    AFFECT_INPUTS = False
 
     def __init__(self, *args, **kwargs):
         super(AbstractAvar, self).__init__(*args, **kwargs)
@@ -119,30 +121,12 @@ class AbstractAvar(classModule.Module):
         self._sys_ctrl = None
         self.ctrl = None
 
-        # Define how many unit is moved in uv space in relation with the avars.
-        # Taking in consideration that the avar is centered in uv space,
-        # we at minimum want 0.5 of multiplier so moving the avar of 1.0 will move
-        # the follicle at the top of uv space (0.5 units).
-        # However in production, we found that defining
-        # the range of avar using the whole is not flexible.
-        # ex: We want the lips to follow the chin but we don't want to have
-        # the lips reach the chin when the UD avar is -1.
-        # For this reason, we found that using a multiplier of 0.25 work best.
-        # This also help rigger visually since the surface plane
-        # have an edge at 0.25 location.
-        # todo: Move this to AvarFollicle.
-        self.multiplier_lr = 0.25
-        self.multiplier_ud = 0.25
-        self.multiplier_fb = 0.10
-
-    def add_avar(self, attr_holder, name, defaultValue=0.0):
+    def add_avar(self, obj, name, **kwargs):
         """
         Add an avar in the internal avars network.
         An attribute will also be created on the grp_rig node.
         """
-        return libAttr.addAttr(
-            attr_holder, longName=name, keyable=True, defaultValue=defaultValue
-        )
+        return libAttr.addAttr(obj, longName=name, keyable=True, **kwargs)
 
     def add_avars(self, attr_holder):
         """
@@ -152,17 +136,20 @@ class AbstractAvar(classModule.Module):
         are really existing in an external network node.
         :return: The avar attribute holder.
         """
-        # Define macro avars
+
+        def _fn(name, **kwargs):
+            return self.add_avar(attr_holder, name, **kwargs)
+
         libAttr.addAttr_separator(attr_holder, "avars")
-        self.attr_ud = self.add_avar(attr_holder, self.AVAR_NAME_UD)
-        self.attr_lr = self.add_avar(attr_holder, self.AVAR_NAME_LR)
-        self.attr_fb = self.add_avar(attr_holder, self.AVAR_NAME_FB)
-        self.attr_yw = self.add_avar(attr_holder, self.AVAR_NAME_YAW)
-        self.attr_pt = self.add_avar(attr_holder, self.AVAR_NAME_PITCH)
-        self.attr_rl = self.add_avar(attr_holder, self.AVAR_NAME_ROLL)
-        self.attr_sx = self.add_avar(attr_holder, self.AVAR_NAME_SX, defaultValue=1.0)
-        self.attr_sy = self.add_avar(attr_holder, self.AVAR_NAME_SY, defaultValue=1.0)
-        self.attr_sz = self.add_avar(attr_holder, self.AVAR_NAME_SZ, defaultValue=1.0)
+        self.attr_ud = _fn(self.AVAR_NAME_UD)
+        self.attr_lr = _fn(self.AVAR_NAME_LR)
+        self.attr_fb = _fn(self.AVAR_NAME_FB)
+        self.attr_yw = _fn(self.AVAR_NAME_YAW)
+        self.attr_pt = _fn(self.AVAR_NAME_PITCH)
+        self.attr_rl = _fn(self.AVAR_NAME_ROLL)
+        self.attr_sx = _fn(self.AVAR_NAME_SX, defaultValue=1.0)
+        self.attr_sy = _fn(self.AVAR_NAME_SY, defaultValue=1.0)
+        self.attr_sz = _fn(self.AVAR_NAME_SZ, defaultValue=1.0)
 
     def hold_avars(self):
         """
@@ -179,25 +166,6 @@ class AbstractAvar(classModule.Module):
         )
         self.rig.hold_node(self.avar_network)
         self.add_avars(self.avar_network)
-
-        def attr_have_animcurve_input(attr):
-            attr_input = next(
-                iter(attr.inputs(plugs=True, skipConversionNodes=True)), None
-            )
-            if attr_input is None:
-                return False
-
-            attr_input_node = attr_input.node()
-
-            if isinstance(attr_input_node, pymel.nodetypes.AnimCurve):
-                return True
-
-            if isinstance(attr_input_node, pymel.nodetypes.BlendWeighted):
-                for blendweighted_input in attr_input_node.input:
-                    if attr_have_animcurve_input(blendweighted_input):
-                        return True
-
-            return False
 
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
@@ -273,50 +241,8 @@ class AbstractAvar(classModule.Module):
         naming = self.get_nomenclature_rig().copy()
         naming.add_tokens(name)
 
-        root = pymel.createNode("transform")
-        pymel.addAttr(root, longName="bendUpp", k=True)
-        pymel.addAttr(root, longName="bendLow", k=True)
-        pymel.addAttr(root, longName="bendSide", k=True)
-
-        # Create Guide
-        plane_transform, plane_make = pymel.nurbsPlane(patchesU=4, patchesV=4)
-
-        # Create Bends
-        bend_side_deformer, bend_side_handle = pymel.nonLinear(
-            plane_transform, type="bend"
-        )
-        bend_upp_deformer, bend_upp_handle = pymel.nonLinear(
-            plane_transform, type="bend"
-        )
-        bend_low_deformer, bend_low_handle = pymel.nonLinear(
-            plane_transform, type="bend"
-        )
-
-        plane_transform.r.set(0, -90, 0)
-        bend_side_handle.r.set(90, 90, 0)
-        bend_upp_handle.r.set(180, 90, 0)
-        bend_low_handle.r.set(180, 90, 0)
-        bend_upp_deformer.highBound.set(0)  # create pymel warning
-        bend_low_deformer.lowBound.set(0)  # create pymel warning
-
-        plane_transform.setParent(root)
-        bend_side_handle.setParent(root)
-        bend_upp_handle.setParent(root)
-        bend_low_handle.setParent(root)
-
-        pymel.connectAttr(root.bendSide, bend_side_deformer.curvature)
-        pymel.connectAttr(root.bendUpp, bend_upp_deformer.curvature)
-        pymel.connectAttr(root.bendLow, bend_low_deformer.curvature)
-
-        # Rename all the things!
-        root.rename(naming.resolve("SurfaceGrp"))
-        plane_transform.rename(naming.resolve("Surface"))
-        bend_upp_deformer.rename(naming.resolve("UppBend"))
-        bend_low_deformer.rename(naming.resolve("LowBend"))
-        bend_side_deformer.rename(naming.resolve("SideBend"))
-        bend_upp_handle.rename(naming.resolve("UppBendHandle"))
-        bend_low_handle.rename(naming.resolve("LowBendHandle"))
-        bend_side_handle.rename(naming.resolve("SideBendHandle"))
+        compound = create_compound("omtk.AvarInflSurfaceTemplate", naming.resolve())
+        transform = pymel.PyNode("%s:root" % compound.output)
 
         # Try to guess the desired position
         min_x = None
@@ -329,25 +255,25 @@ class AbstractAvar(classModule.Module):
             if max_x is None or pos.x > max_x:
                 max_x = pos.x
         pos /= len(self.jnts)
-        root.setTranslation(pos)
 
         # Try to guess the scale
-        length_x = max_x - min_x
-        if len(self.jnts) <= 1 or length_x < epsilon:
+        scale = max_x - min_x
+        if len(self.jnts) <= 1 or scale < epsilon:
             self.log.debug(
                 "Cannot automatically resolve scale for surface. "
                 "Using default value %s",
                 default_scale,
             )
-            length_x = default_scale
+            scale = default_scale
 
-        root.scaleX.set(length_x)
-        root.scaleY.set(length_x * 0.5)
-        root.scaleZ.set(length_x)
+        transform.setTranslation(pos)
+        transform.scaleX.set(scale)
+        transform.scaleY.set(scale * 0.5)
+        transform.scaleZ.set(scale)
 
-        pymel.select(root)
+        pymel.select(transform)
 
-        return plane_transform
+        return transform
 
     def build(self, mult_u=1.0, mult_v=1.0, **kwargs):
         """
@@ -400,6 +326,7 @@ class AvarSimple(AbstractAvar):
     CLS_MODEL_CTRL = ModelInteractiveCtrl
     # CLS_MODEL_CTRL = None
     CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
+
     # CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
 
     def __init__(self, *args, **kwargs):
@@ -414,20 +341,6 @@ class AvarSimple(AbstractAvar):
 
         self.model_ctrl = None
         self.model_infl = None
-
-        # In normal cases, an avar influence a joint.
-        # However there are other cases.
-        # ex: blendshape per translation/rotateion/scale axis!
-        # For this reason we'll allow each avar influence to be individually disabled.
-        self.affect_tx = True
-        self.affect_ty = True
-        self.affect_tz = True
-        self.affect_rx = True
-        self.affect_ry = True
-        self.affect_rz = True
-        self.affect_sx = True
-        self.affect_sy = True
-        self.affect_sz = True
 
     def build(
         self,
@@ -451,134 +364,29 @@ class AvarSimple(AbstractAvar):
         """
         super(AvarSimple, self).build(parent=False)
 
-        fn = functools.partial(
-            libAttr.addAttr,
-            self.grp_rig,
-            defaultValue=1.0,
-            hasMinValue=True,
-            hasMaxValue=True,
-            minValue=0.0,
-            maxValue=1.0,
-            keyable=True,
-        )
-        self.affect_tx = fn(longName="affectTx")
-        self.affect_ty = fn(longName="affectTy")
-        self.affect_tz = fn(longName="affectTz")
-        self.affect_rx = fn(longName="affectRx")
-        self.affect_ry = fn(longName="affectRy")
-        self.affect_rz = fn(longName="affectRz")
-        self.affect_sx = fn(longName="affectSx")
-        self.affect_sy = fn(longName="affectSy")
-        self.affect_sz = fn(longName="affectSz")
-
-        naming = self.get_nomenclature_rig()
-
-        # Resolve influence matrix
-        jnt_tm = jnt_tm or self.jnt.getMatrix(worldSpace=True)
-
-        # Create an offset layer that define the starting point of the Avar.
-        # It is important that the offset is in this specific node since it will serve
-        # as a reference to re-computer the base u and v parameter if
-        # the rigger change the size of the surface when the system is build.
-        grp_offset_name = naming.resolve("offset")
-        self.grp_offset = pymel.createNode("transform", name=grp_offset_name)
-        self.grp_offset.rename(grp_offset_name)
-        self.grp_offset.setParent(self.grp_rig)
-
-        # Create a parent layer for constraining.
-        # Do not use dual constraint here since it can result in flipping issues.
-        self._grp_parent = pymel.createNode(
-            "transform", name=naming.resolve("parent"), parent=self.grp_rig,
-        )
-
-        self._grp_output = pymel.createNode(
-            "transform", name=naming.resolve("output"), parent=self.grp_rig
-        )
-
-        # We expect the right-side influence to be mirrored in behavior.
-        # However we still need consistency when moving
-        # left and right side controller together.
-        # So under the hood, add an offset matrix so they are aligned together.
-        flip_lr = self.get_nomenclature().side == self.rig.nomenclature.SIDE_R
-        if flip_lr and self.jnt:
-            jnt_tm = (
-                pymel.datatypes.Matrix(
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, -1.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                )
-                * jnt_tm
-            )
-
-        self.grp_offset.setMatrix(jnt_tm)
-
         if self.CLS_MODEL_INFL:
             self.model_infl = self.CLS_MODEL_INFL.from_instance(
                 self.rig,
                 self.model_infl,
                 (self.get_nomenclature() + "modelInfl").resolve(),
-                inputs=self.input
+                inputs=self.input,
             )
             self.model_infl.build(self)
             if self.model_infl.grp_rig:
                 self.model_infl.grp_rig.setParent(self.grp_rig)
 
-            # # We connect the joint before creating the controllers.
-            # # This allow our doritos to work out of the box and
-            # # allow us to compute their sensibility automatically.
-            # # Creating the constraint will fail if the joint is already connected
-            # # to something else like an animCurve.
-            # libAttr.disconnect_trs(self.jnt)
-            # libAttr.unlock_trs(self.jnt)
-            #
-            # # TODO: Constraints are bad
-            # infl, tweak = self._get_influences()
-            # if tweak:
-            #     pymel.parentConstraint(
-            #         self._grp_output,
-            #         infl,
-            #         skipRotate=["x", "y", "z"],
-            #         maintainOffset=True
-            #     )
-            #     pymel.parentConstraint(self._grp_output, tweak, maintainOffset=True)
-            #     pymel.scaleConstraint(self._grp_output, infl, maintainOffset=True)
-            # else:
-            #     pymel.parentConstraint(self._grp_output, infl, maintainOffset=True)
-            #     pymel.scaleConstraint(self._grp_output, infl, maintainOffset=True)
-
         # Build ctrl model
         if self.CLS_CTRL:
-            self.ctrl = self._build_ctrl()
+            self.ctrl = self._build_ctrl()  # TODO: Inline?
             self._connect_ctrl_to_avar(self.ctrl)
 
             if self.CLS_MODEL_CTRL:
-                self._build_ctrl_model()
-
-    def _get_influences(self):
-        """
-        An avar can have one or two influences.
-        If it have two, one is marked as the "main" and the other as a "tweak".
-        When the "tweak" is present, "main" won't be affected in rotation.
-        This allow two different falloff depending on the transformation.
-
-        :return: The main influence and the tweak influence if it exist.
-        :rtype: tuple[pymel.nodetypes.Joint, pymel.nodetypes.Joint or None]
-        """
-        if len(self.jnts) == 2:
-            # TODO: Don't assume the tweak is the second, check the hierarchy.
-            return self.jnts
-
-        if len(self.jnts) == 1:
-            return self.jnt, None
-
-        raise ValueError(
-            "Invalid number of influences. Expected 1 or 2, got %s" % len(self.jnts)
-        )
+                self._build_ctrl_model()  # TODO: Inline?
 
     def _get_ctrl_tm(self):
         """
         Get the transform for the ctrl.
+
         :return: A matrix
         :rtype: pymel.datatypes.Matrix
         """
@@ -589,7 +397,8 @@ class AvarSimple(AbstractAvar):
         geos = self.get_meshes() or self.rig.get_shapes()
         new_pos = libRigging.ray_cast_nearest(pos, dir_, geos)
         if new_pos:
-            transform = Matrix(  # TODO: Is there a simpler way?
+            # TODO: Is there a simpler way?
+            transform = Matrix(
                 [transform.a00, transform.a01, transform.a02, transform.a03],
                 [transform.a10, transform.a11, transform.a12, transform.a13],
                 [transform.a20, transform.a21, transform.a22, transform.a23],
@@ -598,6 +407,9 @@ class AvarSimple(AbstractAvar):
         return transform
 
     def _build_ctrl(self):
+        """
+        Build the animation controller.
+        """
         # Create ctrl
         ctrl_name = self.get_nomenclature_anm().resolve()
         ctrl_tm = self._get_ctrl_tm()
@@ -605,16 +417,23 @@ class AvarSimple(AbstractAvar):
         ctrl.build(name=ctrl_name)
         ctrl.setParent(self.grp_anm)
         ctrl.setMatrix(ctrl_tm)
-
         return ctrl
 
     def _build_ctrl_model(self):
-        self.model_ctrl = self.CLS_MODEL_CTRL.from_instance(
-            self.rig,
-            self.model_ctrl,
-            (self.get_nomenclature() + "ctrlModel").resolve(),
-            inputs=self.input,
-        ) if self.CLS_MODEL_CTRL else None
+        """
+        Build the network that connect the avar to the animation ctrl offset group.
+        """
+        cls = self.CLS_MODEL_CTRL
+        self.model_ctrl = (
+            cls.from_instance(
+                self.rig,
+                self.model_ctrl,
+                (self.get_nomenclature() + "ctrlModel").resolve(),
+                inputs=self.input,
+            )
+            if cls
+            else None
+        )
 
         self.model_ctrl.build(self.ctrl)
 
@@ -664,35 +483,12 @@ class AvarSimple(AbstractAvar):
         """
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
-        if not self.ctrl:
-            self.log.warning("Can't calibrate, found no ctrl for %s", self)
-            return False
-
-        if self.model_ctrl and hasattr(self.model_ctrl, "calibrate"):
-            self.model_ctrl.calibrate(self.ctrl)
+        try:
+            self.model_ctrl.calibrate()
+        except AttributeError:
+            pass
 
     def unbuild(self):
-        # Unassign deprecated values to prevent warning when reserialiazing old avars
-        self.attr_multiplier_lr = None
-        self.attr_multiplier_ud = None
-        self.attr_multiplier_fb = None
-
-        # Hold avars filter
-        for attr_name in (
-            "affect_tx",
-            "affect_ty",
-            "affect_tz",
-            "affect_rx",
-            "affect_ry",
-            "affect_rz",
-            "affect_sx",
-            "affect_sy",
-            "affect_sz",
-        ):
-            attr = getattr(self, attr_name)
-            if isinstance(attr, pymel.Attribute):
-                setattr(self, attr_name, attr.get())
-
         if self.model_ctrl:
             self.model_ctrl.unbuild()
 
@@ -703,7 +499,7 @@ class AvarSimple(AbstractAvar):
         if self.model_infl:
             self.model_infl.unbuild()
 
-        super(AvarSimple, self).unbuild(disconnect_attr=True)
+        super(AvarSimple, self).unbuild()
 
         # Cleanup invalid references
         self.grp_offset = None
@@ -722,6 +518,7 @@ class CtrlFaceAll(BaseCtrlFace):
     """
     Base controller class for an avar controlling all the avars of an AvarGrp.
     """
+
     ATTR_NAME_GLOBAL_SCALE = "globalScale"
 
     def __createNode__(self, size=1.0, **kwargs):
@@ -734,6 +531,7 @@ class AvarMacro(AvarSimple):
     A macro avar does not necessarily have an influence.
     In the majority of cases it don't have one and only use it do resolve it's position.
     """
+
     # TODO: Method to get the ctrl class per side?
     CLS_MODEL_CTRL = ModelInteractiveCtrl
     CLS_MODEL_INFL = None
@@ -743,6 +541,7 @@ class AvarMicro(AvarSimple):
     """
     AvarMicro are special as they can contain two influence.
     """
+
     CLS_MODEL_CTRL = ModelInteractiveCtrl
 
 
@@ -753,6 +552,7 @@ class AvarMacroAll(AvarSimple):
     or serve as an abstract avar if such influence does not exist.
     In all case we always wait it to move in linear space.
     """
+
     SHOW_IN_UI = False
     CLS_CTRL = CtrlFaceAll
     CLS_MODEL_INFL = model_avar_linear.AvarLinearModel

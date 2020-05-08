@@ -47,7 +47,9 @@ class ModelCtrlLinear(classCtrlModel.BaseCtrlModel):
         """
         pass
 
-    def build(self, ctrl,):
+    def build(
+        self, ctrl,
+    ):
         # todo: get rid of the u_coods, v_coods etc, we should rely on the bind
         super(ModelCtrlLinear, self).build(ctrl)
 

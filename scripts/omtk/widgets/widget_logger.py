@@ -245,7 +245,7 @@ def _get_record_info(record):
     return (
         str(datetime.datetime.fromtimestamp(record.created)),
         _log_level_to_str(record.levelno),
-        record.msg,
+        record.getMessage(),
     )
 
 

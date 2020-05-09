@@ -118,10 +118,6 @@ class Compound(object):  # pylint: disable=too-many-public-methods
             raise CompoundValidationError(
                 "Namespace %s is blacklisted." % (self.namespace)
             )
-        if not cmds.objExists(self.input):
-            raise CompoundValidationError("%r don't exist." % self.input)
-        if not cmds.objExists(self.output):
-            raise CompoundValidationError("%r don't exist." % self.output)
 
     def get_metadata(self):
         """ A compound can have associated metadata.
@@ -372,14 +368,14 @@ class Compound(object):  # pylint: disable=too-many-public-methods
                     pymel.connectAttr(attr_src, attr_dst, force=True)
 
         # Redirection input and outputs connections
-        for attr in self.inputs:
-            _remap_attr(attr)
-        for attr in self.outputs:
-            _remap_attr(attr)
-
-        # Delete input and output nodes
-        cmds.delete(self.input)
-        cmds.delete(self.output)
+        if cmds.objExists(self.input):
+            for attr in self.inputs:
+                _remap_attr(attr)
+            cmds.delete(self.input)
+        if cmds.objExists(self.output):
+            for attr in self.outputs:
+                _remap_attr(attr)
+            cmds.delete(self.output)
 
         # Remove namespace if asked
         if remove_namespace:

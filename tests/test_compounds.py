@@ -12,15 +12,15 @@ def test_compounds():
     """
     actual = _list_compounds()
     expected = {
-        'omtk.AvarInflLinear',
-        'omtk.AvarInflSurface',
+        "omtk.AvarInflLinear",
+        "omtk.AvarInflSurface",
         "omtk.AvarInflSurfaceTemplate",
-        'omtk.Follicle',
-        'omtk.FootRoll',
-        'omtk.InfinityFollicle',
-        'omtk.InteractiveCtrl',
-        'omtk.JawSplitter',
-        'omtk.SoftIkStretch',
-        'omtk.TwistExtractor',
+        "omtk.Follicle",
+        "omtk.FootRoll",
+        "omtk.InfinityFollicle",
+        "omtk.InteractiveCtrl",
+        "omtk.JawSplitter",
+        "omtk.SoftIkStretch",
+        "omtk.TwistExtractor",
     }
     assert actual == expected

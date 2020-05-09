@@ -178,7 +178,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             return grp
 
         rot_ref = _create_grp("parent")
-        pymel.parentConstraint(self.parent, rot_ref)
+        pymel.parentConstraint(self.parent, rot_ref, maintainOffset=True)
 
         compound = create_compound(
             "omtk.InteractiveCtrl",
@@ -213,7 +213,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
     def unbuild(self):
         # Ensure the shape stay consistent between rebuild.
-        self._fix_ctrl_shape()  # TODO: Find ctrl
+        # self._fix_ctrl_shape()  # TODO: Find ctrl
 
         super(ModelInteractiveCtrl, self).unbuild()
 

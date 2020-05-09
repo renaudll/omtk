@@ -1,8 +1,6 @@
 """
 Logic for the "FaceAvar" module
 """
-import functools
-
 import pymel.core as pymel
 from pymel.core.datatypes import Matrix
 
@@ -241,8 +239,11 @@ class AbstractAvar(classModule.Module):
         naming = self.get_nomenclature_rig().copy()
         naming.add_tokens(name)
 
+        # TODO: This is not a "REAL" compound as it don't have an input or an output.
+        # TODO: What do we do here?
         compound = create_compound("omtk.AvarInflSurfaceTemplate", naming.resolve())
-        transform = pymel.PyNode("%s:root" % compound.output)
+        transform = pymel.PyNode("%s:Surface" % compound.namespace)
+        compound.explode(remove_namespace=True)  # Remove namespace
 
         # Try to guess the desired position
         min_x = None
@@ -257,7 +258,7 @@ class AbstractAvar(classModule.Module):
         pos /= len(self.jnts)
 
         # Try to guess the scale
-        scale = max_x - min_x
+        scale = max_x - min_x if min_x and max_x else 1.0
         if len(self.jnts) <= 1 or scale < epsilon:
             self.log.debug(
                 "Cannot automatically resolve scale for surface. "
@@ -371,6 +372,7 @@ class AvarSimple(AbstractAvar):
                 (self.get_nomenclature() + "modelInfl").resolve(),
                 inputs=self.input,
             )
+            self.model_infl.validate()  # temporary
             self.model_infl.build(self)
             if self.model_infl.grp_rig:
                 self.model_infl.grp_rig.setParent(self.grp_rig)
@@ -484,7 +486,7 @@ class AvarSimple(AbstractAvar):
         Apply micro movement on the doritos and analyse the reaction on the mesh.
         """
         try:
-            self.model_ctrl.calibrate()
+            self.model_ctrl.calibrate(self.ctrl)
         except AttributeError:
             pass
 
@@ -512,50 +514,6 @@ class AvarFollicle(AvarSimple):
 
     SHOW_IN_UI = False
     _CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
-
-
-class CtrlFaceAll(BaseCtrlFace):
-    """
-    Base controller class for an avar controlling all the avars of an AvarGrp.
-    """
-
-    ATTR_NAME_GLOBAL_SCALE = "globalScale"
-
-    def __createNode__(self, size=1.0, **kwargs):
-        # todo: find the best shape
-        return libCtrlShapes.create_shape_circle(size=size, normal=(0, 0, 1))[0]
-
-
-class AvarMacro(AvarSimple):
-    """
-    A macro avar does not necessarily have an influence.
-    In the majority of cases it don't have one and only use it do resolve it's position.
-    """
-
-    # TODO: Method to get the ctrl class per side?
-    CLS_MODEL_CTRL = ModelInteractiveCtrl
-    CLS_MODEL_INFL = None
-
-
-class AvarMicro(AvarSimple):
-    """
-    AvarMicro are special as they can contain two influence.
-    """
-
-    CLS_MODEL_CTRL = ModelInteractiveCtrl
-
-
-class AvarMacroAll(AvarSimple):
-    """
-    This avar can either drive a facial section "root" influence
-    (ex: A global parent for all lips influence)
-    or serve as an abstract avar if such influence does not exist.
-    In all case we always wait it to move in linear space.
-    """
-
-    SHOW_IN_UI = False
-    CLS_CTRL = CtrlFaceAll
-    CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
 
 
 def _blend_inn_matrix_attribute(

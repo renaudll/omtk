@@ -189,9 +189,7 @@ class Limb(Module):
             list(self.chain_jnt), renameChildren=True, parentOnly=True
         )
         for input_, node in zip(self.chain_jnt, chain_blend):
-            blend_nomenclature = naming.rebuild(
-                input_.stripNamespace().nodeName()
-            )
+            blend_nomenclature = naming.rebuild(input_.stripNamespace().nodeName())
             node.rename(blend_nomenclature.resolve("blend"))
 
         # Blend ikChain with fkChain
@@ -236,9 +234,7 @@ class Limb(Module):
             parentOnly=True,
         )
         for input_, node in zip(self.chain_jnt, chain_elbow):
-            nomenclature_elbow = naming.rebuild(
-                input_.stripNamespace().nodeName()
-            )
+            nomenclature_elbow = naming.rebuild(input_.stripNamespace().nodeName())
             node.rename(
                 nomenclature_elbow.resolve("elbow")
             )  # todo: find a better name???

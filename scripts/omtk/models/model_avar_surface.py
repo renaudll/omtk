@@ -6,6 +6,7 @@ from omtk.core.compounds import create_compound
 from omtk.libs import libRigging
 from omtk.libs import libAttr
 from omtk.models import model_avar_base
+from omtk.core.exceptions import ValidationError
 
 
 class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
@@ -50,6 +51,18 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         self._attr_inn_surface_min_value_v = None
         self._attr_inn_surface_max_value_u = None
         self._attr_inn_surface_max_value_v = None
+
+    def validate(self):
+        """
+        Ensure inputs contain a surface to slide on.
+
+        :raises MissingSurfaceValidationError: If a surface is missing
+        :raises ValidationError: If the module is invalid
+        """
+        super(AvarSurfaceModel, self).validate()
+
+        if not self.get_surface():
+            raise ValidationError("Expected a surface to attach to.")
 
     def _get_follicle_relative_uv_attr(self, mult_u=1.0, mult_v=1.0):
         """

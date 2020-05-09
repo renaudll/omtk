@@ -51,7 +51,7 @@ class AvarJaw(rigFaceAvar.AvarSimple):
         return "Jaw"
 
 
-class FaceAvarMacroAll(rigFaceAvar.AvarMacroAll):
+class FaceAvarMacroAll(rigFaceAvarGrps.AvarMacroAll):
     CLS_CTRL = CtrlJaw
     CLS_MODEL_CTRL = ModelCtrlJaw
 
@@ -65,7 +65,7 @@ class FaceJaw(rigFaceAvarGrps.AvarGrpOnSurface):
 
     _CLS_AVAR = AvarJaw
     _CLS_AVAR_MACRO = rigFaceAvar.AvarSimple  # todo: use AbstractAvar???
-    _CLS_AVAR_MACRO_ALL = FaceAvarMacroAll
+    CLS_AVAR_MACRO_ALL = FaceAvarMacroAll
     CREATE_MACRO_AVAR_ALL = True
     CREATE_MACRO_AVAR_HORIZONTAL = False
     CREATE_MACRO_AVAR_VERTICAL = False

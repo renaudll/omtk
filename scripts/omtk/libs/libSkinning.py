@@ -29,15 +29,14 @@ def get_skin_cluster_influence_objects(skincluster):
     """
     Return a skinCluster influences.
 
-    This workaround pymel.nodetypes.SkinCluster.influenceObjects
-    which wrap OpenMaya.MFnSkinCluster.influenceObjects()
-    which crash when a skinCluster have zero influences.
-
     :param skincluster: A skinCluster
     :type skincluster: pymel.nodetypes.SkinCluster
     :return: The skinCluster influences
     :rtype: list of pymel.nodetypes.DependNode
     """
+    # Workaround pymel.nodetypes.SkinCluster.influenceObjects that
+    # wrap OpenMaya.MFnSkinCluster.influenceObjects() that
+    # crash when a skinCluster have zero influences.
     try:
         return skincluster.influenceObjects()
     except RuntimeError:

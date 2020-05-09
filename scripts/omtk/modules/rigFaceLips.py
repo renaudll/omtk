@@ -217,19 +217,16 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                     avar_parent.attr_lr, avar_child.attr_lr, kv=(-ratio, 0.0, ratio)
                 )
 
-    def _build_avar_macro_l(self):
-        # Create left avar if necessary
-        ref = self.get_jnt_l_mid()
-        if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(
-                self.avar_l,
-                self.get_avar_mid(),
-                self.get_avars_micro_l(),
-                self._CLS_CTRL_LFT,
-                connect_lr=True,
-                connect_ud=False,
-                connect_fb=False,
-            )
+    # def _build_avar_macro_l(self):
+    #     # Create left avar if necessary
+    #     ref = self.get_jnt_l_mid()
+    #     if self.create_macro_horizontal and ref:
+    #         self._build_avar_macro_horizontal(
+    #             self.avar_l,
+    #             connect_lr=True,
+    #             connect_ud=False,
+    #             connect_fb=False,
+    #         )
 
     def _connect_avar_macro_l(self, avar, child_avars):
         super(FaceLips, self)._connect_avar_macro_l(avar, child_avars)
@@ -244,18 +241,17 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 avar.attr_lr, avar_l_corner.attr_lr
             )
 
-    def _build_avar_macro_r(self):  # Create right avar if necessary
-        ref = self.get_jnt_r_mid()
-        if self.create_macro_horizontal and ref:
-            self._build_avar_macro_horizontal(
-                self.avar_r,
-                self.get_avar_mid(),
-                self.get_avars_micro_r(),
-                self._CLS_CTRL_RGT,
-                connect_lr=True,
-                connect_ud=False,
-                connect_fb=False,
-            )
+    # def _build_avar_macro_r(self):  # Create right avar if necessary
+    #     ref = self.get_jnt_r_mid()
+    #     if self.create_macro_horizontal and ref:
+    #         self._build_avar_macro_horizontal(
+    #             self.avar_r,
+    #             self.get_avar_mid(),
+    #             self.get_avars_micro_r(),
+    #             connect_lr=True,
+    #             connect_ud=False,
+    #             connect_fb=False,
+    #         )
 
     def _connect_avar_macro_r(self, avar, child_avars):
         super(FaceLips, self)._connect_avar_macro_r(avar, child_avars)
@@ -277,21 +273,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             min_x = min(min_x, x)
             max_x = max(max_x, x)
         return min_x, max_x
-
-    def _create_avar_macro_all_ctrls(self, parent_pos=None, parent_rot=None, **kwargs):
-        """
-        Since the avar_all ctrl don't follow the geometry,
-        we'll want it to follow the avar influence.
-        This however create double transformation when rotating,
-        it's not that much visible so it will do for now.
-        :param parent_pos:
-        :param parent_rot:
-        """
-        # TODO: fix double transformation when rotating
-        parent_rot = self.avar_all._grp_output
-        super(FaceLips, self)._create_avar_macro_all_ctrls(
-            parent_pos=parent_pos, parent_rot=parent_rot, **kwargs
-        )
 
     def get_dependencies_modules(self):
         return {self.get_jaw_module()}
@@ -464,7 +445,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def _patch_avars(self):
         super(FaceLips, self)._patch_avars()
-        for avar in self._iter_all_avars():
+        for avar in self.iter_avars():
             # We don't want the 'all' avar to be influenced by the jaw.
             if avar != self.avar_all:
                 self._add_jaw_contribution(avar)

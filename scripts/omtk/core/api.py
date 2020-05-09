@@ -1,25 +1,10 @@
-import os
-import re
 import contextlib
-import logging
 
 import pymel.core as pymel
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
 
-_PACKAGE_PATH = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),  # /script/omtk/core/
-        "..",  # /script/omtk
-        "..",  # /script/
-        "..",  # /
-        "package.py",  # /package.py
-    )
-)
-
-log = logging.getLogger("omtk")
-log.setLevel(logging.DEBUG)
 
 __all__ = (
     "get_version",

@@ -1285,6 +1285,7 @@ def connectAttrs_withBlendWeighted(srcs, dst, weights=None):
 def getAttrOutput(attr, plugs=True, skipBlendWeighted=False, **kwargs):
     """
     Extend the capabilities of pymel.Attribute.outputs() by provided additional skip.
+
     :param attr:
     :param plugs:
     :param skipBlendWeighted:
@@ -1299,8 +1300,8 @@ def getAttrOutput(attr, plugs=True, skipBlendWeighted=False, **kwargs):
         for attr_out in attr_outs:
             attr_out_node = attr_out.node()
             if isinstance(attr_out_node, pymel.nodetypes.BlendWeighted):
-                for attr_out in attr_out_node.output.outputs(plugs=True, **kwargs):
-                    attr_outs_filtered.append(attr_out)
+                for attr_out_ in attr_out_node.output.outputs(plugs=True, **kwargs):
+                    attr_outs_filtered.append(attr_out_)
             else:
                 attr_outs_filtered.append(attr_out)
         attr_outs = attr_outs_filtered

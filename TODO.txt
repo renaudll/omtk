@@ -6,3 +6,4 @@ Regressions to fix:
 [ ] Tweak avar
 [ ] Affect attributes should be outside of models (blend with offset x parent tm)
 [ ] Being able to move the surface without affecting the result
+[ ] Ensure preDeform mode still work

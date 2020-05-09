@@ -116,7 +116,7 @@ class AvarInflBaseModel(classModule.Module):
         pymel.connectAttr(util.outputScale, self._obj_output.scale)
         if self.parent:
             self.log.info("Parenting %s to %s", self.parent, self._obj_parent)
-            pymel.parentConstraint(self.parent, self._obj_parent)
+            pymel.parentConstraint(self.parent, self._obj_parent, maintainOffset=True)
 
         # We connect the joint before creating the controllers.
         # This allow our doritos to work out of the box and

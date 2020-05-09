@@ -170,7 +170,7 @@ class PluginManager(object):
         self._plugin_types = {}
 
     def register_plugin_type(self, plugin_type):
-        self._plugin_types[plugin_type.type_name] = libPython.LazySingleton(plugin_type)
+        self._plugin_types[plugin_type.type_name] = plugin_type
 
     def unregister_plugin_type(self, plugin_type):
         self._plugin_types.pop(plugin_type.type_name, None)

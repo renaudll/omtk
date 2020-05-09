@@ -15,7 +15,7 @@ class CtrlInteractiveSwapMesh(BaseMacro):
         # Build selected modules
         for module in modules:
             if isinstance(module, rigFaceAvarGrps.AvarGrp):
-                for avar in module._iter_all_avars():
+                for avar in module.iter_avars():
                     if (
                         isinstance(avar, rigFaceAvar.AbstractAvar)
                         and avar.model_ctrl

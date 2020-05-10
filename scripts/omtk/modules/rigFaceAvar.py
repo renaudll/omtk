@@ -11,7 +11,6 @@ from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
 from omtk.libs import libRigging
-from omtk.models import model_avar_linear
 from omtk.models import model_avar_surface
 from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
 
@@ -116,7 +115,6 @@ class AbstractAvar(classModule.Module):
         self.attr_sy = None
         self.attr_sz = None
 
-        self._sys_ctrl = None
         self.ctrl = None
 
     def add_avar(self, obj, name, **kwargs):
@@ -335,7 +333,6 @@ class AvarSimple(AbstractAvar):
 
         self._stack_post = None
         self.grp_offset = None
-        self._grp_parent = None
 
         # Bind input for the ctrl model, can be modified by subclasses.
         self._grp_default_ctrl_model = None
@@ -346,11 +343,11 @@ class AvarSimple(AbstractAvar):
     def build(
         self,
         constraint=True,
-        ctrl_size=1.0,
         ctrl_tm=None,
         jnt_tm=None,
         obj_mesh=None,
         follow_mesh=True,
+        ctrl_size_hint=1.0,
         **kwargs
     ):
         """
@@ -379,11 +376,27 @@ class AvarSimple(AbstractAvar):
 
         # Build ctrl model
         if self.CLS_CTRL:
-            self.ctrl = self._build_ctrl()  # TODO: Inline?
+            self.ctrl = self._build_ctrl(ctrl_size_hint=ctrl_size_hint)  # TODO: Inline?
             self._connect_ctrl_to_avar(self.ctrl)
 
             if self.CLS_MODEL_CTRL:
                 self._build_ctrl_model()  # TODO: Inline?
+
+    def unbuild(self):
+        if self.model_ctrl:
+            self.model_ctrl.unbuild()
+
+        # Disconnect input attributes BEFORE un-building the infl model.
+        # Otherwise this will break the bind pose.
+        self._disconnect_inputs()
+
+        if self.model_infl:
+            self.model_infl.unbuild()
+
+        super(AvarSimple, self).unbuild()
+
+        # Cleanup invalid references
+        self.grp_offset = None
 
     def _get_ctrl_tm(self):
         """
@@ -408,15 +421,14 @@ class AvarSimple(AbstractAvar):
             )
         return transform
 
-    def _build_ctrl(self):
+    def _build_ctrl(self, ctrl_size_hint=None):
         """
         Build the animation controller.
         """
-        # Create ctrl
         ctrl_name = self.get_nomenclature_anm().resolve()
         ctrl_tm = self._get_ctrl_tm()
         ctrl = self.CLS_CTRL.from_instance(self.ctrl)
-        ctrl.build(name=ctrl_name)
+        ctrl.build(name=ctrl_name, size=ctrl_size_hint)
         ctrl.setParent(self.grp_anm)
         ctrl.setMatrix(ctrl_tm)
         return ctrl
@@ -490,87 +502,9 @@ class AvarSimple(AbstractAvar):
         except AttributeError:
             pass
 
-    def unbuild(self):
-        if self.model_ctrl:
-            self.model_ctrl.unbuild()
-
-        # Disconnect input attributes BEFORE unbuilding the infl model.
-        # Otherwise this will break the bind pose.
-        self._disconnect_inputs()
-
-        if self.model_infl:
-            self.model_infl.unbuild()
-
-        super(AvarSimple, self).unbuild()
-
-        # Cleanup invalid references
-        self.grp_offset = None
-
-
-class AvarFollicle(AvarSimple):
-    """
-    A deformation point on the face that move accordingly to nurbsSurface.
-    """
-
-    SHOW_IN_UI = False
-    _CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
-
-
-def _blend_inn_matrix_attribute(
-    attr_tm,
-    attr_blend_tx,
-    attr_blend_ty,
-    attr_blend_tz,
-    attr_blend_rx,
-    attr_blend_ry,
-    attr_blend_rz,
-    attr_blend_sx,
-    attr_blend_sy,
-    attr_blend_sz,
-):
-    # todo: replace with a matrixBlend node?
-    u_decompose_a = libRigging.create_utility_node(
-        "decomposeMatrix", inputMatrix=attr_tm
-    )
-
-    attr_blend_t = libRigging.create_utility_node(
-        "multiplyDivide",
-        input1X=u_decompose_a.outputTranslateX,
-        input1Y=u_decompose_a.outputTranslateY,
-        input1Z=u_decompose_a.outputTranslateZ,
-        input2X=attr_blend_tx,
-        input2Y=attr_blend_ty,
-        input2Z=attr_blend_tz,
-    ).output
-    attr_blend_r = libRigging.create_utility_node(
-        "multiplyDivide",
-        input1X=u_decompose_a.outputRotateX,
-        input1Y=u_decompose_a.outputRotateY,
-        input1Z=u_decompose_a.outputRotateZ,
-        input2X=attr_blend_rx,
-        input2Y=attr_blend_ry,
-        input2Z=attr_blend_rz,
-    ).output
-    attr_blend_s = libRigging.create_utility_node(
-        "multiplyDivide",
-        input1X=u_decompose_a.outputScaleX,
-        input1Y=u_decompose_a.outputScaleY,
-        input1Z=u_decompose_a.outputScaleZ,
-        input2X=attr_blend_sx,
-        input2Y=attr_blend_sy,
-        input2Z=attr_blend_sz,
-    ).output
-
-    return libRigging.create_utility_node(
-        "composeMatrix",
-        inputTranslate=attr_blend_t,
-        inputRotate=attr_blend_r,
-        inputScale=attr_blend_s,
-    ).outputMatrix
-
 
 def register_plugin():
-    return AvarFollicle
+    return AvarSimple
 
 
 def _flip_attr(attr):  # TODO: Remove duplication

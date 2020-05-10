@@ -44,7 +44,7 @@ class AvarInflBaseModel(classModule.Module):
 
         # Reference to the object containing the bind pose of the avar.
         self._obj_offset = None
-        self._obj_output = None
+        obj_output = None
 
     def _create_interface(self):
 
@@ -77,14 +77,18 @@ class AvarInflBaseModel(classModule.Module):
 
     def build(self, avar):
         """
-        The dag stack is a chain of transform nodes daisy chained together that computer the final transformation of the influence.
-        The decision of using transforms instead of multMatrix nodes is for clarity.
-        Note also that because of it's parent (the offset node) the stack relative to the influence original translation.
+        Avar influence models can differ in their implementation,
+        but they will always expose the following attributes:
+        -
         """
         super(AvarInflBaseModel, self).build(create_grp_anm=False, create_grp_rig=True)
 
         naming = self.get_nomenclature_rig()
         tm = self.jnt.getMatrix(worldSpace=True)
+
+        # Get the matrix for the avar tm
+        avarTM = pymel.datatypes.Matrix()
+        avarTM.translate = tm.translate
 
         def _create_grp(suffix, tm=None):
             grp = pymel.createNode(
@@ -94,35 +98,35 @@ class AvarInflBaseModel(classModule.Module):
                 grp.setMatrix(tm)
             return grp
 
-        self._obj_output = _create_grp("output", tm=tm)
-        self._obj_offset = _create_grp("offset", tm=tm)
-        self._obj_parent = _create_grp("parent")
+        obj_output = _create_grp("output", tm=tm)
+        self._obj_offset = _create_grp("bindTM", tm=tm)
+        obj_avar_tm = _create_grp("avarTM", tm=avarTM)
+        obj_parent = _create_grp("parent")
+
+        attr_bind_avar_inv_tm = libRigging.create_utility_node(
+            "multMatrix", matrixIn=[self._obj_offset.matrix, obj_avar_tm.inverseMatrix]
+        ).matrixSum
 
         self._create_interface()
-        attr_tm = self._build(avar)
+        attr_tm = self._build(avar, obj_avar_tm.matrix)
 
         # Hold the parent transform in a transform
         # Hold the output in a transform
         # This allow us to "bypass" hierarchy for now.
         # TODO: Remove constraint!
         attr_apply_parent_tm = libRigging.create_utility_node(
-            "multMatrix", matrixIn=[attr_tm, self._obj_parent.matrix]
+            "multMatrix", matrixIn=[attr_bind_avar_inv_tm, attr_tm, obj_parent.matrix]
         ).matrixSum
         util = libRigging.create_utility_node(
             "decomposeMatrix", inputMatrix=attr_apply_parent_tm
         )
-        pymel.connectAttr(util.outputTranslate, self._obj_output.translate)
-        pymel.connectAttr(util.outputRotate, self._obj_output.rotate)
-        pymel.connectAttr(util.outputScale, self._obj_output.scale)
+        pymel.connectAttr(util.outputTranslate, obj_output.translate)
+        pymel.connectAttr(util.outputRotate, obj_output.rotate)
+        pymel.connectAttr(util.outputScale, obj_output.scale)
         if self.parent:
-            self.log.info("Parenting %s to %s", self.parent, self._obj_parent)
-            pymel.parentConstraint(self.parent, self._obj_parent, maintainOffset=True)
+            self.log.info("Parenting %s to %s", self.parent, obj_parent)
+            pymel.parentConstraint(self.parent, obj_parent, maintainOffset=True)
 
-        # We connect the joint before creating the controllers.
-        # This allow our doritos to work out of the box and
-        # allow us to compute their sensibility automatically.
-        # Creating the constraint will fail if the joint is already connected
-        # to something else like an animCurve.
         libAttr.disconnect_trs(self.jnt)
         libAttr.unlock_trs(self.jnt)
 
@@ -130,13 +134,13 @@ class AvarInflBaseModel(classModule.Module):
         infl, tweak = self._get_influences()
         if tweak:
             pymel.parentConstraint(
-                self._obj_output, infl, skipRotate=["x", "y", "z"], maintainOffset=True
+                obj_output, infl, skipRotate=["x", "y", "z"], maintainOffset=True
             )
-            pymel.parentConstraint(self._obj_output, tweak, maintainOffset=True)
-            pymel.scaleConstraint(self._obj_output, infl, maintainOffset=True)
+            pymel.parentConstraint(obj_output, tweak, maintainOffset=True)
+            pymel.scaleConstraint(obj_output, infl, maintainOffset=True)
         else:
-            pymel.parentConstraint(self._obj_output, infl, maintainOffset=True)
-            pymel.scaleConstraint(self._obj_output, infl, maintainOffset=True)
+            pymel.parentConstraint(obj_output, infl, maintainOffset=True)
+            pymel.scaleConstraint(obj_output, infl, maintainOffset=True)
 
     def _get_influences(self):
         """
@@ -182,12 +186,13 @@ class AvarInflBaseModel(classModule.Module):
             "affect_sy",
             "affect_sz",
         ):
-            attr = getattr(self, attr_name)
-            setattr(self, attr_name, _fn(attr))
+            value = _fn(getattr(self, attr_name))
+            self.log.info("Holding %r with %s", attr_name, value)
+            setattr(self, attr_name, value)
 
         super(AvarInflBaseModel, self).unbuild()
 
-    def _build(self, avar):
+    def _build(self, avar, bind_tm):
         """
         :param avar: Avar that provide our input values
         :type avar: omtk.modules.rigFaceAvar.AbstractAvar

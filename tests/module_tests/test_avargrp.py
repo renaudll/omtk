@@ -3,24 +3,23 @@ Tests for the FaceLips module
 """
 import pymel.core as pymel
 import omtk_test
+import omtk
+from omtk.modules.rigHead import Head
+from omtk.modules.rigFaceAvarGrps import AvarGrp
 
 
-class TestAvarGrpOnSurface(omtk_test.TestCase):
+class TestAvarGrp(omtk_test.TestCase):
     @omtk_test.open_scene("../resources/test_lips.ma")
-    def test_avargrp_areaonsurface_withsurface(self):
+    def test_avargrp_withsurface(self):
         """
         Ensure there's always a nurbsSurface created for an AvarGrpOnSurface
         and that it is correctly propagated to it's child avars.
         """
-        import omtk
-        from omtk.modules import rigHead
-        from omtk.modules import rigFaceAvarGrps
-
         # Create a base rig
         rig = omtk.create()
-        rig.add_module(rigHead.Head([pymel.PyNode("jnt_head")]))
+        rig.add_module(Head([pymel.PyNode("jnt_head")]))
         rig.add_module(
-            rigFaceAvarGrps.AvarGrpOnSurface(
+            AvarGrp(
                 pymel.ls("jnt_lip*", type="joint")
                 + [pymel.PyNode("surface_lips"), pymel.PyNode("pSphereShape1")]
             )

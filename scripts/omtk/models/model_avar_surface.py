@@ -125,15 +125,13 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         self._attr_inn_surface_max_value_u = fn("innSurfaceMaxValueU", defaultValue=1)
         self._attr_inn_surface_max_value_v = fn("innSurfaceMaxValueV", defaultValue=1)
 
-    def _build(self, avar):
+    def _build(self, avar, bind_tm):
         """
         :param avar: Avar that provide our input values
         :type avar: omtk.modules.rigFaceAvar.AbstractAvar
         :return: A matrix attribute that give us our influence final world pos
         :rtype: pymel.Attribute
         """
-        # naming = self.get_nomenclature_rig()
-
         surface = self.get_surface()
         for src, dst in (
             (surface.worldSpace, self._attr_inn_surface),
@@ -145,30 +143,17 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         ):
             pymel.connectAttr(src, dst)
 
-        # Resolve the parameterU and parameterV
-        # attr_u_inn, attr_v_inn = self._get_follicle_absolute_uv_attr()
+        # Get bind tm translate
+        util_get_bind_tm_pos = libRigging.create_utility_node(
+            "decomposeMatrix", inputMatrix=bind_tm,
+        ).outputTranslate
 
         # Compute the base UV coord
         util_get_base_uv_absolute = libRigging.create_utility_node(
             "closestPointOnSurface",
-            inPosition=self._obj_offset.translate,
+            inPosition=util_get_bind_tm_pos,
             inputSurface=self._attr_inn_surface,
         )
-
-        # # Currently our utilities expect a complete surface shape.Q
-        # # It is also more friendly for the rigger to see
-        # # the surface directly in the model.
-        # surface_shape = pymel.createNode(
-        #     "nurbsSurface", name=naming.resolve("surface"),
-        # )
-        # self._surface = surface_shape.getParent()
-        # self._surface.visibility.set(False)
-        # self._surface.setParent(self.grp_rig)
-        # self._surface.rename(naming.resolve("surface"))
-        # pymel.connectAttr(self._attr_inn_surface, surface_shape.create)
-        # libRigging.connect_matrix_to_node(
-        #     self._attr_inn_surface_tm, self._surface, name="decomposeSurfaceTm"
-        # )
 
         compound = create_compound(
             "omtk.AvarInflSurface",
@@ -186,7 +171,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
                 "multLr": self.multiplier_lr,
                 "multFb": self.multiplier_fb,
                 "multUd": self.multiplier_ud,
-                "innOffset": self._obj_offset.matrix,
+                "innOffset": bind_tm,
                 "innSurface": self._attr_inn_surface,
                 "innSurfaceTm": self._attr_inn_surface_tm,
                 "innSurfaceMinValueU": self._attr_inn_surface_min_value_u,
@@ -195,7 +180,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
                 "innSurfaceMaxValueV": self._attr_inn_surface_max_value_v,
                 "baseU": util_get_base_uv_absolute.parameterU,
                 "baseV": util_get_base_uv_absolute.parameterV,
-                "innOffset": self._obj_offset.matrix,
             },
         )
         pymel.PyNode("%s:dag" % compound.namespace).setParent(self.grp_rig)

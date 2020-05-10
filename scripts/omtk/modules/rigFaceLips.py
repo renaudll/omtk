@@ -10,15 +10,7 @@ from omtk.modules import rigFaceAvarGrps
 from omtk.models import model_avar_surface_lips
 
 
-class CtrlLipsUpp(rigFaceAvarGrps.CtrlFaceUpp):
-    pass
-
-
-class CtrlLipsLow(rigFaceAvarGrps.CtrlFaceLow):
-    pass
-
-
-class FaceLipsAvar(rigFaceAvar.AvarFollicle):
+class FaceLipsAvar(rigFaceAvar.AvarSimple):
     """
     The Lips avar are special as they implement a Splitter mechanism that
     ensure the avars move in jaw space before moving in surface space.
@@ -27,7 +19,7 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
     """
 
     AVAR_NAME_UD_BYPASS = "_attr_inn_ud_bypass"
-    _CLS_MODEL_INFL = model_avar_surface_lips.AvarSurfaceLipModel
+    CLS_MODEL_INFL = model_avar_surface_lips.AvarSurfaceLipModel
 
     def __init__(self, *args, **kwargs):
         super(FaceLipsAvar, self).__init__(*args, **kwargs)
@@ -76,36 +68,25 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         super(FaceLipsAvar, self).add_avars(attr_holder)
         self.attr_ud_bypass = self.add_avar(attr_holder, self.AVAR_NAME_UD_BYPASS)
 
-    def create_stacks(self):
-        super(FaceLipsAvar, self).create_stacks()
+    def add_avars(self, attr_holder):
+        super(FaceLipsAvar, self).add_avars(attr_holder)
 
-        nomenclature_rig = self.get_nomenclature_rig()
+        def _fn(name, **kwargs):
+            return self.add_avar(
+                attr_holder,
+                name,
+                hasMinValue=True,
+                hasMaxValue=True,
+                minValue=0,
+                maxValue=1,
+                **kwargs
+            )
 
-        # Create additional attributes to control the jaw layer
-
-        libAttr.addAttr_separator(self.grp_rig, "jawLayer")
-        self._attr_inn_jaw_ratio_default = libAttr.addAttr(
-            self.grp_rig,
-            "jawRatioDefault",
-            defaultValue=0.5,
-            hasMinValue=True,
-            hasMaxValue=True,
-            minValue=0,
-            maxValue=1,
-            k=True,
-        )
-        self._attr_bypass_splitter = libAttr.addAttr(
-            self.grp_rig,
-            "jawSplitterBypass",
-            defaultValue=0.0,
-            hasMinValue=True,
-            hasMaxValue=True,
-            minValue=0,
-            maxValue=1,
-            k=True,
-        )
+        self._attr_inn_jaw_ratio_default = _fn("jawRatioDefault", defaultValue=0.5)
+        self._attr_bypass_splitter = _fn("jawSplitterBypass", defaultValue=0.0)
 
         # Variable shared with the AvarInflModel
+        # TODO: WTF is this get rid of this
         self._attr_jaw_bind_tm = self._parent_module._ref_jaw_predeform.matrix
         self._attr_jaw_pitch = self._parent_module._attr_jaw_pt
 
@@ -116,19 +97,18 @@ class FaceLipsAvar(rigFaceAvar.AvarFollicle):
         self.attr_jaw_out_ratio = None
 
 
-class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
+class FaceLips(rigFaceAvarGrps.AvarGrp):
     """
     AvarGrp setup customized for lips rigging.
     Lips have the same behavior than an AvarGrpUppLow.
     However the lip curl is also connected between the macro avars and the micro avars.
     """
 
-    _CLS_AVAR = FaceLipsAvar
-    _CLS_AVAR_MACRO = FaceLipsAvar  # necessary to feed the jawArc to the ctrl model
+    CLS_AVAR_MICRO = FaceLipsAvar
+    # TODO: Implement with CLS_AVAR_MACRO
+    # _CLS_AVAR_MACRO = FaceLipsAvar  # necessary to feed the jawArc to the ctrl model
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
-    _CLS_CTRL_UPP = CtrlLipsUpp
-    _CLS_CTRL_LOW = CtrlLipsLow
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
@@ -217,17 +197,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                     avar_parent.attr_lr, avar_child.attr_lr, kv=(-ratio, 0.0, ratio)
                 )
 
-    # def _build_avar_macro_l(self):
-    #     # Create left avar if necessary
-    #     ref = self.get_jnt_l_mid()
-    #     if self.create_macro_horizontal and ref:
-    #         self._build_avar_macro_horizontal(
-    #             self.avar_l,
-    #             connect_lr=True,
-    #             connect_ud=False,
-    #             connect_fb=False,
-    #         )
-
     def _connect_avar_macro_l(self, avar, child_avars):
         super(FaceLips, self)._connect_avar_macro_l(avar, child_avars)
 
@@ -240,18 +209,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
             libRigging.connectAttr_withLinearDrivenKeys(
                 avar.attr_lr, avar_l_corner.attr_lr
             )
-
-    # def _build_avar_macro_r(self):  # Create right avar if necessary
-    #     ref = self.get_jnt_r_mid()
-    #     if self.create_macro_horizontal and ref:
-    #         self._build_avar_macro_horizontal(
-    #             self.avar_r,
-    #             self.get_avar_mid(),
-    #             self.get_avars_micro_r(),
-    #             connect_lr=True,
-    #             connect_ud=False,
-    #             connect_fb=False,
-    #         )
 
     def _connect_avar_macro_r(self, avar, child_avars):
         super(FaceLips, self)._connect_avar_macro_r(avar, child_avars)
@@ -269,7 +226,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
     def _get_mouth_width(self):
         min_x = max_x = 0
         for avar in self.get_avars_corners():
-            x = avar.grp_offset.tx.get()
+            x = avar.jnt.getMatrix(worldSpace=True).translate.x
+            # x = avar.grp_offset.tx.get()
             min_x = min(min_x, x)
             max_x = max(max_x, x)
         return min_x, max_x
@@ -344,16 +302,18 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
                 connect_avar(avar, ratio)
 
         # Hardcode the jawRatio for the macro ctrls
-        self.avar_upp._attr_inn_jaw_ratio_default.set(0.0)
-        self.avar_l._attr_inn_jaw_ratio_default.set(0.5)
-        self.avar_r._attr_inn_jaw_ratio_default.set(0.5)
-        self.avar_low._attr_inn_jaw_ratio_default.set(1.0)
+        # TODO: RESTORE by using inheritance for macros
+        # self.avar_upp._attr_inn_jaw_ratio_default.set(0.0)
+        # self.avar_l._attr_inn_jaw_ratio_default.set(0.5)
+        # self.avar_r._attr_inn_jaw_ratio_default.set(0.5)
+        # self.avar_low._attr_inn_jaw_ratio_default.set(1.0)
 
         #
         # Add custom default connections
         #
 
-        # Squeeze animator requested that the lips work like the animation mentor rig.
+        # Animators at Squeeze Studiorequested that the lips
+        # work like the animation mentor rig.
         # When the corner macros ud is 1.0, they won't follow the jaw anymore.
         # When the corner macros ud is -1.0, they won't follow the head anymore.
         avar_micro_corner_l = self.get_avar_l_corner()
@@ -383,8 +343,8 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
         # Ensure that the all macro avar bypass the jaw splitter as we expect it to be 100% linear.
         # todo: use another class for the 'all' macro avar.
-        if self.create_macro_all:
-            self.avar_all._attr_bypass_splitter.set(1.0)
+        # if self.create_macro_all:
+        #     self.avar_all._attr_bypass_splitter.set(1.0)
 
         # Calibration is done manually since we need to setup the jaw influence.
         if calibrate:

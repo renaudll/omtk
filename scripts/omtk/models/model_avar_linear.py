@@ -16,7 +16,7 @@ class AvarLinearModel(AvarInflBaseModel):
     _ATTR_NAME_MULT_UD = "multiplierUd"
     _ATTR_NAME_MULT_FB = "multiplierFb"
 
-    def _build(self, avar):
+    def _build(self, avar, bind_tm):
         """
         :param avar: Avar that provide our input values
         :type avar: omtk.modules.rigFaceAvar.AbstractAvar
@@ -39,7 +39,7 @@ class AvarLinearModel(AvarInflBaseModel):
                 "multLr": self.multiplier_lr,
                 "multFb": self.multiplier_fb,
                 "multUd": self.multiplier_ud,
-                "innOffset": self._obj_offset.matrix,
+                "innOffset": bind_tm,
             },
         )
 

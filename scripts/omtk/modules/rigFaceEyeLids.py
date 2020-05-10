@@ -17,7 +17,7 @@ class CtrlEyeLidLow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low(size=size)
 
 
-class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
+class FaceEyeLids(rigFaceAvarGrps.AvarGrp):
     """
     AvarGrp setup customized for Eyelids rigging.
     FaceLids behave the same a a standard AvarGrp with an Upp and Low section.
@@ -82,10 +82,10 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
     def get_default_name(self):
         return "eyelid"
 
-    def get_multiplier_u(self):
-        # Since the V go all around the sphere, it is too much range.
-        # We'll restrict ourself only to a single quadrant.
-        return 0.25
+    # def get_multiplier_u(self):
+    #     # Since the V go all around the sphere, it is too much range.
+    #     # We'll restrict ourself only to a single quadrant.
+    #     return 0.25
 
 
 def register_plugin():

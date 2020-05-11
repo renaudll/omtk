@@ -231,6 +231,12 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     # Note that theses are only accessible after the avars have been built.
 
     def iter_avars(self):
+        # TODO: The order should not matter, however moving the all macro at the
+        # TODO: end create offset when building lips. Investiguate why!
+        if self.create_macro_all:
+            if self.avar_all:
+                yield self.avar_all
+
         for avar in self.avars:
             yield avar
 
@@ -244,9 +250,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 yield self.avar_upp
             if self.avar_low:
                 yield self.avar_low
-        if self.create_macro_all:
-            if self.avar_all:
-                yield self.avar_all
 
     def get_avars_upp(self, macro=True):
         """
@@ -352,19 +355,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
     # Avar methods
     #
 
-    # def get_multiplier_u(self):
-    #     """
-    #     Since we are using the same plane for the eyebrows,
-    #     we want to attenget_multiplier_lruate the relation between the LR avar
-    #     and the plane V coordinates.
-    #     In the best case scenario, at LR -1, the V coordinates of the BrowInn are 0.5 both.
-    #     """
-    #     base_u, base_v = self.get_base_uv()
-    #     return abs(base_u - 0.5) * 2.0
-    #
-    # def get_multiplier_v(self):
-    #     return 1.0
-
     def _get_default_ctrl_size(self):
         """
         Resolve the desired ctrl size
@@ -385,7 +375,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
                 distances.append(distance)
 
         try:
-            return min(distances) * 0.25
+            return min(distances) * 0.5
         except ValueError as error:  # Not enough distance
             raise ValueError("Could not get ctrl size hint: %s" % error)
 
@@ -1294,42 +1284,6 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             if avar.grp_rig:
                 avar.grp_rig.setParent(self.grp_rig)
 
-        # Build avars and connect them to global avars
-        # for avar in self.avars:
-        #     self._build_avar_micro(
-        #         avar,
-        #         ctrl_size_hint=ctrl_size_hint,
-        #         **kwargs
-        #     )
-
-        # # Create left avar if necessary
-        # ref = self.get_jnt_l_mid()
-        # if self.create_macro_horizontal and ref:
-        #     self._build_avar_macro(self.avar_l, ctrl_size_hint=ctrl_size_hint)
-        #
-        # # Create right avar if necessary
-        # ref = self.get_jnt_r_mid()
-        # if self.create_macro_horizontal and ref:
-        #     self._build_avar_macro(self.avar_r, ctrl_size_hint=ctrl_size_hint)
-        #
-        # # Create upp avar if necessary
-        # ref = self.get_jnt_upp_mid()
-        # if self.create_macro_vertical and ref:
-        #     self._build_avar_macro(self.avar_upp, ctrl_size_hint=ctrl_size_hint)
-        #
-        # # Create low avar if necessary
-        # ref = self.get_jnt_low_mid()
-        # if self.create_macro_vertical and ref:
-        #     self._build_avar_macro(self.avar_low, ctrl_size_hint=ctrl_size_hint)
-        #
-        # # Create all avar if necessary
-        # # Note that the use can provide an influence.
-        # # If no influence was found,
-        # # we'll create an 'abstract' avar that doesn't move anything.
-        # ref = self.get_jnt_macro_all()
-        # if self.create_macro_all and ref:
-        #     self._build_avar_macro(self.avar_all, ctrl_size_hint=ctrl_size_hint)
-
     @ui_expose()
     def calibrate(self):
         """
@@ -1341,6 +1295,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
 
 class AvarGrpOnSurface(AvarGrp):
     """Deprecated, use AvarGrp instead"""
+
     SHOW_IN_UI = False
 
 

@@ -39,7 +39,6 @@ class AvarLinearModel(AvarInflBaseModel):
                 "multLr": self.multiplier_lr,
                 "multFb": self.multiplier_fb,
                 "multUd": self.multiplier_ud,
-                "innOffset": bind_tm,
             },
         )
 

@@ -171,7 +171,6 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
                 "multLr": self.multiplier_lr,
                 "multFb": self.multiplier_fb,
                 "multUd": self.multiplier_ud,
-                "innOffset": bind_tm,
                 "innSurface": self._attr_inn_surface,
                 "innSurfaceTm": self._attr_inn_surface_tm,
                 "innSurfaceMinValueU": self._attr_inn_surface_min_value_u,

@@ -1,3 +1,6 @@
+"""
+Base class for a "private" module that drive one or multiple influence from an avar.
+"""
 import functools
 
 import pymel.core as pymel
@@ -9,6 +12,8 @@ from omtk.libs import libAttr, libRigging
 class AvarInflBaseModel(classModule.Module):
     """
     A deformation point on the face that move accordingly to nurbsSurface.
+
+    :ivar attr_offset_tm: The influence original transform in world space.
     """
 
     SHOW_IN_UI = False
@@ -42,53 +47,31 @@ class AvarInflBaseModel(classModule.Module):
         self.multiplier_ud = self.DEFAULT_MULTIPLIER_UD
         self.multiplier_fb = self.DEFAULT_MULTIPLIER_FB
 
-        # Reference to the object containing the bind pose of the avar.
-        self._obj_offset = None
-        obj_output = None
-
-    def _create_interface(self):
-
-        fn = functools.partial(libAttr.addAttr, self.grp_rig)
-
-        self.multiplier_lr = fn("innMultiplierLr", defaultValue=self.multiplier_lr)
-        self.multiplier_ud = fn("innMultiplierUd", defaultValue=self.multiplier_ud)
-        self.multiplier_fb = fn("innMultiplierFb", defaultValue=self.multiplier_fb)
-
-        # TODO: Should this be optional?
-        fn = functools.partial(
-            libAttr.addAttr,
-            self.grp_rig,
-            defaultValue=1.0,
-            hasMinValue=True,
-            hasMaxValue=True,
-            minValue=0.0,
-            maxValue=1.0,
-            keyable=True,
-        )
-        self.affect_tx = fn(longName="affectTx")
-        self.affect_ty = fn(longName="affectTy")
-        self.affect_tz = fn(longName="affectTz")
-        self.affect_rx = fn(longName="affectRx")
-        self.affect_ry = fn(longName="affectRy")
-        self.affect_rz = fn(longName="affectRz")
-        self.affect_sx = fn(longName="affectSx")
-        self.affect_sy = fn(longName="affectSy")
-        self.affect_sz = fn(longName="affectSz")
+        # Publicly exposed transformations
+        # Theses should eventually be in a compound like interface.
+        self.attr_local_tm = None  # TODO: Should not be serialized?
+        self.attr_offset_tm = None  # TODO: Should not be serialized?
+        self.attr_parent_tm = None  # TODO: Should not be serialized?
 
     def build(self, avar):
         """
         Avar influence models can differ in their implementation,
         but they will always expose the following attributes:
-        -
+
+        The avar transformation is applied in parent space.
+        Except that the influence rotation is applied last.
+        This mean that the UD direction of an influence is directed by the head
+        and won't change depending on the influence rotation.
         """
+        # TODO: Connect the avar in the avar logic
         super(AvarInflBaseModel, self).build(create_grp_anm=False, create_grp_rig=True)
 
         naming = self.get_nomenclature_rig()
-        tm = self.jnt.getMatrix(worldSpace=True)
+        bind_tm = self.jnt.getMatrix(worldSpace=True)
 
         # Get the matrix for the avar tm
-        avarTM = pymel.datatypes.Matrix()
-        avarTM.translate = tm.translate
+        bind_pos_tm = pymel.datatypes.Matrix()
+        bind_pos_tm.translate = bind_tm.translate
 
         def _create_grp(suffix, tm=None):
             grp = pymel.createNode(
@@ -98,31 +81,44 @@ class AvarInflBaseModel(classModule.Module):
                 grp.setMatrix(tm)
             return grp
 
-        obj_output = _create_grp("output", tm=tm)
-        self._obj_offset = _create_grp("bindTM", tm=tm)
-        obj_avar_tm = _create_grp("avarTM", tm=avarTM)
         obj_parent = _create_grp("parent")
+        self.attr_parent_tm = obj_parent.matrix
 
-        attr_bind_avar_inv_tm = libRigging.create_utility_node(
-            "multMatrix", matrixIn=[self._obj_offset.matrix, obj_avar_tm.inverseMatrix]
-        ).matrixSum
+        obj_output = _create_grp("output", tm=bind_tm)
+        attr_bind_tm = _create_grp("bindTM", tm=bind_tm).matrix
+        # For avar influences, we don't always want to consider it's rotation at all.
+        # TODO: Is this true? Don't we want to do computation in parent space?
+        self.attr_offset_tm = _create_grp("offsetTM", tm=bind_pos_tm).matrix
+
+        # Compute the influence transformation in parent space
+        # Split the matrix into it's T and RS counterpart.
+        util_decompose_bind_local_tm = libRigging.create_utility_node(
+            "decomposeMatrix", inputMatrix=attr_bind_tm
+        )
+        attr_bind_pos_local_tm = libRigging.create_utility_node(
+            "composeMatrix", inputTranslate=util_decompose_bind_local_tm.outputTranslate
+        ).outputMatrix
+        attr_bind_rot_local_tm = libRigging.create_utility_node(
+            "composeMatrix",
+            inputRotate=util_decompose_bind_local_tm.outputRotate,
+            inputScale=util_decompose_bind_local_tm.outputScale,
+        ).outputMatrix
 
         self._create_interface()
-        attr_tm = self._build(avar, obj_avar_tm.matrix)
 
-        # Hold the parent transform in a transform
-        # Hold the output in a transform
-        # This allow us to "bypass" hierarchy for now.
+        # Compute the result (still in parent space)
+        self.attr_local_tm = self._build(avar, attr_bind_pos_local_tm)
+
         # TODO: Remove constraint!
-        attr_apply_parent_tm = libRigging.create_utility_node(
-            "multMatrix", matrixIn=[attr_bind_avar_inv_tm, attr_tm, obj_parent.matrix]
-        ).matrixSum
-        util = libRigging.create_utility_node(
-            "decomposeMatrix", inputMatrix=attr_apply_parent_tm
+        attr_output_tm = libRigging.create_multiply_matrix(
+            [
+                attr_bind_rot_local_tm,
+                self.attr_local_tm,
+                self.attr_offset_tm,
+                self.attr_parent_tm,
+            ]
         )
-        pymel.connectAttr(util.outputTranslate, obj_output.translate)
-        pymel.connectAttr(util.outputRotate, obj_output.rotate)
-        pymel.connectAttr(util.outputScale, obj_output.scale)
+        libRigging.connect_matrix_to_node(attr_output_tm, obj_output)
         if self.parent:
             self.log.info("Parenting %s to %s", self.parent, obj_parent)
             pymel.parentConstraint(self.parent, obj_parent, maintainOffset=True)
@@ -141,27 +137,6 @@ class AvarInflBaseModel(classModule.Module):
         else:
             pymel.parentConstraint(obj_output, infl, maintainOffset=True)
             pymel.scaleConstraint(obj_output, infl, maintainOffset=True)
-
-    def _get_influences(self):
-        """
-        An avar can have one or two influences.
-        If it have two, one is marked as the "main" and the other as a "tweak".
-        When the "tweak" is present, "main" won't be affected in rotation.
-        This allow two different falloff depending on the transformation.
-
-        :return: The main influence and the tweak influence if it exist.
-        :rtype: tuple[pymel.nodetypes.Joint, pymel.nodetypes.Joint or None]
-        """
-        if len(self.jnts) == 2:
-            # TODO: Don't assume the tweak is the second, check the hierarchy.
-            return self.jnts
-
-        if len(self.jnts) == 1:
-            return self.jnt, None
-
-        raise ValueError(
-            "Invalid number of influences. Expected 1 or 2, got %s" % len(self.jnts)
-        )
 
     def unbuild(self):
         # Save the current uv multipliers.
@@ -200,3 +175,53 @@ class AvarInflBaseModel(classModule.Module):
         :rtype: pymel.Attribute
         """
         raise NotImplementedError
+
+    def _create_interface(self):
+
+        fn = functools.partial(libAttr.addAttr, self.grp_rig)
+
+        self.multiplier_lr = fn("innMultiplierLr", defaultValue=self.multiplier_lr)
+        self.multiplier_ud = fn("innMultiplierUd", defaultValue=self.multiplier_ud)
+        self.multiplier_fb = fn("innMultiplierFb", defaultValue=self.multiplier_fb)
+
+        # TODO: Should this be optional?
+        fn = functools.partial(
+            libAttr.addAttr,
+            self.grp_rig,
+            defaultValue=1.0,
+            hasMinValue=True,
+            hasMaxValue=True,
+            minValue=0.0,
+            maxValue=1.0,
+            keyable=True,
+        )
+        self.affect_tx = fn(longName="affectTx")
+        self.affect_ty = fn(longName="affectTy")
+        self.affect_tz = fn(longName="affectTz")
+        self.affect_rx = fn(longName="affectRx")
+        self.affect_ry = fn(longName="affectRy")
+        self.affect_rz = fn(longName="affectRz")
+        self.affect_sx = fn(longName="affectSx")
+        self.affect_sy = fn(longName="affectSy")
+        self.affect_sz = fn(longName="affectSz")
+
+    def _get_influences(self):
+        """
+        An avar can have one or two influences.
+        If it have two, one is marked as the "main" and the other as a "tweak".
+        When the "tweak" is present, "main" won't be affected in rotation.
+        This allow two different falloff depending on the transformation.
+
+        :return: The main influence and the tweak influence if it exist.
+        :rtype: tuple[pymel.nodetypes.Joint, pymel.nodetypes.Joint or None]
+        """
+        if len(self.jnts) == 2:
+            # TODO: Don't assume the tweak is the second, check the hierarchy.
+            return self.jnts
+
+        if len(self.jnts) == 1:
+            return self.jnt, None
+
+        raise ValueError(
+            "Invalid number of influences. Expected 1 or 2, got %s" % len(self.jnts)
+        )

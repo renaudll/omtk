@@ -44,24 +44,72 @@ def connect_or_set_attr(_attr, _val):
             )
 
 
-def create_utility_node(_sClass, name=None, *args, **kwargs):
-    uNode = pymel.createNode(_sClass, name=name) if name else pymel.createNode(_sClass)
+def create_utility_node(type_, name=None, **kwargs):
+    """
+    Factory method that create a utility node and
+    connect it's inputs from provided keyword arguments.
+
+    :param str type_: The type of node to create
+    :param str name: Optional name for the utility node to create
+    :param dict kwargs: Optional mapping of inputs to set/connect
+    :return: The created utility node
+    :rtype: pymel.nodetypes.DependNode
+    """
+    util = pymel.createNode(type_, name=name) if name else pymel.createNode(type_)
     for sAttrName, pAttrValue in kwargs.items():
-        if not uNode.hasAttr(sAttrName):
+        if not util.hasAttr(sAttrName):
             raise Exception(
-                "UtilityNode %s doesn't have an %s attribute." % (_sClass, sAttrName)
+                "UtilityNode %s doesn't have an %s attribute." % (type_, sAttrName)
             )
-        else:
-            connect_or_set_attr(uNode.attr(sAttrName), pAttrValue)
-    return uNode
+        connect_or_set_attr(util.attr(sAttrName), pAttrValue)
+    return util
 
 
-def connect_matrix_to_node(attr_tm, node, name=None):
-    util = create_utility_node("decomposeMatrix", name=name, inputMatrix=attr_tm)
+def connect_matrix_to_node(attr, node, name=None):
+    """
+    Helper method that decompose a matrix attribute and constraint a node.
+
+    :param attr: An attribute of matrix datatype
+    :type attr: pymel.Attribute
+    :param node: A transform node to constraint
+    :type node: pymel.nodetypes.Transform
+    :param str name: An optional name for the created utility node
+    :return: The created decomposeMatrix utility node
+    :rtype: pymel.nodetypes.DecomposeMatrix
+    """
+    util = create_utility_node("decomposeMatrix", name=name, inputMatrix=attr)
     pymel.connectAttr(util.outputTranslate, node.translate, force=True)
     pymel.connectAttr(util.outputRotate, node.rotate, force=True)
     pymel.connectAttr(util.outputScale, node.scale, force=True)
     return util
+
+
+def create_inverse_matrix(attr, name=None):
+    """
+    Helper method that create an inverseMatrix node.
+
+    :param attr: An attribute of matrix datatype
+    :type attr: pymel.Attribute
+    :param str name: An optional name for the created utility node
+    :return: An attribute of matrix datatype
+    :rtype: pymel.Attribute
+    """
+    return create_utility_node(
+        "inverseMatrix", name=name, inputMatrix=attr
+    ).outputMatrix
+
+
+def create_multiply_matrix(matrices, name=None):
+    """
+    Helper method that create an inverseMatrix node.
+
+    :param matrices: A list of attributes of matrix datatype
+    :type matrices: list of pymel.Attribute
+    :param str name: An optional name for the created utility node
+    :return: An attribute of matrix datatype
+    :rtype: pymel.Attribute
+    """
+    return create_utility_node("multMatrix", name=name, matrixIn=matrices).matrixSum
 
 
 #

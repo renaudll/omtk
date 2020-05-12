@@ -8,6 +8,7 @@ import re
 
 from pymel import core as pymel
 
+from omtk.libs import libAttr
 from omtk.vendor import libSerialization
 
 
@@ -90,3 +91,26 @@ def get_avar_by_name(avar_name):
         avar = libSerialization.import_network(network)
         if avar:
             return avar
+
+
+# TODO: Convert avar to a compound attribute
+def create_avar_attr(node):
+    pymel.addAttr(node, longName="avar", numberOfChildren=9, attributeType="compound")
+
+    data = (
+        ("avarLR", 0.0),
+        ("avarUD", 0.0),
+        ("avarFB", 0.0),
+        ("avarYW", 0.0),
+        ("avarPT", 0.0),
+        ("avarRL", 0.0),
+        ("avarScaleUD", 1.0),
+        ("avarScaleLR", 1.0),
+        ("avarScaleFB", 1.0),
+    )
+    for name, value in data:
+        pymel.addAttr(
+            node, defaultValue=value, longName=name, keyable=True, parent="avar"
+        )
+
+    return [node.attr(name) for name, _ in data]

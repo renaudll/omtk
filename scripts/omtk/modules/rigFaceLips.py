@@ -21,6 +21,13 @@ class FaceLipsAvar(rigFaceAvar.AvarSimple):
 
     CLS_MODEL_INFL = model_avar_surface_lips.AvarSurfaceLipModel
 
+    # def _connect_influence_model(self):
+    #     super(FaceLipsAvar, self)._connect_influence_model()
+    #
+    #     # Connect jaw influence
+    #     attr_dst = pymel.PyNode(self.model_infl.compound.input)
+    #     pymel.connectAttr(self.grp_rig.avar, attr_dst)
+
 
 class FaceLips(rigFaceAvarGrps.AvarGrp):
     """
@@ -51,49 +58,13 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
         super(FaceLips, self).build(calibrate=False, **kwargs)
 
         if not self.preDeform:
-            # Resolve the head influence
-            jnt_head = self.get_head_jnt()
-            if not jnt_head:
-                self.log.error("Failed parenting avars, no head influence found!")
-                return
-
-            jnt_jaw = self.get_jaw_jnt()
-            if not jnt_jaw:
-                self.log.error("Failed parenting avars, no jaw influence found!")
-                return
-
-            min_x, max_x = self._get_mouth_width()
-            mouth_width = max_x - min_x
 
             def connect_avar(avar, ratio):
                 avar.model_infl.attr_inn_jaw_ratio_default.set(ratio)
 
-            for avar in self.get_avars_corners(macro=False):
-                connect_avar(avar, 0.5)
-
-            for avar in self.get_avars_upp(macro=False):
-                if use_football_interpolation:
-                    avar_pos_x = avar.grp_offset.tx.get()
-                    ratio = abs(avar_pos_x - min_x / mouth_width)
-                    ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
-                    ratio = libRigging.interp_football(ratio)  # apply football shape
-                else:
-                    ratio = 0.0
-
-                connect_avar(avar, ratio)
-
-            for avar in self.get_avars_low(macro=False):
-                if use_football_interpolation:
-                    avar_pos_x = avar.grp_offset.tx.get()
-                    ratio = abs(avar_pos_x - min_x / mouth_width)
-                    ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
-                    ratio = 1.0 - libRigging.interp_football(
-                        ratio
-                    )  # apply football shape
-                else:
-                    ratio = 1.0
-
-                connect_avar(avar, ratio)
+            for avar in self.avars:
+                jaw_ratio = self._get_avar_jaw_ratio_default(avar)
+                connect_avar(avar, jaw_ratio)
 
         # Animators at Squeeze Studiorequested that the lips
         # work like the animation mentor rig.
@@ -127,6 +98,30 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
         # Calibration is done manually since we need to setup the jaw influence.
         if calibrate:
             self.calibrate()
+
+    def _get_avar_jaw_ratio_default(self, avar, use_football_interpolation=False):
+        # TODO: Refactor this, we should at least rely on nomenclature.
+        min_x, max_x = self._get_mouth_width()
+        mouth_width = max_x - min_x
+
+        def _get_football_ratio(avar_):
+            x = avar_.grp_offset.tx.get()
+            ratio = abs(x - min_x / mouth_width)
+            ratio = max(min(ratio, 1.0), 0.0)  # keep ratio in range
+            return libRigging.interp_football(ratio)  # apply football shape
+
+        if avar in self.get_avars_corners():
+            return 0.5
+
+        if avar in self.get_avars_upp(macro=False):
+            return _get_football_ratio(avar) if use_football_interpolation else 0.0
+
+        if avar in self.get_avars_low(macro=False):
+            return (
+                1.0 - _get_football_ratio(avar) if use_football_interpolation else 1.0
+            )
+
+        raise NotImplementedError("Could not recognize avar")
 
     def validate(self):
         """

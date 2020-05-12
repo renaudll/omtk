@@ -10,7 +10,7 @@ from omtk.core.compounds import create_compound
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
-from omtk.libs import libRigging
+from omtk.libs import libRigging, libAvar
 from omtk.models import model_avar_surface
 from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
 
@@ -83,16 +83,6 @@ class AbstractAvar(classModule.Module):
     Any driven-key set between avars modules will be preserved between builds.
     """
 
-    AVAR_NAME_UD = "avar_ud"
-    AVAR_NAME_LR = "avar_lr"
-    AVAR_NAME_FB = "avar_fb"
-    AVAR_NAME_YAW = "avar_yw"
-    AVAR_NAME_PITCH = "avar_pt"
-    AVAR_NAME_ROLL = "avar_rl"
-    AVAR_NAME_SY = "avar_scale_ud"
-    AVAR_NAME_SX = "avar_scale_lr"
-    AVAR_NAME_SZ = "avar_scale_fb"
-
     SHOW_IN_UI = False
 
     # An avar could have no influences (ex: macro avars)
@@ -124,28 +114,26 @@ class AbstractAvar(classModule.Module):
         """
         return libAttr.addAttr(obj, longName=name, keyable=True, **kwargs)
 
-    def add_avars(self, attr_holder):
+    def add_avars(self):
         """
         Create the network that contain all our avars.
         For ease of use, the avars are exposed on the grp_rig,
-        however to protect the connection from Maya when unbuilding they
+        however to protect the connection from Maya when un-building they
         are really existing in an external network node.
         :return: The avar attribute holder.
         """
-
-        def _fn(name, **kwargs):
-            return self.add_avar(attr_holder, name, **kwargs)
-
-        libAttr.addAttr_separator(attr_holder, "avars")
-        self.attr_ud = _fn(self.AVAR_NAME_UD)
-        self.attr_lr = _fn(self.AVAR_NAME_LR)
-        self.attr_fb = _fn(self.AVAR_NAME_FB)
-        self.attr_yw = _fn(self.AVAR_NAME_YAW)
-        self.attr_pt = _fn(self.AVAR_NAME_PITCH)
-        self.attr_rl = _fn(self.AVAR_NAME_ROLL)
-        self.attr_sx = _fn(self.AVAR_NAME_SX, defaultValue=1.0)
-        self.attr_sy = _fn(self.AVAR_NAME_SY, defaultValue=1.0)
-        self.attr_sz = _fn(self.AVAR_NAME_SZ, defaultValue=1.0)
+        # libAttr.addAttr_separator(self.grp_rig, "avars")
+        (
+            self.attr_lr,
+            self.attr_ud,
+            self.attr_fb,
+            self.attr_yw,
+            self.attr_pt,
+            self.attr_rl,
+            self.attr_sx,
+            self.attr_sy,
+            self.attr_sz,
+        ) = libAvar.create_avar_attr(self.grp_rig)
 
     def hold_avars(self):
         """
@@ -281,7 +269,7 @@ class AbstractAvar(classModule.Module):
         """
         super(AbstractAvar, self).build(disconnect_inputs=False, **kwargs)
 
-        self.add_avars(self.grp_rig)
+        self.add_avars()
         self.fetch_avars()
 
     # def need_flip_lr(self):
@@ -363,16 +351,7 @@ class AvarSimple(AbstractAvar):
         super(AvarSimple, self).build(parent=False)
 
         if self.CLS_MODEL_INFL:
-            self.model_infl = self.CLS_MODEL_INFL.from_instance(
-                self.rig,
-                self.model_infl,
-                (self.get_nomenclature() + "modelInfl").resolve(),
-                inputs=self.input,
-            )
-            self.model_infl.validate()  # temporary
-            self.model_infl.build(self)
-            if self.model_infl.grp_rig:
-                self.model_infl.grp_rig.setParent(self.grp_rig)
+            self._build_influence_model()
 
         # Build ctrl model
         if self.CLS_CTRL:
@@ -398,9 +377,36 @@ class AvarSimple(AbstractAvar):
         # Cleanup invalid references
         self.grp_offset = None
 
+    def _build_influence_model(self):
+        self.model_infl = self.CLS_MODEL_INFL.from_instance(
+            self.rig,
+            self.model_infl,
+            (self.get_nomenclature() + "modelInfl").resolve(),
+            inputs=self.input,
+        )
+        self.model_infl.validate()  # temporary
+        self.model_infl.build(self)
+        if self.model_infl.grp_rig:
+            self.model_infl.grp_rig.setParent(self.grp_rig)
+
+        self._connect_influence_model()
+
+    def _connect_influence_model(self):
+        """
+        Connect the avar attributes to the influence model.
+        """
+        src = self.grp_rig.avar
+        dst = pymel.PyNode(self.model_infl.compound.input).avar
+        self.log.info("Connecting %s to %s", src, dst)
+        pymel.connectAttr(src, dst)
+
     def _get_ctrl_tm(self):
         """
-        Get the transform for the ctrl.
+        Detect the best location for the avar ctrl
+
+        We don't want to position the ctrl at the same position and the influence
+        otherwise it might get lost in the face geometry.
+        To workaround that we'll do raycast on the face and place it here.
 
         :return: A matrix
         :rtype: pymel.datatypes.Matrix
@@ -412,13 +418,8 @@ class AvarSimple(AbstractAvar):
         geos = self.get_meshes() or self.rig.get_shapes()
         new_pos = libRigging.ray_cast_nearest(pos, dir_, geos)
         if new_pos:
-            # TODO: Is there a simpler way?
-            transform = Matrix(
-                [transform.a00, transform.a01, transform.a02, transform.a03],
-                [transform.a10, transform.a11, transform.a12, transform.a13],
-                [transform.a20, transform.a21, transform.a22, transform.a23],
-                [new_pos.x, new_pos.y, new_pos.z, 1.0],
-            )
+            transform.translate = new_pos
+
         return transform
 
     def _build_ctrl(self, ctrl_size_hint=None):

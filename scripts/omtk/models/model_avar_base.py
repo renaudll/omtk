@@ -3,15 +3,35 @@ Base class for a "private" module that drive one or multiple influence from an a
 """
 import functools
 
+from maya import cmds
 import pymel.core as pymel
 
 from omtk.core import classModule
-from omtk.libs import libAttr, libRigging
+from omtk.libs import libAttr, libRigging, libAvar
+from omtk.vendor.omtk_compound.core import _factory  # TODO: Fix import
 
 
 class AvarInflBaseModel(classModule.Module):
     """
-    A deformation point on the face that move accordingly to nurbsSurface.
+    Generate a scripted compound that drive one or multiple influence from an avar.
+
+    We expect these compounds to have an "avar" attribute matching their avar interface.
+
+    Inputs:
+    - *compound* avar
+      - *float* avarLR
+      - *float* avarUD
+      - *float* avarFB
+      - *float* avarYW
+      - *float* avarPT
+      - *float* avarRL
+      - *float* avarScaleLR
+      - *float* avarScaleUD
+      - *float* avarScaleFB
+    - *matrix* bind: Initial transform
+
+    Outputs:
+    - *matrix* output: Output transform
 
     :ivar attr_offset_tm: The influence original transform in world space.
     """
@@ -43,15 +63,39 @@ class AvarInflBaseModel(classModule.Module):
         self.affect_sz = True
 
         # How much are we moving around the surface for a specific avar.
+        # TODO: Move this elsewhere?
         self.multiplier_lr = self.DEFAULT_MULTIPLIER_LR
         self.multiplier_ud = self.DEFAULT_MULTIPLIER_UD
         self.multiplier_fb = self.DEFAULT_MULTIPLIER_FB
 
-        # Publicly exposed transformations
-        # Theses should eventually be in a compound like interface.
-        self.attr_local_tm = None  # TODO: Should not be serialized?
-        self.attr_offset_tm = None  # TODO: Should not be serialized?
-        self.attr_parent_tm = None  # TODO: Should not be serialized?
+        self._compound = None
+
+    @property
+    def compound(self):
+        """
+        :return: The module interface compound
+        :rtype: omtk.vendor.omtk_compound.Compound
+        """
+        return self._compound
+
+    def _build_compound(self):
+        """
+        Build the module interface compound
+
+        :return: The module interface compound
+        :rtype: omtk.vendor.omtk_compound.Compound
+        """
+        # TODO: Better rtype?
+        naming = self.get_nomenclature()
+        compound = _factory.create_empty(naming.resolve("compound"))
+
+        libAvar.create_avar_attr(pymel.PyNode(compound.input))
+        cmds.addAttr(compound.input, longName="bind", dataType="matrix")
+        cmds.addAttr(compound.input, longName="bindInternal", dataType="matrix")
+        cmds.addAttr(compound.input, longName="parent", dataType="matrix")
+        cmds.addAttr(compound.output, longName="output", dataType="matrix")
+        cmds.addAttr(compound.output, longName="outputLocal", dataType="matrix")
+        return compound
 
     def build(self, avar):
         """
@@ -66,13 +110,21 @@ class AvarInflBaseModel(classModule.Module):
         # TODO: Connect the avar in the avar logic
         super(AvarInflBaseModel, self).build(create_grp_anm=False, create_grp_rig=True)
 
+        self._create_interface()
+
         naming = self.get_nomenclature_rig()
+
         bind_tm = self.jnt.getMatrix(worldSpace=True)
 
-        # Get the matrix for the avar tm
+        # Get the matrix for the internal computation
         bind_pos_tm = pymel.datatypes.Matrix()
         bind_pos_tm.translate = bind_tm.translate
 
+        self._compound = self._build_compound()
+
+        #
+        # Create helper dag nodes
+        #
         def _create_grp(suffix, tm=None):
             grp = pymel.createNode(
                 "transform", name=naming.resolve(suffix), parent=self.grp_rig
@@ -81,44 +133,51 @@ class AvarInflBaseModel(classModule.Module):
                 grp.setMatrix(tm)
             return grp
 
-        obj_parent = _create_grp("parent")
-        self.attr_parent_tm = obj_parent.matrix
+        compound_input = pymel.PyNode(self.compound.input)
+        compound_output = pymel.PyNode(self.compound.output)
 
-        obj_output = _create_grp("output", tm=bind_tm)
-        attr_bind_tm = _create_grp("bindTM", tm=bind_tm).matrix
+        # inputs.parent
+        obj_parent = _create_grp("parent")
+        pymel.connectAttr(obj_parent.matrix, compound_input.parent)
+
+        # inputs.bind
+        obj_bind = _create_grp("bind", tm=bind_tm)
+        pymel.connectAttr(obj_bind.matrix, compound_input.bind)
+
         # For avar influences, we don't always want to consider it's rotation at all.
         # TODO: Is this true? Don't we want to do computation in parent space?
-        self.attr_offset_tm = _create_grp("offsetTM", tm=bind_pos_tm).matrix
+        # internal_bind_tm = self._get_compute_tm(compound_input.bind)
+        obj_internal_bind = _create_grp("bindInternal", tm=bind_pos_tm)
+        pymel.connectAttr(obj_internal_bind.matrix, compound_input.bindInternal)
 
-        # Compute the influence transformation in parent space
-        # Split the matrix into it's T and RS counterpart.
-        util_decompose_bind_local_tm = libRigging.create_utility_node(
-            "decomposeMatrix", inputMatrix=attr_bind_tm
-        )
-        attr_bind_pos_local_tm = libRigging.create_utility_node(
-            "composeMatrix", inputTranslate=util_decompose_bind_local_tm.outputTranslate
-        ).outputMatrix
-        attr_bind_rot_local_tm = libRigging.create_utility_node(
-            "composeMatrix",
-            inputRotate=util_decompose_bind_local_tm.outputRotate,
-            inputScale=util_decompose_bind_local_tm.outputScale,
-        ).outputMatrix
-
-        self._create_interface()
-
-        # Compute the result (still in parent space)
-        self.attr_local_tm = self._build(avar, attr_bind_pos_local_tm)
-
-        # TODO: Remove constraint!
-        attr_output_tm = libRigging.create_multiply_matrix(
+        offset_tm = libRigging.create_multiply_matrix(
             [
-                attr_bind_rot_local_tm,
-                self.attr_local_tm,
-                self.attr_offset_tm,
-                self.attr_parent_tm,
+                compound_input.bind,
+                libRigging.create_inverse_matrix(compound_input.bindInternal),
             ]
         )
-        libRigging.connect_matrix_to_node(attr_output_tm, obj_output)
+
+        # Compute the result (still in parent space)
+        attr_output = self._build(avar)
+
+        # outputs.outputLocal
+        pymel.connectAttr(attr_output, compound_output.outputLocal)
+
+        # outputs.output
+        attr_output_tm = libRigging.create_multiply_matrix(
+            [
+                offset_tm,
+                attr_output,
+                compound_input.bindInternal,
+                compound_input.parent,
+            ],
+            name=naming.resolve("getAvarWorldOutput")
+        )
+        pymel.connectAttr(attr_output_tm, compound_output.output)
+        obj_output = _create_grp("output", tm=bind_tm)
+        libRigging.connect_matrix_to_node(compound_output.output, obj_output)
+
+        # Constraint
         if self.parent:
             self.log.info("Parenting %s to %s", self.parent, obj_parent)
             pymel.parentConstraint(self.parent, obj_parent, maintainOffset=True)
@@ -148,18 +207,18 @@ class AvarInflBaseModel(classModule.Module):
             return None
 
         for attr_name in (
-            "multiplier_lr",
-            "multiplier_ud",
-            "multiplier_fb",
-            "affect_tx",
-            "affect_ty",
-            "affect_tz",
-            "affect_rx",
-            "affect_ry",
-            "affect_rz",
-            "affect_sx",
-            "affect_sy",
-            "affect_sz",
+                "multiplier_lr",
+                "multiplier_ud",
+                "multiplier_fb",
+                "affect_tx",
+                "affect_ty",
+                "affect_tz",
+                "affect_rx",
+                "affect_ry",
+                "affect_rz",
+                "affect_sx",
+                "affect_sy",
+                "affect_sz",
         ):
             value = _fn(getattr(self, attr_name))
             self.log.info("Holding %r with %s", attr_name, value)
@@ -167,7 +226,7 @@ class AvarInflBaseModel(classModule.Module):
 
         super(AvarInflBaseModel, self).unbuild()
 
-    def _build(self, avar, bind_tm):
+    def _build(self, avar):
         """
         :param avar: Avar that provide our input values
         :type avar: omtk.modules.rigFaceAvar.AbstractAvar

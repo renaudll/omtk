@@ -1,3 +1,6 @@
+"""
+Logic for "AvarSurfaceModel"
+"""
 import functools
 
 import pymel.core as pymel
@@ -14,15 +17,8 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
     A deformation point on the face that move accordingly to nurbsSurface.
     """
 
-    SHOW_IN_UI = False
-
-    _ATTR_NAME_U_BASE = "baseU"
-    _ATTR_NAME_V_BASE = "baseV"
     _ATTR_NAME_U = "surfaceU"
     _ATTR_NAME_V = "surfaceV"
-    _ATTR_NAME_MULT_LR = "multiplierLr"
-    _ATTR_NAME_MULT_UD = "multiplierUd"
-    _ATTR_NAME_MULT_FB = "multiplierFb"
 
     # Define how many unit is moved in uv space in relation with the avars.
     # Taking in consideration that the avar is centered in uv space,
@@ -125,7 +121,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
         self._attr_inn_surface_max_value_u = fn("innSurfaceMaxValueU", defaultValue=1)
         self._attr_inn_surface_max_value_v = fn("innSurfaceMaxValueV", defaultValue=1)
 
-    def _build(self, avar, bind_tm):
+    def _build(self, avar):
         """
         :param avar: Avar that provide our input values
         :type avar: omtk.modules.rigFaceAvar.AbstractAvar
@@ -145,7 +141,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
 
         # Get bind tm translate
         util_get_bind_tm_pos = libRigging.create_utility_node(
-            "decomposeMatrix", inputMatrix=bind_tm,
+            "decomposeMatrix", inputMatrix=pymel.PyNode(self.compound.input).bind,
         ).outputTranslate
 
         # Compute the base UV coord
@@ -159,15 +155,7 @@ class AvarSurfaceModel(model_avar_base.AvarInflBaseModel):
             "omtk.AvarInflSurface",
             namespace=self.get_nomenclature().resolve(),
             inputs={
-                "innAvarFb": avar.attr_fb,
-                "innAvarLr": avar.attr_lr,
-                "innAvarPt": avar.attr_pt,
-                "innAvarRl": avar.attr_rl,
-                "innAvarSx": avar.attr_sx,
-                "innAvarSy": avar.attr_sy,
-                "innAvarSz": avar.attr_sz,
-                "innAvarUd": avar.attr_ud,
-                "innAvarYw": avar.attr_yw,
+                "avar": pymel.PyNode(self.compound.input).avar,
                 "multLr": self.multiplier_lr,
                 "multFb": self.multiplier_fb,
                 "multUd": self.multiplier_ud,

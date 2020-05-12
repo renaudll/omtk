@@ -28,8 +28,12 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         # We'll need to provide to them the jaw bind pose and it's local influence.
         jaw = self.get_jaw_module()  # type: omtk.modules.rigJaw.Jaw
         avar = next(iter(jaw.iter_avars()))  # type: rigFaceAvar.AvarSimple
-        jaw_offset_tm = avar.model_infl.attr_offset_tm
-        jaw_local_tm = avar.model_infl.attr_local_tm
+
+        compound_input = pymel.PyNode(avar.model_infl.compound.input)
+        compound_output = pymel.PyNode(avar.model_infl.compound.output)
+
+        jaw_offset_tm = compound_input.bindInternal
+        jaw_local_tm = compound_output.outputLocal
         pymel.connectAttr(jaw_offset_tm, self._attr_jaw_offset)
         pymel.connectAttr(jaw_local_tm, self._attr_jaw_local_tm)
 
@@ -42,14 +46,19 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         self._attr_jaw_offset = fn("jawOffsetTM", dt="matrix")
         self._attr_jaw_local_tm = fn("jawLocalTM", dt="matrix")
 
-    def _build(self, avar, bind_tm):
-        local_tm = super(AvarSurfaceLipModel, self)._build(avar, bind_tm)
+    def _build(self, avar):
+        naming = self.get_nomenclature()
 
-        attr_parent_inv_tm = libRigging.create_inverse_matrix(self.attr_offset_tm)
+        local_tm = super(AvarSurfaceLipModel, self)._build(avar)
+
+        compound_input = pymel.PyNode(self.compound.input)
 
         # Convert the jaw_local_tm and jaw_offset_tm in the same space are ours.
         attr_jaw_bind_tm = libRigging.create_multiply_matrix(
-            [self._attr_jaw_offset, attr_parent_inv_tm]
+            [
+                self._attr_jaw_offset,
+                libRigging.create_inverse_matrix(compound_input.bindInternal)
+            ],
         )
 
         # Apply jaw influence
@@ -62,15 +71,10 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         pymel.connectAttr(
             self._attr_jaw_local_tm, util_blend_jaw.target[0].targetMatrix
         )
-        attr_jaw_bind_inv_tm = libRigging.create_utility_node(
-            "inverseMatrix", inputMatrix=attr_jaw_bind_tm
-        ).outputMatrix
-        return libRigging.create_utility_node(
-            "multMatrix",
-            matrixIn=[
-                local_tm,  # Start from the result
-                attr_jaw_bind_inv_tm,  # Enter jaw space
-                util_blend_jaw.outputMatrix,  # Apply jaw transformation
-                attr_jaw_bind_tm,  # Exit jaw space
-            ],
-        ).matrixSum
+        attr_jaw_bind_inv_tm = libRigging.create_inverse_matrix(attr_jaw_bind_tm)
+        return libRigging.create_multiply_matrix([
+            local_tm,  # Start from the result
+            attr_jaw_bind_inv_tm,  # Enter jaw space
+            util_blend_jaw.outputMatrix,  # Apply jaw transformation
+            attr_jaw_bind_tm,  # Exit jaw space
+        ], name=naming.resolve("applyJawInfluence"))

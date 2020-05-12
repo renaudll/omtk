@@ -947,7 +947,7 @@ class AvarGrp(rigFaceAvar.AbstractAvar):
             [avar.jnt for avar in self.get_avars_micro_low()]
         )
 
-    def add_avars(self, attr_holder):
+    def add_avars(self):
         """
         An AvarGrp don't create any avar by default.
         It is the responsibility of the inherited module to implement it if necessary.
@@ -1300,4 +1300,4 @@ class AvarGrpOnSurface(AvarGrp):
 
 
 def register_plugin():
-    return AvarGrpOnSurface
+    return AvarGrp

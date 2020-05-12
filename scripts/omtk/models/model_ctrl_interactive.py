@@ -1,3 +1,6 @@
+"""
+Logic for "ModelInteractiveCtrl"
+"""
 import pymel.core as pymel
 
 from omtk.core import classCtrlModel
@@ -19,7 +22,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
     However an InteractiveCtrl might still have to be calibrated
     This is necessary to keep the InteractiveCtrl values
     in a specific range (ex: -1 to 1) in any scale.
-    The calibration apply non-uniform scaling on the ctrl parent to cheat the difference.
+    The calibration apply non-uniform scaling on
+    the ctrl parent to cheat the difference.
 
     For this reason an InteractiveCtrl is created using the following steps:
     1) Create the setup (using build)
@@ -55,29 +59,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         """
         pass
 
-    def get_default_tm_ctrl(self):
-        """
-        :return: The ctrl transformation.
-        """
-        if self.jnt is None:
-            self.log.warning("Cannot resolve ctrl matrix with no inputs!")
-            return None
-
-        tm = self.jnt.getMatrix(worldSpace=True)
-
-        # We always try to position the controller on the surface of the face.
-        # The face is always looking at the positive Z axis.
-        pos = tm.translate
-        dir_ = pymel.datatypes.Point(0, 0, 1)
-        geos = self.rig.get_shapes()
-        result = libRigging.ray_cast_farthest(pos, dir_, geos)
-        if result:
-            tm.a30 = result.x
-            tm.a31 = result.y
-            tm.a32 = result.z
-
-        return tm
-
     def project_pos_on_face(self, pos, geos=None):
         pos = pymel.datatypes.Vector(pos.x, pos.y, 99999)
         dir = pymel.datatypes.Point(0, 0, -1)
@@ -110,9 +91,6 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         v_coord=None,
         flip_lr=False,
         follow_mesh=True,
-        constraint=False,
-        cancel_t=True,
-        cancel_r=True,
         **kwargs
     ):
         super(ModelInteractiveCtrl, self).build(ctrl, **kwargs)
@@ -166,8 +144,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
         pymel.delete(tmp)
         ctrl_shape_orig.intermediateObject.set(True)
 
-        for cp in ctrl_shape.cp:
-            cp.set(0, 0, 0)
+        for control_point in ctrl_shape.cp:
+            control_point.set(0, 0, 0)
 
         def _create_grp(suffix, tm=None):
             grp = pymel.createNode(
@@ -206,8 +184,8 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         self.folliclePos = pymel.Attribute("%s.folliclePos" % compound.output)
 
-        if constraint and self.jnt:
-            pymel.parentConstraint(ctrl.node, self.jnt, maintainOffset=True)
+        # if constraint and self.jnt:
+        #     pymel.parentConstraint(ctrl.node, self.jnt, maintainOffset=True)
 
         self.calibrate(ctrl)
 

@@ -28,7 +28,7 @@ class FK(Module):
     """
     A Simple FK with support for multiple hyerarchy.
     """
-
+    CREATE_GRP_ANM = True
     DEFAULT_NAME_USE_FIRST_INPUT = True
     _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name.
     _FORCE_INPUT_NAME = (
@@ -56,15 +56,13 @@ class FK(Module):
         super(FK, self).__callbackNetworkPostBuild__()
 
     def build(
-        self, constraint=True, parent=True, create_grp_rig=False, *args, **kwargs
+        self, constraint=True, parent=True, *args, **kwargs
     ):
         """
         :param bool constraint: Should we constraint the inputs to the controller?
         :param bool parent: Unused
-        :param bool create_grp_rig: Should we create a rig group? Default is False.
         """
-        kwargs["create_grp_anm"] = True
-        super(FK, self).build(create_grp_rig=create_grp_rig, *args, **kwargs)
+        super(FK, self).build(*args, **kwargs)
 
         # Initialize ctrls
         libPython.resize_list(self.ctrls, len(self.jnts))

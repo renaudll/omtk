@@ -49,7 +49,8 @@ class Ribbon(Module):
         *args,
         **kwargs
     ):
-        super(Ribbon, self).build(create_grp_anm=create_ctrl, *args, **kwargs)
+        self.CREATE_GRP_ANM = create_ctrl
+        super(Ribbon, self).build(*args, **kwargs)
         if num_ctrl is not None:
             self.num_ctrl = num_ctrl
 

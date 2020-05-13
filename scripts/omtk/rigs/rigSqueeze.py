@@ -70,7 +70,7 @@ class SqueezeNomenclature(className.BaseName):
     AVAR_NAME_ALL = "Master"
 
     KNOWN_PREFIXES = []
-    KNOWN_SUFFIXES = ["Ctrl", "Jnt", "Jne", "JEnd", "Mesh"]
+    KNOWN_SUFFIXES = ["Ctrl", "Jnt", "Jne", "JEnd", "Mesh"]  # TODO: Autofill
 
     def _join_tokens(self, tokens):
         """
@@ -101,6 +101,7 @@ class RigSqueeze(classRig.Rig):
     GROUP_NAME_FACE = "facial"
     ATTR_NAME_FACE_MACRO = "showMacroCtrls"
     ATTR_NAME_FACE_MICRO = "showMicroCtrls"
+    NOMENCLATURE_CLS = SqueezeNomenclature
 
     def __init__(self, *args, **kwargs):
         super(RigSqueeze, self).__init__(*args, **kwargs)
@@ -111,9 +112,6 @@ class RigSqueeze(classRig.Rig):
         self.grp_anm_master = None  # Squeeze wanted a 2nd root ctrl. (see Task #70205)
         self.grp_fx = None
         self._color_ctrl = True
-
-    def _get_nomenclature_cls(self):
-        return SqueezeNomenclature
 
     _influence_whitelist = (".*_Jnt",)
 

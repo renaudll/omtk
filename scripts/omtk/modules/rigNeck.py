@@ -29,7 +29,7 @@ class Neck(rigFK.FK):
     )
 
     def build(self, *args, **kwargs):
-        super(Neck, self).build(create_grp_rig=True, *args, **kwargs)
+        super(Neck, self).build(*args, **kwargs)
 
         # Create twistbone system if needed
         if self.create_twist:

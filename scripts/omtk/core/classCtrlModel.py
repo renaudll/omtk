@@ -17,6 +17,7 @@ class BaseCtrlModel(classModule.Module):
              attributes from the ctrl (matrix, translate, rotate, scale).
              Do NOT use constraint as it will create a cyclic evaluation loop.
     """
+    CREATE_GRP_ANM = False
 
     def __init__(self, *args, **kwargs):
         super(BaseCtrlModel, self).__init__(*args, **kwargs)
@@ -40,6 +41,6 @@ class BaseCtrlModel(classModule.Module):
         :type ctrl: omtk.core.classCtrl.BaseCtrl
         """
         super(BaseCtrlModel, self).build(
-            disconnect_inputs=False, create_grp_anm=False, **kwargs
+            disconnect_inputs=False, **kwargs
         )
         self.create_interface()

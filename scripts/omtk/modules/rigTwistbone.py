@@ -60,7 +60,8 @@ class Twistbone(Module):
         # in the function signature.
         kwargs["disconnect_inputs"] = False
 
-        super(Twistbone, self).build(create_grp_anm=self.create_bend, *args, **kwargs)
+        self.CREATE_GRP_ANM = self.create_bend
+        super(Twistbone, self).build(*args, **kwargs)
 
         top_parent = self.chain[0].getParent()
         jnt_s = self.chain_jnt[0]

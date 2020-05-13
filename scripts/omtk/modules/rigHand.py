@@ -70,6 +70,7 @@ class Hand(Module):
         # To properly preserve the mapping between the finger and the metacarpal, we
         # ensure that self.fk_sys_metacarpals have the same numbers of elements
         # than self.sysFingers.
+        self.children = []
         num_fingers = len(self.chains)
         libPython.resize_list(self.sysFingers, num_fingers)
         libPython.resize_list(self.fk_sys_metacarpals, num_fingers)
@@ -128,8 +129,8 @@ class Hand(Module):
             sys_finger.build()
             if sys_metacarpal:
                 sys_finger.grp_anm.setParent(sys_metacarpal.ctrls[0])
-            else:
-                sys_finger.grp_anm.setParent(self.grp_anm)
+            # else:
+            #     sys_finger.grp_anm.setParent(self.grp_anm)
 
         # Rig the 'cup' setup
         sys_metacarpals = filter(None, self.fk_sys_metacarpals)

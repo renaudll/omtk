@@ -37,6 +37,7 @@ class AvarInflBaseModel(classModule.Module):
     """
 
     SHOW_IN_UI = False
+    CREATE_GRP_ANM = False
 
     _ATTR_NAME_MULT_LR = "multiplierLr"
     _ATTR_NAME_MULT_UD = "multiplierUd"
@@ -108,7 +109,7 @@ class AvarInflBaseModel(classModule.Module):
         and won't change depending on the influence rotation.
         """
         # TODO: Connect the avar in the avar logic
-        super(AvarInflBaseModel, self).build(create_grp_anm=False, create_grp_rig=True)
+        super(AvarInflBaseModel, self).build()
 
         self._create_interface()
 

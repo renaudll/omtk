@@ -75,13 +75,20 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
             parent.children.append(self)
 
     @property
-    def children(self):  # type: () -> List[Buildable]
+    def children(self):
+        """
+        :return: A list of buildable
+        :rtype: List[Buildable]
+        """
+        # This is a trick so we can both have libSerialization
+        # handle the property and have a setter.
         return self.__dict__["children"]
 
     @children.setter
     def children(self, children):
-        for child in children:
-            child.parent = self
+        if children:
+            for child in children:
+                child.parent = self
         self.__dict__["children"] = children
 
     @property

@@ -1,38 +1,40 @@
-import re
+"""
+Logic for the "WidgetListModules" class
+"""
+# TODO: Convert to a QStandardItemModel/QSortProxyModel combination
 import functools
 import inspect
-import traceback
-import logging
 import itertools
+import logging
+import operator
+import re
 
 import pymel.core as pymel
-from omtk.widgets.ui import widget_list_modules
 
 from omtk import constants
-from omtk.widgets import ui_shared
-from omtk.libs import libQt
 from omtk.core import classModule
 from omtk.core import classRig
 from omtk.core.exceptions import ValidationError
-
+from omtk.libs import libQt
+from omtk.widgets import ui_shared
+from omtk.widgets.ui import widget_list_modules
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
-log = logging.getLogger("omtk")
+_LOG = logging.getLogger("omtk")
 
-
-class CustomTreeWidget(QtWidgets.QTreeWidgetItem):
-    pass
+_COLOR_INVALID = QtGui.QBrush(QtGui.QColor(255, 45, 45))
+_COLOR_VALID = QtGui.QBrush(QtGui.QColor(45, 45, 45))
+_COLOR_LOCKED = QtGui.QBrush(QtGui.QColor(125, 125, 125))
+_COLOR_WARNING = QtGui.QBrush(QtGui.QColor(125, 125, 45))
 
 
 class WidgetListModules(QtWidgets.QWidget):
+    """
+    A widget that list scene modules.
+    """
     needExportNetwork = QtCore.Signal()
     needImportNetwork = QtCore.Signal()
     deletedRig = QtCore.Signal(object)
-
-    _color_invalid = QtGui.QBrush(QtGui.QColor(255, 45, 45))
-    _color_valid = QtGui.QBrush(QtGui.QColor(45, 45, 45))
-    _color_locked = QtGui.QBrush(QtGui.QColor(125, 125, 125))
-    _color_warning = QtGui.QBrush(QtGui.QColor(125, 125, 45))
 
     def __init__(self, parent=None):
         super(WidgetListModules, self).__init__(parent=parent)
@@ -53,23 +55,28 @@ class WidgetListModules(QtWidgets.QWidget):
         # Connect events
         self.ui.lineEdit_search.textChanged.connect(self.on_module_query_changed)
         self.ui.treeWidget.itemSelectionChanged.connect(
-            self.on_module_selection_changed
+            self._on_module_selection_changed
         )
-        self.ui.treeWidget.itemChanged.connect(self.on_module_changed)
-        self.ui.treeWidget.itemDoubleClicked.connect(self.on_module_double_clicked)
-        self.ui.treeWidget.focusInEvent = self.focus_in_module
+        self.ui.treeWidget.itemChanged.connect(self._on_module_changed)
+        self.ui.treeWidget.itemDoubleClicked.connect(self._on_module_double_clicked)
+        self.ui.treeWidget.focusInEvent = self._focus_in_module
         self.ui.treeWidget.customContextMenuRequested.connect(
-            self.on_context_menu_request
+            self._on_context_menu_request
         )
         self.ui.btn_update.pressed.connect(self.update)
 
-    def set_rigs(self, rig, update=True):
-        self._rigs = rig
-        self._rig = next(iter(self._rigs), None)
-        if update:
-            self.update()
+    def set_rigs(self, rigs):
+        """
+        Set the displayed rigs
 
-    def get_selected_items(self):
+        :param rigs: The rigs to display
+        :type rigs: omtk.core.classRig.Rig
+        """
+        self._rigs = rigs
+        self._rig = next(iter(self._rigs), None)
+        self.update()
+
+    def get_selected_items(self):  # type: () -> List[QtWidgets.QTreeWidgetItem]
         return self.ui.treeWidget.selectedItems()
 
     def get_selected_networks(self):
@@ -210,7 +217,7 @@ class WidgetListModules(QtWidgets.QWidget):
         if update:
             self.update()
 
-    def _update_qitem_module(self, qitem, module):
+    def _update_qitem_module(self, item, module):
         label = str(module)
 
         # Add inputs namespace if any for clarity.
@@ -219,7 +226,7 @@ class WidgetListModules(QtWidgets.QWidget):
             label = "%s:%s" % (module_namespace.strip(":"), label)
 
         if module.locked:
-            qitem.setBackground(0, self._color_locked)
+            item.setBackground(0, self._color_locked)
             label += " (locked)"
 
         else:
@@ -229,41 +236,41 @@ class WidgetListModules(QtWidgets.QWidget):
             except ValidationError as error:
                 desired_color = self._color_invalid
                 msg = "Validation failed for %s: %s" % (module, error)
-                log.warning(msg)
-                qitem.setToolTip(0, msg)
-                qitem.setBackground(0, desired_color)
+                _LOG.warning(msg)
+                item.setToolTip(0, msg)
+                item.setBackground(0, desired_color)
 
-        qitem.setText(0, label)
-        qitem._name = qitem.text(0)
-        qitem._checked = module.is_built()
+        item.setText(0, label)
+        item._name = item.text(0)
+        item._checked = module.is_built()
 
-        flags = qitem.flags() | QtCore.Qt.ItemIsEditable
-        qitem.setFlags(flags)
-        qitem.setCheckState(
+        flags = item.flags() | QtCore.Qt.ItemIsEditable
+        item.setFlags(flags)
+        item.setCheckState(
             0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked
         )
-        qitem.metadata_data = module
-        qitem.metadata_type = ui_shared.MetadataType.Module
+        item.metadata_data = module
+        item.metadata_type = ui_shared.MetadataType.Module
 
-    def _update_qitem_rig(self, qitem, rig):
+    def _update_qitem_rig(self, item, rig):
         label = str(rig)
 
-        qitem.setText(0, label)
-        qitem._name = qitem.text(0)
-        qitem._checked = rig.is_built()
+        item.setText(0, label)
+        item._name = item.text(0)
+        item._checked = rig.is_built()
 
-        flags = qitem.flags() | QtCore.Qt.ItemIsEditable
-        qitem.setFlags(flags)
-        qitem.setCheckState(
+        flags = item.flags() | QtCore.Qt.ItemIsEditable
+        item.setFlags(flags)
+        item.setCheckState(
             0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked
         )
 
-        qitem.metadata_type = ui_shared.MetadataType.Rig
-        qitem.metadata_data = rig
-        qitem.setIcon(0, QtGui.QIcon(":/out_character.png"))
+        item.metadata_type = ui_shared.MetadataType.Rig
+        item.metadata_data = rig
+        item.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
     def _get_qtreewidgetitem(self, value):
-        widget = CustomTreeWidget(0)
+        widget = QtWidgets.QTreeWidgetItem(0)
         if hasattr(value, "_network"):
             widget.net = value._network
         else:
@@ -273,7 +280,7 @@ class WidgetListModules(QtWidgets.QWidget):
             self._update_qitem_module(widget, value)
         elif isinstance(value, classRig.Rig):
             self._update_qitem_rig(widget, value)
-            self._rig_to_qtreewidgetitem(value, widget)
+        self._rig_to_qtreewidgetitem(value, widget)
 
         return widget
 
@@ -285,7 +292,7 @@ class WidgetListModules(QtWidgets.QWidget):
         :param parent: A QTreeWidgetItem object
         """
         known = set()
-        sorted_modules = sorted(rig, key=lambda mod: mod.name)
+        sorted_modules = sorted(rig.children, key=lambda mod: mod.name)
         for module in sorted_modules:
             self._module_to_qtreewidget(module, parent, known)
 
@@ -308,50 +315,48 @@ class WidgetListModules(QtWidgets.QWidget):
         # List inputs
         inputs = module.input
         if inputs:
-            for input in inputs:
-                qInputItem = CustomTreeWidget(0)
-                qInputItem.setText(0, input.name())
-                qInputItem.metadata_type = (
-                    ui_shared.MetadataType.Influence
-                )  # todo: support mesh metadata?
-                qInputItem.metadata_data = input
-                ui_shared.set_icon_from_type(input, qInputItem)
-                widget.addChild(qInputItem)
+            for input_ in inputs:
+                item = QtWidgets.QTreeWidgetItem(0)
+                item.setText(0, input_.name())
+                item.metadata_type = ui_shared.MetadataType.Influence
+                item.metadata_data = input_
+                ui_shared.set_icon_from_type(input_, item)
+                widget.addChild(item)
         parent.addChild(widget)
 
         # List sub modules
-        for submodule in module.iter_children():
-            self._module_to_qtreewidget(submodule, widget, known)
+        # for submodule in module.iter_children():
+        #     self._module_to_qtreewidget(submodule, widget, known)
 
     #
     # Events
     #
-    def on_build_selected(self):
+    def _on_build_selected(self):
         for val in self.get_selected_modules():
             self._build(val)
         ui_shared.update_network(self._rig)
         self.update()
 
-    def on_unbuild_selected(self):
+    def _on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.metadata_data
             self._unbuild(val)
             ui_shared.update_network(self._rig)
         self.update()
 
-    def on_rebuild_selected(self):
+    def _on_rebuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.metadata_data
             self._unbuild(val)
             self._build(val)
             ui_shared.update_network(self._rig)
 
-    def on_module_selection_changed(self):
+    def _on_module_selection_changed(self):
         # Filter deleted networks
         networks = [net for net in self.get_selected_networks() if net and net.exists()]
         pymel.select(networks)
 
-    def on_module_changed(self, item):
+    def _on_module_changed(self, item):
         if not self._listen_events:
             return
 
@@ -387,7 +392,7 @@ class WidgetListModules(QtWidgets.QWidget):
     def on_module_query_changed(self, *args, **kwargs):
         self._refresh_ui_modules_visibility()
 
-    def on_context_menu_request(self):
+    def _on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
             sel = self.ui.treeWidget.selectedItems()
             try:
@@ -397,16 +402,16 @@ class WidgetListModules(QtWidgets.QWidget):
 
             menu = QtWidgets.QMenu()
             action_build = menu.addAction("Build")
-            action_build.triggered.connect(self.on_build_selected)
+            action_build.triggered.connect(self._on_build_selected)
             action_unbuild = menu.addAction("Unbuild")
-            action_unbuild.triggered.connect(self.on_unbuild_selected)
+            action_unbuild.triggered.connect(self._on_unbuild_selected)
             action_rebuild = menu.addAction("Rebuild")
-            action_rebuild.triggered.connect(self.on_rebuild_selected)
+            action_rebuild.triggered.connect(self._on_rebuild_selected)
             menu.addSeparator()
             action_lock = menu.addAction("Lock")
-            action_lock.triggered.connect(self.on_lock_selected)
+            action_lock.triggered.connect(self._on_lock_selected)
             action_unlock = menu.addAction("Unlock")
-            action_unlock.triggered.connect(self.on_unlock_selected)
+            action_unlock.triggered.connect(self._on_unlock_selected)
             menu.addSeparator()
             if len(sel) == 1:
                 action_rename = menu.addAction("Rename")
@@ -423,8 +428,8 @@ class WidgetListModules(QtWidgets.QWidget):
             def is_exposed(val):
                 if not hasattr(val, "__can_show__"):
                     return False
-                fn = getattr(val, "__can_show__")
-                if fn is None:
+                func = getattr(val, "__can_show__")
+                if not func:
                     return False
                 return val.__can_show__()
 
@@ -432,12 +437,12 @@ class WidgetListModules(QtWidgets.QWidget):
 
             if functions:
                 menu.addSeparator()
-                for fn_name, fn in functions:
+                for fn_name, _ in functions:
                     fn_nicename = fn_name.replace("_", " ").title()
 
-                    fn = functools.partial(self._execute_rcmenu_entry, fn_name)
+                    func = functools.partial(self._execute_rcmenu_entry, fn_name)
                     action = menu.addAction(fn_nicename)
-                    action.triggered.connect(fn)
+                    action.triggered.connect(func)
 
             menu.exec_(QtGui.QCursor.pos())
 
@@ -450,27 +455,27 @@ class WidgetListModules(QtWidgets.QWidget):
             if not hasattr(module, fn_name):
                 continue
 
-            fn = getattr(module, fn_name)
-            if not inspect.ismethod(fn):
+            func = getattr(module, fn_name)
+            if not inspect.ismethod(func):
                 continue
 
             # Call fn
-            log.debug("Calling %s on %s", fn_name, module)
-            fn()
-            if constants.UIExposeFlags.trigger_network_export in fn._flags:
+            _LOG.debug("Calling %s on %s", fn_name, module)
+            func()
+            if constants.UIExposeFlags.trigger_network_export in func._flags:
                 need_export_network = True
 
         if need_export_network:
             self.needExportNetwork.emit()
 
-    def on_module_double_clicked(self, item):
+    def _on_module_double_clicked(self, item):
         if hasattr(item, "rig"):
             self._set_text_block(item, item.metadata_data.name)
             # Flag to know that we are currently modifying the name
             self._is_modifying = True
             self.ui.treeWidget.editItem(item, 0)
 
-    def focus_in_module(self, event):
+    def _focus_in_module(self, event):
         # Set back the text with the information about the module in it
         if self._is_modifying:
             sel = self.ui.treeWidget.selectedItems()
@@ -485,7 +490,7 @@ class WidgetListModules(QtWidgets.QWidget):
             self._is_modifying = False
         self.focusInEvent(event)
 
-    def on_lock_selected(self):
+    def _on_lock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item.metadata_data
@@ -496,7 +501,7 @@ class WidgetListModules(QtWidgets.QWidget):
             ui_shared.update_network(self._rig)
             self.update()
 
-    def on_unlock_selected(self):
+    def _on_unlock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item.metadata_data

@@ -414,14 +414,13 @@ class Module(object):
         """
         return next(iter(self.get_meshes()), None)
 
-    def __init__(self, input=None, name=None, rig=None, *args, **kwargs):
+    def __init__(self, input=None, name=None, rig=None):  # TODO: Remove input to inputs
         """
         DO NOT CALL THIS DIRECTLY, use rig.add_module.
         :param input: A list of all the dagnode necessary for the module creation.
         :param name: The name of the module.
         :param rig: The parent of the module. Provided automatically by rig.add_module
         """
-        # TODO: Remove args and kwargs
         # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
         if name and not isinstance(name, basestring):
             raise IOError(
@@ -456,7 +455,7 @@ class Module(object):
         if version:
             version = " v%s" % version
         return "%s <%s%s>" % (
-            self.name.encode("utf-8"),
+            self.name.encode("utf-8") if self.name else None,
             self.__class__.__name__,
             version,
         )
@@ -480,6 +479,9 @@ class Module(object):
         if not self.rig:
             raise ValidationError("Can't resolve rig for module. %s" % self)
 
+        if not self.name:
+            raise ValidationError("Can't resolve name for module. %s" % self)
+
         if not self.input and not self.SUPPORT_NO_INPUTS:
             raise ValidationError("Can't build module with zero inputs. %s" % self)
 
@@ -490,6 +492,10 @@ class Module(object):
                 "Found multiple namespaces for inputs: %s"
                 % ", ".join(repr(namespace) for namespace in namespaces)
             )
+
+        # Validate is recursive to all sub-modules
+        for child in self.iter_children():
+            child.validate()
 
     def validate_version(self, major_version, minor_version, patch_version):
         """
@@ -517,6 +523,7 @@ class Module(object):
         connect_global_scale=True,
         disconnect_inputs=True,
         parent=True,
+        **kwargs
     ):
         """
         Build the module following the provided rig rules.
@@ -526,6 +533,11 @@ class Module(object):
         :param grp_rig_name: Override the name of the created rig group.
         :param parent: If True, the parent_to method will be automatically called.
         """
+        for kwarg in kwargs:
+            self.log.warning(
+                "Module.build received unexpected keyword argument: %s", kwarg
+            )
+
         self.log.info("Building")
 
         # Enable/Disable dangerous flags.
@@ -660,7 +672,7 @@ class Module(object):
     def iter_ctrls(self):
         """
         Iterate though all the ctrl implemented by the module.
-        :return: A generator of BaseCtrl instances.
+        :return: A generator of BaseCtrl instances
         """
         for ctrl in self.ctrls:
             yield ctrl
@@ -670,6 +682,24 @@ class Module(object):
         :return: A list of BaseCtrl instances implemented by the module.
         """
         return list(self.iter_ctrls())
+
+    def iter_children(self):
+        """
+        Iterate through any sub-modules.
+        :return: A generator of Module instances
+        """
+        # TODO: Re-think implementation
+        # This is a hack, module and rig should share the same implementation
+        for key, val in self.__dict__.items():
+            if key.startswith("_"):
+                continue
+
+            if isinstance(val, Module):
+                yield val
+            elif isinstance(val, (tuple, list, set)):
+                for element in val:
+                    if isinstance(element, Module):
+                        yield element
 
     def get_pin_locations(self, jnt):
         """

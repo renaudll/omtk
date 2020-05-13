@@ -53,6 +53,18 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
 
         self._stack = None
 
+    def validate(self):
+        """
+        Check if the module can be built in it's current state.
+
+        :raises ValidationError: If the module fail to validate.
+        """
+        super(ModelInteractiveCtrl, self).validate()
+
+        # Ensure that we have a mesh to follow.
+        if not self.get_meshes():
+            raise ValidationError("Please provide one reference mesh to follow.")
+
     def parent_to(self, parent):
         """
         Bypass default parent mecanism since it is computer internally.

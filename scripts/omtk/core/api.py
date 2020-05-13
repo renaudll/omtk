@@ -37,6 +37,12 @@ def get_version():
 
 
 def create(*args, **kwargs):
+    """
+    Create a rig
+
+    :return: A rig instance
+    :rtype: omtk.core.classRig.Rig
+    """
     from omtk.core import preferences
 
     cls = preferences.preferences.get_default_rig_class()

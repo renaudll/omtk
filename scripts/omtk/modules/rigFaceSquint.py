@@ -29,23 +29,29 @@ class FaceSquint(rigFaceAvarGrps.AvarGrp):
     def get_default_name(self):
         return "squint"
 
-    def _create_avar_macro_l_ctrls(self, ctrl_tm=None, **kwargs):
-        # Find the middle of l eyebrow.
-        pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())
-        ctrl_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
-        )
+    def _get_ctrl_tm_hint(self, avar):
+        """
+        For the upp and low macro, instead of finding an influence
+        to match it's transform, use the average of all upp/low micros.
 
-        super(FaceSquint, self)._create_avar_macro_l_ctrls(ctrl_tm=ctrl_tm)
+        :param avar: An avar to query a transform hint from
+        :type avar: omtk.modules.rigFaceAvar.Avar
+        :return: A transform hint if applicable
+        :rtype: Matrix or None
+        """
+        # TODO: This is duplicate code from FaceBrow, find a better way?
+        if avar is self.avar_l:
+            pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())
+            return Matrix(
+                [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [pos.x, pos.y, pos.z, 1]
+            )
+        if avar is self.avar_r:
+            pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
+            return Matrix(
+                [1, 0, 0, 0], [0, -1.0, 0, 0], [0, 0, -1.0, 0], [pos.x, pos.y, pos.z, 1]
+            )
 
-    def _create_avar_macro_r_ctrls(self, ctrl_tm=None, **kwargs):
-        # Find the middle of l eyebrow.
-        pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
-        ctrl_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
-        )
-
-        super(FaceSquint, self)._create_avar_macro_r_ctrls(ctrl_tm=ctrl_tm)
+        return super(FaceBrow, self)._get_ctrl_tm_hint(avar)
 
 
 def register_plugin():

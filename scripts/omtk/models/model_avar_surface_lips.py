@@ -27,7 +27,7 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         # Each avar influence model will consider a percentage of the jaw influence.
         # We'll need to provide to them the jaw bind pose and it's local influence.
         jaw = self.get_jaw_module()  # type: omtk.modules.rigJaw.Jaw
-        avar = next(iter(jaw.iter_avars()))  # type: rigFaceAvar.AvarSimple
+        avar = next(iter(jaw.iter_avars()))  # type: rigFaceAvar.Avar
 
         compound_input = pymel.PyNode(avar.model_infl.compound.input)
         compound_output = pymel.PyNode(avar.model_infl.compound.output)
@@ -57,7 +57,7 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
         attr_jaw_bind_tm = libRigging.create_multiply_matrix(
             [
                 self._attr_jaw_offset,
-                libRigging.create_inverse_matrix(compound_input.bindInternal)
+                libRigging.create_inverse_matrix(compound_input.bindInternal),
             ],
         )
 
@@ -72,9 +72,12 @@ class AvarSurfaceLipModel(model_avar_surface.AvarSurfaceModel):
             self._attr_jaw_local_tm, util_blend_jaw.target[0].targetMatrix
         )
         attr_jaw_bind_inv_tm = libRigging.create_inverse_matrix(attr_jaw_bind_tm)
-        return libRigging.create_multiply_matrix([
-            local_tm,  # Start from the result
-            attr_jaw_bind_inv_tm,  # Enter jaw space
-            util_blend_jaw.outputMatrix,  # Apply jaw transformation
-            attr_jaw_bind_tm,  # Exit jaw space
-        ], name=naming.resolve("applyJawInfluence"))
+        return libRigging.create_multiply_matrix(
+            [
+                local_tm,  # Start from the result
+                attr_jaw_bind_inv_tm,  # Enter jaw space
+                util_blend_jaw.outputMatrix,  # Apply jaw transformation
+                attr_jaw_bind_tm,  # Exit jaw space
+            ],
+            name=naming.resolve("applyJawInfluence"),
+        )

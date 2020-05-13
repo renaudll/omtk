@@ -400,8 +400,8 @@ class LegIk(rigIK.IK):
         If the ray-cast fail, use the last joint position.
         return: The recommended position as a world Vector
         """
-        dir = Point(0, 0, 1) * tm_ref_dir
-        pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
+        direction = Point(0, 0, 1) * tm_ref_dir
+        pos = libRigging.ray_cast_farthest(pos_toes, direction, geometries)
         if not pos:
             self.log.warning(
                 "Can't automatically solve front pivot, using last joint as reference."

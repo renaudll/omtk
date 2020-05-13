@@ -2,7 +2,6 @@
 Logic for the "FaceAvar" module
 """
 import pymel.core as pymel
-from pymel.core.datatypes import Matrix
 
 from omtk.core import classCtrl
 from omtk.core import classModule
@@ -90,8 +89,9 @@ class AbstractAvar(classModule.Module):
 
     AFFECT_INPUTS = False
 
-    def __init__(self, *args, **kwargs):
-        super(AbstractAvar, self).__init__(*args, **kwargs)
+    def __init__(self, input=None, name=None, rig=None):
+        super(AbstractAvar, self).__init__(input=input, name=name, rig=rig)
+
         self.surface = None  # todo: Move to AvarFollicle
         self.avar_network = None
 
@@ -114,7 +114,7 @@ class AbstractAvar(classModule.Module):
         """
         return libAttr.addAttr(obj, longName=name, keyable=True, **kwargs)
 
-    def add_avars(self):
+    def add_avars(self, obj=None):
         """
         Create the network that contain all our avars.
         For ease of use, the avars are exposed on the grp_rig,
@@ -122,7 +122,7 @@ class AbstractAvar(classModule.Module):
         are really existing in an external network node.
         :return: The avar attribute holder.
         """
-        # libAttr.addAttr_separator(self.grp_rig, "avars")
+        obj = obj or self.grp_rig
         (
             self.attr_lr,
             self.attr_ud,
@@ -133,7 +133,7 @@ class AbstractAvar(classModule.Module):
             self.attr_sx,
             self.attr_sy,
             self.attr_sz,
-        ) = libAvar.create_avar_attr(self.grp_rig)
+        ) = libAvar.create_avar_attr(obj)
 
     def hold_avars(self):
         """
@@ -294,7 +294,7 @@ class AbstractAvar(classModule.Module):
         pass
 
 
-class AvarSimple(AbstractAvar):
+class Avar(AbstractAvar):
     """
     A simple avar that can be connected to a deformer and have a single controller.
 
@@ -311,13 +311,10 @@ class AvarSimple(AbstractAvar):
 
     CLS_CTRL = BaseCtrlFace  # TODO: Change to None
     CLS_MODEL_CTRL = ModelInteractiveCtrl
-    # CLS_MODEL_CTRL = None
     CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
 
-    # CLS_MODEL_INFL = model_avar_linear.AvarLinearModel
-
-    def __init__(self, *args, **kwargs):
-        super(AvarSimple, self).__init__(*args, **kwargs)
+    def __init__(self, input=None, name=None, rig=None):
+        super(Avar, self).__init__(input=input, name=name, rig=rig)
 
         self._stack_post = None
         self.grp_offset = None
@@ -325,41 +322,51 @@ class AvarSimple(AbstractAvar):
         # Bind input for the ctrl model, can be modified by subclasses.
         self._grp_default_ctrl_model = None
 
-        self.model_ctrl = None
-        self.model_infl = None
+        self.model_ctrl = self._init_model_ctrl()
+        self.model_infl = self._init_model_infl()
 
-    def build(
-        self,
-        constraint=True,
-        ctrl_tm=None,
-        jnt_tm=None,
-        obj_mesh=None,
-        follow_mesh=True,
-        ctrl_size_hint=1.0,
-        **kwargs
-    ):
-        """
-        :param constraint:
-        :param ctrl_size: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param ctrl_tm: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param jnt_tm:
-        :param obj_mesh: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param follow_mesh: DEPRECATED, PLEASE MOVE TO ._create_ctrl
-        :param kwargs:
-        :return:
-        """
-        super(AvarSimple, self).build(parent=False)
+    def _init_model_infl(self, value=None):
+        if not all((self.rig, self.CLS_MODEL_INFL)):
+            return None
+        cls = self.CLS_MODEL_INFL
+        name = (self.get_nomenclature() + "infl").resolve()
+        return cls.from_instance(self.rig, value, name, inputs=self.input)
 
-        if self.CLS_MODEL_INFL:
-            self._build_influence_model()
+    def _init_model_ctrl(self, value=None):
+        if not all((self.rig, self.CLS_MODEL_CTRL)):
+            return None
+        cls = self.CLS_MODEL_CTRL
+        name = (self.get_nomenclature() + "ctrl").resolve()
+        return cls.from_instance(self.rig, value, name, inputs=self.input)
+
+    def build(self, ctrl_tm_hint=None, ctrl_size_hint=1.0, **kwargs):
+        super(Avar, self).build(parent=False, **kwargs)
+
+        # Build influence module
+        self.model_infl = self._init_model_infl(self.model_infl)
+        if self.model_infl:
+            self.model_infl.validate()  # temporary
+            self.model_infl.build(self)
+            if self.model_infl.grp_rig:
+                self.model_infl.grp_rig.setParent(self.grp_rig)
+            self._connect_influence_model()
 
         # Build ctrl model
         if self.CLS_CTRL:
-            self.ctrl = self._build_ctrl(ctrl_size_hint=ctrl_size_hint)  # TODO: Inline?
+            # Build ctrl
+            ctrl_name = self.get_nomenclature_anm().resolve()
+            ctrl_tm = ctrl_tm_hint or self._get_ctrl_tm()
+            self.ctrl = self.CLS_CTRL.from_instance(self.ctrl)
+            self.ctrl.build(name=ctrl_name, size=ctrl_size_hint)
+            self.ctrl.setParent(self.grp_anm)
+            self.ctrl.setMatrix(ctrl_tm)
             self._connect_ctrl_to_avar(self.ctrl)
 
-            if self.CLS_MODEL_CTRL:
-                self._build_ctrl_model()  # TODO: Inline?
+            self.model_ctrl = self._init_model_ctrl(self.model_ctrl)
+            if self.model_ctrl:
+                self.model_ctrl.build(self.ctrl)
+                if self.model_ctrl.grp_rig and self.grp_rig:
+                    self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
     def unbuild(self):
         if self.model_ctrl:
@@ -372,24 +379,10 @@ class AvarSimple(AbstractAvar):
         if self.model_infl:
             self.model_infl.unbuild()
 
-        super(AvarSimple, self).unbuild()
+        super(Avar, self).unbuild()
 
         # Cleanup invalid references
         self.grp_offset = None
-
-    def _build_influence_model(self):
-        self.model_infl = self.CLS_MODEL_INFL.from_instance(
-            self.rig,
-            self.model_infl,
-            (self.get_nomenclature() + "modelInfl").resolve(),
-            inputs=self.input,
-        )
-        self.model_infl.validate()  # temporary
-        self.model_infl.build(self)
-        if self.model_infl.grp_rig:
-            self.model_infl.grp_rig.setParent(self.grp_rig)
-
-        self._connect_influence_model()
 
     def _connect_influence_model(self):
         """
@@ -421,39 +414,6 @@ class AvarSimple(AbstractAvar):
             transform.translate = new_pos
 
         return transform
-
-    def _build_ctrl(self, ctrl_size_hint=None):
-        """
-        Build the animation controller.
-        """
-        ctrl_name = self.get_nomenclature_anm().resolve()
-        ctrl_tm = self._get_ctrl_tm()
-        ctrl = self.CLS_CTRL.from_instance(self.ctrl)
-        ctrl.build(name=ctrl_name, size=ctrl_size_hint)
-        ctrl.setParent(self.grp_anm)
-        ctrl.setMatrix(ctrl_tm)
-        return ctrl
-
-    def _build_ctrl_model(self):
-        """
-        Build the network that connect the avar to the animation ctrl offset group.
-        """
-        cls = self.CLS_MODEL_CTRL
-        self.model_ctrl = (
-            cls.from_instance(
-                self.rig,
-                self.model_ctrl,
-                (self.get_nomenclature() + "ctrlModel").resolve(),
-                inputs=self.input,
-            )
-            if cls
-            else None
-        )
-
-        self.model_ctrl.build(self.ctrl)
-
-        if self.model_ctrl.grp_rig and self.grp_rig:
-            self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
     def _connect_default_ctrl_model(self, grp_ctrl_model):
         """
@@ -505,7 +465,7 @@ class AvarSimple(AbstractAvar):
 
 
 def register_plugin():
-    return AvarSimple
+    return Avar
 
 
 def _flip_attr(attr):  # TODO: Remove duplication

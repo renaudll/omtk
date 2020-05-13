@@ -72,12 +72,18 @@ class Neck(rigFK.FK):
 
     @ui_expose()
     def assign_twist_weights(self):
+        """
+        Automatically assign twist bone weights.
+        """
         for module in self.sys_twist:
             if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
                 module.assign_twist_weights()
 
     @ui_expose()
     def unassign_twist_weights(self):
+        """
+        Automatically unassign twist bone weights.
+        """
         for module in self.sys_twist:
             if isinstance(module, rigTwistbone.Twistbone) and module.is_built():
                 module.unassign_twist_weights()

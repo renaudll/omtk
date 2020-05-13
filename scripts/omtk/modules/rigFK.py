@@ -45,7 +45,7 @@ class FK(Module):
 
     def __callbackNetworkPostBuild__(self):
         """
-        Cleaning routine automatically called by libSerialization after a network import.
+        Cleaning routine automatically called by libSerialization after a network import
         """
         # Ensure there's no None value in the .ctrls array.
         # This can happen if the rigging delete the stored shape before rebuilding.

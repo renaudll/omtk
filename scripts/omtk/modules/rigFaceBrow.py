@@ -2,6 +2,7 @@
 Logic for the "FaceBrow" module
 """
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix
 from omtk.modules import rigFaceAvarGrps
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
@@ -22,12 +23,16 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low()
 
 
+class AvarBrow(rigFaceAvar.Avar):
+    CLS_CTRL = CtrlBrow
+
+
 class FaceBrow(rigFaceAvarGrps.AvarGrp):
     """
     AvarGrp customized for Brow rigging.
     """
 
-    _CLS_CTRL = CtrlBrow
+    CLS_AVAR_MICRO = AvarBrow
 
     SHOW_IN_UI = True
     IS_SIDE_SPECIFIC = False
@@ -35,26 +40,28 @@ class FaceBrow(rigFaceAvarGrps.AvarGrp):
     CREATE_MACRO_AVAR_VERTICAL = False
     CREATE_MACRO_AVAR_ALL = False
 
-    def _create_avar_macro_l_ctrls(self, ctrl_tm=None, **kwargs):
-        # Find the middle of l eyebrow.
-        pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())
-        ctrl_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos.x, pos.y, pos.z, 1
-        )
+    def _get_ctrl_tm_hint(self, avar):
+        """
+        For the upp and low macro, instead of finding an influence
+        to match it's transform, use the average of all upp/low micros.
 
-        super(FaceBrow, self)._create_avar_macro_l_ctrls(ctrl_tm=ctrl_tm)
+        :param avar: An avar to query a transform hint from
+        :type avar: omtk.modules.rigFaceAvar.Avar
+        :return: A transform hint if applicable
+        :rtype: Matrix or None
+        """
+        if avar is self.avar_l:
+            pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())
+            return Matrix(
+                [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [pos.x, pos.y, pos.z, 1]
+            )
+        if avar is self.avar_r:
+            pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
+            return Matrix(
+                [1, 0, 0, 0], [0, -1.0, 0, 0], [0, 0, -1.0, 0], [pos.x, pos.y, pos.z, 1]
+            )
 
-    def _create_avar_macro_r_ctrls(self, ctrl_tm=None, **kwargs):
-        # Find the middle of l eyebrow.
-        # We expect the right-side influence to be mirrored in behavior.
-        # However this should be applied to to influence tm, not the ctrl tm.
-        # Clean this please.
-        pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
-        ctrl_tm = pymel.datatypes.Matrix(
-            [1, 0, 0, 0], [0, -1.0, 0, 0], [0, 0, -1.0, 0], [pos.x, pos.y, pos.z, 1]
-        )
-
-        super(FaceBrow, self)._create_avar_macro_r_ctrls(ctrl_tm=ctrl_tm)
+        return super(FaceBrow, self)._get_ctrl_tm_hint(avar)
 
     def get_default_name(self):
         return "brow"

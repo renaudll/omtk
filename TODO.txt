@@ -7,6 +7,7 @@ Regressions to fix:
 [ ] Affect attributes should be outside of models (blend with offset x parent tm)
 [ ] Being able to move the surface without affecting the result
 [ ] Ensure preDeform mode still work
+[ ] Make FaceEye work
 
 Questions for community:
 [ ] Should the micro use the jaw splitter?

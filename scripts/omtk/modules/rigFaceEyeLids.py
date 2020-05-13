@@ -17,6 +17,14 @@ class CtrlEyeLidLow(rigFaceAvar.BaseCtrlFace):
         return libCtrlShapes.create_triangle_low(size=size)
 
 
+class FaceEyeLidsMacroUpp(rigFaceAvarGrps.AvarMacroUpp):
+    CLS_CTRL = CtrlEyeLidUpp
+
+
+class FaceEyeLidsMacroLow(rigFaceAvarGrps.AvarMacroLow):
+    CLS_CTRL = CtrlEyeLidLow
+
+
 class FaceEyeLids(rigFaceAvarGrps.AvarGrp):
     """
     AvarGrp setup customized for Eyelids rigging.
@@ -24,14 +32,12 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrp):
     However to adapt ourself to non-symetrical eyes, we use two surface to slide on.
     """
 
-    _CLS_CTRL_UPP = CtrlEyeLidUpp
-    _CLS_CTRL_LOW = CtrlEyeLidLow
     IS_SIDE_SPECIFIC = True
+    CLS_AVAR_MACRO_UPP = FaceEyeLidsMacroUpp
+    CLS_AVAR_MACRO_LOW = FaceEyeLidsMacroLow
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
-
-    SHOW_IN_UI = True
 
     def __init__(self, *args, **kwargs):
         super(FaceEyeLids, self).__init__(*args, **kwargs)

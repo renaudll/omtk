@@ -17,7 +17,7 @@ class CtrlJaw(rigFaceAvar.BaseCtrlFace):
         return node
 
 
-class AvarJaw(rigFaceAvar.AvarSimple):
+class AvarJaw(rigFaceAvar.Avar):
     """
     This avar is not designed to use any surface.
     """
@@ -63,6 +63,9 @@ class FaceJaw(rigFaceAvarGrps.AvarGrp):
     CLS_CTRL_MICRO = None
     SHOW_IN_UI = True
     SINGLE_INFLUENCE = True
+    CREATE_MACRO_AVAR_ALL = False
+    CREATE_MACRO_AVAR_HORIZONTAL = False
+    CREATE_MACRO_AVAR_VERTICAL = False
 
 
 def register_plugin():

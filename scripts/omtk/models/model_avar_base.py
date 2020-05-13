@@ -171,7 +171,7 @@ class AvarInflBaseModel(classModule.Module):
                 compound_input.bindInternal,
                 compound_input.parent,
             ],
-            name=naming.resolve("getAvarWorldOutput")
+            name=naming.resolve("getAvarWorldOutput"),
         )
         pymel.connectAttr(attr_output_tm, compound_output.output)
         obj_output = _create_grp("output", tm=bind_tm)
@@ -207,18 +207,18 @@ class AvarInflBaseModel(classModule.Module):
             return None
 
         for attr_name in (
-                "multiplier_lr",
-                "multiplier_ud",
-                "multiplier_fb",
-                "affect_tx",
-                "affect_ty",
-                "affect_tz",
-                "affect_rx",
-                "affect_ry",
-                "affect_rz",
-                "affect_sx",
-                "affect_sy",
-                "affect_sz",
+            "multiplier_lr",
+            "multiplier_ud",
+            "multiplier_fb",
+            "affect_tx",
+            "affect_ty",
+            "affect_tz",
+            "affect_rx",
+            "affect_ry",
+            "affect_rz",
+            "affect_sx",
+            "affect_sy",
+            "affect_sz",
         ):
             value = _fn(getattr(self, attr_name))
             self.log.info("Holding %r with %s", attr_name, value)

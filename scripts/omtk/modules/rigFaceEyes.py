@@ -6,13 +6,8 @@ from omtk.core.classCtrl import BaseCtrl
 from omtk.core import classCtrlModel
 from omtk.modules import rigFaceAvar
 from omtk.modules import rigFaceAvarGrps
+from omtk.models.model_avar_linear import AvarLinearModel
 from omtk.libs import libRigging
-
-
-class AvarEye(rigFaceAvar.AvarSimple):
-    """
-    Deprecated, defined for backward compatibility (so libSerialization recognize it and we can access the ctrl shapes)
-    """
 
 
 class CtrlEyes(BaseCtrl):
@@ -38,56 +33,39 @@ class CtrlEye(BaseCtrl):
         return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
 
 
-class BaseAvarCtrlModel(classCtrlModel.BaseCtrlModel):
-    def get_default_tm_ctrl(self):
-        if self.jnt:
-            return self.jnt.getMatrix(worldSpace=True)
-        raise Exception("Cannot resolve ctrl transformation matrix!")
-
-    # todo: implement correct build method that also create the ctrl.
-    def build(self, ctrl, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(BaseAvarCtrlModel, self).build(**kwargs)
-
-        # Resolve ctrl matrix
-        ctrl_tm = ctrl_tm or self.get_default_tm_ctrl()
-        if ctrl_tm:
-            ctrl.setMatrix(ctrl_tm)
-
-    def connect(
-        self,
-        avar,
-        ud=True,
-        fb=True,
-        lr=True,
-        yw=True,
-        pt=True,
-        rl=True,
-        sx=True,
-        sy=True,
-        sz=True,
-    ):
-        raise NotImplementedError
+#
+# class ModelLookAt(classCtrlModel.BaseCtrlModel):
+#     """
+#     This controller avars from an object aimConstrained to a ctrl.
+#     """
+#
+#     def connect(
+#         self,
+#         avar,
+#         ud=True,
+#         fb=True,
+#         lr=True,
+#         yw=True,
+#         pt=True,
+#         rl=True,
+#         sx=True,
+#         sy=True,
+#         sz=True,
+#     ):
+#         libRigging.connectAttr_withBlendWeighted(self._attr_out_lr, avar.attr_lr)
+#         libRigging.connectAttr_withBlendWeighted(self._attr_out_ud, avar.attr_ud)
+#         libRigging.connectAttr_withBlendWeighted(self._attr_out_fb, avar.attr_fb)
+#         libRigging.connectAttr_withBlendWeighted(self._attr_out_yw, avar.attr_yw)
+#         libRigging.connectAttr_withBlendWeighted(self._attr_out_pt, avar.attr_pt)
+#         libRigging.connectAttr_withBlendWeighted(self._attr_out_rl, avar.attr_rl)
 
 
-class ModelLookAt(BaseAvarCtrlModel):
-    """
-    This controller avars from an object aimConstrained to a ctrl.
-    """
+class AvarEye(rigFaceAvar.Avar):
+    CLS_CTRL = CtrlEye
+    CLS_MODEL_CTRL = None
+    CLS_MODEL_INFL = AvarLinearModel
 
-    def __init__(self, *args, **kwargs):
-        super(ModelLookAt, self).__init__(*args, **kwargs)
-
-        self._attr_out_lr = None
-        self._attr_out_ud = None
-        self._attr_out_fb = None
-        self._attr_out_yw = None
-        self._attr_out_pt = None
-        self._attr_out_rl = None
-
-    def get_default_tm_ctrl(self):
-        """
-        Find the chin location. This is the preffered location for the jaw doritos.
-        """
+    def _get_ctrl_tm(self):
         jnt_pos = self.jnt.getTranslation(space="world")
         head_jnt = self.get_head_jnt()
         head_length = self.rig.get_head_length(head_jnt)
@@ -100,11 +78,16 @@ class ModelLookAt(BaseAvarCtrlModel):
             [1, 0, 0, 0],
             [0, 1, 0, 0],
             [0, 0, 1, 0],
-            [jnt_pos.x, jnt_pos.y, jnt_pos.z + offset_z],
+            [jnt_pos.x, jnt_pos.y, jnt_pos.z + offset_z, 1],
         )
 
-    def build(self, ctrl, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
-        super(ModelLookAt, self).build(ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
+    def build(self, ref=None, ref_tm=None, ctrl_tm=None, ctrl_size=1.0, **kwargs):
+        super(AvarEye, self).build(ctrl_tm=ctrl_tm, ctrl_size=ctrl_size, **kwargs)
+
+        # Resolve ctrl matrix
+        ctrl_tm = ctrl_tm or self._get_ctrl_tm()
+        if ctrl_tm:
+            self.ctrl.setMatrix(ctrl_tm)
 
         naming = self.get_nomenclature_rig()
 
@@ -126,7 +109,7 @@ class ModelLookAt(BaseAvarCtrlModel):
         aim_target = pymel.createNode("transform", name=aim_target_name)
         aim_target.setParent(aim_grp)
         self.target = aim_target  # todo: remove?
-        pymel.pointConstraint(ctrl, aim_target, maintainOffset=False)
+        pymel.pointConstraint(self.ctrl, aim_target, maintainOffset=False)
 
         # Build an upnode for the eyes.
         # Not a fan of upnodes but in this case it's better than guessing joint orient.
@@ -157,35 +140,15 @@ class ModelLookAt(BaseAvarCtrlModel):
         aim_target.setTranslation(aim_target_pos, space="world")
 
         # Convert the rotation to avars to additional values can be added.
-        util_decomposeMatrix = libRigging.create_utility_node(
+        util = libRigging.create_utility_node(
             "decomposeMatrix", inputMatrix=aim_node.matrix
         )
-        self._attr_out_lr = util_decomposeMatrix.outputTranslateX
-        self._attr_out_ud = util_decomposeMatrix.outputTranslateY
-        self._attr_out_fb = util_decomposeMatrix.outputTranslateZ
-        self._attr_out_yw = util_decomposeMatrix.outputRotateY
-        self._attr_out_pt = util_decomposeMatrix.outputRotateX
-        self._attr_out_rl = util_decomposeMatrix.outputRotateZ
-
-    def connect(
-        self,
-        avar,
-        ud=True,
-        fb=True,
-        lr=True,
-        yw=True,
-        pt=True,
-        rl=True,
-        sx=True,
-        sy=True,
-        sz=True,
-    ):
-        libRigging.connectAttr_withBlendWeighted(self._attr_out_lr, avar.attr_lr)
-        libRigging.connectAttr_withBlendWeighted(self._attr_out_ud, avar.attr_ud)
-        libRigging.connectAttr_withBlendWeighted(self._attr_out_fb, avar.attr_fb)
-        libRigging.connectAttr_withBlendWeighted(self._attr_out_yw, avar.attr_yw)
-        libRigging.connectAttr_withBlendWeighted(self._attr_out_pt, avar.attr_pt)
-        libRigging.connectAttr_withBlendWeighted(self._attr_out_rl, avar.attr_rl)
+        self._attr_out_lr = util.outputTranslateX
+        self._attr_out_ud = util.outputTranslateY
+        self._attr_out_fb = util.outputTranslateZ
+        self._attr_out_yw = util.outputRotateY
+        self._attr_out_pt = util.outputRotateX
+        self._attr_out_rl = util.outputRotateZ
 
 
 class FaceEyes(rigFaceAvarGrps.AvarGrp):
@@ -193,10 +156,11 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
     Look-at setup with avars support.
     """
 
+    CLS_AVAR_MICRO = AvarEye
     IS_SIDE_SPECIFIC = False
-    SHOW_IN_UI = True
-    _CLS_MODEL_CTRL_MICRO = ModelLookAt
-    _CLS_CTRL_MICRO = CtrlEye
+    CREATE_MACRO_AVAR_ALL = False
+    CREATE_MACRO_AVAR_HORIZONTAL = False
+    CREATE_MACRO_AVAR_VERTICAL = False
 
     def __init__(self, *args, **kwargs):
         """

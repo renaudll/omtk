@@ -11,7 +11,7 @@ from omtk.models import model_avar_surface_lips
 from omtk.core.compounds import create_compound
 
 
-class FaceLipsAvar(rigFaceAvar.AvarSimple):
+class FaceLipsAvar(rigFaceAvar.Avar):
     """
     The Lips avar are special as they implement a Splitter mechanism that
     ensure the avars move in jaw space before moving in surface space.
@@ -140,18 +140,17 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
             if not jaw_module:
                 raise ValidationError("Can't resolve jaw module.")
 
-    def get_avars_corners(self, macro=True):
-        # todo: move upper?
-        fnFilter = lambda avar: "corner" in avar.name.lower()
-        result = filter(fnFilter, self.avars)
+    def get_avars_corners(self):
+        # Corners are the highest or lowest influence in x axis
 
-        if macro and self.create_macro_horizontal:
-            if self.avar_l:
-                result.append(self.avar_l)
-            if self.avar_r:
-                result.append(self.avar_r)
+        # Sort avars by they x position
+        def _get_avar_pos_x(avar):
+            return avar.jnt.getMatrix(worldSpace=True).translate.x
 
-        return result
+        avars = sorted(self.avars, key=_get_avar_pos_x)
+
+        results = {self.avar_l, self.avar_r, avars[0], avars[-1]}
+        return filter(None, results)
 
     def get_default_name(self):
         return "lip"

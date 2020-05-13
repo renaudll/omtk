@@ -192,12 +192,12 @@ class WidgetListModules(QtWidgets.QWidget):
                 val.build()
             else:
                 raise Exception("Unexpected datatype %s for %s" % (type(val), val))
-        except Exception, e:
+        except Exception as error:
             log.error(
                 "Error building %s. Received %s. %s",
                 val,
-                type(e).__name__,
-                str(e).strip(),
+                type(error).__name__,
+                str(error).strip(),
             )
             traceback.print_exc()
 
@@ -216,12 +216,12 @@ class WidgetListModules(QtWidgets.QWidget):
                 val.unbuild()
             else:
                 raise Exception("Unexpected datatype %s for %s" % (type(val), val))
-        except Exception, e:
+        except Exception as error:
             log.error(
                 "Error building %s. Received %s. %s",
                 val,
-                type(e).__name__,
-                str(e).strip(),
+                type(error).__name__,
+                str(error).strip(),
             )
             traceback.print_exc()
 
@@ -250,10 +250,10 @@ class WidgetListModules(QtWidgets.QWidget):
                 warning_msg = ""
                 try:
                     module.validate_version(version_major, version_minor, version_patch)
-                except Exception, e:
+                except Exception as error:
                     warning_msg = (
                         "v%s.%s.%s is known to have issues and need to be updated: %s"
-                        % (version_major, version_minor, version_patch, str(e))
+                        % (version_major, version_minor, version_patch, error)
                     )
 
                 if warning_msg:
@@ -360,19 +360,8 @@ class WidgetListModules(QtWidgets.QWidget):
         parent.addChild(widget)
 
         # List sub modules
-        for attrname in dir(module):
-            if attrname.startswith("_"):  # ignore private attr
-                continue
-
-            attr = getattr(module, attrname)
-
-            if isinstance(attr, (tuple, list, set)):
-                for subattr in attr:
-                    if isinstance(subattr, classModule.Module):
-                        self._module_to_qtreewidget(subattr, widget, known)
-
-            if isinstance(attr, classModule.Module):
-                self._module_to_qtreewidget(attr, widget, known)
+        for submodule in module.iter_children():
+            self._module_to_qtreewidget(submodule, widget, known)
 
     #
     # Events
@@ -585,7 +574,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
                 self.deletedRig.emit(rig)
 
-            except Exception, error:
+            except Exception as error:
                 log.error(
                     "Error removing %s. Received %s. %s",
                     rig,
@@ -601,7 +590,7 @@ class WidgetListModules(QtWidgets.QWidget):
                     module.unbuild()
                 module.rig.remove_module(module)
                 need_reexport = True
-            except Exception, error:
+            except Exception as error:
                 log.error(
                     "Error removing %s. Received %s. %s",
                     module,

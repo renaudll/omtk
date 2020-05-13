@@ -126,7 +126,7 @@ class PyNodeChain(list):
         for node in self:
             try:
                 setattr(node, key, value)
-            except Exception, e:
+            except Exception as e:
                 logging.error(str(e))
 
 

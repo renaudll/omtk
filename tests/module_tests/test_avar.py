@@ -2,11 +2,11 @@ import pytest
 from maya import cmds
 import pymel.core as pymel
 
-from omtk.core.classRig import Rig
-from omtk.models.model_avar_linear import AvarLinearModel
-from omtk.models.model_avar_surface import AvarSurfaceModel
-from omtk.models.model_ctrl_linear import ModelCtrlLinear
-from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
+from omtk.core.rig import Rig
+from omtk.modules.face.models import AvarLinearModel
+from omtk.modules.face.models import AvarSurfaceModel
+from omtk.modules.face.models import ModelCtrlLinear
+from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCtrl
 from omtk.modules.rigFaceAvar import Avar
 
 

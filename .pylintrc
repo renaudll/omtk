@@ -6,6 +6,7 @@
 # - Added maya and Qt.py related modules to to "ignored-modules"
 # - Added "x,y,z,u,v,tx,ty,tz,rx,ry,rz,sx,sy,sz,lr,ud,fb,ui,fp" to "good-names"
 # - Set "max-line-length" to 88 for compatibility with black
+# - Set "min-public-methods" to 1
 # - Increase "min-similarity-lines" from 4 to 8"
 [MASTER]
 
@@ -603,7 +604,7 @@ max-returns=6
 max-statements=50
 
 # Minimum number of public methods for a class (see R0903).
-min-public-methods=2
+min-public-methods=1
 
 
 [EXCEPTIONS]

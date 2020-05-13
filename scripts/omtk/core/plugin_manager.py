@@ -9,7 +9,7 @@ import inspect
 from omtk import constants
 from omtk.libs import libPython
 
-log = logging.getLogger("omtk")
+log = logging.getLogger(__name__)
 
 
 class PluginStatus:
@@ -31,67 +31,6 @@ class Plugin(object):
         self.description = None
 
         self.load()
-
-    def load(self, force=False):
-        """
-        Load the plugin, note that loading twice as no effect unless the force flag is used.
-        :param force: If True, the plugin module will be reloaded.
-        :return:
-        """
-        self.cls = None
-        self.module = None
-        self.description = None
-
-        # Resolve full module path
-        module_path = "%s.%s.%s" % (
-            self.root_package_name,
-            self.type_name,
-            self.module_name,
-        )
-
-        try:
-            # Load module using import_module before using pkgutil
-            # src: https://bugs.python.org/issue25372
-            importlib.import_module(module_path)
-
-            self.module = sys.modules.get(module_path, None)
-            if self.module is None or force:
-                if force:
-                    log.debug("Reloading module %s", module_path)
-                else:
-                    log.debug("Loading module %s", module_path)
-
-                self.module = pkgutil.get_loader(module_path).load_module(module_path)
-
-            # Ensure there is a register_plugin function
-            if not hasattr(self.module, "register_plugin") or not hasattr(
-                self.module.register_plugin, "__call__"
-            ):
-                raise Exception(
-                    "Cannot register plugin %s. No register_plugin function found!"
-                    % self.module.name
-                )
-
-            # Get module class
-            self.cls = self.module.register_plugin()
-            self.name = self.cls.__name__
-            self.description = self.cls.__doc__
-            if self.description:
-                self.description = next(
-                    iter(filter(None, self.description.split("\n"))), None
-                )
-            self.status = PluginStatus.Loaded
-        except Exception, e:
-            self.status = PluginStatus.Failed
-            self.description = str(e)
-            log.warning(
-                "Plugin %s failed to load! %s", self.module_name, self.description
-            )
-
-    @classmethod
-    def from_module(cls, name, type_name):
-        plugin = Plugin(name, type_name=type_name)
-        return plugin
 
     def __contains__(self, item):  # arm, fk
         """
@@ -136,6 +75,68 @@ class Plugin(object):
     def __repr__(self):
         return '<Plugin "%s">' % self.module_name
 
+    @classmethod
+    def from_module(cls, name, type_name):
+        return cls(name, type_name=type_name)
+
+    def load(self, force=False):
+        """
+        Load the plugin
+
+        Note that loading twice as no effect unless the force flag is used.
+        :param force: If True, the plugin module will be reloaded.
+        :return:
+        """
+        self.cls = None
+        self.module = None
+        self.description = None
+
+        # Resolve full module path
+        module_path = "%s.%s.%s" % (
+            self.root_package_name,
+            self.type_name,
+            self.module_name,
+        )
+
+        try:
+            # Load module using import_module before using pkgutil
+            # src: https://bugs.python.org/issue25372
+            importlib.import_module(module_path)
+
+            self.module = sys.modules.get(module_path, None)
+            if self.module is None or force:
+                if force:
+                    log.debug("Reloading module %s", module_path)
+                else:
+                    log.debug("Loading module %s", module_path)
+
+                self.module = pkgutil.get_loader(module_path).load_module(module_path)
+
+            # Ensure there is a register_plugin function
+            if not hasattr(self.module, "register_plugin") or not hasattr(
+                self.module.register_plugin, "__call__"
+            ):
+                raise Exception(
+                    "Cannot register plugin %s. No register_plugin function found!"
+                    % self.module
+                )
+
+            # Get module class
+            self.cls = self.module.register_plugin()
+            self.name = self.cls.__name__
+            self.description = self.cls.__doc__
+            if self.description:
+                self.description = next(
+                    iter(filter(None, self.description.split("\n"))), None
+                )
+            self.status = PluginStatus.Loaded
+        except Exception as e:
+            self.status = PluginStatus.Failed
+            self.description = str(e)
+            log.warning(
+                "Plugin %s failed to load! %s", self.module_name, self.description
+            )
+
 
 class PluginType(object):
     type_name = None
@@ -158,10 +159,16 @@ class PluginType(object):
         if package is None:
             package = pkgutil.get_loader(package_name).load_module(package_name)
 
-        for loader, modname, ispkg in pkgutil.walk_packages(package.__path__):
-            # log.debug("Found plugin {0}".format(modname))
+        for loader, modname, is_pkg in pkgutil.walk_packages(package.__path__):
+            log.debug("Found plugin %s", modname)
             plugin = Plugin.from_module(modname, self.type_name)
             self._plugins.append(plugin)
+
+
+def onerror(name):
+    print("Error importing module %s" % name)
+    type, value, traceback = sys.exc_info()
+    print_tb(traceback)
 
 
 class PluginManager(object):

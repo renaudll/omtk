@@ -1,5 +1,5 @@
 """
-Core modules package
+Library of built-in module implementations
 """
 import pkgutil
 

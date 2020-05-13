@@ -43,12 +43,13 @@ class Cache(object):
         return result
 
     def get_class_by_name(self, cls_name, module_name=None, base_class=object):
-        if module_name is None:
-            cache = self._get_cls_cache(base_class=base_class)
-        else:
+        if module_name:
             cache = self._get_cls_cache_by_module(
                 module_name=module_name, base_class=base_class
             )
+        else:
+            cache = self._get_cls_cache(base_class=base_class)
+
         return cache.get(cls_name, None)
 
     def get_class_by_namespace(

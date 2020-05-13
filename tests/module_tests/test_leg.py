@@ -4,8 +4,8 @@ Tests for the Leg module.
 import pytest
 import pymel.core as pymel
 from omtk.libs import libRigging
-from omtk.modules.rigLeg import Leg
-from omtk.core.classRig import Rig
+from omtk.modules.leg import Leg
+from omtk.core.rig import Rig
 
 
 @pytest.fixture

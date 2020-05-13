@@ -8,13 +8,16 @@ from omtk.core.macros import BaseMacro
 
 def _fix_ctrl_shape(ctrl):
     """
-    When the rigger want to resize an InteractiveCtrl, he will modify the ctrl shape 'controlPoints' attributes.
-    This can be problematic since the shape 'create' attribute is feed from a transformGeometry node
-    to compensate the non-uniform scaling caused by the calibration. This will 'skew' the shape which we don't want.
-    We always want to make sure that there's only data in the orig shape 'controlPoints' attributes.
-    This method will create a temporary shape that will receive the 'local' attribute from the ctrl shape (which
-    contain the deformation from the 'controlPoints' attribute). The 'local' attribute of that shape will then be
-    fed back to the orig shape. Finally, all the original 'controlPoints' will be set to zero.
+    When the rigger want to resize an InteractiveCtrl, he will modify
+    the ctrl shape 'controlPoints' attributes. This can be problematic since
+    the shape 'create' attribute is feed from a transformGeometry node
+    to compensate the non-uniform scaling caused by the calibration.
+    This will 'skew' the shape which we don't want. We always want to make sure
+    that there's only data in the orig shape 'controlPoints' attributes.
+    This method will create a temporary shape that receive the 'local' attribute from
+    the ctrl shape (which contain the deformation from the 'controlPoints' attribute).
+    The 'local' attribute of that shape will then be fed back to the orig shape.
+    Finally, all the original 'controlPoints' will be set to zero.
     """
     grp_offset = ctrl.getParent()
 
@@ -62,7 +65,8 @@ def _fix_ctrl_shape(ctrl):
         tmp_shape = pymel.createNode("nurbsCurve")
         tmp_shape.getParent().setParent(grp_offset)
 
-        # Apply the inverted compensation matrix to access the desired orig_shape 'create' attr.
+        # Apply the inverted compensation matrix to
+        # access the desired orig_shape 'create' attr.
         tmp_transform_geometry = libRigging.create_utility_node(
             "transformGeometry",
             inputGeometry=shape.local,

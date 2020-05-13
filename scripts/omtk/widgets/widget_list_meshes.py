@@ -4,10 +4,8 @@ from omtk.widgets.ui import widget_list_meshes
 
 from omtk.libs import libSkinning
 from omtk.libs import libQt
-
+from omtk.widgets import _utils
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-import ui_shared
 
 
 class WidgetListMeshes(QtWidgets.QWidget):
@@ -78,10 +76,10 @@ class WidgetListMeshes(QtWidgets.QWidget):
         item = QtWidgets.QTreeWidgetItem(0)
         item.setText(0, str(mesh))
         item.setForeground(0, self._TEXT_BRUSH)
-        ui_shared.set_icon_from_type(mesh.getParent(), item)
+        _utils.set_icon_from_type(mesh.getParent(), item)
 
         # Monkey-patch mesh QWidget
-        item.metadata_type = ui_shared.MetadataType.Mesh
+        item.metadata_type = _utils.MetadataType.Mesh
         item.metadata_data = mesh
 
         return item
@@ -98,10 +96,10 @@ class WidgetListMeshes(QtWidgets.QWidget):
         item = QtWidgets.QTreeWidgetItem(0)
         item.setText(0, str(influence))
         item.setForeground(0, self._TEXT_BRUSH)
-        ui_shared.set_icon_from_type(influence, item)
+        _utils.set_icon_from_type(influence, item)
 
         # Monkey-patch influence QWidget
-        item.metadata_type = ui_shared.MetadataType.Influence
+        item.metadata_type = _utils.MetadataType.Influence
         item.metadata_data = influence
 
         return item
@@ -113,7 +111,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
 
         def fn_can_show(qItem, query_regex):
             if (
-                qItem.metadata_type == ui_shared.MetadataType.Influence
+                qItem.metadata_type == _utils.MetadataType.Influence
             ):  # Always show influences
                 return True
 

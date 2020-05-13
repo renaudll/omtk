@@ -1,15 +1,15 @@
 """
 Public entry point.
 """
+import logging
+
+log = logging.getLogger(__name__)
 
 from omtk.core import *
 
 from omtk.vendor import libSerialization
 import constants
 import pymel.core as pymel
-
-# TODO: Set __all__
-
 
 __version__ = "0.0.6"
 
@@ -25,8 +25,14 @@ def show():
 
 # Register alias for deprecated classes
 for src, dst in (
-    ("Node.BaseCtrl.BaseCtrlFace.BaseCtrlUpp", "Node.BaseCtrl.BaseCtrlFace.CtrlFaceUpp"),
-    ("Node.BaseCtrl.BaseCtrlFace.BaseCtrlLow", "Node.BaseCtrl.BaseCtrlFace.CtrlFaceLow"),
+    (
+        "Node.BaseCtrl.BaseCtrlFace.BaseCtrlUpp",
+        "Node.BaseCtrl.BaseCtrlFace.CtrlFaceUpp",
+    ),
+    (
+        "Node.BaseCtrl.BaseCtrlFace.BaseCtrlLow",
+        "Node.BaseCtrl.BaseCtrlFace.CtrlFaceLow",
+    ),
     ("Module.AbstractAvar.AvarGrp.AvarGrpOnSurface", "Module.AbstractAvar.AvarGrp"),
 ):
     libSerialization.register_alias("omtk", src, dst)

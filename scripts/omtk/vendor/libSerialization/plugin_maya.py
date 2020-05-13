@@ -5,7 +5,6 @@ import logging
 import core
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def is_valid_PyNode(val):
@@ -375,8 +374,8 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     :param cache: Used internally.
     :return: An object instance corresponding to the provided network.
     """
-    if cache is None:
-        from cache import Cache
+    if not cache:
+        from .cache import Cache
 
         cache = Cache()
 
@@ -415,9 +414,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
         cls_def = cache.get_class_by_namespace(cls_name)
 
     if cls_def is None:
-        log.warning(
-            "Can't find class definiton for {0}. Returning None".format(cls_name)
-        )
+        log.warning("Can't find class definiton for %s. Returning None", cls_name)
         return None
 
     # HACK: Get latest definition

@@ -71,42 +71,50 @@ class ToogleAvarSelection(macros.BaseMacro):
             pymel.warning("Please select an avar controller or grp.")
             return
 
-        # Since this is a toogle, we'll want to know if we are currently in 'animation' mode or 'rigging' mode.
-
-        # If there's any controllers selected, we are in animation mode and want to select avar_grp.
+        # Determine which "mode" where are in.
+        # Check if we are currently in 'animation' mode or 'rigging' mode.
+        # If there's any controllers selected,
+        # we are in animation mode and want to select avar_grp.
+        # If there aren't any controllers selected,
+        # we are in rigging mode and want to select avar ctrls.
         is_animation_mode = bool(get_connected_ctrl_models_networks(sel))
+
         if is_animation_mode:
-            result = set()
-            for network in avar_networks:
-                if network.hasAttr("grp_rig"):
-                    grp_rig = next(iter(network.attr("grp_rig").inputs()), None)
-                    if grp_rig and grp_rig.hasAttr(
-                        "avar_ud"
-                    ):  # we duck type avars by checking the UD avar
-                        result.add(grp_rig)
-            pymel.select(result)
-
-        # If there aren't any controllers selected, we are in rigging mode and want to select avar ctrls.
+            self._select_rig_objs(avar_networks)
         else:
-            result = set()
+            self._select_ctrl_objs(avar_networks)
 
-            def fn_filter(network):
-                return isinstance(
-                    network, pymel.nodetypes.Network
-                ) and libSerialization.is_network_from_class(network, "BaseCtrl")
+    def _select_ctrl_objs(self, avar_networks):
+        result = set()
 
-            for avar_network in avar_networks:
-                if avar_network.hasAttr("ctrl"):
-                    for hist in avar_network.attr("ctrl").listHistory():
-                        if fn_filter(hist):
-                            ctrl = (
-                                next(iter(hist.attr("node").inputs()), None)
-                                if hist.hasAttr("node")
-                                else None
-                            )
-                            if ctrl:
-                                result.add(ctrl)
-            pymel.select(result)
+        def fn_filter(network):
+            return isinstance(
+                network, pymel.nodetypes.Network
+            ) and libSerialization.is_network_from_class(network, "BaseCtrl")
+
+        for avar_network in avar_networks:
+            if avar_network.hasAttr("ctrl"):
+                for hist in avar_network.attr("ctrl").listHistory():
+                    if fn_filter(hist):
+                        ctrl = (
+                            next(iter(hist.attr("node").inputs()), None)
+                            if hist.hasAttr("node")
+                            else None
+                        )
+                        if ctrl:
+                            result.add(ctrl)
+        pymel.select(result)
+
+    def _select_rig_objs(self, avar_networks):
+        result = set()
+        for network in avar_networks:
+            if network.hasAttr("grp_rig"):
+                grp_rig = next(iter(network.attr("grp_rig").inputs()), None)
+                # HACK: Duck type avars by checking the UD avar
+                # Fix this
+                if grp_rig and grp_rig.hasAttr("avar_ud"):
+                    result.add(grp_rig)
+        pymel.select(result)
 
 
 def register_plugin():

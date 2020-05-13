@@ -4,11 +4,9 @@ from omtk.widgets.ui import widget_list_influences
 
 from omtk.libs import libQt
 from omtk.libs import libPymel
-
+from omtk.widgets import _utils
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-import ui_shared
 
 
 class WidgetListInfluences(QtWidgets.QWidget):
@@ -23,7 +21,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Tweak gui
-        self.ui.treeWidget.setStyleSheet(ui_shared.STYLE_SHEET)
+        self.ui.treeWidget.setStyleSheet(_utils.STYLE_SHEET)
 
         # Connect signals
         self.ui.treeWidget.customContextMenuRequested.connect(self.onRightClick)
@@ -76,13 +74,13 @@ class WidgetListInfluences(QtWidgets.QWidget):
                 item.obj = obj
 
                 # Monkey-patch mesh QWidget
-                item.metadata_type = ui_shared.MetadataType.Influence
+                item.metadata_type = _utils.MetadataType.Influence
                 item.metadata_data = obj
 
                 item.networks = networks
                 item.setText(0, obj_name)
                 item.setForeground(0, brush)
-                ui_shared.set_icon_from_type(obj, item)
+                _utils.set_icon_from_type(obj, item)
                 item.setCheckState(
                     0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked
                 )

@@ -11,7 +11,6 @@ __all__ = (
 )
 
 logging = _logging.getLogger()
-logging.setLevel(_logging.WARNING)
 
 # constants
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX, TYPE_NONE = range(5)
@@ -25,7 +24,7 @@ def get_class_module_root(cls):
 
     >>> from omtk.core.classCtrl import BaseCtrl
     >>> BaseCtrl.__module__
-    'omtk.core.classCtrl'
+    'omtk.core.ctrl'
     >>> get_class_module_root(BaseCtrl)
     'omtk'
 
@@ -60,8 +59,10 @@ def get_class_namespace(cls):
 def create_class_instance(cls):
     """
     Create a class instance.
-    This will ensure that even if the provided class definition is outdated (because of a reload)
-    the latest definition (available from sys.modules) will be used.
+    This will ensure that even if the provided class definition is outdated
+    (because of a reload) the latest definition (available from sys.modules)
+    will be used.
+
     :param cls: A class definition to inspect.
     :return: A class instance.
     """
@@ -82,7 +83,8 @@ def create_class_instance(cls):
 #
 
 # We consider a data complex if it's a class instance.
-# Note: We check for __dict__ because isinstance(_data, object) return True for basic types.
+# Note: We check for __dict__ because
+# isinstance(_data, object) return True for basic types.
 types_complex = (dict,)
 
 
@@ -168,7 +170,7 @@ def get_data_type(data):
     if is_data_list(data):
         return TYPE_LIST
     # It is important to check pymel data before complex data since basically,
-    # pymel.PyNode and pymel.PyNode are complex datatypes themselfs.
+    # pymel.PyNode and pymel.PyNode are complex data types themselves.
     if is_data_pymel(data):
         return TYPE_DAGNODE
     if is_data_complex(data):
@@ -183,13 +185,10 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
     """
     Export an object instance into a dictionary of basic data types.
 
-    Args:
-        data: An instance of the build-in python class object.
-        skip_None: Don't store an attribute if is value is None.
-        recursive: Export recursively embedded instances of object in (excluding protected and private properties).
-        **args:
-
-    Returns: A dict instance containing only basic data types.
+    :param data: An instance of the build-in python class object.
+    :param skip_None: Don't store an attribute if is value is None.
+    :param recursive: Export recursively embedded instances of object in (excluding protected and private properties).
+    :return: A dict instance containing only basic data types.
     """
     if cache is None:
         from cache import Cache
@@ -222,13 +221,11 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
             data.items() if isinstance(data, dict) else data.__dict__.items()
         ):  # TODO: Clean
             # Ignore private keys (starting with an underscore)
-            if key[0] == "_":
+            if key.startswith("_"):
                 continue
 
             if not skip_None or val is not None:
-                if (
-                    data_type == TYPE_COMPLEX and recursive is True
-                ) or data_type == TYPE_LIST:
+                if (data_type == TYPE_COMPLEX and recursive) or data_type == TYPE_LIST:
                     val = export_dict(
                         val,
                         skip_None=skip_None,
@@ -272,12 +269,7 @@ def import_dict(data, cache=None, **kwargs):
     """
     Rebuild any instance of a python object instance that have been serialized using export_dict.
 
-    Args:
-        _data: A dict instance containing only basic data types.
-        **kwargs:
-
-    Returns:
-
+    :param _data: A dict instance containing only basic data types.
     """
 
     if cache is None:
@@ -340,6 +332,5 @@ def register_alias(module, src, dst):
     :param str module: The class module name
     :param str src: The class namespace
     :param str dst: The class new namespace
-    :return:
     """
     _REGISTRY_ALIASES[(module, src)] = dst

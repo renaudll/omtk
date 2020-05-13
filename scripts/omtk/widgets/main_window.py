@@ -13,12 +13,12 @@ from maya import cmds
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk.core import api
-from omtk.core import classModule
+from omtk.core import module
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.libs import libQt
 from omtk.widgets.ui import main_window
-from omtk.widgets import ui_shared, pluginmanager_window, preferences_window
+from omtk.widgets import _utils, form_plugins, form_preferences
 
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui, QtWidgets
@@ -52,28 +52,32 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.actionBuildAll.triggered.connect(self.on_build_all)
         self.ui.actionRebuildAll.triggered.connect(self.on_rebuild_all)
         self.ui.actionUnbuildAll.triggered.connect(self.on_unbuild_all)
-        self.ui.actionImport.triggered.connect(self.on_import)
-        self.ui.actionExport.triggered.connect(self.on_export)
-        self.ui.actionUpdate.triggered.connect(self.on_update)
-        self.ui.actionCreateModule.triggered.connect(self.on_btn_add_pressed)
-        self.ui.actionMirrorJntsLToR.triggered.connect(self.on_mirror_influences_l_to_r)
-        self.ui.actionMirrorJntsRToL.triggered.connect(self.on_mirror_influences_r_to_l)
-        self.ui.actionMirrorSelection.triggered.connect(self.on_mirror_selection)
+        self.ui.actionImport.triggered.connect(self._on_import)
+        self.ui.actionExport.triggered.connect(self._on_export)
+        self.ui.actionUpdate.triggered.connect(self._on_update)
+        self.ui.actionCreateModule.triggered.connect(self._on_btn_add_pressed)
+        self.ui.actionMirrorJntsLToR.triggered.connect(
+            self._on_mirror_influences_l_to_r
+        )
+        self.ui.actionMirrorJntsRToL.triggered.connect(
+            self._on_mirror_influences_r_to_l
+        )
+        self.ui.actionMirrorSelection.triggered.connect(self._on_mirror_selection)
         self.ui.actionAddSelectedInfluencesToModule.triggered.connect(
-            self.on_add_selected_influences_to_module
+            self._on_add_selected_influences_to_module
         )
         self.ui.actionAddSelectedMeshesToModule.triggered.connect(
-            self.on_add_selected_meshes_to_module
+            self._on_add_selected_meshes_to_module
         )
-        self.ui.actionRemoveNodeFromModule.triggered.connect(self.on_removeFromModule)
-        self.ui.actionShowPluginManager.triggered.connect(self.on_show_pluginmanager)
-        self.ui.actionShowPreferences.triggered.connect(self.on_show_preferences)
+        self.ui.actionRemoveNodeFromModule.triggered.connect(self._on_removeFromModule)
+        self.ui.actionShowPluginManager.triggered.connect(self._on_show_pluginmanager)
+        self.ui.actionShowPreferences.triggered.connect(self._on_show_preferences)
 
         # Connect widget signals
         self.ui.widget_modules.needImportNetwork.connect(self.import_networks)
         self.ui.widget_modules.needExportNetwork.connect(self.export_networks)
-        self.ui.widget_modules.deletedRig.connect(self.on_rig_deleted)
-        self.ui.widget_jnts.onRightClick.connect(self.on_btn_add_pressed)
+        self.ui.widget_modules.deletedRig.connect(self._on_rig_deleted)
+        self.ui.widget_jnts.onRightClick.connect(self._on_btn_add_pressed)
 
         self.callbacks_events = []
         self.callbacks_scene = []
@@ -100,11 +104,11 @@ class AutoRig(QtWidgets.QMainWindow):
     def action_import_template(self, path):
         for root in self.roots:
             pymel.delete(root._network)
-            self.on_rig_deleted(root)
+            self._on_rig_deleted(root)
         _LOG.info("Importing template %s" % path)
 
         cmds.file(path, i=True)
-        self.on_update()
+        self._on_update()
 
     def _get_available_templates(self):
         results = set()
@@ -135,10 +139,10 @@ class AutoRig(QtWidgets.QMainWindow):
         #     ]
         self.callbacks_scene = [
             OpenMaya.MSceneMessage.addCallback(
-                OpenMaya.MSceneMessage.kAfterOpen, self.on_update
+                OpenMaya.MSceneMessage.kAfterOpen, self._on_update
             ),
             OpenMaya.MSceneMessage.addCallback(
-                OpenMaya.MSceneMessage.kAfterNew, self.on_update
+                OpenMaya.MSceneMessage.kAfterNew, self._on_update
             ),
         ]
 
@@ -172,28 +176,21 @@ class AutoRig(QtWidgets.QMainWindow):
     def on_context_menu_request(self):
         if self.ui.treeWidget.selectedItems():
             menu = QtWidgets.QMenu()
-            actionBuild = menu.addAction("Build")
-            actionBuild.triggered.connect(self.on_build_selected)
-            actionUnbuild = menu.addAction("Unbuild")
-            actionUnbuild.triggered.connect(self.on_unbuild_selected)
-            actionRebuild = menu.addAction("Rebuild")
-            actionRebuild.triggered.connect(self.on_rebuild_selected)
+
+            menu.addAction("Build").connect(self.on_build_selected)
+            menu.addAction("Unbuild").connect(self.on_unbuild_selected)
+            menu.addAction("Rebuild").connect(self.on_rebuild_selected)
             menu.addSeparator()
-            actionLock = menu.addAction("Lock")
-            actionLock.triggered.connect(self.on_lock_selected)
-            action_unlock = menu.addAction("Unlock")
-            action_unlock.triggered.connect(self.on_unlock_selected)
+            menu.addAction("Lock").connect(self.on_lock_selected)
+            menu.addAction("Unlock").triggered.connect(self.on_unlock_selected)
             menu.addSeparator()
             sel = self.ui.treeWidget.selectedItems()
             if len(sel) == 1:
-                actionRemove = menu.addAction("Rename")
-                actionRemove.triggered.connect(
-                    functools.partial(
-                        self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0
-                    )
+                func = functools.partial(
+                    self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0
                 )
-            actionRemove = menu.addAction("Remove")
-            actionRemove.triggered.connect(functools.partial(self.on_remove))
+                menu.addAction("Rename").connect(func)
+            menu.addAction("Remove").connect(functools.partial(self.on_remove))
 
             # Expose decorated functions
             module = sel[0].metadata_data
@@ -214,7 +211,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
                     # Always pass the rig as the first argument
                     # in an exposed module function.
-                    if isinstance(module, classModule.Module):
+                    if isinstance(module, module.Module):
                         fn = functools.partial(fn, self._rig)
 
                     action = menu.addAction(fn_name)
@@ -292,28 +289,28 @@ class AutoRig(QtWidgets.QMainWindow):
     def get_selected_modules(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
             self.ui.widget_modules.ui.treeWidget,
-            ui_shared.MetadataType.Module,
+            _utils.MetadataType.Module,
             search_up=search_up,
         )
 
     def get_selected_rigs(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
             self.ui.widget_modules.ui.treeWidget,
-            ui_shared.MetadataType.Rig,
+            _utils.MetadataType.Rig,
             search_up=search_up,
         )
 
     def get_selected_influences(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
             self.ui.widget_jnts.ui.treeWidget,
-            ui_shared.MetadataType.Influence,
+            _utils.MetadataType.Influence,
             search_up=search_up,
         )
 
     def get_selected_meshes(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
             self.ui.widget_meshes.ui.treeWidget,
-            ui_shared.MetadataType.Mesh,
+            _utils.MetadataType.Mesh,
             search_up=search_up,
         )
 
@@ -324,7 +321,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
     # --- Events ---
 
-    def on_import(self):
+    def _on_import(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             caption="File Save (.json)", filter="JSON (*.json)"
         )
@@ -344,9 +341,9 @@ class AutoRig(QtWidgets.QMainWindow):
         for rig in filter(None, new_rigs):
             libSerialization.export_network(rig)
 
-        self.on_update()
+        self._on_update()
 
-    def on_export(self):
+    def _on_export(self):
         all_rigs = omtk.core.find()
 
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -355,11 +352,11 @@ class AutoRig(QtWidgets.QMainWindow):
         if path:
             libSerialization.export_json_file_maya(all_rigs, path)
 
-    def on_update(self, *args, **kwargs):
+    def _on_update(self, *args, **kwargs):
         self.import_networks()
         self.update_ui()
 
-    def on_rig_deleted(self, rig):
+    def _on_rig_deleted(self, rig):
         """
         Called from an internal widget to delete a rig.
         We take in consideration that the rig is already un-built
@@ -374,7 +371,7 @@ class AutoRig(QtWidgets.QMainWindow):
         if need_update:
             self.update_internal_data()
 
-    def on_btn_add_pressed(self):
+    def _on_btn_add_pressed(self):
         selected_items = self.ui.widget_jnts.get_selection()
         if not selected_items:
             return
@@ -390,7 +387,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
         menu.exec_(QtGui.QCursor.pos())
 
-    def on_add_selected_influences_to_module(self):
+    def _on_add_selected_influences_to_module(self):
         selected_modules = self.get_selected_modules()
         selected_meshes = self.get_selected_influences()
         need_update = False
@@ -406,7 +403,7 @@ class AutoRig(QtWidgets.QMainWindow):
             self.export_networks()
             self.update_ui()
 
-    def on_add_selected_meshes_to_module(self):
+    def _on_add_selected_meshes_to_module(self):
         selected_modules = self.get_selected_modules()
         selected_meshes = self.get_selected_meshes()
         need_update = False
@@ -422,18 +419,18 @@ class AutoRig(QtWidgets.QMainWindow):
             self.export_networks()
             self.update_ui()
 
-    def on_removeFromModule(self):
+    def _on_removeFromModule(self):
         need_update = False
         selected_items = self.ui.widget_modules.ui.treeWidget.selectedItems()
         items_to_remove_by_module = defaultdict(list)
 
         for item in selected_items:
             if item.metadata_type in (
-                ui_shared.MetadataType.Influence,
-                ui_shared.MetadataType.Mesh,
+                _utils.MetadataType.Influence,
+                _utils.MetadataType.Mesh,
             ):
                 module_item = self._get_parent_item_by_metadata_type(
-                    item, ui_shared.MetadataType.Module
+                    item, _utils.MetadataType.Module
                 )
                 module = module_item.metadata_data
                 influence = item.metadata_data
@@ -479,7 +476,7 @@ class AutoRig(QtWidgets.QMainWindow):
         fn_filter = functools.partial(self._is_r_influence, self.root)
         return filter(fn_filter, objs)
 
-    def on_mirror_influences_l_to_r(self):
+    def _on_mirror_influences_l_to_r(self):
         objs = self._get_l_influences()
         if not objs:
             pymel.warning("No joints found!")
@@ -488,7 +485,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.ui.widget_jnts.update()
 
-    def on_mirror_influences_r_to_l(self):
+    def _on_mirror_influences_r_to_l(self):
         objs = self._get_r_influences()
         if not objs:
             pymel.warning("No joints found!")
@@ -497,7 +494,7 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.ui.widget_jnts.update()
 
-    def on_mirror_selection(self):
+    def _on_mirror_selection(self):
         objs = pymel.selected(type="joint")
         if not objs:
             pymel.warning("No joints found!")
@@ -506,13 +503,13 @@ class AutoRig(QtWidgets.QMainWindow):
 
         self.ui.widget_jnts.update()
 
-    def on_show_pluginmanager(self):
+    def _on_show_pluginmanager(self):
 
-        pluginmanager_window.show()
+        form_plugins.show()
 
-    def on_show_preferences(self):
+    def _on_show_preferences(self):
 
-        preferences_window.show()
+        form_preferences.show()
 
     #
     # QMainWindow show/close events
@@ -523,10 +520,10 @@ class AutoRig(QtWidgets.QMainWindow):
 
     def closeEvent(self, *args, **kwargs):
         _LOG.info("Closed OMTK GUI")
-        try:
-            self.ui.widget_logger.remove_logger_handler()
-        except Exception as e:
-            _LOG.warning("Error removing logging handler: %s", e)
+        # try:
+        #     self.ui.widget_logger.remove_logger_handler()
+        # except Exception as e:
+        #     _LOG.warning("Error removing logging handler: %s", e)
         try:
             self.remove_callbacks()
         except Exception as e:

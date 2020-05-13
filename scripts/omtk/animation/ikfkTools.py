@@ -54,7 +54,7 @@ def _call_on_networks_by_class(fn_name, module_name):
         # Execute function
         try:
             fn()
-        except Exception, e:
+        except Exception as e:
             _LOG.warning("Error executing %s in %s! %s", fn_name, module, str(e))
 
 

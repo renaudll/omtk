@@ -9,7 +9,7 @@ from maya import cmds, OpenMaya
 
 from omtk import constants
 from omtk.libs import libPython
-from omtk.core import classCtrl
+from omtk.core import ctrl
 from omtk.vendor import libSerialization
 
 
@@ -183,7 +183,7 @@ def mirror_matrix(
 
 def get_obj_mirror_def(obj):
     network_is_ctrl = lambda x: libSerialization.is_network_from_class(
-        x, classCtrl.BaseCtrl.__name__.split(".")[-1]
+        x, ctrl.BaseCtrl.__name__.split(".")[-1]
     )
     networks = libSerialization.get_connected_networks(
         [obj], key=network_is_ctrl, recursive=False

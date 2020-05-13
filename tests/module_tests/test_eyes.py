@@ -5,7 +5,7 @@ import test
 import pymel.core as pymel
 import omtk_test
 import omtk
-from omtk.modules.rigHead import Head
+from omtk.modules.head import Head
 from omtk.modules import rigFaceJaw
 from omtk.modules.rigFaceEyes import FaceEyes
 from omtk.libs import libRigging

@@ -27,9 +27,9 @@ def get_center(objs):
             pos += obj.getPoint(1, space="world")
             count += 2
         elif isinstance(obj, pymel.general.MeshFace):
-            aPointVtx = obj.getPoints(space="world")
-            for oPointVtx in aPointVtx:
-                pos += oPointVtx
+            points = obj.getPoints(space="world")
+            for point in points:
+                pos += point
                 count += 1
         elif isinstance(obj, pymel.general.NurbsCurveCV):
             pos += obj.getPosition(space="world")
@@ -57,13 +57,13 @@ def snapObj():
     """
     Snap two or more objects with the last selected using their world matrix
     """
-    aSelection = pymel.selected()
-    if len(aSelection) < 2:
+    selection = pymel.selected()
+    if len(selection) < 2:
         pymel.error("Select at least two objects")
 
-    sources = aSelection[:-1]
-    target = aSelection[-1]
+    sources = selection[:-1]
+    target = selection[-1]
 
     for source in sources:
-        pMatrixToMatch = target.getMatrix(worldSpace=True)
-        source.setMatrix(pMatrixToMatch, worldSpace=True)
+        matrix = target.getMatrix(worldSpace=True)
+        source.setMatrix(matrix, worldSpace=True)

@@ -10,14 +10,14 @@ class TestLips(omtk_test.TestCase):
     def test_avar_connection_persistence(self):
         """Validate connection between avars is conserved between rebuilds."""
         import omtk
-        from omtk.modules import rigHead
+        from omtk.modules import head
         from omtk.modules import rigFaceJaw
         from omtk.modules import rigFaceLips
         from omtk.libs import libRigging
 
         # Create a base rig
         rig = omtk.create()
-        rig.add_module(rigHead.Head([pymel.PyNode("jnt_head")]))
+        rig.add_module(head.Head([pymel.PyNode("jnt_head")]))
         module_jaw = rig.add_module(
             rigFaceJaw.FaceJaw([pymel.PyNode("jnt_jaw"), pymel.PyNode("pSphereShape1")])
         )
@@ -48,13 +48,13 @@ class TestLips(omtk_test.TestCase):
     @omtk_test.open_scene("../resources/test_lips.ma")
     def test_avargrp_withsurface(self):
         import omtk
-        from omtk.modules import rigHead
+        from omtk.modules import head
         from omtk.modules import rigFaceJaw
         from omtk.modules import rigFaceLips
 
         # Create a base rig
         rig = omtk.create()
-        rig.add_module(rigHead.Head([pymel.PyNode("jnt_head")]))
+        rig.add_module(head.Head([pymel.PyNode("jnt_head")]))
         rig.add_module(
             rigFaceJaw.FaceJaw(
                 [pymel.PyNode("jnt_jaw")]

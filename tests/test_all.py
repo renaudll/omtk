@@ -83,7 +83,7 @@ class SampleTests(omtk_test.TestCase):
         rebuild it, we will keep the old index.
         This ensure any rig update will never break an old animation.
         """
-        from omtk.modules import rigFK
+        from omtk.modules import fk
 
         def check_targets_index_match(ctrl):
             self.assertEqual(len(ctrl.targets), len(ctrl.targets_indexes))
@@ -104,10 +104,10 @@ class SampleTests(omtk_test.TestCase):
 
         # Create a simple rig
         r = omtk.create()
-        mod_a = r.add_module(rigFK.FK([inf_a]))
-        mod_b = r.add_module(rigFK.FK([inf_b]))
-        mod_c = r.add_module(rigFK.FK([inf_c]))
-        mod_d = r.add_module(rigFK.FK([inf_d]))
+        mod_a = r.add_module(fk.FK([inf_a]))
+        mod_b = r.add_module(fk.FK([inf_b]))
+        mod_c = r.add_module(fk.FK([inf_c]))
+        mod_d = r.add_module(fk.FK([inf_d]))
 
         # Build the last module
         mod_d.build()

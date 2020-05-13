@@ -4,8 +4,8 @@ Tests for the Arm module.
 import pytest
 import pymel.core as pymel
 from omtk.libs import libRigging
-from omtk.modules.rigArm import Arm
-from omtk.core.classRig import Rig
+from omtk.modules.arm import Arm
+from omtk.core.rig import Rig
 
 
 @pytest.fixture

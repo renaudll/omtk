@@ -68,9 +68,9 @@ class Preferences(object):
             log.warning("Can't find default rig type %s.", default_rig)
 
         # If no match is found, return the base implementation
-        from omtk.core import classRig
+        from omtk.core import rig
 
-        return classRig.Rig
+        return rig.Rig
 
 
 preferences = Preferences()

@@ -12,11 +12,11 @@ import re
 import pymel.core as pymel
 
 from omtk import constants
-from omtk.core import classModule
-from omtk.core import classRig
+from omtk.core import module
+from omtk.core import rig
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libQt
-from omtk.widgets import ui_shared
+from omtk.widgets import _utils
 from omtk.widgets.ui import widget_list_modules
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
@@ -32,6 +32,7 @@ class WidgetListModules(QtWidgets.QWidget):
     """
     A widget that list scene modules.
     """
+
     needExportNetwork = QtCore.Signal()
     needImportNetwork = QtCore.Signal()
     deletedRig = QtCore.Signal(object)
@@ -48,7 +49,7 @@ class WidgetListModules(QtWidgets.QWidget):
         self.ui.setupUi(self)
 
         # Tweak gui
-        self.ui.treeWidget.setStyleSheet(ui_shared.STYLE_SHEET)
+        self.ui.treeWidget.setStyleSheet(_utils.STYLE_SHEET)
 
         # Connect signal
 
@@ -70,7 +71,7 @@ class WidgetListModules(QtWidgets.QWidget):
         Set the displayed rigs
 
         :param rigs: The rigs to display
-        :type rigs: omtk.core.classRig.Rig
+        :type rigs: omtk.core.rig.Rig
         """
         self._rigs = rigs
         self._rig = next(iter(self._rigs), None)
@@ -98,7 +99,7 @@ class WidgetListModules(QtWidgets.QWidget):
         return [
             item.metadata_data
             for item in self.get_selected_items()
-            if item.metadata_type == ui_shared.MetadataType.Module
+            if item.metadata_type == _utils.MetadataType.Module
         ]
 
     def get_selected_rigs(self):
@@ -109,7 +110,7 @@ class WidgetListModules(QtWidgets.QWidget):
         return [
             item.metadata_data
             for item in self.get_selected_items()
-            if item.metadata_type == ui_shared.MetadataType.Rig
+            if item.metadata_type == _utils.MetadataType.Rig
         ]
 
     def update(self, *args, **kwargs):
@@ -149,7 +150,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
         def fn_can_show(qItem, query_regex):
             # Always shows non-module
-            if not qItem.metadata_type == ui_shared.MetadataType.Module:
+            if not qItem.metadata_type == _utils.MetadataType.Module:
                 return True
 
             module = qItem.metadata_data  # Retrieve monkey-patched data
@@ -192,9 +193,9 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("Can't build %s, already built." % val)
             return
 
-        if isinstance(val, classModule.Module):
+        if isinstance(val, module.Module):
             self._build_module(val)
-        elif isinstance(val, classRig.Rig):
+        elif isinstance(val, rig.Rig):
             val.build()
         else:
             raise Exception("Unexpected datatype %s for %s" % (type(val), val))
@@ -207,9 +208,9 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("Can't unbuild %s, already unbuilt." % val)
             return
 
-        if isinstance(val, classModule.Module):
+        if isinstance(val, module.Module):
             self._unbuild_module(val)
-        elif isinstance(val, classRig.Rig):
+        elif isinstance(val, rig.Rig):
             val.unbuild()
         else:
             raise Exception("Unexpected datatype %s for %s" % (type(val), val))
@@ -250,7 +251,7 @@ class WidgetListModules(QtWidgets.QWidget):
             0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked
         )
         item.metadata_data = module
-        item.metadata_type = ui_shared.MetadataType.Module
+        item.metadata_type = _utils.MetadataType.Module
 
     def _update_qitem_rig(self, item, rig):
         label = str(rig)
@@ -265,7 +266,7 @@ class WidgetListModules(QtWidgets.QWidget):
             0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked
         )
 
-        item.metadata_type = ui_shared.MetadataType.Rig
+        item.metadata_type = _utils.MetadataType.Rig
         item.metadata_data = rig
         item.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
@@ -276,9 +277,9 @@ class WidgetListModules(QtWidgets.QWidget):
         else:
             pymel.warning("%s have no _network attributes" % value)
 
-        if isinstance(value, classModule.Module):
+        if isinstance(value, module.Module):
             self._update_qitem_module(widget, value)
-        elif isinstance(value, classRig.Rig):
+        elif isinstance(value, rig.Rig):
             self._update_qitem_rig(widget, value)
         self._rig_to_qtreewidgetitem(value, widget)
 
@@ -318,9 +319,9 @@ class WidgetListModules(QtWidgets.QWidget):
             for input_ in inputs:
                 item = QtWidgets.QTreeWidgetItem(0)
                 item.setText(0, input_.name())
-                item.metadata_type = ui_shared.MetadataType.Influence
+                item.metadata_type = _utils.MetadataType.Influence
                 item.metadata_data = input_
-                ui_shared.set_icon_from_type(input_, item)
+                _utils.set_icon_from_type(input_, item)
                 widget.addChild(item)
         parent.addChild(widget)
 
@@ -334,14 +335,14 @@ class WidgetListModules(QtWidgets.QWidget):
     def _on_build_selected(self):
         for val in self.get_selected_modules():
             self._build(val)
-        ui_shared.update_network(self._rig)
+        _utils.update_network(self._rig)
         self.update()
 
     def _on_unbuild_selected(self):
         for qItem in self.ui.treeWidget.selectedItems():
             val = qItem.metadata_data
             self._unbuild(val)
-            ui_shared.update_network(self._rig)
+            _utils.update_network(self._rig)
         self.update()
 
     def _on_rebuild_selected(self):
@@ -349,7 +350,7 @@ class WidgetListModules(QtWidgets.QWidget):
             val = qItem.metadata_data
             self._unbuild(val)
             self._build(val)
-            ui_shared.update_network(self._rig)
+            _utils.update_network(self._rig)
 
     def _on_module_selection_changed(self):
         # Filter deleted networks
@@ -377,7 +378,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 self._unbuild(
                     module, update=False
                 )  # note: setting update=True on maya-2017 can cause Qt to crash...
-            ui_shared.update_network(self._rig, item=item)
+            _utils.update_network(self._rig, item=item)
 
         # Check if the name have changed
         if item._name != new_text:
@@ -482,7 +483,7 @@ class WidgetListModules(QtWidgets.QWidget):
             if sel:
                 self._listen_events = False
                 selected_item = sel[0]
-                if isinstance(selected_item.metadata_data, classModule.Module):
+                if isinstance(selected_item.metadata_data, module.Module):
                     self._update_qitem_module(
                         selected_item, selected_item.metadata_data
                     )
@@ -494,22 +495,22 @@ class WidgetListModules(QtWidgets.QWidget):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item.metadata_data
-            if isinstance(val, classModule.Module) and not val.locked:
+            if isinstance(val, module.Module) and not val.locked:
                 need_update = True
                 val.locked = True
         if need_update:
-            ui_shared.update_network(self._rig)
+            _utils.update_network(self._rig)
             self.update()
 
     def _on_unlock_selected(self):
         need_update = False
         for item in self.ui.treeWidget.selectedItems():
             val = item.metadata_data
-            if isinstance(val, classModule.Module) and val.locked:
+            if isinstance(val, module.Module) and val.locked:
                 need_update = True
                 val.locked = False
         if need_update:
-            ui_shared.update_network(self._rig)
+            _utils.update_network(self._rig)
             self.update()
 
     def on_remove(self):
@@ -537,7 +538,6 @@ class WidgetListModules(QtWidgets.QWidget):
                 pymel.delete(network)
 
             self.deletedRig.emit(rig)
-
 
         # Remove all selected modules
         for module in selected_modules:

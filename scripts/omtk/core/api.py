@@ -41,7 +41,7 @@ def create(*args, **kwargs):
     Create a rig
 
     :return: A rig instance
-    :rtype: omtk.core.classRig.Rig
+    :rtype: omtk.core.rig.Rig
     """
     from omtk.core import preferences
 
@@ -123,7 +123,7 @@ def _iter_rig_modules_by_type(rig, module_type):
             yield module
 
 
-def _get_modules_from_selection(sel=None):
+def get_modules_from_selection(sel=None):
     from omtk.vendor import libSerialization
 
     def get_rig_network_from_module(network):
@@ -195,7 +195,7 @@ def build_selected():
     Resolve modules related to the selection and build them.
     """
     with with_preserve_selection():
-        rig, modules = _get_modules_from_selection()
+        rig, modules = get_modules_from_selection()
         if not rig or not modules:
             return
 
@@ -262,7 +262,7 @@ def unbuild_selected(sel=None):
     from omtk.vendor import libSerialization
 
     with with_preserve_selection():
-        rig, modules = _get_modules_from_selection()
+        rig, modules = get_modules_from_selection()
         if not rig or not modules:
             return
 
@@ -281,7 +281,7 @@ def unbuild_selected(sel=None):
 
 
 def calibrate_selected(sel=None):
-    rig, modules = _get_modules_from_selection()
+    rig, modules = get_modules_from_selection()
     # Build selected modules
     for module in modules:
         if hasattr(module, "calibrate") and hasattr(module.calibrate, "__call__"):

@@ -4,7 +4,7 @@ Tests for the FaceLips module
 import pymel.core as pymel
 import omtk_test
 import omtk
-from omtk.modules.rigHead import Head
+from omtk.modules.head import Head
 from omtk.modules.rigFaceAvarGrps import AvarGrp
 
 

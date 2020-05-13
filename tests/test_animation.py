@@ -3,7 +3,7 @@ import pymel.core as pymel
 import omtk
 from omtk.vendor import libSerialization
 from omtk.libs import libRigging
-from omtk.modules.rigArm import Arm
+from omtk.modules.arm import Arm
 from omtk.animation import ikfkTools
 
 

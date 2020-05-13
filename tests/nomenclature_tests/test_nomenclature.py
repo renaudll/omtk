@@ -1,4 +1,4 @@
-from omtk.core.className import BaseName
+from omtk.core.name import BaseName
 
 
 def test_nomenclature():

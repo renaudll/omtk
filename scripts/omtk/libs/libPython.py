@@ -5,8 +5,7 @@ import time
 import sys
 import threading
 
-logging = logging.getLogger("libPython")
-logging.setLevel(0)
+_LOG = logging.getLogger(__name__)
 
 
 def resize_list(val, desired_size, default=None):
@@ -74,7 +73,7 @@ def guess_value(
         result = fn_guess(mid)
 
         if abs(1.0 - result) < epsilon:
-            logging.debug("Resolved %s with %s iterations.", mid, iter_count)
+            _LOG.debug("Resolved %s with %s iterations.", mid, iter_count)
             return mid
 
         if result_high > result_low:
@@ -84,5 +83,5 @@ def guess_value(
 
         mid = (low + high) / 2.0
 
-    logging.warning("Could not resolve value under %s iterations.", max_iter)
+    _LOG.warning("Could not resolve value under %s iterations.", max_iter)
     return mid

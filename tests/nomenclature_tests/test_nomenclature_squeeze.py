@@ -1,4 +1,4 @@
-from omtk.rigs.rigSqueeze import SqueezeNomenclature
+from omtk.rigs.squeeze import SqueezeNomenclature
 
 
 def test_nomenclature_squeeze():

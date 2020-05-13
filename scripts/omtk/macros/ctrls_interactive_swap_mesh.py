@@ -1,34 +1,31 @@
 """
 Simple utility to swap the mesh used by an InteractiveCtrl in case the wrong mesh was used.
 """
+import pymel.core as pymel
+
+from omtk.libs import libPymel
+from omtk.core import api
 from omtk.core.macros import BaseMacro
+from omtk.modules.face.avar_grp import AvarGrp
+from omtk.modules.face.avar import AbstractAvar
+from omtk.modules.face.models.avar_to_ctrl.linear import ModelCtrlLinear
 
 
 class CtrlInteractiveSwapMesh(BaseMacro):
     def _iter_ictrl(self):
-        from omtk import api
-        from omtk.modules import rigFaceAvarGrps
-        from omtk.modules import rigFaceAvar
-        from omtk.models import model_ctrl_linear
-
-        rig, modules = api._get_modules_from_selection()
+        rig, modules = api.get_modules_from_selection()
         # Build selected modules
         for module in modules:
-            if isinstance(module, rigFaceAvarGrps.AvarGrp):
+            if isinstance(module, AvarGrp):
                 for avar in module.iter_avars():
                     if (
-                        isinstance(avar, rigFaceAvar.AbstractAvar)
+                        isinstance(avar, AbstractAvar)
                         and avar.model_ctrl
-                        and isinstance(
-                            avar.model_ctrl, model_ctrl_linear.ModelCtrlLinear
-                        )
+                        and isinstance(avar.model_ctrl, ModelCtrlLinear)
                     ):
                         yield avar.model_ctrl
 
     def run(self):
-        import pymel.core as pymel
-        from omtk.libs import libPymel
-
         mesh = next(
             (
                 obj

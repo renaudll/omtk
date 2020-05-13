@@ -15,8 +15,8 @@ from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
 
 
 class BaseCtrlFace(classCtrl.BaseCtrl):
-    def __createNode__(self, normal=(0, 0, 1), **kwargs):
-        return super(BaseCtrlFace, self).__createNode__(normal=normal, **kwargs)
+    def create_ctrl(self, normal=(0, 0, 1), **kwargs):
+        return super(BaseCtrlFace, self).create_ctrl(normal=normal, **kwargs)
 
     def fetch_shapes(self):
         """
@@ -36,7 +36,7 @@ class CtrlFaceMicro(BaseCtrlFace):
     Micro avars don't trigger any secondary movement.
     """
 
-    def __createNode__(self, normal=(0, 0, 1), **kwargs):
+    def create_ctrl(self, normal=(0, 0, 1), **kwargs):
         """
         Create the ctrl node
 
@@ -47,7 +47,7 @@ class CtrlFaceMicro(BaseCtrlFace):
         :return: A ctrl transform node
         :rtype: pymel.nodetypes.Transform
         """
-        return super(CtrlFaceMicro, self).__createNode__(normal=normal, **kwargs)
+        return super(CtrlFaceMicro, self).create_ctrl(normal=normal, **kwargs)
 
 
 class CtrlFaceMacro(BaseCtrlFace):
@@ -56,13 +56,13 @@ class CtrlFaceMacro(BaseCtrlFace):
     Macro avars create secondary movement in the face by orchestrating micro avars.
     """
 
-    def __createNode__(self, **kwargs):
+    def create_ctrl(self, **kwargs):
         return libCtrlShapes.create_square(**kwargs)
 
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
-    def __createNode__(self, width=4.5, height=1.2, **kwargs):
-        return super(CtrlFaceMacroAll, self).__createNode__(
+    def create_ctrl(self, width=4.5, height=1.2, **kwargs):
+        return super(CtrlFaceMacroAll, self).create_ctrl(
             width=width, height=height, **kwargs
         )
 
@@ -313,8 +313,8 @@ class Avar(AbstractAvar):
     CLS_MODEL_CTRL = ModelInteractiveCtrl
     CLS_MODEL_INFL = model_avar_surface.AvarSurfaceModel
 
-    def __init__(self, input=None, name=None, rig=None):
-        super(Avar, self).__init__(input=input, name=name, rig=rig)
+    def __init__(self, input=None, name=None, rig=None, parent=None):
+        super(Avar, self).__init__(input=input, name=name, rig=rig, parent=None)
 
         self._stack_post = None
         self.grp_offset = None
@@ -322,6 +322,7 @@ class Avar(AbstractAvar):
         # Bind input for the ctrl model, can be modified by subclasses.
         self._grp_default_ctrl_model = None
 
+        # Pre-initialize sub-modules so we can validate them
         self.model_ctrl = self._init_model_ctrl()
         self.model_infl = self._init_model_infl()
 

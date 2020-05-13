@@ -11,7 +11,7 @@ from omtk.libs import libRigging
 
 
 class CtrlEyes(BaseCtrl):
-    def __createNode__(self, width=1.0, height=1.0, normal=(0, 0, 1), *args, **kwargs):
+    def create_ctrl(self, width=1.0, height=1.0, normal=(0, 0, 1), *args, **kwargs):
         return pymel.curve(
             d=2,
             p=[
@@ -29,8 +29,8 @@ class CtrlEyes(BaseCtrl):
 
 
 class CtrlEye(BaseCtrl):
-    def __createNode__(self, normal=(0, 0, 1), *args, **kwargs):
-        return super(CtrlEye, self).__createNode__(normal=normal, *args, **kwargs)
+    def create_ctrl(self, normal=(0, 0, 1), *args, **kwargs):
+        return super(CtrlEye, self).create_ctrl(normal=normal, *args, **kwargs)
 
 
 #
@@ -102,8 +102,8 @@ class AvarEye(rigFaceAvar.Avar):
         aim_node.setParent(aim_grp)
 
         aim_grp.setTranslation(self.jnt.getTranslation(space="world"))
-        if self.parent:
-            pymel.parentConstraint(self.parent, aim_grp, maintainOffset=True)
+        if self.parent_jnt:
+            pymel.parentConstraint(self.parent_jnt, aim_grp, maintainOffset=True)
 
         aim_target_name = naming.resolve("target")
         aim_target = pymel.createNode("transform", name=aim_target_name)
@@ -180,7 +180,7 @@ class FaceEyes(rigFaceAvarGrps.AvarGrp):
         return result or super(FaceEyes, self).get_parent_obj(**kwargs)
 
     def build(self, *args, **kwargs):
-        if self.parent is None:
+        if self.parent_jnt is None:
             raise Exception("Can't build FaceEyes, no parent found!")
 
         super(FaceEyes, self).build(parent=True, *args, **kwargs)

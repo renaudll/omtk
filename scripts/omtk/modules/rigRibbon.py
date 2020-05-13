@@ -14,8 +14,8 @@ class CtrlRibbon(BaseCtrl):
     Inherit of base Ctrl to create a specific square shaped controller
     """
 
-    def __createNode__(self, *args, **kwargs):  # pylint: disable=arguments-differ
-        node = super(CtrlRibbon, self).__createNode__(*args, **kwargs)
+    def create_ctrl(self, *args, **kwargs):  # pylint: disable=arguments-differ
+        node = super(CtrlRibbon, self).create_ctrl(*args, **kwargs)
         make = next(iter(node.getShape().create.inputs()), None)
         if make:
             make.degree.set(1)

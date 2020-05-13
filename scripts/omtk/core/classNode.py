@@ -43,7 +43,7 @@ class Node(object):
         else:
             return super(Node, self).__str__()
 
-    def __createNode__(self, *args, **kwargs):
+    def create_ctrl(self, *args, **kwargs):
         return pymel.createNode("transform", *args, **kwargs)
 
     def __getNetworkName__(self):
@@ -68,7 +68,7 @@ class Node(object):
         return libPymel.is_valid_PyNode(self.node)
 
     def build(self, name=None, *args, **kwargs):
-        self.node = self.__createNode__(*args, **kwargs)
+        self.node = self.create_ctrl(*args, **kwargs)
         if name:
             self.node.rename(name)  # TODO: Prevent name collision?
 

@@ -13,8 +13,8 @@ class CtrlFk(BaseCtrl):
     An FK controller
     """
 
-    def __createNode__(self, *args, **kwargs):
-        node = super(CtrlFk, self).__createNode__(multiplier=1.1, *args, **kwargs)
+    def create_ctrl(self, *args, **kwargs):
+        node = super(CtrlFk, self).create_ctrl(multiplier=1.1, *args, **kwargs)
 
         make = next(iter(node.inputs()), None)
         if make:
@@ -106,7 +106,7 @@ class FK(Module):
             kwargs = {"add_world": True}
             if not self.sw_translate:
                 kwargs["skipTranslate"] = ["x", "y", "z"]
-            ctrls[0].create_spaceswitch(self, self.parent, **kwargs)
+            ctrls[0].create_spaceswitch(self, self.parent_jnt, **kwargs)
 
         return ctrls
 
@@ -143,7 +143,7 @@ class FK(Module):
         naming_anm = self.get_nomenclature_anm()
 
         # Resolve ctrl name.
-        naming = naming_anm + self.rig.nomenclature(basename)
+        naming = naming_anm + self.rig.nomenclature(basename, suffix=None, prefix=None)
 
         if self._FORCE_INPUT_NAME:
             return naming.resolve()

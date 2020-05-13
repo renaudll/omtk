@@ -8,12 +8,12 @@ import pymel.core as pymel
 
 
 class CtrlEyeLidUpp(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         return libCtrlShapes.create_triangle_upp(size=size)
 
 
 class CtrlEyeLidLow(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         return libCtrlShapes.create_triangle_low(size=size)
 
 

@@ -101,14 +101,14 @@ class Hand(Module):
             else:
                 sys_metacarpal = self.fk_sys_metacarpals[i]
                 sys_metacarpal = rigFK.FK.from_instance(
-                    self.rig, sys_metacarpal, self.name, inputs=jnts_metacarpal
+                    self, sys_metacarpal, self.name, inputs=jnts_metacarpal
                 )
                 sys_metacarpal._FORCE_INPUT_NAME = True
                 self.fk_sys_metacarpals[i] = sys_metacarpal
 
             # Init finger module
             self.sysFingers[i] = rigFKAdditive.AdditiveFK.from_instance(
-                self.rig, self.sysFingers[i], self.name, inputs=jnts_phalanges,
+                self, self.sysFingers[i], self.name, inputs=jnts_phalanges,
             )
 
         # Build modules
@@ -139,7 +139,7 @@ class Hand(Module):
             pos_mid = ((pos_out - pos_inn) / 2.0) + pos_inn
 
             # Resolve the metacarpal plane orientation
-            parent_tm = self.parent.getMatrix(worldSpace=True)
+            parent_tm = self.parent_jnt.getMatrix(worldSpace=True)
             z_axis = pos_out - pos_inn
             z_axis.normalize()
             y_axis = pymel.datatypes.Vector(parent_tm.a10, parent_tm.a11, parent_tm.a12)
@@ -159,7 +159,7 @@ class Hand(Module):
             rig_metacarpal_center.setMatrix(ref_tm)
             rig_metacarpal_center.setParent(self.grp_rig)
             pymel.parentConstraint(
-                self.parent, rig_metacarpal_center, maintainOffset=True
+                self.parent_jnt, rig_metacarpal_center, maintainOffset=True
             )
 
             # Create the 'cup' attribute
@@ -197,7 +197,7 @@ class Hand(Module):
             pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleY)
             pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleZ)
 
-        pymel.parentConstraint(self.parent, self.grp_anm, maintainOffset=True)
+        pymel.parentConstraint(self.parent_jnt, self.grp_anm, maintainOffset=True)
 
     def unbuild(self):
         for sysFinger in self.sysFingers:

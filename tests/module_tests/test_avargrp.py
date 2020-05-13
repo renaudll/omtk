@@ -12,7 +12,7 @@ class TestAvarGrp(omtk_test.TestCase):
     @omtk_test.open_scene("../resources/test_lips.ma")
     def test_avargrp_withsurface(self):
         """
-        Ensure there's always a nurbsSurface created for an AvarGrpOnSurface
+        Ensure there's always a nurbsSurface created for an AvarGrp
         and that it is correctly propagated to it's child avars.
         """
         # Create a base rig

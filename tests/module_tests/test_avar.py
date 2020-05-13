@@ -7,17 +7,17 @@ from omtk.models.model_avar_linear import AvarLinearModel
 from omtk.models.model_avar_surface import AvarSurfaceModel
 from omtk.models.model_ctrl_linear import ModelCtrlLinear
 from omtk.models.model_ctrl_interactive import ModelInteractiveCtrl
-from omtk.modules.rigFaceAvar import AvarSimple
+from omtk.modules.rigFaceAvar import Avar
 
 
-class AvarImpl1(AvarSimple):
+class AvarImpl1(Avar):
     """Implementation that test linear ctrl and influence models."""
 
     CLS_MODEL_CTRL = ModelCtrlLinear
     CLS_MODEL_INFL = AvarLinearModel
 
 
-class AvarImpl2(AvarSimple):
+class AvarImpl2(Avar):
     """Implementation that test surface based ctrl and influence models."""
 
     CLS_MODEL_CTRL = ModelInteractiveCtrl

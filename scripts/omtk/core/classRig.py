@@ -6,6 +6,7 @@ import pymel.core as pymel
 from omtk import constants
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classNode import Node
+from omtk.core.classBuildable import Buildable
 from omtk.core.exceptions import ValidationError
 from omtk.core import className
 from omtk.core import api
@@ -26,7 +27,7 @@ class CtrlRoot(BaseCtrl):
     def __init__(self, *args, **kwargs):
         super(CtrlRoot, self).__init__(create_offset=False, *args, **kwargs)
 
-    def __createNode__(self, size=10, *args, **kwargs):
+    def create_ctrl(self, size=10, *args, **kwargs):
         """
         Create a wide circle.
         """
@@ -101,19 +102,7 @@ class RigGrp(Node):
                 super(RigGrp, self).unbuild(*args, **kwargs)
 
 
-class RigLoggerAdapter(logging.LoggerAdapter):
-    """
-    Logger adapter that add a rig namespace to any logger message.
-    """
-
-    def __init__(self, rig):  # type: (Rig,) -> None
-        super(RigLoggerAdapter, self).__init__(logging.getLogger("omtk"), {"rig": rig})
-
-    def process(self, msg, kwargs):  # type: (str, dict) -> (str, dict)
-        return "[%s] %s" % (self.extra["rig"].name, msg), kwargs
-
-
-class Rig(object):
+class Rig(Buildable):
     DEFAULT_NAME = "untitled"
     LEFT_CTRL_COLOR = 13  # Red
     RIGHT_CTRL_COLOR = 6  # Blue
@@ -141,9 +130,8 @@ class Rig(object):
     LEGACY_LEG_IK_CTRL_ORIENTATION = False
 
     def __init__(self, name=None):
-        self.name = name or self.DEFAULT_NAME
-        self._log = RigLoggerAdapter(self)
-        self.modules = []
+        super(Rig, self).__init__(name=name)
+
         self.grp_anm = None  # Anim Grp, usually the root ctrl
         self.grp_geo = None  # Geometry grp
         self.grp_jnt = None  # Joint grp, usually the root jnt
@@ -164,37 +152,42 @@ class Rig(object):
         # Note: The real property is hidden so it don't get handled by libSerialization
         return self._log
 
-    #
-    # className.BaseNomenclature implementation
-    #
+    def __callbackNetworkPostBuild__(self):
+        """
+        Cleaning routine automatically called by libSerialization after a network import.
+        """
+        super(Rig, self).__callbackNetworkPostBuild__()
 
-    def _get_nomenclature_cls(self):
-        """
-        :return: Return the nomenclature type class that will determine the production specific nomenclature to use.
-        """
-        return className.BaseName
+        # Previous versions of Rig used "modules" instead of "children"
+        try:
+            modules = self.__dict__.pop("modules")
+        except KeyError:
+            pass
+        else:
+            modules = filter(None, modules)
+            self.__dict__["children"].extend(modules)
 
     @property
-    def nomenclature(self):
+    def nomenclature(self):  # TODO: Deprecate
         """
         Singleton that will return the nomenclature to use.
         """
-        return self._get_nomenclature_cls()
+        return self.NOMENCLATURE_CLS
 
     #
     # collections.MutableSequence implementation
     #
     def __getitem__(self, item):
-        self.modules.__getitem__(item)
+        self.children.__getitem__(item)
 
     def __setitem__(self, index, value):
-        self.modules.__setitem__(index, value)
+        self.children.__setitem__(index, value)
 
     def __delitem__(self, index):
-        self.modules.__delitem__(index)
+        self.children.__delitem__(index)
 
     def __len__(self):
-        return self.modules.__len__()
+        return self.children.__len__()
 
     def __nonzero__(self):
         """
@@ -205,11 +198,11 @@ class Rig(object):
         return True
 
     def insert(self, index, value):
-        self.modules.insert(index, value)
+        self.children.insert(index, value)
         value._parent = self  # Store the parent for optimized network serialization (see libs.libSerialization)
 
     def __iter__(self):
-        return iter(self.modules)
+        return iter(self.children)
 
     def __str__(self):
         version = getattr(self, "version", "")
@@ -220,20 +213,6 @@ class Rig(object):
             self.__class__.__name__,
             version,
         )
-
-    #
-    # libSerialization implementation
-    #
-    def __callbackNetworkPostBuild__(self):
-        """
-        Cleaning routine automatically called by libSerialization after a network import.
-        """
-
-        # Ensure there's no None value in the .children array.
-        try:
-            self.modules = filter(None, self.modules)
-        except (AttributeError, TypeError):
-            pass
 
     #
     # Main implementation
@@ -247,7 +226,7 @@ class Rig(object):
         :return: A unique name
         :rtype: str
         """
-        module_names = {module.name for module in self.modules}
+        module_names = {module.name for module in self.children}
         str_format = "{0}{1}"
         counter = itertools.count(start=1)
         while True:
@@ -271,53 +250,31 @@ class Rig(object):
         default_name = self._get_unique_name(default_name)
         inst.name = default_name
 
-        self.modules.append(inst)
+        inst.parent = self
 
         return inst
 
     def remove_module(self, inst):
-        self.modules.remove(inst)
+        self.children.remove(inst)
 
-    def is_built(self):
-        """
-        :return: True if any module dag nodes exist in the scene.
-        """
-        for module in self.modules:
-            # Ignore the state of any locked module
-            if module.locked:
-                continue
-            if module.is_built():
-                return True
-
-        if self.grp_anm and self.grp_anm.exists():
-            return True
-
-        if self.grp_rig and self.grp_rig.exists():
-            return True
-
-        return False
-
-    def _clean_invalid_pynodes(self):
-        fnCanDelete = lambda x: (
-            isinstance(x, (pymel.PyNode, pymel.Attribute))
-            and not libPymel.is_valid_PyNode(x)
-        )
-        for key, val in self.__dict__.iteritems():
-            if fnCanDelete(val):
-                setattr(self, key, None)
-            elif isinstance(val, (list, set, tuple)):
-                for i in reversed(range(len(val))):
-                    if fnCanDelete(val[i]):
-                        val.pop(i)
-                if len(val) == 0:
-                    setattr(self, key, None)
-
-    def validate(self):
-        """
-        Check if the module can be built in it's current state.
-
-        :raises ValidationError: If the module fail to validate.
-        """
+    # def is_built(self):
+    #     """
+    #     :return: True if any module dag nodes exist in the scene.
+    #     """
+    #     for module in self.children:
+    #         # Ignore the state of any locked module
+    #         if module.locked:
+    #             continue
+    #         if module.is_built():
+    #             return True
+    #
+    #     if self.grp_anm and self.grp_anm.exists():
+    #         return True
+    #
+    #     if self.grp_rig and self.grp_rig.exists():
+    #         return True
+    #
+    #     return False
 
     def _get_all_input_shapes(self):
         """
@@ -325,7 +282,7 @@ class Rig(object):
         :return: All the module inputs shapes.
         """
         result = set()
-        for module in self.modules:
+        for module in self.children:
             if module.input:
                 for input in module.input:
                     if isinstance(input, pymel.nodetypes.Transform):
@@ -386,7 +343,7 @@ class Rig(object):
 
     def get_influences(self, key=None):
         result = set()
-        for module in self.modules:
+        for module in self.children:
             for obj in module.input:
                 if key is None or key(obj):
                     result.add(obj)
@@ -395,7 +352,7 @@ class Rig(object):
     def iter_ctrls(self, include_grp_anm=True):
         if include_grp_anm and self.grp_anm and self.grp_anm.exists():
             yield self.grp_anm
-        for module in self.modules:
+        for module in self.children:
             if module.is_built():
                 for ctrl in module.iter_ctrls():
                     if ctrl:
@@ -606,7 +563,8 @@ class Rig(object):
         :return: True if sucessfull, False otherwise.
         """
         # Resolve modules to build
-        modules = modules or self.modules
+        # TODO: Move dependencies sorting to the base class
+        modules = modules or self.children
         modules = _expand_modules_dependencies(modules)
         modules = (module for module in modules if not module.locked)
         modules = (module for module in modules if not module.is_built())
@@ -726,7 +684,7 @@ class Rig(object):
 
     def _unbuild_modules(self):
         # Unbuild all children
-        for module in self.modules:
+        for module in self.children:
             if not module.is_built():
                 continue
 
@@ -768,15 +726,15 @@ class Rig(object):
         # Remove any references to missing pynodes
         # HACK --> Remove clean invalid PyNode
         self._clean_invalid_pynodes()
-        if self.modules is None:
-            self.modules = []
+        if self.children is None:
+            self.children = []
 
     #
     # Utility methods
     #
 
     def get_module_by_input(self, obj):
-        for module in self.modules:
+        for module in self.children:
             if obj in module.input:
                 return module
 
@@ -815,7 +773,7 @@ class Rig(object):
         result = []
         from omtk.modules import rigHead
 
-        for module in self.modules:
+        for module in self.children:
             if isinstance(module, rigHead.Head):
                 result.append(module.jnt)
         if strict and not result:
@@ -828,7 +786,7 @@ class Rig(object):
     def get_jaw_jnt(self, strict=True):
         from omtk.modules import rigFaceJaw
 
-        for module in self.modules:
+        for module in self.children:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 return module.jnt
         if strict:

@@ -21,13 +21,6 @@ class FaceLipsAvar(rigFaceAvar.Avar):
 
     CLS_MODEL_INFL = model_avar_surface_lips.AvarSurfaceLipModel
 
-    # def _connect_influence_model(self):
-    #     super(FaceLipsAvar, self)._connect_influence_model()
-    #
-    #     # Connect jaw influence
-    #     attr_dst = pymel.PyNode(self.model_infl.compound.input)
-    #     pymel.connectAttr(self.grp_rig.avar, attr_dst)
-
 
 class FaceLips(rigFaceAvarGrps.AvarGrp):
     """
@@ -37,8 +30,6 @@ class FaceLips(rigFaceAvarGrps.AvarGrp):
     """
 
     CLS_AVAR_MICRO = FaceLipsAvar
-    # TODO: Implement with CLS_AVAR_MACRO
-    # _CLS_AVAR_MACRO = FaceLipsAvar  # necessary to feed the jawArc to the ctrl model
     IS_SIDE_SPECIFIC = False
     SHOW_IN_UI = True
     CREATE_MACRO_AVAR_HORIZONTAL = True

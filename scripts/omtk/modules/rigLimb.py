@@ -20,7 +20,7 @@ from omtk.libs import libPython
 
 
 class BaseAttHolder(BaseCtrl):
-    def __createNode__(self, size=None, refs=None, **kwargs):
+    def create_ctrl(self, size=None, refs=None, **kwargs):
         # Resolve size automatically if refs are provided.
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if size is None and ref is not None:
@@ -39,7 +39,7 @@ class BaseAttHolder(BaseCtrl):
 
 
 class CtrlElbow(BaseCtrl):
-    def __createNode__(self, size=None, refs=None, *args, **kwargs):
+    def create_ctrl(self, size=None, refs=None, *args, **kwargs):
         # Resolve size automatically if refs are provided
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if size is None and ref is not None:
@@ -49,6 +49,23 @@ class CtrlElbow(BaseCtrl):
 
         return libCtrlShapes.create_shape_cross(size=size, **kwargs)
 
+class LimbFK(rigFK.FK):
+    _FORCE_INPUT_NAME = True
+    AFFECT_INPUTS = False
+
+    def build(self, *args, **kwargs):
+        super(LimbFK, self).build(*args, **kwargs)
+
+        # Lock X and Y axis on the elbow/knee ctrl
+        if self.rig.DEFAULT_UPP_AXIS == constants.Axis.y:
+            libAttr.lock_hide_rotation(self.ctrls[1], z=False)
+        elif self.rig.DEFAULT_UPP_AXIS == constants.Axis.z:
+            libAttr.lock_hide_rotation(self.ctrls[1], y=False)
+
+
+class LimbIK(rigIK.IK):
+    AFFECT_INPUTS = False
+
 
 class Limb(Module):
     """
@@ -56,8 +73,8 @@ class Limb(Module):
     """
 
     kAttrName_State = "fkIk"  # The name of the IK/FK attribute
-    _CLASS_SYS_IK = rigIK.IK
-    _CLASS_SYS_FK = rigFK.FK
+    _CLASS_SYS_IK = LimbIK
+    _CLASS_SYS_FK = LimbFK
     _CLASS_CTRL_ATTR = BaseAttHolder
     _CLASS_CTRL_ELBOW = CtrlElbow
     _CLASS_SYS_TWIST = rigTwistbone.Twistbone
@@ -76,62 +93,43 @@ class Limb(Module):
         self.STATE_FK = 0.0
 
     def build(self, *args, **kwargs):
-        super(Limb, self).build(*args, **kwargs)
-
-        nomenclature_anm = self.get_nomenclature_anm()
-        naming = self.get_nomenclature_rig()
-
-        # Resolve IK system name
+        self.children = []
 
         # Create IK system
         self.sysIK = self._CLASS_SYS_IK.from_instance(
-            self.rig,
+            self,
             self.sysIK,
-            (self.get_nomenclature() + "ik").resolve(),
+            "ik",
             inputs=self.chain_jnt,
         )
-        self.sysIK.build(constraint=False, **kwargs)
 
         # Create FK system
         self.sysFK = self._CLASS_SYS_FK.from_instance(
-            self.rig,
+            self,
             self.sysFK,
-            (self.get_nomenclature() + "fk").resolve(),
+            "fk",
             inputs=self.chain_jnt,
         )
-        # We want to keep the name of the input on the fk
-        self.sysFK._FORCE_INPUT_NAME = True
-        self.sysFK.build(constraint=False, **kwargs)
 
-        # Create twistbone system if needed
+        # Create twistbones
         if self.create_twist:
             num_twist_sys = self.sysIK.iCtrlIndex
             # Ensure the twistbone list have the proper size
             libPython.resize_list(self.sys_twist, num_twist_sys)
 
             # If the IK system is a quad, we need to have two twist system
-            for i, sys_twist in enumerate(self.sys_twist):
-                # Resolve module name
-                # todo: validate name
-                twist_nomenclature = self.get_nomenclature().copy()
-                twist_nomenclature.add_tokens("bend")
-                twist_nomenclature += self.rig.nomenclature(
-                    self.chain_jnt[i].stripNamespace().nodeName()
-                )
+            self.sys_twist = [
+                self._CLASS_SYS_TWIST.from_instance(
+                    self, sys_twist, "twist%s" % i, inputs=self.chain_jnt[i: (i + 2)],
+                ) for i, sys_twist in enumerate(self.sys_twist)
+            ]
+        else:
+            self.sys_twist = []
 
-                sys_twist = self._CLASS_SYS_TWIST.from_instance(
-                    self.rig, sys_twist, self.name, inputs=self.chain_jnt[i : (i + 2)],
-                )
-                self.sys_twist[i] = sys_twist
-                sys_twist.name = twist_nomenclature.resolve()
+        super(Limb, self).build(*args, **kwargs)
 
-                sys_twist.build(num_twist=3, create_bend=True, **kwargs)
-
-        # Lock X and Y axis on the elbow/knee ctrl
-        if self.rig.DEFAULT_UPP_AXIS == constants.Axis.y:
-            libAttr.lock_hide_rotation(self.sysFK.ctrls[1], z=False)
-        elif self.rig.DEFAULT_UPP_AXIS == constants.Axis.z:
-            libAttr.lock_hide_rotation(self.sysFK.ctrls[1], y=False)
+        nomenclature_anm = self.get_nomenclature_anm()
+        naming = self.get_nomenclature_rig()
 
         # Store the offset between the ik ctrl and it's joint equivalent.
         # Useful when they don't match for example on a leg setup.
@@ -301,27 +299,10 @@ class Limb(Module):
             self.grp_rig.globalScale
         )  # Expose the attribute, the rig will recognise it.
 
-        # Parent sub-modules so they are affected by displayLayer assignment and such.
-        self.sysIK.grp_anm.setParent(self.grp_anm)
-        self.sysIK.grp_rig.setParent(self.grp_rig)
-        self.sysFK.grp_anm.setParent(self.grp_anm)
-        # Patch in case twist network exist, but twist are set to false
-        if self.create_twist:
-            for sys_twist in self.sys_twist:
-                if sys_twist.create_bend:
-                    sys_twist.grp_anm.setParent(self.grp_anm)
-                sys_twist.grp_rig.setParent(self.grp_rig)
 
         self.attState = attr_ik_weight  # Expose state
 
     def unbuild(self):
-        for twist_sys in self.sys_twist:
-            twist_sys.unbuild()
-        if self.sysIK and self.sysIK.is_built():
-            self.sysIK.unbuild()
-        if self.sysFK and self.sysFK.is_built():
-            self.sysFK.unbuild()
-
         super(Limb, self).unbuild()
 
         self.attState = None

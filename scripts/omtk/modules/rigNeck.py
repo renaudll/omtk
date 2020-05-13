@@ -40,7 +40,7 @@ class Neck(rigFK.FK):
             twist_nomenclature.add_tokens("bend")
 
             self.sys_twist = self._CLASS_SYS_TWIST.from_instance(
-                self.rig, self.sys_twist, self.name, inputs=[jnt_s, jnt_e],
+                self, self.sys_twist, self.name, inputs=[jnt_s, jnt_e],
             )
             self.sys_twist.name = twist_nomenclature.resolve()
             self.sys_twist.build(num_twist=3, create_bend=True)

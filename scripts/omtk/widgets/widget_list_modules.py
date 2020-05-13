@@ -185,21 +185,12 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("Can't build %s, already built." % val)
             return
 
-        try:
-            if isinstance(val, classModule.Module):
-                self._build_module(val)
-            elif isinstance(val, classRig.Rig):
-                val.build()
-            else:
-                raise Exception("Unexpected datatype %s for %s" % (type(val), val))
-        except Exception as error:
-            log.error(
-                "Error building %s. Received %s. %s",
-                val,
-                type(error).__name__,
-                str(error).strip(),
-            )
-            traceback.print_exc()
+        if isinstance(val, classModule.Module):
+            self._build_module(val)
+        elif isinstance(val, classRig.Rig):
+            val.build()
+        else:
+            raise Exception("Unexpected datatype %s for %s" % (type(val), val))
 
         if update:
             self.update()
@@ -209,21 +200,12 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("Can't unbuild %s, already unbuilt." % val)
             return
 
-        try:
-            if isinstance(val, classModule.Module):
-                self._unbuild_module(val)
-            elif isinstance(val, classRig.Rig):
-                val.unbuild()
-            else:
-                raise Exception("Unexpected datatype %s for %s" % (type(val), val))
-        except Exception as error:
-            log.error(
-                "Error building %s. Received %s. %s",
-                val,
-                type(error).__name__,
-                str(error).strip(),
-            )
-            traceback.print_exc()
+        if isinstance(val, classModule.Module):
+            self._unbuild_module(val)
+        elif isinstance(val, classRig.Rig):
+            val.unbuild()
+        else:
+            raise Exception("Unexpected datatype %s for %s" % (type(val), val))
 
         if update:
             self.update()
@@ -239,29 +221,7 @@ class WidgetListModules(QtWidgets.QWidget):
         if module.locked:
             qitem.setBackground(0, self._color_locked)
             label += " (locked)"
-        elif module.is_built():
-            # Add a warning on outdated versions
-            version_major, version_minor, version_patch = module.get_version()
-            if (
-                version_major is not None
-                and version_minor is not None
-                and version_patch is not None
-            ):
-                warning_msg = ""
-                try:
-                    module.validate_version(version_major, version_minor, version_patch)
-                except Exception as error:
-                    warning_msg = (
-                        "v%s.%s.%s is known to have issues and need to be updated: %s"
-                        % (version_major, version_minor, version_patch, error)
-                    )
 
-                if warning_msg:
-                    desired_color = self._color_warning
-                    qitem.setToolTip(0, warning_msg)
-                    qitem.setBackground(0, desired_color)
-                    label += " (problematic)"
-                    module.warning(warning_msg)
         else:
             # Set QTreeWidgetItem red if the module fail validation
             try:
@@ -563,41 +523,23 @@ class WidgetListModules(QtWidgets.QWidget):
 
         # Remove all selected rigs second
         for rig in selected_rigs:
-            try:
-                if rig.is_built():
-                    rig.unbuild()
+            if rig.is_built():
+                rig.unbuild()
 
-                # Manually delete network
-                network = rig._network
-                if network and network.exists():
-                    pymel.delete(network)
+            # Manually delete network
+            network = rig._network
+            if network and network.exists():
+                pymel.delete(network)
 
-                self.deletedRig.emit(rig)
+            self.deletedRig.emit(rig)
 
-            except Exception as error:
-                log.error(
-                    "Error removing %s. Received %s. %s",
-                    rig,
-                    type(error).__name__,
-                    str(error).strip(),
-                )
-                traceback.print_exc()
 
         # Remove all selected modules
         for module in selected_modules:
-            try:
-                if module.is_built():
-                    module.unbuild()
-                module.rig.remove_module(module)
-                need_reexport = True
-            except Exception as error:
-                log.error(
-                    "Error removing %s. Received %s. %s",
-                    module,
-                    type(error).__name__,
-                    str(error).strip(),
-                )
-                traceback.print_exc()
+            if module.is_built():
+                module.unbuild()
+            module.rig.remove_module(module)
+            need_reexport = True
 
         if need_reexport:
             self.needExportNetwork.emit()

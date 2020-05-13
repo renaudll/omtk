@@ -14,7 +14,7 @@ class CtrlBrow(rigFaceAvar.BaseCtrlFace):
     Ctrl for brow avars
     """
 
-    def __createNode__(self, **kwargs):
+    def create_ctrl(self, **kwargs):
         """
         Build the
         :param dict kwargs: Keyword arguments, unused

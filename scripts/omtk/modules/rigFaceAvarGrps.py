@@ -39,7 +39,7 @@ class CtrlFaceUpp(rigFaceAvar.BaseCtrlFace):
     Base controller class for an avar controlling the top portion of an AvarGrp.
     """
 
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         return libCtrlShapes.create_triangle_upp(size=size)
 
 
@@ -48,7 +48,7 @@ class CtrlFaceLow(rigFaceAvar.BaseCtrlFace):
     Base controller class for an avar controlling the bottom portion of an AvarGrp.
     """
 
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         return libCtrlShapes.create_triangle_low(size=size)
 
 
@@ -57,17 +57,17 @@ class CtrlFaceHorizontal(rigFaceAvar.BaseCtrlFace):
     Base controller class for an avar controlling the left or right part of an AvarGrp.
     """
 
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         return libCtrlShapes.create_triangle_left(size=size)
 
 
 class CtrlFaceMacroL(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         return libCtrlShapes.create_triangle_left(size=size)
 
 
 class CtrlFaceMacroR(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         return libCtrlShapes.create_triangle_right(size=size)
 
 
@@ -111,7 +111,7 @@ class CtrlFaceAll(rigFaceAvar.BaseCtrlFace):
 
     ATTR_NAME_GLOBAL_SCALE = "globalScale"
 
-    def __createNode__(self, size=1.0, **kwargs):
+    def create_ctrl(self, size=1.0, **kwargs):
         # todo: find the best shape
         return libCtrlShapes.create_shape_circle(size=size, normal=(0, 0, 1))[0]
 

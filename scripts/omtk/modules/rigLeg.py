@@ -17,7 +17,7 @@ class CtrlIkLeg(rigIK.CtrlIk):
     Inherit of base CtrlIk to create a specific box shaped controller
     """
 
-    def __createNode__(self, *args, **kwargs):
+    def create_ctrl(self, *args, **kwargs):
         return libCtrlShapes.create_shape_box_feet(*args, **kwargs)
 
 

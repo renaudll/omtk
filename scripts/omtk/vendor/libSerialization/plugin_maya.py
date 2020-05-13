@@ -256,7 +256,6 @@ def _set_attr(_plug, data, cache=None):
         return
 
     else:
-        print data, data_type
         raise NotImplementedError
 
 
@@ -459,13 +458,16 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
         if isinstance(obj, dict):
             obj[attr_name.longName()] = val
         else:
-            setattr(obj, attr_name, val)
+            try:
+                setattr(obj, attr_name, val)
+            except AttributeError as error:
+                print(obj, attr_name, val, error)
 
     # Execute the __callbackNetworkPostBuild__ hook.
     # This can be used to act immediately after import.
     try:
         obj.__callbackNetworkPostBuild__()
-    except (AttributeError, TypeError):
+    except (AttributeError, TypeError) as error:
         pass
 
     return obj
@@ -482,12 +484,12 @@ def is_network_from_class(net, cls_name):
     # HACK: Backward compatibility with the old system.
     # Previously the full namespace was stored in the '_class' attribute.
     try:
-        return cls_name in getattr(net, "_class_namespace").split(".")
+        return cls_name in net.getAttr("_class_namespace").split(".")
     except AttributeError:
         pass
 
     try:
-        return cls_name in getattr(net, "_class").get().split(".")
+        return cls_name in net.getAttr("_class").split(".")
     except AttributeError:
         pass
 

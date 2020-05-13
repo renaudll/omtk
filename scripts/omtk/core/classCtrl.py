@@ -104,7 +104,7 @@ class BaseCtrl(Node):
         else:
             return default_size * multiplier
 
-    def __createNode__(
+    def create_ctrl(
         self,
         size=None,
         normal=(1, 0, 0),

@@ -13,7 +13,7 @@ from omtk.modules import rigFK
 
 
 class CtrlFkAdd(BaseCtrl):
-    def __createNode__(self, size=None, refs=None, *args, **kwargs):
+    def create_ctrl(self, size=None, refs=None, *args, **kwargs):
         # Resolve size automatically if refs are provided.
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if size is None and ref is not None:

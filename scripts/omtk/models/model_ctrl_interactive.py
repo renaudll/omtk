@@ -168,7 +168,7 @@ class ModelInteractiveCtrl(classCtrlModel.BaseCtrlModel):
             return grp
 
         rot_ref = _create_grp("parent")
-        pymel.parentConstraint(self.parent, rot_ref, maintainOffset=True)
+        pymel.parentConstraint(self.parent_jnt, rot_ref, maintainOffset=True)
 
         compound = create_compound(
             "omtk.InteractiveCtrl",

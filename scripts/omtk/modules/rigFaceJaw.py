@@ -10,7 +10,7 @@ from omtk.modules import rigFaceAvarGrps
 
 
 class CtrlJaw(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
+    def create_ctrl(self, **kwargs):
         node = libCtrlShapes.create_triangle_low()
         # node.r.lock()
         node.s.lock()

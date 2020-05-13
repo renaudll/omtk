@@ -19,7 +19,7 @@ class CtrlIk(BaseCtrl):
 
     kAttrName_State = "ikFk"  # Attribute string shown in maya
 
-    def __createNode__(self, *args, **kwargs):
+    def create_ctrl(self, *args, **kwargs):
         """
         Create the ctrl node
 
@@ -27,7 +27,7 @@ class CtrlIk(BaseCtrl):
         :param kwargs: More kwargs passed to the superclass
         :return: The created ctrl node
         """
-        return super(CtrlIk, self).__createNode__(multiplier=1.5, *args, **kwargs)
+        return super(CtrlIk, self).create_ctrl(multiplier=1.5, *args, **kwargs)
 
 
 class CtrlIkSwivel(BaseCtrl):
@@ -43,7 +43,7 @@ class CtrlIkSwivel(BaseCtrl):
         self._line_locator = None
         self._line_annotation = None
 
-    def __createNode__(
+    def create_ctrl(
         self, refs=None, size=None, line_target=True, offset=None, *args, **kwargs
     ):
         """
@@ -63,7 +63,7 @@ class CtrlIkSwivel(BaseCtrl):
         else:
             size = 1.0
 
-        node = super(CtrlIkSwivel, self).__createNode__(*args, **kwargs)
+        node = super(CtrlIkSwivel, self).create_ctrl(*args, **kwargs)
         make = node.getShape().create.inputs()[0]
         make.radius.set(size * 2)
         make.degree.set(1)
@@ -322,7 +322,7 @@ class IK(Module):
         ctrl_swivel._line_locator.rename(nomenclature_anm.resolve(name + "LineLoc"))
         ctrl_swivel._line_annotation.rename(nomenclature_anm.resolve(name + "LineAnn"))
         ctrl_swivel.offset.setTranslation(pos, space="world")
-        ctrl_swivel.create_spaceswitch(self, self.parent, local_label="World")
+        ctrl_swivel.create_spaceswitch(self, self.parent_jnt, local_label="World")
 
         if constraint:
             # Pole vector contraint the swivel to the ik handle
@@ -408,7 +408,7 @@ class IK(Module):
             oIk.rename(nomenclature_rig.resolve("{0:02}".format(i)))
             i += 1
         self._chain_ik[0].setParent(
-            self.parent
+            self.parent_jnt
         )  # Trick the IK system (temporary solution)
 
         obj_e = self._chain_ik[index_hand]
@@ -463,7 +463,7 @@ class IK(Module):
             self.ctrl_ik.offset.setRotation(ctrl_ik_offset_rot)
 
         # Create space switch
-        self.ctrl_ik.create_spaceswitch(self, self.parent, local_label="World")
+        self.ctrl_ik.create_spaceswitch(self, self.parent_jnt, local_label="World")
 
         if ctrl_ik_rot:
             self.ctrl_ik.node.setRotation(ctrl_ik_rot, space="world")

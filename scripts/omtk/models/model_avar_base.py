@@ -178,9 +178,9 @@ class AvarInflBaseModel(classModule.Module):
         libRigging.connect_matrix_to_node(compound_output.output, obj_output)
 
         # Constraint
-        if self.parent:
-            self.log.info("Parenting %s to %s", self.parent, obj_parent)
-            pymel.parentConstraint(self.parent, obj_parent, maintainOffset=True)
+        if self.parent_jnt:
+            self.log.info("Parenting %s to %s", self.parent_jnt, obj_parent)
+            pymel.parentConstraint(self.parent_jnt, obj_parent, maintainOffset=True)
 
         libAttr.disconnect_trs(self.jnt)
         libAttr.unlock_trs(self.jnt)

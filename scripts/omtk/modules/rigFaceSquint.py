@@ -10,7 +10,7 @@ from omtk.modules import rigFaceAvarGrps
 
 
 class CtrlSquint(rigFaceAvar.BaseCtrlFace):
-    def __createNode__(self, **kwargs):
+    def create_ctrl(self, **kwargs):
         return libCtrlShapes.create_triangle_upp()
 
 

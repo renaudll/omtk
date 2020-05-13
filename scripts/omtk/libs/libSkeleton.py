@@ -48,9 +48,6 @@ def transfer_rotation_to_joint_orient(obj):
     mfn.getOrientation(orientation_orig)
     rotation_xyz *= orientation_orig
 
-    def is_attr_accessible(attr):
-        return not attr.isFreeToChange() == OpenMaya.MPlug.kFreeToChange
-
     for attr in (
         obj.rotateX,
         obj.rotateY,
@@ -59,7 +56,7 @@ def transfer_rotation_to_joint_orient(obj):
         obj.jointOrientY,
         obj.jointOrientZ,
     ):
-        if not is_attr_accessible(attr):
+        if not attr.isFreeToChange() == OpenMaya.MPlug.kFreeToChange:
             pymel.warning(
                 "Can't transfer rotation to joint orient. %r is locked." % attr
             )

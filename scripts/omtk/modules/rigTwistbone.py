@@ -135,19 +135,14 @@ class Twistbone(Module):
             driver_jnt.rotate.set(0, 0, 0)
             driver_jnt.jointOrient.set(0, 0, 0)
             # Create a transform that will drive the twist data
-            driver_jnt_ref = pymel.createNode("transform")
-            driver_jnt_ref.setParent(driver_jnt)
-            driver_jnt_ref.setMatrix(
-                driver_jnt.getMatrix(worldSpace=True), worldSpace=True
-            )
-            driver_jnt_ref.rename(driver_name + "_ref")
+            driver_jnt_ref = pymel.createNode("transform", parent=driver_jnt, name=driver_name + "_ref")
+            driver_jnt_ref.setMatrix(driver_jnt.getMatrix(worldSpace=True), worldSpace=True)
             driver_refs.append(
                 driver_jnt_ref
             )  # Keep them to connect the ref on the subjnts later
             if self.create_bend:
-                if i != 0 and i != (
-                    len(driverjnts) - 1
-                ):  # There will be no ctrl for the first and last twist jnt
+                # There will be no ctrl for the first and last twist jnt
+                if i > 0 and i < (len(driverjnts) - 1):
                     ctrl_driver = pymel.createNode("transform")
                     ctrl_driver_name = nomenclature_jnt.resolve(
                         "ctrlDriver{0:02d}".format(i)
@@ -166,7 +161,7 @@ class Twistbone(Module):
         if self.create_bend:
             # Create Ribbon
             sys_ribbon = Ribbon.from_instance(
-                self.rig, None, self.name, inputs=self.subjnts
+                self, None, self.name, inputs=self.subjnts
             )
             sys_ribbon.build(
                 create_ctrl=False,
@@ -189,35 +184,33 @@ class Twistbone(Module):
                 # TODO - Find a best way to determine the side
                 aim_vec = (
                     [1.0, 0.0, 0.0]
-                    if nomenclature_rig.side == nomenclature_rig.SIDE_L
-                    else [-1.0, 0.0, 0.0]
+                    # if nomenclature_rig.side == nomenclature_rig.SIDE_L
+                    # else [-1.0, 0.0, 0.0]
                 )
                 aim_vec_inverse = (
                     [-1.0, 0.0, 0.0]
-                    if nomenclature_rig.side == nomenclature_rig.SIDE_L
-                    else [1.0, 0.0, 0.0]
+                    # if nomenclature_rig.side == nomenclature_rig.SIDE_L
+                    # else [1.0, 0.0, 0.0]
                 )
-                if mid_idx != before_mid_idx and i == (mid_idx - 1):
-                    continue
                 if i <= mid_idx - 1:
                     pymel.aimConstraint(
                         sys_ribbon._follicles[i + 1],
                         driver,
-                        mo=False,
-                        wut=2,
-                        wuo=jnt_s,
-                        aim=aim_vec,
-                        u=[0.0, 1.0, 0.0],
+                        maintainOffset=True,
+                        worldUpType=2,
+                        worldUpObject=jnt_s,
+                        aimVector=aim_vec,
+                        upVector=[0.0, 1.0, 0.0],
                     )
                 else:
                     pymel.aimConstraint(
                         sys_ribbon._follicles[i - 1],
                         driver,
-                        mo=False,
-                        wut=2,
-                        wuo=jnt_s,
-                        aim=aim_vec_inverse,
-                        u=[0.0, 1.0, 0.0],
+                        maintainOffset=True,
+                        worldUpType=2,
+                        worldUpObject=jnt_s,
+                        aimVector=aim_vec_inverse,
+                        upVector=[0.0, 1.0, 0.0],
                     )
 
             for ctrl, ref in zip(self.ctrls, ctrl_refs):
@@ -225,9 +218,7 @@ class Twistbone(Module):
                 libAttr.lock_hide_scale(ctrl)
                 ctrl.setParent(self.grp_anm)
                 pymel.parentConstraint(ref, ctrl.offset, mo=True)
-            # We don't want the ribbon to scale with the system
-            # since it will follow with it's bone
-            sys_ribbon.grp_rig.setParent(self.grp_rig)
+
             # Ensure that the ribbon jnts are following the start jnt correctly
             pymel.parentConstraint(jnt_s, sys_ribbon.ribbon_chain_grp, mo=True)
             # Parent the two extremity of the ribbon to the twist driver associated
@@ -282,9 +273,9 @@ class Twistbone(Module):
             # If we have the bend, just orient constraint cause
             # the subjnt are constrained to the follicle of the ribbon
             if self.create_bend:
-                pymel.orientConstraint(driver_ref, jnt, mo=False)
+                pymel.orientConstraint(driver_ref, jnt, mo=True)
             else:
-                pymel.parentConstraint(driver_ref, jnt, mo=False)
+                pymel.parentConstraint(driver_ref, jnt, mo=True)
 
         if self.auto_skin:
             self.assign_twist_weights()

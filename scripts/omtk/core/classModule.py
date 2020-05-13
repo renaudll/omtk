@@ -3,6 +3,8 @@ import re
 
 import pymel.core as pymel
 
+from omtk.core import classBuildable
+from omtk.core import classRig
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.libs import libAttr
@@ -11,26 +13,7 @@ from omtk.core.exceptions import ValidationError
 log = logging.getLogger("omtk")
 
 
-class ModuleLoggerAdapter(logging.LoggerAdapter):
-    """
-    Logger adapter that add a module namespace to any logger message.
-    """
-
-    def __init__(self, module):  # type: (Module,) -> None
-        super(ModuleLoggerAdapter, self).__init__(
-            logging.getLogger("omtk"), {"module": module}
-        )
-
-    def process(self, msg, kwargs):  # type: (str, dict) -> (str, dict)
-        module = self.extra["module"]
-        return (
-            "[%s] [%s] %s"
-            % (module.rig.name if module.rig else "MISSING RIG", module.name, msg),
-            kwargs,
-        )
-
-
-class Module(object):
+class Module(classBuildable.Buildable):
     """
     A Module is built from at least one input, specific via the constructor.
     To build a Module, use the .build method.
@@ -53,15 +36,6 @@ class Module(object):
     # Is the module controlling the inputs or use them as reference?
     AFFECT_INPUTS = True
 
-    @property
-    def log(self):
-        """
-        :return: The module logger
-        :rtype: logging.LoggerAdapter
-        """
-        # Note: The real property is hidden so it don't get handled by libSerialization
-        return self._log
-
     #
     # libSerialization implementation
     #
@@ -70,43 +44,25 @@ class Module(object):
         """
         Cleaning routine automatically called by libSerialization after a network import.
         """
+        super(Module, self).__callbackNetworkPostBuild__()
 
-        # Ensure there's no None value in the .input array as this is not supported..
+        # libSerialization will interpret an empty list as None
         try:
-            self.input = filter(None, self.input)
-        except (AttributeError, TypeError):
+            self.input = self.input or []
+        except AttributeError:
             pass
-
-        # Hack: Workaround a bug in the ui that can propagate invalid characters in the module...
-        REGEX_PATTERN = "( *)<.*>( *)"
-        if re.match(r".*%s.*" % REGEX_PATTERN, self.name):
-            new_name = re.sub(REGEX_PATTERN, "", self.name)
-            log.warning(
-                "Invalid characters in Module name. Replacing %s by %s",
-                self.name,
-                new_name,
-            )
-            self.name = new_name
-
-    def __getNetworkName__(self):
-        """
-        Determine the name of the maya network.
-        Override this to customize.
-        Returns: The desired network name for this instance.
-        """
-        return "net_%s_%s" % (self.__class__.__name__, self.get_module_name())
 
     #
     # Nomenclature implementation
     #
 
-    def get_side(self):
+    def get_side(self):  # TODO: Deprecate
         """
         Analyze the inputs of the module and try to return it's side.
         :return: The side using the correct nomenclature.
         """
         ref = next(iter(self.chain), None) if self.chain else None
-        nomenclature = self.rig.nomenclature(ref.stripNamespace().nodeName())
+        nomenclature = self.NOMENCLATURE_CLS(ref.stripNamespace().nodeName())
         return nomenclature.side
 
     def get_default_name(self):
@@ -130,67 +86,36 @@ class Module(object):
 
             return new_nomenclature.resolve()
 
-    def get_module_name(self):
+    def get_module_name(self):  # TODO: Deprecate in favor of self.name
         """
         :return: The module namespace.
         :rtype: str
         """
         return self.name or self.__class__.__name__.lower()
 
-    def get_nomenclature(self):
+    def get_nomenclature(self):  # TODO: Deprecate
         """
         :return: The nomenclature to use for animation controllers.
         :rtype: omtk.core.className.BaseName
         """
-        return self.rig.nomenclature(name=self.get_module_name())
+        return self.naming
 
     def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.
         :rtype: omtk.core.className.BaseName
         """
-        return self.rig.nomenclature(
-            name=self.get_module_name(), suffix=self.rig.nomenclature.type_anm
-        )
-
-    def get_nomenclature_anm_grp(self):
-        """
-        :return: The nomenclature for the group that hold animation controllers.
-        :rtype: omtk.core.className.BaseName
-        """
-        return self.rig.nomenclature(
-            name=self.get_module_name(), suffix=self.rig.nomenclature.type_anm_grp
-        )
-
-    def get_nomenclature_rig(self):
-        """
-        :return: The nomenclature to use for rig objects.
-        :rtype: omtk.core.className.BaseName
-        """
-        return self.rig.nomenclature(
-            name=self.get_module_name(), suffix=self.rig.nomenclature.type_rig
-        )
-
-    def get_nomenclature_rig_grp(self):
-        """
-        :return: The nomenclature for the group that hold rig objects.
-        :rtype: omtk.core.className.BaseName
-        """
-        return self.rig.nomenclature(
-            name=self.get_module_name(), suffix=self.rig.nomenclature.type_rig_grp
-        )
-
-    def get_nomenclature_jnt(self):
-        """
-        :return: The nomenclature to use for new influences. (ex: twistbones)
-        :rtype: omtk.core.className.BaseName
-        """
-        return self.rig.nomenclature(
-            name=self.get_module_name(), suffix=self.rig.nomenclature.type_jnt
-        )
+        # Sadly, nomenclature of animation controller ignore any namespacing
+        node = self
+        while isinstance(node.parent, Module):
+            node = node.parent
+        return node.naming_cls(tokens=[node.name], suffix=self.naming.type_anm)
+        # naming = copy.copy(self.naming_anm)
+        # naming.suffix=self.naming.type_anm
+        # return naming
 
     @property
-    def parent(self):
+    def parent_jnt(self):
         # TODO: We might want to search for specifically a joint in case the influence have intermediate objects.
         if not self.chain_jnt:
             return None
@@ -326,7 +251,7 @@ class Module(object):
         # Find a Jaw module that have influence under the head.
         from omtk.modules import rigFaceJaw
 
-        for module in self.rig.modules:
+        for module in self.rig.children:
             if isinstance(module, rigFaceJaw.FaceJaw):
                 jnt = module.jnt
                 if libPymel.is_child_of(jnt, head_jnt):
@@ -360,7 +285,7 @@ class Module(object):
             module_jaw = next(
                 iter(
                     module
-                    for module in self.rig.modules
+                    for module in self.rig.children
                     if isinstance(module, rigFaceJaw.FaceJaw)
                     and jnt_jaw in module.input
                 ),
@@ -414,28 +339,18 @@ class Module(object):
         """
         return next(iter(self.get_meshes()), None)
 
-    def __init__(self, input=None, name=None, rig=None):  # TODO: Remove input to inputs
+    def __init__(self, input=None, name=None, rig=None, parent=None):  # TODO: Remove input to inputs
         """
         DO NOT CALL THIS DIRECTLY, use rig.add_module.
         :param input: A list of all the dagnode necessary for the module creation.
         :param name: The name of the module.
         :param rig: The parent of the module. Provided automatically by rig.add_module
         """
-        # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
-        if name and not isinstance(name, basestring):
-            raise IOError(
-                "Unexpected type for parameter name, expected basestring, got %s. Value is %s."
-                % (type(name), name)
-            )
+        super(Module, self).__init__(name=name, parent=parent or rig)
 
-        self.rig = rig  # Reference to the parent rig instance.
-        self._log = ModuleLoggerAdapter(self)
         self.iCtrlIndex = 2
-        self.grp_anm = None
-        self.grp_rig = None
-        self.canPinTo = (
-            True  # If raised, the network can be used as a space-switch pin-point
-        )
+        # If raised, the network can be used as a space-switch pin-point
+        self.canPinTo = True
         self.globalScale = None  # Each module is responsible for handling it scale!
 
         # Sometimes a rigger might hack a module directly, even if it is not desirable.
@@ -448,27 +363,18 @@ class Module(object):
 
         self.input = _conform_to_pynode_list(locals()["input"])
 
-        self.name = name
+    @property
+    def rig(self):
+        node = self
+        while node:
+            if isinstance(node, classRig.Rig):
+                return node
+            node = node.parent
+        return None
 
-    def __str__(self):
-        version = getattr(self, "version", "")
-        if version:
-            version = " v%s" % version
-        return "%s <%s%s>" % (
-            self.name.encode("utf-8") if self.name else None,
-            self.__class__.__name__,
-            version,
-        )
-
-    def get_version(self):
-        if not hasattr(self, "version"):
-            return None, None, None
-        version_info = str(self.version)
-        regex = r"^[0-9]+\.[0-9]+\.[0-9]+$"
-        if not re.match(regex, version_info):
-            self.log.warning("Cannot understand version format: %s", version_info)
-            return None, None, None
-        return tuple(int(token) for token in version_info.split("."))
+    @rig.setter
+    def rig(self, rig):  # used by libSerialization
+        self.parent = rig
 
     def validate(self):
         """
@@ -476,11 +382,9 @@ class Module(object):
 
         :raises ValidationError: If the module fail to validate.
         """
+        super(Module, self).validate()
         if not self.rig:
             raise ValidationError("Can't resolve rig for module. %s" % self)
-
-        if not self.name:
-            raise ValidationError("Can't resolve name for module. %s" % self)
 
         if not self.input and not self.SUPPORT_NO_INPUTS:
             raise ValidationError("Can't build module with zero inputs. %s" % self)
@@ -497,22 +401,6 @@ class Module(object):
         for child in self.iter_children():
             child.validate()
 
-    def validate_version(self, major_version, minor_version, patch_version):
-        """
-        Sometimes specific module versions might have issues found in production.
-        This function check the current module version and raise an Exception
-        if the current module version is known to cause issues.
-        This is to let the rigger know that he might need to rebuild.
-        """
-
-    def is_built(self):
-        """
-        Check in maya the existence of the grp_anm and grp_rig properties.
-        Returns: True if the rig think it have been built.
-        """
-        return (self.grp_anm is not None and self.grp_anm.exists()) or (
-            self.grp_rig is not None and self.grp_rig.exists()
-        )
 
     def build(
         self,
@@ -538,7 +426,7 @@ class Module(object):
                 "Module.build received unexpected keyword argument: %s", kwarg
             )
 
-        self.log.info("Building")
+        super(Module, self).build()
 
         # Enable/Disable dangerous flags.
         for inn in self.input:
@@ -566,17 +454,10 @@ class Module(object):
                 if isinstance(inn, pymel.nodetypes.Joint):
                     libAttr.disconnect_trs(inn, inputs=True, outputs=False)
 
-        if create_grp_anm:
-            grp_anm_name = grp_anm_name or self.get_nomenclature_anm_grp().resolve()
-            self.grp_anm = pymel.createNode("transform", name=grp_anm_name)
 
-        if create_grp_rig:
-            grp_rig_name = grp_rig_name or self.get_nomenclature_rig_grp().resolve()
-            self.grp_rig = pymel.createNode("transform", name=grp_rig_name)
-
-            if connect_global_scale:
-                pymel.addAttr(self.grp_rig, longName="globalScale", defaultValue=1.0)
-                self.globalScale = self.grp_rig.globalScale
+        if connect_global_scale and self.grp_rig:
+            pymel.addAttr(self.grp_rig, longName="globalScale", defaultValue=1.0)
+            self.globalScale = self.grp_rig.globalScale
 
         # Apply parenting if necessary.
         # If the module input have no immediate parent,
@@ -591,7 +472,7 @@ class Module(object):
         :param fallback_to_anm_grp: If True, if no parent is found, the anm group will be returned.
         :return: The object to act as the parent of the module if applicable.
         """
-        if self.parent is None:
+        if self.parent_jnt is None:
             if fallback_to_anm_grp:
                 self.log.debug(
                     "Found no immediate parent. Will be parented to the anm grp."
@@ -601,14 +482,14 @@ class Module(object):
                 self.log.debug("Found no immediate parent.")
                 return None
 
-        module = self.rig.get_module_by_input(self.parent)
+        module = self.rig.get_module_by_input(self.parent_jnt)
         if module:
-            desired_parent = module.get_parent(self.parent)
+            desired_parent = module.get_parent(self.parent_jnt)
             if desired_parent:
                 self.log.debug("Will be parented to %s, %s", module, desired_parent)
                 return desired_parent
 
-        return self.parent
+        return self.parent_jnt
 
     def get_dependencies_modules(self):
         """
@@ -629,8 +510,6 @@ class Module(object):
 
         This is a hook that modules can use to hold information between builds.:
         """
-        self.log.debug("Un-building")
-
         # Ensure that there's no more connections in the input chain
         if self.AFFECT_INPUTS:
             self._disconnect_inputs()
@@ -642,12 +521,7 @@ class Module(object):
         for ctrl in ctrls:
             ctrl.unbuild()
 
-        if libPymel.is_valid_PyNode(self.grp_anm):
-            pymel.delete(self.grp_anm)
-            self.grp_anm = None
-        if libPymel.is_valid_PyNode(self.grp_rig):
-            pymel.delete(self.grp_rig)
-            self.grp_rig = None
+        super(Module, self).unbuild()
 
         self.globalScale = None
 
@@ -688,18 +562,8 @@ class Module(object):
         Iterate through any sub-modules.
         :return: A generator of Module instances
         """
-        # TODO: Re-think implementation
-        # This is a hack, module and rig should share the same implementation
-        for key, val in self.__dict__.items():
-            if key.startswith("_"):
-                continue
-
-            if isinstance(val, Module):
-                yield val
-            elif isinstance(val, (tuple, list, set)):
-                for element in val:
-                    if isinstance(element, Module):
-                        yield element
+        # TODO: Deprecate
+        return iter(self.children)
 
     def get_pin_locations(self, jnt):
         """
@@ -718,14 +582,14 @@ class Module(object):
     #
 
     @classmethod
-    def from_instance(cls, rig, inst, name, inputs=None):
+    def from_instance(cls, parent, inst, name, inputs=None):
         """
         Factory method that initialize a child module instance only if necessary.
         If the instance already had been initialized in a previous build,
         it's correct value will be preserved,
 
-        :param rig: The module rig.
-        :type rig: omtk.core.classRig.Rig
+        :param parent: The module rig.
+        :type parent: omtk.core.classRig.Rig
         :param Module inst: An optional module instance
         :param str name: The module name
         :param inputs: The module inputs
@@ -736,7 +600,7 @@ class Module(object):
         inputs = inputs or []
 
         if type(inst) != cls:
-            inst = cls(inputs, rig=rig)
+            inst = cls(inputs, parent=parent)
 
         if inst.input != inputs:
             inst.input = inputs

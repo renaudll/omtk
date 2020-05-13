@@ -7,6 +7,7 @@ __all__ = (
     "create_class_instance",
     "export_dict",
     "import_dict",
+    "register_alias",
 )
 
 logging = _logging.getLogger()
@@ -14,6 +15,8 @@ logging.setLevel(_logging.WARNING)
 
 # constants
 TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX, TYPE_NONE = range(5)
+
+_REGISTRY_ALIASES = {}
 
 
 def get_class_module_root(cls):
@@ -293,6 +296,13 @@ def import_dict(data, cache=None, **kwargs):
         # However this was not very flexible when we played with the class hierarchy.
         # If we find a '_class_module' attribute, it mean we are doing thing the new way.
         # Otherwise we'll let it slip for now.
+        if cls_module and cls_path:
+            try:
+                cls_path = _REGISTRY_ALIASES[(cls_module, cls_path)]
+            except KeyError:
+                pass
+            else:
+                cls_name = cls_path.split(".")[-1]
 
         if cls_module:
             cls_def = cache.get_class_by_name(cls_name, module_name=cls_module)
@@ -321,3 +331,15 @@ def import_dict(data, cache=None, **kwargs):
     # Handle other types of data
     else:
         return data
+
+
+def register_alias(module, src, dst):
+    """
+    Register an alias for a deprecated class that should be replaced by another.
+
+    :param str module: The class module name
+    :param str src: The class namespace
+    :param str dst: The class new namespace
+    :return:
+    """
+    _REGISTRY_ALIASES[(module, src)] = dst

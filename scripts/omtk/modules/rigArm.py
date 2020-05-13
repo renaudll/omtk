@@ -11,7 +11,7 @@ from omtk.libs import libRigging
 
 
 class CtrlIkArm(rigIK.CtrlIk):
-    def __createNode__(self, *args, **kwargs):
+    def create_ctrl(self, *args, **kwargs):
         return libCtrlShapes.create_shape_box_arm(*args, **kwargs)
 
 

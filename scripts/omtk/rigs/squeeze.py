@@ -16,13 +16,13 @@ import re
 import pymel.core as pymel
 
 from omtk.core import name
-from omtk.core import rig
+from omtk.core.rig import Rig, RigGrp, CtrlRoot
 from omtk.libs import libAttr
 from omtk.libs import libPymel
 from omtk.libs import libRigging
 
 
-class CtrlMaster(rig.CtrlRoot):
+class CtrlMaster(CtrlRoot):
     """The CtrlMaster is another root ctrl requested by Squeeze."""
 
     def build(self, create_global_scale_attr=False, *args, **kwargs):
@@ -87,7 +87,7 @@ class SqueezeNomenclature(name.BaseName):
         return super(SqueezeNomenclature, self)._join_tokens(new_tokens)
 
 
-class RigSqueeze(rig.Rig):
+class RigSqueeze(Rig):
     """
     Custom rig implementation in respect to Squeeze Studio nomenclature.
     """
@@ -252,16 +252,16 @@ class RigSqueeze(rig.Rig):
 
         # Build All_Grp
         self.grp_master = self.build_grp(
-            rig.RigGrp, self.grp_master, self.nomenclature.root_all_name
+            RigGrp, self.grp_master, self.nomenclature.root_all_name
         )
         self.grp_model = self.build_grp(
-            rig.RigGrp, self.grp_model, self.nomenclature.root_model_name
+            RigGrp, self.grp_model, self.nomenclature.root_model_name
         )
         self.grp_proxy = self.build_grp(
-            rig.RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name
+            RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name
         )
         self.grp_fx = self.build_grp(
-            rig.RigGrp, self.grp_fx, self.nomenclature.root_fx_name
+            RigGrp, self.grp_fx, self.nomenclature.root_fx_name
         )
 
         # Parent all groups in the main grp_master

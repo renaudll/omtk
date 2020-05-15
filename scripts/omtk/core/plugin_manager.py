@@ -1,3 +1,7 @@
+"""
+Plugin manager
+"""
+# TODO: Replace with an open-source alternative
 import os
 import copy
 import sys
@@ -6,8 +10,7 @@ import pkgutil
 import logging
 import inspect
 
-from omtk import constants
-from omtk.libs import libPython
+from omtk.core import constants
 
 log = logging.getLogger(__name__)
 
@@ -54,13 +57,13 @@ class Plugin(object):
 
         # Check for module import
         # ex: import my_module
-        for module_name, module in inspect.getmembers(self.module, inspect.ismodule):
+        for _, module in inspect.getmembers(self.module, inspect.ismodule):
             if module == item_module:
                 return True
 
         # Check class in case of indirect module import
         # ex: from my_module import my_class
-        for class_name, cls in inspect.getmembers(self.module, inspect.isclass):
+        for _, cls in inspect.getmembers(self.module, inspect.isclass):
             if cls.__module__ == item_module_name:
                 return True
 
@@ -92,11 +95,7 @@ class Plugin(object):
         self.description = None
 
         # Resolve full module path
-        module_path = "%s.%s.%s" % (
-            self.root_package_name,
-            self.type_name,
-            self.module_name,
-        )
+        module_path = self.module_name
 
         try:
             # Load module using import_module before using pkgutil
@@ -156,19 +155,15 @@ class PluginType(object):
 
         # Prevent reloading (for now)
         package = sys.modules.get(package_name, None)
-        if package is None:
+        if not package:
             package = pkgutil.get_loader(package_name).load_module(package_name)
 
-        for loader, modname, is_pkg in pkgutil.walk_packages(package.__path__):
+        for _, modname, is_pkg in pkgutil.walk_packages(package.__path__, prefix=package.__name__ + "."):
+            if is_pkg:
+                continue
             log.debug("Found plugin %s", modname)
             plugin = Plugin.from_module(modname, self.type_name)
             self._plugins.append(plugin)
-
-
-def onerror(name):
-    print("Error importing module %s" % name)
-    type, value, traceback = sys.exc_info()
-    print_tb(traceback)
 
 
 class PluginManager(object):

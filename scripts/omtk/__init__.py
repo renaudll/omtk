@@ -1,20 +1,17 @@
 """
 Public entry point.
 """
-import logging
-
-log = logging.getLogger(__name__)
+import pymel.core as pymel
+from maya import cmds
 
 from omtk.core import *
-
 from omtk.vendor import libSerialization
-import constants
-import pymel.core as pymel
+
 
 __version__ = "0.0.6"
 
 # HACK: Load matrixNodes.dll
-pymel.loadPlugin("matrixNodes", quiet=True)
+cmds.loadPlugin("matrixNodes", quiet=True)
 
 
 def show():
@@ -36,3 +33,8 @@ for src, dst in (
     ("Module.AbstractAvar.AvarGrp.AvarGrpOnSurface", "Module.AbstractAvar.AvarGrp"),
 ):
     libSerialization.register_alias("omtk", src, dst)
+
+from omtk.core import plugin_manager
+
+# Load plugins
+plugin_manager.plugin_manager.get_plugins()

@@ -22,26 +22,25 @@ class SplineIK(Module):
 
     def build(self, stretch=True, squash=False, *args, **kwargs):
         # TODO: Use self.chain_jnt
-        self._joints = [
+        jnts = [
             input
             for input in self.input
             if libPymel.isinstance_of_transform(input, pymel.nodetypes.Joint)
         ]
-        self._curves = [
+        curves = [
             input
             for input in self.input
             if libPymel.isinstance_of_shape(input, pymel.nodetypes.CurveShape)
         ]
 
-        if len(self._joints) < 2:
+        if len(jnts) < 2:
             raise Exception(
-                "Can't build SplineIK. Expected at least two joints, got %s"
-                % self._joints
+                "Can't build SplineIK. Expected at least two joints, got %s" % jnts
             )
-        if len(self._curves) < 1:
+        if len(curves) < 1:
             raise Exception(
                 "Can't build SplineIK. Expected at least one nurbsCurve, got %s"
-                % self._curves
+                % curves
             )
 
         super(SplineIK, self).build(*args, **kwargs)
@@ -49,7 +48,7 @@ class SplineIK(Module):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # todo: handle multiple curves?
-        curve = next(iter(self._curves), None)
+        curve = next(iter(curves), None)
         curve_shape = next(
             (
                 shape
@@ -65,8 +64,8 @@ class SplineIK(Module):
         self.ikHandle, self.ikEffector = pymel.ikHandle(
             solver="ikSplineSolver",
             curve=curve,
-            startJoint=self._joints[0],
-            endEffector=self._joints[-1],
+            startJoint=jnts[0],
+            endEffector=jnts[-1],
             createCurve=False,
             name=handle_name,
             parentCurve=False,
@@ -79,15 +78,15 @@ class SplineIK(Module):
         # Todo: use shape instead of transform as curve input?
         if stretch:
             stretch_attr = _create_strech_attr_from_curve(curve_shape)
-            for jnt in self._joints:
+            for jnt in jnts:
                 pymel.connectAttr(stretch_attr, jnt.sx, force=True)
 
             # Create squash
             if squash:
-                num_joints = len(self._joints)
+                num_joints = len(jnts)
                 squash_attrs = _create_squash_atts(stretch_attr, num_joints)
                 # Todo: Find correct axis orient
-                for jnt, squash in zip(self._joints, squash_attrs):
+                for jnt, squash in zip(jnts, squash_attrs):
                     pymel.connectAttr(squash, jnt.sy, force=True)
                     pymel.connectAttr(squash, jnt.sz, force=True)
 

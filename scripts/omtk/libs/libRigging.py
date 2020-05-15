@@ -8,7 +8,7 @@ from maya import OpenMaya
 from maya import cmds
 from maya import mel
 
-from omtk import constants
+from omtk.core import constants
 from omtk.libs import libPymel
 
 _LOG = logging.getLogger(__name__)

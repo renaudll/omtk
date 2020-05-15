@@ -271,7 +271,7 @@ def transfer_weights_from_segments(
     geometryDagPath = obj.__apimdagpath__()
     try:
         component = pymel.api.toComponentMObject(geometryDagPath)
-    except RuntimeError as e:
+    except RuntimeError:
         pymel.warning("Cannot access component for %s. Is the shape empty?" % obj)
         return False
 

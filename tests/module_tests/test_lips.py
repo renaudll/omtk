@@ -2,27 +2,28 @@
 Tests for the FaceLips module
 """
 import pymel.core as pymel
+
+import omtk
 import omtk_test
+from omtk.libs import libRigging
+from omtk.modules.head import Head
+from omtk.modules.face.jaw import FaceJaw
+from omtk.modules.face.lips import FaceLips
 
 
 class TestLips(omtk_test.TestCase):
     @omtk_test.open_scene("../resources/test_lips.ma")
     def test_avar_connection_persistence(self):
         """Validate connection between avars is conserved between rebuilds."""
-        import omtk
-        from omtk.modules import head
-        from omtk.modules import rigFaceJaw
-        from omtk.modules import rigFaceLips
-        from omtk.libs import libRigging
 
         # Create a base rig
         rig = omtk.create()
-        rig.add_module(head.Head([pymel.PyNode("jnt_head")]))
+        rig.add_module(Head([pymel.PyNode("jnt_head")]))
         module_jaw = rig.add_module(
-            rigFaceJaw.FaceJaw([pymel.PyNode("jnt_jaw"), pymel.PyNode("pSphereShape1")])
+            FaceJaw([pymel.PyNode("jnt_jaw"), pymel.PyNode("pSphereShape1")])
         )
         module_lips = rig.add_module(
-            rigFaceLips.FaceLips(
+            FaceLips(
                 pymel.ls("jnt_lip*", type="joint") + [pymel.PyNode("pSphereShape1")]
             )
         )
@@ -47,22 +48,18 @@ class TestLips(omtk_test.TestCase):
 
     @omtk_test.open_scene("../resources/test_lips.ma")
     def test_avargrp_withsurface(self):
-        import omtk
-        from omtk.modules import head
-        from omtk.modules import rigFaceJaw
-        from omtk.modules import rigFaceLips
 
         # Create a base rig
         rig = omtk.create()
         rig.add_module(head.Head([pymel.PyNode("jnt_head")]))
         rig.add_module(
-            rigFaceJaw.FaceJaw(
+            FaceJaw(
                 [pymel.PyNode("jnt_jaw")]
                 + [pymel.PyNode("surface_lips"), pymel.PyNode("pSphereShape1")]
             )
         )
         rig.add_module(
-            rigFaceLips.FaceLips(
+            FaceLips(
                 pymel.ls("jnt_lip*", type="joint")
                 + [pymel.PyNode("surface_lips"), pymel.PyNode("pSphereShape1")]
             )

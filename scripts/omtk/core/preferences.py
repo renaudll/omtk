@@ -6,7 +6,7 @@ import inspect
 import json
 import logging
 
-from omtk import constants
+from omtk.core import constants
 
 log = logging.getLogger("omtk")
 

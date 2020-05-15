@@ -1,9 +1,5 @@
-import collections
-import functools
 import logging
 import time
-import sys
-import threading
 
 _LOG = logging.getLogger(__name__)
 
@@ -11,10 +7,10 @@ _LOG = logging.getLogger(__name__)
 def resize_list(val, desired_size, default=None):
     list_size = len(val)
     if list_size > desired_size:
-        for i in range(list_size - desired_size):
+        for _ in range(list_size - desired_size):
             val.pop(-1)
     elif list_size < desired_size:
-        for i in range(desired_size - list_size):
+        for _ in range(desired_size - list_size):
             val.append(default)
 
 

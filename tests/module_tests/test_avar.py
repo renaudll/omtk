@@ -3,11 +3,11 @@ from maya import cmds
 import pymel.core as pymel
 
 from omtk.core.rig import Rig
-from omtk.modules.face.models import AvarLinearModel
-from omtk.modules.face.models import AvarSurfaceModel
-from omtk.modules.face.models import ModelCtrlLinear
+from omtk.modules.face.models.avar_to_infl.linear import AvarLinearModel
+from omtk.modules.face.models.avar_to_infl.surface import AvarSurfaceModel
+from omtk.modules.face.models.avar_to_ctrl.linear import ModelCtrlLinear
 from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCtrl
-from omtk.modules.rigFaceAvar import Avar
+from omtk.modules.face.avar import Avar
 
 
 class AvarImpl1(Avar):
@@ -57,7 +57,7 @@ def test_linear_avar_no_parent():
 
 
 @pytest.mark.usefixtures("scene_joint_with_surface")
-def test_surface_avar_no_parent_with_surface(scene_joint_with_surface):
+def test_surface_avar_no_parent_with_surface():
     pymel.joint()
     pymel.nurbsPlane()
     avar = AvarImpl1(input=["joint1", "nurbsPlane1"], rig=Rig())

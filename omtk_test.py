@@ -94,8 +94,8 @@ def verified_offset(objs, offset_tm, **kwargs):
         desired_tm = old_tm * offset_tm
         try:
             assertMatrixAlmostEqual(new_tm, desired_tm, **kwargs)
-        except Exception, e:
-            raise Exception("Invalid transform for %s. %s" % (obj, e))
+        except Exception as error:
+            raise Exception("Invalid transform for %s. %s" % (obj, error))
 
 
 def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.datatypes.Vector(1, 0, 0), test_rotate=True, test_scale=True, test_scale_value=2.0):

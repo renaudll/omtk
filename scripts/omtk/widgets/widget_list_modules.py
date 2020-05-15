@@ -6,13 +6,11 @@ import functools
 import inspect
 import itertools
 import logging
-import operator
 import re
 
 import pymel.core as pymel
 
-from omtk import constants
-from omtk.core import module
+from omtk.core import module, constants
 from omtk.core import rig
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libQt

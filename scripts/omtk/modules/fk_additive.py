@@ -4,7 +4,7 @@ Logic for the "AdditiveFK" module
 import collections
 
 import pymel.core as pymel
-from omtk import constants
+from omtk.core import constants
 from omtk.core.ctrl import BaseCtrl
 from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes

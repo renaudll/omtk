@@ -1,13 +1,15 @@
 #
 # Define a custom JSON Encoder that can be used to export PyNode and Attribute.
 #
+import json
+
 from maya import cmds
 import pymel.core as pymel
-import json
-from plugin_json import export_json
-from plugin_json import export_json_file
-from plugin_json import import_json
-from plugin_json import import_json_file
+
+from .plugin_json import export_json
+from .plugin_json import export_json_file
+from .plugin_json import import_json
+from .plugin_json import import_json_file
 
 __all__ = (
     "export_json_maya",
@@ -22,28 +24,27 @@ class PymelJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, pymel.PyNode):
             return {"_class_pymel": "pymel.PyNode", "__melobject__": o.__melobject__()}
-        elif isinstance(o, pymel.Attribute):
+        if isinstance(o, pymel.Attribute):
             return {
                 "_class_pymel": "pymel.Attribute",
                 "__melobject__": o.__melobject__(),
             }
-        elif isinstance(o, pymel.datatypes.Matrix):
+        if isinstance(o, pymel.datatypes.Matrix):
             return {
                 "_class_pymel": "pymel.datatypes.Matrix",
                 "__melobject__": o.__melobject__(),
             }
-        elif isinstance(o, pymel.datatypes.Vector):
+        if isinstance(o, pymel.datatypes.Vector):
             return {
                 "_class_pymel": "pymel.datatypes.Vector",
                 "__melobject__": [o.x, o.y, o.z],
             }
-        elif isinstance(o, pymel.datatypes.Point):
+        if isinstance(o, pymel.datatypes.Point):
             return {
                 "_class_pymel": "pymel.datatypes.Point",
                 "__melobject__": [o.w, o.x, o.y, o.z],
             }
-        else:
-            return super(PymelJSONEncoder, self).default(o)
+        return super(PymelJSONEncoder, self).default(o)
 
 
 # TODO: Add support for matrix and vector datatypes
@@ -58,23 +59,19 @@ class PymelJSONDecoder(json.JSONDecoder):
             cls = val.get("_class_pymel", None)
             if cls == "pymel.PyNode":
                 dagpath = val.get("__melobject__")
-                val = (
-                    pymel.PyNode(dagpath) if cmds.objExists(dagpath) else None
-                )  # TODO: add warning?
-            elif cls == "pymel.Attribute":
+                return pymel.PyNode(dagpath) if cmds.objExists(dagpath) else None
+            if cls == "pymel.Attribute":
                 dagpath = val.get("__melobject__")
-                val = (
-                    pymel.Attribute(dagpath) if cmds.objExists(dagpath) else None
-                )  # TODO: add warning?
-            elif cls == "pymel.datatypes.Matrix":
+                return pymel.Attribute(dagpath) if cmds.objExists(dagpath) else None
+            if cls == "pymel.datatypes.Matrix":
                 melval = val.get("__melobject__")
-                val = pymel.datatypes.Matrix(melval)
-            elif cls == "pymel.datatypes.Vector":
+                return pymel.datatypes.Matrix(melval)
+            if cls == "pymel.datatypes.Vector":
                 coords = val.get("__melobject__")
-                val = pymel.datatypes.Vector(coords)
-            elif cls == "pymel.datatypes.Point":
+                return pymel.datatypes.Vector(coords)
+            if cls == "pymel.datatypes.Point":
                 coords = val.get("__melobject__")
-                val = pymel.datatypes.Point(coords)
+                return pymel.datatypes.Point(coords)
         return val
 
 

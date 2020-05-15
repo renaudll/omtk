@@ -519,7 +519,7 @@ class AvarGrp(AbstractAvar):
         result_inputs.extend(self.get_surfaces())
 
         inst = cls.from_instance(
-            self.rig,
+            self,
             inst,
             (self.get_nomenclature() + suffix).resolve() if suffix else self.name,
             inputs=result_inputs,
@@ -1134,7 +1134,6 @@ class AvarGrp(AbstractAvar):
         except ValueError:
             return None
 
-    @staticmethod
     def _get_ctrl_tm_hint(self, avar):
         """
         Ask for an avar ctrl transform.
@@ -1154,12 +1153,6 @@ class AvarGrp(AbstractAvar):
             ctrl_tm_hint = self._get_ctrl_tm_hint(avar)
 
             avar.build(ctrl_size_hint=ctrl_size_hint, ctrl_tm_hint=ctrl_tm_hint)
-
-            # TODO: This should be done in a standard sub-modules mechanism
-            if avar.grp_anm:
-                avar.grp_anm.setParent(self.grp_anm)
-            if avar.grp_rig:
-                avar.grp_rig.setParent(self.grp_rig)
 
     @ui_expose()
     def calibrate(self):

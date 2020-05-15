@@ -7,9 +7,7 @@ import itertools
 import pymel.core as pymel
 from maya import cmds, OpenMaya
 
-from omtk import constants
-from omtk.libs import libPython
-from omtk.core import ctrl
+from omtk.core import ctrl, constants
 from omtk.vendor import libSerialization
 
 

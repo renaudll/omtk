@@ -2,25 +2,27 @@ import unittest
 import pymel.core as pymel
 import omtk
 import omtk_test
+from omtk.core.rig import Rig
+from omtk.core import plugin_manager
 
 
 class SampleTests(omtk_test.TestCase):
     def test_create(self):
         rig_name = "TestRig"
         rig = omtk.create(name=rig_name)
-        self.assertTrue(isinstance(rig, omtk.core.classRig.Rig))
+        self.assertTrue(isinstance(rig, Rig))
         self.assertTrue(rig.name == rig_name)
 
     def test_plugins(self):
         """
         Ensure that the basic built-in plugins are successfully loaded.
         """
-        from omtk.core import plugin_manager
 
-        pm = plugin_manager.plugin_manager
+        manager = plugin_manager.plugin_manager
 
         loaded_plugin_names = [
-            plugin.cls.__name__ for plugin in pm.get_loaded_plugins_by_type("modules")
+            plugin.cls.__name__
+            for plugin in manager.get_loaded_plugins_by_type("modules")
         ]
 
         builtin_plugin_names = (
@@ -103,20 +105,20 @@ class SampleTests(omtk_test.TestCase):
         inf_d = pymel.createNode("joint", parent=inf_c)
 
         # Create a simple rig
-        r = omtk.create()
-        mod_a = r.add_module(fk.FK([inf_a]))
-        mod_b = r.add_module(fk.FK([inf_b]))
-        mod_c = r.add_module(fk.FK([inf_c]))
-        mod_d = r.add_module(fk.FK([inf_d]))
+        rig = omtk.create()
+        rig.add_module(fk.FK([inf_a]))
+        rig.add_module(fk.FK([inf_b]))
+        rig.add_module(fk.FK([inf_c]))
+        mod_d = rig.add_module(fk.FK([inf_d]))
 
         # Build the last module
         mod_d.build()
 
         # Analyse the indexes
-        c = mod_d.ctrls[0]
-        old_targets = c.targets
-        old_targets_indexes = c.targets_indexes
-        check_targets_index_match(c)
+        ctrl = mod_d.ctrls[0]
+        old_targets = ctrl.targets
+        old_targets_indexes = ctrl.targets_indexes
+        check_targets_index_match(ctrl)
 
         # Unbulid the last module, change the hierarchy and rebuilt it
         mod_d.unbuild()
@@ -124,10 +126,10 @@ class SampleTests(omtk_test.TestCase):
         mod_d.build()
 
         # Analyse the indexes
-        c = mod_d.ctrls[0]
-        new_targets = c.targets
-        new_targets_indexes = c.targets_indexes
-        check_targets_index_match(c)
+        ctrl = mod_d.ctrls[0]
+        new_targets = ctrl.targets
+        new_targets_indexes = ctrl.targets_indexes
+        check_targets_index_match(ctrl)
 
         self.assertListEqual(old_targets, new_targets)
         self.assertListEqual(old_targets_indexes, new_targets_indexes)

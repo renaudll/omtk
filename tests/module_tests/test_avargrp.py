@@ -5,7 +5,7 @@ import pymel.core as pymel
 import omtk_test
 import omtk
 from omtk.modules.head import Head
-from omtk.modules.rigFaceAvarGrps import AvarGrp
+from omtk.modules.face.avar_grp import AvarGrp
 
 
 class TestAvarGrp(omtk_test.TestCase):

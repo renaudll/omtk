@@ -3,12 +3,11 @@ import time
 import logging
 from maya import cmds
 import pymel.core as pymel
-from omtk import constants
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.node import Node
 from omtk.core.base import Buildable
 from omtk.core.exceptions import ValidationError
-from omtk.core import name
+from omtk.core import constants
 from omtk.core import api
 from omtk.core.utils import ui_expose
 from omtk.libs import libPymel
@@ -236,7 +235,7 @@ class Rig(Buildable):
             name = str_format.format(name, next(counter))
 
     def add_module(self, inst, *args, **kwargs):
-        inst.rig = self
+        inst.parent = self
 
         # Resolve name to use
         default_name = inst.get_default_name()
@@ -250,31 +249,10 @@ class Rig(Buildable):
         default_name = self._get_unique_name(default_name)
         inst.name = default_name
 
-        inst.parent = self
-
         return inst
 
     def remove_module(self, inst):
         self.children.remove(inst)
-
-    # def is_built(self):
-    #     """
-    #     :return: True if any module dag nodes exist in the scene.
-    #     """
-    #     for module in self.children:
-    #         # Ignore the state of any locked module
-    #         if module.locked:
-    #             continue
-    #         if module.is_built():
-    #             return True
-    #
-    #     if self.grp_anm and self.grp_anm.exists():
-    #         return True
-    #
-    #     if self.grp_rig and self.grp_rig.exists():
-    #         return True
-    #
-    #     return False
 
     def _get_all_input_shapes(self):
         """

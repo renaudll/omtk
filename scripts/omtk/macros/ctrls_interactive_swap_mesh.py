@@ -13,7 +13,7 @@ from omtk.modules.face.models.avar_to_ctrl.linear import ModelCtrlLinear
 
 class CtrlInteractiveSwapMesh(BaseMacro):
     def _iter_ictrl(self):
-        rig, modules = api.get_modules_from_selection()
+        _, modules = api.get_modules_from_selection()
         # Build selected modules
         for module in modules:
             if isinstance(module, AvarGrp):

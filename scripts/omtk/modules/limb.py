@@ -6,7 +6,7 @@ import collections
 
 import pymel.core as pymel
 
-from omtk import constants
+from omtk.core import constants
 from omtk.core.module import Module
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.utils import ui_expose

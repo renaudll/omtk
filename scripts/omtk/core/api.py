@@ -1,6 +1,7 @@
 import contextlib
 
 import pymel.core as pymel
+
 from omtk.libs import libPymel
 from omtk.libs import libPython
 from omtk.vendor import libSerialization
@@ -53,8 +54,6 @@ def find():
     """
     :return: All the rigs embedded in the current maya scene.
     """
-    from omtk.vendor import libSerialization
-
     # TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.get_networks_from_class("Rig")
     results = [
@@ -78,8 +77,6 @@ def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
     """
-    from omtk.vendor import libSerialization
-
     rigs = find()
     for rig in rigs:
         network = rig._network  # monkey-patched by libSerialization
@@ -90,8 +87,6 @@ def build_all(strict=False):
 
 @libPython.log_execution_time("unbuild_all")
 def unbuild_all(strict=False):
-    from omtk.vendor import libSerialization
-
     rigs = find()
     for rig in rigs:
         network = rig._network  # monkey-patched by libSerialization
@@ -118,14 +113,12 @@ def _iter_rig_modules_by_type(rig, module_type):
     :param module_type: A type (ex: Module.FaceJaw)
     :yield: Module instances
     """
-    for module in rig.modules:
+    for module in rig.children:
         if isinstance(module, module_type):
             yield module
 
 
 def get_modules_from_selection(sel=None):
-    from omtk.vendor import libSerialization
-
     def get_rig_network_from_module(network):
         for plug in network.message.outputs(plugs=True):
             plug_node = plug.node()
@@ -172,7 +165,7 @@ def get_modules_from_selection(sel=None):
     # Deserialize the rig and find the associated networks
     rig = libSerialization.import_network(rig_network)
     modules = []
-    for module in rig.modules:
+    for module in rig.children:
         if module._network in module_networks:
             modules.append(module)
 
@@ -259,8 +252,6 @@ def rebuild_modules_by_type(module_type):
 
 
 def unbuild_selected(sel=None):
-    from omtk.vendor import libSerialization
-
     with with_preserve_selection():
         rig, modules = get_modules_from_selection()
         if not rig or not modules:

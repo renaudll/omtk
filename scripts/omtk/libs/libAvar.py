@@ -8,7 +8,6 @@ import re
 
 from pymel import core as pymel
 
-from omtk.libs import libAttr
 from omtk.vendor import libSerialization
 
 

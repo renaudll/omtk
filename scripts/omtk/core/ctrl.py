@@ -3,7 +3,7 @@ import logging
 import inspect
 
 import pymel.core as pymel
-from omtk import constants
+from omtk.core import constants
 from omtk.core.node import Node
 from omtk.libs import libAttr
 from omtk.libs import libPymel

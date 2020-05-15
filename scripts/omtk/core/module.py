@@ -1,12 +1,13 @@
+"""
+Logic for the "Module" class
+"""
 import logging
-import re
 
 import pymel.core as pymel
 
 from omtk.core import base
-from omtk.core import rig
+from omtk.core.rig import Rig
 from omtk.libs import libPymel
-from omtk.libs import libPython
 from omtk.libs import libAttr
 from omtk.core.exceptions import ValidationError
 
@@ -36,9 +37,38 @@ class Module(base.Buildable):
     # Is the module controlling the inputs or use them as reference?
     AFFECT_INPUTS = True
 
-    #
-    # libSerialization implementation
-    #
+    def __init__(
+        self, input=None, name=None, rig=None, parent=None
+    ):  # TODO: Remove input to inputs
+        """
+        DO NOT CALL THIS DIRECTLY, use rig.add_module.
+        :param input: A list of all the dagnode necessary for the module creation.
+        :param name: The name of the module.
+        :param rig: The parent of the module. Provided automatically by rig.add_module
+        """
+        super(Module, self).__init__(name=name, parent=parent or rig)
+
+        self.iCtrlIndex = 2
+        # If raised, the network can be used as a space-switch pin-point
+        self.canPinTo = True
+        self.globalScale = None  # Each module is responsible for handling it scale!
+
+        # Sometimes a rigger might hack a module directly, even if it is not desirable.
+        # Use this flag to notify omtk that the module should not be un-built.
+        self.locked = False
+
+        # By default, this array is used to store the ctrls the module use.
+        # If you define additional properties, don't forget to implement iter_ctrls.
+        self.ctrls = []
+
+        self.input = _conform_to_pynode_list(input)
+
+    def __callbackNetworkPreBuild__(self, attrs):
+        # Redirect any rig property (omtk<7) to the parent property.
+        rig = attrs.pop("rig", None)
+        parent = attrs.get("parent", None)
+        if rig and not parent:
+            attrs["parent"] = rig
 
     def __callbackNetworkPostBuild__(self):
         """
@@ -51,10 +81,6 @@ class Module(base.Buildable):
             self.input = self.input or []
         except AttributeError:
             pass
-
-    #
-    # Nomenclature implementation
-    #
 
     def get_side(self):  # TODO: Deprecate
         """
@@ -72,19 +98,21 @@ class Module(base.Buildable):
         """
         # todo: use className!
         ref = next(iter(self.chain), None) if self.chain else None
-        if ref:
-            old_nomenclature = self.rig.nomenclature(ref.stripNamespace().nodeName())
-            new_nomenclature = self.rig.nomenclature()
+        if not ref:
+            return None
 
-            if self.DEFAULT_NAME_USE_FIRST_INPUT:
-                new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
-            else:
-                new_nomenclature.add_tokens(self.__class__.__name__.lower())
+        old_nomenclature = self.rig.nomenclature(ref.stripNamespace().nodeName())
+        new_nomenclature = self.rig.nomenclature()
 
-            if self.IS_SIDE_SPECIFIC:
-                new_nomenclature.side = self.get_side()
+        if self.DEFAULT_NAME_USE_FIRST_INPUT:
+            new_nomenclature.add_tokens(*old_nomenclature.get_tokens())
+        else:
+            new_nomenclature.add_tokens(self.__class__.__name__.lower())
 
-            return new_nomenclature.resolve()
+        if self.IS_SIDE_SPECIFIC:
+            new_nomenclature.side = self.get_side()
+
+        return new_nomenclature.resolve()
 
     def get_module_name(self):  # TODO: Deprecate in favor of self.name
         """
@@ -110,9 +138,12 @@ class Module(base.Buildable):
         while isinstance(node.parent, Module):
             node = node.parent
         return node.naming_cls(tokens=[node.name], suffix=self.naming.type_anm)
-        # naming = copy.copy(self.naming_anm)
-        # naming.suffix=self.naming.type_anm
-        # return naming
+
+    #
+    # Helper methods for accessing the .input attribute.
+    # It is not a good pratice to access .input directly as the order
+    # of the objects can be random if the user didn't care enough.
+    #
 
     @property
     def parent_jnt(self):
@@ -124,12 +155,6 @@ class Module(base.Buildable):
             return first_input.getParent()
         return None
 
-    #
-    # Helper methods for accessing the .input attribute.
-    # It is not a good pratice to access .input directly as the order
-    # of the objects can be random if the user didn't care enough.
-    #
-
     def get_inputs_namespace(self):
         """
         Assuming inputs share a common namespace, return the namespace.
@@ -138,8 +163,8 @@ class Module(base.Buildable):
         each heads allowing animators to easily copy/paste poses and animations
         using tools like studioLibrary.
         """
-        for input in self.input:
-            namespace = input.namespace()
+        for input_ in self.input:
+            namespace = input_.namespace()
             if namespace:
                 return namespace
 
@@ -337,32 +362,6 @@ class Module(base.Buildable):
         """
         return next(iter(self.get_meshes()), None)
 
-    def __init__(
-        self, input=None, name=None, rig=None, parent=None
-    ):  # TODO: Remove input to inputs
-        """
-        DO NOT CALL THIS DIRECTLY, use rig.add_module.
-        :param input: A list of all the dagnode necessary for the module creation.
-        :param name: The name of the module.
-        :param rig: The parent of the module. Provided automatically by rig.add_module
-        """
-        super(Module, self).__init__(name=name, parent=parent or rig)
-
-        self.iCtrlIndex = 2
-        # If raised, the network can be used as a space-switch pin-point
-        self.canPinTo = True
-        self.globalScale = None  # Each module is responsible for handling it scale!
-
-        # Sometimes a rigger might hack a module directly, even if it is not desirable.
-        # Use this flag to notify omtk that the module should not be un-built.
-        self.locked = False
-
-        # By default, this array is used to store the ctrls the module use.
-        # If you define additional properties, don't forget to implement iter_ctrls.
-        self.ctrls = []
-
-        self.input = _conform_to_pynode_list(locals()["input"])
-
     @property
     def rig(self):
         """
@@ -371,18 +370,11 @@ class Module(base.Buildable):
         """
         node = self
         while node:
-            if isinstance(node, rig.Rig):
+            if isinstance(node, Rig):
                 return node
             node = node.parent
-        return None
 
-    @rig.setter
-    def rig(self, rig):  # used by libSerialization
-        """
-        :param rig: The module rig
-        :type rig: omtk.core.rig.Rig
-        """
-        self.parent = rig
+        return None
 
     def validate(self):
         """
@@ -410,24 +402,13 @@ class Module(base.Buildable):
             child.validate()
 
     def build(
-        self,
-        create_grp_anm=True,
-        create_grp_rig=True,
-        grp_anm_name=None,
-        grp_rig_name=None,
-        connect_global_scale=True,
-        disconnect_inputs=True,
-        parent=True,
-        **kwargs
+        self, connect_global_scale=True, disconnect_inputs=True, parent=True, **kwargs
     ):
         """
         Build the module following the provided rig rules.
-        :param create_grp_anm: If True, a group for all the animation controller will be created.
-        :param create_grp_rig: If True, a group for all the rig data will be created.
-        :param grp_anm_name: Override the name of the created anm group.
-        :param grp_rig_name: Override the name of the created rig group.
         :param parent: If True, the parent_to method will be automatically called.
         """
+        # TODO: Fully deprecate kwargs
         for kwarg in kwargs:
             self.log.warning(
                 "Module.build received unexpected keyword argument: %s", kwarg
@@ -607,6 +588,8 @@ class Module(base.Buildable):
 
         if type(inst) != cls:
             inst = cls(inputs, parent=parent)
+
+        inst.parent = parent
 
         if inst.input != inputs:
             inst.input = inputs

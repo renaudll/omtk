@@ -4,7 +4,7 @@ Public constants
 # TODO: Use real enum or convert to scalar
 
 
-class Axis:  # pylint: disable=old-style-class, no-init
+class Axis:  # pylint: disable=no-init
     """
     Available axis for a 3 dimensional vector.
     """
@@ -14,7 +14,7 @@ class Axis:  # pylint: disable=old-style-class, no-init
     z = "Z"
 
 
-class SpaceSwitchReservedIndex:  # pylint: disable=old-style-class, no-init
+class SpaceSwitchReservedIndex:  # pylint: disable=no-init
     """
     Reserved index for space swiching.
     """
@@ -24,7 +24,7 @@ class SpaceSwitchReservedIndex:  # pylint: disable=old-style-class, no-init
     root = -1
 
 
-class UIExposeFlags:  # pylint: disable=old-style-class, no-init
+class UIExposeFlags:  # pylint: disable=no-init
     """
     Flags used when exposing Rig or Module functionality in the ui.
     """

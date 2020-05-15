@@ -7,7 +7,7 @@ import re
 
 import pymel.core as pymel
 
-from omtk.core import name
+from omtk.core.name import BaseName
 from omtk.core.api import get_version
 from omtk.libs import libPymel
 from omtk.core.exceptions import ValidationError
@@ -39,7 +39,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
 
     CREATE_GRP_ANM = True
     CREATE_GRP_RIG = True
-    NOMENCLATURE_CLS = name.BaseName
+    NOMENCLATURE_CLS = BaseName
 
     def __init__(self, name=None, parent=None):
         assert isinstance(name, str) or name is None
@@ -56,6 +56,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         # Loops are not a problem per say but are visually displeasing.
         # The list of children is updated in parent setter.
         self.__dict__["children"] = []
+        self._parent = None
         self.parent = parent
 
         self._log = ModuleLoggerAdapter(self)
@@ -71,9 +72,12 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
     @parent.setter
     def parent(self, parent):
         assert parent is None or isinstance(parent, Buildable)
-        self._parent = parent
-        if parent:
-            parent.children.append(self)
+        if parent and parent is not self._parent:
+            self._parent = parent
+            if not self in parent.children:
+                parent.children.append(self)
+            else:
+                self.log.warning("%s is already a child of %s", self, parent)
 
     @property
     def children(self):
@@ -117,6 +121,9 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         return self._log
 
     def get_version(self):  # type: () -> tuple[int, int, int]
+        """
+        Get the current buildable version as semantic versionning compatible 3-tuple
+        """
         # TODO: Deprecate?
         version_info = str(self.version)
         regex = r"^[0-9]+\.[0-9]+\.[0-9]+$"
@@ -129,14 +136,15 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
     # libSerialization implementation
     #
 
-    def __getNetworkName__(self):  # type: () -> str
+    def __getNetworkName__(self):  # pylint: disable=invalid-name
         """
         Determine the name of the maya network when serialized.
         Returns: The desired network name for this instance.
+        :rtype: str
         """
         return "net_%s_%s" % (self.__class__.__name__, self.name)
 
-    def __callbackNetworkPostBuild__(self):
+    def __callbackNetworkPostBuild__(self):  # pylint: disable=invalid-name
         """
         Cleaning routine automatically called by libSerialization after an import.
         """

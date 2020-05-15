@@ -50,13 +50,11 @@ class SampleTests(unittest.TestCase):
         self.assertAlmostEqual(distorsion, 0)
 
     def test_ikfk_switch(self):
-        rig, module = self._create_simple_arm_build_and_export()
+        _, module = self._create_simple_arm_build_and_export()
 
         ctrl_ik = module.sysIK.ctrl_ik.node
-
         ctrl_fk_01 = module.sysFK.ctrls[0].node
         ctrl_fk_02 = module.sysFK.ctrls[1].node
-        ctrl_fk_03 = module.sysFK.ctrls[2].node
 
         # Do a brainless IK->FK->IK switch to ensure nothing is moving.
         pymel.select(ctrl_ik)

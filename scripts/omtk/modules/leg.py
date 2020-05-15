@@ -2,7 +2,7 @@ import pymel.core as pymel
 from pymel.core.datatypes import Point, Vector, Matrix
 from maya import cmds
 
-from omtk import constants
+from omtk.core import constants
 from omtk.core.compounds import create_compound
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libAttr

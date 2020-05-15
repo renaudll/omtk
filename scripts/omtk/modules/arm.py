@@ -3,7 +3,7 @@ Logic for the "Arm" module
 """
 import pymel.core as pymel
 
-from omtk import constants
+from omtk.core import constants
 from omtk.modules import ik
 from omtk.modules import limb
 from omtk.libs import libCtrlShapes
@@ -11,6 +11,10 @@ from omtk.libs import libRigging
 
 
 class CtrlIkArm(ik.CtrlIk):
+    """
+    Animation controller for an IK hand
+    """
+
     def create_ctrl(self, *args, **kwargs):
         return libCtrlShapes.create_shape_box_arm(*args, **kwargs)
 

@@ -67,11 +67,11 @@ class Cache(object):
     def get_import_value_by_id(self, id, default=None):
         return self._cache_import_by_id.get(id, default)
 
-    def set_import_value_by_id(self, id, val):
-        self._cache_import_by_id[id] = val
+    def set_import_value_by_id(self, id_, val):
+        self._cache_import_by_id[id_] = val
 
-    def get_network_by_id(self, id, default=None):
-        return self._cache_networks_by_id.get(id, default)
+    def get_network_by_id(self, id_, default=None):
+        return self._cache_networks_by_id.get(id_, default)
 
-    def set_network_by_id(self, id, net):
-        self._cache_networks_by_id[id] = net
+    def set_network_by_id(self, id_, net):
+        self._cache_networks_by_id[id_] = net

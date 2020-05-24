@@ -158,7 +158,9 @@ class PluginType(object):
         if not package:
             package = pkgutil.get_loader(package_name).load_module(package_name)
 
-        for _, modname, is_pkg in pkgutil.walk_packages(package.__path__, prefix=package.__name__ + "."):
+        for _, modname, is_pkg in pkgutil.walk_packages(
+            package.__path__, prefix=package.__name__ + "."
+        ):
             if is_pkg:
                 continue
             log.debug("Found plugin %s", modname)

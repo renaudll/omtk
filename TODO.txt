@@ -8,6 +8,7 @@ Regressions to fix:
 [ ] Being able to move the surface without affecting the result
 [ ] Ensure preDeform mode still work
 [ ] Make FaceEye work
+[ ] Fix limb elbow controller offset
 
 Questions for community:
 [ ] Should the micro use the jaw splitter?

@@ -3,6 +3,8 @@ import logging
 
 from pymel import core as pymel
 
+from omtk.libs import libPymel
+
 log = logging.getLogger("omtk")
 
 

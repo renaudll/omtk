@@ -1,6 +1,7 @@
 """
 Logic for the "Module" class
 """
+import copy
 import logging
 
 import pymel.core as pymel
@@ -8,7 +9,7 @@ import pymel.core as pymel
 from omtk.core import base
 from omtk.core.rig import Rig
 from omtk.libs import libPymel
-from omtk.libs import libAttr
+from omtk.libs import libAttr, libSkeleton
 from omtk.core.exceptions import ValidationError
 
 log = logging.getLogger("omtk")
@@ -70,6 +71,13 @@ class Module(base.Buildable):
         if rig and not parent:
             attrs["parent"] = rig
 
+        # Ensure there's no None value in the .ctrls array.
+        # This can happen if the rigging delete the stored shape before rebuilding.
+        try:
+            self.ctrls = filter(None, self.ctrls)
+        except (AttributeError, TypeError):
+            pass
+
     def __callbackNetworkPostBuild__(self):
         """
         Cleaning routine automatically called by libSerialization after a network import.
@@ -79,6 +87,11 @@ class Module(base.Buildable):
         # libSerialization will interpret an empty list as None
         try:
             self.input = self.input or []
+        except AttributeError:
+            pass
+
+        try:
+            self.ctrls = self.ctrls or []
         except AttributeError:
             pass
 
@@ -401,9 +414,7 @@ class Module(base.Buildable):
         for child in self.iter_children():
             child.validate()
 
-    def build(
-        self, connect_global_scale=True, disconnect_inputs=True, parent=True, **kwargs
-    ):
+    def build(self, connect_global_scale=True, parent=True, **kwargs):
         """
         Build the module following the provided rig rules.
         :param parent: If True, the parent_to method will be automatically called.
@@ -414,33 +425,44 @@ class Module(base.Buildable):
                 "Module.build received unexpected keyword argument: %s", kwarg
             )
 
+        # Conform the influences we will affect.
+        if self.AFFECT_INPUTS:
+            inputs_and_parent = copy.copy(self.input)
+            if self.parent_jnt:
+                inputs_and_parent.append(self.parent_jnt)
+
+            for obj in self.input:
+                # The inheritsTransform flag is evil and
+                # will prevent the rig from correctly scaling.
+                if isinstance(obj, pymel.nodetypes.Transform):
+                    if not obj.inheritsTransform.get():
+                        self.log.warning(
+                            "Enabling inheritsTransform for the best on %s", obj
+                        )
+                        obj.inheritsTransform.set(True)
+
+                if isinstance(obj, pymel.nodetypes.Joint):
+                    # Remove any existing connections on the input joints.
+                    # Sometimes the rigger might leave animation by accident.
+                    # For safety we only do this for joints.
+                    libAttr.disconnect_trs(obj, inputs=True, outputs=False)
+
+                    # Joint orient in general is just a bad design decision.
+                    # It make is harder to connect a matrix to a joint as the
+                    # It make a skeleton easier to handle but it make it harder
+                    # jointOrient is added on top. We are better removing it completely.
+                    libSkeleton.transfer_joint_orient_to_rotation(obj)
+
+            # The segmentScaleCompensate is not supported as we support
+            # video-game rigs. If you need non-uniform scaling in your module,
+            # do it on leaf joints.
+            for obj in inputs_and_parent:
+                if isinstance(obj, pymel.nodetypes.Joint):
+                    if obj.segmentScaleCompensate.get():
+                        self.log.debug("Disabling segmentScaleCompensate on %s", obj)
+                        obj.segmentScaleCompensate.set(False)
+
         super(Module, self).build()
-
-        # Enable/Disable dangerous flags.
-        for inn in self.input:
-            # The inheritsTransform flag is evil and
-            # will prevent the rig from correctly scaling.
-            if isinstance(inn, pymel.nodetypes.Transform):
-                if not inn.inheritsTransform.get():
-                    self.log.warning(
-                        "Enabling inheritsTransform for the best on %s", inn
-                    )
-                    inn.inheritsTransform.set(True)
-
-                # The segmentScaleCompensate is not supported as we support video-game
-                # rigs. If you need non-uniform scaling in your module, do it on
-                # leaf joints.
-                if isinstance(inn, pymel.nodetypes.Joint):
-                    if inn.segmentScaleCompensate.get():
-                        self.log.debug("Disabling segmentScaleCompensate on %s", inn)
-                        inn.segmentScaleCompensate.set(False)
-
-            # Remove any existing connections on the input joints.
-            # Sometimes the rigger might leave animation by accident.
-            # For safety we only do this for joints.
-            if disconnect_inputs:
-                if isinstance(inn, pymel.nodetypes.Joint):
-                    libAttr.disconnect_trs(inn, inputs=True, outputs=False)
 
         if connect_global_scale and self.grp_rig:
             pymel.addAttr(self.grp_rig, longName="globalScale", defaultValue=1.0)
@@ -535,7 +557,7 @@ class Module(base.Buildable):
         Iterate though all the ctrl implemented by the module.
         :return: A generator of BaseCtrl instances
         """
-        for ctrl in self.ctrls:
+        for ctrl in self.ctrls or []:  # TODO "or []" should not be necessary
             yield ctrl
 
     def get_ctrls(self):

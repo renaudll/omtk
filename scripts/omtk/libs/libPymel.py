@@ -6,10 +6,18 @@ import pymel.core as pymel
 from maya import OpenMaya
 from maya import cmds
 
-log = logging.getLogger(__name__)
+_LOG = logging.getLogger(__name__)
 
 
 def is_valid_PyNode(val):
+    """
+    Determine if a provided value is a valid PyNode object.
+
+    :param object val: A value to check
+    :return: Is the object a valid PyNode?
+    :rtype: bool
+    """
+    # TODO: Deprecate? Why do we need this exactly?
     if not hasattr(val, "__melobject__"):
         return False
     fn = getattr(val, "__melobject__")
@@ -71,6 +79,24 @@ class PyNodeChain(list):
     Array-like object for chain of PyNode.
     """
 
+    # get the first pynode that have the attr
+    def __getattr__(self, key):
+        _LOG.warning("Searching unknown attribute %s in %s", key, self)
+        first_node = next(
+            (node for node in self.__dict__["_list"] if hasattr(node, key)), None
+        )
+        if first_node is not None:
+            return getattr(first_node, key)
+        raise AttributeError
+
+    # set all the pynodes that have the attr
+    def __setattr__(self, key, value):
+        for node in self:
+            try:
+                setattr(node, key, value)
+            except Exception as e:
+                _LOG.error(str(e))
+
     @property
     def start(self):
         """
@@ -102,32 +128,16 @@ class PyNodeChain(list):
 
     # todo: convert to property?
     def length(self):
-        length = 0
+        """
+        :return: The chain length
+        :rtype: float
+        """
+        length = 0.0
         for i in range(len(self) - 1):
             head = self[i]
             tail = self[i + 1]
             length += distance_between_nodes(head, tail)
         return length
-
-    # get the first pynode that have the attr
-    def __getattr__(self, key):
-        logging.warning(
-            "Searching unknown attribute {key} in {self}", key=key, self=self
-        )
-        first_node = next(
-            (node for node in self.__dict__["_list"] if hasattr(node, key)), None
-        )
-        if first_node is not None:
-            return getattr(first_node, key)
-        raise AttributeError
-
-    # set all the pynodes that have the attr
-    def __setattr__(self, key, value):
-        for node in self:
-            try:
-                setattr(node, key, value)
-            except Exception as e:
-                logging.error(str(e))
 
 
 def duplicate_chain(chain):

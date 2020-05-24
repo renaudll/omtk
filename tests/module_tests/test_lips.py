@@ -51,7 +51,7 @@ class TestLips(omtk_test.TestCase):
 
         # Create a base rig
         rig = omtk.create()
-        rig.add_module(head.Head([pymel.PyNode("jnt_head")]))
+        rig.add_module(Head([pymel.PyNode("jnt_head")]))
         rig.add_module(
             FaceJaw(
                 [pymel.PyNode("jnt_jaw")]

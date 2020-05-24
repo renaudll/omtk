@@ -250,7 +250,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         """
         self.log.debug("Un-building")
 
-        for child in self.children:
+        for child in self.children or []:  # TODO: "or []" should not be necessary
             child.unbuild()
 
         if self.grp_anm:

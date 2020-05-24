@@ -9,7 +9,7 @@ from maya import cmds
 from maya import mel
 
 from omtk.core import constants
-from omtk.libs import libPymel
+from omtk.libs import libPymel, libPython
 
 _LOG = logging.getLogger(__name__)
 
@@ -65,7 +65,17 @@ def create_utility_node(type_, name=None, **kwargs):
     return util
 
 
-def connect_matrix_to_node(attr, node, name=None):
+def connect_matrix_to_node(
+    attr,
+    node,
+    name=None,
+    translate=True,
+    rotate=True,
+    scale=True,
+    shrear=False,
+    rotateOrder=False,
+    jointOrient=False,
+):
     """
     Helper method that decompose a matrix attribute and constraint a node.
 
@@ -74,13 +84,26 @@ def connect_matrix_to_node(attr, node, name=None):
     :param node: A transform node to constraint
     :type node: pymel.nodetypes.Transform
     :param str name: An optional name for the created utility node
+    :param bool shear: Should we connect shearing?
+    :param bool rotateOrder: Should we connect the rotate order?
     :return: The created decomposeMatrix utility node
     :rtype: pymel.nodetypes.DecomposeMatrix
     """
     util = create_utility_node("decomposeMatrix", name=name, inputMatrix=attr)
-    pymel.connectAttr(util.outputTranslate, node.translate, force=True)
-    pymel.connectAttr(util.outputRotate, node.rotate, force=True)
-    pymel.connectAttr(util.outputScale, node.scale, force=True)
+    if translate:
+        pymel.connectAttr(util.outputTranslate, node.translate, force=True)
+    if rotate:
+        pymel.connectAttr(util.outputRotate, node.rotate, force=True)
+    if jointOrient:
+        pymel.connectAttr(util.outputRotate, node.jointOrient, force=True)
+    if scale:
+        pymel.connectAttr(util.outputScale, node.scale, force=True)
+    if shrear:
+        pymel.connectAttr(util.outputShear, node.shear, force=True)
+    if rotateOrder:
+        pymel.connectAttr(node.rotateOrder, util.inputRotateOrder)
+    else:  # at least ensure rotateOrder match
+        util.inputRotateOrder.set(node.rotateOrder.get())
     return util
 
 
@@ -110,6 +133,31 @@ def create_multiply_matrix(matrices, name=None):
     :rtype: pymel.Attribute
     """
     return create_utility_node("multMatrix", name=name, matrixIn=matrices).matrixSum
+
+
+def create_blend_two_matrix(matrix1, matrix2, ratio):
+    """
+    Helper method that create a node to blend two matrices.
+
+    Note that in Maya2020 there's a new "blendMatrix" node.
+    """
+    util = create_utility_node("wtAddMatrix")
+    ratio_inv = create_utility_node("reverse", inputX=ratio).outputX
+    connect_or_set_attr(util.wtMatrix[0].matrixIn, matrix1)
+    connect_or_set_attr(util.wtMatrix[1].matrixIn, matrix2)
+    connect_or_set_attr(util.wtMatrix[0].weightIn, ratio)
+    connect_or_set_attr(util.wtMatrix[1].weightIn, ratio_inv)
+    return util.matrixSum
+
+
+def _create_blend_two_matrix_2020(matrix1, matrix2, ratio):
+    """
+    Helper method that blend two matrixes using the blendMatrix node (maya-2020+).
+    """
+    util = create_utility_node("blendMatrix", envelope=ratio)
+    connect_or_set_attr(util.target[0].targetMatrix, matrix1)
+    connect_or_set_attr(util.target[1].targetMatrix, matrix2)
+    return util.outputMatrix
 
 
 #
@@ -392,9 +440,9 @@ def create_nurbsCurve_from_joints(obj_s, obj_e, samples=2, num_cvs=3):
     return pymel.curve(d=samples, p=coords)
 
 
-def create_hyerarchy(_oObjs):
-    for i in range(1, len(_oObjs)):
-        _oObjs[i].setParent(_oObjs[i - 1])
+def create_hyerarchy(objs, **kwargs):
+    for parent, child in libPython.pairwise(objs):
+        child.setParent(parent, **kwargs)
 
 
 def create_chain_between_objects(obj_s, obj_e, samples, parented=True):

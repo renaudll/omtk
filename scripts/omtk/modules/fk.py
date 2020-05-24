@@ -29,7 +29,7 @@ class FK(Module):
     A Simple FK with support for multiple hyerarchy.
     """
 
-    CREATE_GRP_ANM = True
+    CREATE_GRP_RIG = False
     DEFAULT_NAME_USE_FIRST_INPUT = True
     _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name.
     _FORCE_INPUT_NAME = (
@@ -44,41 +44,44 @@ class FK(Module):
         self.sw_translate = False
         self.create_spaceswitch = True
 
-    def __callbackNetworkPostBuild__(self):
-        """
-        Cleaning routine automatically called by libSerialization after a network import
-        """
-        # Ensure there's no None value in the .ctrls array.
-        # This can happen if the rigging delete the stored shape before rebuilding.
-        try:
-            self.ctrls = filter(None, self.ctrls)
-        except (AttributeError, TypeError):
-            pass
-        super(FK, self).__callbackNetworkPostBuild__()
-
     def build(self, constraint=True, parent=True, *args, **kwargs):
         """
         :param bool constraint: Should we constraint the inputs to the controller?
         :param bool parent: Unused
         """
-        super(FK, self).build(*args, **kwargs)
+        naming = self.get_nomenclature()
+
+        super(FK, self).build(parent=False, *args, **kwargs)
 
         # Initialize ctrls
         libPython.resize_list(self.ctrls, len(self.jnts))
         for idx, ctrl in enumerate(self.ctrls):
             self.ctrls[idx] = self._CLS_CTRL.from_instance(ctrl)
 
+        # TODO: Do we really want to support multiple chains?
         for chain in self.chains:
             chain_ctrls = self._build_chain(chain)
-            chain_ctrls[0].setParent(self.grp_anm)
-            libRigging.create_hyerarchy(chain_ctrls)
+            chain_ctrls[0].setParent(self.grp_anm, relative=True)
+            libRigging.create_hyerarchy(chain_ctrls, relative=True)
 
-        if constraint is True:
+            # Build space-switch for first chain ctrl
+            if self.create_spaceswitch:
+                kwargs = {"add_world": True}
+                if not self.sw_translate:
+                    kwargs["skipTranslate"] = ["x", "y", "z"]
+                chain_ctrls[0].create_spaceswitch(self, self.parent_jnt, **kwargs)
+
+        if self.parent_jnt:
+            libRigging.connect_matrix_to_node(
+                self.parent_jnt.worldMatrix,
+                self.grp_anm,
+                name=naming.resolve("getParentWorldTM"),
+            )
+
+        if constraint:
             for jnt, ctrl in zip(self.jnts, self.ctrls):
-                pymel.parentConstraint(ctrl, jnt, maintainOffset=True)
-                pymel.connectAttr(ctrl.scaleX, jnt.scaleX)
-                pymel.connectAttr(ctrl.scaleY, jnt.scaleY)
-                pymel.connectAttr(ctrl.scaleZ, jnt.scaleZ)
+                attr_tm = get_tm_from_ctrl(ctrl)
+                libRigging.connect_matrix_to_node(attr_tm, jnt)
 
     def _build_chain(self, chain):
         """
@@ -89,21 +92,13 @@ class FK(Module):
         :return: The chain controllers
         :rtype: list of CtrlFk
         """
-        # Build chain ctrls
         ctrls = []
         for j, jnt in enumerate(chain):
             ctrl = self.ctrls[self.jnts.index(jnt)]
             ctrl_name = self._get_ctrl_name(jnt, j)
             ctrl.build(name=ctrl_name, refs=jnt, geometries=self.rig.get_meshes())
-            ctrl.setMatrix(jnt.getMatrix(worldSpace=True))
+            ctrl.setMatrix(jnt.getMatrix())
             ctrls.append(ctrl)
-
-        # Build space-switch for first chain ctrl
-        if self.create_spaceswitch:
-            kwargs = {"add_world": True}
-            if not self.sw_translate:
-                kwargs["skipTranslate"] = ["x", "y", "z"]
-            ctrls[0].create_spaceswitch(self, self.parent_jnt, **kwargs)
 
         return ctrls
 
@@ -155,4 +150,37 @@ class FK(Module):
 
 
 def register_plugin():
+    """
+    Register the plugin. This function is expected by plugin_manager.
+
+    :return: The plugin to register
+    :rtype: omtk.core.modules.Module
+    """
     return FK
+
+
+def _iter_ctrl_local_tm_contributors(ctrl):
+    """
+
+    :param ctrl:
+    :type ctrl: omtk.core.ctrl.BaseCtrl
+    :return:
+    """
+    node = ctrl.node
+    while node:
+        yield node
+        if node == ctrl.offset:
+            return
+        node = node.getParent()
+
+
+def get_tm_from_ctrl(ctrl):
+    """
+
+    :param ctrl:
+    :type ctrl: omtk.core.ctrl.BaseCtrl
+    :return:
+    """
+    return libRigging.create_multiply_matrix(
+        [node.matrix for node in _iter_ctrl_local_tm_contributors(ctrl)]
+    )

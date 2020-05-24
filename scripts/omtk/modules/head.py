@@ -5,6 +5,10 @@ from omtk.modules.fk import CtrlFk, FK
 
 
 class CtrlHead(CtrlFk):
+    """
+    Head single controller
+    """
+
     pass
 
 
@@ -18,4 +22,10 @@ class Head(FK):
 
 
 def register_plugin():
+    """
+    Register the plugin. This function is expected by plugin_manager.
+
+    :return: The plugin to register
+    :rtype: omtk.core.modules.Module
+    """
     return Head

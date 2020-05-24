@@ -240,9 +240,19 @@ class AvarInflBaseModel(module.Module):
 
         fn = functools.partial(libAttr.addAttr, self.grp_rig)
 
-        self.multiplier_lr = fn("innMultiplierLr", defaultValue=self.multiplier_lr)
-        self.multiplier_ud = fn("innMultiplierUd", defaultValue=self.multiplier_ud)
-        self.multiplier_fb = fn("innMultiplierFb", defaultValue=self.multiplier_fb)
+        # TODO: Remove this
+        def _get(value):
+            return value.get() if isinstance(value, pymel.Attribute) else value
+
+        self.multiplier_lr = fn(
+            "innMultiplierLr", defaultValue=_get(self.multiplier_lr)
+        )
+        self.multiplier_ud = fn(
+            "innMultiplierUd", defaultValue=_get(self.multiplier_ud)
+        )
+        self.multiplier_fb = fn(
+            "innMultiplierFb", defaultValue=_get(self.multiplier_fb)
+        )
 
         # TODO: Should this be optional?
         fn = functools.partial(

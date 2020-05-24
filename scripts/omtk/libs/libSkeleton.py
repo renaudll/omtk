@@ -27,6 +27,26 @@ def mirror_obj(obj_src, obj_dst=None):
     return obj_dst
 
 
+def _check_joint_rotation_attributes(obj):
+    """
+    Validate the rotation attributes of a joint are free to change
+    :param pymel.nodetypes.Joint obj: A joint
+    :raises ValueError: If a rotation attribute is not free to change
+    """
+    for attr in (
+        obj.rotateX,
+        obj.rotateY,
+        obj.rotateZ,
+        obj.jointOrientX,
+        obj.jointOrientY,
+        obj.jointOrientZ,
+    ):
+        if attr.isFreeToChange() != OpenMaya.MPlug.kFreeToChange:
+            raise ValueError(
+                "Can't transfer rotation to joint orient. %r is locked." % attr
+            )
+
+
 def transfer_rotation_to_joint_orient(obj):
     """
     Convert any rotation value to jointOrient rotation.
@@ -37,37 +57,60 @@ def transfer_rotation_to_joint_orient(obj):
     :param obj: The joints to act on
     :rtype obj: pymel.nodetypes.Joint
     """
+    try:
+        _check_joint_rotation_attributes(obj)
+    except ValueError as error:
+        pymel.warning(error)
+        return
+
     mfn = obj.__apimfn__()
 
-    rotation_orig = OpenMaya.MEulerRotation()
-    mfn.getRotation(rotation_orig)
-    rotation_xyz = rotation_orig.reorder(OpenMaya.MEulerRotation.kXYZ)
+    # Get current rotation
+    rotation = OpenMaya.MEulerRotation()
+    mfn.getRotation(rotation)
 
-    # Apply existing jointOrient values
-    orientation_orig = OpenMaya.MEulerRotation()
-    mfn.getOrientation(orientation_orig)
-    rotation_xyz *= orientation_orig
+    # Get current joint orient
+    joint_orient = OpenMaya.MEulerRotation()
+    mfn.getOrientation(joint_orient)
 
-    for attr in (
-        obj.rotateX,
-        obj.rotateY,
-        obj.rotateZ,
-        obj.jointOrientX,
-        obj.jointOrientY,
-        obj.jointOrientZ,
-    ):
-        if not attr.isFreeToChange() == OpenMaya.MPlug.kFreeToChange:
-            pymel.warning(
-                "Can't transfer rotation to joint orient. %r is locked." % attr
-            )
-            return
+    # Compute new rotation
+    result = rotation.reorder(OpenMaya.MEulerRotation.kXYZ) * joint_orient
 
-    obj.jointOrientX.set(math.degrees(rotation_xyz.x))
-    obj.jointOrientY.set(math.degrees(rotation_xyz.y))
-    obj.jointOrientZ.set(math.degrees(rotation_xyz.z))
-    obj.rotateX.set(0)
-    obj.rotateY.set(0)
-    obj.rotateZ.set(0)
+    obj.jointOrientX.set(math.degrees(result.x))
+    obj.jointOrientY.set(math.degrees(result.y))
+    obj.jointOrientZ.set(math.degrees(result.z))
+    obj.rotateX.set(0.0)
+    obj.rotateY.set(0.0)
+    obj.rotateZ.set(0.0)
+
+
+def transfer_joint_orient_to_rotation(obj):
+    try:
+        _check_joint_rotation_attributes(obj)
+    except ValueError as error:
+        pymel.warning(error)
+        return
+
+    mfn = obj.__apimfn__()
+
+    # Get current rotation
+    rotation = OpenMaya.MEulerRotation()
+    mfn.getRotation(rotation)
+    rotation_order = mfn.rotationOrder()
+
+    # Get current joint orient
+    joint_orient = OpenMaya.MEulerRotation()
+    mfn.getOrientation(joint_orient)
+
+    # Compute new rotation
+    result = joint_orient.reorder(rotation_order) * rotation
+
+    obj.jointOrientX.set(0.0)
+    obj.jointOrientY.set(0.0)
+    obj.jointOrientZ.set(0.0)
+    obj.rotateX.set(math.degrees(result.x))
+    obj.rotateY.set(math.degrees(result.y))
+    obj.rotateZ.set(math.degrees(result.z))
 
 
 def mirror_jnt(obj_src):

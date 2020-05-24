@@ -8,6 +8,7 @@ from maya import cmds, standalone
 
 class TestCls1(object):
     """Fixture for a class with basic type attributes."""
+
     def __init__(self):
         self.scalar_int = 3
         self.scalar_float = 3.5
@@ -45,23 +46,23 @@ def test_basic_types():
         for attr in network.listAttr(userDefined=True)
     }
     expected = {
-        u'_class': (u'string', False, u'TestCls1'),
-        u'_class_module': (u'string', False, u'omtk'),
-        u'_class_namespace': (u'string', False, u'TestCls1'),
-        u'_uid': (u'long', False, 0),
-        u'list_bool': (u'TdataCompound', True, (1.0, 0.0)),
-        u'list_float': (u'TdataCompound', True, (1.0, 2.0)),
-        u'list_int': (u'TdataCompound', True, (1.0, 2.0)),
-        u'list_string': (u'TdataCompound', True, [u'a', u'b']),
-        u'scalar_bool': (u'bool', False, True),
-        u'scalar_float': (u'float', False, 3.5),
-        u'scalar_int': (u'long', False, 3),
-        u'scalar_string': (u'string', False, u'pi'),
-        u'pymel_matrix': (u'matrix', False, Matrix()),
-        u'pymel_vector': (u'double3', False, Vector()),
-        u'pymel_vectorX': (u'double', False, 0.0),
-        u'pymel_vectorY': (u'double', False, 0.0),
-        u'pymel_vectorZ': (u'double', False, 0.0),
+        u"_class": (u"string", False, u"TestCls1"),
+        u"_class_module": (u"string", False, u"omtk"),
+        u"_class_namespace": (u"string", False, u"TestCls1"),
+        u"_uid": (u"long", False, 0),
+        u"list_bool": (u"TdataCompound", True, (1.0, 0.0)),
+        u"list_float": (u"TdataCompound", True, (1.0, 2.0)),
+        u"list_int": (u"TdataCompound", True, (1.0, 2.0)),
+        u"list_string": (u"TdataCompound", True, [u"a", u"b"]),
+        u"scalar_bool": (u"bool", False, True),
+        u"scalar_float": (u"float", False, 3.5),
+        u"scalar_int": (u"long", False, 3),
+        u"scalar_string": (u"string", False, u"pi"),
+        u"pymel_matrix": (u"matrix", False, Matrix()),
+        u"pymel_vector": (u"double3", False, Vector()),
+        u"pymel_vectorX": (u"double", False, 0.0),
+        u"pymel_vectorY": (u"double", False, 0.0),
+        u"pymel_vectorZ": (u"double", False, 0.0),
     }
 
     decoded = libSerialization.import_network(network)

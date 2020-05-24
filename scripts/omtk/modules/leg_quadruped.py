@@ -61,7 +61,7 @@ class LegIkQuad(LegIk):
         )
         return ik_handle, ik_effector
 
-    def setup_swivel_ctrl(
+    def _build_ctrl_swivel(
         self,
         ctrl_swivel,
         ref,
@@ -87,7 +87,7 @@ class LegIkQuad(LegIk):
         :return: The created ctrl swivel
         """
         # Do not contraint the ik handle now as we could need the flipping setup
-        ctrl_swivel = super(LegIkQuad, self).setup_swivel_ctrl(
+        ctrl_swivel = super(LegIkQuad, self)._build_ctrl_swivel(
             ctrl_swivel, ref, pos, ik_handle, constraint=False, **kwargs
         )
 
@@ -218,7 +218,7 @@ class LegIkQuad(LegIk):
             )
 
         # Create another swivel handle node for the quad chain setup
-        self.ctrl_swivel_quad = self.setup_swivel_ctrl(
+        self.ctrl_swivel_quad = self._build_ctrl_swivel(
             self.ctrl_swivel_quad,
             self._chain_quad_ik[heel_idx],
             quad_swivel_pos,
@@ -281,4 +281,10 @@ class LegQuad(Limb):
 
 
 def register_plugin():
+    """
+    Register the plugin. This function is expected by plugin_manager.
+
+    :return: The plugin to register
+    :rtype: omtk.core.modules.Module
+    """
     return LegQuad

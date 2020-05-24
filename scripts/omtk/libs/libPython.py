@@ -1,5 +1,7 @@
 import logging
 import time
+from itertools import tee, izip
+
 
 _LOG = logging.getLogger(__name__)
 
@@ -81,3 +83,15 @@ def guess_value(
 
     _LOG.warning("Could not resolve value under %s iterations.", max_iter)
     return mid
+
+
+def pairwise(iterable):
+    """
+    src: https://stackoverflow.com/questions/5764782/iterate-through-pairs-of-items-in-a-python-list
+
+    :param iterable:
+    :return:
+    """
+    a, b = tee(iterable)
+    next(b, None)
+    return izip(a, b)

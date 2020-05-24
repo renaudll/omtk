@@ -1,0 +1,5 @@
+strictness: low
+
+ignore-patterns:
+  - ui
+  - vendor

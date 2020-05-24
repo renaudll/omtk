@@ -1,5 +1,6 @@
 import functools
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix
 
 from omtk.libs import libAttr
 from omtk.libs import libRigging
@@ -67,16 +68,23 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
             input=[self.attr_inn_jaw_ratio_default, 0.0],
             attributesBlender=self._attr_bypass,
         ).output
-        util_blend_jaw = libRigging.create_utility_node("blendMatrix", envelope=ratio)
-        pymel.connectAttr(
-            self._attr_jaw_local_tm, util_blend_jaw.target[0].targetMatrix
+
+        attr_blend_jaw = libRigging.create_blend_two_matrix(
+            Matrix(), self._attr_jaw_local_tm, ratio
         )
+
+        # util_blend_jaw = libRigging.create_utility_node("blendMatrix", envelope=ratio)
+        # pymel.connectAttr(
+        #     self._attr_jaw_local_tm, util_blend_jaw.target[0].targetMatrix
+        # )
+        # attr_blend_jaw = util_blend_jaw.outputMatrix
+
         attr_jaw_bind_inv_tm = libRigging.create_inverse_matrix(attr_jaw_bind_tm)
         return libRigging.create_multiply_matrix(
             [
                 local_tm,  # Start from the result
                 attr_jaw_bind_inv_tm,  # Enter jaw space
-                util_blend_jaw.outputMatrix,  # Apply jaw transformation
+                attr_blend_jaw,  # Apply jaw transformation
                 attr_jaw_bind_tm,  # Exit jaw space
             ],
             name=naming.resolve("applyJawInfluence"),

@@ -10,7 +10,7 @@ from omtk.core import constants
 from omtk.core.module import Module
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.utils import ui_expose
-from omtk.modules.ik import IK
+from omtk.modules.ik import IK, _create_joint_from_binds
 from omtk.modules.fk import FK
 from omtk.modules.twistbone import Twistbone
 from omtk.libs import libRigging
@@ -124,7 +124,7 @@ class Limb(Module):
 
         super(Limb, self).build(*args, **kwargs)
 
-        nomenclature_anm = self.get_nomenclature_anm()
+        naming_anm = self.get_nomenclature_anm()
         naming = self.get_nomenclature_rig()
 
         # Store the offset between the ik ctrl and it's joint equivalent.
@@ -156,7 +156,7 @@ class Limb(Module):
         # Note that this is production specific and
         # should be defined in a sub-class implementation.
         jnt_hand = self.chain_jnt[self.sysIK.iCtrlIndex]
-        ctrl_attrs_name = nomenclature_anm.resolve("atts")
+        ctrl_attrs_name = naming_anm.resolve("atts")
         if not isinstance(self.ctrl_attrs, self._CLASS_CTRL_ATTR):
             self.ctrl_attrs = self._CLASS_CTRL_ATTR()
         self.ctrl_attrs.build(name=ctrl_attrs_name, refs=jnt_hand)
@@ -179,47 +179,23 @@ class Limb(Module):
         )
 
         # Create a chain for blending ikChain and fkChain
-        chain_blend = pymel.duplicate(
-            list(self.chain_jnt), renameChildren=True, parentOnly=True
-        )
-        for input_, node in zip(self.chain_jnt, chain_blend):
-            blend_nomenclature = naming.rebuild(input_.stripNamespace().nodeName())
-            node.rename(blend_nomenclature.resolve("blend"))
-
-        # Blend ikChain with fkChain
-        constraint_ik_chain = self.sysIK._chain_ik
-        if getattr(self.sysIK, "_chain_quad_ik", None):
-            constraint_ik_chain = self.sysIK._chain_quad_ik
-
-        # Note: We need to set the parent of the chain_blend
-        # BEFORE creating the constraint.
-        # Otherwise we might expose oneself to evaluation issues
-        # (happened on maya 2018.2).
-        # The symptom is the chain_blend rotation being aligned to the world and
-        # the rig being build on top. At first the scene would seem ok, however
-        # doing a dgdirty or reloading the scene would introduce flipping.
+        binds = [jnt.getMatrix() for jnt in self.chain_jnt]
+        chain_blend = _create_joint_from_binds(binds, naming)
         chain_blend[0].setParent(self.grp_rig)
 
         for blend, obj_ik, obj_fk in zip(
-            chain_blend, constraint_ik_chain, self.sysFK.ctrls
+            chain_blend, pymel.PyNode(self.sysIK.compound.output).out, self.sysFK.ctrls
         ):
-            # Note that maintainOffset should not be necessary, however the
-            # rigLegQuad IK can be flipped in some rare cases.
-            # For now since prod need it so we'll activate the flag, however it would
-            # be appreciated if the ugliness of the rigLegQuad module
-            # don't bleed into the rigLimb module.
-            # TODO: Remove maintainOffset
-            constraint = pymel.parentConstraint(
-                obj_ik, obj_fk, blend, maintainOffset=True
+            attr_tm = libRigging.create_blend_two_matrix(
+                obj_ik, obj_fk.matrix, attr_ik_weight
             )
-            attr_weight_ik, attr_weight_fk = constraint.getWeightAliasList()
-            pymel.connectAttr(attr_ik_weight, attr_weight_ik)
-            pymel.connectAttr(attr_fk_weight, attr_weight_fk)
+            libRigging.connect_matrix_to_node(
+                attr_tm, blend, rotate=False, jointOrient=True
+            )
 
         # Create elbow chain
         # This provide the elbow ctrl, an animator friendly way of
         # cheating the elbow on top of the blend chain.
-
         # Create a chain that provide the elbow controller and override the blend chain
         # (witch should only be nodes already)
         chain_elbow = pymel.duplicate(
@@ -237,7 +213,7 @@ class Limb(Module):
         # Create elbow ctrl
         # Note that this only affect the chain until @iCtrlIndex
         for i in range(1, self.sysIK.iCtrlIndex):
-            ctrl_elbow_name = nomenclature_anm.resolve("elbow{:02}".format(i))
+            ctrl_elbow_name = naming_anm.resolve("elbow{:02}".format(i))
             ctrl_elbow_parent = chain_blend[i]
             if not isinstance(self.ctrl_elbow, self._CLASS_CTRL_ELBOW):
                 self.ctrl_elbow = self._CLASS_CTRL_ELBOW(create_offset=True)
@@ -270,30 +246,36 @@ class Limb(Module):
         # Constraint input chain
         # Note that we only constraint to the elbow chain until @iCtrlIndex.
         # Afterward we constraint to the blend chain.
-        for i in range(self.sysIK.iCtrlIndex):
-            inn = self.chain_jnt[i]
-            ref = chain_elbow[i]
-            pymel.parentConstraint(
-                ref, inn, maintainOffset=True
-            )  # todo: set to maintainOffset=False?
-        for i in range(self.sysIK.iCtrlIndex, len(self.chain_jnt)):
-            inn = self.chain_jnt[i]
-            ref = chain_blend[i]
-            pymel.parentConstraint(
-                ref, inn, maintainOffset=True
-            )  # todo: set to maintainOffset=False?
+        # for i in range(self.sysIK.iCtrlIndex):
+        #     libRigging.connect_matrix_to_node()
+        #     inn = self.chain_jnt[i]
+        #     ref = chain_elbow[i]
+        #     pymel.parentConstraint(
+        #         ref, inn, maintainOffset=True
+        #     )  # todo: set to maintainOffset=False?
+        # for i in range(self.sysIK.iCtrlIndex, len(self.chain_jnt)):
+        #     inn = self.chain_jnt[i]
+        #     ref = chain_blend[i]
+        #     pymel.parentConstraint(
+        #         ref, inn, maintainOffset=True
+        #     )  # todo: set to maintainOffset=False?
+        for idx, jnt in enumerate(self.chain):
+            src = chain_elbow[idx]
+            libRigging.connect_matrix_to_node(
+                src.matrix, jnt
+            )  # TODO: No intermediate node?
 
         # Connect visibility
         pymel.connectAttr(attr_ik_weight, self.sysIK.grp_anm.visibility)
         pymel.connectAttr(attr_fk_weight, self.sysFK.grp_anm.visibility)
 
         # Connect globalScale
-        pymel.connectAttr(
-            self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True
-        )
-        self.globalScale = (
-            self.grp_rig.globalScale
-        )  # Expose the attribute, the rig will recognise it.
+        # pymel.connectAttr(
+        #     self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True
+        # )
+        # self.globalScale = (
+        #     self.grp_rig.globalScale
+        # )  # Expose the attribute, the rig will recognise it.
 
         self.attState = attr_ik_weight  # Expose state
 
@@ -388,4 +370,10 @@ class Limb(Module):
 
 
 def register_plugin():
+    """
+    Register the plugin. This function is expected by plugin_manager.
+
+    :return: The plugin to register
+    :rtype: omtk.core.modules.Module
+    """
     return Limb

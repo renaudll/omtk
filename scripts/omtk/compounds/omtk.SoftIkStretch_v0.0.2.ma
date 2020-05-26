@@ -2,7 +2,7 @@
 //Name: omtk.SoftIkStretch_v0.0.2.ma
 //Last modified: Mon, May 18, 2020 02:28:19 PM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

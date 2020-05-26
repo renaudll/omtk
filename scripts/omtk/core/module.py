@@ -8,8 +8,7 @@ import pymel.core as pymel
 
 from omtk.core import base
 from omtk.core.rig import Rig
-from omtk.libs import libPymel
-from omtk.libs import libAttr, libSkeleton, libPymel
+from omtk.libs import libAttr, libSkeleton, libPymel, libRigging
 from omtk.core.exceptions import ValidationError
 
 log = logging.getLogger("omtk")
@@ -552,6 +551,24 @@ class Module(base.Buildable):
             pymel.parentConstraint(parent, self.grp_anm, maintainOffset=True)
             pymel.scaleConstraint(parent, self.grp_anm, maintainOffset=True)
 
+    def _weird_grp_anm_dance(self):
+        if not self.parent_jnt:
+            return
+
+        # TODO: Cleanup this shit
+        naming = self.get_nomenclature()
+        is_parent = bool(self.parent_jnt)
+        is_parent_to_root = is_parent and self.rig and self.rig.grp_jnt == self.parent_jnt
+        if is_parent and not is_parent_to_root:
+            parent_tm = self.parent_jnt.worldMatrix
+            if self.rig and self.rig.grp_jnt:
+                parent_tm = libRigging.create_multiply_matrix(
+                    [parent_tm, self.rig.grp_jnt.worldInverseMatrix]
+                )
+            libRigging.connect_matrix_to_node(
+                parent_tm, self.grp_anm, name=naming.resolve("getParentWorldTM"),
+            )
+
     def iter_ctrls(self):
         """
         Iterate though all the ctrl implemented by the module.
@@ -653,3 +670,6 @@ class CompoundModule(Module):
 
     def _build_compound(self):
         raise NotImplementedError
+
+    def parent_to(self, parent):
+        pass  # TODO: Get rid of this!

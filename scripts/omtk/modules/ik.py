@@ -153,6 +153,8 @@ class IKStretchModel(CompoundModule):  # TODO: Convert to scripted compound?
     """
 
     SHOW_IN_UI = False
+    AFFECT_INPUTS = False
+    SUPPORT_NO_INPUTS = True
     CREATE_GRP_ANM = False
     CREATE_GRP_RIG = False
 
@@ -547,7 +549,7 @@ def _create_swivel_constraint(attr_start, attr_swivel, ik_handle):
     return node
 
 
-def _create_joint_from_binds(attr_bind, naming):
+def _create_joint_from_binds(attr_bind, naming, connect=True):
     """
     Create a joint chain from a list of matrix attributes.
     """
@@ -555,9 +557,10 @@ def _create_joint_from_binds(attr_bind, naming):
     jnts = []
     for idx, tm in enumerate(attr_bind):
         jnt = pymel.joint(name=naming.resolve(str(idx)))
-        util = libRigging.create_utility_node("decomposeMatrix", inputMatrix=tm)
-        pymel.connectAttr(util.outputTranslate, jnt.translate)
-        pymel.connectAttr(util.outputRotate, jnt.jointOrient)
+        if connect:
+            util = libRigging.create_utility_node("decomposeMatrix", inputMatrix=tm)
+            pymel.connectAttr(util.outputTranslate, jnt.translate)
+            pymel.connectAttr(util.outputRotate, jnt.jointOrient)
         jnts.append(jnt)
     for parent, child in libPython.pairwise(jnts):
         child.setParent(parent)

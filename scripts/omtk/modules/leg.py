@@ -64,7 +64,7 @@ class FootRoll(CompoundModule):
         Add animation attribute on a provided transform.
         """
 
-        def _fn(long_name, nice_name, min_val, max_val, defaultValue=0.0):
+        def partial(long_name, nice_name, min_val, max_val, defaultValue=0.0):
             return libAttr.addAttr(
                 ctrl,
                 longName=long_name,
@@ -78,10 +78,10 @@ class FootRoll(CompoundModule):
             )
 
         libAttr.addAttr_separator(ctrl, "footRoll")
-        attr_inn_roll_auto = _fn("rollAuto", "Roll Auto", 0, 90)
+        attr_inn_roll_auto = partial("rollAuto", "Roll Auto", 0, 90)
 
         # Auto-Roll Threshold
-        self.attrAutoRollThreshold = _fn(
+        self.attrAutoRollThreshold = partial(
             "rollAutoThreshold",
             "Roll Auto Threshold",
             0.0,
@@ -89,16 +89,16 @@ class FootRoll(CompoundModule):
             defaultValue=self.attrAutoRollThreshold or default_autoroll_threshold,
         )
 
-        attr_inn_bank = _fn("bank", "Bank", -180, 180)
-        attr_inn_ankle_rotz = _fn("heelSpin", "Ankle Side", -90.0, 90.0)
-        attr_inn_back_rotx = _fn("rollBack", "Back Roll", -90.0, 0.0)
-        attr_inn_ankle_rotx = _fn("rollAnkle", "Ankle Roll", 0.0, 90.0)
-        attr_inn_front_rotx = _fn("rollFront", "Front Roll", 0.0, 90.0)
-        attr_inn_back_roty = _fn("backTwist", "Back Twist", -90.0, 90.0)
-        attr_inn_heel_roty = _fn("footTwist", "Heel Twist", -90.0, 90.0)
-        attr_inn_toes_roty = _fn("toesTwist", "Toes Twist", -90.0, 90.0)
-        attr_inn_front_roty = _fn("frontTwist", "Front Twist", -90.0, 90.0)
-        attr_inn_toes_fk_rotx = _fn("toeWiggle", "Toe Wiggle", -90.0, 90.0)
+        attr_inn_bank = partial("bank", "Bank", -180, 180)
+        attr_inn_ankle_rotz = partial("heelSpin", "Ankle Side", -90.0, 90.0)
+        attr_inn_back_rotx = partial("rollBack", "Back Roll", -90.0, 0.0)
+        attr_inn_ankle_rotx = partial("rollAnkle", "Ankle Roll", 0.0, 90.0)
+        attr_inn_front_rotx = partial("rollFront", "Front Roll", 0.0, 90.0)
+        attr_inn_back_roty = partial("backTwist", "Back Twist", -90.0, 90.0)
+        attr_inn_heel_roty = partial("footTwist", "Heel Twist", -90.0, 90.0)
+        attr_inn_toes_roty = partial("toesTwist", "Toes Twist", -90.0, 90.0)
+        attr_inn_front_roty = partial("frontTwist", "Front Twist", -90.0, 90.0)
+        attr_inn_toes_fk_rotx = partial("toeWiggle", "Toe Wiggle", -90.0, 90.0)
 
         for attr_name, attr in (
             ("rollAuto", attr_inn_roll_auto),
@@ -172,16 +172,16 @@ class FootRoll(CompoundModule):
         pos_pivot_heel.y = 0
 
         # Expose pivots as locator so the rigger can easily change them.
-        def _fn(name, pos):
+        def partial(name, pos):
             loc = pymel.spaceLocator(name=naming.resolve(name))
             loc.setTranslation(pos)
             loc.setParent(self.grp_rig)
             return loc.translate
 
-        self.pivot_front = _fn("pivotFront", pivot_front)
-        self.pivot_back = _fn("pivotBack", pivot_back)
-        self.pivot_in = _fn("pivotIn", pivot_in)
-        self.pivot_out = _fn("pivotOut", pivot_out)
+        self.pivot_front = partial("pivotFront", pivot_front)
+        self.pivot_back = partial("pivotBack", pivot_back)
+        self.pivot_in = partial("pivotIn", pivot_in)
+        self.pivot_out = partial("pivotOut", pivot_out)
 
         inputs = self.compound_inputs
         for attr_name, value in (
@@ -249,7 +249,8 @@ class FootRoll(CompoundModule):
         def _backup_pivot(attr):
             if not attr:
                 return None
-            return (attr.getMatrix(worldSpace=True) * tm_ref_inv).translate
+            # TODO: Validate old versions will work
+            return (attr.get() * tm_ref_inv)
 
         return (
             _backup_pivot(self.pivot_front),  # front

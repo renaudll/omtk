@@ -2,7 +2,7 @@
 //Name: omtk.AvarInflSurface_v0.0.2.ma
 //Last modified: Sun, May 10, 2020 07:51:14 PM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires -nodeType "inverseMatrix" "matrixNodes" "1.0";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;

@@ -2,7 +2,7 @@
 //Name: omtk.AvarInflSurfaceTemplate.ma
 //Last modified: Thu, May 07, 2020 09:25:55 PM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

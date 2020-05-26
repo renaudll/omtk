@@ -2,7 +2,7 @@
 //Name: omtk.InifityFollicle_v0.0.2.ma
 //Last modified: Sun, Apr 26, 2020 08:47:29 PM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

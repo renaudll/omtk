@@ -239,7 +239,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
                 parent=self.parent.grp_rig if self.parent else None,
             )
 
-        for child in self.children:
+        for child in self.children or []:  # TODO: Should not be None, investiguate why
             child.build()
 
     def unbuild(self):

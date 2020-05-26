@@ -233,7 +233,7 @@ class WidgetListModules(QtWidgets.QWidget):
             try:
                 module.validate()
             except ValidationError as error:
-                desired_color = self._color_invalid
+                desired_color = _COLOR_INVALID
                 msg = "Validation failed for %s: %s" % (module, error)
                 _LOG.warning(msg)
                 item.setToolTip(0, msg)

@@ -4,10 +4,11 @@ Logic for the "Limb" module
 
 import collections
 
+from maya import cmds
 import pymel.core as pymel
 
 from omtk.core import constants
-from omtk.core.module import Module
+from omtk.core.module import Module, CompoundModule
 from omtk.core.ctrl import BaseCtrl
 from omtk.core.utils import ui_expose
 from omtk.modules.ik import IK, _create_joint_from_binds
@@ -17,6 +18,7 @@ from omtk.libs import libRigging
 from omtk.libs import libCtrlShapes
 from omtk.libs import libAttr
 from omtk.libs import libPython
+from omtk.vendor.omtk_compound.core import create_empty
 
 
 class BaseAttHolder(BaseCtrl):
@@ -68,6 +70,87 @@ class LimbIK(IK):
     AFFECT_INPUTS = False
 
 
+class ElbowBlend(CompoundModule):
+    """
+    Chain of joints aim constrained to each other.
+    This Provide the animator a friendly way of cheating a chain by moving intermediate nodes.
+    """
+
+    AFFECT_INPUTS = False
+    _CLASS_CTRL = CtrlElbow
+
+    def build(self, **kwargs):
+        naming = self.get_nomenclature()
+        naming_anm = self.get_nomenclature_anm()
+
+        super(ElbowBlend, self).build(**kwargs)
+
+        chain_blends = _create_joint_from_binds(
+            self.compound_inputs.bind, naming + "blend"
+        )
+        chain_elbow = _create_joint_from_binds(
+            self.compound_inputs.bind, naming + "elbow", connect=False
+        )
+        chain_blends.start.setParent(self.grp_rig)
+        chain_elbow.start.setParent(self.grp_rig)
+
+        # Initialize ctrls
+        num_ctrls = len(self.chain) - 2
+        libPython.resize_list(self.ctrls, num_ctrls)
+        self.ctrls = [self._CLASS_CTRL.from_instance(ctrl) for ctrl in self.ctrls]
+
+        pymel.pointConstraint(chain_blends.start, chain_elbow.start)
+        pymel.pointConstraint(chain_blends.end, chain_elbow.end)
+
+        # Create elbow ctrl
+        for idx, ((blend_prev, blend, blend_next), (elbow_prev, elbow, _)) in enumerate(
+            zip(libPython.triplewise(chain_blends), libPython.triplewise(chain_elbow))
+        ):
+            ctrl_elbow_name = naming_anm.resolve("elbow{:02}".format(idx))
+            ctrl_elbow_ref = blend  # jnt_elbow
+            ctrl = self.ctrls[idx]
+            ctrl.build(refs=ctrl_elbow_ref)
+            ctrl.rename(ctrl_elbow_name)
+            ctrl.setParent(self.grp_anm)
+
+            attr_ctrl_tm = ctrl.worldMatrix
+            if self.parent_jnt:
+                attr_ctrl_tm = libRigging.create_multiply_matrix(
+                    [attr_ctrl_tm, self.parent_jnt.worldInverseMatrix]
+                )
+
+            attr_ctrl_elbow_offset_tm = blend.worldMatrix
+            libRigging.connect_matrix_to_node(attr_ctrl_elbow_offset_tm, ctrl.offset)
+
+            ref = pymel.createNode("transform", parent=self.grp_rig)
+            libRigging.connect_matrix_to_node(attr_ctrl_tm, ref)
+
+            pymel.pointConstraint(ref, elbow)
+            pymel.aimConstraint(
+                ref, elbow_prev, worldUpType=2, worldUpObject=blend_prev
+            )
+            pymel.aimConstraint(blend_next, elbow, worldUpType=2, worldUpObject=blend)
+
+        # Constraint the last elbow joint on the blend joint at the ctrl index
+        pymel.orientConstraint(chain_blends[-1], chain_elbow[-1])
+
+        for idx, blend in enumerate(chain_elbow):
+            pymel.connectAttr(blend.matrix, self.compound_outputs.out[idx])
+
+        self._weird_grp_anm_dance()
+
+    def _build_compound(self):
+        inst = create_empty()
+        cmds.addAttr(inst.input, longName="bind", dataType="matrix", multi=True)
+        cmds.addAttr(inst.output, longName="out", dataType="matrix", multi=True)
+
+        attr_bind = pymel.PyNode(inst.input).bind
+        for idx, jnt in enumerate(self.chain):
+            attr_bind[idx].set(jnt.getMatrix())
+
+        return inst
+
+
 class Limb(Module):
     """
     Generic IK/FK setup. Twistbones are included.
@@ -76,14 +159,15 @@ class Limb(Module):
     kAttrName_State = "fkIk"  # The name of the IK/FK attribute
     _CLASS_SYS_IK = LimbIK
     _CLASS_SYS_FK = LimbFK
+    _CLASS_SYS_ELBOW = ElbowBlend
     _CLASS_CTRL_ATTR = BaseAttHolder
-    _CLASS_CTRL_ELBOW = CtrlElbow
     _CLASS_SYS_TWIST = Twistbone
 
     def __init__(self, *args, **kwargs):
         super(Limb, self).__init__(*args, **kwargs)
         self.sysIK = None  # type: IK
         self.sysFK = None  # type: FK
+        self.sysElbow = None  # type: ElbowBlend
         self.sys_twist = []  # type: List[Twistbone]
         self.create_twist = True
         self.ctrl_elbow = None
@@ -96,14 +180,16 @@ class Limb(Module):
     def build(self, *args, **kwargs):
         self.children = []
 
-        # Create IK system
         self.sysIK = self._CLASS_SYS_IK.from_instance(
             self, self.sysIK, "ik", inputs=self.chain_jnt,
         )
 
-        # Create FK system
         self.sysFK = self._CLASS_SYS_FK.from_instance(
             self, self.sysFK, "fk", inputs=self.chain_jnt,
+        )
+
+        self.sysElbow = self._CLASS_SYS_ELBOW.from_instance(
+            self, self.sysElbow, "elbow", inputs=self.chain_jnt
         )
 
         # Create twist bones
@@ -131,7 +217,7 @@ class Limb(Module):
         # Useful when they don't match for example on a leg setup.
         self.offset_ctrl_ik = (
             self.sysIK.ctrl_ik.getMatrix(worldSpace=True)
-            * self.chain_jnt[self.iCtrlIndex].getMatrix(worldSpace=True).inverse()
+            * self.chain.end.getMatrix(worldSpace=True).inverse()
         )
 
         # Add attributes to the attribute holder.
@@ -195,94 +281,15 @@ class Limb(Module):
                 attr_tm, blend, rotate=False, jointOrient=True
             )
 
-        # Create elbow chain
-        # This provide the elbow ctrl, an animator friendly way of
-        # cheating the elbow on top of the blend chain.
-        # Create a chain that provide the elbow controller and override the blend chain
-        # (witch should only be nodes already)
-        chain_elbow = pymel.duplicate(
-            self.chain_jnt[: self.sysIK.iCtrlIndex + 1],
-            renameChildren=True,
-            parentOnly=True,
-        )
-        for input_, node in zip(self.chain_jnt, chain_elbow):
-            nomenclature_elbow = naming.rebuild(input_.stripNamespace().nodeName())
-            node.rename(
-                nomenclature_elbow.resolve("elbow")
-            )  # todo: find a better name???
-        chain_elbow[0].setParent(self.grp_rig)
-
-        # Create elbow ctrl
-        # Note that this only affect the chain until @iCtrlIndex
-        # TODO: Move to module?
-        iCtrlIndex = self.sysIK.iCtrlIndex
-        for i in range(1, iCtrlIndex):
-            ctrl_elbow_name = naming_anm.resolve("elbow{:02}".format(i))
-            ctrl_elbow_parent = chain_blend[i]
-            if not isinstance(self.ctrl_elbow, self._CLASS_CTRL_ELBOW):
-                self.ctrl_elbow = self._CLASS_CTRL_ELBOW(create_offset=True)
-            ctrl_elbow_ref = self.chain_jnt[i]  # jnt_elbow
-            self.ctrl_elbow.build(refs=ctrl_elbow_ref)
-            self.ctrl_elbow.rename(ctrl_elbow_name)
-            self.ctrl_elbow.setParent(self.grp_anm)
-            pymel.parentConstraint(
-                ctrl_elbow_parent, self.ctrl_elbow.offset, maintainOffset=False
-            )
-            pymel.pointConstraint(chain_blend[0], chain_elbow[0], maintainOffset=False)
-            pymel.aimConstraint(
-                self.ctrl_elbow,
-                chain_elbow[i - 1],
-                worldUpType=2,
-                worldUpObject=chain_blend[i - 1],
-            )  # Object Rotation Up
-            pymel.aimConstraint(
-                chain_blend[i + 1],
-                chain_elbow[i],
-                worldUpType=2,
-                worldUpObject=chain_blend[i],
-            )  # Object Rotation Up
-            pymel.pointConstraint(self.ctrl_elbow, chain_elbow[i], maintainOffset=False)
-        # Constraint the last elbow joint on the blend joint at the ctrl index
-        pymel.parentConstraint(
-            chain_blend[self.sysIK.iCtrlIndex], chain_elbow[self.sysIK.iCtrlIndex]
-        )
-        # libRigging.connect_matrix_to_node(ik_compound_out.out[iCtrlIndex], chain_elbow[iCtrlIndex])
-
-        # Constraint input chain
-        # Note that we only constraint to the elbow chain until @iCtrlIndex.
-        # Afterward we constraint to the blend chain.
-        # for i in range(self.sysIK.iCtrlIndex):
-        #     libRigging.connect_matrix_to_node()
-        #     inn = self.chain_jnt[i]
-        #     ref = chain_elbow[i]
-        #     pymel.parentConstraint(
-        #         ref, inn, maintainOffset=True
-        #     )  # todo: set to maintainOffset=False?
-        # for i in range(self.sysIK.iCtrlIndex, len(self.chain_jnt)):
-        #     inn = self.chain_jnt[i]
-        #     ref = chain_blend[i]
-        #     pymel.parentConstraint(
-        #         ref, inn, maintainOffset=True
-        #     )  # todo: set to maintainOffset=False?
-        print(self.chain)
-        print(chain_elbow)
-        for idx, jnt in enumerate(self.chain):
-            src = chain_elbow[idx]
+        for idx, (blend, jnt) in enumerate(zip(chain_blend, self.chain_jnt)):
+            pymel.connectAttr(blend.matrix, self.sysElbow.compound_inputs.bind[idx])
             libRigging.connect_matrix_to_node(
-                src.matrix, jnt
-            )  # TODO: No intermediate node?
+                self.sysElbow.compound_outputs.out[idx], jnt
+            )
 
         # Connect visibility
         pymel.connectAttr(attr_ik_weight, self.sysIK.grp_anm.visibility)
         pymel.connectAttr(attr_fk_weight, self.sysFK.grp_anm.visibility)
-
-        # Connect globalScale
-        # pymel.connectAttr(
-        #     self.grp_rig.globalScale, self.sysIK.grp_rig.globalScale, force=True
-        # )
-        # self.globalScale = (
-        #     self.grp_rig.globalScale
-        # )  # Expose the attribute, the rig will recognise it.
 
         self.attState = attr_ik_weight  # Expose state
 

@@ -95,3 +95,12 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
     return izip(a, b)
+
+
+def triplewise(iterable):
+    a, b = tee(iterable)
+    b, c = tee(b)
+    next(b, None)
+    next(c, None)
+    next(c, None)
+    return izip(a, b, c)

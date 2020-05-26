@@ -73,17 +73,9 @@ class FK(CompoundModule):
                 if not self.sw_translate:
                     kwargs["skipTranslate"] = ["x", "y", "z"]
                 chain_ctrls[0].create_spaceswitch(self, self.parent_jnt, **kwargs)
-        
+
         # TODO: Simplify this, move it to the Module class maybe?
-        if self.parent_jnt and self.parent_jnt != self.rig.grp_jnt:  # TODO: This check should not be per-module
-            parent_tm = libRigging.create_multiply_matrix([
-                self.parent_jnt.worldMatrix, self.rig.grp_jnt.worldInverseMatrix
-            ])
-            libRigging.connect_matrix_to_node(
-                parent_tm,
-                self.grp_anm,
-                name=naming.resolve("getParentWorldTM"),
-            )
+        self._weird_grp_anm_dance()
 
         attr_outs = self.compound_outputs.out
         for idx, ctrl in enumerate(self.ctrls):

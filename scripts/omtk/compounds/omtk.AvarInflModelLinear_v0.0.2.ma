@@ -2,7 +2,7 @@
 //Name: omtk.AvarInflModelLinear_v0.0.2.ma
 //Last modified: Sun, May 10, 2020 07:50:03 PM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

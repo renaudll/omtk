@@ -132,12 +132,7 @@ def validate_built_rig(
             [1, 0, 0, 0],
             [0, 1, 0, 0],
             [0, 0, 1, 0],
-            [
-                translate.x,
-                translate.y,
-                translate.z,
-                1.0,
-            ],
+            [translate.x, translate.y, translate.z, 1.0,],
         )
         with verified_offset(objs, offset_tm, multiplier=translate.length()):
             rig.grp_anm.t.set(translate)

@@ -2,7 +2,7 @@
 //Name: omtk.Follicle_v001.ma
 //Last modified: Sun, Apr 26, 2020 08:35:48 PM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

@@ -2,7 +2,7 @@
 //Name: omtk.IK3.ma
 //Last modified: Wed, May 20, 2020 01:25:06 AM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

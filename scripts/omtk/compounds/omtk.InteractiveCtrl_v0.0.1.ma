@@ -2,7 +2,7 @@
 //Name: omtk.InteractiveCtrl_v0.0.1.ma
 //Last modified: Mon, Apr 27, 2020 11:05:46 AM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires -nodeType "inverseMatrix" "matrixNodes" "1.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

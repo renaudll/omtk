@@ -2,7 +2,7 @@
 //Name: omtk.FadeTRS_v0.0.1.ma
 //Last modified: Wed, May 06, 2020 09:12:52 PM
 //Codeset: 1252
-requires maya "2020";
+// requires maya "2020";
 requires "stereoCamera" "10.0";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";

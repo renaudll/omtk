@@ -82,9 +82,9 @@ class Limb(Module):
 
     def __init__(self, *args, **kwargs):
         super(Limb, self).__init__(*args, **kwargs)
-        self.sysIK = None
-        self.sysFK = None
-        self.sys_twist = []
+        self.sysIK = None  # type: IK
+        self.sysFK = None  # type: FK
+        self.sys_twist = []  # type: List[Twistbone]
         self.create_twist = True
         self.ctrl_elbow = None
         self.attState = None
@@ -106,10 +106,10 @@ class Limb(Module):
             self, self.sysFK, "fk", inputs=self.chain_jnt,
         )
 
-        # Create twistbones
+        # Create twist bones
         if self.create_twist:
             num_twist_sys = self.sysIK.iCtrlIndex
-            # Ensure the twistbone list have the proper size
+            # Ensure the twist bone list have the proper size
             libPython.resize_list(self.sys_twist, num_twist_sys)
 
             # If the IK system is a quad, we need to have two twist system
@@ -183,11 +183,13 @@ class Limb(Module):
         chain_blend = _create_joint_from_binds(binds, naming)
         chain_blend[0].setParent(self.grp_rig)
 
-        for blend, obj_ik, obj_fk in zip(
-            chain_blend, pymel.PyNode(self.sysIK.compound.output).out, self.sysFK.ctrls
+        ik_compound_out = pymel.PyNode(self.sysIK.compound.output)
+        fk_compound_out = pymel.PyNode(self.sysFK.compound.output)
+        for blend, attr_ik_tm, attr_fk_tm in zip(
+            chain_blend, ik_compound_out.out, fk_compound_out.out
         ):
             attr_tm = libRigging.create_blend_two_matrix(
-                obj_ik, obj_fk.matrix, attr_ik_weight
+                attr_ik_tm, attr_fk_tm, attr_ik_weight
             )
             libRigging.connect_matrix_to_node(
                 attr_tm, blend, rotate=False, jointOrient=True
@@ -212,7 +214,9 @@ class Limb(Module):
 
         # Create elbow ctrl
         # Note that this only affect the chain until @iCtrlIndex
-        for i in range(1, self.sysIK.iCtrlIndex):
+        # TODO: Move to module?
+        iCtrlIndex = self.sysIK.iCtrlIndex
+        for i in range(1, iCtrlIndex):
             ctrl_elbow_name = naming_anm.resolve("elbow{:02}".format(i))
             ctrl_elbow_parent = chain_blend[i]
             if not isinstance(self.ctrl_elbow, self._CLASS_CTRL_ELBOW):
@@ -242,6 +246,7 @@ class Limb(Module):
         pymel.parentConstraint(
             chain_blend[self.sysIK.iCtrlIndex], chain_elbow[self.sysIK.iCtrlIndex]
         )
+        # libRigging.connect_matrix_to_node(ik_compound_out.out[iCtrlIndex], chain_elbow[iCtrlIndex])
 
         # Constraint input chain
         # Note that we only constraint to the elbow chain until @iCtrlIndex.
@@ -259,6 +264,8 @@ class Limb(Module):
         #     pymel.parentConstraint(
         #         ref, inn, maintainOffset=True
         #     )  # todo: set to maintainOffset=False?
+        print(self.chain)
+        print(chain_elbow)
         for idx, jnt in enumerate(self.chain):
             src = chain_elbow[idx]
             libRigging.connect_matrix_to_node(

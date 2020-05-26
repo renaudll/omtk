@@ -5,6 +5,7 @@ import logging
 import pymel.core as pymel
 from maya import OpenMaya
 from maya import cmds
+from pymel import core as pymel
 
 _LOG = logging.getLogger(__name__)
 
@@ -497,3 +498,28 @@ def makeIdentity_safe(
         pymel.makeIdentity(
             obj, apply=apply, translate=translate, rotate=rotate, scale=scale, **kwargs
         )
+
+
+def conform_to_pynode(value):
+    """
+    :param value: A value to conform
+    :type value: str or pymel.PyNode
+    :return:
+    :rtype: pymel.PyNode
+    """
+    return value if isinstance(value, pymel.PyNode) else pymel.PyNode(value)
+
+
+def conform_to_pynode_list(value):
+    """
+    :param value:
+    :type value: None or list[str] or list[pymel.PyNode]
+    :return:
+    :rtype: list[pymel.PyNode]
+    """
+    if value and not isinstance(value, list):
+        raise IOError(
+            "Unexpected type for argument input. Expected list, got %s. %s"
+            % (type(value), value)
+        )
+    return [conform_to_pynode(entry) for entry in value] if value else []

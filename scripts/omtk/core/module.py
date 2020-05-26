@@ -9,7 +9,7 @@ import pymel.core as pymel
 from omtk.core import base
 from omtk.core.rig import Rig
 from omtk.libs import libPymel
-from omtk.libs import libAttr, libSkeleton
+from omtk.libs import libAttr, libSkeleton, libPymel
 from omtk.core.exceptions import ValidationError
 
 log = logging.getLogger("omtk")
@@ -49,7 +49,7 @@ class Module(base.Buildable):
         """
         super(Module, self).__init__(name=name, parent=parent or rig)
 
-        self.iCtrlIndex = 2
+        self.iCtrlIndex = 2  # TODO: Get rid of this!
         # If raised, the network can be used as a space-switch pin-point
         self.canPinTo = True
         self.globalScale = None  # Each module is responsible for handling it scale!
@@ -62,7 +62,7 @@ class Module(base.Buildable):
         # If you define additional properties, don't forget to implement iter_ctrls.
         self.ctrls = []
 
-        self.input = _conform_to_pynode_list(input)
+        self.input = libPymel.conform_to_pynode_list(input)
 
     def __callbackNetworkPreBuild__(self, attrs):
         # Redirect any rig property (omtk<7) to the parent property.
@@ -597,8 +597,8 @@ class Module(base.Buildable):
         If the instance already had been initialized in a previous build,
         it's correct value will be preserved,
 
-        :param parent: The module rig.
-        :type parent: omtk.core.rig.Rig
+        :param parent: The module parent.
+        :type parent: omtk.core.module.Module
         :param Module inst: An optional module instance
         :param str name: The module name
         :param inputs: The module inputs
@@ -621,26 +621,35 @@ class Module(base.Buildable):
         return inst
 
 
-def _conform_to_pynode(value):
+class CompoundModule(Module):
     """
-    :param value: A value to conform
-    :type value: str or pymel.PyNode
-    :return:
-    :rtype: pymel.PyNode
+    A module exposing it's inputs and outputs via a compound.
+    Note that the compound is currently only accessible in the build phase.
     """
-    return value if isinstance(value, pymel.PyNode) else pymel.PyNode(value)
 
+    def __init__(self, *args, **kwargs):
+        self._compound = None
+        super(CompoundModule, self).__init__(*args, **kwargs)
 
-def _conform_to_pynode_list(value):
-    """
-    :param value:
-    :type value: None or list[str] or list[pymel.PyNode]
-    :return:
-    :rtype: list[pymel.PyNode]
-    """
-    if value and not isinstance(value, list):
-        raise IOError(
-            "Unexpected type for argument input. Expected list, got %s. %s"
-            % (type(value), value)
-        )
-    return [_conform_to_pynode(entry) for entry in value] if value else []
+    @property
+    def compound(self):
+        """
+        :return: The module compound
+        :rtype: omtk.vendor.omtk_compound.core.Compound
+        """
+        return self._compound
+
+    @property
+    def compound_inputs(self):
+        return pymel.PyNode(self.compound.input)
+
+    @property
+    def compound_outputs(self):
+        return pymel.PyNode(self.compound.output)
+
+    def build(self, **kwargs):  # TODO: Remove kwargs
+        super(CompoundModule, self).build(**kwargs)
+        self._compound = self._build_compound()
+
+    def _build_compound(self):
+        raise NotImplementedError

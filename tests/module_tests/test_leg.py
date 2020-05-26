@@ -5,7 +5,6 @@ import pytest
 import pymel.core as pymel
 from omtk.libs import libRigging
 from omtk.modules.leg import Leg
-from omtk.modules.head import Head
 from omtk.core.rig import Rig
 
 

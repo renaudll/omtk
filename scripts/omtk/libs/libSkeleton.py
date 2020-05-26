@@ -103,7 +103,7 @@ def transfer_joint_orient_to_rotation(obj):
     mfn.getOrientation(joint_orient)
 
     # Compute new rotation
-    result = joint_orient.reorder(rotation_order) * rotation
+    result = rotation * joint_orient.reorder(rotation_order)
 
     obj.jointOrientX.set(0.0)
     obj.jointOrientY.set(0.0)

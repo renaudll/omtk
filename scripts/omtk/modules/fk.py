@@ -1,11 +1,14 @@
 """
 Logic for the "FK" module
 """
+from maya import cmds
 import pymel.core as pymel
+
 from omtk.core.ctrl import BaseCtrl
-from omtk.core.module import Module
+from omtk.core.module import Module, CompoundModule
 from omtk.libs import libPython
 from omtk.libs import libRigging
+from omtk.vendor.omtk_compound.core import create_empty
 
 
 class CtrlFk(BaseCtrl):
@@ -24,9 +27,9 @@ class CtrlFk(BaseCtrl):
         return node
 
 
-class FK(Module):
+class FK(CompoundModule):
     """
-    A Simple FK with support for multiple hyerarchy.
+    A Simple FK with support for multiple hierarchy.
     """
 
     CREATE_GRP_RIG = False
@@ -70,18 +73,34 @@ class FK(Module):
                 if not self.sw_translate:
                     kwargs["skipTranslate"] = ["x", "y", "z"]
                 chain_ctrls[0].create_spaceswitch(self, self.parent_jnt, **kwargs)
-
-        if self.parent_jnt:
+        
+        # TODO: Simplify this, move it to the Module class maybe?
+        if self.parent_jnt and self.parent_jnt != self.rig.grp_jnt:  # TODO: This check should not be per-module
+            parent_tm = libRigging.create_multiply_matrix([
+                self.parent_jnt.worldMatrix, self.rig.grp_jnt.worldInverseMatrix
+            ])
             libRigging.connect_matrix_to_node(
-                self.parent_jnt.worldMatrix,
+                parent_tm,
                 self.grp_anm,
                 name=naming.resolve("getParentWorldTM"),
             )
 
+        attr_outs = self.compound_outputs.out
+        for idx, ctrl in enumerate(self.ctrls):
+            attr_tm = get_tm_from_ctrl(ctrl)
+            pymel.connectAttr(attr_tm, attr_outs[idx])
+
         if constraint:
-            for jnt, ctrl in zip(self.jnts, self.ctrls):
-                attr_tm = get_tm_from_ctrl(ctrl)
-                libRigging.connect_matrix_to_node(attr_tm, jnt)
+            for jnt, attr_out in zip(self.jnts, attr_outs):
+                libRigging.connect_matrix_to_node(attr_out, jnt)
+
+    def _build_compound(self):
+        """
+        Re-crete the IK3 compound but with a variable number of inputs.
+        """
+        inst = create_empty(namespace=self.name)
+        cmds.addAttr(inst.output, longName="out", dataType="matrix", multi=True)
+        return inst
 
     def _build_chain(self, chain):
         """

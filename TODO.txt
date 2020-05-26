@@ -12,3 +12,4 @@ Regressions to fix:
 
 Questions for community:
 [ ] Should the micro use the jaw splitter?
+[ ] Should we keep compatibility with the toes FK in the FootRoll?

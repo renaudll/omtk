@@ -150,6 +150,14 @@ def create_blend_two_matrix(matrix1, matrix2, ratio):
     return util.matrixSum
 
 
+def decompose_matrix_translation(matrix, reuse=False):
+    """
+    Helper method that create a decomposeMatrix for a matrix attribute.
+    """
+    # TODO: Implement re-use
+    return create_utility_node("decomposeMatrix", inputMatrix=matrix).outputTranslation
+
+
 def _create_blend_two_matrix_2020(matrix1, matrix2, ratio):
     """
     Helper method that blend two matrixes using the blendMatrix node (maya-2020+).

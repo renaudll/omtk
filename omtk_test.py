@@ -1,10 +1,9 @@
 """
 Base classes and utility functions to handle unit-testing.
 """
-import unittest
 import os
 import sys
-import datetime
+import unittest
 from contextlib import contextmanager
 
 from maya import cmds
@@ -18,30 +17,32 @@ def _get_holded_shapes():
     :return: The numbers of shapes connected to anm ctrls in the whole scene.
     """
     shapes = []
-    for net in libSerialization.get_networks_from_class('BaseCtrl'):
-        if net.hasAttr('shapes'):
+    for net in libSerialization.get_networks_from_class("BaseCtrl"):
+        if net.hasAttr("shapes"):
             shapes.extend(net.shapes.inputs())
     return shapes
-
-
-#
-# Decorators
-#
 
 
 def open_scene(path_local):
     def deco_open(f):
         def f_open(*args, **kwargs):
-            m_path_local = path_local # make mutable
+            m_path_local = path_local  # make mutable
 
-            path = os.path.abspath(os.path.join(os.path.dirname(sys.modules[f.__module__].__file__), m_path_local))
+            path = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(sys.modules[f.__module__].__file__), m_path_local
+                )
+            )
             if not os.path.exists(path):
                 raise Exception("File does not exist on disk! {0}".format(path))
 
             cmds.file(path, open=True, f=True)
             return f(*args, **kwargs)
+
         return f_open
+
     return deco_open
+
 
 def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0):
     """
@@ -67,11 +68,16 @@ def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0)
         b_axis.normalize()
         diff = abs(1.0 - a_axis.dot(b_axis))
         if diff > r_epsilon:
-            raise Exception("%s != %s (dot product %s > epsilon %s)" % (a_axis, b_axis, diff, r_epsilon))
+            raise Exception(
+                "%s != %s (dot product %s > epsilon %s)"
+                % (a_axis, b_axis, diff, r_epsilon)
+            )
     # Compare position
     distance = a_pos.distanceTo(b_pos)
     if distance > t_epsilon:
-       raise Exception("%s != %s (distance %s > epsilon %s)" % (a_pos, b_pos, distance, t_epsilon))
+        raise Exception(
+            "%s != %s (distance %s > epsilon %s)" % (a_pos, b_pos, distance, t_epsilon)
+        )
 
 
 @contextmanager
@@ -98,13 +104,20 @@ def verified_offset(objs, offset_tm, **kwargs):
             raise Exception("Invalid transform for %s. %s" % (obj, error))
 
 
-def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.datatypes.Vector(1, 0, 0), test_rotate=True, test_scale=True, test_scale_value=2.0):
+def validate_built_rig(
+    rig,
+    test_translate=True,
+    translate=pymel.datatypes.Vector(1, 0, 0),
+    test_rotate=True,
+    test_scale=True,
+    test_scale_value=2.0,
+):
     """
     Build a specific rig and verify the following:
     - Is the rig scaling correctly?
     :param rig: The rig to scale.
     :param test_translate: If True, the rig will be verified for translation.
-    :param test_translate_value: The value to use when testing the translation.
+    :param translate: The value to use when testing the translation.
     :param test_scale: If True, the rig will be verified for scaling.
     :param test_scale_value: The value to use when testing the scale.
     """
@@ -116,41 +129,76 @@ def validate_built_rig(rig, test_translate=True, test_translate_value=pymel.data
     if test_translate:
         print("Validating translate...")
         offset_tm = pymel.datatypes.Matrix(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            test_translate_value.x, test_translate_value.y, test_translate_value.z, 1.0
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [
+                translate.x,
+                translate.y,
+                translate.z,
+                1.0,
+            ],
         )
-        with verified_offset(objs, offset_tm, multiplier=test_translate_value.length()):
-            rig.grp_anm.t.set(test_translate_value)
+        with verified_offset(objs, offset_tm, multiplier=translate.length()):
+            rig.grp_anm.t.set(translate)
         rig.grp_anm.t.set(0, 0, 0)
 
     if test_rotate:
         print("Validating rotate...")
         offset_tms_by_rot = (
-            ((90, 90, 90), pymel.datatypes.Matrix(0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
-            ((180, 0, 0), pymel.datatypes.Matrix(1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
-            ((0, 180, 0), pymel.datatypes.Matrix(-1.0, 0.0, -0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
-            ((0, 0, 180), pymel.datatypes.Matrix(-1.0, 0.0, 0.0, 0.0, -0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)),
+            (
+                (90, 90, 90),
+                pymel.datatypes.Matrix(
+                    [0.0, 0.0, -1.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ),
+            ),
+            (
+                (180, 0, 0),
+                pymel.datatypes.Matrix(
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, -1.0, 0.0, 0.0],
+                    [0.0, -0.0, -1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ),
+            ),
+            (
+                (0, 180, 0),
+                pymel.datatypes.Matrix(
+                    [-1.0, 0.0, -0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, -1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ),
+            ),
+            (
+                (0, 0, 180),
+                pymel.datatypes.Matrix(
+                    [-1.0, 0.0, 0.0, 0.0],
+                    [-0.0, -1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ),
+            ),
         )
         for rot, offset_tm in offset_tms_by_rot:
             with verified_offset(objs, offset_tm):
                 rig.grp_anm.r.set(rot)
-            rig.grp_anm.r.set(0,0,0)
+            rig.grp_anm.r.set(0, 0, 0)
 
     # Ensure we the rig scale correctly.
     if test_scale:
         print("Validating scale...")
         m = test_scale_value
         scale_tm = pymel.datatypes.Matrix(
-            m, 0, 0, 0,
-            0, m, 0, 0,
-            0, 0, m, 0,
-            0, 0, 0, 1
+            [m, 0, 0, 0], [0, m, 0, 0], [0, 0, m, 0], [0, 0, 0, 1]
         )
         with verified_offset(objs, scale_tm, multiplier=test_scale_value):
             rig.grp_anm.globalScale.set(test_scale_value)
         rig.grp_anm.globalScale.set(1.0)
+
 
 class TestCase(unittest.TestCase):
     def _test_build_rig(self, rig, **kwargs):

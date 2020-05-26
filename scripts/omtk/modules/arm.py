@@ -1,7 +1,7 @@
 """
 Logic for the "Arm" module
 """
-import pymel.core as pymel
+from pymel.core.datatypes import Matrix, Vector
 
 from omtk.core import constants
 from omtk.modules import ik
@@ -48,7 +48,7 @@ class ArmIk(ik.IK):
         side = self.get_side()
 
         # Resolve offset_tm
-        offset_tm = pymel.datatypes.Matrix()
+        offset_tm = Matrix()
 
         # Resolve ctrl_tm
         axis_dir = constants.Axis.x
@@ -56,13 +56,10 @@ class ArmIk(ik.IK):
         inn_tm_dir = libRigging.get_matrix_axis(inf_tm, axis_dir)
         inn_tm_upp = libRigging.get_matrix_axis(inf_tm, axis_upp)
 
-        upp_axis = pymel.datatypes.Vector(0, -1 if side == naming.SIDE_R else 1, 0)
+        upp_axis = Vector(0, -1 if side == naming.SIDE_R else 1, 0)
 
         ctrl_tm = libRigging.get_matrix_from_direction(
-            inn_tm_dir,
-            inn_tm_upp,
-            look_axis=pymel.datatypes.Vector(1, 0, 0),
-            upp_axis=upp_axis,
+            inn_tm_dir, inn_tm_upp, look_axis=Vector(1, 0, 0), upp_axis=upp_axis,
         )
         ctrl_tm.translate = inf_tm.translate
 
@@ -78,7 +75,7 @@ class Arm(limb.Limb):
 
     def __init__(self, *args, **kwargs):
         super(Arm, self).__init__(*args, **kwargs)
-        self.sysFootRoll = None
+        self.sysFootRoll = None  # TODO: Why is this here?
 
 
 def register_plugin():

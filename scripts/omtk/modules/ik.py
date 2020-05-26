@@ -8,8 +8,8 @@ from maya import cmds
 import pymel.core as pymel
 
 from omtk.core.ctrl import BaseCtrl
-from omtk.core.module import Module
-from omtk.libs import libAttr, libPymel, libPython, libRigging, libSkeleton
+from omtk.core.module import CompoundModule
+from omtk.libs import libAttr, libPymel, libPython, libRigging
 from omtk.core.compounds import create_compound
 from omtk.vendor.omtk_compound.core._factory import create_empty
 
@@ -132,7 +132,7 @@ class CtrlIkSwivel(BaseCtrl):
         return self.node
 
 
-class IKStretchModel(Module):  # TODO: Convert to scripted compound?
+class IKStretchModel(CompoundModule):  # TODO: Convert to scripted compound?
     """
     A compound that interact with an IK chain.
 
@@ -156,11 +156,7 @@ class IKStretchModel(Module):  # TODO: Convert to scripted compound?
     CREATE_GRP_ANM = False
     CREATE_GRP_RIG = False
 
-    def __init__(self, *args, **kwargs):
-        self._compound = None
-        super(IKStretchModel, self).__init__(*args, **kwargs)
-
-    def _create_compound(self):
+    def _build_compound(self):
         inst = create_empty(namespace=self.name)
         libAttr.addAttr(inst.input, longName="start", dataType="double3")
         libAttr.addAttr(inst.input, longName="end", dataType="double3")
@@ -168,14 +164,6 @@ class IKStretchModel(Module):  # TODO: Convert to scripted compound?
         libAttr.addAttr(inst.output, longName="end", dataType="double3")
         libAttr.addAttr(inst.output, longName="stretch", default=1.0)
         return inst
-
-    @property
-    def compound(self):
-        return self._compound
-
-    def build(self):
-        super(IKStretchModel, self).build()
-        self._compound = self._create_compound()
 
     def connect_to_ctrl(self, ctrl):
         pass
@@ -188,7 +176,7 @@ class SoftIKStretchModel(IKStretchModel):
     with different proportions.
     """
 
-    def _create_compound(self):
+    def _build_compound(self):
         # Create the network computing the soft ik stretch
         return create_compound("omtk.SoftIkStretch", self.name)
 
@@ -225,7 +213,7 @@ class SoftIKStretchModel(IKStretchModel):
 
 
 # Todo: Support more complex IK limbs (ex: 2 knees)
-class IK(Module):
+class IK(CompoundModule):
     """
     Classical IK rig that support stretching and soft-ik.
     This is the base Ik module of the autorig.
@@ -235,7 +223,7 @@ class IK(Module):
     to be able to used it in the autorig UI
     """
 
-    AFFECT_INPUTS = False
+    AFFECT_INPUTS = True
     SUPPORT_NO_INPUTS = True
     _CLASS_CTRL_IK = CtrlIk  # Ik Ctrl class
     _CLASS_CTRL_SWIVEL = CtrlIkSwivel  # Ik Swivel Ctrl class
@@ -248,21 +236,24 @@ class IK(Module):
         self.ctrl_swivel_quad = None
         self.chain_length = None
         self.swivelDistance = None
-        self._chain_ik = None
-        self._compound = None
+        self._sys_stretch = None
 
     @property
-    def compound(self):
+    def sys_stretch(self):
         """
-        :return: The IK compound
-        :rtype: omtk.vendor.omtk_compound.core.Compound
+        :return: The module computing the chain stretch.
+        :rtype: IKStretchModel
         """
-        return self._compound
+        return self._sys_stretch
 
     def build(self):
         """
         Build the ik system when needed
         """
+        self._sys_stretch = self._CLASS_IK_MODEL.from_instance(
+            self, self._sys_stretch, "stretch"
+        )
+
         super(IK, self).build()
 
         jnt_elbow = self.chain_jnt[1]  # always the second one
@@ -272,10 +263,10 @@ class IK(Module):
 
         self.ctrl_ik = self._build_ctrl_ik()
         self.ctrl_swivel = self._build_ctrl_swivel(jnt_elbow, swivel_pos)
-        self.swivelDistance = self.chain_length  # Used in ik/fk switch
+        self.swivelDistance = self.chain.length()  # Used in ik/fk switch
+        self.compound_inputs.length.set(self.swivelDistance)
 
-        self._compound = self._create_compound(self.chain, self.chain.length())
-        compound_in = pymel.PyNode(self._compound.input)
+        self.sys_stretch.connect_to_ctrl(self.ctrl_ik)
 
         # Connect ctrl ik to the compound
         # TODO: Do not use world matrices
@@ -284,10 +275,7 @@ class IK(Module):
             attr_ctrl_tm = libRigging.create_multiply_matrix(
                 [attr_ctrl_tm, self.parent_jnt.worldInverseMatrix]
             )
-        attr_end = libRigging.create_utility_node(
-            "decomposeMatrix", inputMatrix=attr_ctrl_tm
-        ).outputTranslate
-        pymel.connectAttr(attr_end, compound_in.effector)
+        pymel.connectAttr(attr_ctrl_tm, self.compound_inputs.effector)
 
         # Connect ctrl swivel to the compound
         attr_swivel_tm = self.ctrl_swivel.worldMatrix
@@ -298,24 +286,13 @@ class IK(Module):
         attr_swivel = libRigging.create_utility_node(
             "decomposeMatrix", inputMatrix=attr_swivel_tm
         ).outputTranslate
-        pymel.connectAttr(attr_swivel, compound_in.swivel)
+        pymel.connectAttr(attr_swivel, self.compound_inputs.swivel)
 
-        end_idx = len(self.chain) - 1
-        for idx, jnt in enumerate(self.chain):
-            attr_out = pymel.PyNode(self._compound.output).out[idx]
-            libRigging.connect_matrix_to_node(attr_out, jnt, rotate=(idx != end_idx))
-
-        # Constraint the last joint rotation
-        ctrl_ik_offset_tm = (
-            self.ctrl_ik.getMatrix(worldSpace=True)
-            * self.chain.end.getMatrix(worldSpace=True).inverse()
-        )
-        attr_end_tm = libRigging.create_multiply_matrix(
-            [ctrl_ik_offset_tm, attr_ctrl_tm]
-        )
-        libRigging.connect_matrix_to_node(
-            attr_end_tm, self.chain.end, translate=False, rotate=True, scale=False
-        )
+        # Constraint
+        if self.AFFECT_INPUTS:
+            for idx, jnt in enumerate(self.chain):
+                attr_out = self.compound_outputs.out[idx]
+                libRigging.connect_matrix_to_node(attr_out, jnt)
 
     def unbuild(self):
         """
@@ -323,7 +300,6 @@ class IK(Module):
         :return:
         """
         self.chain_length = None
-        self._chain_ik = None
         self.swivelDistance = None
 
         super(IK, self).unbuild()
@@ -341,6 +317,86 @@ class IK(Module):
         :param parent: The node used to parent the system
         :return:
         """
+
+    def _build_compound(self):
+        """
+        Re-crete the IK3 compound but with a variable number of inputs.
+        """
+        # TODO: Do we want to still build this dynamically?
+        # Would a simple compound do the trick?
+        naming = self.get_nomenclature()
+
+        inst = create_empty(namespace=self.name)
+        cmds.addAttr(inst.input, longName="bind", dataType="matrix", multi=True)
+        cmds.addAttr(inst.input, longName="effector", dataType="matrix")
+        cmds.addAttr(inst.input, longName="swivel", dataType="double3")
+        cmds.addAttr(inst.input, longName="length")
+        cmds.addAttr(inst.output, longName="out", dataType="matrix", multi=True)
+
+        inst_inputs = pymel.PyNode(inst.input)
+        inst_output = pymel.PyNode(inst.output)
+
+        attr_bind = inst_inputs.bind
+        attr_swivel = inst_inputs.swivel
+        attr_start = libRigging.create_utility_node(
+            "decomposeMatrix",
+            name=naming.resolve("getStartPos"),
+            inputMatrix=attr_bind[0],
+        ).outputTranslate
+        attr_effector = inst_inputs.effector
+        attr_out = inst_output.out
+        attr_end = libRigging.create_utility_node(
+            "decomposeMatrix", inputMatrix=attr_effector
+        ).outputTranslate
+
+        # Connect inputs.bind to original influence matrices
+        for idx, jnt in enumerate(self.chain):
+            attr_bind[idx].set(jnt.getMatrix())
+
+        # Create joints
+        jnts = _create_joint_from_binds(attr_bind, naming)
+        jnts.start.setParent(self.grp_rig)
+
+        ctrl_ref = pymel.createNode("transform", parent=self.grp_rig)
+        libRigging.connect_matrix_to_node(attr_effector, ctrl_ref)
+        pymel.orientConstraint(ctrl_ref, jnts.end)
+
+        # Connect joint to compound output
+        for idx, jnt in enumerate(jnts):
+            pymel.connectAttr(jnt.matrix, attr_out[idx])
+
+        # Create stretch model
+        pymel.connectAttr(inst_inputs.length, self.sys_stretch.compound_inputs.length)
+        pymel.connectAttr(attr_start, self.sys_stretch.compound_inputs.start)
+        pymel.connectAttr(attr_end, self.sys_stretch.compound_inputs.end)
+        attr_stretch = self.sys_stretch.compound_outputs.stretch
+        attr_end = self.sys_stretch.compound_outputs.end
+
+        for idx, jnt in enumerate(jnts[1:]):
+            util_get_t = libRigging.create_utility_node(
+                "multiplyDivide",
+                input1X=attr_stretch,
+                input1Y=attr_stretch,
+                input1Z=attr_stretch,
+                input2=jnt.translate.get(),
+                name=naming.resolve("getStretch%s" % idx),
+            )
+            pymel.connectAttr(util_get_t.output, jnt.translate, force=True)
+
+        # Create ik solver
+        ik_handle, _ = pymel.ikHandle(
+            startJoint=jnts.start, endEffector=jnts.end, solver="ikRPsolver"
+        )
+        ik_handle.setParent(self.grp_rig)
+
+        # Constraint ik solver
+        pymel.connectAttr(attr_end, ik_handle.translate)
+        swivel_constraint = _create_swivel_constraint(
+            attr_start, attr_swivel, ik_handle
+        )
+        swivel_constraint.setParent(self.grp_rig)
+
+        return inst
 
     def calc_swivel_pos(self):
         """
@@ -370,7 +426,7 @@ class IK(Module):
         Default behavior is to use the hand and any inputs after. (ex: toes)
         :return: An array of pymel.general.PyNode instances.
         """
-        return self.chain[-2]
+        return [self.chain[-2]]
 
     def _build_ctrl_swivel(self, ref, pos, name="swivel", constraint=True, **kwargs):
         """
@@ -459,75 +515,6 @@ class IK(Module):
             ctrl.node.setRotation(ctrl_ik_rot, space="world")
 
         return ctrl
-
-    def _create_compound(self, chain, length):
-        """
-        Re-crete the IK3 compound but with a variable number of inputs.
-        """
-        # TODO: Do we want to still build this dynamically?
-        # Would a simple compound do the trick?
-        naming = self.get_nomenclature()
-
-        inst = create_empty(namespace=self.name)
-        cmds.addAttr(inst.input, longName="bind", dataType="matrix", multi=True)
-        cmds.addAttr(inst.input, longName="effector", dataType="double3")
-        cmds.addAttr(inst.input, longName="swivel", dataType="double3")
-        cmds.addAttr(inst.input, longName="length")
-        cmds.addAttr(inst.output, longName="out", dataType="matrix", multi=True)
-
-        attr_bind = pymel.PyNode(inst.input).bind
-        attr_swivel = pymel.PyNode(inst.input).swivel
-        attr_start = libRigging.create_utility_node(
-            "decomposeMatrix",
-            name=naming.resolve("getStartPos"),
-            inputMatrix=attr_bind[0],
-        ).outputTranslate
-        attr_end = pymel.PyNode(inst.input).effector
-        attr_out = pymel.PyNode(inst.output).out
-
-        # Connect inputs.bind to original influence matrices
-        for idx, jnt in enumerate(chain):
-            attr_bind[idx].set(jnt.getMatrix())
-
-        # Create joints
-        jnts = _create_joint_from_binds(attr_bind, naming)
-
-        # Connect joint to compound output
-        for idx, jnt in enumerate(jnts):
-            pymel.connectAttr(jnt.matrix, attr_out[idx])
-
-        # Create stretch model
-        sys_stretch = self._build_stretch(attr_start, attr_end, length)
-        sys_stretch.connect_to_ctrl(self.ctrl_ik)
-        sys_stretch_out = pymel.PyNode(sys_stretch.compound.output)
-        attr_stretch = sys_stretch_out.stretch
-        attr_end = sys_stretch_out.end
-
-        for idx, jnt in enumerate(jnts[1:]):
-            util_get_t = libRigging.create_utility_node(
-                "multiplyDivide",
-                input1X=attr_stretch,
-                input1Y=attr_stretch,
-                input1Z=attr_stretch,
-                input2=jnt.translate.get(),
-                name=naming.resolve("getStretch%s" % idx),
-            )
-            pymel.connectAttr(util_get_t.output, jnt.translate, force=True)
-
-        # Create ik solver
-        ik_handle, _ = pymel.ikHandle(
-            startJoint=jnts.start, endEffector=jnts.end, solver="ikRPsolver"
-        )
-        ik_handle.setParent(self.grp_rig)
-
-        # Constraint ik solver
-        pymel.connectAttr(attr_end, ik_handle.translate)
-        swivel_constraint = _create_swivel_constraint(
-            attr_start, attr_swivel, ik_handle
-        )
-        swivel_constraint.setParent(self.grp_rig)
-
-        return inst
 
     def _build_stretch(self, attr_start, attr_end, attr_length):
         # Build and connect the IK stretch model

@@ -125,8 +125,8 @@ class Rig(Buildable):
     # From 0.4 and after, there WILL be rotation values in the ik ctrl channel box.
     # If thoses values are set to zero,
     # this will align the hands and feet with the world.
-    LEGACY_ARM_IK_CTRL_ORIENTATION = False
-    LEGACY_LEG_IK_CTRL_ORIENTATION = False
+    LEGACY_ARM_IK_CTRL_ORIENTATION = True
+    LEGACY_LEG_IK_CTRL_ORIENTATION = True
 
     def __init__(self, name=None):
         super(Rig, self).__init__(name=name)

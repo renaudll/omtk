@@ -147,7 +147,7 @@ class Twistbone(Module):
             )  # Keep them to connect the ref on the subjnts later
             if self.create_bend:
                 # There will be no ctrl for the first and last twist jnt
-                if i > 0 and i < (len(driverjnts) - 1):
+                if 0 < i < (len(driverjnts) - 1):
                     ctrl_driver = pymel.createNode("transform")
                     ctrl_driver_name = nomenclature_jnt.resolve(
                         "ctrlDriver{0:02d}".format(i)
@@ -186,17 +186,6 @@ class Twistbone(Module):
                 pymel.pointConstraint(sys_ribbon._ribbon_jnts[i], driver, mo=True)
                 # Aim constraint the driver to create the bend effect.
                 # Skip the middle one if it as one
-                # TODO - Find a best way to determine the side
-                aim_vec = (
-                    [1.0, 0.0, 0.0]
-                    # if nomenclature_rig.side == nomenclature_rig.SIDE_L
-                    # else [-1.0, 0.0, 0.0]
-                )
-                aim_vec_inverse = (
-                    [-1.0, 0.0, 0.0]
-                    # if nomenclature_rig.side == nomenclature_rig.SIDE_L
-                    # else [1.0, 0.0, 0.0]
-                )
                 if i <= mid_idx - 1:
                     pymel.aimConstraint(
                         sys_ribbon._follicles[i + 1],
@@ -204,7 +193,7 @@ class Twistbone(Module):
                         maintainOffset=True,
                         worldUpType=2,
                         worldUpObject=jnt_s,
-                        aimVector=aim_vec,
+                        aimVector=[1.0, 0.0, 0.0],
                         upVector=[0.0, 1.0, 0.0],
                     )
                 else:
@@ -214,7 +203,7 @@ class Twistbone(Module):
                         maintainOffset=True,
                         worldUpType=2,
                         worldUpObject=jnt_s,
-                        aimVector=aim_vec_inverse,
+                        aimVector=[-1.0, 0.0, 0.0],
                         upVector=[0.0, 1.0, 0.0],
                     )
 

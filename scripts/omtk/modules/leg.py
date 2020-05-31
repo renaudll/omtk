@@ -470,6 +470,9 @@ class Leg(Module):
             attr_foot_tm, self.sysLimb.sysIK.compound_inputs.effector, force=True
         )
 
+    def parent_to(self, parent):
+        pass  # TODO: JUST REMOVE ALREADY
+
 
 def register_plugin():
     """

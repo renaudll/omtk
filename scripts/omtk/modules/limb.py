@@ -85,11 +85,16 @@ class ElbowBlend(CompoundModule):
 
         super(ElbowBlend, self).build(**kwargs)
 
+        # Hack: Position the grp_anm in advance...
+        if self.parent_jnt:
+            self.grp_anm.setMatrix(self.parent_jnt.getMatrix(worldSpace=True))
+
         chain_blends = _create_joint_from_binds(
             self.compound_inputs.bind, naming + "blend"
         )
         chain_elbow = _create_joint_from_binds(
-            self.compound_inputs.bind, naming + "elbow", connect=False
+            self.compound_inputs.bind, naming + "elbow", connect=False,
+            jointOrient=False  # since we are using parentConstraint we need to move rotation out of joint orient
         )
         chain_blends.start.setParent(self.grp_rig)
         chain_elbow.start.setParent(self.grp_rig)
@@ -127,9 +132,11 @@ class ElbowBlend(CompoundModule):
 
             pymel.pointConstraint(ref, elbow)
             pymel.aimConstraint(
-                ref, elbow_prev, worldUpType=2, worldUpObject=blend_prev
+                ref, elbow_prev, worldUpType=2, worldUpObject=blend_prev, maintainOffset=True
             )
-            pymel.aimConstraint(blend_next, elbow, worldUpType=2, worldUpObject=blend)
+            pymel.aimConstraint(
+                blend_next, elbow, worldUpType=2, worldUpObject=blend, maintainOffset=True
+            )
 
         # Constraint the last elbow joint on the blend joint at the ctrl index
         pymel.orientConstraint(chain_blends[-1], chain_elbow[-1])
@@ -149,6 +156,9 @@ class ElbowBlend(CompoundModule):
             attr_bind[idx].set(jnt.getMatrix())
 
         return inst
+
+    def parent_to(self, parent):
+        pass  # TODO: JUST REMOVE THIS ALREADY
 
 
 class Limb(Module):
@@ -178,8 +188,6 @@ class Limb(Module):
         self.STATE_FK = 0.0
 
     def build(self, *args, **kwargs):
-        self.children = []
-
         self.sysIK = self._CLASS_SYS_IK.from_instance(
             self, self.sysIK, "ik", inputs=self.chain_jnt,
         )

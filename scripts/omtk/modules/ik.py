@@ -1,10 +1,11 @@
 """
 Logic for the "IK" module
 """
+import math
 import functools
 import collections
 
-from maya import cmds
+from maya import cmds, OpenMaya
 import pymel.core as pymel
 
 from omtk.core.ctrl import BaseCtrl
@@ -549,18 +550,35 @@ def _create_swivel_constraint(attr_start, attr_swivel, ik_handle):
     return node
 
 
-def _create_joint_from_binds(attr_bind, naming, connect=True):
+def _create_joint_from_binds(attr_bind, naming, connect=True, jointOrient=True):
     """
     Create a joint chain from a list of matrix attributes.
     """
     # TODO: Move to a shared location?
+    # Ensure selection is clear so we don't accidentally parent our joint to something.
+    pymel.select(clear=True)
     jnts = []
-    for idx, tm in enumerate(attr_bind):
+    for idx, attr_tm in enumerate(attr_bind):
         jnt = pymel.joint(name=naming.resolve(str(idx)))
+
         if connect:
-            util = libRigging.create_utility_node("decomposeMatrix", inputMatrix=tm)
+            util = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_tm)
             pymel.connectAttr(util.outputTranslate, jnt.translate)
-            pymel.connectAttr(util.outputRotate, jnt.jointOrient)
+            if jointOrient:
+                pymel.connectAttr(util.outputRotate, jnt.jointOrient)
+            else:
+                pymel.connectAttr(util.outputRotate, jnt.rotate)
+        else:
+            tm = attr_tm.get()
+            jnt.translate.set(tm.translate)
+            rotation = libPymel.get_rotation_from_matrix(tm).asEulerRotation()
+            rotation = [math.degrees(rotation.x), math.degrees(rotation.y), math.degrees(rotation.z)]
+            # rotation = OpenMaya.MEulerRotation(math.radians(rotation.x), math.radians(rotation.y), math.radians(rotation.z))  # radian to deg
+
+            if jointOrient:
+                jnt.jointOrient.set(rotation)
+            else:
+                jnt.rotate.set(rotation)
         jnts.append(jnt)
     for parent, child in libPython.pairwise(jnts):
         child.setParent(parent)

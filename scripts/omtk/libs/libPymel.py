@@ -359,7 +359,7 @@ class Segment(object):
         atp_dot_atb = a_to_p_norm * a_to_b_norm
 
         return (
-            (atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon else 0.0
+            abs(atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon else 0.0
         )
 
 
@@ -393,11 +393,10 @@ class SegmentCollection(object):
             distance_normalized = segment.closest_point_normalized_distance(pos)
             if bound_min <= distance_normalized <= bound_max:
                 return segment, distance_normalized
-            elif i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
+            if i == 0 and distance_normalized < bound_min:  # Handle out-of-bound
                 return segment, 0.0
-            elif (
-                i == (num_segments - 1) and distance_normalized > bound_max
-            ):  # Handle out-of-bound
+            # Handle out-of-bound
+            if i == (num_segments - 1) and distance_normalized > bound_max:
                 return segment, 1.0
         raise Exception("Can't resolve segment for %s" % pos)
 

@@ -2,6 +2,7 @@
 Logic for the "Hand" module
 """
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix, Vector
 
 from omtk.core.module import Module
 from omtk.core.exceptions import ValidationError
@@ -10,6 +11,10 @@ from omtk.libs import libPymel
 from omtk.libs import libRigging
 from omtk.modules.fk import FK
 from omtk.modules.fk_additive import AdditiveFK
+
+
+class Metacarpal(FK):
+    _FORCE_INPUT_NAME = True
 
 
 class Hand(Module):
@@ -61,7 +66,7 @@ class Hand(Module):
                 )
 
     def build(self, *args, **kwargs):
-        super(Hand, self).build(parent=False, *args, **kwargs)
+
 
         naming = self.get_nomenclature_rig()
 
@@ -101,36 +106,25 @@ class Hand(Module):
                 self.fk_sys_metacarpals[i] = None
             else:
                 sys_metacarpal = self.fk_sys_metacarpals[i]
-                sys_metacarpal = FK.from_instance(
+                sys_metacarpal = Metacarpal.from_instance(
                     self, sys_metacarpal, self.name, inputs=jnts_metacarpal
                 )
-                sys_metacarpal._FORCE_INPUT_NAME = True
+                sys_metacarpal.create_spaceswitch = False
                 self.fk_sys_metacarpals[i] = sys_metacarpal
 
             # Init finger module
-            self.sysFingers[i] = AdditiveFK.from_instance(
+            # TODO: Use custom subclass
+            sysFinger = AdditiveFK.from_instance(
                 self, self.sysFingers[i], self.name, inputs=jnts_phalanges,
             )
-
-        # Build modules
-        for sys_metacarpal, sys_finger in zip(self.fk_sys_metacarpals, self.sysFingers):
-            if sys_metacarpal:
-                sys_metacarpal.create_spaceswitch = False
-                sys_metacarpal.build()
-                sys_metacarpal.grp_anm.setParent(self.grp_anm)
-
-            sys_finger.create_spaceswitch = False
+            sysFinger.enable_addfk_ctrl = False
             # Force input name to prevent any ctrl duplication name
             # when the chain only have 1 input
-            sys_finger._FORCE_INPUT_NAME = True
-            # Lock and hide addFk ctrl for the hand
-            # TODO - Switch to fi the fingers ?
-            sys_finger.enable_addfk_ctrl = False
-            sys_finger.build()
-            if sys_metacarpal:
-                sys_finger.grp_anm.setParent(sys_metacarpal.ctrls[0])
-            # else:
-            #     sys_finger.grp_anm.setParent(self.grp_anm)
+            sysFinger._FORCE_INPUT_NAME = True
+            sysFinger.create_spaceswitch = False
+            self.sysFingers[i] = sysFinger
+
+        super(Hand, self).build(parent=False, *args, **kwargs)
 
         # Rig the 'cup' setup
         sys_metacarpals = filter(None, self.fk_sys_metacarpals)
@@ -143,12 +137,12 @@ class Hand(Module):
             parent_tm = self.parent_jnt.getMatrix(worldSpace=True)
             z_axis = pos_out - pos_inn
             z_axis.normalize()
-            y_axis = pymel.datatypes.Vector(parent_tm.a10, parent_tm.a11, parent_tm.a12)
+            y_axis = Vector(parent_tm.a10, parent_tm.a11, parent_tm.a12)
             x_axis = z_axis.cross(y_axis)  # Get the front vector
             x_axis.normalize()
             y_axis = z_axis.cross(x_axis)  # Ensure the up vector is orthogonal
             y_axis.normalize()
-            ref_tm = pymel.datatypes.Matrix(
+            ref_tm = Matrix(
                 [x_axis.x, x_axis.y, x_axis.z, 0.0],
                 [y_axis.x, y_axis.y, y_axis.z, 0.0],
                 [z_axis.x, z_axis.y, z_axis.z, 0.0],
@@ -193,22 +187,6 @@ class Hand(Module):
                     grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True
                 )
 
-            # Connect Global scale
-            pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleX)
-            pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleY)
-            pymel.connectAttr(self.grp_rig.globalScale, self.grp_rig.scaleZ)
-
-        pymel.parentConstraint(self.parent_jnt, self.grp_anm, maintainOffset=True)
-
-    def unbuild(self):
-        for sysFinger in self.sysFingers:
-            sysFinger.unbuild()
-
-        for ctrl_meta in self.fk_sys_metacarpals:
-            if ctrl_meta:  # might not exist!
-                ctrl_meta.unbuild()
-
-        super(Hand, self).unbuild()
 
     def iter_ctrls(self):
         for ctrl in super(Hand, self).iter_ctrls():

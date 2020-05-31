@@ -402,7 +402,7 @@ class Module(base.Buildable):
             raise ValidationError("Can't build module with zero inputs. %s" % self)
 
         # Ensure that IF we have namespaces, they are the same for all inputs.
-        namespaces = set(input.namespace() for input in self.input if input)
+        namespaces = set(input.namespace() for input in self.input or [] if input)
         if len(namespaces) > 1:
             raise ValidationError(
                 "Found multiple namespaces for inputs: %s"
@@ -510,7 +510,7 @@ class Module(base.Buildable):
     def _disconnect_inputs(self):
         for obj in self.input:
             if isinstance(obj, pymel.nodetypes.Transform):
-                libAttr.disconnect_trs(obj)
+                libAttr.disconnect_trs(obj, outputs=False)
 
     def unbuild(self):
         """
@@ -529,9 +529,11 @@ class Module(base.Buildable):
         for ctrl in ctrls:
             ctrl.unbuild()
 
-        super(Module, self).unbuild()
-
+        # For some reason this need to be before the super call otherwise it crash
+        # the tests. Anyway we need to remove this as we will support scaling differently.
         self.globalScale = None
+
+        super(Module, self).unbuild()
 
     def get_parent(self, parent):
         """
@@ -589,7 +591,7 @@ class Module(base.Buildable):
         :return: A generator of Module instances
         """
         # TODO: Deprecate
-        return iter(self.children)
+        return iter(self.children or [])  # TODO: WHYYYYYYY the []
 
     def get_pin_locations(self, jnt):
         """

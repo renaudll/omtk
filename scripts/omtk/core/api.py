@@ -164,12 +164,12 @@ def get_modules_from_selection(sel=None):
 
     # Deserialize the rig and find the associated networks
     rig = libSerialization.import_network(rig_network)
-    modules = []
+    modules = set()
     for module in rig.children:
         if module._network in module_networks:
-            modules.append(module)
+            modules.add(module)
 
-    return rig, modules
+    return rig, list(modules)
 
 
 @contextlib.contextmanager

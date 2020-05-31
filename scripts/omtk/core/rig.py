@@ -639,8 +639,8 @@ class Rig(Buildable):
             module.grp_rig.setParent(self.grp_rig)
 
         # Connect globalScale attribute to each modules globalScale.
-        if module.globalScale:
-            pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
+        # if module.globalScale:
+        #     pymel.connectAttr(self.grp_anm.globalScale, module.globalScale, force=True)
 
         # Apply ctrl color if needed
         self.color_module_ctrl(module)

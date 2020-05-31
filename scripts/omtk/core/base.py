@@ -72,9 +72,9 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
     @parent.setter
     def parent(self, parent):
         assert parent is None or isinstance(parent, Buildable)
-        if parent and parent is not self._parent:
+        if parent:
             self._parent = parent
-            if not self in parent.children:
+            if self not in parent.children:
                 parent.children.append(self)
             else:
                 self.log.warning("%s is already a child of %s", self, parent)
@@ -200,7 +200,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
             raise ValidationError("Can't resolve name for module. %s" % self)
 
         # Validate is recursive to all sub-modules
-        for child in self.children:
+        for child in self.children or []:  # TODO: This should not be None...
             child.validate()
 
     def is_built(self):

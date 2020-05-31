@@ -106,8 +106,10 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         :return:
         :rtype: omtk.core.name.BaseName
         """
-        if self.parent:
-            return self.parent.naming + self.name
+        from omtk.core.rig import Rig
+
+        if self.parent and not isinstance(self.parent, Rig):
+            return self.parent.naming + self.naming_cls(self.name)
 
         return self.naming_cls(tokens=[self.name])
 
@@ -161,7 +163,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         :return: The nomenclature to use for animation controllers.
         :rtype: omtk.core.name.BaseName
         """
-        naming = copy.copy(self.naming_anm)
+        naming = copy.copy(self.naming)
         naming.suffix = self.naming.type_anm
         return naming
 

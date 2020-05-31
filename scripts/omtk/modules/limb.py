@@ -93,8 +93,10 @@ class ElbowBlend(CompoundModule):
             self.compound_inputs.bind, naming + "blend"
         )
         chain_elbow = _create_joint_from_binds(
-            self.compound_inputs.bind, naming + "elbow", connect=False,
-            jointOrient=False  # since we are using parentConstraint we need to move rotation out of joint orient
+            self.compound_inputs.bind,
+            naming + "elbow",
+            connect=False,
+            jointOrient=False,  # since we are using parentConstraint we need to move rotation out of joint orient
         )
         chain_blends.start.setParent(self.grp_rig)
         chain_elbow.start.setParent(self.grp_rig)
@@ -132,10 +134,18 @@ class ElbowBlend(CompoundModule):
 
             pymel.pointConstraint(ref, elbow)
             pymel.aimConstraint(
-                ref, elbow_prev, worldUpType=2, worldUpObject=blend_prev, maintainOffset=True
+                ref,
+                elbow_prev,
+                worldUpType=2,
+                worldUpObject=blend_prev,
+                maintainOffset=True,
             )
             pymel.aimConstraint(
-                blend_next, elbow, worldUpType=2, worldUpObject=blend, maintainOffset=True
+                blend_next,
+                elbow,
+                worldUpType=2,
+                worldUpObject=blend,
+                maintainOffset=True,
             )
 
         # Constraint the last elbow joint on the blend joint at the ctrl index

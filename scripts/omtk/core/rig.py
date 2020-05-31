@@ -107,9 +107,9 @@ class Rig(Buildable):
     RIGHT_CTRL_COLOR = 6  # Blue
     CENTER_CTRL_COLOR = 17  # Yellow
 
-    AVAR_NAME_UPP = "Upp"
-    AVAR_NAME_LOW = "Low"
-    AVAR_NAME_ALL = "All"
+    AVAR_NAME_UPP = "upp"
+    AVAR_NAME_LOW = "low"
+    AVAR_NAME_ALL = "all"
 
     # Define what axis to use as the 'up' axis.
     # This generally mean in which Axis will the Limb elbow/knee be pointing at.

@@ -140,6 +140,9 @@ class Module(base.Buildable):
         """
         return self.naming
 
+    def get_nomenclature_anm_new(self):  # TODO: Rename the other one to legacy...
+        return super(Module, self).get_nomenclature_anm()
+
     def get_nomenclature_anm(self):
         """
         :return: The nomenclature to use for animation controllers.
@@ -187,7 +190,7 @@ class Module(base.Buildable):
         """
         return [
             obj
-            for obj in self.input
+            for obj in self.input or []
             if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
         ]
 
@@ -402,7 +405,12 @@ class Module(base.Buildable):
             raise ValidationError("Can't build module with zero inputs. %s" % self)
 
         # Ensure that IF we have namespaces, they are the same for all inputs.
-        namespaces = set(input.namespace() for input in self.input or [] if input)
+        namespaces = set(
+            input.namespace()
+            for input in self.input or []
+            if input
+            if isinstance(input, pymel.PyNode)
+        )
         if len(namespaces) > 1:
             raise ValidationError(
                 "Found multiple namespaces for inputs: %s"
@@ -508,7 +516,7 @@ class Module(base.Buildable):
         return set()
 
     def _disconnect_inputs(self):
-        for obj in self.input:
+        for obj in self.input or []:  # TODO: Why [] ?
             if isinstance(obj, pymel.nodetypes.Transform):
                 libAttr.disconnect_trs(obj, outputs=False)
 
@@ -560,7 +568,9 @@ class Module(base.Buildable):
         # TODO: Cleanup this shit
         naming = self.get_nomenclature()
         is_parent = bool(self.parent_jnt)
-        is_parent_to_root = is_parent and self.rig and self.rig.grp_jnt == self.parent_jnt
+        is_parent_to_root = (
+            is_parent and self.rig and self.rig.grp_jnt == self.parent_jnt
+        )
         if is_parent and not is_parent_to_root:
             parent_tm = self.parent_jnt.worldMatrix
             if self.rig and self.rig.grp_jnt:

@@ -1,11 +1,19 @@
 """
 Tests for the Leg module.
 """
+import os
+
 import pytest
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix
+
 from omtk.libs import libRigging
 from omtk.modules.leg import Leg
 from omtk.core.rig import Rig
+
+from .. import helpers
+
+_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "resources")
 
 
 def create_leg_hierarchy():
@@ -42,3 +50,7 @@ def test_build_leg(leg):
     Ensure we can build an leg.
     """
     leg.build()
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_leg_rest.json")
+    )

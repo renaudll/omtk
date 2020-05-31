@@ -1,13 +1,15 @@
 """
-Base classes and utility functions to handle unit-testing.
+Helper methods for easier testing.
 """
 import os
+import json
 import sys
-import unittest
+import tempfile
 from contextlib import contextmanager
 
 from maya import cmds
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix
 
 from omtk.vendor import libSerialization
 
@@ -68,15 +70,16 @@ def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0)
         b_axis.normalize()
         diff = abs(1.0 - a_axis.dot(b_axis))
         if diff > r_epsilon:
-            raise Exception(
+            raise AssertionError(
                 "%s != %s (dot product %s > epsilon %s)"
                 % (a_axis, b_axis, diff, r_epsilon)
             )
     # Compare position
     distance = a_pos.distanceTo(b_pos)
     if distance > t_epsilon:
-        raise Exception(
-            "%s != %s (distance %s > epsilon %s)" % (a_pos, b_pos, distance, t_epsilon)
+        raise AssertionError(
+            "Position %s != %s (distance %s > epsilon %s)"
+            % (a_pos, b_pos, distance, t_epsilon)
         )
 
 
@@ -104,6 +107,49 @@ def verified_offset(objs, offset_tm, **kwargs):
             raise Exception("Invalid transform for %s. %s" % (obj, error))
 
 
+def assert_match_pose(data, dump=True):
+    """
+    :param data: A dict of matrix by name
+    :type data: dict[str, pymel.datatypes.Matrix]
+    """
+    try:
+        for obj_name, expected in data.items():
+            if not cmds.objExists(obj_name):
+                raise AssertionError("Transform %r don't exist" % obj_name)
+            obj = pymel.PyNode(obj_name)
+            actual = obj.getMatrix(worldSpace=True)
+            try:
+                assertMatrixAlmostEqual(actual, expected)
+            except AssertionError as error:
+                raise AssertionError(
+                    "Invalid transform for %s: %s." % (obj_name, error)
+                )
+    except AssertionError as error:
+        if not dump:
+            raise
+
+        # Save expected transforms visually
+        for obj_name, expected in data.items():
+            ref = pymel.spaceLocator(name="EXPECTED_%s" % obj_name)
+            ref.setMatrix(expected)
+            pymel.color(
+                ref, rgb=(1, 0, 0)
+            )  # TODO: Different color depending on the state
+
+        # Save the scene in it's current state for further debuggin
+        path = tempfile.mktemp(suffix=".ma")
+        cmds.file(rename=path)
+        cmds.file(save=True, type="mayaAscii")
+        raise AssertionError("%s Scene was dumped here: %r" % (error, path))
+
+
+def assert_match_pose_from_file(path):
+    with open(path) as fp:
+        data = json.load(fp)
+        data = {key: Matrix(val) for key, val in data.items()}
+    assert_match_pose(data)
+
+
 def validate_built_rig(
     rig,
     test_translate=True,
@@ -115,6 +161,7 @@ def validate_built_rig(
     """
     Build a specific rig and verify the following:
     - Is the rig scaling correctly?
+
     :param rig: The rig to scale.
     :param test_translate: If True, the rig will be verified for translation.
     :param translate: The value to use when testing the translation.
@@ -195,48 +242,51 @@ def validate_built_rig(
         rig.grp_anm.globalScale.set(1.0)
 
 
-class TestCase(unittest.TestCase):
-    def _test_build_rig(self, rig, **kwargs):
-        """
-        Build a specific rig and verify the following:
-        - Is the rig scaling correctly?
-        :param rig: The rig to scale.
-        :param test_translate: If True, the rig will be verified for translation.
-        :param test_translate_value: The value to use when testing the translation.
-        :param test_scale: If True, the rig will be verified for scaling.
-        :param test_scale_value: The value to use when testing the scale.
-        """
-        rig.build(strict=True)
-        validate_built_rig(rig, **kwargs)
+def test_build_rig(rig, **kwargs):
+    """
+    Build a specific rig and verify the following:
+    - Is the rig scaling correctly?
 
-    def _test_unbuild_rig(self, rig, test_shapes=True):
-        """
-        Unbuild a specific rig and verify the following:
-        - Do we have extra or missing ctrl shapes after building?
-        :param rig: The rig to unbuild.
-        :param test_shapes: If True, the number of shape before and after will be checked.
-        """
-        num_holder_shapes_before = len(_get_holded_shapes())
-        rig.unbuild()
-        num_holder_shapes_after = len(_get_holded_shapes())
-        self.assertEqual(num_holder_shapes_before, num_holder_shapes_after)
+    :param rig: The rig to scale.
+    :param test_translate: If True, the rig will be verified for translation.
+    :param test_translate_value: The value to use when testing the translation.
+    :param test_scale: If True, the rig will be verified for scaling.
+    :param test_scale_value: The value to use when testing the scale.
+    """
+    rig.build(strict=True)
+    validate_built_rig(rig, **kwargs)
 
-    def _build_unbuild_build_all(self, **kwargs):
-        """
-        Build/Unbuild/Build all the rig in the scene and check for the following errors:
-        - Is there junk shapes remaining? This could be a sign that we didn't cleanup correctly.
-        :return:
-        """
-        import omtk
 
-        num_holder_shapes_before = len(_get_holded_shapes())
+def test_unbuild_rig(rig):
+    """
+    Unbuild a specific rig and verify the following:
+    - Do we have extra or missing ctrl shapes after building?
 
-        rigs = omtk.find()
-        for rig in rigs:
-            self._test_build_rig(rig, **kwargs)
-            self._test_unbuild_rig(rig)
-            self._test_build_rig(rig, **kwargs)
+    :param rig: The rig to unbuild.
+    """
+    num_holder_shapes_before = len(_get_holded_shapes())
+    rig.unbuild()
+    num_holder_shapes_after = len(_get_holded_shapes())
+    assert num_holder_shapes_before == num_holder_shapes_after
 
-        # Ensure no shapes are left after a rebuild.
-        num_holder_shapes_after = len(_get_holded_shapes())
-        self.assertEqual(num_holder_shapes_before, num_holder_shapes_after)
+
+def build_unbuild_build_all(**kwargs):
+    """
+    Build/Unbuild/Build all the rig in the scene and check for the following errors:
+    - Is there junk shapes remaining? This could be a sign that we didn't cleanup correctly.
+
+    :return:
+    """
+    import omtk
+
+    num_holder_shapes_before = len(_get_holded_shapes())
+
+    rigs = omtk.find()
+    for rig in rigs:
+        test_build_rig(rig, **kwargs)
+        test_unbuild_rig(rig)
+        test_build_rig(rig, **kwargs)
+
+    # Ensure no shapes are left after a rebuild.
+    num_holder_shapes_after = len(_get_holded_shapes())
+    assert num_holder_shapes_before == num_holder_shapes_after

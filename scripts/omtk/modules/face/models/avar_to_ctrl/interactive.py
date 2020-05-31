@@ -3,6 +3,7 @@ Logic for "ModelInteractiveCtrl"
 """
 import pymel.core as pymel
 
+from omtk.core.ctrl import BaseCtrl
 from omtk.core.exceptions import ValidationError
 from omtk.modules.face.models.avar_to_ctrl import base
 from omtk.core.compounds import create_compound
@@ -93,20 +94,16 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
         self.attr_sensitivity_tz = _fn(self._ATTR_NAME_SENSITIVITY_TZ)
 
     # TODO: Too many kwargs, simplify!
-    def build(
-        self,
-        ctrl,
-        ref=None,
-        ref_tm=None,
-        grp_rig=None,
-        obj_mesh=None,
-        u_coord=None,
-        v_coord=None,
-        flip_lr=False,
-        follow_mesh=True,
-        **kwargs
-    ):
-        super(ModelInteractiveCtrl, self).build(ctrl, **kwargs)
+    def build(self):
+        # TODO: Remove
+        obj_mesh = None
+        u_coord = None
+        v_coord = None
+        flip_lr = False
+        follow_mesh = True
+        ctrl = self.ctrl
+
+        super(ModelInteractiveCtrl, self).build()
 
         naming = self.get_nomenclature_rig()
 
@@ -114,12 +111,12 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
         # If we don't want to follow a particular geometry, we'll use the stack end.
         # Otherwise the influence will be used (to also resolve the geometry).
         # todo: it could be better to resolve the geometry ourself
-        ref = ref or self.jnt
+        ref = self.jnt
 
         # Resolve ctrl matrix
         # It can differ from the influence to prevent to prevent issues where the
         # controller dissapear under the geometry.
-        ctrl_tm = ctrl.getMatrix(worldSpace=True)
+        ctrl_tm = ref.getMatrix(worldSpace=True)
 
         pos_ref = self.project_pos_on_face(ctrl_tm.translate, geos=self.get_meshes())
 
@@ -169,7 +166,8 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
             return grp
 
         rot_ref = _create_grp("parent")
-        pymel.parentConstraint(self.parent_jnt, rot_ref, maintainOffset=True)
+        if self.parent_jnt:
+            pymel.parentConstraint(self.parent_jnt, rot_ref, maintainOffset=True)
 
         compound = create_compound(
             "omtk.InteractiveCtrl",

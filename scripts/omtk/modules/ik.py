@@ -274,6 +274,7 @@ class IK(CompoundModule):
         # Connect ctrl ik to the compound
         # TODO: Do not use world matrices
         attr_ctrl_tm = self.ctrl_ik.worldMatrix
+        print(self.chain_jnt, self.parent_jnt)
         if self.parent_jnt:
             attr_ctrl_tm = libRigging.create_multiply_matrix(
                 [attr_ctrl_tm, self.parent_jnt.worldInverseMatrix]
@@ -562,7 +563,9 @@ def _create_joint_from_binds(attr_bind, naming, connect=True, jointOrient=True):
         jnt = pymel.joint(name=naming.resolve(str(idx)))
 
         if connect:
-            util = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_tm)
+            util = libRigging.create_utility_node(
+                "decomposeMatrix", inputMatrix=attr_tm
+            )
             pymel.connectAttr(util.outputTranslate, jnt.translate)
             if jointOrient:
                 pymel.connectAttr(util.outputRotate, jnt.jointOrient)
@@ -572,8 +575,11 @@ def _create_joint_from_binds(attr_bind, naming, connect=True, jointOrient=True):
             tm = attr_tm.get()
             jnt.translate.set(tm.translate)
             rotation = libPymel.get_rotation_from_matrix(tm).asEulerRotation()
-            rotation = [math.degrees(rotation.x), math.degrees(rotation.y), math.degrees(rotation.z)]
-            # rotation = OpenMaya.MEulerRotation(math.radians(rotation.x), math.radians(rotation.y), math.radians(rotation.z))  # radian to deg
+            rotation = [
+                math.degrees(rotation.x),
+                math.degrees(rotation.y),
+                math.degrees(rotation.z),
+            ]
 
             if jointOrient:
                 jnt.jointOrient.set(rotation)

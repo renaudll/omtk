@@ -52,7 +52,7 @@ class FaceLips(AvarGrp):
                 jaw_ratio = self._get_avar_jaw_ratio_default(avar)
                 connect_avar(avar, jaw_ratio)
 
-        # Animators at Squeeze Studiorequested that the lips
+        # Animators at Squeeze Studio requested that the lips
         # work like the animation mentor rig.
         # When the corner macros ud is 1.0, they won't follow the jaw anymore.
         # When the corner macros ud is -1.0, they won't follow the head anymore.

@@ -1,56 +1,142 @@
 """
-Tests for the FaceLips module
+Tests for the AvarGrp module.
 """
-import pymel.core as pymel
-import omtk_test
-import omtk
-from omtk.modules.head import Head
+from maya import cmds
+from pymel.core.datatypes import Matrix
+
+from omtk.core.rig import Rig
+from omtk.modules.face.models.avar_to_infl.linear import AvarLinearModel
+from omtk.modules.face.models.avar_to_infl.surface import AvarSurfaceModel
+from omtk.modules.face.models.avar_to_ctrl.linear import ModelCtrlLinear
+from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCtrl
+from omtk.modules.face.avar import Avar
 from omtk.modules.face.avar_grp import AvarGrp
 
-
-class TestAvarGrp(omtk_test.TestCase):
-    @omtk_test.open_scene("../resources/test_lips.ma")
-    def test_avargrp_withsurface(self):
-        """
-        Ensure there's always a nurbsSurface created for an AvarGrp
-        and that it is correctly propagated to it's child avars.
-        """
-        # Create a base rig
-        rig = omtk.create()
-        rig.add_module(Head([pymel.PyNode("jnt_head")], rig=rig))
-        rig.add_module(
-            AvarGrp(
-                pymel.ls("jnt_lip*", type="joint")
-                + [pymel.PyNode("surface_lips"), pymel.PyNode("pSphereShape1")],
-                rig=rig,
-            )
-        )
-
-        # Validate the state of the scene before testing.
-        self.assertEqual(_get_scene_surface_count(), 1)
-
-        rig.build(strict=True)
-        rig.unbuild(strict=True)
-
-        # Ensure there's still one nurbsSurface in the scene.
-        self.assertEqual(_get_scene_surface_count(), 1)
-
-        # Remove all surfaces
-        pymel.delete(pymel.ls(type="nurbsSurface"))
-        self.assertEqual(_get_scene_surface_count(), 0)
-
-        # Re-created the rig and ensure the new surface was correctly created.
-        # TODO: Uncomment
-        # rig.build(strict=True)
+from .. import helpers
 
 
-def _get_scene_surface_count():
+class AvarImpl1(Avar):
+    """Implementation that test linear ctrl and influence models."""
+
+    CLS_MODEL_CTRL = ModelCtrlLinear
+    CLS_MODEL_INFL = AvarLinearModel
+
+
+class AvarImpl2(Avar):
+    """Implementation that test surface based ctrl and influence models."""
+
+    CLS_MODEL_CTRL = ModelInteractiveCtrl
+    CLS_MODEL_INFL = AvarSurfaceModel
+
+
+class AvarGrpImpl1(AvarGrp):
+    """Implementation that test a grp of linear avars."""
+
+    CLS_AVAR_MICRO = AvarImpl1
+    CLS_AVAR_MACRO_ALL = AvarImpl1
+    CLS_AVAR_MACRO_LFT = AvarImpl1
+    CLS_AVAR_MACRO_RGT = AvarImpl1
+    CLS_AVAR_MACRO_UPP = AvarImpl1
+    CLS_AVAR_MACRO_LOW = AvarImpl1
+
+
+def _create_joints(data):
+    jnts = []
+    for name, position in data:
+        cmds.select(clear=True)
+        jnt = cmds.joint(name=name, position=position)
+        jnts.append(jnt)
+    return jnts
+
+
+def test_avar_grp_simple():
     """
-    :return: The number of non-intermediate surfaces in the scene.
+    Test a very simple case of AvarGrp where all avar are linear and there is no parent.
     """
-    surface_shapes = [
-        shape
-        for shape in pymel.ls(type="nurbsSurface")
-        if not shape.intermediateObject.get()
-    ]
-    return len(surface_shapes)
+    jnts = _create_joints(
+        [
+            ("jnt_test_l", [-1.0, 0.0, 0.0]),
+            ("jnt_test_r", [1.0, 0.0, 0.0]),
+            ("jnt_test_upp", [0.0, 1.0, 0.0]),
+            ("jnt_test_low", [0.0, -1.0, 0.0]),
+        ]
+    )
+    inst = AvarGrpImpl1(jnts, name="avargrp", rig=Rig())
+    inst.build()
+
+    helpers.assert_match_pose(
+        {
+            "avargrp_test_low_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, -1.0, 0.0, 1.0],
+            ),
+            "avargrp_macro_low_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, -1.0, 0.0, 1.0],
+            ),
+            "avargrp_macro_upp_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0],
+            ),
+            "avargrp_test_upp_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0],
+            ),
+            "r_avargrp_test_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0, 1.0],
+            ),
+            "jnt_test_l": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [-1.0, 0.0, 0.0, 1.0],
+            ),
+            "jnt_test_upp": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0],
+            ),
+            "jnt_test_r": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0, 1.0],
+            ),
+            "l_avargrp_test_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [-1.0, 0.0, 0.0, 1.0],
+            ),
+            "r_avargrp_macro_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [-1.0, 0.0, 0.0, 1.0],
+            ),
+            "l_avargrp_macro_anm": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0, 1.0],
+            ),
+            "jnt_test_low": Matrix(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, -1.0, 0.0, 1.0],
+            ),
+        }
+    )

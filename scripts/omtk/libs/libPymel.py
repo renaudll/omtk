@@ -12,19 +12,25 @@ _LOG = logging.getLogger(__name__)
 
 def is_valid_PyNode(val):
     """
-    Determine if a provided value is a valid PyNode object.
+    Determine if a provided value is a valid pymel PyNode/Attribute by duck-typing.
 
     :param object val: A value to check
     :return: Is the object a valid PyNode?
     :rtype: bool
     """
-    # TODO: Deprecate? Why do we need this exactly?
-    if not hasattr(val, "__melobject__"):
+    # In maya-2019, maya will crash when calling __melobject__ on an invalid PyNode/Attribute.
+    # A workaround for now is to call __apimobject__() first.
+    # Worst case it will raise a MayaAttributeError exception.
+    try:
+        val.__apimobject__()
+    except Exception:
         return False
-    fn = getattr(val, "__melobject__")
-    if not callable(fn):
+
+    try:
+        mel = val.__melobject__()
+    except Exception:
         return False
-    mel = fn()
+
     return cmds.objExists(mel)
 
 
@@ -359,7 +365,9 @@ class Segment(object):
         atp_dot_atb = a_to_p_norm * a_to_b_norm
 
         return (
-            abs(atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon else 0.0
+            abs(atp_dot_atb * ap_length / ab_length)
+            if abs(ab_length) > epsilon
+            else 0.0
         )
 
 
@@ -506,7 +514,8 @@ def conform_to_pynode(value):
     :return:
     :rtype: pymel.PyNode
     """
-    return value if isinstance(value, pymel.PyNode) else pymel.PyNode(value)
+    return pymel.PyNode(value) if isinstance(value, basestring) else value
+    # return value if isinstance(value, pymel.PyNode) else pymel.PyNode(value)
 
 
 def conform_to_pynode_list(value):

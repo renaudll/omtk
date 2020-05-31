@@ -1,6 +1,7 @@
 """
 Logic for the "AvarGrp" module
 """
+# TODO: Move side specific AvarGrp in their own class?
 import copy
 import itertools
 import logging
@@ -187,6 +188,7 @@ class AvarGrp(AbstractAvar):
     """
 
     # TODO: Why inherit from AbstractAvar? Is inheriting from module more logical?
+    AFFECT_INPUTS = False
 
     CLS_AVAR_MICRO = AvarMicro
     CLS_AVAR_MACRO_ALL = AvarMacroAll
@@ -231,10 +233,6 @@ class AvarGrp(AbstractAvar):
         calibrate=True,
         **kwargs
     ):
-        super(AvarGrp, self).build(
-            connect_global_scale=connect_global_scale, parent=parent, **kwargs
-        )
-
         self.handle_surface()
 
         self._create_avars()
@@ -242,11 +240,16 @@ class AvarGrp(AbstractAvar):
         # Last minute validation before building
         self.validate()
 
-        self._build_avars(
-            parent=parent,
-            connect_global_scale=connect_global_scale,
-            constraint=constraint,
+        super(AvarGrp, self).build(
+            connect_global_scale=connect_global_scale, parent=parent, **kwargs
         )
+
+        # TODO: Ensure we are still okay
+        # self._build_avars(
+        #     parent=parent,
+        #     connect_global_scale=connect_global_scale,
+        #     constraint=constraint,
+        # )
 
         self._connect_avars_macro_to_micro()
 
@@ -500,6 +503,12 @@ class AvarGrp(AbstractAvar):
             for ctrl in avar.iter_ctrls():
                 yield ctrl
 
+    def _get_avar_name(self, ref, suffix=None):
+        naming = self.naming_cls(ref.nodeName())
+        naming.prefix = naming.suffix = None
+        naming = naming + [suffix] if suffix else naming
+        return naming.resolve()
+
     def _init_avar(
         self, cls, inst, ref=None, name=None, suffix=None,
     ):
@@ -509,19 +518,23 @@ class AvarGrp(AbstractAvar):
         :param cls: The desired class.
         :param inst: The current value.
         :param ref:
-        :param cls_ctrl: The desired ctrl class.
-        :param cls_ctrl_model: The desired controller model class.
-        :param cls_infl_model: The desired influence model class.
         :return: The initialized instance. If the instance was already fine, it is returned as is.
         """
         result_inputs = [ref] if ref else []
         result_inputs.extend(self.get_meshes())
         result_inputs.extend(self.get_surfaces())
 
+        # Automatically name the avar by it's input
+        # TODO: Should this not be done automatically?
+        if not name:
+            naming = self.naming_cls(ref.nodeName())
+            naming.prefix = naming.suffix = None
+            name = naming.resolve()
+
         inst = cls.from_instance(
             self,
             inst,
-            (self.get_nomenclature() + suffix).resolve() if suffix else self.name,
+            name=self._get_avar_name(ref, suffix=suffix),
             inputs=result_inputs,
         )
 
@@ -863,13 +876,13 @@ class AvarGrp(AbstractAvar):
                 )
                 return None
 
-            # Resolve name
-            nomenclature = self.rig.nomenclature(self.get_module_name())
-            nomenclature.add_tokens("macro", "l")
-            avar_macro_l_name = nomenclature.resolve()
-
             return self._init_avar(
-                self.CLS_AVAR_MACRO_LFT, value, ref=ref, name=avar_macro_l_name,
+                self.CLS_AVAR_MACRO_LFT,
+                value,
+                ref=ref,
+                name=self.naming_cls(
+                    tokens=["macro"], side=self.naming_cls.SIDE_L
+                ).resolve(),
             )
 
     def _init_avar_macro_r(self, value=None):
@@ -882,13 +895,13 @@ class AvarGrp(AbstractAvar):
             self.log.info("Cannot create macro avar 'L', found no matching influence.")
             return None
 
-        # Resolve name
-        nomenclature = self.rig.nomenclature(self.get_module_name())
-        nomenclature.add_tokens("macro", "r")
-        avar_macro_r_name = nomenclature.resolve()
-
         return self._init_avar(
-            self.CLS_AVAR_MACRO_RGT, value, ref=ref, name=avar_macro_r_name,
+            self.CLS_AVAR_MACRO_RGT,
+            value,
+            ref=ref,
+            name=self.naming_cls(
+                tokens=["macro"], side=self.naming_cls.SIDE_R
+            ).resolve(),
         )
 
     def _init_avar_macro_upp(self, value=None):
@@ -904,11 +917,11 @@ class AvarGrp(AbstractAvar):
             )
             return None
 
-        # Resolve avar name
-        avar_upp_name = self.get_nomenclature().resolve("macro", self.rig.AVAR_NAME_UPP)
-
         return self._init_avar(
-            self.CLS_AVAR_MACRO_UPP, value, ref=ref_upp, name=avar_upp_name,
+            self.CLS_AVAR_MACRO_UPP,
+            value,
+            ref=ref_upp,
+            name=self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_UPP]).resolve(),
         )
 
     def _init_avar_macro_low(self, value=None):
@@ -924,11 +937,11 @@ class AvarGrp(AbstractAvar):
             )
             return None
 
-        # Resolve avar name
-        avar_low_name = self.get_nomenclature().resolve("macro", self.rig.AVAR_NAME_LOW)
-
         return self._init_avar(
-            self.CLS_AVAR_MACRO_LOW, value, ref=ref_low, name=avar_low_name,
+            self.CLS_AVAR_MACRO_LOW,
+            value,
+            ref=ref_low,
+            name=self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_LOW]).resolve(),
         )
 
     def _init_avar_macro_all(self, value=None):
@@ -944,7 +957,7 @@ class AvarGrp(AbstractAvar):
                 self.CLS_AVAR_MACRO_ALL,
                 value,
                 ref=ref_all,
-                name=self.get_nomenclature().resolve("macro", self.rig.AVAR_NAME_ALL),
+                name=self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_ALL]),
             )
             if self.create_macro_all and ref_all
             else None

@@ -60,10 +60,10 @@ class BaseName(object):
     separator = "_"
 
     type_anm = "anm"
-    type_anm_grp = "anm_grp"
+    type_anm_grp = "anmgrp"
     type_jnt = "jnt"
     type_rig = "rig"
-    type_rig_grp = "rig_grp"
+    type_rig_grp = "riggrp"
 
     root_anm_name = "anms"
     root_anm_master_name = "anm_all"
@@ -194,6 +194,7 @@ class BaseName(object):
         return self.separator.join(tokens)
 
     def add_tokens(self, *args):
+        found_token = False
         for arg in args:
             for token in arg.split(self.separator):
                 # Handle side
@@ -204,11 +205,12 @@ class BaseName(object):
                 elif token in self.KNOWN_SUFFIXES:
                     self.suffix = token
                 # Handle prefixes
-                elif token in self.KNOWN_PREFIXES:
+                elif token in self.KNOWN_PREFIXES and not found_token:
                     self.prefix = token
                 # Handle normal token
                 else:
                     self.tokens.append(token)
+                    found_token = True
 
     def add_suffix(self, suffix):
         self.tokens.append(suffix)

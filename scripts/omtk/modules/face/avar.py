@@ -267,7 +267,7 @@ class AbstractAvar(module.Module):
         Any FacePnt is controlled via "avars" (animation variables),
         in reference to "The Art of Moving Points".
         """
-        super(AbstractAvar, self).build(disconnect_inputs=False, **kwargs)
+        super(AbstractAvar, self).build(**kwargs)
 
         self.add_avars()
         self.fetch_avars()
@@ -330,55 +330,66 @@ class Avar(AbstractAvar):
         if not all((self.rig, self.CLS_MODEL_INFL)):
             return None
         cls = self.CLS_MODEL_INFL
-        name = (self.get_nomenclature() + "infl").resolve()
-        return cls.from_instance(self.rig, value, name, inputs=self.input)
+        name = "infl"
+        return cls.from_instance(self, value, name, inputs=self.input + [self])
 
     def _init_model_ctrl(self, value=None):
-        if not all((self.rig, self.CLS_MODEL_CTRL)):
+        if not all((self.rig, self.CLS_CTRL, self.CLS_MODEL_CTRL)):
             return None
         cls = self.CLS_MODEL_CTRL
-        name = (self.get_nomenclature() + "ctrl").resolve()
-        return cls.from_instance(self.rig, value, name, inputs=self.input)
+        name = "ctrl"
+        return cls.from_instance(self, value, name, inputs=self.input + [self.ctrl])
 
     def build(self, ctrl_tm_hint=None, ctrl_size_hint=1.0, **kwargs):
+        # Prepare influence model
+        self.model_infl = self._init_model_infl(self.model_infl)
+        # if self.model_infl:
+        if self.model_infl:
+            self.model_infl.validate()  # temporary
+        # self.model_infl.build(self)
+
+        # Prepare ctrl and ctrl model
+        ctrl_name = self.get_nomenclature_anm_new().resolve()
+        ctrl_tm = ctrl_tm_hint or self._get_ctrl_tm()
+        self.ctrl = self.CLS_CTRL.from_instance(self.ctrl) if self.CLS_CTRL else None
+
+        # Build ctrl
+        if self.ctrl:
+            self.ctrl.build(name=ctrl_name, size=ctrl_size_hint)
+            self.ctrl.setMatrix(ctrl_tm)
+
+        # Prepare ctrl model
+        self.model_ctrl = self._init_model_ctrl(self.model_ctrl)
+        if self.model_ctrl:
+            self.model_ctrl.validate()  # temporary
+
         super(Avar, self).build(parent=False, **kwargs)
 
         # Build influence module
-        self.model_infl = self._init_model_infl(self.model_infl)
         if self.model_infl:
-            self.model_infl.validate()  # temporary
-            self.model_infl.build(self)
             if self.model_infl.grp_rig:
                 self.model_infl.grp_rig.setParent(self.grp_rig)
             self._connect_influence_model()
 
         # Build ctrl model
-        if self.CLS_CTRL:
-            # Build ctrl
-            ctrl_name = self.get_nomenclature_anm().resolve()
-            ctrl_tm = ctrl_tm_hint or self._get_ctrl_tm()
-            self.ctrl = self.CLS_CTRL.from_instance(self.ctrl)
-            self.ctrl.build(name=ctrl_name, size=ctrl_size_hint)
+        if self.ctrl:
             self.ctrl.setParent(self.grp_anm)
-            self.ctrl.setMatrix(ctrl_tm)
             self._connect_ctrl_to_avar(self.ctrl)
 
-            self.model_ctrl = self._init_model_ctrl(self.model_ctrl)
-            if self.model_ctrl:
-                self.model_ctrl.build(self.ctrl)
-                if self.model_ctrl.grp_rig and self.grp_rig:
-                    self.model_ctrl.grp_rig.setParent(self.grp_rig)
+        if self.model_ctrl:
+            if self.model_ctrl.grp_rig and self.grp_rig:
+                self.model_ctrl.grp_rig.setParent(self.grp_rig)
 
     def unbuild(self):
-        if self.model_ctrl:
-            self.model_ctrl.unbuild()
-
-        # Disconnect input attributes BEFORE un-building the infl model.
-        # Otherwise this will break the bind pose.
-        self._disconnect_inputs()
-
-        if self.model_infl:
-            self.model_infl.unbuild()
+        # if self.model_ctrl:
+        #     self.model_ctrl.unbuild()
+        #
+        # # Disconnect input attributes BEFORE un-building the infl model.
+        # # Otherwise this will break the bind pose.
+        # self._disconnect_inputs()
+        #
+        # if self.model_infl:
+        #     self.model_infl.unbuild()
 
         super(Avar, self).unbuild()
 

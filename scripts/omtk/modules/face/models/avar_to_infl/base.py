@@ -7,6 +7,7 @@ from maya import cmds
 import pymel.core as pymel
 
 from omtk.core import module
+from omtk.core.exceptions import ValidationError
 from omtk.libs import libAttr, libRigging, libAvar
 from omtk.vendor.omtk_compound.core import _factory  # TODO: Fix import
 
@@ -79,6 +80,16 @@ class AvarInflBaseModel(module.Module):
         """
         return self._compound
 
+    @property
+    def avar(self):
+        # TODO: This is temporary, avar should not be known by the model
+        from omtk.modules.face.avar import Avar
+
+        for input_ in self.input:
+            if isinstance(input_, Avar):
+                return input_
+        raise ValidationError("Could not find avar")
+
     def _build_compound(self):
         """
         Build the module interface compound
@@ -98,7 +109,7 @@ class AvarInflBaseModel(module.Module):
         cmds.addAttr(compound.output, longName="outputLocal", dataType="matrix")
         return compound
 
-    def build(self, avar):
+    def build(self):
         """
         Avar influence models can differ in their implementation,
         but they will always expose the following attributes:
@@ -110,6 +121,8 @@ class AvarInflBaseModel(module.Module):
         """
         # TODO: Connect the avar in the avar logic
         super(AvarInflBaseModel, self).build()
+
+        avar = self.avar
 
         self._create_interface()
 
@@ -188,6 +201,7 @@ class AvarInflBaseModel(module.Module):
 
         # TODO: Remove usage of constraints
         infl, tweak = self._get_influences()
+        # if 'lip' not in self.name.lower():
         if tweak:
             pymel.parentConstraint(
                 obj_output, infl, skipRotate=["x", "y", "z"], maintainOffset=True

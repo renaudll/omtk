@@ -22,8 +22,8 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
         self.attr_bypass = None
         self._attr_out_jaw_ratio = None
 
-    def build(self, avar):
-        super(AvarSurfaceLipModel, self).build(avar)
+    def build(self):
+        super(AvarSurfaceLipModel, self).build()
 
         # Each avar influence model will consider a percentage of the jaw influence.
         # We'll need to provide to them the jaw bind pose and it's local influence.

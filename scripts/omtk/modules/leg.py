@@ -250,7 +250,7 @@ class FootRoll(CompoundModule):
             if not attr:
                 return None
             # TODO: Validate old versions will work
-            return (attr.get() * tm_ref_inv)
+            return attr.get() * tm_ref_inv
 
         return (
             _backup_pivot(self.pivot_front),  # front

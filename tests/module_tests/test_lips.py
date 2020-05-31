@@ -1,73 +1,67 @@
 """
 Tests for the FaceLips module
 """
+import os
+
+import pytest
+from maya import cmds
 import pymel.core as pymel
 
 import omtk
-import omtk_test
 from omtk.libs import libRigging
 from omtk.modules.head import Head
 from omtk.modules.face.jaw import FaceJaw
 from omtk.modules.face.lips import FaceLips
 
 
-class TestLips(omtk_test.TestCase):
-    @omtk_test.open_scene("../resources/test_lips.ma")
-    def test_avar_connection_persistence(self):
-        """Validate connection between avars is conserved between rebuilds."""
+_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "resources",)
 
-        # Create a base rig
-        rig = omtk.create()
-        rig.add_module(Head([pymel.PyNode("jnt_head")]))
-        module_jaw = rig.add_module(
-            FaceJaw([pymel.PyNode("jnt_jaw"), pymel.PyNode("pSphereShape1")])
-        )
-        module_lips = rig.add_module(
-            FaceLips(
-                pymel.ls("jnt_lip*", type="joint") + [pymel.PyNode("pSphereShape1")]
-            )
-        )
-        rig.build(strict=True)
 
-        # Connect some avars
-        avar_src = next(iter(module_jaw.avars), None).attr_ud
-        for avar in module_lips.avars:
-            avar_dst = avar.attr_ud
-            libRigging.connectAttr_withLinearDrivenKeys(avar_src, avar_dst)
+def test_avar_connection_persistence():
+    """Validate connection between avars is conserved between rebuilds."""
+    cmds.file(os.path.join(_RESOURCE_DIR, "test_lips.ma"), open=True, force=True)
 
-        # Re-build the rig
-        rig.unbuild(strict=True)
-        rig.build(strict=True)
+    # Create a base rig
+    rig = omtk.create()
+    rig.add_module(Head(["jnt_head"]))
+    module_jaw = rig.add_module(FaceJaw(["jnt_jaw", "pSphereShape1"]))
+    module_lips = rig.add_module(
+        FaceLips(cmds.ls("jnt_lip*", type="joint") + ["pSphereShape1"])
+    )
+    rig.build(strict=True)
 
-        # Ensure the avars are still connected.
-        avar_src = next(iter(module_jaw.avars), None).attr_ud
-        avar_src.set(1.0)
-        for avar in module_lips.avars:
-            avar_dst = avar.attr_ud
-            self.assertAlmostEqual(avar_dst.get(), 1.0)
+    # Connect some avars
+    avar_src = next(iter(module_jaw.avars), None).attr_ud
+    for avar in module_lips.avars:
+        avar_dst = avar.attr_ud
+        libRigging.connectAttr_withLinearDrivenKeys(avar_src, avar_dst)
 
-    @omtk_test.open_scene("../resources/test_lips.ma")
-    def test_avargrp_withsurface(self):
+    # Re-build the rig
+    rig.unbuild(strict=True)
+    rig.build(strict=True)
 
-        # Create a base rig
-        rig = omtk.create()
-        rig.add_module(Head([pymel.PyNode("jnt_head")]))
-        rig.add_module(
-            FaceJaw(
-                [pymel.PyNode("jnt_jaw")]
-                + [pymel.PyNode("surface_lips"), pymel.PyNode("pSphereShape1")]
-            )
-        )
-        rig.add_module(
-            FaceLips(
-                pymel.ls("jnt_lip*", type="joint")
-                + [pymel.PyNode("surface_lips"), pymel.PyNode("pSphereShape1")]
-            )
-        )
+    # Ensure the avars are still connected.
+    avar_src = next(iter(module_jaw.avars), None).attr_ud
+    avar_src.set(1.0)
+    for avar in module_lips.avars:
+        avar_dst = avar.attr_ud
+        assert avar_dst.get() == pytest.approx(1.0)
 
-        rig.build(strict=True)
-        rig.unbuild(strict=True)
-        rig.build(strict=True)
+
+def test_avargrp_withsurface():
+    cmds.file(os.path.join(_RESOURCE_DIR, "test_lips.ma"), open=True, force=True)
+
+    # Create a base rig
+    rig = omtk.create()
+    rig.add_module(Head(["jnt_head"]))
+    rig.add_module(FaceJaw(["jnt_jaw", "surface_lips", "pSphereShape1"]))
+    rig.add_module(
+        FaceLips(cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"])
+    )
+
+    rig.build(strict=True)
+    rig.unbuild(strict=True)
+    rig.build(strict=True)
 
 
 def _get_scene_surface_count():

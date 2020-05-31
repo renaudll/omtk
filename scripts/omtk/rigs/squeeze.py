@@ -101,6 +101,9 @@ class RigSqueeze(Rig):
     GROUP_NAME_FACE = "facial"
     ATTR_NAME_FACE_MACRO = "showMacroCtrls"
     ATTR_NAME_FACE_MICRO = "showMicroCtrls"
+    AVAR_NAME_UPP = "Upp"
+    AVAR_NAME_LOW = "Low"
+    AVAR_NAME_ALL = "All"
     NOMENCLATURE_CLS = SqueezeNomenclature
 
     def __init__(self, *args, **kwargs):

@@ -67,7 +67,6 @@ class Hand(Module):
 
     def build(self, *args, **kwargs):
 
-
         naming = self.get_nomenclature_rig()
 
         # Resolve how many fingers we want.
@@ -186,7 +185,6 @@ class Hand(Module):
                 pymel.parentConstraint(
                     grp_pivot, ctrl_metacarpal.ctrls[0].offset, maintainOffset=True
                 )
-
 
     def iter_ctrls(self):
         for ctrl in super(Hand, self).iter_ctrls():

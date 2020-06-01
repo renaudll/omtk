@@ -1,12 +1,18 @@
 """
 Tests for the Leg module.
 """
+import os
 import pytest
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix
+
 from omtk.libs import libRigging
-from omtk.modules.leg import Leg
 from omtk.modules.ik import IK
 from omtk.core.rig import Rig
+
+from .. import helpers
+
+_LOCAL_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "resources")
 
 
 @pytest.fixture
@@ -27,3 +33,38 @@ def test_build_ik(ik):
     Ensure we can build an ik.
     """
     ik.build()
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_rest.json")
+    )
+
+    # Validate the IK does not stretch by default
+    ik.ctrl_ik.translateX.set(1.0)  # This will stretch the IK beyond it's limit.
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_extended.json")
+    )
+
+    # Validate the IK can stretch
+    ik.ctrl_ik.stretch.set(1.0)
+    ik.ctrl_ik.softIkRatio.set(0.0)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_extended_stretch.json")
+    )
+
+    # Validate the soft IK work
+    ik.ctrl_ik.stretch.set(0.0)
+    ik.ctrl_ik.softIkRatio.set(0.1)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_extended_soft.json")
+    )
+
+    # Validate the soft IK can stretch
+    ik.ctrl_ik.stretch.set(1.0)
+    ik.ctrl_ik.softIkRatio.set(0.1)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_extended_soft_stretch.json")
+    )

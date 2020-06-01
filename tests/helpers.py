@@ -144,6 +144,10 @@ def assert_match_pose(data, dump=True):
 
 
 def assert_match_pose_from_file(path):
+    """
+    :param str path: Path to a saved pose
+    :raises AssertionError: If the pose don't match
+    """
     with open(path) as fp:
         data = json.load(fp)
         data = {key: Matrix(val) for key, val in data.items()}

@@ -15,7 +15,7 @@ setup(
     packages=find_packages(where="scripts"),
     package_dir={"": "scripts"},
     package_data={"omtk": ["compounds/*.ma"]},
-    install_requires=["enum; python_version < '3.0'", "six", "mock"],
+    install_requires=["enum; python_version < '3.0'", "six"],
     include_package_data=True,
     extras_require={"test": ["pytest", "pytest-cov"]},
     classifiers=[

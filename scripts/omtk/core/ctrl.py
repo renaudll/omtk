@@ -88,7 +88,20 @@ class BaseCtrl(Node):
         # A list representing all the index already reserved for the space switch target
         self._reserved_index = []
 
+        # Define ctrl size at creation
+        # This can be automatically set by module
+        # Note that this is private so it's not serialized as we don't need it.
+        self._size = 1.0
+
         super(BaseCtrl, self).__init__(create=create, *args, **kwargs)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        self._size = value
 
     def _get_recommended_size(
         self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs
@@ -123,9 +136,10 @@ class BaseCtrl(Node):
         if isinstance(geometries, list):
             geometries = tuple(geometries)
 
-        # Resolve size automatically if refs are provided.
-        if size is None:
-            size = self._get_recommended_size(refs, geometries, multiplier=multiplier)
+        size = size or self.size
+        # # Resolve size automatically if refs are provided.
+        # if size is None:
+        #     size = self._get_recommended_size(refs, geometries, multiplier=multiplier)
 
         transform, make = pymel.circle()
         make.radius.set(size)

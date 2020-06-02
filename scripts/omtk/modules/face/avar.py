@@ -15,6 +15,11 @@ from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCt
 
 
 class BaseCtrlFace(ctrl.BaseCtrl):
+    """
+    Base class for a face controller.
+
+    Face controllers always look in the Z axis direction.
+    """
     def create_ctrl(self, normal=(0, 0, 1), **kwargs):
         return super(BaseCtrlFace, self).create_ctrl(normal=normal, **kwargs)
 
@@ -323,6 +328,7 @@ class Avar(AbstractAvar):
         self._grp_default_ctrl_model = None
 
         # Pre-initialize sub-modules so we can validate them
+        self.ctrl = self._init_ctrl()
         self.model_ctrl = self._init_model_ctrl()
         self.model_infl = self._init_model_infl()
 
@@ -333,6 +339,12 @@ class Avar(AbstractAvar):
         name = "infl"
         return cls.from_instance(self, value, name, inputs=self.input + [self])
 
+    def _init_ctrl(self, value=None):
+        if not all((self.rig, self.CLS_CTRL)):
+            return None
+        cls = self.CLS_CTRL
+        return cls.from_instance(value)
+
     def _init_model_ctrl(self, value=None):
         if not all((self.rig, self.CLS_CTRL, self.CLS_MODEL_CTRL)):
             return None
@@ -340,36 +352,32 @@ class Avar(AbstractAvar):
         name = "ctrl"
         return cls.from_instance(self, value, name, inputs=self.input + [self.ctrl])
 
-    def build(self, ctrl_tm_hint=None, ctrl_size_hint=1.0, **kwargs):
-        # Prepare influence model
+    def init(self):
+        self.ctrl = self._init_ctrl(self.ctrl)
+        self.model_ctrl = self._init_model_ctrl(self.model_ctrl)
         self.model_infl = self._init_model_infl(self.model_infl)
-        # if self.model_infl:
-        if self.model_infl:
-            self.model_infl.validate()  # temporary
-        # self.model_infl.build(self)
 
+    def build(self, ctrl_tm_hint=None, **kwargs):
         # Prepare ctrl and ctrl model
         ctrl_name = self.get_nomenclature_anm_new().resolve()
         ctrl_tm = ctrl_tm_hint or self._get_ctrl_tm()
-        self.ctrl = self.CLS_CTRL.from_instance(self.ctrl) if self.CLS_CTRL else None
 
-        # Build ctrl
+        self.init()
+
+        # Prepare ctrl
         if self.ctrl:
-            self.ctrl.build(name=ctrl_name, size=ctrl_size_hint)
+            self.ctrl.build(name=ctrl_name)
             self.ctrl.setMatrix(ctrl_tm)
 
         # Prepare ctrl model
-        self.model_ctrl = self._init_model_ctrl(self.model_ctrl)
         if self.model_ctrl:
             self.model_ctrl.validate()  # temporary
 
-        super(Avar, self).build(parent=False, **kwargs)
-
-        # Build influence module
+        # Prepare influence model
         if self.model_infl:
-            if self.model_infl.grp_rig:
-                self.model_infl.grp_rig.setParent(self.grp_rig)
-            self._connect_influence_model()
+            self.model_infl.validate()  # temporary
+
+        super(Avar, self).build(parent=False, **kwargs)
 
         # Build ctrl model
         if self.ctrl:
@@ -379,6 +387,12 @@ class Avar(AbstractAvar):
         if self.model_ctrl:
             if self.model_ctrl.grp_rig and self.grp_rig:
                 self.model_ctrl.grp_rig.setParent(self.grp_rig)
+
+        # Build influence module
+        if self.model_infl:
+            if self.model_infl.grp_rig:
+                self.model_infl.grp_rig.setParent(self.grp_rig)
+            self._connect_influence_model()
 
     def unbuild(self):
         # if self.model_ctrl:
@@ -395,6 +409,12 @@ class Avar(AbstractAvar):
 
         # Cleanup invalid references
         self.grp_offset = None
+
+    @classmethod
+    def from_instance(cls, *args, **kwargs):
+        inst = super(Avar, cls).from_instance(*args, **kwargs)
+        inst.init()
+        return inst
 
     def _connect_influence_model(self):
         """

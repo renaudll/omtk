@@ -23,11 +23,9 @@ def test_avar_connection_persistence():
 
     # Create a base rig
     rig = omtk.create()
-    rig.add_module(Head(["jnt_head"]))
-    module_jaw = rig.add_module(FaceJaw(["jnt_jaw", "pSphereShape1"]))
-    module_lips = rig.add_module(
-        FaceLips(cmds.ls("jnt_lip*", type="joint") + ["pSphereShape1"])
-    )
+    Head(["jnt_head"], rig=rig)
+    module_jaw = FaceJaw(["jnt_jaw", "pSphereShape1"], rig=rig)
+    module_lips = FaceLips(cmds.ls("jnt_lip*", type="joint") + ["pSphereShape1"])
     rig.build(strict=True)
 
     # Connect some avars
@@ -53,15 +51,21 @@ def test_avargrp_withsurface():
 
     # Create a base rig
     rig = omtk.create()
-    rig.add_module(Head(["jnt_head"]))
-    rig.add_module(FaceJaw(["jnt_jaw", "surface_lips", "pSphereShape1"]))
-    rig.add_module(
-        FaceLips(cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"])
-    )
+    Head(["jnt_head"], rig=rig)
+    FaceJaw(["jnt_jaw", "surface_lips", "pSphereShape1"], rig=rig)
+    FaceLips(cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"], rig=rig)
 
-    rig.build(strict=True)
-    rig.unbuild(strict=True)
-    rig.build(strict=True)
+    try:
+        rig.build(strict=True)
+    finally:
+        import tempfile
+        path = tempfile.mktemp(suffix=".ma")
+        cmds.file(rename=path)
+        cmds.file(save=True, type="mayaAscii")
+        print(path)
+
+    # rig.unbuild(strict=True)
+    # rig.build(strict=True)
 
 
 def _get_scene_surface_count():

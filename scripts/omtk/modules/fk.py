@@ -5,7 +5,7 @@ from maya import cmds
 import pymel.core as pymel
 
 from omtk.core.ctrl import BaseCtrl
-from omtk.core.module import Module, CompoundModule
+from omtk.core.module import CompoundModule
 from omtk.libs import libPython
 from omtk.libs import libRigging
 from omtk.vendor.omtk_compound.core import create_empty

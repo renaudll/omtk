@@ -26,7 +26,7 @@ class Module(base.Buildable):
 
     # Set to true if the module can represent a left or right side of the body.
     # This will affect the behavior of get_default_name().
-    IS_SIDE_SPECIFIC = True
+    IS_SIDE_SPECIFIC = False
 
     # Set to true if the module default name need to use it's first input.
     DEFAULT_NAME_USE_FIRST_INPUT = False

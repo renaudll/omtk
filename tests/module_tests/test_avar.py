@@ -52,7 +52,7 @@ _POSE_REST = {
 }
 
 
-def test_linear_no_parent():
+def test_linear_unit_no_parent():
     """
     Validate we can build our first Avar implementation.
     This implementation is totally linear.
@@ -61,7 +61,31 @@ def test_linear_no_parent():
     avar = AvarImpl1(input=["joint1"], name="test", rig=Rig())
     avar.build()
     helpers.assert_match_pose(_POSE_REST)
+
+    # Validate that moving the avar will move the controller.
+    avar.attr_lr.set(1.0)
+    avar.attr_ud.set(2.0)
+    avar.attr_fb.set(3.0)
+    avar.attr_yw.set(10.0)
+    avar.attr_pt.set(20.0)
+    avar.attr_rl.set(30.0)
+
+    with helpers.save_scene_on_assertion():
+        raise AssertionError
+
     avar.unbuild()
+
+
+# def test_linear_offset_no_parent():
+#     """
+#     Validate we can build our first Avar implementation.
+#     This test what happen if the influence have a non-unit orientation.
+#     """
+#     cmds.joint(orientation=[90.0, 0.0, 0.0])
+#     avar = AvarImpl1(input=["joint1"], name="test", rig=Rig())
+#     avar.build()
+#     helpers.assert_match_pose(_POSE_REST)
+#     avar.unbuild()
 
 
 @pytest.mark.usefixtures()

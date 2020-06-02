@@ -69,14 +69,12 @@ class FaceEyeLids(AvarGrp):
         if self.surface_upp is None:
             pymel.warning("Can't find surface for %s, creating one." % self)
             self.surface_upp = self.create_surface(name="SurfaceUpp")
+            self.input.append(self.surface_upp)
 
         if self.surface_low is None:
             pymel.warning("Can't find surface for %s, creating one." % self)
             self.surface_low = self.create_surface(name="SurfaceLow")
-
-        # We still provide the surface property in case we need a controller
-        # to be connected directly to it.
-        self.surface = self.surface_upp
+            self.input.append(self.surface_low)
 
     def configure_avar(self, avar):
         inf = avar.jnt

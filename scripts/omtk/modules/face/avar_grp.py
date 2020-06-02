@@ -99,7 +99,7 @@ class AvarMacro(Avar):
     A macro avar does not necessarily have an influence.
     In the majority of cases it don't have one and only use it do resolve it's position.
     """
-
+    AFFECT_INPUTS = False
     # TODO: Method to get the ctrl class per side?
     CLS_MODEL_CTRL = ModelInteractiveCtrl
     CLS_MODEL_INFL = None
@@ -218,7 +218,7 @@ class AvarGrp(AbstractAvar):
         self.create_macro_vertical = self.CREATE_MACRO_AVAR_VERTICAL
         self.create_macro_all = self.CREATE_MACRO_AVAR_ALL
 
-        self.avars = self._create_micro_avars()
+        self.avars = self._init_micro_avars()
         self.avar_l = self._init_avar_macro_l()
         self.avar_r = self._init_avar_macro_r()
         self.avar_low = self._init_avar_macro_low()
@@ -235,10 +235,22 @@ class AvarGrp(AbstractAvar):
     ):
         self.handle_surface()
 
-        self._create_avars()
+        self.avars = self._init_micro_avars(self.avars)
+        self.avar_l = self._init_avar_macro_l(self.avar_l)
+        self.avar_r = self._init_avar_macro_r(self.avar_r)
+        self.avar_low = self._init_avar_macro_low(self.avar_low)
+        self.avar_upp = self._init_avar_macro_upp(self.avar_upp)
+        self.avar_all = self._init_avar_macro_all(self.avar_all)
 
         # Last minute validation before building
         self.validate()
+
+        # Resolve a sane default size for the avar ctrls
+        ctrl_size_hint = self._get_default_ctrl_size()
+        for avar in self.iter_avars():
+            if avar.ctrl:
+                avar.ctrl.size = ctrl_size_hint
+
 
         super(AvarGrp, self).build(
             connect_global_scale=connect_global_scale, parent=parent, **kwargs
@@ -412,7 +424,7 @@ class AvarGrp(AbstractAvar):
 
         # TODO: Fallback on head jnt length?
 
-    def _create_micro_avars(self, value=None):
+    def _init_micro_avars(self, value=None):
         """
         For each influence, create it's associated avar instance.
         """
@@ -474,6 +486,7 @@ class AvarGrp(AbstractAvar):
         tokens = naming.get_tokens()
         side = naming.side
 
+        # TODO: Add vertical side to naming class
         if self.IS_SIDE_SPECIFIC:
             if side == naming.SIDE_L:
                 if "out" in tokens:
@@ -481,7 +494,18 @@ class AvarGrp(AbstractAvar):
                 if "in" in tokens:
                     return "R"
                 return "C"
-            return side or "C"
+            if side == naming.SIDE_R:
+                if "out" in tokens:
+                    return "R"
+                if "in" in tokens:
+                    return "L"
+                return "C"
+            raise Exception("Module is side specific but have no side!")  # TODO: Move to validate
+        if side == naming.SIDE_L:
+            return "L"
+        if side == naming.SIDE_R:
+            return "R"
+        return "C"
 
     def _get_avar_vertical_side(self, avar):
         """
@@ -503,12 +527,6 @@ class AvarGrp(AbstractAvar):
             for ctrl in avar.iter_ctrls():
                 yield ctrl
 
-    def _get_avar_name(self, ref, suffix=None):
-        naming = self.naming_cls(ref.nodeName())
-        naming.prefix = naming.suffix = None
-        naming = naming + [suffix] if suffix else naming
-        return naming.resolve()
-
     def _init_avar(
         self, cls, inst, ref=None, name=None, suffix=None,
     ):
@@ -529,12 +547,13 @@ class AvarGrp(AbstractAvar):
         if not name:
             naming = self.naming_cls(ref.nodeName())
             naming.prefix = naming.suffix = None
+            naming = naming + [suffix] if suffix else naming
             name = naming.resolve()
 
         inst = cls.from_instance(
             self,
             inst,
-            name=self._get_avar_name(ref, suffix=suffix),
+            name=name,
             inputs=result_inputs,
         )
 
@@ -551,15 +570,15 @@ class AvarGrp(AbstractAvar):
         inst.surface = self.surface
 
         # Apply name override if specified
-        if name:
-            inst.name = name
-        else:
-            ref = inst.jnt
-            if ref:
-                inst.name = (
-                    self.get_nomenclature()
-                    + self.rig.nomenclature(ref.stripNamespace().nodeName())
-                ).resolve()
+        # if name:
+        #     inst.name = name
+        # else:
+        #     ref = inst.jnt
+        #     if ref:
+        #         inst.name = (
+        #             self.get_nomenclature()
+        #             + self.rig.nomenclature(ref.stripNamespace().nodeName())
+        #         ).resolve()
 
         # Keep a reference to the module parent.
         # todo: implement a generic mechanism for all modules?
@@ -862,114 +881,88 @@ class AvarGrp(AbstractAvar):
 
         return influences
 
-    def _init_avar_macro_l(self, value=None):
-        if not all((self.rig, self.create_macro_horizontal)):
+    def _init_macro_avar(self, cls, enabled, fn_input, name, value=None):
+        if not all((self.rig, enabled)):
             return None
 
-        # Create horizontal macro avars
-        if self.create_macro_horizontal:
-            # Create avar_l if necessary
-            ref = self.get_jnt_l_mid()
-            if not ref:
-                self.log.info(
-                    "Cannot create macro avar 'L', found no matching influence."
-                )
-                return None
+        ref = fn_input()
+        if not ref:
+            self.log.info("Cannot create avar %r, found no matching influence.", name)
+            return None
 
-            return self._init_avar(
-                self.CLS_AVAR_MACRO_LFT,
-                value,
-                ref=ref,
-                name=self.naming_cls(
-                    tokens=["macro"], side=self.naming_cls.SIDE_L
-                ).resolve(),
-            )
+        return self._init_avar(cls, value, ref=ref, name=name)
+
+    def _init_avar_macro_l(self, value=None):
+        cls = self.naming_cls
+        side = self.naming.side
+        tokens = ["macros"]
+        if self.IS_SIDE_SPECIFIC:
+            tokens.append("out" if side == cls.SIDE_L else "inn")
+        else:
+            side = self.naming.SIDE_L
+        name = cls(tokens=tokens, side=side).resolve()
+
+        return self._init_macro_avar(
+            self.CLS_AVAR_MACRO_LFT,
+            self.create_macro_horizontal,
+            self.get_jnt_l_mid,
+            name,
+            value=value
+        )
 
     def _init_avar_macro_r(self, value=None):
-        if not all((self.rig, self.create_macro_horizontal)):
-            return None
+        cls = self.naming_cls
+        side = self.naming.side
+        tokens = ["macro"]
+        if self.IS_SIDE_SPECIFIC:
+            tokens.append("out" if side == cls.SIDE_R else "inn")
+        else:
+            side = self.naming.SIDE_R
+        name = cls(tokens=tokens, side=side).resolve()
 
-        # Create avar_r if necessary
-        ref = self.get_jnt_r_mid()
-        if not ref:
-            self.log.info("Cannot create macro avar 'L', found no matching influence.")
-            return None
-
-        return self._init_avar(
+        return self._init_macro_avar(
             self.CLS_AVAR_MACRO_RGT,
-            value,
-            ref=ref,
-            name=self.naming_cls(
-                tokens=["macro"], side=self.naming_cls.SIDE_R
-            ).resolve(),
+            self.create_macro_horizontal,
+            self.get_jnt_r_mid,
+            name,
+            value=value
         )
 
     def _init_avar_macro_upp(self, value=None):
-        if not all((self.rig, self.create_macro_vertical)):
-            return None
+        side = self.naming.side if self.IS_SIDE_SPECIFIC else None
+        name = self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_UPP], side=side).resolve()
 
-        # Create avar_upp if necessary
-        ref_upp = self.get_jnt_upp_mid()
-        if not ref_upp:
-            self.log.info(
-                "Cannot create macro avar %r', found no matching influence.",
-                self.rig.AVAR_NAME_UPP,
-            )
-            return None
-
-        return self._init_avar(
+        return self._init_macro_avar(
             self.CLS_AVAR_MACRO_UPP,
-            value,
-            ref=ref_upp,
-            name=self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_UPP]).resolve(),
+            self.create_macro_vertical,
+            self.get_jnt_upp_mid,
+            name,
+            value=value
         )
 
     def _init_avar_macro_low(self, value=None):
-        if not all((self.rig, self.create_macro_vertical)):
-            return None
+        side = self.naming.side if self.IS_SIDE_SPECIFIC else None
+        name = self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_LOW], side=side).resolve()
 
-        # Create avar_low if necessary
-        ref_low = self.get_jnt_low_mid()
-        if not ref_low:
-            self.log.info(
-                "Cannot create macro avar %r', found no matching influence.",
-                self.rig.AVAR_NAME_LOW,
-            )
-            return None
-
-        return self._init_avar(
+        return self._init_macro_avar(
             self.CLS_AVAR_MACRO_LOW,
-            value,
-            ref=ref_low,
-            name=self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_LOW]).resolve(),
+            self.create_macro_vertical,
+            self.get_jnt_low_mid,
+            name,
+            value=value
         )
 
     def _init_avar_macro_all(self, value=None):
-        if not all((self.rig, self.create_macro_all)):
-            return None
+        side = self.naming.side if self.IS_SIDE_SPECIFIC else None
+        name = self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_ALL], side=side).resolve()
 
-        ref_all = self.get_jnt_macro_all()
-        if not ref_all:
-            return None
-
-        self.avar_all = (
-            self._init_avar(
-                self.CLS_AVAR_MACRO_ALL,
-                value,
-                ref=ref_all,
-                name=self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_ALL]),
-            )
-            if self.create_macro_all and ref_all
-            else None
+        return self._init_macro_avar(
+            self.CLS_AVAR_MACRO_ALL,
+            self.create_macro_all,
+            self.get_jnt_macro_all,
+            name,
+            value=value
         )
-
-    def _create_avars(self):
-        self.avars = self._create_micro_avars(self.avars)
-        self.avar_l = self._init_avar_macro_l(self.avar_l)
-        self.avar_r = self._init_avar_macro_r(self.avar_r)
-        self.avar_low = self._init_avar_macro_low(self.avar_low)
-        self.avar_upp = self._init_avar_macro_upp(self.avar_upp)
-        self.avar_all = self._init_avar_macro_all(self.avar_all)
 
     def _connect_avars_macro_to_micro(self):
         """
@@ -1159,13 +1152,16 @@ class AvarGrp(AbstractAvar):
         """
         return None
 
-    def _build_avars(self, **kwargs):
-        for avar in self.iter_avars():
-
-            ctrl_size_hint = self._get_ctrl_size_hint(avar)
-            ctrl_tm_hint = self._get_ctrl_tm_hint(avar)
-
-            avar.build(ctrl_size_hint=ctrl_size_hint, ctrl_tm_hint=ctrl_tm_hint)
+    # def _build_avars(self, **kwargs):
+    #     for avar in self.iter_avars():  # type: omtk.modules.face.avar.Avar
+    #
+    #         ctrl_size_hint = self._get_ctrl_size_hint(avar)
+    #
+    #         ctrl_tm_hint = self._get_ctrl_tm_hint(avar)
+    #
+    #         avar.ctrl.size = ctrl_size_hint
+    #
+    #         avar.build(ctrl_size_hint=ctrl_size_hint, ctrl_tm_hint=ctrl_tm_hint)
 
     @ui_expose()
     def calibrate(self):

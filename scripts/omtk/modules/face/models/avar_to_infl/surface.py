@@ -16,7 +16,6 @@ class AvarSurfaceModel(base.AvarInflBaseModel):
     """
     A deformation point on the face that move accordingly to nurbsSurface.
     """
-
     _ATTR_NAME_U = "surfaceU"
     _ATTR_NAME_V = "surfaceV"
 

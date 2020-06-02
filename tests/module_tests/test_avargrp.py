@@ -1,6 +1,8 @@
 """
 Tests for the AvarGrp module.
 """
+import os
+
 from maya import cmds
 from pymel.core.datatypes import Matrix
 
@@ -13,6 +15,8 @@ from omtk.modules.face.avar import Avar
 from omtk.modules.face.avar_grp import AvarGrp
 
 from .. import helpers
+
+_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "resources")
 
 
 class AvarImpl1(Avar):
@@ -40,6 +44,11 @@ class AvarGrpImpl1(AvarGrp):
     CLS_AVAR_MACRO_LOW = AvarImpl1
 
 
+class AvarGrpImpl1SideSpecific(AvarGrpImpl1):
+    """Implementation that is side specific."""
+    IS_SIDE_SPECIFIC = True
+
+
 def _create_joints(data):
     jnts = []
     for name, position in data:
@@ -55,88 +64,40 @@ def test_avar_grp_simple():
     """
     jnts = _create_joints(
         [
-            ("jnt_test_l", [-1.0, 0.0, 0.0]),
-            ("jnt_test_r", [1.0, 0.0, 0.0]),
-            ("jnt_test_upp", [0.0, 1.0, 0.0]),
-            ("jnt_test_low", [0.0, -1.0, 0.0]),
+            ("l_test_jnt", [1.0, 0.0, 0.0]),
+            ("r_test_jnt", [-1.0, 0.0, 0.0]),
+            ("test_upp_jnt", [0.0, 1.0, 0.0]),
+            ("test_low_jnt", [0.0, -1.0, 0.0]),
         ]
     )
     inst = AvarGrpImpl1(jnts, name="avargrp", rig=Rig())
     inst.build()
 
-    helpers.assert_match_pose(
-        {
-            "avargrp_test_low_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, -1.0, 0.0, 1.0],
-            ),
-            "avargrp_macro_low_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, -1.0, 0.0, 1.0],
-            ),
-            "avargrp_macro_upp_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0, 1.0],
-            ),
-            "avargrp_test_upp_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0, 1.0],
-            ),
-            "r_avargrp_test_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [1.0, 0.0, 0.0, 1.0],
-            ),
-            "jnt_test_l": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [-1.0, 0.0, 0.0, 1.0],
-            ),
-            "jnt_test_upp": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0, 1.0],
-            ),
-            "jnt_test_r": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [1.0, 0.0, 0.0, 1.0],
-            ),
-            "l_avargrp_test_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [-1.0, 0.0, 0.0, 1.0],
-            ),
-            "r_avargrp_macro_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [-1.0, 0.0, 0.0, 1.0],
-            ),
-            "l_avargrp_macro_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [1.0, 0.0, 0.0, 1.0],
-            ),
-            "jnt_test_low": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, -1.0, 0.0, 1.0],
-            ),
-        }
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
+
+    # # Ensure micros follow macros
+    # inst.avar_l.ctrl.translateX.set(1.0)
+    # inst.avar_r.ctrl.translateX.set(-1.0)
+    # inst.avar_upp.ctrl.translateY.set(1.0)
+    # inst.avar_low.ctrl.translateY.set(-1.0)
+    #
+    # helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
+
+
+
+def test_avarsidegrp_specific():
+    """
+    Test a very simple case of AvarGrp that is side specific.
+    """
+    jnts = _create_joints(
+        [
+            ("l_test_inn_jnt", [1.0, 0.0, 0.0]),
+            ("l_test_out_jnt", [-1.0, 0.0, 0.0]),
+            ("l_test_upp_jnt", [0.0, 1.0, 0.0]),
+            ("l_test_low_jnt", [0.0, -1.0, 0.0]),
+        ]
     )
+    inst = AvarGrpImpl1SideSpecific(jnts, name="l_avargrp", rig=Rig())
+    inst.build()
+
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avarsidegrp_rest.json"))

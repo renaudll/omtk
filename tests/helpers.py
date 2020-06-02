@@ -11,7 +11,7 @@ from maya import cmds
 import pymel.core as pymel
 from pymel.core.datatypes import Matrix
 
-from omtk.vendor import libSerialization
+from omtk.vendor import libSerialization, contextlib2
 
 
 def _get_holded_shapes():
@@ -107,7 +107,24 @@ def verified_offset(objs, offset_tm, **kwargs):
             raise Exception("Invalid transform for %s. %s" % (obj, error))
 
 
-def assert_match_pose(data, dump=True):
+@contextlib2.contextmanager
+def save_scene_on_assertion():
+    """
+    Context/decorator that will save the scene if case of error for further debugging.
+    """
+    try:
+        yield
+    except AssertionError:
+        # Save the scene in it's current state for further debugging
+        path = tempfile.mktemp(suffix=".ma")
+        cmds.file(rename=path)
+        cmds.file(save=True, type="mayaAscii")
+        print("Dumped scene: %s" % path)
+        raise
+
+
+@save_scene_on_assertion()
+def assert_match_pose(data):
     """
     :param data: A dict of matrix by name
     :type data: dict[str, pymel.datatypes.Matrix]
@@ -124,10 +141,7 @@ def assert_match_pose(data, dump=True):
                 raise AssertionError(
                     "Invalid transform for %s: %s." % (obj_name, error)
                 )
-    except AssertionError as error:
-        if not dump:
-            raise
-
+    except AssertionError:
         # Save expected transforms visually
         for obj_name, expected in data.items():
             ref = pymel.spaceLocator(name="EXPECTED_%s" % obj_name)
@@ -136,11 +150,7 @@ def assert_match_pose(data, dump=True):
                 ref, rgb=(1, 0, 0)
             )  # TODO: Different color depending on the state
 
-        # Save the scene in it's current state for further debuggin
-        path = tempfile.mktemp(suffix=".ma")
-        cmds.file(rename=path)
-        cmds.file(save=True, type="mayaAscii")
-        raise AssertionError("%s Scene was dumped here: %r" % (error, path))
+        raise
 
 
 def assert_match_pose_from_file(path):

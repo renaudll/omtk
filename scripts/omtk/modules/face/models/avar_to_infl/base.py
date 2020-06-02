@@ -39,6 +39,7 @@ class AvarInflBaseModel(module.Module):
 
     SHOW_IN_UI = False
     CREATE_GRP_ANM = False
+    AFFECT_INPUTS = True
 
     _ATTR_NAME_MULT_LR = "multiplierLr"
     _ATTR_NAME_MULT_UD = "multiplierUd"
@@ -200,17 +201,27 @@ class AvarInflBaseModel(module.Module):
         libAttr.unlock_trs(self.jnt)
 
         # TODO: Remove usage of constraints
+
+        attr_out = libRigging.create_multiply_matrix(
+            [obj_output.matrix, obj_parent.inverseMatrix]
+        )
+        util_decompose = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_out)
+
         infl, tweak = self._get_influences()
-        # if 'lip' not in self.name.lower():
         if tweak:
-            pymel.parentConstraint(
-                obj_output, infl, skipRotate=["x", "y", "z"], maintainOffset=True
-            )
-            pymel.parentConstraint(obj_output, tweak, maintainOffset=True)
-            pymel.scaleConstraint(obj_output, infl, maintainOffset=True)
+            pass
+            # pymel.parentConstraint(
+            #     obj_output, infl, skipRotate=["x", "y", "z"], maintainOffset=True
+            # )
+            # pymel.parentConstraint(obj_output, tweak, maintainOffset=True)
+            # pymel.scaleConstraint(obj_output, infl, maintainOffset=True)
         else:
-            pymel.parentConstraint(obj_output, infl, maintainOffset=True)
-            pymel.scaleConstraint(obj_output, infl, maintainOffset=True)
+            pymel.connectAttr(util_decompose.outputTranslate, infl.translate)
+            pymel.connectAttr(util_decompose.outputRotate, infl.rotate)
+            pymel.connectAttr(util_decompose.outputScale, infl.scale)
+            # pymel.parentConstraint(obj_output, infl, maintainOffset=True)
+            # pymel.parentConstraint(obj_output, n, maintainOffset=True)
+            # pymel.scaleConstraint(obj_output, infl, maintainOffset=True)
 
     def unbuild(self):
         # Save the current uv multipliers.

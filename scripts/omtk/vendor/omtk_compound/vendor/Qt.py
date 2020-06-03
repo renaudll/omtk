@@ -887,7 +887,7 @@ def _loadUi(uifile, baseinstance=None):
                     # Remove header extension
                     module = os.path.splitext(header)[0]
 
-                    # Replace os separator by python module separator
+                    # Replace os SEPARATOR by python module SEPARATOR
                     return module.replace("/", ".").replace("\\", ".")
 
                 custom_widgets = etree.find("customwidgets")

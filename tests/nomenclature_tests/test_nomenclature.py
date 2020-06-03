@@ -1,11 +1,14 @@
+import pytest
+
 from omtk.core.name import BaseName
 
 
 class NameImpl1(BaseName):
     SIDE_L = "l"
     SIDE_R = "r"
-    KNOWN_PREFIXES = ["l", "r"]
-    KNOWN_SUFFIXES = ["jnt", "anm"]
+    KNOWN_PREFIXES = ["prefix1", "prefix2", "l", "r"]
+    KNOWN_SUFFIXES = ["suffix1", "suffix2", "jnt", "anm"]
+    KNOWN_TYPES = {"jnt", "anm"}
 
 
 def test_nomenclature():
@@ -35,7 +38,32 @@ def test_nomenclature():
     assert name.resolve() == "l_a_b_jnt"
 
 
-def test_add_different_prefix():
+def test_add_different_suffix():
+    """Validate concatenating two names together re-use the suffix."""
     cls = NameImpl1
-    naming = cls("a_jnt") + cls("b_anm")
-    assert naming.resolve() == "a_b_jnt"
+    naming = cls("a_suffix1") + cls("b_suffix2")
+    assert naming.resolve() == "a_b_suffix1"
+
+
+def test_add_different_prefix():
+    """Validate concatenating two names together re-use the prefix."""
+    cls = NameImpl1
+    naming = cls("prefix1_a") + cls("prefix2_b")
+    assert naming.resolve() == "prefix1_a_b"
+
+
+def test_set_type():
+    """ Validate we can set a type and it will use the appropriate prefix/suffix."""
+    cls = NameImpl1
+    naming = cls(tokens=["test"])
+    naming.type = "anm"
+    assert naming.resolve() == "test_anm"
+
+
+def test_set_type_invalid():
+    """Validate we can set a type that doesn't exist."""
+    cls = NameImpl1
+    naming = cls(tokens=["test"])
+    with pytest.raises(ValueError) as error:
+        naming.type = "an_invalid_type"
+    assert str(error.value) == "Unrecognized type 'an_invalid_type'"

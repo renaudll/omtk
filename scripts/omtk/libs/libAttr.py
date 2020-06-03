@@ -108,7 +108,7 @@ def addAttr(node, longName=None, **kwargs):
 
 def addAttr_separator(node, longName, **kwargs):
     """
-    Add a no-op attribute that serve as a visual separator.
+    Add a no-op attribute that serve as a visual SEPARATOR.
 
     :param node: The node to add the attribute to
     :type node: pymel.nodetypes.DependNode

@@ -14,7 +14,7 @@ from omtk.modules.face.jaw import FaceJaw
 from omtk.modules.face.lips import FaceLips
 
 
-_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "resources",)
+_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "resources",)
 
 
 def test_avar_connection_persistence():

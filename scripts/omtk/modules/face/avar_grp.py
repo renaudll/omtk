@@ -10,6 +10,7 @@ from collections import defaultdict
 import pymel.core as pymel
 from pymel.core.datatypes import Matrix
 
+from omtk.core.module import Module
 from omtk.core.utils import ui_expose
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libCtrlShapes
@@ -154,7 +155,7 @@ class AvarMacroLow(AvarMacro):
     CLS_CTRL = CtrlFaceLow
 
 
-class AvarGrp(AbstractAvar):
+class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
     """
     Base class for a group of 'avars' that share the same properties.
 

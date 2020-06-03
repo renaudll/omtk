@@ -1,4 +1,7 @@
+import pymel.core as pymel
+
 from omtk.modules.face.models.avar_to_ctrl import base
+from omtk.core.compounds import create_compound
 
 
 class ModelCtrlLinear(base.BaseCtrlModel):
@@ -21,15 +24,8 @@ class ModelCtrlLinear(base.BaseCtrlModel):
     3) Optionally call .calibrate()
     """
 
-    _ATTR_NAME_SENSITIVITY_TX = "sensitivityX"
-    _ATTR_NAME_SENSITIVITY_TY = "sensitivityY"
-    _ATTR_NAME_SENSITIVITY_TZ = "sensitivityZ"
-
     def __init__(self, *args, **kwargs):
         super(ModelCtrlLinear, self).__init__(*args, **kwargs)
-        self.attr_sensitivity_tx = None
-        self.attr_sensitivity_ty = None
-        self.attr_sensitivity_tz = None
 
         # The object containing the bind pose of the
         # influence controller by the controller.
@@ -45,7 +41,19 @@ class ModelCtrlLinear(base.BaseCtrlModel):
 
         self._stack = None
 
-    def parent_to(self, parent):
-        """
-        Bypass default parent mecanism since it is computer internally.
-        """
+    def _build_compound(self):
+        return create_compound(
+            "omtk.AvarCtrlLinear",  # TODO: Get our own compound instead of duplicating.
+            namespace=self.get_nomenclature().resolve()
+        )
+
+    def build(self):
+        super(ModelCtrlLinear, self).build()
+
+        # Connect compound inputs
+        for attr, value in (
+            ("multLr", self.attr_sensitivity_tx),
+            ("multFb", self.attr_sensitivity_tx),
+            ("multUd", self.attr_sensitivity_tx),
+        ):
+            pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr))

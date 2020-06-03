@@ -385,6 +385,8 @@ class Avar(AbstractAvar):
             self._connect_ctrl_to_avar(self.ctrl)
 
         if self.model_ctrl:
+            self.model_ctrl.connect_ctrl(self.ctrl)
+            self.model_ctrl.connect_avar(self)
             if self.model_ctrl.grp_rig and self.grp_rig:
                 self.model_ctrl.grp_rig.setParent(self.grp_rig)
 

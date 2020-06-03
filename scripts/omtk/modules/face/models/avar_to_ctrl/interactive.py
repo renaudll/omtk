@@ -3,14 +3,12 @@ Logic for "ModelInteractiveCtrl"
 """
 import pymel.core as pymel
 
-from omtk.core.ctrl import BaseCtrl
 from omtk.core.exceptions import ValidationError
 from omtk.modules.face.models.avar_to_ctrl import base
 from omtk.core.compounds import create_compound
 from omtk.libs import libRigging
 from omtk.libs import libPymel
 from omtk.libs import libAttr
-from omtk.libs import libHistory
 
 
 class ModelInteractiveCtrl(base.BaseCtrlModel):
@@ -79,28 +77,78 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
         geos = geos or self.rig.get_shapes()
         return libRigging.ray_cast_nearest(pos, dir, geos) or pos
 
-    def create_interface(self):
-        super(ModelInteractiveCtrl, self).create_interface()
 
-        def _fn(name):
-            attr = libAttr.addAttr(self.grp_rig, longName=name, defaultValue=1.0)
-            attr.set(channelBox=True)
-            return attr
+    def _build_compound(self):
+        return create_compound("omtk.InteractiveCtrl", self.naming.resolve("ctrlModelInteractive"))
 
-        # The values will be computed when attach_ctrl will be called
-        libAttr.addAttr_separator(self.grp_rig, "ctrlCalibration")
-        self.attr_sensitivity_tx = _fn(self._ATTR_NAME_SENSITIVITY_TX)
-        self.attr_sensitivity_ty = _fn(self._ATTR_NAME_SENSITIVITY_TY)
-        self.attr_sensitivity_tz = _fn(self._ATTR_NAME_SENSITIVITY_TZ)
+    def connect_ctrl(self, ctrl):
+        # super(ModelInteractiveCtrl, self).connect_ctrl(ctrl)  # TODO: Test with super call
+
+        # Hack: Since there's scaling on the ctrl so the left and right side
+        # ctrl channels matches, we need to flip the ctrl shapes.
+        flip_lr = False  # TODO: set
+        if flip_lr:
+            ctrl.scaleX.set(-1)
+            libPymel.makeIdentity_safe(ctrl, rotate=True, scale=True, apply=True)
+
+        # Create a "shapeOrig" for the ctrl
+        ctrl_shape = ctrl.node.getShape()
+        tmp = pymel.duplicate(ctrl.node.getShape())[0]
+        ctrl_shape_orig = tmp.getShape()
+        ctrl_shape_orig.setParent(ctrl.node, relative=True, shape=True)
+        ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
+        pymel.delete(tmp)
+        ctrl_shape_orig.intermediateObject.set(True)
+
+        for control_point in ctrl_shape.cp:
+            control_point.set(0, 0, 0)
+
+        # Connect compound inputs
+        for attr, value in (
+            ("ctrlLocalTM", ctrl.matrix),
+            ("ctrlShapeOrig", ctrl_shape_orig.local),
+        ):
+            pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr), force=True)
+
+        # Connect compound outputs
+        for attr, value in (
+            ("ctrlOffsetTranslate", ctrl.offset.translate),
+            ("ctrlOffsetRotate", ctrl.offset.rotate),
+            ("ctrlOffsetScale", ctrl.offset.scale),
+            ("ctrlShapeAdjusted", ctrl_shape.create),
+        ):
+            pymel.connectAttr("%s.%s" % (self.compound.output, attr), value, force=True)
+
+        self.calibrate(ctrl)
+
+    def connect_avar(self, avar):
+        """
+        Define the avar that control the module.
+
+        :param avar: An avar to connect from
+        :type avar: omtk.modules.face.avar.Avar
+        """
+        pass  # Nothing to do, the avar don't influence the ctrl offset directly
+
+    def connect_to_mesh(self, mesh):
+        ref = self.jnt
+        tm = ref.getMatrix(worldSpace=True)
+        pos_ref = self.project_pos_on_face(tm.translate, geos=[mesh])
+        _, u_coord, v_coord = libRigging.get_closest_point_on_shape(mesh, pos_ref)
+
+        compound_inputs = self.compound_inputs
+        for attr, value in (
+            ("bindTM", tm),
+            ("mesh", mesh.outMesh),
+            ("parameterU", u_coord),
+            ("parameterV", v_coord),
+        ):
+            libRigging.connect_or_set_attr(compound_inputs.attr(attr), value)
 
     # TODO: Too many kwargs, simplify!
     def build(self):
         # TODO: Remove
         obj_mesh = None
-        u_coord = None
-        v_coord = None
-        flip_lr = False
-        follow_mesh = True
         ctrl = self.ctrl
 
         super(ModelInteractiveCtrl, self).build()
@@ -122,40 +170,9 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
 
         # Resolve u and v coordinates
         obj_mesh = obj_mesh or self.get_mesh()
-        if not obj_mesh:
-            # Scan all available geometries and use the one with the shortest distance.
-            meshes = libHistory.get_affected_shapes(ref)
-            meshes = list(set(meshes) & set(self.rig.get_shapes()))
-            meshes = meshes or set(self.rig.get_shapes())
-            obj_mesh, _, out_u, out_v = libRigging.get_closest_point_on_shapes(
-                meshes, pos_ref
-            )
-            if not obj_mesh and follow_mesh:
-                raise Exception("Can't find mesh affected by %s." % self.jnt)
-        else:
-            _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
+        _, out_u, out_v = libRigging.get_closest_point_on_shape(obj_mesh, pos_ref)
 
         # Fallback on automatically resolved UVs
-        u_coord = u_coord or out_u
-        v_coord = v_coord or out_v
-
-        # Hack: Since there's scaling on the ctrl so the left and right side
-        # ctrl channels matches, we need to flip the ctrl shapes.
-        if flip_lr:
-            ctrl.scaleX.set(-1)
-            libPymel.makeIdentity_safe(ctrl, rotate=True, scale=True, apply=True)
-
-        # Create a "shapeOrig" for the ctrl
-        ctrl_shape = ctrl.node.getShape()
-        tmp = pymel.duplicate(ctrl.node.getShape())[0]
-        ctrl_shape_orig = tmp.getShape()
-        ctrl_shape_orig.setParent(ctrl.node, relative=True, shape=True)
-        ctrl_shape_orig.rename(ctrl_shape.name() + "Orig")
-        pymel.delete(tmp)
-        ctrl_shape_orig.intermediateObject.set(True)
-
-        for control_point in ctrl_shape.cp:
-            control_point.set(0, 0, 0)
 
         def _create_grp(suffix, tm=None):
             grp = pymel.createNode(
@@ -169,34 +186,19 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
         if self.parent_jnt:
             pymel.parentConstraint(self.parent_jnt, rot_ref, maintainOffset=True)
 
-        compound = create_compound(
-            "omtk.InteractiveCtrl",
-            naming.resolve("ctrlModelInteractive"),
-            inputs={
-                "bindTM": ctrl_tm,
-                "ctrlLocalTM": ctrl.matrix,
-                "ctrlShapeOrig": ctrl_shape_orig.local,
-                "mesh": obj_mesh.outMesh,
-                "parameterU": u_coord,
-                "parameterV": v_coord,
-                "sensitivityX": self.attr_sensitivity_tx,
-                "sensitivityY": self.attr_sensitivity_ty,
-                "sensitivityZ": self.attr_sensitivity_tz,
-                "parentTM": rot_ref.matrix if rot_ref else None,
-            },
-            outputs={
-                "ctrlOffsetTranslate": ctrl.offset.translate,
-                "ctrlOffsetRotate": ctrl.offset.rotate,
-                "ctrlOffsetScale": ctrl.offset.scale,
-                "ctrlShapeAdjusted": ctrl_shape.create,
-            },
-        )
-        pymel.PyNode("%s:dag" % compound.namespace).setParent(self.grp_rig)
+        for attr, value in (
+            ("sensitivityX", self.attr_sensitivity_tx),
+            ("sensitivityY", self.attr_sensitivity_ty),
+            ("sensitivityZ", self.attr_sensitivity_tz),
+        ):
+            pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr))
 
-        self.folliclePos = pymel.Attribute("%s.folliclePos" % compound.output)
+        pymel.PyNode("%s:dag" % self.compound.namespace).setParent(self.grp_rig)
 
-        # if constraint and self.jnt:
-        #     pymel.parentConstraint(ctrl.node, self.jnt, maintainOffset=True)
+        self.folliclePos = pymel.Attribute("%s.folliclePos" % self.compound.output)
+
+        self.connect_ctrl(self.ctrl)
+        self.connect_to_mesh(obj_mesh)
 
         self.calibrate(ctrl)
 

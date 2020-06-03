@@ -1,7 +1,7 @@
 """
 Configuration for Squeeze Studio Animation rigs.
 
-The separator is an underscore ("_").
+The SEPARATOR is an underscore ("_").
 Side are marked with "L" for left and "R" for right.
 Animation controllers are suffixed by "Ctrl".
 Geometries are suffixed by "Mesh".
@@ -64,6 +64,10 @@ class SqueezeNomenclature(name.BaseName):
 
     SIDE_L = "L"
     SIDE_R = "R"
+
+    SIDE_V_UPP = "Upp"
+    SIDE_V_LOW = "Low"
+    SIDE_V_MID = "Mid"
 
     AVAR_NAME_UPP = "Upp"
     AVAR_NAME_LOW = "Low"

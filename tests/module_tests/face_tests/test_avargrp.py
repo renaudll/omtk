@@ -4,7 +4,6 @@ Tests for the AvarGrp module.
 import os
 
 from maya import cmds
-from pymel.core.datatypes import Matrix
 
 from omtk.core.rig import Rig
 from omtk.modules.face.models.avar_to_infl.linear import AvarLinearModel
@@ -14,9 +13,9 @@ from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCt
 from omtk.modules.face.avar import Avar
 from omtk.modules.face.avar_grp import AvarGrp
 
-from .. import helpers
+from ... import helpers
 
-_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "resources")
+_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "resources")
 
 
 class AvarImpl1(Avar):

@@ -9,10 +9,11 @@ import omtk
 from omtk.modules.head import Head
 from omtk.modules.face.lids import FaceEyeLids
 
-from .. import helpers
+from ... import helpers
 
 _RESOURCE_DIR = os.path.join(
-    os.path.dirname(__file__),  # /tests/module_tests
+    os.path.dirname(__file__),  # /tests/module_tests/face_tests
+    "..",  # /test/module_tests
     "..",  # /test
     "..",  # /
     "examples"

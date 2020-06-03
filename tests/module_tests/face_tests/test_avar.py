@@ -1,7 +1,10 @@
 """
 Tests for the Avar module.
 """
+import os
+
 import pytest
+
 from maya import cmds
 from pymel.core.datatypes import Matrix
 
@@ -12,7 +15,10 @@ from omtk.modules.face.models.avar_to_ctrl.linear import ModelCtrlLinear
 from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCtrl
 from omtk.modules.face.avar import Avar
 
-from .. import helpers
+from ... import helpers
+
+
+_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "resources")
 
 
 class AvarImpl1(Avar):
@@ -70,22 +76,13 @@ def test_linear_unit_no_parent():
     avar.attr_pt.set(20.0)
     avar.attr_rl.set(30.0)
 
-    with helpers.save_scene_on_assertion():
-        raise AssertionError
+    # Validate the infl model
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json"))
+
+    # Validate the ctrl model
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json"))
 
     avar.unbuild()
-
-
-# def test_linear_offset_no_parent():
-#     """
-#     Validate we can build our first Avar implementation.
-#     This test what happen if the influence have a non-unit orientation.
-#     """
-#     cmds.joint(orientation=[90.0, 0.0, 0.0])
-#     avar = AvarImpl1(input=["joint1"], name="test", rig=Rig())
-#     avar.build()
-#     helpers.assert_match_pose(_POSE_REST)
-#     avar.unbuild()
 
 
 @pytest.mark.usefixtures()
@@ -104,23 +101,8 @@ def test_influence_surface_no_parent():
     helpers.assert_match_pose(_POSE_REST)
 
     # Move the ctrl and see if the influence follow properly
-    avar.ctrl.translateY.set(2.0)  # TODO: Should the max be 1.0 and not 2.0???
-    helpers.assert_match_pose(
-        {
-            "joint1": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 0.725374376984, -0.688354569401, 0.0],
-                [0.0, 0.688354569401, 0.725374376984, 0.0],
-                [0.0, 0.450158148982, -0.183848992013, 1.0],
-            ),
-            "test_anm": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 2.0, 0.0, 1.0],
-            ),
-        }
-    )
+    avar.ctrl.translateY.set(2.0)  # TODO: Validate default sensitivity
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface.json"))
 
     avar.unbuild()
 

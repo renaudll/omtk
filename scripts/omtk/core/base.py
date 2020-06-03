@@ -164,7 +164,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         :rtype: omtk.core.name.BaseName
         """
         naming = copy.copy(self.naming)
-        naming.suffix = self.naming.type_anm
+        naming.type = self.naming.type_anm
         return naming
 
     def get_nomenclature_rig(self):
@@ -173,7 +173,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         :rtype: omtk.core.name.BaseName
         """
         naming = copy.copy(self.naming)
-        naming.suffix = self.naming.type_rig
+        naming.type = self.naming.type_rig
         return naming
 
     def get_nomenclature_jnt(self):
@@ -182,7 +182,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         :rtype: omtk.core.name.BaseName
         """
         naming = copy.copy(self.naming)
-        naming.suffix = self.naming.type_jnt
+        naming.type = self.naming.type_jnt
         return naming
 
     def __str__(self):

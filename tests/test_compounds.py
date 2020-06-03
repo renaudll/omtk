@@ -12,6 +12,7 @@ def test_compounds():
     """
     actual = _list_compounds()
     expected = {
+        "omtk.AvarCtrlLinear",
         "omtk.AvarInflLinear",
         "omtk.AvarInflSurface",
         "omtk.AvarInflSurfaceTemplate",

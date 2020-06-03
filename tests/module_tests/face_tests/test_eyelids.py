@@ -3,13 +3,13 @@ Tests for the FaceLips module
 """
 import os
 
+import pytest
+
 from maya import cmds
 
 import omtk
 from omtk.modules.head import Head
 from omtk.modules.face.lids import FaceEyeLids
-
-from ... import helpers
 
 _RESOURCE_DIR = os.path.join(
     os.path.dirname(__file__),  # /tests/module_tests/face_tests
@@ -20,7 +20,7 @@ _RESOURCE_DIR = os.path.join(
 )
 
 
-@helpers.save_scene_on_assertion()
+@pytest.mark.skip("disabled for now")
 def test_eyelids():
     """
     Test we can build the FaceEyes module

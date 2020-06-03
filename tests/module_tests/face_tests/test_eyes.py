@@ -1,6 +1,8 @@
 """
 Tests for the FaceLips module
 """
+import pytest
+
 from maya import cmds
 import pymel.core as pymel
 
@@ -9,6 +11,7 @@ from omtk.modules.head import Head
 from omtk.modules.face.eyes import FaceEyes
 
 
+@pytest.mark.skip("disabled for now")
 def test_eyes():
     """
     Test we can build the FaceEyes module

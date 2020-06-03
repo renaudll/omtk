@@ -2,7 +2,7 @@ import pymel.core as pymel
 
 from omtk.modules.face.models.avar_to_ctrl import base
 from omtk.core.compounds import create_compound
-
+from omtk.libs import libRigging
 
 class ModelCtrlLinear(base.BaseCtrlModel):
     """
@@ -55,5 +55,11 @@ class ModelCtrlLinear(base.BaseCtrlModel):
             ("multLr", self.attr_sensitivity_tx),
             ("multFb", self.attr_sensitivity_tx),
             ("multUd", self.attr_sensitivity_tx),
+            ("innOffset", self.grp_rig.matrix)
         ):
             pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr))
+
+    def connect_ctrl(self, ctrl):
+        self.grp_rig.setMatrix(ctrl.getMatrix(worldSpace=True))
+
+        super(ModelCtrlLinear, self).connect_ctrl(ctrl)

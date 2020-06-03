@@ -23,7 +23,7 @@ def test_nomenclature():
 
     # Construct a naming from another existing naming
     name = cls("l_eye_jnt")
-    assert not name.prefix
+    assert name.prefix == "l"
     assert name.suffix == "jnt"
     assert name.side == name.SIDE_L
 
@@ -38,26 +38,44 @@ def test_nomenclature():
     assert name.resolve() == "l_a_b_jnt"
 
 
-def test_add_different_suffix():
-    """Validate concatenating two names together re-use the suffix."""
-    cls = NameImpl1
-    naming = cls("a_suffix1") + cls("b_suffix2")
-    assert naming.resolve() == "a_b_suffix1"
+class TestAdd(object):
+    """Tests for the AbstractName.__add__ method."""
 
+    def test_add_different_suffix(self):
+        """Validate concatenating two names together re-use the suffix."""
+        cls = NameImpl1
+        naming = cls("a_suffix1") + cls("b_suffix2")
+        assert naming.resolve() == "a_b_suffix1"
 
-def test_add_different_prefix():
-    """Validate concatenating two names together re-use the prefix."""
-    cls = NameImpl1
-    naming = cls("prefix1_a") + cls("prefix2_b")
-    assert naming.resolve() == "prefix1_a_b"
+    def test_add_suffix_from_other(self):
+        cls = NameImpl1
+        naming = cls.from_string("a") + cls("b_suffix1")
+        assert naming.resolve() == "a_b_suffix1"
+
+    def test_add_different_prefix(self):
+        """Validate concatenating two names together re-use the prefix."""
+        cls = NameImpl1
+        naming = cls.from_string("prefix1_a") + cls("prefix2_b")
+        assert naming.resolve() == "prefix1_a_b"
+
+    def test_add_prefix_from_other(self):
+        cls = NameImpl1
+        naming = cls.from_string("a") + cls.from_string("prefix1_b")
+        assert naming.resolve("prefix1_a_b")
 
 
 def test_set_type():
-    """ Validate we can set a type and it will use the appropriate prefix/suffix."""
+    """Validate we can set a type and it will use the appropriate prefix/suffix."""
     cls = NameImpl1
     naming = cls(tokens=["test"])
     naming.type = "anm"
     assert naming.resolve() == "test_anm"
+
+
+def test_set_type_constructor():
+    """Validate we can set a type in the constructor."""
+    cls = NameImpl1
+    assert cls(tokens=["test"], type="anm").resolve() == "test_anm"
 
 
 def test_set_type_invalid():

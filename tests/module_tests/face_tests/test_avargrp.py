@@ -3,6 +3,8 @@ Tests for the AvarGrp module.
 """
 import os
 
+import pytest
+
 from maya import cmds
 
 from omtk.core.rig import Rig
@@ -63,10 +65,10 @@ def test_avar_grp_simple():
     """
     jnts = _create_joints(
         [
-            ("l_test_jnt", [1.0, 0.0, 0.0]),
-            ("r_test_jnt", [-1.0, 0.0, 0.0]),
-            ("test_upp_jnt", [0.0, 1.0, 0.0]),
-            ("test_low_jnt", [0.0, -1.0, 0.0]),
+            ("jnt_test_l", [1.0, 0.0, 0.0]),
+            ("jnt_test_r", [-1.0, 0.0, 0.0]),
+            ("jnt_test_upp", [0.0, 1.0, 0.0]),
+            ("jnt_test_low", [0.0, -1.0, 0.0]),
         ]
     )
     inst = AvarGrpImpl1(jnts, name="avargrp", rig=Rig())
@@ -75,15 +77,15 @@ def test_avar_grp_simple():
     helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
 
     # # Ensure micros follow macros
-    # inst.avar_l.ctrl.translateX.set(1.0)
-    # inst.avar_r.ctrl.translateX.set(-1.0)
-    # inst.avar_upp.ctrl.translateY.set(1.0)
-    # inst.avar_low.ctrl.translateY.set(-1.0)
-    #
-    # helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
+    inst.avar_l.ctrl.translateX.set(1.0)
+    inst.avar_r.ctrl.translateX.set(-1.0)
+    inst.avar_upp.ctrl.translateY.set(1.0)
+    inst.avar_low.ctrl.translateY.set(-1.0)
+
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
 
 
-
+@pytest.mark.skip("disabled for now")
 def test_avarsidegrp_specific():
     """
     Test a very simple case of AvarGrp that is side specific.

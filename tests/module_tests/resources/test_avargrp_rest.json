@@ -1,5 +1,5 @@
 {
- "avargrp_macro_low_anm": [
+ "anm_avargrp_macro_low": [
   1.0, 
   0.0, 
   0.0, 
@@ -17,7 +17,7 @@
   0.0, 
   1.0
  ], 
- "avargrp_macro_upp_anm": [
+ "anm_avargrp_macro_upp": [
   1.0, 
   0.0, 
   0.0, 
@@ -35,7 +35,7 @@
   0.0, 
   1.0
  ], 
- "avargrp_test_low_jnt_anm": [
+ "anm_avargrp_test_low": [
   1.0, 
   0.0, 
   0.0, 
@@ -53,7 +53,7 @@
   0.0, 
   1.0
  ], 
- "avargrp_test_upp_jnt_anm": [
+ "anm_avargrp_test_upp": [
   1.0, 
   0.0, 
   0.0, 
@@ -71,7 +71,7 @@
   0.0, 
   1.0
  ], 
- "l_avargrp_macros_anm": [
+ "anm_avargrp_macros_l": [
   1.0, 
   0.0, 
   0.0, 
@@ -89,7 +89,7 @@
   0.0, 
   1.0
  ], 
- "l_avargrp_test_jnt_anm": [
+ "anm_avargrp_test_l": [
   1.0, 
   0.0, 
   0.0, 
@@ -107,7 +107,7 @@
   0.0, 
   1.0
  ], 
- "l_test_jnt": [
+ "jnt_test_l": [
   1.0, 
   0.0, 
   0.0, 
@@ -125,7 +125,7 @@
   0.0, 
   1.0
  ], 
- "r_avargrp_macro_anm": [
+ "anm_avargrp_macro_r": [
   1.0, 
   0.0, 
   0.0, 
@@ -143,7 +143,7 @@
   0.0, 
   1.0
  ], 
- "r_avargrp_test_jnt_anm": [
+ "anm_avargrp_test_r": [
   1.0, 
   0.0, 
   0.0, 
@@ -161,7 +161,7 @@
   0.0, 
   1.0
  ], 
- "r_test_jnt": [
+ "jnt_test_r": [
   1.0, 
   0.0, 
   0.0, 
@@ -179,7 +179,7 @@
   0.0, 
   1.0
  ], 
- "test_low_jnt": [
+ "jnt_test_low": [
   1.0, 
   0.0, 
   0.0, 
@@ -197,7 +197,7 @@
   0.0, 
   1.0
  ], 
- "test_upp_jnt": [
+ "jnt_test_upp": [
   1.0, 
   0.0, 
   0.0, 

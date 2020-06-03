@@ -152,7 +152,7 @@ class Module(base.Buildable):
         node = self
         while isinstance(node.parent, Module):
             node = node.parent
-        return node.naming_cls(tokens=[node.name], suffix=self.naming.type_anm)
+        return node.naming_cls(tokens=[node.name], type=self.naming.type_anm)
 
     #
     # Helper methods for accessing the .input attribute.

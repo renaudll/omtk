@@ -85,8 +85,12 @@ class BaseCtrlModel(CompoundModule):
         """
         Build the the ctrl and the necessary logic.
         """
+        naming = self.get_nomenclature()
+
         super(BaseCtrlModel, self).build()
         self.create_interface()
+
+        self.grp_bind = pymel.createNode("transform", name=naming.resolve("bind"), parent=self.grp_rig)
 
     def connect_ctrl(self, ctrl):
         """

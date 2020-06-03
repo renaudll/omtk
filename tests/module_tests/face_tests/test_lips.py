@@ -17,7 +17,8 @@ from omtk.modules.face.lips import FaceLips
 _RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "resources",)
 
 
-def test_avar_connection_persistence():
+@pytest.mark.skip("disabled for now")
+def test_avar_connection_persistence():  # TODO: Move to test_avargrp
     """Validate connection between avars is conserved between rebuilds."""
     cmds.file(os.path.join(_RESOURCE_DIR, "test_lips.ma"), open=True, force=True)
 
@@ -46,6 +47,7 @@ def test_avar_connection_persistence():
         assert avar_dst.get() == pytest.approx(1.0)
 
 
+@pytest.mark.skip("disabled for now")
 def test_avargrp_withsurface():
     cmds.file(os.path.join(_RESOURCE_DIR, "test_lips.ma"), open=True, force=True)
 

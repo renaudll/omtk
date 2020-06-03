@@ -483,30 +483,27 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         :type avar: omtk.modules.avar.Avar
         :return: "L", "R" or "C"
         """
+        cls = self.naming_cls
         naming = avar.get_nomenclature()
         tokens = naming.get_tokens()
         side = naming.side
 
         # TODO: Add vertical side to naming class
         if self.IS_SIDE_SPECIFIC:
-            if side == naming.SIDE_L:
+            if side == cls.SIDE_L:
                 if "out" in tokens:
-                    return "L"
+                    return cls.SIDE_L
                 if "in" in tokens:
-                    return "R"
-                return "C"
+                    return cls.SIDE_R
+                return cls.SIDE_C
             if side == naming.SIDE_R:
                 if "out" in tokens:
-                    return "R"
+                    return cls.SIDE_R
                 if "in" in tokens:
-                    return "L"
-                return "C"
+                    return cls.SIDE_L
+                return cls.SIDE_C
             raise Exception("Module is side specific but have no side!")  # TODO: Move to validate
-        if side == naming.SIDE_L:
-            return "L"
-        if side == naming.SIDE_R:
-            return "R"
-        return "C"
+        return side
 
     def _get_avar_vertical_side(self, avar):
         """
@@ -514,12 +511,7 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         :return: "U", "M", "D"
         """
         naming = avar.get_nomenclature()
-        tokens = naming.get_tokens()
-        if "up" in tokens:
-            return "U"
-        if "low" in tokens:
-            return "D"
-        return "M"
+        return naming.side_v
 
     def iter_ctrls(self):
         for ctrl in super(AvarGrp, self).iter_ctrls():
@@ -527,65 +519,6 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         for avar in self.iter_avars():
             for ctrl in avar.iter_ctrls():
                 yield ctrl
-
-    def _init_avar(
-        self, cls, inst, ref=None, name=None, suffix=None,
-    ):
-        """
-        Factory method that initialize an avar instance.
-
-        :param cls: The desired class.
-        :param inst: The current value.
-        :param ref:
-        :return: The initialized instance. If the instance was already fine, it is returned as is.
-        """
-        result_inputs = [ref] if ref else []
-        result_inputs.extend(self.get_meshes())
-        result_inputs.extend(self.get_surfaces())
-
-        # Automatically name the avar by it's input
-        # TODO: Should this not be done automatically?
-        if not name:
-            naming = self.naming_cls(ref.nodeName())
-            naming.prefix = naming.suffix = None
-            naming = naming + [suffix] if suffix else naming
-            name = naming.resolve()
-
-        inst = cls.from_instance(
-            self,
-            inst,
-            name=name,
-            inputs=result_inputs,
-        )
-
-        # TODO: Conform to Avar.from_instance?
-        # It is possible that the old avar type don't match the desired one.
-        # When this happen, we'll try at least to
-        # save the ctrl instance so the shapes match.
-        if inst and inst != inst:
-            inst.ctrl = inst.ctrl
-            inst.avar_network = inst.avar_network
-
-        # Ensure the result instance always have the same surface as it's parent.
-        # TODO: Remove this
-        inst.surface = self.surface
-
-        # Apply name override if specified
-        # if name:
-        #     inst.name = name
-        # else:
-        #     ref = inst.jnt
-        #     if ref:
-        #         inst.name = (
-        #             self.get_nomenclature()
-        #             + self.rig.nomenclature(ref.stripNamespace().nodeName())
-        #         ).resolve()
-
-        # Keep a reference to the module parent.
-        # todo: implement a generic mechanism for all modules?
-        inst._parent_module = self
-
-        return inst
 
     def _need_to_connect_macro_avar(self, avar):
         """
@@ -893,6 +826,54 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
 
         return self._init_avar(cls, value, ref=ref, name=name)
 
+    def _init_avar(
+        self, cls, inst, ref=None, name=None, suffix=None,
+    ):
+        """
+        Factory method that initialize an avar instance.
+
+        :param cls: The desired class.
+        :param inst: The current value.
+        :param ref:
+        :return: The initialized instance. If the instance was already fine, it is returned as is.
+        """
+        result_inputs = [ref] if ref else []
+        result_inputs.extend(self.get_meshes())
+        result_inputs.extend(self.get_surfaces())
+
+        # Automatically name the avar by it's input
+        # TODO: Should this not be done automatically?
+        if not name:
+            naming = self.naming_cls(ref.nodeName())
+            naming.prefix = naming.suffix = None
+            naming = naming + [suffix] if suffix else naming
+            name = naming.resolve()
+
+        inst = cls.from_instance(
+            self,
+            inst,
+            name=name,
+            inputs=result_inputs,
+        )
+
+        # TODO: Conform to Avar.from_instance?
+        # It is possible that the old avar type don't match the desired one.
+        # When this happen, we'll try at least to
+        # save the ctrl instance so the shapes match.
+        if inst and inst != inst:
+            inst.ctrl = inst.ctrl
+            inst.avar_network = inst.avar_network
+
+        # Ensure the result instance always have the same surface as it's parent.
+        # TODO: Remove this
+        inst.surface = self.surface
+
+        # Keep a reference to the module parent.
+        # todo: implement a generic mechanism for all modules?
+        inst._parent_module = self
+
+        return inst
+
     def _init_avar_macro_l(self, value=None):
         cls = self.naming_cls
         side = self.naming.side
@@ -979,16 +960,17 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
                 self._connect_macros_to_micro_avar(avar)
 
     def _connect_macros_to_micro_avar(self, avar):
+        cls = self.naming_cls
         side_h = self._get_avar_horizontal_side(avar)
         side_v = self._get_avar_vertical_side(avar)
         # Connect left macros
-        if self.avar_l and side_h == "L":
+        if self.avar_l and side_h == cls.SIDE_L:
             self._connect_avar_macro_l(self.avar_l, [avar])
-        if self.avar_r and side_h == "R":
+        if self.avar_r and side_h == cls.SIDE_R:
             self._connect_avar_macro_r(self.avar_r, [avar])
-        if self.avar_upp and side_v == "U":
+        if self.avar_upp and side_v == cls.SIDE_V_UPP:
             self._connect_avar_macro_upp(self.avar_upp, [avar])
-        if self.avar_low and side_v == "D":
+        if self.avar_low and side_v == cls.SIDE_V_LOW:
             self._connect_avar_macro_upp(self.avar_low, [avar])
         # TODO: What do we do about the all macro?
 

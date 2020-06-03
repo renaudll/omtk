@@ -43,7 +43,7 @@ class AvarImpl3(Avar):
 
 
 _POSE_REST = {
-    "test_anm": Matrix(
+    "anm_test": Matrix(
         [1.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0],
@@ -130,7 +130,7 @@ def test_interactive_ctrl_no_parent():
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 0.0, 0.75, 1.0],
             ),
-            "test_anm": Matrix(
+            "anm_test": Matrix(
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0, 0.0],
@@ -149,7 +149,7 @@ def test_interactive_ctrl_no_parent():
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 1.0, 0.75, 1.0],
             ),
-            "test_anm": Matrix(
+            "anm_test": Matrix(
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0, 0.0],

@@ -51,7 +51,9 @@ to ensure that studio-specific suffix/prefix are always respected.
 >>> name.resolve()
 'head_ctrl'
 """
+# TODO: Make prefix and suffix private!
 import copy
+import warnings
 
 from maya import cmds
 
@@ -71,26 +73,35 @@ class AbstractName(object):
     SIDE_V_LOW = None
     SIDE_V_MID = None
 
-    def __init__(self, name=None, tokens=None, prefix=0, suffix=0, side=0):
-        self.tokens = tokens or []
-        self.prefix = None
-        self.suffix = None
+    def __init__(self, name=None, tokens=None, prefix=0, suffix=0, side=0, type=None):
+        self.tokens = []
+        self._prefix = None
+        self._suffix = None
         self.side = None
         self.side_v = None
         self._type = None
 
         if name:
+            warnings.warn("Parameter name is deprecated. Please use from_string.", DeprecationWarning)
             self.build_from_string(name)
 
-        # Apply manual overrides
         if tokens:
-            self.tokens = tokens
+            self.add_tokens(*tokens)
         if prefix is not 0:
             self.prefix = prefix
         if suffix is not 0:
             self.suffix = suffix
-        if side is not 0:
+        if side:
             self.side = side
+            if side not in tokens:
+                if side in self.KNOWN_PREFIXES:
+                    self.prefix = side
+                elif side in self.KNOWN_SUFFIXES:
+                    self.suffix = side
+                else:
+                    raise ValueError("Could not determine where to put the side %r." % side)
+        if type:
+            self.type = type
 
     def __repr__(self):  # TODO: This should be __str__
         return self.resolve()
@@ -128,6 +139,8 @@ class AbstractName(object):
             result.suffix = other.suffix
         if other.side and not result.side:
             result.side = other.side
+        if other.side_v and not result.side_v:
+            result.side_v = other.side_v
 
         return result
 
@@ -161,6 +174,27 @@ class AbstractName(object):
             self.prefix = value
         elif value in self.KNOWN_SUFFIXES:
             self.suffix = value
+
+    @property
+    def suffix(self):
+        return self._suffix
+
+    @suffix.setter
+    def suffix(self, value):
+        warnings.warn("Setting .suffix is deprecated. Use .type or .side", DeprecationWarning)
+        # clean only if the suffix is not a side. side need to be manually removed.
+        if not value and self.suffix in (self.SIDE_L, self.SIDE_R, self.SIDE_C, self.SIDE_V_LOW, self.SIDE_V_MID, self.SIDE_V_UPP):
+            return
+        self._suffix = value
+
+    @property
+    def prefix(self):
+        return self._prefix
+
+    @prefix.setter
+    def prefix(self, value):
+        warnings.warn("Setting .prefix is deprecated. Use .type or .side", DeprecationWarning)
+        self._prefix = value
 
     def copy(self):
         """
@@ -224,12 +258,13 @@ class AbstractName(object):
                 # Handle side
                 side = self.get_side_from_token(token)
                 side_v = self.get_v_side_from_token(token)
-                if side:
+                if side and not self.side:  # We'll consider the first side only
                     self.side = side
-                elif side_v:
+                if side_v and not self.side_v:
                     self.side_v = side_v
+
                 # Handle suffixes
-                elif token in self.KNOWN_SUFFIXES:
+                if token in self.KNOWN_SUFFIXES:
                     self.suffix = token
                 # Handle prefixes
                 elif token in self.KNOWN_PREFIXES and not found_token:
@@ -279,9 +314,6 @@ class AbstractName(object):
         if self.prefix:
             tokens.append(self.prefix)
 
-        if self.side:
-            tokens.append(self.side)
-
         tokens.extend(self.tokens)
         tokens.extend(args)
         if self.suffix:
@@ -321,7 +353,7 @@ class BaseName(AbstractName):
     layer_jnt_name = "layer_jnts"
 
     KNOWN_PREFIXES = ["anm", "grp", "jnt", "rig"]
-    KNOWN_SUFFIXES = []
+    KNOWN_SUFFIXES = ["l", "r"]
     KNOWN_TYPES = {"anm", "grp", "jnt", "rig", "anmgrp", "riggrp"}
 
     SIDE_L = "l"
@@ -330,6 +362,7 @@ class BaseName(AbstractName):
     SIDE_V_UPP = "upp"
     SIDE_V_LOW = "low"
     SIDE_V_MID = "mid"
+
 
 if __name__ == "__main__":
     import doctest

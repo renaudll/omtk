@@ -73,7 +73,7 @@ class SqueezeNomenclature(name.BaseName):
     AVAR_NAME_LOW = "Low"
     AVAR_NAME_ALL = "Master"
 
-    KNOWN_PREFIXES = []
+    KNOWN_PREFIXES = ["L", "R"]
     KNOWN_SUFFIXES = ["Ctrl", "Jnt", "Jne", "JEnd", "Mesh"]  # TODO: Autofill
 
     def _join_tokens(self, tokens):

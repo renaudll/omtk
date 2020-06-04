@@ -11,7 +11,7 @@ def test_nomenclature_squeeze():
 
     # Construct a naming from another existing naming
     n = SqueezeNomenclature("L_Eye_Jnt")
-    assert not n.prefix
+    assert n.prefix == "L"
     assert n.suffix == "Jnt"
     assert n.side == n.SIDE_L
 

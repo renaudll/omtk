@@ -10,8 +10,9 @@ import re
 
 import pymel.core as pymel
 
-from omtk.core import module, constants
-from omtk.core import rig
+from omtk.core import constants
+from omtk.core.module import Module
+from omtk.core.rig import Rig
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libQt
 from omtk.widgets import _utils
@@ -69,7 +70,7 @@ class WidgetListModules(QtWidgets.QWidget):
         Set the displayed rigs
 
         :param rigs: The rigs to display
-        :type rigs: omtk.core.rig.Rig
+        :type rigs: omtk.core.Rig
         """
         self._rigs = rigs
         self._rig = next(iter(self._rigs), None)
@@ -79,20 +80,30 @@ class WidgetListModules(QtWidgets.QWidget):
         return self.ui.treeWidget.selectedItems()
 
     def get_selected_networks(self):
+        """
+        Get the libSerialization networks for each selected modules.
+
+        :return: The network objects
+        :rtype list[pymel.nodetypes.Network]
+        """
         return [item.net for item in self.get_selected_items() if hasattr(item, "net")]
 
     def get_selected_entries(self):
         """
         Return the metadata stored in each selected row.
         Whatever the metadata type (can be Rig or Module).
+
         :return: A list of object instances.
+        :rtype: omtk.core.base.Buildable
         """
         return [item.metadata_data for item in self.get_selected_items()]
 
     def get_selected_modules(self):
         """
         Return the Module instances stored in each selected rows.
+
         :return: A list of Module instances.
+        :rtype: list[omtk.core.module.Module]
         """
         return [
             item.metadata_data
@@ -103,7 +114,9 @@ class WidgetListModules(QtWidgets.QWidget):
     def get_selected_rigs(self):
         """
         Return the Rig instances stored in each selected rows.
+
         :return: A list of Rig instances.
+        :rtype: list[omtk.core.rig.Rig]
         """
         return [
             item.metadata_data
@@ -146,12 +159,19 @@ class WidgetListModules(QtWidgets.QWidget):
             query_raw = self.ui.lineEdit_search.text()
             query_regex = ".*%s.*" % query_raw if query_raw else ".*"
 
-        def fn_can_show(qItem, query_regex):
+        def fn_can_show(item, query_regex):
+            """
+            :param item: The item to filter
+            :type item: QtWidgets.QTreeWidgetItem
+            :param str query_regex: The search regex
+            :return: Can we show the regex?
+            :rtype: bool
+            """
             # Always shows non-module
-            if not qItem.metadata_type == _utils.MetadataType.Module:
+            if not item.metadata_type == _utils.MetadataType.Module:
                 return True
 
-            module = qItem.metadata_data  # Retrieve monkey-patched data
+            module = item.metadata_data  # Retrieve monkey-patched data
             module_name = str(module)
 
             return not query_regex or re.match(query_regex, module_name, re.IGNORECASE)
@@ -191,9 +211,9 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("Can't build %s, already built." % val)
             return
 
-        if isinstance(val, module.Module):
+        if isinstance(val, Module):
             self._build_module(val)
-        elif isinstance(val, rig.Rig):
+        elif isinstance(val, Rig):
             val.build()
         else:
             raise Exception("Unexpected datatype %s for %s" % (type(val), val))
@@ -206,9 +226,9 @@ class WidgetListModules(QtWidgets.QWidget):
             pymel.warning("Can't unbuild %s, already unbuilt." % val)
             return
 
-        if isinstance(val, module.Module):
+        if isinstance(val, Module):
             self._unbuild_module(val)
-        elif isinstance(val, rig.Rig):
+        elif isinstance(val, Rig):
             val.unbuild()
         else:
             raise Exception("Unexpected datatype %s for %s" % (type(val), val))
@@ -275,9 +295,9 @@ class WidgetListModules(QtWidgets.QWidget):
         else:
             pymel.warning("%s have no _network attributes" % value)
 
-        if isinstance(value, module.Module):
+        if isinstance(value, Module):
             self._update_qitem_module(widget, value)
-        elif isinstance(value, rig.Rig):
+        elif isinstance(value, Rig):
             self._update_qitem_rig(widget, value)
         self._rig_to_qtreewidgetitem(value, widget)
 
@@ -351,17 +371,25 @@ class WidgetListModules(QtWidgets.QWidget):
             _utils.update_network(self._rig)
 
     def _on_module_selection_changed(self):
+        """
+        Called when the module selection change.
+        """
         # Filter deleted networks
         networks = [net for net in self.get_selected_networks() if net and net.exists()]
         pymel.select(networks)
 
     def _on_module_changed(self, item):
+        """
+        Called when an module item checked state change.
+
+        :param item: The modified item
+        :type item: QtWidgets.QTreeWidgetItem
+        """
         if not self._listen_events:
             return
 
         # todo: handle exception
         # Check first if the checkbox have changed
-        need_update = False
         new_state = item.checkState(0) == QtCore.Qt.Checked
         new_text = item.text(0)
         module = item.metadata_data
@@ -388,10 +416,18 @@ class WidgetListModules(QtWidgets.QWidget):
                 name_attr = item.net.attr("name")
                 name_attr.set(new_text)
 
-    def on_module_query_changed(self, *args, **kwargs):
+    def on_module_query_changed(self, _):
+        """
+        Called when the module query text changed.
+
+        :param str _: The query text
+        """
         self._refresh_ui_modules_visibility()
 
     def _on_context_menu_request(self):
+        """
+        Called when the user right-click on the module view.
+        """
         if self.ui.treeWidget.selectedItems():
             sel = self.ui.treeWidget.selectedItems()
             try:
@@ -468,6 +504,12 @@ class WidgetListModules(QtWidgets.QWidget):
             self.needExportNetwork.emit()
 
     def _on_module_double_clicked(self, item):
+        """
+        Called when a module is double clicked.
+
+        :param item: The active module
+        :type item: QtWidgets.QTreeWidgetItem
+        """
         if hasattr(item, "rig"):
             self._set_text_block(item, item.metadata_data.name)
             # Flag to know that we are currently modifying the name
@@ -475,13 +517,17 @@ class WidgetListModules(QtWidgets.QWidget):
             self.ui.treeWidget.editItem(item, 0)
 
     def _focus_in_module(self, event):
+        """
+        :param event: The focus event
+        :type event: QtGui.QFocusEvent
+        """
         # Set back the text with the information about the module in it
         if self._is_modifying:
             sel = self.ui.treeWidget.selectedItems()
             if sel:
                 self._listen_events = False
                 selected_item = sel[0]
-                if isinstance(selected_item.metadata_data, module.Module):
+                if isinstance(selected_item.metadata_data, Module):
                     self._update_qitem_module(
                         selected_item, selected_item.metadata_data
                     )
@@ -490,26 +536,32 @@ class WidgetListModules(QtWidgets.QWidget):
         self.focusInEvent(event)
 
     def _on_lock_selected(self):
-        need_update = False
-        for item in self.ui.treeWidget.selectedItems():
-            val = item.metadata_data
-            if isinstance(val, module.Module) and not val.locked:
-                need_update = True
-                val.locked = True
-        if need_update:
-            _utils.update_network(self._rig)
-            self.update()
+        """
+        Lock selected modules.
+        """
+        modules = [module for module in self.get_selected_modules() if not module.locked]
+        if not modules:
+            return
+
+        for module in modules:
+            module.locked = True
+
+        _utils.update_network(self._rig)
+        self.update()
 
     def _on_unlock_selected(self):
-        need_update = False
-        for item in self.ui.treeWidget.selectedItems():
-            val = item.metadata_data
-            if isinstance(val, module.Module) and val.locked:
-                need_update = True
-                val.locked = False
-        if need_update:
-            _utils.update_network(self._rig)
-            self.update()
+        """
+        Unlock selected modules.
+        """
+        modules = [module for module in self.get_selected_modules() if module.locked]
+        if not modules:
+            return
+
+        for module in modules:
+            module.locked = False
+
+        _utils.update_network(self._rig)
+        self.update()
 
     def on_remove(self):
         """

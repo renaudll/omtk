@@ -1135,17 +1135,6 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         """
         return None
 
-    # def _build_avars(self, **kwargs):
-    #     for avar in self.iter_avars():  # type: omtk.modules.face.avar.Avar
-    #
-    #         ctrl_size_hint = self._get_ctrl_size_hint(avar)
-    #
-    #         ctrl_tm_hint = self._get_ctrl_tm_hint(avar)
-    #
-    #         avar.ctrl.size = ctrl_size_hint
-    #
-    #         avar.build(ctrl_size_hint=ctrl_size_hint, ctrl_tm_hint=ctrl_tm_hint)
-
     @ui_expose()
     def calibrate(self):
         """

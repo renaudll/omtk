@@ -188,7 +188,6 @@ def validate_built_rig(
 
     # Ensure the rig translate correctly.
     if test_translate:
-        print("Validating translate...")
         offset_tm = pymel.datatypes.Matrix(
             [1, 0, 0, 0],
             [0, 1, 0, 0],
@@ -200,7 +199,6 @@ def validate_built_rig(
         rig.grp_anm.t.set(0, 0, 0)
 
     if test_rotate:
-        print("Validating rotate...")
         offset_tms_by_rot = (
             (
                 (90, 90, 90),

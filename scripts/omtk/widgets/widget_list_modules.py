@@ -50,8 +50,6 @@ class WidgetListModules(QtWidgets.QWidget):
         # Tweak gui
         self.ui.treeWidget.setStyleSheet(_utils.STYLE_SHEET)
 
-        # Connect signal
-
         # Connect events
         self.ui.lineEdit_search.textChanged.connect(self.on_module_query_changed)
         self.ui.treeWidget.itemSelectionChanged.connect(
@@ -124,7 +122,10 @@ class WidgetListModules(QtWidgets.QWidget):
             if item.metadata_type == _utils.MetadataType.Rig
         ]
 
-    def update(self, *args, **kwargs):
+    def update(self):
+        """
+        Update the view items.
+        """
         self.ui.treeWidget.clear()
         if not self._rigs:
             return
@@ -133,9 +134,6 @@ class WidgetListModules(QtWidgets.QWidget):
             item = self._get_qtreewidgetitem(root)
             self.ui.treeWidget.addTopLevelItem(item)
             self.ui.treeWidget.expandItem(item)
-        self.refresh_ui()
-
-    def refresh_ui(self):
         self._refresh_ui_modules_checked()
         self._refresh_ui_modules_visibility()
 

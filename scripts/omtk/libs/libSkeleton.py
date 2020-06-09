@@ -49,7 +49,7 @@ def _check_joint_rotation_attributes(obj):
 
 def transfer_rotation_to_joint_orient(obj):
     """
-    Convert any rotation value to jointOrient rotation.
+    Convert ajoint rotation values to orient.
 
     In Maya it is not possible to do a "makeIdentity" command on a joint
     that is bound to a skin_clusters. This method bypass this limitation.
@@ -85,6 +85,11 @@ def transfer_rotation_to_joint_orient(obj):
 
 
 def transfer_joint_orient_to_rotation(obj):
+    """
+    Convert a joint orient values to rotation.
+    
+    :param pymel.nodetypes.Joint obj: A joint
+    """
     try:
         _check_joint_rotation_attributes(obj)
     except ValueError as error:

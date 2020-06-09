@@ -82,7 +82,7 @@ def transfer_weights(obj, sources, target):
         influence_jnts.append(target)
 
     # Hack: Remove influences not present in skin_clusters
-    sources = filter(lambda jnt: jnt in influence_jnts, sources)
+    sources = [jnt for jnt in sources if jnt in influence_jnts]
 
     if not sources:
         _LOG.warning("Abording transfering on %s, nothing to transfer", obj.name())
@@ -104,7 +104,7 @@ def transfer_weights(obj, sources, target):
 
     # Get weights
     old_weights = OpenMaya.MDoubleArray()
-    mfnSkinCluster = skinCluster.__apimfn__()
+    mfn_skin_cluster = skinCluster.__apimfn__()
 
     # Hack: If for any reasons a skin_clusters was provided, use the first shape.
     # We also verify the number of vertices in case the mesh have no vertices.
@@ -124,9 +124,9 @@ def transfer_weights(obj, sources, target):
             return
         obj = new_obj
 
-    geometryDagPath = obj.__apimdagpath__()
-    component = pymel.api.toComponentMObject(geometryDagPath)
-    mfnSkinCluster.getWeights(geometryDagPath, component, influences, old_weights)
+    geometry_dagpath = obj.__apimdagpath__()
+    component = pymel.api.toComponentMObject(geometry_dagpath)
+    mfn_skin_cluster.getWeights(geometry_dagpath, component, influences, old_weights)
 
     # Compute new weights
     new_weights = OpenMaya.MDoubleArray()
@@ -149,7 +149,7 @@ def transfer_weights(obj, sources, target):
     # Note: We don't use old_weights since it cause a crash in Windows.
     # Please investigate further before using old_weights in the call.
     # mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights, old_weights)
-    mfnSkinCluster.setWeights(geometryDagPath, component, influences, new_weights)
+    mfn_skin_cluster.setWeights(geometry_dagpath, component, influences, new_weights)
 
 
 def transfer_weights_replace(source, target):
@@ -161,33 +161,33 @@ def transfer_weights_replace(source, target):
 
     # TODO : Ensure that the transfered lockInfluenceWeight attr work correctly (The lock icon doesn't appear in the skin_clusters)
     if source.hasAttr("lockInfluenceWeights"):
-        attr_lockInfluenceWeights_src = source.lockInfluenceWeights
+        attr_lock_src = source.lockInfluenceWeights
         # The target bone could possibly not have the attribute
         if target.hasAttr("lockInfluenceWeights"):
-            attr_lockInfluenceWeights_dst = target.lockInfluenceWeights
+            attr_lock_dst = target.lockInfluenceWeights
         else:
             target.addAttr("lockInfluenceWeights", at="bool")
-            attr_lockInfluenceWeights_dst = target.lockInfluenceWeights
-            attr_lockInfluenceWeights_dst.set(attr_lockInfluenceWeights_src.get())
-        for plug in attr_lockInfluenceWeights_src.outputs(plugs=True):
+            attr_lock_dst = target.lockInfluenceWeights
+            attr_lock_dst.set(attr_lock_src.get())
+        for plug in attr_lock_src.outputs(plugs=True):
             if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
                 skin_to_reset.add(plug.node())
-                pymel.disconnectAttr(attr_lockInfluenceWeights_src, plug)
-                pymel.connectAttr(attr_lockInfluenceWeights_dst, plug)
+                pymel.disconnectAttr(attr_lock_src, plug)
+                pymel.connectAttr(attr_lock_dst, plug)
 
-    attr_objectColorRGB_src = source.attr("objectColorRGB")
-    attr_objectColorRGB_dst = target.attr("objectColorRGB")
-    for plug in attr_objectColorRGB_src.outputs(plugs=True):
+    attr_color_src = source.attr("objectColorRGB")
+    attr_color_dst = target.attr("objectColorRGB")
+    for plug in attr_color_src.outputs(plugs=True):
         if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
-            pymel.disconnectAttr(attr_objectColorRGB_src, plug)
-            pymel.connectAttr(attr_objectColorRGB_dst, plug)
+            pymel.disconnectAttr(attr_color_src, plug)
+            pymel.connectAttr(attr_color_dst, plug)
 
-    attr_worldMatrix_dst = target.worldMatrix
-    for attr_worldMatrix_src in source.worldMatrix:
-        for plug in attr_worldMatrix_src.outputs(plugs=True):
+    attr_matrix_dst = target.worldMatrix
+    for attr_matrix_src in source.worldMatrix:
+        for plug in attr_matrix_src.outputs(plugs=True):
             if isinstance(plug.node(), pymel.nodetypes.SkinCluster):
-                pymel.disconnectAttr(attr_worldMatrix_src, plug)
-                pymel.connectAttr(attr_worldMatrix_dst, plug)
+                pymel.disconnectAttr(attr_matrix_src, plug)
+                pymel.connectAttr(attr_matrix_dst, plug)
 
     # HACK : Evaluate back all skin_clusters in which we changed connections
     pymel.dgdirty(skin_to_reset)

@@ -57,17 +57,7 @@ def test_avargrp_withsurface():
     FaceJaw(["jnt_jaw", "surface_lips", "pSphereShape1"], rig=rig)
     FaceLips(cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"], rig=rig)
 
-    try:
-        rig.build(strict=True)
-    finally:
-        import tempfile
-        path = tempfile.mktemp(suffix=".ma")
-        cmds.file(rename=path)
-        cmds.file(save=True, type="mayaAscii")
-        print(path)
-
-    # rig.unbuild(strict=True)
-    # rig.build(strict=True)
+    rig.build(strict=True)
 
 
 def _get_scene_surface_count():

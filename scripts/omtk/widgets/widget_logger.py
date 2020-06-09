@@ -136,6 +136,9 @@ class LogRecordProxyModel(QtCore.QSortFilterProxyModel):
 
 
 class WidgetLogger(QtWidgets.QWidget):
+    """
+    Qt Widgets that display a logger entries.
+    """
     def __init__(self, parent=None):
         """
         :param parent: An optional parent widget

@@ -1,3 +1,6 @@
+"""
+Logic for WidgetListInfluences
+"""
 import re
 import pymel.core as pymel
 from omtk.widgets.ui import widget_list_influences
@@ -10,6 +13,9 @@ from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 
 class WidgetListInfluences(QtWidgets.QWidget):
+    """
+    Qt Widget that list influences.
+    """
     onRightClick = QtCore.Signal()
 
     def __init__(self, parent=None):

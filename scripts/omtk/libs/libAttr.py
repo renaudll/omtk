@@ -1,11 +1,12 @@
-from contextlib import contextmanager
+"""
+Utility functions to interact with maya attributes.
+"""
 import logging
+from contextlib import contextmanager
 
 from pymel import core as pymel
 
 from omtk.libs import libPymel
-
-log = logging.getLogger("omtk")
 
 
 def disconnectAttr(attr, inputs=True, outputs=True):

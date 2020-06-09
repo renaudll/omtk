@@ -16,11 +16,6 @@ def _is_surface(shape):
     return isinstance(shape, pymel.nodetypes.NurbsSurface)
 
 
-#
-# Utility functions that compliment pymel.listHistory.
-#
-
-
 def _iter_history(shape, key=None, fn_stop=None, stop_at_shape=False, **kwargs):
     """
     Go through the history of the provided shapes and yield interesting elements.

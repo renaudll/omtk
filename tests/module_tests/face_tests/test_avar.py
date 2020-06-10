@@ -72,9 +72,25 @@ def test_linear_unit_no_parent():
     avar.attr_lr.set(1.0)
     avar.attr_ud.set(2.0)
     avar.attr_fb.set(3.0)
-    avar.attr_yw.set(10.0)
-    avar.attr_pt.set(20.0)
+    avar.attr_pt.set(10.0)
+    avar.attr_yw.set(20.0)
     avar.attr_rl.set(30.0)
+
+    # Validate the infl model
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json"))
+
+    # Validate the ctrl model
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json"))
+
+    # Validate moving the ctrl affect the avar in the same way.
+    avar.attr_lr.set(0.0)
+    avar.attr_ud.set(0.0)
+    avar.attr_fb.set(0.0)
+    avar.attr_pt.set(0.0)
+    avar.attr_yw.set(0.0)
+    avar.attr_rl.set(0.0)
+    avar.ctrl.translate.set((1.0, 2.0, 3.0))
+    avar.ctrl.rotate.set(10.0, 20.0, 30.0)
 
     # Validate the infl model
     helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json"))

@@ -129,26 +129,34 @@ def assert_match_pose(data):
     :param data: A dict of matrix by name
     :type data: dict[str, pymel.datatypes.Matrix]
     """
+    problematic_objs = set()
     try:
         for obj_name, expected in data.items():
             if not cmds.objExists(obj_name):
                 raise AssertionError("Transform %r don't exist" % obj_name)
             obj = pymel.PyNode(obj_name)
             actual = obj.getMatrix(worldSpace=True)
+
             try:
                 assertMatrixAlmostEqual(actual, expected)
             except AssertionError as error:
-                raise AssertionError(
-                    "Invalid transform for %s: %s." % (obj_name, error)
-                )
+                problematic_objs.add(obj_name)
+
+        if problematic_objs:
+            raise AssertionError(
+                "Invalid transform for %s" % ",".join(sorted(problematic_objs))
+            )
+
     except AssertionError:
         # Save expected transforms visually
         for obj_name, expected in data.items():
             ref = pymel.spaceLocator(name="EXPECTED_%s" % obj_name)
             ref.setMatrix(expected)
-            pymel.color(
-                ref, rgb=(1, 0, 0)
-            )  # TODO: Different color depending on the state
+
+            # Ensure problematic objects appear red in the outliner
+            if obj_name in problematic_objs:
+                ref.outlinerColor.set((1.0, 0.0, 0.0))
+                ref.useOutlinerColor.set(True)
 
         raise
 

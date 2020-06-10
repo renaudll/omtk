@@ -82,8 +82,7 @@ def test_avar_grp_simple():
     inst.avar_upp.ctrl.translateY.set(1.0)
     inst.avar_low.ctrl.translateY.set(-1.0)
 
-    # TODO: Uncomment
-    # helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
 
 
 def test_avarsidegrp_specific():

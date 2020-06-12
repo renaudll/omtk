@@ -16,7 +16,7 @@ _RESOURCE_DIR = os.path.join(
     "..",  # /test/module_tests
     "..",  # /test
     "..",  # /
-    "examples"
+    "examples",
 )
 
 
@@ -29,24 +29,26 @@ def test_eyelids():
 
     rig = omtk.create()
     Head(["jnt_head"], rig=rig)
-    inst = FaceEyeLids(cmds.ls("jnt_eyelid_*_l", type="joint") + ["Face_Mesh"], name="test", rig=rig)
+    inst = FaceEyeLids(
+        cmds.ls("jnt_eyelid_*_l", type="joint") + ["Face_Mesh"], name="test", rig=rig
+    )
     inst.build()
 
     # Note: Theses are the name when built with v6
     expected = {
-        'l_test_eyelid_inn_anm',
-        'l_test_eyelid_low_anm',
-        'l_test_eyelid_low_inn_anm',
-        'l_test_eyelid_low_out_anm',
-        'l_test_eyelid_out_anm',
-        'l_test_eyelid_upp_anm',
-        'l_test_eyelid_upp_inn_anm',
-        'l_test_eyelid_upp_out_anm',
-        'l_test_macro_inn_anm',
-        'l_test_macro_out_anm',
-        'l_test_macro_out_anm',
-        'l_test_macro_inn_anm',
-        'l_test_macro_all_anm,'
+        "l_test_eyelid_inn_anm",
+        "l_test_eyelid_low_anm",
+        "l_test_eyelid_low_inn_anm",
+        "l_test_eyelid_low_out_anm",
+        "l_test_eyelid_out_anm",
+        "l_test_eyelid_upp_anm",
+        "l_test_eyelid_upp_inn_anm",
+        "l_test_eyelid_upp_out_anm",
+        "l_test_macro_inn_anm",
+        "l_test_macro_out_anm",
+        "l_test_macro_out_anm",
+        "l_test_macro_inn_anm",
+        "l_test_macro_all_anm,",
     }
     actual = set(cmds.ls("*_anm"))
     assert not expected - actual

@@ -56,9 +56,7 @@ def find():
     """
     # TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.get_networks_from_class("Rig")
-    results = [
-        libSerialization.import_network(network, module="omtk") for network in networks
-    ]
+    results = [libSerialization.import_network(network) for network in networks]
     results = filter(
         None, results
     )  # Prevent un-serializable networks from passing through.

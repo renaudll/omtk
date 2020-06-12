@@ -3,22 +3,17 @@ import sys
 
 from maya import OpenMaya
 import pymel.core as pymel
-
+from .decorators import memoized
 
 __all__ = (
-    "get_class_module_root",
-    "get_class_namespace",
-    "create_class_instance",
+    "_get_class_module_root",
+    "_get_class_namespace",
+    "_create_instance",
     "export_dict",
     "import_dict",
     "register_alias",
     "export_network",
     "import_network",
-    "iter_connected_networks",
-    "get_connected_networks",
-    "iter_networks_from_class",
-    "get_networks_from_class",
-    "is_network_from_class",
 )
 
 _LOG = logging.getLogger(__name__)
@@ -29,12 +24,12 @@ TYPE_BASIC, TYPE_LIST, TYPE_DAGNODE, TYPE_COMPLEX, TYPE_NONE = range(5)
 _REGISTRY_TYPES_BASIC = (int, float, bool)
 _REGISTRY_TYPES_LIST = (list, tuple)
 _REGISTRY_TYPES_COMPLEX = (dict,)
-_REGISTRY_TYPES_DAG = [
+_REGISTRY_TYPES_DAG = (
     pymel.PyNode,
     pymel.Attribute,
     pymel.datatypes.Matrix,
     pymel.datatypes.Vector,
-]
+)
 
 _REGISTRY_ALIASES = {}
 
@@ -45,29 +40,29 @@ except NameError:
     _REGISTRY_TYPES_BASIC += (str,)
 
 
-def get_class_module_root(cls):
+def _get_class_module_root(cls):
     """
     Resolve the top namespace of a class associated module.
 
     >>> from omtk.core.classCtrl import BaseCtrl
     >>> BaseCtrl.__module__
     'omtk.core.ctrl'
-    >>> get_class_module_root(BaseCtrl)
+    >>> _get_class_module_root(BaseCtrl)
     'omtk'
 
     :param cls: A class definition to inspect.
     :return: A str instance representing the root module.
     """
-    return next(iter(cls.__module__.split(".")), None)
+    return cls.__module__.split(".")[0]
 
 
-def get_class_namespace(cls):
+def _get_class_namespace(cls):
     """
     Resolve the full qualified namespace of a class.
     This support multiple inheritance using Python's method resolution order.
 
     >>> from omtk.rigs.rigArm import Arm
-    >>> get_class_namespace(Arm)
+    >>> _get_class_namespace(Arm)
     'Module.Limb.Arm'
 
     :param cls: A class definition to inspect.
@@ -83,7 +78,7 @@ def get_class_namespace(cls):
     )
 
 
-def create_class_instance(cls):
+def _create_instance(cls):
     """
     Create a class instance.
     This will ensure that even if the provided class definition is outdated
@@ -103,41 +98,22 @@ def create_class_instance(cls):
         return None
 
 
-#
-# Types definitions
-# Type affect how the data is read & writen.
-# By using global variables, we allow any script to hook itself in the module.
-#
-
-
-def is_data_complex(_data):
-    return isinstance(_data, _REGISTRY_TYPES_COMPLEX) or hasattr(_data, "__dict__")
-
-
-def is_data_basic(_data):
-    return isinstance(_data, _REGISTRY_TYPES_BASIC)
-
-
-def is_data_list(_data):
-    return isinstance(_data, _REGISTRY_TYPES_LIST)
-
-
-def is_data_pymel(data):
-    return isinstance(data, tuple(_REGISTRY_TYPES_DAG))
-
-
-def get_data_type(data):
+def _get_data_type(data):
     if data is None:
         return TYPE_NONE
-    if is_data_basic(data):
+
+    if isinstance(data, _REGISTRY_TYPES_BASIC):
         return TYPE_BASIC
-    if is_data_list(data):
+
+    if isinstance(data, _REGISTRY_TYPES_LIST):
         return TYPE_LIST
+
     # It is important to check pymel data before complex data since basically,
     # pymel.PyNode and pymel.PyNode are complex data types themselves.
-    if is_data_pymel(data):
+    if isinstance(data, _REGISTRY_TYPES_DAG):
         return TYPE_DAGNODE
-    if is_data_complex(data):
+
+    if isinstance(data, _REGISTRY_TYPES_COMPLEX) or hasattr(data, "__dict__"):
         return TYPE_COMPLEX
 
     raise NotImplementedError(
@@ -145,19 +121,16 @@ def get_data_type(data):
     )
 
 
-def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
+def export_dict(data, skip_none=True, recursive=True, cache=None):
     """
     Export an object instance into a dictionary of basic data types.
 
     :param data: An instance of the build-in python class object.
-    :param skip_None: Don't store an attribute if is value is None.
+    :param skip_none: Don't store an attribute if is value is None.
     :param recursive: Export recursively embedded instances of object in (excluding protected and private properties).
     :return: A dict instance containing only basic data types.
     """
-    if cache is None:
-        from cache import Cache
-
-        cache = Cache()
+    cache = cache or Cache()
 
     # Check if we already exported this data.
     # This allow us to support cyclic references.
@@ -167,37 +140,31 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
         _LOG.debug("Using cache for %s", data)
         return result
 
-    data_type = get_data_type(data)
+    data_type = _get_data_type(data)
     # object instance
     if data_type == TYPE_COMPLEX:
         data_cls = data.__class__
         result = {
             "_class": data_cls.__name__,
-            "_class_namespace": get_class_namespace(data_cls),
-            "_class_module": get_class_module_root(data_cls),
+            "_class_namespace": _get_class_namespace(data_cls),
+            "_class_module": _get_class_module_root(data_cls),
             "_uid": id(data),
         }
 
-        # Cache it as soon as possible since we might use recursivity.
+        # Cache it as soon as possible since we might use recursion.
         cache.set_import_value_by_id(data_id, result)
 
-        for key, val in (
-            data.items() if isinstance(data, dict) else data.__dict__.items()
-        ):  # TODO: Clean
+        for key, val in (data if isinstance(data, dict) else data.__dict__).iteritems():
             # Ignore private keys (starting with an underscore)
             if key.startswith("_"):
                 continue
 
-            if not skip_None or val is not None:
+            if not skip_none or val is not None:
                 if (data_type == TYPE_COMPLEX and recursive) or data_type == TYPE_LIST:
                     val = export_dict(
-                        val,
-                        skip_None=skip_None,
-                        recursive=recursive,
-                        cache=cache,
-                        **args
+                        val, skip_none=skip_none, recursive=recursive, cache=cache,
                     )
-                if not skip_None or val is not None:
+                if not skip_none or val is not None:
                     result[key] = val
     else:
 
@@ -208,9 +175,9 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
         # Handle iterable
         elif data_type == TYPE_LIST:
             result = [
-                export_dict(v, skip_None=skip_None, cache=cache, **args)
+                export_dict(v, skip_none=skip_none, cache=cache)
                 for v in data
-                if not skip_None or v is not None
+                if not skip_none or v is not None
             ]
 
         elif data_type == TYPE_DAGNODE:
@@ -229,24 +196,22 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
     return result
 
 
-def import_dict(data, cache=None, **kwargs):
+def import_dict(data, cache=None):
     """
     Rebuild any instance of a python object instance that have been serialized using export_dict.
 
-    :param _data: A dict instance containing only basic data types.
+    :param data: A dict instance containing only basic data types.
     """
-
-    if cache is None:
-        from cache import Cache
-
-        cache = Cache()
+    cache = cache or Cache()
 
     # assert (data is not None)
     if isinstance(data, dict) and "_class" in data:
         # Handle Serializable object
-        cls_path = data["_class"]
+        cls_path = data.pop("_class", "")
         cls_name = cls_path.split(".")[-1]
-        cls_module = data.get("_class_module", None)
+        cls_module = data.pop("_class_module", None)
+        data.pop("_uid", None)
+        data.pop("_class_namespace", None)
 
         # HACK: Previously we were storing the complete class namespace.
         # However this was not very flexible when we played with the class hierarchy.
@@ -273,15 +238,15 @@ def import_dict(data, cache=None, **kwargs):
             )
             return None
 
-        instance = create_class_instance(cls_def)
+        instance = _create_instance(cls_def)
 
-        for key, val in data.items():
+        for key, val in data.iteritems():
             if key != "_class":
                 instance.__dict__[key] = import_dict(val, cache=cache)
         return instance
 
     # Handle array
-    if is_data_list(data):
+    if _get_data_type(data) == TYPE_LIST:
         return [import_dict(v, cache=cache) for v in data]
 
     # Handle other types of data
@@ -297,15 +262,6 @@ def register_alias(module, src, dst):
     :param str dst: The class new namespace
     """
     _REGISTRY_ALIASES[(module, src)] = dst
-
-
-def _is_valid_pynode(val):
-    return val and hasattr(val, "exists") and val.exists()
-
-
-#
-# Maya Metanetwork Serialization
-#
 
 
 def _create_attr(name, data):
@@ -392,11 +348,8 @@ def _create_attr(name, data):
 
     # (pymel.general.Attribute,) -> type depending on the attribute type itself.
     if issubclass(data_type, pymel.Attribute):
-        if not _is_valid_pynode(data):
-            _LOG.warning(
-                "Can't serialize %s attribute because of non-existent pymel Attribute!",
-                name,
-            )
+        if not data.exists():
+            _LOG.warning("Can't serialize non-existent pymel.Attribute %s", name,)
             return None
 
         if data.type() == "doubleAngle":
@@ -408,6 +361,7 @@ def _create_attr(name, data):
             mfn = OpenMaya.MFnUnitAttribute()
             mfn.create(name, name, OpenMaya.MFnUnitAttribute.kTime)
             return mfn
+
         # If the attribute doesn't represent anything special,
         # we'll check it's value to know what attribute type to create.
         return _create_attr(name, data.get())
@@ -431,7 +385,7 @@ def _create_attr(name, data):
 
 
 def _add_attr(fnDependNode, name, data, cache=None):
-    data_type = get_data_type(data)
+    data_type = _get_data_type(data)
 
     # Skip empty list
     is_multi = data_type == TYPE_LIST
@@ -445,25 +399,28 @@ def _add_attr(fnDependNode, name, data, cache=None):
     except:
         pass
 
-    if plug is None:
+    # Create attribute if missing
+    if not plug:
         fn_attr = _create_attr(name, data)
         if fn_attr is None:
             return  # In case of invalid value like missing pymel PyNode & Attributes
+
         fn_attr.setNiceNameOverride(name)
         mobject = fn_attr.object()
-        if mobject is not None:
+        if mobject:
             try:
                 fnDependNode.addAttribute(mobject)
                 plug = OpenMaya.MPlug(fnDependNode.object(), mobject)
             except Exception as e:
-                _LOG.warning("Error adding attribute {0}: {1}".format(name, e))
+                _LOG.warning("Error adding attribute %s: %s", name, e)
 
-    if plug is not None:
+    # Set attribute value
+    if plug:
         _set_attr(plug, data, cache=cache)
 
 
 def _set_attr(_plug, data, cache=None):
-    data_type = get_data_type(data)
+    data_type = _get_data_type(data)
     if data_type == TYPE_LIST:
         num_elements = len(data)
 
@@ -517,7 +474,7 @@ def _set_attr(_plug, data, cache=None):
                 return
             plug = data.__apimfn__().findPlug("message")
 
-        if plug is not None:
+        if plug:
             dag_modifier = OpenMaya.MDagModifier()
             dag_modifier.connect(plug, _plug)
             dag_modifier.connect(plug, _plug)  # is connecting two times necessary?
@@ -585,16 +542,13 @@ def _can_export_attr_by_name(name):
 
 
 def export_network(data, cache=None, **kwargs):
-    if cache is None:
-        from cache import Cache
-
-        cache = Cache()
+    cache = cache or Cache()
     # _LOG.debug('CreateNetwork {0}'.format(data))
 
     # We'll deal with two additional attributes, '_network' and '_uid'.
-    # Thoses two attributes allow us to find the network from the value and vice-versa.
+    # Those two attributes allow us to find the network from the value and vice-versa.
     # Note that since the '_uid' refer to the current python context,
-    # it's value could be erroned when calling import_network.
+    # it's value could be incorrect when calling import_network.
     # However the change of collisions are extremely improbable so
     # checking the type of the python variable is sufficient.
     # Please feel free to provide a better design if any if possible.
@@ -623,22 +577,22 @@ def export_network(data, cache=None, **kwargs):
             network, longName="_uid", niceName="_uid", at="long"
         )  # todo: validate attributeType
 
-    # Cache as soon as possible since we'll use recursivity soon.
+    # Cache as soon as possible since we'll use recursion soon.
     cache.set_network_by_id(data_id, network)
 
     # Convert _pData to basic data dictionary (recursive for now)
     data_dict = export_dict(data, recursive=False, cache=cache, **kwargs)
     assert isinstance(data_dict, dict)
 
-    fnNet = network.__apimfn__()
-    for key, val in data_dict.items():
+    mfn = network.__apimfn__()
+    for key, val in sorted(data_dict.items()):
         if _can_export_attr_by_name(key):
-            _add_attr(fnNet, key, val, cache=cache)
+            _add_attr(mfn, key, val, cache=cache)
 
     return network
 
 
-def import_network(network, fn_skip=None, cache=None, **kwargs):
+def import_network(network, fn_skip=None, cache=None):
     """
     Recursively create class instances from provided network.
     :param network: The network to read from.
@@ -647,10 +601,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     :param cache: Used internally.
     :return: An object instance corresponding to the provided network.
     """
-    if not cache:
-        from .cache import Cache
-
-        cache = Cache()
+    cache = cache or Cache()
 
     # Duck-type the network, if the '_class' attribute exist,
     # it is a class instance representation.
@@ -706,7 +657,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     attr_map = {}
     for attr_name in pymel.listAttr(network, userDefined=True):
         # Attribute longName starting with '_' are considered private
-        if "_" != attr_name[0]:
+        if not attr_name.startswith("_"):
             attr_map[attr_name] = network.attr(attr_name)
 
     # Filter compound children as we are only interested the compound value itself.
@@ -722,8 +673,10 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
 
     try:
         obj.__callbackNetworkPreBuild__(attr_map)
-    except Exception as error:
+    except AttributeError:  # Hook don't exist.
         pass
+    except Exception as error:
+        _LOG.warning("Call to __callbackNetworkPreBuild__ failed for %s: %s", obj, error)
 
     for attr_name, attr in attr_map.iteritems():
         # _LOG.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
@@ -740,143 +693,84 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     # This can be used to act immediately after import.
     try:
         obj.__callbackNetworkPostBuild__()
-    except (AttributeError, TypeError) as error:
+    except AttributeError:  # Hook don't exist
         pass
+    except Exception as error:
+        _LOG.warning("Call to __callbackNetworkPostBuild__ failed for %s: %s", obj, error)
 
     return obj
 
 
-def is_network_from_class(net, cls_name):
-    """
-    Inspect a potentially serialized pymel.nodetypes.Network and check if
-    if was created from a specific class instance.
-    :param net: A pymel.nodetypes.Network to inspect.
-    :param cls_name: A string representing a class name.
-    :return:
-    """
-    # HACK: Backward compatibility with the old system.
-    # Previously the full namespace was stored in the '_class' attribute.
-    try:
-        return cls_name in net.getAttr("_class_namespace").split(".")
-    except AttributeError:
-        pass
+def _iter_subclasses_recursive(cls):
+    yield cls
 
     try:
-        return cls_name in net.getAttr("_class").split(".")
-    except AttributeError:
+        for sub_cls in cls.__subclasses__():
+            for yielded in _iter_subclasses_recursive(sub_cls):
+                yield yielded
+    except TypeError:  # This will fail when encountering the 'type' datatype.
         pass
 
-    return None
+
+def _iter_module_subclasses_recursive(module_root, cls):
+    for sub_cls in _iter_subclasses_recursive(cls):
+        cur_module_root = _get_class_module_root(sub_cls)
+        if module_root == cur_module_root:
+            yield sub_cls
 
 
-def iter_networks_from_class(cls_name):
-    for network in pymel.ls(type="network"):
-        if is_network_from_class(network, cls_name):
-            yield network
+class Cache(object):
+    def __init__(self):
+        self.classes = None
+        self._cache_import_by_id = {}
+        self._cache_networks_by_id = {}  # todo: merge with _cache_import_by_id
 
+    @memoized
+    def _get_cls_cache_by_module(self, module_name, base_class=object):
+        i = _iter_module_subclasses_recursive(module_name, base_class)
+        result = {}
+        for cls in i:
+            result[cls.__name__] = cls
+        return result
 
-def get_networks_from_class(cls_name):
-    """
-    Return all networks serialized from a specified base class.
-    Note that this don't check if the network itself is deserializable.
+    @memoized
+    def _get_cls_cache(self, base_class=object):
+        i = _iter_subclasses_recursive(base_class)
+        result = {}
+        for cls in i:
+            result[cls.__name__] = cls
+        return result
 
-    For example, if we are looking for the Rig class and
-    the network class is RigElement.Rig but RigElement is not defined,
-    this will still return the network.
-    However calling libSerialization.import_network will return None.
-    # todo: add an option to pre-validate
+    def get_class_by_name(self, cls_name, module_name=None, base_class=object):
+        if module_name:
+            cache = self._get_cls_cache_by_module(
+                module_name=module_name, base_class=base_class
+            )
+        else:
+            cache = self._get_cls_cache(base_class=base_class)
 
-    :param cls_name: A string representing the name of a class.
-    :return: A list of networks
-    :rtype: A list of pymel.nodetypes.Network.
-    """
-    return list(iter_networks_from_class(cls_name))
+        return cache.get(cls_name, None)
 
+    def get_class_by_namespace(
+        self, cls_namespace, module_name=None, base_class=object
+    ):
+        if module_name is None:
+            cache = self._get_cls_cache(base_class=base_class)
+        else:
+            cache = self._get_cls_cache_by_module(base_class=base_class)
+        for cls in cache.values():
+            cur_namespace = _get_class_namespace(cls)
+            if cls_namespace == cur_namespace:
+                return cls
 
-def iter_connected_networks(objs, key=None, key_skip=None, recursive=True, cache=None):
-    """
-    Inspect provided dagnode connections in search of serialized networks.
+    def get_import_value_by_id(self, id, default=None):
+        return self._cache_import_by_id.get(id, default)
 
-    By providing a function pointer, specific networks can be targeted.
-    :param objs: A list of dag nodes to inspect.
-    :type objs: list of pymel.nodetypes.DagNode
-    :param callable key: A function to filter specific networks.
-    :param callable key_skip: A function that receive a network as input and return True
-    if the network is blacklisted. If the network is blacklisted,
-    it will not be iterated through.
-    :param bool recursive: If true, will inspect recursively.
-    :param cache: Used internally, do not overwrite.
-    :yield: generator of pymel.nodetypes.Networks
-    """
-    # Initialise the array the first time,
-    # we don't want to do it in the function argument as it will keep old values...
-    if cache is None:
-        cache = []
+    def set_import_value_by_id(self, id_, val):
+        self._cache_import_by_id[id_] = val
 
-    # Ensure objects are provided as a list.
-    if not hasattr(objs, "__iter__"):
-        objs = [objs]
+    def get_network_by_id(self, id_):
+        return self._cache_networks_by_id.get(id_)
 
-    for obj in objs:
-        # Ignore known objects
-        if obj in cache:
-            continue
-
-        # Remember this object in the cache
-        cache.append(obj)
-
-        # Ignore this object if it is blacklisted.
-        # However still keep it in the cache in case we encounter it again.
-        if key_skip and key_skip(obj):
-            continue
-
-        # Ignore any object that don't have a message attribute.
-        # This is equivalent to searching for dagnodes only.
-        if not obj.hasAttr("message"):
-            continue
-
-        for output_obj in obj.message.outputs():
-            # Only check pymel.nodetypes.Network
-            if not isinstance(output_obj, pymel.nodetypes.Network):
-                continue
-
-            # Prevent cyclic dependencies
-            if output_obj in cache:
-                continue
-
-            # Prevent self referencing
-            if output_obj is obj:
-                continue
-
-            if key is None or key(output_obj):
-                yield output_obj
-
-            if recursive:
-                for result in iter_connected_networks(
-                    output_obj,
-                    key=key,
-                    key_skip=key_skip,
-                    recursive=recursive,
-                    cache=cache,
-                ):
-                    yield result
-
-
-def get_connected_networks(objs, key=None, key_skip=None, recursive=True):
-    """
-    Inspect provided dag node connections in search of serialized networks.
-    By providing a function pointer, specific networks can be targeted.
-
-    :param objs: A list of pymel.nodetypes.DagNode to inspect.
-    :type objs: list of pymel.nodetypes.DagNode
-    :param callable key: A function to filter specific networks
-    :param callable key_skip: A function that receive a network as input and return True
-    if the network is blacklisted. If the network is blacklisted,
-    it will not be iterated through.
-    :param recursive: If true, will inspect recursively.
-    :return: A list of networks
-    :rtype: list of pymel.nodetypes.Network
-    """
-    return list(
-        iter_connected_networks(objs, key=key, key_skip=key_skip, recursive=recursive)
-    )
+    def set_network_by_id(self, id_, net):
+        self._cache_networks_by_id[id_] = net

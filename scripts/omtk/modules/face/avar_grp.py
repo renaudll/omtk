@@ -100,6 +100,7 @@ class AvarMacro(Avar):
     A macro avar does not necessarily have an influence.
     In the majority of cases it don't have one and only use it do resolve it's position.
     """
+
     AFFECT_INPUTS = False
     # TODO: Method to get the ctrl class per side?
     CLS_MODEL_CTRL = ModelInteractiveCtrl
@@ -198,6 +199,7 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
     CLS_AVAR_MACRO_UPP = AvarMacroUpp
     CLS_AVAR_MACRO_LOW = AvarMacroLow
 
+    # TODO: Make the 3 following cvar False by default so that avargrp don't fail by default
     CREATE_MACRO_AVAR_HORIZONTAL = True
     CREATE_MACRO_AVAR_VERTICAL = True
     CREATE_MACRO_AVAR_ALL = True
@@ -251,7 +253,6 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         for avar in self.iter_avars():
             if avar.ctrl:
                 avar.ctrl.size = ctrl_size_hint
-
 
         super(AvarGrp, self).build(
             connect_global_scale=connect_global_scale, parent=parent, **kwargs
@@ -502,7 +503,9 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
                 if "in" in tokens:
                     return cls.SIDE_L
                 return cls.SIDE_C
-            raise Exception("Module is side specific but have no side!")  # TODO: Move to validate
+            raise Exception(
+                "Module is side specific but have no side!"
+            )  # TODO: Move to validate
         return side
 
     def _get_avar_vertical_side(self, avar):
@@ -849,12 +852,7 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
             naming = naming + [suffix] if suffix else naming
             name = naming.resolve()
 
-        inst = cls.from_instance(
-            self,
-            inst,
-            name=name,
-            inputs=result_inputs,
-        )
+        inst = cls.from_instance(self, inst, name=name, inputs=result_inputs,)
 
         # TODO: Conform to Avar.from_instance?
         # It is possible that the old avar type don't match the desired one.
@@ -889,7 +887,7 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
             self.create_macro_horizontal,
             self.get_jnt_l_mid,
             name,
-            value=value
+            value=value,
         )
 
     def _init_avar_macro_r(self, value=None):
@@ -907,43 +905,48 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
             self.create_macro_horizontal,
             self.get_jnt_r_mid,
             name,
-            value=value
+            value=value,
         )
 
     def _init_avar_macro_upp(self, value=None):
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
-        name = self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_UPP], side=side).resolve()
+        name = self.naming_cls(
+            tokens=["macro", self.naming_cls.SIDE_V_UPP], side=side
+        ).resolve()
 
         return self._init_macro_avar(
             self.CLS_AVAR_MACRO_UPP,
             self.create_macro_vertical,
             self.get_jnt_upp_mid,
             name,
-            value=value
+            value=value,
         )
 
     def _init_avar_macro_low(self, value=None):
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
-        name = self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_LOW], side=side).resolve()
+        name = self.naming_cls(
+            tokens=["macro", self.naming_cls.SIDE_V_LOW], side=side
+        ).resolve()
 
         return self._init_macro_avar(
             self.CLS_AVAR_MACRO_LOW,
             self.create_macro_vertical,
             self.get_jnt_low_mid,
             name,
-            value=value
+            value=value,
         )
 
     def _init_avar_macro_all(self, value=None):
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
-        name = self.naming_cls(tokens=["macro", self.rig.AVAR_NAME_ALL], side=side).resolve()
+        # TODO: Use naming_cls instead of hardcoding "all"?
+        name = self.naming_cls(tokens=["macro", "all"], side=side).resolve()
 
         return self._init_macro_avar(
             self.CLS_AVAR_MACRO_ALL,
             self.create_macro_all,
             self.get_jnt_macro_all,
             name,
-            value=value
+            value=value,
         )
 
     def _connect_avars_macro_to_micro(self):

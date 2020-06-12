@@ -20,6 +20,7 @@ class BaseCtrlFace(ctrl.BaseCtrl):
 
     Face controllers always look in the Z axis direction.
     """
+
     def create_ctrl(self, normal=(0, 0, 1), **kwargs):
         return super(BaseCtrlFace, self).create_ctrl(normal=normal, **kwargs)
 
@@ -442,7 +443,7 @@ class Avar(AbstractAvar):
         pos = transform.translate
         pos = pymel.datatypes.Vector(pos.x, pos.y, 99999)
         dir_ = pymel.datatypes.Point(0, 0, -1)
-        geos = self.get_meshes() or self.rig.get_shapes()
+        geos = self.get_meshes() or (self.rig.get_shapes() if self.rig else ())
         new_pos = libRigging.ray_cast_nearest(pos, dir_, geos)
         if new_pos:
             transform.translate = new_pos

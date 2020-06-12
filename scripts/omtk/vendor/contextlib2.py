@@ -6,10 +6,17 @@ import warnings
 from collections import deque
 from functools import wraps
 
-__all__ = ["contextmanager", "closing", "nullcontext",
-           "AbstractContextManager",
-           "ContextDecorator", "ExitStack",
-           "redirect_stdout", "redirect_stderr", "suppress"]
+__all__ = [
+    "contextmanager",
+    "closing",
+    "nullcontext",
+    "AbstractContextManager",
+    "ContextDecorator",
+    "ExitStack",
+    "redirect_stdout",
+    "redirect_stderr",
+    "suppress",
+]
 
 # Backwards compatibility
 __all__ += ["ContextStack"]
@@ -19,7 +26,7 @@ __all__ += ["ContextStack"]
 if sys.version_info[:2] >= (3, 4):
     _abc_ABC = abc.ABC
 else:
-    _abc_ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()})
+    _abc_ABC = abc.ABCMeta("ABC", (object,), {"__slots__": ()})
 
 
 # Backport classic class MRO
@@ -86,8 +93,9 @@ class ContextDecorator(object):
         DEPRECATED: refresh_cm was never added to the standard library's
                     ContextDecorator API
         """
-        warnings.warn("refresh_cm was never added to the standard library",
-                      DeprecationWarning)
+        warnings.warn(
+            "refresh_cm was never added to the standard library", DeprecationWarning
+        )
         return self._recreate_cm()
 
     def _recreate_cm(self):
@@ -107,6 +115,7 @@ class ContextDecorator(object):
         def inner(*args, **kwds):
             with self._recreate_cm():
                 return func(*args, **kwds)
+
         return inner
 
 
@@ -210,9 +219,11 @@ def contextmanager(func):
             <cleanup>
 
     """
+
     @wraps(func)
     def helper(*args, **kwds):
         return _GeneratorContextManager(func, args, kwds)
+
     return helper
 
 
@@ -233,6 +244,7 @@ class closing(object):
             f.close()
 
     """
+
     def __init__(self, thing):
         self.thing = thing
 
@@ -316,6 +328,7 @@ class suppress(object):
 # Context manipulation is Python 3 only
 _HAVE_EXCEPTION_CHAINING = sys.version_info[0] >= 3
 if _HAVE_EXCEPTION_CHAINING:
+
     def _make_context_fixer(frame_exc):
         def _fix_exception_context(new_exc, old_exc):
             # Context may not be correct, so find the end of the chain
@@ -330,6 +343,7 @@ if _HAVE_EXCEPTION_CHAINING:
             # Change the end of the chain to point to the exception
             # we expect it to reference
             new_exc.__context__ = old_exc
+
         return _fix_exception_context
 
     def _reraise_with_existing_context(exc_details):
@@ -341,6 +355,8 @@ if _HAVE_EXCEPTION_CHAINING:
         except BaseException:
             exc_details[1].__context__ = fixed_ctx
             raise
+
+
 else:
     # No exception context in Python 2
     def _make_context_fixer(frame_exc):
@@ -351,6 +367,7 @@ else:
     def _reraise_with_existing_context(exc_details):
         exc_type, exc_value, exc_tb = exc_details
         exec("raise exc_type, exc_value, exc_tb")
+
 
 # Handle old-style classes if they exist
 try:
@@ -380,6 +397,7 @@ class ExitStack(object):
             # in the list raise an exception
 
     """
+
     def __init__(self):
         self._exit_callbacks = deque()
 
@@ -392,8 +410,10 @@ class ExitStack(object):
 
     def _push_cm_exit(self, cm, cm_exit):
         """Helper to correctly register callbacks to __exit__ methods"""
+
         def _exit_wrapper(*exc_details):
             return cm_exit(cm, *exc_details)
+
         _exit_wrapper.__self__ = cm
         self.push(_exit_wrapper)
 
@@ -415,20 +435,22 @@ class ExitStack(object):
             self._exit_callbacks.append(exit)
         else:
             self._push_cm_exit(exit, exit_method)
-        return exit # Allow use as a decorator
+        return exit  # Allow use as a decorator
 
     def callback(self, callback, *args, **kwds):
         """Registers an arbitrary callback and arguments.
 
         Cannot suppress exceptions.
         """
+
         def _exit_wrapper(exc_type, exc, tb):
             callback(*args, **kwds)
+
         # We changed the signature, so using @wraps is not appropriate, but
         # setting __wrapped__ may still help with introspection
         _exit_wrapper.__wrapped__ = callback
         self.push(_exit_wrapper)
-        return callback # Allow use as a decorator
+        return callback  # Allow use as a decorator
 
     def enter_context(self, cm):
         """Enters the supplied context manager
@@ -485,8 +507,7 @@ class ContextStack(ExitStack):
     """Backwards compatibility alias for ExitStack"""
 
     def __init__(self):
-        warnings.warn("ContextStack has been renamed to ExitStack",
-                      DeprecationWarning)
+        warnings.warn("ContextStack has been renamed to ExitStack", DeprecationWarning)
         super(ContextStack, self).__init__()
 
     def register_exit(self, callback):

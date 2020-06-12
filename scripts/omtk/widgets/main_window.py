@@ -13,7 +13,6 @@ from maya import cmds
 import pymel.core as pymel
 from maya import OpenMaya
 from omtk.core import api
-from omtk.core import module
 from omtk.libs import libPython
 from omtk.libs import libSkeleton
 from omtk.libs import libQt
@@ -30,9 +29,11 @@ class AutoRig(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super(AutoRig, self).__init__(parent)
 
-        # Internal data
         self.root = None
         self.roots = []
+        self._callbacks_events = []
+        self._callbacks_scene = []
+        self._callbacks_nodes = None
 
         self.ui = main_window.Ui_OpenRiggingToolkit()
         self.ui.setupUi(self)
@@ -78,10 +79,6 @@ class AutoRig(QtWidgets.QMainWindow):
         self.ui.widget_modules.needExportNetwork.connect(self.export_networks)
         self.ui.widget_modules.deletedRig.connect(self._on_rig_deleted)
         self.ui.widget_jnts.onRightClick.connect(self._on_btn_add_pressed)
-
-        self.callbacks_events = []
-        self.callbacks_scene = []
-        self.callbacks_nodes = None
 
         self.create_callbacks()
 
@@ -132,12 +129,12 @@ class AutoRig(QtWidgets.QMainWindow):
         self.remove_callbacks()
         # Disable to prevent performance drop when CTRL-Z and the tool is open
         # TODO - Reactivate back when the tool will be stable ?
-        # self.callbacks_events = \
+        # self._callbacks_events = \
         #     [
         #         OpenMaya.MEventMessage.addEventCallback("Undo", self.update_ui),
         #         OpenMaya.MEventMessage.addEventCallback("Redo", self.update_ui)
         #     ]
-        self.callbacks_scene = [
+        self._callbacks_scene = [
             OpenMaya.MSceneMessage.addCallback(
                 OpenMaya.MSceneMessage.kAfterOpen, self._on_update
             ),
@@ -146,23 +143,23 @@ class AutoRig(QtWidgets.QMainWindow):
             ),
         ]
 
-        # self.callbacks_nodes = OpenMaya.MDGMessage.addNodeRemovedCallback(
+        # self._callbacks_nodes = OpenMaya.MDGMessage.addNodeRemovedCallback(
         #     self.callback_network_deleted, 'network'
         # )
 
     def remove_callbacks(self):
-        # for callback_id in self.callbacks_events:
+        # for callback_id in self._callbacks_events:
         #     OpenMaya.MEventMessage.removeCallback(callback_id)
-        # self.callbacks_events = []
+        # self._callbacks_events = []
 
-        for callback_id in self.callbacks_scene:
+        for callback_id in self._callbacks_scene:
             OpenMaya.MSceneMessage.removeCallback(callback_id)
-        self.callbacks_scene = []
+        self._callbacks_scene = []
 
         # temporary disabled for performance issues
-        # if self.callbacks_nodes is not None:
-        #     OpenMaya.MMessage.removeCallback(self.callbacks_nodes)
-        #     self.callbacks_nodes = None
+        # if self._callbacks_nodes is not None:
+        #     OpenMaya.MMessage.removeCallback(self._callbacks_nodes)
+        #     self._callbacks_nodes = None
 
     def on_build_all(self):
         raise NotImplementedError

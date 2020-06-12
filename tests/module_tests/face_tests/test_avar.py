@@ -77,10 +77,14 @@ def test_linear_unit_no_parent():
     avar.attr_rl.set(30.0)
 
     # Validate the infl model
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json"))
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json")
+    )
 
     # Validate the ctrl model
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json"))
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json")
+    )
 
     # Validate moving the ctrl affect the avar in the same way.
     avar.attr_lr.set(0.0)
@@ -93,10 +97,14 @@ def test_linear_unit_no_parent():
     avar.ctrl.rotate.set(10.0, 20.0, 30.0)
 
     # Validate the infl model
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json"))
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json")
+    )
 
     # Validate the ctrl model
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json"))
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json")
+    )
 
     avar.unbuild()
 
@@ -117,8 +125,12 @@ def test_influence_surface_no_parent():
     helpers.assert_match_pose(_POSE_REST)
 
     # Move the ctrl and see if the influence follow properly
-    avar.ctrl.translateY.set(2.0)  # TODO: Validate default sensitivity
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface.json"))
+    # TODO: Validate default sensibility
+    # TODO: Auto-calibrate
+    avar.ctrl.translateY.set(2.0)
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface.json")
+    )
 
     avar.unbuild()
 

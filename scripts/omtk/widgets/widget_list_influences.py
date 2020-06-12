@@ -16,6 +16,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
     """
     Qt Widget that list influences.
     """
+
     onRightClick = QtCore.Signal()
 
     def __init__(self, parent=None):

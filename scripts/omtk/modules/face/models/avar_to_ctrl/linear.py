@@ -2,6 +2,8 @@ import pymel.core as pymel
 
 from omtk.modules.face.models.avar_to_ctrl import base
 from omtk.core.compounds import create_compound
+from omtk.libs import libRigging
+
 
 class ModelCtrlLinear(base.BaseCtrlModel):
     """
@@ -22,28 +24,10 @@ class ModelCtrlLinear(base.BaseCtrlModel):
     2) Connecting the doritos ctrl to something
     3) Optionally call .calibrate()
     """
-
-    def __init__(self, *args, **kwargs):
-        super(ModelCtrlLinear, self).__init__(*args, **kwargs)
-
-        # The object containing the bind pose of the
-        # influence controller by the controller.
-        self._grp_bind_infl = None
-
-        # The object containing the desired default position of the ctrl.
-        # This can differ from the bind pose of the ctrl mode.
-        # For example, the jaw ctrl model will influence a joint
-        # inside the head but the controller will be outside.
-        self._grp_bind_ctrl = None
-
-        self._attr_inn_parent_tm = None
-
-        self._stack = None
-
     def _build_compound(self):
         return create_compound(
             "omtk.AvarCtrlLinear",  # TODO: Get our own compound instead of duplicating.
-            namespace=self.get_nomenclature().resolve()
+            namespace=self.get_nomenclature().resolve(),
         )
 
     def build(self):
@@ -54,17 +38,18 @@ class ModelCtrlLinear(base.BaseCtrlModel):
             ("multLr", self.attr_sensitivity_tx),
             ("multFb", self.attr_sensitivity_tx),
             ("multUd", self.attr_sensitivity_tx),
-            ("innOffset", self.grp_rig.matrix)
+            ("innOffset", self.grp_rig.matrix),
         ):
             pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr))
 
     def connect_ctrl(self, ctrl):
-        self.grp_rig.setMatrix(ctrl.getMatrix(worldSpace=True))
+        self._grp_bind.setMatrix(ctrl.getMatrix(worldSpace=True))
 
         super(ModelCtrlLinear, self).connect_ctrl(ctrl)
 
         # Connect compound inputs
-        for attr, value in (
-            ("ctrlLocalTM", ctrl.matrix),
-        ):
+        for attr, value in (("ctrlLocalTM", ctrl.matrix),):
             pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr), force=True)
+
+    def calibrate(self, ctrl):
+        pass  # TODO: Implement

@@ -52,6 +52,7 @@ class BaseCtrlModel(CompoundModule):
         self.attr_sensitivity_ty = None
         self.attr_sensitivity_tz = None
         self._attr_inn_parent_tm = None
+        self._grp_bind = None
 
     @property
     def ctrl(self):
@@ -90,7 +91,9 @@ class BaseCtrlModel(CompoundModule):
         super(BaseCtrlModel, self).build()
         self.create_interface()
 
-        self.grp_bind = pymel.createNode("transform", name=naming.resolve("bind"), parent=self.grp_rig)
+        self._grp_bind = pymel.createNode(
+            "transform", name=naming.resolve("bind"), parent=self.grp_rig
+        )
 
     def connect_ctrl(self, ctrl):
         """
@@ -114,7 +117,9 @@ class BaseCtrlModel(CompoundModule):
         :param avar: An avar to connect from
         :type avar: omtk.modules.face.avar.Avar
         """
-        attr_var = avar.attr_ud.parent()  # TODO: We are checking here, the avar should expose it's avar attribute
+        attr_var = (
+            avar.attr_ud.parent()
+        )  # TODO: We are checking here, the avar should expose it's avar attribute
         pymel.connectAttr(attr_var, self.compound_inputs.avar)
 
     def parent_to(self, parent):

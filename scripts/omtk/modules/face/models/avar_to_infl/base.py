@@ -205,7 +205,9 @@ class AvarInflBaseModel(module.Module):
         attr_out = libRigging.create_multiply_matrix(
             [obj_output.matrix, obj_parent.inverseMatrix]
         )
-        util_decompose = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_out)
+        util_decompose = libRigging.create_utility_node(
+            "decomposeMatrix", inputMatrix=attr_out
+        )
 
         infl, tweak = self._get_influences()
         if tweak:

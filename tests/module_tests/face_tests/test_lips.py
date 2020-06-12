@@ -55,7 +55,9 @@ def test_avargrp_withsurface():
     rig = omtk.create()
     Head(["jnt_head"], rig=rig)
     FaceJaw(["jnt_jaw", "surface_lips", "pSphereShape1"], rig=rig)
-    FaceLips(cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"], rig=rig)
+    FaceLips(
+        cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"], rig=rig
+    )
 
     rig.build(strict=True)
 

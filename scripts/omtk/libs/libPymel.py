@@ -88,7 +88,7 @@ class PyNodeChain(list):
 
     # get the first pynode that have the attr
     def __getattr__(self, key):
-        _LOG.warning("Searching unknown attribute %s in %s", key, self)
+        # _LOG.warning("Searching unknown attribute %s in %s", key, self)
         first_node = next(
             (node for node in self.__dict__["_list"] if hasattr(node, key)), None
         )

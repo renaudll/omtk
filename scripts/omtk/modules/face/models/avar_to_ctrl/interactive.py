@@ -73,13 +73,14 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
 
     def project_pos_on_face(self, pos, geos=None):
         pos = pymel.datatypes.Vector(pos.x, pos.y, 99999)
-        dir = pymel.datatypes.Point(0, 0, -1)
+        direction = pymel.datatypes.Point(0, 0, -1)
         geos = geos or self.rig.get_shapes()
-        return libRigging.ray_cast_nearest(pos, dir, geos) or pos
-
+        return libRigging.ray_cast_nearest(pos, direction, geos) or pos
 
     def _build_compound(self):
-        return create_compound("omtk.InteractiveCtrl", self.naming.resolve("ctrlModelInteractive"))
+        return create_compound(
+            "omtk.InteractiveCtrl", self.naming.resolve("ctrlModelInteractive")
+        )
 
     def connect_ctrl(self, ctrl):
         # super(ModelInteractiveCtrl, self).connect_ctrl(ctrl)  # TODO: Test with super call

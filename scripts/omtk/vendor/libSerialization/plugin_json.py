@@ -1,6 +1,6 @@
 import os
 import json
-import core
+from . import core
 
 __all__ = ("export_json", "export_json_file", "import_json", "import_json_file")
 

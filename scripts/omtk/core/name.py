@@ -62,6 +62,7 @@ class AbstractName(object):
     """
     Implementation for naming.
     """
+
     SEPARATOR = "_"
     KNOWN_PREFIXES = []
     KNOWN_SUFFIXES = []
@@ -82,7 +83,10 @@ class AbstractName(object):
         self._type = None
 
         if name:
-            warnings.warn("Parameter name is deprecated. Please use from_string.", DeprecationWarning)
+            warnings.warn(
+                "Parameter name is deprecated. Please use from_string.",
+                DeprecationWarning,
+            )
             self.build_from_string(name)
 
         if tokens:
@@ -99,7 +103,9 @@ class AbstractName(object):
                 elif side in self.KNOWN_SUFFIXES:
                     self.suffix = side
                 else:
-                    raise ValueError("Could not determine where to put the side %r." % side)
+                    raise ValueError(
+                        "Could not determine where to put the side %r." % side
+                    )
         if type:
             self.type = type
 
@@ -181,9 +187,18 @@ class AbstractName(object):
 
     @suffix.setter
     def suffix(self, value):
-        warnings.warn("Setting .suffix is deprecated. Use .type or .side", DeprecationWarning)
+        warnings.warn(
+            "Setting .suffix is deprecated. Use .type or .side", DeprecationWarning
+        )
         # clean only if the suffix is not a side. side need to be manually removed.
-        if not value and self.suffix in (self.SIDE_L, self.SIDE_R, self.SIDE_C, self.SIDE_V_LOW, self.SIDE_V_MID, self.SIDE_V_UPP):
+        if not value and self.suffix in (
+            self.SIDE_L,
+            self.SIDE_R,
+            self.SIDE_C,
+            self.SIDE_V_LOW,
+            self.SIDE_V_MID,
+            self.SIDE_V_UPP,
+        ):
             return
         self._suffix = value
 
@@ -193,7 +208,9 @@ class AbstractName(object):
 
     @prefix.setter
     def prefix(self, value):
-        warnings.warn("Setting .prefix is deprecated. Use .type or .side", DeprecationWarning)
+        warnings.warn(
+            "Setting .prefix is deprecated. Use .type or .side", DeprecationWarning
+        )
         self._prefix = value
 
     def copy(self):
@@ -332,6 +349,7 @@ class BaseName(AbstractName):
     """
     Base name for development.
     """
+
     SEPARATOR = "_"
 
     type_anm = "anm"

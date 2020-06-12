@@ -3,8 +3,6 @@ Tests for the AvarGrp module.
 """
 import os
 
-import pytest
-
 from maya import cmds
 
 from omtk.core.rig import Rig
@@ -47,6 +45,7 @@ class AvarGrpImpl1(AvarGrp):
 
 class AvarGrpImpl1SideSpecific(AvarGrpImpl1):
     """Implementation that is side specific."""
+
     IS_SIDE_SPECIFIC = True
 
 
@@ -74,7 +73,9 @@ def test_avar_grp_simple():
     inst = AvarGrpImpl1(jnts, name="avargrp", rig=Rig())
     inst.build()
 
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json")
+    )
 
     # Ensure micros follow macros
     inst.avar_l.ctrl.translateX.set(1.0)
@@ -82,7 +83,9 @@ def test_avar_grp_simple():
     inst.avar_upp.ctrl.translateY.set(1.0)
     inst.avar_low.ctrl.translateY.set(-1.0)
 
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json")
+    )
 
 
 def test_avarsidegrp_specific():
@@ -100,4 +103,6 @@ def test_avarsidegrp_specific():
     inst = AvarGrpImpl1SideSpecific(jnts, name="l_avargrp", rig=Rig())
     inst.build()
 
-    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avarsidegrp_rest.json"))
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avarsidegrp_rest.json")
+    )

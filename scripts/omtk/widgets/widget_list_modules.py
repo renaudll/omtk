@@ -537,7 +537,9 @@ class WidgetListModules(QtWidgets.QWidget):
         """
         Lock selected modules.
         """
-        modules = [module for module in self.get_selected_modules() if not module.locked]
+        modules = [
+            module for module in self.get_selected_modules() if not module.locked
+        ]
         if not modules:
             return
 

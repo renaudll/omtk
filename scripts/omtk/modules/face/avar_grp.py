@@ -129,7 +129,6 @@ class AvarMacroAll(AvarMacro):
 
     SHOW_IN_UI = False
     CLS_CTRL = CtrlFaceAll
-    CLS_MODEL_INFL = AvarLinearModel
 
 
 class AvarMacroLeft(AvarMacro):

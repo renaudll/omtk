@@ -24,6 +24,7 @@ class ModelCtrlLinear(base.BaseCtrlModel):
     2) Connecting the doritos ctrl to something
     3) Optionally call .calibrate()
     """
+
     def _build_compound(self):
         return create_compound(
             "omtk.AvarCtrlLinear",  # TODO: Get our own compound instead of duplicating.
@@ -38,12 +39,16 @@ class ModelCtrlLinear(base.BaseCtrlModel):
             ("multLr", self.attr_sensitivity_tx),
             ("multFb", self.attr_sensitivity_tx),
             ("multUd", self.attr_sensitivity_tx),
-            ("innOffset", self.grp_rig.matrix),
+            ("innOffset", self._grp_bind.matrix),
         ):
             pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr))
 
     def connect_ctrl(self, ctrl):
         self._grp_bind.setMatrix(ctrl.getMatrix(worldSpace=True))
+
+        # tmp
+        flip_lr = self.jnt.getMatrix(worldSpace=True).translate.x < 0.0
+        self.compound_inputs.flip.set(-1.0 if flip_lr else 1.0)
 
         super(ModelCtrlLinear, self).connect_ctrl(ctrl)
 

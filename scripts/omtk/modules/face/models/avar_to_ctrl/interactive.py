@@ -8,7 +8,6 @@ from omtk.modules.face.models.avar_to_ctrl import base
 from omtk.core.compounds import create_compound
 from omtk.libs import libRigging
 from omtk.libs import libPymel
-from omtk.libs import libAttr
 
 
 class ModelInteractiveCtrl(base.BaseCtrlModel):
@@ -85,12 +84,13 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
     def connect_ctrl(self, ctrl):
         # super(ModelInteractiveCtrl, self).connect_ctrl(ctrl)  # TODO: Test with super call
 
+        # TODO: Find a better method
         # Hack: Since there's scaling on the ctrl so the left and right side
         # ctrl channels matches, we need to flip the ctrl shapes.
-        flip_lr = False  # TODO: set
-        if flip_lr:
-            ctrl.scaleX.set(-1)
-            libPymel.makeIdentity_safe(ctrl, rotate=True, scale=True, apply=True)
+        # flip_lr = self.jnt.getMatrix(worldSpace=True).translate.x < 0.0
+        # if flip_lr:
+        #     ctrl.scaleX.set(-1)
+        #     libPymel.makeIdentity_safe(ctrl, rotate=True, scale=True, apply=True)
 
         # Create a "shapeOrig" for the ctrl
         ctrl_shape = ctrl.node.getShape()

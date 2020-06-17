@@ -349,7 +349,9 @@ def _create_attr(name, data):
     # (pymel.general.Attribute,) -> type depending on the attribute type itself.
     if issubclass(data_type, pymel.Attribute):
         if not data.exists():
-            _LOG.warning("Can't serialize non-existent pymel.Attribute %s", name,)
+            _LOG.warning(
+                "Can't serialize non-existent pymel.Attribute %s", name,
+            )
             return None
 
         if data.type() == "doubleAngle":
@@ -676,7 +678,9 @@ def import_network(network, fn_skip=None, cache=None):
     except AttributeError:  # Hook don't exist.
         pass
     except Exception as error:
-        _LOG.warning("Call to __callbackNetworkPreBuild__ failed for %s: %s", obj, error)
+        _LOG.warning(
+            "Call to __callbackNetworkPreBuild__ failed for %s: %s", obj, error
+        )
 
     for attr_name, attr in attr_map.iteritems():
         # _LOG.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
@@ -696,7 +700,9 @@ def import_network(network, fn_skip=None, cache=None):
     except AttributeError:  # Hook don't exist
         pass
     except Exception as error:
-        _LOG.warning("Call to __callbackNetworkPostBuild__ failed for %s: %s", obj, error)
+        _LOG.warning(
+            "Call to __callbackNetworkPostBuild__ failed for %s: %s", obj, error
+        )
 
     return obj
 

@@ -3,10 +3,7 @@ Tests for the Avar module.
 """
 import os
 
-import pytest
-
 from maya import cmds
-from pymel.core.datatypes import Matrix
 
 from omtk.core.rig import Rig
 from omtk.modules.face.models.avar_to_infl.linear import AvarLinearModel
@@ -21,167 +18,215 @@ from ... import helpers
 _RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "resources")
 
 
-class AvarImpl1(Avar):
-    """Implementation that test linear ctrl and influence models."""
+class AvarImplCtrlLinear(Avar):
+    """Implementation with a linear ctrl model."""
 
     CLS_MODEL_CTRL = ModelCtrlLinear
+    CLS_MODEL_INFL = None
+
+
+class AvarImplInflLinear(Avar):
+    """Implement with a linear influence model."""
+
+    CLS_MODEL_CTRL = None
     CLS_MODEL_INFL = AvarLinearModel
 
 
-class AvarImpl2(Avar):
-    """Implementation which influence follow a surface."""
+class AvarImplCtrlSurface(Avar):
+    """Implement with an interactive ctrl model."""
 
-    CLS_MODEL_CTRL = ModelCtrlLinear
+    CLS_MODEL_CTRL = ModelInteractiveCtrl
+    CLS_MODEL_INFL = None
+
+
+class AvarImplInflSurface(Avar):
+    """Implementation with a surface influence model."""
+
+    CLS_MODEL_CTRL = None
     CLS_MODEL_INFL = AvarSurfaceModel
 
 
-class AvarImpl3(Avar):
+class AvarImplCtrlSurfaceWithInfl(Avar):
     """Implementation where the ctrl follow a mesh."""
 
     CLS_MODEL_CTRL = ModelInteractiveCtrl
     CLS_MODEL_INFL = AvarLinearModel
 
 
-_POSE_REST = {
-    "anm_test": Matrix(
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
-    ),
-    "joint1": Matrix(
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
-    ),
-}
-
-
-def test_linear_unit_no_parent():
-    """
-    Validate we can build our first Avar implementation.
-    This implementation is totally linear.
-    """
-    cmds.joint()
-    avar = AvarImpl1(input=["joint1"], name="test", rig=Rig())
+def test_ctrl_model_linear():
+    """Test an avar with a linear ctrl model."""
+    cmds.joint(position=[0.0, 0.0, 0.1])
+    avar = AvarImplCtrlLinear(input=["joint1"], name="test", rig=Rig())
     avar.build()
-    helpers.assert_match_pose(_POSE_REST)
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear_rest.json")
+    )
 
     # Validate that moving the avar will move the controller.
     avar.attr_lr.set(1.0)
     avar.attr_ud.set(2.0)
     avar.attr_fb.set(3.0)
-    avar.attr_pt.set(10.0)
-    avar.attr_yw.set(20.0)
-    avar.attr_rl.set(30.0)
+    avar.attr_pt.set(90.0)
+    avar.attr_yw.set(45.0)
+    avar.attr_rl.set(22.5)
 
     # Validate the infl model
     helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json")
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear_pose.json")
     )
 
-    # Validate the ctrl model
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json")
-    )
-
-    # Validate moving the ctrl affect the avar in the same way.
+    # Validate that moving the ctrl affect the avar
     avar.attr_lr.set(0.0)
     avar.attr_ud.set(0.0)
     avar.attr_fb.set(0.0)
     avar.attr_pt.set(0.0)
     avar.attr_yw.set(0.0)
     avar.attr_rl.set(0.0)
-    avar.ctrl.translate.set((1.0, 2.0, 3.0))
-    avar.ctrl.rotate.set(10.0, 20.0, 30.0)
+    avar.ctrl.translateX.set(1.0)
+    avar.ctrl.translateY.set(2.0)
+    avar.ctrl.translateZ.set(3.0)
+    avar.ctrl.rotateX.set(90.0)
+    avar.ctrl.rotateY.set(45.0)
+    avar.ctrl.rotateZ.set(22.5)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear_pose.json")
+    )
+    assert avar.attr_lr.get() == 1.0
+    assert avar.attr_ud.get() == 2.0
+    assert avar.attr_fb.get() == 3.0
+    assert avar.attr_pt.get() == 90.0
+    assert avar.attr_yw.get() == 45.0
+    assert avar.attr_rl.get() == 22.5
+
+
+def test_infl_model_linear():
+    """Test an avar with a linear influence model."""
+    cmds.joint(position=[0.0, 0.0, 0.1])
+    avar = AvarImplInflLinear(input=["joint1"], name="test", rig=Rig())
+    avar.build()
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear_rest.json")
+    )
+
+    # Validate that moving the avar will move the the influence.
+    avar.attr_lr.set(1.0)
+    avar.attr_ud.set(2.0)
+    avar.attr_fb.set(3.0)
+    avar.attr_pt.set(90.0)
+    avar.attr_yw.set(45.0)
+    avar.attr_rl.set(22.5)
 
     # Validate the infl model
     helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avar_infl_linear.json")
-    )
-
-    # Validate the ctrl model
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear.json")
+        os.path.join(_RESOURCE_DIR, "test_avar_infl_linear_pose.json")
     )
 
     avar.unbuild()
 
 
-@pytest.mark.usefixtures()
-def test_influence_surface_no_parent():
-    """
-    Validate we can build our 2nd Avar implementation.
-    This implementation influence follow a surface instead of moving in linear space.
-    """
-    cmds.joint()
+def test_infl_model_surface():
+    """Test an avar with an interactive ctrl model."""
+    cmds.joint(position=[0.0, 0.0, 0.1])
     cmds.nurbsPlane(axis=[0.0, 0.0, 1.0], patchesV=10)  # Face the Z axis
     cmds.nonLinear("nurbsPlane1", type="bend", curvature=45)
     cmds.setAttr("bend1Handle.rotateY", 90)  # Bend vertically
 
-    avar = AvarImpl2(input=["joint1", "nurbsPlane1"], name="test", rig=Rig())
+    avar = AvarImplInflSurface(input=["joint1", "nurbsPlane1"], name="test", rig=Rig())
     avar.build()
-    helpers.assert_match_pose(_POSE_REST)
-
-    # Move the ctrl and see if the influence follow properly
-    # TODO: Validate default sensibility
-    # TODO: Auto-calibrate
-    avar.ctrl.translateY.set(2.0)
     helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface.json")
+        os.path.join(_RESOURCE_DIR, "test_avar_infl_surface_rest.json")
+    )
+
+    # Validate that moving the avar will move the the influence.
+    avar.attr_lr.set(1.0)
+    avar.attr_ud.set(2.0)
+    avar.attr_fb.set(3.0)
+    avar.attr_pt.set(90.0)
+    avar.attr_yw.set(45.0)
+    avar.attr_rl.set(22.5)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_infl_surface_pose.json")
     )
 
     avar.unbuild()
 
 
-def test_interactive_ctrl_no_parent():
-    """
-    Validate we can build our 3nd Avar implementation.
-    This implementation ctrl follow a surface.
+def test_ctrl_model_surface():
+    """Test an avar with an interactive ctrl model and no influence model.
     """
     cmds.polySphere()
     cmds.select(clear=True)
     cmds.joint()
-    cmds.joint(
-        position=[0.0, 0.0, 0.75]
-    )  # Note that the sphere end a 1.0, 0.75 is a little inside.
+    # Note that the sphere end a 1.0, 0.75 is a little inside.
+    cmds.joint(position=[0.0, 0.0, 0.75])
     cmds.skinCluster("pSphere1", "joint1", "joint2")
 
-    avar = AvarImpl3(input=["joint2", "pSphere1"], name="test", rig=Rig())
+    avar = AvarImplCtrlSurface(input=["joint2", "pSphere1"], name="test", rig=Rig())
     avar.build()
-    helpers.assert_match_pose(
-        {
-            "joint2": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.75, 1.0],
-            ),
-            "anm_test": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0, 1.0],
-            ),
-        }
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface_rest.json")
     )
 
-    # Move the ctrl and see if the influence follow properly
-    avar.ctrl.translateY.set(1.0)
-    helpers.assert_match_pose(
-        {
-            "joint2": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 1.0, 0.75, 1.0],
-            ),
-            "anm_test": Matrix(
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.5, 1.0, 1.0],
-            ),
-        }
+    # Validate that moving the avar DONT affect the ctrl.
+    # This is expected as the interactive controller follow the geometry and the influence don't move.
+    avar.attr_lr.set(1.0)
+    avar.attr_ud.set(2.0)
+    avar.attr_fb.set(3.0)
+    avar.attr_pt.set(90.0)
+    avar.attr_yw.set(45.0)
+    avar.attr_rl.set(22.5)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface_rest.json")
+    )
+
+
+def test_ctrl_model_surface_with_infl():
+    """Test an avar with an interactive ctrl model and a linear influence model."""
+    cmds.polySphere()
+    cmds.select(clear=True)
+    cmds.joint()
+    # Note that the sphere end a 1.0, 0.75 is a little inside.
+    cmds.joint(position=[0.0, 0.0, 0.75])
+    cmds.skinCluster("pSphere1", "joint1", "joint2")
+
+    avar = AvarImplCtrlSurfaceWithInfl(
+        input=["joint2", "pSphere1"], name="test", rig=Rig()
+    )
+    avar.build()
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface_rest.json")
+    )
+
+    # Validate that moving the avar influence the controller.
+    avar.attr_lr.set(1.0)
+    avar.attr_ud.set(2.0)
+    avar.attr_fb.set(3.0)
+    avar.attr_pt.set(90.0)
+    avar.attr_yw.set(45.0)
+    avar.attr_rl.set(22.5)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface_pose_1.json")
+    )
+
+    # Validate that moving the ctrl influence the influence.
+    # Note that this won't affect the controller rotation which DONT follow the deformation.
+    avar.attr_lr.set(0.0)
+    avar.attr_ud.set(0.0)
+    avar.attr_fb.set(0.0)
+    avar.attr_pt.set(0.0)
+    avar.attr_yw.set(0.0)
+    avar.attr_rl.set(0.0)
+    avar.ctrl.translateX.set(1.0)
+    avar.ctrl.translateY.set(2.0)
+    avar.ctrl.translateZ.set(3.0)
+    avar.ctrl.rotateX.set(90.0)
+    avar.ctrl.rotateY.set(45.0)
+    avar.ctrl.rotateZ.set(22.5)
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface_pose_2.json")
     )

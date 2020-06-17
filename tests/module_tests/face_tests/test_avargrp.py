@@ -25,6 +25,11 @@ class AvarImpl1(Avar):
     CLS_MODEL_INFL = AvarLinearModel
 
 
+class MacroAvarImpl1(Avar):
+    CLS_MODEL_CTRL = ModelCtrlLinear
+    CLS_MODEL_INFL = None
+
+
 class AvarImpl2(Avar):
     """Implementation that test surface based ctrl and influence models."""
 
@@ -36,11 +41,11 @@ class AvarGrpImpl1(AvarGrp):
     """Implementation that test a grp of linear avars."""
 
     CLS_AVAR_MICRO = AvarImpl1
-    CLS_AVAR_MACRO_ALL = AvarImpl1
-    CLS_AVAR_MACRO_LFT = AvarImpl1
-    CLS_AVAR_MACRO_RGT = AvarImpl1
-    CLS_AVAR_MACRO_UPP = AvarImpl1
-    CLS_AVAR_MACRO_LOW = AvarImpl1
+    CLS_AVAR_MACRO_ALL = MacroAvarImpl1
+    CLS_AVAR_MACRO_LFT = MacroAvarImpl1
+    CLS_AVAR_MACRO_RGT = MacroAvarImpl1
+    CLS_AVAR_MACRO_UPP = MacroAvarImpl1
+    CLS_AVAR_MACRO_LOW = MacroAvarImpl1
 
 
 class AvarGrpImpl1SideSpecific(AvarGrpImpl1):
@@ -79,23 +84,23 @@ def test_avar_grp_simple():
 
     # Ensure micros follow macros
     inst.avar_l.ctrl.translateX.set(1.0)
-    inst.avar_r.ctrl.translateX.set(-1.0)
+    inst.avar_r.ctrl.translateX.set(1.0)
     inst.avar_upp.ctrl.translateY.set(1.0)
     inst.avar_low.ctrl.translateY.set(-1.0)
 
     helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json")
+        os.path.join(_RESOURCE_DIR, "test_avargrp_pose1.json")
     )
 
 
-def test_avarsidegrp_specific():
+def test_avarsidegrp_specific_l():
     """
     Test a very simple case of AvarGrp that is side specific.
     """
     jnts = _create_joints(
         [
-            ("jnt_test_inn_l", [1.0, 0.0, 0.0]),
-            ("jnt_test_out_l", [-1.0, 0.0, 0.0]),
+            ("jnt_test_inn_l", [-1.0, 0.0, 0.0]),
+            ("jnt_test_out_l", [1.0, 0.0, 0.0]),
             ("jnt_test_upp_l", [0.0, 1.0, 0.0]),
             ("jnt_test_low_l", [0.0, -1.0, 0.0]),
         ]
@@ -104,5 +109,25 @@ def test_avarsidegrp_specific():
     inst.build()
 
     helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avarsidegrp_rest.json")
+        os.path.join(_RESOURCE_DIR, "test_avarsidegrp_l_rest.json")
+    )
+
+
+def test_avarsidegrp_specific_r():
+    """
+    Test a very simple case of AvarGrp that is side specific.
+    """
+    jnts = _create_joints(
+        [
+            ("jnt_test_inn_r", [1.0, 0.0, 0.0]),
+            ("jnt_test_out_r", [-1.0, 0.0, 0.0]),
+            ("jnt_test_upp_r", [0.0, 1.0, 0.0]),
+            ("jnt_test_low_r", [0.0, -1.0, 0.0]),
+        ]
+    )
+    inst = AvarGrpImpl1SideSpecific(jnts, name="r_avargrp", rig=Rig())
+    inst.build()
+
+    helpers.assert_match_pose_from_file(
+        os.path.join(_RESOURCE_DIR, "test_avarsidegrp_r_rest.json")
     )

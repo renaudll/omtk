@@ -12,6 +12,7 @@ from omtk.modules.face.models.avar_to_ctrl.linear import ModelCtrlLinear
 from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCtrl
 from omtk.modules.face.avar import Avar
 from omtk.modules.face.avar_grp import AvarGrp
+from omtk.libs import libRigging
 
 from ... import helpers
 
@@ -131,3 +132,35 @@ def test_avarsidegrp_specific_r():
     helpers.assert_match_pose_from_file(
         os.path.join(_RESOURCE_DIR, "test_avarsidegrp_r_rest.json")
     )
+
+
+def test_avargrp_connection_persistence():
+    """Validate connection between avars is conserved between rebuilds."""
+    jnts = _create_joints(
+        [
+            ("jnt_test_l", [1.0, 0.0, 0.0]),
+            ("jnt_test_r", [-1.0, 0.0, 0.0]),
+            ("jnt_test_upp", [0.0, 1.0, 0.0]),
+            ("jnt_test_low", [0.0, -1.0, 0.0]),
+        ]
+    )
+    inst = AvarGrpImpl1(jnts, name="avargrp", rig=Rig())
+    inst.build()
+
+    # Connect some avars
+    libRigging.connectAttr_withLinearDrivenKeys(
+        inst.avar_l.attr_lr, inst.avar_r.attr_lr
+    )
+
+    # Validate that the connection work, moving the avar_l should move the avar_r
+    inst.avar_l.attr_lr.set(1.0)
+    assert inst.avar_r.attr_lr.get() == 1.0
+    inst.avar_l.attr_lr.set(0.0)
+
+    inst.unbuild()
+    inst.build()
+
+    # Validate that the connection still work
+    inst.avar_l.attr_lr.set(1.0)
+    assert inst.avar_r.attr_lr.get() == 1.0
+    inst.avar_l.attr_lr.set(0.0)

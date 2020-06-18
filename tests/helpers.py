@@ -108,13 +108,13 @@ def verified_offset(objs, offset_tm, **kwargs):
 
 
 @contextlib2.contextmanager
-def save_scene_on_assertion():
+def save_scene_on_error():
     """
     Context/decorator that will save the scene if case of error for further debugging.
     """
     try:
         yield
-    except AssertionError:
+    except Exception:
         # Save the scene in it's current state for further debugging
         path = tempfile.mktemp(suffix=".ma")
         cmds.file(rename=path)
@@ -123,7 +123,7 @@ def save_scene_on_assertion():
         raise
 
 
-@save_scene_on_assertion()
+@save_scene_on_error()
 def assert_match_pose(data):
     """
     :param data: A dict of matrix by name

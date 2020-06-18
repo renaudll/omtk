@@ -285,7 +285,9 @@ def _get_macro_by_name(macro_name):
     for macro in pm.iter_loaded_plugins_by_type(
         plugin_manager.MacroPluginType.type_name
     ):
-        if macro.module_name == macro_name:
+        # Convert omtk.macros.my_macro -> my_macro
+        current_macro_name = macro.module_name.rsplit(".", 1)[-1]
+        if current_macro_name == macro_name:
             return macro.cls()
 
 

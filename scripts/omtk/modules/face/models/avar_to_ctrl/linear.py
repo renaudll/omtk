@@ -13,8 +13,8 @@ class ModelCtrlLinear(base.BaseCtrlModel):
     For clarity purposes, this is built in the rig so
     the animator don't need to see the whole setup.
 
-    However an InterfactiveCtrl might still have to be callibrated.
-    This is necessay to keep the InteractiveCtrl values
+    However an InteractiveCtrl might still have to be callibrated.
+    This is necessary to keep the InteractiveCtrl values
     in a specific range (ex: -1 to 1) in any scale.
     The calibration apply non-uniform scaling on
     the ctrl parent to cheat the difference.

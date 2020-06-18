@@ -421,7 +421,8 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         try:
             return min(distances) * 0.5
         except ValueError as error:  # Not enough distance
-            raise ValueError("Could not get ctrl size hint: %s" % error)
+            log.warning("Cloud not get ctrl size hint: %s", error)
+            return None
 
         # TODO: Fallback on head jnt length?
 
@@ -872,6 +873,10 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         return inst
 
     def _init_avar_macro_l(self, value=None):
+        """
+        :return: A macro avar for the left quadrant.
+        :rtype: AvarMacroLeft
+        """
         cls = self.naming_cls
         side = self.naming.side
         tokens = ["macros"]
@@ -890,6 +895,10 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         )
 
     def _init_avar_macro_r(self, value=None):
+        """
+        :return: A macro avar for the right quadrant.
+        :rtype: AvarMacroRight
+        """
         cls = self.naming_cls
         side = self.naming.side
         tokens = ["macro"]
@@ -908,6 +917,10 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         )
 
     def _init_avar_macro_upp(self, value=None):
+        """
+        :return: A macro avar for the upper quadrant.
+        :rtype: AvarMacroUpp
+        """
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
         name = self.naming_cls(
             tokens=["macro", self.naming_cls.SIDE_V_UPP], side=side
@@ -922,6 +935,10 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         )
 
     def _init_avar_macro_low(self, value=None):
+        """
+        :return: A macro avar for the lower quadrant.
+        :rtype: AvarMacroLow
+        """
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
         name = self.naming_cls(
             tokens=["macro", self.naming_cls.SIDE_V_LOW], side=side
@@ -936,6 +953,10 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         )
 
     def _init_avar_macro_all(self, value=None):
+        """
+        :return: A macro avar for all quadrant.
+        :rtype: AvarMacroAll
+        """
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
         # TODO: Use naming_cls instead of hardcoding "all"?
         name = self.naming_cls(tokens=["macro", "all"], side=side).resolve()

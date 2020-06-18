@@ -5,6 +5,7 @@ import functools
 
 from maya import cmds
 import pymel.core as pymel
+from pymel.core.datatypes import Matrix
 
 from omtk.core import module
 from omtk.core.exceptions import ValidationError
@@ -129,7 +130,12 @@ class AvarInflBaseModel(module.Module):
 
         naming = self.get_nomenclature_rig()
 
-        bind_tm = self.jnt.getMatrix(worldSpace=True)
+        parent_tm = (
+            self.jnt.getParent().getMatrix(worldSpace=True)
+            if self.jnt.getParent()
+            else Matrix()
+        )
+        bind_tm = self.jnt.getMatrix(worldSpace=True) * parent_tm.inverse()
 
         # Get the matrix for the internal computation
         bind_pos_tm = pymel.datatypes.Matrix()
@@ -159,10 +165,14 @@ class AvarInflBaseModel(module.Module):
         obj_bind = _create_grp("bind", tm=bind_tm)
         pymel.connectAttr(obj_bind.matrix, compound_input.bind)
 
-        # For avar influences, we don't always want to consider it's rotation at all.
-        # TODO: Is this true? Don't we want to do computation in parent space?
-        # internal_bind_tm = self._get_compute_tm(compound_input.bind)
-        obj_internal_bind = _create_grp("bindInternal", tm=bind_pos_tm)
+        # Like any module, avars are evaluated in their parent space.
+        # However historically avars always move in relation to the world.
+        # LR is always X, UD is always Y and FB is always Z.
+        # For this reason we need to offset the computer to the inverse
+        # of the parent world matrix.
+        # TODO: This will be off axis if the head is now aligned with the world.
+        # TODO: Find a proper offset.
+        obj_internal_bind = _create_grp("bindInternal", tm=parent_tm.inverse())
         pymel.connectAttr(obj_internal_bind.matrix, compound_input.bindInternal)
 
         offset_tm = libRigging.create_multiply_matrix(
@@ -272,13 +282,16 @@ class AvarInflBaseModel(module.Module):
             return value.get() if isinstance(value, pymel.Attribute) else value
 
         self.multiplier_lr = fn(
-            "innMultiplierLr", defaultValue=_get(self.multiplier_lr)
+            "innMultiplierLr",
+            defaultValue=_get(self.multiplier_lr) or self.DEFAULT_MULTIPLIER_LR,
         )
         self.multiplier_ud = fn(
-            "innMultiplierUd", defaultValue=_get(self.multiplier_ud)
+            "innMultiplierUd",
+            defaultValue=_get(self.multiplier_ud) or self.DEFAULT_MULTIPLIER_UD,
         )
         self.multiplier_fb = fn(
-            "innMultiplierFb", defaultValue=_get(self.multiplier_fb)
+            "innMultiplierFb",
+            defaultValue=_get(self.multiplier_fb) or self.DEFAULT_MULTIPLIER_FB,
         )
 
         # TODO: Should this be optional?

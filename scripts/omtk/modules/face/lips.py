@@ -42,10 +42,7 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
 
         jaw_offset_tm = compound_input.bindInternal
         jaw_local_tm = compound_output.outputLocal
-        pymel.connectAttr(jaw_offset_tm, self._attr_jaw_offset)
         pymel.connectAttr(jaw_local_tm, self._attr_jaw_local_tm)
-        # print("pymel.connectAttr(%r, %r)" % (jaw_offset_tm.__melobject__(), self._attr_jaw_offset.__melobject__()))
-        # print("pymel.connectAttr(%r, %r)" % (jaw_local_tm.__melobject__(), self._attr_jaw_local_tm.__melobject__()))
 
     def _create_interface(self):
         super(AvarSurfaceLipModel, self)._create_interface()
@@ -53,7 +50,6 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
         fn = functools.partial(libAttr.addAttr, self.grp_rig)
         self.attr_inn_jaw_ratio_default = fn("innJawRatioDefault", defaultValue=0)
         self._attr_bypass = fn("innBypassSplitter")
-        self._attr_jaw_offset = fn("jawOffsetTM", dt="matrix")
         self._attr_jaw_local_tm = fn("jawLocalTM", dt="matrix")
 
     def _build(self, avar):
@@ -61,17 +57,18 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
 
         local_tm = super(AvarSurfaceLipModel, self)._build(avar)
 
-        compound_input = pymel.PyNode(self.compound.input)
-
-        # Convert the jaw_local_tm and jaw_offset_tm in the same space are ours.
-        attr_jaw_bind_tm = libRigging.create_multiply_matrix(
-            [
-                self._attr_jaw_offset,
-                libRigging.create_inverse_matrix(compound_input.bindInternal),
-            ],
-        )
-
         # Apply jaw influence
+        # This is not easy as our avar is in parent space.
+        # So to apply the jaw influence, we need to convert it to our space.
+        # To be able to do this, we need to know world-space information which we don't want.
+        # To workaround this we'll compute an offset transform once using worldspace coordinates.
+        jnt_jaw_world_tm = self.get_jaw_module().jnt.getMatrix(worldSpace=True)
+        parent_tm = (
+            self.parent_jnt.getMatrix(worldSpace=True) if self.parent_jnt else Matrix()
+        )
+        jaw_to_avar_projection = parent_tm * jnt_jaw_world_tm.inverse()
+
+        # start from result
         ratio = libRigging.create_utility_node(
             "blendTwoAttr",
             input=[self.attr_inn_jaw_ratio_default, 0.0],
@@ -81,20 +78,14 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
         attr_blend_jaw = libRigging.create_blend_two_matrix(
             Matrix(), self._attr_jaw_local_tm, ratio
         )
-
-        # util_blend_jaw = libRigging.create_utility_node("blendMatrix", envelope=ratio)
-        # pymel.connectAttr(
-        #     self._attr_jaw_local_tm, util_blend_jaw.target[0].targetMatrix
-        # )
-        # attr_blend_jaw = util_blend_jaw.outputMatrix
-
-        attr_jaw_bind_inv_tm = libRigging.create_inverse_matrix(attr_jaw_bind_tm)
         return libRigging.create_multiply_matrix(
             [
-                local_tm,  # Start from the result
-                attr_jaw_bind_inv_tm,  # Enter jaw space
-                attr_blend_jaw,  # Apply jaw transformation
-                attr_jaw_bind_tm,  # Exit jaw space
+                local_tm,  # start from result
+                jaw_to_avar_projection,  # enter jaw space
+                attr_blend_jaw,  # apply jaw transform
+                libRigging.create_inverse_matrix(
+                    jaw_to_avar_projection
+                ),  # exit jaw space
             ],
             name=naming.resolve("applyJawInfluence"),
         )
@@ -192,12 +183,12 @@ class FaceLips(AvarGrp):
             return 0.5
 
         if avar in self.get_avars_upp(macro=False):
-            return _get_football_ratio(avar) if use_football_interpolation else 0.0
-
-        if avar in self.get_avars_low(macro=False):
             return (
                 1.0 - _get_football_ratio(avar) if use_football_interpolation else 1.0
             )
+
+        if avar in self.get_avars_low(macro=False):
+            return _get_football_ratio(avar) if use_football_interpolation else 0.0
 
         raise NotImplementedError("Could not recognize avar")
 

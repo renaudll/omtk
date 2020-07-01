@@ -4,6 +4,8 @@ Tests for the AvarGrp module.
 import os
 
 from maya import cmds
+import pymel.core as pymel
+from pymel.core.datatypes import Matrix
 
 from omtk.core.rig import Rig
 from omtk.modules.face.models.avar_to_infl.linear import AvarLinearModel
@@ -55,11 +57,16 @@ class AvarGrpImpl1SideSpecific(AvarGrpImpl1):
     IS_SIDE_SPECIFIC = True
 
 
+def _create_joint(name, position=(0.0, 0.0, 0.0)):
+    cmds.select(clear=True)
+    jnt = cmds.joint(name=name, position=position)
+    return jnt
+
+
 def _create_joints(data):
     jnts = []
     for name, position in data:
-        cmds.select(clear=True)
-        jnt = cmds.joint(name=name, position=position)
+        jnt = _create_joint(name, position)
         jnts.append(jnt)
     return jnts
 
@@ -68,6 +75,7 @@ def test_avar_grp_simple():
     """
     Test a very simple case of AvarGrp where all avar are linear and there is no parent.
     """
+    parent = _create_joint("parent")
     jnts = _create_joints(
         [
             ("jnt_test_l", [1.0, 0.0, 0.0]),
@@ -76,6 +84,9 @@ def test_avar_grp_simple():
             ("jnt_test_low", [0.0, -1.0, 0.0]),
         ]
     )
+    for jnt in jnts:
+        cmds.parent(jnt, parent)
+
     inst = AvarGrpImpl1(jnts, name="avargrp", rig=Rig())
     inst.build()
 
@@ -84,14 +95,20 @@ def test_avar_grp_simple():
     )
 
     # Ensure micros follow macros
-    inst.avar_l.ctrl.translateX.set(1.0)
-    inst.avar_r.ctrl.translateX.set(1.0)
-    inst.avar_upp.ctrl.translateY.set(1.0)
-    inst.avar_low.ctrl.translateY.set(-1.0)
+    with helpers.temporary_changes({
+        inst.avar_l.ctrl.translateX: 1.0,
+        inst.avar_r.ctrl.translateX: 1.0,
+        inst.avar_upp.ctrl.translateY: 1.0,
+        inst.avar_low.ctrl.translateY: -1.0,
+    }):
+        helpers.assert_match_pose_from_file(
+            os.path.join(_RESOURCE_DIR, "test_avargrp_pose1.json")
+        )
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avargrp_pose1.json")
-    )
+    # # Ensure influence and ctrls follow parent
+    # offset_tm = Matrix([0.0, 0.0, -0.5, 0.0], [0.0, 1.0, 0.0, 0.0], [2.0, 0.0, 0.0, 0.0], [1.0, 2.0, 3.0, 1.0])
+    # with helpers.verified_offset(inst.jnts + inst.get_ctrls(), offset_tm):
+    #     pymel.PyNode(parent).setMatrix(offset_tm)
 
 
 def test_avarsidegrp_specific_l():
@@ -153,14 +170,12 @@ def test_avargrp_connection_persistence():
     )
 
     # Validate that the connection work, moving the avar_l should move the avar_r
-    inst.avar_l.attr_lr.set(1.0)
-    assert inst.avar_r.attr_lr.get() == 1.0
-    inst.avar_l.attr_lr.set(0.0)
+    with helpers.temporary_changes({inst.avar_l.attr_lr: 1.0}):
+        assert inst.avar_r.attr_lr.get() == 1.0
 
     inst.unbuild()
     inst.build()
 
     # Validate that the connection still work
-    inst.avar_l.attr_lr.set(1.0)
-    assert inst.avar_r.attr_lr.get() == 1.0
-    inst.avar_l.attr_lr.set(0.0)
+    with helpers.temporary_changes({inst.avar_l.attr_lr: 1.0}):
+        assert inst.avar_r.attr_lr.get() == 1.0

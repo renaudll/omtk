@@ -111,6 +111,13 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
         ):
             pymel.connectAttr(value, "%s.%s" % (self.compound.input, attr), force=True)
 
+        if self.parent_jnt:
+            pymel.connectAttr(
+                self.parent_jnt.worldInverseMatrix,
+                "%s.%s" % (self.compound_inputs, "parentWorldInvTm"),
+                force=True
+            )
+
         # Connect compound outputs
         for attr, value in (
             ("ctrlOffsetTranslate", ctrl.offset.translate),

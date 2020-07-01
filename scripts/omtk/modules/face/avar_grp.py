@@ -12,6 +12,7 @@ from pymel.core.datatypes import Matrix
 
 from omtk.core.module import Module
 from omtk.core.utils import ui_expose
+from omtk.core.compounds import create_compound
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -19,7 +20,6 @@ from omtk.libs import libRigging
 from omtk.libs.libRigging import get_average_pos_between_nodes
 from omtk.modules.face.models.avar_to_ctrl.linear import ModelCtrlLinear
 from omtk.modules.face.models.avar_to_ctrl.interactive import ModelInteractiveCtrl
-from omtk.modules.face.models.avar_to_infl.linear import AvarLinearModel
 from omtk.modules.face.avar import BaseCtrlFace, Avar, AbstractAvar
 
 log = logging.getLogger("omtk")
@@ -155,7 +155,7 @@ class AvarMacroLow(AvarMacro):
     CLS_CTRL = CtrlFaceLow
 
 
-class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
+class AvarGrp(Module):  # TODO: Inherit from Module
     """
     Base class for a group of 'avars' that share the same properties.
 
@@ -284,6 +284,9 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
 
         if not self.get_head_jnt(strict=False):
             raise ValidationError("Found no head module.")
+
+    def parent_to(self, parent):
+        pass  # TODO: REMOVE THIS
 
     def iter_avars(self):
         # TODO: The order should not matter, however moving the all macro at the
@@ -548,11 +551,52 @@ class AvarGrp(AbstractAvar):  # TODO: Inherit from Module
         return True
 
     @ui_expose()
-    def create_surface(self, *args, **kwargs):
+    def create_surface(self, name="Surface", epsilon=0.001, default_scale=1.0):
         """
-        Expose the function in the ui, using the decorator.
+        Create a simple rig to deform a nurbsSurface, allowing the rigger to
+        easily provide a surface for the influence to slide on.
+        :param name: The suffix of the surface name to create.
+        :return: A pymel.nodetypes.Transform instance of the created surface.
         """
-        return super(AvarGrp, self).create_surface(*args, **kwargs)
+        naming = self.get_nomenclature_rig().copy()
+        naming.add_tokens(name)
+
+        # TODO: This is not a "REAL" compound as it don't have an input or an output.
+        # TODO: What do we do here?
+        compound = create_compound("omtk.AvarInflSurfaceTemplate", naming.resolve())
+        transform = pymel.PyNode("%s:Surface" % compound.namespace)
+        compound.explode(remove_namespace=True)  # Remove namespace
+
+        # Try to guess the desired position
+        min_x = None
+        max_x = None
+        pos = pymel.datatypes.Vector()
+        for jnt in self.jnts:
+            pos += jnt.getTranslation(space="world")
+            if min_x is None or pos.x < min_x:
+                min_x = pos.x
+            if max_x is None or pos.x > max_x:
+                max_x = pos.x
+        pos /= len(self.jnts)
+
+        # Try to guess the scale
+        scale = max_x - min_x if min_x and max_x else 1.0
+        if len(self.jnts) <= 1 or scale < epsilon:
+            self.log.debug(
+                "Cannot automatically resolve scale for surface. "
+                "Using default value %s",
+                default_scale,
+            )
+            scale = default_scale
+
+        transform.setTranslation(pos)
+        transform.scaleX.set(scale)
+        transform.scaleY.set(scale * 0.5)
+        transform.scaleZ.set(scale)
+
+        pymel.select(transform)
+
+        return transform
 
     def validate(self):
         """

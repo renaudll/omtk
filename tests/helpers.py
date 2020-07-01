@@ -5,7 +5,6 @@ import os
 import json
 import sys
 import tempfile
-from contextlib import contextmanager
 
 from maya import cmds
 import pymel.core as pymel
@@ -83,7 +82,7 @@ def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0)
         )
 
 
-@contextmanager
+@contextlib2.contextmanager
 def verified_offset(objs, offset_tm, **kwargs):
     """
     Context that store the world matrix of provided object.
@@ -96,15 +95,11 @@ def verified_offset(objs, offset_tm, **kwargs):
     """
     # Store the base matrices
     old_tms = [obj.getMatrix(worldSpace=True) for obj in objs]
+    desired_pose = {obj.__melobject__(): tm * offset_tm for obj, tm in zip(objs, old_tms)}
+
     yield True
-    # Verify the matrices matches
-    for obj, old_tm in zip(objs, old_tms):
-        new_tm = obj.getMatrix(worldSpace=True)
-        desired_tm = old_tm * offset_tm
-        try:
-            assertMatrixAlmostEqual(new_tm, desired_tm, **kwargs)
-        except Exception as error:
-            raise Exception("Invalid transform for %s. %s" % (obj, error))
+
+    assert_match_pose(desired_pose)
 
 
 @contextlib2.contextmanager
@@ -310,3 +305,19 @@ def build_unbuild_build_all(**kwargs):
     # Ensure no shapes are left after a rebuild.
     num_holder_shapes_after = len(_get_holded_shapes())
     assert num_holder_shapes_before == num_holder_shapes_after
+
+
+@contextlib2.contextmanager
+def temporary_changes(attr_map):
+    """
+    :param attr_map: A mapping of value per attribute
+    :type attr_map: dict[pymel.Attribute, object]
+    """
+    old_values = {attr: attr.get() for attr in attr_map}
+    for attr, value in attr_map.items():
+        attr.set(value)
+
+    yield
+
+    for attr, value in old_values.items():
+        attr.set(value)

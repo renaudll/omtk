@@ -5,7 +5,6 @@ import pymel.core as pymel
 
 from omtk.core import ctrl
 from omtk.core import module
-from omtk.core.compounds import create_compound
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libPymel
@@ -221,52 +220,7 @@ class AbstractAvar(module.Module):
         )
         return fol_u, fol_v
 
-    def create_surface(self, name="Surface", epsilon=0.001, default_scale=1.0):
-        """
-        Create a simple rig to deform a nurbsSurface, allowing the rigger to
-        easily provide a surface for the influence to slide on.
-        :param name: The suffix of the surface name to create.
-        :return: A pymel.nodetypes.Transform instance of the created surface.
-        """
-        naming = self.get_nomenclature_rig().copy()
-        naming.add_tokens(name)
 
-        # TODO: This is not a "REAL" compound as it don't have an input or an output.
-        # TODO: What do we do here?
-        compound = create_compound("omtk.AvarInflSurfaceTemplate", naming.resolve())
-        transform = pymel.PyNode("%s:Surface" % compound.namespace)
-        compound.explode(remove_namespace=True)  # Remove namespace
-
-        # Try to guess the desired position
-        min_x = None
-        max_x = None
-        pos = pymel.datatypes.Vector()
-        for jnt in self.jnts:
-            pos += jnt.getTranslation(space="world")
-            if min_x is None or pos.x < min_x:
-                min_x = pos.x
-            if max_x is None or pos.x > max_x:
-                max_x = pos.x
-        pos /= len(self.jnts)
-
-        # Try to guess the scale
-        scale = max_x - min_x if min_x and max_x else 1.0
-        if len(self.jnts) <= 1 or scale < epsilon:
-            self.log.debug(
-                "Cannot automatically resolve scale for surface. "
-                "Using default value %s",
-                default_scale,
-            )
-            scale = default_scale
-
-        transform.setTranslation(pos)
-        transform.scaleX.set(scale)
-        transform.scaleY.set(scale * 0.5)
-        transform.scaleZ.set(scale)
-
-        pymel.select(transform)
-
-        return transform
 
     def build(self, mult_u=1.0, mult_v=1.0, **kwargs):
         """
@@ -277,6 +231,8 @@ class AbstractAvar(module.Module):
 
         self.add_avars()
         self.fetch_avars()
+
+        self._weird_grp_anm_dance()
 
     # def need_flip_lr(self):
     #     """

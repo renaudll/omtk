@@ -3,7 +3,6 @@ Tests for the FaceLips module
 """
 import os
 
-import pytest
 from maya import cmds
 import pymel.core as pymel
 
@@ -14,9 +13,10 @@ from omtk.modules.face.lips import FaceLips
 
 from ... import helpers
 
-_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "resources",)
+_RESOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "resources")
 
 
+@helpers.save_scene_on_error()
 def test_lips():
     cmds.file(os.path.join(_RESOURCE_DIR, "test_lips.ma"), open=True, force=True)
 
@@ -34,7 +34,7 @@ def test_lips():
         os.path.join(_RESOURCE_DIR, "test_lips_rest.json")
     )
 
-    jaw.ctrl.rotateX.set(45.0)
+    jaw.avars[0].ctrl.rotateX.set(45.0)
     helpers.assert_match_pose_from_file(
         os.path.join(_RESOURCE_DIR, "test_lips_open_45.json")
     )

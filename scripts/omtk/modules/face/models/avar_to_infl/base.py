@@ -172,7 +172,7 @@ class AvarInflBaseModel(module.Module):
         # of the parent world matrix.
         # TODO: This will be off axis if the head is now aligned with the world.
         # TODO: Find a proper offset.
-        obj_internal_bind = _create_grp("bindInternal", tm=parent_tm.inverse())
+        obj_internal_bind = _create_grp("bindInternal", tm=bind_pos_tm * parent_tm.inverse())
         pymel.connectAttr(obj_internal_bind.matrix, compound_input.bindInternal)
 
         offset_tm = libRigging.create_multiply_matrix(

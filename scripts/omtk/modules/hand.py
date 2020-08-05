@@ -147,14 +147,10 @@ class Hand(Module):
                 [z_axis.x, z_axis.y, z_axis.z, 0.0],
                 [pos_mid.x, pos_mid.y, pos_mid.z, 1.0],
             )
-            rig_metacarpal_center = pymel.spaceLocator(
-                name=naming.resolve("metacarpCenter")
-            )
+            rig_metacarpal_center = pymel.spaceLocator(name=naming.resolve("metacarpCenter"))
             rig_metacarpal_center.setMatrix(ref_tm)
             rig_metacarpal_center.setParent(self.grp_rig)
-            pymel.parentConstraint(
-                self.parent_jnt, rig_metacarpal_center, maintainOffset=True
-            )
+            pymel.parentConstraint(self.parent_jnt, rig_metacarpal_center, maintainOffset=True)
 
             # Create the 'cup' attribute
             attr_holder = self.grp_anm

@@ -24,20 +24,14 @@ def test_lips():
     rig = omtk.create()
     Head(["jnt_head"], rig=rig)
     jaw = FaceJaw(["jnt_jaw", "surface_lips", "pSphereShape1"], rig=rig)
-    FaceLips(
-        cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"], rig=rig
-    )
+    FaceLips(cmds.ls("jnt_lip*", type="joint") + ["surface_lips", "pSphereShape1"], rig=rig)
 
     rig.build(strict=True)
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_lips_rest.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_lips_rest.json"))
 
     jaw.avars[0].ctrl.rotateX.set(45.0)
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_lips_open_45.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_lips_open_45.json"))
 
 
 def _get_scene_surface_count():
@@ -45,8 +39,6 @@ def _get_scene_surface_count():
     :return: The number of non-intermediate surfaces in the scene.
     """
     surface_shapes = [
-        shape
-        for shape in pymel.ls(type="nurbsSurface")
-        if not shape.intermediateObject.get()
+        shape for shape in pymel.ls(type="nurbsSurface") if not shape.intermediateObject.get()
     ]
     return len(surface_shapes)

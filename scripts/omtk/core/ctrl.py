@@ -103,15 +103,11 @@ class BaseCtrl(Node):
     def size(self, value):
         self._size = value
 
-    def _get_recommended_size(
-        self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs
-    ):
+    def _get_recommended_size(self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs):
         ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
         if ref is not None:
             return (
-                libRigging.get_recommended_ctrl_size(
-                    ref, geometries=geometries, **kwargs
-                )
+                libRigging.get_recommended_ctrl_size(ref, geometries=geometries, **kwargs)
                 * multiplier
             )
         else:
@@ -222,34 +218,22 @@ class BaseCtrl(Node):
     def hold_transform_limits(self):
         """Store internally any limits set on the controller."""
         self.minTransXLimit = (
-            self.node.minTransXLimit.get()
-            if self.node.minTransXLimitEnable.get()
-            else None
+            self.node.minTransXLimit.get() if self.node.minTransXLimitEnable.get() else None
         )
         self.maxTransXLimit = (
-            self.node.maxTransXLimit.get()
-            if self.node.maxTransXLimitEnable.get()
-            else None
+            self.node.maxTransXLimit.get() if self.node.maxTransXLimitEnable.get() else None
         )
         self.minTransYLimit = (
-            self.node.minTransYLimit.get()
-            if self.node.minTransYLimitEnable.get()
-            else None
+            self.node.minTransYLimit.get() if self.node.minTransYLimitEnable.get() else None
         )
         self.maxTransYLimit = (
-            self.node.maxTransYLimit.get()
-            if self.node.maxTransYLimitEnable.get()
-            else None
+            self.node.maxTransYLimit.get() if self.node.maxTransYLimitEnable.get() else None
         )
         self.minTransZLimit = (
-            self.node.minTransZLimit.get()
-            if self.node.minTransZLimitEnable.get()
-            else None
+            self.node.minTransZLimit.get() if self.node.minTransZLimitEnable.get() else None
         )
         self.maxTransZLimit = (
-            self.node.maxTransZLimit.get()
-            if self.node.maxTransZLimitEnable.get()
-            else None
+            self.node.maxTransZLimit.get() if self.node.maxTransZLimitEnable.get() else None
         )
         self.minRotXLimit = (
             self.node.minRotXLimit.get() if self.node.minRotXLimitEnable.get() else None
@@ -270,34 +254,22 @@ class BaseCtrl(Node):
             self.node.maxRotZLimit.get() if self.node.maxRotZLimitEnable.get() else None
         )
         self.minScaleXLimit = (
-            self.node.minScaleXLimit.get()
-            if self.node.minScaleXLimitEnable.get()
-            else None
+            self.node.minScaleXLimit.get() if self.node.minScaleXLimitEnable.get() else None
         )
         self.maxScaleXLimit = (
-            self.node.maxScaleXLimit.get()
-            if self.node.maxScaleXLimitEnable.get()
-            else None
+            self.node.maxScaleXLimit.get() if self.node.maxScaleXLimitEnable.get() else None
         )
         self.minScaleYLimit = (
-            self.node.minScaleYLimit.get()
-            if self.node.minScaleYLimitEnable.get()
-            else None
+            self.node.minScaleYLimit.get() if self.node.minScaleYLimitEnable.get() else None
         )
         self.maxScaleYLimit = (
-            self.node.maxScaleYLimit.get()
-            if self.node.maxScaleYLimitEnable.get()
-            else None
+            self.node.maxScaleYLimit.get() if self.node.maxScaleYLimitEnable.get() else None
         )
         self.minScaleZLimit = (
-            self.node.minScaleZLimit.get()
-            if self.node.minScaleZLimitEnable.get()
-            else None
+            self.node.minScaleZLimit.get() if self.node.minScaleZLimitEnable.get() else None
         )
         self.maxScaleZLimit = (
-            self.node.maxScaleZLimit.get()
-            if self.node.maxScaleZLimitEnable.get()
-            else None
+            self.node.maxScaleZLimit.get() if self.node.maxScaleZLimitEnable.get() else None
         )
 
     def fetch_transform_limits(self):
@@ -362,8 +334,7 @@ class BaseCtrl(Node):
         """
         if not libPymel.is_valid_PyNode(self.node):
             raise Exception(
-                "Can't hold ctrl attribute! Some information may be lost... %s"
-                % self.node
+                "Can't hold ctrl attribute! Some information may be lost... %s" % self.node
             )
         else:
             self.rotateOrder = self.node.rotateOrder.get()
@@ -394,8 +365,7 @@ class BaseCtrl(Node):
         """
         if not isinstance(self.offset, pymel.PyNode):
             log.info(
-                "[setParent] %s don't have an offset attribute, "
-                "node will be parented instead",
+                "[setParent] %s don't have an offset attribute, " "node will be parented instead",
                 self,
             )
             return self.node.setParent(*args, **kwargs)
@@ -544,8 +514,7 @@ class BaseCtrl(Node):
         )
         if not targets:
             module.log.warning(
-                "Can't add space switch on %s. No targets found!",
-                self.node.__melobject__(),
+                "Can't add space switch on %s. No targets found!", self.node.__melobject__(),
             )
             return
 
@@ -612,9 +581,7 @@ class BaseCtrl(Node):
             targets, layer_space_switch, maintainOffset=True, **kwargs
         )
 
-        attr_space = libAttr.addAttr(
-            self.node, "space", at="enum", enumName=enum_string, k=True
-        )
+        attr_space = libAttr.addAttr(self.node, "space", at="enum", enumName=enum_string, k=True)
         atts_weights = parent_constraint.getWeightAliasList()
 
         for i, att_weight in enumerate(atts_weights):
@@ -773,9 +740,7 @@ class BaseCtrl(Node):
         enum_items = space_attr.getEnums().items()
         enum_items.sort(key=lambda tup: tup[1])
 
-        all_enum_connections = [
-            con for con in space_attr.listConnections(d=True, s=False)
-        ]
+        all_enum_connections = [con for con in space_attr.listConnections(d=True, s=False)]
         for name, index in enum_items:
             target_found = False
             for con in all_enum_connections:
@@ -788,14 +753,10 @@ class BaseCtrl(Node):
                             d=True, s=False, p=True
                         )[0].listConnections(d=True, s=False, p=True)
                         for target in const.target:
-                            const_target_name = const_target_weight_attr[0].name(
-                                fullDagPath=True
-                            )
+                            const_target_name = const_target_weight_attr[0].name(fullDagPath=True)
                             target_name = target.targetWeight.name(fullDagPath=True)
                             if target_name == const_target_name:
-                                target_obj = target.targetParentMatrix.listConnections(
-                                    s=True
-                                )[0]
+                                target_obj = target.targetParentMatrix.listConnections(s=True)[0]
                                 result[index] = (name, target_obj)
             if not target_found:
                 result[index] = (name, None)
@@ -818,9 +779,7 @@ class BaseCtrl(Node):
         # If the saved instance is of the wrong type, rebuild it.
         if inst:
             log.warning(
-                "Unexpected ctrl type, expected %s, got %s. Converting.",
-                cls,
-                type(inst),
+                "Unexpected ctrl type, expected %s, got %s. Converting.", cls, type(inst),
             )
 
             new_inst = cls()

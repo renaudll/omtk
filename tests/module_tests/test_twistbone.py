@@ -17,6 +17,4 @@ def test_twistbone():
     inst = Twistbone(["joint2", "joint3", "joint4"], rig=Rig())
     inst.build()
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_twistbone_rest.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_twistbone_rest.json"))

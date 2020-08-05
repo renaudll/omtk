@@ -124,9 +124,7 @@ def from_scene():
             pass
 
 
-def from_attributes(
-    attrs_inn, attrs_out, dagnodes=None, namespace=COMPOUND_DEFAULT_NAMESPACE
-):
+def from_attributes(attrs_inn, attrs_out, dagnodes=None, namespace=COMPOUND_DEFAULT_NAMESPACE):
     """
     Create a compound from a set of provided input and output attributes.
     The network node will be automatically determined.
@@ -271,15 +269,11 @@ def _get_attributes_map_from_nodes(nodes):
     outputs = set()
 
     input_connections = (
-        cmds.listConnections(
-            nodes, source=True, destination=False, connections=True, plugs=True
-        )
+        cmds.listConnections(nodes, source=True, destination=False, connections=True, plugs=True)
         or []
     )
     output_connections = (
-        cmds.listConnections(
-            nodes, source=False, destination=True, connections=True, plugs=True
-        )
+        cmds.listConnections(nodes, source=False, destination=True, connections=True, plugs=True)
         or []
     )
 

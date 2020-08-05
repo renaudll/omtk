@@ -44,11 +44,7 @@ class CtrlRoot(BaseCtrl):
         # Add a globalScale attribute to replace the sx, sy and sz.
         if create_global_scale_attr and not self.node.hasAttr("globalScale"):
             pymel.addAttr(
-                self.node,
-                longName="globalScale",
-                k=True,
-                defaultValue=1.0,
-                minValue=0.001,
+                self.node, longName="globalScale", k=True, defaultValue=1.0, minValue=0.001,
             )
             pymel.connectAttr(self.node.globalScale, self.node.sx)
             pymel.connectAttr(self.node.globalScale, self.node.sy)
@@ -68,9 +64,7 @@ class CtrlRoot(BaseCtrl):
 
         geometries_mel = [geo.__melobject__() for geo in geometries]
 
-        x_min, y_min, z_min, x_max, y_max, z_max = cmds.exactWorldBoundingBox(
-            *geometries_mel
-        )
+        x_min, y_min, z_min, x_max, y_max, z_max = cmds.exactWorldBoundingBox(*geometries_mel)
 
         return max(min_size, x_max - x_min, z_max - z_min) / 2.0
 
@@ -94,8 +88,7 @@ class RigGrp(Node):
                     for child in children:
                         if not isinstance(child, pymel.nt.NurbsCurve):
                             pymel.warning(
-                                "Ejecting %s from %s before deletion"
-                                % (child, self.node)
+                                "Ejecting %s from %s before deletion" % (child, self.node)
                             )
                             child.setParent(world=True)
                 super(RigGrp, self).unbuild(*args, **kwargs)
@@ -194,7 +187,9 @@ class Rig(Buildable):
 
     def insert(self, index, value):
         self.children.insert(index, value)
-        value._parent = self  # Store the parent for optimized network serialization (see libs.libSerialization)
+        value._parent = (
+            self  # Store the parent for optimized network serialization (see libs.libSerialization)
+        )
 
     def __iter__(self):
         return iter(self.children)
@@ -203,11 +198,7 @@ class Rig(Buildable):
         version = getattr(self, "version", "")
         if version:
             version = " v%s" % version
-        return "%s <%s%s>" % (
-            self.name.encode("utf-8"),
-            self.__class__.__name__,
-            version,
-        )
+        return "%s <%s%s>" % (self.name.encode("utf-8"), self.__class__.__name__, version,)
 
     #
     # Main implementation
@@ -349,9 +340,7 @@ class Rig(Buildable):
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
         if not shapes:
-            self.log.warning(
-                "Found no mesh under %r, scanning the whole scene.", self.grp_geo
-            )
+            self.log.debug("Found no mesh under %r, scanning the whole scene.", self.grp_geo)
             shapes = pymel.ls(type="surfaceShape")
             shapes = [shape for shape in shapes if not shape.intermediateObject.get()]
 
@@ -365,8 +354,7 @@ class Rig(Buildable):
         :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
         """
         return filter(
-            lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.Mesh),
-            self.get_shapes(),
+            lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.Mesh), self.get_shapes(),
         )
 
     def get_surfaces(self):
@@ -444,23 +432,16 @@ class Rig(Buildable):
         if create_grp_anm:
             grp_anim_size = CtrlRoot._get_recommended_radius(self)
             self.grp_anm = self.build_grp(
-                CtrlRoot,
-                self.grp_anm,
-                self.nomenclature.root_anm_name,
-                size=grp_anim_size,
+                CtrlRoot, self.grp_anm, self.nomenclature.root_anm_name, size=grp_anim_size,
             )
 
         # Create grp_rig
         if create_grp_rig:
-            self.grp_rig = self.build_grp(
-                RigGrp, self.grp_rig, self.nomenclature.root_rig_name
-            )
+            self.grp_rig = self.build_grp(RigGrp, self.grp_rig, self.nomenclature.root_rig_name)
 
         # Create grp_geo
         if create_grp_geo:
-            self.grp_geo = self.build_grp(
-                RigGrp, self.grp_geo, self.nomenclature.root_geo_name
-            )
+            self.grp_geo = self.build_grp(RigGrp, self.grp_geo, self.nomenclature.root_geo_name)
 
         if create_grp_backup:
             self.grp_backup = self.build_grp(
@@ -523,9 +504,7 @@ class Rig(Buildable):
                     self.layer_jnt.displayType.set(2)  # Frozen
                 else:
                     self.layer_jnt = pymel.PyNode(self.nomenclature.layer_jnt_name)
-                pymel.editDisplayLayerMembers(
-                    self.layer_jnt, self.grp_jnt, noRecurse=True
-                )
+                pymel.editDisplayLayerMembers(self.layer_jnt, self.grp_jnt, noRecurse=True)
 
     def build(self, modules=None, validate=True, strict=False, **kwargs):
         """
@@ -613,25 +592,17 @@ class Rig(Buildable):
 
         # Prevent animators from accidentally moving offset nodes
         for ctrl in module.get_ctrls():
-            if (
-                libPymel.is_valid_PyNode(ctrl)
-                and hasattr(ctrl, "offset")
-                and ctrl.offset
-            ):
+            if libPymel.is_valid_PyNode(ctrl) and hasattr(ctrl, "offset") and ctrl.offset:
                 ctrl.offset.t.lock()
                 ctrl.offset.r.lock()
                 ctrl.offset.s.lock()
 
         # Parent modules grp_anm to main grp_anm
-        if libPymel.is_valid_PyNode(module.grp_anm) and libPymel.is_valid_PyNode(
-            self.grp_anm
-        ):
+        if libPymel.is_valid_PyNode(module.grp_anm) and libPymel.is_valid_PyNode(self.grp_anm):
             module.grp_anm.setParent(self.grp_anm)
 
         # Constraint modules grp_rig to main grp_rig
-        if libPymel.is_valid_PyNode(module.grp_rig) and libPymel.is_valid_PyNode(
-            self.grp_rig
-        ):
+        if libPymel.is_valid_PyNode(module.grp_rig) and libPymel.is_valid_PyNode(self.grp_rig):
             module.grp_rig.setParent(self.grp_rig)
 
         # Connect globalScale attribute to each modules globalScale.
@@ -672,9 +643,7 @@ class Rig(Buildable):
                 ):
                     if grp and grp.exists() and grp.getParent() == parent:
                         self.log.warning(
-                            "Ejecting %s from %s before deletion",
-                            grp.name(),
-                            parent.name(),
+                            "Ejecting %s from %s before deletion", grp.name(), parent.name(),
                         )
                         grp.setParent(world=True)
                 continue
@@ -752,8 +721,7 @@ class Rig(Buildable):
                 result.append(module.jnt)
         if strict and not result:
             self.log.warning(
-                "Cannot found Head in rig! Please create a %s module!",
-                head.Head.__name__,
+                "Cannot found Head in rig! Please create a %s module!", head.Head.__name__,
             )
         return result
 

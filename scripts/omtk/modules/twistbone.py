@@ -34,13 +34,7 @@ class Twistbone(Module):
         super(Twistbone, self).__init__(*args, **kwargs)
 
     def build(
-        self,
-        orient_ik_ctrl=True,
-        num_twist=None,
-        create_bend=None,
-        realign=True,
-        *args,
-        **kwargs
+        self, orient_ik_ctrl=True, num_twist=None, create_bend=None, realign=True, *args, **kwargs
     ):
         if len(self.chain_jnt) < 2:
             raise Exception(
@@ -86,9 +80,7 @@ class Twistbone(Module):
         # Generate Subjoints if necessary, they will be use as the skinned one and will be drived by the ribbon and
         # driver chain
         if not self.subjnts:
-            self.subjnts = libRigging.create_chain_between_objects(
-                jnt_s, jnt_e, self.num_twist
-            )
+            self.subjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, self.num_twist)
         elif realign:
             # Position the subjnts at equidistance from each others.
             num_subjnts = len(self.subjnts)
@@ -112,9 +104,7 @@ class Twistbone(Module):
         pymel.parentConstraint(jnt_s, driver_grp)
 
         # Create a second chain that will drive the rotation of the skinned joint
-        driverjnts = libRigging.create_chain_between_objects(
-            jnt_s, jnt_e, self.num_twist
-        )
+        driverjnts = libRigging.create_chain_between_objects(jnt_s, jnt_e, self.num_twist)
 
         # Rename the skinning subjnts
         for i, sub_jnt in enumerate(self.subjnts):
@@ -139,19 +129,13 @@ class Twistbone(Module):
             driver_jnt_ref = pymel.createNode(
                 "transform", parent=driver_jnt, name=driver_name + "_ref"
             )
-            driver_jnt_ref.setMatrix(
-                driver_jnt.getMatrix(worldSpace=True), worldSpace=True
-            )
-            driver_refs.append(
-                driver_jnt_ref
-            )  # Keep them to connect the ref on the subjnts later
+            driver_jnt_ref.setMatrix(driver_jnt.getMatrix(worldSpace=True), worldSpace=True)
+            driver_refs.append(driver_jnt_ref)  # Keep them to connect the ref on the subjnts later
             if self.create_bend:
                 # There will be no ctrl for the first and last twist jnt
                 if 0 < i < (len(driverjnts) - 1):
                     ctrl_driver = pymel.createNode("transform")
-                    ctrl_driver_name = nomenclature_jnt.resolve(
-                        "ctrlDriver{0:02d}".format(i)
-                    )
+                    ctrl_driver_name = nomenclature_jnt.resolve("ctrlDriver{0:02d}".format(i))
                     ctrl_driver.rename(ctrl_driver_name)
                     ctrl_driver.setParent(driver_grp)
                     ctrl_refs.append(ctrl_driver)
@@ -165,9 +149,7 @@ class Twistbone(Module):
         before_mid_idx = math.floor((self.num_twist / 2.0))
         if self.create_bend:
             # Create Ribbon
-            sys_ribbon = Ribbon.from_instance(
-                self, None, self.name, inputs=self.subjnts
-            )
+            sys_ribbon = Ribbon.from_instance(self, None, self.name, inputs=self.subjnts)
             sys_ribbon.build(
                 create_ctrl=False,
                 degree=3,
@@ -176,10 +158,7 @@ class Twistbone(Module):
                 rot_fol=False,
             )
             self.ctrls = sys_ribbon.create_ctrls(
-                ctrls=self.ctrls,
-                no_extremity=True,
-                constraint_rot=False,
-                refs=self.chain_jnt[1],
+                ctrls=self.ctrls, no_extremity=True, constraint_rot=False, refs=self.chain_jnt[1],
             )
             # Point constraint the driver jnt on the ribbon jnt to drive the bending
             for i, driver in enumerate(driverjnts):
@@ -335,9 +314,7 @@ def _create_twist_extractor(name, parent, start, end):
         "omtk.TwistExtractor",
         name,
         inputs={
-            "bind1": parent.getMatrix(worldSpace=True)
-            if parent
-            else pymel.datatypes.Matrix(),
+            "bind1": parent.getMatrix(worldSpace=True) if parent else pymel.datatypes.Matrix(),
             "bind2": start.getMatrix(worldSpace=True),
             "bind3": end.getMatrix(worldSpace=True),
             "inn1": parent.worldMatrix if parent else None,

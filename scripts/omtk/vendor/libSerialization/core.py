@@ -73,9 +73,7 @@ def _get_class_namespace(cls):
             "Class {0} is a Python old-style class and is unsupported.".format(cls)
         )
 
-    return ".".join(
-        reversed([subcls.__name__ for subcls in cls.__mro__ if subcls != object])
-    )
+    return ".".join(reversed([subcls.__name__ for subcls in cls.__mro__ if subcls != object]))
 
 
 def _create_instance(cls):
@@ -116,9 +114,7 @@ def _get_data_type(data):
     if isinstance(data, _REGISTRY_TYPES_COMPLEX) or hasattr(data, "__dict__"):
         return TYPE_COMPLEX
 
-    raise NotImplementedError(
-        "Unsupported object type {0} ({1})".format(data, type(data))
-    )
+    raise NotImplementedError("Unsupported object type {0} ({1})".format(data, type(data)))
 
 
 def export_dict(data, skip_none=True, recursive=True, cache=None):
@@ -161,9 +157,7 @@ def export_dict(data, skip_none=True, recursive=True, cache=None):
 
             if not skip_none or val is not None:
                 if (data_type == TYPE_COMPLEX and recursive) or data_type == TYPE_LIST:
-                    val = export_dict(
-                        val, skip_none=skip_none, recursive=recursive, cache=cache,
-                    )
+                    val = export_dict(val, skip_none=skip_none, recursive=recursive, cache=cache,)
                 if not skip_none or val is not None:
                     result[key] = val
     else:
@@ -232,9 +226,7 @@ def import_dict(data, cache=None):
 
         if cls_def is None:
             _LOG.error(
-                "Can't create class instance for {0}, did you import to module?".format(
-                    cls_path
-                )
+                "Can't create class instance for {0}, did you import to module?".format(cls_path)
             )
             return None
 
@@ -499,9 +491,7 @@ def _get_network_attr(attr, fn_skip=None, cache=None):
             return []
         num_logical_elements = max(attr_indices) + 1
         return [
-            _get_network_attr(
-                attr.elementByLogicalIndex(i), fn_skip=fn_skip, cache=cache
-            )
+            _get_network_attr(attr.elementByLogicalIndex(i), fn_skip=fn_skip, cache=cache)
             for i in range(num_logical_elements)
         ]
 
@@ -625,23 +615,11 @@ def import_network(network, fn_skip=None, cache=None):
         cache.set_import_value_by_id(network_id, None)
         return None
 
-    cls_name = network.getAttr("_class")
-
-    # HACK: Previously we were storing the complete class namespace.
-    # However this was not very flexible when we played with the class hierarchy.
-    # If we find a '_class_module' attribute, it mean we are doing thing the new way.
-    # Otherwise we'll let it slip for now.
-    cls_module = (
-        network.getAttr("_class_module") if network.hasAttr("_class_module") else None
-    )
-    if cls_module:
-        cls_def = cache.get_class_by_name(cls_name, module_name=cls_module)
-    else:
-        cls_def = cache.get_class_by_namespace(cls_name)
-
-    if cls_def is None:
-        _LOG.warning("Can't find class definiton for %s. Returning None", cls_name)
-        return None
+    try:
+        cls_def = method_name(cache, network)
+    except ValueError as error:
+        _LOG.warning(error)
+        return
 
     # HACK: Get latest definition
     cls_def = getattr(sys.modules[cls_def.__module__], cls_def.__name__)
@@ -675,12 +653,10 @@ def import_network(network, fn_skip=None, cache=None):
 
     try:
         obj.__callbackNetworkPreBuild__(attr_map)
-    except AttributeError:  # Hook don't exist.
+    except (AttributeError, TypeError):  # Hook don't exist.
         pass
     except Exception as error:
-        _LOG.warning(
-            "Call to __callbackNetworkPreBuild__ failed for %s: %s", obj, error
-        )
+        _LOG.warning("Call to __callbackNetworkPreBuild__ failed for %s: %s", obj, error)
 
     for attr_name, attr in attr_map.iteritems():
         # _LOG.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
@@ -697,14 +673,31 @@ def import_network(network, fn_skip=None, cache=None):
     # This can be used to act immediately after import.
     try:
         obj.__callbackNetworkPostBuild__()
-    except AttributeError:  # Hook don't exist
+    except (AttributeError, TypeError):  # Hook don't exist
         pass
     except Exception as error:
-        _LOG.warning(
-            "Call to __callbackNetworkPostBuild__ failed for %s: %s", obj, error
-        )
+        _LOG.warning("Call to __callbackNetworkPostBuild__ failed for %s: %s", obj, error)
 
     return obj
+
+
+def method_name(cache, network):
+    cls_name = network.getAttr("_class")
+    # HACK: Previously we were storing the complete class namespace.
+    # However this was not very flexible when we played with the class hierarchy.
+    # If we find a '_class_module' attribute, it mean we are doing thing the new way.
+    # Otherwise we'll let it slip for now.
+    cls_module = network.getAttr("_class_module") if network.hasAttr("_class_module") else None
+    if cls_module:
+        guess = cache.get_class_by_name(cls_name, module_name=cls_module)
+        if guess:
+            return guess
+        raise ValueError("Can't find class definiton for %s, %s" % (cls_name, cls_module))
+
+    guess = cache.get_class_by_namespace(cls_name)
+    if guess:
+        return guess
+    raise ValueError("Can't find class definiton for %s, %s" % (cls_name, cls_module))
 
 
 def _iter_subclasses_recursive(cls):
@@ -749,17 +742,13 @@ class Cache(object):
 
     def get_class_by_name(self, cls_name, module_name=None, base_class=object):
         if module_name:
-            cache = self._get_cls_cache_by_module(
-                module_name=module_name, base_class=base_class
-            )
+            cache = self._get_cls_cache_by_module(module_name=module_name, base_class=base_class)
         else:
             cache = self._get_cls_cache(base_class=base_class)
 
         return cache.get(cls_name, None)
 
-    def get_class_by_namespace(
-        self, cls_namespace, module_name=None, base_class=object
-    ):
+    def get_class_by_namespace(self, cls_namespace, module_name=None, base_class=object):
         if module_name is None:
             cache = self._get_cls_cache(base_class=base_class)
         else:

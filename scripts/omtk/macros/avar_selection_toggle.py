@@ -22,9 +22,7 @@ def get_avars_networks_from_selection(objs):
     if objs is None:
         objs = pymel.selected()
 
-    networks = libSerialization.get_connected_networks(
-        objs, key=fn_filter, key_skip=fn_skip
-    )
+    networks = libSerialization.get_connected_networks(objs, key=fn_filter, key_skip=fn_skip)
 
     return networks
 
@@ -41,9 +39,7 @@ def iter_connected_ctrl_models_networks(objs):
     if objs is None:
         objs = pymel.selected()
 
-    for network in libSerialization.iter_connected_networks(
-        objs, key=fn_filter, key_skip=fn_skip
-    ):
+    for network in libSerialization.iter_connected_networks(objs, key=fn_filter, key_skip=fn_skip):
         yield network
 
 

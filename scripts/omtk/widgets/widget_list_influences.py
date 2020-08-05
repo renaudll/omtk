@@ -2,13 +2,10 @@
 Logic for WidgetListInfluences
 """
 import re
-import pymel.core as pymel
 from omtk.widgets.ui import widget_list_influences
 
 from omtk.libs import libQt
-from omtk.libs import libPymel
 from omtk.widgets import _utils
-from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 
@@ -34,9 +31,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.ui.treeWidget.customContextMenuRequested.connect(self.onRightClick)
 
         # Connect events
-        self.ui.treeWidget.itemSelectionChanged.connect(
-            self.on_influence_selection_changed
-        )
+        self.ui.treeWidget.itemSelectionChanged.connect(self.on_influence_selection_changed)
         self.ui.lineEdit_search.textChanged.connect(self.on_query_changed)
         self.ui.checkBox_hideAssigned.stateChanged.connect(self.on_query_changed)
         self.ui.btn_update.pressed.connect(self.update)
@@ -47,6 +42,8 @@ class WidgetListInfluences(QtWidgets.QWidget):
             self.update()
 
     def update(self):
+        from omtk.libs import libPymel
+
         self.ui.treeWidget.clear()
 
         if self._rig is None:
@@ -63,6 +60,9 @@ class WidgetListInfluences(QtWidgets.QWidget):
         self.update_list_visibility()
 
     def _fill_widget_influences(self, qt_parent, data):
+        import pymel
+        from omtk.vendor import libSerialization
+
         obj = pymel.PyNode(data.val) if data.val else None
         if obj:
             obj_name = obj.name()
@@ -70,9 +70,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
             def _is_module(network):
                 return libSerialization.is_network_from_class(network, "Module")
 
-            networks = libSerialization.get_connected_networks(
-                obj, key=_is_module, recursive=False
-            )
+            networks = libSerialization.get_connected_networks(obj, key=_is_module, recursive=False)
 
             brush = QtGui.QBrush(QtCore.Qt.white)
 
@@ -88,9 +86,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
                 item.setText(0, obj_name)
                 item.setForeground(0, brush)
                 _utils.set_icon_from_type(obj, item)
-                item.setCheckState(
-                    0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked
-                )
+                item.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
                 if item.flags() & QtCore.Qt.ItemIsUserCheckable:
                     item.setFlags(item.flags() ^ QtCore.Qt.ItemIsUserCheckable)
                 qt_parent.addChild(item)
@@ -108,6 +104,8 @@ class WidgetListInfluences(QtWidgets.QWidget):
         :return: Is the object an influence?
         :rtype: bool
         """
+        import pymel.core as pymel
+        from omtk.libs import libPymel
         return libPymel.isinstance_of_transform(
             obj, pymel.nodetypes.Joint
         ) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
@@ -141,7 +139,6 @@ class WidgetListInfluences(QtWidgets.QWidget):
     def _can_show_QTreeWidgetItem(self, qItem, query_regex):
         obj = qItem.obj  # Retrieve monkey-patched data
         obj_name = obj.name()
-        # print obj_name
 
         if not re.match(query_regex, obj_name, re.IGNORECASE):
             return False
@@ -165,11 +162,11 @@ class WidgetListInfluences(QtWidgets.QWidget):
                 result.append(item.obj)
         return result
 
-    #
     # Events
-    #
 
     def on_influence_selection_changed(self):
+        import pymel.core as pymel
+
         pymel.select(self.get_selection())
 
     def on_query_changed(self):

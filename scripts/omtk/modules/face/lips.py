@@ -63,9 +63,7 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
         # To be able to do this, we need to know world-space information which we don't want.
         # To workaround this we'll compute an offset transform once using worldspace coordinates.
         jnt_jaw_world_tm = self.get_jaw_module().jnt.getMatrix(worldSpace=True)
-        parent_tm = (
-            self.parent_jnt.getMatrix(worldSpace=True) if self.parent_jnt else Matrix()
-        )
+        parent_tm = self.parent_jnt.getMatrix(worldSpace=True) if self.parent_jnt else Matrix()
         jaw_to_avar_projection = parent_tm * jnt_jaw_world_tm.inverse()
 
         # start from result
@@ -83,9 +81,7 @@ class AvarSurfaceLipModel(surface.AvarSurfaceModel):
                 local_tm,  # start from result
                 jaw_to_avar_projection,  # enter jaw space
                 attr_blend_jaw,  # apply jaw transform
-                libRigging.create_inverse_matrix(
-                    jaw_to_avar_projection
-                ),  # exit jaw space
+                libRigging.create_inverse_matrix(jaw_to_avar_projection),  # exit jaw space
             ],
             name=naming.resolve("applyJawInfluence"),
         )
@@ -183,9 +179,7 @@ class FaceLips(AvarGrp):
             return 0.5
 
         if avar in self.get_avars_upp(macro=False):
-            return (
-                1.0 - _get_football_ratio(avar) if use_football_interpolation else 1.0
-            )
+            return 1.0 - _get_football_ratio(avar) if use_football_interpolation else 1.0
 
         if avar in self.get_avars_low(macro=False):
             return _get_football_ratio(avar) if use_football_interpolation else 0.0
@@ -254,12 +248,8 @@ class FaceLips(AvarGrp):
         # Connect the corner other avars
         avar_l_corner = self.get_avar_l_corner()
         if avar_l_corner and avar_l_corner in child_avars:
-            libRigging.connectAttr_withLinearDrivenKeys(
-                avar.attr_ud, avar_l_corner.attr_ud
-            )
-            libRigging.connectAttr_withLinearDrivenKeys(
-                avar.attr_lr, avar_l_corner.attr_lr
-            )
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_ud, avar_l_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_lr, avar_l_corner.attr_lr)
 
     def _connect_avar_macro_r(self, avar, child_avars):
         super(FaceLips, self)._connect_avar_macro_r(avar, child_avars)
@@ -267,20 +257,11 @@ class FaceLips(AvarGrp):
         # Connect the corner other avars
         avar_r_corner = self.get_avar_r_corner()
         if avar_r_corner and avar_r_corner in child_avars:
-            libRigging.connectAttr_withLinearDrivenKeys(
-                avar.attr_ud, avar_r_corner.attr_ud
-            )
-            libRigging.connectAttr_withLinearDrivenKeys(
-                avar.attr_lr, avar_r_corner.attr_lr
-            )
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_ud, avar_r_corner.attr_ud)
+            libRigging.connectAttr_withLinearDrivenKeys(avar.attr_lr, avar_r_corner.attr_lr)
 
     def _connect_avar_macro_horizontal(
-        self,
-        avar_parent,
-        avar_children,
-        connect_ud=True,
-        connect_lr=True,
-        connect_fb=True,
+        self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True,
     ):
         """
         Connect micro avars to horizontal macro avar. (avar_l and avar_r)

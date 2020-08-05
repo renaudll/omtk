@@ -67,9 +67,7 @@ class CtrlFaceMacro(BaseCtrlFace):
 
 class CtrlFaceMacroAll(CtrlFaceMacro):
     def create_ctrl(self, width=4.5, height=1.2, **kwargs):
-        return super(CtrlFaceMacroAll, self).create_ctrl(
-            width=width, height=height, **kwargs
-        )
+        return super(CtrlFaceMacroAll, self).create_ctrl(width=width, height=height, **kwargs)
 
 
 class AbstractAvar(module.Module):
@@ -150,18 +148,14 @@ class AbstractAvar(module.Module):
             self.log.warning("Can't hold avars, invalid grp_rig in %s!", self)
             return
 
-        self.avar_network = pymel.createNode(
-            "transform", name=naming.resolve("avarBackup")
-        )
+        self.avar_network = pymel.createNode("transform", name=naming.resolve("avarBackup"))
         self.rig.hold_node(self.avar_network)
         self.add_avars(self.avar_network)
 
         attrs = pymel.listAttr(self.avar_network, userDefined=True)
         for attr_name in attrs:
             if not self.grp_rig.hasAttr(attr_name):
-                self.log.debug(
-                    "Cannot hold missing attribute %s in %s", attr_name, self.grp_rig
-                )
+                self.log.debug("Cannot hold missing attribute %s in %s", attr_name, self.grp_rig)
                 continue
 
             attr_src = self.grp_rig.attr(attr_name)
@@ -215,12 +209,8 @@ class AbstractAvar(module.Module):
     def get_base_uv(self):
         pos = self.jnt.getMatrix(worldSpace=True).translate
 
-        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(
-            self.surface, pos
-        )
+        fol_pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self.surface, pos)
         return fol_u, fol_v
-
-
 
     def build(self, mult_u=1.0, mult_v=1.0, **kwargs):
         """
@@ -466,6 +456,4 @@ def register_plugin():
 
 
 def _flip_attr(attr):  # TODO: Remove duplication
-    return libRigging.create_utility_node(
-        "multiplyDivide", input1X=attr, input2X=-1
-    ).outputX
+    return libRigging.create_utility_node("multiplyDivide", input1X=attr, input2X=-1).outputX

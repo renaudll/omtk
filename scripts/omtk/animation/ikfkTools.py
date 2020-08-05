@@ -29,10 +29,7 @@ def _get_module_networks_from_selection(module_name):
         sel, recursive=True, key=_fn_key, key_skip=_fn_skip
     )
 
-    modules = [
-        libSerialization.import_network(network, fn_skip=_fn_skip)
-        for network in networks
-    ]
+    modules = [libSerialization.import_network(network, fn_skip=_fn_skip) for network in networks]
     modules = filter(
         None, modules
     )  # Filter any invalid networks that libSerialization doesn't protect us from.

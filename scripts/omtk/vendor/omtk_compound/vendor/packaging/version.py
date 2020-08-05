@@ -13,9 +13,7 @@ from ._structures import Infinity
 __all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
 
 
-_Version = collections.namedtuple(
-    "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
-)
+_Version = collections.namedtuple("_Version", ["epoch", "release", "dev", "pre", "post", "local"])
 
 
 def parse(version):
@@ -381,9 +379,7 @@ def _cmpkey(epoch, release, pre, post, dev, local):
     # leading zeros until we come to something non zero, then take the rest
     # re-reverse it back into the correct order and make it a tuple and use
     # that for our sorting key.
-    release = tuple(
-        reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release))))
-    )
+    release = tuple(reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release)))))
 
     # We need to "trick" the sorting algorithm to put 1.0.dev0 before 1.0a0.
     # We'll do this by abusing the pre segment, but we _only_ want to do this

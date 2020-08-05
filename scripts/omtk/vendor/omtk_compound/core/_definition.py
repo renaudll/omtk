@@ -59,14 +59,12 @@ class CompoundDefinition(dict):
 
     def __gt__(self, other):
         return self.name > other.name or (
-            self.name == other.name
-            and version.parse(self.version) > version.parse(other.version)
+            self.name == other.name and version.parse(self.version) > version.parse(other.version)
         )
 
     def __lt__(self, other):
         return self.name < other.name or (
-            self.name == other.name
-            and version.parse(self.version) < version.parse(other.version)
+            self.name == other.name and version.parse(self.version) < version.parse(other.version)
         )
 
     def __ge__(self, other):

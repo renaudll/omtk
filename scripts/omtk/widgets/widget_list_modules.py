@@ -8,11 +8,7 @@ import itertools
 import logging
 import re
 
-import pymel.core as pymel
-
 from omtk.core import constants
-from omtk.core.module import Module
-from omtk.core.rig import Rig
 from omtk.core.exceptions import ValidationError
 from omtk.libs import libQt
 from omtk.widgets import _utils
@@ -52,15 +48,11 @@ class WidgetListModules(QtWidgets.QWidget):
 
         # Connect events
         self.ui.lineEdit_search.textChanged.connect(self.on_module_query_changed)
-        self.ui.treeWidget.itemSelectionChanged.connect(
-            self._on_module_selection_changed
-        )
+        self.ui.treeWidget.itemSelectionChanged.connect(self._on_module_selection_changed)
         self.ui.treeWidget.itemChanged.connect(self._on_module_changed)
         self.ui.treeWidget.itemDoubleClicked.connect(self._on_module_double_clicked)
         self.ui.treeWidget.focusInEvent = self._focus_in_module
-        self.ui.treeWidget.customContextMenuRequested.connect(
-            self._on_context_menu_request
-        )
+        self.ui.treeWidget.customContextMenuRequested.connect(self._on_context_menu_request)
         self.ui.btn_update.pressed.connect(self.update)
 
     def set_rigs(self, rigs):
@@ -144,10 +136,7 @@ class WidgetListModules(QtWidgets.QWidget):
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             if hasattr(qt_item, "rig"):
                 qt_item.setCheckState(
-                    0,
-                    QtCore.Qt.Checked
-                    if qt_item.rig.is_built()
-                    else QtCore.Qt.Unchecked,
+                    0, QtCore.Qt.Checked if qt_item.rig.is_built() else QtCore.Qt.Unchecked,
                 )
         self.ui.treeWidget.blockSignals(False)
 
@@ -188,7 +177,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _build_module(self, module):
         if module.locked:
-            pymel.warning("Can't build locked module %s" % module)
+            _LOG.warning("Can't build locked module %s" % module)
             return
 
         self._rig.build([module])
@@ -197,7 +186,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _unbuild_module(self, module):
         if module.locked:
-            pymel.warning("Can't unbuild locked module %s" % module)
+            _LOG.warning("Can't unbuild locked module %s" % module)
             return
 
         module.unbuild()
@@ -205,8 +194,10 @@ class WidgetListModules(QtWidgets.QWidget):
         return True
 
     def _build(self, val, update=True):
+        from omtk.core import Module, Rig
+
         if val.is_built():
-            pymel.warning("Can't build %s, already built." % val)
+            _LOG.warning("Can't build %s, already built." % val)
             return
 
         if isinstance(val, Module):
@@ -220,8 +211,10 @@ class WidgetListModules(QtWidgets.QWidget):
             self.update()
 
     def _unbuild(self, val, update=True):
+        from omtk.core import Module, Rig
+
         if not val.is_built():
-            pymel.warning("Can't unbuild %s, already unbuilt." % val)
+            _LOG.warning("Can't unbuild %s, already unbuilt." % val)
             return
 
         if isinstance(val, Module):
@@ -263,9 +256,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
         flags = item.flags() | QtCore.Qt.ItemIsEditable
         item.setFlags(flags)
-        item.setCheckState(
-            0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked
-        )
+        item.setCheckState(0, QtCore.Qt.Checked if module.is_built() else QtCore.Qt.Unchecked)
         item.metadata_data = module
         item.metadata_type = _utils.MetadataType.Module
 
@@ -278,20 +269,20 @@ class WidgetListModules(QtWidgets.QWidget):
 
         flags = item.flags() | QtCore.Qt.ItemIsEditable
         item.setFlags(flags)
-        item.setCheckState(
-            0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked
-        )
+        item.setCheckState(0, QtCore.Qt.Checked if rig.is_built() else QtCore.Qt.Unchecked)
 
         item.metadata_type = _utils.MetadataType.Rig
         item.metadata_data = rig
         item.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
     def _get_qtreewidgetitem(self, value):
+        from omtk.core import Module, Rig
+
         widget = QtWidgets.QTreeWidgetItem(0)
         if hasattr(value, "_network"):
             widget.net = value._network
         else:
-            pymel.warning("%s have no _network attributes" % value)
+            _LOG.warning("%s have no _network attributes" % value)
 
         if isinstance(value, Module):
             self._update_qitem_module(widget, value)
@@ -372,6 +363,8 @@ class WidgetListModules(QtWidgets.QWidget):
         """
         Called when the module selection change.
         """
+        import pymel.core as pymel
+
         # Filter deleted networks
         networks = [net for net in self.get_selected_networks() if net and net.exists()]
         pymel.select(networks)
@@ -449,9 +442,7 @@ class WidgetListModules(QtWidgets.QWidget):
             if len(sel) == 1:
                 action_rename = menu.addAction("Rename")
                 action_rename.triggered.connect(
-                    functools.partial(
-                        self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0
-                    )
+                    functools.partial(self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0)
                 )
             action_remove = menu.addAction("Remove")
             action_remove.triggered.connect(functools.partial(self.on_remove))
@@ -481,9 +472,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
     def _execute_rcmenu_entry(self, fn_name):
         need_export_network = False
-        for module in itertools.chain(
-            self.get_selected_modules() + self.get_selected_rigs()
-        ):
+        for module in itertools.chain(self.get_selected_modules() + self.get_selected_rigs()):
             # Resolve fn
             if not hasattr(module, fn_name):
                 continue
@@ -519,6 +508,8 @@ class WidgetListModules(QtWidgets.QWidget):
         :param event: The focus event
         :type event: QtGui.QFocusEvent
         """
+        from omtk.core import Module, Rig
+
         # Set back the text with the information about the module in it
         if self._is_modifying:
             sel = self.ui.treeWidget.selectedItems()
@@ -526,9 +517,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 self._listen_events = False
                 selected_item = sel[0]
                 if isinstance(selected_item.metadata_data, Module):
-                    self._update_qitem_module(
-                        selected_item, selected_item.metadata_data
-                    )
+                    self._update_qitem_module(selected_item, selected_item.metadata_data)
                 self._listen_events = True
             self._is_modifying = False
         self.focusInEvent(event)
@@ -537,9 +526,7 @@ class WidgetListModules(QtWidgets.QWidget):
         """
         Lock selected modules.
         """
-        modules = [
-            module for module in self.get_selected_modules() if not module.locked
-        ]
+        modules = [module for module in self.get_selected_modules() if not module.locked]
         if not modules:
             return
 
@@ -568,12 +555,11 @@ class WidgetListModules(QtWidgets.QWidget):
         Remove any selected modules and rigs.
         Removing module need the rig to be re-exported.
         """
+        import pymel.core as pymel
 
         selected_rigs = self.get_selected_rigs()
         selected_modules = [
-            module
-            for module in self.get_selected_modules()
-            if module.rig not in selected_rigs
+            module for module in self.get_selected_modules() if module.rig not in selected_rigs
         ]
         need_reexport = False
 

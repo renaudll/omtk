@@ -57,14 +57,9 @@ def connect_to_avar(ctrl, avar_node, mapping_dict):
 
     # First get the weightBlended from the needed avar
     for avar_name, ctrl_attr_name in mapping_dict.iteritems():
-        bw_list = avar_node.attr(avar_name).listConnections(
-            c=False, d=False, t="blendWeighted"
-        )
+        bw_list = avar_node.attr(avar_name).listConnections(c=False, d=False, t="blendWeighted")
         if len(bw_list) != 1:
-            raise (
-                "Could not connect ctrl %s translation in avar node %s"
-                % (ctrl, avar_node)
-            )
+            raise ("Could not connect ctrl %s translation in avar node %s" % (ctrl, avar_node))
         match = re.search(regex_input_idx, bw_list[0].input.elements()[-1])
         input_idx = int(match.group(1)) + 1
         pymel.connectAttr(ctrl.attr(ctrl_attr_name), bw_list[0].input[input_idx])
@@ -108,8 +103,6 @@ def create_avar_attr(node):
         ("avarScaleFB", 1.0),
     )
     for name, value in data:
-        pymel.addAttr(
-            node, defaultValue=value, longName=name, keyable=True, parent="avar"
-        )
+        pymel.addAttr(node, defaultValue=value, longName=name, keyable=True, parent="avar")
 
     return [node.attr(name) for name, _ in data]

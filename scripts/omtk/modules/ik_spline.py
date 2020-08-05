@@ -34,13 +34,10 @@ class SplineIK(Module):
         ]
 
         if len(jnts) < 2:
-            raise Exception(
-                "Can't build SplineIK. Expected at least two joints, got %s" % jnts
-            )
+            raise Exception("Can't build SplineIK. Expected at least two joints, got %s" % jnts)
         if len(curves) < 1:
             raise Exception(
-                "Can't build SplineIK. Expected at least one nurbsCurve, got %s"
-                % curves
+                "Can't build SplineIK. Expected at least one nurbsCurve, got %s" % curves
             )
 
         super(SplineIK, self).build(*args, **kwargs)
@@ -50,11 +47,7 @@ class SplineIK(Module):
         # todo: handle multiple curves?
         curve = next(iter(curves), None)
         curve_shape = next(
-            (
-                shape
-                for shape in curve.getShapes()
-                if isinstance(shape, pymel.nodetypes.NurbsCurve)
-            ),
+            (shape for shape in curve.getShapes() if isinstance(shape, pymel.nodetypes.NurbsCurve)),
             None,
         )
 
@@ -116,9 +109,7 @@ def _create_squash_atts(attr_stretch, samples):
     :param samples: Number of samples to resolve.
     """
     if not isinstance(attr_stretch, pymel.Attribute):
-        raise IOError(
-            "Expected pymel Attribute, got %s (%s)" % (attr_stretch, type(attr_stretch))
-        )
+        raise IOError("Expected pymel Attribute, got %s (%s)" % (attr_stretch, type(attr_stretch)))
 
     attr_stretch_inv = libRigging.create_utility_node(
         "multiplyDivide", operation=2, input1X=1.0, input2X=attr_stretch

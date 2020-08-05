@@ -69,9 +69,7 @@ class AvarEye(Avar):
         head_jnt = self.get_head_jnt()
         head_length = self.rig.get_head_length(head_jnt)
         if not head_length:
-            pymel.warning(
-                "Can't resolve head length! The eyes ctrl location might be erroned."
-            )
+            pymel.warning("Can't resolve head length! The eyes ctrl location might be erroned.")
         offset_z = head_length * 2 if head_length else 0
         return pymel.datatypes.Matrix(
             [1, 0, 0, 0],
@@ -139,9 +137,7 @@ class AvarEye(Avar):
         aim_target.setTranslation(aim_target_pos, space="world")
 
         # Convert the rotation to avars to additional values can be added.
-        util = libRigging.create_utility_node(
-            "decomposeMatrix", inputMatrix=aim_node.matrix
-        )
+        util = libRigging.create_utility_node("decomposeMatrix", inputMatrix=aim_node.matrix)
         self._attr_out_lr = util.outputTranslateX
         self._attr_out_ud = util.outputTranslateY
         self._attr_out_fb = util.outputTranslateZ

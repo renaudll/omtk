@@ -30,9 +30,7 @@ def open_scene(path_local):
             m_path_local = path_local  # make mutable
 
             path = os.path.abspath(
-                os.path.join(
-                    os.path.dirname(sys.modules[f.__module__].__file__), m_path_local
-                )
+                os.path.join(os.path.dirname(sys.modules[f.__module__].__file__), m_path_local)
             )
             if not os.path.exists(path):
                 raise Exception("File does not exist on disk! {0}".format(path))
@@ -70,15 +68,13 @@ def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0)
         diff = abs(1.0 - a_axis.dot(b_axis))
         if diff > r_epsilon:
             raise AssertionError(
-                "%s != %s (dot product %s > epsilon %s)"
-                % (a_axis, b_axis, diff, r_epsilon)
+                "%s != %s (dot product %s > epsilon %s)" % (a_axis, b_axis, diff, r_epsilon)
             )
     # Compare position
     distance = a_pos.distanceTo(b_pos)
     if distance > t_epsilon:
         raise AssertionError(
-            "Position %s != %s (distance %s > epsilon %s)"
-            % (a_pos, b_pos, distance, t_epsilon)
+            "Position %s != %s (distance %s > epsilon %s)" % (a_pos, b_pos, distance, t_epsilon)
         )
 
 
@@ -138,9 +134,7 @@ def assert_match_pose(data):
                 problematic_objs.add(obj_name)
 
         if problematic_objs:
-            raise AssertionError(
-                "Invalid transform for %s" % ",".join(sorted(problematic_objs))
-            )
+            raise AssertionError("Invalid transform for %s" % ",".join(sorted(problematic_objs)))
 
     except AssertionError:
         # Save expected transforms visually
@@ -192,10 +186,7 @@ def validate_built_rig(
     # Ensure the rig translate correctly.
     if test_translate:
         offset_tm = pymel.datatypes.Matrix(
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [translate.x, translate.y, translate.z, 1.0,],
+            [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [translate.x, translate.y, translate.z, 1.0,],
         )
         with verified_offset(objs, offset_tm, multiplier=translate.length()):
             rig.grp_anm.t.set(translate)
@@ -249,9 +240,7 @@ def validate_built_rig(
     if test_scale:
         print("Validating scale...")
         m = test_scale_value
-        scale_tm = pymel.datatypes.Matrix(
-            [m, 0, 0, 0], [0, m, 0, 0], [0, 0, m, 0], [0, 0, 0, 1]
-        )
+        scale_tm = pymel.datatypes.Matrix([m, 0, 0, 0], [0, m, 0, 0], [0, 0, m, 0], [0, 0, 0, 1])
         with verified_offset(objs, scale_tm, multiplier=test_scale_value):
             rig.grp_anm.globalScale.set(test_scale_value)
         rig.grp_anm.globalScale.set(1.0)

@@ -1,12 +1,12 @@
+import logging
 import re
-import pymel.core as pymel
 from omtk.widgets.ui import widget_list_meshes
 
-from omtk.libs import libSkinning
 from omtk.libs import libQt
 from omtk.widgets import _utils
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
+_LOG = logging.getLogger('omtk')
 
 class WidgetListMeshes(QtWidgets.QWidget):
     _TEXT_BRUSH = QtGui.QBrush(QtCore.Qt.white)
@@ -31,6 +31,8 @@ class WidgetListMeshes(QtWidgets.QWidget):
             self.update_list()
 
     def update_list(self):
+        from omtk.libs import libSkinning
+
         self.ui.treeWidget.clear()
 
         if self._rig is None:
@@ -46,9 +48,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
 
                 skincluster = libSkinning.get_skin_cluster(mesh)
                 if skincluster:
-                    influences = sorted(
-                        libSkinning.get_skin_cluster_influence_objects(skincluster)
-                    )
+                    influences = sorted(libSkinning.get_skin_cluster_influence_objects(skincluster))
 
                 self._fill_widget_meshes(root, mesh, influences)
 
@@ -110,14 +110,10 @@ class WidgetListMeshes(QtWidgets.QWidget):
             query_regex = ".*%s.*" % query_raw if query_raw else ".*"
 
         def fn_can_show(qItem, query_regex):
-            if (
-                qItem.metadata_type == _utils.MetadataType.Influence
-            ):  # Always show influences
+            if qItem.metadata_type == _utils.MetadataType.Influence:  # Always show influences
                 return True
 
-            return not query_regex or re.match(
-                query_regex, qItem.text(0), re.IGNORECASE
-            )
+            return not query_regex or re.match(query_regex, qItem.text(0), re.IGNORECASE)
 
         for qt_item in libQt.get_all_QTreeWidgetItem(self.ui.treeWidget):
             can_show = fn_can_show(qt_item, query_regex)
@@ -135,14 +131,18 @@ class WidgetListMeshes(QtWidgets.QWidget):
     #
 
     def on_mesh_selection_changed(self):
+        import pymel
+
         pymel.select(self.get_selection())
 
     def on_meshes_query_changed(self, *args, **kwargs):
         self.update_list_visibility()
 
     def on_SelectGrpMeshes(self):
+        import pymel
+
         grp = self._rig.grp_geo
         if not grp or not grp.exists():
-            pymel.warning("Can't find influence grp!")
+            _LOG.warning("Can't find influence grp!")
         else:
             pymel.select(grp)

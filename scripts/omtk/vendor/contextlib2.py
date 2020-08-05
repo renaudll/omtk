@@ -93,9 +93,7 @@ class ContextDecorator(object):
         DEPRECATED: refresh_cm was never added to the standard library's
                     ContextDecorator API
         """
-        warnings.warn(
-            "refresh_cm was never added to the standard library", DeprecationWarning
-        )
+        warnings.warn("refresh_cm was never added to the standard library", DeprecationWarning)
         return self._recreate_cm()
 
     def _recreate_cm(self):

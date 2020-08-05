@@ -58,9 +58,7 @@ class Ui_mainWindow(object):
         mainWindow.setWindowTitle(
             QtCompat.translate("mainWindow", "OMTK - Plugin Manager", None, -1)
         )
-        self.pushButton_reload.setText(
-            QtCompat.translate("mainWindow", "Reload", None, -1)
-        )
+        self.pushButton_reload.setText(QtCompat.translate("mainWindow", "Reload", None, -1))
         self.actionReload.setText(QtCompat.translate("mainWindow", "Reload", None, -1))
         self.actionSearchQueryChanged.setText(
             QtCompat.translate("mainWindow", "SearchQueryChanged", None, -1)

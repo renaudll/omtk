@@ -62,19 +62,9 @@ class Ui_Form(object):
         self.label_2.setText(QtCompat.translate("Form", "Logs", None, -1))
         self.label_4.setText(QtCompat.translate("Form", "Search", None, -1))
         self.label_3.setText(QtCompat.translate("Form", "Level:", None, -1))
-        self.comboBox_log_level.setItemText(
-            0, QtCompat.translate("Form", "Error", None, -1)
-        )
-        self.comboBox_log_level.setItemText(
-            1, QtCompat.translate("Form", "Warning", None, -1)
-        )
-        self.comboBox_log_level.setItemText(
-            2, QtCompat.translate("Form", "Info", None, -1)
-        )
-        self.comboBox_log_level.setItemText(
-            3, QtCompat.translate("Form", "Debug", None, -1)
-        )
+        self.comboBox_log_level.setItemText(0, QtCompat.translate("Form", "Error", None, -1))
+        self.comboBox_log_level.setItemText(1, QtCompat.translate("Form", "Warning", None, -1))
+        self.comboBox_log_level.setItemText(2, QtCompat.translate("Form", "Info", None, -1))
+        self.comboBox_log_level.setItemText(3, QtCompat.translate("Form", "Debug", None, -1))
         self.pushButton_logs_save.setText(QtCompat.translate("Form", "Save", None, -1))
-        self.pushButton_logs_clear.setText(
-            QtCompat.translate("Form", "Clear", None, -1)
-        )
+        self.pushButton_logs_clear.setText(QtCompat.translate("Form", "Clear", None, -1))

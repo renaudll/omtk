@@ -45,9 +45,7 @@ class Plugin(object):
         elif inspect.ismodule(item):
             item_module = item
         else:
-            raise NotImplementedError(
-                "Unexpected type %s for value %s." % (type(item), item)
-            )
+            raise NotImplementedError("Unexpected type %s for value %s." % (type(item), item))
 
         # If there's no associated module, we deduct that it cannot be contained.
         if item.module is None:
@@ -116,8 +114,7 @@ class Plugin(object):
                 self.module.register_plugin, "__call__"
             ):
                 raise Exception(
-                    "Cannot register plugin %s. No register_plugin function found!"
-                    % self.module
+                    "Cannot register plugin %s. No register_plugin function found!" % self.module
                 )
 
             # Get module class
@@ -125,16 +122,12 @@ class Plugin(object):
             self.name = self.cls.__name__
             self.description = self.cls.__doc__
             if self.description:
-                self.description = next(
-                    iter(filter(None, self.description.split("\n"))), None
-                )
+                self.description = next(iter(filter(None, self.description.split("\n"))), None)
             self.status = PluginStatus.Loaded
         except Exception as e:
             self.status = PluginStatus.Failed
             self.description = str(e)
-            log.warning(
-                "Plugin %s failed to load! %s", self.module_name, self.description
-            )
+            log.warning("Plugin %s failed to load! %s", self.module_name, self.description)
 
 
 class PluginType(object):
@@ -190,9 +183,7 @@ class PluginManager(object):
 
     def iter_loaded_plugins_by_type(self, type_name):
         def fn_filter(plugin):
-            return (
-                plugin.status == PluginStatus.Loaded and plugin.type_name == type_name
-            )
+            return plugin.status == PluginStatus.Loaded and plugin.type_name == type_name
 
         for plugin in self.iter_plugins(key=fn_filter):
             yield plugin
@@ -267,9 +258,7 @@ class PluginManager(object):
         # Build rows
         rows = []
         for plugin in self.get_plugins():
-            rows.append(
-                (plugin.type_name, plugin.name, plugin.description or "", plugin.status)
-            )
+            rows.append((plugin.type_name, plugin.name, plugin.description or "", plugin.status))
         rows = sorted(rows)
 
         # Resolve column_widths
@@ -281,9 +270,7 @@ class PluginManager(object):
 
         # Print rows
         format_str = "| {0} |".format(
-            " | ".join(
-                "{{{0}:{1}}}".format(i, width) for i, width in enumerate(column_widths)
-            )
+            " | ".join("{{{0}:{1}}}".format(i, width) for i, width in enumerate(column_widths))
         )
         print(format_str.format(*header_row))
         for row in rows:
@@ -304,9 +291,7 @@ class MacroPluginType(PluginType):
 
 def initialize():
     # Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
-    plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, "").split(
-        os.pathsep
-    )
+    plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, "").split(os.pathsep)
     plugin_dirs = filter(None, plugin_dirs)
     for path in plugin_dirs:
         if path not in sys.path:

@@ -103,19 +103,13 @@ class AdditiveFK(FK):
             if i == 0:
                 ctrl.offset = ctrl.append_layer("gimbal")
             attr_rotate_x = libRigging.create_utility_node(
-                "addDoubleLinear",
-                input1=ctrl.offset.rotateX.get(),
-                input2=ctrl_add.rotateX,
+                "addDoubleLinear", input1=ctrl.offset.rotateX.get(), input2=ctrl_add.rotateX,
             ).output
             attr_rotate_y = libRigging.create_utility_node(
-                "addDoubleLinear",
-                input1=ctrl.offset.rotateY.get(),
-                input2=ctrl_add.rotateY,
+                "addDoubleLinear", input1=ctrl.offset.rotateY.get(), input2=ctrl_add.rotateY,
             ).output
             attr_rotate_z = libRigging.create_utility_node(
-                "addDoubleLinear",
-                input1=ctrl.offset.rotateZ.get(),
-                input2=ctrl_add.rotateZ,
+                "addDoubleLinear", input1=ctrl.offset.rotateZ.get(), input2=ctrl_add.rotateZ,
             ).output
             pymel.connectAttr(attr_rotate_x, ctrl.offset.rotateX)
             pymel.connectAttr(attr_rotate_y, ctrl.offset.rotateY)

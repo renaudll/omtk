@@ -47,9 +47,7 @@ def hold_attrs(attr, hold_curve=True):
             return attr.get()
 
         for input in attr.inputs(plugs=True):
-            if isinstance(
-                input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)
-            ):
+            if isinstance(input.node(), (pymel.nodetypes.AnimCurve, pymel.nodetypes.BlendWeighted)):
                 pymel.disconnectAttr(
                     input, attr
                 )  # disconnect the animCurve so it won't get deleted automaticly after unbuilding the rig
@@ -204,17 +202,7 @@ def unlock_scale(node, x=True, y=True, z=True, xyz=True):
 
 
 def connect_transform_attrs(
-    src,
-    dst,
-    tx=True,
-    ty=True,
-    tz=True,
-    rx=True,
-    ry=True,
-    rz=True,
-    sx=True,
-    sy=True,
-    sz=True,
+    src, dst, tx=True, ty=True, tz=True, rx=True, ry=True, rz=True, sx=True, sy=True, sz=True,
 ):
     """
     Utility method to connect multiple attributes between two transform nodes.
@@ -389,11 +377,7 @@ def is_connected_to(attr_inn, attr_out, recursive=True, max_depth=None, depth=0)
             if depth >= max_depth:
                 return False
             if is_connected_to(
-                attr_inn,
-                attr,
-                recursive=recursive,
-                max_depth=max_depth,
-                depth=depth + 1,
+                attr_inn, attr, recursive=recursive, max_depth=max_depth, depth=depth + 1,
             ):
                 return True
 

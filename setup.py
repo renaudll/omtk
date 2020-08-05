@@ -11,7 +11,7 @@ setup(
     description="Lightweight open-source production tools for Maya",
     author="Renaud Lessard Larouche",
     author_email="sigmao@gmail.com",
-    url="https://github.com/renaudll/maya-mock",
+    url="https://github.com/renaudll/omtk",
     packages=find_packages(where="scripts"),
     package_dir={"": "scripts"},
     package_data={"omtk": ["compounds/*.ma"]},

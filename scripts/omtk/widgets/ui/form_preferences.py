@@ -43,7 +43,5 @@ class Ui_Dialog(object):
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(
-            QtCompat.translate("Dialog", "OMTK - Preferences", None, -1)
-        )
+        Dialog.setWindowTitle(QtCompat.translate("Dialog", "OMTK - Preferences", None, -1))
         self.label.setText(QtCompat.translate("Dialog", "Default Rig Class", None, -1))

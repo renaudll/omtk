@@ -53,16 +53,12 @@ class Preferences(object):
         # Listen to an environment variable to drive the default rig for specific projects.
         default_rig = self.default_rig
 
-        default_rig_override = os.environ.get(
-            constants.EnvironmentVariables.OMTK_DEFAULT_RIG, None
-        )
+        default_rig_override = os.environ.get(constants.EnvironmentVariables.OMTK_DEFAULT_RIG, None)
         if default_rig_override:
             default_rig = default_rig_override
 
         if default_rig:
-            for plugin in plugin_manager.plugin_manager.iter_loaded_plugins_by_type(
-                "rigs"
-            ):
+            for plugin in plugin_manager.plugin_manager.iter_loaded_plugins_by_type("rigs"):
                 if plugin.cls.__name__ == default_rig:
                     return plugin.cls
             log.warning("Can't find default rig type %s.", default_rig)

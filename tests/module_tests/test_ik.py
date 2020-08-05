@@ -34,16 +34,12 @@ def test_build_ik(ik):
     """
     ik.build()
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_rest.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_rest.json"))
 
     # Validate the IK does not stretch by default
     ik.ctrl_ik.translateX.set(1.0)  # This will stretch the IK beyond it's limit.
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_extended.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_LOCAL_RESOURCE_DIR, "test_ik_extended.json"))
 
     # Validate the IK can stretch
     ik.ctrl_ik.stretch.set(1.0)

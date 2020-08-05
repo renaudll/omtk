@@ -1,6 +1,3 @@
-import pymel.core as pymel
-
-from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui
 
 
@@ -59,6 +56,8 @@ STYLE_SHEET = """
 
 
 def set_icon_from_type(obj, qItem):
+    import pymel.core as pymel
+
     if isinstance(obj, pymel.nodetypes.Joint):
         qItem.setIcon(0, QtGui.QIcon(":/pickJointObj.png"))
     elif isinstance(obj, pymel.nodetypes.Transform):
@@ -74,6 +73,9 @@ def set_icon_from_type(obj, qItem):
 
 
 def update_network(module, item=None):
+    import pymel.core as pymel
+    from omtk.vendor import libSerialization
+
     if hasattr(module, "_network"):
         pymel.delete(module._network)
     new_network = libSerialization.export_network(module)  # TODO : Automatic update

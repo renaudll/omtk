@@ -51,6 +51,4 @@ def test_build_leg(leg):
     """
     leg.build()
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_leg_rest.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_leg_rest.json"))

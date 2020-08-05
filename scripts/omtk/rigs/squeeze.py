@@ -32,10 +32,7 @@ class CtrlMaster(CtrlRoot):
 
     @classmethod
     def _get_recommended_radius(cls, rig, min_size=1.0, multiplier=1.25):
-        return (
-            super(CtrlMaster, cls)._get_recommended_radius(rig, min_size=1.0)
-            * multiplier
-        )
+        return super(CtrlMaster, cls)._get_recommended_radius(rig, min_size=1.0) * multiplier
 
 
 class SqueezeNomenclature(name.BaseName):
@@ -148,14 +145,10 @@ class RigSqueeze(Rig):
         if need_update:
             connections = None
             if attr is not None:
-                connections = libAttr.hold_connections(
-                    [attr], hold_inputs=False, hold_outputs=True
-                )
+                connections = libAttr.hold_connections([attr], hold_inputs=False, hold_outputs=True)
                 attr.delete()
 
-            attr = libAttr.addAttr(
-                self.grp_anm, longName=longName, at=attributeType, **kwargs
-            )
+            attr = libAttr.addAttr(self.grp_anm, longName=longName, at=attributeType, **kwargs)
 
             if connections:
                 libAttr.fetch_connections(connections)
@@ -221,9 +214,7 @@ class RigSqueeze(Rig):
                         return False
             return True
 
-        condition = next(
-            iter(node for node in attr_display_ctrl.outputs() if _filter(node)), None
-        )
+        condition = next(iter(node for node in attr_display_ctrl.outputs() if _filter(node)), None)
 
         if condition is None:
             condition = libRigging.create_utility_node("condition", **condition_attrs)
@@ -248,9 +239,7 @@ class RigSqueeze(Rig):
             )
 
         if create_display_layers:
-            pymel.editDisplayLayerMembers(
-                self.layer_anm, self.grp_anm_master, noRecurse=True
-            )
+            pymel.editDisplayLayerMembers(self.layer_anm, self.grp_anm_master, noRecurse=True)
 
         #
         # Create specific group related to squeeze rig convention
@@ -258,24 +247,14 @@ class RigSqueeze(Rig):
         all_geos = libPymel.ls_root_geos()
 
         # Build All_Grp
-        self.grp_master = self.build_grp(
-            RigGrp, self.grp_master, self.nomenclature.root_all_name
-        )
-        self.grp_model = self.build_grp(
-            RigGrp, self.grp_model, self.nomenclature.root_model_name
-        )
-        self.grp_proxy = self.build_grp(
-            RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name
-        )
-        self.grp_fx = self.build_grp(
-            RigGrp, self.grp_fx, self.nomenclature.root_fx_name
-        )
+        self.grp_master = self.build_grp(RigGrp, self.grp_master, self.nomenclature.root_all_name)
+        self.grp_model = self.build_grp(RigGrp, self.grp_model, self.nomenclature.root_model_name)
+        self.grp_proxy = self.build_grp(RigGrp, self.grp_proxy, self.nomenclature.root_proxy_name)
+        self.grp_fx = self.build_grp(RigGrp, self.grp_fx, self.nomenclature.root_fx_name)
 
         # Parent all groups in the main grp_master
         pymel.parent(self.grp_anm_master, self.grp_master)
-        pymel.parent(
-            self.grp_anm, self.grp_anm_master
-        )  # grp_anm is not a Node, but a Ctrl
+        pymel.parent(self.grp_anm, self.grp_anm_master)  # grp_anm is not a Node, but a Ctrl
         self.grp_rig.setParent(self.grp_master)
         self.grp_fx.setParent(self.grp_master)
         self.grp_model.setParent(self.grp_master)
@@ -366,9 +345,7 @@ class RigSqueeze(Rig):
             # Face module visibility is shown when 'DisplayMesh' is set to zero AND 'DisplayCtrl' is set to 1.
             if self._is_face_module(module):
                 attr_proxy_display_inn = self._init_attr_face_module_visiblity_driver()
-                pymel.connectAttr(
-                    attr_proxy_display_inn, module.grp_anm.visibility, force=True
-                )
+                pymel.connectAttr(attr_proxy_display_inn, module.grp_anm.visibility, force=True)
             # Body module visibility is shown when 'DisplayCtrl' is set to 1.
             else:
                 pymel.connectAttr(attr_display_ctrl, module.grp_anm.visibility)

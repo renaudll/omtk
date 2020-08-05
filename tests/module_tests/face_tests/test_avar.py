@@ -66,27 +66,31 @@ def test_ctrl_model_linear():
     )
 
     # Validate that moving the avar will move the controller.
-    with helpers.temporary_changes({
-        avar.attr_lr: 1.0,
-        avar.attr_ud: 2.0,
-        avar.attr_fb: 3.0,
-        avar.attr_pt: 90.0,
-        avar.attr_yw: 45.0,
-        avar.attr_rl: 22.5,
-    }):
+    with helpers.temporary_changes(
+        {
+            avar.attr_lr: 1.0,
+            avar.attr_ud: 2.0,
+            avar.attr_fb: 3.0,
+            avar.attr_pt: 90.0,
+            avar.attr_yw: 45.0,
+            avar.attr_rl: 22.5,
+        }
+    ):
         helpers.assert_match_pose_from_file(
             os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear_pose.json")
         )
 
     # Validate that moving the ctrl affect the avar
-    with helpers.temporary_changes({
-        avar.ctrl.translateX: 1.0,
-        avar.ctrl.translateY: 2.0,
-        avar.ctrl.translateZ: 3.0,
-        avar.ctrl.rotateX: 90.0,
-        avar.ctrl.rotateY: 45.0,
-        avar.ctrl.rotateZ: 22.5,
-    }):
+    with helpers.temporary_changes(
+        {
+            avar.ctrl.translateX: 1.0,
+            avar.ctrl.translateY: 2.0,
+            avar.ctrl.translateZ: 3.0,
+            avar.ctrl.rotateX: 90.0,
+            avar.ctrl.rotateY: 45.0,
+            avar.ctrl.rotateZ: 22.5,
+        }
+    ):
         helpers.assert_match_pose_from_file(
             os.path.join(_RESOURCE_DIR, "test_avar_ctrl_linear_pose.json")
         )
@@ -105,7 +109,9 @@ def test_ctrl_model_linear():
 
 def _test_parent(avar):
     # Validate influence and controller follow the parent
-    offset_tm = Matrix([0.0, 0.0, -0.5, 0.0], [0.0, 1.0, 0.0, 0.0], [2.0, 0.0, 0.0, 0.0], [1.0, 2.0, 3.0, 1.0])
+    offset_tm = Matrix(
+        [0.0, 0.0, -0.5, 0.0], [0.0, 1.0, 0.0, 0.0], [2.0, 0.0, 0.0, 0.0], [1.0, 2.0, 3.0, 1.0],
+    )
     with helpers.verified_offset([avar.jnt, avar.ctrl.node], offset_tm):
         avar.parent_jnt.setMatrix(offset_tm)
 
@@ -217,23 +223,23 @@ def test_ctrl_model_surface_with_infl():
     cmds.joint(position=[0.0, 0.0, 0.75])
     cmds.skinCluster("pSphere1", "joint1", "joint2")
 
-    avar = AvarImplCtrlSurfaceWithInfl(
-        input=["joint2", "pSphere1"], name="test", rig=Rig()
-    )
+    avar = AvarImplCtrlSurfaceWithInfl(input=["joint2", "pSphere1"], name="test", rig=Rig())
     avar.build()
     helpers.assert_match_pose_from_file(
         os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface_rest.json")
     )
 
     # Validate that moving the avar influence the controller.
-    with helpers.temporary_changes({
-        avar.attr_lr: 1.0,
-        avar.attr_ud: 2.0,
-        avar.attr_fb: 3.0,
-        avar.attr_pt: 90.0,
-        avar.attr_yw: 45.0,
-        avar.attr_rl: 22.5,
-    }):
+    with helpers.temporary_changes(
+        {
+            avar.attr_lr: 1.0,
+            avar.attr_ud: 2.0,
+            avar.attr_fb: 3.0,
+            avar.attr_pt: 90.0,
+            avar.attr_yw: 45.0,
+            avar.attr_rl: 22.5,
+        }
+    ):
         helpers.assert_match_pose_from_file(
             os.path.join(_RESOURCE_DIR, "test_avar_ctrl_surface_pose_1.json")
         )

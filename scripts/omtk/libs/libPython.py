@@ -42,11 +42,7 @@ def log_execution_time(NAME):
             m_NAME = NAME  # make mutable
             st = time.time()
             rv = f(*args, **kwargs)
-            print(
-                "Process {0} took {1:2.3f} seconds to execute.".format(
-                    m_NAME, time.time() - st
-                )
-            )
+            print("Process {0} took {1:2.3f} seconds to execute.".format(m_NAME, time.time() - st))
             return rv
 
         return run
@@ -54,9 +50,7 @@ def log_execution_time(NAME):
     return deco_retry
 
 
-def guess_value(
-    default_low, default_high, fn_guess, max_iter=100, epsilon=0.00000000001
-):
+def guess_value(default_low, default_high, fn_guess, max_iter=100, epsilon=0.00000000001):
     low = default_low
     high = default_high
     mid = (low + high) / 2.0

@@ -116,11 +116,7 @@ def iter_connected_networks(objs, key=None, key_skip=None, recursive=True, cache
 
             if recursive:
                 for result in iter_connected_networks(
-                    output_obj,
-                    key=key,
-                    key_skip=key_skip,
-                    recursive=recursive,
-                    cache=cache,
+                    output_obj, key=key, key_skip=key_skip, recursive=recursive, cache=cache,
                 ):
                     yield result
 
@@ -140,6 +136,4 @@ def get_connected_networks(objs, key=None, key_skip=None, recursive=True):
     :return: A list of networks
     :rtype: list of pymel.nodetypes.Network
     """
-    return list(
-        iter_connected_networks(objs, key=key, key_skip=key_skip, recursive=recursive)
-    )
+    return list(iter_connected_networks(objs, key=key, key_skip=key_skip, recursive=recursive))

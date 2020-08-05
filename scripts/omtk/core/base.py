@@ -21,9 +21,7 @@ class ModuleLoggerAdapter(logging.LoggerAdapter):
     """
 
     def __init__(self, module):
-        super(ModuleLoggerAdapter, self).__init__(
-            logging.getLogger("omtk"), {"module": module}
-        )
+        super(ModuleLoggerAdapter, self).__init__(logging.getLogger("omtk"), {"module": module})
 
     def process(self, msg, kwargs):  # type: (str, dict) -> (str, dict)
         module = self.extra["module"]  # type: Buildable
@@ -217,9 +215,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
         Build the module following the provided rig rules.
         """
         for kwarg in kwargs:
-            self.log.warning(
-                "Module.build received unexpected keyword argument: %s", kwarg
-            )
+            self.log.warning("Module.build received unexpected keyword argument: %s", kwarg)
 
         self.log.info("Building")
 
@@ -266,8 +262,7 @@ class Buildable(object):  # TODO: Eventually this will become our "Module" class
 
     def _clean_invalid_pynodes(self):
         _filter = lambda x: (
-            isinstance(x, (pymel.PyNode, pymel.Attribute))
-            and not libPymel.is_valid_PyNode(x)
+            isinstance(x, (pymel.PyNode, pymel.Attribute)) and not libPymel.is_valid_PyNode(x)
         )
         for key, val in self.__dict__.items():
             if _filter(val):

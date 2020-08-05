@@ -228,12 +228,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
         self.avar_all = self._init_avar_macro_all()
 
     def build(
-        self,
-        connect_global_scale=None,
-        parent=True,
-        constraint=True,
-        calibrate=True,
-        **kwargs
+        self, connect_global_scale=None, parent=True, constraint=True, calibrate=True, **kwargs
     ):
         self.handle_surface()
 
@@ -506,9 +501,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
                 if "in" in tokens:
                     return cls.SIDE_L
                 return cls.SIDE_C
-            raise Exception(
-                "Module is side specific but have no side!"
-            )  # TODO: Move to validate
+            raise Exception("Module is side specific but have no side!")  # TODO: Move to validate
         return side
 
     def _get_avar_vertical_side(self, avar):
@@ -583,8 +576,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
         scale = max_x - min_x if min_x and max_x else 1.0
         if len(self.jnts) <= 1 or scale < epsilon:
             self.log.debug(
-                "Cannot automatically resolve scale for surface. "
-                "Using default value %s",
+                "Cannot automatically resolve scale for surface. " "Using default value %s",
                 default_scale,
             )
             scale = default_scale
@@ -610,9 +602,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
             raise ValidationError("Can't build module with zero joints.")
 
         # Ensure that we support the hierarchy of the influences.
-        influence_hyearchy_deepness = max(
-            self._get_relative_parent_level_by_influences().keys()
-        )
+        influence_hyearchy_deepness = max(self._get_relative_parent_level_by_influences().keys())
         if influence_hyearchy_deepness > 2:
             raise ValidationError(
                 "Unsupported hierarchy depth! Please revise your inputs hierarchy."
@@ -632,13 +622,9 @@ class AvarGrp(Module):  # TODO: Inherit from Module
 
         if self.create_macro_vertical:
             if not self.get_jnt_upp_mid():
-                raise ValidationError(
-                    "Cannot find a reference input for the upp macro avar."
-                )
+                raise ValidationError("Cannot find a reference input for the upp macro avar.")
             if not self.get_jnt_low_mid():
-                raise ValidationError(
-                    "Cannot find a reference input for the dwn macro avar."
-                )
+                raise ValidationError("Cannot find a reference input for the dwn macro avar.")
 
     #
     # Influence getter functions.
@@ -784,10 +770,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
         :return: The farthest avar in the positive X axis.
         """
         fn_get_avar_pos_x = lambda avar: avar.jnt.getTranslation(space="world").x
-        return next(
-            iter(reversed(sorted(self.get_avars_micro_l(), key=fn_get_avar_pos_x))),
-            None,
-        )
+        return next(iter(reversed(sorted(self.get_avars_micro_l(), key=fn_get_avar_pos_x))), None,)
 
     def get_avar_r_corner(self):
         """
@@ -966,9 +949,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
         :rtype: AvarMacroUpp
         """
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
-        name = self.naming_cls(
-            tokens=["macro", self.naming_cls.SIDE_V_UPP], side=side
-        ).resolve()
+        name = self.naming_cls(tokens=["macro", self.naming_cls.SIDE_V_UPP], side=side).resolve()
 
         return self._init_macro_avar(
             self.CLS_AVAR_MACRO_UPP,
@@ -984,9 +965,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
         :rtype: AvarMacroLow
         """
         side = self.naming.side if self.IS_SIDE_SPECIFIC else None
-        name = self.naming_cls(
-            tokens=["macro", self.naming_cls.SIDE_V_LOW], side=side
-        ).resolve()
+        name = self.naming_cls(tokens=["macro", self.naming_cls.SIDE_V_LOW], side=side).resolve()
 
         return self._init_macro_avar(
             self.CLS_AVAR_MACRO_LOW,
@@ -1042,48 +1021,26 @@ class AvarGrp(Module):  # TODO: Inherit from Module
         # TODO: What do we do about the all macro?
 
     def _connect_avar_macro_horizontal(
-        self,
-        avar_parent,
-        avar_children,
-        connect_ud=True,
-        connect_lr=True,
-        connect_fb=True,
+        self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True,
     ):
         for child_avar in avar_children:
             if connect_ud:
-                libRigging.connectAttr_withLinearDrivenKeys(
-                    avar_parent.attr_ud, child_avar.attr_ud
-                )
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
             if connect_lr:
-                libRigging.connectAttr_withLinearDrivenKeys(
-                    avar_parent.attr_lr, child_avar.attr_lr
-                )
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, child_avar.attr_lr)
             if connect_fb:
-                libRigging.connectAttr_withLinearDrivenKeys(
-                    avar_parent.attr_fb, child_avar.attr_fb
-                )
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, child_avar.attr_fb)
 
     def _connect_avar_macro_vertical(
-        self,
-        avar_parent,
-        avar_children,
-        connect_ud=True,
-        connect_lr=True,
-        connect_fb=True,
+        self, avar_parent, avar_children, connect_ud=True, connect_lr=True, connect_fb=True,
     ):
         for child_avar in avar_children:
             if connect_ud:
-                libRigging.connectAttr_withLinearDrivenKeys(
-                    avar_parent.attr_ud, child_avar.attr_ud
-                )
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_ud, child_avar.attr_ud)
             if connect_lr:
-                libRigging.connectAttr_withLinearDrivenKeys(
-                    avar_parent.attr_lr, child_avar.attr_lr
-                )
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_lr, child_avar.attr_lr)
             if connect_fb:
-                libRigging.connectAttr_withLinearDrivenKeys(
-                    avar_parent.attr_fb, child_avar.attr_fb
-                )
+                libRigging.connectAttr_withLinearDrivenKeys(avar_parent.attr_fb, child_avar.attr_fb)
 
     def _connect_avar_macro_l(self, avar, child_avars):
         self._connect_avar_macro_horizontal(avar, child_avars)
@@ -1113,9 +1070,7 @@ class AvarGrp(Module):  # TODO: Inherit from Module
             # take our chance and use the first influence.
             pos = self.jnt.getTranslation(space="world")
 
-        jnt_tm = Matrix(
-            [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [pos.x, pos.y, pos.z, 1],
-        )
+        jnt_tm = Matrix([1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [pos.x, pos.y, pos.z, 1],)
 
         # By default, we expect all joint from the right side of the face
         # to be mirrored in 'behavior'.

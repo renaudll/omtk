@@ -46,9 +46,7 @@ class CtrlIkSwivel(BaseCtrl):
         self._line_locator = None
         self._line_annotation = None
 
-    def create_ctrl(
-        self, refs=None, size=None, line_target=True, offset=None, *args, **kwargs
-    ):
+    def create_ctrl(self, refs=None, size=None, line_target=True, offset=None, *args, **kwargs):
         """
         Create the swivel ctrl itself when build node function is called
         :param refs: Reference used to correctly size the ctrl
@@ -86,9 +84,9 @@ class CtrlIkSwivel(BaseCtrl):
         :param kwargs: More kwargs pass to the super class
         :return: The spaceswitch usable targets and names
         """
-        targets, target_names, indexes = super(
-            CtrlIkSwivel, self
-        ).get_spaceswitch_targets(module, *args, **kwargs)
+        targets, target_names, indexes = super(CtrlIkSwivel, self).get_spaceswitch_targets(
+            module, *args, **kwargs
+        )
 
         # Add the Hand/Foot ctrl
         targets.append(module.ctrl_ik)
@@ -124,9 +122,7 @@ class CtrlIkSwivel(BaseCtrl):
             annotation_transform = self._line_annotation.getParent()
             self._line_annotation.setParent(self.node, relative=True, shape=True)
             pymel.connectAttr(
-                locator_shape.worldMatrix,
-                self._line_annotation.dagObjectMatrix[0],
-                force=True,
+                locator_shape.worldMatrix, self._line_annotation.dagObjectMatrix[0], force=True,
             )
             pymel.delete(annotation_transform)
 
@@ -189,18 +185,10 @@ class SoftIKStretchModel(IKStretchModel):
             libAttr.addAttr, ctrl, hasMinValue=True, hasMaxValue=True, keyable=True,
         )
         attr_ratio = _fn(
-            longName="softIkRatio",
-            niceName="SoftIK",
-            defaultValue=0,
-            minValue=0,
-            maxValue=50,
+            longName="softIkRatio", niceName="SoftIK", defaultValue=0, minValue=0, maxValue=50,
         )
         attr_stretch = _fn(
-            longName="stretch",
-            niceName="Stretch",
-            defaultValue=0,
-            minValue=0,
-            maxValue=1.0,
+            longName="stretch", niceName="Stretch", defaultValue=0, minValue=0, maxValue=1.0,
         )
 
         # Convert ratio from percent (user-friendly) to decimal.
@@ -253,9 +241,7 @@ class IK(CompoundModule):
         """
         Build the ik system when needed
         """
-        self._sys_stretch = self._CLASS_IK_MODEL.from_instance(
-            self, self._sys_stretch, "stretch"
-        )
+        self._sys_stretch = self._CLASS_IK_MODEL.from_instance(self, self._sys_stretch, "stretch")
 
         super(IK, self).build()
 
@@ -343,9 +329,7 @@ class IK(CompoundModule):
         attr_bind = inst_inputs.bind
         attr_swivel = inst_inputs.swivel
         attr_start = libRigging.create_utility_node(
-            "decomposeMatrix",
-            name=naming.resolve("getStartPos"),
-            inputMatrix=attr_bind[0],
+            "decomposeMatrix", name=naming.resolve("getStartPos"), inputMatrix=attr_bind[0],
         ).outputTranslate
         attr_effector = inst_inputs.effector
         attr_out = inst_output.out
@@ -395,9 +379,7 @@ class IK(CompoundModule):
 
         # Constraint ik solver
         pymel.connectAttr(attr_end, ik_handle.translate)
-        swivel_constraint = _create_swivel_constraint(
-            attr_start, attr_swivel, ik_handle
-        )
+        swivel_constraint = _create_swivel_constraint(attr_start, attr_swivel, ik_handle)
         swivel_constraint.setParent(self.grp_rig)
 
         return inst
@@ -419,9 +401,7 @@ class IK(CompoundModule):
 
         ratio = self.chain[1].translate.get().length() / chain_length
         pos_swivel_base = (end - start) * ratio + start
-        dir_swivel = (
-            self.chain[1].getTranslation(space="world") - pos_swivel_base
-        ).normal()
+        dir_swivel = (self.chain[1].getTranslation(space="world") - pos_swivel_base).normal()
         return pos_swivel_base + (dir_swivel * chain_length)
 
     def _get_ik_ctrl_bound_refs_raycast(self):
@@ -486,13 +466,9 @@ class IK(CompoundModule):
         # Resolve CtrlIK transform
         ctrl_ik_offset_tm, ctrl_ik_tm = self._get_ik_ctrl_tms()
         ctrl_ik_offset_rot = (
-            libPymel.get_rotation_from_matrix(ctrl_ik_offset_tm)
-            if ctrl_ik_offset_tm
-            else None
+            libPymel.get_rotation_from_matrix(ctrl_ik_offset_tm) if ctrl_ik_offset_tm else None
         )
-        ctrl_ik_rot = (
-            libPymel.get_rotation_from_matrix(ctrl_ik_tm) if ctrl_ik_tm else None
-        )
+        ctrl_ik_rot = libPymel.get_rotation_from_matrix(ctrl_ik_tm) if ctrl_ik_tm else None
 
         ctrl = self._CLASS_CTRL_IK.from_instance(self.ctrl_ik)
         refs_bound_raycast = self._get_ik_ctrl_bound_refs_raycast()
@@ -563,9 +539,7 @@ def _create_joint_from_binds(attr_bind, naming, connect=True, jointOrient=True):
         jnt = pymel.joint(name=naming.resolve(str(idx)))
 
         if connect:
-            util = libRigging.create_utility_node(
-                "decomposeMatrix", inputMatrix=attr_tm
-            )
+            util = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_tm)
             pymel.connectAttr(util.outputTranslate, jnt.translate)
             if jointOrient:
                 pymel.connectAttr(util.outputRotate, jnt.jointOrient)

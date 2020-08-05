@@ -131,9 +131,7 @@ class AvarInflBaseModel(module.Module):
         naming = self.get_nomenclature_rig()
 
         parent_tm = (
-            self.jnt.getParent().getMatrix(worldSpace=True)
-            if self.jnt.getParent()
-            else Matrix()
+            self.jnt.getParent().getMatrix(worldSpace=True) if self.jnt.getParent() else Matrix()
         )
         bind_tm = self.jnt.getMatrix(worldSpace=True) * parent_tm.inverse()
 
@@ -147,9 +145,7 @@ class AvarInflBaseModel(module.Module):
         # Create helper dag nodes
         #
         def _create_grp(suffix, tm=None):
-            grp = pymel.createNode(
-                "transform", name=naming.resolve(suffix), parent=self.grp_rig
-            )
+            grp = pymel.createNode("transform", name=naming.resolve(suffix), parent=self.grp_rig)
             if tm:
                 grp.setMatrix(tm)
             return grp
@@ -176,10 +172,7 @@ class AvarInflBaseModel(module.Module):
         pymel.connectAttr(obj_internal_bind.matrix, compound_input.bindInternal)
 
         offset_tm = libRigging.create_multiply_matrix(
-            [
-                compound_input.bind,
-                libRigging.create_inverse_matrix(compound_input.bindInternal),
-            ]
+            [compound_input.bind, libRigging.create_inverse_matrix(compound_input.bindInternal),]
         )
 
         # Compute the result (still in parent space)
@@ -190,12 +183,7 @@ class AvarInflBaseModel(module.Module):
 
         # outputs.output
         attr_output_tm = libRigging.create_multiply_matrix(
-            [
-                offset_tm,
-                attr_output,
-                compound_input.bindInternal,
-                compound_input.parent,
-            ],
+            [offset_tm, attr_output, compound_input.bindInternal, compound_input.parent,],
             name=naming.resolve("getAvarWorldOutput"),
         )
         pymel.connectAttr(attr_output_tm, compound_output.output)
@@ -212,12 +200,8 @@ class AvarInflBaseModel(module.Module):
 
         # TODO: Remove usage of constraints
 
-        attr_out = libRigging.create_multiply_matrix(
-            [obj_output.matrix, obj_parent.inverseMatrix]
-        )
-        util_decompose = libRigging.create_utility_node(
-            "decomposeMatrix", inputMatrix=attr_out
-        )
+        attr_out = libRigging.create_multiply_matrix([obj_output.matrix, obj_parent.inverseMatrix])
+        util_decompose = libRigging.create_utility_node("decomposeMatrix", inputMatrix=attr_out)
 
         infl, tweak = self._get_influences()
         if tweak:
@@ -282,16 +266,13 @@ class AvarInflBaseModel(module.Module):
             return value.get() if isinstance(value, pymel.Attribute) else value
 
         self.multiplier_lr = fn(
-            "innMultiplierLr",
-            defaultValue=_get(self.multiplier_lr) or self.DEFAULT_MULTIPLIER_LR,
+            "innMultiplierLr", defaultValue=_get(self.multiplier_lr) or self.DEFAULT_MULTIPLIER_LR,
         )
         self.multiplier_ud = fn(
-            "innMultiplierUd",
-            defaultValue=_get(self.multiplier_ud) or self.DEFAULT_MULTIPLIER_UD,
+            "innMultiplierUd", defaultValue=_get(self.multiplier_ud) or self.DEFAULT_MULTIPLIER_UD,
         )
         self.multiplier_fb = fn(
-            "innMultiplierFb",
-            defaultValue=_get(self.multiplier_fb) or self.DEFAULT_MULTIPLIER_FB,
+            "innMultiplierFb", defaultValue=_get(self.multiplier_fb) or self.DEFAULT_MULTIPLIER_FB,
         )
 
         # TODO: Should this be optional?
@@ -332,6 +313,4 @@ class AvarInflBaseModel(module.Module):
         if len(self.jnts) == 1:
             return self.jnt, None
 
-        raise ValueError(
-            "Invalid number of influences. Expected 1 or 2, got %s" % len(self.jnts)
-        )
+        raise ValueError("Invalid number of influences. Expected 1 or 2, got %s" % len(self.jnts))

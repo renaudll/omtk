@@ -310,9 +310,7 @@ def create_shape_box_arm(
     else:
         dirs.append(OpenMaya.MPoint(-1, 0, 0) * dir_offset_tm,)
     raycast_results = _batch_raycast_nearest(raycast_positions, dirs, geometries)
-    bounds = _expand_bounds_using_positions(
-        bounds, raycast_results, parent_tm=parent_tm
-    )
+    bounds = _expand_bounds_using_positions(bounds, raycast_results, parent_tm=parent_tm)
 
     #
     # Extend bound using positions
@@ -394,18 +392,14 @@ def create_shape_box_feet(refs, geometries, refs_raycast=None, parent_tm=None):
     # TODO: Make it more robust.
     filtered_geometries = []
     for geometry in geometries:
-        xmin, ymin, zmin, xmax, ymax, zmax = cmds.exactWorldBoundingBox(
-            geometry.__melobject__()
-        )
+        xmin, ymin, zmin, xmax, ymax, zmax = cmds.exactWorldBoundingBox(geometry.__melobject__())
         bound = pymel.datatypes.BoundingBox((xmin, ymin, zmin), (xmax, ymax, zmax))
         if any(True for pos in positions if bound.contains(pos)):
             filtered_geometries.append(geometry)
 
     # Using all provided objects
     raycast_results = _batch_raycast_nearest(positions, dirs, geometries)
-    bounds = _expand_bounds_using_positions(
-        bounds, raycast_results, parent_tm=parent_tm
-    )
+    bounds = _expand_bounds_using_positions(bounds, raycast_results, parent_tm=parent_tm)
 
     #
     # Extend bound using positions

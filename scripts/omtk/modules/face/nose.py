@@ -55,17 +55,7 @@ class ModelMicroAvarNose(ModelCtrlLinear):
             )
         else:
             super(ModelMicroAvarNose, self).connect(
-                avar,
-                avar_grp,
-                ud=ud,
-                fb=fb,
-                lr=lr,
-                yw=yw,
-                pt=pt,
-                rl=rl,
-                sx=sx,
-                sy=sy,
-                sz=sz,
+                avar, avar_grp, ud=ud, fb=fb, lr=lr, yw=yw, pt=pt, rl=rl, sx=sx, sy=sy, sz=sz,
             )
 
 

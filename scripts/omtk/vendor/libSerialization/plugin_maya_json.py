@@ -50,9 +50,7 @@ class PymelJSONEncoder(json.JSONEncoder):
 # TODO: Add support for matrix and vector datatypes
 class PymelJSONDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
-        super(PymelJSONDecoder, self).__init__(
-            object_hook=self.object_hook, *args, **kwargs
-        )
+        super(PymelJSONDecoder, self).__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, val):
         if isinstance(val, dict):

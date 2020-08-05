@@ -84,8 +84,7 @@ class AbstractName(object):
 
         if name:
             warnings.warn(
-                "Parameter name is deprecated. Please use from_string.",
-                DeprecationWarning,
+                "Parameter name is deprecated. Please use from_string.", DeprecationWarning,
             )
             self.build_from_string(name)
 
@@ -103,9 +102,7 @@ class AbstractName(object):
                 elif side in self.KNOWN_SUFFIXES:
                     self.suffix = side
                 else:
-                    raise ValueError(
-                        "Could not determine where to put the side %r." % side
-                    )
+                    raise ValueError("Could not determine where to put the side %r." % side)
         if type:
             self.type = type
 
@@ -187,9 +184,7 @@ class AbstractName(object):
 
     @suffix.setter
     def suffix(self, value):
-        warnings.warn(
-            "Setting .suffix is deprecated. Use .type or .side", DeprecationWarning
-        )
+        warnings.warn("Setting .suffix is deprecated. Use .type or .side", DeprecationWarning)
         # clean only if the suffix is not a side. side need to be manually removed.
         if not value and self.suffix in (
             self.SIDE_L,
@@ -208,9 +203,7 @@ class AbstractName(object):
 
     @prefix.setter
     def prefix(self, value):
-        warnings.warn(
-            "Setting .prefix is deprecated. Use .type or .side", DeprecationWarning
-        )
+        warnings.warn("Setting .prefix is deprecated. Use .type or .side", DeprecationWarning)
         self._prefix = value
 
     def copy(self):

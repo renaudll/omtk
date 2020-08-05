@@ -61,36 +61,26 @@ def test_plugins():
 
 
 def test_rig_rlessard():
-    cmds.file(
-        os.path.join(_EXAMPLES_DIR, "rig_rlessard_template01.ma"), open=True, force=True
-    )
-    helpers.build_unbuild_build_all(
-        test_translate=True, test_rotate=True, test_scale=True
-    )
+    cmds.file(os.path.join(_EXAMPLES_DIR, "rig_rlessard_template01.ma"), open=True, force=True)
+    helpers.build_unbuild_build_all(test_translate=True, test_rotate=True, test_scale=True)
 
 
 def test_interactivefk01():
-    cmds.file(
-        os.path.join(_RESOURCE_DIR, "test_interactivefk01.ma"), open=True, force=True
-    )
+    cmds.file(os.path.join(_RESOURCE_DIR, "test_interactivefk01.ma"), open=True, force=True)
     helpers.build_unbuild_build_all(
         test_translate=False, test_rotate=False, test_scale=False
     )  # todo: re-enabled test t/r/s
 
 
 def test_interactivefk02():
-    cmds.file(
-        os.path.join(_RESOURCE_DIR, "test_interactivefk02.ma"), open=True, force=True
-    )
+    cmds.file(os.path.join(_RESOURCE_DIR, "test_interactivefk02.ma"), open=True, force=True)
     helpers.build_unbuild_build_all(
         test_translate=False, test_rotate=False, test_scale=False
     )  # todo: re-enabled test t/r/s
 
 
 def test_interactivefk03():
-    cmds.file(
-        os.path.join(_RESOURCE_DIR, "test_interactivefk03.ma"), open=True, force=True
-    )
+    cmds.file(os.path.join(_RESOURCE_DIR, "test_interactivefk03.ma"), open=True, force=True)
 
     helpers.build_unbuild_build_all(
         test_translate=False, test_rotate=False, test_scale=False

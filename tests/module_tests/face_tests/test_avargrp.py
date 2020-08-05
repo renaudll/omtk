@@ -90,20 +90,18 @@ def test_avar_grp_simple():
     inst = AvarGrpImpl1(jnts, name="avargrp", rig=Rig())
     inst.build()
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_rest.json"))
 
     # Ensure micros follow macros
-    with helpers.temporary_changes({
-        inst.avar_l.ctrl.translateX: 1.0,
-        inst.avar_r.ctrl.translateX: 1.0,
-        inst.avar_upp.ctrl.translateY: 1.0,
-        inst.avar_low.ctrl.translateY: -1.0,
-    }):
-        helpers.assert_match_pose_from_file(
-            os.path.join(_RESOURCE_DIR, "test_avargrp_pose1.json")
-        )
+    with helpers.temporary_changes(
+        {
+            inst.avar_l.ctrl.translateX: 1.0,
+            inst.avar_r.ctrl.translateX: 1.0,
+            inst.avar_upp.ctrl.translateY: 1.0,
+            inst.avar_low.ctrl.translateY: -1.0,
+        }
+    ):
+        helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avargrp_pose1.json"))
 
     # # Ensure influence and ctrls follow parent
     # offset_tm = Matrix([0.0, 0.0, -0.5, 0.0], [0.0, 1.0, 0.0, 0.0], [2.0, 0.0, 0.0, 0.0], [1.0, 2.0, 3.0, 1.0])
@@ -126,9 +124,7 @@ def test_avarsidegrp_specific_l():
     inst = AvarGrpImpl1SideSpecific(jnts, name="l_avargrp", rig=Rig())
     inst.build()
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avarsidegrp_l_rest.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avarsidegrp_l_rest.json"))
 
 
 def test_avarsidegrp_specific_r():
@@ -146,9 +142,7 @@ def test_avarsidegrp_specific_r():
     inst = AvarGrpImpl1SideSpecific(jnts, name="r_avargrp", rig=Rig())
     inst.build()
 
-    helpers.assert_match_pose_from_file(
-        os.path.join(_RESOURCE_DIR, "test_avarsidegrp_r_rest.json")
-    )
+    helpers.assert_match_pose_from_file(os.path.join(_RESOURCE_DIR, "test_avarsidegrp_r_rest.json"))
 
 
 def test_avargrp_connection_persistence():
@@ -165,9 +159,7 @@ def test_avargrp_connection_persistence():
     inst.build()
 
     # Connect some avars
-    libRigging.connectAttr_withLinearDrivenKeys(
-        inst.avar_l.attr_lr, inst.avar_r.attr_lr
-    )
+    libRigging.connectAttr_withLinearDrivenKeys(inst.avar_l.attr_lr, inst.avar_r.attr_lr)
 
     # Validate that the connection work, moving the avar_l should move the avar_r
     with helpers.temporary_changes({inst.avar_l.attr_lr: 1.0}):

@@ -89,9 +89,7 @@ class PyNodeChain(list):
     # get the first pynode that have the attr
     def __getattr__(self, key):
         # _LOG.warning("Searching unknown attribute %s in %s", key, self)
-        first_node = next(
-            (node for node in self.__dict__["_list"] if hasattr(node, key)), None
-        )
+        first_node = next((node for node in self.__dict__["_list"] if hasattr(node, key)), None)
         if first_node is not None:
             return getattr(first_node, key)
         raise AttributeError
@@ -344,9 +342,7 @@ class Segment(object):
         atp_dot_atb = a_to_p_norm * (a_to_b_norm)  # dot product
         dist_norm = atp_dot_atb * ap_length / ab_length
         return pymel.datatypes.Vector(
-            a.x + a_to_b.x * dist_norm,
-            a.y + a_to_b.y * dist_norm,
-            a.z + a_to_b.z * dist_norm,
+            a.x + a_to_b.x * dist_norm, a.y + a_to_b.y * dist_norm, a.z + a_to_b.z * dist_norm,
         )
 
     def closest_point_normalized_distance(self, p, epsilon=0.001):
@@ -364,11 +360,7 @@ class Segment(object):
         a_to_b_norm = a_to_b.normal()
         atp_dot_atb = a_to_p_norm * a_to_b_norm
 
-        return (
-            abs(atp_dot_atb * ap_length / ab_length)
-            if abs(ab_length) > epsilon
-            else 0.0
-        )
+        return abs(atp_dot_atb * ap_length / ab_length) if abs(ab_length) > epsilon else 0.0
 
 
 class SegmentCollection(object):
@@ -444,12 +436,8 @@ class SegmentCollection(object):
             obj_e = objs[i + 1]
             mfn_transform_s = obj_s.__apimfn__()
             mfn_transform_e = obj_e.__apimfn__()
-            pos_s = OpenMaya.MVector(
-                mfn_transform_s.getTranslation(OpenMaya.MSpace.kWorld)
-            )
-            pos_e = OpenMaya.MVector(
-                mfn_transform_e.getTranslation(OpenMaya.MSpace.kWorld)
-            )
+            pos_s = OpenMaya.MVector(mfn_transform_s.getTranslation(OpenMaya.MSpace.kWorld))
+            pos_e = OpenMaya.MVector(mfn_transform_e.getTranslation(OpenMaya.MSpace.kWorld))
             segment = Segment(pos_s, pos_e)
             segments.append(segment)
         return cls(segments)
@@ -474,9 +462,7 @@ def get_rotation_from_matrix(tm):
     return pymel.datatypes.TransformationMatrix(tm).rotate
 
 
-def makeIdentity_safe(
-    obj, translate=False, rotate=False, scale=False, apply=False, **kwargs
-):
+def makeIdentity_safe(obj, translate=False, rotate=False, scale=False, apply=False, **kwargs):
     """
     Extended pymel.makeIdentity method that won't crash for idiotic reasons.
     """
@@ -488,9 +474,7 @@ def makeIdentity_safe(
     if apply:
         if translate:
             libAttr.unlock_translation(obj)
-            affected_attrs.extend(
-                [obj.translate, obj.translateX, obj.translateY, obj.translateZ]
-            )
+            affected_attrs.extend([obj.translate, obj.translateX, obj.translateY, obj.translateZ])
         if rotate:
             libAttr.unlock_rotation(obj)
             affected_attrs.extend([obj.rotate, obj.rotateX, obj.rotateY, obj.rotateZ])
@@ -499,9 +483,7 @@ def makeIdentity_safe(
             affected_attrs.extend([obj.scale, obj.scaleX, obj.scaleY, obj.scaleZ])
 
     # Make identify will fail if attributes are connected...
-    with libAttr.context_disconnected_attrs(
-        affected_attrs, hold_inputs=True, hold_outputs=False
-    ):
+    with libAttr.context_disconnected_attrs(affected_attrs, hold_inputs=True, hold_outputs=False):
         pymel.makeIdentity(
             obj, apply=apply, translate=translate, rotate=rotate, scale=scale, **kwargs
         )
@@ -527,7 +509,6 @@ def conform_to_pynode_list(value):
     """
     if value and not isinstance(value, list):
         raise IOError(
-            "Unexpected type for argument input. Expected list, got %s. %s"
-            % (type(value), value)
+            "Unexpected type for argument input. Expected list, got %s. %s" % (type(value), value)
         )
     return [conform_to_pynode(entry) for entry in value] if value else []

@@ -35,9 +35,7 @@ class FK(CompoundModule):
     CREATE_GRP_RIG = False
     DEFAULT_NAME_USE_FIRST_INPUT = True
     _NAME_CTRL_ENUMERATE = False  # If set to true, the ctrl will use the module name.
-    _FORCE_INPUT_NAME = (
-        False  # Force using the name of the input in the name of the ctrl
-    )
+    _FORCE_INPUT_NAME = False  # Force using the name of the input in the name of the ctrl
     # Otherwise they will use their associated input name.
     _CLS_CTRL = CtrlFk
 

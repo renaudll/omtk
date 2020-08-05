@@ -64,9 +64,7 @@ def get_unique_namespace(namespace, pool=None):
     :rtype namespace
     """
     pool = pool or get_all_namespaces()
-    prefix, suffix = re.match(
-        r"^(?P<prefix>[\w:]*?)(?P<suffix>\d*)$", namespace
-    ).groups()
+    prefix, suffix = re.match(r"^(?P<prefix>[\w:]*?)(?P<suffix>\d*)$", namespace).groups()
     suffix = int(suffix) if suffix else 0
     guess = namespace
     while guess in pool:

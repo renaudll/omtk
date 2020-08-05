@@ -42,9 +42,7 @@ def _check_joint_rotation_attributes(obj):
         obj.jointOrientZ,
     ):
         if attr.isFreeToChange() != OpenMaya.MPlug.kFreeToChange:
-            raise ValueError(
-                "Can't transfer rotation to joint orient. %r is locked." % attr
-            )
+            raise ValueError("Can't transfer rotation to joint orient. %r is locked." % attr)
 
 
 def transfer_rotation_to_joint_orient(obj):
@@ -148,9 +146,7 @@ def mirror_jnt(obj_src):
                 obj_dst.setParent(obj_dst_parent)
 
     mirror_obj(obj_src, obj_dst)
-    if isinstance(obj_src, pymel.nodetypes.Joint) and isinstance(
-        obj_dst, pymel.nodetypes.Joint
-    ):
+    if isinstance(obj_src, pymel.nodetypes.Joint) and isinstance(obj_dst, pymel.nodetypes.Joint):
         transfer_rotation_to_joint_orient(obj_dst)
         obj_dst.radius.set(obj_src.radius.get())
 

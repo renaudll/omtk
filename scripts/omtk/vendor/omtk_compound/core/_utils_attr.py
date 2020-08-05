@@ -47,12 +47,8 @@ def expose_attribute(
     _LOG.debug("Existing long names: %s", existing_long_names)
     _LOG.debug("Existing short names: %s", existing_short_names)
 
-    unique_long_name = _utils_namespace.get_unique_namespace(
-        attr_long_name, existing_long_names
-    )
-    unique_short_name = _utils_namespace.get_unique_namespace(
-        attr_short_name, existing_short_names
-    )
+    unique_long_name = _utils_namespace.get_unique_namespace(attr_long_name, existing_long_names)
+    unique_short_name = _utils_namespace.get_unique_namespace(attr_short_name, existing_short_names)
 
     dst_path_conformed = "%s.%s" % (dst_node, unique_long_name)
     _LOG.debug("Conformed %r to %r", dst_name, unique_short_name)

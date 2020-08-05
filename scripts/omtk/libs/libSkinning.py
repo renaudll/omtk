@@ -59,9 +59,7 @@ def transfer_weights(obj, sources, target):
     if not isinstance(obj, pymel.nodetypes.Mesh) and not isinstance(
         obj, pymel.nodetypes.SkinCluster
     ):
-        raise IOError(
-            "Unsupported geometry. Expected Mesh or SkinCluster, got %s" % type(obj)
-        )
+        raise IOError("Unsupported geometry. Expected Mesh or SkinCluster, got %s" % type(obj))
 
     # Resolve skin_clusters
     skinCluster = get_skin_cluster(obj)
@@ -74,9 +72,7 @@ def transfer_weights(obj, sources, target):
     # Add target if missing, otherwise thrown an error.
     if target not in influence_jnts:
         _LOG.warning(
-            "Can't find target %s in skin_clusters %s",
-            target.name(),
-            skinCluster.name(),
+            "Can't find target %s in skin_clusters %s", target.name(), skinCluster.name(),
         )
         skinCluster.addInfluence(target, weight=0)
         influence_jnts.append(target)
@@ -118,9 +114,7 @@ def transfer_weights(obj, sources, target):
             None,
         )
         if new_obj is None:
-            pymel.warning(
-                "Can't transfert weights. No geometry found affected by %s." % obj
-            )
+            pymel.warning("Can't transfert weights. No geometry found affected by %s." % obj)
             return
         obj = new_obj
 
@@ -207,9 +201,7 @@ def interp_cubic(x):
 INTERP_LINEAR, INTERP_CUBIC = range(2)
 
 
-def _get_point_weights_from_segments_weights(
-    segments, segments_weights, pos, interp=INTERP_CUBIC
-):
+def _get_point_weights_from_segments_weights(segments, segments_weights, pos, interp=INTERP_CUBIC):
     knot_index, ratio = segments.closest_segment_index(pos)
     knot_index_next = knot_index + 1  # TODO: Handle out of bound
     point_weights_inn = segments_weights[knot_index]
@@ -230,9 +222,7 @@ def _get_point_weights_from_segments_weights(
 
 
 # @libPython.profiler
-def transfer_weights_from_segments(
-    obj, source, targets, dropoff=1.0, force_straight_line=False
-):
+def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_straight_line=False):
     """
     Automatically assign skin weights from source to destinations using the vertices position.
     """
@@ -341,27 +331,20 @@ def transfer_weights_from_segments(
             target_memory_location = memory_location + 1
             cur_target_weights = [
                 old_weights[i]
-                for i in range(
-                    target_memory_location, target_memory_location + len(targets)
-                )
+                for i in range(target_memory_location, target_memory_location + len(targets))
             ]
             # Resolve weight using the vtx/cv position
             pos = OpenMaya.MVector(
                 it_geometry.position(OpenMaya.MSpace.kWorld)
             )  # MVector allow us to use .length()
-            weights = _get_point_weights_from_segments_weights(
-                segments, knot_weights, pos
-            )
+            weights = _get_point_weights_from_segments_weights(segments, knot_weights, pos)
 
             # Ensure the total of the new weights match the source + target weight
             total_weights = 0.0
             for weight in weights:
                 total_weights += weight
             ratio = source_weight / total_weights
-            weights = [
-                (weight * ratio) + cur_target_weights[i]
-                for i, weight in enumerate(weights)
-            ]
+            weights = [(weight * ratio) + cur_target_weights[i] for i, weight in enumerate(weights)]
 
             # Write weights
             for i, weight in enumerate(weights):

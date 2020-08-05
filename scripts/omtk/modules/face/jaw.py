@@ -45,9 +45,7 @@ class AvarJaw(Avar):
                 [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [pos.x, pos.y, pos.z, 1]
             )
 
-        self.log.warning(
-            "Raycast failed. Using %s as the ctrl position reference.", self.jnt
-        )
+        self.log.warning("Raycast failed. Using %s as the ctrl position reference.", self.jnt)
         return super(AvarJaw, self)._get_ctrl_tm()
 
 

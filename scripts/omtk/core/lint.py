@@ -24,16 +24,11 @@ class ConnectionRemap(Issue):
         self.after = after
 
     def __str__(self):
-        return "%r can be replaced by %r" % (
-            " -> ".join(self.before),
-            " -> ".join(self.after),
-        )
+        return "%r can be replaced by %r" % (" -> ".join(self.before), " -> ".join(self.after),)
 
     def fix(self):
         # TODO: Should we manually remove old connection?
-        cmds.connectAttr(
-            self.after[0], self.after[1], force=True
-        )  # TODO: support n-size tuple
+        cmds.connectAttr(self.after[0], self.after[1], force=True)  # TODO: support n-size tuple
 
 
 class UneededInverseMatrix(ConnectionRemap):
@@ -61,18 +56,14 @@ class UneededInverseMatrix(ConnectionRemap):
             return
 
         try:
-            src_after_attr = {
-                "matrix": "inverseMatrix",
-                "worldMatrix": "inverseWorldMatrix",
-            }[src_attr]
+            src_after_attr = {"matrix": "inverseMatrix", "worldMatrix": "inverseWorldMatrix",}[
+                src_attr
+            ]
         except KeyError:
             return
 
         src_after = "%s.%s" % (src_before_node, src_after_attr)
-        dsts = (
-            cmds.connectionInfo("%s.outputMatrix" % util, destinationFromSource=True)
-            or []
-        )
+        dsts = cmds.connectionInfo("%s.outputMatrix" % util, destinationFromSource=True) or []
 
         for dst in dsts:
             yield cls(util, (src_before, dst_before), (src_after, dst))

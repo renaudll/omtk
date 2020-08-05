@@ -109,9 +109,7 @@ class Ribbon(Module):
 
         self.ctrls = []
 
-    def create_ctrls(
-        self, ctrls=None, no_extremity=False, constraint_rot=True, **kwargs
-    ):
+    def create_ctrls(self, ctrls=None, no_extremity=False, constraint_rot=True, **kwargs):
         """
         This function can be used to create controllers on the ribbon joints.
         :param no_extremity: Tell if we want extremity ctrls

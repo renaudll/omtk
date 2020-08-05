@@ -53,14 +53,10 @@ class FaceBrow(AvarGrp):
         """
         if avar is self.avar_l:
             pos = libRigging.get_average_pos_between_vectors(self.get_jnts_l())
-            return Matrix(
-                [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [pos.x, pos.y, pos.z, 1]
-            )
+            return Matrix([1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [pos.x, pos.y, pos.z, 1])
         if avar is self.avar_r:
             pos = libRigging.get_average_pos_between_vectors(self.get_jnts_r())
-            return Matrix(
-                [1, 0, 0, 0], [0, -1.0, 0, 0], [0, 0, -1.0, 0], [pos.x, pos.y, pos.z, 1]
-            )
+            return Matrix([1, 0, 0, 0], [0, -1.0, 0, 0], [0, 0, -1.0, 0], [pos.x, pos.y, pos.z, 1])
 
         return super(FaceBrow, self)._get_ctrl_tm_hint(avar)
 

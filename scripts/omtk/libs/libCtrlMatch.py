@@ -34,9 +34,7 @@ def get_previous_controller_info(previous_controler):
     # this implementation assumes your only using one shape or that the the first shape of children shapes is representative of the lot
     assumed_only_shape = previous_controler.getShape()
 
-    if (
-        assumed_only_shape.overrideEnabled.get()
-    ):  # will return False if it isn't activated
+    if assumed_only_shape.overrideEnabled.get():  # will return False if it isn't activated
         if assumed_only_shape.overrideRGBColors.get():
             rgb_color = assumed_only_shape.overrideColorRGB.get()
             color_info = [True, True, rgb_color]
@@ -47,9 +45,7 @@ def get_previous_controller_info(previous_controler):
         color_info = [False, False, []]
 
     if assumed_only_shape.visibility.isConnected():
-        visibility_connection_info = assumed_only_shape.visibility.connections(
-            plugs=True
-        )[0]
+        visibility_connection_info = assumed_only_shape.visibility.connections(plugs=True)[0]
 
     else:
         visibility_connection_info = False
@@ -83,9 +79,7 @@ def adapt_to_orig_shape(source, target):
     if not util_transform_geometry:
         pymel.warning("Skipping %s. Cannot find transformGeometry." % target)
         return
-    attr_compensation_tm = next(
-        iter(util_transform_geometry.transform.inputs(plugs=True)), None
-    )
+    attr_compensation_tm = next(iter(util_transform_geometry.transform.inputs(plugs=True)), None)
 
     if not attr_compensation_tm:
         pymel.warning("Skipping %s. Cannot find compensation matrix." % target)
@@ -148,9 +142,7 @@ def controller_matcher(selection=None, mirror_prefix=None, flip=True):
             if skip_mechanism:
                 pass
             else:
-                target_name = selected_object.name().replace(
-                    current_side, _possible_sides[0]
-                )
+                target_name = selected_object.name().replace(current_side, _possible_sides[0])
                 if pymel.objExists(target_name):
                     target = pymel.PyNode(
                         selected_object.name().replace(current_side, _possible_sides[0])
@@ -183,9 +175,7 @@ def transfer_shape(source, target, flip=True):
     pymel.parent(tmp, target)
     pymel.delete(temp_grp_negScale)
 
-    pymel.makeIdentity(
-        tmp, t=True
-    )  # this brings translate values at 0 before scale freezing
+    pymel.makeIdentity(tmp, t=True)  # this brings translate values at 0 before scale freezing
     pymel.makeIdentity(tmp, apply=True, t=True, r=True, s=True)
     pymel.parent(tmp, w=1)
 

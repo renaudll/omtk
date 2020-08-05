@@ -77,9 +77,7 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
         return libRigging.ray_cast_nearest(pos, direction, geos) or pos
 
     def _build_compound(self):
-        return create_compound(
-            "omtk.InteractiveCtrl", self.naming.resolve("ctrlModelInteractive")
-        )
+        return create_compound("omtk.InteractiveCtrl", self.naming.resolve("ctrlModelInteractive"))
 
     def connect_ctrl(self, ctrl):
         # super(ModelInteractiveCtrl, self).connect_ctrl(ctrl)  # TODO: Test with super call
@@ -115,7 +113,7 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
             pymel.connectAttr(
                 self.parent_jnt.worldInverseMatrix,
                 "%s.%s" % (self.compound_inputs, "parentWorldInvTm"),
-                force=True
+                force=True,
             )
 
         # Connect compound outputs
@@ -183,9 +181,7 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
         # Fallback on automatically resolved UVs
 
         def _create_grp(suffix, tm=None):
-            grp = pymel.createNode(
-                "transform", name=naming.resolve(suffix), parent=self.grp_rig
-            )
+            grp = pymel.createNode("transform", name=naming.resolve(suffix), parent=self.grp_rig)
             if tm:
                 grp.setMatrix(tm)
             return grp
@@ -366,13 +362,9 @@ class ModelInteractiveCtrl(base.BaseCtrlModel):
             if callibration_attr.isLocked():
                 continue
             sensitivity = fn(callibration_attr, influence)
-            self.log.debug(
-                "Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst
-            )
+            self.log.debug("Adjusting sensibility %s for %s to %s", attr_name, self, attr_dst)
             attr_dst.set(sensitivity)
 
 
 def _flip_attr(attr):  # TODO: Remove duplication
-    return libRigging.create_utility_node(
-        "multiplyDivide", input1X=attr, input2X=-1
-    ).outputX
+    return libRigging.create_utility_node("multiplyDivide", input1X=attr, input2X=-1).outputX

@@ -16,9 +16,7 @@ def test_nomenclature_squeeze():
     assert n.side == n.SIDE_L
 
     # Adding of tokens using suffix
-    n = SqueezeNomenclature(
-        tokens=["Eye"], side=SqueezeNomenclature.SIDE_L, suffix="Jnt"
-    )
+    n = SqueezeNomenclature(tokens=["Eye"], side=SqueezeNomenclature.SIDE_L, suffix="Jnt")
     assert n.resolve() == "L_Eye_Jnt"
     n.tokens.append("Micro")
     assert n.resolve() == "L_Eye_Micro_Jnt"

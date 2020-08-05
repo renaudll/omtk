@@ -115,9 +115,7 @@ class Compound(object):  # pylint: disable=too-many-public-methods
         :raises CompoundValidationError: If the compound don't validate.
         """
         if self.namespace in ("UI",):
-            raise CompoundValidationError(
-                "Namespace %s is blacklisted." % (self.namespace)
-            )
+            raise CompoundValidationError("Namespace %s is blacklisted." % (self.namespace))
 
     def get_metadata(self):
         """ A compound can have associated metadata.
@@ -283,21 +281,15 @@ class Compound(object):  # pylint: disable=too-many-public-methods
 
         # TODO: Solidify array element support with appropriate tests
         attr = attr.array() if attr.isElement() else attr
-        if not cmds.attributeQuery(
-            attr.longName(), node=str(attr.node()), writable=True
-        ):
-            raise ValueError(
-                "Cannot expose un-writable attribute %r as an input." % dagpath
-            )
+        if not cmds.attributeQuery(attr.longName(), node=str(attr.node()), writable=True):
+            raise ValueError("Cannot expose un-writable attribute %r as an input." % dagpath)
 
         if cmds.connectionInfo(dagpath, isDestination=True):
             raise ValueError("Cannot expose a destination attribute: %r" % dagpath)
 
         # TODO: Manage name collision
         src_node = str(attr.node())
-        src_dagpath = _utils_attr.expose_attribute(
-            src_node, self.input, attr.longName()
-        )
+        src_dagpath = _utils_attr.expose_attribute(src_node, self.input, attr.longName())
 
         # Our reference attribute might not be "readable"
         # (a possible connection destination).
@@ -323,12 +315,8 @@ class Compound(object):  # pylint: disable=too-many-public-methods
 
         # TODO: Solidify array element support with appropriate tests
         attr_to_check = attr.array() if attr.isElement() else attr
-        if not cmds.attributeQuery(
-            attr_to_check.longName(), node=str(attr.node()), readable=True
-        ):
-            raise ValueError(
-                "Cannot expose un-readable attribute %r as an output." % dagpath
-            )
+        if not cmds.attributeQuery(attr_to_check.longName(), node=str(attr.node()), readable=True):
+            raise ValueError("Cannot expose un-readable attribute %r as an output." % dagpath)
 
         if cmds.connectionInfo(dagpath, isSource=True):
             raise ValueError("Cannot expose a source attribute: %r" % dagpath)
@@ -356,9 +344,7 @@ class Compound(object):  # pylint: disable=too-many-public-methods
         """
 
         def _remap_attr(attr_):
-            attr_ = (
-                pymel.Attribute(attr_) if isinstance(attr_, basestring) else None
-            )  # conform
+            attr_ = pymel.Attribute(attr_) if isinstance(attr_, basestring) else None  # conform
             attr_src = next(iter(attr_.inputs(plugs=True)), None)
             if attr_src:
                 pymel.disconnectAttr(attr_src, attr_)
@@ -379,9 +365,7 @@ class Compound(object):  # pylint: disable=too-many-public-methods
 
         # Remove namespace if asked
         if remove_namespace:
-            cmds.namespace(
-                mergeNamespaceWithParent=True, removeNamespace=self.namespace
-            )
+            cmds.namespace(mergeNamespaceWithParent=True, removeNamespace=self.namespace)
 
     def get_connections(self):
         """

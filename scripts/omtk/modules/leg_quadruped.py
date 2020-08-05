@@ -17,9 +17,9 @@ class CtrlIkQuadSwivel(CtrlIkSwivel):
     """
 
     def get_spaceswitch_targets(self, module, *args, **kwargs):
-        targets, target_names, indexes = super(
-            CtrlIkQuadSwivel, self
-        ).get_spaceswitch_targets(module, *args, **kwargs)
+        targets, target_names, indexes = super(CtrlIkQuadSwivel, self).get_spaceswitch_targets(
+            module, *args, **kwargs
+        )
 
         # Prevent crash when creating the first swivel from the base Ik class
         if module.quad_swivel_sw:
@@ -56,9 +56,7 @@ class LegIkQuad(LegIk):
         :return: Nothing, handle is stocked in a class variable
         """
         mel.eval("ikSpringSolver")  # Solver need to be loaded before being used
-        ik_handle, ik_effector = super(LegIkQuad, self).create_ik_handle(
-            solver="ikSpringSolver"
-        )
+        ik_handle, ik_effector = super(LegIkQuad, self).create_ik_handle(solver="ikSpringSolver")
         return ik_handle, ik_effector
 
     def _build_ctrl_swivel(
@@ -100,11 +98,7 @@ class LegIkQuad(LegIk):
             # To bypass this, we'll look for flipping and compensate
             # with the ikHandle 'twist' attribute.
             self.adjust_spring_solver_twist(
-                self.jnts[0],
-                self.jnts[1],
-                self._chain_ik[0],
-                self._chain_ik[1],
-                self._ik_handle,
+                self.jnts[0], self.jnts[1], self._chain_ik[0], self._chain_ik[1], self._ik_handle,
             )
 
         return ctrl_swivel
@@ -132,9 +126,7 @@ class LegIkQuad(LegIk):
             """
             :return: The normalize direction between the start and end object.
             """
-            result = end_.getTranslation(space="world") - start_.getTranslation(
-                space="world"
-            )
+            result = end_.getTranslation(space="world") - start_.getTranslation(space="world")
             result.normalize()
             return result
 
@@ -146,9 +138,7 @@ class LegIkQuad(LegIk):
 
         return libPython.guess_value(-180.0, 180.0, _guess)
 
-    def build(
-        self, constraint=True, constraint_handle=True, setup_softik=True, **kwargs
-    ):
+    def build(self, constraint=True, constraint_handle=True, setup_softik=True, **kwargs):
         """
         :param constraint: Should we constraint the influences?
         :param constraint_handle: Should we constraint the handle on the ik ctrl?
@@ -172,10 +162,7 @@ class LegIkQuad(LegIk):
         ik_chain_start = self._chain_ik[0]
         ik_chain_start.setParent(self.grp_rig)
         pymel.parentConstraint(
-            self._ikChainGrp,
-            ik_chain_start,
-            maintainOffset=True,
-            skipRotate=["x", "y", "z"],
+            self._ikChainGrp, ik_chain_start, maintainOffset=True, skipRotate=["x", "y", "z"],
         )
 
         # Create a second ik chain for the quadruped setup
@@ -202,9 +189,7 @@ class LegIkQuad(LegIk):
         ik_solver_quad_name = nomenclature_rig.resolve("quadIkHandle")
         ik_effector_quad_name = nomenclature_rig.resolve("quadIkEffector")
         self._ik_handle_quad, _ik_effector = pymel.ikHandle(
-            startJoint=self._chain_quad_ik[1],
-            endEffector=obj_e_quadik,
-            solver="ikRPsolver",
+            startJoint=self._chain_quad_ik[1], endEffector=obj_e_quadik, solver="ikRPsolver",
         )
         self._ik_handle_quad.rename(ik_solver_quad_name)
         _ik_effector.rename(ik_effector_quad_name)
@@ -213,8 +198,7 @@ class LegIkQuad(LegIk):
         # Create softIk node and connect user accessible attributes to it.
         if setup_softik:
             self.setup_softik(
-                [self._ik_handle, self._ik_handle_quad],
-                [self._chain_ik, self._chain_quad_ik],
+                [self._ik_handle, self._ik_handle_quad], [self._chain_ik, self._chain_quad_ik],
             )
 
         # Create another swivel handle node for the quad chain setup

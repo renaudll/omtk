@@ -268,9 +268,7 @@ class Module(base.Buildable):
         # todo: check with proximity
         default_head = next(iter(head_jnts), None)
         if default_head:
-            self.log.warning(
-                "Cannot resolve head influence! Using default %s", default_head
-            )
+            self.log.warning("Cannot resolve head influence! Using default %s", default_head)
             return default_head
 
     def get_jaw_jnt(self, strict=True):
@@ -297,15 +295,12 @@ class Module(base.Buildable):
                 if libPymel.is_child_of(jnt, head_jnt):
                     return jnt
                 self.log.warning(
-                    "Ignoring %s as the main jaw influence. Not a child of %s.",
-                    jnt,
-                    head_jnt,
+                    "Ignoring %s as the main jaw influence. Not a child of %s.", jnt, head_jnt,
                 )
 
         if strict:
             self.log.warning(
-                "Cannot found a jaw influence. Please create a %s module!",
-                FaceJaw.__name__,
+                "Cannot found a jaw influence. Please create a %s module!", FaceJaw.__name__,
             )
         return None
 
@@ -428,9 +423,7 @@ class Module(base.Buildable):
         """
         # TODO: Fully deprecate kwargs
         for kwarg in kwargs:
-            self.log.warning(
-                "Module.build received unexpected keyword argument: %s", kwarg
-            )
+            self.log.warning("Module.build received unexpected keyword argument: %s", kwarg)
 
         # Conform the influences we will affect.
         if self.AFFECT_INPUTS:
@@ -443,9 +436,7 @@ class Module(base.Buildable):
                 # will prevent the rig from correctly scaling.
                 if isinstance(obj, pymel.nodetypes.Transform):
                     if not obj.inheritsTransform.get():
-                        self.log.warning(
-                            "Enabling inheritsTransform for the best on %s", obj
-                        )
+                        self.log.warning("Enabling inheritsTransform for the best on %s", obj)
                         obj.inheritsTransform.set(True)
 
                 if isinstance(obj, pymel.nodetypes.Joint):
@@ -490,9 +481,7 @@ class Module(base.Buildable):
         """
         if self.parent_jnt is None:
             if fallback_to_anm_grp:
-                self.log.debug(
-                    "Found no immediate parent. Will be parented to the anm grp."
-                )
+                self.log.debug("Found no immediate parent. Will be parented to the anm grp.")
                 return self.rig.grp_anm
             else:
                 self.log.debug("Found no immediate parent.")
@@ -568,9 +557,7 @@ class Module(base.Buildable):
         # TODO: Cleanup this shit
         naming = self.get_nomenclature()
         is_parent = bool(self.parent_jnt)
-        is_parent_to_root = (
-            is_parent and self.rig and self.rig.grp_jnt == self.parent_jnt
-        )
+        is_parent_to_root = is_parent and self.rig and self.rig.grp_jnt == self.parent_jnt
         if is_parent and not is_parent_to_root:
             parent_tm = self.parent_jnt.worldMatrix
             if self.rig and self.rig.grp_jnt:

@@ -81,9 +81,7 @@ class Registry(object):
 
         for stream in self._store.values():
             compound = stream.get(version) if version else stream.latest
-            if compound and (
-                (uid and compound.uid == uid) or (name and compound.name == name)
-            ):
+            if compound and ((uid and compound.uid == uid) or (name and compound.name == name)):
                 return compound
 
         raise LookupError("Found no compound matching requirements.")
@@ -99,9 +97,7 @@ class Registry(object):
         """
         for entry in entries:
             if not isinstance(entry, collections.Mapping):
-                raise TypeError(
-                    "Expected mapping, got %s: %s" % (type(entry).__name__, entry)
-                )
+                raise TypeError("Expected mapping, got %s: %s" % (type(entry).__name__, entry))
 
             self._store[entry.uid][entry.version] = entry
 

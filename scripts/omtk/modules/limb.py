@@ -89,9 +89,7 @@ class ElbowBlend(CompoundModule):
         if self.parent_jnt:
             self.grp_anm.setMatrix(self.parent_jnt.getMatrix(worldSpace=True))
 
-        chain_blends = _create_joint_from_binds(
-            self.compound_inputs.bind, naming + "blend"
-        )
+        chain_blends = _create_joint_from_binds(self.compound_inputs.bind, naming + "blend")
         chain_elbow = _create_joint_from_binds(
             self.compound_inputs.bind,
             naming + "elbow",
@@ -134,18 +132,10 @@ class ElbowBlend(CompoundModule):
 
             pymel.pointConstraint(ref, elbow)
             pymel.aimConstraint(
-                ref,
-                elbow_prev,
-                worldUpType=2,
-                worldUpObject=blend_prev,
-                maintainOffset=True,
+                ref, elbow_prev, worldUpType=2, worldUpObject=blend_prev, maintainOffset=True,
             )
             pymel.aimConstraint(
-                blend_next,
-                elbow,
-                worldUpType=2,
-                worldUpObject=blend,
-                maintainOffset=True,
+                blend_next, elbow, worldUpType=2, worldUpObject=blend, maintainOffset=True,
             )
 
         # Constraint the last elbow joint on the blend joint at the ctrl index
@@ -252,9 +242,7 @@ class Limb(Module):
             k=True,
         )
         attr_ik_weight = self.grp_rig.attr(self.kAttrName_State)
-        attr_fk_weight = libRigging.create_utility_node(
-            "reverse", inputX=attr_ik_weight
-        ).outputX
+        attr_fk_weight = libRigging.create_utility_node("reverse", inputX=attr_ik_weight).outputX
 
         # Create attribute holder (this is where the IK/FK attribute will be stored)
         # Note that this is production specific and
@@ -278,8 +266,7 @@ class Limb(Module):
             k=True,
         )
         pymel.connectAttr(
-            self.ctrl_attrs.attr(self.kAttrName_State),
-            self.grp_rig.attr(self.kAttrName_State),
+            self.ctrl_attrs.attr(self.kAttrName_State), self.grp_rig.attr(self.kAttrName_State),
         )
 
         # Create a chain for blending ikChain and fkChain
@@ -292,18 +279,12 @@ class Limb(Module):
         for blend, attr_ik_tm, attr_fk_tm in zip(
             chain_blend, ik_compound_out.out, fk_compound_out.out
         ):
-            attr_tm = libRigging.create_blend_two_matrix(
-                attr_ik_tm, attr_fk_tm, attr_ik_weight
-            )
-            libRigging.connect_matrix_to_node(
-                attr_tm, blend, rotate=False, jointOrient=True
-            )
+            attr_tm = libRigging.create_blend_two_matrix(attr_ik_tm, attr_fk_tm, attr_ik_weight)
+            libRigging.connect_matrix_to_node(attr_tm, blend, rotate=False, jointOrient=True)
 
         for idx, (blend, jnt) in enumerate(zip(chain_blend, self.chain_jnt)):
             pymel.connectAttr(blend.matrix, self.sysElbow.compound_inputs.bind[idx])
-            libRigging.connect_matrix_to_node(
-                self.sysElbow.compound_outputs.out[idx], jnt
-            )
+            libRigging.connect_matrix_to_node(self.sysElbow.compound_outputs.out[idx], jnt)
 
         # Connect visibility
         pymel.connectAttr(attr_ik_weight, self.sysIK.grp_anm.visibility)
@@ -330,15 +311,11 @@ class Limb(Module):
         """
         # Position ikCtrl
         ctrl_ik_tm = self.chain_jnt[self.sysIK.iCtrlIndex].getMatrix(worldSpace=True)
-        self.sysIK.ctrl_ik.node.setMatrix(
-            self.offset_ctrl_ik * ctrl_ik_tm, worldSpace=True
-        )
+        self.sysIK.ctrl_ik.node.setMatrix(self.offset_ctrl_ik * ctrl_ik_tm, worldSpace=True)
 
         # Position swivel
         pos_s = self.sysFK.ctrls[0].getTranslation(space="world")
-        pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(
-            space="world"
-        )
+        pos_m = self.sysFK.ctrls[self.sysIK.iCtrlIndex - 1].getTranslation(space="world")
         pos_e = self.sysFK.ctrls[self.sysIK.iCtrlIndex].getTranslation(space="world")
 
         length_start = pos_m.distanceTo(pos_s)

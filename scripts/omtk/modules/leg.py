@@ -152,17 +152,11 @@ class FootRoll(CompoundModule):
         pivot_front, pivot_back, pivot_in, pivot_out = self._fetch_pivots()
 
         # Guess pivots if necessary
-        pivot_in = pivot_in or self._guess_pivot_bank(
-            geos, ref_dir, pos_toes, direction=-1
-        )
+        pivot_in = pivot_in or self._guess_pivot_bank(geos, ref_dir, pos_toes, direction=-1)
 
-        pivot_out = pivot_out or self._guess_pivot_bank(
-            geos, ref_dir, pos_toes, direction=1
-        )
+        pivot_out = pivot_out or self._guess_pivot_bank(geos, ref_dir, pos_toes, direction=1)
 
-        pivot_back = pivot_back or self._guess_pivot_back(
-            geos, ref_tm, ref_dir, pos_toes
-        )
+        pivot_back = pivot_back or self._guess_pivot_back(geos, ref_tm, ref_dir, pos_toes)
 
         pivot_front = pivot_front or self._guess_pivot_front(
             geos, ref_tm, ref_dir, pos_toes, pos_tip
@@ -208,12 +202,7 @@ class FootRoll(CompoundModule):
             self.attrAutoRollThreshold, hold_curve=False
         )
 
-        (
-            self.pivot_front,
-            self.pivot_back,
-            self.pivot_in,
-            self.pivot_out,
-        ) = self._hold_pivots()
+        (self.pivot_front, self.pivot_back, self.pivot_in, self.pivot_out,) = self._hold_pivots()
 
         super(FootRoll, self).unbuild()
 
@@ -433,21 +422,15 @@ class Leg(Module):
 
     def _init_ik(self):
         inputs = self.chain_jnt[: self.iCtrlIndex + 1]
-        self.sysIK = self._CLASS_SYS_IK.from_instance(
-            self, self.sysIK, "ik", inputs=inputs,
-        )
+        self.sysIK = self._CLASS_SYS_IK.from_instance(self, self.sysIK, "ik", inputs=inputs,)
 
     def build(self, *args, **kwargs):
         self.sysFootRoll = FootRoll.from_instance(
             self, self.sysFootRoll, name="footroll", inputs=self.chain[-3:]
         )
-        self.sysLimb = Limb.from_instance(
-            self, self.sysLimb, name=self.name, inputs=self.chain[:3]
-        )
+        self.sysLimb = Limb.from_instance(self, self.sysLimb, name=self.name, inputs=self.chain[:3])
         self.sysLimb.create_twist = self.create_twist
-        self.sysToes = FK.from_instance(
-            self, self.sysToes, name=self.name, inputs=[self.chain[-2]]
-        )
+        self.sysToes = FK.from_instance(self, self.sysToes, name=self.name, inputs=[self.chain[-2]])
 
         super(Leg, self).build()
 
@@ -466,9 +449,7 @@ class Leg(Module):
                     self.parent_jnt.worldInverseMatrix,  # project to module space
                 ]
             )
-        pymel.connectAttr(
-            attr_foot_tm, self.sysLimb.sysIK.compound_inputs.effector, force=True
-        )
+        pymel.connectAttr(attr_foot_tm, self.sysLimb.sysIK.compound_inputs.effector, force=True)
 
     def parent_to(self, parent):
         pass  # TODO: JUST REMOVE ALREADY

@@ -28,9 +28,7 @@ def _iter_history(shape, key=None, fn_stop=None, stop_at_shape=False, **kwargs):
     """
     # Determine what condition make us stop iterating though history.
     if stop_at_shape:
-        shape_start = (
-            shape.getShape() if isinstance(shape, pymel.nodetypes.Transform) else shape
-        )
+        shape_start = shape.getShape() if isinstance(shape, pymel.nodetypes.Transform) else shape
         if fn_stop:
             fn_stop = (
                 lambda shape: isinstance(shape, pymel.nodetypes.Shape)
@@ -39,8 +37,7 @@ def _iter_history(shape, key=None, fn_stop=None, stop_at_shape=False, **kwargs):
             )
         else:
             fn_stop = (
-                lambda shape: isinstance(shape, pymel.nodetypes.Shape)
-                and shape != shape_start
+                lambda shape: isinstance(shape, pymel.nodetypes.Shape) and shape != shape_start
             )
 
     for hist in shape.listHistory(**kwargs):
@@ -92,10 +89,7 @@ def iter_affected_shapes(objs, key=None):
         if isinstance(obj, pymel.nodetypes.Joint):
             # Collect all geometries affected by the joint.
             for hist in obj.worldMatrix.outputs():
-                if (
-                    isinstance(hist, pymel.nodetypes.SkinCluster)
-                    and not hist in known_skinClusters
-                ):
+                if isinstance(hist, pymel.nodetypes.SkinCluster) and not hist in known_skinClusters:
                     known_skinClusters.append(hist)
                     for geometry in hist.getOutputGeometry():
                         if key is None or key(geometry):

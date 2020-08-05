@@ -81,10 +81,7 @@ class LogRecordModel(QtGui.QStandardItemModel):
         """
         Fetch the stored records
         """
-        return [
-            self.data(self.index(row, 0), QtCore.Qt.UserRole)
-            for row in range(self.rowCount())
-        ]
+        return [self.data(self.index(row, 0), QtCore.Qt.UserRole) for row in range(self.rowCount())]
 
     def clear_records(self):
         """
@@ -164,9 +161,7 @@ class WidgetLogger(QtWidgets.QWidget):
 
         # Connect events
         self.ui.lineEdit_log_search.textChanged.connect(self._on_search_text_changed)
-        self.ui.comboBox_log_level.currentIndexChanged.connect(
-            self._on_search_level_changed
-        )
+        self.ui.comboBox_log_level.currentIndexChanged.connect(self._on_search_level_changed)
         self.ui.pushButton_logs_clear.pressed.connect(self._on_clear_records)
         self.ui.pushButton_logs_save.pressed.connect(self._on_save_records)
         self.model.rowsInserted.connect(self._on_record_added)

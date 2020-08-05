@@ -9,7 +9,7 @@ import os
 from maya import cmds
 
 _LOG = logging.getLogger(__name__)
-_LOG.setLevel(logging.DEBUG)
+_LOG.setLevel(logging.INFO)
 
 
 def _load_config():

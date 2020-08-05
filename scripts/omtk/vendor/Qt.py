@@ -701,9 +701,7 @@ def _qInstallMessageHandler(handler):
             msgType, msg = args
             logContext = None
         else:
-            raise TypeError(
-                "handler expected 2 or 3 arguments, got {0}".format(len(args))
-            )
+            raise TypeError("handler expected 2 or 3 arguments, got {0}".format(len(args)))
 
         if isinstance(msg, bytes):
             # In python 3, some bindings pass a bytestring, which cannot be
@@ -827,9 +825,7 @@ def _translate(context, sourceText, *args):
         app = getattr(Qt.QtCore, "QCoreApplication")
     else:
         raise NotImplementedError(
-            "Missing QCoreApplication implementation for {binding}".format(
-                binding=Qt.__binding__,
-            )
+            "Missing QCoreApplication implementation for {binding}".format(binding=Qt.__binding__,)
         )
     if Qt.__binding__ in ("PySide2", "PyQt5"):
         sanitized_args = [context, sourceText, disambiguation, n]
@@ -950,9 +946,7 @@ def _loadUi(uifile, baseinstance=None):
                 # widgets, but works fine, so we have to special case it here.
                 if class_name in self.availableWidgets() + ["Line"]:
                     # Create a new widget for child widgets
-                    widget = Qt._QtUiTools.QUiLoader.createWidget(
-                        self, class_name, parent, name
-                    )
+                    widget = Qt._QtUiTools.QUiLoader.createWidget(self, class_name, parent, name)
                 elif class_name in self.custom_widgets:
                     widget = self.custom_widgets[class_name](parent)
                 else:
@@ -1052,10 +1046,7 @@ _misplaced_members = {
         "QtGui.qApp": "QtWidgets.QApplication.instance()",
         "QtCore.QCoreApplication.translate": ["QtCompat.translate", _translate],
         "QtGui.QApplication.translate": ["QtCompat.translate", _translate],
-        "QtCore.qInstallMsgHandler": [
-            "QtCompat.qInstallMessageHandler",
-            _qInstallMessageHandler,
-        ],
+        "QtCore.qInstallMsgHandler": ["QtCompat.qInstallMessageHandler", _qInstallMessageHandler,],
         "QtGui.QStyleOptionViewItemV4": "QtCompat.QStyleOptionViewItemV4",
     },
     "PyQt4": {
@@ -1085,10 +1076,7 @@ _misplaced_members = {
         "QtGui.qApp": "QtWidgets.QApplication.instance()",
         "QtCore.QCoreApplication.translate": ["QtCompat.translate", _translate],
         "QtGui.QApplication.translate": ["QtCompat.translate", _translate],
-        "QtCore.qInstallMsgHandler": [
-            "QtCompat.qInstallMessageHandler",
-            _qInstallMessageHandler,
-        ],
+        "QtCore.qInstallMsgHandler": ["QtCompat.qInstallMessageHandler", _qInstallMessageHandler,],
         "QtGui.QStyleOptionViewItemV4": "QtCompat.QStyleOptionViewItemV4",
     },
 }
@@ -1400,9 +1388,7 @@ def _pyside2():
         )
 
     if hasattr(Qt, "_QtWidgets"):
-        Qt.QtCompat.setSectionResizeMode = (
-            Qt._QtWidgets.QHeaderView.setSectionResizeMode
-        )
+        Qt.QtCompat.setSectionResizeMode = Qt._QtWidgets.QHeaderView.setSectionResizeMode
 
     _reassign_misplaced_members("PySide2")
     _build_compatibility_members("PySide2")
@@ -1493,9 +1479,7 @@ def _pyqt5():
         )
 
     if hasattr(Qt, "_QtWidgets"):
-        Qt.QtCompat.setSectionResizeMode = (
-            Qt._QtWidgets.QHeaderView.setSectionResizeMode
-        )
+        Qt.QtCompat.setSectionResizeMode = Qt._QtWidgets.QHeaderView.setSectionResizeMode
 
     _reassign_misplaced_members("PyQt5")
     _build_compatibility_members("PyQt5")
@@ -1535,9 +1519,7 @@ def _pyqt4():
             else:
                 # Having provided a hint indicates a soft constraint, one
                 # that doesn't throw an exception.
-                sys.stderr.write(
-                    "Warning: API '%s' has already been set to %d.\n" % (api, actual)
-                )
+                sys.stderr.write("Warning: API '%s' has already been set to %d.\n" % (api, actual))
 
     import PyQt4 as module
 
@@ -1665,19 +1647,12 @@ def _cli(args):
     import argparse
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--convert", help="Path to compiled Python module, e.g. my_ui.py")
     parser.add_argument(
-        "--convert", help="Path to compiled Python module, e.g. my_ui.py"
+        "--compile", help="Accept raw .ui file and compile with native " "PySide2 compiler.",
     )
-    parser.add_argument(
-        "--compile",
-        help="Accept raw .ui file and compile with native " "PySide2 compiler.",
-    )
-    parser.add_argument(
-        "--stdout", help="Write to stdout instead of file", action="store_true"
-    )
-    parser.add_argument(
-        "--stdin", help="Read from stdin instead of file", action="store_true"
-    )
+    parser.add_argument("--stdout", help="Write to stdout instead of file", action="store_true")
+    parser.add_argument("--stdin", help="Read from stdin instead of file", action="store_true")
 
     args = parser.parse_args(args)
 
@@ -1768,10 +1743,7 @@ def _install():
         except ValueError:
             # Python 2 raises ValueError, Python 3 raises json.JSONDecodeError
             # a subclass of ValueError
-            _warn(
-                "Failed to parse QT_PREFERRED_BINDING_JSON='%s'"
-                % QT_PREFERRED_BINDING_JSON
-            )
+            _warn("Failed to parse QT_PREFERRED_BINDING_JSON='%s'" % QT_PREFERRED_BINDING_JSON)
             _warn("Falling back to default preferred order")
         else:
             preferred_order = preferred_bindings.get(__name__)
@@ -1855,9 +1827,7 @@ def _install():
             if hasattr(our_submodule, member):
                 continue
 
-            placeholder = MissingMember(
-                "{}.{}".format(name, member), details=members[member]
-            )
+            placeholder = MissingMember("{}.{}".format(name, member), details=members[member])
             setattr(our_submodule, member, placeholder)
 
     # Enable direct import of QtCompat

@@ -1,10 +1,6 @@
 import contextlib
 
-import pymel.core as pymel
-
-from omtk.libs import libPymel
 from omtk.libs import libPython
-from omtk.vendor import libSerialization
 
 
 __all__ = (
@@ -54,12 +50,12 @@ def find():
     """
     :return: All the rigs embedded in the current maya scene.
     """
+    from omtk.vendor import libSerialization
+
     # TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.get_networks_from_class("Rig")
     results = [libSerialization.import_network(network) for network in networks]
-    results = filter(
-        None, results
-    )  # Prevent un-serializable networks from passing through.
+    results = filter(None, results)  # Prevent un-serializable networks from passing through.
     return results
 
 
@@ -75,6 +71,8 @@ def build_all(strict=False):
     """
     Build all the rigs embedded in the current maya scene.
     """
+    from omtk.vendor import libSerialization
+
     rigs = find()
     for rig in rigs:
         network = rig._network  # monkey-patched by libSerialization
@@ -85,6 +83,8 @@ def build_all(strict=False):
 
 @libPython.log_execution_time("unbuild_all")
 def unbuild_all(strict=False):
+    from omtk.vendor import libSerialization
+
     rigs = find()
     for rig in rigs:
         network = rig._network  # monkey-patched by libSerialization
@@ -117,6 +117,9 @@ def _iter_rig_modules_by_type(rig, module_type):
 
 
 def get_modules_from_selection(sel=None):
+    import pymel
+    from omtk.vendor import libSerialization
+
     def get_rig_network_from_module(network):
         for plug in network.message.outputs(plugs=True):
             plug_node = plug.node()
@@ -147,7 +150,7 @@ def get_modules_from_selection(sel=None):
         sel, key=is_module_child_of_rig, key_skip=fn_skip
     )
     if not module_networks:
-        pymel.warning("Found no module related to selection.")
+        _LOG.warning("Found no module related to selection.")
         return None, None
 
     # Resolve rig
@@ -157,7 +160,7 @@ def get_modules_from_selection(sel=None):
         rig_networks.add(rig_network)
     rig_network = next(iter(rig_networks), None)
     if not rig_network:
-        pymel.warning("Found no rig related to selection.")
+        _LOG.warning("Found no rig related to selection.")
         return None, None
 
     # Deserialize the rig and find the associated networks
@@ -217,6 +220,9 @@ def build_modules_by_type(module_type):
 
 
 def unbuild_modules_by_type(module_type):
+    import pymel
+    from omtk.vendor import libSerialization
+
     for rig, modules in _iter_modules_by_type(module_type):
         modules = [module for module in modules if module.is_built()]
         if not modules:
@@ -232,6 +238,9 @@ def unbuild_modules_by_type(module_type):
 
 
 def rebuild_modules_by_type(module_type):
+    import pymel
+    from omtk.vendor import libSerialization
+
     for rig, modules in _iter_modules_by_type(module_type):
         modules = list(modules)
         if not modules:
@@ -250,6 +259,9 @@ def rebuild_modules_by_type(module_type):
 
 
 def unbuild_selected(sel=None):
+    import pymel
+    from omtk.vendor import libSerialization
+
     with with_preserve_selection():
         rig, modules = get_modules_from_selection()
         if not rig or not modules:
@@ -282,9 +294,7 @@ def _get_macro_by_name(macro_name):
 
     pm = plugin_manager.plugin_manager
 
-    for macro in pm.iter_loaded_plugins_by_type(
-        plugin_manager.MacroPluginType.type_name
-    ):
+    for macro in pm.iter_loaded_plugins_by_type(plugin_manager.MacroPluginType.type_name):
         # Convert omtk.macros.my_macro -> my_macro
         current_macro_name = macro.module_name.rsplit(".", 1)[-1]
         if current_macro_name == macro_name:
@@ -294,6 +304,6 @@ def _get_macro_by_name(macro_name):
 def run_macro(macro_name):
     macro = _get_macro_by_name(macro_name)
     if not macro:
-        pymel.warning("Cannot find macro with name %s" % macro_name)
+        _LOG.warning("Cannot find macro with name %s" % macro_name)
         return
     macro.run()

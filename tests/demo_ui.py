@@ -11,13 +11,11 @@ import os
 # app.exec_()
 # win = QtWidgets.QMainWindow()
 # win.show()
+
 from omtk.vendor.Qt import QtGui, QtWidgets
 
 app = QtWidgets.QApplication([])
 from omtk.widgets.main_window import OmtkMainWindow
-win = QtWidgets.QMainWindow()
-wid = OmtkMainWindow(win)
-# wid = QtWidgets.QPushButton(win)
-win.setCentralWidget(wid)
+win = OmtkMainWindow()
 win.show()
 app.exec_()

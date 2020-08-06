@@ -276,7 +276,8 @@ class WidgetListModules(QtWidgets.QWidget):
         item.setIcon(0, QtGui.QIcon(":/out_character.png"))
 
     def _get_qtreewidgetitem(self, value):
-        from omtk.core import Module, Rig
+        from omtk.core.module import Module
+        from omtk.core.rig import Rig
 
         widget = QtWidgets.QTreeWidgetItem(0)
         if hasattr(value, "_network"):

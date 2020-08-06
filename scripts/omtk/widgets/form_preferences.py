@@ -22,9 +22,12 @@ class PreferencesWindow(QtWidgets.QDialog):
 
         self.ui.comboBox.addItems(labels)
 
-        default_rig_type_name = preferences.preferences.get_default_rig_class().__name__
-        if default_rig_type_name in rig_plugins_names:
-            self.ui.comboBox.setCurrentIndex(rig_plugins_names.index(default_rig_type_name) + 1)
+        # Apply old settings (default rig)
+        cls = preferences.preferences.get_default_rig_class()
+        if cls:
+            name = cls.__name__
+            if name in rig_plugins_names:
+                self.ui.comboBox.setCurrentIndex(rig_plugins_names.index(cls) + 1)
 
         # Connect events
         self.ui.comboBox.currentIndexChanged.connect(self.on_default_rig_changed)

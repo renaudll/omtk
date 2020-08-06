@@ -42,9 +42,14 @@ class WidgetListInfluences(QtWidgets.QWidget):
             self.update()
 
     def update(self):
-        from omtk.libs import libPymel
+
 
         self.ui.treeWidget.clear()
+
+        try:
+            from omtk.libs import libPymel
+        except ImportError:
+            return
 
         if self._rig is None:
             return
@@ -106,6 +111,7 @@ class WidgetListInfluences(QtWidgets.QWidget):
         """
         import pymel.core as pymel
         from omtk.libs import libPymel
+
         return libPymel.isinstance_of_transform(
             obj, pymel.nodetypes.Joint
         ) or libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)

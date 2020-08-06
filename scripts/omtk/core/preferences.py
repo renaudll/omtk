@@ -48,6 +48,11 @@ class Preferences(object):
             self.__dict__.update(data)
 
     def get_default_rig_class(self):
+        try:
+            from maya import cmds
+        except ImportError:
+            return None
+
         from omtk.core import plugin_manager
 
         # Listen to an environment variable to drive the default rig for specific projects.

@@ -13,9 +13,8 @@ from omtk.core import api
 from omtk.libs import libPython
 from omtk.libs import libQt
 from omtk.widgets.ui import main_window
-from omtk.widgets import _utils, form_plugins, form_preferences
+from omtk.widgets import _utils, form_preferences
 
-from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtGui, QtWidgets
 
 _LOG = logging.getLogger("omtk")
@@ -53,8 +52,12 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         self.ui.actionExport.triggered.connect(self._on_export)
         self.ui.actionUpdate.triggered.connect(self._on_update)
         self.ui.actionCreateModule.triggered.connect(self._on_btn_add_pressed)
-        self.ui.actionMirrorJntsLToR.triggered.connect(self._on_mirror_influences_l_to_r)
-        self.ui.actionMirrorJntsRToL.triggered.connect(self._on_mirror_influences_r_to_l)
+        self.ui.actionMirrorJntsLToR.triggered.connect(
+            self._on_mirror_influences_l_to_r
+        )
+        self.ui.actionMirrorJntsRToL.triggered.connect(
+            self._on_mirror_influences_r_to_l
+        )
         self.ui.actionMirrorSelection.triggered.connect(self._on_mirror_selection)
         self.ui.actionAddSelectedInfluencesToModule.triggered.connect(
             self._on_add_selected_influences_to_module
@@ -83,7 +86,9 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
             for template in available_templates:
                 template_name = os.path.basename(template)
                 action = QtWidgets.QAction(template_name, self)
-                action.triggered.connect(functools.partial(self.action_import_template, template))
+                action.triggered.connect(
+                    functools.partial(self.action_import_template, template)
+                )
                 menu_template.addAction(action)
 
             self.ui.menubar.addAction(menu_template.menuAction())
@@ -119,16 +124,26 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         return results
 
     def create_callbacks(self):
-        from maya import OpenMaya
+        try:
+            from maya import OpenMaya
+        except ImportError:  # not in maya
+            return
 
         self.remove_callbacks()
         self._callbacks_scene = [
-            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterOpen, self._on_update),
-            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterNew, self._on_update),
+            OpenMaya.MSceneMessage.addCallback(
+                OpenMaya.MSceneMessage.kAfterOpen, self._on_update
+            ),
+            OpenMaya.MSceneMessage.addCallback(
+                OpenMaya.MSceneMessage.kAfterNew, self._on_update
+            ),
         ]
 
     def remove_callbacks(self):
-        from maya import OpenMaya
+        try:
+            from maya import OpenMaya
+        except ImportError:  # not in maya
+            return
 
         for callback_id in self._callbacks_scene:
             OpenMaya.MSceneMessage.removeCallback(callback_id)
@@ -156,7 +171,9 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
             menu.addSeparator()
             sel = self.ui.treeWidget.selectedItems()
             if len(sel) == 1:
-                func = functools.partial(self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0)
+                func = functools.partial(
+                    self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0
+                )
                 menu.addAction("Rename").connect(func)
             menu.addAction("Remove").connect(functools.partial(self.on_remove))
 
@@ -201,14 +218,22 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
     def import_networks(self, *args, **kwargs):
         import omtk.core.api
 
-        self.roots = omtk.core.api.find()
-        self.root = next(iter(self.roots), None)
+        try:
+            self.roots = omtk.core.api.find()
+            self.root = next(iter(self.roots), None)
+        except ImportError:  # not in maya
+            self.roots = []
+            self.root = None
 
         # Create a rig instance if the scene is empty.
         if self.root is None:
-            self.root = omtk.core.api.create()
-            self.roots = [self.root]
-            self.export_networks()  # Create network tree in the scene
+            try:
+                self.root = omtk.core.api.create()
+                self.roots = [self.root]
+            except Exception:  # not in maya
+                pass
+            else:
+                self.export_networks()  # Create network tree in the scene
 
         self.update_internal_data()
 
@@ -220,6 +245,7 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
     @libPython.log_execution_time("export_networks")
     def export_networks(self, update=True):
         import pymel
+        from omtk.vendor import libSerialization
 
         try:
             network = self.root._network
@@ -254,28 +280,38 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         items = qtreeview.selectedItems()
         return [item for item in items if item.metadata_type == metadata_type]
 
-    def _get_qtreeview_selected_metadata(self, qtreeview, metadata_type, search_up=False):
+    def _get_qtreeview_selected_metadata(
+        self, qtreeview, metadata_type, search_up=False
+    ):
         items = self._get_selected_items_by_metadata_type(qtreeview, metadata_type)
         return [item.metadata_data for item in items]
 
     def get_selected_modules(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_modules.ui.treeWidget, _utils.MetadataType.Module, search_up=search_up,
+            self.ui.widget_modules.ui.treeWidget,
+            _utils.MetadataType.Module,
+            search_up=search_up,
         )
 
     def get_selected_rigs(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_modules.ui.treeWidget, _utils.MetadataType.Rig, search_up=search_up,
+            self.ui.widget_modules.ui.treeWidget,
+            _utils.MetadataType.Rig,
+            search_up=search_up,
         )
 
     def get_selected_influences(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_jnts.ui.treeWidget, _utils.MetadataType.Influence, search_up=search_up,
+            self.ui.widget_jnts.ui.treeWidget,
+            _utils.MetadataType.Influence,
+            search_up=search_up,
         )
 
     def get_selected_meshes(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_meshes.ui.treeWidget, _utils.MetadataType.Mesh, search_up=search_up,
+            self.ui.widget_meshes.ui.treeWidget,
+            _utils.MetadataType.Mesh,
+            search_up=search_up,
         )
 
     def _get_parent_item_by_metadata_type(self, qtreewidgetitem, metadata_type):
@@ -287,6 +323,7 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
 
     def _on_import(self):
         import pymel
+        from omtk.vendor import libSerialization
 
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             caption="File Save (.json)", filter="JSON (*.json)"
@@ -310,6 +347,8 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         self._on_update()
 
     def _on_export(self):
+        from omtk.vendor import libSerialization
+
         all_rigs = omtk.core.api.find()
 
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -391,7 +430,10 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         items_to_remove_by_module = defaultdict(list)
 
         for item in selected_items:
-            if item.metadata_type in (_utils.MetadataType.Influence, _utils.MetadataType.Mesh,):
+            if item.metadata_type in (
+                _utils.MetadataType.Influence,
+                _utils.MetadataType.Mesh,
+            ):
                 module_item = self._get_parent_item_by_metadata_type(
                     item, _utils.MetadataType.Module
                 )

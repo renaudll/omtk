@@ -1,7 +1,7 @@
 import logging
 import time
-from itertools import tee, izip
-
+from itertools import tee
+import six
 
 _LOG = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ def pairwise(iterable):
     """
     a, b = tee(iterable)
     next(b, None)
-    return izip(a, b)
+    return six.zip(a, b)
 
 
 def triplewise(iterable):
@@ -97,4 +97,4 @@ def triplewise(iterable):
     next(b, None)
     next(c, None)
     next(c, None)
-    return izip(a, b, c)
+    return six.zip(a, b, c)

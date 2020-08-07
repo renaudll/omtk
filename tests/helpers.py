@@ -1,312 +1,97 @@
-"""
-Helper methods for easier testing.
-"""
-import os
-import json
-import sys
-import tempfile
-
-from maya import cmds
-import pymel.core as pymel
-from pymel.core.datatypes import Matrix
-
-from omtk.vendor import libSerialization, contextlib2
-
-
-def _get_holded_shapes():
+def assertGraphNodeCountEqual(model, expected):
     """
-    :return: The numbers of shapes connected to anm ctrls in the whole scene.
+    Ensure that the number of nodes in the graph match the provided count.
+
+    :param int expected: The expected node counts in the graph.
+    :raise Exception: If the number of nodes in the graph is incorrect.
     """
-    shapes = []
-    for net in libSerialization.get_networks_from_class("BaseCtrl"):
-        if net.hasAttr("shapes"):
-            shapes.extend(net.shapes.inputs())
-    return shapes
+    actual = len(model.get_nodes())
+    assert actual == expected
 
 
-def open_scene(path_local):
-    def deco_open(f):
-        def f_open(*args, **kwargs):
-            m_path_local = path_local  # make mutable
-
-            path = os.path.abspath(
-                os.path.join(os.path.dirname(sys.modules[f.__module__].__file__), m_path_local)
-            )
-            if not os.path.exists(path):
-                raise Exception("File does not exist on disk! {0}".format(path))
-
-            cmds.file(path, open=True, f=True)
-            return f(*args, **kwargs)
-
-        return f_open
-
-    return deco_open
-
-
-def assertMatrixAlmostEqual(a, b, r_epsilon=0.01, t_epsilon=0.1, multiplier=1.0):
+def assertGraphRegistryNodeCountEqual(registry, actual, expected):
     """
-    Compare two pymel.datatypes.Matrix and assert if they are too far away.
-    :param a: A pymel.datatypes.Matrix instance.
-    :param b: A pymel.datatypes.Matrix instance.
-    :param r_epsilon: How much drift we accept in rotation.
-    :param t_epsilon: How much drift we accept in translation (in cm).
-    :param multiplier: How much scaling have been applied. This will affect t_epsilon and r_epsilon.
+    Ensure that the number of registered nodes match the provided count.
+
+    :param int expected: The expected node count in the REGISTRY_DEFAULT.
+    :raise Exception: If the number of nodes in the REGISTRY_DEFAULT is incorrect.
+
     """
-    # Apply multiplier on epsilon
-    # This is necessary since if we're scaling 10 times, we expect 5 times more imprecision that if we're scaling 2 times.
-    t_epsilon *= multiplier
-
-    a_x, a_y, a_z, a_pos = a.data
-    b_x, b_y, b_z, b_pos = b.data
-
-    # Compare x, y and z axis.
-    for i in range(3):
-        a_axis = pymel.datatypes.Vector(a.data[i][0], a.data[i][1], a.data[i][2])
-        b_axis = pymel.datatypes.Vector(b.data[i][0], b.data[i][1], b.data[i][2])
-        a_axis.normalize()
-        b_axis.normalize()
-        diff = abs(1.0 - a_axis.dot(b_axis))
-        if diff > r_epsilon:
-            raise AssertionError(
-                "%s != %s (dot product %s > epsilon %s)" % (a_axis, b_axis, diff, r_epsilon)
-            )
-    # Compare position
-    distance = a_pos.distanceTo(b_pos)
-    if distance > t_epsilon:
-        raise AssertionError(
-            "Position %s != %s (distance %s > epsilon %s)" % (a_pos, b_pos, distance, t_epsilon)
-        )
+    assert len(registry._nodes)
+    assert actual == expected
 
 
-@contextlib2.contextmanager
-def verified_offset(objs, offset_tm, **kwargs):
+def getGraphPortCount(model):
+    return len(model.get_ports())
+
+
+def assertGraphPortCountEqual(model, expected):
     """
-    Context that store the world matrix of provided object.
-    An offset matrix is also provided that will be used to determine the desired world matrix of the objects.
-    If when leaving the context the matrices don't match, an Exeption is raised.
-    Use this function to test for scaling issue, flipping and double transformation.
-    :param objs:
-    :param offset_tm:
-    :param kwargs:
+    Ensure that the number of ports visible in the graph match the expected count.
+
+    :param int expected: The expected port count in the graph.
+    :raise Exception: If the number of ports visible in the graph is incorrect.
     """
-    # Store the base matrices
-    old_tms = [obj.getMatrix(worldSpace=True) for obj in objs]
-    desired_pose = {obj.__melobject__(): tm * offset_tm for obj, tm in zip(objs, old_tms)}
-
-    yield True
-
-    assert_match_pose(desired_pose)
+    actual = len(model.get_ports())
+    assert actual == expected
 
 
-@contextlib2.contextmanager
-def save_scene_on_error():
+def assertGraphNodePortNamesEqual(model, node, expected):
     """
-    Context/decorator that will save the scene if case of error for further debugging.
+    Ensure that all the current ports in a provided nodes match.
+
+    :param omtk.nodegraph.NodeModel node: The node to retreive the port from.
+    :param List[str] expected: A sorted list of names to match
+    :raise Exception: If the name of any port don't match the expected value.
     """
-    try:
-        yield
-    except Exception:
-        # Save the scene in it's current state for further debugging
-        path = tempfile.mktemp(suffix=".ma")
-        cmds.file(rename=path)
-        cmds.file(save=True, type="mayaAscii")
-        print("Dumped scene: %s" % path)
-        raise
+    ports = model.get_node_ports(node)
+    actual = sorted(port.get_name() for port in ports)
+    assert actual == expected
 
 
-@save_scene_on_error()
-def assert_match_pose(data):
+def assertGraphConnectionCountEqual(model, expected):
     """
-    :param data: A dict of matrix by name
-    :type data: dict[str, pymel.datatypes.Matrix]
+    Validate the the number of visible connections in the graph.
+
+    :param int expected: The expected number of connections in the graph.
+    :raise Exception: If the number of connections in the graph is unexpected.
     """
-    problematic_objs = set()
-    try:
-        for obj_name, expected in data.items():
-            if not cmds.objExists(obj_name):
-                raise AssertionError("Transform %r don't exist" % obj_name)
-            obj = pymel.PyNode(obj_name)
-            actual = obj.getMatrix(worldSpace=True)
-
-            try:
-                assertMatrixAlmostEqual(actual, expected)
-            except AssertionError as error:
-                problematic_objs.add(obj_name)
-
-        if problematic_objs:
-            raise AssertionError("Invalid transform for %s" % ",".join(sorted(problematic_objs)))
-
-    except AssertionError:
-        # Save expected transforms visually
-        for obj_name, expected in data.items():
-            ref = pymel.spaceLocator(name="EXPECTED_%s" % obj_name)
-            ref.setMatrix(expected)
-
-            # Ensure problematic objects appear red in the outliner
-            if obj_name in problematic_objs:
-                ref.outlinerColor.set((1.0, 0.0, 0.0))
-                ref.useOutlinerColor.set(True)
-
-        raise
+    actual = len(model.get_connections())
+    assert actual == expected
 
 
-def assert_match_pose_from_file(path):
+def assertGraphNodeNamesEqual(model, expected):
     """
-    :param str path: Path to a saved pose
-    :raises AssertionError: If the pose don't match
+    Validate the name of all the graph nodes.
+
+    :param List[str] expected: A sorted list of all the graph node names.
+    :raise Exception: If any node name don't match the expected value.
     """
-    with open(path) as fp:
-        data = json.load(fp)
-        data = {key: Matrix(val) for key, val in data.items()}
-    assert_match_pose(data)
+    nodes = model.get_nodes()
+    actual = (node.get_name() for node in nodes)
+    assert set(actual) == set(expected)
+    # self.assertEqual(len(expected), len(actual))  # in case some item where are duplicated
 
 
-def validate_built_rig(
-    rig,
-    test_translate=True,
-    translate=pymel.datatypes.Vector(1, 0, 0),
-    test_rotate=True,
-    test_scale=True,
-    test_scale_value=2.0,
-):
+def assertGraphConnectionsEqual(model, expected):
     """
-    Build a specific rig and verify the following:
-    - Is the rig scaling correctly?
-
-    :param rig: The rig to scale.
-    :param test_translate: If True, the rig will be verified for translation.
-    :param translate: The value to use when testing the translation.
-    :param test_scale: If True, the rig will be verified for scaling.
-    :param test_scale_value: The value to use when testing the scale.
+    Validate the number of connections in the graph.
+    :param List[Tuple(str, str)] expected: A list of 2-tuple describing connection in the graph.
     """
-    influences = rig.get_influences(key=lambda x: isinstance(x, pymel.nodetypes.Joint))
-    ctrls = rig.get_ctrls()
-    objs = influences + ctrls
+    connections = model.get_connections()
+    actual = [connection.dump() for connection in connections]
 
-    # Ensure the rig translate correctly.
-    if test_translate:
-        offset_tm = pymel.datatypes.Matrix(
-            [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [translate.x, translate.y, translate.z, 1.0,],
-        )
-        with verified_offset(objs, offset_tm, multiplier=translate.length()):
-            rig.grp_anm.t.set(translate)
-        rig.grp_anm.t.set(0, 0, 0)
-
-    if test_rotate:
-        offset_tms_by_rot = (
-            (
-                (90, 90, 90),
-                pymel.datatypes.Matrix(
-                    [0.0, 0.0, -1.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ),
-            ),
-            (
-                (180, 0, 0),
-                pymel.datatypes.Matrix(
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, -1.0, 0.0, 0.0],
-                    [0.0, -0.0, -1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ),
-            ),
-            (
-                (0, 180, 0),
-                pymel.datatypes.Matrix(
-                    [-1.0, 0.0, -0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ),
-            ),
-            (
-                (0, 0, 180),
-                pymel.datatypes.Matrix(
-                    [-1.0, 0.0, 0.0, 0.0],
-                    [-0.0, -1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ),
-            ),
-        )
-        for rot, offset_tm in offset_tms_by_rot:
-            with verified_offset(objs, offset_tm):
-                rig.grp_anm.r.set(rot)
-            rig.grp_anm.r.set(0, 0, 0)
-
-    # Ensure we the rig scale correctly.
-    if test_scale:
-        print("Validating scale...")
-        m = test_scale_value
-        scale_tm = pymel.datatypes.Matrix([m, 0, 0, 0], [0, m, 0, 0], [0, 0, m, 0], [0, 0, 0, 1])
-        with verified_offset(objs, scale_tm, multiplier=test_scale_value):
-            rig.grp_anm.globalScale.set(test_scale_value)
-        rig.grp_anm.globalScale.set(1.0)
+    # Using set for comparison as we don't want the ordering to be taken in account.
+    assert set(actual) == set(expected)
+    # assert actual == expected
 
 
-def test_build_rig(rig, **kwargs):
-    """
-    Build a specific rig and verify the following:
-    - Is the rig scaling correctly?
-
-    :param rig: The rig to scale.
-    :param test_translate: If True, the rig will be verified for translation.
-    :param test_translate_value: The value to use when testing the translation.
-    :param test_scale: If True, the rig will be verified for scaling.
-    :param test_scale_value: The value to use when testing the scale.
-    """
-    rig.build(strict=True)
-    validate_built_rig(rig, **kwargs)
+def assertGraphIsEmpty(model):
+    assertGraphNodeCountEqual(model, 0)
+    assertGraphPortCountEqual(model, 0)
+    assertGraphConnectionCountEqual(model, 0)
 
 
-def test_unbuild_rig(rig):
-    """
-    Unbuild a specific rig and verify the following:
-    - Do we have extra or missing ctrl shapes after building?
-
-    :param rig: The rig to unbuild.
-    """
-    num_holder_shapes_before = len(_get_holded_shapes())
-    rig.unbuild()
-    num_holder_shapes_after = len(_get_holded_shapes())
-    assert num_holder_shapes_before == num_holder_shapes_after
-
-
-def build_unbuild_build_all(**kwargs):
-    """
-    Build/Unbuild/Build all the rig in the scene and check for the following errors:
-    - Is there junk shapes remaining? This could be a sign that we didn't cleanup correctly.
-
-    :return:
-    """
-    import omtk
-
-    num_holder_shapes_before = len(_get_holded_shapes())
-
-    rigs = omtk.find()
-    for rig in rigs:
-        test_build_rig(rig, **kwargs)
-        test_unbuild_rig(rig)
-        test_build_rig(rig, **kwargs)
-
-    # Ensure no shapes are left after a rebuild.
-    num_holder_shapes_after = len(_get_holded_shapes())
-    assert num_holder_shapes_before == num_holder_shapes_after
-
-
-@contextlib2.contextmanager
-def temporary_changes(attr_map):
-    """
-    :param attr_map: A mapping of value per attribute
-    :type attr_map: dict[pymel.Attribute, object]
-    """
-    old_values = {attr: attr.get() for attr in attr_map}
-    for attr, value in attr_map.items():
-        attr.set(value)
-
-    yield
-
-    for attr, value in old_values.items():
-        attr.set(value)
+def assertGraphEquals(model, expected):
+    graph = model.dump()
+    assert graph == expected

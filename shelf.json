@@ -5,6 +5,11 @@
         "command": "import omtk; omtk.show()"
     },
     {
+        "label": "Show2",
+        "image": "omtk_rig_show.png",
+        "command": "import omtk; omtk.show_nodegraph()"
+    },
+    {
         "label": "Build All",
         "image": "omtk_rig_build_all.png",
         "command": "import omtk; omtk.build_all()"

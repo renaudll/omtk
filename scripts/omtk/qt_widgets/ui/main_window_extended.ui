@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>927</width>
+    <height>592</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Open Rigging Toolkit</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="dockWidget_logger">
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <widget class="WidgetLogger" name="widget_logger" native="true">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <action name="actionUpdate">
+   <property name="text">
+    <string>&amp;Update All</string>
+   </property>
+   <property name="toolTip">
+    <string>Update</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>&amp;Import</string>
+   </property>
+  </action>
+  <action name="actionExport">
+   <property name="text">
+    <string>&amp;Export</string>
+   </property>
+  </action>
+  <action name="actionBuildAll">
+   <property name="text">
+    <string>&amp;Build All</string>
+   </property>
+  </action>
+  <action name="actionUnbuildAll">
+   <property name="text">
+    <string>&amp;Unbuild All</string>
+   </property>
+  </action>
+  <action name="actionRebuildAll">
+   <property name="text">
+    <string>&amp;Rebuild All</string>
+   </property>
+  </action>
+  <action name="actionCreateModule">
+   <property name="text">
+    <string>&amp;Create Module</string>
+   </property>
+  </action>
+  <action name="actionAddNodeToModule">
+   <property name="text">
+    <string>&amp;Add Selection</string>
+   </property>
+  </action>
+  <action name="actionRemoveNodeFromModule">
+   <property name="text">
+    <string>&amp;Remove Selection</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsLToR">
+   <property name="text">
+    <string>&amp;Mirror L -&gt; R</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsRToL">
+   <property name="text">
+    <string>Mirror &amp;R -&gt; L</string>
+   </property>
+  </action>
+  <action name="actionMirrorSelection">
+   <property name="text">
+    <string>Mirror &amp;using Selection</string>
+   </property>
+  </action>
+  <action name="actionShowPluginManager">
+   <property name="text">
+    <string>Plugin &amp;Manager</string>
+   </property>
+  </action>
+  <action name="actionShowPreferences">
+   <property name="text">
+    <string>&amp;Preferences</string>
+   </property>
+  </action>
+  <action name="actionCreateComponent">
+   <property name="text">
+    <string>&amp;Create New</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WidgetLogger</class>
+   <extends>QWidget</extends>
+   <header>..widget_logger.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

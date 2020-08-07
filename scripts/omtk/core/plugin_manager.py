@@ -289,6 +289,10 @@ class MacroPluginType(PluginType):
     type_name = "macros"
 
 
+class ComponentScriptedType(PluginType):
+    type_name = "components_scripted"
+
+
 def initialize():
     # Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
     plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, "").split(os.pathsep)
@@ -302,6 +306,7 @@ def initialize():
     pm.register_plugin_type(ModulePluginType)
     pm.register_plugin_type(RigPluginType)
     pm.register_plugin_type(MacroPluginType)
+    pm.register_plugin_type(ComponentScriptedType)
     # pm.register_plugin_type(UnitTestPluginType)
     return pm
 

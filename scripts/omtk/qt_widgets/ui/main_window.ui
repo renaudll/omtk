@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>OpenRiggingToolkit</class>
+ <widget class="QMainWindow" name="OpenRiggingToolkit">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1052</width>
+    <height>647</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Open Rigging Toolkit</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="page_1">
+       <layout class="QVBoxLayout" name="verticalLayout_9">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="WidgetWelcome" name="widget_welcome" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="page_2">
+       <layout class="QVBoxLayout" name="verticalLayout_7">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="NodeGraphWidget" name="widget_node_editor" native="true"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1052</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>Fi&amp;le</string>
+    </property>
+    <addaction name="actionImport"/>
+    <addaction name="actionExport"/>
+    <addaction name="separator"/>
+    <addaction name="actionUpdate"/>
+   </widget>
+   <widget class="QMenu" name="menuRig">
+    <property name="title">
+     <string>Ri&amp;g</string>
+    </property>
+    <addaction name="actionBuildAll"/>
+    <addaction name="actionUnbuildAll"/>
+    <addaction name="actionRebuildAll"/>
+   </widget>
+   <widget class="QMenu" name="menuJoint">
+    <property name="title">
+     <string>Mo&amp;dules</string>
+    </property>
+    <addaction name="actionCreateModule"/>
+    <addaction name="actionAddNodeToModule"/>
+    <addaction name="actionRemoveNodeFromModule"/>
+   </widget>
+   <widget class="QMenu" name="menuInfluences">
+    <property name="title">
+     <string>I&amp;nfluences</string>
+    </property>
+    <addaction name="actionMirrorJntsLToR"/>
+    <addaction name="actionMirrorJntsRToL"/>
+    <addaction name="actionMirrorSelection"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionShowPreferences"/>
+    <addaction name="actionShowPluginManager"/>
+   </widget>
+   <widget class="QMenu" name="menuComponents">
+    <property name="title">
+     <string>&amp;Components</string>
+    </property>
+    <addaction name="actionCreateComponent"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuRig"/>
+   <addaction name="menuJoint"/>
+   <addaction name="menuInfluences"/>
+   <addaction name="menuSettings"/>
+   <addaction name="menuComponents"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="dockWidget_modules">
+   <property name="minimumSize">
+    <size>
+     <width>120</width>
+     <height>56</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>&amp;Modules</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_modules">
+    <layout class="QVBoxLayout" name="verticalLayout_6">
+     <item>
+      <widget class="WidgetListModules" name="widget_modules" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_influences">
+   <property name="minimumSize">
+    <size>
+     <width>120</width>
+     <height>56</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Infl&amp;uences</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_jnts">
+    <layout class="QVBoxLayout" name="verticalLayout_8">
+     <item>
+      <widget class="WidgetListInfluences" name="widget_jnts" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_meshes">
+   <property name="minimumSize">
+    <size>
+     <width>120</width>
+     <height>56</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Meshes</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_meshes">
+    <layout class="QVBoxLayout" name="verticalLayout_10">
+     <item>
+      <widget class="WidgetListMeshes" name="widget_meshes" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="windowTitle">
+    <string>Components</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_2">
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="WidgetListComponentDefinition" name="widget" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <action name="actionUpdate">
+   <property name="text">
+    <string>&amp;Update All</string>
+   </property>
+   <property name="toolTip">
+    <string>Update</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>&amp;Import</string>
+   </property>
+  </action>
+  <action name="actionExport">
+   <property name="text">
+    <string>&amp;Export</string>
+   </property>
+  </action>
+  <action name="actionBuildAll">
+   <property name="text">
+    <string>&amp;Build All</string>
+   </property>
+  </action>
+  <action name="actionUnbuildAll">
+   <property name="text">
+    <string>&amp;Unbuild All</string>
+   </property>
+  </action>
+  <action name="actionRebuildAll">
+   <property name="text">
+    <string>&amp;Rebuild All</string>
+   </property>
+  </action>
+  <action name="actionCreateModule">
+   <property name="text">
+    <string>&amp;Create Module</string>
+   </property>
+  </action>
+  <action name="actionAddNodeToModule">
+   <property name="text">
+    <string>&amp;Add Selection</string>
+   </property>
+  </action>
+  <action name="actionRemoveNodeFromModule">
+   <property name="text">
+    <string>&amp;Remove Selection</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsLToR">
+   <property name="text">
+    <string>&amp;Mirror L -&gt; R</string>
+   </property>
+  </action>
+  <action name="actionMirrorJntsRToL">
+   <property name="text">
+    <string>Mirror &amp;R -&gt; L</string>
+   </property>
+  </action>
+  <action name="actionMirrorSelection">
+   <property name="text">
+    <string>Mirror &amp;using Selection</string>
+   </property>
+  </action>
+  <action name="actionShowPluginManager">
+   <property name="text">
+    <string>Plugin &amp;Manager</string>
+   </property>
+  </action>
+  <action name="actionShowPreferences">
+   <property name="text">
+    <string>&amp;Preferences</string>
+   </property>
+  </action>
+  <action name="actionCreateComponent">
+   <property name="text">
+    <string>&amp;Create New</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WidgetListModules</class>
+   <extends>QWidget</extends>
+   <header location="global">omtk.outliner.widget_list_modules</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetListInfluences</class>
+   <extends>QWidget</extends>
+   <header location="global">omtk.outliner.widget_list_influences</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetListMeshes</class>
+   <extends>QWidget</extends>
+   <header location="global">omtk.outliner.widget_list_meshes</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>NodeGraphWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">omtk.nodegraph.nodegraph_widget</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetListComponentDefinition</class>
+   <extends>QWidget</extends>
+   <header location="global">omtk.outliner.widget_list_componentdef</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WidgetWelcome</class>
+   <extends>QWidget</extends>
+   <header location="global">omtk.qt_widgets.form_welcome</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

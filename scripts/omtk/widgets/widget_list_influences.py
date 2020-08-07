@@ -43,7 +43,6 @@ class WidgetListInfluences(QtWidgets.QWidget):
 
     def update(self):
 
-
         self.ui.treeWidget.clear()
 
         try:

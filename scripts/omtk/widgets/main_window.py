@@ -52,12 +52,8 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         self.ui.actionExport.triggered.connect(self._on_export)
         self.ui.actionUpdate.triggered.connect(self._on_update)
         self.ui.actionCreateModule.triggered.connect(self._on_btn_add_pressed)
-        self.ui.actionMirrorJntsLToR.triggered.connect(
-            self._on_mirror_influences_l_to_r
-        )
-        self.ui.actionMirrorJntsRToL.triggered.connect(
-            self._on_mirror_influences_r_to_l
-        )
+        self.ui.actionMirrorJntsLToR.triggered.connect(self._on_mirror_influences_l_to_r)
+        self.ui.actionMirrorJntsRToL.triggered.connect(self._on_mirror_influences_r_to_l)
         self.ui.actionMirrorSelection.triggered.connect(self._on_mirror_selection)
         self.ui.actionAddSelectedInfluencesToModule.triggered.connect(
             self._on_add_selected_influences_to_module
@@ -86,9 +82,7 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
             for template in available_templates:
                 template_name = os.path.basename(template)
                 action = QtWidgets.QAction(template_name, self)
-                action.triggered.connect(
-                    functools.partial(self.action_import_template, template)
-                )
+                action.triggered.connect(functools.partial(self.action_import_template, template))
                 menu_template.addAction(action)
 
             self.ui.menubar.addAction(menu_template.menuAction())
@@ -131,12 +125,8 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
 
         self.remove_callbacks()
         self._callbacks_scene = [
-            OpenMaya.MSceneMessage.addCallback(
-                OpenMaya.MSceneMessage.kAfterOpen, self._on_update
-            ),
-            OpenMaya.MSceneMessage.addCallback(
-                OpenMaya.MSceneMessage.kAfterNew, self._on_update
-            ),
+            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterOpen, self._on_update),
+            OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kAfterNew, self._on_update),
         ]
 
     def remove_callbacks(self):
@@ -171,9 +161,7 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
             menu.addSeparator()
             sel = self.ui.treeWidget.selectedItems()
             if len(sel) == 1:
-                func = functools.partial(
-                    self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0
-                )
+                func = functools.partial(self.ui.treeWidget.itemDoubleClicked.emit, sel[0], 0)
                 menu.addAction("Rename").connect(func)
             menu.addAction("Remove").connect(functools.partial(self.on_remove))
 
@@ -280,38 +268,28 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         items = qtreeview.selectedItems()
         return [item for item in items if item.metadata_type == metadata_type]
 
-    def _get_qtreeview_selected_metadata(
-        self, qtreeview, metadata_type, search_up=False
-    ):
+    def _get_qtreeview_selected_metadata(self, qtreeview, metadata_type, search_up=False):
         items = self._get_selected_items_by_metadata_type(qtreeview, metadata_type)
         return [item.metadata_data for item in items]
 
     def get_selected_modules(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_modules.ui.treeWidget,
-            _utils.MetadataType.Module,
-            search_up=search_up,
+            self.ui.widget_modules.ui.treeWidget, _utils.MetadataType.Module, search_up=search_up,
         )
 
     def get_selected_rigs(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_modules.ui.treeWidget,
-            _utils.MetadataType.Rig,
-            search_up=search_up,
+            self.ui.widget_modules.ui.treeWidget, _utils.MetadataType.Rig, search_up=search_up,
         )
 
     def get_selected_influences(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_jnts.ui.treeWidget,
-            _utils.MetadataType.Influence,
-            search_up=search_up,
+            self.ui.widget_jnts.ui.treeWidget, _utils.MetadataType.Influence, search_up=search_up,
         )
 
     def get_selected_meshes(self, search_up=False):
         return self._get_qtreeview_selected_metadata(
-            self.ui.widget_meshes.ui.treeWidget,
-            _utils.MetadataType.Mesh,
-            search_up=search_up,
+            self.ui.widget_meshes.ui.treeWidget, _utils.MetadataType.Mesh, search_up=search_up,
         )
 
     def _get_parent_item_by_metadata_type(self, qtreewidgetitem, metadata_type):
@@ -430,10 +408,7 @@ class OmtkMainWindow(QtWidgets.QMainWindow):
         items_to_remove_by_module = defaultdict(list)
 
         for item in selected_items:
-            if item.metadata_type in (
-                _utils.MetadataType.Influence,
-                _utils.MetadataType.Mesh,
-            ):
+            if item.metadata_type in (_utils.MetadataType.Influence, _utils.MetadataType.Mesh,):
                 module_item = self._get_parent_item_by_metadata_type(
                     item, _utils.MetadataType.Module
                 )

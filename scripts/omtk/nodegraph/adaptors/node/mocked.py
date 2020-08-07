@@ -1,0 +1,45 @@
+from omtk.nodegraph.adaptors.node.base import NodeGraphNodeAdaptor
+from omtk.vendor.maya_mock import MockedNode, MockedSession
+
+
+class NodeGraphMockedNodeAdaptor(NodeGraphNodeAdaptor):
+    """
+    omtk.nodegraph.NodeModel adaptor for maya_mock.MockedNode.
+    """
+
+    def __init__(self, session, data):
+        """
+
+        :param session:
+        :param data:
+        :type data: maya_mock.MockedNode
+        """
+        assert isinstance(data, MockedNode)
+        super(NodeGraphMockedNodeAdaptor, self).__init__(data)
+        self._session = session
+
+    @property
+    def session(self):
+        """
+        :rtype: MockedSession
+        """
+        return self._session
+
+    @property
+    def node(self):
+        """
+        :rtype: MockedNode
+        """
+        return self._data
+
+    def get_name(self):
+        return self.node.name
+
+    def get_parent(self):
+        return self.node.parent
+
+    def get_type(self):
+        return self.node.type
+
+    def delete(self):
+        return self.session.remove_node(self.node)

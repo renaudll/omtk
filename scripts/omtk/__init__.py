@@ -16,6 +16,12 @@ def show():
     main_window.show()
 
 
+def show_nodegraph():
+    from omtk.qt_widgets import window_main
+
+    window_main.show()
+
+
 try:  # Necessary for demo_ui.py
     import maya.cmds
 except ImportError:

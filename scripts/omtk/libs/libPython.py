@@ -1,7 +1,7 @@
 import logging
 import time
 from itertools import tee
-import six
+from omtk.vendor import six
 
 _LOG = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ def pairwise(iterable):
     """
     a, b = tee(iterable)
     next(b, None)
-    return six.zip(a, b)
+    return six.moves.zip(a, b)
 
 
 def triplewise(iterable):
@@ -97,4 +97,4 @@ def triplewise(iterable):
     next(b, None)
     next(c, None)
     next(c, None)
-    return six.zip(a, b, c)
+    return six.moves.zip(a, b, c)

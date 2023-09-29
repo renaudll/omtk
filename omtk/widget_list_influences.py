@@ -1,18 +1,18 @@
 import re
 import pymel.core as pymel
-from PySide import QtCore
-from PySide import QtGui
 from ui import widget_list_influences
 
-import libSerialization
-from omtk.libs import libSkinning
 from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.libs import libPymel
 
+from omtk.vendor import libSerialization
+from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
+
 import ui_shared
 
-class WidgetListInfluences(QtGui.QWidget):
+
+class WidgetListInfluences(QtWidgets.QWidget):
     onRightClick = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -59,9 +59,8 @@ class WidgetListInfluences(QtGui.QWidget):
 
     def _fill_widget_influences(self, qt_parent, data):
         obj = pymel.PyNode(data.val) if data.val else None
-        #obj, children_data = data
         if obj:
-            obj_name = obj.stripNamespace()
+            obj_name = obj.name()
 
             fnFilter = lambda x: libSerialization.is_network_from_class(x, 'Module')
             networks = libSerialization.get_connected_networks(obj, key=fnFilter, recursive=False)
@@ -69,12 +68,17 @@ class WidgetListInfluences(QtGui.QWidget):
             textBrush = QtGui.QBrush(QtCore.Qt.white)
 
             if self._is_influence(obj):  # todo: listen to the Rig class
-                qItem = QtGui.QTreeWidgetItem(0)
+                qItem = QtWidgets.QTreeWidgetItem(0)
                 qItem.obj = obj
+
+                # Monkey-patch mesh QWidget
+                qItem.metadata_type = ui_shared.MetadataType.Influence
+                qItem.metadata_data = obj
+                
                 qItem.networks = networks
                 qItem.setText(0, obj_name)
                 qItem.setForeground(0, textBrush)
-                ui_shared._set_icon_from_type(obj, qItem)
+                ui_shared.set_icon_from_type(obj, qItem)
                 qItem.setCheckState(0, QtCore.Qt.Checked if networks else QtCore.Qt.Unchecked)
                 if qItem.flags() & QtCore.Qt.ItemIsUserCheckable:
                     qItem.setFlags(qItem.flags() ^ QtCore.Qt.ItemIsUserCheckable)
@@ -83,10 +87,6 @@ class WidgetListInfluences(QtGui.QWidget):
 
         for child_data in data.children:
             self._fill_widget_influences(qt_parent, child_data)
-        #for child_data in children_data:
-            #child = child_data[0]
-            #if isinstance(child, pymel.nodetypes.Transform):
-                #self._fill_widget_influences(qt_parent, child_data)
 
     def _is_influence(self, obj):
         """
@@ -95,7 +95,6 @@ class WidgetListInfluences(QtGui.QWidget):
         """
         return libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint) or \
                libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-
 
     def update_list_visibility(self, query_regex=None):
         if query_regex is None:
@@ -125,7 +124,7 @@ class WidgetListInfluences(QtGui.QWidget):
 
     def _can_show_QTreeWidgetItem(self, qItem, query_regex):
         obj = qItem.obj  # Retrieve monkey-patched data
-        obj_name = obj.stripNamespace()
+        obj_name = obj.name()
         # print obj_name
 
         if not re.match(query_regex, obj_name, re.IGNORECASE):

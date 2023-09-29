@@ -6,6 +6,7 @@ from omtk.libs import libPymel
 from maya import OpenMaya
 import math
 
+
 def mirror_obj(obj_src, obj_dst=None):
     """
     Method to mirror joints in behavior.
@@ -20,6 +21,7 @@ def mirror_obj(obj_src, obj_dst=None):
     new_tm = mirrorPose.mirror_matrix(tm, mirror_x=True, flip_rot_x=True, flip_rot_y=True, flip_rot_z=True)
     obj_dst.setMatrix(new_tm, worldSpace=True)
     return obj_dst
+
 
 def transfer_rotation_to_joint_orient(obj):
     """
@@ -44,7 +46,8 @@ def transfer_rotation_to_joint_orient(obj):
         pymel.warning("Can't transfer rotation to joint orient. {0} rotation is locked.".format(obj.name()))
         return
 
-    if is_attr_accessible(obj.jointOrientX) or is_attr_accessible(obj.jointOrientY) or is_attr_accessible(obj.jointOrientZ):
+    if is_attr_accessible(obj.jointOrientX) or is_attr_accessible(obj.jointOrientY) or is_attr_accessible(
+            obj.jointOrientZ):
         pymel.warning("Can't transfer rotation to joint orient. {0} jointOrient is locked.".format(obj.name()))
         return
 
@@ -75,10 +78,12 @@ def mirror_jnt(obj_src, handle_joint_orient=True, create_missing=True):
                 obj_dst.setParent(obj_dst_parent)
 
     mirror_obj(obj_src, obj_dst)
-    if handle_joint_orient and isinstance(obj_src, pymel.nodetypes.Joint) and isinstance(obj_dst, pymel.nodetypes.Joint):
+    if handle_joint_orient and isinstance(obj_src, pymel.nodetypes.Joint) and isinstance(obj_dst,
+                                                                                         pymel.nodetypes.Joint):
         transfer_rotation_to_joint_orient(obj_dst)
         obj_dst.radius.set(obj_src.radius.get())
     return obj_dst
+
 
 def mirror_jnts(objs, **kwargs):
     # Sort objects by hyerarchy so we mirror parents before their children.
@@ -86,6 +91,7 @@ def mirror_jnts(objs, **kwargs):
     with pymel.UndoChunk():
         for obj in objs:
             mirror_jnt(obj, **kwargs)
+
 
 def freeze_selected_joints_rotation():
     jnts = [obj for obj in pymel.selected() if isinstance(obj, pymel.nodetypes.Joint)]
@@ -95,5 +101,3 @@ def freeze_selected_joints_rotation():
             continue
 
         transfer_rotation_to_joint_orient(jnt)
-
-

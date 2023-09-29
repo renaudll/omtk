@@ -1,7 +1,9 @@
-from PySide import QtCore, QtGui
-
 from omtk.core import plugin_manager
+
+from omtk.vendor.Qt import QtCore, QtWidgets
+
 from ui import pluginmanager_window
+
 
 class PluginListModel(QtCore.QAbstractTableModel):
     """
@@ -58,8 +60,13 @@ class PluginListModel(QtCore.QAbstractTableModel):
             return self.header[col]
         return None
 
-class PluginListFilterProxyModel(QtGui.QSortFilterProxyModel):
+    def reset(self):
+        """Backport of Qt4 .reset method()"""
+        self.beginResetModel()
+        self.endResetModel()
 
+
+class PluginListFilterProxyModel(QtCore.QSortFilterProxyModel):
     def __init__(self, parent):
         super(PluginListFilterProxyModel, self).__init__(parent)
         self._search_query = None
@@ -77,7 +84,13 @@ class PluginListFilterProxyModel(QtGui.QSortFilterProxyModel):
         item = model.items[row]
         return self._search_query in item.module_name
 
-class PluginManagerWindow(QtGui.QMainWindow):
+    def reset(self):
+        """Backport of Qt4 .reset method()"""
+        self.beginResetModel()
+        self.endResetModel()
+
+
+class PluginManagerWindow(QtWidgets.QMainWindow):
     searchQueryChanged = QtCore.Signal(str)
 
     def __init__(self, parent=None):
@@ -116,7 +129,10 @@ class PluginManagerWindow(QtGui.QMainWindow):
         query = self.ui.lineEdit_search.text()
         self._proxy_model.set_search_query(query)
 
+
 gui = PluginManagerWindow()
+
+
 def show():
     global gui
     gui.show()

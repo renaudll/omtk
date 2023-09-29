@@ -11,6 +11,7 @@ class CtrlRibbon(BaseCtrl):
     """
     Inherit of base Ctrl to create a specific square shaped controller
     """
+
     def __createNode__(self, *args, **kwargs):
         node = super(CtrlRibbon, self).__createNode__(*args, **kwargs)
         make = next(iter(node.getShape().create.inputs()), None)
@@ -24,6 +25,7 @@ class Ribbon(Module):
     """
     Generic ribbon setup.
     """
+
     def __init__(self, *args, **kwargs):
         super(Ribbon, self).__init__(*args, **kwargs)
         self.num_ctrl = 3
@@ -44,7 +46,6 @@ class Ribbon(Module):
         ctrls = ctrls if ctrls else self.ctrls
         nomenclature_anm = self.get_nomenclature_anm()
 
-
         # Ensure we have as many ctrls as needed.
         desired_ctrls_count = len(self._ribbon_jnts)
         if no_extremity:
@@ -54,10 +55,10 @@ class Ribbon(Module):
 
         real_index = 0
         for i, jnt in enumerate(self._ribbon_jnts):
-            if no_extremity and i == 0 or i == (len(self._ribbon_jnts) - 1):
+            if no_extremity and (i == 0 or i == (len(self._ribbon_jnts) - 1)):
                 continue
             ctrl = ctrls[real_index] if real_index < len(ctrls) else None
-            ctrl_name = nomenclature_anm.resolve('fk' + str(real_index+1).zfill(2))
+            ctrl_name = nomenclature_anm.resolve(str(real_index + 1).zfill(2))
             # Check if we already have an instance of the ctrl
             if not isinstance(ctrl, CtrlRibbon):
                 ctrl = CtrlRibbon()
@@ -87,10 +88,10 @@ class Ribbon(Module):
         nomenclature_rig = self.get_nomenclature_rig()
         fol_v = 0.5  # Always in the center
 
-        #split_value = 1.0 / (len(self.chain_jnt) - 1)
+        # split_value = 1.0 / (len(self.chain_jnt) - 1)
 
         for i, jnt in enumerate(self.chain_jnt):
-            #fol_u = split_value * i
+            # fol_u = split_value * i
             # TODO: Validate that we don't need to inverse the rotation separately.
             jnt_pos = jnt.getMatrix(worldSpace=True).translate
             pos, fol_u, fol_v = libRigging.get_closest_point_on_surface(self._ribbon_shape, jnt_pos)
@@ -105,7 +106,8 @@ class Ribbon(Module):
 
             self._follicles.append(fol)
 
-    def build(self, no_subdiv=False, num_ctrl = None, degree=3, create_ctrl=True, constraint=False, rot_fol=True, *args, **kwargs):
+    def build(self, no_subdiv=False, num_ctrl=None, degree=3, create_ctrl=True, constraint=False, rot_fol=True, *args,
+              **kwargs):
         super(Ribbon, self).build(create_grp_anm=create_ctrl, *args, **kwargs)
         if num_ctrl is not None:
             self.num_ctrl = num_ctrl
@@ -113,7 +115,8 @@ class Ribbon(Module):
         nomenclature_rig = self.get_nomenclature_rig()
 
         # Create the plane and align it with the selected bones
-        plane_tran = next((input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
+        plane_tran = next(
+            (input for input in self.input if libPymel.isinstance_of_shape(input, pymel.nodetypes.NurbsSurface)), None)
         if plane_tran is None:
             plane_name = nomenclature_rig.resolve("ribbonPlane")
             if no_subdiv:  # We don't want any subdivision in the plane, so use only 2 bones to create it
@@ -180,11 +183,11 @@ class Ribbon(Module):
                 pymel.parentConstraint(source, target, maintainOffset=True)
         '''
 
-
     def unbuild(self):
         super(Ribbon, self).unbuild()
 
         self.ctrls = []
+
 
 def register_plugin():
     return Ribbon

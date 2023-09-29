@@ -17,16 +17,5 @@ import libRigging
 import libSkinning
 import libStringMap
 import libUtils
-
-def _reload():
-    reload(libAttr)
-    reload(libCtrlShapes)
-    reload(libFormula)
-    reload(libPython)
-    reload(libQt)
-    reload(libPymel)
-    reload(libSkeleton)
-    reload(libRigging)
-    reload(libSkinning)
-    reload(libStringMap)
-    reload(libUtils)
+import libHistory
+import libComponent

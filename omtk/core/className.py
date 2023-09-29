@@ -1,8 +1,9 @@
 from maya import cmds
 import copy
 
-# TODO: Find a way to have different naming for different production.
-# Maybe handle it in the rig directly?
+
+# todo: make tokens, suffix, prefix and side private. Use getter and setter functions were necessary.
+# todo: in add_tokens, reconize what is a suffix and what is a prefix
 
 class BaseName(object):
     """
@@ -21,7 +22,7 @@ class BaseName(object):
     'l_eye_jnt'
 
     You can build a BaseName instance manually.
-    >>> name = BaseName(tokens=('eye',), suffix='jnt', side=BaseName.SIDE_L)
+    >>> name = BaseName(tokens=['eye'], suffix='jnt', side=BaseName.SIDE_L)
     >>> name.resolve()
     'l_eye_jnt'
 
@@ -32,7 +33,7 @@ class BaseName(object):
 
     You can override a BaseName public properties.
     >>> name = BaseName()
-    >>> name.tokens = ('eye',)
+    >>> name.tokens = ['eye']
     >>> name.resolve()
     'eye'
     >>> name.suffix = 'jnt'
@@ -41,6 +42,22 @@ class BaseName(object):
     >>> name.side = name.SIDE_L
     >>> name.resolve()
     'l_eye_jnt'
+
+    You can re-define the 'known_prefix' and 'known_suffix' static properties to ensure that studio-specific
+    suffix/prefix are always respected.
+    It is re
+    >>> class PrefixBasedNomenclature(BaseName):
+    ...     KNOWN_PREFIXES = ['jnt', 'ctrl']
+    >>> name = PrefixBasedNomenclature('jnt_head')
+    >>> name.prefix = 'ctrl'
+    >>> name.resolve()
+    'ctrl_head'
+    >>> class SuffixBasedNomenclature(BaseName):
+    ...     KNOWN_SUFFIXES = ['jnt', 'ctrl']
+    >>> name = SuffixBasedNomenclature('head_jnt')
+    >>> name.suffix = 'ctrl'
+    >>> name.resolve()
+    'head_ctrl'
 
     """
     separator = '_'
@@ -60,11 +77,15 @@ class BaseName(object):
     layer_anm_name = 'layer_anm'
     layer_rig_name = 'layer_rig'
     layer_geo_name = 'layer_geo'
+    layer_jnt_name = 'layer_jnts'
+
+    KNOWN_PREFIXES = []
+    KNOWN_SUFFIXES = []
 
     SIDE_L = 'l'
     SIDE_R = 'r'
 
-    def __init__(self, name=None, tokens=None, prefix=None, suffix=None, side=None):
+    def __init__(self, name=None, tokens=None, prefix=0, suffix=0, side=0):
         self.tokens = []
         self.prefix = None
         self.suffix = None
@@ -76,12 +97,39 @@ class BaseName(object):
         # Apply manual overrides
         if tokens:
             self.tokens = tokens
-        if prefix:
+        if prefix is not 0:
             self.prefix = prefix
-        if suffix:
+        if suffix is not 0:
             self.suffix = suffix
-        if side:
+        if side is not 0:
             self.side = side
+
+    def __add__(self, other):
+        """
+        Merge two Name instance together.
+        :param other: Another Name instance.
+        :return: A new Name instance.
+
+        >>> name = BaseName(tokens=['arm'], suffix='ctrl')
+        >>> other_name = BaseName(tokens=['armupper'], side=BaseName.SIDE_L)
+        >>> (name + other_name).resolve()
+        'l_arm_armupper_ctrl'
+        """
+        result = self.copy()
+
+        # Merge tokens
+        for token in other.tokens:
+            result.tokens.append(token)
+
+        # Merge side, prefix and suffix
+        if other.prefix and not result.prefix:
+            result.prefix = other.prefix
+        if other.suffix and not result.suffix:
+            result.suffix = other.suffix
+        if other.side and not result.side:
+            result.side = other.side
+
+        return result
 
     def copy(self):
         """
@@ -91,6 +139,7 @@ class BaseName(object):
         inst.tokens = copy.copy(self.tokens)
         inst.prefix = self.prefix
         inst.suffix = self.suffix
+        inst.side = self.side
         return inst
 
     def rebuild(self, name):
@@ -127,8 +176,8 @@ class BaseName(object):
     def build_from_string(self, name):
         raw_tokens = self._get_tokens(name)
         self.tokens = []
-        #self.prefix = None
-        #self.suffix = None
+        # self.prefix = None
+        # self.suffix = None
         self.side = None
 
         self.add_tokens(*raw_tokens)
@@ -142,9 +191,17 @@ class BaseName(object):
     def add_tokens(self, *args):
         for arg in args:
             for token in arg.split(self.separator):
+                # Handle side
                 side = self.get_side_from_token(token)
                 if side:
                     self.side = side
+                # Handle suffixes
+                elif token in self.KNOWN_SUFFIXES:
+                    self.suffix = token
+                # Handle prefixes
+                elif token in self.KNOWN_PREFIXES:
+                    self.prefix = token
+                # Handle normal token
                 else:
                     self.tokens.append(token)
 
@@ -211,3 +268,9 @@ class BaseName(object):
 
     def __repr__(self):
         return self.resolve()
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()

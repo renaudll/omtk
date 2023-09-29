@@ -392,7 +392,7 @@ def parse(str, **inkwargs):
 
     # Convert parenthesis and operators to nested string lists
     # src: http://stackoverflow.com/questions/5454322/python-how-to-match-nested-parentheses-with-regex
-    from omtk.deps import pyparsing  # make sure you have this installed
+    from omtk.vendor import pyparsing  # make sure you have this installed
     content = pyparsing.Word(pyparsing.alphanums + '.' + '_')
     for op in _all_operators.keys(): content |= op  # defined operators
     nestedExpr = pyparsing.nestedExpr(opener='(', closer=')', content=content)
@@ -495,5 +495,3 @@ def _test_squash2(step_size=10):
         pymel.connectAttr(attSquash, cyl.sy)
         pymel.connectAttr(attSquash, cyl.sz)
     return True
-
-

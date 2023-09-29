@@ -1,10 +1,12 @@
 import pymel.core as pymel
 import logging
+from omtk.libs import libSkinning
 
 '''
 This method will create a locator at the center of the selection.
 Support : Transform objects, vertices, faces and edges selection
 '''
+
 
 def get_center(objs):
     pos = pymel.datatypes.Point()
@@ -35,12 +37,19 @@ def get_center(objs):
         pos /= count
     return pos
 
+
 def createLocToCenter():
+    old_selection = pymel.selected()
     p3Pos = get_center(pymel.selected(flatten=True))
     pPoint = pymel.general.spaceLocator()
     pPoint.setTranslation(p3Pos, space='world')
+    if old_selection:
+        pymel.select(old_selection)
+
 
 '''Snap two or more objects with the last selected using their world matrix'''
+
+
 def snapObj():
     aSelection = pymel.selected()
     if len(aSelection) < 2:
@@ -53,18 +62,24 @@ def snapObj():
         pMatrixToMatch = oTarget.getMatrix(worldSpace=True)
         oCurSource.setMatrix(pMatrixToMatch, worldSpace=True)
 
+
 '''Get skin cluster attach to an objects'''
+
+
 def getSkinCluster(_oObj):
     for oCurHistory in pymel.listHistory(_oObj):
         if isinstance(oCurHistory, pymel.nodetypes.SkinCluster):
             return oCurHistory
     return None
 
+
 '''Get bone included in a skin'''
+
+
 def getSkinBones():
     aInfluences = []
     for oCurObj in pymel.selected():
         oSkinCluster = getSkinCluster(oCurObj)
         if oSkinCluster is not None:
-            aInfluences += oSkinCluster.influenceObjects()
+            aInfluences += libSkinning.get_skin_cluster_influence_objects(oSkinCluster)
     pymel.select(aInfluences)

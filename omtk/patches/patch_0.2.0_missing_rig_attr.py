@@ -1,5 +1,6 @@
 import pymel.core as pymel
-import libSerialization
+
+from omtk.vendor import libSerialization
 
 def run():
     nets = pymel.ls(type='network')

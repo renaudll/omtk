@@ -93,7 +93,7 @@
      <x>0</x>
      <y>0</y>
      <width>787</width>
-     <height>28</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -118,7 +118,8 @@
      <string>Modules</string>
     </property>
     <addaction name="actionCreateModule"/>
-    <addaction name="actionAddNodeToModule"/>
+    <addaction name="actionAddSelectedInfluencesToModule"/>
+    <addaction name="actionAddSelectedMeshesToModule"/>
     <addaction name="actionRemoveNodeFromModule"/>
    </widget>
    <widget class="QMenu" name="menuInfluences">
@@ -203,9 +204,9 @@
     <string>Create Module</string>
    </property>
   </action>
-  <action name="actionAddNodeToModule">
+  <action name="actionAddSelectedInfluencesToModule">
    <property name="text">
-    <string>Add Selection</string>
+    <string>Add Selected Influences to Module</string>
    </property>
   </action>
   <action name="actionRemoveNodeFromModule">
@@ -236,6 +237,11 @@
   <action name="actionShowPreferences">
    <property name="text">
     <string>Preferences</string>
+   </property>
+  </action>
+  <action name="actionAddSelectedMeshesToModule">
+   <property name="text">
+    <string>Add Selected Meshes to Module</string>
    </property>
   </action>
  </widget>

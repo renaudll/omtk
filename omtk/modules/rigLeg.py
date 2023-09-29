@@ -2,6 +2,7 @@ import logging
 
 import pymel.core as pymel
 from maya import cmds
+from omtk import constants
 from omtk.libs import libAttr
 from omtk.libs import libCtrlShapes
 from omtk.libs import libRigging
@@ -15,8 +16,9 @@ class CtrlIkLeg(rigIK.CtrlIk):
     """
     Inherit of base CtrlIk to create a specific box shaped controller
     """
-    def __createNode__(self, refs=None, geometries=None, *args, **kwargs):
-        return libCtrlShapes.create_shape_box_feet(refs, geometries, *args, **kwargs)
+
+    def __createNode__(self, *args, **kwargs):
+        return libCtrlShapes.create_shape_box_feet(*args, **kwargs)
 
 
 class LegIk(rigIK.IK):
@@ -56,6 +58,9 @@ class LegIk(rigIK.IK):
     FRONT_ROTY_LONGNAME = 'frontTwist'
     FRONT_ROTY_NICENAME = 'Front Twist'
 
+    AUTOROLL_THRESHOLD_LONGNAME = 'rollAutoThreshold'
+    AUTOROLL_THRESHOLD_NICENAME = 'Roll Auto Threshold'
+
     """
     A standard footroll that remember it's pivot when building/unbuilding.
     """
@@ -63,6 +68,8 @@ class LegIk(rigIK.IK):
     def __init__(self, *args, **kwargs):
         super(LegIk, self).__init__(*args, **kwargs)
 
+        # Properties that contain the pivot reference object for each points.
+        # This is defined when the IK is built.
         self.pivot_foot_heel = None
         self.pivot_toes_heel = None
         self.pivot_toes_ankle = None
@@ -73,6 +80,8 @@ class LegIk(rigIK.IK):
         self.pivot_foot_ankle = None
         self.pivot_foot_toes_fk = None
 
+        # Properties that contain the pivot positions relative to the foot matrix.
+        # This is defined when the IK is un-built.
         self.pivot_foot_heel_pos = None
         self.pivot_toes_heel_pos = None
         self.pivot_toes_ankle_pos = None
@@ -80,6 +89,9 @@ class LegIk(rigIK.IK):
         self.pivot_foot_back_pos = None
         self.pivot_foot_inn_pos = None
         self.pivot_foot_out_pos = None
+
+        # Preserve the auto-threshold between builds.
+        self.attrAutoRollThreshold = None
 
     def _get_reference_plane(self):
         """
@@ -91,7 +103,7 @@ class LegIk(rigIK.IK):
         pos_e = jnts[-1].getTranslation(space='world')
 
         # We take in account that the foot is always flat on the floor.
-        axis_y = pymel.datatypes.Vector(0,1,0)
+        axis_y = pymel.datatypes.Vector(0, 1, 0)
         axis_z = pos_e - pos_s
         axis_z.y = 0
         axis_z.normalize()
@@ -138,8 +150,8 @@ class LegIk(rigIK.IK):
         pos = pos_relative * tm_ref
         pos.y = 0
 
-        #HACK : Ensure that the point is size 3 and not 4
-        return pymel.datatypes.Point(pos.x,pos.y,pos.z)
+        # HACK : Ensure that the point is size 3 and not 4
+        return pymel.datatypes.Point(pos.x, pos.y, pos.z)
 
     def _get_recommended_pivot_back(self, geometries, tm_ref, tm_ref_dir, pos_toes):
         """
@@ -147,7 +159,7 @@ class LegIk(rigIK.IK):
         If the ray-cast fail, use the toes position.
         return: The recommended position as a world pymel.datatypes.Vector
         """
-        dir = pymel.datatypes.Point(0,0,-1) * tm_ref_dir
+        dir = pymel.datatypes.Point(0, 0, -1) * tm_ref_dir
         pos = libRigging.ray_cast_farthest(pos_toes, dir, geometries)
         if not pos:
             cmds.warning("Can't automatically solve FootRoll back pivot.")
@@ -160,8 +172,8 @@ class LegIk(rigIK.IK):
         pos = pos_relative * tm_ref
         pos.y = 0
 
-        #HACK : Ensure that the point is size 3 and not 4
-        return pymel.datatypes.Point(pos.x,pos.y,pos.z)
+        # HACK : Ensure that the point is size 3 and not 4
+        return pymel.datatypes.Point(pos.x, pos.y, pos.z)
 
     def _get_recommended_pivot_bank(self, geometries, tm_ref, tm_ref_dir, pos_toes, direction=1):
         """
@@ -189,7 +201,45 @@ class LegIk(rigIK.IK):
 
         return pos
 
-    def build(self, attr_holder=None, constraint_handle=False, setup_softik=True, **kwargs):
+    def _get_ik_ctrl_tms(self):
+        """
+        Compute the desired rotation for the ik ctrl.
+        If the LEGACY_LEG_IK_CTRL_ORIENTATION is set, we'll simply align to the influence.
+        :return: A two-size tuple containing the transformation matrix for the ctrl offset and the ctrl itself.
+        """
+        if self.rig.LEGACY_LEG_IK_CTRL_ORIENTATION:
+            return super(LegIk, self)._get_ik_ctrl_tms()
+
+        inf_tm = self.input[self.iCtrlIndex].getMatrix(worldSpace=True)
+
+        # Resolve offset_tm
+        offset_tm = pymel.datatypes.Matrix()
+
+        # Resolve ctrl_tm
+        axis_dir = constants.Axis.x
+        inn_tm_dir = libRigging.get_matrix_axis(inf_tm, axis_dir)
+        inn_tm_dir.y = 0  # Ensure the foot ctrl never have pitch values
+        # Ensure the ctrl look front
+        if inn_tm_dir.z < 0:
+            inn_tm_dir = pymel.datatypes.Vector(
+                inn_tm_dir.x * -1,
+                inn_tm_dir.y * -1,
+                inn_tm_dir.z * -1
+            )
+        inn_tm_upp = pymel.datatypes.Vector(0, 1, 0)
+
+        ctrl_tm = libRigging.get_matrix_from_direction(
+            inn_tm_dir,
+            inn_tm_upp,
+            look_axis=pymel.datatypes.Vector.zAxis,
+            upp_axis=pymel.datatypes.Vector.yAxis
+        )
+        ctrl_tm.translate = inf_tm.translate
+
+        return offset_tm, ctrl_tm
+
+    def build(self, attr_holder=None, constraint_handle=False, setup_softik=True, default_autoroll_threshold=25.0,
+              **kwargs):
         """
         Build the LegIk system
         :param attr_holder: The attribute holder object for all the footroll params
@@ -197,10 +247,11 @@ class LegIk(rigIK.IK):
         :return: Nothing
         """
         # Compute ctrl_ik orientation
-        # Hack: Bypass pymel bug (see https://github.com/LumaPictures/pymel/issues/355)
-        ctrl_ik_orientation = pymel.datatypes.TransformationMatrix(self._get_reference_plane()).rotate
-
-        super(LegIk, self).build(ctrl_ik_orientation=ctrl_ik_orientation, constraint_handle=constraint_handle, setup_softik=setup_softik, **kwargs)
+        super(LegIk, self).build(
+            constraint_handle=constraint_handle,
+            setup_softik=setup_softik,
+            **kwargs
+        )
 
         nomenclature_rig = self.get_nomenclature_rig()
 
@@ -274,7 +325,6 @@ class LegIk(rigIK.IK):
                 pos_pivot_heel = pymel.datatypes.Point(pos_foot)
                 pos_pivot_heel.y = 0
 
-
         #
         # Build Setup
         #
@@ -320,21 +370,82 @@ class LegIk(rigIK.IK):
         self.pivot_foot_toes_fk.setTranslation(pos_pivot_ankle, space='world')
         self.pivot_toes_heel.setTranslation(pos_pivot_heel, space='world')
 
+        #
         # Create attributes
+        #
         attr_holder = self.ctrl_ik
         libAttr.addAttr_separator(attr_holder, 'footRoll', niceName='Foot Roll')
         attr_inn_roll_auto = libAttr.addAttr(attr_holder, longName='rollAuto', k=True)
-        attr_inn_roll_auto_threshold = libAttr.addAttr(attr_holder, longName='rollAutoThreshold', k=True, defaultValue=25)
+
+        # Auto-Roll Threshold
+        auto_roll_threshold_default_value = self.attrAutoRollThreshold or default_autoroll_threshold
+        self.attrAutoRollThreshold = libAttr.addAttr(
+            attr_holder,
+            longName=self.AUTOROLL_THRESHOLD_LONGNAME,
+            niceName=self.AUTOROLL_THRESHOLD_NICENAME,
+            k=True,
+            defaultValue=auto_roll_threshold_default_value
+        )
+
         attr_inn_bank = libAttr.addAttr(attr_holder, longName='bank', k=True)
-        attr_inn_ankle_rotz   = libAttr.addAttr(attr_holder, longName=self.ANKLE_ROTZ_LONGNAME, niceName=self.ANKLE_ROTZ_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
-        attr_inn_back_rotx   = libAttr.addAttr(attr_holder, longName=self.BACK_ROTX_LONGNAME, niceName=self.BACK_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=0)
-        attr_inn_ankle_rotx  = libAttr.addAttr(attr_holder, longName=self.ANKLE_ROTX_LONGNAME, niceName=self.ANKLE_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=90)
-        attr_inn_front_rotx  = libAttr.addAttr(attr_holder, longName=self.FRONT_ROTX_LONGNAME, niceName=self.FRONT_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=90)
-        attr_inn_back_roty  = libAttr.addAttr(attr_holder, longName=self.BACK_ROTY_LONGNAME, niceName=self.BACK_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
-        attr_inn_heel_roty  = libAttr.addAttr(attr_holder, longName=self.HEEL_ROTY_LONGNAME, niceName=self.HEEL_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
-        attr_inn_toes_roty = libAttr.addAttr(attr_holder, longName=self.TOES_ROTY_LONGNAME, niceName=self.TOES_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
-        attr_inn_front_roty = libAttr.addAttr(attr_holder, longName=self.FRONT_ROTY_LONGNAME, niceName=self.FRONT_ROTY_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
-        attr_inn_toes_fk_rotx = libAttr.addAttr(attr_holder, longName=self.TOESFK_ROTX_LONGNAME, niceName=self.TOESFK_ROTX_NICENAME, k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90)
+        attr_inn_ankle_rotz = libAttr.addAttr(
+            attr_holder,
+            longName=self.ANKLE_ROTZ_LONGNAME,
+            niceName=self.ANKLE_ROTZ_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90
+        )
+        attr_inn_back_rotx = libAttr.addAttr(
+            attr_holder,
+            longName=self.BACK_ROTX_LONGNAME,
+            niceName=self.BACK_ROTX_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=0
+        )
+        attr_inn_ankle_rotx = libAttr.addAttr(
+            attr_holder,
+            longName=self.ANKLE_ROTX_LONGNAME,
+            niceName=self.ANKLE_ROTX_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=90
+        )
+        attr_inn_front_rotx = libAttr.addAttr(
+            attr_holder,
+            longName=self.FRONT_ROTX_LONGNAME,
+            niceName=self.FRONT_ROTX_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=0, maxValue=90
+        )
+        attr_inn_back_roty = libAttr.addAttr(
+            attr_holder,
+            longName=self.BACK_ROTY_LONGNAME,
+            niceName=self.BACK_ROTY_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90
+        )
+        attr_inn_heel_roty = libAttr.addAttr(
+            attr_holder,
+            longName=self.HEEL_ROTY_LONGNAME,
+            niceName=self.HEEL_ROTY_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90
+        )
+        attr_inn_toes_roty = libAttr.addAttr(
+            attr_holder,
+            longName=self.TOES_ROTY_LONGNAME,
+            niceName=self.TOES_ROTY_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90
+        )
+        attr_inn_front_roty = libAttr.addAttr(
+            attr_holder,
+            longName=self.FRONT_ROTY_LONGNAME,
+            niceName=self.FRONT_ROTY_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90
+        )
+        attr_inn_toes_fk_rotx = libAttr.addAttr(
+            attr_holder,
+            longName=self.TOESFK_ROTX_LONGNAME,
+            niceName=self.TOESFK_ROTX_NICENAME,
+            k=True, hasMinValue=True, hasMaxValue=True, minValue=-90, maxValue=90
+        )
+
+        #
+        # Connect attributes
+        #
 
         attr_roll_auto_pos = libRigging.create_utility_node('condition', operation=2, firstTerm=attr_inn_roll_auto,
                                                             secondTerm=0,
@@ -343,14 +454,14 @@ class LegIk(rigIK.IK):
 
         attr_roll_auto_f = libRigging.create_utility_node('condition', operation=2,
                                                           firstTerm=attr_inn_roll_auto,
-                                                          secondTerm=attr_inn_roll_auto_threshold,
+                                                          secondTerm=self.attrAutoRollThreshold,
                                                           colorIfFalseR=0,
                                                           colorIfTrueR=(
                                                               libRigging.create_utility_node('plusMinusAverage',
                                                                                              operation=2,
                                                                                              input1D=[
                                                                                                  attr_inn_roll_auto,
-                                                                                                 attr_inn_roll_auto_threshold]).output1D)
+                                                                                                 self.attrAutoRollThreshold]).output1D)
                                                           ).outColorR  # Substract
         attr_roll_auto_b = libRigging.create_utility_node('condition', operation=2, firstTerm=attr_inn_roll_auto,
                                                           secondTerm=0.0,
@@ -390,14 +501,17 @@ class LegIk(rigIK.IK):
         # Create ikHandles and parent them
         # Note that we are directly parenting them so the 'Preserve Child Transform' of the translate tool still work.
         if jnt_heel:
-            ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_heel, solver='ikSCsolver')
+            ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_heel,
+                                                            solver='ikSCsolver')
         else:
-            ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_toes, solver='ikSCsolver')
+            ikHandle_foot, ikEffector_foot = pymel.ikHandle(startJoint=jnt_foot, endEffector=jnt_toes,
+                                                            solver='ikSCsolver')
         ikHandle_foot.rename(nomenclature_rig.resolve('ikHandle', 'foot'))
         ikHandle_foot.setParent(self.grp_rig)
         ikHandle_foot.setParent(self.pivot_toes_heel)
         if jnt_heel:
-            ikHandle_heel, ikEffector_foot = pymel.ikHandle(startJoint=jnt_heel, endEffector=jnt_toes, solver='ikSCsolver')
+            ikHandle_heel, ikEffector_foot = pymel.ikHandle(startJoint=jnt_heel, endEffector=jnt_toes,
+                                                            solver='ikSCsolver')
             ikHandle_heel.rename(nomenclature_rig.resolve('ikHandle', 'heel'))
             ikHandle_heel.setParent(self.grp_rig)
             ikHandle_heel.setParent(self.pivot_foot_front)
@@ -421,7 +535,6 @@ class LegIk(rigIK.IK):
         else:
             pymel.parentConstraint(self.pivot_toes_ankle, self._ik_handle_target, maintainOffset=True)
 
-
         '''
         # Constraint swivel to ctrl_ik
         pymel.parentConstraint(self.ctrl_ik, self.ctrl_swivel,
@@ -440,6 +553,10 @@ class LegIk(rigIK.IK):
         The reference matrix is the ankle, maybe we should zero out the y axis.
         :return: Nothing
         """
+        # Hold auto-roll threshold
+        self.attrAutoRollThreshold = libAttr.hold_attrs(self.attrAutoRollThreshold,
+                                                        hold_curve=False)  # only preserve value
+
         tm_ref_inv = self._get_reference_plane().inverse()
 
         if self.pivot_foot_heel:
@@ -466,6 +583,7 @@ class LegIk(rigIK.IK):
         self.pivot_foot_back = None
         self.pivot_foot_inn = None
         self.pivot_foot_out = None
+        self.pivot_foot_ankle = None
         self.pivot_foot_toes_fk = None
 
 

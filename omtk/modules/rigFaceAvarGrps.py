@@ -210,8 +210,7 @@ class AvarGrp(
         :return: A list of Avar instances.
         """
         # TODO: Find a better way
-        fnFilter = lambda avar: 'upp' in avar.name.lower()
-        return filter(fnFilter, self.avars)
+        return [avar for avar in self.avars if 'upp' in avar.name.lower()]
 
     def get_avars_low(self):
         """
@@ -227,8 +226,7 @@ class AvarGrp(
         :return: Al list of Avar instrances.
         """
         # TODO: Find a better way
-        fnFilter = lambda avar: 'low' in avar.name.lower()
-        return filter(fnFilter, self.avars)
+        return [avar for avar in self.avars if 'low' in avar.name.lower()]
 
     #
     # Influence properties
@@ -236,8 +234,7 @@ class AvarGrp(
 
     @libPython.cached_property()
     def jnts(self):
-        fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)
-        return filter(fn_is_nurbsSurface, self.input)
+        return [obj for obj in self.input if libPymel.isinstance_of_transform(obj, pymel.nodetypes.Joint)]
 
     @libPython.memoized_instancemethod
     def _get_absolute_parent_level_by_influences(self):
@@ -273,7 +270,7 @@ class AvarGrp(
         result = defaultdict(list)
         objs_by_absolute_parent_level = self._get_absolute_parent_level_by_influences()
         top_level = self._get_highest_absolute_parent_level()
-        for parent_level, objs in objs_by_absolute_parent_level.iteritems():
+        for parent_level, objs in objs_by_absolute_parent_level.items():
             result[parent_level - top_level] = objs
         return dict(result)
 
@@ -353,7 +350,7 @@ class AvarGrp(
         head_jnt = self.get_head_jnt()
         try:
             head_length = self.rig.get_head_length(head_jnt)
-        except Exception, e:
+        except Exception as e:
             head_length = None
             self.warning(str(e))
         if head_length:
@@ -366,7 +363,7 @@ class AvarGrp(
         if len(jnts) > 1:
             distances = [libPymel.distance_between_nodes(jnt_src, jnt_dst) for jnt_src, jnt_dst in
                          itertools.permutations(jnts, 2)]
-            distances = filter(lambda x: x > epsilon, distances)
+            distances = [distance for distance in distances if distance > epsilon]
             if distances:
                 result = min(distances) / 2.0
 
@@ -478,7 +475,7 @@ class AvarGrp(
                                    )
 
         # Connect 'tweak' avars to their equivalent.
-        for avar_micro, avar_tweak in self._get_micro_tweak_avars_dict().iteritems():
+        for avar_micro, avar_tweak in self._get_micro_tweak_avars_dict().items():
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_lr, avar_tweak.attr_lr)
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_ud, avar_tweak.attr_ud)
             libRigging.connectAttr_withBlendWeighted(avar_micro.attr_fb, avar_tweak.attr_fb)
@@ -487,7 +484,7 @@ class AvarGrp(
         # HACK: Validate avars at runtime
         try:
             avar.validate()
-        except Exception, e:
+        except Exception as e:
             self.warning("Can't build avar {0}, failed validation: {1}".format(
                 avar.name,
                 e
@@ -654,8 +651,9 @@ class AvarGrp(
         """
         # Hack: Provide backward compatibility for when surface was provided as an input.
         if not libPymel.isinstance_of_shape(self.surface, pymel.nodetypes.NurbsSurface):
-            fn_is_nurbsSurface = lambda obj: libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
-            surface = next(iter(filter(fn_is_nurbsSurface, self.input)), None)
+            surface = next(
+                (obj for obj in self.input if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface)
+            ), None)
             if surface:
                 self.input.remove(surface)
                 self.surface = surface
@@ -929,8 +927,7 @@ class AvarGrpOnSurface(AvarGrp):
         :return: The upper section influences.
         """
         # TODO: Find a better way
-        fnFilter = lambda jnt: 'upp' in jnt.stripNamespace().nodeName().lower()
-        return filter(fnFilter, self.jnts)
+        return [jnt for jnt in self.jnts if 'upp' in jnt.stripNamespace().nodeName().lower()]
 
     @libPython.memoized_instancemethod
     def get_jnt_upp_mid(self):
@@ -945,8 +942,7 @@ class AvarGrpOnSurface(AvarGrp):
         :return: The upper side influences.
         """
         # TODO: Find a better way
-        fnFilter = lambda jnt: 'low' in jnt.stripNamespace().nodeName().lower()
-        return filter(fnFilter, self.jnts)
+        return [jnt for jnt in self.jnts if 'low' in jnt.stripNamespace().nodeName().lower()]
 
     @libPython.memoized_instancemethod
     def get_jnt_low_mid(self):
@@ -969,7 +965,7 @@ class AvarGrpOnSurface(AvarGrp):
                 return False
             return jnt.getTranslation(space='world').x >= middle.x
 
-        return filter(_filter, self.jnts)
+        return [jnt for jnt in self.jnts if _filter(jnt)]
 
     @libPython.memoized_instancemethod
     def get_jnts_r(self):
@@ -985,7 +981,7 @@ class AvarGrpOnSurface(AvarGrp):
                 return False
             return jnt.getTranslation(space='world').x < middle.x
 
-        return filter(_filter, self.jnts)
+        return [jnt for jnt in self.jnts if _filter(jnt)]
 
     @libPython.memoized_instancemethod
     def get_jnt_l_mid(self):
@@ -1518,7 +1514,7 @@ class AvarGrpOnSurface(AvarGrp):
         head_jnt = self.get_head_jnt()
         try:
             head_length = self.rig.get_head_length(head_jnt)
-        except Exception, e:
+        except Exception as e:
             head_length = None
             self.warning(str(e))
         if head_length:

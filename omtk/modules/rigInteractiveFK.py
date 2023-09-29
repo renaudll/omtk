@@ -16,6 +16,8 @@ Warning:
 Please note that to correctly support scaling, all the computation are done in LOCAL space.
 This mean that you CANNOT use the skinned surface influences to drive the final mesh.
 """
+import functools
+
 import pymel.core as pymel
 from omtk.core.classCtrl import BaseCtrl
 from omtk.core.classModuleMap import ModuleMap
@@ -522,7 +524,7 @@ class InteractiveFK(Module):
             'scaleZ': 1.0,
         }
         for surface in surfaces:
-            for attr_name, desired_val in attr_to_check.iteritems():
+            for attr_name, desired_val in attr_to_check.items():
                 attr = surface.attr(attr_name)
                 attr_val = attr.get()
                 if abs(attr_val - desired_val) > epsilon:
@@ -569,9 +571,9 @@ class InteractiveFK(Module):
             # If nothing works, compare their name...
             # We might get lucky and have correctly named objects like layer0, layer1, etc.
             self.warning("Saw no relationship between {} and {}. Will sort them by name.".format(obj_a, obj_b))
-            return cmp(obj_a.name(), obj_b.name())
+            return (obj_a.name(), obj_b.name())
 
-        surfaces = sorted(surfaces, cmp=_fn_compare)
+        surfaces = sorted(surfaces, key=functools.cmp_to_key(_fn_compare))
 
         for surface in surfaces:
             skincluster = _get_immediate_skincluster(surface)

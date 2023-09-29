@@ -49,7 +49,8 @@ class FaceEyeLids(rigFaceAvarGrps.AvarGrpOnSurface):
             if libPymel.isinstance_of_shape(obj, pymel.nodetypes.NurbsSurface):
                 return obj
 
-        surfaces = filter(None, map(get_surface, self.input))
+        surfaces = [get_surface(obj) for obj in self.input]
+        surfaces = [surface for surface in surfaces if surface]
 
         # If the user provided surface, pop them out of the input property and store them in the surface_[upp/low] property.
         if surfaces:

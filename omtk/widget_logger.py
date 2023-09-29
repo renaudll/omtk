@@ -1,6 +1,6 @@
 import logging
 import datetime
-from ui import widget_logger
+from .ui import widget_logger
 
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets, QtCompat
 

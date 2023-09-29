@@ -277,8 +277,7 @@ class FaceLips(rigFaceAvarGrps.AvarGrpOnSurface):
 
     def get_avars_corners(self, macro=True):
         # todo: move upper?
-        fnFilter = lambda avar: 'corner' in avar.name.lower()
-        result = filter(fnFilter, self.avars)
+        result = [avar for avar in self.avars if 'corner' in avar.name.lower()]
 
         if macro and self.create_macro_horizontal:
             if self.avar_l:

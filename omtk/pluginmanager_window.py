@@ -2,7 +2,7 @@ from omtk.core import plugin_manager
 
 from omtk.vendor.Qt import QtCore, QtWidgets
 
-from ui import pluginmanager_window
+from .ui import pluginmanager_window
 
 
 class PluginListModel(QtCore.QAbstractTableModel):

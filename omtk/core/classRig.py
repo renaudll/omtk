@@ -216,7 +216,7 @@ class Rig(object):
         if version:
             version = ' v{}'.format(version)
         return '{} <{}{}>'.format(
-            self.name.encode('utf-8'),
+            self.name,
             self.__class__.__name__,
             version
         )
@@ -231,7 +231,7 @@ class Rig(object):
 
         # Ensure there's no None value in the .children array.
         try:
-            self.modules = filter(None, self.modules)
+            self.modules = [module for module in self.modules if module]
         except (AttributeError, TypeError):
             pass
 
@@ -327,7 +327,7 @@ class Rig(object):
 
     def _clean_invalid_pynodes(self):
         fnCanDelete = lambda x: (isinstance(x, (pymel.PyNode, pymel.Attribute)) and not libPymel.is_valid_PyNode(x))
-        for key, val in self.__dict__.iteritems():
+        for key, val in self.__dict__.items():
             if fnCanDelete(val):
                 setattr(self, key, None)
             elif isinstance(val, (list, set, tuple)):
@@ -463,14 +463,14 @@ class Rig(object):
         """
         :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
         """
-        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.Mesh), self.get_shapes())
+        return [shape for shape in self.get_shapes() if libPymel.isinstance_of_shape(shape, pymel.nodetypes.Mesh)]
 
     @libPython.memoized_instancemethod
     def get_surfaces(self):
         """
         :return: All meshes under the mesh group of type mesh. If found nothing, scan the whole scene.
         """
-        return filter(lambda x: libPymel.isinstance_of_shape(x, pymel.nodetypes.NurbsSurface), self.get_shapes())
+        return [shape for shape in self.get_shapes() if libPymel.isinstance_of_shape(pymel.nodetypes.NurbsSurface)]
 
     def get_nearest_affected_mesh(self, jnt):
         """
@@ -684,7 +684,7 @@ class Rig(object):
         if not skip_validation:
             try:
                 self.validate()
-            except Exception, e:
+            except Exception as e:
                 self.warning("Can't build {0} because it failed validation: {1}".format(self, e))
                 return False
 
@@ -706,7 +706,7 @@ class Rig(object):
             modules = self.modules
 
         # Filter any module that don't have an input.
-        modules = filter(lambda module: module.jnt, modules)
+        modules = [module for module in modules if module.jnt]
 
         # Sort modules by ascending hierarchical order.
         # This ensure modules are built in the proper order.
@@ -714,7 +714,7 @@ class Rig(object):
         modules = sorted(modules, key=(lambda x: libPymel.get_num_parents(x.chain_jnt.start)))
 
         # Add modules dependencies
-        for i in reversed(xrange(len(modules))):
+        for i in reversed(range(len(modules))):
             module = modules[i]
             dependencies = module.get_dependencies_modules()
             if dependencies:
@@ -740,7 +740,7 @@ class Rig(object):
                 if not skip_validation:
                     try:
                         module.validate()
-                    except Exception, e:
+                    except Exception as e:
                         self.warning("Can't build {0}: {1}".format(module, e))
                         if strict:
                             traceback.print_exc()
@@ -758,7 +758,7 @@ class Rig(object):
 
                         module.build(**kwargs)
                         self.post_build_module(module)
-                    except Exception, e:
+                    except Exception as e:
                         self.error(
                             "Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                         traceback.print_exc()
@@ -859,7 +859,7 @@ class Rig(object):
             else:
                 try:
                     module.unbuild(**kwargs)
-                except Exception, e:
+                except Exception as e:
                     self.error("Error building {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                     traceback.print_exc()
                     if strict:

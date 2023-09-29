@@ -171,7 +171,7 @@ class RigSqueeze(classRig.Rig):
         def _filter(obj):
             if not isinstance(obj, pymel.nodetypes.Condition):
                 return False
-            for attr_name, attr_val in condition_attrs.iteritems():
+            for attr_name, attr_val in condition_attrs.items():
                 attr = obj.attr(attr_name)
                 if attr.isDestination():
                     if next(iter(attr.inputs(plugs=True)), None) != attr_val:

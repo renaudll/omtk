@@ -15,7 +15,7 @@ class Operator(object):
     @staticmethod
     def can_optimise(*args):
         for arg in args:
-            if not isinstance(arg, (int, float, long)):
+            if not isinstance(arg, (int, float)):
                 return False
         return True
 
@@ -75,7 +75,7 @@ class OperatorPow(Operator):
     def execute(arg1, arg2):
         try:
             return math.pow(arg1, arg2)
-        except Exception, e:
+        except Exception as e:
             log.error("Can't execute {0} ^ {1}: {2}".format(arg1, arg2, e)),
 
         return math.pow(arg1, arg2)
@@ -98,9 +98,9 @@ class OperatorDistance(Operator):
 
     @staticmethod
     def _handle_args(arg1, arg2):
-        if arg1 == 0 and not isinstance(arg2, (int, float, long)):
+        if arg1 == 0 and not isinstance(arg2, (int, float)):
             arg1 = OperatorDistance._get_identity_by_type(type(arg2))
-        if arg2 == 0 and not isinstance(arg1, (int, float, long)):
+        if arg2 == 0 and not isinstance(arg1, (int, float)):
             arg2 = OperatorDistance._get_identity_by_type(type(arg1))
         return arg1, arg2
 
@@ -227,7 +227,7 @@ _sorted_operators = [
 
 _all_operators = {}
 for operators in _sorted_operators: _all_operators.update(operators)
-_varDelimiters = ['(', ')', '.'] + _all_operators.keys()
+_varDelimiters = ['(', ')', '.'] + list(_all_operators.keys())
 _regex_splitVariables = '|'.join(re.escape(str) for str in _varDelimiters)
 
 _variables = {}
@@ -269,7 +269,7 @@ def rlen(L):
 
 def optimise_replaceVariables(args):
     global _variables
-    fnIsVariable = lambda x: isinstance(x, basestring) and x in _variables
+    fnIsVariable = lambda x: isinstance(x, str) and x in _variables
 
     out = []
     for arg in args:
@@ -284,18 +284,12 @@ def optimise_replaceVariables(args):
 
 
 def _optimise_formula_remove_prefix(args):
-    # import logging; log = logging.getLogger(__name__)
     if len(args) < 2:
         raise Exception("A minimum of 2 arguments are necessary! Got: {0}".format(args))
     fnRecursive_call = lambda x: _optimise_formula_remove_prefix(x) if isinstance(x, list) else x
-    # args[0] = fnRecursive_call(args[0])
     pos = 0
     imax = len(args)
     while pos < imax - 1:
-        # log.debug('| current position: {0}'.format(pos))
-        # log.debug('| current operator: {0}'.format(args[0]))
-        # log.debug('| memory: {0} {1} {2}'.format((args[pos-1] if pos != 0 else None), args[pos], args[pos+1]))
-        # log.debug('| memory (all): {0}'.format(args))
         preArg = args[pos - 1] if pos > 0 else None
         args[pos] = perArg = fnRecursive_call(args[pos])
         args[pos + 1] = posArg = fnRecursive_call(args[pos + 1])
@@ -303,7 +297,7 @@ def _optimise_formula_remove_prefix(args):
             if preArg is None or preArg in _all_operators:  # If the formula start with '-' or '-' is prefixed by an operator
                 del args[pos]
 
-                if isinstance(posArg, (int, float, long)):
+                if isinstance(posArg, (int, float)):
                     args[pos] = -1 * posArg
                 else:
                     args[pos] = [-1, '*', posArg]
@@ -311,7 +305,6 @@ def _optimise_formula_remove_prefix(args):
             pos += 1
         else:
             pos += 1
-    # log.debug('exiting... {0}'.format(args))
     return args
 
 
@@ -331,7 +324,7 @@ def _optimise_formula_with_operators(args, fnName, fnFilterName=None):
             perArg = args[i]
             posArg = args[i + 1] = fnRecursive_call(args[i + 1])
             # Ensure we're working with operators
-            if not isinstance(perArg, basestring):
+            if not isinstance(perArg, str):
                 raise IOError("Invalid operator '{0}', expected a string".format(perArg))
             cls = operators.get(perArg, None)
             if cls and (not fnFilterName or getattr(cls, fnFilterName)(preArg, posArg)):
@@ -358,19 +351,18 @@ def _create_nodes(args):
     return _optimise_formula_with_operators(args, 'create')
 
 
-def parse(str, **inkwargs):
+def parse(value, **inkwargs):
     log.debug("--------------------")
-    log.debug("PARSING: {0}".format(str))
+    log.debug("PARSING: {0}".format(value))
 
-    if not isinstance(str, basestring):
+    if not isinstance(value, str):
         log.debug("Formula provided is not a string! Skipped")
-        return str
+        return value
 
     # step 1: identify variables
-    vars = (var.strip() for var in re.split(_regex_splitVariables, str))
+    vars = (var.strip() for var in re.split(_regex_splitVariables, value))
     vars = [var for var in vars if not var.isdigit()]
-    vars = filter(lambda x: x, vars)
-    # print 'found vars:', vars
+    vars = [var for var in vars if var]
 
     # hack: add mathematical constants in variables
     kwargs = {
@@ -387,8 +379,6 @@ def parse(str, **inkwargs):
         if not var in kwargs:
             raise KeyError("Variable '{0}' is not defined".format(var))
         _variables[var] = kwargs[var]
-        # log.debug('\t{0} = {1}'.format(var, kwargs[var]))
-    # print 'defined variables are:', dicVariables
 
     # Convert parenthesis and operators to nested string lists
     # src: http://stackoverflow.com/questions/5454322/python-how-to-match-nested-parentheses-with-regex
@@ -396,7 +386,7 @@ def parse(str, **inkwargs):
     content = pyparsing.Word(pyparsing.alphanums + '.' + '_')
     for op in _all_operators.keys(): content |= op  # defined operators
     nestedExpr = pyparsing.nestedExpr(opener='(', closer=')', content=content)
-    res = nestedExpr.parseString('({0})'.format(str))  # wrap all string in parenthesis, or it won't work
+    res = nestedExpr.parseString('({0})'.format(value))  # wrap all string in parenthesis, or it won't work
     args = res.asList()[0]
 
     num_args = len(args)

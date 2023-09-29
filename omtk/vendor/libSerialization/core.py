@@ -92,7 +92,7 @@ def is_data_complex(_data):
     return isinstance(_data, types_complex) or hasattr(_data, '__dict__')
 
 
-types_basic = (int, float, bool)
+types_basic = (int, float, bool, str)
 
 
 def register_type_basic(*types):
@@ -102,12 +102,6 @@ def register_type_basic(*types):
     """
     global types_basic
     types_basic += types
-
-# Python3 support
-try:
-    register_type_basic(basestring)
-except NameError:
-    register_type_basic(str)
 
 
 def is_data_basic(_data):
@@ -182,7 +176,7 @@ def export_dict(data, skip_None=True, recursive=True, cache=None, **args):
     Returns: A dict instance containing only basic data types.
     """
     if cache is None:
-        from cache import Cache
+        from .cache import Cache
         cache = Cache()
 
     # Check if we already exported this data.
@@ -253,7 +247,7 @@ def import_dict(data, cache=None, **kwargs):
     """
 
     if cache is None:
-        from cache import Cache
+        from .cache import Cache
         cache = Cache()
 
     #assert (data is not None)

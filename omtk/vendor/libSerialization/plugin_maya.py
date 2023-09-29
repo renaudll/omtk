@@ -1,8 +1,10 @@
-import pymel.core as pymel
-from maya import OpenMaya
 import sys
 import logging
-import core
+
+import pymel.core as pymel
+from maya import OpenMaya
+
+from . import core
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -39,7 +41,7 @@ def _create_attr(name, data):
     :return: An OpenMaya.MFnAttribute subclass instance.
     """
     # (str, unicode) -> MFnTypedAttribute(kString)
-    if isinstance(data, basestring):
+    if isinstance(data, str):
         fn = OpenMaya.MFnTypedAttribute()
         fn.create(name, name, OpenMaya.MFnData.kString)
         return fn
@@ -140,7 +142,7 @@ def _add_attr(fnDependNode, name, data, cache=None):
 
     # Skip empty list
     is_multi = data_type == core.TYPE_LIST
-    if is_multi and len(filter(None, data)) == 0:
+    if is_multi and not [value for value in data if value]:
         return
 
     plug = None
@@ -185,7 +187,7 @@ def _set_attr(_plug, data, cache=None):
             _plug.setInt(data)
         elif isinstance(data, float):
             _plug.setFloat(data)
-        elif isinstance(data, basestring):
+        elif isinstance(data, str):
             _plug.setString(data)
             # pymel.Attribute(_plug).set(_val)
 
@@ -235,7 +237,6 @@ def _set_attr(_plug, data, cache=None):
         return
 
     else:
-        print data, data_type
         raise NotImplementedError
 
 
@@ -285,7 +286,7 @@ def _can_export_attr_by_name(name):
 
 def export_network(data, cache=None, **kwargs):
     if cache is None:
-        from cache import Cache
+        from .cache import Cache
         cache = Cache()
     #log.debug('CreateNetwork {0}'.format(data))
 
@@ -349,7 +350,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
     :return: An object instance corresponding to the provided network.
     """
     if cache is None:
-        from cache import Cache
+        from .cache import Cache
         cache = Cache()
 
     # Duck-type the network, if the '_class' attribute exist, it is a class instance representation.
@@ -413,7 +414,7 @@ def import_network(network, fn_skip=None, cache=None, **kwargs):
                 except KeyError:
                     pass
 
-    for attr_name, attr in attrs_by_longname.iteritems():
+    for attr_name, attr in attrs_by_longname.items():
         # logging.debug('Importing attribute {0} from {1}'.format(key, _network.name()))
         val = _get_network_attr(attr, fn_skip=fn_skip, cache=cache)
         # if hasattr(obj, key):
@@ -491,7 +492,7 @@ def iter_connected_networks(objs, key=None, key_skip=None, recursive=True, cache
         cache = []
 
     # Ensure objects are provided as a list.
-    if not hasattr(objs, '__iter__'):
+    if not isinstance(objs, (list, tuple)):
         objs = [objs]
 
     for obj in objs:

@@ -3,16 +3,16 @@ import json
 import logging
 import os
 
-import utils
-import classCtrl
-import classCtrlModel
-import classModule
-import classModuleMap
-import classModuleCompound
-import className
-import classNode
-import classRig
-from api import *
+from . import utils
+from . import classCtrl
+from . import classCtrlModel
+from . import classModule
+from . import classModuleMap
+from . import classModuleCompound
+from . import className
+from . import classNode
+from . import classRig
+from .api import *
 from . import plugin_manager
 
 log = logging.getLogger('omtk')

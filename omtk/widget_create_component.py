@@ -2,15 +2,11 @@
 Helper UI to create "Component".
 Component are a concept of OMTK2 backported to OMTK1 for convinience.
 """
-
-from ui import widget_create_component
-
-reload(widget_create_component)
-from omtk.vendor import libSerialization
-from omtk.libs import libComponent
-
 import pymel.core as pymel
 
+from omtk.vendor import libSerialization
+from omtk.libs import libComponent
+from .ui import widget_create_component
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
 
 

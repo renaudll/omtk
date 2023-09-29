@@ -4,6 +4,10 @@ Omtk is a lightweight suite of production rigging tools for Maya.
 This include an object-oriented modular autorig solution.
 Using metadata, generated rigs can be unbuilt and rebuilt if modifications need to be made.
 
+### Project Status
+
+This project is not being actively maintained anymore. Use at your own risk.
+
 ### Installation
 
 1. Clone the repository or download a release
@@ -24,25 +28,6 @@ The following rules simplify the implementation of the system and must be respec
 - Feets orientation and straight, always.
 - All python code should respect the PEP8 standards.
 - All nodes and attributes created in a Maya scene are in camelCase for better integration in Maya.
-
-### Third parties
-
-Omtk vendor the following third party libraries:
-
-### libFormula
-A lightweight programming language that create maya utility nodes setup by parsing mathematical formulas.
-
-Read the [documentation](http://github.com/renaudll/omtk/wiki/omtk.libs.libFormula).
-
-### libSerialization
-An IO module that allow serialization/deserialisation of Python objects to Maya networks.
-
-Read the [documentation](https://github.com/renaudll/libSerialization).
-
-### Qt.py
-Minimal Python 2 & 3 shim around all Qt bindings - PySide, PySide2, PyQt4 and PyQt5.
-
-Read the [documentation](https://github.com/mottosso/Qt.py)
 
 ### Testing
 

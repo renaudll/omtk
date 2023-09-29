@@ -65,8 +65,8 @@ def find():
     # TODO: Find why when a scene is open for a long time, this function is slower
     networks = libSerialization.get_networks_from_class('Rig')
     results = [libSerialization.import_network(network, module='omtk') for network in networks]
-    results = filter(None, results)  # Prevent un-serializable networks from passing through.
-    return results
+    # Prevent un-serializable networks from passing through.
+    return [result for result in results if result]
 
 
 def find_one():
@@ -186,7 +186,7 @@ def _get_modules_from_selection(sel=None):
 def with_preserve_selection():
     sel = pymel.selected()
     yield True
-    sel = filter(libPymel.is_valid_PyNode, sel)
+    sel = [obj for obj in sel if libPymel.is_valid_PyNode(obj)]
     if sel:
         pymel.select(sel)
     else:

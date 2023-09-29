@@ -1,4 +1,4 @@
-from decorators import memoized
+from .decorators import memoized
 from .core import get_class_namespace, get_class_module_root
 
 def iter_subclasses_recursive(cls):

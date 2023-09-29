@@ -62,7 +62,7 @@ class CtrlIkSwivel(BaseCtrl):
         :return: The created swivel node ctrl
         """
         # Resolve size automatically if refs are provided
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        ref = next(iter(refs), None) if isinstance(refs, (list, tuple)) else refs
         if size is None and ref is not None:
             size = libRigging.get_recommended_ctrl_size(ref)
         else:
@@ -109,7 +109,7 @@ class CtrlIkSwivel(BaseCtrl):
         super(CtrlIkSwivel, self).build(*args, **kwargs)
         assert (self.node is not None)
 
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        ref = next(iter(refs), None) if isinstance(refs, (list, tuple)) else refs
 
         # Create line
         if line_target is True and ref is not None:

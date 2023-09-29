@@ -3,7 +3,8 @@ import logging
 import inspect
 
 import pymel.core as pymel
-from classNode import Node
+
+from .classNode import Node
 from omtk import constants
 from omtk.libs import libAttr
 from omtk.libs import libPymel
@@ -91,7 +92,7 @@ class BaseCtrl(Node):
     '''
 
     def _get_recommended_size(self, refs, geometries, default_size=1.0, multiplier=1.0, **kwargs):
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        ref = next(iter(refs), None) if isinstance(refs, (list, tuple)) else refs
         if ref is not None:
             return libRigging.get_recommended_ctrl_size(ref, geometries=geometries, **kwargs) * multiplier
         else:
@@ -168,7 +169,7 @@ class BaseCtrl(Node):
             'scaleY': 1,
             'scaleZ': 1
         }
-        for attr_name, val in val_by_att_names.iteritems():
+        for attr_name, val in val_by_att_names.items():
             if not self.node.hasAttr(attr_name):
                 continue
 
@@ -302,7 +303,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute, node will be parented instead".format(self)
+            print("[setParent] {0} don't have an offset attribute, node will be parented instead".format(self))
             return self.node.setParent(*args, **kwargs)
         return self.offset.setParent(*args, **kwargs)
 
@@ -312,7 +313,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            print("[setParent] {0} don't have an offset attribute".format(self))
         return self.offset.setMatrix(*args, **kwargs)
 
     def setTranslation(self, *args, **kwargs):
@@ -321,7 +322,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            print("[setParent] {0} don't have an offset attribute".format(self))
         return self.offset.setTranslation(*args, **kwargs)
 
     def setRotation(self, *args, **kwargs):
@@ -330,7 +331,7 @@ class BaseCtrl(Node):
         Redirect the call to the ctrl top node.
         """
         if not isinstance(self.offset, pymel.PyNode):
-            print "[setParent] {0} don't have an offset attribute".format(self)
+            print("[setParent] {0} don't have an offset attribute".format(self))
         return self.offset.setRotation(*args, **kwargs)
 
     def hold_attrs_all(self):
@@ -404,7 +405,7 @@ class BaseCtrl(Node):
         # If no index is found, find the next available one
         new_max_idx = max(self._reserved_index) + 1
         # Since reserved index are always negative, we know that the first possible index is 0
-        for i in xrange(0, new_max_idx + 1):
+        for i in range(0, new_max_idx + 1):
             if i not in self._reserved_index:
                 self._reserved_index.append(i)  # Hack the reserved target list to include the new used index
                 return i

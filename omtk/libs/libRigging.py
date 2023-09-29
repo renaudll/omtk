@@ -7,7 +7,7 @@ from maya import OpenMaya
 from maya import cmds
 from maya import mel
 
-import libPython
+from . import libPython
 from omtk import constants
 from omtk.libs import libPymel
 
@@ -85,7 +85,7 @@ def hold_ctrl_shapes(transform, parent=None):
     def is_shape(shape):
         return isinstance(shape, pymel.nodetypes.CurveShape) and not shape.intermediateObject.get()
 
-    all_shapes = filter(is_shape, transform.getShapes(noIntermediate=True))
+    all_shapes = [shape for shape in transform.getShapes(noIntermediate=True) if is_shape(shape)]
     if not all_shapes:
         return
 
@@ -95,7 +95,8 @@ def hold_ctrl_shapes(transform, parent=None):
         def is_shape_history(hist):
             return is_shape(hist) and hist.getParent() == transform
 
-        return next(reversed(filter(is_shape_history, shape.listHistory())))
+        return next(reversed([hist for hist in shape.listHistory() if is_shape_history(hist)]))
+
 
     all_shapes = map(get_orig_shape, all_shapes)
 
@@ -154,7 +155,7 @@ def hold_ctrl_shapes(transform, parent=None):
 
 def fetch_ctrl_shapes(source, target):
     # Remove any previous shapes
-    pymel.delete(filter(lambda x: isinstance(x, pymel.nodetypes.CurveShape), target.getShapes()))
+    pymel.delete([shape for shape in target.getShapes() if isinstance(shape, pymel.nodetypes.CurveShape)])
     for source_shape in source.getShapes():
         source_shape.template.set(False)
         source_shape.setParent(target, r=True, s=True)
@@ -450,43 +451,6 @@ def create_chain_between_objects(obj_s, obj_e, samples, parented=True):
     return libPymel.PyNodeChain(new_objs)
 
 
-'''
-def reshape_ctrl(ctrl_shape, ref, multiplier=1.25):
-    if not isinstance(ctrl_shape, pymel.nodetypes.NurbsCurve):
-        raise Exception("Unexpected input, expected NurbsCurve, got {0}.".format(type(ctrl_shape)))
-
-    geometries = libHistory.get_affected_shapes(ref)
-    if not geometries:
-        print "Cannot resize {0}, found no affected geometries!".format(ctrl_shape)
-        return
-    pos = ctrl_shape.getParent().getTranslation(space='world')
-    pos = OpenMaya.MPoint(pos.x, pos.y, pos.z)
-
-    results = OpenMaya.MPointArray()
-
-    for i in range(ctrl_shape.numCVs()):
-        cv_pos = ctrl_shape.cv[i].getPosition(space='world')
-        length = None
-        dir = cv_pos - pos
-        dir.normalize()
-        dir = OpenMaya.MVector(dir.x, dir.y, dir.z)
-
-        # Resolve desired new length using raycast projection.
-        for geometry in geometries:
-            mfn_geometry = geometry.__apimfn__()
-            if mfn_geometry.intersect(pos, dir, results, 1.0e-10, OpenMaya.MSpace.kWorld):
-                cur_length = results[0].distanceTo(pos)
-                if length is None or cur_length > length:
-                    length = cur_length
-
-        if length is None:
-            continue
-
-        cv_new_pos = pos + (dir * length * multiplier)
-        ctrl_shape.cv[i].setPosition(cv_new_pos, space='world')
-'''
-
-
 # todo: check if memoized is really necessary?
 # @libPython.memoized
 def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=0.0, weight_neg_x=0.0, weight_y=1.0,
@@ -503,7 +467,8 @@ def get_recommended_ctrl_size(obj, geometries=None, default_value=1.0, weight_x=
         geometries = set()
         for skinCluster in skinClusters:
             geometries.update(skinCluster.getOutputGeometry())
-        geometries = filter(lambda x: isinstance(x, pymel.nodetypes.Mesh), geometries)  # Ensure we only deal with meshes
+        # Ensure we only deal with meshes
+        geometries = [geometry for geometry in geometries if isinstance(geometry, pymel.nodetypes.Mesh)]
 
     if geometries is None:
         log.warning("Cannot get recommended ctrl size. No geometries to do raycast on!")
@@ -748,8 +713,6 @@ def get_matrix_axis(tm, axis):
 def get_matrix_from_direction(look_vec, upp_vec,
                               look_axis=pymel.datatypes.Vector.xAxis,
                               upp_axis=pymel.datatypes.Vector.zAxis):
-    # print look_axis, look_vec
-    # print upp_axis, upp_vec
     # Ensure we deal with normalized vectors
     look_vec.normalize()
     upp_vec.normalize()

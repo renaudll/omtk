@@ -1,6 +1,7 @@
 import os
 import json
-import core
+
+from . import core
 
 __all__ = (
     'export_json',

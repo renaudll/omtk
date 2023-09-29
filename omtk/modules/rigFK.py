@@ -61,7 +61,7 @@ class FK(Module):
         # Ensure there's no None value in the .ctrls array.
         # This can happen if the rigging delete the stored shape before rebuilding.
         try:
-            self.ctrls = filter(None, self.ctrls)
+            self.ctrls = [ctrl for ctrl in self.ctrls if ctrl]
         except (AttributeError, TypeError):
             pass
         super(FK, self).__callbackNetworkPostBuild__()

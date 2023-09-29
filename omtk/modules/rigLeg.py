@@ -528,7 +528,7 @@ class LegIk(rigIK.IK):
         # Note that we also need to hijack the softik network.
         fn_can_delete = lambda x: isinstance(x, pymel.nodetypes.Constraint) and \
                                   not isinstance(x, pymel.nodetypes.PoleVectorConstraint)
-        pymel.delete(filter(fn_can_delete, self._ik_handle_target.getChildren()))
+        pymel.delete([obj for obj in self._ik_handle_target.getChildren() if fn_can_delete(obj)])
 
         if jnt_heel:
             pymel.parentConstraint(self.pivot_toes_heel, self._ik_handle_target, maintainOffset=True)

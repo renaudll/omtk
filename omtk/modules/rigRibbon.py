@@ -50,7 +50,7 @@ class Ribbon(Module):
         desired_ctrls_count = len(self._ribbon_jnts)
         if no_extremity:
             desired_ctrls_count -= 2
-        ctrls = filter(None, ctrls)
+        ctrls = [ctrl for ctrl in ctrls if ctrl]
         libPython.resize_list(ctrls, desired_ctrls_count)
 
         real_index = 0
@@ -164,7 +164,7 @@ class Ribbon(Module):
         pymel.skinCluster(list(self._ribbon_jnts), plane_tran, dr=1.0, mi=2.0, omi=True)
         try:
             libSkinning.assign_weights_from_segments(self._ribbon_shape, self._ribbon_jnts, dropoff=1.0)
-        except ZeroDivisionError, e:
+        except ZeroDivisionError as e:
             pass
 
         # Create the ctrls that will drive the joints that will drive the ribbon.
@@ -175,13 +175,6 @@ class Ribbon(Module):
             self.globalScale.connect(self.ribbon_chain_grp.scaleX)
             self.globalScale.connect(self.ribbon_chain_grp.scaleY)
             self.globalScale.connect(self.ribbon_chain_grp.scaleZ)
-
-        '''
-        if constraint:
-            for source, target in zip(self._ribbon_jnts, self.chain_jnt):
-                print source, target
-                pymel.parentConstraint(source, target, maintainOffset=True)
-        '''
 
     def unbuild(self):
         super(Ribbon, self).unbuild()

@@ -1,13 +1,15 @@
 #
 # Define a custom JSON Encoder that can be used to export PyNode and Attribute.
 #
+import json
+
 from maya import cmds
 import pymel.core as pymel
-import json
-from plugin_json import export_json
-from plugin_json import export_json_file
-from plugin_json import import_json
-from plugin_json import import_json_file
+
+from .plugin_json import export_json
+from .plugin_json import export_json_file
+from .plugin_json import import_json
+from .plugin_json import import_json_file
 __all__ = (
     'export_json_maya',
     'export_json_file_maya',

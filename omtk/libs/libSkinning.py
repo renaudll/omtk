@@ -60,10 +60,10 @@ def transfer_weights(obj, sources, target, add_missing_influences=False):
         influence_jnts.append(target)
 
     # Hack: Remove influences not present in skinCluster
-    sources = filter(lambda jnt: jnt in influence_jnts, sources)
+    sources = [src for src in sources if src in influence_jnts]
 
     if not sources:
-        print "Abording transfering on {0}, nothing to transfer".format(obj.name())
+        print("Abording transfering on {0}, nothing to transfer".format(obj.name()))
         return
 
     num_jnts = len(influence_jnts)
@@ -249,7 +249,7 @@ def transfer_weights_from_segments(obj, source, targets, dropoff=1.0, force_stra
     geometryDagPath = obj.__apimdagpath__()
     try:
         component = pymel.api.toComponentMObject(geometryDagPath)
-    except RuntimeError, e:
+    except RuntimeError as e:
         pymel.warning("Cannot access component for {0}. Is the shape empty?".format(obj))
         return False
 

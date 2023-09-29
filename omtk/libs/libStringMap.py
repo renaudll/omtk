@@ -8,7 +8,7 @@ class StringMap(object):
 
     def set_fields(self, **kwargs):
         new_fields = {}
-        for key, val in kwargs.iteritems():
+        for key, val in kwargs.items():
             new_fields['{0}'.format(key)] = val
         self.fields = kwargs
 

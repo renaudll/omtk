@@ -1,5 +1,5 @@
 from omtk.vendor.Qt import QtCore, QtWidgets
-from ui import widget_component_wizard_parts
+from .ui import widget_component_wizard_parts
 
 import pymel.core as pymel
 

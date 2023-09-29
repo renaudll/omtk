@@ -372,7 +372,7 @@ class Twistbone(Module):
         self.unassign_twist_weights()
 
         # React if the user deleted some twist influences.
-        self.subjnts = filter(libPymel.is_valid_PyNode, self.subjnts)
+        self.subjnts = [jnt for jnt in self.subjnts if libPymel.is_valid_PyNode(jnt)]
 
         # Remove scaling from the subjnts before unbuilding, otherwise scale issue will occur.
         for jnt in self.subjnts:

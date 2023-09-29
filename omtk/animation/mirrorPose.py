@@ -123,7 +123,7 @@ def get_ctrl_friend(obj_src):
         return None
 
     if not cmds.objExists(obj_dst_name):
-        print ("Can't find ctrl named {0}".format(obj_dst_name))
+        print("Can't find ctrl named {0}".format(obj_dst_name))
         return None
 
     return pymel.PyNode(obj_dst_name)
@@ -200,9 +200,7 @@ def get_obj_mirror_def(obj):
 @libPython.log_execution_time(__name__)
 def mirror_objs(objs):
     # Only work on transforms
-    objs = filter(
-        lambda obj: isinstance(obj, pymel.nodetypes.Transform) and not isinstance(obj, pymel.nodetypes.Constraint),
-        objs)
+    objs = [obj for obj in objs if isinstance(obj, pymel.nodetypes.Transform) and not isinstance(obj, pymel.nodetypes.Constraint)]
 
     # Resolve desired poses without affecting anything
     tms_by_objs = {}

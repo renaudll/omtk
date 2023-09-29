@@ -70,9 +70,10 @@ class Plugin(object):
             self.name = self.cls.__name__
             self.description = self.cls.__doc__
             if self.description:
-                self.description = next(iter(filter(None, self.description.split('\n'))), None)
+                lines = self.description.split('\n')
+                self.description = lines[0] if lines else None
             self.status = PluginStatus.Loaded
-        except Exception, e:
+        except Exception as e:
             self.status = PluginStatus.Failed
             self.description = str(e)
             log.warning("Plugin {0} failed to load! {0}".format(self.module_name, self.description))
@@ -296,7 +297,7 @@ class MacroPluginType(PluginType):
 def initialize():
     # Ensure paths in OMTK_PLUGINS is in the sys.path so they will get loaded.
     plugin_dirs = os.environ.get(constants.EnvironmentVariables.OMTK_PLUGINS, '').split(os.pathsep)
-    plugin_dirs = filter(None, plugin_dirs)
+    plugin_dirs = [plugin_dir for plugin_dir in plugin_dirs if plugin_dir]
     for path in plugin_dirs:
         if not path in sys.path:
             log.info("Adding to sys.path {0}".format(path))

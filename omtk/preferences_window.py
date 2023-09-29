@@ -1,4 +1,4 @@
-from ui import preferences_window
+from .ui import preferences_window
 from omtk.core import plugin_manager
 from omtk.core import preferences
 

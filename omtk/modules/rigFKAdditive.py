@@ -13,7 +13,7 @@ from omtk.modules import rigFK
 class CtrlFkAdd(BaseCtrl):
     def __createNode__(self, size=None, refs=None, *args, **kwargs):
         # Resolve size automatically if refs are provided.
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        ref = next(iter(refs), None) if isinstance(refs, (list, tuple)) else refs
         if size is None and ref is not None:
             size = libRigging.get_recommended_ctrl_size(ref)
         else:
@@ -49,7 +49,7 @@ class AdditiveFK(rigFK.FK):
         else:
             normal_data = {constants.Axis.x: (-1, 0, 0), constants.Axis.y: (0, -1, 0), constants.Axis.z: (0, 0, -1)}
 
-        self.additive_ctrls = filter(None, self.additive_ctrls)
+        self.additive_ctrls = [ctrl for ctrl in self.additive_ctrls if ctrl]
         if not self.additive_ctrls:
             ctrl_add = CtrlFkAdd()
             self.additive_ctrls.append(ctrl_add)

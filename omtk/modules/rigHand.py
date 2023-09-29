@@ -161,7 +161,7 @@ class Hand(Module):
                 sys_finger.grp_anm.setParent(self.grp_anm)
 
         # Rig the 'cup' setup
-        sys_metacarpals = filter(None, self.fk_sys_metacarpals)
+        sys_metacarpals = [obj for obj in self.fk_sys_metacarpals if obj]
         if len(sys_metacarpals) >= 2:
             pos_inn = sys_metacarpals[0].ctrls[0].getTranslation(space='world')
             pos_out = sys_metacarpals[-1].ctrls[0].getTranslation(space='world')

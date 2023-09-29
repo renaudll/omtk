@@ -1,7 +1,5 @@
-import sys
-
 from .core import *
-import constants
+from . import constants
 import pymel.core as pymel
 
 # HACK: Load matrixNodes.dll
@@ -18,10 +16,10 @@ def _reload():
     except:
         pass
 
-    import omtk
-    libPython.rreload(omtk)
+    import omtk.libs.libPython
+    omtk.libs.libPython.rreload(omtk)
 
 
 def show():
-    import main_window
+    import omtk.main_window
     main_window.show()

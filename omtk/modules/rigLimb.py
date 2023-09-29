@@ -16,7 +16,7 @@ from omtk.libs import libPython
 class BaseAttHolder(BaseCtrl):
     def __createNode__(self, size=None, refs=None, **kwargs):
         # Resolve size automatically if refs are provided.
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        ref = next(iter(refs), None) if isinstance(refs, (list, tuple)) else refs
         if size is None and ref is not None:
             size = libRigging.get_recommended_ctrl_size(ref)
         else:
@@ -35,7 +35,7 @@ class BaseAttHolder(BaseCtrl):
 class CtrlElbow(BaseCtrl):
     def __createNode__(self, size=None, refs=None, *args, **kwargs):
         # Resolve size automatically if refs are provided
-        ref = next(iter(refs), None) if isinstance(refs, collections.Iterable) else refs
+        ref = next(iter(refs), None) if isinstance(refs, (list, tuple)) else refs
         if size is None and ref is not None:
             size = libRigging.get_recommended_ctrl_size(ref) * 1.25
         else:

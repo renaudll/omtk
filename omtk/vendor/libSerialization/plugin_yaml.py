@@ -1,6 +1,7 @@
-import yaml
 import os
 import core
+
+import yaml
 
 __all__ = (
     'export_yaml',

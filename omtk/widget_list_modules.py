@@ -6,7 +6,7 @@ import logging
 import itertools
 
 import pymel.core as pymel
-from ui import widget_list_modules
+from .ui import widget_list_modules
 
 from omtk import constants
 from omtk import ui_shared
@@ -151,7 +151,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 data.validate()
             else:
                 raise Exception("Unexpected datatype {0} for {1}".format(type(data), data))
-        except Exception, e:
+        except Exception as e:
             if verbose:
                 validate_message = str(e)
                 pymel.warning("{0} failed validation: {1}".format(data, str(e)))
@@ -188,7 +188,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 val.build()
             else:
                 raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
-        except Exception, e:
+        except Exception as e:
             log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
             traceback.print_exc()
 
@@ -207,7 +207,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 val.unbuild()
             else:
                 raise Exception("Unexpected datatype {0} for {1}".format(type(val), val))
-        except Exception, e:
+        except Exception as e:
             log.error("Error building {0}. Received {1}. {2}".format(val, type(e).__name__, str(e).strip()))
             traceback.print_exc()
 
@@ -232,7 +232,7 @@ class WidgetListModules(QtWidgets.QWidget):
                 warning_msg = ''
                 try:
                     module.validate_version(version_major, version_minor, version_patch)
-                except Exception, e:
+                except Exception as e:
                     warning_msg = 'v{}.{}.{} is known to have issues and need to be updated: {}'.format(
                         version_major, version_minor, version_patch,
                         str(e)
@@ -551,7 +551,7 @@ class WidgetListModules(QtWidgets.QWidget):
 
                 self.deletedRig.emit(rig)
 
-            except Exception, e:
+            except Exception as e:
                 log.error("Error removing {0}. Received {1}. {2}".format(rig, type(e).__name__, str(e).strip()))
                 traceback.print_exc()
 
@@ -562,7 +562,7 @@ class WidgetListModules(QtWidgets.QWidget):
                     module.unbuild()
                 module.rig.remove_module(module)
                 need_reexport = True
-            except Exception, e:
+            except Exception as e:
                 log.error("Error removing {0}. Received {1}. {2}".format(module, type(e).__name__, str(e).strip()))
                 traceback.print_exc()
 

@@ -23,8 +23,8 @@ def _get_module_networks_from_selection(module_name):
     networks = libSerialization.get_connected_networks(sel, recursive=True, key=fn_key, key_skip=fn_skip)
 
     modules = [libSerialization.import_network(network, fn_skip=fn_skip) for network in networks]
-    modules = filter(None, modules)  # Filter any invalid networks that libSerialization doesn't protect us from.
-    return modules
+    # Filter any invalid networks that libSerialization doesn't protect us from.
+    return [module for module in modules if module]
 
 
 def _call_on_networks_by_class(fn_name, module_name):
@@ -42,7 +42,7 @@ def _call_on_networks_by_class(fn_name, module_name):
         # Execute function
         try:
             fn()
-        except Exception, e:
+        except Exception as e:
             logging.warning("Error excecuting {0} in {1}! {2}".format(fn_name, module, str(e)))
 
 

@@ -82,7 +82,7 @@ class PyNodeChain(list):
 
     # get the first pynode that have the attr
     def __getattr__(self, key):
-        logging.warning("Searching unknow attribute {key} in {self}", key=key, self=self)
+        logging.warning("Searching unknow attribute %s in %s", key, self)
         first_node = next((node for node in self.__dict__['_list'] if hasattr(node, key)), None)
         if first_node is not None:
             return getattr(first_node, key)
@@ -93,7 +93,7 @@ class PyNodeChain(list):
         for node in self:
             try:
                 setattr(node, key, value)
-            except Exception, e:
+            except Exception as e:
                 logging.error(str(e))
 
 
@@ -222,8 +222,9 @@ def ls(*args, **kwargs):
 # Wrapper for pymel.ls that return only objects without parents.
 def ls_root(*args, **kwargs):
     # TODO: Better finding of the root joint
-    return PyNodeChain(filter(lambda x: x.getParent() is None or type(x.getParent()) != pymel.nt.Joint,
-                              iter(pymel.ls(*args, **kwargs))))
+    objs = pymel.ls(*args, **kwargs)
+    objs = [obj for obj in objs if obj.getParent() is None or type(obj.getParent()) != pymel.nt.Joint]
+    return PyNodeChain(objs)
 
 
 def ls_root_anms(pattern='anm*', **kwargs):
@@ -385,35 +386,6 @@ class SegmentCollection(object):
                 weights = [weight / total_weight for weight in weights]
             knots_weights.append(weights)
         return knots_weights
-
-    '''
-    def get_weights(self, pos, dropoff=1.0, normalize=True):
-        # Compute the 'SegmentCollection' relative ratio and return the weight for each knots.
-        closest_segment, relative_ratio = self.closest_segment(pos)
-
-
-        index = self.segments.index(closest_segment)
-        absolute_ratio = relative_ratio + index
-
-        weights = []
-        total_weights = 0.0
-        for segment_ratio in range(len(self.knots)):
-            #segment_ratio += 0.5 # center of the joint
-            #print segment_ratio, absolute_ratio
-            distance = abs(segment_ratio - absolute_ratio)
-            weight = max(0, 1.0-(distance/dropoff))
-
-            # Apply cubic interpolation for greater results.
-            #weight = interp_cubic(weight)
-
-            total_weights += weight
-            weights.append(weight)
-
-        if normalize:
-            weights = [weight / total_weights for weight in weights]
-
-        return weights
-    '''
 
     @classmethod
     def from_transforms(cls, objs):

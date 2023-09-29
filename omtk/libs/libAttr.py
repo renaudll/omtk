@@ -708,7 +708,7 @@ def connect_to_avar(ctrl, avar_node, mapping_dict):
     regex_input_idx = "^input[[]{1}(\d)[]]{1}$"
 
     # First get the weightBlended from the needed avar
-    for avar_name, ctrl_attr_name in mapping_dict.iteritems():
+    for avar_name, ctrl_attr_name in mapping_dict.items():
         bw_list = avar_node.attr(avar_name).listConnections(c=False, d=False, t="blendWeighted")
         if len(bw_list) != 1:
             raise ("Could not connect ctrl {0} translation in avar node {1}".format(ctrl, avar_node))

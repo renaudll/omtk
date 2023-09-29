@@ -1,15 +1,14 @@
 import re
+
 import pymel.core as pymel
-from ui import widget_list_influences
 
 from omtk.libs import libQt
 from omtk.libs import libPython
 from omtk.libs import libPymel
-
 from omtk.vendor import libSerialization
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-import ui_shared
+from .ui import widget_list_influences
+from . import ui_shared
 
 
 class WidgetListInfluences(QtWidgets.QWidget):
@@ -125,7 +124,6 @@ class WidgetListInfluences(QtWidgets.QWidget):
     def _can_show_QTreeWidgetItem(self, qItem, query_regex):
         obj = qItem.obj  # Retrieve monkey-patched data
         obj_name = obj.name()
-        # print obj_name
 
         if not re.match(query_regex, obj_name, re.IGNORECASE):
             return False

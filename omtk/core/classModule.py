@@ -75,7 +75,7 @@ class Module(object):
 
         # Ensure there's no None value in the .input array as this is not supported..
         try:
-            self.input = filter(None, self.input)
+            self.input = [obj for obj in self.input if obj]
         except (AttributeError, TypeError):
             pass
 
@@ -242,7 +242,7 @@ class Module(object):
         """
         :return: The first input of type pymel.nodetypes.Joint.
         """
-        return next(iter(filter(None, self.jnts)), None)  # Hack: remove filter, find why it happen
+        return next((jnt for jnt in self.jnts if jnt), None)
 
     @libPython.cached_property()
     def chains(self):
@@ -397,7 +397,7 @@ class Module(object):
         :param kwargs: TO REMOVE? #todo
         """
         # Safety check, ensure that the name is a string and not a BaseName instance passed by accident.
-        if name and not isinstance(name, basestring):
+        if name and not isinstance(name, str):
             raise IOError("Unexpected type for parameter name, expected basestring, got {0}. Value is {1}.".format(
                 type(name), name
             ))
@@ -437,7 +437,7 @@ class Module(object):
         if version:
             version = ' v{}'.format(version)
         return '{} <{}{}>'.format(
-            self.name.encode('utf-8'),
+            self.name,
             self.__class__.__name__,
             version
         )
@@ -601,8 +601,8 @@ class Module(object):
 
         # Delete the ctrls in reverse hyerarchy order.
         ctrls = self.get_ctrls()
-        ctrls = filter(libPymel.is_valid_PyNode, ctrls)
-        ctrls = reversed(sorted(ctrls, key=libPymel.get_num_parents))
+        ctrls = [ctrl for ctrl in ctrls if libPymel.is_valid_PyNode(ctrl)]
+        ctrls = list(reversed(sorted(ctrls, key=libPymel.get_num_parents)))
         for ctrl in ctrls:
             ctrl.unbuild()
 

@@ -944,7 +944,6 @@ class ParserElement(object):
         debugging = ( self.debug ) #and doActions )
 
         if debugging or self.failAction:
-            #~ print ("Match",self,"at loc",loc,"(%d,%d)" % ( lineno(loc,instring), col(loc,instring) ))
             if (self.debugActions[0] ):
                 self.debugActions[0]( instring, loc, self )
             if callPreParse and self.callPreparse:
@@ -958,7 +957,6 @@ class ParserElement(object):
                 except IndexError:
                     raise ParseException( instring, len(instring), self.errmsg, self )
             except ParseBaseException as err:
-                #~ print ("Exception raised:", err)
                 if self.debugActions[2]:
                     self.debugActions[2]( instring, tokensStart, self, err )
                 if self.failAction:
@@ -992,7 +990,6 @@ class ParserElement(object):
                                                       asList=self.saveAsList and isinstance(tokens,(ParseResults,list)),
                                                       modal=self.modalResults )
                 except ParseBaseException as err:
-                    #~ print "Exception raised in user parse action:", err
                     if (self.debugActions[2] ):
                         self.debugActions[2]( instring, tokensStart, self, err )
                     raise
@@ -1006,7 +1003,6 @@ class ParserElement(object):
                                                   modal=self.modalResults )
 
         if debugging:
-            #~ print ("Matched",self,"->",retTokens.asList())
             if (self.debugActions[1] ):
                 self.debugActions[1]( instring, tokensStart, loc, self, retTokens )
 
@@ -3254,7 +3250,6 @@ def oneOf( strs, caseless=False, useRegex=True ):
             i += 1
 
     if not caseless and useRegex:
-        #~ print (strs,"->", "|".join( [ _escapeRegexChars(sym) for sym in symbols] ))
         try:
             if len(symbols)==len("".join(symbols)):
                 return Regex( "[%s]" % "".join(_escapeRegexRangeChars(sym) for sym in symbols) )

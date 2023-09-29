@@ -4,11 +4,11 @@ import os
 import logging
 from collections import defaultdict
 
-import core
-
 from maya import cmds
 import pymel.core as pymel
 from maya import OpenMaya
+
+from . import core
 from omtk.core import api
 from omtk.core import classModule
 from omtk.libs import libPython
@@ -416,7 +416,7 @@ class AutoRig(QtWidgets.QMainWindow):
                 influence = item.metadata_data
                 items_to_remove_by_module[module].append(influence)
 
-        for module, influences in items_to_remove_by_module.iteritems():
+        for module, influences in items_to_remove_by_module.items():
             for influence in influences:
                 module.input.remove(influence)
                 need_update = True
@@ -439,22 +439,18 @@ class AutoRig(QtWidgets.QMainWindow):
         return nomenclature.side == nomenclature.SIDE_R
 
     def _get_l_influences(self):
-        objs = self.root.get_potential_influences()
-        # Filter joints
-        fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
-        objs = filter(fn_filter, objs)
-        # Filter l side only
-        fn_filter = functools.partial(self._is_l_influence, self.root)
-        return filter(fn_filter, objs)
+        return [
+            obj
+            for obj in self.root.get_potential_influences()
+            if isinstance(obj, pymel.nodetypes.Joint) and self._is_l_influence(self.root, obj)
+        ]
 
     def _get_r_influences(self):
-        objs = self.root.get_potential_influences()
-        # Filter joints
-        fn_filter = lambda x: isinstance(x, pymel.nodetypes.Joint)
-        objs = filter(fn_filter, objs)
-        # Filter r side only
-        fn_filter = functools.partial(self._is_r_influence, self.root)
-        return filter(fn_filter, objs)
+        return [
+            obj
+            for obj in self.root.get_potential_influences()
+            if isinstance(obj, pymel.nodetypes.Joint) and self._is_r_influence(self.root, obj)
+        ]
 
     def on_mirror_influences_l_to_r(self):
         objs = self._get_l_influences()
@@ -502,11 +498,11 @@ class AutoRig(QtWidgets.QMainWindow):
         log.info('Closed OMTK GUI')
         try:
             self.ui.widget_logger.remove_logger_handler()
-        except Exception, e:
+        except Exception as e:
             log.warning("Error removing logging handler: {0}:".format(e))
         try:
             self.remove_callbacks()
-        except Exception, e:
+        except Exception as e:
             log.warning("Error removing callbacks: {0}".format(e))
         QtWidgets.QMainWindow.closeEvent(self, *args)
 

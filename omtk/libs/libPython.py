@@ -5,6 +5,7 @@ import time
 import functools
 import collections
 import inspect
+import importlib
 
 logging = logging.getLogger('libPython')
 logging.setLevel(0)
@@ -74,8 +75,8 @@ class cached_property(object):
             cache[self.__name__] = self.fget(inst)
             et = time.time() - st
             if (et - st) > 1:  # 1 second
-                print '[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}'.format(et, inst.__class__.__name__,
-                                                                                            self.__name__)
+                print('[cached_properties] Updating took {0:02.4f} seconds: {1}.{2}'.format(et, inst.__class__.__name__,
+                                                                                            self.__name__))
 
         return cache[self.__name__]
 
@@ -327,7 +328,6 @@ def rreload(module):
             return None
         _known.add(m)
 
-        # print "accepted", m
         for name, value in inspect.getmembers(m):
             # Reload module
             if inspect.ismodule(value):
@@ -341,7 +341,6 @@ def rreload(module):
                     if _filter(cls_module):
                         cls_module = _reload(cls_module)  # if reload occurred
 
-                        # print "Successfully reloaded {}, will update {}".format(cls_module.__name__, name)
                         # Update local class pointer
                         try:
                             cls_name = getattr(cls_module, value.__name__)
@@ -349,7 +348,6 @@ def rreload(module):
                             print("{}.{} error: {}".format(cls_module.__name__, value.__name__, e))
                             continue
 
-                        # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, cls_module.__name__, name)
                         setattr(m, name, cls_name)
 
             # Reload function
@@ -357,7 +355,6 @@ def rreload(module):
                 fn_module = inspect.getmodule(value)
                 if fn_module:
                     if _filter(fn_module):
-                        # print 'reloading function %s' % [value, fn_module]
                         fn_module = _reload(fn_module)
 
                         try:
@@ -366,13 +363,11 @@ def rreload(module):
                             print("{}.{} error: {}".format(fn_module.__name__, value.__name__, e))
                             continue
 
-                        # print "set {}.{} to {} ({}.{})".format(m_name, name, cls_name, fn_module.__name__, name)
                         setattr(m, name, cls_name)
 
-        print "reload %s" % m_name
-        reload(module)
+        print("reload %s" % m_name)
+        importlib.reload(module)
         _reloaded[m_name] = module
         return module
 
-    # print "rreloading %s" % module.__name__
     _reload(module)

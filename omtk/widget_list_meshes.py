@@ -1,13 +1,12 @@
 import re
+
 import pymel.core as pymel
-from ui import widget_list_meshes
 
 from omtk.libs import libSkinning
 from omtk.libs import libQt
-
 from omtk.vendor.Qt import QtCore, QtGui, QtWidgets
-
-import ui_shared
+from .ui import widget_list_meshes
+from . import ui_shared
 
 
 class WidgetListMeshes(QtWidgets.QWidget):
@@ -39,7 +38,7 @@ class WidgetListMeshes(QtWidgets.QWidget):
         # Hack: force cache to invalidate
         # try:
         #     self._rig.get_meshes.func.im_self.cache.clear()
-        # except Exception, e:
+        # except Exception as e:
         #     pass
         all_meshes = self._rig.get_shapes()
 

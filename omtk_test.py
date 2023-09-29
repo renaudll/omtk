@@ -118,7 +118,7 @@ def verified_offset(objs, offset_tm, **kwargs):
         desired_tm = old_tm * offset_tm
         try:
             assertMatrixAlmostEqual(new_tm, desired_tm, **kwargs)
-        except Exception, e:
+        except Exception as e:
             raise Exception("Invalid transform for {}. {}".format(obj, e))
 
 
